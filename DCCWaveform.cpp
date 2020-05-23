@@ -230,6 +230,8 @@ bool DCCWaveform::getAck()
      maxCurrent=max(maxCurrent,current);
      if (current<= ACK_MAX_NOT_PULSE)break;
   }
-  DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
+  // The following DIAG is really useful as it can show how long and how far the 
+  // current changes during an ACK from the decoder.
+  // DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
   return result;
 }
