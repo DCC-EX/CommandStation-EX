@@ -140,6 +140,8 @@ bool DCCWaveform::interrupt1() {
   return false;
  
 }
+
+
 void DCCWaveform::interrupt2() {
   // set currentBit to be the next bit to be sent.
   
@@ -209,29 +211,30 @@ bool DCCWaveform::getAck()
   
    if (isMainTrack) return false; // cant do this on main track
  
-  while(packetPending) delay(1); // wait until transmitter has gont into reset packets
-  delay(20); // time for enough resets  
+  while(packetPending) delay(1); // wait until transmitter has started transmitting the message
   unsigned long timeout=millis()+ACK_TIMEOUT;
   int maxCurrent=0;
   bool result=false;
   int upsamples=0;
   int downsamples=0;
+
+  // Monitor looking for a reading high enough to be an ack 
   while(result==false && timeout>millis()) {
     upsamples++;
-    delay(1);
     int current=analogRead(sensePin);
     maxCurrent=max(maxCurrent,current);
     result=current > ACK_MIN_PULSE;
   }
+
+  // Monitor current until ack signal dies back
   if (result) while( true) {
      downsamples++;
-     delay(1);
      int current=analogRead(sensePin);
      maxCurrent=max(maxCurrent,current);
-     if (current<= ACK_MAX_NOT_PULSE)break;
+     if (current<= ACK_MAX_NOT_PULSE) break;
   }
   // The following DIAG is really useful as it can show how long and how far the 
   // current changes during an ACK from the decoder.
-  // DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
+ // DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
   return result;
 }
