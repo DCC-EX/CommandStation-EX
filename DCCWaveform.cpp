@@ -59,11 +59,19 @@ DCCWaveform::DCCWaveform(byte powerPinNo, byte directionPinNo, byte sensePinNo, 
    bytes_sent=0;
    bits_sent=0;
    nextSampleDue=0;
+   
 }
  void DCCWaveform::beginTrack() {
    pinMode2f(powerPin,OUTPUT);
    pinMode2f(directionPin,OUTPUT);
    pinMode(sensePin,INPUT);
+   
+   if (isMainTrack && RAILCOM_CUTOUT) {
+       railcomBrakePin=Arduino_to_GPIO_pin(RAILCOM_BRAKE_PIN);
+       pinMode2f(railcomBrakePin, OUTPUT);
+       digitalWrite2f(railcomBrakePin, LOW);
+   }
+   
    setPowerMode(POWERMODE::ON); 
    DIAG(F("\nTrack started sensePin=%d\n"),sensePin); 
  }
@@ -121,20 +129,23 @@ bool DCCWaveform::interrupt1() {
   switch (state) {
     case 0:  // start of bit transmission
       digitalWrite2f(directionPin, HIGH);
+      checkRailcom();
       state = 1;
-      return true; // must call interrupt2
+      return true; // must call interrupt2 to set currentBit
 
-    case 1:  // 58Ms after case 0
+    case 1:  // 58us after case 0
       if (currentBit) {
         digitalWrite2f(directionPin, LOW);
         state = 0;
       }
       else state = 2;
       break;
-    case 2:  digitalWrite2f(directionPin, LOW);
+    case 2:  // 116us after case 0
+      digitalWrite2f(directionPin, LOW);
       state = 3;
       break;
-    case 3:  state = 0;
+    case 3:  // finished sending zero bit  
+      state = 0;
     break;
   }
   return false;
@@ -186,7 +197,18 @@ void DCCWaveform::interrupt2() {
       }
     }
   }
-
+  
+void DCCWaveform::checkRailcom() {
+     if (isMainTrack && RAILCOM_CUTOUT) {
+        byte preamble=PREAMBLE_BITS_MAIN - remainingPreambles;
+        if (preamble == RAILCOM_PREAMBLES_BEFORE_CUTOUT) {
+            digitalWrite2f(railcomBrakePin,HIGH);
+        }
+        else if (preamble== RAILCOM_PREAMBLES_BEFORE_CUTOUT+RAILCOM_PREAMBLES_SKIPPED_IN_CUTOUT) {
+            digitalWrite2f(railcomBrakePin,LOW);
+        }
+     }
+}
 
   // Wait until there is no packet pending, then make this pending  
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
