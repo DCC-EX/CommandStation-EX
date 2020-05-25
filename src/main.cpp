@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <CommandStation.h>
+#include <ArduinoTimers.h>
 
 DCC* mainTrack = DCC::Create_WSM_SAMCommandStation_Main(50);
 DCC* progTrack = DCC::Create_WSM_SAMCommandStation_Prog(2);
@@ -14,17 +15,17 @@ void prog_IrqHandler() {
 
 void setup() {
 #if defined (ATSAMD21G)
-    CommManager::registerInterface(new SerialInterface(SerialUSB));     // Register SerialUSB as an interface
+    CommManager::registerInterface(new USBInterface(SerialUSB));     // Register SerialUSB as an interface
     
-    TimerTCC0.initialize();
-    TimerTCC0.setPeriod(58);
-    TimerTCC0.attachInterrupt(main_IrqHandler);
-    TimerTCC0.start();
+    mainTrack->int_timer->initialize();
+    mainTrack->int_timer->setPeriod(58);
+    mainTrack->int_timer->attachInterrupt(main_IrqHandler);
+    mainTrack->int_timer->start();
     
-    TimerTCC1.initialize();
-    TimerTCC1.setPeriod(58);
-    TimerTCC1.attachInterrupt(prog_IrqHandler);
-    TimerTCC1.start();
+    progTrack->int_timer->initialize();
+    progTrack->int_timer->setPeriod(58);
+    progTrack->int_timer->attachInterrupt(prog_IrqHandler);
+    progTrack->int_timer->start();
 #elif defined(ATMEGA2560)
     CommManager::registerInterface(new SerialInterface(Serial));        // Register Serial (USB port on mega/uno) as an interface
 
