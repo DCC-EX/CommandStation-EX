@@ -1,7 +1,7 @@
 
 struct JMRIParser
 {
-    static void parse(const char * command);
+    static void parse(Stream & stream,const char * command);
 
    private:
     static const int MAX_PARAMS=10; 

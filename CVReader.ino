@@ -58,7 +58,7 @@ void loop() {
     } 
     else if (ch == '>') {
       buffer[bufferLength]='\0';
-      JMRIParser::parse(buffer);
+      JMRIParser::parse(Serial, buffer);
       inCommandPayload = false;
     } else if(inCommandPayload) {
       buffer[bufferLength++]= ch;

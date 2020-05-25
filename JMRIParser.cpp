@@ -2,7 +2,7 @@
 #include "JMRIParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#include "DIAG.h"
+
 // This is a JMRI command parser
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
@@ -10,10 +10,10 @@
 //
 
 int JMRIParser::p[MAX_PARAMS];
-
+ 
 // See documentation on DCC class for info on this section
-void JMRIParser::parse(const char *com) {
-    DIAG(F("\nParsing %s\n"),com);
+void JMRIParser::parse(Stream  & stream,const char *com) {
+    StringParser::send(stream,F("\nParsing %s\n"),com);
     
     bool result;
     int params=StringParser::parse(com+1,p,MAX_PARAMS); 
@@ -24,7 +24,7 @@ void JMRIParser::parse(const char *com) {
 
     case 't':       // <t REGISTER CAB SPEED DIRECTION>
         DCC::setThrottle(p[1],p[2],p[3]);
-        DIAG(F("<T %d %d %d>"), p[0], p[2],p[3]);
+        StringParser::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
         break;
     
 /***** OPERATE ENGINE DECODER FUNCTIONS F0-F28 ****/
@@ -233,7 +233,7 @@ void JMRIParser::parse(const char *com) {
         */
         
         result=DCC::writeCVByte(p[0],p[1]);
-        DIAG(F("<r%d|%d|%d %d>"), p[2], p[3],p[0],result?p[1]:-1);
+        StringParser::send(stream,F("<r%d|%d|%d %d>"), p[2], p[3],p[0],result?p[1]:-1);
         break;
 
 /***** WRITE CONFIGURATION VARIABLE BIT TO ENGINE DECODER ON PROGRAMMING TRACK  ****/
@@ -253,7 +253,7 @@ void JMRIParser::parse(const char *com) {
         */
 
         result=DCC::writeCVBit(p[0],p[1],p[2]);
-        DIAG(F("<r%d|%d|%d %d %d>"), p[3],p[4], p[0],p[1],result?p[2]:-1);
+        StringParser::send(stream,F("<r%d|%d|%d %d %d>"), p[3],p[4], p[0],p[1],result?p[2]:-1);
         break;
 
 /***** READ CONFIGURATION VARIABLE BYTE FROM ENGINE DECODER ON PROGRAMMING TRACK  ****/
@@ -270,7 +270,7 @@ void JMRIParser::parse(const char *com) {
         *    where VALUE is a number from 0-255 as read from the requested CV, or -1 if read could not be verified
         */
        
-        DIAG(F("<r%d|%d|%d %d>"),p[1],p[2],p[0],DCC::readCV(p[0]));
+        StringParser::send(stream,F("<r%d|%d|%d %d>"),p[1],p[2],p[0],DCC::readCV(p[0]));
         break;
 
 /***** TURN ON POWER FROM MOTOR SHIELD TO TRACKS  ****/
@@ -283,7 +283,7 @@ void JMRIParser::parse(const char *com) {
         */
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DIAG(F("<p1>"));
+        StringParser::send(stream,F("<p1>"));
         break;
 
 /***** TURN OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/
@@ -296,7 +296,7 @@ void JMRIParser::parse(const char *com) {
         */
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-        DIAG(F("<p0>"));
+        StringParser::send(stream,F("<p0>"));
         break;
 
 #ifdef THIS_IS_NOT_YET_COMPLETE    
@@ -309,7 +309,7 @@ void JMRIParser::parse(const char *com) {
         *    returns: <a CURRENT>
         *    where CURRENT = 0-1024, based on exponentially-smoothed weighting scheme
         */
-        DIAG(F("<a %d>"), DCCWaveform:mainTrack->getLastRead());
+        StringParser::send(stream,F("<a %d>"), DCCWaveform:mainTrack->getLastRead());
         break;
 
 /***** READ STATUS OF DCC++ BASE STATION  ****/
@@ -360,15 +360,15 @@ void JMRIParser::parse(const char *com) {
         CommManager::printf("<O>");
         break;
 #endif
-/***** PRINT CARRIAGE RETURN IN SERIAL MONITOR WINDOW  ****/
+/***** PRINT CARRIAGE RETURN IN stream MONITOR WINDOW  ****/
 
     case ' ':     // < >
         /*
-        *    simply prints a carriage return - useful when interacting with Ardiuno through serial monitor window
+        *    simply prints a carriage return - useful when interacting with Ardiuno through stream monitor window
         *
         *    returns: a carriage return
         */
-        DIAG(F("\n"));
+        StringParser::send(stream,F("\n"));
         break;
     }
 }
