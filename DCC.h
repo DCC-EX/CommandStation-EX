@@ -1,6 +1,5 @@
 #include <Arduino.h>
-const byte MAX_LOCOS=200;
-
+const byte MAX_LOCOS=50;
 
 class DCC {
   public:

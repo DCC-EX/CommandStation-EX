@@ -1,5 +1,6 @@
 #include "DCC.h"
 #include "DIAG.h"
+#include "JMRIParser.h"
 
 /* this code is here to test the waveforwe generator and reveal the issues involved in programming track operations.
  *  
@@ -29,10 +30,40 @@ void setup() {
     int value=DCC::readCV(cvnums[x]);
     DIAG(F("\nCV %d = %d  0x%x  %s"),cvnums[x],value,value, value>=0?" VERIFIED OK":"FAILED VERIFICATION"); 
   }
+  DIAG(F("\n===== CVReader done ==============================\n"));
   
- DIAG(F("\nProgram complete, press reset to retry"));
+ 
+  
+ DIAG(F("\nReady for JMRI\n"));
 }
+
+const byte MAX_BUFFER=100;
+char buffer[MAX_BUFFER];
+byte bufferLength=0;
+bool inCommandPayload=false;
 
 void loop() {
   DCC::loop();
+  while(Serial.available()) {
+    if (bufferLength==MAX_BUFFER) {
+      DIAG(F("\n**Buffer cleared**\n"));
+      bufferLength=0;
+      inCommandPayload=false;
+    }
+    char ch = Serial.read();
+    if (ch == '<') {
+      inCommandPayload = true;
+      bufferLength=0;
+      buffer[0]='\0';
+    } 
+    else if (ch == '>') {
+      buffer[bufferLength]='\0';
+      JMRIParser::parse(buffer);
+      inCommandPayload = false;
+    } else if(inCommandPayload) {
+      buffer[bufferLength++]= ch;
+    }
   }
+  }
+
+  
