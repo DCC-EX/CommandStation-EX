@@ -1,6 +1,31 @@
 #include "StringParser.h"
 #include <stdarg.h>
 
+byte  StringParser::bufferLength=0;
+bool  StringParser::inCommandPayload=false;
+char  StringParser::buffer[MAX_BUFFER];
+
+void StringParser::loop(Stream & stream, void (*callback)(Stream & stream, const char * data) ) {
+  while(stream.available()) {
+    if (bufferLength==MAX_BUFFER) {
+       bufferLength=0;
+      inCommandPayload=false;
+    }
+    char ch = stream.read();
+    if (ch == '<') {
+      inCommandPayload = true;
+      bufferLength=0;
+      buffer[0]='\0';
+    } 
+    else if (ch == '>') {
+      buffer[bufferLength]='\0';
+      (*callback)(Serial, buffer);
+      inCommandPayload = false;
+    } else if(inCommandPayload) {
+      buffer[bufferLength++]= ch;
+    }
+  }
+  }
 int StringParser::parse(const char * com, int result[], byte maxResults) {
   byte state=1;
   byte parameterCount=0;

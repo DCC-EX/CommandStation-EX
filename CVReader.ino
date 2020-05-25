@@ -30,40 +30,14 @@ void setup() {
     int value=DCC::readCV(cvnums[x]);
     DIAG(F("\nCV %d = %d  0x%x  %s"),cvnums[x],value,value, value>=0?" VERIFIED OK":"FAILED VERIFICATION"); 
   }
-  DIAG(F("\n===== CVReader done ==============================\n"));
-  
- 
-  
- DIAG(F("\nReady for JMRI\n"));
+  DIAG(F("\n===== CVReader done ==============================\n"));  
+  DIAG(F("\nReady for JMRI commands\n"));
 }
 
-const byte MAX_BUFFER=100;
-char buffer[MAX_BUFFER];
-byte bufferLength=0;
-bool inCommandPayload=false;
-
 void loop() {
-  DCC::loop();
-  while(Serial.available()) {
-    if (bufferLength==MAX_BUFFER) {
-      DIAG(F("\n**Buffer cleared**\n"));
-      bufferLength=0;
-      inCommandPayload=false;
-    }
-    char ch = Serial.read();
-    if (ch == '<') {
-      inCommandPayload = true;
-      bufferLength=0;
-      buffer[0]='\0';
-    } 
-    else if (ch == '>') {
-      buffer[bufferLength]='\0';
-      JMRIParser::parse(Serial, buffer);
-      inCommandPayload = false;
-    } else if(inCommandPayload) {
-      buffer[bufferLength++]= ch;
-    }
-  }
-  }
-
+  DCC::loop(); // required to keep locos running and check powwer
+ 
+  // This line passes input on Serial to the JMRIparser 
+  StringParser::loop(Serial, JMRIParser::parse);
+}
   
