@@ -2,6 +2,7 @@
 #include "Hardware.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
+#include "Railcom.h"
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
@@ -185,7 +186,7 @@ void DCCWaveform::checkRailcom() {
   if (isMainTrack && RAILCOM_CUTOUT) {
     byte preamble = PREAMBLE_BITS_MAIN - remainingPreambles;
     if (preamble == RAILCOM_PREAMBLES_BEFORE_CUTOUT) {
-      // TODO     Railcom::startCutout();
+       Railcom::startCutout();
     }
   }
 }

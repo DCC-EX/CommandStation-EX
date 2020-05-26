@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <TimerOne.h>
 #include <TimerThree.h>
 
 #include "Hardware.h"
@@ -39,4 +40,14 @@ void Hardware::setCallback(int duration, void (*isr)()) {
   Timer3.disablePwm(TIMER3_A_PIN);
   Timer3.disablePwm(TIMER3_B_PIN);
   Timer3.attachInterrupt(isr);
+}
+void Hardware::setSingleCallback(int duration, void (*isr)()) {
+  Timer1.initialize(duration);
+  Timer1.disablePwm(TIMER1_A_PIN);
+  Timer1.disablePwm(TIMER1_B_PIN);
+  Timer1.attachInterrupt(isr);
+}
+void Hardware::resetSingleCallback(int duration) {
+  if (duration==0) Timer1.stop();
+  else Timer1.initialize(duration);
 }
