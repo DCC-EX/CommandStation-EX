@@ -207,37 +207,41 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   packetPending = true;
 }
 
-
-
-bool DCCWaveform::getAck()
-{
-
-  if (isMainTrack) return false; // cant do this on main track
-
+// Wait until there is no packet pending, then make this pending
+bool DCCWaveform::schedulePacketWithAck(const byte buffer[], byte byteCount, byte repeats) {
+  
+  if (isMainTrack) return false; 
+  int baseline=0;
+  for (int i=0;i<ACK_BASELINE_SAMPLES;i++) {
+    baseline += Hardware::getCurrentMilliamps(isMainTrack);
+  }
+  baseline/=ACK_BASELINE_SAMPLES;
+  int upTrigger=baseline+ACK_MIN_PULSE;
+ 
+  
+  DIAG(F("\nACK baseline=%d upT=%d "),baseline, upTrigger);
+  
+  schedulePacket(buffer,byteCount,repeats);
   while (packetPending); // wait until transmitter has started transmitting the message
+
   unsigned long timeout = millis() + ACK_TIMEOUT;
   int maxCurrent = 0;
   bool result = false;
   int upsamples = 0;
-  int downsamples = 0;
+  
 
-  // Monitor looking for a reading high enough to be an ack
-  while (result == false && timeout > millis()) {
-    upsamples++;
+  // Monitor looking for an ack signal rise of at least 60mA but keep going for the timeout 
+  while (timeout > millis()) {
     int current = Hardware::getCurrentMilliamps(isMainTrack);
     maxCurrent = max(maxCurrent, current);
-    result = current > ACK_MIN_PULSE;
-  }
-
-  // Monitor current until ack signal dies back
-  if (result) while ( true) {
-      downsamples++;
-      int current = Hardware::getCurrentMilliamps(isMainTrack);
-      maxCurrent = max(maxCurrent, current);
-      if (current <= ACK_MAX_NOT_PULSE) break;
+    if  (current>upTrigger) {
+      result=true;
+      upsamples++;
     }
+    }
+
   // The following DIAG is really useful as it can show how long and how far the
   // current changes during an ACK from the decoder.
-  DIAG(F("\nack=%d  max=%d, up=%d, down=%d "), result, maxCurrent, upsamples, downsamples);
+  DIAG(F("ack=%d  max=%d, up=%d"), result, maxCurrent, upsamples);
   return result;
 }

@@ -8,9 +8,9 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;
 
 
 // ACK current analogRead values (vary depending on motor shield and cpu voltage)
+const int   ACK_BASELINE_SAMPLES = 250 ;  // current samples before sending ACKable request
 const int   ACK_TIMEOUT = 25 ;  // millis getAck is prepared to wait for a signal
-const int   ACK_MAX_NOT_PULSE = 40 ;  // current below which this is NOT a pulse any more
-const int   ACK_MIN_PULSE = 50 ;   // current above which a pulse is recognised
+const int   ACK_MIN_PULSE = 60 ;   // current above baseline which a pulse is recognised
 
 const int   PREAMBLE_BITS_MAIN = 20;
 const int   PREAMBLE_BITS_PROG = 22;
@@ -18,8 +18,6 @@ const int   PREAMBLE_BITS_PROG = 22;
 // Railcom settings
 const bool RAILCOM_CUTOUT = true;
 const byte RAILCOM_PREAMBLES_BEFORE_CUTOUT = 1; // how far into the preamble do we cutout
-const byte RAILCOM_PREAMBLES_SKIPPED_IN_CUTOUT = 5;
-const byte RAILCOM_BRAKE_PIN = 9;
 
 
 
@@ -46,9 +44,8 @@ class DCCWaveform {
     POWERMODE getPowerMode();
     void checkPowerOverload();
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
+    bool schedulePacketWithAck(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
-    bool  startAckProcess();
-    bool  getAck();
 
 
   private:

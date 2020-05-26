@@ -20,6 +20,9 @@ void Hardware::init() {
 void Hardware::setPower(bool isMainTrack, bool on) {
   digitalWrite(isMainTrack ? MAIN_POWER_PIN : PROG_POWER_PIN, on ? HIGH : LOW);
 }
+void Hardware::setBrake(bool isMainTrack, bool on) {
+  digitalWrite(isMainTrack ? MAIN_BRAKE_PIN : PROG_BRAKE_PIN, on ? LOW:HIGH);
+}
 
 void Hardware::setSignal(bool isMainTrack, bool high) {
   byte pin = isMainTrack ? MAIN_SIGNAL_PIN : PROG_SIGNAL_PIN;

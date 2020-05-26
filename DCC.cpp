@@ -125,8 +125,7 @@ bool DCC::writeCVBit(int cv, byte bNum, bool bValue)  {
     bitWrite(message[2],4,1);              // change instruction code from Write Bit to Verify Bit
     DCCWaveform::progTrack.schedulePacket(message,sizeof(message),6);             // NMRA recommends 6 write or reset packets for decoder recovery time
   */
-
-  return DCCWaveform::progTrack.getAck();
+ return true; // <<<< NOT  ACCURATE... see comment above 
 }
 
 
@@ -141,8 +140,8 @@ int DCC::readCV(int cv)  {
   // get each bit individually
   for (int i = 0; i < 8; i++) {
     message[2] = 0xE8 + i;
-    DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 4);               // NMRA recommends 5 read packets
-    value += (DCCWaveform::progTrack.getAck() << i);
+    bool one=DCCWaveform::progTrack.schedulePacketWithAck(message, sizeof(message), 4);     // NMRA recommends 5 read packets
+    value += one << i;
   }
 
   return verifyCV(cv, value) ? value : -1;
@@ -183,10 +182,8 @@ byte DCC::cv2(int cv)  {
 bool DCC::verifyCV(int cv, byte value) {
   byte message[] = { cv1(0x74, cv), cv2(cv), value};
   DIAG(F("\n\nVerifying cv %d = %d"), cv, value);
-  DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
-  return DCCWaveform::progTrack.getAck();
-}
-
+  return DCCWaveform::progTrack.schedulePacketWithAck(message, sizeof(message), 5);
+  }
 
 void  DCC::updateLocoReminder(int loco, byte tSpeed, bool forward) {
   // determine speed reg for this loco
