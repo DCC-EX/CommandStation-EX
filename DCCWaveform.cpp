@@ -83,7 +83,7 @@ DCCWaveform::DCCWaveform(byte powerPinNo, byte directionPinNo, byte sensePinNo, 
  void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode=mode;
   digitalWrite2f(powerPin, mode==POWERMODE::ON ? HIGH:LOW);
-  if (mode==POWERMODE::ON) schedulePacket(resetMessage,2,20); 
+  if (mode==POWERMODE::ON) delay(200); 
  }
  
  
@@ -213,7 +213,7 @@ void DCCWaveform::checkRailcom() {
   // Wait until there is no packet pending, then make this pending  
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
     if (byteCount>=MAX_PACKET_SIZE) return; // allow for chksum
-    while(packetPending) delay(1);
+    while(packetPending);
     
     byte checksum=0;
     for (int b=0;b<byteCount; b++) {
@@ -233,7 +233,7 @@ bool DCCWaveform::getAck()
   
    if (isMainTrack) return false; // cant do this on main track
  
-  while(packetPending) delay(1); // wait until transmitter has started transmitting the message
+  while(packetPending); // wait until transmitter has started transmitting the message
   unsigned long timeout=millis()+ACK_TIMEOUT;
   int maxCurrent=0;
   bool result=false;
@@ -257,6 +257,6 @@ bool DCCWaveform::getAck()
   }
   // The following DIAG is really useful as it can show how long and how far the 
   // current changes during an ACK from the decoder.
- // DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
+  DIAG(F("\nack=%d  max=%d, up=%d, down=%d "),result,maxCurrent, upsamples,downsamples);
   return result;
 }

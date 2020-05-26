@@ -16,7 +16,7 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;
 
 // ACK current analogRead values (vary depending on motor shield and cpu voltage)
 const int   ACK_TIMEOUT = 25 ;  // millis getAck is prepared to wait for a signal
-const int   ACK_MAX_NOT_PULSE = 10 ;  // current below which this is NOT a pulse any more
+const int   ACK_MAX_NOT_PULSE = 40 ;  // current below which this is NOT a pulse any more
 const int   ACK_MIN_PULSE = 50 ;   // current above which a pulse is recognised
 
 const int   PREAMBLE_BITS_MAIN = 20;
