@@ -182,7 +182,7 @@ byte DCC::cv2(int cv)  {
 
 bool DCC::verifyCV(int cv, byte value) {
   byte message[] = { cv1(0x74, cv), cv2(cv), value};
-  DIAG(F("\n\nVerifying cv %d = %d"),cv, value);
+  DIAG(F("\n\nVerifying cv %d = %d"), cv, value);
   DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
   return DCCWaveform::progTrack.getAck();
 }
@@ -206,4 +206,4 @@ void  DCC::updateLocoReminder(int loco, byte tSpeed, bool forward) {
   speedTable[reg].forward = forward;
 }
 DCC::LOCO DCC::speedTable[MAX_LOCOS];
-int DCC::nextLoco=0;
+int DCC::nextLoco = 0;

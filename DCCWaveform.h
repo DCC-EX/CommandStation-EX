@@ -1,12 +1,5 @@
-#include <DIO2.h>
-// This hardware configuration would normally be setup in a .h file elsewhere
-const byte MAIN_POWER_PIN = 3;
-const byte MAIN_SIGNAL_PIN = 12;
-const byte MAIN_SENSE_PIN = A0;
 
-const byte PROG_POWER_PIN = 11;
-const byte PROG_SIGNAL_PIN = 13;
-const byte PROG_SENSE_PIN = A1;
+
 
 const int  POWER_SAMPLE_MAX = 300;
 const int  POWER_SAMPLE_ON_WAIT = 100;
@@ -36,14 +29,13 @@ const byte   MAX_PACKET_SIZE = 12;
 
 
 enum class POWERMODE { OFF, ON, OVERLOAD };
-const byte idleMessage[] = {0xFF, 0x00};
-const byte resetMessage[] = {0x00, 0x00};
+
 const byte idlePacket[] = {0xFF, 0x00, 0xFF};
 const byte resetPacket[] = {0x00, 0x00, 0x00};
 
 class DCCWaveform {
   public:
-    DCCWaveform(byte powerPinNo, byte directionPinNo, byte sensePinNo, byte preambleBits, bool isMain);
+    DCCWaveform( byte preambleBits, bool isMain);
     static void begin();
     static void loop();
     static DCCWaveform  mainTrack;
@@ -83,15 +75,8 @@ class DCCWaveform {
     byte pendingLength;
     byte pendingRepeats;
 
-    // Hardware fast pins
-    GPIO_pin_t directionPin;
-    GPIO_pin_t powerPin;
-    GPIO_pin_t railcomBrakePin;
-
+    
     // current sampling
     POWERMODE powerMode;
-    byte sensePin;
     unsigned long nextSampleDue;
-
-
 };
