@@ -91,7 +91,7 @@ void JMRITurnout::parse(Stream & stream, int params, int p[]) {
 }
 
 ///////////////// ALL PRIVATE BELOW HERE //////////////////
- JMRITurnout::TurnoutEntry JMRITurnout::table[JMRITurnout::MAX_TURNOUTS];
+ JMRITurnout::TurnoutEntry JMRITurnout::table[MAX_TURNOUTS];
 
  bool JMRITurnout::create(int id, int add, byte subAdd){
   if (id<0 || id>=MAX_TURNOUTS || table[id].address!=0) return false;

@@ -1,4 +1,8 @@
+#ifndef JMRITurnout_h
+#define TMRITurnout_h
+
 #include <Arduino.h>
+#include "Config.h"
 
 class JMRITurnout {
 
@@ -21,6 +25,6 @@ class JMRITurnout {
          byte subAddress;
          bool thrown;
   };
-  static const int MAX_TURNOUTS=50;
   static TurnoutEntry table[MAX_TURNOUTS];
 };
+#endif

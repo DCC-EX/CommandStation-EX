@@ -1,3 +1,5 @@
+#ifndef StringParser_h
+#define StringParser_h
 #include <Arduino.h>
 class StringParser
 {
@@ -14,3 +16,4 @@ class StringParser
     static const byte MAX_BUFFER=100;
     static char buffer[MAX_BUFFER];
 };
+#endif

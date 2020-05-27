@@ -1,6 +1,7 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
+
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
 // It has no visibility of the hardware, timers, interrupts

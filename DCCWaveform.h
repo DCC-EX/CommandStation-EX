@@ -1,4 +1,5 @@
-
+#ifndef DCCWaveform_h
+#define DCCWaveform_h
 
 
 const int  POWER_SAMPLE_MAX = 300;
@@ -77,3 +78,4 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long nextSampleDue;
 };
+#endif

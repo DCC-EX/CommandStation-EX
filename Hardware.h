@@ -1,4 +1,5 @@
-
+#ifndef Hardware_h
+#define Hardware_h
 // Virtualised hardware Interface
 class Hardware {
   public:
@@ -11,3 +12,4 @@ class Hardware {
     static void setSingleCallback(int duration,  void (*isr)());
     static void resetSingleCallback(int duration);
 };
+#endif

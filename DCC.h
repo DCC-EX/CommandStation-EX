@@ -1,5 +1,8 @@
+#ifndef DCC_h
+#define DCC_h
 #include <Arduino.h>
-const byte MAX_LOCOS=50;
+#include "Config.h"
+
 
 class DCC {
   public:
@@ -34,3 +37,4 @@ private:
   static byte cv2(int cv);
   
 };
+#endif
