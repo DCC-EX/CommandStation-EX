@@ -1,5 +1,6 @@
 #include "StringParser.h"
 #include "JMRIParser.h"
+#include "JMRITurnout.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
 
@@ -60,7 +61,6 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
         DCC::setAccessory(p[0],p[1],p[2]);
         break;
-#ifdef THIS_IS_NOT_YET_COMPLETE    
 /***** CREATE/EDIT/REMOVE/SHOW & OPERATE A TURN-OUT  ****/
 
     case 'T':       // <T ID THROW>
@@ -75,35 +75,12 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         *   *** SEE ACCESSORIES.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "T" COMMAND
         *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
         */
-        
-        int n,s,m;
-        Turnout *t;
-
-        switch(sscanf(com+1,"%d %d %d",&n,&s,&m)){
-
-        case 2:                     // argument is string with id number of turnout followed by zero (not thrown) or one (thrown)
-            t=Turnout::get(n);
-            if(t!=NULL)
-                t->activate(s, (DCC*) mainTrack);
-            else
-                CommManager::printf("<X>");
-            break;
-
-        case 3:                     // argument is string with id number of turnout followed by an address and subAddress
-            Turnout::create(n,s,m,1);
-            break;
-
-        case 1:                     // argument is a string with id number only
-            Turnout::remove(n);
-            break;
-
-        case -1:                    // no arguments
-            Turnout::show(1);                  // verbose show
-            break;
-        }
-        
+        JMRITurnout::parse(stream,params,p);
         break;
-    
+        
+
+    #ifdef THIS_IS_NOT_YET_COMPLETE    
+
 /***** CREATE/EDIT/REMOVE/SHOW & OPERATE AN OUTPUT PIN  ****/
 
     case 'Z':       // <Z ID ACTIVATE>
