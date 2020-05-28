@@ -8,13 +8,13 @@
 // Motor driver selection:
 // Comment out all but the two lines that you want to use
 
-// ;DCC* mainTrack = DCC::Create_WSM_SAMCommandStation_Main(50);
+// DCC* mainTrack = DCC::Create_WSM_SAMCommandStation_Main(50);
 // DCC* progTrack = DCC::Create_WSM_SAMCommandStation_Prog(2);
 
 // DCC* mainTrack = DCC::Create_Arduino_L298Shield_Main(50);
 // DCC* progTrack = DCC::Create_Arduino_L298Shield_Prog(2);
     
-DCC* mainTrack = DCC::Create_Pololu_MC33926Shield_Main(10);
+DCC* mainTrack = DCC::Create_Pololu_MC33926Shield_Main(50);
 DCC* progTrack = DCC::Create_Pololu_MC33926Shield_Prog(2);
 
 ////////////////////////////////////////////////////////////////
@@ -34,11 +34,12 @@ void setup() {
 
 #if defined (ARDUINO_ARCH_SAMD)
     CommManager::registerInterface(new USBInterface(SerialUSB));     // Register SerialUSB as an interface
+    Wire.begin();       // Needed for EEPROM to work
 #elif defined(ARDUINO_ARCH_AVR)
     CommManager::registerInterface(new SerialInterface(Serial));        // Register Serial (USB port on mega/uno) as an interface
 #endif
 
-    //EEStore::init();
+    EEStore::init();
 
 	StringParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
 	CommManager::showInitInfo();                
