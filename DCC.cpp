@@ -26,6 +26,7 @@ void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
 }
 
 void DCC::setThrottle2( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+ 
   uint8_t b[5];
   uint8_t nB = 0;
 
@@ -34,13 +35,8 @@ void DCC::setThrottle2( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
 
   b[nB++] = lowByte(cab);
   b[nB++] = 0x3F;                      // 128-step speed control byte
-  if (tSpeed > 0)
-    b[nB++] = tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
-  else {
-    b[nB++] = 1;
-    tSpeed = 0;
-  }
-
+  b[nB++] = tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+ 
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 

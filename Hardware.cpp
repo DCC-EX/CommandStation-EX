@@ -4,6 +4,7 @@
 
 #include "Hardware.h"
 #include "Config.h"
+#include "DIAG.h"
 
 void Hardware::init() {
   pinMode(MAIN_POWER_PIN, OUTPUT);
@@ -35,6 +36,7 @@ int Hardware::getCurrentMilliamps(bool isMainTrack) {
   int pin = isMainTrack ? MAIN_SENSE_PIN : PROG_SENSE_PIN;
   float factor = isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR;
   int rawCurrent = analogRead(pin);
+  // DIAG(F("\nCurrent on %d pin %d = %d"),isMainTrack,pin,rawCurrent);
   return (int)(rawCurrent * factor);
 }
 
