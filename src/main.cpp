@@ -35,6 +35,9 @@ void main_IrqHandler() {
 }
 
 void setup() {
+    mainTrack->hdw.init();
+    progTrack->hdw.init();
+    
     // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
     // We will fire an interrupt every 58us to generate the signal on the track 
     TimerA.initialize();
@@ -53,7 +56,7 @@ void setup() {
 
     EEStore::init();
 
-	StringParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
+	JMRIParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
 	CommManager::showInitInfo();                
 }
 
