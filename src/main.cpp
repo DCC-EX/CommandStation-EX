@@ -4,16 +4,6 @@
 
 #define DCC_IRQ_MICROSECONDS 29
 
-#if defined(ARDUINO_ARCH_SAMD)
-
-Uart mainRailcomUART(&sercom2, 5, 2, SERCOM_RX_PAD_3, UART_TX_PAD_2);
-
-void SERCOM2_Handler()
-{   
-    mainRailcomUART.IrqHandler();
-}
-#endif
-
 ////////////////////////////////////////////////////////////////
 // Motor driver selection:
 // Comment out all but the two lines that you want to use
@@ -29,10 +19,17 @@ DCC* progTrack = DCC::Create_WSM_SAMCommandStation_Prog(2);
 
 ////////////////////////////////////////////////////////////////
 
-void main_IrqHandler() {
+void waveform_IrqHandler() {
     mainTrack->interruptHandler();
     progTrack->interruptHandler();
 }
+
+#if defined(ARDUINO_ARCH_SAMD)
+void SERCOM2_Handler()
+{   
+    mainTrack->hdw.railcom_serial->IrqHandler();
+}
+#endif
 
 void setup() {
     mainTrack->hdw.init();
@@ -42,10 +39,8 @@ void setup() {
     // We will fire an interrupt every 58us to generate the signal on the track 
     TimerA.initialize();
     TimerA.setPeriod(DCC_IRQ_MICROSECONDS);
-    TimerA.attachInterrupt(main_IrqHandler);
+    TimerA.attachInterrupt(waveform_IrqHandler);
     TimerA.start();
-
-    mainRailcomUART.begin(250000);
 
 #if defined (ARDUINO_ARCH_SAMD)
     CommManager::registerInterface(new USBInterface(SerialUSB));     // Register SerialUSB as an interface
