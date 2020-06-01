@@ -24,13 +24,13 @@ void setup() {
   Serial.begin(115200);
   DCC::begin();
 
-  DIAG(F("\n===== CVReader begin ==============================\n"));
-
-  for (byte x = 0; x < sizeof(cvnums) / sizeof(cvnums[0]); x++) {
-    int value = DCC::readCV(cvnums[x]);
-    DIAG(F("\nCV %d = %d  0x%x  %s\n"), cvnums[x], value, value, value >= 0 ? " VERIFIED OK" : "FAILED VERIFICATION");
-  }
-  DIAG(F("\n===== CVReader done ==============================\n"));
+//  DIAG(F("\n===== CVReader begin ==============================\n"));
+//
+//  for (byte x = 0; x < sizeof(cvnums) / sizeof(cvnums[0]); x++) {
+//    int value = DCC::readCV(cvnums[x]);
+//    DIAG(F("\nCV %d = %d  0x%x  %s\n"), cvnums[x], value, value, value >= 0 ? " VERIFIED OK" : "FAILED VERIFICATION");
+//  }
+//  DIAG(F("\n===== CVReader done ==============================\n"));
   DIAG(F("\nReady for JMRI commands\n"));
 }
 
