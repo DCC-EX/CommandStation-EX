@@ -25,7 +25,7 @@ void waveform_IrqHandler() {
 }
 
 #if defined(ARDUINO_ARCH_SAMD)
-void SERCOM2_Handler()
+void SERCOM4_Handler()
 {   
     mainTrack->hdw.railcom_serial->IrqHandler();
 }
@@ -52,7 +52,7 @@ void setup() {
     EEStore::init();
 
 	JMRIParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
-	CommManager::showInitInfo();                
+	CommManager::showInitInfo();           
 }
 
 void loop() {
