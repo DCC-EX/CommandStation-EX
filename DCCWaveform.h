@@ -44,6 +44,7 @@ class DCCWaveform {
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
     void checkPowerOverload();
+    int  getLastCurrent();
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool schedulePacketWithAck(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
@@ -72,6 +73,7 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;
     byte pendingRepeats;
+    int lastCurrent;
 
     
     // current sampling

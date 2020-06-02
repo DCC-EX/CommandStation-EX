@@ -73,7 +73,6 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 void DCCWaveform::checkPowerOverload() {
   if (millis() < nextSampleDue) return;
-  int current;
   int delay;
 
   switch (powerMode) {
@@ -82,11 +81,11 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
-      current = Hardware::getCurrentMilliamps(isMainTrack);
-      if (current < POWER_SAMPLE_MAX)  delay = POWER_SAMPLE_ON_WAIT;
+      lastCurrent = Hardware::getCurrentMilliamps(isMainTrack);
+      if (lastCurrent < POWER_SAMPLE_MAX)  delay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
-        DIAG(F("\n*** %s TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? "MAIN" : "PROG", current, POWER_SAMPLE_MAX);
+        DIAG(F("\n*** %s TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? "MAIN" : "PROG", lastCurrent, POWER_SAMPLE_MAX);
         delay = POWER_SAMPLE_OVERLOAD_WAIT;
       }
       break;
@@ -244,4 +243,8 @@ bool DCCWaveform::schedulePacketWithAck(const byte buffer[], byte byteCount, byt
   // current changes during an ACK from the decoder.
   DIAG(F("ack=%d  max=%d, up=%d"), result, maxCurrent, upsamples);
   return result;
+}
+
+int DCCWaveform::getLastCurrent() {
+   return lastCurrent;
 }
