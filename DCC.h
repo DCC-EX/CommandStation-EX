@@ -29,11 +29,10 @@ class DCC {
 private: 
   struct LOCO {
      int loco;
-       byte speed;
-       bool forward;
+     byte speedCode;
   };
-  static void setThrottle2( uint16_t cab, uint8_t tSpeed, bool tDirection);
-  static void updateLocoReminder(int loco, byte tSpeed, bool forward);
+  static void setThrottle2( uint16_t cab, uint8_t speedCode);
+  static void updateLocoReminder(int loco, byte speedCode);
   static int nextLoco;
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);

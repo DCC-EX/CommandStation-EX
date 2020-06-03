@@ -20,12 +20,13 @@ void DCC::begin() {
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  setThrottle2(cab, tSpeed, tDirection);
+  byte speedCode= tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+  setThrottle2(cab, speedCode);
   // retain speed for loco reminders
-  updateLocoReminder(cab, tSpeed, tDirection );
+  updateLocoReminder(cab, speedCode );
 }
 
-void DCC::setThrottle2( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
  
   uint8_t b[4];
   uint8_t nB = 0;
@@ -34,7 +35,7 @@ void DCC::setThrottle2( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
   b[nB++] = SET_SPEED;                      // 128-step speed control byte
-  b[nB++] = tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+  b[nB++] = speedCode; // for encoding see setThrottle
  
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
@@ -157,14 +158,14 @@ void DCC::loop()  {
   // each time around the Arduino loop, we resend a loco speed packet reminder
   for (; nextLoco < MAX_LOCOS; nextLoco++) {
     if (speedTable[nextLoco].loco > 0) {
-      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speed, speedTable[nextLoco].forward);
+      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speedCode);
       nextLoco++;
       return;
     }
   }
   for (nextLoco = 0; nextLoco < MAX_LOCOS; nextLoco++) {
     if (speedTable[nextLoco].loco > 0) {
-      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speed, speedTable[nextLoco].forward);
+      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speedCode);
       nextLoco++;
       return;
     }
@@ -204,8 +205,8 @@ byte DCC::cv2(int cv)  {
 
 
 
-void  DCC::updateLocoReminder(int loco, byte tSpeed, bool forward) {
-  // determine speed reg for this loco
+void  DCC::updateLocoReminder(int loco, byte speedCode) {
+   // determine speed reg for this loco
   int reg;
   int firstEmpty = MAX_LOCOS;
   for (reg = 0; reg < MAX_LOCOS; reg++) {
@@ -218,8 +219,8 @@ void  DCC::updateLocoReminder(int loco, byte tSpeed, bool forward) {
     return;
   }
   speedTable[reg].loco = loco;
-  speedTable[reg].speed = tSpeed;
-  speedTable[reg].forward = forward;
-}
+  speedTable[reg].speedCode = speedCode;
+  }
+  
 DCC::LOCO DCC::speedTable[MAX_LOCOS];
 int DCC::nextLoco = 0;
