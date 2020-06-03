@@ -130,6 +130,13 @@ bool DCC::verifyCVBit(int cv, byte bNum, bool bValue)  {
   return DCCWaveform::progTrack.schedulePacketWithAck(message, sizeof(message), 5);           // NMRA recommends 6 write or reset packets for decoder recovery time
 }
 
+int DCC::readCVBit(int cv, byte bNum)  {
+  if (bNum>=8) return -1;
+   if (verifyCVBit(cv, bNum,true)) return 1; 
+   // failed verify might be a zero, or an error so must check again  
+   if (verifyCVBit(cv, bNum,false)) return 0; 
+   return -1;
+}
 
 
 int DCC::readCV(int cv)  {
@@ -162,6 +169,26 @@ void DCC::loop()  {
       return;
     }
   }
+}
+
+int DCC::getLocoId() {
+  switch (readCVBit(29,5)) {
+    case 1:  
+           // long address : get CV#17 and CV#18
+           {
+            int cv17=readCV(17);
+           
+           if  (cv17<0) break;
+           int cv18=readCV(18);
+           if  (cv18<0) break;
+           return cv18 + ((cv17 - 192) <<8);
+           }
+    case 0: // short address in CV1  
+           return readCV(1);
+    default: // No response or loco
+           break;
+  }
+  return -1;
 }
 
 ///// Private helper functions below here /////////////////////

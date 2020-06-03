@@ -13,6 +13,7 @@ class DCC {
   // Public DCC API functions
   static void setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection);
   static int  readCV(int cv);
+  static int  readCVBit(int cv, byte bNum);  // -1 for error
   static bool writeCVByte(int cv, byte bValue) ;
   static bool verifyCVByte(int cv,byte bValue);
   static bool writeCVBit(int cv, byte bNum, bool bValue);
@@ -23,6 +24,7 @@ class DCC {
   static void setFunction( int cab, byte fByte);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
+  static int getLocoId();
 
 private: 
   struct LOCO {
