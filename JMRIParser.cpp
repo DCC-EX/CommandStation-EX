@@ -1,24 +1,31 @@
 #include "StringParser.h"
 #include "JMRIParser.h"
-#include "JMRITurnout.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "Turnouts.h"
+#include "Outputs.h"
+#include "Sensors.h"
+
+#include "EEStore.h"
+
+const char VERSION[]="99.666";
 
 // This is a JMRI command parser
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
 // calls the corresponding DCC api.
-//
+// Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes. 
 
-int JMRIParser::p[MAX_PARAMS];
+
  
 // See documentation on DCC class for info on this section
 void JMRIParser::parse(Stream  & stream,const char *com) {
-    StringParser::send(stream,F("\nParsing %s\n"),com);
-    
+    int p[MAX_PARAMS];  
     bool result;
     int params=StringParser::parse(com+1,p,MAX_PARAMS); 
-    
+
+
+    // Functions return from this switch if complete, break from switch implies error <X> to send
     switch(com[0]) {
     
 /***** SET ENGINE THROTTLES USING 128-STEP SPEED CONTROL ****/
@@ -26,7 +33,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
     case 't':       // <t REGISTER CAB SPEED DIRECTION>
         DCC::setThrottle(p[1],p[2],p[3]);
         StringParser::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
-        break;
+        return;
     
 /***** OPERATE ENGINE DECODER FUNCTIONS F0-F28 ****/
 
@@ -35,7 +42,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         else DCC::setFunction(p[0],p[1]);
 
               // TODO response?
-        break;
+        return;
 
 /***** OPERATE STATIONARY ACCESSORY DECODERS  ****/
 
@@ -60,7 +67,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         *    returns: NONE
         */
         DCC::setAccessory(p[0],p[1],p[2]);
-        break;
+        return;
 /***** CREATE/EDIT/REMOVE/SHOW & OPERATE A TURN-OUT  ****/
 
     case 'T':       // <T ID THROW>
@@ -75,92 +82,22 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         *   *** SEE ACCESSORIES.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "T" COMMAND
         *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
         */
-        JMRITurnout::parse(stream,params,p);
+        if (parseT(stream,params,p)) return;
         break;
         
 
-    #ifdef THIS_IS_NOT_YET_COMPLETE    
 
 /***** CREATE/EDIT/REMOVE/SHOW & OPERATE AN OUTPUT PIN  ****/
 
     case 'Z':       // <Z ID ACTIVATE>
-        /*
-        *   <Z ID ACTIVATE>:          sets output ID to either the "active" or "inactive" state
-        *
-        *   ID: the numeric ID (0-32767) of the output to control
-        *   ACTIVATE: 0 (active) or 1 (inactive)
-        *
-        *   returns: <Y ID ACTIVATE> or <X> if output ID does not exist
-        *
-        *   *** SEE OUTPUTS.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "O" COMMAND
-        *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
-        */
-        
-        int on,os,om;
-        Output* o;
-
-        switch(sscanf(com+1,"%d %d %d",&on,&os,&om)){
-
-        case 2:                     // argument is string with id number of output followed by zero (LOW) or one (HIGH)
-            o=Output::get(on);
-            if(o!=NULL)
-                o->activate(os);
-            else
-                CommManager::printf("<X>");
-            break;
-
-        case 3:                     // argument is string with id number of output followed by a pin number and invert flag
-            Output::create(on,os,om,1);
-            break;
-
-        case 1:                     // argument is a string with id number only
-            Output::remove(on);
-            break;
-
-        case -1:                    // no arguments
-            Output::show(1);                  // verbose show
-            break;
-        }
-        
-        break;
-    
+      if (parseZ(stream,params,p)) return; 
+      break; 
 /***** CREATE/EDIT/REMOVE/SHOW A SENSOR  ****/
 
     case 'S':
-        
-        int sn,ss,sm;
-
-        switch(sscanf(com+1,"%d %d %d",&sn,&ss,&sm)){
-
-        case 3:                     // argument is string with id number of sensor followed by a pin number and pullUp indicator (0=LOW/1=HIGH)
-            Sensor::create(sn,ss,sm,1);
-            break;
-
-        case 1:                     // argument is a string with id number only
-            Sensor::remove(sn);
-            break;
-
-        case -1:                    // no arguments
-            Sensor::show();
-            break;
-
-        case 2:                     // invalid number of arguments
-            CommManager::printf("<X>");
-            break;
-        }
+        if (parseS(stream,params,p)) return; 
+      break;
     
-        break;
-
-/***** SHOW STATUS OF ALL SENSORS ****/
-
-    case 'Q':         // <Q>
-        /*
-        *    returns: the status of each sensor ID in the form <Q ID> (active) or <q ID> (not active)
-        */
-        Sensor::status();
-        break;
-
-#endif 
 /***** WRITE CONFIGURATION VARIABLE BYTE TO ENGINE DECODER ON MAIN OPERATIONS TRACK  ****/
 
     case 'w':      // <w CAB CV VALUE>
@@ -175,7 +112,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
         
         DCC::writeCVByteMain(p[0],p[1],p[2]);
-        break;
+        return;
 
 /***** WRITE CONFIGURATION VARIABLE BIT TO ENGINE DECODER ON MAIN OPERATIONS TRACK  ****/
 
@@ -192,7 +129,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
         
         DCC::writeCVBitMain(p[0],p[1],p[2],p[3]);
-        break;
+        return;
 
 /***** WRITE CONFIGURATION VARIABLE BYTE TO ENGINE DECODER ON PROGRAMMING TRACK  ****/
 
@@ -211,7 +148,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         
         result=DCC::writeCVByte(p[0],p[1]);
         StringParser::send(stream,F("<r%d|%d|%d %d>"), p[2], p[3],p[0],result?p[1]:-1);
-        break;
+        return;
 
 /***** WRITE CONFIGURATION VARIABLE BIT TO ENGINE DECODER ON PROGRAMMING TRACK  ****/
 
@@ -231,7 +168,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
 
         result=DCC::writeCVBit(p[0],p[1],p[2]);
         StringParser::send(stream,F("<r%d|%d|%d %d %d>"), p[3],p[4], p[0],p[1],result?p[2]:-1);
-        break;
+        return;
 
 /***** READ CONFIGURATION VARIABLE BYTE FROM ENGINE DECODER ON PROGRAMMING TRACK  ****/
 
@@ -248,7 +185,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
        
         StringParser::send(stream,F("<r%d|%d|%d %d>"),p[1],p[2],p[0],DCC::readCV(p[0]));
-        break;
+        return;
 
 /***** TURN ON POWER FROM MOTOR SHIELD TO TRACKS  ****/
 
@@ -261,7 +198,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
         StringParser::send(stream,F("<p1>"));
-        break;
+        return;
 
 /***** TURN OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/
 
@@ -274,9 +211,8 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
         StringParser::send(stream,F("<p0>"));
-        break;
+        return;
 
-#ifdef THIS_IS_NOT_YET_COMPLETE    
 /***** READ MAIN OPERATIONS TRACK CURRENT  ****/
 
     case 'c':     // <c>
@@ -286,11 +222,19 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         *    returns: <a CURRENT>
         *    where CURRENT = 0-1024, based on exponentially-smoothed weighting scheme
         */
-        StringParser::send(stream,F("<a %d>"), DCCWaveform:mainTrack->getLastRead());
-        break;
+        StringParser::send(stream,F("<a %d>"), DCCWaveform::mainTrack.getLastCurrent());
+        return;
+
+/***** SHOW STATUS OF ALL SENSORS ****/
+
+    case 'Q':         // <Q>
+        /*
+        *    returns: the status of each sensor ID in the form <Q ID> (active) or <q ID> (not active)
+        */
+        Sensor::status(stream);
+        return;
 
 /***** READ STATUS OF DCC++ BASE STATION  ****/
-
     case 's':      // <s>
         /*
         *    returns status messages containing track power status, throttle status, turn-out status, and a version number
@@ -298,18 +242,12 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         *
         *    returns: series of status messages that can be read by an interface to determine status of DCC++ Base Station and important settings
         */
-        // mainTrack->showStatus();
-        for(int i=1;i<=mainTrack->numDev;i++){
-            if(mainTrack->speedTable[i]==0)
-            continue;
-            CommManager::printf("<T%d %d %d>", i, mainTrack->speedTable[i]>0 ? mainTrack->speedTable[i] : -mainTrack->speedTable[i], mainTrack->speedTable[i]>0 ? 1 : 0);
-        }
-        CommManager::printf("<iDCC++ BASE STATION FOR ARDUINO %s / %s: V-%s / %s %s>", "SAMD21 Command Station", BOARD_NAME, VERSION, __DATE__, __TIME__);
-        CommManager::showInitInfo();
-        Turnout::show();
-        Output::show();
+        // TODO Send stats of  speed reminders table 
+        
+        StringParser::send(stream,F("<iDCC-EX BASE STATION FOR ARDUINO / %s: V-%s %s/%s\n>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
 
-        break;
+        // TODO send status of turnouts etc etc 
+        return;
 
 /***** STORE SETTINGS IN EEPROM  ****/
 
@@ -321,8 +259,8 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
 
         EEStore::store();
-        CommManager::printf("<e %d %d %d>", EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
-        break;
+        StringParser::send(stream,F("<e %d %d %d>"), EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
+        return;
 
 /***** CLEAR SETTINGS IN EEPROM  ****/
 
@@ -334,21 +272,121 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
         */
 
         EEStore::clear();
-        CommManager::printf("<O>");
-        break;
-#endif
-/***** PRINT CARRIAGE RETURN IN stream MONITOR WINDOW  ****/
+       StringParser::send(stream, F("<O>"));
+        return;
 
-    case ' ':     // < >
+        case ' ':     // < >
         /*
         *    simply prints a carriage return - useful when interacting with Ardiuno through stream monitor window
         *
         *    returns: a carriage return
         */
         StringParser::send(stream,F("\n"));
-        break;
-    }
+        return;
+
+    
+    } // end of opcode switch 
+
+    // Any fallout here sends an <X>
+       StringParser::send(stream, F("<X>"));
 }
+
+
+
+
+
+
+bool JMRIParser::parseZ(Stream & stream, int params, int p[]){
+        /*
+        *   <Z ID ACTIVATE>:          sets output ID to either the "active" or "inactive" state
+        *
+        *   ID: the numeric ID (0-32767) of the output to control
+        *   ACTIVATE: 0 (active) or 1 (inactive)
+        *
+        *   returns: <Y ID ACTIVATE> or <X> if output ID does not exist
+        *
+        *   *** SEE OUTPUTS.CPP FOR COMPLETE INFO ON THE DIFFERENT VARIATIONS OF THE "O" COMMAND
+        *   USED TO CREATE/EDIT/REMOVE/SHOW TURNOUT DEFINITIONS
+        */
+        
+        switch (params) {
+        
+        case 2:                     // argument is string with id number of output followed by zero (LOW) or one (HIGH)
+           {
+            Output *  o=Output::get(p[0]);      
+            if(o==NULL) return false;
+            o->activate(p[1]);
+            StringParser::send(stream,F("<Y %d %d>"), p[0],p[1]);
+           }
+            break;
+
+        case 3:                     // argument is string with id number of output followed by a pin number and invert flag
+            Output::create(p[0],p[1],p[2],1);
+            break;
+
+        case 1:                     // argument is a string with id number only
+            Output::remove(p[0]);
+            break;
+
+        case 0:                    // no arguments
+            Output::showAll(stream);                  // verbose show
+            break;
+
+         default:
+             return false; 
+        }
+        return true; 
+    }    
+
+
+//===================================
+bool JMRIParser::parseT(Stream & stream, int params, int p[]) {
+  switch(params){
+        case 0:                    // <T>
+            Turnout::showAll(stream);                  // verbose show
+            break;
+        case 1:                     // <T id>
+            if (!Turnout::remove(p[0])) break;
+            StringParser::send(stream,F("<O>"));
+            break;
+        case 2:                     // <T id 0|1>
+        if (!Turnout::activate(p[0],p[1])) return false;
+             Turnout::show(stream,p[0]);
+            break;
+
+        case 3:                     // <T id addr subaddr>
+            if (!Turnout::create(p[0],p[1],p[2])) return false;
+            StringParser::send(stream,F("<O>"));
+            break;
+        default:
+            return false; // will <x>                    
+        }
+       
+  return true;
+}
+
+bool JMRIParser::parseS(Stream & stream, int params, int p[]) {
+     
+        switch(params){
+
+        case 3:                     // argument is string with id number of sensor followed by a pin number and pullUp indicator (0=LOW/1=HIGH)
+            Sensor::create(p[0],p[1],p[2]);
+            return true;
+
+        case 1:                     // argument is a string with id number only
+            if (Sensor::remove(p[0])) return true;
+            break;
+
+        case -1:                    // no arguments
+            Sensor::show(stream);
+            return true;
+
+        default:                     // invalid number of arguments
+            break;
+        }
+    return false;
+}
+ 
 
 
  
