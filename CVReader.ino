@@ -1,6 +1,6 @@
 #include "DCC.h"
 #include "DIAG.h"
-#include "JMRIParser.h"
+#include "DCCEXParser.h"
 
 /* this code is here to test the waveforwe generator and reveal the issues involved in programming track operations.
 
@@ -37,6 +37,6 @@ void setup() {
 void loop() {
   DCC::loop(); // required to keep locos running and check powwer
 
-  // This line passes input on Serial to the JMRIparser
-  StringParser::loop(Serial, JMRIParser::parse);
+  // This line passes input on Serial to the DCCEXParser
+  StringParser::loop(Serial, DCCEXParser::parse);
 }

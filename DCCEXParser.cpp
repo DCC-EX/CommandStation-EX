@@ -1,5 +1,5 @@
 #include "StringParser.h"
-#include "JMRIParser.h"
+#include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "Turnouts.h"
@@ -19,7 +19,8 @@ const char VERSION[]="99.666";
 
  
 // See documentation on DCC class for info on this section
-void JMRIParser::parse(Stream  & stream,const char *com) {
+void DCCEXParser::parse(Stream  & stream,const char *com) {
+    (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
     bool result;
     int params=StringParser::parse(com+1,p,MAX_PARAMS); 
@@ -296,7 +297,7 @@ void JMRIParser::parse(Stream  & stream,const char *com) {
 
 
 
-bool JMRIParser::parseZ(Stream & stream, int params, int p[]){
+bool DCCEXParser::parseZ(Stream & stream, int params, int p[]){
         /*
         *   <Z ID ACTIVATE>:          sets output ID to either the "active" or "inactive" state
         *
@@ -340,7 +341,7 @@ bool JMRIParser::parseZ(Stream & stream, int params, int p[]){
 
 
 //===================================
-bool JMRIParser::parseT(Stream & stream, int params, int p[]) {
+bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
   switch(params){
         case 0:                    // <T>
             Turnout::showAll(stream);                  // verbose show
@@ -365,7 +366,7 @@ bool JMRIParser::parseT(Stream & stream, int params, int p[]) {
   return true;
 }
 
-bool JMRIParser::parseS(Stream & stream, int params, int p[]) {
+bool DCCEXParser::parseS(Stream & stream, int params, int p[]) {
      
         switch(params){
 

@@ -1,6 +1,6 @@
-#ifndef JMRIParser_h
-#define JMRIParser_h
-struct JMRIParser
+#ifndef DCCEXParser_h
+#define DCCEXParser_h
+struct DCCEXParser
 {
     static void parse(Stream & stream,const char * command);
    
