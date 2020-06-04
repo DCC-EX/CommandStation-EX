@@ -57,7 +57,7 @@ void setup() {
 
     EEStore::init();
 
-	JMRIParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
+	DCCEXParser::init(mainTrack, progTrack);       // Set up the string parser to accept commands from the interfaces
 	CommManager::showInitInfo();           
 }
 
