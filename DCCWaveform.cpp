@@ -6,6 +6,8 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
+
+
 void DCCWaveform::begin() {
   Hardware::init();
   Hardware::setCallback(58, interruptHandler);
@@ -170,12 +172,14 @@ void DCCWaveform::interrupt2() {
         transmitLength = pendingLength;
         transmitRepeats = pendingRepeats;
         packetPending = false;
+        sentResetsSincePacket=0;
       }
       else {
         // Fortunately reset and idle packets are the same length
         memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
         transmitLength = sizeof(idlePacket);
         transmitRepeats = 0;
+        sentResetsSincePacket++;
       }
     }
   }
