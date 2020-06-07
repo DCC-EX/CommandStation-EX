@@ -268,38 +268,46 @@ int   DCC::ackTriggerMilliamps;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
-void  DCC::ackManagerSetup(int cv, byte byteValue, ackOp const program[], ACK_CALLBACK callback) {
+void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
   ackManagerCv = cv;
   ackManagerProg = program;
-  ackManagerByte = byteValue;
+  ackManagerByte = byteValueOrBitnum;
+  ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
-  ackManagerBitNum=0;
+
 }
 
-
+#define RESET_MIN 8
 void DCC::ackManagerLoop() {
   while (ackManagerProg) {
 
     // breaks from this switch will step to next prog entry
     // returns from this switch will stay on same entry (typically WACK waiting and when all finished.)
     byte opcode=*ackManagerProg;
+    int resets=DCCWaveform::progTrack.sentResetsSincePacket;
+ 
+    // DIAG(F("\nopAck %d"),opcode);
     switch (opcode) {
       case W0:    // write bit 
       case W1:    // write bit 
             {
-              byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerByte;
+              if (resets<RESET_MIN) return; // try later 
+              byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
             }
             break; 
       case WB:   // write byte 
             {
+              if (resets<RESET_MIN) return; // try later 
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
             }
             break;
       case   VB:     // Issue validate Byte packet
         {
+          if (resets<RESET_MIN) return; // try later 
+          DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
         }
@@ -307,20 +315,30 @@ void DCC::ackManagerLoop() {
       case V0:
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
-           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerByte;
+          if (resets<RESET_MIN) return; // try later 
+          DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
+          byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
         }
         break;
       case WACK:   // wait for ack (or absence of ack)
-        if (DCCWaveform::progTrack.sentResetsSincePacket > 6) {
-        ackReceived = false;
-        break; // move on to next prog step
-      }
-      if (Hardware::getCurrentMilliamps(false) > ackTriggerMilliamps) {
-        ackReceived = true;
-        DCCWaveform::progTrack.killRemainingRepeats(); 
-        break; // move on tho next step
+        {
+          
+          if (resets > 6) {
+            DIAG(F("\nWACK fail %d\n"), resets);
+            ackReceived = false;
+            break; // move on to next prog step
+            }
+      
+        int current=Hardware::getCurrentMilliamps(false);
+      
+        if (current > ackTriggerMilliamps) {
+          DIAG(F("\nWACK ok %dmA, after %d resets\n"), current,resets);
+          ackReceived = true;
+          DCCWaveform::progTrack.killRemainingRepeats(); 
+          break; // move on tho next step
+          }
       }
       return;  // maintain place for next poll cycle.
 
@@ -342,19 +360,20 @@ void DCC::ackManagerLoop() {
       case MERGE:  // Merge previous wack response with byte value and increment bit number (use for reading CV bytes)
           ackManagerByte <<= 1;
           if (ackReceived) ackManagerByte |= 1;
-          ackManagerBitNum++;
+          ackManagerBitNum--;
           break;
       case FAIL:  // callback(-1)
            ackManagerProg = NULL;
            (ackManagerCallback)(-1);
            return;
       case ZERO:
-           ackManagerBitNum=0;
+           ackManagerBitNum=7;
            ackManagerByte=0;     
           break;
       case BASELINE:
-           if (DCCWaveform::progTrack.sentResetsSincePacket < 6) return;  // try again later 
-           ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
+          if (resets<RESET_MIN) return; // try later 
+          ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
+          DIAG(F("BASELINE mA=%d"),ackTriggerMilliamps);
           break;
           }  // end of switch
     ackManagerProg++;

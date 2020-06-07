@@ -211,6 +211,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
+  sentResetsSincePacket=0;
 }
 
 int DCCWaveform::getLastCurrent() {
