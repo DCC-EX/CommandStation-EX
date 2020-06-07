@@ -145,15 +145,17 @@ const ackOp PROGMEM WRITE_BYTE_PROG[] = {
 const ackOp PROGMEM READ_CV_PROG[] = {
       BASELINE,
       STARTMERGE,    //clear bit and byte values ready for merge pass
-      // each bit is validated against 1 (no need for zero validation as entire byte is validated at the end)
-      V1, WACK, MERGE,  // read and merge bit 0
-      V1, WACK, MERGE,  // read and merge bit 1 etc
-      V1, WACK, MERGE,
-      V1, WACK, MERGE,
-      V1, WACK, MERGE,
-      V1, WACK, MERGE,
-      V1, WACK, MERGE,
-      V1, WACK, MERGE,
+      // each bit is validated against 0 and the result inverted in MERGE
+      // this is because there tend to be more zeros in cv values than ones.  
+      // There is no need for one validation as entire byte is validated at the end
+      V0, WACK, MERGE,  // read and merge bit 0
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
       FAIL };          // verification failed
 
@@ -380,9 +382,10 @@ void DCC::ackManagerLoop() {
            ackManagerByte=0;     
           break;
           
-      case MERGE:  // Merge previous wack response with byte value and update bit number (use for reading CV bytes)
+      case MERGE:  // Merge previous Validate zero wack response with byte value and update bit number (use for reading CV bytes)
           ackManagerByte <<= 1;
-          if (ackReceived) ackManagerByte |= 1;
+          // ackReceived means bit is zero. 
+          if (!ackReceived) ackManagerByte |= 1;
           ackManagerBitNum--;
           break;
           
