@@ -23,7 +23,7 @@ struct Turnout{
   static void store();
   static Turnout *create(int, int, int);
   static void show(Stream & stream, int n);
-  static void showAll(Stream & stream);
+  static bool showAll(Stream & stream);
 }; // Turnout
   
 #endif

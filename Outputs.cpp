@@ -102,10 +102,13 @@ bool Output::remove(int n){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Output::showAll(Stream & stream){  
+bool Output::showAll(Stream & stream){  
+  bool gotone=false;
   for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
+      gotone=true;
       StringParser::send(stream,F("<Y %d %d %d %d>"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
   }
+  return gotone;
 }
 
 void Output::show(Stream & stream){

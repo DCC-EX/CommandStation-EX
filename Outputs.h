@@ -19,7 +19,7 @@ class Output{
   static void store();
   static Output *create(int, int, int, int=0);
   static void show(Stream & stream);
-  static void showAll(Stream & stream);
+  static bool showAll(Stream & stream);
 
   private:
   static Output *firstOutput;

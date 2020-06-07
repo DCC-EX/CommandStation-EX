@@ -49,10 +49,13 @@ void Turnout::show(Stream & stream, int n){
   }
 }
 
-void Turnout::showAll(Stream & stream){
+bool Turnout::showAll(Stream & stream){
+  bool gotOne=false;
   for(Turnout * tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
       StringParser::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, tt->data.tStatus);
-     }
+      gotOne=true;
+  }
+  return gotOne;
 }
 
 
