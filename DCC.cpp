@@ -1,6 +1,7 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
+#include "Hardware.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -20,14 +21,14 @@ void DCC::begin() {
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  byte speedCode= tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+  byte speedCode = tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
   setThrottle2(cab, speedCode);
   // retain speed for loco reminders
   updateLocoReminder(cab, speedCode );
 }
 
 void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
- 
+
   uint8_t b[4];
   uint8_t nB = 0;
 
@@ -36,7 +37,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
   b[nB++] = lowByte(cab);
   b[nB++] = SET_SPEED;                      // 128-step speed control byte
   b[nB++] = speedCode; // for encoding see setThrottle
- 
+
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
@@ -66,7 +67,7 @@ void DCC::setFunction(int cab, byte byte1, byte byte2)  {
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
-  byte b[2];                    
+  byte b[2];
 
   b[0] = address % 64 + 128;                                     // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
   b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8; // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
@@ -75,7 +76,7 @@ void DCC::setAccessory(int address, byte number, bool activate) {
 }
 
 void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
-  byte b[5];                     
+  byte b[5];
   byte nB = 0;
   if (cab > 127)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
@@ -89,7 +90,7 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
 }
 
 void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
-  byte b[5];                      
+  byte b[5];
   byte nB = 0;
   bValue = bValue % 2;
   bNum = bNum % 8;
@@ -100,58 +101,88 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   b[nB++] = lowByte(cab);
   b[nB++] = cv1(WRITE_BIT_MAIN, cv); // any CV>1023 will become modulus(1024) due to bit-mask of 0x03
   b[nB++] = cv2(cv);
-  b[nB++] = WRITE_BIT | (bValue?BIT_ON:BIT_OFF) | bNum;
+  b[nB++] = WRITE_BIT | (bValue ? BIT_ON : BIT_OFF) | bNum;
 
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
-bool  DCC::writeCVByte(int cv, byte bValue)  {
-  uint8_t message[] = {cv1(WRITE_BYTE, cv), cv2(cv), bValue};
-  DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);           // NMRA recommends 6 write or reset packets for decoder recovery time
-  return verifyCVByte(cv, bValue);
+
+
+const ackOp WRITE_BIT0_PROG[] = {
+     BASELINE,
+     W0,WACK,
+     V0, WACK,  // validate bit is 0 
+     ITC1,      // if acked, callback(1)
+     FAIL  // callback (-1)
+};
+const ackOp WRITE_BIT1_PROG[] = {
+     BASELINE,
+     W1,WACK,
+     V1, WACK,  // validate bit is 1 
+     ITC1,      // if acked, callback(1)
+     FAIL  // callback (-1)
+};
+
+
+const ackOp READ_BIT_PROG[] = {
+     BASELINE,
+     V1, WACK,  // validate bit is 1 
+     ITC1,      // if acked, callback(1)
+     V0, WACK,  // validate bit is zero
+     ITC0,      // if acked callback 0
+     FAIL       // bit not readable 
+     };
+     
+const ackOp WRITE_BYTE_PROG[] = {
+      BASELINE,
+      WB,WACK,    // Write 
+      VB,WACK,     // validate byte 
+      ITC1,       // if ok callback (1)
+      FAIL        // callback (-1)
+      };
+      
+      
+const ackOp READ_CV_PROG[] = {
+      BASELINE,
+      ZERO,    //clear bit and byte values
+      // each bit is validated against 1 (no need for zero validation as entire byte is validated at the end)
+      V1, WACK, MERGE,  // read and merge bit 0
+      V1, WACK, MERGE,  // read and merge bit 1 etc
+      V1, WACK, MERGE,
+      V1, WACK, MERGE,
+      V1, WACK, MERGE,
+      V1, WACK, MERGE,
+      V1, WACK, MERGE,
+      V1, WACK, MERGE,
+      VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
+      FAIL };          // verification failed
+
+
+
+void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback)  {
+  ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback);
 }
 
-bool DCC::verifyCVByte(int cv, byte value) {
-  byte message[] = { cv1(VERIFY_BYTE, cv), cv2(cv), value};
-  return DCCWaveform::progTrack.schedulePacketWithAck(message, sizeof(message), 5);
-  }
 
-bool DCC::writeCVBit(int cv, byte bNum, bool bValue)  {
-  if (bNum>=8) return false;
-  byte instruction=WRITE_BIT | bValue?BIT_ON:BIT_OFF | bNum;
-  byte message[] = {cv1(BIT_MANIPULATE, cv), cv2(cv), instruction };
-  DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);           // NMRA recommends 6 write or reset packets for decoder recovery time 
-  return verifyCVBit(cv, bNum, bValue); 
-}
-
-bool DCC::verifyCVBit(int cv, byte bNum, bool bValue)  {
-  if (bNum>=8) return false;
-  byte instruction=VERIFY_BIT | bValue?BIT_ON:BIT_OFF | bNum;
-  byte message[] = {cv1(BIT_MANIPULATE, cv), cv2(cv), instruction };
-  return DCCWaveform::progTrack.schedulePacketWithAck(message, sizeof(message), 5);           // NMRA recommends 6 write or reset packets for decoder recovery time
-}
-
-int DCC::readCVBit(int cv, byte bNum)  {
-  if (bNum>=8) return -1;
-   if (verifyCVBit(cv, bNum,true)) return 1; 
-   // failed verify might be a zero, or an error so must check again  
-   if (verifyCVBit(cv, bNum,false)) return 0; 
-   return -1;
+void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
+  if (bitNum >= 8) callback(-1);
+  else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback);
 }
 
 
-int DCC::readCV(int cv)  {
-  byte value = 0;
-  // get each bit individually by validating against a one. 
-  for (int bNum = 0; bNum < 8; bNum++) {
-    value += verifyCVBit(cv,bNum,true) << bNum;
-  }
-  return verifyCVByte(cv, value) ? value : -1;
+void DCC::readCVBit(int cv, byte bitNum, ACK_CALLBACK callback)  {
+  if (bitNum >= 8) callback(-1);
+  else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback);
 }
 
-  
+void DCC::readCV(int cv, ACK_CALLBACK callback)  {
+  ackManagerSetup(cv, 0,READ_CV_PROG, callback);
+}
+
+
 void DCC::loop()  {
-  DCCWaveform::loop(); // powwer overload checks
+  DCCWaveform::loop(); // power overload checks
+  ackManagerLoop();
   // if the main track transmitter still has a pending packet, skip this loop.
   if ( DCCWaveform::mainTrack.packetPending) return;
 
@@ -172,24 +203,26 @@ void DCC::loop()  {
   }
 }
 
-int DCC::getLocoId() {
-  switch (readCVBit(29,5)) {
-    case 1:  
-           // long address : get CV#17 and CV#18
-           {
-            int cv17=readCV(17);
-           
-           if  (cv17<0) break;
-           int cv18=readCV(18);
-           if  (cv18<0) break;
-           return cv18 + ((cv17 - 192) <<8);
-           }
-    case 0: // short address in CV1  
-           return readCV(1);
-    default: // No response or loco
-           break;
-  }
-  return -1;
+void DCC::getLocoId(ACK_CALLBACK callback) {
+  callback(-1); // Not yet implemented 
+//  
+//  switch (readCVBit(29, 5)) {
+//    case 1:
+//      // long address : get CV#17 and CV#18
+//      {
+//        int cv17 = readCV(17);
+//
+//        if  (cv17 < 0) break;
+//        int cv18 = readCV(18);
+//        if  (cv18 < 0) break;
+//        return cv18 + ((cv17 - 192) << 8);
+//      }
+//    case 0: // short address in CV1
+//      return readCV(1);
+//    default: // No response or loco
+//      break;
+//  }
+//  return -1;
 }
 
 ///// Private helper functions below here /////////////////////
@@ -206,7 +239,7 @@ byte DCC::cv2(int cv)  {
 
 
 void  DCC::updateLocoReminder(int loco, byte speedCode) {
-   // determine speed reg for this loco
+  // determine speed reg for this loco
   int reg;
   int firstEmpty = MAX_LOCOS;
   for (reg = 0; reg < MAX_LOCOS; reg++) {
@@ -220,7 +253,110 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
   }
   speedTable[reg].loco = loco;
   speedTable[reg].speedCode = speedCode;
-  }
-  
+}
+
 DCC::LOCO DCC::speedTable[MAX_LOCOS];
 int DCC::nextLoco = 0;
+
+//ACK MANAGER
+ackOp  const *  DCC::ackManagerProg;
+byte   DCC::ackManagerByte;
+int   DCC::ackManagerCv;
+byte   DCC::ackManagerBitNum;
+bool   DCC::ackReceived;
+int   DCC::ackTriggerMilliamps;
+
+ACK_CALLBACK DCC::ackManagerCallback;
+
+void  DCC::ackManagerSetup(int cv, byte byteValue, ackOp const program[], ACK_CALLBACK callback) {
+  ackManagerCv = cv;
+  ackManagerProg = program;
+  ackManagerByte = byteValue;
+  ackManagerCallback = callback;
+  ackManagerBitNum=0;
+}
+
+
+void DCC::ackManagerLoop() {
+  while (ackManagerProg) {
+
+    // breaks from this switch will step to next prog entry
+    // returns from this switch will stay on same entry (typically WACK waiting and when all finished.)
+    byte opcode=*ackManagerProg;
+    switch (opcode) {
+      case W0:    // write bit 
+      case W1:    // write bit 
+            {
+              byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerByte;
+              byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
+              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
+            }
+            break; 
+      case WB:   // write byte 
+            {
+              byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
+              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
+            }
+            break;
+      case   VB:     // Issue validate Byte packet
+        {
+          byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
+          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+        }
+        break;
+      case V0:
+      case V1:      // Issue validate bit=0 or bit=1  packet
+        {
+           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerByte;
+          byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
+          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+        }
+        break;
+      case WACK:   // wait for ack (or absence of ack)
+        if (DCCWaveform::progTrack.sentResetsSincePacket > 6) {
+        ackReceived = false;
+        break; // move on to next prog step
+      }
+      if (Hardware::getCurrentMilliamps(false) > ackTriggerMilliamps) {
+        ackReceived = true;
+        DCCWaveform::progTrack.killRemainingRepeats(); 
+        break; // move on tho next step
+      }
+      return;  // maintain place for next poll cycle.
+
+     case ITC0:
+     case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
+        if (ackReceived) {
+            ackManagerProg = NULL;
+            (ackManagerCallback)(opcode==ITC0?0:1);
+            return;
+          }
+        break;
+      case ITCB:   // If True callback(byte)
+          if (ackReceived) {
+            ackManagerProg = NULL;
+            (ackManagerCallback)(ackManagerByte);
+            return;
+          }
+        break;
+      case MERGE:  // Merge previous wack response with byte value and increment bit number (use for reading CV bytes)
+          ackManagerByte <<= 1;
+          if (ackReceived) ackManagerByte |= 1;
+          ackManagerBitNum++;
+          break;
+      case FAIL:  // callback(-1)
+           ackManagerProg = NULL;
+           (ackManagerCallback)(-1);
+           return;
+      case ZERO:
+           ackManagerBitNum=0;
+           ackManagerByte=0;     
+          break;
+      case BASELINE:
+           if (DCCWaveform::progTrack.sentResetsSincePacket < 6) return;  // try again later 
+           ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
+          break;
+          }  // end of switch
+    ackManagerProg++;
+  }
+}

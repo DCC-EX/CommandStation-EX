@@ -3,6 +3,23 @@
 #include <Arduino.h>
 #include "Config.h"
 
+typedef void (*ACK_CALLBACK)(int result);
+
+enum ackOp {  // Program opcodes for the ack Manager
+W0,W1,   // issue write bit  
+WB,     // issue write byte  
+VB,     // Issue validate Byte packet
+V0,     // Issue validate bit=0 packet
+V1,     // issue validate bit=1 packlet
+WACK,   // wait for ack (or absence of ack)
+ITC1,   // If True Callback(1)  (if prevous WACK got an ACK)
+ITC0,   // If True callback(0);
+ITCB,   // IOf True callback(byte)
+MERGE,  // Merge previous wack response with byte value and increment bit number (use for readimng CV bytes)
+FAIL,   // callback(-1)
+ZERO,    // Clear bit and byte 
+BASELINE  // ensure enough resets sent before starting and obtain baseline
+};
 
 class DCC {
   public:
@@ -12,19 +29,20 @@ class DCC {
 
   // Public DCC API functions
   static void setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection);
-  static int  readCV(int cv);
-  static int  readCVBit(int cv, byte bNum);  // -1 for error
-  static bool writeCVByte(int cv, byte bValue) ;
-  static bool verifyCVByte(int cv,byte bValue);
-  static bool writeCVBit(int cv, byte bNum, bool bValue);
-  static bool verifyCVBit(int cv, byte bNum, bool bValue);
   static void writeCVByteMain(int cab, int cv, byte bValue);
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction( int cab, byte fByte, byte eByte);
   static void setFunction( int cab, byte fByte);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
-  static int getLocoId();
+  
+  // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1 
+  static void  readCV(int cv, ACK_CALLBACK callback);
+  static void  readCVBit(int cv, byte bitNum, ACK_CALLBACK callback);  // -1 for error
+  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback) ;
+  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  
+  static void getLocoId(ACK_CALLBACK callback);
 
 private: 
   struct LOCO {
@@ -38,6 +56,20 @@ private:
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
 
+
+// ACK MANAGER
+  static ackOp  const * ackManagerProg;
+  static byte   ackManagerByte;
+  static byte   ackManagerBitNum;
+  static int    ackManagerCv;
+  static bool ackReceived;
+  static int ackTriggerMilliamps;
+  static ACK_CALLBACK  ackManagerCallback;
+  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
+  static void ackManagerLoop();
+
+  
+
   // NMRA codes #
   static const byte SET_SPEED=0x3f;
   static const byte WRITE_BYTE_MAIN = 0xEC;
@@ -50,4 +82,5 @@ private:
   static const byte BIT_ON=0x08;
   static const byte BIT_OFF=0x00;
 };
+
 #endif

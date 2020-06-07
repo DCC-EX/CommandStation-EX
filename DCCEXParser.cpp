@@ -22,7 +22,6 @@ const char VERSION[]="99.666";
 void DCCEXParser::parse(Stream  & stream,const char *com) {
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
-    bool result;
     int params=StringParser::parse(com+1,p,MAX_PARAMS); 
 
 
@@ -146,11 +145,10 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
         *    returns: <r CALLBACKNUM|CALLBACKSUB|CV Value)
         *    where VALUE is a number from 0-255 as read from the requested CV, or -1 if verificaiton read fails
         */
-        
-        result=DCC::writeCVByte(p[0],p[1]);
-        StringParser::send(stream,F("<r%d|%d|%d %d>"), p[2], p[3],p[0],result?p[1]:-1);
+        if (!stashCallback(stream,p)) break;
+        DCC::writeCVByte(p[0],p[1],callback_W);
         return;
-
+ 
 /***** WRITE CONFIGURATION VARIABLE BIT TO ENGINE DECODER ON PROGRAMMING TRACK  ****/
 
     case 'B':      // <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
@@ -166,11 +164,10 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
         *    returns: <r CALLBACKNUM|CALLBACKSUB|CV BIT VALUE)
         *    where VALUE is a number from 0-1 as read from the requested CV bit, or -1 if verificaiton read fails
         */
-
-        result=DCC::writeCVBit(p[0],p[1],p[2]);
-        StringParser::send(stream,F("<r%d|%d|%d %d %d>"), p[3],p[4], p[0],p[1],result?p[2]:-1);
+        if (!stashCallback(stream,p)) break; 
+        DCC::writeCVBit(p[0],p[1],p[2],callback_B);
         return;
-
+        
 /***** READ CONFIGURATION VARIABLE BYTE FROM ENGINE DECODER ON PROGRAMMING TRACK  ****/
 
     case 'R':     // <R CV CALLBACKNUM CALLBACKSUB>
@@ -184,8 +181,8 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
         *    returns: <r CALLBACKNUM|CALLBACKSUB|CV VALUE)
         *    where VALUE is a number from 0-255 as read from the requested CV, or -1 if read could not be verified
         */
-       
-        StringParser::send(stream,F("<r%d|%d|%d %d>"),p[1],p[2],p[0],DCC::readCV(p[0]));
+       if (!stashCallback(stream,p)) break;
+        DCC::readCV(p[0],callback_R);
         return;
 
 /***** TURN ON POWER FROM MOTOR SHIELD TO TRACKS  ****/
@@ -388,6 +385,28 @@ bool DCCEXParser::parseS(Stream & stream, int params, int p[]) {
     return false;
 }
  
+int  DCCEXParser::stashP[MAX_PARAMS];
+bool DCCEXParser::stashBusy=false;
+Stream & DCCEXParser::stashStream=Serial;  // only to keep compiler happy
 
-
+bool DCCEXParser::stashCallback(Stream & stream, int p[MAX_PARAMS]) {
+       if (stashBusy) return false;
+       stashBusy=true; 
+      stashStream=stream;
+      memcpy(stashP,p,MAX_PARAMS*sizeof(p[0]));
+      return true;
+ }       
+ void DCCEXParser::callback_W(int result) {
+        StringParser::send(stashStream,F("<r%d|%d|%d %d>"), stashP[2], stashP[3],stashP[0],result==1?stashP[1]:-1);
+        stashBusy=false;
+ }  
  
+void DCCEXParser::callback_B(int result) {        
+        StringParser::send(stashStream,F("<r%d|%d|%d %d %d>"), stashP[3],stashP[4], stashP[0],stashP[1],result==1?stashP[2]:-1);
+        stashBusy=false;
+}
+void DCCEXParser::callback_R(int result) {        
+        StringParser::send(stashStream,F("<r%d|%d|%d %d>"),stashP[1],stashP[2],stashP[0],result);
+        stashBusy=false;
+}
+       

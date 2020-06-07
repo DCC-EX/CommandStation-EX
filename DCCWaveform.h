@@ -46,10 +46,9 @@ class DCCWaveform {
     void checkPowerOverload();
     int  getLastCurrent();
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
-    bool schedulePacketWithAck(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
-
+    void killRemainingRepeats();
 
   private:
 

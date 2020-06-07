@@ -137,6 +137,9 @@ bool DCCWaveform::interrupt1() {
 
 }
 
+void DCCWaveform::killRemainingRepeats() {
+   transmitRepeats=0;  // will go idle at end of current packet
+}
 
 void DCCWaveform::interrupt2() {
   // set currentBit to be the next bit to be sent.
@@ -179,7 +182,7 @@ void DCCWaveform::interrupt2() {
         memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
         transmitLength = sizeof(idlePacket);
         transmitRepeats = 0;
-        sentResetsSincePacket++;
+        if (sentResetsSincePacket<250) sentResetsSincePacket++;
       }
     }
   }
@@ -208,45 +211,6 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
-}
-
-// Wait until there is no packet pending, then make this pending
-bool DCCWaveform::schedulePacketWithAck(const byte buffer[], byte byteCount, byte repeats) {
-  
-  if (isMainTrack) return false; 
-  int baseline=0;
-  for (int i=0;i<ACK_BASELINE_SAMPLES;i++) {
-    baseline += Hardware::getCurrentMilliamps(isMainTrack);
-  }
-  baseline/=ACK_BASELINE_SAMPLES;
-  int upTrigger=baseline+ACK_MIN_PULSE;
- 
-  
-  DIAG(F("\nACK baseline=%d upT=%d "),baseline, upTrigger);
-  
-  schedulePacket(buffer,byteCount,repeats);
-  while (packetPending); // wait until transmitter has started transmitting the message
-
-  unsigned long timeout = millis() + ACK_TIMEOUT;
-  int maxCurrent = 0;
-  bool result = false;
-  int upsamples = 0;
-  
-
-  // Monitor looking for an ack signal rise of at least 60mA but keep going for the timeout 
-  while (timeout > millis()) {
-    int current = Hardware::getCurrentMilliamps(isMainTrack);
-    maxCurrent = max(maxCurrent, current);
-    if  (current>upTrigger) {
-      result=true;
-      upsamples++;
-    }
-    }
-
-  // The following DIAG is really useful as it can show how long and how far the
-  // current changes during an ACK from the decoder.
-  DIAG(F("ack=%d  max=%d, up=%d"), result, maxCurrent, upsamples);
-  return result;
 }
 
 int DCCWaveform::getLastCurrent() {
