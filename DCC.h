@@ -6,19 +6,19 @@
 typedef void (*ACK_CALLBACK)(int result);
 
 enum ackOp {  // Program opcodes for the ack Manager
-W0,W1,   // issue write bit  
-WB,     // issue write byte  
+BASELINE,  // ensure enough resets sent before starting and obtain baseline current
+W0,W1,   // issue write bit (0..1) packet 
+WB,     // issue write byte packet 
 VB,     // Issue validate Byte packet
 V0,     // Issue validate bit=0 packet
 V1,     // issue validate bit=1 packlet
 WACK,   // wait for ack (or absence of ack)
 ITC1,   // If True Callback(1)  (if prevous WACK got an ACK)
 ITC0,   // If True callback(0);
-ITCB,   // IOf True callback(byte)
-MERGE,  // Merge previous wack response with byte value and increment bit number (use for readimng CV bytes)
+ITCB,   // If True callback(byte)
 FAIL,   // callback(-1)
-ZERO,    // Clear bit and byte 
-BASELINE  // ensure enough resets sent before starting and obtain baseline
+STARTMERGE,    // Clear bit and byte settings ready for merge pass 
+MERGE  // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
 };
 
 class DCC {

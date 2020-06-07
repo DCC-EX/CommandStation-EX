@@ -108,14 +108,14 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 
 
 
-const ackOp WRITE_BIT0_PROG[] = {
+const ackOp PROGMEM WRITE_BIT0_PROG[] = {
      BASELINE,
      W0,WACK,
      V0, WACK,  // validate bit is 0 
      ITC1,      // if acked, callback(1)
      FAIL  // callback (-1)
 };
-const ackOp WRITE_BIT1_PROG[] = {
+const ackOp PROGMEM WRITE_BIT1_PROG[] = {
      BASELINE,
      W1,WACK,
      V1, WACK,  // validate bit is 1 
@@ -124,7 +124,7 @@ const ackOp WRITE_BIT1_PROG[] = {
 };
 
 
-const ackOp READ_BIT_PROG[] = {
+const ackOp PROGMEM READ_BIT_PROG[] = {
      BASELINE,
      V1, WACK,  // validate bit is 1 
      ITC1,      // if acked, callback(1)
@@ -133,7 +133,7 @@ const ackOp READ_BIT_PROG[] = {
      FAIL       // bit not readable 
      };
      
-const ackOp WRITE_BYTE_PROG[] = {
+const ackOp PROGMEM WRITE_BYTE_PROG[] = {
       BASELINE,
       WB,WACK,    // Write 
       VB,WACK,     // validate byte 
@@ -142,9 +142,9 @@ const ackOp WRITE_BYTE_PROG[] = {
       };
       
       
-const ackOp READ_CV_PROG[] = {
+const ackOp PROGMEM READ_CV_PROG[] = {
       BASELINE,
-      ZERO,    //clear bit and byte values
+      STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 1 (no need for zero validation as entire byte is validated at the end)
       V1, WACK, MERGE,  // read and merge bit 0
       V1, WACK, MERGE,  // read and merge bit 1 etc
@@ -277,19 +277,27 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
 }
 
-#define RESET_MIN 8
+const byte RESET_MIN=8;  // tuning of reset counter before sending message
+
 void DCC::ackManagerLoop() {
   while (ackManagerProg) {
 
     // breaks from this switch will step to next prog entry
     // returns from this switch will stay on same entry (typically WACK waiting and when all finished.)
-    byte opcode=*ackManagerProg;
+    byte opcode=pgm_read_byte_near(ackManagerProg);
+    // DIAG(F("apAck %d\n"),opcode);
     int resets=DCCWaveform::progTrack.sentResetsSincePacket;
- 
-    // DIAG(F("\nopAck %d"),opcode);
+    int current; 
+     
     switch (opcode) {
-      case W0:    // write bit 
-      case W1:    // write bit 
+      case BASELINE:
+          if (resets<RESET_MIN) return; // try later 
+          ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
+          // DIAG(F("\nBASELINE trigger mA=%d\n"),ackTriggerMilliamps);
+          break;
+
+      case W0:    // write 0 bit 
+      case W1:    // write 1 bit 
             {
               if (resets<RESET_MIN) return; // try later 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
@@ -297,6 +305,7 @@ void DCC::ackManagerLoop() {
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
             }
             break; 
+      
       case WB:   // write byte 
             {
               if (resets<RESET_MIN) return; // try later 
@@ -304,78 +313,80 @@ void DCC::ackManagerLoop() {
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
             }
             break;
+      
       case   VB:     // Issue validate Byte packet
         {
           if (resets<RESET_MIN) return; // try later 
-          DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
+          // DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
         }
         break;
+      
       case V0:
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
           if (resets<RESET_MIN) return; // try later 
-          DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
+          // DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
         }
         break;
+      
       case WACK:   // wait for ack (or absence of ack)
-        {
           
-          if (resets > 6) {
-            DIAG(F("\nWACK fail %d\n"), resets);
+          if (resets > 6) {  //ACK timeout
+            // DIAG(F("\nWACK fail %d\n"), resets);
             ackReceived = false;
             break; // move on to next prog step
             }
       
-        int current=Hardware::getCurrentMilliamps(false);
+        current=Hardware::getCurrentMilliamps(false);
       
-        if (current > ackTriggerMilliamps) {
-          DIAG(F("\nWACK ok %dmA, after %d resets\n"), current,resets);
+        if (current > ackTriggerMilliamps) {  //ACK detected
+          // DIAG(F("\nACK %dmA, after %d resets\n"), current,resets);
           ackReceived = true;
           DCCWaveform::progTrack.killRemainingRepeats(); 
           break; // move on tho next step
           }
-      }
-      return;  // maintain place for next poll cycle.
+          
+        return;  // check again on next loop cycle.
 
      case ITC0:
      case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
         if (ackReceived) {
-            ackManagerProg = NULL;
+            ackManagerProg = NULL; // all done now
             (ackManagerCallback)(opcode==ITC0?0:1);
             return;
           }
         break;
+        
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
-            ackManagerProg = NULL;
+            ackManagerProg = NULL; // all done now
             (ackManagerCallback)(ackManagerByte);
             return;
           }
         break;
-      case MERGE:  // Merge previous wack response with byte value and increment bit number (use for reading CV bytes)
-          ackManagerByte <<= 1;
-          if (ackReceived) ackManagerByte |= 1;
-          ackManagerBitNum--;
-          break;
+        
       case FAIL:  // callback(-1)
            ackManagerProg = NULL;
            (ackManagerCallback)(-1);
            return;
-      case ZERO:
+           
+      case STARTMERGE:
            ackManagerBitNum=7;
            ackManagerByte=0;     
           break;
-      case BASELINE:
-          if (resets<RESET_MIN) return; // try later 
-          ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
-          DIAG(F("BASELINE mA=%d"),ackTriggerMilliamps);
+          
+      case MERGE:  // Merge previous wack response with byte value and update bit number (use for reading CV bytes)
+          ackManagerByte <<= 1;
+          if (ackReceived) ackManagerByte |= 1;
+          ackManagerBitNum--;
           break;
-          }  // end of switch
+          
+      }  // end of switch
     ackManagerProg++;
   }
 }
