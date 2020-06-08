@@ -14,16 +14,16 @@
 */
 
 void myCallback(int result) {
-  DIAG(F("\n Reading CV 1 callback result=%d"),result); 
+  DIAG(F("\n getting Loco Id callback result=%d"),result); 
 }
 
 void setup() {
   Serial.begin(115200);
   DCC::begin();
 
-   DIAG(F("\n===== CVReader demonstrating DCC::readCV call ==========\n"));
-   DCC::readCV(1,myCallback); // myCallback will be called with the result 
-   DIAG(F("\n===== DCC::readCV has returned, but wont be executed until we are in loop() ======\n"));
+   DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
+   DCC::getLocoId(myCallback); // myCallback will be called with the result 
+   DIAG(F("\n===== DCC::getLocoId has returned, but wont be executed until we are in loop() ======\n"));
    DIAG(F("\nReady for JMRI commands\n"));
 }
 

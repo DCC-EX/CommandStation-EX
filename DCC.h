@@ -16,9 +16,16 @@ WACK,   // wait for ack (or absence of ack)
 ITC1,   // If True Callback(1)  (if prevous WACK got an ACK)
 ITC0,   // If True callback(0);
 ITCB,   // If True callback(byte)
+NAKFAIL, // if false callback(-1)
 FAIL,   // callback(-1)
 STARTMERGE,    // Clear bit and byte settings ready for merge pass 
-MERGE  // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
+MERGE,  // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
+SETBIT, // sets bit number to next prog byte
+SETCV, // sets cv number to next prog byte
+STASHLOCOID, // keeps current byte value for later
+COMBINELOCOID, // combines current value with stashed value and returns it
+ITSKIP,        // skip to SKIPTARGET if ack true
+SKIPTARGET=0xFF  // jump to target
 };
 
 class DCC {
@@ -62,6 +69,7 @@ private:
   static byte   ackManagerByte;
   static byte   ackManagerBitNum;
   static int    ackManagerCv;
+  static byte    ackManagerStash;
   static bool ackReceived;
   static int ackTriggerMilliamps;
   static ACK_CALLBACK  ackManagerCallback;

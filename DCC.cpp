@@ -160,6 +160,55 @@ const ackOp PROGMEM READ_CV_PROG[] = {
       FAIL };          // verification failed
 
 
+const ackOp PROGMEM LOCO_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
+      // Long locoid  
+      SETCV, (ackOp)17,       // CV 17 is part of locoid
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      STASHLOCOID,         // keep stashed cv 17 for later 
+      // Read 2nd part from CV 18 
+      SETCV, (ackOp)18,
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      COMBINELOCOID,        // Combile byte with stash to make long locoid and callback
+      
+      // ITSKIP Skips to here if CV 29 bit 5 was zero. so read CV 1 and return that  
+      SKIPTARGET,
+      SETCV, (ackOp)1,
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB,  // verify merged byte and callback
+      FAIL
+      };    
+
+
 
 void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback)  {
   ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback);
@@ -181,6 +230,9 @@ void DCC::readCV(int cv, ACK_CALLBACK callback)  {
   ackManagerSetup(cv, 0,READ_CV_PROG, callback);
 }
 
+void DCC::getLocoId(ACK_CALLBACK callback) {
+  ackManagerSetup(0,0, LOCO_ID_PROG, callback);
+}
 
 void DCC::loop()  {
   DCCWaveform::loop(); // power overload checks
@@ -205,27 +257,6 @@ void DCC::loop()  {
   }
 }
 
-void DCC::getLocoId(ACK_CALLBACK callback) {
-  callback(-1); // Not yet implemented 
-//  
-//  switch (readCVBit(29, 5)) {
-//    case 1:
-//      // long address : get CV#17 and CV#18
-//      {
-//        int cv17 = readCV(17);
-//
-//        if  (cv17 < 0) break;
-//        int cv18 = readCV(18);
-//        if  (cv18 < 0) break;
-//        return cv18 + ((cv17 - 192) << 8);
-//      }
-//    case 0: // short address in CV1
-//      return readCV(1);
-//    default: // No response or loco
-//      break;
-//  }
-//  return -1;
-}
 
 ///// Private helper functions below here /////////////////////
 
@@ -263,6 +294,7 @@ int DCC::nextLoco = 0;
 //ACK MANAGER
 ackOp  const *  DCC::ackManagerProg;
 byte   DCC::ackManagerByte;
+byte   DCC::ackManagerStash;
 int   DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
@@ -372,6 +404,14 @@ void DCC::ackManagerLoop() {
           }
         break;
         
+      case NAKFAIL:   // If nack callback(-1)
+          if (!ackReceived) {
+            ackManagerProg = NULL; // all done now
+            (ackManagerCallback)(-1);
+            return;
+          }
+        break;
+        
       case FAIL:  // callback(-1)
            ackManagerProg = NULL;
            (ackManagerCallback)(-1);
@@ -388,7 +428,44 @@ void DCC::ackManagerLoop() {
           if (!ackReceived) ackManagerByte |= 1;
           ackManagerBitNum--;
           break;
+
+      case SETBIT:
+          ackManagerProg++; 
+          ackManagerBitNum=pgm_read_byte_near(ackManagerProg);
+          break;
+
+     case SETCV:
+          ackManagerProg++; 
+          ackManagerCv=pgm_read_byte_near(ackManagerProg);
+          break;
+
+     case STASHLOCOID:
+          ackManagerStash=ackManagerByte;  // stash value from CV17 
+          break;
           
+     case COMBINELOCOID: 
+          // ackManagerStash is  cv17, ackManagerByte is CV 18
+          ackManagerProg=NULL;
+          (ackManagerCallback)( ackManagerByte + ((ackManagerStash - 192) << 8));
+          return;            
+
+     case ITSKIP:
+          if (!ackReceived) break; 
+          // SKIP opcodes until SKIPTARGET found
+          while (opcode!=SKIPTARGET) {
+            ackManagerProg++; 
+            opcode=pgm_read_byte_near(ackManagerProg);
+          }
+          // DIAG(F("\nSKIPTARGET located\n"));
+          break;
+     case SKIPTARGET: 
+          break;     
+     default: 
+          // DIAG(F("!! ackOp %d FAULT!!"),opcode);
+          ackManagerProg=NULL;
+          (ackManagerCallback)( -1);
+          return;        
+    
       }  // end of switch
     ackManagerProg++;
   }
