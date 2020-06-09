@@ -299,6 +299,7 @@ int   DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 int   DCC::ackTriggerMilliamps;
+long   DCC::ackPulseStart;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -333,11 +334,12 @@ void DCC::ackManagerLoop() {
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
             {
-              if (resets<RESET_MIN) return; // try later 
+              if (resets<RESET_MIN) return; // try later
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
-            }
+              ackPulseStart=0; 
+             }
             break; 
       
       case WB:   // write byte 
@@ -345,6 +347,7 @@ void DCC::ackManagerLoop() {
               if (resets<RESET_MIN) return; // try later 
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
+              ackPulseStart=0; 
             }
             break;
       
@@ -354,6 +357,7 @@ void DCC::ackManagerLoop() {
           // DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+          ackPulseStart=0; 
         }
         break;
       
@@ -365,6 +369,7 @@ void DCC::ackManagerLoop() {
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+          ackPulseStart=0; 
         }
         break;
       
@@ -377,16 +382,27 @@ void DCC::ackManagerLoop() {
             }
       
         current=Hardware::getCurrentMilliamps(false);
+        // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
+        
+        if (current>ackTriggerMilliamps) {
+          if (ackPulseStart==0)ackPulseStart=micros();    // leading edge of pulse detected
+          return;
+        }
       
-        if (current > ackTriggerMilliamps) {  //ACK detected
-          // DIAG(F("\nACK %dmA, after %d resets\n"), current,resets);
-          ackReceived = true;
-          DCCWaveform::progTrack.killRemainingRepeats(); 
-          break; // move on tho next step
+        // not in pulse
+        if (ackPulseStart==0) return; // keep waiting for leading edge 
+        {
+          long pulseDuration=micros()-ackPulseStart;       
+          // TODO handle timer wrapover
+          if (pulseDuration>4500 && pulseDuration<8500) {
+            ackReceived=true;
+            DCCWaveform::progTrack.killRemainingRepeats(); // probabaly no need after 8.5ms!!
+            break;  // we have a genuine ACK result
           }
-          
-        return;  // check again on next loop cycle.
-
+        }
+          ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
+          return; // keep waiting 
+        
      case ITC0:
      case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
         if (ackReceived) {
