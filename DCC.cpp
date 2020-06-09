@@ -391,12 +391,12 @@ void DCC::ackManagerLoop() {
       
         // not in pulse
         if (ackPulseStart==0) return; // keep waiting for leading edge 
-        {
+        { // detected trailing edge of pulse
           long pulseDuration=micros()-ackPulseStart;       
           // TODO handle timer wrapover
-          if (pulseDuration>4500 && pulseDuration<8500) {
+          if (pulseDuration>4500 && pulseDuration<8000) {
             ackReceived=true;
-            DCCWaveform::progTrack.killRemainingRepeats(); // probabaly no need after 8.5ms!!
+            DCCWaveform::progTrack.killRemainingRepeats(); // probably no need after 8.5ms!!
             break;  // we have a genuine ACK result
           }
         }
