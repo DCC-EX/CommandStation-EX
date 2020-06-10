@@ -17,6 +17,9 @@ void myCallback(int result) {
   DIAG(F("\n getting Loco Id callback result=%d"),result); 
 }
 
+DCCEXParser serialParser(Serial);;
+DCCEXParser wifiParser(Serial1);
+
 void setup() {
   Serial.begin(115200);
   DCC::begin();
@@ -31,5 +34,6 @@ void loop() {
   DCC::loop(); // required to keep locos running and check powwer
 
   // This line passes input on Serial to the DCCEXParser
-  StringParser::loop(Serial, DCCEXParser::parse);
+  serialParser.loop();
+  wifiParser.loop();
 }

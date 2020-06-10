@@ -65,7 +65,7 @@ the state of any outputs being monitored or controlled by a separate interface o
 
 #include "Outputs.h"
 #include "EEStore.h"
-#include "StringParser.h"
+#include "StringFormatter.h"
 void  Output::activate(int s){
   data.oStatus=(s>0);                                               // if s>0, set status to active, else inactive
   digitalWrite(data.pin,data.oStatus ^ bitRead(data.iFlag,0));      // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
@@ -106,14 +106,14 @@ bool Output::showAll(Stream & stream){
   bool gotone=false;
   for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
       gotone=true;
-      StringParser::send(stream,F("<Y %d %d %d %d>"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
+      StringFormatter::send(stream,F("<Y %d %d %d %d>"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
   }
   return gotone;
 }
 
 void Output::show(Stream & stream){
   for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
-      StringParser::send(stream,F("<Y %d %d>"), tt->data.id, tt->data.oStatus);
+      StringFormatter::send(stream,F("<Y %d %d>"), tt->data.id, tt->data.oStatus);
   }
 }
 

@@ -1,4 +1,4 @@
-#include "StringParser.h"
+#include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
@@ -10,19 +10,92 @@
 
 const char VERSION[]="99.666";
 
-// This is a JMRI command parser
+int DCCEXParser::stashP[MAX_PARAMS];
+ bool DCCEXParser::stashBusy;
+     Stream & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
+
+
+DCCEXParser::DCCEXParser(Stream & myStream) {
+   stream=myStream;
+}
+
+// This is a JMRI command parser, one instance per incoming stream
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
 // calls the corresponding DCC api.
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes. 
 
+void DCCEXParser::loop() {
+  while(stream.available()) {
+    if (bufferLength==MAX_BUFFER) {
+       bufferLength=0;
+      inCommandPayload=false;
+    }
+    char ch = stream.read();
+    if (ch == '<') {
+      inCommandPayload = true;
+      bufferLength=0;
+      buffer[0]='\0';
+    } 
+    else if (ch == '>') {
+      buffer[bufferLength]='\0';
+      parse(buffer);
+      inCommandPayload = false;
+      break;
+    } else if(inCommandPayload) {
+      buffer[bufferLength++]= ch;
+    }
+  }
+  }
 
- 
+ int DCCEXParser::splitValues( int result[MAX_PARAMS]) {
+  byte state=1;
+  byte parameterCount=0;
+  int runningValue=0;
+  const char * remainingCmd=buffer+1;  // skips the opcode
+  bool signNegative=false;
+  
+  // clear all parameters in case not enough found
+  for (int i=0;i<MAX_PARAMS;i++) result[i]=0;
+  
+  while(parameterCount<MAX_PARAMS) {
+      char hot=*remainingCmd;
+      
+       switch (state) {
+    
+            case 1: // skipping spaces before a param
+               if (hot==' ') break;
+               if (hot == '\0' || hot=='>') return parameterCount;
+               state=2;
+               continue;
+               
+            case 2: // checking sign
+               signNegative=false;
+               runningValue=0;
+               state=3; 
+               if (hot!='-') continue; 
+               signNegative=true;
+               break; 
+            case 3: // building a parameter   
+               if (hot>='0' && hot<='9') {
+                   runningValue=10*runningValue+(hot-'0');
+                   break;
+               }
+               result[parameterCount] = runningValue * (signNegative ?-1:1);
+               parameterCount++;
+               state=1; 
+               continue;
+         }   
+         remainingCmd++;
+      }
+      return parameterCount;
+}
+
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(Stream  & stream,const char *com) {
+void DCCEXParser::parse(const char *com) {
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
-    int params=StringParser::parse(com+1,p,MAX_PARAMS); 
+    int params=splitValues(p); 
 
 
     // Functions return from this switch if complete, break from switch implies error <X> to send
@@ -30,7 +103,7 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
     
     case 't':       // THROTTLE <t REGISTER CAB SPEED DIRECTION>
         DCC::setThrottle(p[1],p[2],p[3]);
-        StringParser::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
+        StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
         return;
     
     case 'f':       // FUNCTION <f CAB BYTE1 [BYTE2]>
@@ -44,15 +117,15 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
         return;
 
     case 'T':       // TURNOUT  <T ...> 
-        if (parseT(stream,params,p)) return;
+        if (parseT(params,p)) return;
         break;
 
     case 'Z':       // OUTPUT <Z ...> 
-      if (parseZ(stream,params,p)) return; 
+      if (parseZ(params,p)) return; 
       break; 
 
     case 'S':        // SENSOR <S ...> 
-      if (parseS(stream,params,p)) return; 
+      if (parseS(params,p)) return; 
       break;
     
     case 'w':      // WRITE CV on MAIN <w CAB CV VALUE>
@@ -81,17 +154,17 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
     case '1':      // POWERON <1>
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        StringParser::send(stream,F("<p1>"));
+        StringFormatter::send(stream,F("<p1>"));
         return;
 
     case '0':     // POWEROFF <0>
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-        StringParser::send(stream,F("<p0>"));
+        StringFormatter::send(stream,F("<p0>"));
         return;
 
     case 'c':     // READ CURRENT <c>
-        StringParser::send(stream,F("<a %d>"), DCCWaveform::mainTrack.getLastCurrent());
+        StringFormatter::send(stream,F("<a %d>"), DCCWaveform::mainTrack.getLastCurrent());
         return;
 
     case 'Q':         // SENSORS <Q>
@@ -99,7 +172,7 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
         break;
 
     case 's':      // <s>
-        StringParser::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %s: V-%s %s/%s\n>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
+        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %s: V-%s %s/%s\n>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
         // TODO send power status
         // TODO Send stats of  speed reminders table 
         // TODO send status of turnouts etc etc 
@@ -107,16 +180,16 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
 
     case 'E':     // STORE EPROM <E>
         EEStore::store();
-        StringParser::send(stream,F("<e %d %d %d>"), EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
+        StringFormatter::send(stream,F("<e %d %d %d>"), EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
         return;
 
     case 'e':     // CLEAR EPROM <e>
         EEStore::clear();
-        StringParser::send(stream, F("<O>"));
+        StringFormatter::send(stream, F("<O>"));
         return;
 
      case ' ':     // < >
-        StringParser::send(stream,F("\n"));
+        StringFormatter::send(stream,F("\n"));
         return;
 
      default:  //anything else will drop out to <X>
@@ -125,10 +198,10 @@ void DCCEXParser::parse(Stream  & stream,const char *com) {
     } // end of opcode switch 
 
     // Any fallout here sends an <X>
-       StringParser::send(stream, F("<X>"));
+       StringFormatter::send(stream, F("<X>"));
 }
 
-bool DCCEXParser::parseZ(Stream & stream, int params, int p[]){
+bool DCCEXParser::parseZ( int params, int p[]){
       
         
     switch (params) {
@@ -138,7 +211,7 @@ bool DCCEXParser::parseZ(Stream & stream, int params, int p[]){
             Output *  o=Output::get(p[0]);      
             if(o==NULL) return false;
             o->activate(p[1]);
-            StringParser::send(stream,F("<Y %d %d>"), p[0],p[1]);
+            StringFormatter::send(stream,F("<Y %d %d>"), p[0],p[1]);
            }
             return true;
 
@@ -159,14 +232,14 @@ bool DCCEXParser::parseZ(Stream & stream, int params, int p[]){
 
 
 //===================================
-bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
+bool DCCEXParser::parseT( int params, int p[]) {
   switch(params){
         case 0:                    // <T>
             return (Turnout::showAll(stream));             break;
 
         case 1:                     // <T id>
             if (!Turnout::remove(p[0])) return false;
-            StringParser::send(stream,F("<O>"));
+            StringFormatter::send(stream,F("<O>"));
             return true;
 
         case 2:                     // <T id 0|1>
@@ -176,7 +249,7 @@ bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
 
         case 3:                     // <T id addr subaddr>
             if (!Turnout::create(p[0],p[1],p[2])) return false;
-            StringParser::send(stream,F("<O>"));
+            StringFormatter::send(stream,F("<O>"));
             return true;
 
         default:
@@ -184,7 +257,7 @@ bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
         }
 }
 
-bool DCCEXParser::parseS(Stream & stream, int params, int p[]) {
+bool DCCEXParser::parseS( int params, int p[]) {
      
         switch(params){
 
@@ -205,11 +278,9 @@ bool DCCEXParser::parseS(Stream & stream, int params, int p[]) {
         }
     return false;
 }
- 
-int  DCCEXParser::stashP[MAX_PARAMS];
-bool DCCEXParser::stashBusy=false;
-Stream & DCCEXParser::stashStream=Serial;  // only to keep compiler happy
 
+
+ // CALLBACKS must be static 
 bool DCCEXParser::stashCallback(Stream & stream, int p[MAX_PARAMS]) {
        if (stashBusy) return false;
        stashBusy=true; 
@@ -218,16 +289,16 @@ bool DCCEXParser::stashCallback(Stream & stream, int p[MAX_PARAMS]) {
       return true;
  }       
  void DCCEXParser::callback_W(int result) {
-        StringParser::send(stashStream,F("<r%d|%d|%d %d>"), stashP[2], stashP[3],stashP[0],result==1?stashP[1]:-1);
+        StringFormatter::send(stashStream,F("<r%d|%d|%d %d>"), stashP[2], stashP[3],stashP[0],result==1?stashP[1]:-1);
         stashBusy=false;
  }  
  
 void DCCEXParser::callback_B(int result) {        
-        StringParser::send(stashStream,F("<r%d|%d|%d %d %d>"), stashP[3],stashP[4], stashP[0],stashP[1],result==1?stashP[2]:-1);
+        StringFormatter::send(stashStream,F("<r%d|%d|%d %d %d>"), stashP[3],stashP[4], stashP[0],stashP[1],result==1?stashP[2]:-1);
         stashBusy=false;
 }
 void DCCEXParser::callback_R(int result) {        
-        StringParser::send(stashStream,F("<r%d|%d|%d %d>"),stashP[1],stashP[2],stashP[0],result);
+        StringFormatter::send(stashStream,F("<r%d|%d|%d %d>"),stashP[1],stashP[2],stashP[0],result);
         stashBusy=false;
 }
        

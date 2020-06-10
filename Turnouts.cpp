@@ -1,6 +1,6 @@
 #include "Turnouts.h"
 #include "EEStore.h"
-#include "StringParser.h"
+#include "StringFormatter.h"
 
 bool Turnout::activate(int n,bool state){
   Turnout * tt=get(n);
@@ -43,7 +43,7 @@ bool Turnout::remove(int n){
 void Turnout::show(Stream & stream, int n){
   for(Turnout *tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
       if (tt->data.id==n) {
-        StringParser::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus);
+        StringFormatter::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus);
         return;
       }
   }
@@ -52,7 +52,7 @@ void Turnout::show(Stream & stream, int n){
 bool Turnout::showAll(Stream & stream){
   bool gotOne=false;
   for(Turnout * tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-      StringParser::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, tt->data.tStatus);
+      StringFormatter::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, tt->data.tStatus);
       gotOne=true;
   }
   return gotOne;

@@ -50,7 +50,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 
 #include "Sensors.h"
 #include "EEStore.h"
-#include "StringParser.h"
+#include "StringFormatter.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -62,10 +62,10 @@ void Sensor::check(Stream & stream){
 
     if(!tt->active && tt->signal<0.5){
       tt->active=true;
-      StringParser::send(stream,F("<Q %d>"), tt->data.snum);
+      StringFormatter::send(stream,F("<Q %d>"), tt->data.snum);
     } else if(tt->active && tt->signal>0.9){
       tt->active=false;
-      StringParser::send(stream,F("<q %d>"), tt->data.snum);
+      StringFormatter::send(stream,F("<q %d>"), tt->data.snum);
     }
   } // loop over all sensors
 
@@ -131,7 +131,7 @@ bool Sensor::remove(int n){
 
 void Sensor::show(Stream & stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    StringParser::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
+    StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
   }
 }
 
@@ -139,7 +139,7 @@ void Sensor::show(Stream & stream){
 
 void Sensor::status(Stream & stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    StringParser::send(stream,F("<%s %d>"), tt->active?"Q":"q", tt->data.snum);
+    StringFormatter::send(stream,F("<%s %d>"), tt->active?"Q":"q", tt->data.snum);
   }
 }
 
