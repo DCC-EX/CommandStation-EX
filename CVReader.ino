@@ -1,6 +1,7 @@
 #include "DCC.h"
 #include "DIAG.h"
 #include "DCCEXParser.h"
+#include "WifiInterface.h"
 
 /* this code is here to test the waveform generator and reveal the issues involved in programming track operations.
 
@@ -17,23 +18,27 @@ void myCallback(int result) {
   DIAG(F("\n getting Loco Id callback result=%d"),result); 
 }
 
-DCCEXParser serialParser(Serial);;
-DCCEXParser wifiParser(Serial1);
+DCCEXParser  serialParser;
+DCCEXParser  wifiParser;
 
 void setup() {
   Serial.begin(115200);
-  DCC::begin();
-
+   DCC::begin();
+ // if (WIFI_PORT>0) WifiInterface::setup();
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
    DIAG(F("\n===== DCC::getLocoId has returned, but wont be executed until we are in loop() ======\n"));
    DIAG(F("\nReady for JMRI commands\n"));
 }
 
-void loop() {
-  DCC::loop(); // required to keep locos running and check powwer
+void loop() {      
+    DCC::loop(); // required to keep locos running and check powwer
 
   // This line passes input on Serial to the DCCEXParser
-  serialParser.loop();
-  wifiParser.loop();
+  serialParser.loop(Serial);
+   
+   if (WIFI_PORT>0) {
+ //    wifiParser=WifiInterface::getSingleClient(wifiParser);
+ //    if (wifiParser) wifiParser->loop();
+  }
 }

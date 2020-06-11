@@ -26,13 +26,12 @@ void StringFormatter::send(Stream & stream,const __FlashStringHelper* format, va
     i++;
     c=pgm_read_byte_near(flash+i);
     switch(c) {
-      case '%': stream.write('%'); break;
+      case '%': stream.print('%'); break;
       case 's': stream.print(va_arg(args, char*)); break;
       case 'd': stream.print(va_arg(args, int), DEC); break;
       case 'b': stream.print(va_arg(args, int), BIN); break;
       case 'o': stream.print(va_arg(args, int), OCT); break;
       case 'x': stream.print(va_arg(args, int), HEX); break;
-      case 'c': stream.write(va_arg(args, int)); break;
       case 'f': stream.print(va_arg(args, double), 2); break;
     }
   }

@@ -7,17 +7,14 @@
 #include "Sensors.h"
 
 #include "EEStore.h"
+#include "DIAG.h"
 
 const char VERSION[]="99.666";
 
 int DCCEXParser::stashP[MAX_PARAMS];
- bool DCCEXParser::stashBusy;
-     Stream & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
-
-
-DCCEXParser::DCCEXParser(Stream & myStream) {
-   stream=myStream;
-}
+bool DCCEXParser::stashBusy;
+ 
+ Stream & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
 
 // This is a JMRI command parser, one instance per incoming stream
 // It doesnt know how the string got here, nor how it gets back.
@@ -25,7 +22,10 @@ DCCEXParser::DCCEXParser(Stream & myStream) {
 // calls the corresponding DCC api.
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes. 
 
-void DCCEXParser::loop() {
+DCCEXParser::DCCEXParser() {}
+
+void DCCEXParser::loop(Stream & stream) {
+  //DIAG(F("\nDCCEXParser Loop in  %d "),stream.available());
   while(stream.available()) {
     if (bufferLength==MAX_BUFFER) {
        bufferLength=0;
@@ -39,13 +39,14 @@ void DCCEXParser::loop() {
     } 
     else if (ch == '>') {
       buffer[bufferLength]='\0';
-      parse(buffer);
+      parse( stream, buffer);
       inCommandPayload = false;
       break;
     } else if(inCommandPayload) {
       buffer[bufferLength++]= ch;
     }
   }
+//DIAG(F(" out\n"));
   }
 
  int DCCEXParser::splitValues( int result[MAX_PARAMS]) {
@@ -92,7 +93,7 @@ void DCCEXParser::loop() {
 }
 
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(const char *com) {
+void DCCEXParser::parse(Stream & stream, const char *com) {
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
     int params=splitValues(p); 
@@ -117,15 +118,15 @@ void DCCEXParser::parse(const char *com) {
         return;
 
     case 'T':       // TURNOUT  <T ...> 
-        if (parseT(params,p)) return;
+        if (parseT(stream,params,p)) return;
         break;
 
     case 'Z':       // OUTPUT <Z ...> 
-      if (parseZ(params,p)) return; 
+      if (parseZ(stream,params,p)) return; 
       break; 
 
     case 'S':        // SENSOR <S ...> 
-      if (parseS(params,p)) return; 
+      if (parseS(stream,params,p)) return; 
       break;
     
     case 'w':      // WRITE CV on MAIN <w CAB CV VALUE>
@@ -201,7 +202,7 @@ void DCCEXParser::parse(const char *com) {
        StringFormatter::send(stream, F("<X>"));
 }
 
-bool DCCEXParser::parseZ( int params, int p[]){
+bool DCCEXParser::parseZ( Stream & stream,int params, int p[]){
       
         
     switch (params) {
@@ -232,7 +233,7 @@ bool DCCEXParser::parseZ( int params, int p[]){
 
 
 //===================================
-bool DCCEXParser::parseT( int params, int p[]) {
+bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
   switch(params){
         case 0:                    // <T>
             return (Turnout::showAll(stream));             break;
@@ -257,7 +258,7 @@ bool DCCEXParser::parseT( int params, int p[]) {
         }
 }
 
-bool DCCEXParser::parseS( int params, int p[]) {
+bool DCCEXParser::parseS( Stream & stream,int params, int p[]) {
      
         switch(params){
 
@@ -281,7 +282,7 @@ bool DCCEXParser::parseS( int params, int p[]) {
 
 
  // CALLBACKS must be static 
-bool DCCEXParser::stashCallback(Stream & stream, int p[MAX_PARAMS]) {
+bool DCCEXParser::stashCallback(Stream & stream,int p[MAX_PARAMS]) {
        if (stashBusy) return false;
        stashBusy=true; 
       stashStream=stream;

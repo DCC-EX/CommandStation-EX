@@ -2,23 +2,22 @@
 #define DCCEXParser_h
 struct DCCEXParser
 {
-   DCCEXParser(Stream & myStream);
-   void loop();
+   DCCEXParser();
+   void loop(Stream & pstream);
    private:
   
     static const int MAX_PARAMS=10;  // longest command sent in
     static const int MAX_BUFFER=50;  // longest command sent in
-        
-     Stream & stream;
+     Stream & stream;   
      byte  bufferLength=0;
      bool  inCommandPayload=false;
-     char  buffer[MAX_BUFFER]; 
-     void parse(const char * command);
-     int splitValues( int result[MAX_PARAMS]);
-   
-     bool parseT(int params, int p[]);
-     bool parseZ(int params, int p[]);
-     bool parseS( int params, int p[]);
+     char  buffer[MAX_BUFFER+2]; 
+    int splitValues( int result[MAX_PARAMS]);
+    void parse(Stream & stream, const char * command);
+     
+     bool parseT(Stream & stream, int params, int p[]);
+     bool parseZ(Stream & stream, int params, int p[]);
+     bool parseS(Stream & stream,  int params, int p[]);
 
     
     static bool stashBusy;
