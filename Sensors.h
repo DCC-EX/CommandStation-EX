@@ -22,9 +22,9 @@ struct Sensor{
   static Sensor *create(int, int, int);
   static Sensor* get(int);  
   static bool remove(int);  
-  static void show(Stream & stream);
-  static void status(Stream & stream);
-  static void check(Stream & stream);   
+  static void show(Print & stream);
+  static void status(Print & stream);
+  static void check(Print & stream);   
 }; // Sensor
 
 #endif

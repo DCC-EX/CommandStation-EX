@@ -24,7 +24,7 @@ DCCEXParser  wifiParser;
 void setup() {
   Serial.begin(115200);
    DCC::begin();
- // if (WIFI_PORT>0) WifiInterface::setup();
+   if (WIFI_PORT>0) WifiInterface::setup();
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
    DIAG(F("\n===== DCC::getLocoId has returned, but wont be executed until we are in loop() ======\n"));
@@ -36,9 +36,5 @@ void loop() {
 
   // This line passes input on Serial to the DCCEXParser
   serialParser.loop(Serial);
-   
-   if (WIFI_PORT>0) {
- //    wifiParser=WifiInterface::getSingleClient(wifiParser);
- //    if (wifiParser) wifiParser->loop();
-  }
+  if (WIFI_PORT>0) WifiInterface::loop(wifiParser);
 }

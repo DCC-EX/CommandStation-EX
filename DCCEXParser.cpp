@@ -14,7 +14,7 @@ const char VERSION[]="99.666";
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
  
- Stream & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
+ Print & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
 
 // This is a JMRI command parser, one instance per incoming stream
 // It doesnt know how the string got here, nor how it gets back.
@@ -23,13 +23,16 @@ bool DCCEXParser::stashBusy;
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes. 
 
 DCCEXParser::DCCEXParser() {}
+void DCCEXParser::flush() {
+DIAG(F("\nBuffer flush"));
+      bufferLength=0;
+      inCommandPayload=false;   
+}
 
 void DCCEXParser::loop(Stream & stream) {
-  //DIAG(F("\nDCCEXParser Loop in  %d "),stream.available());
-  while(stream.available()) {
+   while(stream.available()) {
     if (bufferLength==MAX_BUFFER) {
-       bufferLength=0;
-      inCommandPayload=false;
+       flush();
     }
     char ch = stream.read();
     if (ch == '<') {
@@ -46,7 +49,6 @@ void DCCEXParser::loop(Stream & stream) {
       buffer[bufferLength++]= ch;
     }
   }
-//DIAG(F(" out\n"));
   }
 
  int DCCEXParser::splitValues( int result[MAX_PARAMS]) {
@@ -93,7 +95,8 @@ void DCCEXParser::loop(Stream & stream) {
 }
 
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(Stream & stream, const char *com) {
+void DCCEXParser::parse(Print & stream, const char *com) {
+    // DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
     int params=splitValues(p); 
@@ -173,8 +176,8 @@ void DCCEXParser::parse(Stream & stream, const char *com) {
         break;
 
     case 's':      // <s>
-        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %s: V-%s %s/%s\n>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
-        // TODO send power status
+        StringFormatter::send(stream,F("<p%d>"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON );
+        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %s: V-%s %s/%s>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
         // TODO Send stats of  speed reminders table 
         // TODO send status of turnouts etc etc 
         return;
@@ -202,7 +205,7 @@ void DCCEXParser::parse(Stream & stream, const char *com) {
        StringFormatter::send(stream, F("<X>"));
 }
 
-bool DCCEXParser::parseZ( Stream & stream,int params, int p[]){
+bool DCCEXParser::parseZ( Print & stream,int params, int p[]){
       
         
     switch (params) {
@@ -233,7 +236,7 @@ bool DCCEXParser::parseZ( Stream & stream,int params, int p[]){
 
 
 //===================================
-bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
+bool DCCEXParser::parseT(Print & stream, int params, int p[]) {
   switch(params){
         case 0:                    // <T>
             return (Turnout::showAll(stream));             break;
@@ -258,7 +261,7 @@ bool DCCEXParser::parseT(Stream & stream, int params, int p[]) {
         }
 }
 
-bool DCCEXParser::parseS( Stream & stream,int params, int p[]) {
+bool DCCEXParser::parseS( Print & stream,int params, int p[]) {
      
         switch(params){
 
@@ -282,7 +285,7 @@ bool DCCEXParser::parseS( Stream & stream,int params, int p[]) {
 
 
  // CALLBACKS must be static 
-bool DCCEXParser::stashCallback(Stream & stream,int p[MAX_PARAMS]) {
+bool DCCEXParser::stashCallback(Print & stream,int p[MAX_PARAMS]) {
        if (stashBusy) return false;
        stashBusy=true; 
       stashStream=stream;

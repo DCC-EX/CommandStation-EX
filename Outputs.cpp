@@ -102,7 +102,7 @@ bool Output::remove(int n){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Output::showAll(Stream & stream){  
+bool Output::showAll(Print & stream){  
   bool gotone=false;
   for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
       gotone=true;
@@ -111,7 +111,7 @@ bool Output::showAll(Stream & stream){
   return gotone;
 }
 
-void Output::show(Stream & stream){
+void Output::show(Print & stream){
   for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
       StringFormatter::send(stream,F("<Y %d %d>"), tt->data.id, tt->data.oStatus);
   }
