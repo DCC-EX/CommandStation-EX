@@ -1,7 +1,6 @@
 
 #ifndef WifiInterface_h
 #define WifiInterface_h
-#include <WiFiEsp.h> 
 #include "DCCEXParser.h"
 
 class WifiInterface {
@@ -11,10 +10,11 @@ class WifiInterface {
     static void loop(DCCEXParser & parser);
     
   private:
-    static WiFiEspServer server;
-    static WiFiEspClient client;
+    static bool setup2();
+    static bool checkForOK(const int timeout, char * search);
     static bool connected;
-    static bool haveClient;
+    static const byte MAX_BUFFER=64;
+    static byte inboundBuffer[MAX_BUFFER];
 };
 
 #endif

@@ -1,5 +1,6 @@
 #ifndef DCCEXParser_h
 #define DCCEXParser_h
+#include <Arduino.h>
 struct DCCEXParser
 {
    DCCEXParser();
