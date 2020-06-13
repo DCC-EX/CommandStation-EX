@@ -51,11 +51,11 @@ void DCCEXParser::loop(Stream & stream) {
   }
   }
 
- int DCCEXParser::splitValues( int result[MAX_PARAMS]) {
+ int DCCEXParser::splitValues( int result[MAX_PARAMS], char * cmd) {
   byte state=1;
   byte parameterCount=0;
   int runningValue=0;
-  const char * remainingCmd=buffer+1;  // skips the opcode
+  const char * remainingCmd=cmd+1;  // skips the opcode
   bool signNegative=false;
   
   // clear all parameters in case not enough found
@@ -96,12 +96,13 @@ void DCCEXParser::loop(Stream & stream) {
 
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print & stream, const char *com) {
-    // DIAG(F("\nPARSING:%s\n"),com);
+    DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
-    int params=splitValues(p); 
+    int params=splitValues(p, com); 
 
-
+    if (com[0]=='<') com++;
+    
     // Functions return from this switch if complete, break from switch implies error <X> to send
     switch(com[0]) {
     

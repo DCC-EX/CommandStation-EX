@@ -78,6 +78,7 @@ void WifiInterface::loop() {
     // read anything into a buffer, collecting info on the way  
     while (loopstate!=99 && Serial1.available()) { 
       int ch=Serial1.read();
+      Serial.write(ch);
       switch (loopstate) {
            case 0:  // looking for +
                 connectionId=0;
@@ -105,6 +106,7 @@ void WifiInterface::loop() {
                 else datalength=datalength*10 + (ch-'0');
                 break;
            case 7: // reading data 
+                streamer.write(ch);
                 datalength--;
                 if (datalength==0) loopstate=99;
                 break;
@@ -113,13 +115,19 @@ void WifiInterface::loop() {
     if (loopstate!=99) return; 
     // TODO remove > in data 
     streamer.write('\0');
-    streamer.flush();  // reset write position to start of buffer
+
+    DIAG(F("\nWifiRead:%d:%s\n"),connectionId,buffer);
+    streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
     // SIDE EFFECT WARNING::: 
     //  We know that parser will read the entire buffer before starting to write to it.
     //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
 
     // TODO ... tell parser that callbacks are diallowed because we dont want to handle the async 
-    parser.parse(streamer,buffer+1);
-    StringFormatter::send(Serial1,F("AT+CIPSEND=%d,%d\r\n>%s"),connectionId,streamer.available(),buffer);
-    loopstate=0; 
+    parser.parse(streamer,buffer);
+    if (streamer.available()) { // there is a reply to send 
+        StringFormatter::send(Serial1,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
+        streamer.write('\0');
+        if (checkForOK(1000,">"))  Serial1.print((char *) buffer);
+    }
+    loopstate=0;  // go back to looking for +IPD 
     }

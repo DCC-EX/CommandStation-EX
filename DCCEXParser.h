@@ -14,7 +14,7 @@ struct DCCEXParser
      byte  bufferLength=0;
      bool  inCommandPayload=false;
      char  buffer[MAX_BUFFER+2]; 
-    int splitValues( int result[MAX_PARAMS]);
+    int splitValues( int result[MAX_PARAMS],char * command);
      
      bool parseT(Print & stream, int params, int p[]);
      bool parseZ(Print & stream, int params, int p[]);
