@@ -3,6 +3,8 @@
 #define WifiInterface_h
 #include "DCCEXParser.h"
 #include "MemStream.h"
+#include <Arduino.h>
+#include <avr/pgmspace.h>
 
 class WifiInterface {
 
@@ -13,7 +15,7 @@ class WifiInterface {
   private:
     static DCCEXParser parser;
     static bool setup2();
-    static bool checkForOK(const int timeout, char * search);
+    static bool checkForOK( const int timeout, const char* waitfor, bool echo);
     static bool connected;
     static byte loopstate;
     static int  datalength;

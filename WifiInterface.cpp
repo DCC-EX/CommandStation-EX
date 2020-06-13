@@ -4,8 +4,10 @@
 #include "StringFormatter.h"
 
  
-const char READY_SEARCH[]="\r\nready\r\n";
-const char OK_SEARCH[]="\r\nOK\r\n";
+const char  PROGMEM READY_SEARCH[]  ="\r\nready\r\n";
+const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
+const char  PROGMEM END_DETAIL_SEARCH[] ="@ 1000";
+const char  PROGMEM PROMPT_SEARCH[] =">";
 
 bool WifiInterface::connected=false;
 DCCEXParser  WifiInterface::parser;
@@ -19,7 +21,7 @@ void WifiInterface::setup() {
   DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
   connected=setup2();
   // TODO calloc the buffer and streamer and parser etc 
-  DIAG(F("\n++++++ Wifi Setup %s ++++++++\n"), connected?"OK":"FAILED");
+  DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected?F("OK"):F("FAILED"));
 }
 
 bool WifiInterface::setup2()
@@ -29,38 +31,39 @@ bool WifiInterface::setup2()
   delay(1000);
 
   StringFormatter::send(Serial1,F("AT+RST\r\n")); // reset module
-  if (!checkForOK(10000,READY_SEARCH)) return false; 
+  checkForOK(5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
+  if (!checkForOK(5000,READY_SEARCH,false)) return false; 
   
   StringFormatter::send(Serial1,F("AT+CWMODE=1\r\n")); // configure as access point
-  if (!checkForOK(10000,OK_SEARCH)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
  
-  StringFormatter::send(Serial1,F("AT+CWJAP=\"%s\",\"%s\"\r\n"),WIFI_SSID,WIFI_PASS);
-  if (!checkForOK(20000,OK_SEARCH)) return false;
+  StringFormatter::send(Serial1,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),WIFI_SSID,WIFI_PASS);
+  if (!checkForOK(20000,OK_SEARCH,true)) return false;
   
   StringFormatter::send(Serial1,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
-  if (!checkForOK(10000,OK_SEARCH)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
   
   StringFormatter::send(Serial1,F("AT+CIPMUX=1\r\n")); // configure for multiple connections
-  if (!checkForOK(10000,OK_SEARCH)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
   
   StringFormatter::send(Serial1,F("AT+CIPSERVER=1,%d\r\n"),WIFI_PORT); // turn on server on port 80
-  if (!checkForOK(10000,OK_SEARCH)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
 
   return true;
 }
 
-bool WifiInterface::checkForOK( const int timeout,char * search) {
+bool WifiInterface::checkForOK( const int timeout, const char * waitfor, bool echo) {
   long int time = millis()+timeout;
-  byte locator=0;
-  DIAG(F("\nWifi setup Check:"),search);
+  char *locator=waitfor;
+  DIAG(F("\nWifi setup Check: %S\n"),waitfor);
   while( time > millis()) {
     while(Serial1.available()) {
       int ch=Serial1.read();
-      Serial.write(ch);
-      if (ch!=search[locator]) locator=0;
-      if (ch==search[locator]){
+      if (echo) Serial.write(ch);
+      if (ch!=pgm_read_byte_near(locator)) locator=waitfor;
+      if (ch==pgm_read_byte_near(locator)) {
         locator++;
-        if (!search[locator]) {
+        if (!pgm_read_byte_near(locator)) {
           DIAG(F("\nOK after %dms\n"),millis()-time+timeout);
           return true;
         }
@@ -127,7 +130,7 @@ void WifiInterface::loop() {
     if (streamer.available()) { // there is a reply to send 
         StringFormatter::send(Serial1,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
         streamer.write('\0');
-        if (checkForOK(1000,">"))  Serial1.print((char *) buffer);
+        if (checkForOK(1000,PROMPT_SEARCH,true))  Serial1.print((char *) buffer);
     }
     loopstate=0;  // go back to looking for +IPD 
     }

@@ -2,8 +2,8 @@
 #define Config_h
 
 const int  WIFI_PORT = 99;                         // OR set to zero for no wifi 
-const char WIFI_SSID[] = "BTHub5-M6PT";            // your network SSID (name)
-const char WIFI_PASS[] = "49de8d4862";            // your network password
+const char WIFI_SSID[] PROGMEM = "BTHub5-M6PT";            // your network SSID (name)
+const char WIFI_PASS[] PROGMEM = "49de8d4862";            // your network password
 const long WIFI_BAUD_RATE=115200;
 
 const long SERIAL_BAUD_RATE=115200;

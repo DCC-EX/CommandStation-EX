@@ -87,7 +87,7 @@ void DCCWaveform::checkPowerOverload() {
       if (lastCurrent < POWER_SAMPLE_MAX)  delay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
-        DIAG(F("\n*** %s TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? "MAIN" : "PROG", lastCurrent, POWER_SAMPLE_MAX);
+        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), lastCurrent, POWER_SAMPLE_MAX);
         delay = POWER_SAMPLE_OVERLOAD_WAIT;
       }
       break;

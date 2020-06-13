@@ -9,7 +9,7 @@
 #include "EEStore.h"
 #include "DIAG.h"
 
-const char VERSION[]="99.666";
+const char VERSION[] PROGMEM ="99.666";
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -178,7 +178,7 @@ void DCCEXParser::parse(Print & stream, const char *com) {
 
     case 's':      // <s>
         StringFormatter::send(stream,F("<p%d>"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON );
-        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %s: V-%s %s/%s>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
+        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %S: V-%S %s/%s>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
         // TODO Send stats of  speed reminders table 
         // TODO send status of turnouts etc etc 
         return;

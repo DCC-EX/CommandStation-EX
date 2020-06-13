@@ -29,6 +29,7 @@ void StringFormatter::send(Print & stream,const __FlashStringHelper* format, va_
       case '%': stream.print('%'); break;
       case 'c': stream.print((char) va_arg(args, int)); break;
       case 's': stream.print(va_arg(args, char*)); break;
+      case 'S': stream.print((const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'd': stream.print(va_arg(args, int), DEC); break;
       case 'b': stream.print(va_arg(args, int), BIN); break;
       case 'o': stream.print(va_arg(args, int), OCT); break;

@@ -139,7 +139,7 @@ void Sensor::show(Print & stream){
 
 void Sensor::status(Print & stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    StringFormatter::send(stream,F("<%s %d>"), tt->active?"Q":"q", tt->data.snum);
+    StringFormatter::send(stream,F("<%c %d>"), tt->active?'Q':'q', tt->data.snum);
   }
 }
 
