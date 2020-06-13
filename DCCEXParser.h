@@ -5,6 +5,7 @@ struct DCCEXParser
 {
    DCCEXParser();
    void loop(Stream & pstream);
+   void parse(Print & stream, const char * command);
    void flush();
    private:
   
@@ -14,7 +15,6 @@ struct DCCEXParser
      bool  inCommandPayload=false;
      char  buffer[MAX_BUFFER+2]; 
     int splitValues( int result[MAX_PARAMS]);
-    void parse(Print & stream, const char * command);
      
      bool parseT(Print & stream, int params, int p[]);
      bool parseZ(Print & stream, int params, int p[]);

@@ -5,8 +5,8 @@ const int  WIFI_PORT = 99;                         // OR set to zero for no wifi
 const char WIFI_SSID[] = "BTHub5-M6PT";            // your network SSID (name)
 const char WIFI_PASS[] = "49de8d4862";            // your network password
 const long WIFI_BAUD_RATE=115200;
-const long WIFI_CONNECT_RETRIES=10;
 
+const long SERIAL_BAUD_RATE=115200;
 
 // This hardware configuration would normally be setup using a bunch of #ifdefs.
 
@@ -26,7 +26,7 @@ const byte PROG_BRAKE_PIN = 10;
 const float PROG_SENSE_FACTOR=1; //  analgRead(PROG_SENSE_PIN) * PROG_SENSE_FACTOR = milliamps 
 
 // Allocations with memory implications.. however tiny!
-// Base system takes approx 500 bytes + 4 per loco and 3 per turnout.
+// Base system takes approx 500 bytes + 3 per loco and 4 per turnout.
 const byte MAX_LOCOS=50;             
 const byte MAX_TURNOUTS=50;
 

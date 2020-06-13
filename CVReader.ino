@@ -19,10 +19,9 @@ void myCallback(int result) {
 }
 
 DCCEXParser  serialParser;
-DCCEXParser  wifiParser;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
    DCC::begin();
    if (WIFI_PORT>0) WifiInterface::setup();
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
@@ -36,5 +35,5 @@ void loop() {
 
   // This line passes input on Serial to the DCCEXParser
   serialParser.loop(Serial);
-  if (WIFI_PORT>0) WifiInterface::loop(wifiParser);
+  if (WIFI_PORT>0) WifiInterface::loop();
 }
