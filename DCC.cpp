@@ -272,8 +272,15 @@ byte DCC::cv2(int cv)  {
 
 
 void  DCC::updateLocoReminder(int loco, byte speedCode) {
-  // determine speed reg for this loco
   int reg;
+ 
+  if (loco==0) {
+     // broadcast message
+     for (reg = 0; reg < MAX_LOCOS; reg++) speedTable[reg].speedCode = speedCode;
+     return; 
+  }
+  
+  // determine speed reg for this loco
   int firstEmpty = MAX_LOCOS;
   for (reg = 0; reg < MAX_LOCOS; reg++) {
     if (speedTable[reg].loco == loco) break;
@@ -299,7 +306,7 @@ int   DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 int   DCC::ackTriggerMilliamps;
-long   DCC::ackPulseStart;
+unsigned long   DCC::ackPulseStart;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -393,7 +400,6 @@ void DCC::ackManagerLoop() {
         if (ackPulseStart==0) return; // keep waiting for leading edge 
         { // detected trailing edge of pulse
           long pulseDuration=micros()-ackPulseStart;       
-          // TODO handle timer wrapover
           if (pulseDuration>4500 && pulseDuration<8000) {
             ackReceived=true;
             DCCWaveform::progTrack.killRemainingRepeats(); // probably no need after 8.5ms!!

@@ -72,7 +72,7 @@ private:
   static byte    ackManagerStash;
   static bool ackReceived;
   static int ackTriggerMilliamps;
-  static long ackPulseStart;
+  static unsigned long ackPulseStart;
   static ACK_CALLBACK  ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
   static void ackManagerLoop();

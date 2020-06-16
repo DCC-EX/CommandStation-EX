@@ -78,6 +78,7 @@ class DCCWaveform {
     
     // current sampling
     POWERMODE powerMode;
-    unsigned long nextSampleDue;
+    unsigned long lastSampleTaken;
+    int sampleDelay;
 };
 #endif

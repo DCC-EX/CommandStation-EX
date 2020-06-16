@@ -55,11 +55,12 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   requiredPreambles = preambleBits;
   bytes_sent = 0;
   bits_sent = 0;
-  nextSampleDue = 0;
-
+  sampleDelay = 0;
+  lastSampleTaken = millis();
 }
 void DCCWaveform::beginTrack() {
   setPowerMode(POWERMODE::ON);
+   
 }
 
 POWERMODE DCCWaveform::getPowerMode() {
@@ -74,32 +75,31 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 
 void DCCWaveform::checkPowerOverload() {
-  if (millis() < nextSampleDue) return;
-  int delay;
-
+  if (millis() - lastSampleTaken  < sampleDelay) return;
+  lastSampleTaken = millis();
+  
   switch (powerMode) {
     case POWERMODE::OFF:
-      delay = POWER_SAMPLE_OFF_WAIT;
+      sampleDelay = POWER_SAMPLE_OFF_WAIT;
       break;
     case POWERMODE::ON:
       // Check current
       lastCurrent = Hardware::getCurrentMilliamps(isMainTrack);
-      if (lastCurrent < POWER_SAMPLE_MAX)  delay = POWER_SAMPLE_ON_WAIT;
+      if (lastCurrent < POWER_SAMPLE_MAX)  sampleDelay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), lastCurrent, POWER_SAMPLE_MAX);
-        delay = POWER_SAMPLE_OVERLOAD_WAIT;
+        sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
       }
       break;
     case POWERMODE::OVERLOAD:
       // Try setting it back on after the OVERLOAD_WAIT
       setPowerMode(POWERMODE::ON);
-      delay = POWER_SAMPLE_ON_WAIT;
+      sampleDelay = POWER_SAMPLE_ON_WAIT;
       break;
     default:
-      delay = 999; // cant get here..meaningless statement to avoid compiler warning.
+      sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
   }
-  nextSampleDue = millis() + delay;
 }
 
 
