@@ -234,6 +234,14 @@ void DCC::getLocoId(ACK_CALLBACK callback) {
   ackManagerSetup(0,0, LOCO_ID_PROG, callback);
 }
 
+void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
+  for (int i=0;i<MAX_LOCOS;i++) if (speedTable[i].loco=cab) speedTable[i].loco=0;
+}
+void DCC::forgetAllLocos() {  // removes all speed reminders
+  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
+}
+  
+
 void DCC::loop()  {
   DCCWaveform::loop(); // power overload checks
   ackManagerLoop();

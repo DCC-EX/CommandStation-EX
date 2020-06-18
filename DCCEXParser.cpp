@@ -94,18 +94,26 @@ void DCCEXParser::loop(Stream & stream) {
       return parameterCount;
 }
 
+FILTER_CALLBACK  DCCEXParser::filterCallback=0;
+void DCCEXParser::setFilter(FILTER_CALLBACK filter) {
+  filterCallback=filter;  
+}
+   
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print & stream, const char *com) {
     DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
-    int params=splitValues(p, com); 
+    byte params=splitValues(p, com); 
 
     if (com[0]=='<') com++;
-    
+    byte opcode=com[0];
+     
+    if (filterCallback)  filterCallback(stream,opcode,params,p);
+     
     // Functions return from this switch if complete, break from switch implies error <X> to send
-    switch(com[0]) {
-    
+    switch(opcode) {
+    case '\0': return;    // filterCallback asked us to ignore 
     case 't':       // THROTTLE <t REGISTER CAB SPEED DIRECTION>
         DCC::setThrottle(p[1],p[2],p[3]);
         StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);

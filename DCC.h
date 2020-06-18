@@ -51,6 +51,10 @@ class DCC {
   
   static void getLocoId(ACK_CALLBACK callback);
 
+  // Enhanced API functions
+  static void forgetLoco(int cab);  // removes any speed reminders for this loco  
+  static void forgetAllLocos();  // removes all speed reminders
+    
 private: 
   struct LOCO {
      int loco;
@@ -62,7 +66,8 @@ private:
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
-
+  
+  
 
 // ACK MANAGER
   static ackOp  const * ackManagerProg;

@@ -18,6 +18,14 @@ void myCallback(int result) {
   DIAG(F("\n getting Loco Id callback result=%d"),result); 
 }
 
+
+void myFilter(Stream & stream, byte & opcode, byte & paramCount, int p[]) {
+    if (opcode=='T') {
+      DIAG(F("\nStop messing with Turnouts!"));
+      opcode=0; // tell parssr to ignore it   
+    }
+}
+
 DCCEXParser  serialParser;
 
 void setup() {
@@ -28,6 +36,7 @@ void setup() {
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
    DIAG(F("\n===== DCC::getLocoId has returned, but wont be executed until we are in loop() ======\n"));
    DIAG(F("\nReady for JMRI commands\n"));
+   DCCEXParser::setFilter(myFilter);
 }
 
 void loop() {      
