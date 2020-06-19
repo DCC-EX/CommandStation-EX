@@ -11,6 +11,9 @@
 
 const char VERSION[] PROGMEM ="99.666";
 
+const int HASH_KEYWORD_PROG=-29718;
+const int HASH_KEYWORD_MAIN=11339;
+
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
  
@@ -82,6 +85,12 @@ void DCCEXParser::loop(Stream & stream) {
             case 3: // building a parameter   
                if (hot>='0' && hot<='9') {
                    runningValue=10*runningValue+(hot-'0');
+                   break;
+               }
+               if (hot>='A' && hot<='Z') {
+                   // Since JMRI got modified to send keywords in some rare cases, we need this
+                   // Super Kluge to turn keywords into a hash value that can be recognised later
+                   runningValue = ((runningValue << 5) + runningValue) ^ hot;
                    break;
                }
                result[parameterCount] = runningValue * (signNegative ?-1:1);
@@ -164,18 +173,32 @@ void DCCEXParser::parse(Print & stream, const char *com) {
         DCC::readCV(p[0],callback_R);
         return;
 
-    case '1':      // POWERON <1>
-        DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        StringFormatter::send(stream,F("<p1>"));
-        return;
-
-    case '0':     // POWEROFF <0>
-        DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-        StringFormatter::send(stream,F("<p0>"));
-        return;
-
+    case '1':      // POWERON <1   [MAIN|PROG]>
+    case '0':      // POWEROFF <0 [MAIN | PROG] >
+        if (params>1) break;
+        {
+          POWERMODE mode= opcode=='1'?POWERMODE::ON:POWERMODE::OFF;
+          if (params==0) {
+              DCCWaveform::mainTrack.setPowerMode(mode);
+              DCCWaveform::progTrack.setPowerMode(mode);
+              StringFormatter::send(stream,F("<p%c>"),opcode);
+              return;
+          }
+          if (p[0]==HASH_KEYWORD_MAIN) {
+              DCCWaveform::mainTrack.setPowerMode(mode);
+              StringFormatter::send(stream,F("<p%c MAIN>"),opcode);
+              return;
+          }
+          if (p[0]==HASH_KEYWORD_PROG) {
+              DCCWaveform::progTrack.setPowerMode(mode);
+              StringFormatter::send(stream,F("<p%c PROG>"),opcode);
+              return;
+          }
+          DIAG(F("keyword hash=%d\n"),p[0]);
+          break;
+        }
+        return;      
+     
     case 'c':     // READ CURRENT <c>
         StringFormatter::send(stream,F("<a %d>"), DCCWaveform::mainTrack.getLastCurrent());
         return;
