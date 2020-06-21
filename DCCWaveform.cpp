@@ -52,7 +52,9 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   packetPending = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = 0;
-  requiredPreambles = preambleBits;
+  // The +1 below is to allow the preamble generator to create the stop bit
+  // fpr the previous packet. 
+  requiredPreambles = preambleBits+1;  
   bytes_sent = 0;
   bits_sent = 0;
   sampleDelay = 0;
