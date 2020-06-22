@@ -3,14 +3,12 @@
 #include "DCCEXParser.h"
 #include "WifiInterface.h"
 
-/* this code is here to demonstrate use of the DCC APi
-
-*/
+// this code is here to demonstrate use of the DCC API and other techniques
 
 // myFilter is an example of an OPTIONAL command filter used to intercept < > commands from
 // the usb or wifi streamm.  It demonstrates how a command may be intercepted
-//  or even a new command created without having to bfreak open the API library code.
-// The filgter is permitted to use or modify the parameter list before passing it on to 
+//  or even a new command created without having to break open the API library code.
+// The filter is permitted to use or modify the parameter list before passing it on to 
 // the standard parser. By setting the opcode to ZERO, the standard parser will 
 // just ignore the command on the assumption that you have already handled it.
 //
@@ -22,6 +20,11 @@ void myFilter(Stream & stream, byte & opcode, byte & paramCount, int p[]) {
               DIAG(F("\nStop messing with Turnouts!"));
               opcode=0; // tell parssr to ignore ithis command
               break;   
+       case 'F': // Invent new command to call the new Loco Function API <F cab func 1|0>
+             DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
+             DCC::setFn(p[0],p[1],p[2]==1); 
+             opcode=0;  // tell parser to ignore this command
+             break; 
        case '#':   // Diagnose parser <#....>
             DIAG(F("# paramCount=%d\n"),paramCount);
             for (int i=0;i<paramCount;i++) DIAG(F("p[%d]=%d (0x%x)\n"),i,p[i],p[i]);

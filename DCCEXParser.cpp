@@ -129,11 +129,9 @@ void DCCEXParser::parse(Print & stream, const char *com) {
         return;
     
     case 'f':       // FUNCTION <f CAB BYTE1 [BYTE2]>
-        if (params==3) DCC::setFunction(p[0],p[1],p[2]); 
-        else DCC::setFunction(p[0],p[1]);
-        // NO RESPONSE
-        return;
-        
+        if (parsef(stream,params,p)) return;
+        break;
+         
     case 'a':       // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE>
         DCC::setAccessory(p[0],p[1],p[2]);
         return;
@@ -227,7 +225,7 @@ void DCCEXParser::parse(Print & stream, const char *com) {
      case ' ':     // < >
         StringFormatter::send(stream,F("\n"));
         return;
-
+        
      default:  //anything else will drop out to <X>
         break;
     
@@ -266,6 +264,37 @@ bool DCCEXParser::parseZ( Print & stream,int params, int p[]){
         }
     }    
 
+//===================================
+bool DCCEXParser::parsef(Print & stream, int params, int p[]) {
+    // JMRI sends this info in DCC message format but it's not exactly 
+    //      convenient for other processing
+    if (params==2) {
+      byte groupcode=p[1] & 0xE0;
+      if (groupcode == 0x80) {
+        byte normalized= (p[1]<<1 & 0x1e ) | (p[1]>>4 & 0x01);
+        funcmap(p[0],normalized,0,4);
+      }
+      else if (groupcode == 0xC0) {
+        funcmap(p[0],p[1],5,8);
+      }
+      else if (groupcode == 0xA0) {
+        funcmap(p[0],p[1],9,12);
+      }
+    }   
+    if (params==3) { 
+      if (p[1]==222) funcmap(p[0],p[2],13,20);
+      else if (p[1]==223) funcmap(p[0],p[2],21,28);
+    }
+    // NO RESPONSE    
+   return true;
+}
+
+void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop) {
+   for (int i=fstart;i<=fstop;i++) {
+    DCC::setFn(cab, i, value & 1);
+    value>>1; 
+   }
+}
 
 //===================================
 bool DCCEXParser::parseT(Print & stream, int params, int p[]) {

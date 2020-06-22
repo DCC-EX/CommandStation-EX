@@ -16,6 +16,13 @@
 //   Obtaining ACKs from the prog track using a function
 //   There are no volatiles here.
 
+const byte FN_GROUP_1=0x01;         
+const byte FN_GROUP_2=0x02;         
+const byte FN_GROUP_3=0x04;         
+const byte FN_GROUP_4=0x08;         
+const byte FN_GROUP_5=0x10;         
+
+
 void DCC::begin() {
   DCCWaveform::begin();
 }
@@ -41,29 +48,36 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
-void DCC::setFunction(int cab, byte byte1)  {
-  uint8_t b[3];
-  uint8_t nB = 0;
-
-  if (cab > 127)
-    b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
-  b[nB++] = lowByte(cab);
-  b[nB++] = (byte1 | 0x80) & 0xBF;
-
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);     // Repeat the packet four times
-}
-
-void DCC::setFunction(int cab, byte byte1, byte byte2)  {
+void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
+  //DIAG(F("\nsetFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
 
   if (cab > 127)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
-  b[nB++] = (byte1 | 0xDE) & 0xDF;   // for safety this guarantees that first byte will either be 0xDE (for F13-F20) or 0xDF (for F21-F28)
+  if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);     // Repeat the packet four times
+  DCCWaveform::mainTrack.schedulePacket(b, nB, 3);     // send packet 3 times
+}
+
+static void DCC::setFn( int cab, byte functionNumber, bool on) {
+  if (cab<=0 || functionNumber<0 || functionNumber>28) return;
+  int reg = lookupSpeedTable(cab);
+  if (reg<0) return;  
+    // set the function on/off in the functions and set the group flag to
+    // say we have touched the particular group.
+    // A group will be reminded only if it has been touched.  
+      if (on) speedTable[reg].functions |= (1L<<functionNumber);
+         else speedTable[reg].functions &= ~(1L<<functionNumber);
+      byte groupMask;
+      if (functionNumber<=4)       groupMask=FN_GROUP_1;
+      else if (functionNumber<=8)  groupMask=FN_GROUP_2;
+      else if (functionNumber<=12) groupMask=FN_GROUP_3;
+      else if (functionNumber<=20) groupMask=FN_GROUP_4;
+      else                         groupMask=FN_GROUP_5;
+      speedTable[reg].groupFlags |= groupMask; 
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
@@ -235,35 +249,78 @@ void DCC::getLocoId(ACK_CALLBACK callback) {
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
-  for (int i=0;i<MAX_LOCOS;i++) if (speedTable[i].loco=cab) speedTable[i].loco=0;
+  int reg=lookupSpeedTable(cab);
+  if (reg>=0) speedTable[reg].loco=0;
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
   for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
 }
-  
+
+byte DCC::loopStatus=0;  
 
 void DCC::loop()  {
   DCCWaveform::loop(); // power overload checks
-  ackManagerLoop();
-  // if the main track transmitter still has a pending packet, skip this loop.
+  ackManagerLoop();    // maintain prog track ack manager
+  issueReminders();
+}
+
+void DCC::issueReminders() {
+  // if the main track transmitter still has a pending packet, skip this time around.
   if ( DCCWaveform::mainTrack.packetPending) return;
 
-  // each time around the Arduino loop, we resend a loco speed packet reminder
-  for (; nextLoco < MAX_LOCOS; nextLoco++) {
-    if (speedTable[nextLoco].loco > 0) {
-      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speedCode);
-      nextLoco++;
-      return;
-    }
-  }
-  for (nextLoco = 0; nextLoco < MAX_LOCOS; nextLoco++) {
-    if (speedTable[nextLoco].loco > 0) {
-      setThrottle2(speedTable[nextLoco].loco, speedTable[nextLoco].speedCode);
-      nextLoco++;
-      return;
-    }
+  // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
+  for (int reg=0;reg<MAX_LOCOS;reg++) {
+       int slot=reg+nextLoco;
+       if (slot>=MAX_LOCOS) slot-=MAX_LOCOS; 
+       if (speedTable[slot].loco > 0) {
+          // have found the next loco to remind 
+          // issueReminder will return true if this loco is completed (ie speed and functions)
+          if (issueReminder(slot)) nextLoco=slot+1; 
+          return;
+        }
   }
 }
+ 
+bool DCC::issueReminder(int reg) {
+  long functions=speedTable[reg].functions;
+  int loco=speedTable[reg].loco;
+  byte flags=speedTable[reg].groupFlags;
+  
+  switch (loopStatus) {
+        case 0:
+      //   DIAG(F("\nReminder %d speed %d"),loco,speedTable[reg].speedCode);
+         setThrottle2(loco, speedTable[reg].speedCode);
+         break;
+       case 1: // remind function group 1 (F0-F4)
+          if (flags & FN_GROUP_1) 
+              setFunctionInternal(loco,0, 128 + ((functions>>1)& 0x0F) | (functions & 0x01)<<4);   
+          break;     
+       case 2: // remind function group 2 F5-F8
+          if (flags & FN_GROUP_2) 
+              setFunctionInternal(loco,0, 176 + ((functions>>5)& 0x0F));   
+          break;     
+       case 3: // remind function group 3 F9-F12
+          if (flags & FN_GROUP_3) 
+              setFunctionInternal(loco,0, 160 + ((functions>>9)& 0x0F));
+          break;   
+       case 4: // remind function group 4 F13-F20
+          if (flags & FN_GROUP_4) 
+              setFunctionInternal(loco,222, ((functions>>13)& 0xFF)); 
+          break;  
+       case 5: // remind function group 5 F21-F28
+          if (flags & FN_GROUP_5)
+              setFunctionInternal(loco,223, ((functions>>21)& 0xFF)); 
+          break; 
+      }
+      loopStatus++;
+      // if we reach status 6 then this loco is done so
+      // reset status to 0 for next loco and return true so caller 
+      // moves on to next loco. 
+      if (loopStatus>5) loopStatus=0;
+      return loopStatus==0;
+    }
+ 
+ 
 
 
 ///// Private helper functions below here /////////////////////
@@ -277,30 +334,39 @@ byte DCC::cv2(int cv)  {
   return lowByte(cv);
 }
 
-
-
-void  DCC::updateLocoReminder(int loco, byte speedCode) {
-  int reg;
- 
-  if (loco==0) {
-     // broadcast message
-     for (reg = 0; reg < MAX_LOCOS; reg++) speedTable[reg].speedCode = speedCode;
-     return; 
-  }
-  
+int DCC::lookupSpeedTable(int locoId) {
   // determine speed reg for this loco
   int firstEmpty = MAX_LOCOS;
+  int reg;
   for (reg = 0; reg < MAX_LOCOS; reg++) {
-    if (speedTable[reg].loco == loco) break;
+    if (speedTable[reg].loco == locoId) break;
     if (speedTable[reg].loco == 0 && firstEmpty == MAX_LOCOS) firstEmpty = reg;
   }
   if (reg == MAX_LOCOS) reg = firstEmpty;
   if (reg >= MAX_LOCOS) {
     DIAG(F("\nToo many locos\n"));
-    return;
+    return -1;
   }
-  speedTable[reg].loco = loco;
-  speedTable[reg].speedCode = speedCode;
+  if (reg==firstEmpty){
+        speedTable[reg].loco = locoId;
+        speedTable[reg].speedCode=0;
+        speedTable[reg].groupFlags=0;
+        speedTable[reg].functions=0;
+  }
+  return reg;
+}
+  
+void  DCC::updateLocoReminder(int loco, byte speedCode) {
+ 
+  if (loco==0) {
+     // broadcast message
+     for (int reg = 0; reg < MAX_LOCOS; reg++) speedTable[reg].speedCode = speedCode;
+     return; 
+  }
+  
+  // determine speed reg for this loco
+  int reg=lookupSpeedTable(loco);       
+  if (reg>=0) speedTable[reg].speedCode = speedCode;
 }
 
 DCC::LOCO DCC::speedTable[MAX_LOCOS];

@@ -24,6 +24,7 @@ struct DCCEXParser
      bool parseT(Print & stream, int params, int p[]);
      bool parseZ(Print & stream, int params, int p[]);
      bool parseS(Print & stream,  int params, int p[]);
+     bool parsef(Print & stream,  int params, int p[]);
 
     
     static bool stashBusy;
@@ -34,7 +35,8 @@ struct DCCEXParser
     static void callback_B(int result);        
     static void callback_R(int result);
     static FILTER_CALLBACK  filterCallback;
-  
+    static void funcmap(int cab, byte value, byte fstart, byte fstop);
+     
 };
 
 #define BOARD_NAME F("not yet configured")

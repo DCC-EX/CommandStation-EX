@@ -39,7 +39,7 @@ class DCC {
   static void writeCVByteMain(int cab, int cv, byte bValue);
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction( int cab, byte fByte, byte eByte);
-  static void setFunction( int cab, byte fByte);
+  static void setFn( int cab, byte functionNumber, bool on);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
   
@@ -59,15 +59,20 @@ private:
   struct LOCO {
      int loco;
      byte speedCode;
+     byte groupFlags;
+     long functions;
   };
+  static byte loopStatus;
   static void setThrottle2( uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);
+  static void setFunctionInternal( int cab, byte fByte, byte eByte);
+  static bool issueReminder(int reg);
   static int nextLoco;
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
-  
-  
+  static int lookupSpeedTable(int locoId);
+  static void issueReminders();
 
 // ACK MANAGER
   static ackOp  const * ackManagerProg;
