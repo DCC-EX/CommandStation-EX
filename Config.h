@@ -1,7 +1,6 @@
 #ifndef Config_h
 #define Config_h
-
-const int  WIFI_PORT = 99;                         // OR set to zero for no wifi 
+const int  WIFI_PORT =0xDCC;                         // (0xDCC is 3532 decimal) OR set to zero for no wifi 
 const char WIFI_SSID[] PROGMEM = "BTHub5-M6PT";            // your network SSID (name)
 const char WIFI_PASS[] PROGMEM = "49de8d4862";            // your network password
 const long WIFI_BAUD_RATE=115200;
@@ -25,9 +24,8 @@ const byte PROG_BRAKE_PIN = 10;
 
 const float PROG_SENSE_FACTOR=1; //  analgRead(PROG_SENSE_PIN) * PROG_SENSE_FACTOR = milliamps 
 
-// Allocations with memory implications.. however tiny!
-// Base system takes approx 500 bytes + 3 per loco and 4 per turnout.
+// Allocations with memory implications..!
+// Base system takes approx 500 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 const byte MAX_LOCOS=50;             
-const byte MAX_TURNOUTS=50;
 
 #endif
