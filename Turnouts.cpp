@@ -2,16 +2,19 @@
 #include "EEStore.h"
 #include "StringFormatter.h"
 
-bool Turnout::activate(int n,bool state){
+ bool Turnout::activate(int n,bool state){
   Turnout * tt=get(n);
   if (tt==NULL) return false;
-  tt->data.tStatus=state;                            
-  DCC::setAccessory(tt->data.address, tt->data.subAddress, tt->data.tStatus);
-  if(n>0)
-    EEPROM.put(n,tt->data.tStatus);
+  tt->activate(state);
+  if(n>0) EEPROM.put(n,tt->data.tStatus);
   return true;
 }
 
+// activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
+void Turnout::activate(bool state) {
+  data.tStatus=state;                            
+  DCC::setAccessory(data.address,data.subAddress, data.tStatus);
+}
 ///////////////////////////////////////////////////////////////////////////////
 
 Turnout* Turnout::get(int n){
