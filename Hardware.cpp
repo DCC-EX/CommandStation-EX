@@ -1,13 +1,11 @@
 #include <Arduino.h>
-#include <TimerOne.h>
-#include <TimerThree.h>
-
+#include <TimerOne.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
 #include "Hardware.h"
 #include "Config.h"
 #include "DIAG.h"
 
 #if defined(ARDUINO_ARCH_AVR)
-    #include <DIO2.h>
+    #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
     #define WritePin digitalWrite2
 #else
     #define WritePin digitalWrite
@@ -47,20 +45,22 @@ int Hardware::getCurrentMilliamps(bool isMainTrack) {
 }
 
 void Hardware::setCallback(int duration, void (*isr)()) {
-  Timer3.initialize(duration);
-  Timer3.disablePwm(TIMER3_A_PIN);
-  Timer3.disablePwm(TIMER3_B_PIN);
-  Timer3.attachInterrupt(isr);
-}
-
-void Hardware::setSingleCallback(int duration, void (*isr)()) {
   Timer1.initialize(duration);
+  // We don't want the timer to set pins because these often clash with motor shields etc.
   Timer1.disablePwm(TIMER1_A_PIN);
   Timer1.disablePwm(TIMER1_B_PIN);
   Timer1.attachInterrupt(isr);
 }
 
+// Railcom support functions, not yet implemented
+void Hardware::setSingleCallback(int duration, void (*isr)()) {
+//  Timer2.initialize(duration);
+//  Timer2.disablePwm(TIMER1_A_PIN);
+//  Timer2.disablePwm(TIMER1_B_PIN);
+//  Timer2.attachInterrupt(isr);
+}
+
 void Hardware::resetSingleCallback(int duration) {
-  if (duration==0) Timer1.stop();
-  else Timer1.initialize(duration);
+//  if (duration==0) Timer2.stop();
+//  else Timer2.initialize(duration);
 }
