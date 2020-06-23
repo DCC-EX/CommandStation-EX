@@ -15,11 +15,7 @@
 // The filter must be enabled by calling the DCC EXParser::setFilter method, see use in setup().
  
 void myFilter(Stream & stream, byte & opcode, byte & paramCount, int p[]) {
-    switch (opcode) {
-      case 'T':  // Intercept turnout functions because I have special hardware
-              DIAG(F("\nStop messing with Turnouts!"));
-              opcode=0; // tell parssr to ignore ithis command
-              break;   
+    switch (opcode) {  
        case 'F': // Invent new command to call the new Loco Function API <F cab func 1|0>
              DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
              DCC::setFn(p[0],p[1],p[2]==1); 
@@ -51,7 +47,7 @@ DCCEXParser  serialParser;
 
 // Try monitoring the memory
 #include "freeMemory.h"
-int minMemory;
+int minMemory=32767;
 
 void setup() {
    Serial.begin(SERIAL_BAUD_RATE);
@@ -65,8 +61,6 @@ void setup() {
    DCCEXParser::setFilter(myFilter);
 
    malloc(1);
-   minMemory=freeMemory();
-   DIAG(F("\nFree memory=%d"),minMemory);
    DIAG(F("\nReady for JMRI commands\n"));
    
 }

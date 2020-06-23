@@ -2,6 +2,8 @@
 #include "EEStore.h"
 #include "StringFormatter.h"
 #include "Hardware.h"
+#include "PWMServoDriver.h"
+
  bool Turnout::activate(int n,bool state){
   Turnout * tt=get(n);
   if (tt==NULL) return false;
@@ -14,7 +16,7 @@
 void Turnout::activate(bool state) {
   if (state) data.tStatus|=STATUS_ACTIVE;
   else data.tStatus &= ~STATUS_ACTIVE;                            
-  if (data.tStatus & STATUS_PWM) Hardware::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+state?data.moveAngle:0));
+  if (data.tStatus & STATUS_PWM) PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+state?data.moveAngle:0));
      else DCC::setAccessory(data.address,data.subAddress, state);
 }
 ///////////////////////////////////////////////////////////////////////////////

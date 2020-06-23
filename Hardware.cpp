@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "DIAG.h"
 
+
 #if defined(ARDUINO_ARCH_AVR)
     #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
     #define WritePin digitalWrite2
@@ -50,10 +51,6 @@ void Hardware::setCallback(int duration, void (*isr)()) {
   Timer1.disablePwm(TIMER1_A_PIN);
   Timer1.disablePwm(TIMER1_B_PIN);
   Timer1.attachInterrupt(isr);
-}
-
-void Hardware::setServo(byte pin, int angle) {
-  // TBD
 }
 
 

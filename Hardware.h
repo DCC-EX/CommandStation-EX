@@ -11,6 +11,5 @@ class Hardware {
     static void setCallback(int duration,  void (*isr)());
     static void setSingleCallback(int duration,  void (*isr)());
     static void resetSingleCallback(int duration);
-    static void setServo(byte pin, int angle);
 };
 #endif

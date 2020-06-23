@@ -25,7 +25,7 @@ const byte PROG_BRAKE_PIN = 10;
 const float PROG_SENSE_FACTOR=1; //  analgRead(PROG_SENSE_PIN) * PROG_SENSE_FACTOR = milliamps 
 
 // Allocations with memory implications..!
-// Base system takes approx 500 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
+// Base system takes approx 700 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 const byte MAX_LOCOS=50;             
 
 #endif
