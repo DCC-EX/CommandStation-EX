@@ -44,9 +44,14 @@ void myCallback(int result) {
 }
 
 
-// Create a serkial command parser... This is OPTIONAL if you don't need to handle JMRI type commands
+// Create a serial command parser... This is OPTIONAL if you don't need to handle JMRI type commands
 // from the Serial port.
 DCCEXParser  serialParser;
+
+
+// Try monitoring the memory
+#include "freeMemory.h"
+int minMemory;
 
 void setup() {
    Serial.begin(SERIAL_BAUD_RATE);
@@ -59,8 +64,11 @@ void setup() {
    // Optionally tell parser to use my example filter 
    DCCEXParser::setFilter(myFilter);
 
+   malloc(1);
+   minMemory=freeMemory();
+   DIAG(F("\nFree memory=%d"),minMemory);
    DIAG(F("\nReady for JMRI commands\n"));
-
+   
 }
 
 void loop() {      
@@ -71,4 +79,11 @@ void loop() {
 
   // This line passes input on Wifi to another DCCEXParser
   if (WIFI_PORT>0) WifiInterface::loop();
+
+  // Report any decrease in memory
+  int freeNow=freeMemory();
+  if (freeNow<minMemory) {
+    minMemory=freeNow;
+    DIAG(F("\nFree memory=%d"),minMemory);
+  }
 }

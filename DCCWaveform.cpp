@@ -2,7 +2,7 @@
 #include "Hardware.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
-#include "Railcom.h"
+
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
@@ -116,7 +116,6 @@ bool DCCWaveform::interrupt1() {
   switch (state) {
     case 0:  // start of bit transmission
       Hardware::setSignal(isMainTrack, HIGH);
-      checkRailcom();
       state = 1;
       return true; // must call interrupt2 to set currentBit
 
@@ -190,14 +189,7 @@ void DCCWaveform::interrupt2() {
   }
 }
 
-void DCCWaveform::checkRailcom() {
-  if (isMainTrack && RAILCOM_CUTOUT) {
-    byte preamble = PREAMBLE_BITS_MAIN - remainingPreambles;
-    if (preamble == RAILCOM_PREAMBLES_BEFORE_CUTOUT) {
-       Railcom::startCutout();
-    }
-  }
-}
+
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {

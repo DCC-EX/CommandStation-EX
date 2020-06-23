@@ -16,10 +16,6 @@ const int   ACK_MIN_PULSE = 60 ;   // current above baseline which a pulse is re
 const int   PREAMBLE_BITS_MAIN = 20;
 const int   PREAMBLE_BITS_PROG = 22;
 
-// Railcom settings
-const bool RAILCOM_CUTOUT = true;
-const byte RAILCOM_PREAMBLES_BEFORE_CUTOUT = 1; // how far into the preamble do we cutout
-
 
 
 const byte   MAX_PACKET_SIZE = 12;
@@ -68,7 +64,6 @@ class DCCWaveform {
     byte bits_sent;           // 0-8 (yes 9 bits) sent for current byte
     byte bytes_sent;          // number of bytes sent from transmitPacket
     byte state;               // wave generator state machine
-    void checkRailcom();
 
     byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;

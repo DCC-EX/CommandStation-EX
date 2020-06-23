@@ -52,6 +52,11 @@ void Hardware::setCallback(int duration, void (*isr)()) {
   Timer1.attachInterrupt(isr);
 }
 
+void Hardware::setServo(byte pin, int angle) {
+  // TBD
+}
+
+
 // Railcom support functions, not yet implemented
 void Hardware::setSingleCallback(int duration, void (*isr)()) {
 //  Timer2.initialize(duration);
