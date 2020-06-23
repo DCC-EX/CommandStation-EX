@@ -133,7 +133,8 @@ void DCCEXParser::parse(Print & stream, const char *com) {
         break;
          
     case 'a':       // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE>
-        DCC::setAccessory(p[0],p[1],p[2]);
+        if(p[2] != p[2] & 1) return;
+        DCC::setAccessory(p[0],p[1],p[2]==1);
         return;
 
     case 'T':       // TURNOUT  <T ...> 

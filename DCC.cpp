@@ -81,6 +81,11 @@ static void DCC::setFn( int cab, byte functionNumber, bool on) {
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
+  // use masks to detect wrong values and do nothing
+  if(address != address & 511)
+    return;
+  if(number != number & 3)
+    return;
   byte b[2];
 
   b[0] = address % 64 + 128;                                     // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
