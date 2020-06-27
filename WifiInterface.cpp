@@ -2,7 +2,7 @@
 #include "Config.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
-
+#include "WiThrottle.h"
  
 const char  PROGMEM READY_SEARCH[]  ="\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
@@ -77,7 +77,9 @@ bool WifiInterface::checkForOK( const int timeout, const char * waitfor, bool ec
  
 void WifiInterface::loop() {
     if (!connected) return; 
-
+    
+    WiThrottle::loop();  // check heartbeats 
+    
     // read anything into a buffer, collecting info on the way  
     while (loopstate!=99 && Serial1.available()) { 
       int ch=Serial1.read();
@@ -116,7 +118,6 @@ void WifiInterface::loop() {
         } // switch 
     } // while
     if (loopstate!=99) return; 
-    // TODO remove > in data 
     streamer.write('\0');
 
     DIAG(F("\nWifiRead:%d:%s\n"),connectionId,buffer);
@@ -125,9 +126,15 @@ void WifiInterface::loop() {
     //  We know that parser will read the entire buffer before starting to write to it.
     //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
 
-    // TODO ... tell parser that callbacks are diallowed because we dont want to handle the async 
-    parser.parse(streamer,buffer);
+    // TODO ... tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
+    
+    if (buffer[0]=='<')  parser.parse(streamer,buffer);
+    else WiThrottle::getThrottle(streamer, connectionId)->parse(streamer, buffer);
+
+       
     if (streamer.available()) { // there is a reply to send 
+        DIAG(F("WiFiInterface Responding (%d) %s\n"),connectionId,buffer);
+        
         StringFormatter::send(Serial1,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
         streamer.write('\0');
         if (checkForOK(1000,PROMPT_SEARCH,true))  Serial1.print((char *) buffer);

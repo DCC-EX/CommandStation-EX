@@ -62,6 +62,18 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 3);     // send packet 3 times
 }
 
+uint8_t DCC::getThrottleSpeed(int cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0) return -1;
+  return speedTable[reg].speedCode & 0x7F;
+}
+
+bool DCC::getThrottleDirection(int cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0) return false ;
+  return (speedTable[reg].speedCode & 0x80) !=0;
+}
+
 static void DCC::setFn( int cab, byte functionNumber, bool on) {
   if (cab<=0 || functionNumber<0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
