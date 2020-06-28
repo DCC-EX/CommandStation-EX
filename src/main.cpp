@@ -1,24 +1,41 @@
+/*
+ *  main.cpp
+ * 
+ *  This file is part of CommandStation-DCC.
+ *
+ *  CommandStation-DCC is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  CommandStation-DCC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation-DCC.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <Arduino.h>
 #include <CommandStation.h>
 #include <ArduinoTimers.h>
 
+#include "Config.h"
+
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
 
-////////////////////////////////////////////////////////////////
-// Motor driver selection:
-// Comment out all but the two lines that you want to use
-
-// DCCMain* mainTrack = DCCMain::Create_WSM_SAMCommandStation_Main(kNumLocos);
-// DCCService* progTrack = DCCService::Create_WSM_SAMCommandStation_Prog();
-
-// DCCMain* mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
-// DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
-  
+#if defined CONFIG_WSM_FIREBOX
+DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_Main(kNumLocos);
+DCCService* progTrack = DCCService::Create_WSM_FireBox_Prog();
+#elif defined CONFIG_ARDUINO_MOTOR_SHIELD
+DCCMain* mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
+DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
+#elif defined CONFIG_POLOLU_MOTOR_SHIELD
 DCCMain* mainTrack = DCCMain::Create_Pololu_MC33926Shield_Main(kNumLocos);
 DCCService* progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
-
-////////////////////////////////////////////////////////////////
+#endif
 
 void waveform_IrqHandler() {
   mainTrack->interruptHandler();
