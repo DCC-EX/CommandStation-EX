@@ -5,16 +5,16 @@
 void StringFormatter::print( const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
-  send(Serial,input,args);
+  send2(Serial,input,args);
 }
 
 void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
-  send(stream,input,args);
+  send2(stream,input,args);
 }
 
-void StringFormatter::send(Print & stream,const __FlashStringHelper* format, va_list args) {
+void StringFormatter::send2(Print & stream,const __FlashStringHelper* format, va_list args) {
     
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
 

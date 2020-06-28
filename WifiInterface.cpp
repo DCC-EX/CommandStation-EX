@@ -3,11 +3,12 @@
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
- 
+#include "HTTPParser.h" 
 const char  PROGMEM READY_SEARCH[]  ="\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] ="@ 1000";
 const char  PROGMEM PROMPT_SEARCH[] =">";
+const char  PROGMEM SEND_OK_SEARCH[] ="\r\nSEND OK\r\n";
 
 bool WifiInterface::connected=false;
 DCCEXParser  WifiInterface::parser;
@@ -126,17 +127,28 @@ void WifiInterface::loop(Stream & wifiStream) {
     //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
 
     // TODO ... tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
-    
-    if (buffer[0]=='<')  parser.parse(streamer,buffer);
+   bool closeAfter=false;
+   // Intercept HTTP requests 
+    if (strstr(buffer," HTTP/1.1")) {
+      HTTPParser::parse(streamer,buffer);
+      closeAfter=true;
+    }
+    else if (buffer[0]=='<')  parser.parse(streamer,buffer);
     else WiThrottle::getThrottle(streamer, connectionId)->parse(streamer, buffer);
 
        
     if (streamer.available()) { // there is a reply to send 
-        DIAG(F("WiFiInterface Responding (%d) %s\n"),connectionId,buffer);
-        
-        StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
         streamer.write('\0');
+        DIAG(F("WiFiInterface Responding client (%d) l(%d) %s\n"),connectionId,streamer.available()-1,buffer);
+        
+        StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
         if (checkForOK(wifiStream,1000,PROMPT_SEARCH,true))  wifiStream.print((char *) buffer);
+        checkForOK(wifiStream,3000,SEND_OK_SEARCH,true);
     }
+    if (closeAfter) {
+      StringFormatter::send(wifiStream,F("AT+CIPCLOSE=%d\r\n"),connectionId);
+      checkForOK(wifiStream,2000,OK_SEARCH,true);
+    }
+      
     loopstate=0;  // go back to looking for +IPD 
     }
