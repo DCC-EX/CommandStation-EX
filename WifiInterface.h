@@ -9,13 +9,14 @@
 class WifiInterface {
 
  public:
-    static void setup();
-    static void loop();
+    static void setup(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password, int port);
+    static void loop(Stream & wifiStream);
     
   private:
+    
     static DCCEXParser parser;
-    static bool setup2();
-    static bool checkForOK( const int timeout, const char* waitfor, bool echo);
+    static bool setup2(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password, int port);
+    static bool checkForOK(Stream & wifiStream, const int timeout, const char* waitfor, bool echo);
     static bool connected;
     static byte loopstate;
     static int  datalength;

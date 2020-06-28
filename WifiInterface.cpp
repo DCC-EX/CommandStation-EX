@@ -17,54 +17,54 @@ int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER];
 MemStream  WifiInterface::streamer(buffer,sizeof(buffer));
 
-void WifiInterface::setup() {
+void WifiInterface::setup(Stream & wifiStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password, int port) {
+  
   DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
-  connected=setup2();
+  connected=setup2(wifiStream, SSid, password,port);
   // TODO calloc the buffer and streamer and parser etc 
   DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected?F("OK"):F("FAILED"));
 }
 
-bool WifiInterface::setup2()
+bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid, const __FlashStringHelper* password, int port)
 {
-  Serial1.begin(WIFI_BAUD_RATE);    // initialize serial for ESP module
   
   delay(1000);
 
-  StringFormatter::send(Serial1,F("AT+RST\r\n")); // reset module
-  checkForOK(5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
-  if (!checkForOK(5000,READY_SEARCH,false)) return false; 
+  StringFormatter::send(wifiStream,F("AT+RST\r\n")); // reset module
+  checkForOK(wifiStream,5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
+  if (!checkForOK(wifiStream,5000,READY_SEARCH,false)) return false; 
   
-  StringFormatter::send(Serial1,F("AT+CWMODE=1\r\n")); // configure as access point
-  if (!checkForOK(10000,OK_SEARCH,true)) return false;
+  StringFormatter::send(wifiStream,F("AT+CWMODE=1\r\n")); // configure as access point
+  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
  
-  StringFormatter::send(Serial1,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),WIFI_SSID,WIFI_PASS);
-  if (!checkForOK(20000,OK_SEARCH,true)) return false;
+  StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
+  if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
   
-  StringFormatter::send(Serial1,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
-  if (!checkForOK(10000,OK_SEARCH,true)) return false;
+  StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
+  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
   
-  StringFormatter::send(Serial1,F("AT+CIPMUX=1\r\n")); // configure for multiple connections
-  if (!checkForOK(10000,OK_SEARCH,true)) return false;
+  StringFormatter::send(wifiStream,F("AT+CIPMUX=1\r\n")); // configure for multiple connections
+  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
   
-  StringFormatter::send(Serial1,F("AT+CIPSERVER=1,%d\r\n"),WIFI_PORT); // turn on server on port 80
-  if (!checkForOK(10000,OK_SEARCH,true)) return false;
+  StringFormatter::send(wifiStream,F("AT+CIPSERVER=1,%d\r\n"),port); // turn on server on port 80
+  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
 
   return true;
 }
 
-bool WifiInterface::checkForOK( const int timeout, const char * waitfor, bool echo) {
-  long int time = millis()+timeout;
+bool WifiInterface::checkForOK(Stream & wifiStream, const int timeout, const char * waitfor, bool echo) {
+  long int startTime = millis();
   char *locator=waitfor;
   DIAG(F("\nWifi setup Check: %S\n"),waitfor);
-  while( time > millis()) {
-    while(Serial1.available()) {
-      int ch=Serial1.read();
+  while( millis()-startTime < timeout) {
+    while(wifiStream.available()) {
+      int ch=wifiStream.read();
       if (echo) Serial.write(ch);
       if (ch!=pgm_read_byte_near(locator)) locator=waitfor;
       if (ch==pgm_read_byte_near(locator)) {
         locator++;
         if (!pgm_read_byte_near(locator)) {
-          DIAG(F("\nOK after %dms\n"),millis()-time+timeout);
+          DIAG(F("\nOK after %dms\n"),millis()-startTime);
           return true;
         }
       }
@@ -75,15 +75,14 @@ bool WifiInterface::checkForOK( const int timeout, const char * waitfor, bool ec
 }
 
  
-void WifiInterface::loop() {
+void WifiInterface::loop(Stream & wifiStream) {
     if (!connected) return; 
     
     WiThrottle::loop();  // check heartbeats 
     
     // read anything into a buffer, collecting info on the way  
-    while (loopstate!=99 && Serial1.available()) { 
-      int ch=Serial1.read();
-      Serial.write(ch);
+    while (loopstate!=99 && wifiStream.available()) { 
+      int ch=wifiStream.read();
       switch (loopstate) {
            case 0:  // looking for +
                 connectionId=0;
@@ -135,9 +134,9 @@ void WifiInterface::loop() {
     if (streamer.available()) { // there is a reply to send 
         DIAG(F("WiFiInterface Responding (%d) %s\n"),connectionId,buffer);
         
-        StringFormatter::send(Serial1,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
+        StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available());
         streamer.write('\0');
-        if (checkForOK(1000,PROMPT_SEARCH,true))  Serial1.print((char *) buffer);
+        if (checkForOK(wifiStream,1000,PROMPT_SEARCH,true))  wifiStream.print((char *) buffer);
     }
     loopstate=0;  // go back to looking for +IPD 
     }

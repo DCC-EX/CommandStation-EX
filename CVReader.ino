@@ -9,7 +9,7 @@
 // the usb or wifi streamm.  It demonstrates how a command may be intercepted
 //  or even a new command created without having to break open the API library code.
 // The filter is permitted to use or modify the parameter list before passing it on to 
-// the standard parser. By setting the opcode to ZERO, the standard parser will 
+// the standard parser. By setting the opcode to 0, the standard parser will 
 // just ignore the command on the assumption that you have already handled it.
 //
 // The filter must be enabled by calling the DCC EXParser::setFilter method, see use in setup().
@@ -34,6 +34,8 @@ void myFilter(Stream & stream, byte & opcode, byte & paramCount, int p[]) {
 // Callback functions are necessary if you call any API that must wait for a response from the 
 // programming track. The API must return immediately otherwise other loop() functions would be blocked.
 // Your callback function will be invoked when the data arrives from the prog track.
+// See the DCC:getLocoId example in the setup function. 
+
 
 void myCallback(int result) {
   DIAG(F("\n getting Loco Id callback result=%d"),result); 
@@ -50,31 +52,51 @@ DCCEXParser  serialParser;
 int minMemory=32767;
 
 void setup() {
-   Serial.begin(SERIAL_BAUD_RATE);
+
+  // The main sketch has responsibilities during setup()
+  
+  // Responsibility 1: Start the usb connection for diagnostics and possible JMRI input
+   Serial.begin(115200);
+   
+   // Responsibility 2: Start the DCC engine.   
    DCC::begin();
-   if (WIFI_PORT>0) WifiInterface::setup();
+
+   // Responsibility 3: Optionally Start the WiFi interface if required.
+   //   NOTE: On a Uno you will have to provide a SoftwareSerial 
+   //         configured for the pins connected to the Wifi card
+   //         and a 9600 baud rate. 
+   //  setup(serial, F(router name), F(password) , port)
+   //            
+    Serial1.begin(115200);
+    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),3532); // (3532 is 0xDCC decimal... )
+    
+   //  This is just for demonstration purposes 
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
-   DIAG(F("\n===== DCC::getLocoId has returned, but wont be executed until we are in loop() ======\n"));
+   DIAG(F("\n===== DCC::getLocoId has returned, but the callback wont be executed until we are in loop() ======\n"));
    
-   // Optionally tell parser to use my example filter 
+   // Optionally tell the command parser to use my example filter.
+   // This will intercept JMRI commands from both USB and Wifi 
    DCCEXParser::setFilter(myFilter);
-
-   malloc(1);
+   
    DIAG(F("\nReady for JMRI commands\n"));
    
 }
 
 void loop() {      
-    DCC::loop(); // required to keep locos running and check powwer
+  // The main sketch has responsibilities during loop()
+  
+  // Responsibility 1: Handle DCC background processes
+  //                   (loco reminders and power checks)
+  DCC::loop(); 
 
-  // This line passes input on Serial to the DCCEXParser
+  // Responsibility 2: handle any incoming commands on USB connection
   serialParser.loop(Serial);
 
-  // This line passes input on Wifi to another DCCEXParser
-  if (WIFI_PORT>0) WifiInterface::loop();
+  // Responsibility 3: Optionally handle any incoming WiFi traffic
+  WifiInterface::loop(Serial1);
 
-  // Report any decrease in memory
+  // Your additional code e.g. Report any decrease in memory
   int freeNow=freeMemory();
   if (freeNow<minMemory) {
     minMemory=freeNow;
