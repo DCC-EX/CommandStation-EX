@@ -38,7 +38,8 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
 
   uint8_t b[4];
   uint8_t nB = 0;
-
+  // DIAG(F("\nsetSpeedInternal %d %x"),cab,speedCode);
+  
   if (cab > 127)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
@@ -74,8 +75,8 @@ bool DCC::getThrottleDirection(int cab) {
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
-static void DCC::setFn( int cab, byte functionNumber, bool on) {
-  if (cab<=0 || functionNumber<0 || functionNumber>28) return;
+ void DCC::setFn( int cab, byte functionNumber, bool on) {
+  if (cab<=0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;  
     // set the function on/off in the functions and set the group flag to
@@ -94,9 +95,9 @@ static void DCC::setFn( int cab, byte functionNumber, bool on) {
 
 void DCC::setAccessory(int address, byte number, bool activate) {
   // use masks to detect wrong values and do nothing
-  if(address != address & 511)
+  if(address != (address & 511))
     return;
-  if(number != number & 3)
+  if(number != (number & 3))
     return;
   byte b[2];
 
@@ -310,7 +311,7 @@ bool DCC::issueReminder(int reg) {
          break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1) 
-              setFunctionInternal(loco,0, 128 + ((functions>>1)& 0x0F) | (functions & 0x01)<<4);   
+              setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4));   
           break;     
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2) 

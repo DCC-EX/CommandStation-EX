@@ -115,8 +115,9 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
           int locoid=getLocoId(cmd+3); // -1 for *
           byte * aval=cmd;
           while(*aval !=';' && *aval !='\0') aval++;
-          if (*aval) aval++;
-          
+          if (*aval) aval+=2;  // skip ;>
+
+       DIAG(F("\nMultithrottle aval=%c cab=%d"), aval[0],locoid);    
        switch(cmd[2]) {
           case '+':  // add loco
                for (int loco=0;loco<MAX_MY_LOCO;loco++) {
@@ -145,28 +146,10 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
               locoAction(stream,aval, throttleChar, locoid);
             }
 }
-      
-
-
-
-/*** TODO provide add feedback ***
-
-void locoAdd(String th, String actionKey, int i) {
-  LocoThrottle[Throttle] = actionKey;
-  client[i].println("M"+th+"+"+actionKey+"<;>");
-  for(fKey=0; fKey<29; fKey++){
-    LocoState[Throttle][fKey] =0;
-    client[i].println("M"+th+"A"+actionKey+"<;>F0"+String(fKey));
-  }
-  client[i].println("M"+th+"+"+actionKey+"<;>V0");
-  client[i].println("M"+th+"+"+actionKey+"<;>R1");
-  client[i].println("M"+th+"+"+actionKey+"<;>s1");
-}
-*********/
 
 void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
-
+    DIAG(F("\nLoco Action aval=%c throttleChar=%c, cab=%d"), aval[0],throttleChar, cab);
      switch (aval[0]) {
            case 'V':  // Vspeed
              { 
@@ -228,11 +211,14 @@ void WiThrottle::loop() {
 
 void WiThrottle::checkHeartbeat() {
   if(millis()-heartBeat > HEARTBEAT_TIMEOUT*1000) {
+    // Haertbeat missed... STOP all locos for this client
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
         if (myLocos[loco].throttle!='\0') {
           DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab));
-   // TODO  Which stream??? Multiple clients ??          StringFormatter::send(stream,F("M%cAL%d<;>V0"),myLocos[loco].throttle,myLocos[loco].cab);
-        }
+         }
     }
-  } 
+  }
+  else {
+      // TODO  Check if anything has changed on my locos since last notified! 
+    }
 }
