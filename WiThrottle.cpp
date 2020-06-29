@@ -53,6 +53,7 @@ WiThrottle::WiThrottle(Print & stream, int wificlientid) {
         StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
       }
   StringFormatter::send(stream,F("\n*10"));
+  heartBeatEnable=false; // until client turns it on
 }
 
 WiThrottle::~WiThrottle() {
@@ -89,11 +90,17 @@ void WiThrottle::parse(Print & stream, byte * cmd) {
             }
             break;
        case 'N':  // Heartbeat (2)
-                StringFormatter::send(stream, F("*10")); // 10 second timeout  
+                StringFormatter::send(stream, F("*10\n")); // 10 second timeout  
             break;
        case 'M': // multithrottle
             multithrottle(stream, cmd); 
             break;
+       case 'H': // hardware introduction....
+            break;           
+      case 'Q': // hardware introduction....
+            DIAG(F("\nWiThrottle Quit"));
+            delete this; 
+            break;           
    }           
 }
 int WiThrottle::getInt(byte * cmd) {
@@ -210,13 +217,15 @@ void WiThrottle::loop() {
 }
 
 void WiThrottle::checkHeartbeat() {
-  if(millis()-heartBeat > HEARTBEAT_TIMEOUT*1000) {
+  if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*1000)) {
+    DIAG(F("WiThrottle hearbeat missed client=%d"),clientid);
     // Haertbeat missed... STOP all locos for this client
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
         if (myLocos[loco].throttle!='\0') {
           DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab));
          }
     }
+    delete this;
   }
   else {
       // TODO  Check if anything has changed on my locos since last notified! 
