@@ -8,7 +8,7 @@ struct DCCEXParser
 {
    DCCEXParser();
    void loop(Stream & pstream);
-   void parse(Print & stream, const char * command);
+   void parse(Print & stream, const byte * command);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
    static const int MAX_PARAMS=10;  // Must not exceed this
@@ -18,8 +18,8 @@ struct DCCEXParser
     static const int MAX_BUFFER=50;  // longest command sent in
      byte  bufferLength=0;
      bool  inCommandPayload=false;
-     char  buffer[MAX_BUFFER+2]; 
-    int splitValues( int result[MAX_PARAMS],char * command);
+     byte  buffer[MAX_BUFFER+2]; 
+    int splitValues( int result[MAX_PARAMS], const byte * command);
      
      bool parseT(Print & stream, int params, int p[]);
      bool parseZ(Print & stream, int params, int p[]);

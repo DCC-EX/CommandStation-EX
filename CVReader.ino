@@ -14,7 +14,8 @@
 //
 // The filter must be enabled by calling the DCC EXParser::setFilter method, see use in setup().
  
-void myFilter(Stream & stream, byte & opcode, byte & paramCount, int p[]) {
+void myFilter(Print & stream, byte & opcode, byte & paramCount, int p[]) {
+    (void)stream; // avoid compiler warning if we don't access this parameter
     switch (opcode) {  
        case 'F': // Invent new command to call the new Loco Function API <F cab func 1|0>
              DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));

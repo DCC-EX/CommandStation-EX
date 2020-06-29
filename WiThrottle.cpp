@@ -47,7 +47,7 @@ WiThrottle::WiThrottle(Print & stream, int wificlientid) {
    firstThrottle= this;
    clientid=wificlientid;
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
-  StringFormatter::send(stream,F("VN2.0\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+  StringFormatter::send(stream,F("VN2.0\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
 
    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
         StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
@@ -68,7 +68,7 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parse(Print & stream, char * cmd) {
+void WiThrottle::parse(Print & stream, byte * cmd) {
   heartBeat=millis();
   DIAG(F("\nWiThrottle parse (%d) %s"),clientid, cmd);
   
@@ -82,7 +82,7 @@ void WiThrottle::parse(Print & stream, char * cmd) {
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
               StringFormatter::send(stream, F("PPA%c"),cmd[3]);
             }
-            else if (cmd[1]='T' && cmd[2]=='A') { // PTA accessory toggle 
+            else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 // TODO... if we are given an address that is not a known Turnout...
                 // should we create one or just send the DCC message.                 
                 Turnout::activate(getInt(cmd+4),cmd[3]=='T');
@@ -96,7 +96,7 @@ void WiThrottle::parse(Print & stream, char * cmd) {
             break;
    }           
 }
-int WiThrottle::getInt(char * cmd) {
+int WiThrottle::getInt(byte * cmd) {
     int i=0;
     while (cmd[0]>='0' && cmd[0]<='9') {
       i=i*10 + (cmd[0]-'0');
@@ -105,15 +105,15 @@ int WiThrottle::getInt(char * cmd) {
     return i;    
 }
 
-int WiThrottle::getLocoId(char * cmd) {
+int WiThrottle::getLocoId(byte * cmd) {
     if (cmd[0]=='*') return -1;  // match all locos 
     if (cmd[0]!='L' && cmd[0]!='S') return 0; // should not match any locos
     return getInt(cmd+1); 
 }
-void WiThrottle::multithrottle(Print & stream, char* cmd){ 
+void WiThrottle::multithrottle(Print & stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
-          char * aval=cmd;
+          byte * aval=cmd;
           while(*aval !=';' && *aval !='\0') aval++;
           if (*aval) aval++;
           
@@ -164,7 +164,7 @@ void locoAdd(String th, String actionKey, int i) {
 }
 *********/
 
-void WiThrottle::locoAction(Print & stream, char* aval, char throttleChar, int cab){
+void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
 
      switch (aval[0]) {

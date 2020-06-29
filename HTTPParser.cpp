@@ -1,8 +1,9 @@
 #include "HTTPParser.h"
 #include "StringFormatter.h"
 
-void HTTPParser::parse(Print & stream, char * cmd) {
-
+void HTTPParser::parse(Print & stream, byte * cmd) {
+     (void)cmd;  // Avoid compiler warning because this example doesnt use this parameter
+      
      // BEWARE   - As soon as you start responding, the cmd buffer is trashed!
      // You must get everything you need from it before using StringFormatter::send!
        

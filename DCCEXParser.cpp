@@ -54,18 +54,18 @@ void DCCEXParser::loop(Stream & stream) {
   }
   }
 
- int DCCEXParser::splitValues( int result[MAX_PARAMS], char * cmd) {
+ int DCCEXParser::splitValues( int result[MAX_PARAMS], const byte * cmd) {
   byte state=1;
   byte parameterCount=0;
   int runningValue=0;
-  const char * remainingCmd=cmd+1;  // skips the opcode
+  const byte * remainingCmd=cmd+1;  // skips the opcode
   bool signNegative=false;
   
   // clear all parameters in case not enough found
   for (int i=0;i<MAX_PARAMS;i++) result[i]=0;
   
   while(parameterCount<MAX_PARAMS) {
-      char hot=*remainingCmd;
+      byte hot=*remainingCmd;
       
        switch (state) {
     
@@ -109,7 +109,7 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter) {
 }
    
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(Print & stream, const char *com) {
+void DCCEXParser::parse(Print & stream, const byte *com) {
     DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];  
@@ -133,7 +133,7 @@ void DCCEXParser::parse(Print & stream, const char *com) {
         break;
          
     case 'a':       // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE>
-        if(p[2] != p[2] & 1) return;
+        if(p[2] != (p[2] & 1)) return;
         DCC::setAccessory(p[0],p[1],p[2]==1);
         return;
 
@@ -286,14 +286,14 @@ bool DCCEXParser::parsef(Print & stream, int params, int p[]) {
       if (p[1]==222) funcmap(p[0],p[2],13,20);
       else if (p[1]==223) funcmap(p[0],p[2],21,28);
     }
-    // NO RESPONSE    
+    (void)stream;// NO RESPONSE    
    return true;
 }
 
 void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop) {
    for (int i=fstart;i<=fstop;i++) {
     DCC::setFn(cab, i, value & 1);
-    value>>1; 
+    value>>=1; 
    }
 }
 

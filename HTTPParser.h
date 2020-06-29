@@ -3,6 +3,6 @@
 #include <Arduino.h>
 class HTTPParser {
   public:  
-    static void parse(Print & stream, char * cmd);  
+    static void parse(Print & stream, byte * cmd);  
 };
 #endif

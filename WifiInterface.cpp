@@ -53,9 +53,9 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   return true;
 }
 
-bool WifiInterface::checkForOK(Stream & wifiStream, const int timeout, const char * waitfor, bool echo) {
-  long int startTime = millis();
-  char *locator=waitfor;
+bool WifiInterface::checkForOK(Stream & wifiStream, const unsigned int timeout, const char * waitfor, bool echo) {
+  unsigned long  startTime = millis();
+   char  const *locator=waitfor;
   DIAG(F("\nWifi setup Check: %S\n"),waitfor);
   while( millis()-startTime < timeout) {
     while(wifiStream.available()) {
@@ -75,6 +75,26 @@ bool WifiInterface::checkForOK(Stream & wifiStream, const int timeout, const cha
   return false;
 }
 
+bool WifiInterface::isHTML() {
+  
+  // POST GET PUT PATCH DELETE
+  // You may think a simple strstr() is better... but not when ram & time is in short supply  
+  switch (buffer[0]) {
+    case 'P':
+         if (buffer[1]=='U' && buffer[2]=='T' && buffer[3]==' ' ) return true; 
+         if (buffer[1]=='O' && buffer[2]=='S' && buffer[3]=='T' && buffer[4]==' ') return true; 
+         if (buffer[1]=='A' && buffer[2]=='T' && buffer[3]=='C' && buffer[4]=='H' && buffer[5]==' ') return true;
+         return false; 
+    case 'G':
+         if (buffer[1]=='E' && buffer[2]=='T' && buffer[3]==' ' ) return true; 
+         return false;
+    case 'D':
+         if (buffer[1]=='E' && buffer[2]=='L' && buffer[3]=='E' && buffer[4]=='T' && buffer[5]=='E' && buffer[6]==' ') return true; 
+         return false;
+    default:
+       return false;
+  } 
+}
  
 void WifiInterface::loop(Stream & wifiStream) {
     if (!connected) return; 
@@ -129,7 +149,7 @@ void WifiInterface::loop(Stream & wifiStream) {
     // TODO ... tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
    bool closeAfter=false;
    // Intercept HTTP requests 
-    if (strstr(buffer," HTTP/1.1")) {
+    if (isHTML()) {
       HTTPParser::parse(streamer,buffer);
       closeAfter=true;
     }

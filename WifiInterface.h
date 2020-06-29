@@ -16,7 +16,8 @@ class WifiInterface {
     
     static DCCEXParser parser;
     static bool setup2(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password, int port);
-    static bool checkForOK(Stream & wifiStream, const int timeout, const char* waitfor, bool echo);
+    static bool checkForOK(Stream & wifiStream, const unsigned int timeout, const char* waitfor, bool echo);
+    static bool isHTML();
     static bool connected;
     static byte loopstate;
     static int  datalength;

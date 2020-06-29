@@ -46,7 +46,7 @@ public:
   operator const uint8_t *() const { return _buffer; }
   operator const char *() const { return (const char*)_buffer; }
 
-  const uint16_t current_length() const { return _pos_write; }
+  uint16_t current_length() const { return _pos_write; }
 
   bool listen() { return true; }
   void end() {}
