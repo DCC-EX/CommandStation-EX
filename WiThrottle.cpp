@@ -4,7 +4,7 @@
  *  for showing how it could be done, but this code is very different to the original
  *  implemenatatin as it is designed to run on the Arduino and not the ESP and is
  *  also calling directly into the DCCEX Api rather than  simulating JMRI text commands.
- * Refer JMRI WiFi Throttle Communications Protocol http://jmri.sourceforge.net/help/en/package/jmri/jmrit/withrottle/Protocol.shtml
+ * Refer JMRI WiFi Throttle Communications Protocol https://www.jmri.org/help/en/package/jmri/jmrit/withrottle/Protocol.shtml
  * 
  * 
  * PROTOTYPE NOTES:
