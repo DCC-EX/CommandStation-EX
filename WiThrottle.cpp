@@ -47,7 +47,7 @@ WiThrottle::WiThrottle(Print & stream, int wificlientid) {
    firstThrottle= this;
    clientid=wificlientid;
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
-  StringFormatter::send(stream,F("VN2.0\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+  StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
 
    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
         StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
