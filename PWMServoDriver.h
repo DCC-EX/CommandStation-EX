@@ -9,7 +9,7 @@
 
 class PWMServoDriver {
 public:
-    static void setServo(short servoNum,  uint16_t pos);
+    static void setServo(byte servoNum,  uint16_t pos);
     
 private:
   static byte setupFlags; 

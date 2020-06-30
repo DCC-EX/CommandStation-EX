@@ -52,7 +52,7 @@ WiThrottle::WiThrottle(Print & stream, int wificlientid) {
    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
         StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
       }
-  StringFormatter::send(stream,F("\n*10"));
+  StringFormatter::send(stream,F("\n*10\n"));
   heartBeatEnable=false; // until client turns it on
 }
 

@@ -55,14 +55,14 @@ void Hardware::setCallback(int duration, void (*isr)()) {
 
 
 // Railcom support functions, not yet implemented
-void Hardware::setSingleCallback(int duration, void (*isr)()) {
+//void Hardware::setSingleCallback(int duration, void (*isr)()) {
 //  Timer2.initialize(duration);
 //  Timer2.disablePwm(TIMER1_A_PIN);
 //  Timer2.disablePwm(TIMER1_B_PIN);
 //  Timer2.attachInterrupt(isr);
-}
+//}
 
-void Hardware::resetSingleCallback(int duration) {
+//void Hardware::resetSingleCallback(int duration) {
 //  if (duration==0) Timer2.stop();
 //  else Timer2.initialize(duration);
-}
+//}

@@ -9,7 +9,7 @@ class Hardware {
     static int  getCurrentMilliamps(bool isMainTrack);
     static void setBrake(bool isMainTrack, bool on);
     static void setCallback(int duration,  void (*isr)());
-    static void setSingleCallback(int duration,  void (*isr)());
-    static void resetSingleCallback(int duration);
+//    static void setSingleCallback(int duration,  void (*isr)());
+//    static void resetSingleCallback(int duration);
 };
 #endif

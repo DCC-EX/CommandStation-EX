@@ -63,12 +63,12 @@ void PWMServoDriver::setup(int board) {
 /*!
  *  @brief  Sets the PWM output to a servo
  */
-void PWMServoDriver::setServo(short servoNum, uint16_t value) {
+void PWMServoDriver::setServo(byte servoNum, uint16_t value) {
   //DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   int board=servoNum/16; 
   int pin=servoNum%16;
   
-  if (board<0 | board>3) return; // safe dropout
+  if ( board>3) return; // safe dropout
   setup(board); // in case not already done
   
   Wire.beginTransmission(PCA9685_I2C_ADDRESS + board);
