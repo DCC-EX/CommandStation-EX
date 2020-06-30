@@ -4,7 +4,7 @@
  *  for showing how it could be done, but this code is very different to the original
  *  implemenatatin as it is designed to run on the Arduino and not the ESP and is
  *  also calling directly into the DCCEX Api rather than  simulating JMRI text commands.
- * Refer JMRI WiFi Throttle Communications Protocol http://jmri.sourceforge.net/help/en/package/jmri/jmrit/withrottle/Protocol.shtml
+ * Refer JMRI WiFi Throttle Communications Protocol https://www.jmri.org/help/en/package/jmri/jmrit/withrottle/Protocol.shtml
  * 
  * 
  * PROTOTYPE NOTES:
@@ -47,7 +47,7 @@ WiThrottle::WiThrottle(Print & stream, int wificlientid) {
    firstThrottle= this;
    clientid=wificlientid;
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
-  StringFormatter::send(stream,F("VN2.0\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+  StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
 
    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
         StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
