@@ -146,14 +146,14 @@ void WifiInterface::loop(Stream & wifiStream) {
     //  We know that parser will read the entire buffer before starting to write to it.
     //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
 
-    // TODO ... tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
    bool closeAfter=false;
    // Intercept HTTP requests 
     if (isHTML()) {
       HTTPParser::parse(streamer,buffer);
       closeAfter=true;
     }
-    else if (buffer[0]=='<')  parser.parse(streamer,buffer);
+    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
+ 
     else WiThrottle::getThrottle(streamer, connectionId)->parse(streamer, buffer);
 
        
