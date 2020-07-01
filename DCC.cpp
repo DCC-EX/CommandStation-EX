@@ -24,6 +24,7 @@ const byte FN_GROUP_5=0x10;
 
 
 void DCC::begin() {
+  debugMode=false;
   DCCWaveform::begin();
 }
 
@@ -50,7 +51,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
 }
 
 void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
-  //DIAG(F("\nsetFunctionInternal %d %x %x"),cab,byte1,byte2);
+  // DIAG(F("\nsetFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
 
@@ -274,6 +275,10 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
   for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
 }
 
+void DCC::setDebug(bool on) {
+   debugMode=on;
+}
+
 byte DCC::loopStatus=0;  
 
 void DCC::loop()  {
@@ -399,6 +404,9 @@ byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 int   DCC::ackTriggerMilliamps;
 unsigned long   DCC::ackPulseStart;
+int DCC::ackMaxCurrent;
+int DCC::ackPollCount;
+bool DCC::debugMode=false;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -408,7 +416,8 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
   ackManagerByte = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
-
+  ackMaxCurrent=0;
+  ackPollCount=0;
 }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
@@ -419,15 +428,14 @@ void DCC::ackManagerLoop() {
     // breaks from this switch will step to next prog entry
     // returns from this switch will stay on same entry (typically WACK waiting and when all finished.)
     byte opcode=pgm_read_byte_near(ackManagerProg);
-    // DIAG(F("apAck %d\n"),opcode);
     int resets=DCCWaveform::progTrack.sentResetsSincePacket;
-    int current; 
+    
      
     switch (opcode) {
       case BASELINE:
           if (resets<RESET_MIN) return; // try later 
           ackTriggerMilliamps=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
-          // DIAG(F("\nBASELINE trigger mA=%d\n"),ackTriggerMilliamps);
+          if (debugMode) DIAG(F("\nACK_BASELINE trigger mA=%d\n"),ackTriggerMilliamps);
           break;
 
       case W0:    // write 0 bit 
@@ -438,6 +446,8 @@ void DCC::ackManagerLoop() {
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
               ackPulseStart=0; 
+              ackMaxCurrent=0;
+              ackPollCount=0;
              }
             break; 
       
@@ -446,17 +456,21 @@ void DCC::ackManagerLoop() {
               if (resets<RESET_MIN) return; // try later 
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
-              ackPulseStart=0; 
+              ackPulseStart=0;
+              ackMaxCurrent=0;
+              ackPollCount=0;
             }
             break;
       
       case   VB:     // Issue validate Byte packet
         {
           if (resets<RESET_MIN) return; // try later 
-          // DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
+          if (debugMode) DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
           ackPulseStart=0; 
+          ackMaxCurrent=0;
+          ackPollCount=0;
         }
         break;
       
@@ -464,48 +478,57 @@ void DCC::ackManagerLoop() {
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
           if (resets<RESET_MIN) return; // try later 
-          // DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
+          if (debugMode) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
-          ackPulseStart=0; 
+          ackPulseStart=0;
+          ackMaxCurrent=0;
+          ackPollCount=0; 
         }
         break;
       
       case WACK:   // wait for ack (or absence of ack)
-          
+         {
           if (resets > 6) {  //ACK timeout
-            // DIAG(F("\nWACK fail %d\n"), resets);
+            if (debugMode) DIAG(F("\nWACK fail polls=%d, resets=%d, max=%dmA"), ackPollCount, resets, ackMaxCurrent);
             ackReceived = false;
             break; // move on to next prog step
             }
       
-        current=Hardware::getCurrentMilliamps(false);
+        int current=Hardware::getCurrentMilliamps(false);
+        if (current > ackMaxCurrent) ackMaxCurrent=current;
+        
+        ackPollCount++;
+        
         // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
         
         if (current>ackTriggerMilliamps) {
-          if (ackPulseStart==0)ackPulseStart=micros();    // leading edge of pulse detected
+          if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
           return;
         }
       
         // not in pulse
         if (ackPulseStart==0) return; // keep waiting for leading edge 
-        { // detected trailing edge of pulse
-          long pulseDuration=micros()-ackPulseStart;       
-          if (pulseDuration>4500 && pulseDuration<8000) {
+      
+         // detected trailing edge of pulse
+          long pulseDuration=micros()-ackPulseStart;
+               
+          if (pulseDuration>4000 && pulseDuration<9000) {
+            if (debugMode) DIAG(F("\nWACK-OK polls=%d, max=%dmA, pulse=%duS"),ackPollCount, ackMaxCurrent, pulseDuration);
             ackReceived=true;
             DCCWaveform::progTrack.killRemainingRepeats(); // probably no need after 8.5ms!!
             break;  // we have a genuine ACK result
-          }
-        }
+          }      
+           if (debugMode) DIAG(F("\nWACK-bad pulse polls=%d, max=%dmA, pulse=%duS"), ackPollCount, ackMaxCurrent, pulseDuration);
           ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
           return; // keep waiting 
-        
+         }
      case ITC0:
      case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
         if (ackReceived) {
             ackManagerProg = NULL; // all done now
-            (ackManagerCallback)(opcode==ITC0?0:1);
+            callback(opcode==ITC0?0:1);
             return;
           }
         break;
@@ -513,7 +536,7 @@ void DCC::ackManagerLoop() {
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
             ackManagerProg = NULL; // all done now
-            (ackManagerCallback)(ackManagerByte);
+            callback(ackManagerByte);
             return;
           }
         break;
@@ -521,14 +544,14 @@ void DCC::ackManagerLoop() {
       case NAKFAIL:   // If nack callback(-1)
           if (!ackReceived) {
             ackManagerProg = NULL; // all done now
-            (ackManagerCallback)(-1);
+            callback(-1);
             return;
           }
         break;
         
       case FAIL:  // callback(-1)
            ackManagerProg = NULL;
-           (ackManagerCallback)(-1);
+           callback(-1);
            return;
            
       case STARTMERGE:
@@ -560,7 +583,7 @@ void DCC::ackManagerLoop() {
      case COMBINELOCOID: 
           // ackManagerStash is  cv17, ackManagerByte is CV 18
           ackManagerProg=NULL;
-          (ackManagerCallback)( ackManagerByte + ((ackManagerStash - 192) << 8));
+          callback( ackManagerByte + ((ackManagerStash - 192) << 8));
           return;            
 
      case ITSKIP:
@@ -570,17 +593,20 @@ void DCC::ackManagerLoop() {
             ackManagerProg++; 
             opcode=pgm_read_byte_near(ackManagerProg);
           }
-          // DIAG(F("\nSKIPTARGET located\n"));
           break;
      case SKIPTARGET: 
           break;     
      default: 
-          // DIAG(F("!! ackOp %d FAULT!!"),opcode);
+          DIAG(F("!! ackOp %d FAULT!!"),opcode);
           ackManagerProg=NULL;
-          (ackManagerCallback)( -1);
+          callback( -1);
           return;        
     
       }  // end of switch
     ackManagerProg++;
   }
+}
+void DCC::callback(int value) {
+   if (debugMode) DIAG(F("\nCallback(%d)\n"),value);
+   (ackManagerCallback)( value);
 }

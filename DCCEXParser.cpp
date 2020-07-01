@@ -227,6 +227,11 @@ void DCCEXParser::parse(Print & stream, const byte *com) {
         StringFormatter::send(stream,F("\n"));
         return;
         
+     case 'D':     // < >
+        DCC::setDebug(p[0]==1);
+        DIAG(F("\nDCC DEBUG MODE %d"),p[0]==1);
+        return;
+        
      default:  //anything else will drop out to <X>
         break;
     

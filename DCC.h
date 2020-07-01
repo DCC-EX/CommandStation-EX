@@ -44,6 +44,7 @@ class DCC {
   static void setFn( int cab, byte functionNumber, bool on);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
+  static void setDebug(bool on);
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1 
   static void  readCV(int cv, ACK_CALLBACK callback);
@@ -75,7 +76,9 @@ private:
   static byte cv2(int cv);
   static int lookupSpeedTable(int locoId);
   static void issueReminders();
-
+  static void callback(int value);
+  static bool debugMode;
+  
 // ACK MANAGER
   static ackOp  const * ackManagerProg;
   static byte   ackManagerByte;
@@ -84,6 +87,8 @@ private:
   static byte    ackManagerStash;
   static bool ackReceived;
   static int ackTriggerMilliamps;
+  static int ackMaxCurrent;
+  static int ackPollCount;
   static unsigned long ackPulseStart;
   static ACK_CALLBACK  ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
