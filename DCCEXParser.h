@@ -8,7 +8,7 @@ struct DCCEXParser
 {
    DCCEXParser();
    void loop(Stream & pstream);
-   void parse(Print & stream, const byte * command);
+   void parse(Print & stream, const byte * command, bool banAsync);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
    static const int MAX_PARAMS=10;  // Must not exceed this
@@ -18,6 +18,7 @@ struct DCCEXParser
     static const int MAX_BUFFER=50;  // longest command sent in
      byte  bufferLength=0;
      bool  inCommandPayload=false;
+     bool  asyncBanned;   // true when called with stream that must complete before returning
      byte  buffer[MAX_BUFFER+2]; 
     int splitValues( int result[MAX_PARAMS], const byte * command);
      
@@ -28,9 +29,10 @@ struct DCCEXParser
 
     
     static bool stashBusy;
+   
     static Print & stashStream;
     static int stashP[MAX_PARAMS];
-    static bool stashCallback(Print & stream, int p[MAX_PARAMS]);
+    bool stashCallback(Print & stream, int p[MAX_PARAMS]);
     static void callback_W(int result);
     static void callback_B(int result);        
     static void callback_R(int result);

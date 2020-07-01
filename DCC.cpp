@@ -514,13 +514,13 @@ void DCC::ackManagerLoop() {
          // detected trailing edge of pulse
           long pulseDuration=micros()-ackPulseStart;
                
-          if (pulseDuration>4000 && pulseDuration<9000) {
+          if (pulseDuration>1000 && pulseDuration<9000) {
             if (debugMode) DIAG(F("\nWACK-OK polls=%d, max=%dmA, pulse=%duS"),ackPollCount, ackMaxCurrent, pulseDuration);
             ackReceived=true;
             DCCWaveform::progTrack.killRemainingRepeats(); // probably no need after 8.5ms!!
             break;  // we have a genuine ACK result
           }      
-           if (debugMode) DIAG(F("\nWACK-bad pulse polls=%d, max=%dmA, pulse=%duS"), ackPollCount, ackMaxCurrent, pulseDuration);
+           if (debugMode) DIAG(F("\nWACK-bad pulse polls=%d, max=%dmA, now=%dmA, pulse=%duS"), ackPollCount, ackMaxCurrent,current, pulseDuration);
           ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
           return; // keep waiting 
          }

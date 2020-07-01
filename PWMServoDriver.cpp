@@ -25,7 +25,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "PWMServoDriver.h"
-#define DIAG_ENABLED true
 #include "DIAG.h"
 
 
