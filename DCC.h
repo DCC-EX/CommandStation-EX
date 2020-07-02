@@ -86,10 +86,6 @@ private:
   static int    ackManagerCv;
   static byte    ackManagerStash;
   static bool ackReceived;
-  static int ackTriggerMilliamps;
-  static int ackMaxCurrent;
-  static int ackPollCount;
-  static unsigned long ackPulseStart;
   static ACK_CALLBACK  ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
   static void ackManagerLoop();

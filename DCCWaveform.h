@@ -44,16 +44,19 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
-    void killRemainingRepeats();
-
+    void setAckBaseline(bool debug);  //prog track only
+    void setAckPending(bool debug);  //prog track only
+    byte getAck(bool debug);               //prog track only 0=NACK, 1=ACK 2=keep waiting
+    
   private:
 
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();
-
+    void checkAck();
+    
     bool isMainTrack;
-
+    
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE];  // packet being transmitted
     byte transmitLength;
@@ -75,5 +78,17 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
+
+    // ACK management (Prog track only)  
+    bool ackPending;    
+    bool ackDetected;   
+    int  ackThreshold; 
+    int ackMaxCurrent;
+    unsigned long ackCheckStart; // millis
+    unsigned int ackCheckDuration; // millis       
+    
+    unsigned int ackPulseDuration;  // micros
+    unsigned long ackPulseStart; // micros
+           
 };
 #endif

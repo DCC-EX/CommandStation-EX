@@ -59,6 +59,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   bits_sent = 0;
   sampleDelay = 0;
   lastSampleTaken = millis();
+  ackPending=false;    
 }
 void DCCWaveform::beginTrack() {
   setPowerMode(POWERMODE::ON);
@@ -138,9 +139,6 @@ bool DCCWaveform::interrupt1() {
 
 }
 
-void DCCWaveform::killRemainingRepeats() {
-   transmitRepeats=0;  // will go idle at end of current packet
-}
 
 void DCCWaveform::interrupt2() {
   // set currentBit to be the next bit to be sent.
@@ -187,6 +185,11 @@ void DCCWaveform::interrupt2() {
       }
     }
   }
+  
+  // ACK check is prog track only and will only be checked if bits_sent=4 ...
+  // This means only once per 9-bit-byte AND never at the same cycle as the 
+  // relatively expensive packet change code just above.
+  if (ackPending && bits_sent==4) checkAck();
 }
 
 
@@ -210,4 +213,65 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 
 int DCCWaveform::getLastCurrent() {
    return lastCurrent;
+}
+
+// Operations applicable to PROG track ONLY.
+// (yes I know I could have subclassed the main track but...) 
+
+void DCCWaveform::setAckBaseline(bool debug) {
+      if (isMainTrack) return; 
+      ackThreshold=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
+      if (debug) DIAG(F("\nACK-BASELINE mA=%d\n"),ackThreshold);
+}
+
+void DCCWaveform::setAckPending(bool debug) {
+      if (isMainTrack) return; 
+      (void)debug;
+      ackMaxCurrent=0;
+      ackPulseStart=0;
+      ackPulseDuration=0;
+      ackDetected=false;
+      ackCheckStart=millis();
+      ackPending=true;  // interrupt routines will now take note
+}
+
+byte DCCWaveform::getAck(bool debug) {
+      if (ackPending) return (2);  // still waiting
+      if (debug) DIAG(F("\nACK-%S after %dmS max=%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration,  ackMaxCurrent, ackPulseDuration);
+      if (ackDetected) return (1); // Yes we had an ack
+      return(0);  // pending set off but not detected means no ACK.   
+}
+
+void DCCWaveform::checkAck() {
+    // This function operates in interrupt() time so must be fast and can't DIAG 
+    
+    if (sentResetsSincePacket > 6) {  //ACK timeout
+        ackCheckDuration=millis()-ackCheckStart;
+        ackPending = false;
+        return; 
+    }
+      
+    lastCurrent=Hardware::getCurrentMilliamps(false);
+    if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
+    // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
+        
+    if (lastCurrent>ackThreshold) {
+       if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
+       return;
+    }
+    
+    // not in pulse
+    if (ackPulseStart==0) return; // keep waiting for leading edge 
+    
+    // detected trailing edge of pulse
+    ackPulseDuration=micros()-ackPulseStart;
+               
+    if (ackPulseDuration>1000 && ackPulseDuration<9000) {
+        ackCheckDuration=millis()-ackCheckStart;
+        ackDetected=true;
+        ackPending=false;
+        transmitRepeats=0;  // shortcut remaining repeat packets 
+        return;  // we have a genuine ACK result
+    }      
+    ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }

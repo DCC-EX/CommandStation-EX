@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <TimerOne.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
+#include "avdweb_AnalogReadFast.h"
 #include "Hardware.h"
 #include "Config.h"
 #include "DIAG.h"
@@ -41,7 +42,12 @@ void Hardware::setSignal(bool isMainTrack, bool high) {
 int Hardware::getCurrentMilliamps(bool isMainTrack) {
   int pin = isMainTrack ? MAIN_SENSE_PIN : PROG_SENSE_PIN;
   float factor = isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR;
-  int rawCurrent = analogRead(pin);
+  
+  // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
+  //             The default analogRead takes ~100uS which is catastrphic
+  //             so analogReadFast is used here. (-2uS) 
+  int rawCurrent = analogReadFast(pin);
+  
   return (int)(rawCurrent * factor);
 }
 

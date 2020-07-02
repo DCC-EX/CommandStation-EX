@@ -107,7 +107,6 @@ void WifiInterface::loop(Stream & wifiStream) {
       switch (loopstate) {
            case 0:  // looking for +
                 connectionId=0;
-                streamer.flush();
                 if (ch=='+') loopstate=1;
                 break;
            case 1:  // Looking for I     
@@ -129,6 +128,7 @@ void WifiInterface::loop(Stream & wifiStream) {
            case 6: // reading for length
                 if (ch==':') loopstate=(datalength==0)?99:7;  // 99 is getout without reading next char
                 else datalength=datalength*10 + (ch-'0');
+                streamer.flush();
                 break;
            case 7: // reading data 
                 streamer.write(ch);
