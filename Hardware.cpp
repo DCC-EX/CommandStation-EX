@@ -39,16 +39,16 @@ void Hardware::setSignal(bool isMainTrack, bool high) {
   if (pin2) WritePin(pin2, high ? LOW : HIGH);
 }
 
-int Hardware::getCurrentMilliamps(bool isMainTrack) {
-  int pin = isMainTrack ? MAIN_SENSE_PIN : PROG_SENSE_PIN;
-  float factor = isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR;
-  
+int Hardware::getCurrentRaw(bool isMainTrack) {
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
-  int rawCurrent = analogReadFast(pin);
-  
-  return (int)(rawCurrent * factor);
+  return analogReadFast(isMainTrack ? MAIN_SENSE_PIN : PROG_SENSE_PIN);
+ 
+}
+
+int Hardware::getCurrentMilliamps(bool isMainTrack, int raw) {
+  return (int)(raw * (isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR));
 }
 
 void Hardware::setCallback(int duration, void (*isr)()) {

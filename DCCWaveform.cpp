@@ -3,8 +3,10 @@
 #include "DCCWaveform.h"
 #include "DIAG.h"
 
-DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
-DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
+DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true, MAIN_MAX_MILLIAMPS* MAIN_SENSE_FACTOR);
+DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false, 250 * PROG_SENSE_FACTOR);
+
+const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
 
 
@@ -46,8 +48,9 @@ void DCCWaveform::interruptHandler() {
 const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 
-DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
+DCCWaveform::DCCWaveform( byte preambleBits, bool isMain, int rawCurrentTrip) {
   // establish appropriate pins
+  rawCurrentTripValue=rawCurrentTrip;
   isMainTrack = isMain;
   packetPending = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
@@ -87,11 +90,13 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent = Hardware::getCurrentMilliamps(isMainTrack);
-      if (lastCurrent < POWER_SAMPLE_MAX)  sampleDelay = POWER_SAMPLE_ON_WAIT;
+      lastCurrent = Hardware::getCurrentRaw(isMainTrack);
+      if (lastCurrent <= rawCurrentTripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
-        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), lastCurrent, POWER_SAMPLE_MAX);
+        int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
+        int maxmA=Hardware::getCurrentMilliamps(isMainTrack,rawCurrentTripValue);
+        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
         sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
       }
       break;
@@ -220,8 +225,8 @@ int DCCWaveform::getLastCurrent() {
 
 void DCCWaveform::setAckBaseline(bool debug) {
       if (isMainTrack) return; 
-      ackThreshold=Hardware::getCurrentMilliamps(false) + ACK_MIN_PULSE;
-      if (debug) DIAG(F("\nACK-BASELINE mA=%d\n"),ackThreshold);
+      ackThreshold=Hardware::getCurrentRaw(false) + ACK_MIN_PULSE_RAW;
+      if (debug) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,Hardware::getCurrentMilliamps(false,ackThreshold));
 }
 
 void DCCWaveform::setAckPending(bool debug) {
@@ -237,7 +242,8 @@ void DCCWaveform::setAckPending(bool debug) {
 
 byte DCCWaveform::getAck(bool debug) {
       if (ackPending) return (2);  // still waiting
-      if (debug) DIAG(F("\nACK-%S after %dmS max=%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration,  ackMaxCurrent, ackPulseDuration);
+      if (debug) DIAG(F("\nACK-%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration, 
+           ackMaxCurrent,Hardware::getCurrentMilliamps(false,ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
 }
@@ -251,7 +257,7 @@ void DCCWaveform::checkAck() {
         return; 
     }
       
-    lastCurrent=Hardware::getCurrentMilliamps(false);
+    lastCurrent=Hardware::getCurrentRaw(false);
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
     // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
         

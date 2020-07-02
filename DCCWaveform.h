@@ -1,17 +1,12 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
+#include "Config.h"
 
-
-const int  POWER_SAMPLE_MAX = 300;
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;
 
 
-// ACK current analogRead values (vary depending on motor shield and cpu voltage)
-const int   ACK_BASELINE_SAMPLES = 250 ;  // current samples before sending ACKable request
-const int   ACK_TIMEOUT = 25 ;  // millis getAck is prepared to wait for a signal
-const int   ACK_MIN_PULSE = 60 ;   // current above baseline which a pulse is recognised
 
 const int   PREAMBLE_BITS_MAIN = 20;
 const int   PREAMBLE_BITS_PROG = 22;
@@ -30,7 +25,7 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 
 class DCCWaveform {
   public:
-    DCCWaveform( byte preambleBits, bool isMain);
+    DCCWaveform( byte preambleBits, bool isMain, int maxRawCurrent);
     static void begin();
     static void loop();
     static DCCWaveform  mainTrack;
@@ -78,6 +73,7 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
+    int rawCurrentTripValue;
 
     // ACK management (Prog track only)  
     bool ackPending;    
