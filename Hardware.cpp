@@ -47,7 +47,7 @@ int Hardware::getCurrentRaw(bool isMainTrack) {
  
 }
 
-int Hardware::getCurrentMilliamps(bool isMainTrack, int raw) {
+unsigned int Hardware::getCurrentMilliamps(bool isMainTrack, int raw) {
   return (int)(raw * (isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR));
 }
 

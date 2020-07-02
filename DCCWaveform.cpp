@@ -3,8 +3,8 @@
 #include "DCCWaveform.h"
 #include "DIAG.h"
 
-DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true, MAIN_MAX_MILLIAMPS* MAIN_SENSE_FACTOR);
-DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false, 250 * PROG_SENSE_FACTOR);
+DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true,  (int)(MAIN_MAX_MILLIAMPS / MAIN_SENSE_FACTOR));
+DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false, (int)(PROG_MAX_MILLIAMPS / PROG_SENSE_FACTOR));
 
 const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
@@ -94,8 +94,8 @@ void DCCWaveform::checkPowerOverload() {
       if (lastCurrent <= rawCurrentTripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
-        int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
-        int maxmA=Hardware::getCurrentMilliamps(isMainTrack,rawCurrentTripValue);
+        unsigned int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
+        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,rawCurrentTripValue);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
         sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
       }

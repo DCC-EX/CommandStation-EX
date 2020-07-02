@@ -6,7 +6,7 @@ class Hardware {
     static void init();
     static void setPower(bool isMainTrack, bool on);
     static void setSignal(bool isMainTrack, bool high);
-    static int  getCurrentMilliamps(bool isMainTrack, int rawValue);
+    static unsigned int  getCurrentMilliamps(bool isMainTrack, int rawValue);
     static int  getCurrentRaw(bool isMainTrack);
     static void setBrake(bool isMainTrack, bool on);
     static void setCallback(int duration,  void (*isr)());
