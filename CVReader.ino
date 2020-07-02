@@ -22,10 +22,10 @@ void myFilter(Print & stream, byte & opcode, byte & paramCount, int p[]) {
              DCC::setFn(p[0],p[1],p[2]==1); 
              opcode=0;  // tell parser to ignore this command
              break; 
-       case '#':   // Diagnose parser <#....>
-            DIAG(F("# paramCount=%d\n"),paramCount);
+       case '$':   // Diagnose parser <$....>
+            DIAG(F("$ paramCount=%d\n"),paramCount);
             for (int i=0;i<paramCount;i++) DIAG(F("p[%d]=%d (0x%x)\n"),i,p[i],p[i]);
-            opcode=0; // Normal parser wont understand #, 
+            opcode=0; // Normal parser wont understand $, 
             break;
        default:  // drop through and parser will use the command unaltered.   
             break;  
@@ -50,7 +50,8 @@ DCCEXParser  serialParser;
 
 // Try monitoring the memory
 #include "freeMemory.h"
-int minMemory=32767;
+//int minMemory=32767;
+int minMemory=2048;
 
 void setup() {
 
@@ -68,8 +69,10 @@ void setup() {
    //         and a 9600 baud rate. 
    //  setup(serial, F(router name), F(password) , port)
    //            
+#ifdef WIFI
     Serial1.begin(115200);
     WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),3532); // (3532 is 0xDCC decimal... )
+#endif
     
    //  This is just for demonstration purposes 
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
@@ -95,7 +98,9 @@ void loop() {
   serialParser.loop(Serial);
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
+#ifdef WIFI
   WifiInterface::loop(Serial1);
+#endif
 
   // Your additional code e.g. Report any decrease in memory
   int freeNow=freeMemory();
