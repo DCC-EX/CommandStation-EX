@@ -24,7 +24,9 @@ const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;
 
-
+const int  MIN_ACK_PULSE_DURATION = 3000;
+const int  MAX_ACK_PULSE_DURATION = 8500;
+ 
 
 const int   PREAMBLE_BITS_MAIN = 20;
 const int   PREAMBLE_BITS_PROG = 22;

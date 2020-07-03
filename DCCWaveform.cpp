@@ -277,7 +277,7 @@ void DCCWaveform::checkAck() {
       
     lastCurrent=Hardware::getCurrentRaw(false);
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
-    // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
+    // An ACK is a pulse lasting between MIN_ACK_PULSE_DURATION and MAX_ACK_PULSE_DURATION uSecs (refer @haba)
         
     if (lastCurrent>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
@@ -290,7 +290,7 @@ void DCCWaveform::checkAck() {
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
                
-    if (ackPulseDuration>1000 && ackPulseDuration<9000) {
+    if (ackPulseDuration>=MIN_ACK_PULSE_DURATION && ackPulseDuration<=MAX_ACK_PULSE_DURATION) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;
