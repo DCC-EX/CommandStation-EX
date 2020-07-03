@@ -2,7 +2,7 @@
 #define DCCWaveform_h
 
 
-const int  POWER_SAMPLE_MAX = 300;
+const int  POWER_SAMPLE_MAX = 1000;       // XXX only until correct short detection on prog rail is implemented
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;

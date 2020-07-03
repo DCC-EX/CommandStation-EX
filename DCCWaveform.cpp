@@ -135,8 +135,9 @@ bool DCCWaveform::interrupt1() {
       state = 0;
       break;
   }
+  // ACK check is prog track only
+  if (ackPending) checkAck();
   return false;
-
 }
 
 
@@ -185,11 +186,6 @@ void DCCWaveform::interrupt2() {
       }
     }
   }
-  
-  // ACK check is prog track only and will only be checked if bits_sent=4 ...
-  // This means only once per 9-bit-byte AND never at the same cycle as the 
-  // relatively expensive packet change code just above.
-  if (ackPending && bits_sent==4) checkAck();
 }
 
 
@@ -265,13 +261,13 @@ void DCCWaveform::checkAck() {
     
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
-               
-    if (ackPulseDuration>1000 && ackPulseDuration<9000) {
+
+    if (ackPulseDuration>3000 && ackPulseDuration<8500) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;
         transmitRepeats=0;  // shortcut remaining repeat packets 
         return;  // we have a genuine ACK result
-    }      
+    }
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
