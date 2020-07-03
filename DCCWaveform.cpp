@@ -140,6 +140,11 @@ bool DCCWaveform::interrupt1() {
       state = 0;
       break;
   }
+
+  // ACK check is prog track only and will only be checked if 
+  // this is not case(0) which needs  relatively expensive packet change code to be called.
+  if (ackPending) checkAck();
+
   return false;
 
 }
@@ -189,12 +194,7 @@ void DCCWaveform::interrupt2() {
         if (sentResetsSincePacket<250) sentResetsSincePacket++;
       }
     }
-  }
-  
-  // ACK check is prog track only and will only be checked if bits_sent=4 ...
-  // This means only once per 9-bit-byte AND never at the same cycle as the 
-  // relatively expensive packet change code just above.
-  if (ackPending && bits_sent==4) checkAck();
+  }  
 }
 
 
