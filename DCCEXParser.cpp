@@ -250,6 +250,10 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool banAsync) {
         DCC::setDebug(p[0]==1);
         DIAG(F("\nDCC DEBUG MODE %d"),p[0]==1);
         return;
+
+    case '#':     // NUMBER OF LOCOSLOTS <#>
+	StringFormatter::send(stream,F("<# %d>"), MAX_LOCOS);
+	return;
         
      default:  //anything else will drop out to <X>
         break;
