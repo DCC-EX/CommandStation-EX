@@ -1,4 +1,22 @@
 /*
+ *  © 2020, Chris Harlow. All rights reserved.
+ *  
+ *  This file is part of Asbelos DCC API
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+/*
  * Truncated JMRI WiThrottle server implementation for DCC-EX command station
  * Credit is due to  Valerie Valley RR https://sites.google.com/site/valerievalleyrr/
  *  for showing how it could be done, but this code is very different to the original
@@ -71,7 +89,7 @@ WiThrottle::~WiThrottle() {
 
 void WiThrottle::parse(Print & stream, byte * cmd) {
   heartBeat=millis();
-  DIAG(F("\nWiThrottle parse (%d) %s"),clientid, cmd);
+  DIAG(F("\nWiThrottle(%d) [%e]"),clientid, cmd);
   
    switch (cmd[0]) {
        case '*':  // heartbeat control
@@ -97,7 +115,7 @@ void WiThrottle::parse(Print & stream, byte * cmd) {
             break;
        case 'H': // hardware introduction....
             break;           
-      case 'Q': // hardware introduction....
+      case 'Q': // 
             DIAG(F("\nWiThrottle Quit"));
             delete this; 
             break;           

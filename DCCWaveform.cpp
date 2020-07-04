@@ -1,3 +1,21 @@
+/*
+ *  © 2020, Chris Harlow. All rights reserved.
+ *  
+ *  This file is part of Asbelos DCC API
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include <Arduino.h>
 #include "Hardware.h"
 #include "DCCWaveform.h"
@@ -140,8 +158,11 @@ bool DCCWaveform::interrupt1() {
       state = 0;
       break;
   }
-  // ACK check is prog track only
+
+  // ACK check is prog track only and will only be checked if 
+  // this is not case(0) which needs  relatively expensive packet change code to be called.
   if (ackPending) checkAck();
+
   return false;
 }
 
@@ -190,7 +211,11 @@ void DCCWaveform::interrupt2() {
         if (sentResetsSincePacket<250) sentResetsSincePacket++;
       }
     }
+<<<<<<< HEAD
   }
+=======
+  }  
+>>>>>>> master
 }
 
 
@@ -255,7 +280,7 @@ void DCCWaveform::checkAck() {
       
     lastCurrent=Hardware::getCurrentRaw(false);
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
-    // An ACK is a pulse lasting between 4.5 and 8.5 mSecs (refer @haba)
+    // An ACK is a pulse lasting between MIN_ACK_PULSE_DURATION and MAX_ACK_PULSE_DURATION uSecs (refer @haba)
         
     if (lastCurrent>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
@@ -267,8 +292,13 @@ void DCCWaveform::checkAck() {
     
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
+<<<<<<< HEAD
 
     if (ackPulseDuration>3000 && ackPulseDuration<8500) {
+=======
+               
+    if (ackPulseDuration>=MIN_ACK_PULSE_DURATION && ackPulseDuration<=MAX_ACK_PULSE_DURATION) {
+>>>>>>> master
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;

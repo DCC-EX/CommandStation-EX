@@ -1,3 +1,21 @@
+/*
+ *  © 2020, Chris Harlow. All rights reserved.
+ *  
+ *  This file is part of Asbelos DCC API
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "WifiInterface.h"
 #include "Config.h"
 #include "DIAG.h"
@@ -56,16 +74,16 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
 bool WifiInterface::checkForOK(Stream & wifiStream, const unsigned int timeout, const char * waitfor, bool echo) {
   unsigned long  startTime = millis();
    char  const *locator=waitfor;
-  DIAG(F("\nWifi setup Check: %S\n"),waitfor);
+  DIAG(F("\nWifi Check: %E"),waitfor);
   while( millis()-startTime < timeout) {
     while(wifiStream.available()) {
       int ch=wifiStream.read();
-      if (echo) Serial.write(ch);
+      if (echo) StringFormatter::printEscape(Serial,ch);  /// THIS IS A DIAG IN DISGUISE
       if (ch!=pgm_read_byte_near(locator)) locator=waitfor;
       if (ch==pgm_read_byte_near(locator)) {
         locator++;
         if (!pgm_read_byte_near(locator)) {
-          DIAG(F("\nOK after %dms\n"),millis()-startTime);
+          DIAG(F("\nChecked after %dms"),millis()-startTime);
           return true;
         }
       }
@@ -140,7 +158,7 @@ void WifiInterface::loop(Stream & wifiStream) {
     if (loopstate!=99) return; 
     streamer.write('\0');
 
-    DIAG(F("\nWifiRead:%d:%s\n"),connectionId,buffer);
+    DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
     // SIDE EFFECT WARNING::: 
     //  We know that parser will read the entire buffer before starting to write to it.
@@ -159,7 +177,7 @@ void WifiInterface::loop(Stream & wifiStream) {
        
     if (streamer.available()) { // there is a reply to send 
         streamer.write('\0');
-        DIAG(F("WiFiInterface Responding client (%d) l(%d) %s\n"),connectionId,streamer.available()-1,buffer);
+        DIAG(F("WiFiInterface Responding client (%d) l(%d) %e\n"),connectionId,streamer.available()-1,buffer);
         
         StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
         if (checkForOK(wifiStream,1000,PROMPT_SEARCH,true))  wifiStream.print((char *) buffer);
