@@ -211,11 +211,7 @@ void DCCWaveform::interrupt2() {
         if (sentResetsSincePacket<250) sentResetsSincePacket++;
       }
     }
-<<<<<<< HEAD
-  }
-=======
   }  
->>>>>>> master
 }
 
 
@@ -292,13 +288,8 @@ void DCCWaveform::checkAck() {
     
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
-<<<<<<< HEAD
-
-    if (ackPulseDuration>3000 && ackPulseDuration<8500) {
-=======
                
     if (ackPulseDuration>=MIN_ACK_PULSE_DURATION && ackPulseDuration<=MAX_ACK_PULSE_DURATION) {
->>>>>>> master
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;
