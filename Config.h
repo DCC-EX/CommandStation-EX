@@ -8,10 +8,9 @@ const byte MAIN_SIGNAL_PIN = 12;
 const byte MAIN_SIGNAL_PIN_ALT = 0;  // for hardware that flipflops signal pins 
 const byte MAIN_SENSE_PIN = A0;   
 const byte MAIN_BRAKE_PIN = 9;
-const float MAIN_SENSE_FACTOR=1.717; //  analgRead(MAIN_SENSE_PIN) * MAIN_SENSE_FACTOR = milliamps 
 
 const int   MAIN_MAX_MILLIAMPS=2000;
-const float MAIN_SENSE_FACTOR=2.99; //  analgRead(MAIN_SENSE_PIN) * MAIN_SENSE_FACTOR = milliamps 
+const float MAIN_SENSE_FACTOR=1.717; //  analgRead(MAIN_SENSE_PIN) * MAIN_SENSE_FACTOR = milliamps 
 
 const byte PROG_POWER_PIN = 11;
 const byte PROG_SIGNAL_PIN = 13;
