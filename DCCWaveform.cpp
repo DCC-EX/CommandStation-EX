@@ -164,6 +164,7 @@ bool DCCWaveform::interrupt1() {
   if (ackPending) checkAck();
 
   return false;
+
 }
 
 
@@ -295,6 +296,6 @@ void DCCWaveform::checkAck() {
         ackPending=false;
         transmitRepeats=0;  // shortcut remaining repeat packets 
         return;  // we have a genuine ACK result
-    }
+    }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }

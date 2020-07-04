@@ -65,6 +65,10 @@ int Hardware::getCurrentRaw(bool isMainTrack) {
  
 }
 
+unsigned int Hardware::getCurrentMilliamps(bool isMainTrack, int raw) {
+  return (int)(raw * (isMainTrack ? MAIN_SENSE_FACTOR : PROG_SENSE_FACTOR));
+}
+
 void Hardware::setCallback(int duration, void (*isr)()) {
   Timer1.initialize(duration);
   // We don't want the timer to set pins because these often clash with motor shields etc.
