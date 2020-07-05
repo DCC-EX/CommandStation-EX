@@ -390,7 +390,7 @@ int DCC::lookupSpeedTable(int locoId) {
   }
   if (reg==firstEmpty){
         speedTable[reg].loco = locoId;
-        speedTable[reg].speedCode=0;
+        speedTable[reg].speedCode=128;  // default direction forward
         speedTable[reg].groupFlags=0;
         speedTable[reg].functions=0;
   }
