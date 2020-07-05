@@ -347,10 +347,12 @@ bool DCC::issueReminder(int reg) {
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4) 
               setFunctionInternal(loco,222, ((functions>>13)& 0xFF)); 
+          flags&= ~FN_GROUP_4;  // dont send them again
           break;  
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
               setFunctionInternal(loco,223, ((functions>>21)& 0xFF)); 
+          flags&= ~FN_GROUP_5;  // dont send them again
           break; 
       }
       loopStatus++;
