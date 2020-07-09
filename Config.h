@@ -26,4 +26,11 @@
 #define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
 
+//Define wifi settings here
+#define CONFIG_ENABLE_WIFI
+#define CONFIG_WIFI_SSID "Test"
+#define CONFIG_WIFI_PASSWORD "password"
+#define CONFIG_HOSTNAME "CommandStation"
+#define CONFIG_MDNS_SERVERNAME "CommandStation"
+#define CONFIG_SERVER_PORT 12090
 #endif
