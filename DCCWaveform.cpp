@@ -73,6 +73,7 @@ POWERMODE DCCWaveform::getPowerMode() {
 void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   Hardware::setPower(isMainTrack, mode == POWERMODE::ON);
+  Hardware::setBrake(isMainTrack, mode == POWERMODE::OFF);
   if (mode == POWERMODE::ON) delay(200);
 }
 
