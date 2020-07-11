@@ -21,6 +21,10 @@
 #include <CommandStation.h>
 #include <ArduinoTimers.h>
 
+#if defined(ARDUINO_AVR_UNO)
+#include <SoftwareSerial.h>
+#endif
+
 #include "Config.h"
 
 const uint8_t kIRQmicros = 29;
@@ -48,7 +52,7 @@ void SERCOM4_Handler()
 {
   mainTrack->railcom.getSerial()->IrqHandler();
 }
-Uart Serial1( &sercom2, 1, 0, SERCOM_RX_PAD_3, UART_TX_PAD_2) ;
+Uart Serial1(&sercom2, 1, 0, SERCOM_RX_PAD_3, UART_TX_PAD_2);
 
 #endif
 
@@ -71,14 +75,11 @@ void setup()
   CommManager::registerInterface(new SerialInterface(Serial));
 #endif
 
-#if defined(AVR_UNO)
-  #define Serial1 ESPserial
-#endif
-
-
-#if defined(CONFIG_ENABLE_WIFI)
-  Serial1.begin(115200);
-  WifiInterface::setup(Serial1, F(CONFIG_WIFI_SSID), F(CONFIG_WIFI_PASSWORD), F(CONFIG_HOSTNAME), F(CONFIG_MDNS_SERVERNAME), CONFIG_SERVER_PORT);
+#if defined(CONFIG_ENABLE_WIFI) && !defined(ARDUINO_AVR_UNO)
+  CommManager::registerInterface(new WifiInterface(Serial1, F(CONFIG_WIFI_SSID), F(CONFIG_WIFI_PASSWORD), F(CONFIG_HOSTNAME), F(CONFIG_MDNS_SERVERNAME), CONFIG_SERVER_PORT));
+#elif defined(CONFIG_ENABLE_WIFI) && defined(ARDUINO_AVR_UNO)
+  SoftwareSerial wifiSerial(2, 3);
+  CommManager::registerInterface(new WifiInterface(wifiSerial, F(CONFIG_WIFI_SSID), F(CONFIG_WIFI_PASSWORD), F(CONFIG_HOSTNAME), F(CONFIG_MDNS_SERVERNAME), CONFIG_SERVER_PORT));
 #endif
 
   EEStore::init();
