@@ -43,10 +43,10 @@ void myFilter(Print & stream, byte & opcode, byte & paramCount, int p[]) {
              DCC::setFn(p[0],p[1],p[2]==1); 
              opcode=0;  // tell parser to ignore this command
              break; 
-       case '#':   // Diagnose parser <#....>
-            DIAG(F("# paramCount=%d\n"),paramCount);
+       case '$':   // Diagnose parser <$....>
+            DIAG(F("$ paramCount=%d\n"),paramCount);
             for (int i=0;i<paramCount;i++) DIAG(F("p[%d]=%d (0x%x)\n"),i,p[i],p[i]);
-            opcode=0; // Normal parser wont understand #, 
+            opcode=0; // Normal parser wont understand $, 
             break;
        default:  // drop through and parser will use the command unaltered.   
             break;  
