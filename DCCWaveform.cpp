@@ -99,6 +99,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 
 void DCCWaveform::checkPowerOverload() {
+  
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   
@@ -109,11 +110,11 @@ void DCCWaveform::checkPowerOverload() {
     case POWERMODE::ON:
       // Check current
       lastCurrent = Hardware::getCurrentRaw(isMainTrack);
-      if (lastCurrent <= rawCurrentTripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
+      if (lastCurrent <= (ackPending?ACK_CURRENT_TRIP:rawCurrentTripValue))  sampleDelay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
-        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,rawCurrentTripValue);
+        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,ackPending?ACK_CURRENT_TRIP:rawCurrentTripValue);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
         sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
       }

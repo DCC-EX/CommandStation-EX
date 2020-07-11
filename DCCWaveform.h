@@ -94,7 +94,8 @@ class DCCWaveform {
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
     int rawCurrentTripValue;
-
+    static const int ACK_CURRENT_TRIP=1000; // During ACK processing limit can be higher
+    
     // ACK management (Prog track only)  
     bool ackPending;    
     bool ackDetected;   
