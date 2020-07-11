@@ -31,6 +31,7 @@ void StringFormatter::send2(Print & stream,const __FlashStringHelper* format, va
       case 's': stream.print(va_arg(args, char*)); break;
       case 'S': stream.print((const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'd': stream.print(va_arg(args, int), DEC); break;
+      case 'l': stream.print(va_arg(args, long), DEC); break;
       case 'b': stream.print(va_arg(args, int), BIN); break;
       case 'o': stream.print(va_arg(args, int), OCT); break;
       case 'x': stream.print(va_arg(args, int), HEX); break;

@@ -5,7 +5,7 @@
 const int  POWER_SAMPLE_MAX = 1000;       // XXX only until correct short detection on prog rail is implemented
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
-const int  POWER_SAMPLE_OVERLOAD_WAIT = 4000;
+const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
 
 // ACK current analogRead values (vary depending on motor shield and cpu voltage)
@@ -78,6 +78,8 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
+    unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+    unsigned int power_good_counter = 0;
 
     // ACK management (Prog track only)  
     bool ackPending;    
