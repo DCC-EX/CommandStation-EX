@@ -157,7 +157,9 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
-
+void DCC::setProgTrackSyncMain(bool on) {
+  DCCWaveform::progTrackSyncMain=on;
+}
 
 const ackOp PROGMEM WRITE_BIT0_PROG[] = {
      BASELINE,

@@ -63,6 +63,7 @@ class DCC {
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
   static void setDebug(bool on);
+  static void setProgTrackSyncMain(bool on); // when true, prog track becomes driveable 
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1 
   static void  readCV(int cv, ACK_CALLBACK callback);
