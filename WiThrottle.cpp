@@ -51,27 +51,22 @@
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 
-WiThrottle* WiThrottle::getThrottle(Print & stream, int wifiClient) {
+WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
      if (wt->clientid==wifiClient) return wt;
-  return new WiThrottle(stream, wifiClient);
+  return new WiThrottle( wifiClient);
 }
 
  // One instance of WiTHrottle per connected client, so we know what the locos are 
  
-WiThrottle::WiThrottle(Print & stream, int wificlientid) {
+WiThrottle::WiThrottle( int wificlientid) {
    DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
-   for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
-  StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-
-   for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-        StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
-      }
-  StringFormatter::send(stream,F("\n*10\n"));
-  heartBeatEnable=false; // until client turns it on
+    heartBeatEnable=false; // until client turns it on
+    firstCall=true;
+    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
 
 WiThrottle::~WiThrottle() {
@@ -87,10 +82,33 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parse(Print & stream, byte * cmd) {
+void WiThrottle::parse(Print & stream, byte * cmdx) {
+  
+  // we have to take a copy of the cmd buffer as the reply will get built into the cmdx  
+  byte local[50];
+  for (byte i=0;i<sizeof(local);i++) {
+    local[i]=cmdx[i];
+    if (!cmdx[i]) break;
+  }
+  local[49]='\0'; // prevent runaway parser
+  
+  byte * cmd=local;
+  
   heartBeat=millis();
   DIAG(F("\nWiThrottle(%d) [%e]"),clientid, cmd);
-  
+   
+   if (firstCall) {
+     firstCall=false;
+     StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), 
+                DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+
+    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+        StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
+    }
+    StringFormatter::send(stream,F("\n*10\n"));
+   }
+
+   while (cmd[0]) {
    switch (cmd[0]) {
        case '*':  // heartbeat control
             if (cmd[1]=='+') heartBeatEnable=true;
@@ -119,6 +137,10 @@ void WiThrottle::parse(Print & stream, byte * cmd) {
             DIAG(F("\nWiThrottle Quit"));
             delete this; 
             break;           
+   }
+   // skip over cmd until 0 or past \r or \n
+   while(*cmd !='\0' && *cmd != '\r' && *cmd !='\n') cmd++;
+   if (*cmd!='\0') cmd++; // skip \r or \n  
    }           
 }
 int WiThrottle::getInt(byte * cmd) {
@@ -196,12 +218,12 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             case 'q':
                 if (aval[1]=='V') {   //qV
                   LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cAL%d<;>V%d"), throttleChar, myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab));
+                    StringFormatter::send(stream,F("M%cAL%d<;>V%d\n"), throttleChar, myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab));
                   }              
                 }
                 else if (aval[1]=='R') { // qR
                   LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cAL%d<;>R%d"), throttleChar, myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
+                    StringFormatter::send(stream,F("M%cAL%d<;>R%d\n"), throttleChar, myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
                   }             
                 }     
             break;    

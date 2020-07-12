@@ -131,10 +131,9 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool banAsync) {
     DIAG(F("\nPARSING:%s\n"),com);
     asyncBanned=banAsync;
     (void) EEPROM; // tell compiler not to warn thi is unused
-    int p[MAX_PARAMS];  
+    int p[MAX_PARAMS]; 
+    while (com[0]=='<' || com[0]==' ') com++; // strip off any number of < or spaces
     byte params=splitValues(p, com); 
-
-    if (com[0]=='<') com++;
     byte opcode=com[0];
      
     if (filterCallback)  filterCallback(stream,opcode,params,p);

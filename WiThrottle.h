@@ -29,10 +29,10 @@ class WiThrottle {
   public:  
     static void loop();
     void parse(Print & stream, byte * cmd);
-    static WiThrottle* getThrottle(Print & stream, int wifiClient); 
+    static WiThrottle* getThrottle( int wifiClient); 
 
   private: 
-    WiThrottle(Print & stream, int wifiClientId);
+    WiThrottle( int wifiClientId);
     ~WiThrottle();
    
       static const int MAX_MY_LOCO=10;
@@ -46,6 +46,7 @@ class WiThrottle {
        
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
+      bool firstCall;
       unsigned long heartBeat;
       
      void multithrottle(Print & stream, byte * cmd);

@@ -157,7 +157,9 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
-
+void DCC::setProgTrackSyncMain(bool on) {
+  DCCWaveform::progTrackSyncMain=on;
+}
 
 const ackOp PROGMEM WRITE_BIT0_PROG[] = {
      BASELINE,
@@ -347,10 +349,12 @@ bool DCC::issueReminder(int reg) {
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4) 
               setFunctionInternal(loco,222, ((functions>>13)& 0xFF)); 
+          flags&= ~FN_GROUP_4;  // dont send them again
           break;  
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
               setFunctionInternal(loco,223, ((functions>>21)& 0xFF)); 
+          flags&= ~FN_GROUP_5;  // dont send them again
           break; 
       }
       loopStatus++;
@@ -390,7 +394,7 @@ int DCC::lookupSpeedTable(int locoId) {
   }
   if (reg==firstEmpty){
         speedTable[reg].loco = locoId;
-        speedTable[reg].speedCode=0;
+        speedTable[reg].speedCode=128;  // default direction forward
         speedTable[reg].groupFlags=0;
         speedTable[reg].functions=0;
   }
@@ -452,9 +456,10 @@ void DCC::ackManagerLoop() {
       case W1:    // write 1 bit 
             {
               if (resets<RESET_MIN) return; // try later
+              if (debugMode) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
+              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(debugMode); 
          }
             break; 
@@ -462,8 +467,9 @@ void DCC::ackManagerLoop() {
       case WB:   // write byte 
             {
               if (resets<RESET_MIN) return; // try later 
+              if (debugMode) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 6);
+              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(debugMode); 
             }
             break;
@@ -471,9 +477,9 @@ void DCC::ackManagerLoop() {
       case   VB:     // Issue validate Byte packet
         {
           if (resets<RESET_MIN) return; // try later 
-          if (debugMode) DIAG(F("\nVB %d %d"),ackManagerCv,ackManagerByte);
+          if (debugMode) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
           DCCWaveform::progTrack.setAckPending(debugMode); 
         }
         break;
@@ -485,7 +491,7 @@ void DCC::ackManagerLoop() {
           if (debugMode) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), 5);
+          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
           DCCWaveform::progTrack.setAckPending(debugMode); 
         }
         break;

@@ -62,13 +62,15 @@ class DCCWaveform {
     void setAckBaseline(bool debug);  //prog track only
     void setAckPending(bool debug);  //prog track only
     byte getAck(bool debug);               //prog track only 0=NACK, 1=ACK 2=keep waiting
-    
+    static bool progTrackSyncMain;  // true when prog track is a siding switched to main
+     
   private:
 
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();
     void checkAck();
+    void setSignal(bool high);
     
     bool isMainTrack;
     
@@ -94,7 +96,8 @@ class DCCWaveform {
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
     int rawCurrentTripValue;
-
+    static const int ACK_CURRENT_TRIP=1000; // During ACK processing limit can be higher
+    
     // ACK management (Prog track only)  
     bool ackPending;    
     bool ackDetected;   

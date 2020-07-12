@@ -172,12 +172,12 @@ void WifiInterface::loop(Stream & wifiStream) {
     }
     else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
  
-    else WiThrottle::getThrottle(streamer, connectionId)->parse(streamer, buffer);
+    else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
 
        
     if (streamer.available()) { // there is a reply to send 
         streamer.write('\0');
-        DIAG(F("WiFiInterface Responding client (%d) l(%d) %e\n"),connectionId,streamer.available()-1,buffer);
+        DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
         
         StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
         if (checkForOK(wifiStream,1000,PROMPT_SEARCH,true))  wifiStream.print((char *) buffer);

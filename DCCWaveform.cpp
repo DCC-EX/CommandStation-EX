@@ -26,7 +26,7 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false, (int)(PROG_MAX_MI
 
 const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
-
+bool DCCWaveform::progTrackSyncMain=false; 
 
 void DCCWaveform::begin() {
   Hardware::init();
@@ -99,8 +99,11 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 
 void DCCWaveform::checkPowerOverload() {
+  
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
+  int tripValue= rawCurrentTripValue;
+  if (!isMainTrack && (ackPending || progTrackSyncMain))   tripValue=ACK_CURRENT_TRIP;
   
   switch (powerMode) {
     case POWERMODE::OFF:
@@ -109,11 +112,11 @@ void DCCWaveform::checkPowerOverload() {
     case POWERMODE::ON:
       // Check current
       lastCurrent = Hardware::getCurrentRaw(isMainTrack);
-      if (lastCurrent <= rawCurrentTripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
+      if (lastCurrent <= tripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
       else {
         setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
-        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,rawCurrentTripValue);
+        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,tripValue);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
         sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
       }
@@ -139,19 +142,19 @@ bool DCCWaveform::interrupt1() {
   // otherwise can cause hangs in main loop waiting for the pendingBuffer.
   switch (state) {
     case 0:  // start of bit transmission
-      Hardware::setSignal(isMainTrack, HIGH);
+      setSignal(HIGH);
       state = 1;
       return true; // must call interrupt2 to set currentBit
 
     case 1:  // 58us after case 0
       if (currentBit) {
-        Hardware::setSignal(isMainTrack, LOW);
+        setSignal(LOW);
         state = 0;
       }
       else state = 2;
       break;
     case 2:  // 116us after case 0
-      Hardware::setSignal(isMainTrack, LOW);
+      setSignal(LOW);
       state = 3;
       break;
     case 3:  // finished sending zero bit
@@ -167,7 +170,17 @@ bool DCCWaveform::interrupt1() {
 
 }
 
-
+void DCCWaveform::setSignal(bool high) {
+  if (progTrackSyncMain) {
+    if (!isMainTrack) return; // ignore PROG track waveform while in sync
+    // set both tracks to same signal
+    Hardware::setSignal(true, high);
+    Hardware::setSignal(false, high);
+    return;     
+  }
+  Hardware::setSignal(isMainTrack,high);
+}
+      
 void DCCWaveform::interrupt2() {
   // set currentBit to be the next bit to be sent.
 
