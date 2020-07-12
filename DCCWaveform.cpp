@@ -93,7 +93,9 @@ POWERMODE DCCWaveform::getPowerMode() {
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
-  Hardware::setPower(isMainTrack, mode == POWERMODE::ON);
+  bool ison = (mode == POWERMODE::ON);
+  Hardware::setPower(isMainTrack, ison);
+  Hardware::setBrake(isMainTrack, !ison);
   if (mode == POWERMODE::ON) delay(200);
 }
 
@@ -112,13 +114,20 @@ void DCCWaveform::checkPowerOverload() {
     case POWERMODE::ON:
       // Check current
       lastCurrent = Hardware::getCurrentRaw(isMainTrack);
-      if (lastCurrent <= tripValue)  sampleDelay = POWER_SAMPLE_ON_WAIT;
-      else {
+      if (lastCurrent <= tripValue) {
+        sampleDelay = POWER_SAMPLE_ON_WAIT;
+	if(power_good_counter<100)
+	  power_good_counter++;
+	else
+	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
+      } else {
         setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
         unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,tripValue);
-        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
-        sampleDelay = POWER_SAMPLE_OVERLOAD_WAIT;
+        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
+	power_good_counter=0;
+        sampleDelay = power_sample_overload_wait;
+	power_sample_overload_wait *= 2;
       }
       break;
     case POWERMODE::OVERLOAD:
