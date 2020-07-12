@@ -71,7 +71,14 @@ DCCEXParser  serialParser;
 
 // Try monitoring the memory
 #include "freeMemory.h"
+// TODO: this should be automated instead of ifdef
+#if defined(ARDUINO_AVR_MEGA2560)
 int minMemory=32767;
+#elif defined(ARDUINO_AVR_UNO)
+int minMemory=2048;
+#else
+#error CANNOT COMPILE - Unkown board, can not determine amount of RAM available.
+#endif
 
 void setup() {
 
@@ -89,8 +96,10 @@ void setup() {
    //         and a 9600 baud rate. 
    //  setup(serial, F(router name), F(password) , port)
    //            
+#ifdef WIFI
     Serial1.begin(115200);
     WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),3532); // (3532 is 0xDCC decimal... )
+#endif
     
    //  This is just for demonstration purposes 
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
@@ -116,7 +125,9 @@ void loop() {
   serialParser.loop(Serial);
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
+#ifdef WIFI
   WifiInterface::loop(Serial1);
+#endif
 
   // Your additional code e.g. Report any decrease in memory
   int freeNow=freeMemory();

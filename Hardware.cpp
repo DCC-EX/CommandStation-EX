@@ -33,14 +33,18 @@
     
 void Hardware::init() {
   pinMode(MAIN_POWER_PIN, OUTPUT);
+  pinMode(MAIN_BRAKE_PIN, OUTPUT);
   pinMode(MAIN_SIGNAL_PIN, OUTPUT);
-  if (MAIN_SIGNAL_PIN_ALT) pinMode(MAIN_SIGNAL_PIN_ALT, OUTPUT);
+  if (MAIN_SIGNAL_PIN_ALT != UNUSED_PIN) pinMode(MAIN_SIGNAL_PIN_ALT, OUTPUT);
   pinMode(MAIN_SENSE_PIN, INPUT);
+  if (MAIN_FAULT_PIN != UNUSED_PIN) pinMode(MAIN_FAULT_PIN, INPUT);
 
   pinMode(PROG_POWER_PIN, OUTPUT);
+  pinMode(PROG_BRAKE_PIN, OUTPUT);
   pinMode(PROG_SIGNAL_PIN, OUTPUT);
-  if (PROG_SIGNAL_PIN_ALT) pinMode(PROG_SIGNAL_PIN_ALT, OUTPUT);
+  if (PROG_SIGNAL_PIN_ALT != UNUSED_PIN) pinMode(PROG_SIGNAL_PIN_ALT, OUTPUT);
   pinMode(PROG_SENSE_PIN, INPUT);
+  if (PROG_FAULT_PIN != UNUSED_PIN) pinMode(PROG_FAULT_PIN, INPUT);
 }
 
 void Hardware::setPower(bool isMainTrack, bool on) {
@@ -54,10 +58,16 @@ void Hardware::setSignal(bool isMainTrack, bool high) {
   byte pin = isMainTrack ? MAIN_SIGNAL_PIN : PROG_SIGNAL_PIN;
   byte pin2 = isMainTrack ? MAIN_SIGNAL_PIN_ALT : PROG_SIGNAL_PIN_ALT;
   WritePin(pin, high ? HIGH : LOW);
-  if (pin2) WritePin(pin2, high ? LOW : HIGH);
+  if (pin2 != UNUSED_PIN) WritePin(pin2, high ? LOW : HIGH);
 }
 
 int Hardware::getCurrentRaw(bool isMainTrack) {
+  // tooo much crap for a interrupt routine. Will see how that goes.
+  byte faultpin = isMainTrack ? MAIN_FAULT_PIN : PROG_FAULT_PIN;
+  byte signalpin = isMainTrack ? MAIN_SIGNAL_PIN : PROG_SIGNAL_PIN;
+
+  if (faultpin != UNUSED_PIN && digitalRead(faultpin) == LOW && digitalRead(signalpin) == HIGH)
+      return 32767; // MAXINT because we don't know the actual current, return as high as we can
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
