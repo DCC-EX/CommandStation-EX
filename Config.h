@@ -1,6 +1,9 @@
 #ifndef Config_h
 #define Config_h
 
+// Define this if you have a WiFi board on Serial1
+// #define WIFI
+
 // This hardware configuration would normally be setup using a bunch of #ifdefs.
 
 const byte MAIN_POWER_PIN = 3;
