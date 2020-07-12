@@ -52,7 +52,6 @@ void SERCOM4_Handler()
 {
   mainTrack->railcom.getSerial()->IrqHandler();
 }
-Uart Serial1(&sercom2, 1, 0, SERCOM_RX_PAD_3, UART_TX_PAD_2);
 
 #endif
 
