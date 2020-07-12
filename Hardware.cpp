@@ -27,8 +27,10 @@
 #if defined(ARDUINO_ARCH_AVR)
     #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
     #define WritePin digitalWrite2
+    #define ReadPin digitalRead2
 #else
     #define WritePin digitalWrite
+    #define ReadPin digitalRead
 #endif
     
 void Hardware::init() {
@@ -66,7 +68,7 @@ int Hardware::getCurrentRaw(bool isMainTrack) {
   byte faultpin = isMainTrack ? MAIN_FAULT_PIN : PROG_FAULT_PIN;
   byte signalpin = isMainTrack ? MAIN_SIGNAL_PIN : PROG_SIGNAL_PIN;
 
-  if (faultpin != UNUSED_PIN && digitalRead(faultpin) == LOW && digitalRead(signalpin) == HIGH)
+  if (faultpin != UNUSED_PIN && ReadPin(faultpin) == LOW && ReadPin(signalpin) == HIGH)
       return 32767; // MAXINT because we don't know the actual current, return as high as we can
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
