@@ -7,7 +7,7 @@ of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Publ
 
 AUTHOR: Albert van Dalen
 WEBSITE: http://www.avdweb.nl/arduino/libraries/fast-10-bit-adc.html
-
+UPDATE: https://www.avdweb.nl/arduino/adc-dac/fast-10-bit-adc
 HISTORY:
 1.0.0 7-3-2018 analogReadFast for SAMD21 (10/12bit) and AVR (10bit)
 */
