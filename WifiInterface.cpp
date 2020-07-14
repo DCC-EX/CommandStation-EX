@@ -156,7 +156,7 @@ void WifiInterface::loop(Stream & wifiStream) {
         } // switch 
     } // while
     if (loopstate!=99) return; 
-    streamer.write('\0');
+    streamer.write((byte)0); // null the end of the buffer for conventional string handling
 
     DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
@@ -176,7 +176,9 @@ void WifiInterface::loop(Stream & wifiStream) {
 
        
     if (streamer.available()) { // there is a reply to send 
-        streamer.write('\0');
+        streamer.write((byte)0); // null the end of the buffer for conventional string handling in DIAG
+        // but remember to NOT include the null when transmitting back to client
+
         DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
         
         StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
