@@ -69,6 +69,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 #include "Sensors.h"
 #include "EEStore.h"
 #include "StringFormatter.h"
+#include "Hardware.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -113,7 +114,7 @@ Sensor *Sensor::create(int snum, int pin, int pullUp){
   tt->active=false;
   tt->signal=1;
   pinMode(pin,INPUT);         // set mode to input
-  digitalWrite(pin,pullUp);   // don't use Arduino's internal pull-up resistors for external infrared sensors --- each sensor must have its own 1K external pull-up resistor
+  Hardware::pinWrite(pin,pullUp);   // don't use Arduino's internal pull-up resistors for external infrared sensors --- each sensor must have its own 1K external pull-up resistor
 
   return tt;
 
