@@ -38,8 +38,10 @@ DCCService* progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
 #endif
 
 void waveform_IrqHandler() {
-  mainTrack->interruptHandler();
-  progTrack->interruptHandler();
+  bool mainInterrupt = mainTrack->interrupt1();
+  bool progInterrupt = progTrack->interrupt1();
+  if(mainInterrupt) mainTrack->interrupt2();
+  if(progInterrupt) progTrack->interrupt2();
 }
 
 #if defined(ARDUINO_ARCH_SAMD)
