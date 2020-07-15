@@ -21,20 +21,24 @@
 #include <CommandStation.h>
 #include <ArduinoTimers.h>
 
+#if defined(ARDUINO_AVR_UNO)
+#include <SoftwareSerial.h>
+#endif
+
 #include "Config.h"
 
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
 
 #if defined CONFIG_WSM_FIREBOX
-DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_WSM_FireBox_Prog();
+DCCMain *mainTrack = DCCMain::Create_WSM_FireBox_Main(kNumLocos);
+DCCService *progTrack = DCCService::Create_WSM_FireBox_Prog();
 #elif defined CONFIG_ARDUINO_MOTOR_SHIELD
-DCCMain* mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
+DCCMain *mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
+DCCService *progTrack = DCCService::Create_Arduino_L298Shield_Prog();
 #elif defined CONFIG_POLOLU_MOTOR_SHIELD
-DCCMain* mainTrack = DCCMain::Create_Pololu_MC33926Shield_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
+DCCMain *mainTrack = DCCMain::Create_Pololu_MC33926Shield_Main(kNumLocos);
+DCCService *progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
 #endif
 
 void waveform_IrqHandler() {
@@ -46,40 +50,49 @@ void waveform_IrqHandler() {
 
 #if defined(ARDUINO_ARCH_SAMD)
 void SERCOM4_Handler()
-{   
+{
   mainTrack->railcom.getSerial()->IrqHandler();
 }
+
 #endif
 
-void setup() {
+void setup()
+{
   mainTrack->setup();
   progTrack->setup();
 
   // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
-  // We will fire an interrupt every 29us to generate the signal on the track 
+  // We will fire an interrupt every 29us to generate the signal on the track
   TimerA.initialize();
   TimerA.setPeriod(kIRQmicros);
   TimerA.attachInterrupt(waveform_IrqHandler);
   TimerA.start();
 
-#if defined (ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARCH_SAMD)
   CommManager::registerInterface(new USBInterface(SerialUSB));
-  Wire.begin();       // Needed for EEPROM to work
+  Wire.begin(); // Needed for EEPROM to work
 #elif defined(ARDUINO_ARCH_AVR)
   CommManager::registerInterface(new SerialInterface(Serial));
+#endif
+
+#if defined(CONFIG_ENABLE_WIFI) && !defined(ARDUINO_AVR_UNO)
+  CommManager::registerInterface(new WifiInterface(Serial1, F(CONFIG_WIFI_SSID), F(CONFIG_WIFI_PASSWORD), F(CONFIG_HOSTNAME), F(CONFIG_MDNS_SERVERNAME), CONFIG_SERVER_PORT));
+#elif defined(CONFIG_ENABLE_WIFI) && defined(ARDUINO_AVR_UNO)
+  SoftwareSerial wifiSerial(2, 3);
+  CommManager::registerInterface(new WifiInterface(wifiSerial, F(CONFIG_WIFI_SSID), F(CONFIG_WIFI_PASSWORD), F(CONFIG_HOSTNAME), F(CONFIG_MDNS_SERVERNAME), CONFIG_SERVER_PORT));
 #endif
 
   EEStore::init();
 
   // Set up the string parser to accept commands from the interfaces
-  DCCEXParser::init(mainTrack, progTrack);       
+  DCCEXParser::init(mainTrack, progTrack);
 
-  CommManager::showInitInfo();           
+  CommManager::showInitInfo();
 }
 
-void loop() {
+void loop()
+{
   CommManager::update();
   mainTrack->loop();
   progTrack->loop();
 }
-
