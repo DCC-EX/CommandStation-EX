@@ -27,11 +27,12 @@ const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] ="@ 1000";
 const char  PROGMEM PROMPT_SEARCH[] =">";
 const char  PROGMEM SEND_OK_SEARCH[] ="\r\nSEND OK\r\n";
-
+const unsigned long LOOP_TIMEOUT=2000;
 bool WifiInterface::connected=false;
 bool WifiInterface::closeAfter=false;
 DCCEXParser  WifiInterface::parser;
 byte WifiInterface::loopstate=0;
+unsigned long WifiInterface::loopTimeoutStart=0;
 int WifiInterface::datalength=0;
 int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER];
@@ -52,8 +53,8 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   delay(1000);
 
   StringFormatter::send(wifiStream,F("AT+RST\r\n")); // reset module
-  checkForOK(wifiStream,5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
-  if (!checkForOK(wifiStream,5000,READY_SEARCH,false)) return false; 
+  //checkForOK(wifiStream,5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
+  checkForOK(wifiStream,5000,READY_SEARCH,true); 
   
   StringFormatter::send(wifiStream,F("AT+CWMODE=1\r\n")); // configure as access point
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
@@ -75,8 +76,8 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   StringFormatter::send(wifiStream,F("AT+CIPSERVER=1,%d\r\n"),port); // turn on server on port 80
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
 
-  StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
-  if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;
+ // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
+ // if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;
  
   return true;
 }
@@ -132,7 +133,10 @@ void WifiInterface::loop(Stream & wifiStream) {
     // read anything into a buffer, collecting info on the way  
     while (loopstate!=99 && wifiStream.available()) { 
       int ch=wifiStream.read();
-      Serial.write(ch); // diagnostic echo
+      
+      // echo the char to the diagnostic stream in escaped format
+      StringFormatter::printEscape(Serial,ch); // DIAG in disguise
+      
       switch (loopstate) {
            case 0:  // looking for +IPD
                 connectionId=0;
@@ -166,15 +170,25 @@ void WifiInterface::loop(Stream & wifiStream) {
                 break;
 
            case 10:  // Waiting for > so we can send reply
-                
+                if (millis()-loopTimeoutStart > LOOP_TIMEOUT) {
+                  DIAG(F("\nWifi TIMEOUT on wait for > prompt or ERROR\n"));
+                  loopstate=0; // go back to +IPD
+                  break;
+                } 
                 if (ch=='>'){
                   DIAG(F("\n> [%e]\n"),buffer);
                   wifiStream.print((char *) buffer);
+                  loopTimeoutStart=millis();
                   loopstate=closeAfter?11:0;
                 }
                 break;
-           case 11: // Waiting for send OK or ERROR to complete so we can closeAfter
-                if (ch=='E') { // assume its in  SEND OK or ERROR 
+           case 11: // Waiting for SEND OK or ERROR to complete so we can closeAfter
+                if (millis()-loopTimeoutStart > LOOP_TIMEOUT) {
+                  DIAG(F("\nWifi TIMEOUT on wait for SEND OK or ERROR\n"));
+                  loopstate=0; // go back to +IPD
+                  break;
+                }
+                if (ch=='K') { // assume its in  SEND OK 
                   StringFormatter::send(wifiStream,F("AT+CIPCLOSE=%d\r\n"),connectionId);
                   loopstate=0; // wait for +IPD
                 }
@@ -182,7 +196,9 @@ void WifiInterface::loop(Stream & wifiStream) {
         } // switch 
     } // while
     if (loopstate!=99) return; 
-    streamer.write('\0');
+    
+    // AT this point we have read an incoming message into the buffer
+    streamer.write((byte)0); // null the end of the buffer so we can treat it as a string
 
     DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
@@ -210,12 +226,6 @@ void WifiInterface::loop(Stream & wifiStream) {
     streamer.write((byte)0x00); // just put a null byte on end of buffer so we can mark the end.
     DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
     StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
+    loopTimeoutStart=millis();
     loopstate=10; // non-blocking loop waits for > before sending
-   
-  /* TODO MOVE TO LOOP   
-    if (closeAfter) {
-      StringFormatter::send(wifiStream,F("AT+CIPCLOSE=%d\r\n"),connectionId);
-      checkForOK(wifiStream,2000,OK_SEARCH,true);
-    }
-   */   
     }

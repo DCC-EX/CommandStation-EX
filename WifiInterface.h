@@ -43,6 +43,7 @@ class WifiInterface {
     static byte loopstate;
     static int  datalength;
     static int connectionId;
+    static unsigned long loopTimeoutStart;
     static const byte MAX_WIFI_BUFFER=250;
     static byte buffer[MAX_WIFI_BUFFER];
     static MemStream  streamer;
