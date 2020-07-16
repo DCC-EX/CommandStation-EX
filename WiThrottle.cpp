@@ -195,7 +195,6 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
 }
 
 void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int cab){
-    unsigned long millisIn=millis();
     // Note cab=-1 for all cabs in the consist called throttleChar.  
     DIAG(F("\nLoco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
      switch (aval[0]) {
@@ -249,7 +248,6 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
                 }
                 break;
             }               
-     DIAG(F("\ in %lms\n"),millis()-millisIn);       
 }
 
 void WiThrottle::loop() {

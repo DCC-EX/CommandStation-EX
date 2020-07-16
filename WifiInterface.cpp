@@ -61,7 +61,7 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
 
   // StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
   // checkForOK(wifiStream,5000, OK_SEARCH, true);
-
+  (void) hostname; // not currently in use
 
   StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
   if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
@@ -78,7 +78,7 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
 
  // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
  // if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;
- 
+  (void)servername; // not currently in use
   return true;
 }
 
