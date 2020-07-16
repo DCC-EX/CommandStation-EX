@@ -4,6 +4,8 @@
  buffer serial device
  based on Arduino SoftwareSerial
 
+ Constructor warning messages fixed by Chris Harlow.
+
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -23,13 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "MemStream.h"
 
 MemStream::MemStream(uint8_t *buffer, const uint16_t len, uint16_t content_len, bool allowWrite)
-:_buffer(buffer),_len(len), _buffer_overflow(false), _pos_write(content_len), _pos_read(0), _allowWrite(allowWrite)
+:_buffer(buffer),_len(len), _buffer_overflow(false),  _pos_read(0), _allowWrite(allowWrite)
 {
   if (content_len==0) memset(_buffer, 0, _len);
-  if (content_len>len) {
-    content_len=len;
-    _pos_write=len;
-  }
+  _pos_write=(content_len>len)? len: content_len;
 }
 
 size_t MemStream::write(uint8_t byte) {
