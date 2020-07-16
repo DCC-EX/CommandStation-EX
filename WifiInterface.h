@@ -27,16 +27,19 @@
 class WifiInterface {
 
  public:
-    static void setup(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password, int port);
+    static void setup(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
+          const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port);
     static void loop(Stream & wifiStream);
     
   private:
     
     static DCCEXParser parser;
-    static bool setup2(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password, int port);
+    static bool setup2(Stream & wifiStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
+           const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port);
     static bool checkForOK(Stream & wifiStream, const unsigned int timeout, const char* waitfor, bool echo);
     static bool isHTML();
     static bool connected;
+    static bool closeAfter;
     static byte loopstate;
     static int  datalength;
     static int connectionId;
