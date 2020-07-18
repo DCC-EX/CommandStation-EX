@@ -26,9 +26,12 @@
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
 
-#if defined CONFIG_WSM_FIREBOX
-DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_WSM_FireBox_Prog();
+#if defined CONFIG_WSM_FIREBOX_MK1
+DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_MK1_Main(kNumLocos);
+DCCService* progTrack = DCCService::Create_WSM_FireBox_MK1_Prog();
+#elif defined CONFIG_WSM_FIREBOX_MK1S
+DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_MK1S_Main(kNumLocos);
+DCCService* progTrack = DCCService::Create_WSM_FireBox_MK1S_Prog();
 #elif defined CONFIG_ARDUINO_MOTOR_SHIELD
 DCCMain* mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
 DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
@@ -49,6 +52,11 @@ void SERCOM4_Handler()
 {   
   mainTrack->railcom.getSerial()->IrqHandler();
 }
+#elif defined(ARDUINO_ARCH_SAMC)
+void SERCOM0_Handler()
+{   
+  mainTrack->railcom.getSerial()->IrqHandler();
+}
 #endif
 
 void setup() {
@@ -62,8 +70,14 @@ void setup() {
   TimerA.attachInterrupt(waveform_IrqHandler);
   TimerA.start();
 
+  mainTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
+  progTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
+
 #if defined (ARDUINO_ARCH_SAMD)
   CommManager::registerInterface(new USBInterface(SerialUSB));
+  Wire.begin();       // Needed for EEPROM to work
+#elif defined (ARDUINO_ARCH_SAMC)
+  CommManager::registerInterface(new SerialInterface(Serial));
   Wire.begin();       // Needed for EEPROM to work
 #elif defined(ARDUINO_ARCH_AVR)
   CommManager::registerInterface(new SerialInterface(Serial));
@@ -82,4 +96,3 @@ void loop() {
   mainTrack->loop();
   progTrack->loop();
 }
-
