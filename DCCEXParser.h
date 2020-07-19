@@ -26,7 +26,7 @@ struct DCCEXParser
 {
    DCCEXParser();
    void loop(Stream & pstream);
-   void parse(Print & stream, const byte * command, bool banAsync);
+   void parse(Print & stream, const byte * command, bool blocking);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
    static const int MAX_PARAMS=10;  // Must not exceed this

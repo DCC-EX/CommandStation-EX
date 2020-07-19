@@ -66,12 +66,12 @@ class DCC {
   static void setProgTrackSyncMain(bool on); // when true, prog track becomes driveable 
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1 
-  static void  readCV(int cv, ACK_CALLBACK callback);
-  static void  readCVBit(int cv, byte bitNum, ACK_CALLBACK callback);  // -1 for error
-  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback) ;
-  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  static void  readCV(int cv, ACK_CALLBACK callback, bool blocking=false);
+  static void  readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking=false);  // -1 for error
+  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking=false) ;
+  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking=false);
   
-  static void getLocoId(ACK_CALLBACK callback);
+  static void getLocoId(ACK_CALLBACK callback, bool blocking=false);
 
   // Enhanced API functions
   static void forgetLoco(int cab);  // removes any speed reminders for this loco  
@@ -106,8 +106,9 @@ private:
   static byte    ackManagerStash;
   static bool ackReceived;
   static ACK_CALLBACK  ackManagerCallback;
-  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
-  static void ackManagerLoop();
+  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback, bool blocking);
+  static void ackManagerLoop(bool blocking);
+  static bool checkResets(bool blocking);
   static const int PROG_REPEATS=8;   // repeats of programming commands (some decoders need at least 8 to be reliable) 
 
   

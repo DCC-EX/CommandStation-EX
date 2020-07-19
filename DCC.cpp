@@ -262,29 +262,35 @@ const ackOp PROGMEM LOCO_ID_PROG[] = {
       };    
 
 
+// On the following prog-track functions blocking defaults to false.
+// blocking=true forces the API to block, waiting for the response and invoke the callback BEFORE returning.
+// During that wait, other parts of the system will be unresponsive.
+// blocking =false means the callback will be called some time after the API returns (typically a few tenths of a second)
+//  but that would be very inconvenient in a Wifi situaltion where the stream becomes 
+//  unuavailable immediately after the API rerturns. 
 
-void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback)  {
-  ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback);
+void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
+  ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback, blocking);
 }
 
 
-void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
+void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
-  else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback);
+  else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback, blocking);
 }
 
 
-void DCC::readCVBit(int cv, byte bitNum, ACK_CALLBACK callback)  {
+void DCC::readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
-  else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback);
+  else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback, blocking);
 }
 
-void DCC::readCV(int cv, ACK_CALLBACK callback)  {
-  ackManagerSetup(cv, 0,READ_CV_PROG, callback);
+void DCC::readCV(int cv, ACK_CALLBACK callback, bool blocking)  {
+  ackManagerSetup(cv, 0,READ_CV_PROG, callback, blocking);
 }
 
-void DCC::getLocoId(ACK_CALLBACK callback) {
-  ackManagerSetup(0,0, LOCO_ID_PROG, callback);
+void DCC::getLocoId(ACK_CALLBACK callback, bool blocking) {
+  ackManagerSetup(0,0, LOCO_ID_PROG, callback, blocking);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
@@ -303,7 +309,7 @@ byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   DCCWaveform::loop(); // power overload checks
-  ackManagerLoop();    // maintain prog track ack manager
+  ackManagerLoop(false);    // maintain prog track ack manager
   issueReminders();
 }
 
@@ -428,34 +434,44 @@ bool DCC::debugMode=false;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
-void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback, bool blocking) {
   ackManagerCv = cv;
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
+  if (blocking) ackManagerLoop(blocking);
 }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
 
-void DCC::ackManagerLoop() {
-  while (ackManagerProg) {
+// checkRessets return true if the caller should yield back to loop and try later.
+bool DCC::checkResets(bool blocking) {
+  if (blocking) {
+    // must block waiting for restest to be issued
+    while(DCCWaveform::progTrack.sentResetsSincePacket < RESET_MIN);
+    return false; // caller need not yield
+  }
+  return DCCWaveform::progTrack.sentResetsSincePacket < RESET_MIN;
+}
 
-    // breaks from this switch will step to next prog entry
-    // returns from this switch will stay on same entry (typically WACK waiting and when all finished.)
+void DCC::ackManagerLoop(bool blocking) {
+  while (ackManagerProg) {
     byte opcode=pgm_read_byte_near(ackManagerProg);
-    int resets=DCCWaveform::progTrack.sentResetsSincePacket;
     
-     
+    // breaks from this switch will step to next prog entry
+    // returns from this switch will stay on same entry
+    // (typically waiting for a reset counter or ACK waiting, or when all finished.)
+    // if blocking then we must ONLY return AFTER callback issued       
     switch (opcode) {
       case BASELINE:
-          if (resets<RESET_MIN) return; // try later 
+          if (checkResets(blocking)) return;
           DCCWaveform::progTrack.setAckBaseline(debugMode);
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
             {
-              if (resets<RESET_MIN) return; // try later
+              if (checkResets(blocking)) return;
               if (debugMode) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
@@ -466,7 +482,7 @@ void DCC::ackManagerLoop() {
       
       case WB:   // write byte 
             {
-              if (resets<RESET_MIN) return; // try later 
+              if (checkResets(blocking)) return;
               if (debugMode) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
@@ -476,7 +492,7 @@ void DCC::ackManagerLoop() {
       
       case   VB:     // Issue validate Byte packet
         {
-          if (resets<RESET_MIN) return; // try later 
+          if (checkResets(blocking)) return; 
           if (debugMode) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
@@ -487,7 +503,7 @@ void DCC::ackManagerLoop() {
       case V0:
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
-          if (resets<RESET_MIN) return; // try later 
+          if (checkResets(blocking)) return; 
           if (debugMode) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
@@ -498,8 +514,14 @@ void DCC::ackManagerLoop() {
       
       case WACK:   // wait for ack (or absence of ack)
          {
-          byte ackState=DCCWaveform::progTrack.getAck(debugMode);
-          if (ackState==2) return; // keep polling
+          byte ackState=2; // keep polling
+          if (blocking) {
+            while(ackState==2) ackState=DCCWaveform::progTrack.getAck(debugMode);
+          }
+          else {
+            ackState=DCCWaveform::progTrack.getAck(debugMode);
+            if (ackState==2) return; // keep polling
+          }
           ackReceived=ackState==1;
           break;  // we have a genuine ACK result
          }

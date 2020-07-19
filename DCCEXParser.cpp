@@ -127,9 +127,8 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter) {
 }
    
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(Print & stream, const byte *com, bool banAsync) {
+void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
     DIAG(F("\nPARSING:%s\n"),com);
-    asyncBanned=banAsync;
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS]; 
     while (com[0]=='<' || com[0]==' ') com++; // strip off any number of < or spaces
@@ -177,17 +176,17 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool banAsync) {
 
     case 'W':      // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break;
-        DCC::writeCVByte(p[0],p[1],callback_W);
+        DCC::writeCVByte(p[0],p[1],callback_W,blocking);
         return;
 
     case 'B':      // WRITE CV BIT ON PROG <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break; 
-        DCC::writeCVBit(p[0],p[1],p[2],callback_B);
+        DCC::writeCVBit(p[0],p[1],p[2],callback_B,blocking);
         return;
         
     case 'R':     // READ CV ON PROG <R CV CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break;
-        DCC::readCV(p[0],callback_R);
+        DCC::readCV(p[0],callback_R,blocking);
         return;
 
     case '1':      // POWERON <1   [MAIN|PROG]>
