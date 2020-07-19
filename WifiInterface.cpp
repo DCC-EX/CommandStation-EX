@@ -57,7 +57,7 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   checkForOK(wifiStream,5000,READY_SEARCH,true); 
   
   StringFormatter::send(wifiStream,F("AT+CWMODE=1\r\n")); // configure as access point
-  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+  checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
 
   // StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
   // checkForOK(wifiStream,5000, OK_SEARCH, true);
@@ -198,7 +198,7 @@ void WifiInterface::loop(Stream & wifiStream) {
     if (loopstate!=99) return; 
     
     // AT this point we have read an incoming message into the buffer
-    streamer.write((byte)0); // null the end of the buffer so we can treat it as a string
+    streamer.write((char)'\0'); // null the end of the buffer so we can treat it as a string
 
     DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
@@ -212,7 +212,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       HTTPParser::parse(streamer,buffer);
       closeAfter=true;
     }
-    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that callbacks are diallowed because we dont want to handle the async 
+    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that ACKS afre blocking because we can't handle the async 
  
     else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
 
@@ -223,7 +223,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       return;    
     }
     // prepare to send reply 
-    streamer.write((byte)0x00); // just put a null byte on end of buffer so we can mark the end.
+    streamer.write((char)'\0'); // just put a null byte on end of buffer so we can mark the end.
     DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
     StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
     loopTimeoutStart=millis();
