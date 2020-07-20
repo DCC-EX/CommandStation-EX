@@ -198,7 +198,7 @@ void WifiInterface::loop(Stream & wifiStream) {
     if (loopstate!=99) return; 
     
     // AT this point we have read an incoming message into the buffer
-    streamer.write((char)'\0'); // null the end of the buffer so we can treat it as a string
+    streamer.print('\0'); // null the end of the buffer so we can treat it as a string
 
     DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
@@ -212,7 +212,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       HTTPParser::parse(streamer,buffer);
       closeAfter=true;
     }
-    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that ACKS afre blocking because we can't handle the async 
+    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that ACKS are blocking because we can't handle the async 
  
     else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
 
@@ -223,7 +223,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       return;    
     }
     // prepare to send reply 
-    streamer.write((char)'\0'); // just put a null byte on end of buffer so we can mark the end.
+    streamer.print('\0'); // null the end of the buffer so we can treat it as a string
     DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
     StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
     loopTimeoutStart=millis();
