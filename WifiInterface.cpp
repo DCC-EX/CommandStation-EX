@@ -56,15 +56,19 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   //checkForOK(wifiStream,5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
   checkForOK(wifiStream,5000,READY_SEARCH,true); 
   
-  StringFormatter::send(wifiStream,F("AT+CWMODE=1\r\n")); // configure as access point
+  StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
   checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
 
-  // StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-  // checkForOK(wifiStream,5000, OK_SEARCH, true);
-  (void) hostname; // not currently in use
+  StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
+  checkForOK(wifiStream,2000, OK_SEARCH, true);
 
+
+  // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
   StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
-  if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
+  if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) {
+     StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
+     if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
+  }
   
   StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;

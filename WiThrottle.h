@@ -40,7 +40,7 @@ class WiThrottle {
       static WiThrottle* firstThrottle;
       static int getInt(byte * cmd);
       static int getLocoId(byte * cmd);
-      
+      static char LorS(int cab);      
       WiThrottle* nextThrottle;
       int clientid;
        

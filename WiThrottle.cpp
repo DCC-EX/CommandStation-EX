@@ -218,12 +218,12 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             case 'q':
                 if (aval[1]=='V') {   //qV
                   LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cAL%d<;>V%d\n"), throttleChar, myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab));
+                    StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab));
                   }              
                 }
                 else if (aval[1]=='R') { // qR
                   LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cAL%d<;>R%d\n"), throttleChar, myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
+                    StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
                   }             
                 }     
             break;    
@@ -271,3 +271,7 @@ void WiThrottle::checkHeartbeat() {
       // TODO  Check if anything has changed on my locos since last notified! 
     }
 }
+
+char WiThrottle::LorS(int cab) {
+    return (cab<127)?'S':'L';
+} 
