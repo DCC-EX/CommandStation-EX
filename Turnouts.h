@@ -33,7 +33,8 @@ struct TurnoutData {
    union {int address; int inactiveAngle;}; // DCC address or PWM servo angle 
 };
 
-struct Turnout{
+class Turnout {
+  public:
   static Turnout *firstTurnout;
   TurnoutData data;
   Turnout *nextTurnout;
@@ -47,7 +48,7 @@ struct Turnout{
   static Turnout *create(int id);
   static void show(Print & stream, int n);
   static bool showAll(Print & stream);
-  virtual void activate(bool state);
+  void activate(bool state);
 }; // Turnout
   
 #endif

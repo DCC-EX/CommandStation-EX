@@ -23,6 +23,7 @@
 #include "PWMServoDriver.h"
 
  bool Turnout::activate(int n,bool state){
+  //DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
   Turnout * tt=get(n);
   if (tt==NULL) return false;
   tt->activate(state);
@@ -31,10 +32,11 @@
 }
 
 // activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
-void Turnout::activate(bool state) {
+ void Turnout::activate(bool state) {
+  //DIAG(F("\nTurnout::activate\n"));
   if (state) data.tStatus|=STATUS_ACTIVE;
   else data.tStatus &= ~STATUS_ACTIVE;                            
-  if (data.tStatus & STATUS_PWM) PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+state?data.moveAngle:0));
+  if (data.tStatus & STATUS_PWM) PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+(state?data.moveAngle:0)));
      else DCC::setAccessory(data.address,data.subAddress, state);
 }
 ///////////////////////////////////////////////////////////////////////////////

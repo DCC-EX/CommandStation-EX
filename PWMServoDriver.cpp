@@ -46,37 +46,50 @@ const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)
  */
 
 byte PWMServoDriver::setupFlags=0;  // boards that have been initialised
+byte PWMServoDriver::failFlags=0;  // boards that have faild initialisation
 
-void PWMServoDriver::setup(int board) {
-  if (board>3 || setupFlags & (1<<board)) return;
+bool PWMServoDriver::setup(int board) {
+  if (board>3 || (failFlags & (1<<board))) return false; 
+  if (setupFlags & (1<<board)) return true; 
+  
   Wire.begin();
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
+
+  // Terst if device is available
+  Wire.beginTransmission(i2caddr);
+  byte error = Wire.endTransmission();
+  if (error!=0) {
+    DIAG(F("\nI2C Servo device 0x%x Not Found %d\n"),i2caddr, error);
+    failFlags|=1<<board;  
+    return false;
+  }
+    
   //DIAG(F("\nPWMServoDriver::setup %x prescale=%d"),i2caddr,PRESCALE_50HZ); 
   writeRegister(i2caddr,PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
   writeRegister(i2caddr,PCA9685_PRESCALE, PRESCALE_50HZ);  
   writeRegister(i2caddr,PCA9685_MODE1,MODE1_AI);
   writeRegister(i2caddr,PCA9685_MODE1,  MODE1_RESTART | MODE1_AI);
   setupFlags|=1<<board;
+  return true;
 }
 
 /*!
  *  @brief  Sets the PWM output to a servo
  */
 void PWMServoDriver::setServo(byte servoNum, uint16_t value) {
-  //DIAG(F("\nsetServo %d %d\n"),servoNum,value);
+  DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   int board=servoNum/16; 
   int pin=servoNum%16;
   
-  if ( board>3) return; // safe dropout
-  setup(board); // in case not already done
-  
-  Wire.beginTransmission(PCA9685_I2C_ADDRESS + board);
-  Wire.write(PCA9685_FIRST_SERVO + 4 * pin); // 4 registers per pin
-  Wire.write(0);
-  Wire.write(0);
-  Wire.write(value);
-  Wire.write(value >> 8);
-  Wire.endTransmission();
+  if (setup(board)) {
+    Wire.beginTransmission(PCA9685_I2C_ADDRESS + board);
+    Wire.write(PCA9685_FIRST_SERVO + 4 * pin); // 4 registers per pin
+    Wire.write(0);
+    Wire.write(0);
+    Wire.write(value);
+    Wire.write(value >> 8);
+    Wire.endTransmission();
+  }
 }
 
 void PWMServoDriver::writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t d) {

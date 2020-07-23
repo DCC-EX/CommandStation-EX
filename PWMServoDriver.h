@@ -13,7 +13,8 @@ public:
     
 private:
   static byte setupFlags; 
-  static void setup(int board);
+  static byte failFlags; 
+  static bool setup(int board);
   static void writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t d);
 };
 
