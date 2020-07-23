@@ -103,7 +103,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                 DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
 
     for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-        StringFormatter::send(stream,F("]\\[LT&d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
+        StringFormatter::send(stream,F("]\\[LT%d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
     }
     StringFormatter::send(stream,F("\n*10\n"));
    }
