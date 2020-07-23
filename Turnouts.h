@@ -41,6 +41,7 @@ class Turnout {
   static  bool activate(int n, bool state);
   static Turnout* get(int);
   static bool remove(int);
+  static bool isActive(int);
   static void load();
   static void store();
   static Turnout *create(int id , int address , int subAddress);

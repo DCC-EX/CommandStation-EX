@@ -46,7 +46,7 @@ class WiThrottle {
        
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
-      bool firstCall;
+      byte  callState;  // 0=first, 1=second, 3=third, 4=fourth call... >4=rest. 
       unsigned long heartBeat;
       
      void multithrottle(Print & stream, byte * cmd);

@@ -65,7 +65,7 @@ WiThrottle::WiThrottle( int wificlientid) {
    firstThrottle= this;
    clientid=wificlientid;
     heartBeatEnable=false; // until client turns it on
-    firstCall=true;
+    callState=0;
     for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
 
@@ -96,17 +96,25 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   
   heartBeat=millis();
   DIAG(F("\nWiThrottle(%d) [%e]"),clientid, cmd);
-   
-   if (firstCall) {
-     firstCall=false;
-     StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\\PTL"), 
-                DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-
-    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-        StringFormatter::send(stream,F("]\\[LT%d}|{%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
-    }
-    StringFormatter::send(stream,F("\n*10\n"));
-   }
+   switch (callState) {
+        case 0: // first call in 
+            callState++;
+              StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\nPTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n*10\n"), 
+                    DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+              break;
+        case 1: // second call... send the turnout table if we have one 
+              callState++;            
+              if (Turnout::firstTurnout) {
+                  StringFormatter::send(stream,F("PTL"));
+                  for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+                      StringFormatter::send(stream,F("]\\[DT%d}|{T%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
+                  }
+                  StringFormatter::send(stream,F("\n"));
+              }
+              break;
+         default: // no more special headers required  
+         break;    
+        }
 
    while (cmd[0]) {
    switch (cmd[0]) {
@@ -121,8 +129,16 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             }
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 // TODO... if we are given an address that is not a known Turnout...
-                // should we create one or just send the DCC message.                 
-                Turnout::activate(getInt(cmd+4),cmd[3]=='T');
+                // should we create one or just send the DCC message.
+                int id=getInt(cmd+6); 
+                bool newstate=false;
+                switch (cmd[3]) {
+                    case 'T': newstate=true; break;
+                    case 'C': newstate=false; break;
+                    case '2': newstate=!Turnout::isActive(id);                 
+                }
+                Turnout::activate(id,newstate);
+                StringFormatter::send(stream, F("PTA%cDT%d\n"),newstate?'4':'2',id );   
             }
             break;
        case 'N':  // Heartbeat (2)

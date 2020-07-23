@@ -31,6 +31,12 @@
   return true;
 }
 
+ bool Turnout::isActive(int n){
+  Turnout * tt=get(n);
+  if (tt==NULL) return false;
+  return tt->data.tStatus & STATUS_ACTIVE;
+}
+
 // activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
  void Turnout::activate(bool state) {
   //DIAG(F("\nTurnout::activate\n"));
