@@ -79,7 +79,7 @@ void Turnout::show(Print & stream, int n){
 bool Turnout::showAll(Print & stream){
   bool gotOne=false;
   for(Turnout * tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-      StringFormatter::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, tt->data.tStatus);
+      StringFormatter::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
       gotOne=true;
   }
   return gotOne;
