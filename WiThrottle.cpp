@@ -117,7 +117,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
        case 'P':  
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
-              StringFormatter::send(stream, F("PPA%c"),cmd[3]);
+              StringFormatter::send(stream, F("PPA%c\n"),cmd[3]);
             }
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 // TODO... if we are given an address that is not a known Turnout...
@@ -236,7 +236,7 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             }        
             break;      
             case 'X':
-              //Emergency Stop  (TODO check we have the correct speed code here)  
+              //Emergency Stop  (speed code 1)
               LOOPLOCOS(throttleChar, cab) {
                 DCC::setThrottle(myLocos[loco].cab,1, DCC::getThrottleDirection(myLocos[loco].cab));
                 }

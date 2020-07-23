@@ -47,7 +47,7 @@ void DCC::begin() {
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  byte speedCode = tSpeed + (tSpeed > 0) + tDirection * 128; // max speed is 126, but speed codes range from 2-127 (0=stop, 1=emergency stop)
+  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128; //speed codes range from 2-127 (0=stop, 1=emergency stop)
   setThrottle2(cab, speedCode);
   // retain speed for loco reminders
   updateLocoReminder(cab, speedCode );
