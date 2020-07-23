@@ -145,7 +145,7 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
           // Convert JMRI bizarre -1=emergency stop, 0-126 as speeds
           // to DCC 0=stop, 1= emergency stop, 2-127 speeds
           int tspeed=p[2];
-          if (tspeed>126 | tspeed<-1) break; // invalid JMRI speed code
+          if (tspeed>126 || tspeed<-1) break; // invalid JMRI speed code
           if (tspeed<0) tspeed=1; // emergency stop DCC speed
           else if (tspeed>0) tspeed++; // map 1-126 -> 2-127
         DCC::setThrottle(p[1],tspeed,p[3]);
