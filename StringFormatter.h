@@ -19,6 +19,15 @@
 #ifndef StringFormatter_h
 #define StringFormatter_h
 #include <Arduino.h>
+
+#if defined(ARDUINO_ARCH_SAMD)
+   // Some processors use a gcc compiler that renames va_list!!!
+  #include <cstdarg>
+  #define DIAGSERIAL SerialUSB
+#elif defined(ARDUINO_ARCH_AVR)
+  #define DIAGSERIAL Serial
+#endif
+
 class StringFormatter
 {
   public:

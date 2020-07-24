@@ -18,12 +18,11 @@
  */
 #include "StringFormatter.h"
 #include <stdarg.h>
-
-
+      
 void StringFormatter::print( const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
-  send2(Serial,input,args);
+  send2(DIAGSERIAL,input,args);
 }
 
 void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) {

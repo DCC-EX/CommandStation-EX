@@ -85,7 +85,8 @@ void setup() {
   // The main sketch has responsibilities during setup()
   
   // Responsibility 1: Start the usb connection for diagnostics and possible JMRI input
-   Serial.begin(115200);
+  // DIAGSERAL is normally Serial but uses SerialUSB on a SAMD processor
+   DIAGSERIAL.begin(115200);
    
    // Responsibility 2: Start the DCC engine.   
    DCC::begin();
@@ -122,7 +123,7 @@ void loop() {
   DCC::loop(); 
 
   // Responsibility 2: handle any incoming commands on USB connection
-  serialParser.loop(Serial);
+  serialParser.loop(DIAGSERIAL);
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifdef WIFI

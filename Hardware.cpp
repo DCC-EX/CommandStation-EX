@@ -17,7 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <Arduino.h>
-#include <TimerOne.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
+//#include <TimerOne.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
+#include <ArduinoTimers.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
 #include "avdweb_AnalogReadFast.h"
 #include "Hardware.h"
 #include "Config.h"
@@ -82,11 +83,10 @@ unsigned int Hardware::getCurrentMilliamps(bool isMainTrack, int raw) {
 }
 
 void Hardware::setCallback(int duration, void (*isr)()) {
-  Timer1.initialize(duration);
-  // We don't want the timer to set pins because these often clash with motor shields etc.
-  Timer1.disablePwm(TIMER1_A_PIN);
-  Timer1.disablePwm(TIMER1_B_PIN);
-  Timer1.attachInterrupt(isr);
+  TimerA.initialize();
+  TimerA.setPeriod(duration);
+  TimerA.attachInterrupt(isr);
+  TimerA.start();
 }
 
 // shortcut to cpu dependent high speed write 
