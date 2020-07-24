@@ -9,4 +9,4 @@ avr-objdump -x -C %TMP%\%a%\CVReader.ino.elf | find ".data" | sort /+25 /R >>%TM
 ECHO ++++++++++++++++++++++++++++++++++ >>%TMP%\OBJDUMP_%a%.txt
 avr-objdump -x -C %TMP%\%a%\CVReader.ino.elf | find ".bss" | sort /+25 /R >>%TMP%\OBJDUMP_%a%.txt
 notepad %TMP%\OBJDUMP_%a%.txt
-
+EXIT
