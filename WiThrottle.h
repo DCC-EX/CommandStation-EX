@@ -30,7 +30,7 @@ class WiThrottle {
     static void loop();
     void parse(Print & stream, byte * cmd);
     static WiThrottle* getThrottle( int wifiClient); 
-
+    static bool annotateLeftRight;
   private: 
     WiThrottle( int wifiClientId);
     ~WiThrottle();
