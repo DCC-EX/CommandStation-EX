@@ -71,14 +71,7 @@ DCCEXParser  serialParser;
 
 // Try monitoring the memory
 #include "freeMemory.h"
-// TODO: this should be automated instead of ifdef
-#if defined(ARDUINO_AVR_MEGA2560)
-int minMemory=32767;
-#elif defined(ARDUINO_AVR_UNO)
-int minMemory=2048;
-#else
-#error CANNOT COMPILE - Unkown board, can not determine amount of RAM available.
-#endif
+int ramLowWatermark=32767; // This figure gets overwritten dynamically in loop() 
 
 void setup() {
 
@@ -130,10 +123,12 @@ void loop() {
   WifiInterface::loop(Serial1);
 #endif
 
-  // Your additional code e.g. Report any decrease in memory
+  // Your additional code
+  
+  // OPtionally report any decrease in memory (will automatically trigger on first call)
   int freeNow=freeMemory();
-  if (freeNow<minMemory) {
-    minMemory=freeNow;
-    DIAG(F("\nFree memory=%d"),minMemory);
+  if (freeNow<ramLowWatermark) {
+    ramLowWatermark=freeNow;
+    DIAG(F("\nFree RAM=%d\n"),ramLowWatermark);
   }
 }
