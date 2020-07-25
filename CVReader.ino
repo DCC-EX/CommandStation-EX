@@ -92,8 +92,8 @@ void setup() {
    //  setup(serial, F(router name), F(password) , port)
    //            
 #ifdef WIFI
-    Serial1.begin(115200);
-    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); // (3532 is 0xDCC decimal... )
+    Serial2.begin(115200);
+    WifiInterface::setup(Serial2, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); // (3532 is 0xDCC decimal... )
 #endif
     
    //  This is just for demonstration purposes 
@@ -121,7 +121,7 @@ void loop() {
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifdef WIFI
-  WifiInterface::loop(Serial1);
+  WifiInterface::loop(Serial2);
 #endif
 
   // Your additional code

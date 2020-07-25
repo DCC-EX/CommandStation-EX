@@ -23,6 +23,7 @@
 #include "WiThrottle.h"
 #include "HTTPParser.h" 
 const char  PROGMEM READY_SEARCH[]  ="\r\nready\r\n";
+const char  PROGMEM WIFIOK_SEARCH[]  ="\r\nWIFI GOT IPready\r\n";
 const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] ="@ 1000";
 const char  PROGMEM PROMPT_SEARCH[] =">";
@@ -56,20 +57,28 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   //checkForOK(wifiStream,5000,END_DETAIL_SEARCH,true);  // Show startup but ignore unreadable upto ready
   checkForOK(wifiStream,5000,READY_SEARCH,true); 
   
-  StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
-  checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
+//  StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
+//  checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
 
-  StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-  checkForOK(wifiStream,2000, OK_SEARCH, true);
+//  StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
+//  checkForOK(wifiStream,2000, OK_SEARCH, true);
 
 
   // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-  StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
+//  StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
+//  if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) {
+//     StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
+//     if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
+//  }
+
+  checkForOK(wifiStream,5000,WIFIOK_SEARCH,true); 
+  
+  StringFormatter::send(wifiStream,F("AT+CWJAP?\r\n"),SSid,password);
   if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) {
-     StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
+     StringFormatter::send(wifiStream,F("AT+CWJAP_CUR?\r\n"),SSid,password);
      if (!checkForOK(wifiStream,20000,OK_SEARCH,true)) return false;
   }
-  
+
   StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
 
@@ -78,6 +87,9 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
   
   StringFormatter::send(wifiStream,F("AT+CIPSERVER=1,%d\r\n"),port); // turn on server on port 80
+  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+
+  StringFormatter::send(wifiStream,F("AT+CIPRECVMODE=0\r\n"),port); // turn on server on port 80
   if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
 
  // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
