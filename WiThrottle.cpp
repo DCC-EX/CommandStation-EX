@@ -110,7 +110,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
               if (Turnout::firstTurnout) {
                   StringFormatter::send(stream,F("PTL"));
                   for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-                      StringFormatter::send(stream,F("]\\[DT%d}|{T%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
+                      StringFormatter::send(stream,F("]\\[%d}|{T%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
                   }
                   StringFormatter::send(stream,F("\n"));
               }
@@ -131,17 +131,20 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
               StringFormatter::send(stream, F("PPA%c\n"),cmd[3]);
             }
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
-                // TODO... if we are given an address that is not a known Turnout...
-                // should we create one or just send the DCC message.
-                int id=getInt(cmd+6); 
+                int id=getInt(cmd+4); 
                 bool newstate=false;
+                Turnout * tt=Turnout::get(id);
+                if (!tt) {
+                  StringFormatter::send(stream, F("HMTurnout %d Unknown\n"),id);
+                  break;
+                }
                 switch (cmd[3]) {
                     case 'T': newstate=true; break;
                     case 'C': newstate=false; break;
                     case '2': newstate=!Turnout::isActive(id);                 
                 }
-                Turnout::activate(id,newstate);
-                StringFormatter::send(stream, F("PTA%cDT%d\n"),newstate?'4':'2',id );   
+                tt->activate(newstate);
+                StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
             }
             break;
        case 'N':  // Heartbeat (2)
