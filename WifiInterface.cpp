@@ -93,7 +93,7 @@ bool WifiInterface::checkForOK(Stream & wifiStream, const unsigned int timeout, 
   while( millis()-startTime < timeout) {
     while(wifiStream.available()) {
       int ch=wifiStream.read();
-      if (echo) StringFormatter::printEscape(Serial,ch);  /// THIS IS A DIAG IN DISGUISE
+      if (echo) StringFormatter::printEscape(DIAGSERIAL,ch);  /// THIS IS A DIAG IN DISGUISE
       if (ch!=pgm_read_byte_near(locator)) locator=waitfor;
       if (ch==pgm_read_byte_near(locator)) {
         locator++;
@@ -139,7 +139,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       int ch=wifiStream.read();
       
       // echo the char to the diagnostic stream in escaped format
-      StringFormatter::printEscape(Serial,ch); // DIAG in disguise
+      StringFormatter::printEscape(DIAGSERIAL,ch); // DIAG in disguise
       
       switch (loopstate) {
            case 0:  // looking for +IPD

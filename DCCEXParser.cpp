@@ -35,7 +35,7 @@ const int HASH_KEYWORD_MAIN=11339;
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
  
- Print & DCCEXParser::stashStream=Serial;  // keep compiler happy but ovevride in constructor
+ Print & DCCEXParser::stashStream=DIAGSERIAL;  // keep compiler happy but ovevride in constructor
 
 // This is a JMRI command parser, one instance per incoming stream
 // It doesnt know how the string got here, nor how it gets back.

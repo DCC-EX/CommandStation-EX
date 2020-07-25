@@ -80,6 +80,7 @@ void setup() {
   // Responsibility 1: Start the usb connection for diagnostics and possible JMRI input
   // DIAGSERAL is normally Serial but uses SerialUSB on a SAMD processor
    DIAGSERIAL.begin(115200);
+   while(!DIAGSERIAL);
    
    // Responsibility 2: Start the DCC engine.   
    DCC::begin();
