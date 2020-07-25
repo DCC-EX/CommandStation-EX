@@ -54,7 +54,7 @@ void Hardware::setPower(bool isMainTrack, bool on) {
   WritePin(isMainTrack ? MAIN_POWER_PIN : PROG_POWER_PIN, on ? HIGH : LOW);
 }
 void Hardware::setBrake(bool isMainTrack, bool on) {
-  WritePin(isMainTrack ? MAIN_BRAKE_PIN : PROG_BRAKE_PIN, on ? LOW:HIGH);
+  WritePin(isMainTrack ? MAIN_BRAKE_PIN : PROG_BRAKE_PIN, on ? HIGH : LOW);
 }
 
 void Hardware::setSignal(bool isMainTrack, bool high) {
