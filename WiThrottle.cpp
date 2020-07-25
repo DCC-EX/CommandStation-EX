@@ -100,11 +100,10 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
    switch (callState) {
         case 0: // first call in 
             callState++;
-              StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\n"));
+              StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               if (annotateLeftRight) StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
               else                   StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
-              StringFormatter::send(stream,F("*10\n"), 
-                    DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+              StringFormatter::send(stream,F("*10\n"));
               break;
         case 1: // second call... send the turnout table if we have one 
               callState++;            
