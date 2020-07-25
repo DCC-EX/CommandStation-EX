@@ -133,14 +133,19 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 // TODO... if we are given an address that is not a known Turnout...
                 // should we create one or just send the DCC message.
-                int id=getInt(cmd+6); 
+                int id=getInt(cmd+4); 
                 bool newstate=false;
                 switch (cmd[3]) {
                     case 'T': newstate=true; break;
                     case 'C': newstate=false; break;
                     case '2': newstate=!Turnout::isActive(id);                 
                 }
-                Turnout::activate(id,newstate);
+                if (Turnout::activate(id,newstate) == false) {
+		    int addr = ((id - 1) / 4) + 1;
+		    int subaddr = (id - 1) % 4;
+		    Turnout::create(id,addr,subaddr);
+		    Turnout::activate(id,newstate);
+		}
                 StringFormatter::send(stream, F("PTA%cDT%d\n"),newstate?'4':'2',id );   
             }
             break;

@@ -21,6 +21,7 @@
 #include "StringFormatter.h"
 #include "Hardware.h"
 #include "PWMServoDriver.h"
+//#include "DIAG.h"             // uncomment if you need DIAG below
 
  bool Turnout::activate(int n,bool state){
   //DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
