@@ -22,6 +22,15 @@
 #include <ArduinoTimers.h>
 
 #include "Config.h"
+#include "FreeMemory.h"
+
+#if defined(ARDUINO_BOARD_UNO)
+int ramLowWatermark = 16384;
+#elif defined(ARDUINO_BOARD_MEGA_2560)
+int ramLowWatermark = 64000; 
+#elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
+int ramLowWatermark = 256000; 
+#endif
 
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
@@ -38,6 +47,8 @@ DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
 #elif defined CONFIG_POLOLU_MOTOR_SHIELD
 DCCMain* mainTrack = DCCMain::Create_Pololu_MC33926Shield_Main(kNumLocos);
 DCCService* progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
+#else
+#error "Cannot compile - no board selected in Config.h"
 #endif
 
 void waveform_IrqHandler() {
@@ -73,8 +84,10 @@ void setup() {
   mainTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
   progTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
 
+  // Register the serial interface
 #if defined (ARDUINO_ARCH_SAMD)
   CommManager::registerInterface(new USBInterface(SerialUSB));
+  while(!SerialUSB) {}  // Wait for USB to come online (remove once wifi is implemented)
   Wire.begin();       // Needed for EEPROM to work
 #elif defined (ARDUINO_ARCH_SAMC)
   CommManager::registerInterface(new SerialInterface(Serial));
@@ -95,4 +108,10 @@ void loop() {
   CommManager::update();
   mainTrack->loop();
   progTrack->loop();
+
+  int freeNow=freeMemory();
+  if (freeNow<ramLowWatermark) {
+    ramLowWatermark=freeNow;
+    CommManager::printf(F("\nFree RAM=%d\n"),ramLowWatermark);
+  }
 }

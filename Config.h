@@ -22,8 +22,8 @@
 
 // Choose the motor shield that you want to use.
 
-//#define CONFIG_WSM_FIREBOX_MK1
-#define CONFIG_WSM_FIREBOX_MK1S
+#define CONFIG_WSM_FIREBOX_MK1
+//#define CONFIG_WSM_FIREBOX_MK1S
 //#define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
 
