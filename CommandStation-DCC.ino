@@ -24,13 +24,7 @@
 #include "Config.h"
 #include "FreeMemory.h"
 
-#if defined(ARDUINO_BOARD_UNO)
-int ramLowWatermark = 16384;
-#elif defined(ARDUINO_BOARD_MEGA_2560)
-int ramLowWatermark = 64000; 
-#elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
-int ramLowWatermark = 256000; 
-#endif
+int ramLowWatermark = 256000;
 
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
