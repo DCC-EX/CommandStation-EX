@@ -36,7 +36,7 @@ class WiThrottle {
     ~WiThrottle();
    
       static const int MAX_MY_LOCO=10;
-      static const int HEARTBEAT_TIMEOUT=10;
+      static const int HEARTBEAT_TIMEOUT=10;// Timeout after 10 seconds, heartbeat at 5
       static WiThrottle* firstThrottle;
       static int getInt(byte * cmd);
       static int getLocoId(byte * cmd);

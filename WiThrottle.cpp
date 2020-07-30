@@ -103,7 +103,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
               StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\nPPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               if (annotateLeftRight) StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
               else                   StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
-              StringFormatter::send(stream,F("*10\n"));
+              StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_TIMEOUT/2);
               break;
         case 1: // second call... send the turnout table if we have one 
               callState++;            
@@ -148,7 +148,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             }
             break;
        case 'N':  // Heartbeat (2)
-                StringFormatter::send(stream, F("*10\n")); // 10 second timeout  
+                StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT/2); // 5 second timeout  
             break;
        case 'M': // multithrottle
             multithrottle(stream, cmd); 
