@@ -19,7 +19,7 @@
 #include <Arduino.h>
 //#include <TimerOne.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
 #include <ArduinoTimers.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
-#include "avdweb_AnalogReadFast.h"
+#include "AnalogReadFast.h"
 #include "Hardware.h"
 #include "Config.h"
 #include "DIAG.h"

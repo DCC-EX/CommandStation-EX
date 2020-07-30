@@ -29,8 +29,12 @@
 
 const char VERSION[] PROGMEM ="99.666";
 
+// These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
+// To discover new keyword numbers , use the <$ YOURKEYWORD> command
 const int HASH_KEYWORD_PROG=-29718;
 const int HASH_KEYWORD_MAIN=11339;
+const int HASH_KEYWORD_JOIN=-30750;
+
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -202,23 +206,35 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
         if (params>1) break;
         {
           POWERMODE mode= opcode=='1'?POWERMODE::ON:POWERMODE::OFF;
+          DCC::setProgTrackSyncMain(false);  // Only <1 JOIN> will set this on, all others set it off
           if (params==0) {
               DCCWaveform::mainTrack.setPowerMode(mode);
               DCCWaveform::progTrack.setPowerMode(mode);
               StringFormatter::send(stream,F("<p%c>"),opcode);
               return;
           }
-          if (p[0]==HASH_KEYWORD_MAIN) {
+          switch (p[0]) {
+           case HASH_KEYWORD_MAIN:
               DCCWaveform::mainTrack.setPowerMode(mode);
               StringFormatter::send(stream,F("<p%c MAIN>"),opcode);
               return;
-          }
-          if (p[0]==HASH_KEYWORD_PROG) {
+          
+          case HASH_KEYWORD_PROG:
               DCCWaveform::progTrack.setPowerMode(mode);
               StringFormatter::send(stream,F("<p%c PROG>"),opcode);
               return;
+          case HASH_KEYWORD_JOIN:
+              DCCWaveform::mainTrack.setPowerMode(mode);
+              DCCWaveform::progTrack.setPowerMode(mode);
+              if (mode==POWERMODE::ON) {
+                 DCC::setProgTrackSyncMain(true);
+                 StringFormatter::send(stream,F("<p1 JOIN>"),opcode);
+              }
+              else StringFormatter::send(stream,F("<p0>"));
+              return;
+          
           }
-          DIAG(F("keyword hash=%d\n"),p[0]);
+          DIAG(F("\nUnexpected keyword hash=%d\n"),p[0]);
           break;
         }
         return;      
@@ -258,10 +274,18 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
         return;
 
     case '#':     // NUMBER OF LOCOSLOTS <#>
-	StringFormatter::send(stream,F("<# %d>"), MAX_LOCOS);
-	return;
-        
-     default:  //anything else will drop out to <X>
+	      StringFormatter::send(stream,F("<# %d>"), MAX_LOCOS);
+	      return;
+
+    case 'F': // New command to call the new Loco Function API <F cab func 1|0>
+         DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
+         DCC::setFn(p[0],p[1],p[2]==1);
+         return; 
+ 
+         
+    default:  //anything else will diagnose and drop out to <X>
+         DIAG(F("\nOpcode=%c params=%d\n"),opcode,params);
+         for (int i=0;i<params;i++) DIAG(F("p[%d]=%d (0x%x)\n"),i,p[i],p[i]);
         break;
     
     } // end of opcode switch 
