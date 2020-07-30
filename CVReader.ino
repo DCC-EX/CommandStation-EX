@@ -38,16 +38,11 @@
 void myFilter(Print & stream, byte & opcode, byte & paramCount, int p[]) {
     (void)stream; // avoid compiler warning if we don't access this parameter
     switch (opcode) {  
-       case 'F': // Invent new command to call the new Loco Function API <F cab func 1|0>
-             DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
-             DCC::setFn(p[0],p[1],p[2]==1); 
-             opcode=0;  // tell parser to ignore this command
+       case '!': // Create a bespoke new command to clear all loco reminders <!> or specific locos e.g <! 3 4 99>
+             if (paramCount==0) DCC::forgetAllLocos();
+             else for (int i=0;i<paramCount;i++) DCC::forgetLoco(p[i]);            
+             opcode=0;  // tell parser to ignore this command as we have done it already
              break; 
-       case '$':   // Diagnose parser <$....>
-            DIAG(F("$ paramCount=%d\n"),paramCount);
-            for (int i=0;i<paramCount;i++) DIAG(F("p[%d]=%d (0x%x)\n"),i,p[i],p[i]);
-            opcode=0; // Normal parser wont understand $, 
-            break;
        default:  // drop through and parser will use the command unaltered.   
             break;  
     }
