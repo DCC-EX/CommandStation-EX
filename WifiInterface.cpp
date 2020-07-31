@@ -50,6 +50,7 @@ void WifiInterface::setup(Stream & wifiStream,  const __FlashStringHelper* SSid,
 bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                  const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
   
+  int ipOK=0;
   delay(1000);
 
   StringFormatter::send(wifiStream,F("AT+RST\r\n")); // reset module
@@ -57,36 +58,45 @@ bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid,
 
   StringFormatter::send(wifiStream,F("AT+GMR\r\n")); // request AT  version
   checkForOK(wifiStream,2000,OK_SEARCH,true);        // Makes this visible on the console
- 
-  StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
+
+  StringFormatter::send(wifiStream,F("AT+CWMODE=1\r\n")); // configure as client
   checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
+  StringFormatter::send(wifiStream,F("AT+CIFSR\r\n"));
+  if(checkForOK(wifiStream,5000, (const char*) F("+CIFSR:STAIP"),true))
+      if(!checkForOK(wifiStream,1000, (const char*) F("0.0.0.0"),true))
+	  ipOK=1;
 
-  // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-  StringFormatter::send(wifiStream,F("AT+CWJAP?\r\n")); 
-  if (checkForOK(wifiStream,2000,OK_SEARCH,true)) {
-       // early version supports CWJAP
-      StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
-      checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
-  }
-  else {
-     // later version supports CWJAP_CUR    
-    StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-    checkForOK(wifiStream,2000, OK_SEARCH, true); // dont care if not supported
+  if(!ipOK) {
+      StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
+      checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
 
-    StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
-    checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+      // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
+      StringFormatter::send(wifiStream,F("AT+CWJAP?\r\n")); 
+      if (checkForOK(wifiStream,2000,OK_SEARCH,true)) {
+	  // early version supports CWJAP
+	  StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
+	  checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+      }
+      else {
+	  // later version supports CWJAP_CUR    
+	  StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
+	  checkForOK(wifiStream,2000, OK_SEARCH, true); // dont care if not supported
 
-    StringFormatter::send(wifiStream,F("AT+CIPRECVMODE=0\r\n"),port); // make sure transfer mode is correct
-    checkForOK(wifiStream,2000,OK_SEARCH,true);
+	  StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
+	  checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
 
-   // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
-   // if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;    
-  (void)servername; // avoid compiler warning from commented out AT_MDNS above
+	  StringFormatter::send(wifiStream,F("AT+CIPRECVMODE=0\r\n"),port); // make sure transfer mode is correct
+	  checkForOK(wifiStream,2000,OK_SEARCH,true);
+	  
+	  // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
+	  // if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;    
+	  (void)servername; // avoid compiler warning from commented out AT_MDNS above
  
- }
+      }
   
-  StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
-  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+      StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
+      if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+  }
 
   
   StringFormatter::send(wifiStream,F("AT+CIPMUX=1\r\n")); // configure for multiple connections
