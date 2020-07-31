@@ -1,5 +1,5 @@
-#ifndef freeMemory_h
-#define freeMemory_h
+#ifndef COMMANDSTATION_DCC_FREEMEMORY_H_
+#define COMMANDSTATION_DCC_FREEMEMORY_H_
 
 // thanks go to  https://github.com/mpflaga/Arduino-MemoryFree
 #ifdef __arm__
@@ -17,4 +17,4 @@ int freeMemory() {
   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 #endif  // __arm__
 }
-#endif
+#endif  // COMMANDSTATION_DCC_FREEMEMORY_H_

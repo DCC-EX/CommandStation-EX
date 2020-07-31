@@ -24,7 +24,11 @@
 #include "Config.h"
 #include "FreeMemory.h"
 
+#if defined(ARDUINO_ARCH_AVR)
+int ramLowWatermark = 32767;
+#else
 int ramLowWatermark = 256000;
+#endif
 
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
@@ -83,14 +87,17 @@ void setup() {
   CommManager::registerInterface(new USBInterface(SerialUSB));
   while(!SerialUSB) {}  // Wait for USB to come online (remove once wifi is implemented)
   Wire.begin();       // Needed for EEPROM to work
+  EEStore::init(&SerialUSB);
 #elif defined (ARDUINO_ARCH_SAMC)
   CommManager::registerInterface(new SerialInterface(Serial));
   Wire.begin();       // Needed for EEPROM to work
+  EEStore::init(&Serial);
 #elif defined(ARDUINO_ARCH_AVR)
   CommManager::registerInterface(new SerialInterface(Serial));
+  EEStore::init(&Serial);
 #endif
 
-  EEStore::init();
+  
 
   // Set up the string parser to accept commands from the interfaces
   DCCEXParser::init(mainTrack, progTrack);       
@@ -106,6 +113,6 @@ void loop() {
   int freeNow=freeMemory();
   if (freeNow<ramLowWatermark) {
     ramLowWatermark=freeNow;
-    CommManager::printf(F("\nFree RAM=%d\n"),ramLowWatermark);
+    CommManager::broadcast(F("\nFree RAM=%d\n"),ramLowWatermark);
   }
 }

@@ -17,14 +17,14 @@
  *  along with CommandStation-DCC.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_DCC_CONFIG
-#define COMMANDSTATION_DCC_CONFIG
+#ifndef COMMANDSTATION_DCC_CONFIG_H_
+#define COMMANDSTATION_DCC_CONFIG_H_
 
 // Choose the motor shield that you want to use.
 
-#define CONFIG_WSM_FIREBOX_MK1
+//#define CONFIG_WSM_FIREBOX_MK1
 //#define CONFIG_WSM_FIREBOX_MK1S
-//#define CONFIG_ARDUINO_MOTOR_SHIELD
+#define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
 
-#endif
+#endif  // COMMANDSTATION_DCC_CONFIG_H_
