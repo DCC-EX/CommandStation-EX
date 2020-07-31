@@ -1,5 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth
  *  
  *  This file is part of Asbelos DCC API
  *
@@ -237,10 +238,10 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             break;
            case 'F': //F onOff function
                 {
-                  bool onOff=aval[1]=='1';
+                  bool pressed=aval[1]=='1';
                   int fKey = getInt(aval+2);
                   LOOPLOCOS(throttleChar, cab) {
-                          DCC::setFn(myLocos[loco].cab, fKey,onOff);
+                          DCC::setFn(myLocos[loco].cab, fKey, pressed);
                    } 
                 }
                 break;  

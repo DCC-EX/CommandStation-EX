@@ -1,5 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth
  *  
  *  This file is part of Asbelos DCC API
  *
@@ -94,22 +95,32 @@ bool DCC::getThrottleDirection(int cab) {
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
- void DCC::setFn( int cab, byte functionNumber, bool on) {
+void DCC::setFn( int cab, byte functionNumber, bool pressed) {
   if (cab<=0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;  
-    // set the function on/off in the functions and set the group flag to
-    // say we have touched the particular group.
-    // A group will be reminded only if it has been touched.  
-      if (on) speedTable[reg].functions |= (1L<<functionNumber);
-         else speedTable[reg].functions &= ~(1L<<functionNumber);
-      byte groupMask;
-      if (functionNumber<=4)       groupMask=FN_GROUP_1;
-      else if (functionNumber<=8)  groupMask=FN_GROUP_2;
-      else if (functionNumber<=12) groupMask=FN_GROUP_3;
-      else if (functionNumber<=20) groupMask=FN_GROUP_4;
-      else                         groupMask=FN_GROUP_5;
-      speedTable[reg].groupFlags |= groupMask; 
+
+  // Take care of functions:
+  // Imitate how many command stations do it: Button press is
+  // toggle but for F2 where it is momentary
+  if (functionNumber == 2) {
+      // turn on F2 on press and off again at release of button
+      if (pressed) speedTable[reg].functions |= (1L<<functionNumber);
+      else speedTable[reg].functions &= ~(1L<<functionNumber);
+  } else {
+      // toggle function on release, ignore release
+      if (pressed)
+	  speedTable[reg].functions ^= (1UL<<functionNumber);
+  }
+  // Set the group flag to say we have touched the particular group.
+  // A group will be reminded only if it has been touched.  
+  byte groupMask;
+  if (functionNumber<=4)       groupMask=FN_GROUP_1;
+  else if (functionNumber<=8)  groupMask=FN_GROUP_2;
+  else if (functionNumber<=12) groupMask=FN_GROUP_3;
+  else if (functionNumber<=20) groupMask=FN_GROUP_4;
+  else                         groupMask=FN_GROUP_5;
+  speedTable[reg].groupFlags |= groupMask; 
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
