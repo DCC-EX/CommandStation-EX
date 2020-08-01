@@ -47,8 +47,8 @@ class Turnout {
   static Turnout *create(int id , int address , int subAddress);
   static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle);
   static Turnout *create(int id);
-  static void show(Print & stream, int n);
-  static bool showAll(Print & stream);
+  static void show(Print * stream, int n);
+  static bool showAll(Print * stream);
   void activate(bool state);
 }; // Turnout
   

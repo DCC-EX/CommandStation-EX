@@ -20,6 +20,7 @@
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "WifiInterface.h"
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
@@ -39,7 +40,7 @@ const int HASH_KEYWORD_JOIN=-30750;
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
  
- Print & DCCEXParser::stashStream=DIAGSERIAL;  // keep compiler happy but ovevride in constructor
+ Print * DCCEXParser::stashStream=NULL;  
 
 // This is a JMRI command parser, one instance per incoming stream
 // It doesnt know how the string got here, nor how it gets back.
@@ -67,7 +68,7 @@ void DCCEXParser::loop(Stream & stream) {
     } 
     else if (ch == '>') {
       buffer[bufferLength]='\0';
-      parse( stream, buffer, false); // Parse this allowing async responses
+      parse( & stream, buffer, false); // Parse this allowing async responses
       inCommandPayload = false;
       break;
     } else if(inCommandPayload) {
@@ -131,7 +132,7 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter) {
 }
    
 // See documentation on DCC class for info on this section
-void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
+void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
     DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS]; 
@@ -280,8 +281,11 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
          DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
          DCC::setFn(p[0],p[1],p[2]==1);
-         return; 
- 
+         return;
+          
+    case '+' :  // Complex Wifi interface command (not usual parse)
+             WifiInterface::ATCommand(com);
+             break;
          
     default:  //anything else will diagnose and drop out to <X>
          DIAG(F("\nOpcode=%c params=%d\n"),opcode,params);
@@ -294,7 +298,7 @@ void DCCEXParser::parse(Print & stream, const byte *com, bool blocking) {
        StringFormatter::send(stream, F("<X>"));
 }
 
-bool DCCEXParser::parseZ( Print & stream,int params, int p[]){
+bool DCCEXParser::parseZ( Print * stream,int params, int p[]){
       
         
     switch (params) {
@@ -324,7 +328,7 @@ bool DCCEXParser::parseZ( Print & stream,int params, int p[]){
     }    
 
 //===================================
-bool DCCEXParser::parsef(Print & stream, int params, int p[]) {
+bool DCCEXParser::parsef(Print * stream, int params, int p[]) {
     // JMRI sends this info in DCC message format but it's not exactly 
     //      convenient for other processing
     if (params==2) {
@@ -356,7 +360,7 @@ void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop) {
 }
 
 //===================================
-bool DCCEXParser::parseT(Print & stream, int params, int p[]) {
+bool DCCEXParser::parseT(Print * stream, int params, int p[]) {
   switch(params){
         case 0:                    // <T>
             return (Turnout::showAll(stream));             break;
@@ -381,7 +385,7 @@ bool DCCEXParser::parseT(Print & stream, int params, int p[]) {
         }
 }
 
-bool DCCEXParser::parseS( Print & stream,int params, int p[]) {
+bool DCCEXParser::parseS( Print * stream,int params, int p[]) {
      
         switch(params){
 
@@ -405,7 +409,7 @@ bool DCCEXParser::parseS( Print & stream,int params, int p[]) {
 
 
  // CALLBACKS must be static 
-bool DCCEXParser::stashCallback(Print & stream,int p[MAX_PARAMS]) {
+bool DCCEXParser::stashCallback(Print * stream,int p[MAX_PARAMS]) {
        if (stashBusy || asyncBanned) return false;
        stashBusy=true; 
       stashStream=stream;

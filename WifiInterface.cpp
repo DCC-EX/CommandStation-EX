@@ -37,75 +37,89 @@ int WifiInterface::datalength=0;
 int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER];
 MemStream  WifiInterface::streamer(buffer,sizeof(buffer));
+Stream * WifiInterface::wifiStream=NULL;
 
-void WifiInterface::setup(Stream & wifiStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                  const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
   
+  wifiStream=&setupStream;
+  
   DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
-  connected=setup2(wifiStream, SSid, password,hostname, servername,port);
+  connected=setup2( SSid, password,hostname, servername,port);
   // TODO calloc the buffer and streamer and parser etc 
   DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected?F("OK"):F("FAILED"));
 }
 
-bool WifiInterface::setup2(Stream & wifiStream, const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                  const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
-  
+ 
   delay(1000);
 
   StringFormatter::send(wifiStream,F("AT+RST\r\n")); // reset module
-  checkForOK(wifiStream,5000,READY_SEARCH,false);    // generally not interesting to DCC 
+  checkForOK(5000,READY_SEARCH,false);    // generally not interesting to DCC 
 
   StringFormatter::send(wifiStream,F("AT+GMR\r\n")); // request AT  version
-  checkForOK(wifiStream,2000,OK_SEARCH,true);        // Makes this visible on the console
+  checkForOK(2000,OK_SEARCH,true);        // Makes this visible on the console
  
   StringFormatter::send(wifiStream,F("AT+CWMODE=3\r\n")); // configure as server or access point
-  checkForOK(wifiStream,1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
+  checkForOK(1000,OK_SEARCH,true); // Not always OK, sometimes "no change"
 
   // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
   StringFormatter::send(wifiStream,F("AT+CWJAP?\r\n")); 
-  if (checkForOK(wifiStream,2000,OK_SEARCH,true)) {
+  if (checkForOK(2000,OK_SEARCH,true)) {
        // early version supports CWJAP
-      StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
-      checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+       if (SSid!=NULL && password!=NULL) {
+          // Only connect to router if we are given a SSId and password, 
+          // otherwise assume that the ES8266 has already got these from a previous call
+          // USER can pass these in with a <W "ssid" "password"> command which will re-call this setup
+          StringFormatter::send(wifiStream,F("AT+CWJAP=\"%S\",\"%S\"\r\n"),SSid,password);
+          checkForOK(20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+       }
   }
   else {
      // later version supports CWJAP_CUR    
     StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-    checkForOK(wifiStream,2000, OK_SEARCH, true); // dont care if not supported
+    checkForOK(2000, OK_SEARCH, true); // dont care if not supported
 
-    StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
-    checkForOK(wifiStream,20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+    if (SSid!=NULL && password!=NULL) {
+      StringFormatter::send(wifiStream,F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"),SSid,password);
+      checkForOK(20000,OK_SEARCH,true); // can ignore failure as AP mode may still be ok
+    }
 
     StringFormatter::send(wifiStream,F("AT+CIPRECVMODE=0\r\n"),port); // make sure transfer mode is correct
-    checkForOK(wifiStream,2000,OK_SEARCH,true);
+    checkForOK(2000,OK_SEARCH,true);
 
    // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
-   // if (!checkForOK(wifiStream,5000, OK_SEARCH, true)) return false;    
+   // if (!checkForOK(5000, OK_SEARCH, true)) return false;    
   (void)servername; // avoid compiler warning from commented out AT_MDNS above
  
  }
   
   StringFormatter::send(wifiStream,F("AT+CIFSR\r\n")); // get ip address //192.168.4.1
-  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
 
   
   StringFormatter::send(wifiStream,F("AT+CIPMUX=1\r\n")); // configure for multiple connections
-  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
   
   StringFormatter::send(wifiStream,F("AT+CIPSERVER=1,%d\r\n"),port); // turn on server on port 
-  if (!checkForOK(wifiStream,10000,OK_SEARCH,true)) return false;
+  if (!checkForOK(10000,OK_SEARCH,true)) return false;
 
   return true;
 }
+void WifiInterface::ATCommand(const byte * command) {
+  StringFormatter::  send(wifiStream,F("AT+%s\r\n"), command+1);
+   checkForOK(10000,OK_SEARCH,true);
+}
 
-bool WifiInterface::checkForOK(Stream & wifiStream, const unsigned int timeout, const char * waitfor, bool echo) {
+bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo) {
   unsigned long  startTime = millis();
    char  const *locator=waitfor;
   DIAG(F("\nWifi Check: [%E]"),waitfor);
   while( millis()-startTime < timeout) {
-    while(wifiStream.available()) {
-      int ch=wifiStream.read();
-      if (echo) StringFormatter::printEscape(DIAGSERIAL,ch);  /// THIS IS A DIAG IN DISGUISE
+    while(wifiStream->available()) {
+      int ch=wifiStream->read();
+      if (echo) StringFormatter::printEscape(&DIAGSERIAL,ch);  /// THIS IS A DIAG IN DISGUISE
       if (ch!=pgm_read_byte_near(locator)) locator=waitfor;
       if (ch==pgm_read_byte_near(locator)) {
         locator++;
@@ -141,17 +155,17 @@ bool WifiInterface::isHTML() {
   } 
 }
  
-void WifiInterface::loop(Stream & wifiStream) {
+void WifiInterface::loop() {
     if (!connected) return; 
     
     WiThrottle::loop();  // check heartbeats 
     
     // read anything into a buffer, collecting info on the way  
-    while (loopstate!=99 && wifiStream.available()) { 
-      int ch=wifiStream.read();
+    while (loopstate!=99 && wifiStream->available()) { 
+      int ch=wifiStream->read();
       
       // echo the char to the diagnostic stream in escaped format
-      StringFormatter::printEscape(DIAGSERIAL,ch); // DIAG in disguise
+      StringFormatter::printEscape(&DIAGSERIAL,ch); // DIAG in disguise
       
       switch (loopstate) {
            case 0:  // looking for +IPD
@@ -193,7 +207,7 @@ void WifiInterface::loop(Stream & wifiStream) {
                 } 
                 if (ch=='>'){
                   DIAG(F("\n> [%e]\n"),buffer);
-                  wifiStream.print((char *) buffer);
+                  wifiStream->print((char *) buffer);
                   loopTimeoutStart=millis();
                   loopstate=closeAfter?11:0;
                 }
@@ -228,7 +242,7 @@ void WifiInterface::loop(Stream & wifiStream) {
       HTTPParser::parse(streamer,buffer);
       closeAfter=true;
     }
-    else if (buffer[0]=='<')  parser.parse(streamer,buffer, true);    // tell JMRI parser that ACKS are blocking because we can't handle the async 
+    else if (buffer[0]=='<')  parser.parse(&streamer,buffer, true);    // tell JMRI parser that ACKS are blocking because we can't handle the async 
  
     else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
 
