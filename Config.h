@@ -1,8 +1,10 @@
 #ifndef Config_h
 #define Config_h
 
-// Define this if you have a WiFi board on Serial1
+// Define these if you have a WiFi board on Serial1
 #define WIFI
+#define WIFI_CONNECT_TO_SSID  "RPi-JMRI"
+#define WIFI_CONNECT_PASSWORD "rpI-jmri"
 
 // This hardware configuration would normally be setup using a bunch of #ifdefs.
 

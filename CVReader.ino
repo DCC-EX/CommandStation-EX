@@ -88,7 +88,7 @@ void setup() {
    //            
 #ifdef WIFI
     Serial1.begin(115200);
-    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); // (3532 is 0xDCC decimal... )
+    WifiInterface::setup(Serial1, F(WIFI_CONNECT_TO_SSID), F(WIFI_CONNECT_PASSWORD),F("DCCEX"),F("CVReader"),3532); // (3532 is 0xDCC decimal... )
 #endif
     
    //  This is just for demonstration purposes 
