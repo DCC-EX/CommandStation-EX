@@ -95,6 +95,7 @@ bool DCC::getThrottleDirection(int cab) {
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
+// Set function to value on or off
 void DCC::setFn( int cab, byte functionNumber, bool on) {
   if (cab<=0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
@@ -102,13 +103,12 @@ void DCC::setFn( int cab, byte functionNumber, bool on) {
 
   // Take care of functions:
   // Set state of function
-  unsigned long funcmask = (1L<<functionNumber);
+  unsigned long funcmask = (1UL<<functionNumber);
   if (on) {
       speedTable[reg].functions |= funcmask;
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  //DIAG(F("\nFUNCTIONS of %d IS %d\n"),cab,speedTable[reg].functions);
   updateGroupflags(speedTable[reg].groupFlags, functionNumber);
   return;
 }
@@ -125,7 +125,7 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
   // Take care of functions:
   // Imitate how many command stations do it: Button press is
   // toggle but for F2 where it is momentary
-  unsigned long funcmask = (1L<<functionNumber);
+  unsigned long funcmask = (1UL<<functionNumber);
   if (functionNumber == 2) {
       // turn on F2 on press and off again at release of button
       if (pressed) {
@@ -136,7 +136,7 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
 	  funcstate = 0;
       }
   } else {
-      // toggle function on release, ignore release
+      // toggle function on press, ignore release
       if (pressed) {
 	  speedTable[reg].functions ^= funcmask;
       }
