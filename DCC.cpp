@@ -95,32 +95,67 @@ bool DCC::getThrottleDirection(int cab) {
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
-void DCC::setFn( int cab, byte functionNumber, bool pressed) {
+void DCC::setFn( int cab, byte functionNumber, bool on) {
   if (cab<=0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;  
 
   // Take care of functions:
+  // Set state of function
+  unsigned long funcmask = (1L<<functionNumber);
+  if (on) {
+      speedTable[reg].functions |= funcmask;
+  } else {
+      speedTable[reg].functions &= ~funcmask;
+  }
+  //DIAG(F("\nFUNCTIONS of %d IS %d\n"),cab,speedTable[reg].functions);
+  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  return;
+}
+
+// Change function according to how button was pressed,
+// typically in WiThrottle.
+// Returns new state or -1 if nothing was changed.
+int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
+  int funcstate = -1;
+  if (cab<=0 || functionNumber>28) return funcstate;
+  int reg = lookupSpeedTable(cab);
+  if (reg<0) return funcstate;  
+
+  // Take care of functions:
   // Imitate how many command stations do it: Button press is
   // toggle but for F2 where it is momentary
+  unsigned long funcmask = (1L<<functionNumber);
   if (functionNumber == 2) {
       // turn on F2 on press and off again at release of button
-      if (pressed) speedTable[reg].functions |= (1L<<functionNumber);
-      else speedTable[reg].functions &= ~(1L<<functionNumber);
+      if (pressed) {
+	  speedTable[reg].functions |= funcmask;
+	  funcstate = 1;
+      } else {
+	  speedTable[reg].functions &= ~funcmask;
+	  funcstate = 0;
+      }
   } else {
       // toggle function on release, ignore release
-      if (pressed)
-	  speedTable[reg].functions ^= (1UL<<functionNumber);
+      if (pressed) {
+	  speedTable[reg].functions ^= funcmask;
+      }
+      funcstate = speedTable[reg].functions & funcmask;
   }
-  // Set the group flag to say we have touched the particular group.
-  // A group will be reminded only if it has been touched.  
+  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  return funcstate;
+}
+
+// Set the group flag to say we have touched the particular group.
+// A group will be reminded only if it has been touched.  
+void DCC::updateGroupflags(byte & flags, int functionNumber) {
   byte groupMask;
   if (functionNumber<=4)       groupMask=FN_GROUP_1;
   else if (functionNumber<=8)  groupMask=FN_GROUP_2;
   else if (functionNumber<=12) groupMask=FN_GROUP_3;
   else if (functionNumber<=20) groupMask=FN_GROUP_4;
   else                         groupMask=FN_GROUP_5;
-  speedTable[reg].groupFlags |= groupMask; 
+  flags |= groupMask; 
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
@@ -342,7 +377,7 @@ void DCC::issueReminders() {
 }
  
 bool DCC::issueReminder(int reg) {
-  long functions=speedTable[reg].functions;
+  unsigned long functions=speedTable[reg].functions;
   int loco=speedTable[reg].loco;
   byte flags=speedTable[reg].groupFlags;
   

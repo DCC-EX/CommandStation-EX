@@ -60,6 +60,8 @@ class DCC {
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction( int cab, byte fByte, byte eByte);
   static void setFn( int cab, byte functionNumber, bool on);
+  static int  changeFn( int cab, byte functionNumber, bool pressed);
+  static void updateGroupflags(byte & flags, int functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
   static void setDebug(bool on);
@@ -82,7 +84,7 @@ private:
      int loco;
      byte speedCode;
      byte groupFlags;
-     long functions;
+     unsigned long functions;
   };
   static byte loopStatus;
   static void setThrottle2( uint16_t cab, uint8_t speedCode);

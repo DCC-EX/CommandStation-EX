@@ -238,11 +238,15 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             break;
            case 'F': //F onOff function
                 {
+		  bool funcstate;
                   bool pressed=aval[1]=='1';
                   int fKey = getInt(aval+2);
                   LOOPLOCOS(throttleChar, cab) {
-                          DCC::setFn(myLocos[loco].cab, fKey, pressed);
-                   } 
+		      funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
+		      if(funcstate==0 || funcstate==1)
+			  StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
+						myLocos[loco].cab, funcstate, fKey);
+		  }
                 }
                 break;  
             case 'q':
