@@ -73,7 +73,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Sensor::check(Print & stream){
+void Sensor::check(Print * stream){
   Sensor *tt;
 
   for(tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
@@ -148,7 +148,7 @@ bool Sensor::remove(int n){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Sensor::show(Print & stream){
+void Sensor::show(Print * stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
   }
@@ -156,7 +156,7 @@ void Sensor::show(Print & stream){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Sensor::status(Print & stream){
+void Sensor::status(Print * stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     StringFormatter::send(stream,F("<%c %d>"), tt->active?'Q':'q', tt->data.snum);
   }

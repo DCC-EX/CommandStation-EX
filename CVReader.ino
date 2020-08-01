@@ -35,7 +35,7 @@
 //
 // The filter must be enabled by calling the DCC EXParser::setFilter method, see use in setup().
  
-void myFilter(Print & stream, byte & opcode, byte & paramCount, int p[]) {
+void myFilter(Print * stream, byte & opcode, byte & paramCount, int p[]) {
     (void)stream; // avoid compiler warning if we don't access this parameter
     switch (opcode) {  
        case '!': // Create a bespoke new command to clear all loco reminders <!> or specific locos e.g <! 3 4 99>
@@ -116,7 +116,7 @@ void loop() {
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifdef WIFI
-  WifiInterface::loop(Serial1);
+  WifiInterface::loop();
 #endif
 
   // Your additional code

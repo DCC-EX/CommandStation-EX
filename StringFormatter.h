@@ -33,11 +33,11 @@ class StringFormatter
   public:
     static void print( const __FlashStringHelper* input...);
     static void send(Print & serial, const __FlashStringHelper* input...);
-    static void printEscapes(Print & stream, char * input);
-    static void printEscapes(Print & stream, const __FlashStringHelper* input);
-    static void printEscape(Print & stream, char c);
- private:
-    static void send2(Print & serial, const __FlashStringHelper* input,va_list args);
+    static void send(Print * serial, const __FlashStringHelper* input...);
+    static void printEscapes(Print * stream, char * input);
+    static void printEscapes(Print * stream, const __FlashStringHelper* input);
+    static void printEscape(Print * stream, char c);
+    static void send(Print * serial, const __FlashStringHelper* input,va_list args);
    
 };
 #endif

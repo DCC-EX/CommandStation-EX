@@ -74,7 +74,7 @@ bool Turnout::remove(int n){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Turnout::show(Print & stream, int n){
+void Turnout::show(Print * stream, int n){
   for(Turnout *tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
       if (tt->data.id==n) {
         StringFormatter::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
@@ -83,7 +83,7 @@ void Turnout::show(Print & stream, int n){
   }
 }
 
-bool Turnout::showAll(Print & stream){
+bool Turnout::showAll(Print * stream){
   bool gotOne=false;
   for(Turnout * tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
       StringFormatter::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
