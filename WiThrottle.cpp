@@ -149,7 +149,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             }
             break;
        case 'N':  // Heartbeat (2)
-                StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT); // 10 second timeout  
+                StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT); // return timeout value
             break;
        case 'M': // multithrottle
             multithrottle(stream, cmd); 
@@ -217,7 +217,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                   if (myLocos[loco].throttle=='\0') { 
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
-                    DCC::setThrottle(locoid,0,0); //register this loco address
+                    DCC::setThrottle(locoid,0,1); //register this loco address, speed zero, direction forward
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid);
                     // TODO... get known Fn states from DCC (need memoryStream improvements to handle data length)
                     // for(fKey=0; fKey<29; fKey++)StringFormatter::send(stream,F("M%cA%c<;>F0&s\n"),throttleChar,cmd[3],fkey);
@@ -231,7 +231,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
           case '-': // remove loco 
                  LOOPLOCOS(throttleChar, locoid) {
                      myLocos[loco].throttle='\0';
-                     DCC::setThrottle(myLocos[loco].cab,0,0);
+                     DCC::setThrottle(myLocos[loco].cab,0,1);
                      DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
                      StringFormatter::send(stream, F("M%c-%c%d<;>\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab);
                   }
@@ -309,17 +309,17 @@ void WiThrottle::loop() {
 }
 
 void WiThrottle::checkHeartbeat() {
-  if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*1000)) {
+  // if 2 heartbeats missed... STOP and forget all locos for this client
+  if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*2000)) {
     DIAG(F("WiThrottle hearbeat missed client=%d"),clientid);
-    // Haertbeat missed... STOP all locos for this client
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
         if (myLocos[loco].throttle!='\0') {
-          DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab));
+          DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); //eStop
+          DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
          }
     }
     delete this;
-  }
-  else {
+  } else {
       // TODO  Check if anything has changed on my locos since last notified! 
     }
 }
