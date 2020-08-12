@@ -167,7 +167,7 @@ void WifiInterface::loop() {
       int ch=wifiStream->read();
       
       // echo the char to the diagnostic stream in escaped format
-      StringFormatter::printEscape(&DIAGSERIAL,ch); // DIAG in disguise
+//      StringFormatter::printEscape(&DIAGSERIAL,ch); // DIAG in disguise
       
       switch (loopstate) {
            case 0:  // looking for +IPD
@@ -208,7 +208,7 @@ void WifiInterface::loop() {
                   break;
                 } 
                 if (ch=='>'){
-                  DIAG(F("\n> [%e]\n"),buffer);
+//                  DIAG(F("\n> [%e]\n"),buffer);
                   wifiStream->print((char *) buffer);
                   loopTimeoutStart=millis();
                   loopstate=closeAfter?11:0;
@@ -232,7 +232,7 @@ void WifiInterface::loop() {
     // AT this point we have read an incoming message into the buffer
     streamer.print('\0'); // null the end of the buffer so we can treat it as a string
 
-    DIAG(F("\nWifiRead:%d:%e\n"),connectionId,buffer);
+    DIAG(F("\nWifi(%d)<-[%e]\n"),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
     // SIDE EFFECT WARNING::: 
     //  We know that parser will read the entire buffer before starting to write to it.
@@ -256,7 +256,7 @@ void WifiInterface::loop() {
     }
     // prepare to send reply 
     streamer.print('\0'); // null the end of the buffer so we can treat it as a string
-    DIAG(F("\nWiFiInterface reply c(%d) l(%d) [%e]\n"),connectionId,streamer.available()-1,buffer);
+    DIAG(F("WiFi(%d)->[%e] l(%d)\n"),connectionId,buffer,streamer.available()-1);
     StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
     loopTimeoutStart=millis();
     loopstate=10; // non-blocking loop waits for > before sending
