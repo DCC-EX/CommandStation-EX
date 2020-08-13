@@ -48,7 +48,7 @@
 #include "DIAG.h"
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
-      if (myLocos[loco].throttle==THROTTLECHAR && (CAB<0 || myLocos[loco].cab==CAB))
+      if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 bool WiThrottle::annotateLeftRight=false;
@@ -59,7 +59,7 @@ WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   return new WiThrottle( wifiClient);
 }
 
- // One instance of WiTHrottle per connected client, so we know what the locos are 
+ // One instance of WiThrottle per connected client, so we know what the locos are 
  
 WiThrottle::WiThrottle( int wificlientid) {
    DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
@@ -164,7 +164,15 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             }
             break;           
       case 'Q': // 
-            DIAG(F("WiThrottle Quit\n"));
+            LOOPLOCOS('*', -1) { //stop and drop all locos still assigned to this WiThrottle
+              if (myLocos[loco].throttle!='\0') {
+                DCC::setThrottle(myLocos[loco].cab,0,1);
+                DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
+                StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
+                myLocos[loco].throttle='\0';
+              }
+            }
+            DIAG(F("WiThrottle(%d) Quit\n"), clientid);
             delete this; 
             break;           
    }
@@ -228,10 +236,10 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                   }
                }
                break;
-          case '-': // remove loco 
+          case '-': // stop and remove loco(s)
                  LOOPLOCOS(throttleChar, locoid) {
                      myLocos[loco].throttle='\0';
-                     DCC::setThrottle(myLocos[loco].cab,0,1);
+                     DCC::setThrottle(myLocos[loco].cab,0, DCC::getThrottleDirection(myLocos[loco].cab));
                      DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
                      StringFormatter::send(stream, F("M%c-%c%d<;>\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab);
                   }
@@ -293,14 +301,14 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
               //Emergency Stop  (speed code 1)
               LOOPLOCOS(throttleChar, cab) {
                 DCC::setThrottle(myLocos[loco].cab,1, DCC::getThrottleDirection(myLocos[loco].cab));
-                }
-               break;
+              }
+              break;
             case 'I': // Idle, set speed to 0
             case 'Q': // Quit, set speed to 0
               LOOPLOCOS(throttleChar, cab) {
                 DCC::setThrottle(myLocos[loco].cab,0, DCC::getThrottleDirection(myLocos[loco].cab));
-                }
-                break;
+              }
+              break;
             }               
 }
 
@@ -313,12 +321,13 @@ void WiThrottle::loop() {
 void WiThrottle::checkHeartbeat() {
   // if 2 heartbeats missed... STOP and forget all locos for this client
   if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*2000)) {
-    DIAG(F("WiThrottle hearbeat missed client=%d"),clientid);
-    for (int loco=0;loco<MAX_MY_LOCO;loco++) {
-        if (myLocos[loco].throttle!='\0') {
-          DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); //eStop
-          DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
-         }
+    DIAG(F("WiThrottle(%d) hearbeat missed, dropping connection"),clientid);
+    LOOPLOCOS('*', -1) { //stop and drop all locos still assigned to this WiThrottle
+      if (myLocos[loco].throttle!='\0') {
+        DIAG(F("  dropping cab %c"),clientid, myLocos[loco].cab);
+        DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); //eStop
+        DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
+      }
     }
     delete this;
   } else {

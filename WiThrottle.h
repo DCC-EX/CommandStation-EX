@@ -36,7 +36,7 @@ class WiThrottle {
     ~WiThrottle();
    
       static const int MAX_MY_LOCO=10; //maximum number of locos assigned to a single client
-      static const int HEARTBEAT_TIMEOUT=3;// heartbeat at 3secs to provide messaging transport
+      static const int HEARTBEAT_TIMEOUT=2;// heartbeat at 2secs to provide messaging transport
       static WiThrottle* firstThrottle;
       static int getInt(byte * cmd);
       static int getLocoId(byte * cmd);
