@@ -144,12 +144,12 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                     case 'C': newstate=false; break;
                     case '2': newstate=!Turnout::isActive(id);                 
                 }
-		Turnout::activate(id,newstate);
+		            Turnout::activate(id,newstate);
                 StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
             }
             break;
        case 'N':  // Heartbeat (2)
-                StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT); // return timeout value
+            StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT); // return timeout value
             break;
        case 'M': // multithrottle
             multithrottle(stream, cmd); 
@@ -251,6 +251,7 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
               byte locospeed=getInt(aval+1);
               LOOPLOCOS(throttleChar, cab) {
                 DCC::setThrottle(myLocos[loco].cab,locospeed, DCC::getThrottleDirection(myLocos[loco].cab));
+                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab));
                 }
              } 
             break;
@@ -282,9 +283,10 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             case 'R':
             { 
               bool forward=aval[1]!='0';
-                 LOOPLOCOS(throttleChar, cab) {              
-                    DCC::setThrottle(myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab), forward);
-                  }
+              LOOPLOCOS(throttleChar, cab) {              
+                DCC::setThrottle(myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab), forward);
+                StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
+              }
             }        
             break;      
             case 'X':

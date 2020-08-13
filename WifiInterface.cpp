@@ -232,7 +232,7 @@ void WifiInterface::loop() {
     // AT this point we have read an incoming message into the buffer
     streamer.print('\0'); // null the end of the buffer so we can treat it as a string
 
-    DIAG(F("\nWifi(%d)<-[%e]\n"),connectionId,buffer);
+    DIAG(F("\n%d Wifi(%d)<-[%e]\n"),millis(),connectionId,buffer);
     streamer.setBufferContentPosition(0,0);  // reset write position to start of buffer
     // SIDE EFFECT WARNING::: 
     //  We know that parser will read the entire buffer before starting to write to it.
@@ -256,7 +256,7 @@ void WifiInterface::loop() {
     }
     // prepare to send reply 
     streamer.print('\0'); // null the end of the buffer so we can treat it as a string
-    DIAG(F("WiFi(%d)->[%e] l(%d)\n"),connectionId,buffer,streamer.available()-1);
+    DIAG(F("%d WiFi(%d)->[%e] l(%d)\n"),millis(),connectionId,buffer,streamer.available()-1);
     StringFormatter::send(wifiStream,F("AT+CIPSEND=%d,%d\r\n"),connectionId,streamer.available()-1);
     loopTimeoutStart=millis();
     loopstate=10; // non-blocking loop waits for > before sending
