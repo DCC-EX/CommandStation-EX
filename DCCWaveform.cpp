@@ -183,8 +183,7 @@ void DCCWaveform::setSignal(bool high) {
   if (progTrackSyncMain) {
     if (!isMainTrack) return; // ignore PROG track waveform while in sync
     // set both tracks to same signal
-    Hardware::setSignal(true, high);
-    Hardware::setSignal(false, high);
+    Hardware::setSyncSignal(high);
     return;     
   }
   Hardware::setSignal(isMainTrack,high);
