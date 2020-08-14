@@ -20,19 +20,26 @@
 #include "Hardware.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
+#include <ArduinoTimers.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
 
-DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true,  (int)(MAIN_MAX_MILLIAMPS / MAIN_SENSE_FACTOR));
-DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false, (int)(PROG_MAX_MILLIAMPS / PROG_SENSE_FACTOR));
+
+DCCWaveform  DCCWaveform::mainTrack=NULL;
+DCCWaveform  DCCWaveform::progTrack=NULL;
 
 const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
 bool DCCWaveform::progTrackSyncMain=false; 
 
-void DCCWaveform::begin() {
-  Hardware::init();
-  Hardware::setCallback(58, interruptHandler);
-  mainTrack.beginTrack();
-  progTrack.beginTrack();
+void DCCWaveform::begin(MotorDriver mainDriver, MotorDriver progDriver) {
+ 
+  mainTrack=new DCCWaveform(PREAMBLE_BITS_MAIN, true, mainDriver);
+  progTrack=new DCCWaveform(PREAMBLE_BITS_PROG, false, progDriver);
+  progTrack.beginTrack(progDriver);
+  TimerA.initialize();
+  TimerA.setPeriod(58);
+  TimerA.attachInterrupt(interruptHandler);
+  TimerA.start();
+
 }
 
 void DCCWaveform::loop() {
@@ -66,8 +73,9 @@ void DCCWaveform::interruptHandler() {
 const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 
-DCCWaveform::DCCWaveform( byte preambleBits, bool isMain, int rawCurrentTrip) {
+DCCWaveform::DCCWaveform( byte preambleBits, bool isMain, MotorDriver driver) {
   // establish appropriate pins
+  motorDriver=driver;
   rawCurrentTripValue=rawCurrentTrip;
   isMainTrack = isMain;
   packetPending = false;
@@ -80,11 +88,8 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain, int rawCurrentTrip) {
   bits_sent = 0;
   sampleDelay = 0;
   lastSampleTaken = millis();
-  ackPending=false;    
-}
-void DCCWaveform::beginTrack() {
-  setPowerMode(POWERMODE::ON);
-   
+  ackPending=false;
+  setPowerMode(POWERMODE::ON);      
 }
 
 POWERMODE DCCWaveform::getPowerMode() {
@@ -94,8 +99,7 @@ POWERMODE DCCWaveform::getPowerMode() {
 void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
-  Hardware::setPower(isMainTrack, ison);
-  Hardware::setBrake(isMainTrack, !ison);
+  driver.setPower( ison);
   if (mode == POWERMODE::ON) delay(200);
 }
 
@@ -104,7 +108,7 @@ void DCCWaveform::checkPowerOverload() {
   
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
-  int tripValue= rawCurrentTripValue;
+  int tripValue= driver.rawCurrentTripValue;
   if (!isMainTrack && (ackPending || progTrackSyncMain))   tripValue=ACK_CURRENT_TRIP;
   
   switch (powerMode) {
@@ -113,7 +117,7 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent = Hardware::getCurrentRaw(isMainTrack);
+      lastCurrent = driver.getCurrentRaw();
       if (lastCurrent <= tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
@@ -122,8 +126,8 @@ void DCCWaveform::checkPowerOverload() {
 	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
       } else {
         setPowerMode(POWERMODE::OVERLOAD);
-        unsigned int mA=Hardware::getCurrentMilliamps(isMainTrack,lastCurrent);
-        unsigned int maxmA=Hardware::getCurrentMilliamps(isMainTrack,tripValue);
+        unsigned int mA=driver.convertRawToMilliamps(lastCurrent);
+        unsigned int maxmA=driver.convertRawToMilliamps(tripValue);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
@@ -183,10 +187,11 @@ void DCCWaveform::setSignal(bool high) {
   if (progTrackSyncMain) {
     if (!isMainTrack) return; // ignore PROG track waveform while in sync
     // set both tracks to same signal
-    Hardware::setSyncSignal(high);
+    driver.setSyncSignal(high);
+    progTrack.driver.setSignal(high);
     return;     
   }
-  Hardware::setSignal(isMainTrack,high);
+  driver.setSignal(high);
 }
       
 void DCCWaveform::interrupt2() {
@@ -264,8 +269,8 @@ int DCCWaveform::getLastCurrent() {
 
 void DCCWaveform::setAckBaseline(bool debug) {
       if (isMainTrack) return; 
-      ackThreshold=Hardware::getCurrentRaw(false) + ACK_MIN_PULSE_RAW;
-      if (debug) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,Hardware::getCurrentMilliamps(false,ackThreshold));
+      ackThreshold=driver.getCurrentRaw() + ACK_MIN_PULSE_RAW;
+      if (debug) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,driver.convertRawToMilliamps(ackThreshold));
 }
 
 void DCCWaveform::setAckPending(bool debug) {
