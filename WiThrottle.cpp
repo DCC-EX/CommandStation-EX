@@ -21,7 +21,7 @@
  * Truncated JMRI WiThrottle server implementation for DCC-EX command station
  * Credit is due to  Valerie Valley RR https://sites.google.com/site/valerievalleyrr/
  *  for showing how it could be done, but this code is very different to the original
- *  implemenatatin as it is designed to run on the Arduino and not the ESP and is
+ *  implementation as it is designed to run on the Arduino and not the ESP and is
  *  also calling directly into the DCCEX Api rather than  simulating JMRI text commands.
  * Refer JMRI WiFi Throttle Communications Protocol https://www.jmri.org/help/en/package/jmri/jmrit/withrottle/Protocol.shtml
  * 
@@ -81,8 +81,8 @@ WiThrottle::WiThrottle( int wificlientid) {
    firstThrottle= this;
    clientid=wificlientid;
    heartBeatEnable=false; // until client turns it on
-   initSent=false;
-   turnoutListSent=false;
+   sendTurnoutList=false; // indicates turnout list needs to be sent to this client
+   sendPowerState =false; // indicates power state  needs to be sent to this client
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
 
@@ -112,11 +112,10 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   byte * cmd=local;
   
   heartBeat=millis();
-//  DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
+  //  DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
 
-  //send turnoutlist on next response after the init string
-  if (initSent && !turnoutListSent) {
-    // Send turnout list if populated
+  // Send turnout list when requested
+  if (sendTurnoutList) {
     if (Turnout::firstTurnout) {
         StringFormatter::send(stream,F("PTL"));
         for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
@@ -124,7 +123,13 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
         }
         StringFormatter::send(stream,F("\n"));
     }
-    turnoutListSent = true;
+    sendTurnoutList = false;
+  }
+
+  // Send power state when requested
+  if (sendPowerState) {
+    StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+    sendPowerState = false;  
   }
 
    while (cmd[0]) {
@@ -136,22 +141,18 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
        case 'P':  
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
-              StringFormatter::send(stream, F("PPA%c\n"),cmd[3]);
+              StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
             }
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
                 bool newstate=false;
                 Turnout * tt=Turnout::get(id);
                 if (!tt) {
-		  // If turnout does not exist, create it
-		  int addr = ((id - 1) / 4) + 1;
-		  int subaddr = (id - 1) % 4;
-		  Turnout::create(id,addr,subaddr);
+                  // If turnout does not exist, create it
+                  int addr = ((id - 1) / 4) + 1;
+                  int subaddr = (id - 1) % 4;
+                  Turnout::create(id,addr,subaddr);
                   StringFormatter::send(stream, F("HMTurnout %d created\n"),id);
-/*
-                  StringFormatter::send(stream, F("HMTurnout %d Unknown\n"),id);
-                  break;
-*/
                 }
                 switch (cmd[3]) {
                     case 'T': newstate=true; break;
@@ -174,15 +175,13 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
               if (annotateLeftRight) StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
               else                   StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
               StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_TIMEOUT);
-              initSent = true;
+              sendTurnoutList = true; // send turnout list on next reply (avoid msg length overflow)
             }
             break;           
       case 'Q': // 
-            LOOPLOCOS('*', -1) { //stop and drop all locos still assigned to this WiThrottle
+            LOOPLOCOS('*', -1) { // tell client to drop any locos still assigned to this WiThrottle
               if (myLocos[loco].throttle!='\0') {
-                DCC::setThrottle(myLocos[loco].cab,1,1);
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
-                myLocos[loco].throttle='\0';
               }
             }
             DIAG(F("WiThrottle(%d) Quit\n"), clientid);
@@ -228,31 +227,24 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                   StringFormatter::send(stream, F("HMLength '%c' not valid for %d!\n"), cmd[3] ,locoid);                    
                   return;
                 }
-                //return error if address is already in use
-                if (isThrottleInUse(locoid)) { 
-                  StringFormatter::send(stream, F("HMAddress '%d' in use!\n"), locoid);                    
-                  return;
-                }
-               for (int loco=0;loco<MAX_MY_LOCO;loco++) {
-                  //use first empty "slot" on this client's list, and add to registration list
+                //use first empty "slot" on this client's list, and add to registration list
+                for (int loco=0;loco<MAX_MY_LOCO;loco++) {
                   if (myLocos[loco].throttle=='\0') { 
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
-                    DCC::setThrottle(locoid,0,1); //register this loco address, speed zero, direction forward
-                    StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid);
+                    StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
                     // TODO... get known Fn states from DCC (need memoryStream improvements to handle data length)
                     // for(fKey=0; fKey<29; fKey++)StringFormatter::send(stream,F("M%cA%c<;>F0&s\n"),throttleChar,cmd[3],fkey);
-                    StringFormatter::send(stream, F("M%cA%c%d<;>V0\n"), throttleChar, cmd[3], locoid); //default speed 0
-                    StringFormatter::send(stream, F("M%cA%c%d<;>R1\n"), throttleChar, cmd[3], locoid); //default forward
+                    StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleSpeed(myLocos[loco].cab));
+                    StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(myLocos[loco].cab));
                     StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
                     break;
                   }
                }
                break;
-          case '-': // stop and remove loco(s)
+          case '-': // remove loco(s) from this client (leave in DCC registration)
                  LOOPLOCOS(throttleChar, locoid) {
                      myLocos[loco].throttle='\0';
-                     DCC::setThrottle(myLocos[loco].cab,1, DCC::getThrottleDirection(myLocos[loco].cab));
                      StringFormatter::send(stream, F("M%c-%c%d<;>\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab);
                   }
             
@@ -331,7 +323,7 @@ void WiThrottle::loop() {
 }
 
 void WiThrottle::checkHeartbeat() {
-  // if 2 heartbeats missed... STOP and forget all locos for this client
+  // if 2 heartbeats missed... eSTOP all locos for this client
   if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*2000)) {
     DIAG(F("WiThrottle(%d) hearbeat missed, dropping connection"),clientid);
     LOOPLOCOS('*', -1) { //stop and drop all locos still assigned to this WiThrottle

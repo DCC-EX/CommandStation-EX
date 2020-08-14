@@ -48,13 +48,12 @@ class WiThrottle {
        
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
-      bool initSent=false;
-      bool turnoutListSent=false;
       unsigned long heartBeat;
-      
-     void multithrottle(Print & stream, byte * cmd);
-     void locoAction(Print & stream, byte* aval, char throttleChar, int cab);
-     void accessory(Print & stream, byte* cmd);
-     void checkHeartbeat();  
+      bool sendTurnoutList; // this client needs to send turnout list on next reply      
+      bool sendPowerState;  // this client needs to send power state on next reply
+      void multithrottle(Print & stream, byte * cmd);
+      void locoAction(Print & stream, byte* aval, char throttleChar, int cab);
+      void accessory(Print & stream, byte* cmd);
+      void checkHeartbeat();  
 };
 #endif
