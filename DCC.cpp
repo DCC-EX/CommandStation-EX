@@ -95,6 +95,15 @@ bool DCC::getThrottleDirection(int cab) {
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
+bool DCC::isThrottleInUse(int locoId) {
+  // return true if this loco address is already in table, false otherwise
+  int reg;
+  for (reg = 0; reg < MAX_LOCOS; reg++) {
+    if (speedTable[reg].loco == locoId) return true;
+  }
+  return false;
+}
+
 // Set function to value on or off
 void DCC::setFn( int cab, byte functionNumber, bool on) {
   if (cab<=0 || functionNumber>28) return;
