@@ -64,6 +64,22 @@ void Hardware::setSignal(bool isMainTrack, bool high) {
   if (pin2 != UNUSED_PIN) WritePin(pin2, high ? LOW : HIGH);
 }
 
+void Hardware::setSyncSignal(bool high) {
+  // This sets the same signal down both tracks at the same time.
+  // Speed notes.... 
+  // Objective is to get the two track signals to change as close as possible
+  // the high ? HIGH:LOW will only be evaluated once
+  // The UNUSED_PIN check will be done at compile time.
+  // If even more speed is required, its possible (not SAMD) to pre-prepare the
+  // DIO pinnumber->pincode translation so the WritePin (digitalWrite2) does not
+  // have to calculate the register and bit numbers every time.
+     
+  WritePin(MAIN_SIGNAL_PIN, high ? HIGH : LOW);
+  WritePin(PROG_SIGNAL_PIN, high ? HIGH : LOW);
+  if (MAIN_SIGNAL_PIN_ALT != UNUSED_PIN) WritePin(MAIN_SIGNAL_PIN_ALT, high ? LOW : HIGH);
+  if (PROG_SIGNAL_PIN_ALT != UNUSED_PIN) WritePin(PROG_SIGNAL_PIN_ALT, high ? LOW : HIGH);
+}
+
 int Hardware::getCurrentRaw(bool isMainTrack) {
   // tooo much crap for a interrupt routine. Will see how that goes.
   byte faultpin = isMainTrack ? MAIN_FAULT_PIN : PROG_FAULT_PIN;
