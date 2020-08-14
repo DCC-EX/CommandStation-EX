@@ -33,21 +33,20 @@ int ramLowWatermark = 256000;
 const uint8_t kIRQmicros = 29;
 const uint8_t kNumLocos = 50;
 
-#if defined CONFIG_WSM_FIREBOX_MK1
-DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_MK1_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_WSM_FireBox_MK1_Prog();
-#elif defined CONFIG_WSM_FIREBOX_MK1S
-DCCMain* mainTrack = DCCMain::Create_WSM_FireBox_MK1S_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_WSM_FireBox_MK1S_Prog();
-#elif defined CONFIG_ARDUINO_MOTOR_SHIELD
-DCCMain* mainTrack = DCCMain::Create_Arduino_L298Shield_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_Arduino_L298Shield_Prog();
+Railcom* mainRailcom;
+
+#if defined CONFIG_ARDUINO_MOTOR_SHIELD
+BoardArduinoMotorShield* mainBoard;
+BoardArduinoMotorShield* progBoard;
 #elif defined CONFIG_POLOLU_MOTOR_SHIELD
-DCCMain* mainTrack = DCCMain::Create_Pololu_MC33926Shield_Main(kNumLocos);
-DCCService* progTrack = DCCService::Create_Pololu_MC33926Shield_Prog();
+BoardPololuMotorShield* mainBoard;
+BoardPololuMotorShield* progBoard;
 #else
 #error "Cannot compile - no board selected in Config.h"
 #endif
+
+DCCMain* mainTrack;
+DCCService* progTrack;
 
 void waveform_IrqHandler() {
   bool mainInterrupt = mainTrack->interrupt1();
@@ -59,18 +58,64 @@ void waveform_IrqHandler() {
 #if defined(ARDUINO_ARCH_SAMD)
 void SERCOM4_Handler()
 {   
-  mainTrack->railcom.getSerial()->IrqHandler();
+  mainTrack->railcom->getSerial()->IrqHandler();
 }
 #elif defined(ARDUINO_ARCH_SAMC)
 void SERCOM0_Handler()
 {   
-  mainTrack->railcom.getSerial()->IrqHandler();
+  mainTrack->railcom->getSerial()->IrqHandler();
 }
 #endif
 
 void setup() {
+  
+
+#if defined CONFIG_ARDUINO_MOTOR_SHIELD
+  BoardConfigArduinoMotorShield mainConfig;
+  BoardArduinoMotorShield::getDefaultConfigA(mainConfig);
+  mainConfig.track_power_callback = DCCEXParser::trackPowerCallback;
+  // Add modifications to pinouts, currents, etc here using mainConfig.setting = value; syntax
+
+  //
+  mainBoard = new BoardArduinoMotorShield(mainConfig);
+
+  BoardConfigArduinoMotorShield progConfig;
+  BoardArduinoMotorShield::getDefaultConfigB(progConfig);
+  progConfig.track_power_callback = DCCEXParser::trackPowerCallback;
+  // Add modifications to pinouts, currents, etc here using progConfig.setting = value; syntax
+
+  //
+  progBoard = new BoardArduinoMotorShield(progConfig);
+#elif defined CONFIG_POLOLU_MOTOR_SHIELD
+  BoardConfigPololuMotorShield mainConfig;
+  BoardPololuMotorShield::getDefaultConfigA(mainConfig);
+  mainConfig.track_power_callback = DCCEXParser::trackPowerCallback;
+  // Add modifications to pinouts, currents, etc here using mainConfig.setting = value; syntax
+
+  //
+  mainBoard = new BoardPololuMotorShield(mainConfig);
+
+  BoardConfigPololuMotorShield progConfig;
+  BoardPololuMotorShield::getDefaultConfigB(progConfig);
+  progConfig.track_power_callback = DCCEXParser::trackPowerCallback;
+  // Add modifications to pinouts, currents, etc here using progConfig.setting = value; syntax
+
+  //
+  progBoard = new BoardPololuMotorShield(progConfig);
+#endif
+
+  RailComConfig rcomConfig;
+  Railcom::getDefaultConfig(rcomConfig);  // Default is off
+  mainRailcom = new Railcom(rcomConfig);
+
+  mainBoard->setup();
+  mainTrack = new DCCMain(kNumLocos, mainBoard, mainRailcom);
   mainTrack->setup();
-  progTrack->setup();
+  
+  progBoard->setup();
+  progTrack = new DCCService(progBoard);
+  progTrack->setup(); // Currently doesn't do anything, but may be extended later
+  progTrack->board->progMode(ON);   // Limits current to 250mA. Current limit can be changed in config above.
 
   // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
   // We will fire an interrupt every 29us to generate the signal on the track 
@@ -79,13 +124,10 @@ void setup() {
   TimerA.attachInterrupt(waveform_IrqHandler);
   TimerA.start();
 
-  mainTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
-  progTrack->hdw.config_setTrackPowerCallback(DCCEXParser::trackPowerCallback);
-
   // Register the serial interface
 #if defined (ARDUINO_ARCH_SAMD)
   CommManager::registerInterface(new USBInterface(SerialUSB));
-  while(!SerialUSB) {}  // Wait for USB to come online (remove once wifi is implemented)
+  while(!SerialUSB) {}
   Wire.begin();       // Needed for EEPROM to work
   EEStore::init(&SerialUSB);
 #elif defined (ARDUINO_ARCH_SAMC)
@@ -96,8 +138,6 @@ void setup() {
   CommManager::registerInterface(new SerialInterface(Serial));
   EEStore::init(&Serial);
 #endif
-
-  
 
   // Set up the string parser to accept commands from the interfaces
   DCCEXParser::init(mainTrack, progTrack);       
@@ -110,9 +150,11 @@ void loop() {
   mainTrack->loop();
   progTrack->loop();
 
+#if defined(FREE_MEM_PRINT)
   int freeNow=freeMemory();
   if (freeNow<ramLowWatermark) {
     ramLowWatermark=freeNow;
-    CommManager::broadcast(F("\nFree RAM=%d\n"),ramLowWatermark);
+    CommManager::broadcast(F("\n\rFree RAM=%d\n\r"),ramLowWatermark);
   }
+#endif
 }
