@@ -18,7 +18,7 @@
  */
 
 #include <Arduino.h>
-#include <CommandStation.h>
+#include <DCC-EX-Lib.h>
 #include <ArduinoTimers.h>
 
 #include "Config.h"
