@@ -55,9 +55,23 @@ bool WiThrottle::annotateLeftRight=false;
 
 WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
-     if (wt->clientid==wifiClient) return wt;
+     if (wt->clientid==wifiClient) return wt; 
   return new WiThrottle( wifiClient);
 }
+
+bool WiThrottle::isThrottleInUse(int cab) {
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
+     if (wt->areYouUsingThrottle(cab)) return true;
+  return false;
+}
+
+bool WiThrottle::areYouUsingThrottle(int cab) {
+  LOOPLOCOS('*', cab) { // see if I have this cab in use
+      return true;
+  }
+  return false;
+}
+
 
  // One instance of WiThrottle per connected client, so we know what the locos are 
  
@@ -166,8 +180,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
       case 'Q': // 
             LOOPLOCOS('*', -1) { //stop and drop all locos still assigned to this WiThrottle
               if (myLocos[loco].throttle!='\0') {
-                DCC::setThrottle(myLocos[loco].cab,0,1);
-                DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
+                DCC::setThrottle(myLocos[loco].cab,1,1);
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
                 myLocos[loco].throttle='\0';
               }
@@ -216,7 +229,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                   return;
                 }
                 //return error if address is already in use
-                if (DCC::isThrottleInUse(locoid)) { 
+                if (isThrottleInUse(locoid)) { 
                   StringFormatter::send(stream, F("HMAddress '%d' in use!\n"), locoid);                    
                   return;
                 }
@@ -239,8 +252,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
           case '-': // stop and remove loco(s)
                  LOOPLOCOS(throttleChar, locoid) {
                      myLocos[loco].throttle='\0';
-                     DCC::setThrottle(myLocos[loco].cab,0, DCC::getThrottleDirection(myLocos[loco].cab));
-                     DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
+                     DCC::setThrottle(myLocos[loco].cab,1, DCC::getThrottleDirection(myLocos[loco].cab));
                      StringFormatter::send(stream, F("M%c-%c%d<;>\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab);
                   }
             
@@ -306,7 +318,7 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
             case 'I': // Idle, set speed to 0
             case 'Q': // Quit, set speed to 0
               LOOPLOCOS(throttleChar, cab) {
-                DCC::setThrottle(myLocos[loco].cab,0, DCC::getThrottleDirection(myLocos[loco].cab));
+                DCC::setThrottle(myLocos[loco].cab,1, DCC::getThrottleDirection(myLocos[loco].cab));
               }
               break;
             }               
@@ -326,7 +338,6 @@ void WiThrottle::checkHeartbeat() {
       if (myLocos[loco].throttle!='\0') {
         DIAG(F("  dropping cab %c"),clientid, myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); //eStop
-        DCC::forgetLoco(myLocos[loco].cab); //unregister this loco address
       }
     }
     delete this;
