@@ -92,7 +92,7 @@ void setup() {
   CommManager::registerInterface(new SerialInterface(Serial));
   Wire.begin();       // Needed for EEPROM to work
   EEStore::init(&Serial);
-#elif defined(ARDUINO_ARCH_AVR)
+#elif defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
   CommManager::registerInterface(new SerialInterface(Serial));
   EEStore::init(&Serial);
 #endif
