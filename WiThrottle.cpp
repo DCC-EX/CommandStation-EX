@@ -114,15 +114,13 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   heartBeat=millis();
   //  DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
 
-  // Send turnout list when requested
+  // Send turnout list when requested (will replace list on client)
   if (sendTurnoutList) {
-    if (Turnout::firstTurnout) {
-        StringFormatter::send(stream,F("PTL"));
-        for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-            StringFormatter::send(stream,F("]\\[%d}|{T%d}|{%d"), tt->data.id, tt->data.id, (bool)(tt->data.tStatus & STATUS_ACTIVE));
-        }
-        StringFormatter::send(stream,F("\n"));
+    StringFormatter::send(stream,F("PTL"));
+    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+        StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), tt->data.id, tt->data.id, Turnout::isActive(tt->data.id)?'4':'2');
     }
+    StringFormatter::send(stream,F("\n"));
     sendTurnoutList = false;
   }
 
@@ -161,6 +159,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                 }
 		            Turnout::activate(id,newstate);
                 StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
+                sendTurnoutList = true;
             }
             break;
        case 'N':  // Heartbeat (2)
