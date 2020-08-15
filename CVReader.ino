@@ -82,9 +82,7 @@ void setup() {
    // Standard supported devices have pre-configured macros but custome hardware installations require 
    //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
      
-   DCC::begin(new MotorDriver(MAIN_POWER_PIN,MAIN_SIGNAL_PIN,MAIN_SIGNAL_PIN_ALT,MAIN_BRAKE_PIN,MAIN_SENSE_PIN,MAIN_SENSE_FACTOR, MAIN_MAX_MILLIAMPS,MAIN_FAULT_PIN),
-              new MotorDriver(PROG_POWER_PIN,PROG_SIGNAL_PIN,PROG_SIGNAL_PIN_ALT,PROG_BRAKE_PIN,PROG_SENSE_PIN,PROG_SENSE_FACTOR, PROG_MAX_MILLIAMPS,PROG_FAULT_PIN));
-   
+   DCC::begin(STANDARD_MOTOR_SHIELD);
 
    // Responsibility 3: Optionally Start the WiFi interface if required.
    //   NOTE: On a Uno you will have to provide a SoftwareSerial 

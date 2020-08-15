@@ -26,7 +26,7 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
-const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
+//const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
 bool DCCWaveform::progTrackSyncMain=false; 
 
@@ -265,7 +265,7 @@ int DCCWaveform::getLastCurrent() {
 
 void DCCWaveform::setAckBaseline(bool debug) {
       if (isMainTrack) return; 
-      ackThreshold=motorDriver->getCurrentRaw() + ACK_MIN_PULSE_RAW;
+      ackThreshold=motorDriver->getCurrentRaw() + (int)(65 / motorDriver->senseFactor);
       if (debug) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->convertToMilliamps(ackThreshold));
 }
 
