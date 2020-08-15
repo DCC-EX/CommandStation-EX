@@ -71,7 +71,14 @@ bool WiThrottle::areYouUsingThrottle(int cab) {
   }
   return false;
 }
-
+void WiThrottle::setSendPowerState() {
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
+     wt->sendPowerState = true;
+}
+void WiThrottle::setSendTurnoutList() {
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
+     wt->sendTurnoutList = true;
+}
 
  // One instance of WiThrottle per connected client, so we know what the locos are 
  
@@ -140,6 +147,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+              setSendPowerState(); //tell all WiThrottle instances to send power state at next heartbeat
             }
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
@@ -159,7 +167,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                 }
 		            Turnout::activate(id,newstate);
                 StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
-                sendTurnoutList = true;
+                setSendTurnoutList(); //tell all WiThrottle instances to send turnout list at next heartbeat
             }
             break;
        case 'N':  // Heartbeat (2)
@@ -267,16 +275,16 @@ void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int c
              } 
             break;
            case 'F': //F onOff function
-                {
-		  bool funcstate;
-                  bool pressed=aval[1]=='1';
-                  int fKey = getInt(aval+2);
-                  LOOPLOCOS(throttleChar, cab) {
-		      funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
-		      if(funcstate==0 || funcstate==1)
-			  StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
-						myLocos[loco].cab, funcstate, fKey);
-		  }
+              {
+		            bool funcstate;
+                bool pressed=aval[1]=='1';
+                int fKey = getInt(aval+2);
+                LOOPLOCOS(throttleChar, cab) {
+		              funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
+		              if(funcstate==0 || funcstate==1)
+			              StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
+						          myLocos[loco].cab, funcstate, fKey);
+		              }
                 }
                 break;  
             case 'q':

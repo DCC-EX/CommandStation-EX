@@ -42,6 +42,8 @@ class WiThrottle {
       static int getLocoId(byte * cmd);
       static char LorS(int cab); 
       static bool isThrottleInUse(int cab);
+      static void setSendTurnoutList();
+      static void setSendPowerState();
       bool areYouUsingThrottle(int cab);
       WiThrottle* nextThrottle;
       int clientid;
