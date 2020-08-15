@@ -19,17 +19,21 @@
 #ifndef MotorDriver_h
 #define MotorDriver_h
 // Virtualised Motor shield 1-track hardware Interface
+
 class MotorDriver {
   public:
-    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, byte faultPin);
+    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     void setPower( bool on);
     void setSignal( bool high);
     void setBrake( bool on);
     int  getCurrentRaw();
     unsigned int  convertToMilliamps( int rawValue);
-  private:
-   byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
+  
+    byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
    float senseFactor;
+   unsigned int tripMilliamps;
+   int rawCurrentTripValue;
+   const byte UNUSED_PIN = 255;
     
 };
 #endif

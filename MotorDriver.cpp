@@ -31,7 +31,8 @@
     #define ReadPin digitalRead
 #endif
     
-MotorDriver::MotorDriver(byte power_pin, int signal_pin, int signal_pin2, int brake_pin, int current_pin, float sense_factor, int fault_pin) {
+MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, 
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
    powerPin=power_pin;
    signalPin=signal_pin;
    signalPin2=signal_pin2;
@@ -39,8 +40,8 @@ MotorDriver::MotorDriver(byte power_pin, int signal_pin, int signal_pin2, int br
    currentPin=current_pin;
    senseFactor=sense_factor;
    faultPin=fault_pin;
-   I32=(int) (32000 / sensefactor);
-   
+   tripMilliamps=trip_milliamps;
+   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
   pinMode(powerPin, OUTPUT);
   pinMode(brakePin, OUTPUT);
   pinMode(signalPin, OUTPUT);
@@ -64,14 +65,14 @@ void MotorDriver::setSignal( bool high) {
 
 int MotorDriver::getCurrentRaw() {
   if (faultPin != UNUSED_PIN && ReadPin(faultPin) == LOW && ReadPin(powerPin) == HIGH)
-      return I32:
+      return (int)(32000/senseFactor);
   
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
-  return analogReadFast(sensePin);
+  return analogReadFast(currentPin);
 }
 
-unsigned int MortorDriver::convertRawToMilliamps( int raw) {
+unsigned int MotorDriver::convertToMilliamps( int raw) {
   return (unsigned int)(raw * senseFactor);
 }
