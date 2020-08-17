@@ -16,21 +16,24 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef Hardware_h
-#define Hardware_h
-// Virtualised hardware Interface
-class Hardware {
+#ifndef MotorDriver_h
+#define MotorDriver_h
+// Virtualised Motor shield 1-track hardware Interface
+
+class MotorDriver {
   public:
-    static void init();
-    static void setPower(bool isMainTrack, bool on);
-    static void setSignal(bool isMainTrack, bool high);
-    static void setSyncSignal( bool high);
-    static unsigned int  getCurrentMilliamps(bool isMainTrack, int rawValue);
-    static int  getCurrentRaw(bool isMainTrack);
-    static void setBrake(bool isMainTrack, bool on);
-    static void setCallback(int duration,  void (*isr)());
-    static void pinWrite(int pin, bool high); // gets better perf and less code than arduino digitalWrite
-//    static void setSingleCallback(int duration,  void (*isr)());
-//    static void resetSingleCallback(int duration);
+    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    void setPower( bool on);
+    void setSignal( bool high);
+    void setBrake( bool on);
+    int  getCurrentRaw();
+    unsigned int  convertToMilliamps( int rawValue);
+  
+    byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
+   float senseFactor;
+   unsigned int tripMilliamps;
+   int rawCurrentTripValue;
+   const byte UNUSED_PIN = 255;
+    
 };
 #endif

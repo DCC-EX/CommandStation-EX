@@ -24,6 +24,14 @@
 #include "DCCEXParser.h"
 #include "WifiInterface.h"
 
+#ifdef ARDUINO_AVR_UNO 
+  #include <SoftwareSerial.h>
+  SoftwareSerial Serial1(15,16); // YOU must get thee pins correct to use Wifi on a UNO
+  #define WIFI_BAUD 9600
+#else 
+  #define WIFI_BAUD 115200 
+#endif 
+ 
 // this code is here to demonstrate use of the DCC API and other techniques
 
 // myFilter is an example of an OPTIONAL command filter used to intercept < > commands from
@@ -74,22 +82,26 @@ void setup() {
   
   // Responsibility 1: Start the usb connection for diagnostics and possible JMRI input
   // DIAGSERAL is normally Serial but uses SerialUSB on a SAMD processor
-   DIAGSERIAL.begin(115200);
-   while(!DIAGSERIAL);
-   
-   // Responsibility 2: Start the DCC engine.   
-   DCC::begin();
+  DIAGSERIAL.begin(115200);
+  while(!DIAGSERIAL);
+  
+   // Responsibility 2: Start the DCC engine.
+   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
+   // Standard supported devices have pre-configured macros but custome hardware installations require 
+   //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
+     
+   DCC::begin(STANDARD_MOTOR_SHIELD);
 
-   // Responsibility 3: Optionally Start the WiFi interface if required.
+   // Responsibility 3: **Optionally** Start the WiFi interface if required.
    //   NOTE: On a Uno you will have to provide a SoftwareSerial 
    //         configured for the pins connected to the Wifi card
    //         and a 9600 baud rate. 
    //  setup(serial, F(router name), F(password) , port)
-   //            
-#ifdef WIFI
-    Serial1.begin(115200);
-    WifiInterface::setup(Serial1, F(WIFI_CONNECT_TO_SSID), F(WIFI_CONNECT_PASSWORD),F("DCCEX"),F("CVReader"),3532); // (3532 is 0xDCC decimal... )
-#endif
+   //   (port 3532 is 0xDCC decimal.)     
+
+      
+    Serial1.begin(WIFI_BAUD);
+    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); 
     
    //  This is just for demonstration purposes 
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
@@ -98,7 +110,7 @@ void setup() {
    
    // Optionally tell the command parser to use my example filter.
    // This will intercept JMRI commands from both USB and Wifi 
-   DCCEXParser::setFilter(myFilter);
+    DCCEXParser::setFilter(myFilter);
    
    DIAG(F("\nReady for JMRI commands\n"));
    
@@ -115,13 +127,11 @@ void loop() {
   serialParser.loop(DIAGSERIAL);
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
-#ifdef WIFI
   WifiInterface::loop();
-#endif
 
-  // Your additional code
+  // Your additional loop code
   
-  // OPtionally report any decrease in memory (will automatically trigger on first call)
+  // Optionally report any decrease in memory (will automatically trigger on first call)
   int freeNow=freeMemory();
   if (freeNow<ramLowWatermark) {
     ramLowWatermark=freeNow;

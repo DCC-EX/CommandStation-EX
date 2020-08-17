@@ -20,7 +20,7 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
-#include "Hardware.h"
+
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -42,9 +42,9 @@ const byte FN_GROUP_4=0x08;
 const byte FN_GROUP_5=0x10;         
 
 
-void DCC::begin() {
+void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver) {
   debugMode=false;
-  DCCWaveform::begin();
+  DCCWaveform::begin(mainDriver,progDriver); 
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {

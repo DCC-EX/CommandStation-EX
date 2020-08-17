@@ -1,37 +1,36 @@
 #ifndef Config_h
 #define Config_h
 
-// Define these if you have a WiFi board on Serial1
-#define WIFI
-#define WIFI_CONNECT_TO_SSID  "RPi-JMRI"
-#define WIFI_CONNECT_PASSWORD "rpI-jmri"
+// *** PLEASE NOTE *** THIS FILE IS  **NOT**  INTENDED TO BE EDITED WHEN CONFIGURING A SYSTEM.
+// It will be overwritten if the library is updated.
 
-// This hardware configuration would normally be setup using a bunch of #ifdefs.
+// This file contains configurations for known/supported motor shields.
+// A configuration defined by macro here can be used in your sketch.
+// A custom hardware setup will require your sketch to create MotorDriver instances
+// similar to those defined here, WITHOUT editing this file.
+   
 
 const byte UNUSED_PIN = 255;
 
-const byte MAIN_POWER_PIN = 3;
-const byte MAIN_SIGNAL_PIN = 12;
-const byte MAIN_SIGNAL_PIN_ALT = UNUSED_PIN;  // for hardware that flipflops signal pins 
-const byte MAIN_SENSE_PIN = A0;   
-const byte MAIN_BRAKE_PIN = 9;
-const byte MAIN_FAULT_PIN = UNUSED_PIN;
+// MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin,
+//             float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    
+// Arduino standard Motor Shield
+#define STANDARD_MOTOR_SHIELD     \
+   new MotorDriver(3 , 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN),    \
+   new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 250 , UNUSED_PIN) 
 
-const int   MAIN_MAX_MILLIAMPS=2000;
-const float MAIN_SENSE_FACTOR=2.99; //  analgRead(MAIN_SENSE_PIN) * MAIN_SENSE_FACTOR = milliamps 
-
-const byte PROG_POWER_PIN = 11;
-const byte PROG_SIGNAL_PIN = 13;
-const byte PROG_SIGNAL_PIN_ALT = UNUSED_PIN;  // for hardware that flipflops signal pins 
-const byte PROG_SENSE_PIN = A1;
-const byte PROG_BRAKE_PIN = 8;
-const byte PROG_FAULT_PIN = UNUSED_PIN;
-
-const int   PROG_MAX_MILLIAMPS=250;
-const float PROG_SENSE_FACTOR=2.99; //  analgRead(PROG_SENSE_PIN) * PROG_SENSE_FACTOR = milliamps 
+// Pololu Motor Shield
+#define POLOLU_MOTOR_SHIELD     \
+   new MotorDriver(4, 7, UNUSED_PIN, 9 , A0, 18, 2000, 12),    \
+   new MotorDriver(2, 8, UNUSED_PIN, 10, A1, 18, 250 , UNUSED_PIN) 
 
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-const byte MAX_LOCOS=50;             
+ #ifdef ARDUINO_AVR_UNO 
+  const byte MAX_LOCOS=20;
+ #else 
+  const byte MAX_LOCOS=50; 
+ #endif              
 
 #endif

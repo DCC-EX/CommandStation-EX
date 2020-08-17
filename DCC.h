@@ -20,6 +20,7 @@
 #define DCC_h
 #include <Arduino.h>
 #include "Config.h"
+#include "MotorDriver.h"
 
 typedef void (*ACK_CALLBACK)(int result);
 
@@ -49,7 +50,7 @@ SKIPTARGET=0xFF  // jump to target
 class DCC {
   public:
 
-  static void begin();
+  static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
   static void loop();
 
   // Public DCC API functions

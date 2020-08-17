@@ -19,12 +19,13 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 #include "Config.h"
+#include "MotorDriver.h"
 
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
-const int  MIN_ACK_PULSE_DURATION = 3000;
+const int  MIN_ACK_PULSE_DURATION = 2000;
 const int  MAX_ACK_PULSE_DURATION = 8500;
  
 
@@ -45,8 +46,8 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 
 class DCCWaveform {
   public:
-    DCCWaveform( byte preambleBits, bool isMain, int maxRawCurrent);
-    static void begin();
+    DCCWaveform( byte preambleBits, bool isMain);
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
@@ -73,7 +74,7 @@ class DCCWaveform {
     void setSignal(bool high);
     
     bool isMainTrack;
-    
+    MotorDriver*  motorDriver;
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE];  // packet being transmitted
     byte transmitLength;
@@ -95,7 +96,6 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
-    int rawCurrentTripValue;
     static const int ACK_CURRENT_TRIP=1000; // During ACK processing limit can be higher
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
