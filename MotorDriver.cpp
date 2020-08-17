@@ -22,13 +22,16 @@
 #include "DIAG.h"
 
 
-#if defined(ARDUINO_ARCH_AVR)
+
+#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC) || defined(ARDUINO_ARCH_MEGAAVR)
+    #define WritePin digitalWrite
+    #define ReadPin digitalRead
+#else
+    // use the DIO2 libraray for much faster pin access
+    #define GPIO2_PREFER_SPEED 1
     #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
     #define WritePin digitalWrite2
     #define ReadPin digitalRead2
-#else
-    #define WritePin digitalWrite
-    #define ReadPin digitalRead
 #endif
     
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, 

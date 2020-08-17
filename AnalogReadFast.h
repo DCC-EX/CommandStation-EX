@@ -89,7 +89,18 @@ int inline analogReadFast(uint8_t ADCpin)
   return adc;
 }
 
+#elif defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_AVR_NANO_EVERY)
+
+int inline analogReadFast(uint8_t ADCpin) 
+{ byte ADC0CTRLCoriginal = ADC0.CTRLC; 
+  ADC0.CTRLC = (ADC0CTRLCoriginal & 0b00110000) + 0b01000011; 
+  int adc = analogRead(ADCpin);  
+  ADC0.CTRLC = ADC0CTRLCoriginal;
+  return adc;
+}
+
 #else
+
 int inline analogReadFast(uint8_t ADCpin) 
 { byte ADCSRAoriginal = ADCSRA; 
   ADCSRA = (ADCSRA & B11111000) | 4; 

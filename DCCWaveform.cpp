@@ -26,17 +26,19 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
-//const int ACK_MIN_PULSE_RAW=65 / PROG_SENSE_FACTOR;
 
 bool DCCWaveform::progTrackSyncMain=false; 
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
+
   TimerA.initialize();
   TimerA.setPeriod(58);
   TimerA.attachInterrupt(interruptHandler);
   TimerA.start();
+  mainTrack.setPowerMode(POWERMODE::ON);      
+  progTrack.setPowerMode(POWERMODE::ON);      
 
 }
 
@@ -85,7 +87,6 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   sampleDelay = 0;
   lastSampleTaken = millis();
   ackPending=false;
-  setPowerMode(POWERMODE::ON);      
 }
 
 POWERMODE DCCWaveform::getPowerMode() {

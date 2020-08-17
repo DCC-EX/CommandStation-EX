@@ -44,7 +44,7 @@ const byte FN_GROUP_5=0x10;
 
 void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver) {
   debugMode=false;
-  DCCWaveform::begin(mainDriver,progDriver);
+  DCCWaveform::begin(mainDriver,progDriver); 
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
