@@ -1,20 +1,7 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
  *  
- *  This file is part of Asbelos DCC API
- *
- *  This is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  It is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ *  This file is a demonstattion of xcalling the  Asbelos DCC API
  */
 
 
@@ -23,6 +10,7 @@
 #include "DIAG.h"
 #include "DCCEXParser.h"
 #include "WifiInterface.h"
+
 
 #ifdef ARDUINO_AVR_UNO 
   #include <SoftwareSerial.h>
@@ -43,7 +31,7 @@
 //
 // The filter must be enabled by calling the DCC EXParser::setFilter method, see use in setup().
  
-void myFilter(Print * stream, byte & opcode, byte & paramCount, int p[]) {
+void myComandFilter(Print * stream, byte & opcode, byte & paramCount, int p[]) {
     (void)stream; // avoid compiler warning if we don't access this parameter
     switch (opcode) {  
        case '!': // Create a bespoke new command to clear all loco reminders <!> or specific locos e.g <! 3 4 99>
@@ -55,6 +43,24 @@ void myFilter(Print * stream, byte & opcode, byte & paramCount, int p[]) {
             break;  
     }
 }
+
+
+// This is an OPTIONAL example of a HTTP filter...
+// If you have configured wifi and an HTTP request is received on the Wifi connection
+// it will normally be rejected 404 Not Found.
+
+// If you wish to handle HTTP requests, you can create a filter and ask the WifiInterface to
+// call your code for each detected http request.
+   
+void myHttpFilter(Print * stream, byte * cmd) {
+     (void)cmd;  // Avoid compiler warning because this example doesnt use this parameter
+      
+     // BEWARE   - As soon as you start responding, the cmd buffer is trashed!
+     // You must get everything you need from it before using StringFormatter::send!
+       
+     StringFormatter::send(stream,F("HTTP/1.1 200 OK\nContent-Type: text/html\nConnnection: close\n\n"));
+     StringFormatter::send(stream,F("<html><body>This is my HTTP filter responding.<br/></body></html>"));    
+} 
 
 // Callback functions are necessary if you call any API that must wait for a response from the 
 // programming track. The API must return immediately otherwise other loop() functions would be blocked.
@@ -89,7 +95,9 @@ void setup() {
    // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
    // Standard supported devices have pre-configured macros but custome hardware installations require 
    //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
-     
+
+   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
+   
    DCC::begin(STANDARD_MOTOR_SHIELD);
 
    // Responsibility 3: **Optionally** Start the WiFi interface if required.
@@ -102,7 +110,10 @@ void setup() {
       
     Serial1.begin(WIFI_BAUD);
     WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); 
-    
+    // Optionally tell the Wifi parser to use my http filter.
+    // This will intercept http commands from Wifi. 
+    WifiInterface::setHTTPCallback(myHttpFilter); 
+ 
    //  This is just for demonstration purposes 
    DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
@@ -110,7 +121,8 @@ void setup() {
    
    // Optionally tell the command parser to use my example filter.
    // This will intercept JMRI commands from both USB and Wifi 
-    DCCEXParser::setFilter(myFilter);
+   DCCEXParser::setFilter(myComandFilter);
+
    
    DIAG(F("\nReady for JMRI commands\n"));
    

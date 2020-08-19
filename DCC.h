@@ -19,8 +19,8 @@
 #ifndef DCC_h
 #define DCC_h
 #include <Arduino.h>
-#include "Config.h"
 #include "MotorDriver.h"
+#include "MotorDrivers.h"
 
 typedef void (*ACK_CALLBACK)(int result);
 
@@ -46,6 +46,15 @@ COMBINELOCOID, // combines current value with stashed value and returns it
 ITSKIP,        // skip to SKIPTARGET if ack true
 SKIPTARGET=0xFF  // jump to target
 };
+
+// Allocations with memory implications..!
+// Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
+ #ifdef ARDUINO_AVR_UNO 
+  const byte MAX_LOCOS=20;
+ #else 
+  const byte MAX_LOCOS=50; 
+ #endif              
+
 
 class DCC {
   public:

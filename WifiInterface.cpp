@@ -17,11 +17,9 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "WifiInterface.h"
-#include "Config.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
-#include "HTTPParser.h" 
 const char  PROGMEM READY_SEARCH[]  ="\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] ="\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] ="@ 1000";
@@ -38,6 +36,8 @@ int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER];
 MemStream  WifiInterface::streamer(buffer,sizeof(buffer));
 Stream * WifiInterface::wifiStream=NULL;
+HTTP_CALLBACK WifiInterface::httpCallback=0;
+
 
 void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                  const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
@@ -114,6 +114,10 @@ void WifiInterface::ATCommand(const byte * command) {
    checkForOK(10000,OK_SEARCH,true);
 }
 
+void WifiInterface::setHTTPCallback(HTTP_CALLBACK callback) {
+  httpCallback=callback;  
+}
+
 bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo) {
   unsigned long  startTime = millis();
    char  const *locator=waitfor;
@@ -136,7 +140,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
   return false;
 }
 
-bool WifiInterface::isHTML() {
+bool WifiInterface::isHTTP() {
   
   // POST GET PUT PATCH DELETE
   // You may think a simple strstr() is better... but not when ram & time is in short supply  
@@ -239,9 +243,14 @@ void WifiInterface::loop() {
     //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
 
    closeAfter=false;
+   
    // Intercept HTTP requests 
-    if (isHTML()) {
-      HTTPParser::parse(streamer,buffer);
+    if (isHTTP()) {
+      if (httpCallback) httpCallback(&streamer,buffer);
+          else {
+            StringFormatter::send(streamer,F("HTTP/1.1 404 Not Found\nContent-Type: text/html\nConnnection: close\n\n"));
+            StringFormatter::send(streamer,F("<html><body>This is <b>not</b> a web server.<br/></body></html>"));    
+          }
       closeAfter=true;
     }
     else if (buffer[0]=='<')  parser.parse(&streamer,buffer, true);    // tell JMRI parser that ACKS are blocking because we can't handle the async 

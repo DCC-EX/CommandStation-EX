@@ -18,7 +18,6 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
-#include "Config.h"
 #include "MotorDriver.h"
 
 const int  POWER_SAMPLE_ON_WAIT = 100;

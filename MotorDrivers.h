@@ -1,5 +1,5 @@
-#ifndef Config_h
-#define Config_h
+#ifndef MotorDrivers_h
+#define MotorDrivers_h
 
 // *** PLEASE NOTE *** THIS FILE IS  **NOT**  INTENDED TO BE EDITED WHEN CONFIGURING A SYSTEM.
 // It will be overwritten if the library is updated.
@@ -25,12 +25,16 @@ const byte UNUSED_PIN = 255;
    new MotorDriver(4, 7, UNUSED_PIN, 9 , A0, 18, 2000, 12),    \
    new MotorDriver(2, 8, UNUSED_PIN, 10, A1, 18, 250 , UNUSED_PIN) 
 
-// Allocations with memory implications..!
-// Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
- #ifdef ARDUINO_AVR_UNO 
-  const byte MAX_LOCOS=20;
- #else 
-  const byte MAX_LOCOS=50; 
- #endif              
+// Firebox Mk1 
+#define FIREBOX_MK1     \
+   new MotorDriver(3, 6, 7, UNUSED_PIN, A5, ??, 5500, UNUSED_PIN),    \
+   new MotorDriver(4, 8, 9, UNUSED_PIN, A1, ??, 250 , UNUSED_PIN) 
+
+// Firebox Mk1S 
+#define FIREBOX_MK1S     \
+   new MotorDriver(24, 21, 22, 25, 23, ??, 5500, UNUSED_PIN),    \
+   new MotorDriver(30, 27, 28, 31, 29, ??, 250 , UNUSED_PIN) 
+
+
 
 #endif
