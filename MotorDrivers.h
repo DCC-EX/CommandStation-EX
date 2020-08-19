@@ -27,14 +27,17 @@ const byte UNUSED_PIN = 255;
 
 // Firebox Mk1 
 #define FIREBOX_MK1     \
-   new MotorDriver(3, 6, 7, UNUSED_PIN, A5, ??, 5500, UNUSED_PIN),    \
-   new MotorDriver(4, 8, 9, UNUSED_PIN, A1, ??, 250 , UNUSED_PIN) 
+   new MotorDriver(3, 6, 7, UNUSED_PIN, A5, 9.766, 5500, UNUSED_PIN),    \
+   new MotorDriver(4, 8, 9, UNUSED_PIN, A1, 5.00, 250 , UNUSED_PIN) 
 
 // Firebox Mk1S 
 #define FIREBOX_MK1S     \
-   new MotorDriver(24, 21, 22, 25, 23, ??, 5500, UNUSED_PIN),    \
-   new MotorDriver(30, 27, 28, 31, 29, ??, 250 , UNUSED_PIN) 
+   new MotorDriver(24, 21, 22, 25, 23, 9.766, 5500, UNUSED_PIN),    \
+   new MotorDriver(30, 27, 28, 31, 29, 5.00, 250 , UNUSED_PIN) 
 
-
+// FunduMoto Motor Shield
+#define FUNDUMOTO_SHIELD     \
+   new MotorDriver(10 , 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN),    \
+   new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 250 , UNUSED_PIN)
 
 #endif
