@@ -21,8 +21,8 @@
 
 
 struct MYLOCO {
-    char throttle;
-    int cab;
+    char throttle; //indicates which throttle letter on client, often '0','1' or '2'
+    int cab; //address of this loco
 };
 
 class WiThrottle {
@@ -43,7 +43,6 @@ class WiThrottle {
       static char LorS(int cab); 
       static bool isThrottleInUse(int cab);
       static void setSendTurnoutList();
-      static void setSendPowerState();
       bool areYouUsingThrottle(int cab);
       WiThrottle* nextThrottle;
       int clientid;
@@ -51,8 +50,11 @@ class WiThrottle {
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
       unsigned long heartBeat;
-      bool sendTurnoutList; // this client needs to send turnout list on next reply      
-      bool sendPowerState;  // this client needs to send power state on next reply
+      bool initSent; // valid connection established
+      int turnoutListHash;  // used to check for changes to turnout list
+      bool lastPowerState;  // last power state sent to this client
+      int DCCToWiTSpeed(int DCCSpeed);
+      int WiTToDCCSpeed(int WiTSpeed);
       void multithrottle(Print & stream, byte * cmd);
       void locoAction(Print & stream, byte* aval, char throttleChar, int cab);
       void accessory(Print & stream, byte* cmd);
