@@ -29,6 +29,7 @@
   if (tt==NULL) return false;
   tt->activate(state);
   if(n>0) EEPROM.put(n,tt->data.tStatus);
+  turnoutlistHash++;
   return true;
 }
 
@@ -68,6 +69,7 @@ bool Turnout::remove(int n){
     pp->nextTurnout=tt->nextTurnout;
 
   free(tt);
+  turnoutlistHash++;
   return true;
  
 }
@@ -150,8 +152,11 @@ Turnout *Turnout::create(int id){
      firstTurnout=tt;
      tt->data.id=id;
     }
+  turnoutlistHash++;
   return tt;
   }
   ///////////////////////////////////////////////////////////////////////////////
 
 Turnout *Turnout::firstTurnout=NULL;
+int Turnout::turnoutlistHash=0; //bump on every change so clients know when to refresh their lists
+

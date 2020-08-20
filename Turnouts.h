@@ -36,6 +36,7 @@ struct TurnoutData {
 class Turnout {
   public:
   static Turnout *firstTurnout;
+  static int turnoutlistHash;
   TurnoutData data;
   Turnout *nextTurnout;
   static  bool activate(int n, bool state);
