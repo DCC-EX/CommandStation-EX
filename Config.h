@@ -27,4 +27,7 @@
 #define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
 
+// Comment out this line to disable printing free memory every time it shrinks
+#define FREE_MEM_PRINT
+
 #endif  // COMMANDSTATION_DCC_CONFIG_H_
