@@ -102,7 +102,9 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
-
+ 
+  StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
+ 
   return true;
 }
 
@@ -242,14 +244,20 @@ void WifiInterface::loop() {
           break;
         }
         if (ch == 'K') { // assume its in  SEND OK
+          DIAG(F("\n Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
           StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
           loopstate = 0; // wait for +IPD
         }
         break;
 
     case 12: // Waiting for OK after send busy 
+        if (ch == '+') { // Uh-oh IPD problem
+          DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n"));
+          connectionId = 0;
+          loopstate = 1;
+        }
         if (ch == 'K') { // assume its in  SEND OK
-          DIAG(F("\n\n WIFI BUSY RETRYING SEND \n"));
+          DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available() - 1);
           StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available() - 1);
           loopTimeoutStart = millis();
           loopstate = 10; // non-blocking loop waits for > before sending
@@ -286,7 +294,10 @@ void WifiInterface::loop() {
 
   if (streamer.available() == 0) {
     // No reply
-    if (closeAfter) StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
+    if (closeAfter) {
+         DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
+         StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
+    }
     loopstate = 0; // go back to waiting for +IPD
     return;
   }
