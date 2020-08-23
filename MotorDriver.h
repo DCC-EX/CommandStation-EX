@@ -23,11 +23,11 @@
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
-    void setPower( bool on);
-    void setSignal( bool high);
-    void setBrake( bool on);
-    int  getCurrentRaw();
-    unsigned int  convertToMilliamps( int rawValue);
+    virtual void setPower( bool on);
+    virtual void setSignal( bool high);
+    virtual void setBrake( bool on);
+    virtual int  getCurrentRaw();
+    virtual unsigned int  convertToMilliamps( int rawValue);
   
     byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
    float senseFactor;
