@@ -33,13 +33,14 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
 
+  mainTrack.setPowerMode(POWERMODE::OFF);      
+  progTrack.setPowerMode(POWERMODE::OFF);      
+
   TimerA.initialize();
-  TimerA.setPeriod(58);
+  TimerA.setPeriod(58); // this is the 58uS DCC 1-bit waveform half-cycle
   TimerA.attachInterrupt(interruptHandler);
   TimerA.start();
-  mainTrack.setPowerMode(POWERMODE::ON);      
-  progTrack.setPowerMode(POWERMODE::ON);      
-
+ 
 }
 
 void DCCWaveform::loop() {
