@@ -21,7 +21,7 @@
 #include "DCCWaveform.h"
 #include "DIAG.h"
 #include "MotorDriver.h"
-#include <ArduinoTimers.h>  // use IDE menu Tools..Manage Libraries to locate and  install TimerOne
+#include "ArduinoTimers.h"  
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
