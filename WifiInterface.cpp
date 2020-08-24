@@ -25,6 +25,7 @@ const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] = "@ 1000";
 const char  PROGMEM PROMPT_SEARCH[] = ">";
 const char  PROGMEM SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
+const char  PROGMEM IPD_SEARCH[] = "+IPD";
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 bool WifiInterface::closeAfter = false;
@@ -46,12 +47,22 @@ void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
 
   DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
   connected = setup2( SSid, password, hostname, servername, port);
-  DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected ? F("OK") : F("FAILED"));
+ 
+  if (connected) StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
+ 
+ DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected ? F("OK") : F("FAILED"));
 }
 
 bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                            const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
   int ipOK = 0;
+  if (checkForOK(200,IPD_SEARCH, true)) {
+    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
+    loopstate=4;  // carry on from correct place 
+    return true; 
+  }
+
+   StringFormatter::send(wifiStream, F("ATE1\r\n")); // turn on the echo server on port
  
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); // request AT  version
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
@@ -103,8 +114,7 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
  
-  StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
- 
+  
   return true;
 }
 
