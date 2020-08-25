@@ -20,19 +20,18 @@
 #ifndef COMMANDSTATION_COMMINTERFACE_DCCEXPARSER_H_
 #define COMMANDSTATION_COMMINTERFACE_DCCEXPARSER_H_
 
-#include "../DCC/DCCMain.h"
-#include "../DCC/DCCService.h"
+#include "../DCC/DCC.h"
 
 #include <Arduino.h>
 
 struct DCCEXParser
 {
-  static DCCMain *mainTrack;
-  static DCCService *progTrack;
-  static void init(DCCMain* mainTrack_, DCCService* progTrack_);
+  static DCC *mainTrack;
+  static DCC *progTrack;
+  static void init(DCC* mainTrack_, DCC* progTrack_);
   static void parse(Print* stream, const char *);
   static void cvResponse(Print* stream, serviceModeResponse response);
-  static void POMResponse(Print* stream, RailcomPOMResponse response);
+  static void POMResponse(Print* stream, RailComPOMResponse response);
   static void trackPowerCallback(const char* name, bool status);
 private:
   static int stringParser(const char * com, int result[]);

@@ -19,14 +19,13 @@
 
 #include <Arduino.h>
 
-#include "src/DCC/DCCMain.h"
-#include "src/DCC/DCCService.h"
+#include "src/DCC/DCC.h"
 #include "src/CommInterface/CommManager.h"
 #include "src/CommInterface/DCCEXParser.h"
 #include "src/Accessories/EEStore.h"
-#include "src/ArduinoTimers/ArduinoTimers.h"
 
 #include "Config.h"
+#include "src/Utils/ArduinoTimers/ArduinoTimers.h"
 #include "src/Utils/FreeMemory.h"
 
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
@@ -36,15 +35,18 @@ int ramLowWatermark = 256000;
 #endif
 
 const uint8_t kIRQmicros = 29;
-const uint8_t kNumLocos = 50;
 
-Railcom* mainRailcom;
+#if defined(ARDUINO_AVR_UNO)
+const uint8_t kNumLocos = 10;
+#else
+const uint8_t kNumLocos = 50;
+#endif
 
 DCC_BOARD_NAME* mainBoard;
 DCC_BOARD_NAME* progBoard;
 
-DCCMain* mainTrack;
-DCCService* progTrack;
+DCC* mainTrack;
+DCC* progTrack;
 
 void waveform_IrqHandler() {
   bool mainInterrupt = mainTrack->interrupt1();
@@ -73,18 +75,12 @@ void setup() {
 
   ////////////////////////////////////////////////////////////////////////////////////////
   progBoard = new DCC_BOARD_NAME(progConfig);
-
-  RailComConfig rcomConfig;
-  Railcom::getDefaultConfig(rcomConfig);  // Default is off
-  mainRailcom = new Railcom(rcomConfig);
-
+  
   mainBoard->setup();
-  mainTrack = new DCCMain(kNumLocos, mainBoard, mainRailcom);
-  mainTrack->setup();
+  mainTrack = new DCC(kNumLocos, mainBoard);
   
   progBoard->setup();
-  progTrack = new DCCService(progBoard);
-  progTrack->setup(); // Currently doesn't do anything, but may be extended later
+  progTrack = new DCC(kNumLocos, progBoard);
   progTrack->board->progMode(ON);   // Limits current to 250mA. Current limit can be changed in config above.
 
   // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328

@@ -26,8 +26,7 @@ struct BoardConfigArduinoMotorShield : public BoardConfig {
   // Used to store functionality special to this type of shield
 };
 
-class BoardArduinoMotorShield : public Board
-{
+class BoardArduinoMotorShield : public Board {
 public:
   BoardConfigArduinoMotorShield config;
 
@@ -49,6 +48,7 @@ public:
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
+    _config.prog_threshold = 20;
   }
 
   static void getDefaultConfigB(BoardConfigArduinoMotorShield& _config) {
@@ -65,6 +65,7 @@ public:
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
+    _config.prog_threshold = 20;
   }
 
   void setup();
@@ -73,7 +74,6 @@ public:
   
   void power(bool, bool announce);
   void signal(bool);
-  void cutout(bool);
   void progMode(bool);
 
   uint16_t getCurrentRaw();
@@ -88,6 +88,13 @@ public:
   void checkOverload();
 
   uint8_t getPreambles();
+
+  uint16_t getThreshold() { return config.prog_threshold; }
+
+  void rcomCutout(bool);
+  
+  void rcomEnable(bool) {} // Empty because not supported on this board
+  void rcomRead() {} // Empty because not supported on this board
   
 private:
   bool isCurrentLimiting();

@@ -21,8 +21,6 @@
 #define COMMANDSTATION_COMMINTERFACE_COMMMANAGER_H_
 
 #include "CommInterface.h"
-#include "../DCC/DCCMain.h"
-#include "../DCC/DCCService.h"
 
 #include "CommInterfaceSerial.h"
 #if defined (ARDUINO_ARCH_SAMD)

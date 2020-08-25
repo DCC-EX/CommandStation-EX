@@ -19,8 +19,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_DCC_ANALOGREADFAST_H_
-#define COMMANDSTATION_DCC_ANALOGREADFAST_H_
+#ifndef COMMANDSTATION_BOARDS_ANALOGREADFAST_H_
+#define COMMANDSTATION_BOARDS_ANALOGREADFAST_H_
 
 #include <Arduino.h>
 

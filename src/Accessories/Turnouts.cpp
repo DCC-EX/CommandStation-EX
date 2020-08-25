@@ -26,7 +26,7 @@
 #include <EEPROM.h>
 #endif
 
-void Turnout::activate(Print* stream, int s, DCCMain* track){
+void Turnout::activate(Print* stream, int s, DCC* track){
   // if s>0 set turnout=ON, else if zero or negative set turnout=OFF
   data.tStatus=(s>0);   
   genericResponse response;

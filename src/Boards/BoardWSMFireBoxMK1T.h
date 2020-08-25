@@ -21,11 +21,16 @@
 #define COMMANDSTATION_BOARDS_BOARDWSMFIREBOXMK1T_H_
 
 #include "Board.h"
+#include "wiring_private.h"
+
+#if defined(ARDUINO_ARCH_SAMC)
 
 struct BoardConfigWSMFireBoxMK1T : public BoardConfig {
   // Used to store functionality special to this type of shield
   int cutout_pin;
   int limit_pin;
+
+  Uart* serial;
 };
 
 class BoardWSMFireBoxMK1T : public Board
@@ -51,9 +56,12 @@ public:
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
-  
+
     _config.cutout_pin = 32;
     _config.limit_pin = 25;
+
+    _config.serial = Serial2;
+    _config.railcom_baud = 250000;
   }
 
   static void getDefaultConfigB(BoardConfigWSMFireBoxMK1T& _config) {
@@ -73,6 +81,9 @@ public:
   
     _config.cutout_pin = 34;
     _config.limit_pin = 31;
+
+    _config.serial = Serial3;
+    _config.railcom_baud = 250000;
   }
 
   void setup();
@@ -96,13 +107,20 @@ public:
   void checkOverload();
 
   uint8_t getPreambles();
+
+  void rcomCutout(bool);
+  void rcomEnable(bool);
+  void rcomRead();
+
+  uint16_t getThreshold() { return config.prog_threshold; }
   
 private:
   bool isCurrentLimiting();
 
-  // Variable used to protect railcom circuit against track power being applied
+  // Variable used to stop track power from coming on during cutout
   bool inCutout;
 };
 
+#endif  // ARDUINO_ARCH_SAMC
 
-#endif
+#endif  // COMMANDSTATION_BOARDS_BOARDWSMFIREBOXMK1T_H_

@@ -25,9 +25,9 @@
 
 // Choose the motor shield that you want to use.
 
-//#define CONFIG_ARDUINO_MOTOR_SHIELD
+#define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
-#define CONFIG_WSM_FIREBOX_MK1T
+//#define CONFIG_WSM_FIREBOX_MK1T
 
 // Comment out this line to disable printing free memory every time it shrinks
 #define FREE_MEM_PRINT
@@ -45,6 +45,8 @@
 #include "src/Boards/BoardWSMFireBoxMK1T.h"
 #define DCC_BOARD_NAME BoardWSMFireBoxMK1T
 #define DCC_BOARD_CONFIG_NAME BoardConfigWSMFireBoxMK1T
+#else
+#error "Config.h - you did not specify a valid board option"
 #endif
 
 #endif  // COMMANDSTATION_DCC_CONFIG_H_

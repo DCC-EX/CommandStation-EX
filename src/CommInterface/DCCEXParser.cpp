@@ -28,12 +28,12 @@
 #include "../../Config.h"
 #include "CommManager.h"
 
-DCCMain* DCCEXParser::mainTrack;
-DCCService* DCCEXParser::progTrack;
+DCC* DCCEXParser::mainTrack;
+DCC* DCCEXParser::progTrack;
 
 int DCCEXParser::p[MAX_PARAMS];
 
-void DCCEXParser::init(DCCMain* mainTrack_, DCCService* progTrack_) {
+void DCCEXParser::init(DCC* mainTrack_, DCC* progTrack_) {
   mainTrack = mainTrack_;
   progTrack = progTrack_;
 } 
@@ -140,7 +140,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     case 2:   
       t=Turnout::get(p[0]);
       if(t!=NULL)
-        t->activate(stream, p[1], (DCCMain*) mainTrack);
+        t->activate(stream, p[1], (DCC*) mainTrack);
       else
         CommManager::send(stream, F("<X>"));
       break;
@@ -273,7 +273,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     break;
 
 /***** READ CONFIGURATION VARIABLE BYTE FROM RAILCOM DECODER ON MAIN TRACK ****/
-
+  
   case 'r': {   // <r CAB CV>
     genericResponse response;
 
@@ -289,6 +289,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     mainTrack->readCVBytesMain(p[0], p[1], response, stream, POMResponse);
     break;
     }
+
 /***** TURN ON POWER FROM MOTOR SHIELD TO TRACKS  ****/
 
   case '1':      // <1>
@@ -369,7 +370,7 @@ void DCCEXParser::cvResponse(Print* stream, serviceModeResponse response) {
   }
 }
 
-void DCCEXParser::POMResponse(Print* stream, RailcomPOMResponse response) {
+void DCCEXParser::POMResponse(Print* stream, RailComPOMResponse response) {
   CommManager::send(stream, F("<k %d %x>"), response.transactionID, response.data);
 }
 

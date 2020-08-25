@@ -39,7 +39,7 @@ void BoardPololuMotorShield::signal(bool dir) {
   writePin(config.signal_a_pin, dir);
 }
 
-void BoardPololuMotorShield::cutout(bool on) {
+void BoardPololuMotorShield::rcomCutout(bool on) {
   writePin(config.signal_b_pin, !on);
 }
 

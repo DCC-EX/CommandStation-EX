@@ -21,7 +21,7 @@
 #define COMMANDSTATION_BOARDS_BOARD_H_
 
 #include <Arduino.h>
-#include "AnalogReadFast.h"
+#include "../Utils/AnalogReadFast.h"
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
 #define writePin digitalWrite
@@ -50,13 +50,16 @@ const float kCurrentSampleSmoothing = 0.01;
 // Number of milliseconds between retries when the "breaker" is tripped.
 const int kRetryTime = 10000;
 
+// Size of the RailCom buffer, in bytes
+const int kRcomBufferSize = 8;
+
 struct BoardConfig
 {
   const char* track_name;
-  uint8_t signal_a_pin;
-  uint8_t signal_b_pin;
-  uint8_t enable_pin;
-  uint8_t sense_pin;  
+  int signal_a_pin;
+  int signal_b_pin;
+  int enable_pin;
+  int sense_pin;  
   float board_voltage;
   float amps_per_volt;
   uint16_t current_trip;
@@ -64,7 +67,9 @@ struct BoardConfig
   uint16_t prog_trip_time;
   uint8_t main_preambles;
   uint8_t prog_preambles;
+  uint16_t prog_threshold; 
   void (*track_power_callback)(const char* name, bool status);
+  int railcom_baud;
 };
 
 
@@ -75,10 +80,9 @@ public:
 
   virtual void power(bool, bool announce) = 0;
   virtual void signal(bool) = 0;
-  // True to enter a railcom cutout, false to recover
-  virtual void cutout(bool) = 0;
   // True to enter prog mode and limit current
   virtual void progMode(bool) = 0;
+  bool getProgMode() { return inProgMode; }
 
   // Returns current reading 0-1024
   virtual uint16_t getCurrentRaw() = 0;   
@@ -89,11 +93,23 @@ public:
   virtual uint16_t setCurrentBase() = 0;
   virtual uint16_t getCurrentBase() = 0;
 
+  virtual uint16_t getThreshold() = 0;
+
   virtual bool getStatus() = 0;
 
   virtual void checkOverload() = 0;
 
   virtual uint8_t getPreambles() = 0;
+
+  // True to enter a RailCom cutout, false to recover
+  virtual void rcomCutout(bool) = 0;
+
+  // True to enable RailCom data reception, false to disable
+  virtual void rcomEnable(bool) = 0;
+  // Fills RailCom buffer (buffer must be empty)
+  virtual void rcomRead() = 0;
+  uint8_t rcomBuffer[kRcomBufferSize] = {0,0,0,0,0,0,0,0};
+
 protected:
   // Current reading variables
   uint16_t reading;

@@ -39,7 +39,7 @@ void BoardArduinoMotorShield::signal(bool dir) {
   writePin(config.signal_a_pin, dir);
 }
 
-void BoardArduinoMotorShield::cutout(bool on) {
+void BoardArduinoMotorShield::rcomCutout(bool on) {
   writePin(config.signal_b_pin, on);
 }
 

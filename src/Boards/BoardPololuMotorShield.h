@@ -73,7 +73,6 @@ public:
   
   void power(bool, bool announce);
   void signal(bool);
-  void cutout(bool);
   void progMode(bool);
 
   uint16_t getCurrentRaw();
@@ -88,7 +87,13 @@ public:
   void checkOverload();
 
   uint8_t getPreambles();
+
+  uint16_t getThreshold() { return config.prog_threshold; }
   
+  void rcomCutout(bool);
+  
+  void rcomEnable(bool) {} // Empty because not supported on this board
+  void rcomRead() {} // Empty because not supported on this board
 private:
   bool isCurrentLimiting();
 };

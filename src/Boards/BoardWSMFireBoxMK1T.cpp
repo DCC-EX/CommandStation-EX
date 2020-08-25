@@ -19,6 +19,8 @@
 
 #include "BoardWSMFireBoxMK1T.h"
 
+#if defined(ARDUINO_ARCH_SAMC)
+
 void BoardWSMFireBoxMK1T::setup() {
   pinMode(config.enable_pin, OUTPUT);
   writePin(config.enable_pin, LOW);
@@ -39,6 +41,8 @@ void BoardWSMFireBoxMK1T::setup() {
 
   tripped = false;
   inCutout = false;
+
+  config.serial->begin(config.railcom_baud);
 }
 
 const char * BoardWSMFireBoxMK1T::getName() {
@@ -67,17 +71,6 @@ void BoardWSMFireBoxMK1T::signal(bool dir) {
     writePin(config.signal_a_pin, dir);
     writePin(config.signal_b_pin, !dir);
   }
-}
-
-void BoardWSMFireBoxMK1T::cutout(bool on) {
-  inCutout = on;
-
-  if(on) {
-    writePin(config.signal_a_pin, OFF);
-    writePin(config.signal_b_pin, OFF);
-  }
-
-  writePin(config.cutout_pin, !on);
 }
 
 uint16_t BoardWSMFireBoxMK1T::getCurrentRaw() {
@@ -147,3 +140,35 @@ uint8_t BoardWSMFireBoxMK1T::getPreambles() {
   return config.main_preambles;
 }
 
+void BoardWSMFireBoxMK1T::rcomCutout(bool on) {
+  inCutout = on;  // Protect railcom against track power
+
+  if(on) {
+    writePin(config.signal_a_pin, OFF);
+    writePin(config.signal_b_pin, OFF);
+  }
+
+  writePin(config.cutout_pin, !on);
+}
+
+void BoardWSMFireBoxMK1T::rcomEnable(bool on) {
+  if(on)  // Flush the serial port RX buffer
+    while(config.serial->available())
+      config.serial->read();
+}
+
+void BoardWSMFireBoxMK1T::rcomRead() {
+  // Check that the buffer is empty
+  for(int i = 0; i < kRcomBufferSize; i++) {
+    if(rcomBuffer[i] != 0x00) return;
+  }
+
+  // Determine how many bytes are available for read
+  uint8_t bytes = config.serial->available();
+  if(bytes > 8) bytes = 8;
+
+  // Read available bytes into the RailCom buffer
+  config.serial->readBytes(rcomBuffer, bytes);
+}
+
+#endif  // ARDUINO_ARCH_SAMC

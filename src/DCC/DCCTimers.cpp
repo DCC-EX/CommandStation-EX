@@ -1,5 +1,5 @@
 /*
- *  DCCMainTimers.cpp
+ *  DCCTimers.cpp
  * 
  *  This file is part of CommandStation.
  *
@@ -17,44 +17,44 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "DCCMain.h"
+#include "DCC.h"
 
-bool DCCMain::interrupt1() {
+bool DCC::interrupt1() {
   switch (interruptState) {
   case 0:   // start of bit transmission
     board->signal(HIGH);    
     interruptState = 1; 
     return true; // must call interrupt2 to set currentBit
   case 1:   // 29us after case 0
-    if(generateRailcomCutout) {
-      board->cutout(true);             // Start the cutout
-      inRailcomCutout = true;         
-      railcom->enableRecieve(true);  // Turn on the serial port so we can RX
+    if(rcomCutout) {
+      board->rcomCutout(true);             // Start the cutout
+      inRcomCutout = true;         
+      board->rcomEnable(true);  // Prepare the serial port to receive
     }
     interruptState = 2;
     break;
   case 2:   // 58us after case 0
-    if(currentBit && !generateRailcomCutout) {
+    if(currentBit && !rcomCutout) {
       board->signal(LOW);  
     }
     interruptState = 3;
     break; 
   case 3:   // 87us after case 0
-    if(currentBit && !generateRailcomCutout) {
+    if(currentBit && !rcomCutout) {
       // Return to case zero for start of another bit at 116us
       interruptState = 0;
     }
     else interruptState = 4;
     break;
   case 4:   // 116us after case 0
-    if(!generateRailcomCutout) {
+    if(!rcomCutout) {
       board->signal(LOW);
     }
     interruptState = 5;
     break;
   // Case 5 and 6 fall to default case
   case 7:   // 203us after case 0
-    if(!generateRailcomCutout) {
+    if(!rcomCutout) {
       // Return to case zero for start of another bit at 232us
       interruptState = 0; 
     }
@@ -62,15 +62,21 @@ bool DCCMain::interrupt1() {
     break;
   // Cases 8-15 are for railcom timing
   case 16:
-    board->cutout(false);      // Stop the cutout
-    board->signal(LOW);     // Send out 29us of signal before case 0 flips it
-    railcom->enableRecieve(false); // Turn off serial so we don't get garbage
+    board->rcomCutout(false);   // Stop the cutout
+    board->signal(LOW);         // Send out 29us of signal before case 0 flips it
+    board->rcomEnable(false);   // Turn off serial so we don't get garbage
+    
     // Read the data out and tag it with identifying info
-    railcom->readData(transmitID, transmitType, transmitAddress); 
-    generateRailcomCutout = false;    // Don't generate another railcom cutout
-    inRailcomCutout = false;        // We aren't in a railcom pulse
+    rcomAddr = transmitAddress;
+    rcomID = transmitID;
+    rcomTxType = transmitType;
+    board->rcomRead(); 
+
+    rcomCutout = false;         // Don't generate another railcom cutout
+    inRcomCutout = false;       // We aren't in a railcom pulse
     interruptState = 0;         // Go back to start of new bit
     break;
+  // Default case increments to the next case, 29us later
   default:
     interruptState++;
     break;
@@ -79,17 +85,18 @@ bool DCCMain::interrupt1() {
   return false;   // Don't call interrupt2
 }
 
-void DCCMain::interrupt2() {
+void DCC::interrupt2() {
   if (remainingPreambles > 0 ) {    // If there's more preambles to be sent
     currentBit=true;                // Send a one bit (preambles are one)
 
-    // If we're on the first preamble bit and railcom is enabled, send out a 
-    // railcom cutout. 
-    if((board->getPreambles() - remainingPreambles == 0) && railcom->config.enable) {
-      generateRailcomCutout = true; 
+    // If we're on the first preamble bit, we're not in programming mode, and 
+    // RailCom is enabled, send out a RailCom cutout. 
+    if((board->getPreambles() - remainingPreambles == 0) && !board->getProgMode()) {
+      rcomCutout = true; 
       remainingPreambles -= 4;    // We're skipping 4 bits in the cutout
       return;
     }
+
     remainingPreambles--;   // decrement the number of preambles to send
     return;
   }

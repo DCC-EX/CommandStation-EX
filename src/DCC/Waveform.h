@@ -17,6 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// TODO: Integrate this with DCC.h and DCCTimers.cpp.
+
 #ifndef COMMANDSTATION_DCC_WAVEFORM_H_
 #define COMMANDSTATION_DCC_WAVEFORM_H_
 
