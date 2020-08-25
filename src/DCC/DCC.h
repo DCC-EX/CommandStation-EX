@@ -233,7 +233,6 @@ public:
   uint8_t setFunction(uint16_t addr, uint8_t byte1, uint8_t byte2, genericResponse& response);
   uint8_t setAccessory(uint16_t addr, uint8_t number, bool activate, genericResponse& response);
   
-  
   // Writes a CV to a decoder on the main track and calls a callback function
   // if there is any railcom response to the request.
   uint8_t writeCVByteMain(uint16_t addr, uint16_t cv, uint8_t bValue, 
@@ -279,11 +278,21 @@ public:
 
   void rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType txType, uint16_t addr);
 
-  DCC(uint8_t numDevices, Board* board);
+  DCC(uint8_t numDevices, Board* board) {
+    this->numDevices = numDevices;
+    this->board = board;
+    
+    // Purge the queue memory
+    packetQueue.clear();
 
-  void setup() {
-    // Set up board from main file
-  }
+    // Allocate memory for the speed table and clear it
+    speedTable = (Speed *)calloc(numDevices, sizeof(Speed));
+    for (int i = 0; i < numDevices; i++)
+    {
+      speedTable[i].cab = 0;
+      speedTable[i].speedCode = 128;
+    }
+  };
 
   void loop() {
     board->checkOverload();
@@ -320,7 +329,28 @@ private:
 
   void schedulePacket(
     const uint8_t buffer[], uint8_t byteCount, uint8_t repeats, 
-    uint16_t identifier, PacketType type, uint16_t address);
+    uint16_t identifier, PacketType type, uint16_t address) {
+    
+    Packet newPacket;
+
+    uint8_t checksum=0;
+    for (int b=0; b<byteCount; b++) {
+      checksum ^= buffer[b];
+      newPacket.payload[b] = buffer[b];
+    }
+    newPacket.payload[byteCount] = checksum;
+    newPacket.length = byteCount+1;
+    newPacket.repeats = repeats;
+    newPacket.transmitID = identifier;
+    newPacket.type = type;
+    newPacket.address = address;
+
+    const Packet pushPacket = newPacket;
+    noInterrupts();
+    packetQueue.push(pushPacket); // Push the packet into the queue for processing
+    interrupts();  
+
+  }
 
   void updateSpeedTable(uint8_t cab, uint8_t speedCode);
   int lookupSpeedTable(uint8_t cab);
