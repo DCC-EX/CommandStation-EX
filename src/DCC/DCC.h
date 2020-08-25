@@ -22,8 +22,8 @@
 
 #include <Arduino.h>
 
-#include "Queue.h"
-#include "Waveform.h"
+#include "../Utils/Queue.h"
+#include "../Boards/Board.h"
 
 // Timing constraints for an ack pulse (millis)
 const int kMinAckPulseDuration = 3000;
@@ -210,8 +210,21 @@ const uint8_t kBitManipulate = 0x78;
 const uint8_t kBitOn = 0x08;
 const uint8_t kBitOff = 0x00;
 
-class DCC : public Waveform {
+const uint8_t kIdlePacket[] = {0xFF,0x00,0xFF};
+const uint8_t kResetPacket[] = {0x00,0x00,0x00};
+const uint8_t kBitMask[] = {0x00,0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
+
+const uint8_t kPacketMaxSize = 6; 
+
+enum : uint8_t {
+  ERR_OK = 1,
+  ERR_BUSY = 2,
+};
+
+class DCC {
 public:
+  Board* board;
+
   bool interrupt1();
   void interrupt2();
 
@@ -273,10 +286,10 @@ public:
   }
 
   void loop() {
-    Waveform::loop();
+    board->checkOverload();
     updateSpeed();
     ackManagerLoop();
-    if(!board->getProgMode())
+    if(!board->getProgMode()) // If we're not in programming mode
       rcomProcessData(board->rcomBuffer, rcomID, rcomTxType, rcomAddr);
   }
 
@@ -363,6 +376,30 @@ private:
   uint16_t rcomID;
   PacketType rcomTxType;
   uint16_t rcomAddr;
+
+  uint8_t interruptState = 0; // Waveform generator state
+
+  // Data that controls the packet currently being sent out.
+  uint8_t bits_sent;  // Bits sent from byte
+  uint8_t bytes_sent; // Bytes sent from packet
+  uint8_t currentBit = false;
+  uint8_t transmitRepeats = 0;  // Repeats (does not include initial transmit)
+  uint8_t remainingPreambles = 0; 
+  uint8_t generateStartBit = false;  // Send a start bit for the current byte?
+  uint8_t transmitPacket[kPacketMaxSize];
+  uint8_t transmitLength;
+  uint16_t transmitID = 0;
+
+  uint16_t counterID = 1; // Maintains the last assigned packet ID
+  bool counterWrap = false;
+
+  inline void incrementCounterID() { 
+    counterID++;
+    if(counterID == 0) {
+      counterID = 1;
+      counterWrap = true;
+    }
+  }
 };
 
 #endif
