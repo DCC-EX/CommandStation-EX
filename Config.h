@@ -20,14 +20,31 @@
 #ifndef COMMANDSTATION_DCC_CONFIG_H_
 #define COMMANDSTATION_DCC_CONFIG_H_
 
+#define VERSION "1.0.0"
+#define BOARD_NAME "DCC++ CommandStation"
+
 // Choose the motor shield that you want to use.
 
-//#define CONFIG_WSM_FIREBOX_MK1
-//#define CONFIG_WSM_FIREBOX_MK1S
-#define CONFIG_ARDUINO_MOTOR_SHIELD
+//#define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
+#define CONFIG_WSM_FIREBOX_MK1T
 
 // Comment out this line to disable printing free memory every time it shrinks
 #define FREE_MEM_PRINT
+
+// Macros translating board selection to board names
+#if defined(CONFIG_ARDUINO_MOTOR_SHIELD)
+#include "src/Boards/BoardArduinoMotorShield.h"
+#define DCC_BOARD_NAME BoardArduinoMotorShield 
+#define DCC_BOARD_CONFIG_NAME BoardConfigArduinoMotorShield
+#elif defined(CONFIG_POLOLU_MOTOR_SHIELD)
+#include "src/Boards/BoardPololuMotorShield.h"
+#define DCC_BOARD_NAME BoardPololuMotorShield 
+#define DCC_BOARD_CONFIG_NAME BoardConfigPololuMotorShield 
+#elif defined(CONFIG_WSM_FIREBOX_MK1T)
+#include "src/Boards/BoardWSMFireBoxMK1T.h"
+#define DCC_BOARD_NAME BoardWSMFireBoxMK1T
+#define DCC_BOARD_CONFIG_NAME BoardConfigWSMFireBoxMK1T
+#endif
 
 #endif  // COMMANDSTATION_DCC_CONFIG_H_

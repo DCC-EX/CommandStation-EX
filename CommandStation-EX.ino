@@ -1,5 +1,5 @@
 /*
- *  main.cpp
+ *  CommandStation-EX.ino
  * 
  *  This file is part of CommandStation-DCC.
  *
@@ -18,13 +18,18 @@
  */
 
 #include <Arduino.h>
-#include <DCC-EX-Lib.h>
-#include <ArduinoTimers.h>
+
+#include "src/DCC/DCCMain.h"
+#include "src/DCC/DCCService.h"
+#include "src/CommInterface/CommManager.h"
+#include "src/CommInterface/DCCEXParser.h"
+#include "src/Accessories/EEStore.h"
+#include "src/ArduinoTimers/ArduinoTimers.h"
 
 #include "Config.h"
-#include "FreeMemory.h"
+#include "src/Utils/FreeMemory.h"
 
-#if defined(ARDUINO_ARCH_AVR)
+#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 int ramLowWatermark = 32767;
 #else
 int ramLowWatermark = 256000;
@@ -35,15 +40,8 @@ const uint8_t kNumLocos = 50;
 
 Railcom* mainRailcom;
 
-#if defined CONFIG_ARDUINO_MOTOR_SHIELD
-BoardArduinoMotorShield* mainBoard;
-BoardArduinoMotorShield* progBoard;
-#elif defined CONFIG_POLOLU_MOTOR_SHIELD
-BoardPololuMotorShield* mainBoard;
-BoardPololuMotorShield* progBoard;
-#else
-#error "Cannot compile - no board selected in Config.h"
-#endif
+DCC_BOARD_NAME* mainBoard;
+DCC_BOARD_NAME* progBoard;
 
 DCCMain* mainTrack;
 DCCService* progTrack;
@@ -55,54 +53,26 @@ void waveform_IrqHandler() {
   if(progInterrupt) progTrack->interrupt2();
 }
 
-#if defined(ARDUINO_ARCH_SAMD)
-void SERCOM4_Handler()
-{   
-  mainTrack->railcom->getSerial()->IrqHandler();
-}
-#elif defined(ARDUINO_ARCH_SAMC)
-void SERCOM0_Handler()
-{   
-  mainTrack->railcom->getSerial()->IrqHandler();
-}
-#endif
-
 void setup() {
-  
-
-#if defined CONFIG_ARDUINO_MOTOR_SHIELD
-  BoardConfigArduinoMotorShield mainConfig;
-  BoardArduinoMotorShield::getDefaultConfigA(mainConfig);
+  DCC_BOARD_CONFIG_NAME mainConfig;
+  DCC_BOARD_NAME::getDefaultConfigA(mainConfig);
   mainConfig.track_power_callback = DCCEXParser::trackPowerCallback;
-  // Add modifications to pinouts, currents, etc here using mainConfig.setting = value; syntax
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Add modifications to pinouts, currents, etc here using mainConfig.SETTING = VALUE; //
+  ////////////////////////////////////////////////////////////////////////////////////////
 
-  //
-  mainBoard = new BoardArduinoMotorShield(mainConfig);
+  ////////////////////////////////////////////////////////////////////////////////////////
+  mainBoard = new DCC_BOARD_NAME(mainConfig);
 
-  BoardConfigArduinoMotorShield progConfig;
-  BoardArduinoMotorShield::getDefaultConfigB(progConfig);
+  DCC_BOARD_CONFIG_NAME progConfig;
+  DCC_BOARD_NAME::getDefaultConfigB(progConfig);
   progConfig.track_power_callback = DCCEXParser::trackPowerCallback;
-  // Add modifications to pinouts, currents, etc here using progConfig.setting = value; syntax
+  ////////////////////////////////////////////////////////////////////////////////////////
+  // Add modifications to pinouts, currents, etc here using progConfig.SETTING = VALUE; //
+  ////////////////////////////////////////////////////////////////////////////////////////
 
-  //
-  progBoard = new BoardArduinoMotorShield(progConfig);
-#elif defined CONFIG_POLOLU_MOTOR_SHIELD
-  BoardConfigPololuMotorShield mainConfig;
-  BoardPololuMotorShield::getDefaultConfigA(mainConfig);
-  mainConfig.track_power_callback = DCCEXParser::trackPowerCallback;
-  // Add modifications to pinouts, currents, etc here using mainConfig.setting = value; syntax
-
-  //
-  mainBoard = new BoardPololuMotorShield(mainConfig);
-
-  BoardConfigPololuMotorShield progConfig;
-  BoardPololuMotorShield::getDefaultConfigB(progConfig);
-  progConfig.track_power_callback = DCCEXParser::trackPowerCallback;
-  // Add modifications to pinouts, currents, etc here using progConfig.setting = value; syntax
-
-  //
-  progBoard = new BoardPololuMotorShield(progConfig);
-#endif
+  ////////////////////////////////////////////////////////////////////////////////////////
+  progBoard = new DCC_BOARD_NAME(progConfig);
 
   RailComConfig rcomConfig;
   Railcom::getDefaultConfig(rcomConfig);  // Default is off
@@ -132,8 +102,8 @@ void setup() {
   EEStore::init(&SerialUSB);
 #elif defined (ARDUINO_ARCH_SAMC)
   CommManager::registerInterface(new SerialInterface(Serial));
-  Wire.begin();       // Needed for EEPROM to work
-  EEStore::init(&Serial);
+  // Wire.begin();       // Needed for EEPROM to work
+  // EEStore::init(&Serial);
 #elif defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
   CommManager::registerInterface(new SerialInterface(Serial));
   EEStore::init(&Serial);
