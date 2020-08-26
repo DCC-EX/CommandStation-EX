@@ -21,10 +21,10 @@
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
 
-#if defined(SAMC21)
-#include "ATSAMC21G/Timer.h"
+#if defined(ARDUINO_ARCH_SAMC)
+#include "ATSAMC21/Timer.h"
 #else
-#include "ATSAMD21G/Timer.h"
+#include "ATSAMD21/Timer.h"
 #endif
 
 Timer TimerA(TCC0);
