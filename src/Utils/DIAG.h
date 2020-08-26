@@ -26,7 +26,7 @@
 #ifdef DEBUG_MODE
 #define DIAG CommManager::print
 #else
-#define DIAG (void*)
+#define DIAG CommManager::doNotPrint       // TODO: Can we do better than this??? A little kludgey
 #endif
 
 #endif  // COMMANDSTATION_UTILS_DIAG_H_
