@@ -49,7 +49,7 @@ uint8_t DCC::readCV(uint16_t cv, uint16_t callback, uint16_t callbackSub,
 void DCC::ackManagerSetup(uint16_t cv, uint8_t value, 
   ackOpCodes const program[], cv_edit_type type, uint16_t callbackNum, 
   uint16_t callbackSub, Print* stream, ACK_CALLBACK callback) {
-  
+
   ackManagerCV = cv;
   ackManagerProg = program;
   ackManagerByte = value;
@@ -58,7 +58,7 @@ void DCC::ackManagerSetup(uint16_t cv, uint8_t value,
   ackManagerCallbackNum = callbackNum;
   ackManagerCallbackSub = callbackSub;
   ackManagerType = type;
-  responseStream = stream;
+  responseStreamProg = stream;
 }
 
 void DCC::setAckPending() {
@@ -86,7 +86,6 @@ void DCC::checkAck() {
   uint16_t lastCurrent = board->getCurrentMilliamps();
   if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
 
-
   // Detect the leading edge of a pulse
   if(lastCurrent-board->getCurrentBase() > board->getThreshold()) {
     if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
@@ -101,10 +100,12 @@ void DCC::checkAck() {
     ackCheckDuration=millis()-ackCheckStart;
     ackDetected=true;
     ackPending=false;
-    transmitRepeats=0;  // shortcut remaining repeat packets 
+    transmitRepeats=0;  // shortcut remaining repeat packets
+    DIAG(F("\n\rGenuine ACK! micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
     return;  // we have a genuine ACK result
   }      
 
+  DIAG(F("\n\rBad ACK! micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
   ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
 
@@ -128,20 +129,25 @@ void DCC::ackManagerLoop() {
     case W1:    // write 1 bit 
       {
         if (resets<kResetRepeats) return; // try later 
+        DIAG(F("\n\rW%d cv=%d bit=%d"), opcode==W1, ackManagerCV, ackManagerBitNum);
         uint8_t instruction = kWriteBit | (opcode==W1 ? kBitOn : kBitOff) | ackManagerBitNum;
         uint8_t message[] = {cv1(kBitManipulate, ackManagerCV), cv2(ackManagerCV), instruction };
         incrementCounterID();
         schedulePacket(message, sizeof(message), kProgRepeats, counterID, kSrvcBitWriteType, 0);
+        transmitResetCount = 0;
         setAckPending(); 
+
       }
       break; 
     
     case WB:   // write byte 
       {
         if (resets<kResetRepeats) return; // try later 
+        DIAG(F("\n\rWB cv=%d value=%d"), ackManagerCV, ackManagerByte);
         uint8_t message[] = {cv1(kWriteByte, ackManagerCV), cv2(ackManagerCV), ackManagerByte };
         incrementCounterID();
         schedulePacket(message, sizeof(message), kProgRepeats, counterID, kSrvcByteWriteType, 0);
+        transmitResetCount = 0;
         setAckPending(); 
       }
       break;
@@ -149,9 +155,11 @@ void DCC::ackManagerLoop() {
     case VB:     // Issue validate Byte packet
       {
         if (resets<kResetRepeats) return; // try later 
+        DIAG(F("\n\rVB cv=%d value=%d"),ackManagerCV,ackManagerByte);
         uint8_t message[] = { cv1(kVerifyByte, ackManagerCV), cv2(ackManagerCV), ackManagerByte };
         incrementCounterID();
         schedulePacket(message, sizeof(message), kProgRepeats, counterID, kSrvcReadType, 0);
+        transmitResetCount = 0;
         setAckPending(); 
       }
       break;
@@ -160,10 +168,12 @@ void DCC::ackManagerLoop() {
     case V1:      // Issue validate bit=0 or bit=1  packet
       {
         if (resets<kResetRepeats) return; // try later 
+        DIAG(F("\n\rV%d cv=%d bit=%d"), opcode==V1, ackManagerCV, ackManagerBitNum);
         uint8_t instruction = kVerifyBit | (opcode == V0 ? kBitOff : kBitOn) | ackManagerBitNum;
         uint8_t message[] = {cv1(kBitManipulate, ackManagerCV), cv2(ackManagerCV), instruction };
         incrementCounterID();
         schedulePacket(message, sizeof(message), kProgRepeats, counterID, kSrvcReadType, 0);
+        transmitResetCount = 0;
         setAckPending(); 
       }
       break;
@@ -187,7 +197,7 @@ void DCC::ackManagerLoop() {
           response.callback = ackManagerCallbackNum;
           response.callbackSub = ackManagerCallbackSub; 
           response.type = ackManagerType;
-          callback(responseStream, response);
+          ackManagerCallback(responseStreamProg, response);
           return;
         }
       }
@@ -204,7 +214,7 @@ void DCC::ackManagerLoop() {
           response.callback = ackManagerCallbackNum;
           response.callbackSub = ackManagerCallbackSub; 
           response.type = ackManagerType;
-          callback(responseStream, response);
+          ackManagerCallback(responseStreamProg, response);
           return;
         }
       }
@@ -220,7 +230,7 @@ void DCC::ackManagerLoop() {
           response.callback = ackManagerCallbackNum;
           response.callbackSub = ackManagerCallbackSub; 
           response.type = ackManagerType;
-          callback(responseStream, response);
+          ackManagerCallback(responseStreamProg, response);
           return;
         }
       }
@@ -235,7 +245,7 @@ void DCC::ackManagerLoop() {
         response.callback = ackManagerCallbackNum;
         response.callbackSub = ackManagerCallbackSub; 
         response.type = ackManagerType;
-        callback(responseStream, response);
+        ackManagerCallback(responseStreamProg, response);
       }
       return;
           
@@ -248,10 +258,12 @@ void DCC::ackManagerLoop() {
       ackManagerByte <<= 1;
       // ackReceived means bit is zero. 
       if (!ackReceived) ackManagerByte |= 1;
+      DIAG(F(" %d"), !ackReceived);
       ackManagerBitNum--;
       break;
     default: 
       {
+        DIAG(F("\n\r!! ackOp %d FAULT!!"), opcode);
         ackManagerProg=NULL;
         serviceModeResponse response;
         response.cv = ackManagerCV;
@@ -259,14 +271,11 @@ void DCC::ackManagerLoop() {
         response.callback = ackManagerCallbackNum;
         response.callbackSub = ackManagerCallbackSub; 
         response.type = ackManagerType;
-        callback(responseStream, response);
+        ackManagerCallback(responseStreamProg, response);
       }
       return;        
     }  // end of switch
     ackManagerProg++;
   }
-}
-void DCC::callback(Print* stream, serviceModeResponse response) {
-  (ackManagerCallback)(stream, response);
 }
 

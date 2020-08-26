@@ -49,6 +49,7 @@ public:
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
+    _config.prog_threshold = 30;
   }
 
   static void getDefaultConfigB(BoardConfigPololuMotorShield& _config) {
@@ -65,6 +66,7 @@ public:
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
+    _config.prog_threshold = 30;
   }
 
   void setup();

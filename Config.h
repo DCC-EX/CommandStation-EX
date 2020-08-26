@@ -25,12 +25,12 @@
 
 // Choose the motor shield that you want to use.
 
-#define CONFIG_ARDUINO_MOTOR_SHIELD
-//#define CONFIG_POLOLU_MOTOR_SHIELD
+//#define CONFIG_ARDUINO_MOTOR_SHIELD
+#define CONFIG_POLOLU_MOTOR_SHIELD
 //#define CONFIG_WSM_FIREBOX_MK1T
 
-// Comment out this line to disable printing free memory every time it shrinks
-#define FREE_MEM_PRINT
+// Comment out this line to disable printing debug messages
+// #define DEBUG_MODE
 
 // Macros translating board selection to board names
 #if defined(CONFIG_ARDUINO_MOTOR_SHIELD)

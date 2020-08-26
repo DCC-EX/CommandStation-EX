@@ -23,7 +23,9 @@
 #include <Arduino.h>
 
 #include "../Utils/Queue.h"
+#include "../Utils/DIAG.h"
 #include "../Boards/Board.h"
+#include "../../Config.h"
 
 // Timing constraints for an ack pulse (millis)
 const int kMinAckPulseDuration = 3000;
@@ -223,6 +225,32 @@ enum : uint8_t {
 
 class DCC {
 public:
+  DCC(uint8_t numDevices, Board* board) {
+    this->numDevices = numDevices;
+    this->board = board;
+    
+    // Purge the queue memory
+    packetQueue.clear();
+
+    // Allocate memory for the speed table and clear it
+    speedTable = (Speed *)calloc(numDevices, sizeof(Speed));
+    for (int i = 0; i < numDevices; i++)
+    {
+      speedTable[i].cab = 0;
+      speedTable[i].speedCode = 128;
+    }
+  };
+
+  void loop() {
+    board->checkOverload();
+    updateSpeed();
+    
+    if(board->getProgMode()) // If we're in programming mode
+      ackManagerLoop();
+    else
+      rcomProcessData(board->rcomBuffer, rcomID, rcomTxType, rcomAddr);
+  }
+
   Board* board;
 
   bool interrupt1();
@@ -251,7 +279,6 @@ public:
   // with the four values.
   uint8_t readCVBytesMain(uint16_t addr, uint16_t cv, 
     genericResponse& response, Print *stream, void (*POMCallback)(Print*, RailComPOMResponse));
-
   uint8_t writeCVByte(uint16_t cv, uint8_t bValue, uint16_t callback, 
     uint16_t callbackSub, Print* stream, ACK_CALLBACK);
   uint8_t writeCVBit(uint16_t cv, uint8_t bNum, uint8_t bValue, 
@@ -278,54 +305,68 @@ public:
 
   void rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType txType, uint16_t addr);
 
-  DCC(uint8_t numDevices, Board* board) {
-    this->numDevices = numDevices;
-    this->board = board;
-    
-    // Purge the queue memory
-    packetQueue.clear();
-
-    // Allocate memory for the speed table and clear it
-    speedTable = (Speed *)calloc(numDevices, sizeof(Speed));
-    for (int i = 0; i < numDevices; i++)
-    {
-      speedTable[i].cab = 0;
-      speedTable[i].speedCode = 128;
-    }
-  };
-
-  void loop() {
-    board->checkOverload();
-    updateSpeed();
-    ackManagerLoop();
-    if(!board->getProgMode()) // If we're not in programming mode
-      rcomProcessData(board->rcomBuffer, rcomID, rcomTxType, rcomAddr);
-  }
-
   void setPOMResponseCallback(Print* _stream, void (*_POMResponse)(Print*, RailComPOMResponse)) {
     POMResponse = _POMResponse;
-    responseStream = _stream;
+    responseStreamProg = _stream;
   }
 private:
+
   // Queues a packet for the next device in line reminding it of its speed.
   void updateSpeed();
-  // Holds state for updateSpeed function.
-  uint8_t nextDev = 0;
+  uint8_t nextDev = 0;  // Holds state for updateSpeed function.
 
-  struct Packet {
-    uint8_t payload[kPacketMaxSize];
-    uint8_t length;
-    uint8_t repeats;
-    uint16_t transmitID;  // Identifier for RailCom and CV programming
-    PacketType type;      // Type of packet sent out on tracks
-    uint16_t address;     // Address packet sent to
-  };
+  // Functions for auto management of the speed table.
+  void updateSpeedTable(uint8_t cab, uint8_t speedCode);
+  int lookupSpeedTable(uint8_t cab);
 
-  PacketType transmitType = kIdleType;
-  uint16_t transmitAddress = 0;
+  bool rcomCutout = false; // Should we do a railcom cutout?
 
-  // Queue of packets, FIFO, that controls what gets sent out next. Size 5.
-  Queue<Packet, 5> packetQueue;
+  void (*POMResponse)(Print*, RailComPOMResponse);
+  Print* responseStreamPOM = nullptr;
+
+  uint16_t rcomID;
+  PacketType rcomTxType;
+  uint16_t rcomAddr;
+
+  const uint8_t kProgRepeats = 8;
+  const uint8_t kResetRepeats = 8;  
+
+  void ackManagerSetup(uint16_t cv, uint8_t value, ackOpCodes const program[],
+    cv_edit_type type, uint16_t callbackNum, uint16_t callbackSub, 
+    Print* stream, ACK_CALLBACK callback);
+  void ackManagerLoop();
+  ackOpCodes const * ackManagerProg = NULL;
+  cv_edit_type ackManagerType;
+  
+  uint16_t ackManagerCallbackNum;
+  uint16_t ackManagerCallbackSub;
+  uint8_t ackManagerByte;
+  uint8_t ackManagerBitNum;
+  uint16_t ackManagerCV;
+  
+  void setAckPending();
+  uint8_t didAck();
+  void checkAck();
+  bool ackReceived = false;
+  bool ackPending;
+  bool ackDetected; 
+  unsigned long ackCheckStart; // millis
+  unsigned int ackCheckDuration; // millis       
+  unsigned long ackPulseStart; // micros
+  unsigned int ackPulseDuration;  // micros
+  uint16_t ackMaxCurrent;
+
+  Print* responseStreamProg;
+  ACK_CALLBACK ackManagerCallback = NULL;
+
+  uint8_t cv1(uint8_t opcode, uint16_t cv)  {
+    cv--;
+    return (highByte(cv) & (uint8_t)0x03) | opcode;
+  }
+  uint8_t cv2(uint16_t cv)  {
+    cv--;
+    return lowByte(cv);
+  }
 
   void schedulePacket(
     const uint8_t buffer[], uint8_t byteCount, uint8_t repeats, 
@@ -349,76 +390,38 @@ private:
     noInterrupts();
     packetQueue.push(pushPacket); // Push the packet into the queue for processing
     interrupts();  
-
   }
 
-  void updateSpeedTable(uint8_t cab, uint8_t speedCode);
-  int lookupSpeedTable(uint8_t cab);
-
-  void ackManagerSetup(uint16_t cv, uint8_t value, ackOpCodes const program[],
-    cv_edit_type type, uint16_t callbackNum, uint16_t callbackSub, 
-    Print* stream, ACK_CALLBACK callback);
-  void ackManagerLoop();
-  void callback(Print* stream, serviceModeResponse value);
-  ackOpCodes const * ackManagerProg = NULL;
-  uint8_t ackManagerByte = 0;
-  uint8_t ackManagerBitNum = 0;
-  uint16_t ackManagerCV = 0;
-  bool ackReceived = false;
-  const uint8_t kProgRepeats = 8;
-  const uint8_t kResetRepeats = 8;
-  ACK_CALLBACK ackManagerCallback = NULL;
-  uint16_t ackManagerCallbackNum = 0;
-  uint16_t ackManagerCallbackSub = 0;
-  cv_edit_type ackManagerType = READCV;
-  Print* responseStream;
-
-  uint8_t cv1(uint8_t opcode, uint16_t cv)  {
-    cv--;
-    return (highByte(cv) & (uint8_t)0x03) | opcode;
-  }
-  uint8_t cv2(uint16_t cv)  {
-    cv--;
-    return lowByte(cv);
-  }
-
-  uint8_t transmitResetCount = 0;   // Tracks resets sent since last payload packet
-
-  void setAckPending();
-  uint8_t didAck();
-  void checkAck();
-  bool ackPending;
-  bool ackDetected; 
-  unsigned long ackCheckStart; // millis
-  unsigned int ackCheckDuration; // millis       
-  unsigned long ackPulseStart; // micros
-  unsigned int ackPulseDuration;  // micros
-  uint16_t ackMaxCurrent;
-
-  // Railcom cutout variables
-  // TODO(davidcutting42@gmail.com): Move these to the railcom class
-  bool rcomCutout = false; // Should we do a railcom cutout?
-  bool inRcomCutout = false;    // Are we in a cutout?
-
-  void (*POMResponse)(Print*, RailComPOMResponse);
-  Print* responseStreamPOM = nullptr;
-
-  uint16_t rcomID;
-  PacketType rcomTxType;
-  uint16_t rcomAddr;
-
-  uint8_t interruptState = 0; // Waveform generator state
+  struct Packet {
+    uint8_t payload[kPacketMaxSize];
+    uint8_t length;
+    uint8_t repeats;
+    uint16_t transmitID;  // Identifier for RailCom and CV programming
+    PacketType type;      // Type of packet sent out on tracks
+    uint16_t address;     // Address packet sent to
+  };
+  
+  // Queue of packets, FIFO, that controls what gets sent out next. Size 5.
+  Queue<Packet, 5> packetQueue;
 
   // Data that controls the packet currently being sent out.
-  uint8_t bits_sent;  // Bits sent from byte
-  uint8_t bytes_sent; // Bytes sent from packet
-  uint8_t currentBit = false;
-  uint8_t transmitRepeats = 0;  // Repeats (does not include initial transmit)
+  uint8_t interruptState = 0; // Waveform generator state
+  uint8_t bits_sent;  // Bits sent from byte...
+  uint8_t bytes_sent; // ...and in turn, bytes sent from packet
+  uint8_t currentBit = false; 
+  
   uint8_t remainingPreambles = 0; 
-  uint8_t generateStartBit = false;  // Send a start bit for the current byte?
+  
+  // Information about the worked packet
   uint8_t transmitPacket[kPacketMaxSize];
   uint8_t transmitLength;
+  uint8_t transmitRepeats = 0;  // does not include initial transmit
   uint16_t transmitID = 0;
+  PacketType transmitType = kIdleType;
+  uint16_t transmitAddress = 0;
+  
+  // Tracks resets sent since last payload packet
+  uint8_t transmitResetCount = 0;   
 
   uint16_t counterID = 1; // Maintains the last assigned packet ID
   bool counterWrap = false;

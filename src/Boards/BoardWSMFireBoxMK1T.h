@@ -62,6 +62,8 @@ public:
 
     _config.serial = Serial2;
     _config.railcom_baud = 250000;
+
+    _config.prog_threshold = 30;
   }
 
   static void getDefaultConfigB(BoardConfigWSMFireBoxMK1T& _config) {
@@ -84,6 +86,8 @@ public:
 
     _config.serial = Serial3;
     _config.railcom_baud = 250000;
+
+    _config.prog_threshold = 30;
   }
 
   void setup();

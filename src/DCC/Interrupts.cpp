@@ -27,8 +27,7 @@ bool DCC::interrupt1() {
     return true; // must call interrupt2 to set currentBit
   case 1:   // 29us after case 0
     if(rcomCutout) {
-      board->rcomCutout(true);             // Start the cutout
-      inRcomCutout = true;         
+      board->rcomCutout(true);             // Start the cutout       
       board->rcomEnable(true);  // Prepare the serial port to receive
     }
     interruptState = 2;
@@ -73,7 +72,6 @@ bool DCC::interrupt1() {
     board->rcomRead(); 
 
     rcomCutout = false;         // Don't generate another railcom cutout
-    inRcomCutout = false;       // We aren't in a railcom pulse
     interruptState = 0;         // Go back to start of new bit
     break;
   // Default case increments to the next case, 29us later
@@ -128,8 +126,6 @@ void DCC::interrupt2() {
         Packet pendingPacket = packetQueue.pop();
 
         // Load info about the packet into the transmit variables.
-        // TODO(davidcutting42@gmail.com): check if this can be done with a 
-        // peek() into packetQueue intead.
         for (int b=0;b<pendingPacket.length;b++) 
           transmitPacket[b] = pendingPacket.payload[b];
         transmitLength=pendingPacket.length;
@@ -137,12 +133,14 @@ void DCC::interrupt2() {
         transmitID=pendingPacket.transmitID;
         transmitAddress=pendingPacket.address;
         transmitType=pendingPacket.type;
+        transmitResetCount = 0;
       }
       else {
-        // Load an idle packet
-        memcpy(transmitPacket, kIdlePacket, sizeof(kIdlePacket));
+        // Load an idle or reset packet
+        memcpy(transmitPacket, (board->getProgMode() ? kResetPacket : kIdlePacket) , sizeof(kIdlePacket));
         transmitLength=sizeof(kIdlePacket);
         transmitRepeats=0;
+        if(transmitResetCount < 250) transmitResetCount++;
       }
     }
   }

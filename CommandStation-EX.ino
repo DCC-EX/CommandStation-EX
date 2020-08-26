@@ -34,13 +34,13 @@ int ramLowWatermark = 32767;
 int ramLowWatermark = 256000;
 #endif
 
-const uint8_t kIRQmicros = 29;
-
 #if defined(ARDUINO_AVR_UNO)
 const uint8_t kNumLocos = 10;
 #else
 const uint8_t kNumLocos = 50;
 #endif
+
+const uint8_t kIRQmicros = 29;
 
 DCC_BOARD_NAME* mainBoard;
 DCC_BOARD_NAME* progBoard;
@@ -65,6 +65,7 @@ void setup() {
 
   ////////////////////////////////////////////////////////////////////////////////////////
   mainBoard = new DCC_BOARD_NAME(mainConfig);
+  mainBoard->setup();
 
   DCC_BOARD_CONFIG_NAME progConfig;
   DCC_BOARD_NAME::getDefaultConfigB(progConfig);
@@ -75,11 +76,9 @@ void setup() {
 
   ////////////////////////////////////////////////////////////////////////////////////////
   progBoard = new DCC_BOARD_NAME(progConfig);
-  
-  mainBoard->setup();
-  mainTrack = new DCC(kNumLocos, mainBoard);
-  
   progBoard->setup();
+  
+  mainTrack = new DCC(kNumLocos, mainBoard);
   progTrack = new DCC(kNumLocos, progBoard);
   progTrack->board->progMode(ON);   // Limits current to 250mA. Current limit can be changed in config above.
 
@@ -97,6 +96,7 @@ void setup() {
   Wire.begin();       // Needed for EEPROM to work
   EEStore::init(&SerialUSB);
 #elif defined (ARDUINO_ARCH_SAMC)
+  // TODO: Fix SAMC EEPROM
   CommManager::registerInterface(new SerialInterface(Serial));
   // Wire.begin();       // Needed for EEPROM to work
   // EEStore::init(&Serial);
@@ -116,7 +116,7 @@ void loop() {
   mainTrack->loop();
   progTrack->loop();
 
-#if defined(FREE_MEM_PRINT)
+#if defined(DEBUG_MODE)
   int freeNow=freeMemory();
   if (freeNow<ramLowWatermark) {
     ramLowWatermark=freeNow;
