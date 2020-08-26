@@ -1,7 +1,7 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
  *  
- *  This file is a demonstattion of xcalling the  Asbelos DCC API
+ *  This file is a demonstattion of calling the  DCC-EX API
  */
 
 
@@ -104,12 +104,13 @@ void setup() {
    //   NOTE: On a Uno you will have to provide a SoftwareSerial 
    //         configured for the pins connected to the Wifi card
    //         and a 9600 baud rate. 
-   //  setup(serial, F(router name), F(password) , port)
+   //  setup(serial, F(router name) or NULL, F(router password), F(hostname), F(AcessPoint name) or NULL  , port)
    //   (port 3532 is 0xDCC decimal.)     
 
       
     Serial1.begin(WIFI_BAUD);
-    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),F("CVReader"),3532); 
+    WifiInterface::setup(Serial1, F("BTHub5-M6PT"), F("49de8d4862"),F("DCCEX"),3532);
+     
     // Optionally tell the Wifi parser to use my http filter.
     // This will intercept http commands from Wifi. 
     WifiInterface::setHTTPCallback(myHttpFilter); 

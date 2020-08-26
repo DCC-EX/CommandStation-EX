@@ -30,7 +30,7 @@ class WifiInterface {
 
  public:
     static void setup(Stream & setupStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
-          const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port);
+          const __FlashStringHelper* hostname, int port);
     static void loop();
     static void ATCommand(const byte * command);
     static void setHTTPCallback(HTTP_CALLBACK callback);
@@ -39,7 +39,7 @@ class WifiInterface {
     static Stream * wifiStream;
     static DCCEXParser parser;
     static bool setup2( const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
-           const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port);
+           const __FlashStringHelper* hostname,  int port);
     static bool checkForOK(const unsigned int timeout, const char* waitfor, bool echo, bool escapeEcho=true);
     static bool isHTTP();
     static HTTP_CALLBACK httpCallback;
@@ -50,7 +50,7 @@ class WifiInterface {
     static int connectionId;
     static unsigned long loopTimeoutStart;
     static const byte MAX_WIFI_BUFFER=250;
-    static byte buffer[MAX_WIFI_BUFFER];
+    static byte buffer[MAX_WIFI_BUFFER+1];
     static MemStream  streamer;
 };
 
