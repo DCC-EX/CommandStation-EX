@@ -284,6 +284,23 @@ uint8_t DCC::readCVBytesMain(uint16_t addr, uint16_t cv,
 
 }
 
+uint8_t DCC::getThrottleSpeed(uint8_t cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0) return -1;
+  return speedTable[reg].speedCode & 0x7F;
+}
+
+bool DCC::getThrottleDirection(uint8_t cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0) return false;
+  return (speedTable[reg].speedCode & 0x80) != 0;
+}
+
+// Turns 0 to 127 speed steps and a direction to a speed code
+uint8_t DCC::speedAndDirToCode(uint8_t speed, bool dir) {
+  return (speed & 0x7F) + dir * 128; 
+} 
+
 void DCC::updateSpeedTable(uint8_t cab, uint8_t speedCode) {
   if(cab == 0) {
     // broadcast to all locomotives

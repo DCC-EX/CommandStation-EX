@@ -24,13 +24,20 @@
 #define BOARD_NAME "DCC++ CommandStation"
 
 // Choose the motor shield that you want to use.
-
 //#define CONFIG_ARDUINO_MOTOR_SHIELD
 #define CONFIG_POLOLU_MOTOR_SHIELD
 //#define CONFIG_WSM_FIREBOX_MK1T
 
 // Comment out this line to disable printing debug messages
-// #define DEBUG_MODE
+#define DEBUG_MODE
+
+// Define your WiFi credentials here
+#define WIFI_SSID "1"
+#define WIFI_PASSWORD "2"
+
+// Define the pin mappings for the wifi software serial here (UNO only)
+#define SS_RX_PIN 16
+#define SS_TX_PIN 17
 
 // Macros translating board selection to board names
 #if defined(CONFIG_ARDUINO_MOTOR_SHIELD)

@@ -290,8 +290,7 @@ public:
 
   uint8_t numDevices;
 
-  // Holds info about a device's speed and direction. 
-  // TODO(davidcutting42@gmail.com): Make this private
+  // Holds info about a device's speed and direction.
   struct Speed {
     uint16_t cab;
     uint8_t speedCode;
@@ -302,6 +301,9 @@ public:
 
   void forgetDevice(uint8_t cab);
   void forgetAllDevices();
+  uint8_t getThrottleSpeed(uint8_t cab);
+  bool getThrottleDirection(uint8_t cab);
+  uint8_t speedAndDirToCode(uint8_t speed, bool dir);
 
   void rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType txType, uint16_t addr);
 

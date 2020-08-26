@@ -34,6 +34,7 @@ void Turnout::activate(Print* stream, int s, DCC* track){
   if(num>0)
     EEPROM.put(num,data.tStatus);
   CommManager::send(stream, F("<H %d %d>"), data.id, data.tStatus);
+  turnoutlistHash++;
 }
 
 Turnout* Turnout::get(int n){
@@ -62,6 +63,7 @@ void Turnout::remove(Print* stream, int n){
   free(tt);
 
   CommManager::send(stream, F("<O>"));
+  turnoutlistHash++;
 }
 
 void Turnout::show(Print* stream, int n){
@@ -138,7 +140,9 @@ Turnout *Turnout::create(Print* stream, int id, int add, int subAdd, int v){
   tt->data.tStatus=0;
   if(v==1)
     CommManager::send(stream, F("<O>"));
+  turnoutlistHash++;
   return(tt);
 }
 
 Turnout *Turnout::firstTurnout=NULL;
+int Turnout::turnoutlistHash=0; //bump on every change so clients know when to refresh their lists

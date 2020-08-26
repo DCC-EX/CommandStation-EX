@@ -42,6 +42,7 @@ struct Turnout{
   static void store();
   static Turnout *create(Print* stream, int, int, int, int=0);
   static void show(Print* stream, int=0);
+  static int turnoutlistHash;
 };
   
 #endif  // ACCESSORIES_TURNOUTS_H_

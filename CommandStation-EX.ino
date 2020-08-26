@@ -23,6 +23,8 @@
 #include "src/CommInterface/CommManager.h"
 #include "src/CommInterface/DCCEXParser.h"
 #include "src/Accessories/EEStore.h"
+#include "src/WiFiInterface/WiFiInterface.h"
+#include "src/WiFiInterface/WiThrottle.h"
 
 #include "Config.h"
 #include "src/Utils/ArduinoTimers/ArduinoTimers.h"
@@ -35,9 +37,13 @@ int ramLowWatermark = 256000;
 #endif
 
 #if defined(ARDUINO_AVR_UNO)
-const uint8_t kNumLocos = 10;
+  #include <SoftwareSerial.h>
+  SoftwareSerial Serial1(SS_RX_PIN, SS_TX_PIN);
+  #define WIFI_BAUD 9600
+  const uint8_t kNumLocos = 10;
 #else
-const uint8_t kNumLocos = 50;
+  #define WIFI_BAUD 115200 
+  const uint8_t kNumLocos = 50;
 #endif
 
 const uint8_t kIRQmicros = 29;
@@ -102,12 +108,19 @@ void setup() {
   // EEStore::init(&Serial);
 #elif defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
   CommManager::registerInterface(new SerialInterface(Serial));
+  Serial.println("Hello");
   EEStore::init(&Serial);
 #endif
 
   // Set up the string parser to accept commands from the interfaces
   DCCEXParser::init(mainTrack, progTrack);       
-
+  Serial.println("Hello");
+  WiThrottle::setup(mainTrack, progTrack);
+  Serial.println("Hello");
+  Serial1.begin(WIFI_BAUD);
+  Serial.println("Hello");
+  WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F("DCCEX"), F("DCCEX"), 3532);
+  Serial.println("Hello");
   CommManager::showInitInfo();           
 }
 
@@ -115,6 +128,8 @@ void loop() {
   CommManager::update();
   mainTrack->loop();
   progTrack->loop();
+
+  WiFiInterface::loop();
 
 #if defined(DEBUG_MODE)
   int freeNow=freeMemory();
