@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_BOARDS_BOARDARDUINOMOTORSHIELD_H_
-#define COMMANDSTATION_BOARDS_BOARDARDUINOMOTORSHIELD_H_
+#ifndef BOARDS_BOARDARDUINOMOTORSHIELD_H_
+#define BOARDS_BOARDARDUINOMOTORSHIELD_H_
 
 #include "Board.h"
 
@@ -101,4 +101,4 @@ private:
 };
 
 
-#endif
+#endif  // BOARDS_BOARDARDUINOMOTORSHIELD_H_

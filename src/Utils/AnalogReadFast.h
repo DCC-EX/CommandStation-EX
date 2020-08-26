@@ -19,8 +19,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_BOARDS_ANALOGREADFAST_H_
-#define COMMANDSTATION_BOARDS_ANALOGREADFAST_H_
+#ifndef UTILS_ANALOGREADFAST_H_
+#define UTILS_ANALOGREADFAST_H_
 
 #include <Arduino.h>
 
@@ -109,4 +109,4 @@ int inline analogReadFast(uint8_t ADCpin)
   return adc;
 }
 #endif
-#endif  // COMMANDSTATION_DCC_ANALOGREADFAST_H_
+#endif  // UTILS_ANALOGREADFAST_H_

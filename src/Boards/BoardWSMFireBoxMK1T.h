@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_BOARDS_BOARDWSMFIREBOXMK1T_H_
-#define COMMANDSTATION_BOARDS_BOARDWSMFIREBOXMK1T_H_
+#ifndef BOARDS_BOARDWSMFIREBOXMK1T_H_
+#define BOARDS_BOARDWSMFIREBOXMK1T_H_
 
 #include "Board.h"
 #include "wiring_private.h"
@@ -127,4 +127,4 @@ private:
 
 #endif  // ARDUINO_ARCH_SAMC
 
-#endif  // COMMANDSTATION_BOARDS_BOARDWSMFIREBOXMK1T_H_
+#endif  // BOARDS_BOARDWSMFIREBOXMK1T_H_

@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_COMMINTERFACE_COMMMANAGER_H_
-#define COMMANDSTATION_COMMINTERFACE_COMMMANAGER_H_
+#ifndef COMMINTERFACE_COMMMANAGER_H_
+#define COMMINTERFACE_COMMMANAGER_H_
 
 #include "CommInterface.h"
 
@@ -59,4 +59,4 @@ private:
   static int nextInterface;
 };
 
-#endif	// COMMANDSTATION_COMMINTERFACE_COMMMANAGER_H_
+#endif	// COMMINTERFACE_COMMMANAGER_H_

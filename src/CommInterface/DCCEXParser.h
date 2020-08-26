@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_COMMINTERFACE_DCCEXPARSER_H_
-#define COMMANDSTATION_COMMINTERFACE_DCCEXPARSER_H_
+#ifndef COMMINTERFACE_DCCEXPARSER_H_
+#define COMMINTERFACE_DCCEXPARSER_H_
 
 #include "../DCC/DCC.h"
 
@@ -39,4 +39,4 @@ private:
   static int p[MAX_PARAMS];
 };
 
-#endif  // COMMANDSTATION_COMMINTERFACE_DCCEXPARSER_H_
+#endif  // COMMINTERFACE_DCCEXPARSER_H_

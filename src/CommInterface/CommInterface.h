@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_COMMINTERFACE_COMMINTERFACE_H_
-#define COMMANDSTATION_COMMINTERFACE_COMMINTERFACE_H_
+#ifndef COMMINTERFACE_COMMINTERFACE_H_
+#define COMMINTERFACE_COMMINTERFACE_H_
 
 #include <Stream.h>
 
@@ -36,4 +36,4 @@ public:
 
 };
 
-#endif	// COMMANDSTATION_COMMINTERFACE_COMMINTERFACE_H_
+#endif	// COMMINTERFACE_COMMINTERFACE_H_

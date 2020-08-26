@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_ACCESSORIES_EESTORE_H_
-#define COMMANDSTATION_ACCESSORIES_EESTORE_H_
+#ifndef ACCESSORIES_EESTORE_H_
+#define ACCESSORIES_EESTORE_H_
 
 #include <Arduino.h>
 
@@ -51,4 +51,4 @@ struct EEStore{
   static void clear();
 };
 
-#endif  // COMMANDSTATION_ACCESSORIES_EESTORE_H_
+#endif  // ACCESSORIES_EESTORE_H_

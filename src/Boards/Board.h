@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_BOARDS_BOARD_H_
-#define COMMANDSTATION_BOARDS_BOARD_H_
+#ifndef BOARDS_BOARD_H_
+#define BOARDS_BOARD_H_
 
 #include <Arduino.h>
 #include "../Utils/AnalogReadFast.h"

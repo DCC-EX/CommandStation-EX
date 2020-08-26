@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_COMMINTERFACE_COMMINTERFACESERIAL_H_
-#define COMMANDSTATION_COMMINTERFACE_COMMINTERFACESERIAL_H_
+#ifndef COMMINTERFACE_COMMINTERFACESERIAL_H_
+#define COMMINTERFACE_COMMINTERFACESERIAL_H_
 
 #include "CommInterface.h"
 
@@ -39,4 +39,4 @@ protected:
 	bool inCommandPayload;
 };
 
-#endif	// COMMANDSTATION_COMMINTERFACE_COMMINTERFACESERIAL_H_
+#endif	// COMMINTERFACE_COMMINTERFACESERIAL_H_

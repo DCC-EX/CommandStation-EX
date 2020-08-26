@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_ACCESSORIES_OUTPUTS_H_
-#define COMMANDSTATION_ACCESSORIES_OUTPUTS_H_
+#ifndef ACCESSORIES_OUTPUTS_H_
+#define ACCESSORIES_OUTPUTS_H_
 
 #include <Arduino.h>
 
@@ -44,4 +44,4 @@ struct Output {
   static void show(Print* stream, int=0);
 };
   
-#endif  // COMMANDSTATION_ACCESSORIES_OUTPUTS_H_
+#endif  // ACCESSORIES_OUTPUTS_H_

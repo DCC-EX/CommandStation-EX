@@ -1,3 +1,22 @@
+/*
+ *  Timer.cpp
+ * 
+ *  This file is part of CommandStation.
+ *
+ *  CommandStation is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  CommandStation is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <Arduino.h>
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
@@ -13,24 +32,24 @@ Timer TimerB(TCC1);
 Timer TimerC(TCC2);
 
 void TCC0_Handler() {
-    if(TCC0->INTFLAG.bit.OVF) {
-        TCC0->INTFLAG.bit.OVF = 1;
-        TimerA.isrCallback();
-    }
+  if(TCC0->INTFLAG.bit.OVF) {
+    TCC0->INTFLAG.bit.OVF = 1;
+    TimerA.isrCallback();
+  }
 }
 
 void TCC1_Handler() {
-    if(TCC1->INTFLAG.bit.OVF) {
-        TCC1->INTFLAG.bit.OVF = 1;
-        TimerB.isrCallback();
-    }
+  if(TCC1->INTFLAG.bit.OVF) {
+    TCC1->INTFLAG.bit.OVF = 1;
+    TimerB.isrCallback();
+  }
 }
 
 void TCC2_Handler() {
-    if(TCC2->INTFLAG.bit.OVF) {
-        TCC2->INTFLAG.bit.OVF = 1;
-        TimerC.isrCallback();
-    }
+  if(TCC2->INTFLAG.bit.OVF) {
+    TCC2->INTFLAG.bit.OVF = 1;
+    TimerC.isrCallback();
+  }
 }
 #elif defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
 
@@ -43,22 +62,22 @@ Timer TimerD(5);
 
 ISR(TIMER1_OVF_vect)
 {
-    TimerA.isrCallback();
+  TimerA.isrCallback();
 }
 
 ISR(TIMER3_OVF_vect)
 {
-    TimerB.isrCallback();
+  TimerB.isrCallback();
 }
 
 ISR(TIMER4_OVF_vect)
 {
-    TimerC.isrCallback();
+  TimerC.isrCallback();
 }
 
 ISR(TIMER5_OVF_vect)
 {
-    TimerD.isrCallback();
+  TimerD.isrCallback();
 }
 
 #elif defined(ARDUINO_AVR_UNO)      // Todo: add other 328 boards for compatibility
@@ -70,12 +89,12 @@ Timer TimerB(2);
 
 ISR(TIMER1_OVF_vect)
 {
-    TimerA.isrCallback();
+  TimerA.isrCallback();
 }
 
 ISR(TIMER2_OVF_vect)
 {
-    TimerB.isrCallback();
+  TimerB.isrCallback();
 }
 
 #elif defined(ARDUINO_ARCH_MEGAAVR)
@@ -85,7 +104,7 @@ ISR(TIMER2_OVF_vect)
 Timer TimerA(0);
 
 ISR(TCA0_OVF_vect) {
-    TimerA.isrCallback();
+  TimerA.isrCallback();
 }
 
 #endif

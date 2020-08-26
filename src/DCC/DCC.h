@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_DCC_DCC_H_
-#define COMMANDSTATION_DCC_DCC_H_
+#ifndef DCC_DCC_H_
+#define DCC_DCC_H_
 
 #include <Arduino.h>
 
@@ -435,4 +435,4 @@ private:
   }
 };
 
-#endif
+#endif  // DCC_DCC_H_

@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_ACCESSORIES_SENSORS_H_
-#define COMMANDSTATION_ACCESSORIES_SENSORS_H_
+#ifndef ACCESSORIES_SENSORS_H_
+#define ACCESSORIES_SENSORS_H_
 
 #include "Arduino.h"
 
@@ -47,5 +47,5 @@ struct Sensor{
   static void check(Print* stream);   
 };
 
-#endif  // COMMANDSTATION_ACCESSORIES_SENSORS_H_
+#endif  // ACCESSORIES_SENSORS_H_
 

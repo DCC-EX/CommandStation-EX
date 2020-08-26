@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_UTILS_DIAG_H_
-#define COMMANDSTATION_UTILS_DIAG_H_
+#ifndef UTILS_DIAG_H_
+#define UTILS_DIAG_H_
 
 #include "../CommInterface/CommManager.h"
 #include "../../Config.h"
@@ -29,4 +29,4 @@
 #define DIAG CommManager::doNotPrint       // TODO: Can we do better than this??? A little kludgey
 #endif
 
-#endif  // COMMANDSTATION_UTILS_DIAG_H_
+#endif  // UTILS_DIAG_H_

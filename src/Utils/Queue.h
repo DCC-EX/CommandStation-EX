@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COMMANDSTATION_DCC_QUEUE_H_
-#define COMMANDSTATION_DCC_QUEUE_H_
+#ifndef UTILS_QUEUE_H_
+#define UTILS_QUEUE_H_
 
 #include <Arduino.h>
 
@@ -106,4 +106,4 @@ void Queue<T, S>::clear()
   _count = 0;
 }
 
-#endif  // COMMANDSTATION_DCC_QUEUE_H_
+#endif  // UTILS_QUEUE_H_
