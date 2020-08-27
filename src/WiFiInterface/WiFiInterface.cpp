@@ -46,22 +46,22 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
 
   wifiStream = setupStream;
 
-  DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
+  DIAG(F("\n\r++++++ Wifi Setup In Progress ++++++++\n\r"));
 
   setup2( ssid, password, hostname, servername, port);
  
   if (connected) CommManager::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
  
-  DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected ? F("OK") : F("FAILED"));
+  DIAG(F("++++++ Wifi Setup %S ++++++++\n\r"), connected ? F("OK") : F("FAILED"));
 }
 
-bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringHelper* password,
                const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
   
   int ipOK = 0;
 
   if (checkForOK(200, IPD_SEARCH, true)) {
-    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
+    DIAG(F("Preconfigured Wifi already running with data waiting\n\r"));
     loopstate=4;  // carry on from correct place 
     return true; 
   }
@@ -71,7 +71,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   CommManager::send(wifiStream, F("AT+GMR\r\n")); // request AT  version
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
-  CommManager::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as client
+  CommManager::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as station
   checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
   
   delay(8000); // give preconfigured ESP8266 a chance to connect 
@@ -89,7 +89,8 @@ bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     CommManager::send(wifiStream, F("AT+CWJAP?\r\n"));
     if (checkForOK(2000, OK_SEARCH, true)) {
       // early version supports CWJAP
-      CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
+      DIAG(F("CWJAP"));
+      CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), ssid, password);
       checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
     }
     else {
@@ -97,7 +98,8 @@ bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
       CommManager::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
       checkForOK(2000, OK_SEARCH, true); // dont care if not supported
 
-      CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
+      DIAG(F("CWJAP_CUR"));
+      CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), ssid, password);
       checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
 
       CommManager::send(wifiStream, F("AT+CIPRECVMODE=0\r\n"), port); // make sure transfer mode is correct
@@ -129,7 +131,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
 void WiFiInterface::ATCommand(const byte * command) {
   if (*command=='X') {
     connected = true;
-    DIAG(F("\n++++++ Wifi Connection forced on ++++++++\n"));
+    DIAG(F("++++++ Wifi Connection forced on ++++++++\n\r"));
   }
   else {
     CommManager::send(wifiStream, F("AT+%s\r\n"), command + 1);
@@ -144,7 +146,7 @@ void WiFiInterface::setHTTPCallback(HTTP_CALLBACK callback) {
 bool WiFiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo, bool escapeEcho) {
   unsigned long  startTime = millis();
   char  const *locator = waitfor;
-  DIAG(F("\nWifi Check: [%E]"), waitfor);
+  DIAG(F("\n\rWifi Check: [%E]"), waitfor);
   while ( millis() - startTime < timeout) {
     while (wifiStream->available()) {
       int ch = wifiStream->read();
@@ -156,13 +158,13 @@ bool WiFiInterface::checkForOK( const unsigned int timeout, const char * waitfor
       if (ch == pgm_read_byte_near(locator)) {
         locator++;
         if (!pgm_read_byte_near(locator)) {
-          DIAG(F("\nFound in %dms"), millis() - startTime);
+          DIAG(F("\n\rFound in %dms"), millis() - startTime);
           return true;
         }
       }
     }
   }
-  DIAG(F("\nTIMEOUT after %dms\n"), timeout);
+  DIAG(F("\n\rTIMEOUT after %dms\n\r"), timeout);
   return false;
 }
 
@@ -232,12 +234,12 @@ void WiFiInterface::loop() {
 
     case 10:  // Waiting for > so we can send reply
       if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-        DIAG(F("\nWifi TIMEOUT on wait for > prompt or ERROR\n"));
+        DIAG(F("\n\rWifi TIMEOUT on wait for > prompt or ERROR\n\r"));
         loopstate = 0; // go back to +IPD
         break;
       }
       if (ch == '>') {
-        //                  DIAG(F("\n> [%e]\n"),buffer);
+        //                  DIAG(F("\n\r> [%e]\n\r"),buffer);
         wifiStream->print((char *) buffer);
         loopTimeoutStart = millis();
         loopstate = closeAfter ? 11 : 0;
@@ -250,12 +252,12 @@ void WiFiInterface::loop() {
       break;
     case 11: // Waiting for SEND OK or ERROR to complete so we can closeAfter
       if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-        DIAG(F("\nWifi TIMEOUT on wait for SEND OK or ERROR\n"));
+        DIAG(F("\n\rWifi TIMEOUT on wait for SEND OK or ERROR\n\r"));
         loopstate = 0; // go back to +IPD
         break;
       }
       if (ch == 'K') { // assume its in  SEND OK
-        DIAG(F("\n Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
+        DIAG(F("\n\r Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
         CommManager::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
         loopstate = 0; // wait for +IPD
       }
@@ -263,7 +265,7 @@ void WiFiInterface::loop() {
 
     case 12: // Waiting for OK after send busy 
       if (ch == '+') { // Uh-oh IPD problem
-        DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n"));
+        DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n\r"));
         connectionId = 0;
         loopstate = 1;
       }
@@ -313,7 +315,7 @@ void WiFiInterface::loop() {
   }
   // prepare to send reply
   streamer.print('\0'); // null the end of the buffer so we can treat it as a string
-  DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer.available() - 1);
+  DIAG(F("%l WiFi(%d)->[%e] l(%d)\n\r"), millis(), connectionId, buffer, streamer.available() - 1);
   CommManager::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available() - 1);
   loopTimeoutStart = millis();
   loopstate = 10; // non-blocking loop waits for > before sending

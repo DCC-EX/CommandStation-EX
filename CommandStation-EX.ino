@@ -108,19 +108,16 @@ void setup() {
   // EEStore::init(&Serial);
 #elif defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
   CommManager::registerInterface(new SerialInterface(Serial));
-  Serial.println("Hello");
   EEStore::init(&Serial);
 #endif
 
   // Set up the string parser to accept commands from the interfaces
-  DCCEXParser::init(mainTrack, progTrack);       
-  Serial.println("Hello");
+  DCCEXParser::init(mainTrack, progTrack);  
+#ifdef WIFI_EN
   WiThrottle::setup(mainTrack, progTrack);
-  Serial.println("Hello");
   Serial1.begin(WIFI_BAUD);
-  Serial.println("Hello");
   WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F("DCCEX"), F("DCCEX"), 3532);
-  Serial.println("Hello");
+#endif  
   CommManager::showInitInfo();           
 }
 

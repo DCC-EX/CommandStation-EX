@@ -17,38 +17,34 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef BOARDS_BOARDWSMFIREBOXMK1T_H_
-#define BOARDS_BOARDWSMFIREBOXMK1T_H_
+#ifndef BOARDS_BOARDWSMFIREBOXMK1A_H_
+#define BOARDS_BOARDWSMFIREBOXMK1A_H_
 
 #include "Board.h"
 
-#if defined(ARDUINO_ARCH_SAMC)
+#if defined(ARDUINO_ARCH_SAMD)
 
-struct BoardConfigWSMFireBoxMK1T : public BoardConfig {
-  // Used to store functionality special to this type of shield
-  int cutout_pin;
-  int limit_pin;
-
-  Uart* serial;
+struct BoardConfigWSMFireBoxMK1A : public BoardConfig {
+  
 };
 
-class BoardWSMFireBoxMK1T : public Board
+class BoardWSMFireBoxMK1A : public Board
 {
 public:
-  BoardConfigWSMFireBoxMK1T config;
+  BoardConfigWSMFireBoxMK1A config;
 
-  BoardWSMFireBoxMK1T(BoardConfigWSMFireBoxMK1T _config) {
+  BoardWSMFireBoxMK1A(BoardConfigWSMFireBoxMK1A _config) {
     config = _config;
   }
 
-  static void getDefaultConfigA(BoardConfigWSMFireBoxMK1T& _config) {
+  static void getDefaultConfigA(BoardConfigWSMFireBoxMK1A& _config) {
     _config.track_name = "A";
-    _config.signal_a_pin = 20;
-    _config.signal_b_pin = 21;
-    _config.enable_pin = 23;
-    _config.sense_pin = 22;   
+    _config.signal_a_pin = 6;
+    _config.signal_b_pin = 7;
+    _config.enable_pin = 3;
+    _config.sense_pin = A5;   
     _config.board_voltage = 3.3;
-    _config.amps_per_volt = 0.6;
+    _config.amps_per_volt = 1.998004;
     _config.current_trip = 5000;
     _config.current_trip_prog = 250;
     _config.prog_trip_time = 100;
@@ -56,34 +52,26 @@ public:
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
 
-    _config.cutout_pin = 32;
-    _config.limit_pin = 25;
-
-    _config.serial = &Serial2;
     _config.railcom_baud = 250000;
 
     _config.prog_threshold = 30;
   }
 
-  static void getDefaultConfigB(BoardConfigWSMFireBoxMK1T& _config) {
+  static void getDefaultConfigB(BoardConfigWSMFireBoxMK1A& _config) {
     _config.track_name = "B";
-    _config.signal_a_pin = 26;
-    _config.signal_b_pin = 27;
-    _config.enable_pin = 29;
-    _config.sense_pin = 28;       
+    _config.signal_a_pin = 8;
+    _config.signal_b_pin = 9;
+    _config.enable_pin = 4;
+    _config.sense_pin = A1;       
     _config.board_voltage = 3.3;
-    _config.amps_per_volt = 0.6;
+    _config.amps_per_volt = 1.998004;
     _config.current_trip = 5000;
     _config.current_trip_prog = 250;
     _config.prog_trip_time = 100;
     _config.main_preambles = 16;
     _config.prog_preambles = 22;
     _config.track_power_callback = nullptr; // Needs to be set in the main file
-  
-    _config.cutout_pin = 34;
-    _config.limit_pin = 31;
 
-    _config.serial = &Serial3;
     _config.railcom_baud = 250000;
 
     _config.prog_threshold = 30;
@@ -112,8 +100,8 @@ public:
   uint8_t getPreambles();
 
   void rcomCutout(bool);
-  void rcomEnable(bool);
-  void rcomRead();
+  void rcomEnable(bool) {}
+  void rcomRead() {}
 
   uint16_t getThreshold() { return config.prog_threshold; }
   
@@ -124,6 +112,6 @@ private:
   bool inCutout;
 };
 
-#endif  // ARDUINO_ARCH_SAMC
+#endif  // ARDUINO_ARCH_SAMD
 
-#endif  // BOARDS_BOARDWSMFIREBOXMK1T_H_
+#endif  // BOARDS_BOARDWSMFIREBOXMK1A_H_

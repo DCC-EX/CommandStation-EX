@@ -63,11 +63,11 @@ void DCC::rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType
     if(i == kRcomBufferSize - 1) return; 
   }
   
-  // CommManager::printf(F("Railcom RAW %d = %x %x %x %x %x %x %x %x\n\r"), 
-  //   uniqueID,
-  //   rawData[0], rawData[1], rawData[2], rawData[3], 
-  //   rawData[4], rawData[5], rawData[6], rawData[7]
-  // );
+  DIAG(F("Railcom RAW %d = %x %x %x %x %x %x %x %x\n\r"), 
+      id,
+      data[0], data[1], data[2], data[3], 
+      data[4], data[5], data[6], data[7]
+    );
 
   for (size_t i = 0; i < 8; i++)
   {
