@@ -60,7 +60,7 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
                            const __FlashStringHelper* hostname, int port) {
   int ipOK = 0;
 
-  char macTail[]="555555";  // temporaray pending mac address extraction   
+  char macAddress[17];  //  mac address extraction   
      
   // First check... Restarting the Arduino does not restart the ES. 
   //  There may alrerady be a connection with data in the pipeline.
@@ -75,13 +75,25 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   StringFormatter::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
   checkForOK(2000, OK_SEARCH, true);      // Makes this visible on the console
 
-  // Diaplay the AT version information
+  // Display the AT version information
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
   delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
   
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+
+  // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
+  if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
+    // Copy 17 byte mac address  
+      for (int i=0; i<17;i++) {
+        while(!wifiStream->available());
+        macAddress[i]=wifiStream->read();
+        StringFormatter::printEscape(&DIAGSERIAL,macAddress[i]);
+      }    
+  }
+  char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+      
   if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
     if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
       ipOK = 1;
