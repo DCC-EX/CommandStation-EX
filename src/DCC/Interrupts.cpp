@@ -26,44 +26,40 @@ bool DCC::interrupt1() {
     interruptState = 1; 
     return true; // must call interrupt2 to set currentBit
   case 1:   // 29us after case 0
-    if(rcomCutout) {
+    if(rcomCutout)
       board->rcomCutout(true);             // Start the cutout       
-      board->rcomEnable(true);  // Prepare the serial port to receive
-    }
     interruptState = 2;
     break;
   case 2:   // 58us after case 0
-    if(currentBit && !rcomCutout) {
+    if(currentBit && !rcomCutout)
       board->signal(LOW);  
-    }
+    if(rcomCutout) 
+      board->rcomEnable(true);  // Prepare the serial port to receive
     interruptState = 3;
     break; 
   case 3:   // 87us after case 0
-    if(currentBit && !rcomCutout) {
+    if(currentBit && !rcomCutout)
       // Return to case zero for start of another bit at 116us
       interruptState = 0;
-    }
     else interruptState = 4;
     break;
   case 4:   // 116us after case 0
-    if(!rcomCutout) {
+    if(!rcomCutout)
       board->signal(LOW);
-    }
     interruptState = 5;
     break;
   // Case 5 and 6 fall to default case
   case 7:   // 203us after case 0
-    if(!rcomCutout) {
+    if(!rcomCutout)
       // Return to case zero for start of another bit at 232us
       interruptState = 0; 
-    }
     else interruptState = 8;
     break;
   // Cases 8-15 are for railcom timing
   case 16:
+    board->rcomEnable(false);   // Turn off serial so we don't get garbage
     board->rcomCutout(false);   // Stop the cutout
     board->signal(LOW);         // Send out 29us of signal before case 0 flips it
-    board->rcomEnable(false);   // Turn off serial so we don't get garbage
     
     // Read the data out and tag it with identifying info
     rcomAddr = transmitAddress;
@@ -89,6 +85,7 @@ void DCC::interrupt2() {
 
     // If we're on the first preamble bit, we're not in programming mode, and 
     // RailCom is enabled, send out a RailCom cutout. 
+
     if((board->getPreambles() - remainingPreambles == 0) && !board->getProgMode()) {
       rcomCutout = true; 
       remainingPreambles -= 4;    // We're skipping 4 bits in the cutout

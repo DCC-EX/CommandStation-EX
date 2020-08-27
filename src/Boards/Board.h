@@ -118,7 +118,7 @@ protected:
   long int lastTripTime;
 
   // Programming mode
-  bool inProgMode; 
+  bool inProgMode = false; 
   uint16_t progOverloadTimer;
   uint16_t currentBase;
 

@@ -24,14 +24,16 @@
 #define BOARD_NAME "DCC++ CommandStation"
 
 // Choose the motor shield that you want to use.
-//#define CONFIG_ARDUINO_MOTOR_SHIELD
-#define CONFIG_POLOLU_MOTOR_SHIELD
-//#define CONFIG_WSM_FIREBOX_MK1T
+#define CONFIG_ARDUINO_MOTOR_SHIELD
+//#define CONFIG_POLOLU_MOTOR_SHIELD
+//#define CONFIG_WSM_FIREBOX_MK1T     // Production version of FireBox
+//#define CONFIG_WSM_FIREBOX_MK1A   // Early Beta version of FireBox
 
 // Comment out this line to disable printing debug messages
 #define DEBUG_MODE
 
-// Define your WiFi credentials here
+// Define your WiFi credentials here, comment out WIFI_EN to disable WiFi.
+#define WIFI_EN
 #define WIFI_SSID "1"
 #define WIFI_PASSWORD "2"
 
@@ -52,6 +54,10 @@
 #include "src/Boards/BoardWSMFireBoxMK1T.h"
 #define DCC_BOARD_NAME BoardWSMFireBoxMK1T
 #define DCC_BOARD_CONFIG_NAME BoardConfigWSMFireBoxMK1T
+#elif defined(CONFIG_WSM_FIREBOX_MK1A)
+#include "src/Boards/BoardWSMFireBoxMK1A.h"
+#define DCC_BOARD_NAME BoardWSMFireBoxMK1A
+#define DCC_BOARD_CONFIG_NAME BoardConfigWSMFireBoxMK1A
 #else
 #error "Config.h - you did not specify a valid board option"
 #endif
