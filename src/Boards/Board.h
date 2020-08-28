@@ -31,13 +31,6 @@
 #define writePin digitalWrite2
 #endif
 
-#ifndef A0
-#define A0 -1
-#endif
-#ifndef A1
-#define A1 -1
-#endif
-
 #define ON  true
 #define OFF false
 
