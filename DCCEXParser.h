@@ -59,5 +59,4 @@ struct DCCEXParser
 
 };
 
-#define BOARD_NAME F("not yet configured")
 #endif

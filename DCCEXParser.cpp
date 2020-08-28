@@ -28,7 +28,7 @@
 #include "EEStore.h"
 #include "DIAG.h"
 
-const char VERSION[] PROGMEM ="99.666";
+const char VERSION[] PROGMEM ="0.1.9";
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
@@ -251,7 +251,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
 
     case 's':      // <s>
         StringFormatter::send(stream,F("<p%d>"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON );
-        StringFormatter::send(stream,F("<iDCC-Asbelos BASE STATION FOR ARDUINO / %S: V-%S %s/%s>"), BOARD_NAME, VERSION, __DATE__, __TIME__ );
+        StringFormatter::send(stream,F("<iDCC-EX-API / V-%S %s/%s>"), VERSION, __DATE__, __TIME__ );
         // TODO Send stats of  speed reminders table 
         // TODO send status of turnouts etc etc 
         return;

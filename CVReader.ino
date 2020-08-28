@@ -14,7 +14,7 @@
 
 #ifdef ARDUINO_AVR_UNO 
   #include <SoftwareSerial.h>
-  SoftwareSerial Serial1(15,16); // YOU must get thee pins correct to use Wifi on a UNO
+  SoftwareSerial Serial1(15,16); // YOU must get these pins correct to use Wifi on a UNO
   #define WIFI_BAUD 9600
 #else 
   #define WIFI_BAUD 115200 
