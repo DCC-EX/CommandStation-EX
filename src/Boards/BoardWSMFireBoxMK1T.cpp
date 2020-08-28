@@ -21,6 +21,13 @@
 
 #if defined(ARDUINO_ARCH_SAMC)
 
+#ifndef A0
+#define A0 -1
+#endif
+#ifndef A1
+#define A1 -1
+#endif
+
 void BoardWSMFireBoxMK1T::setup() {
   pinMode(config.enable_pin, OUTPUT);
   writePin(config.enable_pin, LOW);
