@@ -1,20 +1,20 @@
 /*
  *  DCCEXParser.cpp
  * 
- *  This file is part of CommandStation.
+ *  This file is part of CommandStation-EX.
  *
- *  CommandStation is free software: you can redistribute it and/or modify
+ *  CommandStation-EX is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  CommandStation is distributed in the hope that it will be useful,
+ *  CommandStation-EX is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with CommandStation-EX.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "DCCEXParser.h"
@@ -323,8 +323,8 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     trackPowerCallback(progTrack->board->getName(), progTrack->board->getStatus());
     //  TODO(davidcutting42@gmail.com): Add throttle status notifications back
     CommManager::send(stream, 
-        F("<iDCC++ EX CommandStation / %s: V-%s / %s %s>"), 
-        "CommandStation", BOARD_NAME, VERSION, __DATE__, __TIME__);
+        F("<iDCC++ CommandStation-EX / %s: V-%s / %s %s>"), 
+        "CommandStation-EX", BOARD_NAME, VERSION, __DATE__, __TIME__);
     CommManager::showInitInfo();
     Turnout::show(stream);
     Output::show(stream);

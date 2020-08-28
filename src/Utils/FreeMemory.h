@@ -1,7 +1,7 @@
 /*
  *  FreeMemory.h
  * 
- *  This file is part of CommandStation, which is licensed under GPLv3.
+ *  This file is part of CommandStation-EX, which is licensed under GPLv3.
  *  FreeMemory.h is from a work of Michael P. Flaga, and is under the MIT
  *  License.
  *
