@@ -24,12 +24,6 @@
 #include "Turnouts.h"
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
-#include <SparkFun_External_EEPROM.h>
-#else
-#include <EEPROM.h>
-#endif
-
-#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
 ExternalEEPROM EEPROM;
 #endif
 
