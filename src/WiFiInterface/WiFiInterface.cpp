@@ -48,7 +48,7 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
 
   DIAG(F("\n\r++++++ Wifi Setup In Progress ++++++++\n\r"));
 
-  setup2( ssid, password, hostname, servername, port);
+  connected = setup2( ssid, password, hostname, servername, port);
  
   if (connected) CommManager::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
  
