@@ -42,9 +42,9 @@ const byte FN_GROUP_4=0x08;
 const byte FN_GROUP_5=0x10;         
 
 
-void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver) {
+void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
   debugMode=false;
-  DCCWaveform::begin(mainDriver,progDriver); 
+  DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {

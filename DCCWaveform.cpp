@@ -20,27 +20,36 @@
 
 #include "DCCWaveform.h"
 #include "DIAG.h"
-#include "MotorDriver.h"
-#include "ArduinoTimers.h"  
+ 
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
 bool DCCWaveform::progTrackSyncMain=false; 
-
-void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
+VirtualTimer * DCCWaveform::interruptTimer=NULL;      
+  
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
 
   mainTrack.setPowerMode(POWERMODE::OFF);      
-  progTrack.setPowerMode(POWERMODE::OFF);      
-
-  TimerA.initialize();
-  TimerA.setPeriod(58); // this is the 58uS DCC 1-bit waveform half-cycle
-  TimerA.attachInterrupt(interruptHandler);
-  TimerA.start();
- 
+  progTrack.setPowerMode(POWERMODE::OFF);
+  switch (timerNumber) {
+    case 1: interruptTimer= &TimerA; break;
+    case 2: interruptTimer= &TimerB; break;
+#ifndef ARDUINO_AVR_UNO  
+    case 3: interruptTimer= &TimerC; break;
+    case 4: interruptTimer= &TimerD; break;
+#endif    
+    default:
+      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..4 valid.  DCC will not work.*** \n\n"), timerNumber);
+      return;
+  }
+  interruptTimer->initialize();
+  interruptTimer->setPeriod(58); // this is the 58uS DCC 1-bit waveform half-cycle
+  interruptTimer->attachInterrupt(interruptHandler);
+  interruptTimer->start();
 }
 
 void DCCWaveform::loop() {
@@ -95,6 +104,10 @@ POWERMODE DCCWaveform::getPowerMode() {
 }
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
+
+  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
+  if (!interruptTimer) return; 
+  
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);

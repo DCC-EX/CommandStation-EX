@@ -19,6 +19,7 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 #include "MotorDriver.h"
+#include "ArduinoTimers.h"
 
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
@@ -46,7 +47,7 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
-    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber);
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
@@ -65,7 +66,7 @@ class DCCWaveform {
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
      
   private:
-
+    static VirtualTimer * interruptTimer;      
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();

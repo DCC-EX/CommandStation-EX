@@ -59,7 +59,7 @@ SKIPTARGET=0xFF  // jump to target
 class DCC {
   public:
 
-  static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
+  static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber=1);
   static void loop();
 
   // Public DCC API functions
