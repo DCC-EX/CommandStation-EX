@@ -24,10 +24,10 @@
 #define BOARD_NAME "DCC++ CommandStation"
 
 // Choose the motor shield that you want to use.
-//#define CONFIG_ARDUINO_MOTOR_SHIELD
+#define CONFIG_ARDUINO_MOTOR_SHIELD
 //#define CONFIG_POLOLU_MOTOR_SHIELD
 //#define CONFIG_WSM_FIREBOX_MK1T     // Production version of FireBox
-#define CONFIG_WSM_FIREBOX_MK1A   // Early Beta version of FireBox
+//#define CONFIG_WSM_FIREBOX_MK1A   // Early Beta version of FireBox
 
 // Comment out this line to disable printing debug messages
 #define DEBUG_MODE
