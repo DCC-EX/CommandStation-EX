@@ -137,19 +137,23 @@ void DCC::rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType
       case kPOMBitWriteType:
       case kPOMByteWriteType:
       case kPOMReadType:
-        datagrams[1].payload = 
-          ((data[2] & 0x03) << 6) | 
-          (data[3] & 0x3F);
+	datagrams[1].payload = (data[2] & 0x03);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[3] & 0x3F);
         break;
       case kPOMLongReadType:
-        datagrams[1].payload = 
-          ((data[2] & 0x03) << 30) | 
-          ((data[3] & 0x3F) << 24) |
-          ((data[4] & 0x3F) << 18) |
-          ((data[5] & 0x3F) << 12) |
-          ((data[6] & 0x3F) << 6) |
-          (data[7] & 0x3F);
-        break;
+	datagrams[1].payload = (data[2] & 0x03);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[3] & 0x3F);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[4] & 0x3F);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[5] & 0x3F);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[6] & 0x3F);
+	datagrams[1].payload <<= 6;
+	datagrams[1].payload |= (data[7] & 0x3F);
+         break;
       default:
         goto CLEANUP;
       }
