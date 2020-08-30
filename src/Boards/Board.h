@@ -83,6 +83,14 @@ public:
   virtual uint16_t getCurrentMilliamps() = 0;
   virtual uint16_t getCurrentMilliamps(uint16_t reading) = 0;
 
+  uint16_t getAckMilliamps() {
+      uint16_t cur = getCurrentMilliamps();
+      uint16_t base = getCurrentBase();
+      if (cur <= base)
+	  return 0;
+      return cur - base;
+  }
+
   virtual uint16_t setCurrentBase() = 0;
   virtual uint16_t getCurrentBase() = 0;
 
