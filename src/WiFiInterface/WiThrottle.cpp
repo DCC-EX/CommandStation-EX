@@ -50,8 +50,9 @@
 DCC* WiThrottle::mainTrack;
 DCC* WiThrottle::progTrack;
 
+                                             /* cast fixes compiler warning, CAB is always > 0 in last compare */
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<kMaxLocosPerThrottle;loco++) \
-  if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
+  if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==(uint16_t)CAB))
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 bool WiThrottle::annotateLeftRight=false;
