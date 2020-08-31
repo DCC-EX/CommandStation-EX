@@ -40,7 +40,7 @@ int ramLowWatermark = 256000;
   #include <SoftwareSerial.h>
   SoftwareSerial Serial1(SS_RX_PIN, SS_TX_PIN);
   #define WIFI_BAUD 9600
-  const uint8_t kNumLocos = 10;
+  const uint8_t kNumLocos = 12;
 #else
   #define WIFI_BAUD 115200 
   const uint8_t kNumLocos = 50;
@@ -85,7 +85,7 @@ void setup() {
   progBoard->setup();
   
   mainTrack = new DCC(kNumLocos, mainBoard);
-  progTrack = new DCC(kNumLocos, progBoard);
+  progTrack = new DCC(0, progBoard);           // 0 refesh loop on progTrack 
   progTrack->board->progMode(ON);   // Limits current to 250mA. Current limit can be changed in config above.
 
   // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
@@ -116,7 +116,7 @@ void setup() {
 #ifdef WIFI_EN
   WiThrottle::setup(mainTrack, progTrack);
   Serial1.begin(WIFI_BAUD);
-  WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F("DCCEX"), F("DCCEX"), 3532);
+  WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), F("DCCEX"), 3532);
 #endif  
   CommManager::showInitInfo();           
 }

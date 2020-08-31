@@ -122,10 +122,23 @@ void DCCEXParser::parse(Print* stream, const char *com) {
   case 'f': {       // <f CAB BYTE1 [BYTE2]>
     genericResponse response;
     
-    if(numArgs == 2)
-      mainTrack->setFunction(p[0], p[1], response);
-    else 
-      mainTrack->setFunction(p[0], p[1], p[2], response);
+    if (numArgs==2) {
+      uint8_t groupcode=p[1] & 0xE0;
+      if (groupcode == 0x80) {
+        uint8_t normalized = (p[1]<<1 & 0x1e ) | (p[1]>>4 & 0x01);
+        functionMap(p[0],normalized,0,4);
+      }
+      else if (groupcode == 0xC0) {
+        functionMap(p[0],p[1],5,8);
+      }
+      else if (groupcode == 0xA0) {
+        functionMap(p[0],p[1],9,12);
+      }
+    }   
+    if (numArgs==3) { 
+      if (p[1]==222) functionMap(p[0],p[2],13,20);
+      else if (p[1]==223) functionMap(p[0],p[2],21,28);
+    }
     
     // TODO use response?
     
@@ -349,6 +362,12 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     CommManager::send(stream, F("<a %d>"), currRead);
     break;
 
+/***** READ NUMBER OF SUPPORTED MOBILE DECODERS ****/
+
+  case '#':     // <#>
+      CommManager::send(stream, F("<# %d>"), mainTrack->numLocos());
+    break;
+
 /***** READ STATUS OF DCC++ BASE STATION  ****/
 
   case 's':      // <s>
@@ -399,7 +418,13 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     CommManager::send(stream, F("<$ %d>"), p[0]);
     break;
 
-  
+/***** SET A FUNCTION USING LOCO CAB AND FUNCTION NUMBER ****/   
+
+  case 'F':   // <F CAB NUMBER ON>
+    DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2]==1 ? F("ON") : F("OFF"));
+    mainTrack->setFunction(p[0], p[1], p[2]==1);
+    break;
+
 
   } // switch(com[0])
 }
@@ -428,4 +453,11 @@ void DCCEXParser::trackPowerCallback(const char* name, bool status) {
     CommManager::broadcast(F("<p1 %s>"), name);
   else 
     CommManager::broadcast(F("<p0 %s>"), name);
+}
+
+void DCCEXParser::functionMap(int cab, uint8_t value, uint8_t fstart, uint8_t fstop) {
+   for (int i = fstart; i <= fstop; i++) {
+    mainTrack->setFunction(cab, i, value & 1);
+    value>>=1; 
+   }
 }

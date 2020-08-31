@@ -34,6 +34,7 @@ struct DCCEXParser
   static void POMResponse(Print* stream, RailComPOMResponse response);
   static void trackPowerCallback(const char* name, bool status);
 private:
+  static void functionMap(int cab, uint8_t value, uint8_t fstart, uint8_t fstop);
   static int stringParser(const char * com, int result[]);
   static const int MAX_PARAMS=10; 
   static int p[MAX_PARAMS];

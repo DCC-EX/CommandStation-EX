@@ -33,9 +33,12 @@
 #define DEBUG_MODE
 
 // Define your WiFi credentials here, comment out WIFI_EN to disable WiFi.
-#define WIFI_EN
-#define WIFI_SSID "1"
-#define WIFI_PASSWORD "2"
+// #define WIFI_EN
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
+// WiFi AP uses the WIFI_PASSWORD and WIFI_HOSTNAME. Set hostname to something 
+// unique, leave password empty for no security (not recommended)
+#define WIFI_HOSTNAME "DCC-EX-12345"
 
 // Define the pin mappings for the wifi software serial here (UNO only)
 #define SS_RX_PIN 16
