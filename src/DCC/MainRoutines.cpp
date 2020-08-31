@@ -108,9 +108,9 @@ uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& 
 }
 
 uint8_t DCC::setFunction(uint16_t addr, uint8_t functionNumber, bool on) {
-  if (addr <= 0 || functionNumber > 28) return;
+  if (addr <= 0 || functionNumber > 28) return ERR_OK;
   int reg = lookupSpeedTable(addr);
-  if (reg < 0) return;  
+  if (reg < 0) return ERR_OK;  
 
   // Take care of functions:
   // Set state of function
@@ -360,19 +360,26 @@ uint8_t DCC::readCVBytesMain(uint16_t addr, uint16_t cv,
 
 uint8_t DCC::getThrottleSpeed(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return -1;
+  if (reg < 0) {
+    DIAG(F("Speed: Couldn't find loco"));
+    return -1;
+  }
   return speedTable[reg].speedCode & 0x7F;
 }
 
 bool DCC::getThrottleDirection(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return false;
+  if (reg < 0) {
+    DIAG(F("Direction: Couldn't find loco"));
+    return false;
+  }
+  DIAG(F("Direction: %d"), speedTable[reg].speedCode & 0x80);
   return (speedTable[reg].speedCode & 0x80) != 0;
 }
 
 // Turns 0 to 127 speed steps and a direction to a speed code
 uint8_t DCC::speedAndDirToCode(uint8_t speed, bool dir) {
-  return (speed & 0x7F) + dir * 128; 
+  return (speed & 0x7F) + (dir ? 128 : 0); 
 } 
 
 void DCC::updateSpeedTable(uint8_t cab, uint8_t speedCode) {
