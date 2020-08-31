@@ -116,7 +116,7 @@ void setup() {
 #ifdef WIFI_EN
   WiThrottle::setup(mainTrack, progTrack);
   Serial1.begin(WIFI_BAUD);
-  WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F("DCCEX"), F("DCCEX"), 3532);
+  WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), F("DCCEX"), 3532);
 #endif  
   CommManager::showInitInfo();           
 }
