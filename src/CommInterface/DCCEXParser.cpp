@@ -27,6 +27,7 @@
 #include "../Accessories/Turnouts.h"
 #include "../../Config.h"
 #include "CommManager.h"
+#include "../WiFiInterface/WiFiInterface.h"
 
 DCC* DCCEXParser::mainTrack;
 DCC* DCCEXParser::progTrack;
@@ -384,7 +385,12 @@ void DCCEXParser::parse(Print* stream, const char *com) {
   case ' ':     // < >
     CommManager::send(stream, F("\n"));
     break;
-  }
+
+  case '+':
+    WiFiInterface::ATCommand(com);
+    break;
+  
+  } // switch(com[0])
 }
 
 void DCCEXParser::cvResponse(Print* stream, serviceModeResponse response) {
