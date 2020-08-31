@@ -29,11 +29,12 @@
 //#define CONFIG_WSM_FIREBOX_MK1T     // Production version of FireBox
 //#define CONFIG_WSM_FIREBOX_MK1A   // Early Beta version of FireBox
 
-// Comment out this line to disable printing debug messages
-#define DEBUG_MODE
+// Comment out this line to disable printing debug messages. Saves a lot of 
+// flash when turned off. Needs to be turned off for WiFi on the UNO. 
+//#define DEBUG_MODE
 
 // Define your WiFi credentials here, comment out WIFI_EN to disable WiFi.
-// #define WIFI_EN
+#define WIFI_EN
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 // WiFi AP uses the WIFI_PASSWORD and WIFI_HOSTNAME. Set hostname to something 

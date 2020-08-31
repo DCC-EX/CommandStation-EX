@@ -119,9 +119,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
   
 /***** OPERATE ENGINE DECODER FUNCTIONS F0-F28 ****/
 
-  case 'f': {       // <f CAB BYTE1 [BYTE2]>
-    genericResponse response;
-    
+  case 'f': {       // <f CAB BYTE1 [BYTE2]>    
     if (numArgs==2) {
       uint8_t groupcode=p[1] & 0xE0;
       if (groupcode == 0x80) {
@@ -425,6 +423,12 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     mainTrack->setFunction(p[0], p[1], p[2]==1);
     break;
 
+/***** FORGET A LOCOMOTIVE ****/   
+
+  case '!':   // <F CAB NUMBER ON>
+    DIAG(F("Forgetting loco %d"), p[0]);
+    mainTrack->forgetDevice(p[0]);
+    break;
 
   } // switch(com[0])
 }

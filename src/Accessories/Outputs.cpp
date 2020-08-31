@@ -22,7 +22,9 @@
 #include "../CommInterface/CommManager.h"
 #include "EEStore.h"
 
-#if !defined(ARDUINO_ARCH_SAMD) && !defined(ARDUINO_ARCH_SAMC)
+#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
+#include <SparkFun_External_EEPROM.h>
+#else
 #include <EEPROM.h>
 #endif
 

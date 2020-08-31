@@ -30,6 +30,8 @@
 #include "src/Utils/ArduinoTimers/ArduinoTimers.h"
 #include "src/Utils/FreeMemory.h"
 
+#include <Wire.h>
+
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 int ramLowWatermark = 32767;
 #else
