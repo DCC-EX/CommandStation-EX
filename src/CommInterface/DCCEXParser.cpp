@@ -33,6 +33,13 @@ DCC* DCCEXParser::progTrack;
 
 int DCCEXParser::p[MAX_PARAMS];
 
+// These keywords are used in the <1> command. The number is what you get if you 
+// use the keyword as a parameter. To discover new keyword numbers , use the 
+// <$ YOURKEYWORD> command
+const int HASH_KEYWORD_PROG = -29718;
+const int HASH_KEYWORD_MAIN = 11339;
+const int HASH_KEYWORD_JOIN = -30750;
+
 void DCCEXParser::init(DCC* mainTrack_, DCC* progTrack_) {
   mainTrack = mainTrack_;
   progTrack = progTrack_;
@@ -66,6 +73,12 @@ int DCCEXParser::stringParser(const char *com, int result[]) {
     case 3: // building a parameter   
       if (hot>='0' && hot<='9') {
         runningValue=10*runningValue+(hot-'0');
+        break;
+      }
+      if (hot>='A' && hot<='Z') {
+        // Since JMRI got modified to send keywords in some rare cases, we need this
+        // Super Kluge to turn keywords into a hash value that can be recognised later
+        runningValue = ((runningValue << 5) + runningValue) ^ hot;
         break;
       }
       result[parameterCount] = runningValue * (signNegative ?-1:1);
@@ -290,20 +303,39 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     break;
     }
 
-/***** TURN ON POWER FROM MOTOR SHIELD TO TRACKS  ****/
+/***** TURN ON/OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/
 
-  case '1':      // <1>
-    mainTrack->board->power(true, false);
-    progTrack->board->power(true, false);
-    CommManager::broadcast(F("<p1>"));
-    break;
-
-/***** TURN OFF POWER FROM MOTOR SHIELD TO TRACKS  ****/
-
-  case '0':     // <0>
-    mainTrack->board->power(false, false);
-    progTrack->board->power(false, false);
-    CommManager::broadcast(F("<p0>"));
+  case '0':       // <0 [MAIN/PROG/JOIN]>
+  case '1':       // <1 [MAIN/PROG/JOIN]>
+    {
+      if (numArgs > 1) break;
+      bool on = com[0] == '1' ? true : false;
+      if (numArgs==0) {
+        mainTrack->board->power(on, false);
+        progTrack->board->power(on, false);
+        CommManager::broadcast(F("<p%c>"), com[0]);
+        break;
+      }
+      switch (p[0]) {
+      case HASH_KEYWORD_MAIN:
+        mainTrack->board->power(on, false);
+        CommManager::broadcast(F("<p%c MAIN>"), com[0]);
+        return;
+      case HASH_KEYWORD_PROG:
+        mainTrack->board->power(on, false);
+        CommManager::broadcast(F("<p%c PROG>"), com[0]);
+        return;
+      case HASH_KEYWORD_JOIN:
+        mainTrack->board->power(on, false);
+        progTrack->board->power(on, false);
+        if(on) {
+          CommManager::broadcast(F("<p1 JOIN>"));
+        }
+        else CommManager::broadcast(F("<p0>"));
+        return;
+      }
+      DIAG(F("\nUnexpected keyword hash=%d\n"),p[0]);
+    }
     break;
 
 /***** READ MAIN OPERATIONS TRACK CURRENT  ****/
