@@ -19,25 +19,63 @@
 
 #include "DCC.h"
 
-void DCC::updateSpeed() {
+void DCC::issueReminders() {
   if (packetQueue.count() > 0) return;  // Only update speed if queue is empty
 
-  for (; nextDev < numDevices; nextDev++) {
-    if (speedTable[nextDev].cab > 0) {
-      setThrottleResponse response;
-      setThrottle(speedTable[nextDev].cab, speedTable[nextDev].speedCode, response);
-      nextDev++;
+  // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
+  for (int reg = 0; reg < numDevices ; reg++) {
+    int slot = reg + nextDev;
+    if (slot >= numDevices) slot-=numDevices; 
+    if (speedTable[slot].cab > 0) {
+      // have found the next loco to remind 
+      // issueReminder will return true if this loco is completed (ie speed and functions)
+      if (issueReminder(slot)) nextDev = slot + 1; 
       return;
     }
   }
-  for (nextDev = 0; nextDev < numDevices; nextDev++) {
-    if (speedTable[nextDev].cab > 0) {
-      setThrottleResponse response;
-      setThrottle(speedTable[nextDev].cab, speedTable[nextDev].speedCode, response);
-      nextDev++;
-      return;
-    }
+}
+
+bool DCC::issueReminder(int reg) {
+  unsigned long functions = speedTable[reg].functions;
+  int loco = speedTable[reg].cab;
+  uint8_t flags = speedTable[reg].groupFlags;
+  genericResponse response;
+  setThrottleResponse throttleResponse;
+  
+  switch (loopStatus) {
+  case 0:
+//   DIAG(F("\nReminder %d speed %d"),loco,speedTable[reg].speedCode);
+    setThrottle(loco, speedTable[reg].speedCode, throttleResponse);
+    break;
+  case 1: // remind function group 1 (F0-F4)
+    if (flags & FN_GROUP_1) 
+      setFunction(loco, 0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4), response);   
+    break;     
+  case 2: // remind function group 2 F5-F8
+    if (flags & FN_GROUP_2) 
+      setFunction(loco, 0, 176 + ((functions>>5)& 0x0F), response);   
+    break;     
+  case 3: // remind function group 3 F9-F12
+    if (flags & FN_GROUP_3) 
+      setFunction(loco, 0, 160 + ((functions>>9)& 0x0F), response);
+    break;   
+  case 4: // remind function group 4 F13-F20
+    if (flags & FN_GROUP_4) 
+      setFunction(loco, 222, ((functions>>13)& 0xFF), response); 
+    flags &= ~FN_GROUP_4;  // don't send them again
+    break;  
+  case 5: // remind function group 5 F21-F28
+    if (flags & FN_GROUP_5)
+      setFunction(loco, 223, ((functions>>21)& 0xFF), response); 
+    flags &= ~FN_GROUP_5;  // don't send them again
+    break; 
   }
+  loopStatus++;
+  // if we reach status 6 then this loco is done so
+  // reset status to 0 for next loco and return true so caller 
+  // moves on to next loco. 
+  if (loopStatus > 5) loopStatus=0;
+  return loopStatus==0;
 }
 
 uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response) {
