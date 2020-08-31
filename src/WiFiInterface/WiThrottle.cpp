@@ -83,7 +83,7 @@ bool WiThrottle::areYouUsingThrottle(int cab) {
 
 // One instance of WiThrottle per connected client, so we know what the locos are  
 WiThrottle::WiThrottle( int wificlientid) {
-  DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
+  DIAG(F("\nNew WiThrottle for client %d\n"),wificlientid); 
   nextThrottle=firstThrottle;
   firstThrottle= this;
   clientid=wificlientid;
@@ -319,8 +319,6 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
       uint8_t speedCode = mainTrack->speedAndDirToCode(mainTrack->getThrottleSpeed(myLocos[loco].cab), forward);
       mainTrack->setThrottle(myLocos[loco].cab, speedCode, response);
       CommManager::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, forward);
-      if(forward) DIAG(F("REVERSE"));
-      else DIAG(F("FORWARD"));
     }
     }        
     break;      
@@ -364,11 +362,11 @@ void WiThrottle::loop() {
 void WiThrottle::checkHeartbeat() {
   // if 2 heartbeats missed... drop connection and eStop any locos still assigned to this client
   if(heartBeatEnable && (millis()-heartBeat > kHeartbeatTimeout*2000)) {
-    DIAG(F("\n\nWiThrottle(%d) hearbeat missed, dropping connection\n\n"),clientid);
+    DIAG(F("\n\nWiThrottle(%d) HB missed, severing conn\n\n"),clientid);
     setThrottleResponse response;
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0') {
-        DIAG(F("  eStopping cab %d\n"), myLocos[loco].cab);
+        DIAG(F("eStopping cab %d\n"), myLocos[loco].cab);
         mainTrack->setThrottle(myLocos[loco].cab, 1, response); // speed 1 is eStop
       }
     }

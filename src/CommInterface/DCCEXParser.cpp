@@ -374,7 +374,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     //  TODO(davidcutting42@gmail.com): Add throttle status notifications back
     CommManager::send(stream, 
         F("<iDCC++ CommandStation-EX / %s: V-%s / %s %s>"), 
-        "CommandStation-EX", BOARD_NAME, VERSION, __DATE__, __TIME__);
+        F(BOARD_NAME), F(VERSION), F(__DATE__), F(__TIME__));
     CommManager::showInitInfo();
     Turnout::show(stream);
     Output::show(stream);
@@ -419,14 +419,14 @@ void DCCEXParser::parse(Print* stream, const char *com) {
 /***** SET A FUNCTION USING LOCO CAB AND FUNCTION NUMBER ****/   
 
   case 'F':   // <F CAB NUMBER ON>
-    DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2]==1 ? F("ON") : F("OFF"));
+    DIAG(F("Set loco %d F%d %S"), p[0], p[1], p[2]==1 ? F("ON") : F("OFF"));
     mainTrack->setFunction(p[0], p[1], p[2]==1);
     break;
 
 /***** FORGET A LOCOMOTIVE ****/   
 
   case '!':   // <F CAB NUMBER ON>
-    DIAG(F("Forgetting loco %d"), p[0]);
+    DIAG(F("Forget loco %d"), p[0]);
     mainTrack->forgetDevice(p[0]);
     break;
 

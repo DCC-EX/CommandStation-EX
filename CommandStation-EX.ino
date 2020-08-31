@@ -39,14 +39,12 @@ int ramLowWatermark = 256000;
 #endif
 
 #if defined(ARDUINO_AVR_UNO)
-  #include <SoftwareSerial.h>
-  SoftwareSerial Serial1(SS_RX_PIN, SS_TX_PIN);
-  #define WIFI_BAUD 9600
   const uint8_t kNumLocos = 12;
 #else
-  #define WIFI_BAUD 115200 
   const uint8_t kNumLocos = 50;
 #endif
+
+#define WIFI_BAUD 115200
 
 const uint8_t kIRQmicros = 29;
 
@@ -117,8 +115,12 @@ void setup() {
   DCCEXParser::init(mainTrack, progTrack);  
 #ifdef WIFI_EN
   WiThrottle::setup(mainTrack, progTrack);
+#ifndef ARDUINO_AVR_UNO
   Serial1.begin(WIFI_BAUD);
   WiFiInterface::setup(&Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), F("DCCEX"), 3532);
+#else
+  WiFiInterface::setup(&Serial, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), F("DCCEX"), 3532);
+#endif
 #endif  
   CommManager::showInitInfo();           
 }
@@ -130,7 +132,7 @@ void loop() {
 
   WiFiInterface::loop();
 
-#if defined(DEBUG_MODE)
+#ifdef DEBUG_MODE
   int freeNow=freeMemory();
   if (freeNow<ramLowWatermark) {
     ramLowWatermark=freeNow;

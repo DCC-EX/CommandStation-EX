@@ -101,11 +101,11 @@ void DCC::checkAck() {
     ackDetected=true;
     ackPending=false;
     transmitRepeats=0;  // shortcut remaining repeat packets
-    DIAG(F("\n\rGenuine ACK! micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
+    DIAG(F("\n\rGood ACK: micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
     return;  // we have a genuine ACK result
   }      
 
-  DIAG(F("\n\rBad ACK! micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
+  DIAG(F("\n\rBad  ACK: micros=%d max=%d"), ackPulseDuration, ackMaxCurrent);
   ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
 
