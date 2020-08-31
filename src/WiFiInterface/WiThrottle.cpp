@@ -315,7 +315,7 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
     { 
     bool forward=aval[1]!='0';
     LOOPLOCOS(throttleChar, cab) {              
-      uint8_t speedCode = mainTrack->speedAndDirToCode(mainTrack->getThrottleSpeed(myLocos[loco].cab), mainTrack->getThrottleDirection(myLocos[loco].cab));
+      uint8_t speedCode = mainTrack->speedAndDirToCode(mainTrack->getThrottleSpeed(myLocos[loco].cab), forward);
       mainTrack->setThrottle(myLocos[loco].cab, speedCode, response);
       CommManager::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, forward);
       if(forward) DIAG(F("REVERSE"));
