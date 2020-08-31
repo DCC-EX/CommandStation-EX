@@ -24,7 +24,7 @@
 
 struct LOCO {
   char throttle; //indicates which throttle letter on client, often '0','1' or '2'
-  int cab; //address of this loco
+  uint16_t cab; //address of this loco
 };
 
 class WiThrottle {

@@ -415,7 +415,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
 /***** SET A FUNCTION USING LOCO CAB AND FUNCTION NUMBER ****/   
 
   case 'F':   // <F CAB NUMBER ON>
-    DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
+    DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2]==1 ? F("ON") : F("OFF"));
     mainTrack->setFunction(p[0], p[1], p[2]==1);
     break;
 

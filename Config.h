@@ -33,7 +33,7 @@
 #define DEBUG_MODE
 
 // Define your WiFi credentials here, comment out WIFI_EN to disable WiFi.
-#define WIFI_EN
+// #define WIFI_EN
 #define WIFI_SSID "1"
 #define WIFI_PASSWORD "2"
 

@@ -288,8 +288,8 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
   case 'F': //F onOff function
     {
     bool funcstate;
-    bool pressed=aval[1]=='1';
-    int fKey = getInt(aval+2);
+    bool pressed = aval[1] == '1';
+    int fKey = getInt(aval + 2);
     LOOPLOCOS(throttleChar, cab) {
       funcstate = mainTrack->changeFunction(myLocos[loco].cab, fKey, pressed);
       

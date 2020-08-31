@@ -116,9 +116,9 @@ uint8_t DCC::setFunction(uint16_t addr, uint8_t functionNumber, bool on) {
   // Set state of function
   unsigned long funcmask = (1UL<<functionNumber);
   if (on) {
-      speedTable[reg].functions |= funcmask;
+    speedTable[reg].functions |= funcmask;
   } else {
-      speedTable[reg].functions &= ~funcmask;
+    speedTable[reg].functions &= ~funcmask;
   }
   updateGroupFlags(speedTable[reg].groupFlags, functionNumber);
   
@@ -173,12 +173,12 @@ uint8_t DCC::setFunctionInternal(uint16_t addr, uint8_t byte1, uint8_t byte2,
 
   // for safety this guarantees that first byte will either be 0xDE 
   // (for F13-F20) or 0xDF (for F21-F28)
-  b[nB++]=(byte1 | 0xDE) & 0xDF;     
+  if (byte1!=0) b[nB++] = byte1;    
   b[nB++]=byte2;
   
   incrementCounterID();
-  // Repeat the packet four times (one plus 3 repeats)
-  schedulePacket(b, nB, 3, counterID, kFunctionType, railcomAddr);  
+  // Repeat the packet three times (one plus 2 repeats). NMRA spec is minimum 2 repeats.
+  schedulePacket(b, nB, 2, counterID, kFunctionType, railcomAddr);  
 
   response.transactionID = counterID;
 
