@@ -31,7 +31,7 @@ public:
   static void setup(Stream* setupStream, const __FlashStringHelper* ssid, const __FlashStringHelper* password,
     const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port);
   static void loop();
-  static void ATCommand(const byte * command);
+  static void ATCommand(const char * command);
   static void setHTTPCallback(HTTP_CALLBACK callback);
 private:
   static Stream* wifiStream;

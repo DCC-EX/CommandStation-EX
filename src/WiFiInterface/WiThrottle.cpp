@@ -380,4 +380,4 @@ void WiThrottle::checkHeartbeat() {
 
 char WiThrottle::LorS(int cab) {
   return (cab<127)?'S':'L';
-} 
+}

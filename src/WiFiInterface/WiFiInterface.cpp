@@ -128,7 +128,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
 // Once the user has made whatever changes to the AT commands, a <+X> command can be used
 // to force on the connectd flag so that the loop will start picking up wifi traffic.
 // If the settings are corrupted <+RST> will clear this and then you must restart the arduino.
-void WiFiInterface::ATCommand(const byte * command) {
+void WiFiInterface::ATCommand(const char * command) {
   if (*command=='X') {
     connected = true;
     DIAG(F("++++++ Wifi Connection forced on ++++++++\n\r"));

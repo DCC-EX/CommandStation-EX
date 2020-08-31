@@ -83,11 +83,11 @@ void DCC::checkAck() {
     return;
   }
 
-  uint16_t lastCurrent = board->getCurrentMilliamps();
+  uint16_t lastCurrent = board->getAckMilliamps();
   if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
 
   // Detect the leading edge of a pulse
-  if(lastCurrent-board->getCurrentBase() > board->getThreshold()) {
+  if(lastCurrent > board->getThreshold()) {
     if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
     return;
   }
