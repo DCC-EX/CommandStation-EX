@@ -291,15 +291,12 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
     bool pressed=aval[1]=='1';
     int fKey = getInt(aval+2);
     LOOPLOCOS(throttleChar, cab) {
-      // TODO: Readd the function setting once implemented in the DCC class.
-      
-      //funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
+      funcstate = mainTrack->changeFunction(myLocos[loco].cab, fKey, pressed);
       
       if(true)
-      //if(funcstate==0 || funcstate==1)
-        CommManager::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
-          myLocos[loco].cab, funcstate, fKey);
-      }
+        if(funcstate==0 || funcstate==1)
+          CommManager::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, funcstate, fKey);
+    }
     }
     break;  
   case 'q':

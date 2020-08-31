@@ -262,9 +262,10 @@ public:
   bool interrupt1();
   void interrupt2();
 
+
   uint8_t setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response);
-  uint8_t setFunction(uint16_t addr, uint8_t byte1, genericResponse& response);
-  uint8_t setFunction(uint16_t addr, uint8_t byte1, uint8_t byte2, genericResponse& response);
+  uint8_t setFunction(uint16_t addr, uint8_t functionNumber, bool on);
+  int changeFunction(uint16_t addr, uint8_t functionNumber, bool pressed);
   uint8_t setAccessory(uint16_t addr, uint8_t number, bool activate, genericResponse& response);
   
   // Writes a CV to a decoder on the main track and calls a callback function
@@ -320,6 +321,9 @@ public:
     responseStreamProg = _stream;
   }
 private:
+  uint8_t setFunctionInternal(uint16_t addr, uint8_t byte1, uint8_t byte2, genericResponse& response);
+  void updateGroupFlags(uint8_t & flags, int functionNumber);
+
   // Queues a packet for the next device in line reminding it of its speed/functions.
   void issueReminders();
   bool issueReminder(int reg);
