@@ -386,10 +386,21 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     CommManager::send(stream, F("\n"));
     break;
 
+/***** SEND AT COMMAND TO WIFI MODULE  ****/
+
   case '+':
     WiFiInterface::ATCommand(com);
     break;
+
+/***** GET THE HASH OF A STRING (FOR TRACK POWER, ETC.) ****/    
+
+  case '$':
+    if (numArgs > 1) break;
+    CommManager::send(stream, F("<$ %d>"), p[0]);
+    break;
+
   
+
   } // switch(com[0])
 }
 
