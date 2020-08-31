@@ -362,6 +362,12 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     CommManager::send(stream, F("<a %d>"), currRead);
     break;
 
+/***** READ NUMBER OF SUPPORTED MOBILE DECODERS ****/
+
+  case '#':     // <#>
+      CommManager::send(stream, F("<# %d>"), mainTrack->numLocos());
+    break;
+
 /***** READ STATUS OF DCC++ BASE STATION  ****/
 
   case 's':      // <s>

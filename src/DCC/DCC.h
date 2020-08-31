@@ -247,6 +247,8 @@ public:
     }
   };
 
+  uint8_t numLocos() { return numDevices; };
+
   void loop() {
     board->checkOverload();
     issueReminders();
