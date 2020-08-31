@@ -50,8 +50,9 @@
 DCC* WiThrottle::mainTrack;
 DCC* WiThrottle::progTrack;
 
+                                             /* cast fixes compiler warning, CAB is always > 0 in last compare */
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<kMaxLocosPerThrottle;loco++) \
-  if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
+  if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==(uint16_t)CAB))
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 bool WiThrottle::annotateLeftRight=false;
@@ -288,18 +289,15 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
   case 'F': //F onOff function
     {
     bool funcstate;
-    bool pressed=aval[1]=='1';
-    int fKey = getInt(aval+2);
+    bool pressed = aval[1] == '1';
+    int fKey = getInt(aval + 2);
     LOOPLOCOS(throttleChar, cab) {
-      // TODO: Readd the function setting once implemented in the DCC class.
-      
-      //funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
+      funcstate = mainTrack->changeFunction(myLocos[loco].cab, fKey, pressed);
       
       if(true)
-      //if(funcstate==0 || funcstate==1)
-        CommManager::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
-          myLocos[loco].cab, funcstate, fKey);
-      }
+        if(funcstate==0 || funcstate==1)
+          CommManager::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, funcstate, fKey);
+    }
     }
     break;  
   case 'q':
@@ -318,24 +316,26 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
     { 
     bool forward=aval[1]!='0';
     LOOPLOCOS(throttleChar, cab) {              
-      uint8_t speedCode = mainTrack->speedAndDirToCode(mainTrack->getThrottleSpeed(myLocos[loco].cab), mainTrack->getThrottleDirection(myLocos[loco].cab));
+      uint8_t speedCode = mainTrack->speedAndDirToCode(mainTrack->getThrottleSpeed(myLocos[loco].cab), forward);
       mainTrack->setThrottle(myLocos[loco].cab, speedCode, response);
       CommManager::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, forward);
+      if(forward) DIAG(F("REVERSE"));
+      else DIAG(F("FORWARD"));
     }
     }        
     break;      
   case 'X':
     //Emergency Stop  (speed code 1)
     LOOPLOCOS(throttleChar, cab) {
-    mainTrack->setThrottle(myLocos[loco].cab, 1, response);
-    CommManager::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, -1);
+      mainTrack->setThrottle(myLocos[loco].cab, 1, response);
+      CommManager::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, -1);
     }
     break;
   case 'I': // Idle, set speed to 0
   case 'Q': // Quit, set speed to 0
     LOOPLOCOS(throttleChar, cab) {
-    mainTrack->setThrottle(myLocos[loco].cab, 0, response);
-    CommManager::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, 0);
+      mainTrack->setThrottle(myLocos[loco].cab, 0, response);
+      CommManager::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, 0);
     }
     break;
   }               

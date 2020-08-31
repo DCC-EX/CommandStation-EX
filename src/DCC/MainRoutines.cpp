@@ -19,25 +19,63 @@
 
 #include "DCC.h"
 
-void DCC::updateSpeed() {
+void DCC::issueReminders() {
   if (packetQueue.count() > 0) return;  // Only update speed if queue is empty
 
-  for (; nextDev < numDevices; nextDev++) {
-    if (speedTable[nextDev].cab > 0) {
-      setThrottleResponse response;
-      setThrottle(speedTable[nextDev].cab, speedTable[nextDev].speedCode, response);
-      nextDev++;
+  // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
+  for (int reg = 0; reg < numDevices ; reg++) {
+    int slot = reg + nextDev;
+    if (slot >= numDevices) slot-=numDevices; 
+    if (speedTable[slot].cab > 0) {
+      // have found the next loco to remind 
+      // issueReminder will return true if this loco is completed (ie speed and functions)
+      if (issueReminder(slot)) nextDev = slot + 1; 
       return;
     }
   }
-  for (nextDev = 0; nextDev < numDevices; nextDev++) {
-    if (speedTable[nextDev].cab > 0) {
-      setThrottleResponse response;
-      setThrottle(speedTable[nextDev].cab, speedTable[nextDev].speedCode, response);
-      nextDev++;
-      return;
-    }
+}
+
+bool DCC::issueReminder(int reg) {
+  unsigned long functions = speedTable[reg].functions;
+  int loco = speedTable[reg].cab;
+  uint8_t flags = speedTable[reg].groupFlags;
+  genericResponse response;
+  setThrottleResponse throttleResponse;
+  
+  switch (loopStatus) {
+  case 0:
+//   DIAG(F("\nReminder %d speed %d"),loco,speedTable[reg].speedCode);
+    setThrottle(loco, speedTable[reg].speedCode, throttleResponse);
+    break;
+  case 1: // remind function group 1 (F0-F4)
+    if (flags & FN_GROUP_1) 
+      setFunctionInternal(loco, 0, 128 | ((functions>>1) & 0x0F) | ((functions & 0x01)<<4), response);   
+    break;     
+  case 2: // remind function group 2 F5-F8
+    if (flags & FN_GROUP_2) 
+      setFunctionInternal(loco, 0, 176 + ((functions>>5) & 0x0F), response);   
+    break;     
+  case 3: // remind function group 3 F9-F12
+    if (flags & FN_GROUP_3) 
+      setFunctionInternal(loco, 0, 160 + ((functions>>9) & 0x0F), response);
+    break;   
+  case 4: // remind function group 4 F13-F20
+    if (flags & FN_GROUP_4) 
+      setFunctionInternal(loco, 222, ((functions>>13) & 0xFF), response); 
+    flags &= ~FN_GROUP_4;  // don't send them again
+    break;  
+  case 5: // remind function group 5 F21-F28
+    if (flags & FN_GROUP_5)
+      setFunctionInternal(loco, 223, ((functions>>21) & 0xFF), response); 
+    flags &= ~FN_GROUP_5;  // don't send them again
+    break; 
   }
+  loopStatus++;
+  // if we reach status 6 then this loco is done so
+  // reset status to 0 for next loco and return true so caller 
+  // moves on to next loco. 
+  if (loopStatus > 5) loopStatus=0;
+  return loopStatus==0;
 }
 
 uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response) {
@@ -69,34 +107,56 @@ uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& 
   return ERR_OK;
 }
 
-uint8_t DCC::setFunction(uint16_t addr, uint8_t byte1, 
-  genericResponse& response) {
-  
-  uint8_t b[4];     // Packet payload. Save space for checksum byte
-  uint8_t nB = 0;   // Counter for number of bytes in the packet
-  uint16_t railcomAddr = 0;  // For detecting the railcom instruction type
+uint8_t DCC::setFunction(uint16_t addr, uint8_t functionNumber, bool on) {
+  if (addr <= 0 || functionNumber > 28) return ERR_OK;
+  int reg = lookupSpeedTable(addr);
+  if (reg < 0) return ERR_OK;  
 
-  if(addr > 127) {
-    b[nB++] = highByte(addr) | 0xC0;    // convert address to packet format
-    railcomAddr = (highByte(addr) | 0xC0) << 8;
+  // Take care of functions:
+  // Set state of function
+  unsigned long funcmask = (1UL<<functionNumber);
+  if (on) {
+    speedTable[reg].functions |= funcmask;
+  } else {
+    speedTable[reg].functions &= ~funcmask;
   }
-
-  b[nB++] = lowByte(addr);
-  railcomAddr |= lowByte(addr);
-
-  b[nB++] = (byte1 | 0x80) & 0xBF;
-
-  incrementCounterID();
-  // Repeat the packet four times (one plus 3 repeats)
-  schedulePacket(b, nB, 3, counterID, kFunctionType, railcomAddr);  
-
-
-  response.transactionID = counterID;
-
+  updateGroupFlags(speedTable[reg].groupFlags, functionNumber);
+  
   return ERR_OK;
 }
 
-uint8_t DCC::setFunction(uint16_t addr, uint8_t byte1, uint8_t byte2, 
+int DCC::changeFunction(uint16_t addr, uint8_t functionNumber, bool pressed) {
+  int funcstate = -1;
+  if (addr<=0 || functionNumber>28) return funcstate;
+  int reg = lookupSpeedTable(addr);
+  if (reg<0) return funcstate;  
+
+  // Take care of functions:
+  // Imitate how many command stations do it: Button press is
+  // toggle but for F2 where it is momentary
+  unsigned long funcmask = (1UL<<functionNumber);
+  if (functionNumber == 2) {
+    // turn on F2 on press and off again at release of button
+    if (pressed) {
+	    speedTable[reg].functions |= funcmask;
+	    funcstate = 1;
+    } else {
+	    speedTable[reg].functions &= ~funcmask;
+	    funcstate = 0;
+    }
+  } else {
+    // toggle function on press, ignore release
+    if (pressed) {
+	    speedTable[reg].functions ^= funcmask;
+    }
+    funcstate = speedTable[reg].functions & funcmask;
+  }
+  updateGroupFlags(speedTable[reg].groupFlags, functionNumber);
+  
+  return funcstate;
+}
+
+uint8_t DCC::setFunctionInternal(uint16_t addr, uint8_t byte1, uint8_t byte2, 
   genericResponse& response) {
   
   uint8_t b[4];     // Packet payload. Save space for checksum byte
@@ -113,16 +173,30 @@ uint8_t DCC::setFunction(uint16_t addr, uint8_t byte1, uint8_t byte2,
 
   // for safety this guarantees that first byte will either be 0xDE 
   // (for F13-F20) or 0xDF (for F21-F28)
-  b[nB++]=(byte1 | 0xDE) & 0xDF;     
+  if (byte1!=0) b[nB++] = byte1;    
   b[nB++]=byte2;
   
   incrementCounterID();
-  // Repeat the packet four times (one plus 3 repeats)
-  schedulePacket(b, nB, 3, counterID, kFunctionType, railcomAddr);  
+  // Repeat the packet three times (one plus 2 repeats). NMRA spec is minimum 2 repeats.
+  schedulePacket(b, nB, 2, counterID, kFunctionType, railcomAddr);  
 
   response.transactionID = counterID;
 
   return ERR_OK;
+}
+
+// Set the group flag to say we have touched the particular group.
+// A group will be reminded only if it has been touched.  
+void DCC::updateGroupFlags(uint8_t & flags, int functionNumber) {
+  uint8_t groupMask;
+  
+  if (functionNumber<=4)       groupMask=FN_GROUP_1;
+  else if (functionNumber<=8)  groupMask=FN_GROUP_2;
+  else if (functionNumber<=12) groupMask=FN_GROUP_3;
+  else if (functionNumber<=20) groupMask=FN_GROUP_4;
+  else                         groupMask=FN_GROUP_5;
+
+  flags |= groupMask; 
 }
 
 uint8_t DCC::setAccessory(uint16_t addr, uint8_t number, bool activate, 
@@ -286,19 +360,26 @@ uint8_t DCC::readCVBytesMain(uint16_t addr, uint16_t cv,
 
 uint8_t DCC::getThrottleSpeed(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return -1;
+  if (reg < 0) {
+    DIAG(F("Speed: Couldn't find loco"));
+    return -1;
+  }
   return speedTable[reg].speedCode & 0x7F;
 }
 
 bool DCC::getThrottleDirection(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return false;
+  if (reg < 0) {
+    DIAG(F("Direction: Couldn't find loco"));
+    return false;
+  }
+  DIAG(F("Direction: %d"), speedTable[reg].speedCode & 0x80);
   return (speedTable[reg].speedCode & 0x80) != 0;
 }
 
 // Turns 0 to 127 speed steps and a direction to a speed code
 uint8_t DCC::speedAndDirToCode(uint8_t speed, bool dir) {
-  return (speed & 0x7F) + dir * 128; 
+  return (speed & 0x7F) + (dir ? 128 : 0); 
 } 
 
 void DCC::updateSpeedTable(uint8_t cab, uint8_t speedCode) {

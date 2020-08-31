@@ -223,6 +223,12 @@ enum : uint8_t {
   ERR_BUSY = 2,
 };
 
+const uint8_t FN_GROUP_1=0x01;         
+const uint8_t FN_GROUP_2=0x02;         
+const uint8_t FN_GROUP_3=0x04;         
+const uint8_t FN_GROUP_4=0x08;         
+const uint8_t FN_GROUP_5=0x10;   
+
 class DCC {
 public:
   DCC(uint8_t numDevices, Board* board) {
@@ -241,9 +247,11 @@ public:
     }
   };
 
+  uint8_t numLocos() { return numDevices; };
+
   void loop() {
     board->checkOverload();
-    updateSpeed();
+    issueReminders();
     
     if(board->getProgMode()) // If we're in programming mode
       ackManagerLoop();
@@ -256,9 +264,10 @@ public:
   bool interrupt1();
   void interrupt2();
 
+
   uint8_t setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response);
-  uint8_t setFunction(uint16_t addr, uint8_t byte1, genericResponse& response);
-  uint8_t setFunction(uint16_t addr, uint8_t byte1, uint8_t byte2, genericResponse& response);
+  uint8_t setFunction(uint16_t addr, uint8_t functionNumber, bool on);
+  int changeFunction(uint16_t addr, uint8_t functionNumber, bool pressed);
   uint8_t setAccessory(uint16_t addr, uint8_t number, bool activate, genericResponse& response);
   
   // Writes a CV to a decoder on the main track and calls a callback function
@@ -294,6 +303,8 @@ public:
   struct Speed {
     uint16_t cab;
     uint8_t speedCode;
+    uint8_t groupFlags;
+    unsigned long functions;
   };
   // Speed table holds speed of all devices on the bus that have been set since
   // startup. 
@@ -312,10 +323,14 @@ public:
     responseStreamProg = _stream;
   }
 private:
+  uint8_t setFunctionInternal(uint16_t addr, uint8_t byte1, uint8_t byte2, genericResponse& response);
+  void updateGroupFlags(uint8_t & flags, int functionNumber);
 
-  // Queues a packet for the next device in line reminding it of its speed.
-  void updateSpeed();
-  uint8_t nextDev = 0;  // Holds state for updateSpeed function.
+  // Queues a packet for the next device in line reminding it of its speed/functions.
+  void issueReminders();
+  bool issueReminder(int reg);
+  uint8_t nextDev = 0;  // Holds state for issueReminder function.
+  uint8_t loopStatus = 0;
 
   // Functions for auto management of the speed table.
   void updateSpeedTable(uint8_t cab, uint8_t speedCode);
