@@ -48,7 +48,7 @@ public:
   static void showInitInfo();
   static void broadcast(const __FlashStringHelper* input, ...);
   static void print(const __FlashStringHelper* input, ...);
-  static void doNotPrint(const __FlashStringHelper* input, ...) {}
+  static void doNotPrint(const __FlashStringHelper* input, ...) { (void)input;}
   static void send(Print* stream, const __FlashStringHelper* input, ...);
   static void printEscapes(Print* stream, char * input);
   static void printEscapes(Print* stream, const __FlashStringHelper* input);
