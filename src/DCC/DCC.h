@@ -77,7 +77,9 @@ enum PacketType : uint8_t {
   kSrvcReadType
 };
 
+#ifndef ARDUINO_AVR_UNO
 extern const uint8_t railcom_decode[256];
+#endif 
 
 // invalid value (not conforming to the 4bit weighting requirement)
 const uint8_t INV = 0xFF;
@@ -255,8 +257,10 @@ public:
     
     if(board->getProgMode()) // If we're in programming mode
       ackManagerLoop();
+#ifndef ARDUINO_AVR_UNO      
     else
       rcomProcessData(board->rcomBuffer, rcomID, rcomTxType, rcomAddr);
+      #endif
   }
 
   Board* board;
