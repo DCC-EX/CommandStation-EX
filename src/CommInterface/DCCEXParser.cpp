@@ -94,6 +94,8 @@ int DCCEXParser::stringParser(const char *com, int result[]) {
 
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print* stream, const char *com) {
+  if (com[0]=='<') com++;
+
   int numArgs = stringParser(com+1, p);
   
   switch(com[0]) {
