@@ -361,7 +361,6 @@ uint8_t DCC::readCVBytesMain(uint16_t addr, uint16_t cv,
 uint8_t DCC::getThrottleSpeed(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
   if (reg < 0) {
-    DIAG(F("Speed: Couldn't find loco"));
     return -1;
   }
   return speedTable[reg].speedCode & 0x7F;
@@ -370,10 +369,8 @@ uint8_t DCC::getThrottleSpeed(uint8_t cab) {
 bool DCC::getThrottleDirection(uint8_t cab) {
   int reg=lookupSpeedTable(cab);
   if (reg < 0) {
-    DIAG(F("Direction: Couldn't find loco"));
     return false;
   }
-  DIAG(F("Direction: %d"), speedTable[reg].speedCode & 0x80);
   return (speedTable[reg].speedCode & 0x80) != 0;
 }
 

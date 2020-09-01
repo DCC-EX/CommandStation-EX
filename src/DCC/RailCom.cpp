@@ -21,6 +21,8 @@
 
 #include <avr/pgmspace.h>
 
+#ifndef ARDUINO_AVR_UNO
+
 const uint8_t railcom_decode[256] PROGMEM =
 {    INV,    INV,    INV,    INV,    INV,    INV,    INV,    INV,
      INV,    INV,    INV,    INV,    INV,    INV,    INV,   NACK,
@@ -192,3 +194,4 @@ CLEANUP:
     data[i] = 0x00;
   }
 }
+#endif

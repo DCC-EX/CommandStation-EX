@@ -46,13 +46,13 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
 
   wifiStream = setupStream;
 
-  DIAG(F("\n\r++++++ Wifi Setup In Progress ++++++++\n\r"));
+  DIAG(F("\n\rWifi Setup...\n\r"));
 
   connected = setup2( ssid, password, hostname, servername, port);
  
   if (connected) CommManager::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
  
-  DIAG(F("++++++ Wifi Setup %S ++++++++\n\r"), connected ? F("OK") : F("FAILED"));
+  DIAG(F("Wifi %S \n\r"), connected ? F("OK") : F("FAILED"));
 }
 
 bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringHelper* password,
@@ -61,7 +61,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
   int ipOK = 0;
 
   if (checkForOK(200, IPD_SEARCH, true)) {
-    DIAG(F("Preconfigured Wifi already running with data waiting\n\r"));
+    DIAG(F("Prev. Wifi found, data waiting\n\r"));
     loopstate=4;  // carry on from correct place 
     return true; 
   }
@@ -131,7 +131,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
 void WiFiInterface::ATCommand(const char * command) {
   if (*command=='X') {
     connected = true;
-    DIAG(F("++++++ Wifi Connection forced on ++++++++\n\r"));
+    DIAG(F("Wifi forced conn.\n\r"));
   }
   else {
     CommManager::send(wifiStream, F("AT+%s\r\n"), command + 1);

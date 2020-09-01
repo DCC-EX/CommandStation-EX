@@ -24,7 +24,10 @@
 #include "Turnouts.h"
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC)
+#include <SparkFun_External_EEPROM.h>
 ExternalEEPROM EEPROM;
+#else
+#include <EEPROM.h>
 #endif
 
 void EEStore::init(Print* stream){
