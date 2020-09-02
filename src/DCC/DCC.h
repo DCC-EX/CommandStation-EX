@@ -314,10 +314,10 @@ public:
   // startup. 
   Speed* speedTable;
 
-  void forgetDevice(uint8_t cab);
+  void forgetDevice(uint16_t cab);
   void forgetAllDevices();
-  uint8_t getThrottleSpeed(uint8_t cab);
-  bool getThrottleDirection(uint8_t cab);
+  uint8_t getThrottleSpeed(uint16_t cab);
+  bool getThrottleDirection(uint16_t cab);
   uint8_t speedAndDirToCode(uint8_t speed, bool dir);
 
   void rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType txType, uint16_t addr);
@@ -337,8 +337,8 @@ private:
   uint8_t loopStatus = 0;
 
   // Functions for auto management of the speed table.
-  void updateSpeedTable(uint8_t cab, uint8_t speedCode);
-  int lookupSpeedTable(uint8_t cab);
+  void updateSpeedTable(uint16_t cab, uint8_t speedCode);
+  int lookupSpeedTable(uint16_t cab);
 
   bool rcomCutout = false; // Should we do a railcom cutout?
 
@@ -394,12 +394,15 @@ private:
     uint16_t identifier, PacketType type, uint16_t address) {
     
     Packet newPacket;
-
+// DIAG(F("\nDCC:"));
     uint8_t checksum=0;
     for (int b=0; b<byteCount; b++) {
+//      DIAG(F(" %x"),buffer[b]);
       checksum ^= buffer[b];
       newPacket.payload[b] = buffer[b];
     }
+//    DIAG(F("\n"));
+
     newPacket.payload[byteCount] = checksum;
     newPacket.length = byteCount+1;
     newPacket.repeats = repeats;

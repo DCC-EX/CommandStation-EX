@@ -107,6 +107,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
 
     int speed=p[2];
     if (speed>126 || speed<-1) break; // invalid JMRI speed code
+    if (p[3]<0 || p[3]>1) break;      // invalid direction code
     if (speed<0) speed=1; // emergency stop DCC speed
     else if (speed>0) speed++; // map 1-126 -> 2-127
 
@@ -114,7 +115,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
 
     if(mainTrack->setThrottle(p[1], speedCode, throttleResponse) == ERR_OK)
       // TODO(davidcutting42@gmail.com): move back to throttleResponse struct items instead of p[]
-      CommManager::send(stream, F("<T %d %d %d>"), throttleResponse.device, p[2], p[3]);
+      CommManager::send(stream, F("<T %d %d %d>"),p[0], p[2],p[3]);
     
     break;
   }
