@@ -373,7 +373,7 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     trackPowerCallback(progTrack->board->getName(), progTrack->board->getStatus());
     //  TODO(davidcutting42@gmail.com): Add throttle status notifications back
     CommManager::send(stream, 
-        F("<iDCC++ CommandStation-EX / %s: V-%s / %s %s>"), 
+        F("<iDCC++ CommandStation-EX / %S: V-%S / %S %S>"), 
         F(BOARD_NAME), F(VERSION), F(__DATE__), F(__TIME__));
     CommManager::showInitInfo();
     Turnout::show(stream);
