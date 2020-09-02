@@ -65,11 +65,11 @@ void DCC::rcomProcessData(uint8_t data[kRcomBufferSize], uint16_t id, PacketType
     if(i == kRcomBufferSize - 1) return; 
   }
   
-  DIAG(F("Railcom RAW %d = %x %x %x %x %x %x %x %x\n\r"), 
-      id,
-      data[0], data[1], data[2], data[3], 
-      data[4], data[5], data[6], data[7]
-    );
+  // DIAG(F("Railcom RAW %d = %x %x %x %x %x %x %x %x\n\r"), 
+  //     id,
+  //     data[0], data[1], data[2], data[3], 
+  //     data[4], data[5], data[6], data[7]
+  //   );
 
   for (size_t i = 0; i < 8; i++)
   {
@@ -194,4 +194,5 @@ CLEANUP:
     data[i] = 0x00;
   }
 }
+
 #endif

@@ -272,7 +272,7 @@ void WiThrottle::locoAction(Print * stream, uint8_t* aval, char throttleChar, in
   // Note cab=-1 for all cabs in the consist called throttleChar.  
 //    DIAG(F("\nLoco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
   
-  setThrottleResponse response;
+  genericResponse response;
 
   switch (aval[0]) {
   case 'V':  // Vspeed
@@ -363,7 +363,7 @@ void WiThrottle::checkHeartbeat() {
   // if 2 heartbeats missed... drop connection and eStop any locos still assigned to this client
   if(heartBeatEnable && (millis()-heartBeat > kHeartbeatTimeout*2000)) {
     DIAG(F("\n\nWiThrottle(%d) HB missed, severing conn\n\n"),clientid);
-    setThrottleResponse response;
+    genericResponse response;
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0') {
         DIAG(F("eStopping cab %d\n"), myLocos[loco].cab);

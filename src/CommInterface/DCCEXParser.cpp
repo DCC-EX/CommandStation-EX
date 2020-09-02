@@ -94,6 +94,8 @@ int DCCEXParser::stringParser(const char *com, int result[]) {
 
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print* stream, const char *com) {
+  if (com[0]=='<') com++;
+
   int numArgs = stringParser(com+1, p);
   
   switch(com[0]) {
@@ -101,18 +103,17 @@ void DCCEXParser::parse(Print* stream, const char *com) {
 /***** SET ENGINE THROTTLES USING 128-STEP SPEED CONTROL ****/
 
   case 't': {      // <t REGISTER CAB SPEED DIRECTION>
-    setThrottleResponse throttleResponse;
+    genericResponse throttleResponse;
 
     int speed=p[2];
     if (speed>126 || speed<-1) break; // invalid JMRI speed code
     if (speed<0) speed=1; // emergency stop DCC speed
     else if (speed>0) speed++; // map 1-126 -> 2-127
 
-    uint8_t speedCode = (speed & 0x7F) + p[3] * 128;
+    uint8_t speedCode = (speed & 0x7F) + p[3]==0 ? 0 : 128;
 
     if(mainTrack->setThrottle(p[1], speedCode, throttleResponse) == ERR_OK)
-      // TODO(davidcutting42@gmail.com): move back to throttleResponse struct items instead of p[]
-      CommManager::send(stream, F("<T %d %d %d>"), throttleResponse.device, p[2], p[3]);
+      CommManager::send(stream, F("<T %d %d %d>"), p[1], p[2], p[3]);
     
     break;
   }

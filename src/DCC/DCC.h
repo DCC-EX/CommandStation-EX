@@ -37,13 +37,6 @@ enum cv_edit_type : uint8_t {
   WRITECVBIT,
 };
 
-struct setThrottleResponse {
-  uint8_t device;
-  uint8_t speed;
-  uint8_t direction;
-  uint16_t transactionID;
-};
-
 struct genericResponse {
   uint16_t transactionID;
 };
@@ -268,8 +261,7 @@ public:
   bool interrupt1();
   void interrupt2();
 
-
-  uint8_t setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response);
+  uint8_t setThrottle(uint16_t addr, uint8_t speedCode, genericResponse& response);
   uint8_t setFunction(uint16_t addr, uint8_t functionNumber, bool on);
   int changeFunction(uint16_t addr, uint8_t functionNumber, bool pressed);
   uint8_t setAccessory(uint16_t addr, uint8_t number, bool activate, genericResponse& response);
