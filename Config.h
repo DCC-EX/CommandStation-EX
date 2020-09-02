@@ -34,7 +34,7 @@
 #define DEBUG_MODE
 
 // Define your WiFi credentials here, comment out WIFI_EN to disable WiFi.
-#define WIFI_EN
+//#define WIFI_EN
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
 // WiFi AP uses the WIFI_PASSWORD and WIFI_HOSTNAME. Set hostname to something 
