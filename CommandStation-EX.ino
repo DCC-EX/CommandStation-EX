@@ -119,6 +119,8 @@ void setup() {
 
 // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
   // We will fire an interrupt every 29us to generate the signal on the track 
+
+  // Timer code moved to after wifi startup so that it does not interfere
   TimerA.initialize();
   TimerA.setPeriod(kIRQmicros);
   TimerA.attachInterrupt(waveform_IrqHandler);
