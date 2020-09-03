@@ -50,34 +50,55 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
 
   connected = setup2( ssid, password, hostname, servername, port);
  
-  if (connected) CommManager::send(wifiStream, F("ATE0\r\n")); // turn off the echo server on port
- 
+  if (connected) {
+    CommManager::send(wifiStream, F("ATE0\r\n")); // turn off the echo from server 
+    checkForOK(200, OK_SEARCH, true);      
+  }
+
   DIAG(F("+++ Wifi Setup %S +++\n\r"), connected ? F("OK") : F("FAILED"));
 }
 
 bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringHelper* password,
                const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
   
+  (void)servername; // unused parameter
   int ipOK = 0;
 
-  if (checkForOK(200, IPD_SEARCH, true)) {
-    DIAG(F("Preconf Wifi already running with data waiting\n\r"));
+  char macAddress[17];  //  mac address extraction   
+     
+  // First check... Restarting the Arduino does not restart the ES. 
+  //  There may alrerady be a connection with data in the pipeline.
+  // If there is, just shortcut the setup and continue to read the data as normal.
+  if (checkForOK(200,IPD_SEARCH, true)) {
+    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
     loopstate=4;  // carry on from correct place 
     return true; 
   }
 
-  CommManager::send(wifiStream, F("ATE1\r\n")); // turn on the echo server on port
- 
-  CommManager::send(wifiStream, F("AT+GMR\r\n")); // request AT  version
+   
+  CommManager::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
+  checkForOK(2000, OK_SEARCH, true);      // Makes this visible on the console
+
+  // Display the AT version information
+  CommManager::send(wifiStream, F("AT+GMR\r\n")); 
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
-  CommManager::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as station
-  checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
-  
-  delay(8000); // give preconfigured ESP8266 a chance to connect 
+  delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
   
   CommManager::send(wifiStream, F("AT+CIFSR\r\n"));
-  if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true, false))
+
+  // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
+  if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
+    // Copy 17 byte mac address  
+      for (int i=0; i<17;i++) {
+        while(!wifiStream->available());
+        macAddress[i]=wifiStream->read();
+        CommManager::printEscape(&DIAGSERIAL,macAddress[i]);
+      }    
+  }
+  char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+      
+  if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
     if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
       ipOK = 1;
 
@@ -88,41 +109,53 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
     // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
     CommManager::send(wifiStream, F("AT+CWJAP?\r\n"));
     if (checkForOK(2000, OK_SEARCH, true)) {
-      // early version supports CWJAP
-      DIAG(F("CWJAP"));
-      CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), ssid, password);
-      checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
+      while (wifiStream->available()) CommManager::printEscape(&DIAGSERIAL, wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+  
+      // AT command early version supports CWJAP/CWSAP
+      if (ssid) {
+        CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), ssid, password);
+        checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok    
+      }
+      DIAG(F("\n**\n"));
+      
+      // establish the APname
+      CommManager::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
+      checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
+      
     }
     else {
       // later version supports CWJAP_CUR
+      
       CommManager::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
       checkForOK(2000, OK_SEARCH, true); // dont care if not supported
 
-      DIAG(F("CWJAP_CUR"));
-      CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), ssid, password);
-      checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
-
+      
+      if (ssid) {
+        CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), ssid, password);
+        checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
+      }
+      
+      CommManager::send(wifiStream, F("AT+CWSAP_CUR=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
+      checkForOK(20000, OK_SEARCH, true); // can ignore failure as ssid mode may still be ok
+      
       CommManager::send(wifiStream, F("AT+CIPRECVMODE=0\r\n"), port); // make sure transfer mode is correct
       checkForOK(2000, OK_SEARCH, true);
-
-      // StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S.local\",\"%S.local\",%d\r\n"), hostname, servername, port); // Setup mDNS for Server
-      // if (!checkForOK(5000, OK_SEARCH, true)) return false;
-
-      (void)servername; // avoid compiler warning from commented out AT_MDNS above
     }
-    CommManager::send(wifiStream, F("AT+CIFSR\r\n")); // get ip address
-    if (!checkForOK(10000, OK_SEARCH, true, false)) return false;
   }
 
+   
   CommManager::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
 
   CommManager::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
-
+ 
+  CommManager::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
+  if (!checkForOK(10000, OK_SEARCH, true, false)) return false;
+  DIAG(F("\nPORT=%d\n"),port);
+   
   return true;
 }
-
 
 // This function is used to allow users to enter <+ commands> through the DCCEXParser
 // Once the user has made whatever changes to the AT commands, a <+X> command can be used
