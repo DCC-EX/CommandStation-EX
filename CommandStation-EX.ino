@@ -88,13 +88,7 @@ void setup() {
   progTrack = new DCC(0, progBoard);           // 0 refesh loop on progTrack 
   progTrack->board->progMode(ON);   // Limits current to 250mA. Current limit can be changed in config above.
 
-  // TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
-  // We will fire an interrupt every 29us to generate the signal on the track 
-  TimerA.initialize();
-  TimerA.setPeriod(kIRQmicros);
-  TimerA.attachInterrupt(waveform_IrqHandler);
-  TimerA.start();
-
+  
   // Register the serial interface
 #if defined (ARDUINO_ARCH_SAMD)
   CommManager::registerInterface(new USBInterface(SerialUSB));
@@ -122,6 +116,14 @@ void setup() {
   WiFiInterface::setup(&Serial, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), F("DCCEX"), 3532);
 #endif
 #endif  
+
+// TimerA is TCC0 on SAMD21, Timer1 on MEGA2560, and Timer1 on MEGA328
+  // We will fire an interrupt every 29us to generate the signal on the track 
+  TimerA.initialize();
+  TimerA.setPeriod(kIRQmicros);
+  TimerA.attachInterrupt(waveform_IrqHandler);
+  TimerA.start();
+
   CommManager::showInitInfo();           
 }
 

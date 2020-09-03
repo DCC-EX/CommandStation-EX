@@ -253,10 +253,12 @@ void WiFiInterface::loop() {
       break;
     case 5:  // reading connection id
       if (ch == ',') loopstate = 6;
+      else if (ch < '0' || ch>'9') loopstate = 0; // MALFORMED
       else connectionId = 10 * connectionId + (ch - '0');
       break;
     case 6: // reading for length
       if (ch == ':') loopstate = (datalength == 0) ? 99 : 7; // 99 is getout without reading next char
+      else if (ch < '0' || ch>'9') loopstate = 0; // MALFORMED
       else datalength = datalength * 10 + (ch - '0');
       streamer.flush();  // basically sets write point at start of buffer
       break;
