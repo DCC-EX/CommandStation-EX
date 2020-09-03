@@ -377,9 +377,10 @@ uint8_t DCC::speedAndDirToCode(uint8_t speed, bool dir) {
 
 void DCC::updateSpeedTable(uint16_t cab, uint8_t speedCode) {
   if(cab == 0) {
-    // broadcast to all locomotives
-    for(int dev = 0; dev < numDevices; dev++) 
-      speedTable[dev].speedCode = speedCode;
+     // broadcast stop/estop but dont change direction
+     for (int reg = 0; reg < numDevices; reg++) {
+       speedTable[reg].speedCode = (speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
+     }
     return;
   }
 
