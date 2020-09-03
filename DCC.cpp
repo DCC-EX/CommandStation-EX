@@ -48,7 +48,7 @@ void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNum
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128; //speed codes range from 2-127 (0=stop, 1=emergency stop)
+  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128; 
   setThrottle2(cab, speedCode);
   // retain speed for loco reminders
   updateLocoReminder(cab, speedCode );
@@ -456,8 +456,10 @@ int DCC::lookupSpeedTable(int locoId) {
 void  DCC::updateLocoReminder(int loco, byte speedCode) {
  
   if (loco==0) {
-     // broadcast message
-     for (int reg = 0; reg < MAX_LOCOS; reg++) speedTable[reg].speedCode = speedCode;
+     // broadcast stop/estop but dont change direction
+     for (int reg = 0; reg < MAX_LOCOS; reg++) {
+       speedTable[reg].speedCode = (speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
+     }
      return; 
   }
   

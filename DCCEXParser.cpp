@@ -147,16 +147,20 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
     case '\0': return;    // filterCallback asked us to ignore 
     case 't':       // THROTTLE <t REGISTER CAB SPEED DIRECTION>
         {
-          if (p[1] == 0) break; // ignore requests for throttle address 0 (returns 'X')
+          if (params!=4) break;
+          
           // Convert JMRI bizarre -1=emergency stop, 0-126 as speeds
           // to DCC 0=stop, 1= emergency stop, 2-127 speeds
           int tspeed=p[2];
           if (tspeed>126 || tspeed<-1) break; // invalid JMRI speed code
           if (tspeed<0) tspeed=1; // emergency stop DCC speed
           else if (tspeed>0) tspeed++; // map 1-126 -> 2-127
+          if (p[1] == 0  && tspeed>1) break; // ignore broadcasts of speed>1
+          
+          if (p[3]<0 || p[3]>1) break;      // invalid direction code  
+          
           DCC::setThrottle(p[1],tspeed,p[3]);
-          // report speed 0 after emergency stop
-          StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2]<0?0:p[2],p[3]);
+          StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
           return;
         }
     case 'f':       // FUNCTION <f CAB BYTE1 [BYTE2]>
