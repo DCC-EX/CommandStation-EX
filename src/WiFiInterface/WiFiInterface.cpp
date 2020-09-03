@@ -58,10 +58,10 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
   DIAG(F("+++ Wifi %S +++\n\r"), connected ? F("OK") : F("FAILED"));
 }
 
-bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringHelper* password,
-               const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
-  
-  (void)servername; // unused parameter
+
+bool WiFiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+                           const __FlashStringHelper* hostname, const __FlashStringHelper* servername, int port) {
+  (void) servername; // unused parameter
   int ipOK = 0;
 
   char macAddress[17];  //  mac address extraction   
@@ -69,9 +69,8 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
   // First check... Restarting the Arduino does not restart the ES. 
   //  There may alrerady be a connection with data in the pipeline.
   // If there is, just shortcut the setup and continue to read the data as normal.
-
-  if (checkForOK(200, IPD_SEARCH, true)) {
-    DIAG(F("Prev. Wifi found, data waiting\n\r"));
+  if (checkForOK(200,IPD_SEARCH, true)) {
+    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
     loopstate=4;  // carry on from correct place 
     return true; 
   }
@@ -113,8 +112,8 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
       while (wifiStream->available()) CommManager::printEscape(&DIAGSERIAL, wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
   
       // AT command early version supports CWJAP/CWSAP
-      if (ssid) {
-        CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), ssid, password);
+      if (SSid) {
+        CommManager::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
         checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok    
       }
       DIAG(F("\n**\n"));
@@ -131,8 +130,8 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
       checkForOK(2000, OK_SEARCH, true); // dont care if not supported
 
       
-      if (ssid) {
-        CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), ssid, password);
+      if (SSid) {
+        CommManager::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
         checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
       }
       
@@ -156,19 +155,20 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
   DIAG(F("\nPORT=%d\n"),port);
    
   return true;
-}
+ }
 
 // This function is used to allow users to enter <+ commands> through the DCCEXParser
 // Once the user has made whatever changes to the AT commands, a <+X> command can be used
 // to force on the connectd flag so that the loop will start picking up wifi traffic.
 // If the settings are corrupted <+RST> will clear this and then you must restart the arduino.
 void WiFiInterface::ATCommand(const char * command) {
+  command++;
   if (*command=='X') {
     connected = true;
     DIAG(F("Wifi forced conn.\n\r"));
   }
   else {
-    CommManager::send(wifiStream, F("AT+%s\r\n"), command + 1);
+    CommManager::send(wifiStream, F("AT+%s\r\n"), command );
     checkForOK(10000, OK_SEARCH, true);
   }
 }
