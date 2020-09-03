@@ -46,7 +46,7 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
 
   wifiStream = setupStream;
 
-  DIAG(F("\n\r+++ Wifi Setup In Progress +++\n\r"));
+  DIAG(F("\n\rWifi Setup...\n\r"));
 
   connected = setup2( ssid, password, hostname, servername, port);
  
@@ -55,7 +55,7 @@ void WiFiInterface::setup(Stream * setupStream,  const __FlashStringHelper* ssid
     checkForOK(200, OK_SEARCH, true);      
   }
 
-  DIAG(F("+++ Wifi Setup %S +++\n\r"), connected ? F("OK") : F("FAILED"));
+  DIAG(F("+++ Wifi %S +++\n\r"), connected ? F("OK") : F("FAILED"));
 }
 
 bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringHelper* password,
@@ -69,8 +69,9 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
   // First check... Restarting the Arduino does not restart the ES. 
   //  There may alrerady be a connection with data in the pipeline.
   // If there is, just shortcut the setup and continue to read the data as normal.
-  if (checkForOK(200,IPD_SEARCH, true)) {
-    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
+
+  if (checkForOK(200, IPD_SEARCH, true)) {
+    DIAG(F("Prev. Wifi found, data waiting\n\r"));
     loopstate=4;  // carry on from correct place 
     return true; 
   }
@@ -164,7 +165,7 @@ bool WiFiInterface::setup2(const __FlashStringHelper* ssid, const __FlashStringH
 void WiFiInterface::ATCommand(const char * command) {
   if (*command=='X') {
     connected = true;
-    DIAG(F("+++ Wifi Connection forced on +++\n\r"));
+    DIAG(F("Wifi forced conn.\n\r"));
   }
   else {
     CommManager::send(wifiStream, F("AT+%s\r\n"), command + 1);

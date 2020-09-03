@@ -31,6 +31,15 @@
 #define writePin digitalWrite2
 #endif
 
+#ifdef ARDUINO_ARCH_SAMC
+#ifndef A0
+#define A0 -1
+#endif
+#ifndef A1
+#define A1 -1
+#endif
+#endif
+
 #define ON  true
 #define OFF false
 

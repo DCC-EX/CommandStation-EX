@@ -40,12 +40,11 @@ bool DCC::issueReminder(int reg) {
   int loco = speedTable[reg].cab;
   uint8_t flags = speedTable[reg].groupFlags;
   genericResponse response;
-  setThrottleResponse throttleResponse;
   
   switch (loopStatus) {
   case 0:
 //   DIAG(F("\nReminder %d speed %d"),loco,speedTable[reg].speedCode);
-    setThrottle(loco, speedTable[reg].speedCode, throttleResponse);
+    setThrottle(loco, speedTable[reg].speedCode, response);
     break;
   case 1: // remind function group 1 (F0-F4)
     if (flags & FN_GROUP_1) 
@@ -78,7 +77,7 @@ bool DCC::issueReminder(int reg) {
   return loopStatus==0;
 }
 
-uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& response) {
+uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, genericResponse& response) {
   
   uint8_t b[5];     // Packet payload. Save space for checksum byte
   uint8_t nB = 0;   // Counter for number of bytes in the packet
@@ -97,11 +96,8 @@ uint8_t DCC::setThrottle(uint16_t addr, uint8_t speedCode, setThrottleResponse& 
   incrementCounterID();
   schedulePacket(b, nB, 0, counterID, kThrottleType, railcomAddr);
 
-
   updateSpeedTable(addr, speedCode);
 
-  response.device = addr;
-  response.speed = speedCode;
   response.transactionID = counterID;
 
   return ERR_OK;
