@@ -18,26 +18,41 @@
  */
 #include "StringFormatter.h"
 #include <stdarg.h>
-      
-void StringFormatter::print( const __FlashStringHelper* input...) {
+
+#if defined(ARDUINO_ARCH_SAMD)
+   // Some processors use a gcc compiler that renames va_list!!!
+  #include <cstdarg>
+  Print * StringFormatter::diagSerial= &SerialUSB;
+  
+#elif defined(ARDUINO_ARCH_AVR)
+  Print * StringFormatter::diagSerial= &Serial;
+#elif defined(ARDUINO_ARCH_MEGAAVR)
+  Print * StringFormatter::diagSerial=&Serial;
+  #define __FlashStringHelper char
+#endif
+
+ 
+void StringFormatter::diag( const __FlashStringHelper* input...) {
+  if (!diagSerial) return;    
   va_list args;
   va_start(args, input);
-  send(& DIAGSERIAL,input,args);
+  send2(diagSerial,input,args);
+}
+
+void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {
+  va_list args;
+  va_start(args, input);
+  send2(stream,input,args);
 }
 
 void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
-  send(& stream,input,args);
-}
-void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {
-  va_list args;
-  va_start(args, input);
-  send(stream,input,args);
+  send2(&stream,input,args);
 }
 
 
-void StringFormatter::send(Print * stream,const __FlashStringHelper* format, va_list args) {
+void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va_list args) {
     
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
 
@@ -53,7 +68,6 @@ void StringFormatter::send(Print * stream,const __FlashStringHelper* format, va_
       case 'c': stream->print((char) va_arg(args, int)); break;
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
-      case 'E': printEscapes(stream,(const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'S': stream->print((const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'd': stream->print(va_arg(args, int), DEC); break;
       case 'l': stream->print(va_arg(args, long), DEC); break;
@@ -66,22 +80,21 @@ void StringFormatter::send(Print * stream,const __FlashStringHelper* format, va_
   va_end(args);
 }
 
-void StringFormatter::printEscapes(Print * stream, char * input) {
+void StringFormatter::printEscapes(Print * stream,char * input) {
+ if (!stream) return;
  for(int i=0; ; ++i) {
   char c=input[i];
   printEscape(stream,c);
   if (c=='\0') return;
  }
 }
-void StringFormatter::printEscapes(Print * stream, const __FlashStringHelper* input) {
- char* flash=(char*)input;
-  for(int i=0; ; ++i) {
-  char c=pgm_read_byte_near(flash+i);
-  printEscape(stream,c);
-  if (c=='\0') return;
- }
+
+void StringFormatter::printEscape( char c) {
+  printEscape(diagSerial,c);
 }
+
 void StringFormatter::printEscape(Print * stream, char c) {
+  if (!stream) return;
   switch(c) {
      case '\n': stream->print(F("\\n")); break; 
      case '\r': stream->print(F("\\r")); break; 

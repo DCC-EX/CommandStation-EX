@@ -89,7 +89,7 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
       for (int i=0; i<17;i++) {
         while(!wifiStream->available());
         macAddress[i]=wifiStream->read();
-        StringFormatter::printEscape(&DIAGSERIAL,macAddress[i]);
+        StringFormatter::printEscape(macAddress[i]);
       }    
   }
   char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
@@ -105,7 +105,7 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
     StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
     if (checkForOK(2000, OK_SEARCH, true)) {
-      while (wifiStream->available()) StringFormatter::printEscape(&DIAGSERIAL, wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
   
       // AT command early version supports CWJAP/CWSAP
       if (SSid) {
@@ -183,7 +183,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
     while (wifiStream->available()) {
       int ch = wifiStream->read();
       if (echo) {
-        if (escapeEcho) StringFormatter::printEscape(&DIAGSERIAL, ch); /// THIS IS A DIAG IN DISGUISE
+        if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
         else DIAG(F("%c"), ch); 
       }
       if (ch != pgm_read_byte_near(locator)) locator = waitfor;
@@ -231,7 +231,7 @@ void WifiInterface::loop() {
     int ch = wifiStream->read();
 
     // echo the char to the diagnostic stream in escaped format
-    StringFormatter::printEscape(&DIAGSERIAL,ch); // DIAG in disguise
+    StringFormatter::printEscape(ch); // DIAG in disguise
 
     switch (loopstate) {
       case 0:  // looking for +IPD
