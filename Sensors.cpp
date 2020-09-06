@@ -68,27 +68,23 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 
 #include "Sensors.h"
 #include "EEStore.h"
-#include "StringFormatter.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Sensor::check(Print * stream){
-  Sensor *tt;
-
-  for(tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
+void Sensor::checkAll(){
+  
+  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     tt->signal=tt->signal*(1.0-SENSOR_DECAY)+digitalRead(tt->data.pin)*SENSOR_DECAY;
 
     if(!tt->active && tt->signal<0.5){
       tt->active=true;
-      StringFormatter::send(stream,F("<Q %d>"), tt->data.snum);
     } else if(tt->active && tt->signal>0.9){
       tt->active=false;
-      StringFormatter::send(stream,F("<q %d>"), tt->data.snum);
     }
   } // loop over all sensors
 
-} // Sensor::check
+} // Sensor::checkAll
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -144,22 +140,6 @@ bool Sensor::remove(int n){
   free(tt);
 
   return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Sensor::show(Print * stream){
-  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Sensor::status(Print * stream){
-  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    StringFormatter::send(stream,F("<%c %d>"), tt->active?'Q':'q', tt->data.snum);
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

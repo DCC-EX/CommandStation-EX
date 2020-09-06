@@ -18,10 +18,7 @@
  */
 #include "Turnouts.h"
 #include "EEStore.h"
-#include "StringFormatter.h"
-
 #include "PWMServoDriver.h"
-//#include "DIAG.h"             // uncomment if you need DIAG below
 
  bool Turnout::activate(int n,bool state){
   //DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
@@ -41,7 +38,6 @@
 
 // activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
  void Turnout::activate(bool state) {
-  //DIAG(F("\nTurnout::activate\n"));
   if (state) data.tStatus|=STATUS_ACTIVE;
   else data.tStatus &= ~STATUS_ACTIVE;                            
   if (data.tStatus & STATUS_PWM) PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+(state?data.moveAngle:0)));
@@ -70,30 +66,8 @@ bool Turnout::remove(int n){
 
   free(tt);
   turnoutlistHash++;
-  return true;
- 
+  return true; 
 }
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Turnout::show(Print * stream, int n){
-  for(Turnout *tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-      if (tt->data.id==n) {
-        StringFormatter::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
-        return;
-      }
-  }
-}
-
-bool Turnout::showAll(Print * stream){
-  bool gotOne=false;
-  for(Turnout * tt=firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-      StringFormatter::send(stream,F("<H %d %d %d %d>"), tt->data.id, tt->data.address, tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
-      gotOne=true;
-  }
-  return gotOne;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -159,4 +133,3 @@ Turnout *Turnout::create(int id){
 
 Turnout *Turnout::firstTurnout=NULL;
 int Turnout::turnoutlistHash=0; //bump on every change so clients know when to refresh their lists
-

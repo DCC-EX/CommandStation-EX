@@ -83,7 +83,7 @@ the state of any outputs being monitored or controlled by a separate interface o
 
 #include "Outputs.h"
 #include "EEStore.h"
-#include "StringFormatter.h"
+
 
 void  Output::activate(int s){
   data.oStatus=(s>0);                                               // if s>0, set status to active, else inactive
@@ -118,23 +118,6 @@ bool Output::remove(int n){
 
   return true;
   }
-
-///////////////////////////////////////////////////////////////////////////////
-
-bool Output::showAll(Print * stream){  
-  bool gotone=false;
-  for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
-      gotone=true;
-      StringFormatter::send(stream,F("<Y %d %d %d %d>"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
-  }
-  return gotone;
-}
-
-void Output::show(Print * stream){
-  for(Output * tt=firstOutput;tt!=NULL;tt=tt->nextOutput){
-      StringFormatter::send(stream,F("<Y %d %d>"), tt->data.id, tt->data.oStatus);
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 

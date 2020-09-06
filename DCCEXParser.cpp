@@ -250,8 +250,11 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
         return;
 
     case 'Q':         // SENSORS <Q>
-        Sensor::status(stream);
-        break;
+         Sensor::checkAll();
+         for(Sensor * tt=Sensor::firstSensor;tt!=NULL;tt=tt->nextSensor){
+            StringFormatter::send(stream,F("<%c %d>"), tt->active?'Q':'q', tt->data.snum);
+        }
+        return;
 
     case 's':      // <s>
         StringFormatter::send(stream,F("<p%d>"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON );
@@ -325,8 +328,14 @@ bool DCCEXParser::parseZ( Print * stream,int params, int p[]){
             return Output::remove(p[0]);
             
         case 0:                    // <Z>
-            return Output::showAll(stream); 
-
+            {
+              bool gotone=false;
+              for(Output * tt=Output::firstOutput;tt!=NULL;tt=tt->nextOutput){
+                 gotone=true;
+                 StringFormatter::send(stream,F("<Y %d %d %d %d>"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
+              }
+            return gotone;
+            }
          default:
              return false; 
         }
@@ -367,20 +376,31 @@ void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop) {
 //===================================
 bool DCCEXParser::parseT(Print * stream, int params, int p[]) {
   switch(params){
-        case 0:                    // <T>
-            return (Turnout::showAll(stream));             break;
-
-        case 1:                     // <T id>
+        case 0:                    // <T>  show all turnouts 
+          {
+            bool gotOne=false;
+            for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+              gotOne=true; 
+              StringFormatter::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
+            }
+          return gotOne; // will <X> if none found
+          }
+     
+        case 1:                     // <T id>  delete turnout 
             if (!Turnout::remove(p[0])) return false;
             StringFormatter::send(stream,F("<O>"));
             return true;
 
-        case 2:                     // <T id 0|1>
-             if (!Turnout::activate(p[0],p[1])) return false;
-             Turnout::show(stream,p[0]);
+        case 2:                     // <T id 0|1>  activate turnout
+            {
+              Turnout* tt=Turnout::get(p[0]);
+              if (!tt) return false;
+              tt->activate(p[1]);
+              StringFormatter::send(stream,F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);       
+            }
             return true;
 
-        case 3:                     // <T id addr subaddr>
+        case 3:                     // <T id addr subaddr>  define turnout
             if (!Turnout::create(p[0],p[1],p[2])) return false;
             StringFormatter::send(stream,F("<O>"));
             return true;
@@ -392,18 +412,19 @@ bool DCCEXParser::parseT(Print * stream, int params, int p[]) {
 
 bool DCCEXParser::parseS( Print * stream,int params, int p[]) {
      
-        switch(params){
-
-        case 3:                     // argument is string with id number of sensor followed by a pin number and pullUp indicator (0=LOW/1=HIGH)
+    switch(params){
+        case 3:                     // <S id pin pullup>  create sensor. pullUp indicator (0=LOW/1=HIGH)
             Sensor::create(p[0],p[1],p[2]);
             return true;
 
-        case 1:                     // argument is a string with id number only
+        case 1:                     // S id> remove sensor 
             if (Sensor::remove(p[0])) return true;
             break;
 
-        case -1:                    // no arguments
-            Sensor::show(stream);
+        case 0:                    // <S> lit sensor states
+            for(Sensor * tt=Sensor::firstSensor;tt!=NULL;tt=tt->nextSensor){
+               StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
+            }
             return true;
 
         default:                     // invalid number of arguments

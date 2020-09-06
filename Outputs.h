@@ -36,15 +36,12 @@ class Output{
   static void load();
   static void store();
   static Output *create(int, int, int, int=0);
-  static void show(Print * stream);
-  static bool showAll(Print * stream);
-
-  private:
   static Output *firstOutput;
-  int num;
   struct OutputData data;
   Output *nextOutput;
-
+  private:
+  int num;  // Chris has no idea what this is all about!
+  
 }; // Output
   
 #endif
