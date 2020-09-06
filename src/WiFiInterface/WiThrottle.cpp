@@ -165,6 +165,7 @@ void WiThrottle::parse(Print * stream, uint8_t * cmdx) {
             CommManager::send(stream, F("HmTurnout %d created\n"), id);
           } else {
             CommManager::send(stream, F("HMTurnout %d NOT created\n"), id);
+            break;
           }
         }
         switch (cmd[3]) {
