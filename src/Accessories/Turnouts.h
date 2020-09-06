@@ -35,13 +35,13 @@ struct Turnout{
   int num;
   struct TurnoutData data;
   Turnout *nextTurnout;
-  void activate(Print* stream, int s, DCC* track);
+  static bool activate(int n, bool state, DCC* track);
+  void        activate(bool state, DCC* track);
   static Turnout* get(int);
-  static void remove(Print* stream, int);
-  static void load(Print* stream);
+  static bool remove(int);
+  static void load();
   static void store();
-  static Turnout *create(Print* stream, int, int, int, int=0);
-  static void show(Print* stream, int=0);
+  static Turnout *create(int, int, int, int=0);
   static int turnoutlistHash;
 };
   

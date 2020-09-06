@@ -55,7 +55,7 @@ void EEStore::init(Print* stream){
   }
 
   reset();            // set memory pointer to first free EEPROM space
-  Turnout::load(stream);    // load turnout definitions
+  Turnout::load();    // load turnout definitions
   Sensor::load(stream);     // load sensor definitions
   Output::load(stream);     // load output definitions
 }

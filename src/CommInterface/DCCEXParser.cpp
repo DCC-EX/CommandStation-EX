@@ -166,28 +166,41 @@ void DCCEXParser::parse(Print* stream, const char *com) {
     switch(numArgs){
 
     // argument is string with id number of turnout followed by zero (not 
-    // thrown) or one (thrown)
+    // thrown) or one (thrown), set state of turnout
     case 2:   
       t=Turnout::get(p[0]);
-      if(t!=NULL)
-        t->activate(stream, p[1], (DCC*) mainTrack);
-      else
+      if(t!=NULL) {
+        t->activate(p[1], (DCC*) mainTrack);
+        CommManager::send(stream, F("<H %d %d>"), t->data.id, t->data.tStatus);
+      } else
         CommManager::send(stream, F("<X>"));
       break;
 
     // argument is string with id number of turnout followed by an address and 
-    // subAddress
+    //   subAddress, then create the turnout
     case 3:                     
-      Turnout::create(stream, p[0],p[1],p[2],1);
+      Turnout::create(p[0],p[1],p[2],1);
       break;
 
-    case 1:                     // argument is a string with id number only
-      Turnout::remove(stream, p[0]);
+    case 1:        // argument is a string with id number only, remove turnout
+      if (Turnout::remove(p[0])) {
+        CommManager::send(stream, F("<O>"));
+      } else {
+        CommManager::send(stream, F("<X>"));
+      }
       break;
 
-    case 0:                    // no arguments
-      Turnout::show(stream, 1);                  // verbose show
+    case 0:                    // no arguments, list turnouts
+      if(Turnout::firstTurnout==NULL){
+        CommManager::send(stream, F("<X>"));
+        break;
+      }
+      for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+        CommManager::send(stream, F("<H %d %d %d %d>"), tt->data.id, tt->data.address, 
+          tt->data.subAddress, tt->data.tStatus);
+      }
       break;
+
     }
     
     break;
@@ -381,7 +394,10 @@ void DCCEXParser::parse(Print* stream, const char *com) {
         F("<iDCC++ CommandStation-EX / %S: V-%S / %S %S>"), 
         F(BOARD_NAME), F(VERSION), F(__DATE__), F(__TIME__));
     CommManager::showInitInfo();
-    Turnout::show(stream);
+    for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+      CommManager::send(stream, F("<H %d %d %d %d>"), tt->data.id, tt->data.address, 
+        tt->data.subAddress, tt->data.tStatus);
+    }
     Output::show(stream);
 
     break;

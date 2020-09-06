@@ -148,8 +148,8 @@ void WiThrottle::parse(Print * stream, uint8_t * cmdx) {
      case 'P':  
       if (cmd[1]=='P' && cmd[2]=='A' )  {  // PPA power mode 
         mainTrack->board->power(cmd[3] == '1' ? ON : OFF, true);
-        CommManager::send(stream,F("PPA%x\n"),mainTrack->board->getStatus()==ON);
         lastPowerState = (mainTrack->board->getStatus()==ON); //remember power state sent for comparison later
+        CommManager::send(stream,F("PPA%x\n"),lastPowerState);
       }
       else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
         int id=getInt(cmd+4); 
@@ -158,16 +158,21 @@ void WiThrottle::parse(Print * stream, uint8_t * cmdx) {
         if (!tt) {
           // If turnout does not exist, create it
           int addr = ((id - 1) / 4) + 1;
-          int subaddr = (id - 1) % 4;
-          Turnout::create(&DIAGSERIAL, id, addr, subaddr);
-          CommManager::send(stream, F("HmTurnout %d created\n"), id);
+          int subaddr = (id - 1) % 4;          
+          
+          tt = Turnout::create(id, addr, subaddr);
+          if (tt != NULL) {
+            CommManager::send(stream, F("HmTurnout %d created\n"), id);
+          } else {
+            CommManager::send(stream, F("HMTurnout %d NOT created\n"), id);
+          }
         }
         switch (cmd[3]) {
           case 'T': newstate=true; break;
           case 'C': newstate=false; break;
           case '2': newstate=!tt->data.tStatus;                 
         }
-        tt->activate(&DIAGSERIAL, id, mainTrack);
+        tt->activate(newstate, mainTrack);
         CommManager::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
       }
       break;
@@ -182,10 +187,11 @@ void WiThrottle::parse(Print * stream, uint8_t * cmdx) {
      case 'H': // send initial connection info after receiving "HU" message
       if (cmd[1] == 'U') {
         CommManager::send(stream,F("VN2.0\nHTDCC++EX\nRL0\n"));
+        CommManager::send(stream, F("HtDCC++EX CommandStation-EX v%S, %S\n"), F(VERSION), F(BOARD_NAME));
         if (annotateLeftRight) CommManager::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
         else                   CommManager::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
-        CommManager::send(stream,F("PPA%x\n"),mainTrack->board->getStatus()==ON);
         lastPowerState = (mainTrack->board->getStatus()==ON); //remember power state sent for comparison later
+        CommManager::send(stream,F("PPA%x\n"),lastPowerState);
         CommManager::send(stream,F("*%d\n"),kHeartbeatTimeout);
         initSent = true;
       }
