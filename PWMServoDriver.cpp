@@ -77,18 +77,19 @@ bool PWMServoDriver::setup(int board) {
  *  @brief  Sets the PWM output to a servo
  */
 void PWMServoDriver::setServo(byte servoNum, uint16_t value) {
-  DIAG(F("\nsetServo %d %d\n"),servoNum,value);
   int board=servoNum/16; 
   int pin=servoNum%16;
   
   if (setup(board)) {
+    DIAG(F("\nSetServo %d %d\n"),servoNum,value);  
     Wire.beginTransmission(PCA9685_I2C_ADDRESS + board);
     Wire.write(PCA9685_FIRST_SERVO + 4 * pin); // 4 registers per pin
     Wire.write(0);
     Wire.write(0);
     Wire.write(value);
     Wire.write(value >> 8);
-    Wire.endTransmission();
+    byte error=Wire.endTransmission();
+    if (error!=0) DIAG(F("\nSetServo error %d\n"),error); 
   }
 }
 
