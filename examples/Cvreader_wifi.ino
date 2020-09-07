@@ -64,7 +64,7 @@ void loop() {
   DCC::loop(); 
 
   // Responsibility 2: handle any incoming commands on USB connection
-  serialParser.loop(Serial1);
+  serialParser.loop(Serial);
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
   WifiInterface::loop();
