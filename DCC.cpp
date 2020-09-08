@@ -208,49 +208,40 @@ void DCC::setProgTrackSyncMain(bool on) {
 }
 
 const ackOp PROGMEM WRITE_BIT0_PROG[] = {
-     POWERON,
      BASELINE,
      W0,WACK,
      V0, WACK,  // validate bit is 0 
      ITC1,      // if acked, callback(1)
-     FAIL,      // callback (-1)
-     POWEROFF
+     FAIL  // callback (-1)
 };
 const ackOp PROGMEM WRITE_BIT1_PROG[] = {
-     POWERON,
      BASELINE,
      W1,WACK,
      V1, WACK,  // validate bit is 1 
      ITC1,      // if acked, callback(1)
-     FAIL,      // callback (-1)
-     POWEROFF
+     FAIL  // callback (-1)
 };
 
 
 const ackOp PROGMEM READ_BIT_PROG[] = {
-     POWERON,
      BASELINE,
      V1, WACK,  // validate bit is 1 
      ITC1,      // if acked, callback(1)
      V0, WACK,  // validate bit is zero
      ITC0,      // if acked callback 0
-     FAIL,      // bit not readable 
-     POWEROFF
-};
+     FAIL       // bit not readable 
+     };
      
 const ackOp PROGMEM WRITE_BYTE_PROG[] = {
-      POWERON,
       BASELINE,
       WB,WACK,    // Write 
       VB,WACK,     // validate byte 
       ITC1,       // if ok callback (1)
-      FAIL,       // callback (-1)
-      POWEROFF
-};
+      FAIL        // callback (-1)
+      };
       
       
 const ackOp PROGMEM READ_CV_PROG[] = {
-      POWERON,
       BASELINE,
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
@@ -270,13 +261,10 @@ const ackOp PROGMEM READ_CV_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
-      FAIL,            // verification failed
-      POWEROFF
-};
+      FAIL };          // verification failed
 
 
 const ackOp PROGMEM LOCO_ID_PROG[] = {
-      POWERON,
       BASELINE,
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
@@ -321,9 +309,8 @@ const ackOp PROGMEM LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and callback
-      FAIL,
-      POWEROFF
-};
+      FAIL
+      };    
 
 
 // On the following prog-track functions blocking defaults to false.
