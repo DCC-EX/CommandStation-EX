@@ -112,7 +112,6 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
-  if (mode == POWERMODE::ON) delay(200);
 }
 
 
