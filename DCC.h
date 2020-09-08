@@ -120,7 +120,7 @@ private:
   static ACK_CALLBACK  ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback, bool blocking);
   static void ackManagerLoop(bool blocking);
-  static bool checkResets(bool blocking);
+  static bool checkResets(bool blocking, uint8_t numResets);
   static const int PROG_REPEATS=8;   // repeats of programming commands (some decoders need at least 8 to be reliable) 
 
   

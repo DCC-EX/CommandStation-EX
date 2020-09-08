@@ -1,5 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
  *  
  *  This file is part of Asbelos DCC API
  *
@@ -60,10 +61,17 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
+    volatile bool autoPowerOff=false;
     void setAckBaseline(bool debug);  //prog track only
     void setAckPending(bool debug);  //prog track only
     byte getAck(bool debug);               //prog track only 0=NACK, 1=ACK 2=keep waiting
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
+    inline void doAutoPowerOff() {
+	if (autoPowerOff) {
+	    setPowerMode(POWERMODE::OFF);
+	    autoPowerOff=false;
+	}
+    };
      
   private:
     static VirtualTimer * interruptTimer;      
