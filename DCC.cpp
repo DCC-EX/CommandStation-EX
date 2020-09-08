@@ -494,13 +494,13 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
 
 // checkRessets return true if the caller should yield back to loop and try later.
-bool DCC::checkResets(bool blocking) {
+bool DCC::checkResets(bool blocking, uint8_t numResets) {
   if (blocking) {
     // must block waiting for restest to be issued
-    while(DCCWaveform::progTrack.sentResetsSincePacket < RESET_MIN);
+    while(DCCWaveform::progTrack.sentResetsSincePacket < numResets);
     return false; // caller need not yield
   }
-  return DCCWaveform::progTrack.sentResetsSincePacket < RESET_MIN;
+  return DCCWaveform::progTrack.sentResetsSincePacket < numResets;
 }
 
 void DCC::ackManagerLoop(bool blocking) {
@@ -513,13 +513,13 @@ void DCC::ackManagerLoop(bool blocking) {
     // if blocking then we must ONLY return AFTER callback issued       
     switch (opcode) {
       case BASELINE:
-          if (checkResets(blocking)) return;
+          if (checkResets(blocking, 3)) return;
           DCCWaveform::progTrack.setAckBaseline(debugMode);
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
             {
-              if (checkResets(blocking)) return;
+	      if (checkResets(blocking, RESET_MIN)) return;
               if (debugMode) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
@@ -530,7 +530,7 @@ void DCC::ackManagerLoop(bool blocking) {
       
       case WB:   // write byte 
             {
-              if (checkResets(blocking)) return;
+	      if (checkResets(blocking, RESET_MIN)) return;
               if (debugMode) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
@@ -540,7 +540,7 @@ void DCC::ackManagerLoop(bool blocking) {
       
       case   VB:     // Issue validate Byte packet
         {
-          if (checkResets(blocking)) return; 
+	  if (checkResets(blocking, RESET_MIN)) return; 
           if (debugMode) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
@@ -551,7 +551,7 @@ void DCC::ackManagerLoop(bool blocking) {
       case V0:
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
-          if (checkResets(blocking)) return; 
+	  if (checkResets(blocking, RESET_MIN)) return; 
           if (debugMode) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
