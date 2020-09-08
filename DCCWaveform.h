@@ -60,6 +60,7 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
+    volatile bool autoPowerOff=false;
     void setAckBaseline(bool debug);  //prog track only
     void setAckPending(bool debug);  //prog track only
     byte getAck(bool debug);               //prog track only 0=NACK, 1=ACK 2=keep waiting

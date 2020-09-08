@@ -643,6 +643,21 @@ void DCC::ackManagerLoop(bool blocking) {
             opcode=pgm_read_byte_near(ackManagerProg);
           }
           break;
+     case POWERON:
+	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+	      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+	      DCCWaveform::progTrack.sentResetsSincePacket = 0;
+	      DCCWaveform::progTrack.autoPowerOff=true;
+	      return;
+	  }
+	  if (checkResets(blocking, 20)) return;
+	  break;
+     case POWEROFF:
+	  if (DCCWaveform::progTrack.autoPowerOff) {
+	      DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+	      DCCWaveform::progTrack.autoPowerOff=false;
+	  }
+	  break;
      case SKIPTARGET: 
           break;     
      default: 
