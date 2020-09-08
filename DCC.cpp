@@ -256,9 +256,14 @@ const ackOp PROGMEM READ_CV_PROG[] = {
       // each bit is validated against 0 and the result inverted in MERGE
       // this is because there tend to be more zeros in cv values than ones.  
       // There is no need for one validation as entire byte is validated at the end
-      V0, WACK, MERGE,  // read and merge bit 0
-      V0, WACK, MERGE,  // read and merge bit 1 etc
-      V0, WACK, MERGE,
+      V0, WACK, MERGE,        // read and merge first tested bit (7)
+      ITSKIP,                 // do small excursion if there was no ack
+        SETBIT,(ackOp)7,
+        V1, WACK, NAKFAIL,    // test if there is an ack on the inverse of this bit (7)
+        SETBIT,(ackOp)6,      // and abort whole test if not else continue with bit (6)
+      SKIPTARGET,
+      V0, WACK, MERGE,        // read and merge second tested bit (6)
+      V0, WACK, MERGE,        // read and merge third  tested bit (5) ...
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
