@@ -44,8 +44,6 @@ SETCV, // sets cv number to next prog byte
 STASHLOCOID, // keeps current byte value for later
 COMBINELOCOID, // combines current value with stashed value and returns it
 ITSKIP,        // skip to SKIPTARGET if ack true
-POWERON,         // check if power on prog track is on and remember state
-POWEROFF,        // turn power off again if it was off before POWERON
 SKIPTARGET=0xFF  // jump to target
 };
 

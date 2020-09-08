@@ -659,10 +659,6 @@ void DCC::ackManagerLoop(bool blocking) {
             opcode=pgm_read_byte_near(ackManagerProg);
           }
           break;
-     case POWERON:
-	  break;
-     case POWEROFF:
-	  break;
      case SKIPTARGET: 
           break;     
      default: 
