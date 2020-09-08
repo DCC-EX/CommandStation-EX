@@ -518,7 +518,13 @@ void DCC::ackManagerLoop(bool blocking) {
     // if blocking then we must ONLY return AFTER callback issued       
     switch (opcode) {
       case BASELINE:
-          if (checkResets(blocking, 3)) return;
+	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+	      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+	      DCCWaveform::progTrack.sentResetsSincePacket = 0;
+	      DCCWaveform::progTrack.autoPowerOff=true;
+	      return;
+	  }
+	  if (checkResets(blocking, DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline(debugMode);
           break;   
       case W0:    // write 0 bit 
@@ -582,6 +588,7 @@ void DCC::ackManagerLoop(bool blocking) {
      case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
         if (ackReceived) {
             ackManagerProg = NULL; // all done now
+	    DCCWaveform::progTrack.doAutoPowerOff();
             callback(opcode==ITC0?0:1);
             return;
           }
@@ -590,6 +597,7 @@ void DCC::ackManagerLoop(bool blocking) {
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
             ackManagerProg = NULL; // all done now
+	    DCCWaveform::progTrack.doAutoPowerOff();
             callback(ackManagerByte);
             return;
           }
@@ -598,6 +606,7 @@ void DCC::ackManagerLoop(bool blocking) {
       case NAKFAIL:   // If nack callback(-1)
           if (!ackReceived) {
             ackManagerProg = NULL; // all done now
+	    DCCWaveform::progTrack.doAutoPowerOff();
             callback(-1);
             return;
           }
@@ -605,7 +614,8 @@ void DCC::ackManagerLoop(bool blocking) {
         
       case FAIL:  // callback(-1)
            ackManagerProg = NULL;
-           callback(-1);
+	   DCCWaveform::progTrack.doAutoPowerOff();
+	   callback(-1);
            return;
            
       case STARTMERGE:
@@ -637,6 +647,7 @@ void DCC::ackManagerLoop(bool blocking) {
      case COMBINELOCOID: 
           // ackManagerStash is  cv17, ackManagerByte is CV 18
           ackManagerProg=NULL;
+	  DCCWaveform::progTrack.doAutoPowerOff();
           callback( ackManagerByte + ((ackManagerStash - 192) << 8));
           return;            
 
@@ -649,19 +660,8 @@ void DCC::ackManagerLoop(bool blocking) {
           }
           break;
      case POWERON:
-	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
-	      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-	      DCCWaveform::progTrack.sentResetsSincePacket = 0;
-	      DCCWaveform::progTrack.autoPowerOff=true;
-	      return;
-	  }
-	  if (checkResets(blocking, 20)) return;
 	  break;
      case POWEROFF:
-	  if (DCCWaveform::progTrack.autoPowerOff) {
-	      DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-	      DCCWaveform::progTrack.autoPowerOff=false;
-	  }
 	  break;
      case SKIPTARGET: 
           break;     
