@@ -23,7 +23,7 @@
 #include "DIAG.h"
  
 const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*256;
+const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
