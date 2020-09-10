@@ -24,6 +24,7 @@
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
+#include "freeMemory.h"
 
 #include "EEStore.h"
 #include "DIAG.h"
@@ -35,6 +36,14 @@ const char VERSION[] PROGMEM ="0.1.9";
 const int HASH_KEYWORD_PROG=-29718;
 const int HASH_KEYWORD_MAIN=11339;
 const int HASH_KEYWORD_JOIN=-30750;
+const int HASH_KEYWORD_CABS=-11981;
+const int HASH_KEYWORD_RAM=25982;
+const int HASH_KEYWORD_CMD=9962;
+const int HASH_KEYWORD_WIT=31594;
+const int HASH_KEYWORD_WIFI=-5583;
+const int HASH_KEYWORD_ACK=3113;
+const int HASH_KEYWORD_ON=2657;
+const int HASH_KEYWORD_OFF=22479;
 
 
 int DCCEXParser::stashP[MAX_PARAMS];
@@ -50,7 +59,7 @@ bool DCCEXParser::stashBusy;
 
 DCCEXParser::DCCEXParser() {}
 void DCCEXParser::flush() {
-DIAG(F("\nBuffer flush"));
+  if (Diag::CMD) DIAG(F("\nBuffer flush"));
       bufferLength=0;
       inCommandPayload=false;   
 }
@@ -133,7 +142,7 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter) {
    
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
-    DIAG(F("\nPARSING:%s\n"),com);
+    if (Diag::CMD) DIAG(F("\nPARSING:%s\n"),com);
     (void) EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS]; 
     while (com[0]=='<' || com[0]==' ') com++; // strip off any number of < or spaces
@@ -145,22 +154,35 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
     // Functions return from this switch if complete, break from switch implies error <X> to send
     switch(opcode) {
     case '\0': return;    // filterCallback asked us to ignore 
-    case 't':       // THROTTLE <t REGISTER CAB SPEED DIRECTION>
+    case 't':       // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
         {
-          if (params!=4) break;
+          int cab;
+          int tspeed;
+          int direction;
+          
+          if (params==4) { // <t REGISTER CAB SPEED DIRECTION>
+              cab=p[1];
+              tspeed=p[2];
+              direction=p[3];
+          }
+          else if (params==3) { // <t CAB SPEED DIRECTION>
+              cab=p[0];
+              tspeed=p[1];
+              direction=p[2];
+          }
+          else break;
           
           // Convert JMRI bizarre -1=emergency stop, 0-126 as speeds
           // to DCC 0=stop, 1= emergency stop, 2-127 speeds
-          int tspeed=p[2];
           if (tspeed>126 || tspeed<-1) break; // invalid JMRI speed code
           if (tspeed<0) tspeed=1; // emergency stop DCC speed
           else if (tspeed>0) tspeed++; // map 1-126 -> 2-127
-          if (p[1] == 0  && tspeed>1) break; // ignore broadcasts of speed>1
+          if (cab == 0  && tspeed>1) break; // ignore broadcasts of speed>1
           
-          if (p[3]<0 || p[3]>1) break;      // invalid direction code  
+          if (direction<0 || direction>1) break;      // invalid direction code  
           
-          DCC::setThrottle(p[1],tspeed,p[3]);
-          StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
+          DCC::setThrottle(cab,tspeed,direction);
+          if (params==4) StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
           return;
         }
     case 'f':       // FUNCTION <f CAB BYTE1 [BYTE2]>
@@ -240,7 +262,6 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
               return;
           
           }
-          DIAG(F("\nUnexpected keyword hash=%d\n"),p[0]);
           break;
         }
         return;      
@@ -278,8 +299,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
         return;
         
      case 'D':     // < >
-        DCC::setDebug(p[0]==1);
-        DIAG(F("\nDCC DEBUG MODE %d"),p[0]==1);
+        if (parseD(stream,params,p)) return;
         return;
 
     case '#':     // NUMBER OF LOCOSLOTS <#>
@@ -287,7 +307,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
 	      return;
 
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
-         DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
+         if (Diag::CMD) DIAG(F("Setting loco %d F%d %S"),p[0],p[1],p[2]?F("ON"):F("OFF"));
          DCC::setFn(p[0],p[1],p[2]==1);
          return;
           
@@ -428,6 +448,40 @@ bool DCCEXParser::parseS( Print * stream,int params, int p[]) {
             return true;
 
         default:                     // invalid number of arguments
+            break;
+        }
+    return false;
+}
+
+bool DCCEXParser::parseD( Print * stream,int params, int p[]) {
+    if (params==0) return false;
+    bool onOff=p[1]==1 || p[1]==HASH_KEYWORD_ON; // dont care if other stuff or missing... just means off 
+    switch(p[0]){
+        case HASH_KEYWORD_CABS:                     // <D CABS>
+            DCC::displayCabList(stream);
+            return true;
+
+        case HASH_KEYWORD_RAM:                     // <D RAM> 
+            StringFormatter::send(stream,F("\nFree memory=%d\n"),freeMemory());
+            break;
+
+        case HASH_KEYWORD_ACK:                     // <D ACK ON/OFF> 
+            Diag::ACK=onOff;
+            return true;
+
+        case HASH_KEYWORD_CMD:                     // <D CMD ON/OFF> 
+            Diag::CMD=onOff;      
+            return true;
+
+        case HASH_KEYWORD_WIFI:                     // <D WIFI ON/OFF> 
+            Diag::WIFI=onOff;      
+            return true;
+
+        case HASH_KEYWORD_WIT:                     // <D WIT ON/OFF> 
+            Diag::WITHROTTLE=onOff;      
+            return true;
+
+        default:                     // invalid/unknown 
             break;
         }
     return false;

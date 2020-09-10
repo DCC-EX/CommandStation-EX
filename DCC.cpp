@@ -43,7 +43,6 @@ const byte FN_GROUP_5=0x10;
 
 
 void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
-  debugMode=false;
   DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
 }
 
@@ -352,10 +351,6 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
   for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
 }
 
-void DCC::setDebug(bool on) {
-   debugMode=on;
-}
-
 byte DCC::loopStatus=0;  
 
 void DCC::loop()  {
@@ -483,7 +478,6 @@ byte   DCC::ackManagerStash;
 int   DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
-bool DCC::debugMode=false;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -525,37 +519,37 @@ void DCC::ackManagerLoop(bool blocking) {
 	      return;
 	  }
 	  if (checkResets(blocking, DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
-          DCCWaveform::progTrack.setAckBaseline(debugMode);
+          DCCWaveform::progTrack.setAckBaseline();
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
             {
 	      if (checkResets(blocking, RESET_MIN)) return;
-              if (debugMode) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
+              if (Diag::ACK) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending(debugMode); 
+              DCCWaveform::progTrack.setAckPending(); 
          }
             break; 
       
       case WB:   // write byte 
             {
 	      if (checkResets(blocking, RESET_MIN)) return;
-              if (debugMode) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
+              if (Diag::ACK) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending(debugMode); 
+              DCCWaveform::progTrack.setAckPending(); 
             }
             break;
       
       case   VB:     // Issue validate Byte packet
         {
 	  if (checkResets(blocking, RESET_MIN)) return; 
-          if (debugMode) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
+          if (Diag::ACK) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending(debugMode); 
+          DCCWaveform::progTrack.setAckPending(); 
         }
         break;
       
@@ -563,11 +557,11 @@ void DCC::ackManagerLoop(bool blocking) {
       case V1:      // Issue validate bit=0 or bit=1  packet
         {
 	  if (checkResets(blocking, RESET_MIN)) return; 
-          if (debugMode) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
+          if (Diag::ACK) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
           DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending(debugMode); 
+          DCCWaveform::progTrack.setAckPending(); 
         }
         break;
       
@@ -575,10 +569,10 @@ void DCC::ackManagerLoop(bool blocking) {
          {
           byte ackState=2; // keep polling
           if (blocking) {
-            while(ackState==2) ackState=DCCWaveform::progTrack.getAck(debugMode);
+            while(ackState==2) ackState=DCCWaveform::progTrack.getAck();
           }
           else {
-            ackState=DCCWaveform::progTrack.getAck(debugMode);
+            ackState=DCCWaveform::progTrack.getAck();
             if (ackState==2) return; // keep polling
           }
           ackReceived=ackState==1;
@@ -672,6 +666,20 @@ void DCC::ackManagerLoop(bool blocking) {
   }
 }
 void DCC::callback(int value) {
-   if (debugMode) DIAG(F("\nCallback(%d)\n"),value);
+   if (Diag::ACK) DIAG(F("\nCallback(%d)\n"),value);
    (ackManagerCallback)( value);
+}
+
+ void DCC::displayCabList(Print * stream) {
+
+    int used=0;
+    for (int reg = 0; reg < MAX_LOCOS; reg++) {
+       if (speedTable[reg].loco>0) {
+        used ++;
+        StringFormatter::send(stream,F("\ncab=%d, speed=%d, dir=%c "),       
+           speedTable[reg].loco,  speedTable[reg].speedCode & 0x7f,(speedTable[reg].speedCode & 0x80) ? 'F':'R');
+       }
+     }
+     StringFormatter::send(stream,F("\nUsed=%d, max=%d\n"),used,MAX_LOCOS);
+     
 }

@@ -27,6 +27,14 @@
   #define __FlashStringHelper char
 #endif
 
+class Diag {
+  public:
+  static bool ACK;
+  static bool CMD;
+  static bool WIFI;
+  static bool WITHROTTLE;
+};
+
 class StringFormatter
 {
   public:

@@ -62,9 +62,9 @@ class DCCWaveform {
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
     volatile bool autoPowerOff=false;
-    void setAckBaseline(bool debug);  //prog track only
-    void setAckPending(bool debug);  //prog track only
-    byte getAck(bool debug);               //prog track only 0=NACK, 1=ACK 2=keep waiting
+    void setAckBaseline();  //prog track only
+    void setAckPending();  //prog track only
+    byte getAck();               //prog track only 0=NACK, 1=ACK 2=keep waiting
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
     inline void doAutoPowerOff() {
 	if (autoPowerOff) {

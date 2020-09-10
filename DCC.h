@@ -74,7 +74,6 @@ class DCC {
   static void updateGroupflags(byte & flags, int functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate) ;
   static bool writeTextPacket( byte *b, int nBytes);
-  static void setDebug(bool on);
   static void setProgTrackSyncMain(bool on); // when true, prog track becomes driveable 
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1 
@@ -88,7 +87,7 @@ class DCC {
   // Enhanced API functions
   static void forgetLoco(int cab);  // removes any speed reminders for this loco  
   static void forgetAllLocos();  // removes all speed reminders
-    
+  static void displayCabList(Print * stream); 
 private: 
   struct LOCO {
      int loco;
@@ -108,7 +107,6 @@ private:
   static int lookupSpeedTable(int locoId);
   static void issueReminders();
   static void callback(int value);
-  static bool debugMode;
   
 // ACK MANAGER
   static ackOp  const * ackManagerProg;

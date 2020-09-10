@@ -41,10 +41,9 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
     case 2: interruptTimer= &TimerB; break;
 #ifndef ARDUINO_AVR_UNO  
     case 3: interruptTimer= &TimerC; break;
-    case 4: interruptTimer= &TimerD; break;
 #endif    
     default:
-      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..4 valid.  DCC will not work.*** \n\n"), timerNumber);
+      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
       return;
   }
   interruptTimer->initialize();
@@ -278,15 +277,14 @@ int DCCWaveform::getLastCurrent() {
 // Operations applicable to PROG track ONLY.
 // (yes I know I could have subclassed the main track but...) 
 
-void DCCWaveform::setAckBaseline(bool debug) {
+void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return; 
       ackThreshold=motorDriver->getCurrentRaw() + (int)(65 / motorDriver->senseFactor);
-      if (debug) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->convertToMilliamps(ackThreshold));
+      if (Diag::ACK) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->convertToMilliamps(ackThreshold));
 }
 
-void DCCWaveform::setAckPending(bool debug) {
+void DCCWaveform::setAckPending() {
       if (isMainTrack) return; 
-      (void)debug;
       ackMaxCurrent=0;
       ackPulseStart=0;
       ackPulseDuration=0;
@@ -295,9 +293,9 @@ void DCCWaveform::setAckPending(bool debug) {
       ackPending=true;  // interrupt routines will now take note
 }
 
-byte DCCWaveform::getAck(bool debug) {
+byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (debug) DIAG(F("\nACK-%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration, 
+      if (Diag::ACK) DIAG(F("\nACK-%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration, 
            ackMaxCurrent,motorDriver->convertToMilliamps(ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   

@@ -231,7 +231,7 @@ void WifiInterface::loop() {
     int ch = wifiStream->read();
 
     // echo the char to the diagnostic stream in escaped format
-    StringFormatter::printEscape(ch); // DIAG in disguise
+    if (Diag::WIFI) StringFormatter::printEscape(ch); // DIAG in disguise
 
     switch (loopstate) {
       case 0:  // looking for +IPD
@@ -272,7 +272,7 @@ void WifiInterface::loop() {
 
       case 10:  // Waiting for > so we can send reply
         if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-          DIAG(F("\nWifi TIMEOUT on wait for > prompt or ERROR\n"));
+          if (Diag::WIFI) DIAG(F("\nWifi TIMEOUT on wait for > prompt or ERROR\n"));
           loopstate = 0; // go back to +IPD
           break;
         }
@@ -290,12 +290,12 @@ void WifiInterface::loop() {
         break;
       case 11: // Waiting for SEND OK or ERROR to complete so we can closeAfter
         if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-          DIAG(F("\nWifi TIMEOUT on wait for SEND OK or ERROR\n"));
+          if (Diag::WIFI) DIAG(F("\nWifi TIMEOUT on wait for SEND OK or ERROR\n"));
           loopstate = 0; // go back to +IPD
           break;
         }
         if (ch == 'K') { // assume its in  SEND OK
-          DIAG(F("\n Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
+          if (Diag::WIFI) DIAG(F("\n Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
           StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
           loopstate = 0; // wait for +IPD
         }
@@ -303,12 +303,12 @@ void WifiInterface::loop() {
 
     case 12: // Waiting for OK after send busy 
         if (ch == '+') { // Uh-oh IPD problem
-          DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n"));
+          if (Diag::WIFI) DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n"));
           connectionId = 0;
           loopstate = 1;
         }
         if (ch == 'K') { // assume its in  SEND OK
-          DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
           StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
           loopTimeoutStart = millis();
           loopstate = 10; // non-blocking loop waits for > before sending
@@ -321,7 +321,7 @@ void WifiInterface::loop() {
 
   // AT this point we have read an incoming message into the buffer
  
-  DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),connectionId, buffer);
+  if (Diag::WIFI) DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),connectionId, buffer);
   streamer.setBufferContentPosition(0, 0); // reset write position to start of buffer
   // SIDE EFFECT WARNING:::
   //  We know that parser will read the entire buffer before starting to write to it.
@@ -345,7 +345,7 @@ void WifiInterface::loop() {
   if (streamer.available() == 0) {
     // No reply
     if (closeAfter) {
-         DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
+        if (Diag::WIFI)  DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
          StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
     }
     loopstate = 0; // go back to waiting for +IPD
@@ -353,8 +353,8 @@ void WifiInterface::loop() {
   }
   // prepare to send reply
   buffer[streamer.available()]='\0'; // mark end of buffer, so it can be used as a string later
-  DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer.available());
-  DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer.available());
+  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
   StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
   loopTimeoutStart = millis();
   loopstate = 10; // non-blocking loop waits for > before sending

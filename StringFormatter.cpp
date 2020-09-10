@@ -31,6 +31,11 @@
   #define __FlashStringHelper char
 #endif
 
+bool Diag::ACK=false;
+bool Diag::CMD=false;
+bool Diag::WIFI=false;
+bool Diag::WITHROTTLE=false;
+
  
 void StringFormatter::diag( const __FlashStringHelper* input...) {
   if (!diagSerial) return;    

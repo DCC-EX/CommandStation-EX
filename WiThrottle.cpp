@@ -74,7 +74,7 @@ bool WiThrottle::areYouUsingThrottle(int cab) {
  // One instance of WiThrottle per connected client, so we know what the locos are 
  
 WiThrottle::WiThrottle( int wificlientid) {
-   DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
+   if (Diag::WITHROTTLE) DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
@@ -110,7 +110,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   byte * cmd=local;
   
   heartBeat=millis();
-  //  DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
+  if (Diag::WITHROTTLE) DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
 
   if (initSent) {
     // Send power state if different than last sent
@@ -187,7 +187,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
               }
             }
-            DIAG(F("WiThrottle(%d) Quit\n"), clientid);
+            if (Diag::WITHROTTLE) DIAG(F("WiThrottle(%d) Quit\n"), clientid);
             delete this; 
             break;           
    }
@@ -345,10 +345,10 @@ void WiThrottle::loop() {
 void WiThrottle::checkHeartbeat() {
   // if 2 heartbeats missed... drop connection and eStop any locos still assigned to this client
   if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*2000)) {
-    DIAG(F("\n\nWiThrottle(%d) hearbeat missed, dropping connection\n\n"),clientid);
+  if (Diag::WITHROTTLE)  DIAG(F("\n\nWiThrottle(%d) hearbeat missed, dropping connection\n\n"),clientid);
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0') {
-        DIAG(F("  eStopping cab %d\n"), myLocos[loco].cab);
+        if (Diag::WITHROTTLE) DIAG(F("  eStopping cab %d\n"), myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
       }
     }
