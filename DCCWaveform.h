@@ -49,6 +49,7 @@ class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
     static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber);
+    static void setDiagnosticSlowWave(bool slow);
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;

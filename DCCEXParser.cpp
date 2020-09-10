@@ -43,7 +43,8 @@ const int HASH_KEYWORD_WIT=31594;
 const int HASH_KEYWORD_WIFI=-5583;
 const int HASH_KEYWORD_ACK=3113;
 const int HASH_KEYWORD_ON=2657;
-const int HASH_KEYWORD_OFF=22479;
+const int HASH_KEYWORD_DCC=6436;
+const int HASH_KEYWORD_SLOW=-17209;
 
 
 int DCCEXParser::stashP[MAX_PARAMS];
@@ -455,7 +456,7 @@ bool DCCEXParser::parseS( Print * stream,int params, int p[]) {
 
 bool DCCEXParser::parseD( Print * stream,int params, int p[]) {
     if (params==0) return false;
-    bool onOff=p[1]==1 || p[1]==HASH_KEYWORD_ON; // dont care if other stuff or missing... just means off 
+    bool onOff=(params>0) && (p[1]==1 || p[1]==HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off 
     switch(p[0]){
         case HASH_KEYWORD_CABS:                     // <D CABS>
             DCC::displayCabList(stream);
@@ -481,6 +482,9 @@ bool DCCEXParser::parseD( Print * stream,int params, int p[]) {
             Diag::WITHROTTLE=onOff;      
             return true;
 
+        case HASH_KEYWORD_DCC:
+            DCCWaveform::setDiagnosticSlowWave(params>=1 && p[1]==HASH_KEYWORD_SLOW);
+            return true;
         default:                     // invalid/unknown 
             break;
         }

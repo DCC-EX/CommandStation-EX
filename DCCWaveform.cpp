@@ -22,6 +22,8 @@
 #include "DCCWaveform.h"
 #include "DIAG.h"
  
+const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
+const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*256;
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -47,9 +49,14 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
       return;
   }
   interruptTimer->initialize();
-  interruptTimer->setPeriod(58); // this is the 58uS DCC 1-bit waveform half-cycle
+  interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
   interruptTimer->attachInterrupt(interruptHandler);
   interruptTimer->start();
+}
+void DCCWaveform::setDiagnosticSlowWave(bool slow) {
+  interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
+  interruptTimer->start(); 
+  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
 }
 
 void DCCWaveform::loop() {
