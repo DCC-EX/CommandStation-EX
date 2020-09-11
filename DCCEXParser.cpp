@@ -184,6 +184,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
           
           DCC::setThrottle(cab,tspeed,direction);
           if (params==4) StringFormatter::send(stream,F("<T %d %d %d>"), p[0], p[2],p[3]);
+           else StringFormatter::send(stream,F("<O>"));
           return;
         }
     case 'f':       // FUNCTION <f CAB BYTE1 [BYTE2]>
