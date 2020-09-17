@@ -221,6 +221,22 @@ const ackOp PROGMEM WRITE_BIT1_PROG[] = {
      FAIL  // callback (-1)
 };
 
+const ackOp PROGMEM VERIFY_BIT0_PROG[] = {
+     BASELINE,
+     V0, WACK,  // validate bit is 0 
+     ITC0,      // if acked, callback(0)
+     V1, WACK,  // validate bit is 1
+     ITC1,       
+     FAIL  // callback (-1)
+};
+const ackOp PROGMEM VERIFY_BIT1_PROG[] = {
+     BASELINE,
+     V1, WACK,  // validate bit is 1 
+     ITC1,      // if acked, callback(1)
+     V0, WACK, 
+     ITC0,
+     FAIL  // callback (-1)
+};
 
 const ackOp PROGMEM READ_BIT_PROG[] = {
      BASELINE,
@@ -238,6 +254,30 @@ const ackOp PROGMEM WRITE_BYTE_PROG[] = {
       ITC1,       // if ok callback (1)
       FAIL        // callback (-1)
       };
+      
+const ackOp PROGMEM VERIFY_BYTE_PROG[] = {
+      BASELINE,
+      VB,WACK,     // validate byte 
+      ITCB,       // if ok callback value
+      STARTMERGE,    //clear bit and byte values ready for merge pass
+      // each bit is validated against 0 and the result inverted in MERGE
+      // this is because there tend to be more zeros in cv values than ones.  
+      // There is no need for one validation as entire byte is validated at the end
+      V0, WACK, MERGE,        // read and merge first tested bit (7)
+      ITSKIP,                 // do small excursion if there was no ack
+        SETBIT,(ackOp)7,
+        V1, WACK, NAKFAIL,    // test if there is an ack on the inverse of this bit (7)
+        SETBIT,(ackOp)6,      // and abort whole test if not else continue with bit (6)
+      SKIPTARGET,
+      V0, WACK, MERGE,        // read and merge second tested bit (6)
+      V0, WACK, MERGE,        // read and merge third  tested bit (5) ...
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
+      FAIL };
       
       
 const ackOp PROGMEM READ_CV_PROG[] = {
@@ -268,6 +308,7 @@ const ackOp PROGMEM LOCO_ID_PROG[] = {
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
       V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
+      V1, WACK, NAKFAIL, // fast fail if no loco on track
       // Long locoid  
       SETCV, (ackOp)17,       // CV 17 is part of locoid
       STARTMERGE,
@@ -327,6 +368,16 @@ void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool block
 void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback, blocking);
+}
+
+void  DCC::verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
+  ackManagerSetup(cv, byteValue,  VERIFY_BYTE_PROG, callback, blocking);
+}
+
+
+void DCC::verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
+  if (bitNum >= 8) callback(-1);
+  else ackManagerSetup(cv, bitNum, bitValue?VERIFY_BIT1_PROG:VERIFY_BIT0_PROG, callback, blocking);
 }
 
 

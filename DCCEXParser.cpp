@@ -221,10 +221,18 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
         DCC::writeCVByte(p[0],p[1],callback_W,blocking);
         return;
 
+    case 'V':      // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
+        if (!stashCallback(stream,p)) break;
+        if (params==2) DCC::verifyCVByte(p[0],p[1],callback_Vbyte,blocking);
+        else if (params==3) DCC::verifyCVBit(p[0],p[1],p[2],callback_Vbit,blocking);
+        else break;
+        return;
+
     case 'B':      // WRITE CV BIT ON PROG <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break; 
         DCC::writeCVBit(p[0],p[1],p[2],callback_B,blocking);
         return;
+        
         
     case 'R':     // READ CV ON PROG <R CV CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break;
@@ -510,6 +518,15 @@ void DCCEXParser::callback_B(int result) {
         StringFormatter::send(stashStream,F("<r%d|%d|%d %d %d>"), stashP[3],stashP[4], stashP[0],stashP[1],result==1?stashP[2]:-1);
         stashBusy=false;
 }
+void DCCEXParser::callback_Vbit(int result) {        
+        StringFormatter::send(stashStream,F("<v %d %d %d>"), stashP[0], stashP[1],result);
+        stashBusy=false;
+}
+void DCCEXParser::callback_Vbyte(int result) {        
+        StringFormatter::send(stashStream,F("<v %d %d>"), stashP[0],result);
+        stashBusy=false;
+}
+
 void DCCEXParser::callback_R(int result) {        
         StringFormatter::send(stashStream,F("<r%d|%d|%d %d>"),stashP[1],stashP[2],stashP[0],result);
         stashBusy=false;

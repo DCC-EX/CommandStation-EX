@@ -81,6 +81,8 @@ class DCC {
   static void  readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking=false);  // -1 for error
   static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking=false) ;
   static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking=false);
+  static void verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking=false) ;
+  static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking=false);
   
   static void getLocoId(ACK_CALLBACK callback, bool blocking=false);
 
