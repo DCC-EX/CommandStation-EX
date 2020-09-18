@@ -115,7 +115,7 @@ void setup() {
     WifiInterface::setHTTPCallback(myHttpFilter); 
  
    //  This is just for demonstration purposes 
-   DIAG(F("\n===== CVReader demonstrating DCC::getLocoId() call ==========\n"));
+   DIAG(F("\n===== DCCEX demonstrating DCC::getLocoId() call ==========\n"));
    DCC::getLocoId(myCallback); // myCallback will be called with the result 
    DIAG(F("\n===== DCC::getLocoId has returned, but the callback wont be executed until we are in loop() ======\n"));
    

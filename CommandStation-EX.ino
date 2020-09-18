@@ -14,6 +14,13 @@
 
 #include "DCCEX.h"
 
+#ifdef ARDUINO_AVR_UNO 
+  #include <SoftwareSerial.h>
+  SoftwareSerial Serial1(15,16); // YOU must get these pins correct to use Wifi on a UNO
+  #define WIFI_BAUD 9600
+#else 
+  #define WIFI_BAUD 115200 
+#endif 
 
 // Create a serial command parser... Enables certain diagnostics and commands
 // to be issued from the USB serial console 
@@ -27,8 +34,14 @@ void setup() {
   
   // Responsibility 1: Start the usb connection for diagnostics 
   // This is normally Serial but uses SerialUSB on a SAMD processor
-  
   Serial.begin(115200);
+
+   //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
+   //  NOTE: References to Serial1 are for the serial port used to connect
+   //        your wifi chip/shield.    
+  
+  Serial1.begin(WIFI_BAUD);
+  WifiInterface::setup(Serial1, F("Your network name"), F("your network password"),F("DCCEX"),3532);
   
    // Responsibility 3: Start the DCC engine.
    // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
@@ -42,18 +55,6 @@ void setup() {
    
    DCC::begin(STANDARD_MOTOR_SHIELD);
 
-   //  Start the WiFi interface.
-   //  NOTE: References to Serial1 are for the serial port used to connect
-   //        your wifi chip/shield.       
-
-      
-    Serial1.begin(115200);    // BAUD rate of your Wifi chip/shield 
-    WifiInterface::setup(Serial1, 
-          F("BTHub5-M6PT"),   // Router name
-          F("49de8d4862"),    // Router password
-          F("DCCEX"),         // Hostname (ignored by some wifi chip firmware)
-          3532);              // port (3532 is 0xDCC)
-    
 }
 
 void loop() {      
@@ -68,5 +69,6 @@ void loop() {
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
   WifiInterface::loop();
+
 
 }

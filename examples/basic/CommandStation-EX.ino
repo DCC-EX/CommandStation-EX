@@ -1,7 +1,7 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
  *  
- *  This is a basic, no frills CVreader example of a DCC++ compatible setup.
+ *  This is a basic, no frills DCC-EX example of a DCC++ compatible setup.
  *  There are more advanced examples in the examples folder i
  */
 

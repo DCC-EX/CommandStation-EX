@@ -1,7 +1,8 @@
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-*.code-workspace
-
-# Local History for Visual Studio Code
-.history/
+Release/*
+.ino.cpp
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+.pio/
+.vscode/
