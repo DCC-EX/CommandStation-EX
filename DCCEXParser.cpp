@@ -25,6 +25,7 @@
 #include "Outputs.h"
 #include "Sensors.h"
 #include "freeMemory.h"
+#include "GITHUB_SHA.h"
 
 #include "EEStore.h"
 #include "DIAG.h"
@@ -222,23 +223,37 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
         return;
 
     case 'V':      // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
-        if (!stashCallback(stream,p)) break;
-        if (params==2) DCC::verifyCVByte(p[0],p[1],callback_Vbyte,blocking);
-        else if (params==3) DCC::verifyCVBit(p[0],p[1],p[2],callback_Vbit,blocking);
-        else break;
-        return;
-
+        if (params==2) { // <V CV VALUE>
+          if (!stashCallback(stream,p)) break;
+          DCC::verifyCVByte(p[0],p[1],callback_Vbyte,blocking);
+          return;
+        }
+        if (params==3) {
+          if (!stashCallback(stream,p)) break;
+          DCC::verifyCVBit(p[0],p[1],p[2],callback_Vbit,blocking);
+          return;
+        }
+        break;
+        
     case 'B':      // WRITE CV BIT ON PROG <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream,p)) break; 
         DCC::writeCVBit(p[0],p[1],p[2],callback_B,blocking);
         return;
         
         
-    case 'R':     // READ CV ON PROG <R CV CALLBACKNUM CALLBACKSUB>
-        if (!stashCallback(stream,p)) break;
-        DCC::readCV(p[0],callback_R,blocking);
-        return;
-
+    case 'R':     // READ CV ON PROG 
+        if (params==3) { // <R CV CALLBACKNUM CALLBACKSUB>
+          if (!stashCallback(stream,p)) break;
+          DCC::readCV(p[0],callback_R,blocking);
+          return;
+        }
+        if (params==0)  { // <R> New read loco id
+          if (!stashCallback(stream,p)) break;
+          DCC::getLocoId(callback_Rloco,blocking);
+          return;
+        }
+        break;
+        
     case '1':      // POWERON <1   [MAIN|PROG]>
     case '0':      // POWEROFF <0 [MAIN | PROG] >
         if (params>1) break;
@@ -289,7 +304,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
 
     case 's':      // <s>
         StringFormatter::send(stream,F("<p%d>"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON );
-        StringFormatter::send(stream,F("<iDCC-EX-API / V-%S %s/%s>"), VERSION, __DATE__, __TIME__ );
+        StringFormatter::send(stream,F("<iDCC-EX-API / V-%S G-%S>"), VERSION, F(GITHUB_SHA));
         // TODO Send stats of  speed reminders table 
         // TODO send status of turnouts etc etc 
         return;
@@ -529,6 +544,11 @@ void DCCEXParser::callback_Vbyte(int result) {
 
 void DCCEXParser::callback_R(int result) {        
         StringFormatter::send(stashStream,F("<r%d|%d|%d %d>"),stashP[1],stashP[2],stashP[0],result);
+        stashBusy=false;
+}
+
+void DCCEXParser::callback_Rloco(int result) {        
+        StringFormatter::send(stashStream,F("<r %d>"),result);
         stashBusy=false;
 }
        
