@@ -126,12 +126,12 @@ void setup()
   wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
   if (!wifiUp)
   {
-    Serial2.begin(WIFI_BAUD);
+    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
     wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
   }
   if (!wifiUp)
   {
-    Serial3.begin(WIFI_BAUD);
+    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
     wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
   }
 #endif
@@ -161,7 +161,7 @@ void loop()
   serialParser.loop(Serial);
 
 // Responsibility 3: Optionally handle any incoming WiFi traffic
-#if ENABLE_WIFI
+#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
   WifiInterface::loop();
 #endif
 
