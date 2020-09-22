@@ -55,8 +55,8 @@ The configuration file for DCC++ EX Command Station
 	//
 	// DEFINE WiFi Parameters
 	//
-    #define WIFI_SSID ""
-	#define WIFI_PASSWORD ""
+    #define WIFI_SSID "Your network name"
+    #define WIFI_PASSWORD "Your network passwd"
     #define WIFI_HOSTNAME ""
     #define WIFI_PORT 3252
     
