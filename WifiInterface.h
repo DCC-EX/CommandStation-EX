@@ -29,7 +29,7 @@ typedef void (*HTTP_CALLBACK)(Print * stream, byte * cmd);
 class WifiInterface {
 
  public:
-    static void setup(Stream & setupStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
+    static bool setup(Stream & setupStream, const __FlashStringHelper* SSSid, const __FlashStringHelper* password,
           const __FlashStringHelper* hostname, int port);
     static void loop();
     static void ATCommand(const byte * command);

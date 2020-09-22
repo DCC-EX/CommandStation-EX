@@ -116,20 +116,21 @@ void setup()
 #endif
 
 #if ENABLE_WIFI
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   bool wifiUp = false;
 
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  wifiUp = WifiInterface::setup(Serial1, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  wifiUp = WifiInterface::setup(Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
+
   if (!wifiUp)
   {
     Serial2.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial2, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
+    wifiUp = WifiInterface::setup(Serial2, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
   }
   if (!wifiUp)
   {
     Serial3.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial3, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
+    wifiUp = WifiInterface::setup(Serial3, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
   }
 #endif
 #endif

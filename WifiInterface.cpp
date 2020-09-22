@@ -16,6 +16,8 @@
     You should have received a copy of the GNU General Public License
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+#include <avr/pgmspace.h>
 #include "WifiInterface.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
@@ -39,13 +41,15 @@ MemStream  WifiInterface::streamer(buffer, MAX_WIFI_BUFFER);
 Stream * WifiInterface::wifiStream = NULL;
 HTTP_CALLBACK WifiInterface::httpCallback = 0;
 
-
-void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                           const __FlashStringHelper* hostname,  int port) {
+  static uint8_t ntry = 0;
+  ntry++;
 
   wifiStream = &setupStream;
 
-  DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
+  DIAG(F("\n++ Wifi Setup Try %d ++\n"), ntry);
+
   connected = setup2( SSid, password, hostname,  port);
  
   if (connected) {
@@ -53,12 +57,14 @@ void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     checkForOK(200, OK_SEARCH, true);      
   }
  
- DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected ? F("OK") : F("FAILED"));
+  DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
+  return connected;
 }
 
 bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                            const __FlashStringHelper* hostname, int port) {
-  int ipOK = 0;
+  bool ipOK = false;
+  bool oldCmd = false;
 
   char macAddress[17];  //  mac address extraction   
      
@@ -71,66 +77,99 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     return true; 
   }
 
-   
+  StringFormatter::send(wifiStream, F("AT\r\n"));   // Is something here that understands AT?
+  if(!checkForOK(200, OK_SEARCH, true))
+    return false;                                   // No AT compatible WiFi module here
+
   StringFormatter::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
-  checkForOK(2000, OK_SEARCH, true);      // Makes this visible on the console
+  checkForOK(2000, OK_SEARCH, true);                // Makes this visible on the console
 
   // Display the AT version information
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
-  delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
-  
-  StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+  StringFormatter::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as "station" = WiFi client
+  checkForOK(1000, OK_SEARCH, true);                       // Not always OK, sometimes "no change"
 
-  // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
-  if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
-    // Copy 17 byte mac address  
-      for (int i=0; i<17;i++) {
-        while(!wifiStream->available());
-        macAddress[i]=wifiStream->read();
-        StringFormatter::printEscape(macAddress[i]);
-      }    
-  }
-  char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+  // If the source code looks unconfigured, check if the
+  // ESP8266 is preconfigured. We check the first 13 chars
+  // of the password.
+  if (strncmp_P("Your network ",(const char*)password,13) == 0) {
+    delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
+
+    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+    if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
+	if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	    ipOK = true;
+  } else {
+
+    if (!ipOK) {
+
+      // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
+      StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
+      if (checkForOK(2000, OK_SEARCH, true)) {
+        oldCmd=true;
+	while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+
+	// AT command early version supports CWJAP/CWSAP
+	if (SSid) {
+	  StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
+	  ipOK = checkForOK(16000, OK_SEARCH, true);
+	}
+	DIAG(F("\n**\n"));
+
+      } else {
+      // later version supports CWJAP_CUR
+
+        StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
+	checkForOK(2000, OK_SEARCH, true); // dont care if not supported
       
-  if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
-    if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
-      ipOK = 1;
+	if (SSid) {
+	  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
+	  ipOK = checkForOK(20000, OK_SEARCH, true);
+	}
+      }
+      delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
+
+      if (ipOK) {
+	// But we really only have the ESSID and password correct
+        // Let's check for IP
+        ipOK = false;
+	StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+	if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	    ipOK = true;
+      }
+    }
+  }
 
   if (!ipOK) {
-    StringFormatter::send(wifiStream, F("AT+CWMODE=3\r\n")); // configure as server or access point
+    // If we have not managed to get this going in station mode, go for AP mode
+
+    StringFormatter::send(wifiStream, F("AT+CWMODE=2\r\n")); // configure as AccessPoint.
     checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
 
-    // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-    StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
-    if (checkForOK(2000, OK_SEARCH, true)) {
-      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
-  
-      // AT command early version supports CWJAP/CWSAP
-      if (SSid) {
-        StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
-        checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok    
+    // Figure out MAC addr
+    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+    // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
+    if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
+      // Copy 17 byte mac address
+      for (int i=0; i<17;i++) {
+        while(!wifiStream->available());
+	macAddress[i]=wifiStream->read();
+	StringFormatter::printEscape(macAddress[i]);
       }
-      DIAG(F("\n**\n"));
-      
-      // establish the APname
+    }
+    char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+
+    if (oldCmd) {
+      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+
       StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
       checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
       
-    }
-    else {
-      // later version supports CWJAP_CUR
-      
-      StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-      checkForOK(2000, OK_SEARCH, true); // dont care if not supported
+    } else {
 
-      
-      if (SSid) {
-        StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
-        checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
-      }
-      
       StringFormatter::send(wifiStream, F("AT+CWSAP_CUR=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
       checkForOK(20000, OK_SEARCH, true); // can ignore failure as SSid mode may still be ok
       
