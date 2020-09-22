@@ -58,6 +58,7 @@ The configuration file for DCC++ EX Command Station
     #define WIFI_SSID ""
 	#define WIFI_PASSWORD ""
     #define WIFI_HOSTNAME ""
+    #define WIFI_PORT 3252
     
 
 	// This defines the speed at which the Arduino will communicate with the ESP8266 module.

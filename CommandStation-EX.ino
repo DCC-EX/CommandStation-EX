@@ -116,8 +116,22 @@ void setup()
 #endif
 
 #if ENABLE_WIFI
+  bool wifiUp = false;
+
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  WifiInterface::setup(Serial1, F("Your network name"), F("your network password"), F("DCCEX"), 3532);
+  wifiUp = WifiInterface::setup(Serial1, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  if (!wifiUp)
+  {
+    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
+    wifiUp = WifiInterface::setup(Serial2, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
+  }
+  if (!wifiUp)
+  {
+    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
+    wifiUp = WifiInterface::setup(Serial3, WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_PORT);
+  }
+#endif
 #endif
 
   // Responsibility 3: Start the DCC engine.
