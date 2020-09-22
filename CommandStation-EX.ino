@@ -115,8 +115,7 @@ void setup()
   DIAG(F("\n===== DCC::getLocoId has returned, but the callback wont be executed until we are in loop() ======\n"));
 #endif
 
-#if ENABLE_WIFI
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+#if ENABLE_WIFI && defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   bool wifiUp = false;
   const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
   const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
@@ -125,7 +124,6 @@ void setup()
 
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
   wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   if (!wifiUp)
   {
     Serial2.begin(WIFI_BAUD);
@@ -136,8 +134,6 @@ void setup()
     Serial3.begin(WIFI_BAUD);
     wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
   }
-#endif
-#endif
 #endif
 
   // Responsibility 3: Start the DCC engine.
