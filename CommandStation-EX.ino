@@ -118,20 +118,25 @@ void setup()
 #if ENABLE_WIFI
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   bool wifiUp = false;
+  const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
+  const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
+  const __FlashStringHelper *dccex = F(WIFI_HOSTNAME);
+  const uint16_t port = WIFI_PORT;
 
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  wifiUp = WifiInterface::setup(Serial1, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
-
+  wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   if (!wifiUp)
   {
-    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial2, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
+    Serial2.begin(WIFI_BAUD);
+    wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
   }
   if (!wifiUp)
   {
-    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial3, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), WIFI_PORT);
+    Serial3.begin(WIFI_BAUD);
+    wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
   }
+#endif
 #endif
 #endif
 
@@ -145,7 +150,7 @@ void setup()
   // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
-  DCC::begin(STANDARD_MOTOR_SHIELD);
+  DCC::begin(MOTOR_SHIELD_TYPE);
 }
 
 void loop()
