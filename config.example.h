@@ -37,7 +37,7 @@ The configuration file for DCC++ EX Command Station
 //
 // DEFINE NUMBER OF MAIN TRACK REGISTER
 
-#define MAX_MAIN_REGISTERS 12
+#define MAX_MAIN_REGISTERS 22
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

@@ -1,7 +1,7 @@
 /*
  *  © 2020, Harald Barth
  *  
- *  This file is part of DCC-EX
+ *  This file is part of Asbelos DCC-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,26 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef freeMemory_h
-#define freeMemory_h
-int freeMemory();
+#include "freeMemory.h"
+
+// thanks go to  https://github.com/mpflaga/Arduino-MemoryFree
+#if defined(__arm__)
+extern "C" char* sbrk(int);
+#elif defined(__AVR__)
+extern char *__brkval;
+extern char *__malloc_heap_start;
+#else
+#error Unsupported board type
 #endif
+
+
+int freeMemory() {
+  char top;
+#if defined(__arm__)
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(__AVR__)
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#else
+#error bailed out alredy above
+#endif
+}
