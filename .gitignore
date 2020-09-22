@@ -6,3 +6,4 @@ Release/*
 .gcc-flags.json
 .pio/
 .vscode/
+config.h
