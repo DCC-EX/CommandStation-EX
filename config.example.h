@@ -36,6 +36,8 @@ The configuration file for DCC++ EX Command Station
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE NUMBER OF MAIN TRACK REGISTER
+// THIS ONLY MATTERS ON THE UNO (and compatible) WHERE SPACE IS TIGHT
+// THIS IS IGNORED ON OTHER ARDUINOS WHERE THAT IS 50
 
 #define MAX_MAIN_REGISTERS 22
 

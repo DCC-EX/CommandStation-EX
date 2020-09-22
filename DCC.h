@@ -19,6 +19,7 @@
 #ifndef DCC_h
 #define DCC_h
 #include <Arduino.h>
+#include "config.h"
 #include "MotorDriver.h"
 #include "MotorDrivers.h"
 
@@ -50,7 +51,7 @@ SKIPTARGET=0xFF  // jump to target
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
  #ifdef ARDUINO_AVR_UNO 
-  const byte MAX_LOCOS=30;
+  const byte MAX_LOCOS=MAX_MAIN_REGISTERS;
  #else 
   const byte MAX_LOCOS=50; 
  #endif              
