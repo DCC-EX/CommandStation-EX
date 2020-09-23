@@ -30,7 +30,7 @@
 #include "EEStore.h"
 #include "DIAG.h"
 
-const char VERSION[] PROGMEM ="0.1.9";
+const char VERSION[] PROGMEM ="0.2.0";
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
