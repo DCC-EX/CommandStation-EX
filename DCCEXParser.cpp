@@ -338,7 +338,7 @@ void DCCEXParser::parse(Print * stream,  byte *com, bool blocking) {
           
     case '+' :  // Complex Wifi interface command (not usual parse)
              WifiInterface::ATCommand(com);
-             break;
+             return;
          
     default:  //anything else will diagnose and drop out to <X>
          DIAG(F("\nOpcode=%c params=%d\n"),opcode,params);
