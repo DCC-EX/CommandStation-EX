@@ -139,4 +139,31 @@ private:
   static const byte BIT_OFF=0x00;
 };
 
+#ifdef ARDUINO_AVR_MEGA                   // is using Mega 1280, define as Mega 2560 (pinouts and functionality are identical)
+  #define ARDUINO_AVR_MEGA2560  
+#endif
+
+#if defined(ARDUINO_AVR_UNO)
+  #define ARDUINO_TYPE    "UNO"
+#elif defined(ARDUINO_AVR_NANO)
+  #define ARDUINO_TYPE    "NANO"
+#elif defined(ARDUINO_AVR_MEGA2560)
+  #define ARDUINO_TYPE    "MEGA"
+#else
+  #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
+#endif
+
+#if defined(STANDARD_MOTOR_SHIELD)
+  #define MOTOR_BOARD_TYPE  "Ardu"
+#elif defined(POLOLU_MOTOR_SHIELD)
+  #define MOTOR_BOARD_TYPE  "Polo"
+#elif defined(FUNDUMOTO_SHIELD)
+  #define MOTOR_BOARD_TYPE  "Fundu"
+#elif defined(FIREBOX_MK1)
+  #define MOTOR_BOARD_TYPE  "FireBox1"
+#elif if defined(FIREBOX_MK1S)
+  #define MOTOR_BOARD_TYPE  "FireBox1S"
+#endif
+
+
 #endif
