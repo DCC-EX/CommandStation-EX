@@ -16,7 +16,7 @@
 #include "DCC.h"
 #include "DIAG.h"
 #include "DCCEXParser.h"
-#if ENABLE_WIFI
+#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
 #include "WifiInterface.h"
 #endif
 #if ENABLE_FREE_MEM_WARNING
@@ -146,7 +146,7 @@ void setup()
   // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
-  DCC::begin(MOTOR_BOARD);
+  DCC::begin(MOTOR_SHIELD_TYPE);
 }
 
 void loop()
