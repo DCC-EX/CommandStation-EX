@@ -19,7 +19,6 @@
 #ifndef DCC_h
 #define DCC_h
 #include <Arduino.h>
-#include "config.h"
 #include "MotorDriver.h"
 #include "MotorDrivers.h"
 
