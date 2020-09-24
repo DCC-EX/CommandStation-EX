@@ -44,7 +44,7 @@ const byte FN_GROUP_5=0x10;
 __FlashStringHelper* DCC::shieldName=NULL;
 
 void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
-  shieldName=motorShieldName;
+  shieldName=(__FlashStringHelper*)motorShieldName;
   DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
 }
 
