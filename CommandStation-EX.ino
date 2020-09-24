@@ -12,6 +12,10 @@
 //  REFER TO SEPARATE EXAMPLE.
 ////////////////////////////////////////////////////////////////////////////////////
 
+// This defines the speed at which the Arduino will communicate with the ESP8266 module.
+// Currently only Arduino Mega and 115200 is supported.
+#define WIFI_SERIAL_LINK_SPEED 115200
+
 #include "config.h"
 #include "DCC.h"
 #include "DIAG.h"
@@ -162,7 +166,7 @@ void setup()
   const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
   const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
   const __FlashStringHelper *dccex = F(WIFI_HOSTNAME);
-  const uint16_t port = WIFI_PORT;
+  const uint16_t port = IP_PORT;
 
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
   wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);

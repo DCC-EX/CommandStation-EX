@@ -34,32 +34,24 @@ The configuration file for DCC++ EX Command Station
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// NOTE: Only the Mega currently supports WiFi since space is a constraint on the Uno
-//       at this time. It may be implemented in the future.
-//       
-//       
+// The IP port to talk to a WIFI or Ethernet shield.
 //
-// Enable Use of WiFI for the Command Station for DCC-EX communications
+#define IP_PORT 2560
 
-#define ENABLE_WIFI false
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// NOTE: Only supported on Arduino Mega
+// Set to false if you not even want it on the Arduino Mega
+//
+#define ENABLE_WIFI true
 
-#if ENABLE_WIFI
-	/////////////////////////////////////////////////////////////////////////////////////
-	//
-	// DEFINE WiFi Parameters
-	//
-    #define WIFI_SSID "Your network name"
-    #define WIFI_PASSWORD "Your network passwd"
-    #define WIFI_HOSTNAME ""
-    #define WIFI_PORT 3252
-    
-
-	// This defines the speed at which the Arduino will communicate with the ESP8266 module.
-	// When using the ESP8266 on an Uno it is recommended to use 9600, for Mega2560 the
-	// higher speed can be used.  Set this based on your ESP8266 module configuration.
-	// Common defaults are 9600 or 115200.
-	#define WIFI_SERIAL_LINK_SPEED 115200
-#endif
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE WiFi Parameters (only in effect if WIFI is on)
+//
+#define WIFI_SSID "Your network name"
+#define WIFI_PASSWORD "Your network passwd"
+#define WIFI_HOSTNAME "dccex"
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -67,14 +59,6 @@ The configuration file for DCC++ EX Command Station
 //
 
 //#define IP_ADDRESS { 192, 168, 1, 200 }
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE PORT TO USE FOR ETHERNET COMMUNICATIONS INTERFACE
-//
-// Uncomment to use Ethernet
-
-// #define ETHERNET_PORT 2560
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
