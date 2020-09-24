@@ -50,7 +50,7 @@ SKIPTARGET=0xFF  // jump to target
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
  #ifdef ARDUINO_AVR_UNO 
-  const byte MAX_LOCOS=MAX_MAIN_REGISTERS;
+  const byte MAX_LOCOS=20;
  #else 
   const byte MAX_LOCOS=50; 
  #endif              
