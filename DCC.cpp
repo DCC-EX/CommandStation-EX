@@ -41,8 +41,10 @@ const byte FN_GROUP_3=0x04;
 const byte FN_GROUP_4=0x08;         
 const byte FN_GROUP_5=0x10;         
 
+__FlashStringHelper* DCC::shieldName=NULL;
 
-void DCC::begin(MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
+void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
+  shieldName=motorShieldName;
   DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
 }
 
@@ -206,6 +208,10 @@ void DCC::setProgTrackSyncMain(bool on) {
   DCCWaveform::progTrackSyncMain=on;
 }
 
+__FlashStringHelper* DCC::getMotorShieldName() {
+  return shieldName;
+}
+  
 const ackOp PROGMEM WRITE_BIT0_PROG[] = {
      BASELINE,
      W0,WACK,

@@ -60,7 +60,7 @@ SKIPTARGET=0xFF  // jump to target
 class DCC {
   public:
 
-  static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber=1);
+  static void begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber=1);
   static void loop();
 
   // Public DCC API functions
@@ -91,6 +91,9 @@ class DCC {
   static void forgetLoco(int cab);  // removes any speed reminders for this loco  
   static void forgetAllLocos();  // removes all speed reminders
   static void displayCabList(Print * stream); 
+
+  static __FlashStringHelper* getMotorShieldName();
+  
 private: 
   struct LOCO {
      int loco;
@@ -104,6 +107,8 @@ private:
   static void setFunctionInternal( int cab, byte fByte, byte eByte);
   static bool issueReminder(int reg);
   static int nextLoco;
+  static __FlashStringHelper* shieldName;
+  
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
@@ -153,17 +158,6 @@ private:
   #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
 #endif
 
-#if defined(STANDARD_MOTOR_SHIELD)
-  #define MOTOR_BOARD_TYPE  "Ardu"
-#elif defined(POLOLU_MOTOR_SHIELD)
-  #define MOTOR_BOARD_TYPE  "Polo"
-#elif defined(FUNDUMOTO_SHIELD)
-  #define MOTOR_BOARD_TYPE  "Fundu"
-#elif defined(FIREBOX_MK1)
-  #define MOTOR_BOARD_TYPE  "FireBox1"
-#elif if defined(FIREBOX_MK1S)
-  #define MOTOR_BOARD_TYPE  "FireBox1S"
-#endif
 
 #ifdef ENABLE_LCD
 #include <Wire.h>
