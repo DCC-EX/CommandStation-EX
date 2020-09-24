@@ -165,5 +165,16 @@ private:
   #define MOTOR_BOARD_TYPE  "FireBox1S"
 #endif
 
+#ifdef ENABLE_LCD
+#include <Wire.h>
+  #if defined(LIB_TYPE_PCF8574)
+    #include <LiquidCrystal_PCF8574.h>
+    extern LiquidCrystal_PCF8574 lcdDisplay;
+  #elif defined(LIB_TYPE_I2C)
+    #include <LiquidCrystal_I2C.h>
+    extern LiquidCrystal_I2C lcdDisplay;
+  #endif
+extern bool lcdEnabled;
+#endif
 
 #endif

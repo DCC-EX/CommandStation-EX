@@ -16,12 +16,25 @@
 #include "DCC.h"
 #include "DIAG.h"
 #include "DCCEXParser.h"
+#include "version.h"
 #if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
 #include "WifiInterface.h"
 #endif
 #if ENABLE_FREE_MEM_WARNING
 #include "freeMemory.h"
 int ramLowWatermark = 32767; // This figure gets overwritten dynamically in loop()
+#endif
+
+////////////////////////////////////////////////////////////////
+//
+// Enables an I2C 2x24 or 4x24 LCD Screen
+#ifdef ENABLE_LCD
+bool lcdEnabled = false;
+  #if defined(LIB_TYPE_PCF8574)
+    LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
+  #elif defined(LIB_TYPE_I2C)
+    LiquidCrystal_I2C lcdDisplay = LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_LINES);
+  #endif
 #endif
 
 // this code is here to demonstrate use of the DCC API and other techniques
@@ -92,6 +105,35 @@ DCCEXParser serialParser;
 void setup()
 {
 
+  ////////////////////////////////////////////
+  //
+  // More display stuff. Need to put this in a .h file and make
+  // it a class
+  #ifdef ENABLE_LCD
+  Wire.begin();
+  // Check that we can find the LCD by its address before attempting to use it.
+  Wire.beginTransmission(LCD_ADDRESS);
+  if(Wire.endTransmission() == 0) {
+    lcdEnabled = true;
+    lcdDisplay.begin(LCD_COLUMNS, LCD_LINES);
+    lcdDisplay.setBacklight(255);
+    lcdDisplay.clear();
+    lcdDisplay.setCursor(0, 0);
+    lcdDisplay.print("DCC++ EX v");
+    lcdDisplay.print(VERSION);
+    lcdDisplay.setCursor(0, 1);
+    #if COMM_INTERFACE >= 1
+    lcdDisplay.print("IP: PENDING");
+    #else
+    lcdDisplay.print("SERIAL: READY");
+    #endif
+    #if LCD_LINES > 2
+      lcdDisplay.setCursor(0, 3);
+      lcdDisplay.print("TRACK POWER: OFF");
+    #endif
+  }
+#endif
+
   // The main sketch has responsibilities during setup()
 
   // Responsibility 1: Start the usb connection for diagnostics
@@ -146,7 +188,7 @@ void setup()
   // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
-  DCC::begin(MOTOR_SHIELD_TYPE);
+  DCC::begin(MOTOR_BOARD);
 }
 
 void loop()
