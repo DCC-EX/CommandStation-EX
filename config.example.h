@@ -112,17 +112,6 @@ The configuration file for DCC++ EX Command Station
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// PREAMBLE_MAIN: Length of the preamble on the main track. Per standard this should
-//                be at least 14 bits but if some equipment wants to insert a RailCom
-//                cutout this should be at least 16 bits.
-// PERAMBLE_PROG: Length of the preamble on the programming track. Per standard this
-//                should be at least 22 bits 
-
-#define PREAMBLE_MAIN 16 // TODO: Finish configurable preamble code
-#define PREAMBLE_PROG 22
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
 // DEFINE LCD SCREEN USAGE BY THE BASE STATION
 //
 // Note: This feature requires an I2C enabled LCD screen using a PCF8574 based chipset.

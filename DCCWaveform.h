@@ -30,7 +30,7 @@ const int  MIN_ACK_PULSE_DURATION = 2000;
 const int  MAX_ACK_PULSE_DURATION = 8500;
  
 
-const int   PREAMBLE_BITS_MAIN = 20;
+const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
 
 
