@@ -574,7 +574,7 @@ void DCC::ackManagerLoop(bool blocking) {
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.sentResetsSincePacket = 0;
 	      DCCWaveform::progTrack.autoPowerOff=true;
-	      return;
+	      if (!blocking) return;
 	  }
 	  if (checkResets(blocking, DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
