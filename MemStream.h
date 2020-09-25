@@ -24,34 +24,43 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MemStream_h
 
 #include <inttypes.h>
+#if defined(ARDUINO_ARCH_MEGAAVR)
+#include <Arduino.h>
+#else
 #include <Stream.h>
+#endif
+
 #include <avr/pgmspace.h>
 
 class MemStream : public Stream
 {
 private:
-   uint8_t * _buffer;
-   const uint16_t _len;
-   bool _buffer_overflow;
-   uint16_t _pos_read;
-   uint16_t _pos_write;
-   bool _allowWrite;
-
+  uint8_t *_buffer;
+  const uint16_t _len;
+  bool _buffer_overflow;
+  uint16_t _pos_read;
+  uint16_t _pos_write;
+  bool _allowWrite;
 
 public:
   // public methods
-  MemStream(uint8_t *buffer, const uint16_t len, uint16_t content_len = 0, bool allowWrite=true);
+  MemStream(uint8_t *buffer, const uint16_t len, uint16_t content_len = 0, bool allowWrite = true);
   ~MemStream() {}
 
   operator const uint8_t *() const { return _buffer; }
-  operator const char *() const { return (const char*)_buffer; }
+  operator const char *() const { return (const char *)_buffer; }
 
   uint16_t current_length() const { return _pos_write; }
 
   bool listen() { return true; }
   void end() {}
   bool isListening() { return true; }
-  bool overflow() { bool ret = _buffer_overflow; _buffer_overflow = false; return ret; }
+  bool overflow()
+  {
+    bool ret = _buffer_overflow;
+    _buffer_overflow = false;
+    return ret;
+  }
   int peek();
 
   virtual size_t write(uint8_t byte);

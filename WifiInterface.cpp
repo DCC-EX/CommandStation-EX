@@ -22,6 +22,8 @@
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
+
+
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] = "@ 1000";

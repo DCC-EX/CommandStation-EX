@@ -29,16 +29,23 @@
 int ramLowWatermark = 32767; // This figure gets overwritten dynamically in loop()
 #endif
 
+#if defined(ARDUINO_ARCH_MEGAAVR)
+#include <Arduino.h>
+#endif
+
+
+
+
 ////////////////////////////////////////////////////////////////
 //
 // Enables an I2C 2x24 or 4x24 LCD Screen
-#ifdef ENABLE_LCD
+#if ENABLE_LCD
 bool lcdEnabled = false;
-  #if defined(LIB_TYPE_PCF8574)
-    LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
-  #elif defined(LIB_TYPE_I2C)
-    LiquidCrystal_I2C lcdDisplay = LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_LINES);
-  #endif
+#if defined(LIB_TYPE_PCF8574)
+LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
+#elif defined(LIB_TYPE_I2C)
+LiquidCrystal_I2C lcdDisplay = LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_LINES);
+#endif
 #endif
 
 // this code is here to demonstrate use of the DCC API and other techniques
@@ -109,15 +116,16 @@ DCCEXParser serialParser;
 void setup()
 {
 
-  ////////////////////////////////////////////
-  //
-  // More display stuff. Need to put this in a .h file and make
-  // it a class
-  #ifdef ENABLE_LCD
+////////////////////////////////////////////
+//
+// More display stuff. Need to put this in a .h file and make
+// it a class
+#if ENABLE_LCD
   Wire.begin();
   // Check that we can find the LCD by its address before attempting to use it.
   Wire.beginTransmission(LCD_ADDRESS);
-  if(Wire.endTransmission() == 0) {
+  if (Wire.endTransmission() == 0)
+  {
     lcdEnabled = true;
     lcdDisplay.begin(LCD_COLUMNS, LCD_LINES);
     lcdDisplay.setBacklight(255);
@@ -126,15 +134,15 @@ void setup()
     lcdDisplay.print("DCC++ EX v");
     lcdDisplay.print(VERSION);
     lcdDisplay.setCursor(0, 1);
-    #if COMM_INTERFACE >= 1
+#if COMM_INTERFACE >= 1
     lcdDisplay.print("IP: PENDING");
-    #else
+#else
     lcdDisplay.print("SERIAL: READY");
-    #endif
-    #if LCD_LINES > 2
-      lcdDisplay.setCursor(0, 3);
-      lcdDisplay.print("TRACK POWER: OFF");
-    #endif
+#endif
+#if LCD_LINES > 2
+    lcdDisplay.setCursor(0, 3);
+    lcdDisplay.print("TRACK POWER: OFF");
+#endif
   }
 #endif
 
