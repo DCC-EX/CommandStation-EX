@@ -1,7 +1,8 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,11 +17,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "config.h"
+#include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
+#ifdef WIFI_ON
 #include "WifiInterface.h"
 #endif
 #include "Turnouts.h"
@@ -391,7 +394,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
-#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
+#ifdef WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
         WifiInterface::ATCommand(com);
         return;
