@@ -175,17 +175,21 @@ void setup()
 
   Serial1.begin(WIFI_SERIAL_LINK_SPEED);
   wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
+#if NUM_SERIAL > 1
   if (!wifiUp)
   {
     Serial2.begin(WIFI_SERIAL_LINK_SPEED);
     wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
   }
+#if NUM_SERIAL > 2
   if (!wifiUp)
   {
     Serial3.begin(WIFI_SERIAL_LINK_SPEED);
     wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
   }
-#endif
+#endif // >2
+#endif // >1
+#endif // WIFI_ON
 
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)

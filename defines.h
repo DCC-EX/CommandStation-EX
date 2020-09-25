@@ -33,3 +33,13 @@
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Figure out number of serial ports depending on hardware
+//
+#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
+#define NUM_SERIAL 3
+#endif
+#ifndef NUM_SERIAL
+#define NUM_SERIAL 1
+#endif
