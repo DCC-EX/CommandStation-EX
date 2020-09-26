@@ -85,10 +85,15 @@ ISR(TIMER2_OVF_vect)
 
 #include "ATMEGA4809/Timer.h"
 
-Timer TimerA(0);
+Timer TimerA(1);
+Timer TimerB(2);
 
-ISR(TCA0_OVF_vect) {
+ISR(TIMER1_OVF_vect) {
     TimerA.isrCallback();
+}
+
+ISR(TIMER2_OVF_vect) {
+    TimerB.isrCallback();
 }
 
 #endif
