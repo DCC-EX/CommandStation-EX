@@ -12,7 +12,20 @@ The DCC++ EX Command Station consists of an Arduino micro controller fitted with
 
 This repository, CommandStation-EX, contains a complete DCC++ EX Commmand Station sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.  All sketch files are in the folder named CommandStation-EX and its subforlders. More information about the sketch can be found in the included PDF file.
 
-To utilize this sketch, you can use our automated installer, or download a zip file from this repository and open the file "CommandStation-EX.ino" after unzipping it to your Arduino IDE projects folder.  Please do not rename the folder containing the sketch code, nor add any files in that folder.  The Arduino IDE relies on the structure and name of the folder to properly display and compile the code.
+To utilize this sketch, you can use the following methods: 
+
+* our automated installer
+* download a zip file from this repository (green Code button above) and unzip it
+* use git clone on this repository
+
+With the manual methods you unzip or git clone to the Arduino IDE
+projects folder and then open the file "CommandStation-EX.ino" in the
+Arduino IDE. Please do not rename the folder containing the sketch
+code, nor add any files in that folder. The Arduino IDE relies on the
+structure and name of the folder to properly display and compile the
+code. If you do not run the installer, you have to copy
+config.example.h to config.h. If you do not have the standard config
+you edit config.h according to the help texts in config.h.
 
 The latest production release of the Master branch is 3.0.1:
 
