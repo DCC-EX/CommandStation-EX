@@ -10,6 +10,8 @@
 #include "DCCEXParser.h"
 #include "version.h"
 #include "WifiInterface.h"
+#include "EthernetInterface.h"
+
 #include <Arduino.h>
 
 #endif
