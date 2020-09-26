@@ -17,13 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "config.h"
-#include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#include "WifiInterface.h"
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
@@ -157,9 +154,14 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
 }
 
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
+}
+void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
+{
+    atCommandCallback = callback;
 }
 
 // See documentation on DCC class for info on this section
@@ -392,11 +394,14 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
-#ifdef WIFI_ON
+
     case '+': // Complex Wifi interface command (not usual parse)
-        WifiInterface::ATCommand(com);
-        return;
-#endif
+        if (atCommandCallback) {
+          atCommandCallback(com);
+          return;
+        }
+        break;
+
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("\nOpcode=%c params=%d\n"), opcode, params);
         for (int i = 0; i < params; i++)

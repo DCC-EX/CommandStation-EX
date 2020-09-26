@@ -60,6 +60,8 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     checkForOK(200, OK_SEARCH, true);      
   }
   streamer=new MemStream(buffer, MAX_WIFI_BUFFER);
+  parser.setAtCommandCallback(ATCommand);
+  
   DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
   return connected;
 }
