@@ -23,9 +23,7 @@
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#ifdef WIFI_ON
 #include "WifiInterface.h"
-#endif
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"

@@ -18,17 +18,8 @@
 #include "DIAG.h"
 #include "DCCEXParser.h"
 #include "version.h"
-#ifdef WIFI_ON
 #include "WifiInterface.h"
-#endif
-#if ENABLE_FREE_MEM_WARNING
-#include "freeMemory.h"
-int ramLowWatermark = 32767; // This figure gets overwritten dynamically in loop()
-#endif
-
-#if defined(ARDUINO_ARCH_MEGAAVR)
 #include <Arduino.h>
-#endif
 
 
 
@@ -222,6 +213,8 @@ void loop()
 
 // Optionally report any decrease in memory (will automatically trigger on first call)
 #if ENABLE_FREE_MEM_WARNING
+  static int ramLowWatermark = 32767; // replaced on first loop 
+
   int freeNow = freeMemory();
   if (freeNow < ramLowWatermark)
   {
