@@ -13,5 +13,7 @@ jobs:
       run: pip install wheel
     - name: Install PlatformIO Core
       run: pip install -U https://github.com/platformio/platformio/archive/v4.2.1.zip
+    - name: Copy generic config over
+      run: cp config.example.h config.h
     - name: Compile Command Station (AVR)
       run: python -m platformio run

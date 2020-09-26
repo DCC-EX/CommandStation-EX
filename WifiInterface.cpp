@@ -1,7 +1,8 @@
 /*
     © 2020, Chris Harlow. All rights reserved.
+    © 2020, Harald Barth.
 
-    This file is part of Asbelos DCC API
+    This file is part of CommandStation-EX
 
     This is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,10 +17,14 @@
     You should have received a copy of the GNU General Public License
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "WifiInterface.h"
+
+#include "WifiInterface.h"        /* config.h and defines.h included here */
+#include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
+
+
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] = "@ 1000";
@@ -35,30 +40,36 @@ unsigned long WifiInterface::loopTimeoutStart = 0;
 int WifiInterface::datalength = 0;
 int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER+1];
-MemStream  WifiInterface::streamer(buffer, MAX_WIFI_BUFFER);
+MemStream  * WifiInterface::streamer;
 Stream * WifiInterface::wifiStream = NULL;
 HTTP_CALLBACK WifiInterface::httpCallback = 0;
 
-
-void WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                           const __FlashStringHelper* hostname,  int port) {
+  static uint8_t ntry = 0;
+  ntry++;
 
   wifiStream = &setupStream;
 
-  DIAG(F("\n++++++ Wifi Setup In Progress ++++++++\n"));
+  DIAG(F("\n++ Wifi Setup Try %d ++\n"), ntry);
+
   connected = setup2( SSid, password, hostname,  port);
  
   if (connected) {
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
     checkForOK(200, OK_SEARCH, true);      
   }
- 
- DIAG(F("\n++++++ Wifi Setup %S ++++++++\n"), connected ? F("OK") : F("FAILED"));
+  streamer=new MemStream(buffer, MAX_WIFI_BUFFER);
+  parser.setAtCommandCallback(ATCommand);
+  
+  DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
+  return connected;
 }
 
 bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                            const __FlashStringHelper* hostname, int port) {
-  int ipOK = 0;
+  bool ipOK = false;
+  bool oldCmd = false;
 
   char macAddress[17];  //  mac address extraction   
      
@@ -71,66 +82,99 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     return true; 
   }
 
-   
+  StringFormatter::send(wifiStream, F("AT\r\n"));   // Is something here that understands AT?
+  if(!checkForOK(200, OK_SEARCH, true))
+    return false;                                   // No AT compatible WiFi module here
+
   StringFormatter::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
-  checkForOK(2000, OK_SEARCH, true);      // Makes this visible on the console
+  checkForOK(2000, OK_SEARCH, true);                // Makes this visible on the console
 
   // Display the AT version information
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
-  delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
-  
-  StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+  StringFormatter::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as "station" = WiFi client
+  checkForOK(1000, OK_SEARCH, true);                       // Not always OK, sometimes "no change"
 
-  // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
-  if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
-    // Copy 17 byte mac address  
-      for (int i=0; i<17;i++) {
-        while(!wifiStream->available());
-        macAddress[i]=wifiStream->read();
-        StringFormatter::printEscape(macAddress[i]);
-      }    
-  }
-  char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+  // If the source code looks unconfigured, check if the
+  // ESP8266 is preconfigured. We check the first 13 chars
+  // of the password.
+  if (strncmp_P("Your network ",(const char*)password,13) == 0) {
+    delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
+
+    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+    if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
+	if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	    ipOK = true;
+  } else {
+
+    if (!ipOK) {
+
+      // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
+      StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
+      if (checkForOK(2000, OK_SEARCH, true)) {
+        oldCmd=true;
+	while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+
+	// AT command early version supports CWJAP/CWSAP
+	if (SSid) {
+	  StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
+	  ipOK = checkForOK(16000, OK_SEARCH, true);
+	}
+	DIAG(F("\n**\n"));
+
+      } else {
+      // later version supports CWJAP_CUR
+
+        StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
+	checkForOK(2000, OK_SEARCH, true); // dont care if not supported
       
-  if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
-    if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
-      ipOK = 1;
+	if (SSid) {
+	  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
+	  ipOK = checkForOK(20000, OK_SEARCH, true);
+	}
+      }
+      delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
+
+      if (ipOK) {
+	// But we really only have the ESSID and password correct
+        // Let's check for IP
+        ipOK = false;
+	StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+	if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	    ipOK = true;
+      }
+    }
+  }
 
   if (!ipOK) {
-    StringFormatter::send(wifiStream, F("AT+CWMODE=3\r\n")); // configure as server or access point
+    // If we have not managed to get this going in station mode, go for AP mode
+
+    StringFormatter::send(wifiStream, F("AT+CWMODE=2\r\n")); // configure as AccessPoint.
     checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
 
-    // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-    StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
-    if (checkForOK(2000, OK_SEARCH, true)) {
-      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
-  
-      // AT command early version supports CWJAP/CWSAP
-      if (SSid) {
-        StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
-        checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok    
+    // Figure out MAC addr
+    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+    // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
+    if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
+      // Copy 17 byte mac address
+      for (int i=0; i<17;i++) {
+        while(!wifiStream->available());
+	macAddress[i]=wifiStream->read();
+	StringFormatter::printEscape(macAddress[i]);
       }
-      DIAG(F("\n**\n"));
-      
-      // establish the APname
+    }
+    char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
+
+    if (oldCmd) {
+      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+
       StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
       checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
       
-    }
-    else {
-      // later version supports CWJAP_CUR
-      
-      StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-      checkForOK(2000, OK_SEARCH, true); // dont care if not supported
+    } else {
 
-      
-      if (SSid) {
-        StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
-        checkForOK(20000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
-      }
-      
       StringFormatter::send(wifiStream, F("AT+CWSAP_CUR=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
       checkForOK(20000, OK_SEARCH, true); // can ignore failure as SSid mode may still be ok
       
@@ -257,15 +301,15 @@ void WifiInterface::loop() {
       case 6: // reading for length
         if (ch == ':') loopstate = (datalength == 0) ? 99 : 7; // 99 is getout without reading next char
         else datalength = datalength * 10 + (ch - '0');
-        streamer.flush();  // basically sets write point at start of buffer
+        streamer->flush();  // basically sets write point at start of buffer
         break;
       case 7: // reading data
-        streamer.write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
+        streamer->write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
                             // This protects against buffer overflows even with things as innocent
                             // as a browser which send massive, irrlevent HTTP headers.   
         datalength--;
         if (datalength == 0) {
-          buffer[streamer.available()]='\0'; // mark end of buffer, so it can be used as a string later
+          buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
           loopstate = 99;
         }
         break;
@@ -308,8 +352,8 @@ void WifiInterface::loop() {
           loopstate = 1;
         }
         if (ch == 'K') { // assume its in  SEND OK
-          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
-          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
+          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
           loopTimeoutStart = millis();
           loopstate = 10; // non-blocking loop waits for > before sending
           break;
@@ -322,7 +366,7 @@ void WifiInterface::loop() {
   // AT this point we have read an incoming message into the buffer
  
   if (Diag::WIFI) DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),connectionId, buffer);
-  streamer.setBufferContentPosition(0, 0); // reset write position to start of buffer
+  streamer->setBufferContentPosition(0, 0); // reset write position to start of buffer
   // SIDE EFFECT WARNING:::
   //  We know that parser will read the entire buffer before starting to write to it.
   //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
@@ -331,18 +375,18 @@ void WifiInterface::loop() {
 
   // Intercept HTTP requests
   if (isHTTP()) {
-    if (httpCallback) httpCallback(&streamer, buffer);
+    if (httpCallback) httpCallback(streamer, buffer);
     else {
       StringFormatter::send(streamer, F("HTTP/1.1 404 Not Found\nContent-Type: text/html\nConnnection: close\n\n"));
       StringFormatter::send(streamer, F("<html><body>This is <b>not</b> a web server.<br/></body></html>"));
     }
     closeAfter = true;
   }
-  else if (buffer[0] == '<')  parser.parse(&streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
+  else if (buffer[0] == '<')  parser.parse(streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
 
-  else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
+  else WiThrottle::getThrottle(connectionId)->parse(*streamer, buffer);
 
-  if (streamer.available() == 0) {
+  if (streamer->available() == 0) {
     // No reply
     if (closeAfter) {
         if (Diag::WIFI)  DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
@@ -352,10 +396,10 @@ void WifiInterface::loop() {
     return;
   }
   // prepare to send reply
-  buffer[streamer.available()]='\0'; // mark end of buffer, so it can be used as a string later
-  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer.available());
-  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
-  StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+  buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
+  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer->available());
+  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
+  StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
   loopTimeoutStart = millis();
   loopstate = 10; // non-blocking loop waits for > before sending
 }
