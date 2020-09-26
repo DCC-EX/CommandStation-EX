@@ -14,6 +14,10 @@
 
 const byte UNUSED_PIN = 255;
 
+// Trip current for programming track in mA. Change only if you really
+// need to be non-NMRA-compliant because of decoders that are not either.
+#define TRIP_CURRENT_PROG 250
+
 // MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin,
 //             float senseFactor, unsigned int tripMilliamps, byte faultPin);
 
