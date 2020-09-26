@@ -19,12 +19,8 @@
  */
 #ifndef WifiInterface_h
 #define WifiInterface_h
-#include "config.h"
-#include "defines.h"
-#ifdef WIFI_ON
 #include "DCCEXParser.h"
 #include "MemStream.h"
-
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
@@ -56,7 +52,6 @@ private:
   static unsigned long loopTimeoutStart;
   static const byte MAX_WIFI_BUFFER = 250;
   static byte buffer[MAX_WIFI_BUFFER + 1];
-  static MemStream streamer;
+  static MemStream * streamer;
 };
-#endif // WIFI_ON
 #endif
