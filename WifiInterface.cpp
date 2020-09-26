@@ -1,7 +1,8 @@
 /*
     © 2020, Chris Harlow. All rights reserved.
+    © 2020, Harald Barth.
 
-    This file is part of Asbelos DCC API
+    This file is part of CommandStation-EX
 
     This is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,8 +18,8 @@
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "WifiInterface.h"        /* config.h and defines.h included here */
 #include <avr/pgmspace.h>
-#include "WifiInterface.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
@@ -39,7 +40,7 @@ unsigned long WifiInterface::loopTimeoutStart = 0;
 int WifiInterface::datalength = 0;
 int WifiInterface::connectionId;
 byte WifiInterface::buffer[MAX_WIFI_BUFFER+1];
-MemStream  WifiInterface::streamer(buffer, MAX_WIFI_BUFFER);
+MemStream  * WifiInterface::streamer;
 Stream * WifiInterface::wifiStream = NULL;
 HTTP_CALLBACK WifiInterface::httpCallback = 0;
 
@@ -58,7 +59,9 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
     checkForOK(200, OK_SEARCH, true);      
   }
- 
+  streamer=new MemStream(buffer, MAX_WIFI_BUFFER);
+  parser.setAtCommandCallback(ATCommand);
+  
   DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
   return connected;
 }
@@ -298,15 +301,15 @@ void WifiInterface::loop() {
       case 6: // reading for length
         if (ch == ':') loopstate = (datalength == 0) ? 99 : 7; // 99 is getout without reading next char
         else datalength = datalength * 10 + (ch - '0');
-        streamer.flush();  // basically sets write point at start of buffer
+        streamer->flush();  // basically sets write point at start of buffer
         break;
       case 7: // reading data
-        streamer.write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
+        streamer->write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
                             // This protects against buffer overflows even with things as innocent
                             // as a browser which send massive, irrlevent HTTP headers.   
         datalength--;
         if (datalength == 0) {
-          buffer[streamer.available()]='\0'; // mark end of buffer, so it can be used as a string later
+          buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
           loopstate = 99;
         }
         break;
@@ -349,8 +352,8 @@ void WifiInterface::loop() {
           loopstate = 1;
         }
         if (ch == 'K') { // assume its in  SEND OK
-          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
-          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
+          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
           loopTimeoutStart = millis();
           loopstate = 10; // non-blocking loop waits for > before sending
           break;
@@ -363,7 +366,7 @@ void WifiInterface::loop() {
   // AT this point we have read an incoming message into the buffer
  
   if (Diag::WIFI) DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),connectionId, buffer);
-  streamer.setBufferContentPosition(0, 0); // reset write position to start of buffer
+  streamer->setBufferContentPosition(0, 0); // reset write position to start of buffer
   // SIDE EFFECT WARNING:::
   //  We know that parser will read the entire buffer before starting to write to it.
   //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
@@ -372,18 +375,18 @@ void WifiInterface::loop() {
 
   // Intercept HTTP requests
   if (isHTTP()) {
-    if (httpCallback) httpCallback(&streamer, buffer);
+    if (httpCallback) httpCallback(streamer, buffer);
     else {
       StringFormatter::send(streamer, F("HTTP/1.1 404 Not Found\nContent-Type: text/html\nConnnection: close\n\n"));
       StringFormatter::send(streamer, F("<html><body>This is <b>not</b> a web server.<br/></body></html>"));
     }
     closeAfter = true;
   }
-  else if (buffer[0] == '<')  parser.parse(&streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
+  else if (buffer[0] == '<')  parser.parse(streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
 
-  else WiThrottle::getThrottle(connectionId)->parse(streamer, buffer);
+  else WiThrottle::getThrottle(connectionId)->parse(*streamer, buffer);
 
-  if (streamer.available() == 0) {
+  if (streamer->available() == 0) {
     // No reply
     if (closeAfter) {
         if (Diag::WIFI)  DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
@@ -393,10 +396,10 @@ void WifiInterface::loop() {
     return;
   }
   // prepare to send reply
-  buffer[streamer.available()]='\0'; // mark end of buffer, so it can be used as a string later
-  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer.available());
-  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
-  StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer.available());
+  buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
+  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer->available());
+  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
+  StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
   loopTimeoutStart = millis();
   loopstate = 10; // non-blocking loop waits for > before sending
 }

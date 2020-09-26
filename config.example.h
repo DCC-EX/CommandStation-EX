@@ -15,22 +15,17 @@ The configuration file for DCC++ EX Command Station
 //        the correct resistor could damage the sense pin on your Arduino or destroy
 //        the device.
 //
-// DEFINE MOTOR_SHIELD_TYPE ACCORDING TO THE FOLLOWING TABLE:
+// DEFINE MOTOR_SHIELD_TYPE BELOW ACCORDING TO THE FOLLOWING TABLE:
 //
-//  STANDARD_MOTOR_SHIELD = ARDUINO MOTOR SHIELD            (MAX 18V/2A  PER CHANNEL)  Arduino Motor shield Rev3 based on the L298
-//  POLOLU_MOTOR_SHIELD = POLOLU MC33926 MOTOR SHIELD     (MAX 28V/2.5 PER CHANNEL)  Pololu MC33926 Motor Driver (shield or carrier)
-//  FUNDUMOTO_SHIELD = FunduMoto Motor Shield                     
-//  FIREBOX_MK1 = Firebox MK1                    
-//  FIREBOX_MK1S = Firebox MK1S    
-
-
+//  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
+//  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
+//  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
+//  FIREBOX_MK1           : The Firebox MK1                    
+//  FIREBOX_MK1S          : The Firebox MK1S    
+//   |
+//   +-----------------------v
+//
 #define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE PROGRAM TRACK CURRENT LIMIT IN MILLIAMPS
-
-#define TRIP_CURRENT_PROG 250
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -57,7 +52,6 @@ The configuration file for DCC++ EX Command Station
 //
 // DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
 //
-
 //#define IP_ADDRESS { 192, 168, 1, 200 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -67,59 +61,8 @@ The configuration file for DCC++ EX Command Station
 // Uncomment to use with Ethernet Shields
 //
 // NOTE: This is not used with ESP8266 WiFi modules.
-
+// 
 // #define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Allows using a pin as a trigger for a scope or analyzer so we can capture only
-// the important parts of the data stream
-//
-// USE_TRIGGERPIN: Enable code that switches the trigger pin on and off at end
-//                 of the preamble. This takes some clock cycles in the
-//                 interrupt routine for the main track.
-// USE_TRIGGERPIN_PER_BIT: As above but for every bit. This only makes sense
-//                 if USE_TRIGGERPIN is set.
-//
-// The value of the TRIGGERPIN is defined in DCCppEX.h because it might
-// be board specific
-//
-//#define USE_TRIGGERPIN
-//#define USE_TRIGGERPIN_PER_BIT
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Define only of you need the store to EEPROM feature. This takes RAM and
-// you may need to use less MAX_MAIN_REGISTERS to compensate (at least on the UNO)
-
-#define EESTORE
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// This shows the status and version at startup. This takes RAM. You can comment
-// this line if you need to increase MAX_MAIN_REGISTERS(at least on the UNO)
-
-#define SHOWCONFIG
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// This is different from the above config display which only shows one line at startup
-// This defines a pin that when jumpered to ground before powering up the Arduinio, 
-// will display more detailed settings for diagnostics. You must remove the jumper and
-// restart the Arduino to return to normal operation
-
-#define SHOW_CONFIG_DETAIL_PIN A2
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// PREAMBLE_MAIN: Length of the preamble on the main track. Per standard this should
-//                be at least 14 bits but if some equipment wants to insert a RailCom
-//                cutout this should be at least 16 bits.
-// PERAMBLE_PROG: Length of the preamble on the programming track. Per standard this
-//                should be at least 22 bits 
-
-#define PREAMBLE_MAIN 16 // TODO: Finish configurable preamble code
-#define PREAMBLE_PROG 22
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

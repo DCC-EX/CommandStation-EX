@@ -1,7 +1,8 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,12 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef WifiInterface_h
 #define WifiInterface_h
 #include "DCCEXParser.h"
 #include "MemStream.h"
-
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
@@ -53,7 +52,6 @@ private:
   static unsigned long loopTimeoutStart;
   static const byte MAX_WIFI_BUFFER = 250;
   static byte buffer[MAX_WIFI_BUFFER + 1];
-  static MemStream streamer;
+  static MemStream * streamer;
 };
-
 #endif

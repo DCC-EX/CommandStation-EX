@@ -1,7 +1,8 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,9 +21,6 @@
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
-#include "WifiInterface.h"
-#endif
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
@@ -156,9 +154,14 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
 }
 
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
+}
+void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
+{
+    atCommandCallback = callback;
 }
 
 // See documentation on DCC class for info on this section
@@ -391,11 +394,14 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
-#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
+
     case '+': // Complex Wifi interface command (not usual parse)
-        WifiInterface::ATCommand(com);
-        return;
-#endif
+        if (atCommandCallback) {
+          atCommandCallback(com);
+          return;
+        }
+        break;
+
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("\nOpcode=%c params=%d\n"), opcode, params);
         for (int i = 0; i < params; i++)
