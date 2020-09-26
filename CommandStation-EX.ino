@@ -13,15 +13,7 @@
 ////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
-#include "defines.h"
-#include "DCC.h"
-#include "DIAG.h"
-#include "DCCEXParser.h"
-#include "version.h"
-#include "WifiInterface.h"
-#include <Arduino.h>
-
-
+#include "DCCEX.h"
 
 
 ////////////////////////////////////////////////////////////////
