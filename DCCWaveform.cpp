@@ -123,10 +123,13 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 void DCCWaveform::checkPowerOverload() {
   
+  static int progTripValue = motorDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once, hence static
+
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->rawCurrentTripValue;
-  if (!isMainTrack && (ackPending || progTrackSyncMain))   tripValue=ACK_CURRENT_TRIP;
+  if (!isMainTrack && !ackPending && !progTrackSyncMain)
+    tripValue=progTripValue;
   
   switch (powerMode) {
     case POWERMODE::OFF:
@@ -143,8 +146,8 @@ void DCCWaveform::checkPowerOverload() {
 	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
       } else {
         setPowerMode(POWERMODE::OVERLOAD);
-        unsigned int mA=motorDriver->convertToMilliamps(lastCurrent);
-        unsigned int maxmA=motorDriver->convertToMilliamps(tripValue);
+        unsigned int mA=motorDriver->raw2mA(lastCurrent);
+        unsigned int maxmA=motorDriver->raw2mA(tripValue);
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
@@ -287,7 +290,7 @@ int DCCWaveform::getLastCurrent() {
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return; 
       ackThreshold=motorDriver->getCurrentRaw() + (int)(65 / motorDriver->senseFactor);
-      if (Diag::ACK) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->convertToMilliamps(ackThreshold));
+      if (Diag::ACK) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->raw2mA(ackThreshold));
 }
 
 void DCCWaveform::setAckPending() {
@@ -303,7 +306,7 @@ void DCCWaveform::setAckPending() {
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
       if (Diag::ACK) DIAG(F("\nACK-%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration, 
-           ackMaxCurrent,motorDriver->convertToMilliamps(ackMaxCurrent), ackPulseDuration);
+           ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
 }
