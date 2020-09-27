@@ -67,6 +67,7 @@ class DCCWaveform {
     void setAckPending();  //prog track only
     byte getAck();               //prog track only 0=NACK, 1=ACK 2=keep waiting
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
+    static bool progTrackBoosted;   // true when prog track is not current limited
     inline void doAutoPowerOff() {
 	if (autoPowerOff) {
 	    setPowerMode(POWERMODE::OFF);

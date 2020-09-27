@@ -30,6 +30,7 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
 bool DCCWaveform::progTrackSyncMain=false; 
+bool DCCWaveform::progTrackBoosted=false; 
 VirtualTimer * DCCWaveform::interruptTimer=NULL;      
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
@@ -128,7 +129,7 @@ void DCCWaveform::checkPowerOverload() {
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->rawCurrentTripValue;
-  if (!isMainTrack && !ackPending && !progTrackSyncMain)
+  if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
   switch (powerMode) {
