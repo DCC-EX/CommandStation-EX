@@ -105,7 +105,9 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
-    static const int ACK_CURRENT_TRIP=1000; // During ACK processing limit can be higher
+    // Trip current for programming track, 250mA. Change only if you really
+    // need to be non-NMRA-compliant because of decoders that are not either.
+    static const int TRIP_CURRENT_PROG=250;
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 

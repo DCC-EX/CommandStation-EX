@@ -76,6 +76,9 @@ int MotorDriver::getCurrentRaw() {
   return analogReadFast(currentPin);
 }
 
-unsigned int MotorDriver::convertToMilliamps( int raw) {
+unsigned int MotorDriver::raw2mA( int raw) {
   return (unsigned int)(raw * senseFactor);
+}
+int MotorDriver::mA2raw( unsigned int mA) {
+  return (int)(mA / senseFactor);
 }
