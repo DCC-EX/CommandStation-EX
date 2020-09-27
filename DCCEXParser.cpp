@@ -318,6 +318,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             {
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 DCCWaveform::progTrack.setPowerMode(mode);
+		if (mode == POWERMODE::OFF)
+		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>"), opcode);
                 return;
             }
@@ -330,6 +332,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 
             case HASH_KEYWORD_PROG:
                 DCCWaveform::progTrack.setPowerMode(mode);
+		if (mode == POWERMODE::OFF)
+		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>"), opcode);
                 return;
             case HASH_KEYWORD_JOIN:
