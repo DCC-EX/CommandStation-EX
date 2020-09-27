@@ -30,6 +30,7 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
 bool DCCWaveform::progTrackSyncMain=false; 
+bool DCCWaveform::progTrackBoosted=false; 
 VirtualTimer * DCCWaveform::interruptTimer=NULL;      
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
@@ -128,7 +129,7 @@ void DCCWaveform::checkPowerOverload() {
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->rawCurrentTripValue;
-  if (!isMainTrack && !ackPending && !progTrackSyncMain)
+  if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
   switch (powerMode) {
@@ -151,7 +152,10 @@ void DCCWaveform::checkPowerOverload() {
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
-	power_sample_overload_wait *= 2;
+	if (power_sample_overload_wait >= 10000)
+	    power_sample_overload_wait = 10000;
+	else
+	    power_sample_overload_wait *= 2;
       }
       break;
     case POWERMODE::OVERLOAD:

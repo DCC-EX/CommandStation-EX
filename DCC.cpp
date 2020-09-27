@@ -207,6 +207,9 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 void DCC::setProgTrackSyncMain(bool on) {
   DCCWaveform::progTrackSyncMain=on;
 }
+void DCC::setProgTrackBoost(bool on) {
+  DCCWaveform::progTrackBoosted=on;
+}
 
 __FlashStringHelper* DCC::getMotorShieldName() {
   return shieldName;
