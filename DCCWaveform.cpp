@@ -152,7 +152,10 @@ void DCCWaveform::checkPowerOverload() {
         DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
-	power_sample_overload_wait *= 2;
+	if (power_sample_overload_wait >= 10000)
+	    power_sample_overload_wait = 10000;
+	else
+	    power_sample_overload_wait *= 2;
       }
       break;
     case POWERMODE::OVERLOAD:
