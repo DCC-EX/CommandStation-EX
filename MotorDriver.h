@@ -27,7 +27,8 @@ class MotorDriver {
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
-    virtual unsigned int  convertToMilliamps( int rawValue);
+    virtual unsigned int raw2mA( int raw);
+    virtual int mA2raw( unsigned int mA);
   
     byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
    float senseFactor;

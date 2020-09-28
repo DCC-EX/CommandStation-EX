@@ -22,15 +22,17 @@
 #include "MotorDriver.h"
 #include "ArduinoTimers.h"
 
+// Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
+// Ack time thresholds. Unit: microseconds
 const int  MIN_ACK_PULSE_DURATION = 2000;
 const int  MAX_ACK_PULSE_DURATION = 8500;
  
-
-const int   PREAMBLE_BITS_MAIN = 20;
+// Number of preamble bits.
+const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
 
 
@@ -67,6 +69,7 @@ class DCCWaveform {
     void setAckPending();  //prog track only
     byte getAck();               //prog track only 0=NACK, 1=ACK 2=keep waiting
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
+    static bool progTrackBoosted;   // true when prog track is not current limited
     inline void doAutoPowerOff() {
 	if (autoPowerOff) {
 	    setPowerMode(POWERMODE::OFF);
@@ -105,7 +108,9 @@ class DCCWaveform {
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
     unsigned int sampleDelay;
-    static const int ACK_CURRENT_TRIP=1000; // During ACK processing limit can be higher
+    // Trip current for programming track, 250mA. Change only if you really
+    // need to be non-NMRA-compliant because of decoders that are not either.
+    static const int TRIP_CURRENT_PROG=250;
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 

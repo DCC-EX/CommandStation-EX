@@ -21,6 +21,7 @@
 #include <Arduino.h>
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int p[]);
+typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
 
 struct DCCEXParser
 {
@@ -29,6 +30,7 @@ struct DCCEXParser
    void parse(Print * stream,  byte * command, bool blocking);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
+   static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_PARAMS=10;  // Must not exceed this
  
    private:
@@ -59,6 +61,7 @@ struct DCCEXParser
     static void callback_Vbit(int result);
     static void callback_Vbyte(int result);
     static FILTER_CALLBACK  filterCallback;
+    static AT_COMMAND_CALLBACK  atCommandCallback;
     static void funcmap(int cab, byte value, byte fstart, byte fstop);
 
 };
