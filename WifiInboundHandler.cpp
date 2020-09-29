@@ -46,7 +46,7 @@ void WifiInboundHandler::loop1() {
           for (int clientId=0;clientId<MAX_CLIENTS;clientId++) {
              if (clientStatus[clientId]==REPLY_PENDING) {
                 clientPendingCIPSEND=clientId;
-                if (Diag::WIFI) DIAG( F("\nWiFi: AT+CIPSEND=%d,%d"), clientId, clientStream[clientId]->available());
+                if (Diag::WIFI) DIAG( F("\nWiFi: [[CIPSEND=%d,%d]]"), clientId, clientStream[clientId]->available());
                 StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), clientId, clientStream[clientId]->available());
                 clientStatus[clientId]=CIPSEND_PENDING;
                 break;
@@ -63,14 +63,6 @@ void WifiInboundHandler::loop1() {
         }
         break;
         
-     case INBOUND_SENDNOW:  // > received for current CIPSEND
-        wifiStream->write(clientBuffer[clientPendingCIPSEND], clientStream[clientPendingCIPSEND]->available());
-        clientStatus[clientPendingCIPSEND]=UNUSED;
-        break;
-             
-     case INBOUND_RESEND:    // CIPSEND denied busy, switch it back to pending           
-        clientStatus[clientPendingCIPSEND]=REPLY_PENDING;
-        break;
    }
 }
 
@@ -89,18 +81,35 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
     switch (loopState) {
       case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED 
+        
         if (ch == '+') {
           loopState = IPD;
           break; 
         }
+        
         if (ch=='>') { 
-          loopState=ANYTHING;
-          return INBOUND_SENDNOW;
+           if (Diag::WIFI) DIAG(F("[[XMIT %d]]"),clientStream[clientPendingCIPSEND]->available());
+           wifiStream->write(clientBuffer[clientPendingCIPSEND], clientStream[clientPendingCIPSEND]->available());
+           clientStatus[clientPendingCIPSEND]=UNUSED;
+           clientPendingCIPSEND=-1;
+           loopState=SKIPTOEND;
+           break;
         }
+        
+        if (ch=='R') { // Received ... bytes 
+          loopState=SKIPTOEND;
+          break;
+        }
+        
         if (ch=='b') {   // This is a busy indicator... probabaly must restart a CIPSEND  
+           if (clientPendingCIPSEND>=0) {
+              clientStatus[clientPendingCIPSEND]=REPLY_PENDING;
+              clientPendingCIPSEND=-1;
+           }
            loopState=SKIPTOEND; 
-           return INBOUND_RESEND;
+           break; 
         }
+        
         if (ch>='0' && ch<=('0'+MAX_CLIENTS)) { 
               runningClientId=ch-'0';
               loopState=GOT_CLIENT_ID;

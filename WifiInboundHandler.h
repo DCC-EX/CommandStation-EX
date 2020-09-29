@@ -19,9 +19,7 @@ class WifiInboundHandler {
   
    enum INBOUND_STATE {
         INBOUND_BUSY,     // keep calling in loop() 
-        INBOUND_IDLE,     // Nothing happening, outbound may xcall CIPSEND
-        INBOUND_SENDNOW,  // > received for current CIPSEND
-        INBOUND_RESEND    // CIPSEND denied busy          
+        INBOUND_IDLE     // Nothing happening, outbound may xcall CIPSEND
    };      
 
         enum LOOP_STATE {
