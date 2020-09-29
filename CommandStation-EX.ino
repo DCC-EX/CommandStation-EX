@@ -16,7 +16,7 @@
 ////////////////////////////////////////////////////////////////
 //
 // Enables an I2C 2x24 or 4x24 LCD Screen
-#if ENABLE_LCD
+#ifdef ENABLE_LCD
 bool lcdEnabled = false;
 #if defined(LIB_TYPE_PCF8574)
 LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
@@ -37,7 +37,7 @@ void setup()
 //
 // More display stuff. Need to put this in a .h file and make
 // it a class
-#if ENABLE_LCD
+#ifdef ENABLE_LCD
   Wire.begin();
   // Check that we can find the LCD by its address before attempting to use it.
   Wire.beginTransmission(LCD_ADDRESS);
@@ -45,17 +45,17 @@ void setup()
   {
     lcdEnabled = true;
     lcdDisplay.begin(LCD_COLUMNS, LCD_LINES);
-    lcdDisplay.setBacklight(255);
+    lcdDisplay.setBacklight(128);
     lcdDisplay.clear();
     lcdDisplay.setCursor(0, 0);
     lcdDisplay.print("DCC++ EX v");
     lcdDisplay.print(VERSION);
     lcdDisplay.setCursor(0, 1);
-#if COMM_INTERFACE >= 1
-    lcdDisplay.print("IP: PENDING");
-#else
-    lcdDisplay.print("SERIAL: READY");
-#endif
+//#if COMM_INTERFACE >= 1
+//    lcdDisplay.print("IP: PENDING");
+//#else
+    lcdDisplay.print("SERIAL: READY 1");
+//#endif
 #if LCD_LINES > 2
     lcdDisplay.setCursor(0, 3);
     lcdDisplay.print("TRACK POWER: OFF");

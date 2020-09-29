@@ -162,7 +162,7 @@ private:
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
 #endif
 
-#if ENABLE_LCD
+#ifdef ENABLE_LCD
 #include <Wire.h>
 #if defined(LIB_TYPE_PCF8574)
 #include <LiquidCrystal_PCF8574.h>
