@@ -46,6 +46,8 @@
 #include "StringFormatter.h"
 #include "Turnouts.h"
 #include "DIAG.h"
+#include "GITHUB_SHA.h"
+#include "version.h"
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
@@ -74,7 +76,7 @@ bool WiThrottle::areYouUsingThrottle(int cab) {
  // One instance of WiThrottle per connected client, so we know what the locos are 
  
 WiThrottle::WiThrottle( int wificlientid) {
-   if (Diag::WITHROTTLE) DIAG(F("\nCreating new WiThrottle for client %d\n"),wificlientid); 
+   if (Diag::WITHROTTLE) DIAG(F("\n%l Creating new WiThrottle for client %d\n"),millis(),wificlientid); 
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
@@ -110,7 +112,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   byte * cmd=local;
   
   heartBeat=millis();
-  if (Diag::WITHROTTLE) DIAG(F("\nWiThrottle(%d)<-[%e]\n"),clientid, cmd);
+  if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
 
   if (initSent) {
     // Send power state if different than last sent
@@ -164,7 +166,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             break;
        case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
             if (initSent) { 
-              StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_TIMEOUT); // return timeout value
+              StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_SECONDS); // return timeout value
             }
             break;
        case 'M': // multithrottle
@@ -172,12 +174,13 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
             break;
        case 'H': // send initial connection info after receiving "HU" message
             if (cmd[1] == 'U') {
-              StringFormatter::send(stream,F("VN2.0\nHTDCC++EX\nRL0\n"));
+              StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
+              StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
               if (annotateLeftRight) StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
               else                   StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
-              StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_TIMEOUT);
+              StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
               initSent = true;
             }
             break;           
@@ -187,7 +190,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
               }
             }
-            if (Diag::WITHROTTLE) DIAG(F("WiThrottle(%d) Quit\n"), clientid);
+            if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit\n"),millis(),clientid);
             delete this; 
             break;           
    }
@@ -343,19 +346,17 @@ void WiThrottle::loop() {
 }
 
 void WiThrottle::checkHeartbeat() {
-  // if 2 heartbeats missed... drop connection and eStop any locos still assigned to this client
-  if(heartBeatEnable && (millis()-heartBeat > HEARTBEAT_TIMEOUT*2000)) {
-  if (Diag::WITHROTTLE)  DIAG(F("\n\nWiThrottle(%d) hearbeat missed, dropping connection\n\n"),clientid);
+  // if eStop time passed... eStop any locos still assigned to this client and then drop the connection
+  if(heartBeatEnable && (millis()-heartBeat > ESTOP_SECONDS*1000)) {
+  if (Diag::WITHROTTLE)  DIAG(F("\n\n%l WiThrottle(%d) eStop(%ds) timeout, drop connection\n"), millis(), clientid, ESTOP_SECONDS);
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0') {
-        if (Diag::WITHROTTLE) DIAG(F("  eStopping cab %d\n"), myLocos[loco].cab);
+        if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d\n"),millis(),myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
       }
     }
     delete this;
-  } else {
-      // TODO  Check if anything has changed on my locos since last notified! 
-    }
+   }
 }
 
 char WiThrottle::LorS(int cab) {
