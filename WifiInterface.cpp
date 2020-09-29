@@ -23,26 +23,17 @@
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
-
+#include "WifiInboundHandler.h"
 
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
 const char  PROGMEM END_DETAIL_SEARCH[] = "@ 1000";
-const char  PROGMEM PROMPT_SEARCH[] = ">";
 const char  PROGMEM SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
 const char  PROGMEM IPD_SEARCH[] = "+IPD";
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
-bool WifiInterface::closeAfter = false;
-DCCEXParser  WifiInterface::parser;
-byte WifiInterface::loopstate = 0;
-unsigned long WifiInterface::loopTimeoutStart = 0;
-int WifiInterface::datalength = 0;
-int WifiInterface::connectionId;
-byte WifiInterface::buffer[MAX_WIFI_BUFFER+1];
-MemStream  * WifiInterface::streamer;
-Stream * WifiInterface::wifiStream = NULL;
 HTTP_CALLBACK WifiInterface::httpCallback = 0;
+Stream * WifiInterface::wifiStream;
 
 bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                           const __FlashStringHelper* hostname,  int port) {
@@ -59,9 +50,10 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
     checkForOK(200, OK_SEARCH, true);      
   }
-  streamer=new MemStream(buffer, MAX_WIFI_BUFFER);
-  parser.setAtCommandCallback(ATCommand);
-  
+
+  DCCEXParser::setAtCommandCallback(ATCommand);
+  WifiInboundHandler::setup(wifiStream);
+    
   DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
   return connected;
 }
@@ -78,7 +70,7 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   // If there is, just shortcut the setup and continue to read the data as normal.
   if (checkForOK(200,IPD_SEARCH, true)) {
     DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
-    loopstate=4;  // carry on from correct place 
+   // loopstate=4;  // carry on from correct place... or not as the case may be  
     return true; 
   }
 
@@ -266,140 +258,5 @@ bool WifiInterface::isHTTP() {
 }
 
 void WifiInterface::loop() {
-  if (!connected) return;
-
-  WiThrottle::loop();  // check heartbeats
-
-  // read anything into a buffer, collecting info on the way
-  while (loopstate != 99 && wifiStream->available()) {
-    int ch = wifiStream->read();
-
-    // echo the char to the diagnostic stream in escaped format
-    if (Diag::WIFI) StringFormatter::printEscape(ch); // DIAG in disguise
-
-    switch (loopstate) {
-      case 0:  // looking for +IPD
-        connectionId = 0;
-        if (ch == '+') loopstate = 1;
-        break;
-      case 1:  // Looking for I   in +IPD
-        loopstate = (ch == 'I') ? 2 : 0;
-        break;
-      case 2:  // Looking for P   in +IPD
-        loopstate = (ch == 'P') ? 3 : 0;
-        break;
-      case 3:  // Looking for D   in +IPD
-        loopstate = (ch == 'D') ? 4 : 0;
-        break;
-      case 4:  // Looking for ,   After +IPD
-        loopstate = (ch == ',') ? 5 : 0;
-        break;
-      case 5:  // reading connection id
-        if (ch == ',') loopstate = 6;
-        else connectionId = 10 * connectionId + (ch - '0');
-        break;
-      case 6: // reading for length
-        if (ch == ':') loopstate = (datalength == 0) ? 99 : 7; // 99 is getout without reading next char
-        else datalength = datalength * 10 + (ch - '0');
-        streamer->flush();  // basically sets write point at start of buffer
-        break;
-      case 7: // reading data
-        streamer->write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
-                            // This protects against buffer overflows even with things as innocent
-                            // as a browser which send massive, irrlevent HTTP headers.   
-        datalength--;
-        if (datalength == 0) {
-          buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
-          loopstate = 99;
-        }
-        break;
-
-      case 10:  // Waiting for > so we can send reply
-        if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-          if (Diag::WIFI) DIAG(F("\nWifi TIMEOUT on wait for > prompt or ERROR\n"));
-          loopstate = 0; // go back to +IPD
-          break;
-        }
-        if (ch == '>') {
-          //                  DIAG(F("\n> [%e]\n"),buffer);
-          wifiStream->print((char *) buffer);
-          loopTimeoutStart = millis();
-          loopstate = closeAfter ? 11 : 0;
-          break;
-        }
-        if (ch == '.') { // busy during send, delay and retry  
-          loopstate = 12; // look for SEND OK finished 
-          break;
-        }
-        break;
-      case 11: // Waiting for SEND OK or ERROR to complete so we can closeAfter
-        if (millis() - loopTimeoutStart > LOOP_TIMEOUT) {
-          if (Diag::WIFI) DIAG(F("\nWifi TIMEOUT on wait for SEND OK or ERROR\n"));
-          loopstate = 0; // go back to +IPD
-          break;
-        }
-        if (ch == 'K') { // assume its in  SEND OK
-          if (Diag::WIFI) DIAG(F("\n Wifi AT+CIPCLOSE=%d\r\n"), connectionId);
-          StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
-          loopstate = 0; // wait for +IPD
-        }
-        break;
-
-    case 12: // Waiting for OK after send busy 
-        if (ch == '+') { // Uh-oh IPD problem
-          if (Diag::WIFI) DIAG(F("\n\n Wifi ASYNC CLASH - LOST REPLY\n"));
-          connectionId = 0;
-          loopstate = 1;
-        }
-        if (ch == 'K') { // assume its in  SEND OK
-          if (Diag::WIFI)  DIAG(F("\n\n Wifi BUSY RETRYING.. AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
-          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
-          loopTimeoutStart = millis();
-          loopstate = 10; // non-blocking loop waits for > before sending
-          break;
-        }
-        break;
-    } // switch
-  } // while
-  if (loopstate != 99) return;
-
-  // AT this point we have read an incoming message into the buffer
- 
-  if (Diag::WIFI) DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),connectionId, buffer);
-  streamer->setBufferContentPosition(0, 0); // reset write position to start of buffer
-  // SIDE EFFECT WARNING:::
-  //  We know that parser will read the entire buffer before starting to write to it.
-  //  Otherwise we would have to copy the buffer elsewhere and RAM is in short supply.
-
-  closeAfter = false;
-
-  // Intercept HTTP requests
-  if (isHTTP()) {
-    if (httpCallback) httpCallback(streamer, buffer);
-    else {
-      StringFormatter::send(streamer, F("HTTP/1.1 404 Not Found\nContent-Type: text/html\nConnnection: close\n\n"));
-      StringFormatter::send(streamer, F("<html><body>This is <b>not</b> a web server.<br/></body></html>"));
-    }
-    closeAfter = true;
-  }
-  else if (buffer[0] == '<')  parser.parse(streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
-
-  else WiThrottle::getThrottle(connectionId)->parse(*streamer, buffer);
-
-  if (streamer->available() == 0) {
-    // No reply
-    if (closeAfter) {
-        if (Diag::WIFI)  DIAG(F("AT+CIPCLOSE=%d\r\n"), connectionId);
-         StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), connectionId);
-    }
-    loopstate = 0; // go back to waiting for +IPD
-    return;
-  }
-  // prepare to send reply
-  buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
-  if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), connectionId, buffer, streamer->available());
-  if (Diag::WIFI) DIAG(F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
-  StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), connectionId, streamer->available());
-  loopTimeoutStart = millis();
-  loopstate = 10; // non-blocking loop waits for > before sending
+  if (connected)  WifiInboundHandler::loop(); 
 }
