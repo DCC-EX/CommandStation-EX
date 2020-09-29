@@ -82,10 +82,13 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
     int ch = wifiStream->read();
 
     // echo the char to the diagnostic stream in escaped format
-    if (Diag::WIFI) StringFormatter::printEscape(ch); // DIAG in disguise
+    if (Diag::WIFI) {
+      // DIAG(F(" %d/"), loopState);
+      StringFormatter::printEscape(ch); // DIAG in disguise
+    }
 
     switch (loopState) {
-      case ANYTHING:  // looking for +IPD, > , busy ,  n CONNECTED, n CLOSED 
+      case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED 
         if (ch == '+') {
           loopState = IPD;
           break; 
@@ -115,7 +118,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case IPD2:  // Looking for D   in +IPD
-        loopState = (ch == 'D') ?  IPD2 : SKIPTOEND;
+        loopState = (ch == 'D') ?  IPD3 : SKIPTOEND;
         break;
         
       case IPD3:  // Looking for ,   After +IPD
@@ -161,10 +164,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
 
       case GOT_CLIENT_ID:  // got x before CLOSE or CONNECTED
-        loopState=(ch==' ') ? GOT_CLIENT_ID2: SKIPTOEND;
+        loopState=(ch==',') ? GOT_CLIENT_ID2: SKIPTOEND;
         break;
         
-      case GOT_CLIENT_ID2:  // got "x "  before CLOSE or CONNECTED
+      case GOT_CLIENT_ID2:  // got "x,"  before CLOSE or CONNECTED
         loopState=(ch=='C') ? GOT_CLIENT_ID3: SKIPTOEND;
         break;
         
