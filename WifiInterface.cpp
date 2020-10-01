@@ -20,6 +20,7 @@
 
 #include "WifiInterface.h"        /* config.h and defines.h included here */
 #include <avr/pgmspace.h>
+#include "defines.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
@@ -34,6 +35,35 @@ const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 HTTP_CALLBACK WifiInterface::httpCallback = 0;
 Stream * WifiInterface::wifiStream;
+
+
+bool WifiInterface::setup(long serial_link_speed, 
+                          const __FlashStringHelper *wifiESSID,
+                          const __FlashStringHelper *wifiPassword,
+                          const __FlashStringHelper *hostname,
+                          const uint16_t port = 2560) {
+
+  bool wifiUp = false;
+  Serial1.begin(serial_link_speed);
+  wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port);
+
+  // Other serials are tried, depending on hardware. See defines.h)
+#if NUM_SERIAL > 1
+  if (!wifiUp)
+  {
+    Serial2.begin(serial_link_speed);
+    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port);
+  }
+#if NUM_SERIAL > 2
+  if (!wifiUp)
+  {
+    Serial3.begin(serial_link_speed);
+    wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port);
+  }
+#endif
+#endif
+return wifiUp; 
+}
 
 bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
                           const __FlashStringHelper* hostname,  int port) {

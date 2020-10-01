@@ -30,13 +30,18 @@ class WifiInterface
 {
 
 public:
-  static bool setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
-                    const __FlashStringHelper *hostname, int port);
+  static bool setup(long serial_link_speed, 
+                          const __FlashStringHelper *wifiESSID,
+                          const __FlashStringHelper *wifiPassword,
+                          const __FlashStringHelper *hostname,
+                          const uint16_t port = 2560);
   static void loop();
   static void ATCommand(const byte *command);
   static void setHTTPCallback(HTTP_CALLBACK callback);
 
 private:
+  static bool setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
+                    const __FlashStringHelper *hostname, int port);
   static Stream *wifiStream;
   static DCCEXParser parser;
   static bool setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
