@@ -34,7 +34,7 @@ public:
                           const __FlashStringHelper *wifiESSID,
                           const __FlashStringHelper *wifiPassword,
                           const __FlashStringHelper *hostname,
-                          const uint16_t port = 2560);
+                          const int port = 2560);
   static void loop();
   static void ATCommand(const byte *command);
   static void setHTTPCallback(HTTP_CALLBACK callback);

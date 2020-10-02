@@ -20,7 +20,6 @@
 
 #include "WifiInterface.h"        /* config.h and defines.h included here */
 #include <avr/pgmspace.h>
-#include "defines.h"
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "WiThrottle.h"
@@ -37,23 +36,53 @@ HTTP_CALLBACK WifiInterface::httpCallback = 0;
 Stream * WifiInterface::wifiStream;
 
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Figure out number of serial ports depending on hardware
+//
+#if defined(ARDUINO_AVR_UNO)
+#define NUM_SERIAL 0
+#endif
+ 
+#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
+#define NUM_SERIAL 3
+#endif
+
+#ifndef NUM_SERIAL
+#define NUM_SERIAL 1
+#endif
+
 bool WifiInterface::setup(long serial_link_speed, 
                           const __FlashStringHelper *wifiESSID,
                           const __FlashStringHelper *wifiPassword,
                           const __FlashStringHelper *hostname,
-                          const uint16_t port = 2560) {
+                          const int port) {
 
   bool wifiUp = false;
+
+#if NUM_SERIAL == 0
+  // no warning about unused parameters. 
+  (void) serial_link_speed;
+  (void) wifiESSID;
+  (void) wifiPassword;
+  (void) hostname;
+  (void) port;
+#endif  
+  
+#if NUM_SERIAL > 0
   Serial1.begin(serial_link_speed);
   wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port);
+#endif
 
-  // Other serials are tried, depending on hardware. See defines.h)
+// Other serials are tried, depending on hardware.
 #if NUM_SERIAL > 1
   if (!wifiUp)
   {
     Serial2.begin(serial_link_speed);
     wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port);
   }
+#endif
+  
 #if NUM_SERIAL > 2
   if (!wifiUp)
   {
@@ -61,7 +90,7 @@ bool WifiInterface::setup(long serial_link_speed,
     wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port);
   }
 #endif
-#endif
+
 return wifiUp; 
 }
 
