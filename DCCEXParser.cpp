@@ -168,9 +168,9 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 {
+    (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
         DIAG(F("\nPARSING:%s\n"), com);
-    (void)EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces

@@ -11,7 +11,7 @@
 
 #include "config.h"
 #include "DCCEX.h"
-
+#include "EEStore.h"
 
 ////////////////////////////////////////////////////////////////
 //
@@ -32,7 +32,6 @@ DCCEXParser serialParser;
 
 void setup()
 {
-  
 ////////////////////////////////////////////
 //
 // More display stuff. Need to put this in a .h file and make
@@ -68,6 +67,13 @@ void setup()
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
+
+  // Responsibility 1b ;-) Load stuff from EEprom
+  (void)EEPROM; // tell compiler not to warn this is unused
+  EEStore::init();
+#ifdef EESTOREDEBUG
+  EEStore::dump(128);
+#endif
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 //  NOTE: References to Serial1 are for the serial port used to connect

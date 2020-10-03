@@ -2,7 +2,9 @@
 #include "Turnouts.h"
 #include "Sensors.h"
 #include "Outputs.h"
-
+#ifdef EESTOREDEBUG
+#include "DIAG.h"
+#endif
 
 #if defined(ARDUINO_ARCH_SAMD)
 ExternalEEPROM EEPROM;
@@ -70,6 +72,17 @@ void EEStore::reset(){
 int EEStore::pointer(){
     return(eeAddress);
 }
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef EESTOREDEBUG
+void EEStore::dump(int num) {
+    byte b;
+    for (int n=0 ; n<num; n++) {
+	EEPROM.get(n, b);
+	DIAG(F("%d %x %c\n"),n,b,isascii(b) ? b : ' ');
+    }
+}
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 EEStore *EEStore::eeStore=NULL;
