@@ -29,9 +29,7 @@ struct EEStore{
   static void advance(int);
   static void store();
   static void clear();
-#ifdef EESTOREDEBUG
   static void dump(int);
-#endif
 };
 
 #endif
