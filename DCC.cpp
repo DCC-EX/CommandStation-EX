@@ -20,6 +20,8 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "DIAG.h"
+#include "GITHUB_SHA.h"
+#include "version.h"
 
 
 // This module is responsible for converting API calls into
@@ -45,6 +47,7 @@ __FlashStringHelper* DCC::shieldName=NULL;
 
 void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
   shieldName=(__FlashStringHelper*)motorShieldName;
+  DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
   DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
 }
 
