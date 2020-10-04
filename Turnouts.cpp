@@ -1,5 +1,7 @@
 /*
+ *  © 2013-2016 Gregg E. Berman
  *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
  *  
  *  This file is part of Asbelos DCC API
  *
@@ -19,29 +21,42 @@
 #include "Turnouts.h"
 #include "EEStore.h"
 #include "PWMServoDriver.h"
+#ifdef EESTOREDEBUG
+#include "DIAG.h"
+#endif
 
- bool Turnout::activate(int n,bool state){
-  //DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
+bool Turnout::activate(int n,bool state){
+#ifdef EESTOREDEBUG
+  DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
+#endif
   Turnout * tt=get(n);
   if (tt==NULL) return false;
   tt->activate(state);
-  if(n>0) EEPROM.put(n,tt->data.tStatus);
+  EEStore::store();
   turnoutlistHash++;
   return true;
 }
 
- bool Turnout::isActive(int n){
+bool Turnout::isActive(int n){
   Turnout * tt=get(n);
   if (tt==NULL) return false;
   return tt->data.tStatus & STATUS_ACTIVE;
 }
 
 // activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
- void Turnout::activate(bool state) {
-  if (state) data.tStatus|=STATUS_ACTIVE;
-  else data.tStatus &= ~STATUS_ACTIVE;                            
-  if (data.tStatus & STATUS_PWM) PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+(state?data.moveAngle:0)));
-     else DCC::setAccessory(data.address,data.subAddress, state);
+void Turnout::activate(bool state) {
+#ifdef EESTOREDEBUG
+  DIAG(F("\nTurnout::activate(%d)\n"),state);
+#endif
+  if (state)
+    data.tStatus|=STATUS_ACTIVE;
+  else
+    data.tStatus &= ~STATUS_ACTIVE;
+  if (data.tStatus & STATUS_PWM)
+    PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+(state?data.moveAngle:0)));
+  else
+    DCC::setAccessory(data.address,data.subAddress, state);
+  EEStore::store();
 }
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -81,6 +96,9 @@ void Turnout::load(){
     else tt=create(data.id,data.address,data.subAddress);
     tt->data.tStatus=data.tStatus;
     EEStore::advance(sizeof(tt->data));
+#ifdef EESTOREDEBUG
+    tt->print(tt);
+#endif
   }
 }
 
@@ -93,6 +111,9 @@ void Turnout::store(){
   EEStore::eeStore->data.nTurnouts=0;
 
   while(tt!=NULL){
+#ifdef EESTOREDEBUG
+    tt->print(tt);
+#endif
     EEPROM.put(EEStore::pointer(),tt->data);
     EEStore::advance(sizeof(tt->data));
     tt=tt->nextTurnout;
@@ -129,7 +150,19 @@ Turnout *Turnout::create(int id){
   turnoutlistHash++;
   return tt;
   }
-  ///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// print debug info about the state of a turnout
+//
+#ifdef EESTOREDEBUG
+void Turnout::print(Turnout *tt) {
+    if (tt->data.tStatus & STATUS_PWM )
+      DIAG(F("Turnout %d ZeroAngle %d MoveAngle %d Status %d\n"),tt->data.id, tt->data.inactiveAngle, tt->data.moveAngle,tt->data.tStatus & STATUS_ACTIVE);
+    else
+	DIAG(F("Turnout %d Addr %d Subaddr %d Status %d\n"),tt->data.id, tt->data.address, tt->data.subAddress,tt->data.tStatus & STATUS_ACTIVE);
+}
+#endif
 
 Turnout *Turnout::firstTurnout=NULL;
 int Turnout::turnoutlistHash=0; //bump on every change so clients know when to refresh their lists

@@ -12,7 +12,6 @@
 #include "config.h"
 #include "DCCEX.h"
 
-
 ////////////////////////////////////////////////////////////////
 //
 // Enables an I2C 2x24 or 4x24 LCD Screen
@@ -32,7 +31,6 @@ DCCEXParser serialParser;
 
 void setup()
 {
-  
 ////////////////////////////////////////////
 //
 // More display stuff. Need to put this in a .h file and make

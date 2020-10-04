@@ -46,6 +46,7 @@ const int HASH_KEYWORD_ON = 2657;
 const int HASH_KEYWORD_DCC = 6436;
 const int HASH_KEYWORD_SLOW = -17209;
 const int HASH_KEYWORD_PROGBOOST = -6353;
+const int HASH_KEYWORD_EEPROM = -7168;
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -168,9 +169,9 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 {
+    (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
         DIAG(F("\nPARSING:%s\n"), com);
-    (void)EEPROM; // tell compiler not to warn thi is unused
     int p[MAX_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
@@ -606,6 +607,11 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);
+	return true;
+
+    case HASH_KEYWORD_EEPROM:
+	if (params >= 1)
+	    EEStore::dump(p[1]);
 	return true;
 
     default: // invalid/unknown
