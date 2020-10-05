@@ -48,7 +48,8 @@ class WifiInboundHandler {
     PROCESSING,        // command in progress
     REPLY_PENDING,     // reply is ready to CIPSEND
     CIPSEND_PENDING,   // CIPSEND waiting for >
-    CLOSE_PENDING      // CLOSE received 
+    CLOSE_PENDING,     // CLOSE received
+    CLOSE_AFTER_SEND   // Send CLOSE after CIPSEND completed  
   };
   
    WifiInboundHandler(Stream * ESStream);
@@ -65,6 +66,7 @@ class WifiInboundHandler {
   byte * clientBuffer[MAX_CLIENTS];
   MemStream * clientStream[MAX_CLIENTS]; 
   CLIENT_STATUS clientStatus[MAX_CLIENTS];
+  bool clientCloseAfterReply[MAX_CLIENTS];
   int clientPendingCIPSEND=-1;
 };
 #endif

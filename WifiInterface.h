@@ -24,8 +24,6 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
-typedef void (*HTTP_CALLBACK)(Print *stream, byte *cmd);
-
 class WifiInterface
 {
 
@@ -37,7 +35,6 @@ public:
                           const int port = 2560);
   static void loop();
   static void ATCommand(const byte *command);
-  static void setHTTPCallback(HTTP_CALLBACK callback);
 
 private:
   static bool setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
@@ -47,8 +44,6 @@ private:
   static bool setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                      const __FlashStringHelper *hostname, int port);
   static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
-  static bool isHTTP();
-  static HTTP_CALLBACK httpCallback;
   static bool connected;
   static bool closeAfter;
   static byte loopstate;

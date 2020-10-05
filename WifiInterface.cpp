@@ -32,7 +32,6 @@ const char  PROGMEM SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
 const char  PROGMEM IPD_SEARCH[] = "+IPD";
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
-HTTP_CALLBACK WifiInterface::httpCallback = 0;
 Stream * WifiInterface::wifiStream;
 
 
@@ -266,9 +265,7 @@ void WifiInterface::ATCommand(const byte * command) {
   }
 }
 
-void WifiInterface::setHTTPCallback(HTTP_CALLBACK callback) {
-  httpCallback = callback;
-}
+
 
 bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo, bool escapeEcho) {
   unsigned long  startTime = millis();
@@ -295,27 +292,10 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
   return false;
 }
 
-bool WifiInterface::isHTTP() {
-
-  // POST GET PUT PATCH DELETE
-  // You may think a simple strstr() is better... but not when ram & time is in short supply
-  switch (buffer[0]) {
-    case 'P':
-      if (buffer[1] == 'U' && buffer[2] == 'T' && buffer[3] == ' ' ) return true;
-      if (buffer[1] == 'O' && buffer[2] == 'S' && buffer[3] == 'T' && buffer[4] == ' ') return true;
-      if (buffer[1] == 'A' && buffer[2] == 'T' && buffer[3] == 'C' && buffer[4] == 'H' && buffer[5] == ' ') return true;
-      return false;
-    case 'G':
-      if (buffer[1] == 'E' && buffer[2] == 'T' && buffer[3] == ' ' ) return true;
-      return false;
-    case 'D':
-      if (buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'E' && buffer[4] == 'T' && buffer[5] == 'E' && buffer[6] == ' ') return true;
-      return false;
-    default:
-      return false;
-  }
-}
 
 void WifiInterface::loop() {
-  if (connected)  WifiInboundHandler::loop(); 
+  if (connected) {
+    WiThrottle::loop();
+    WifiInboundHandler::loop(); 
+  }
 }
