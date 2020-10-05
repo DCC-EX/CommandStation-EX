@@ -623,7 +623,7 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 // CALLBACKS must be static
 bool DCCEXParser::stashCallback(Print *stream, int p[MAX_PARAMS])
 {
-    if (stashBusy || asyncBanned)
+    if (stashBusy )
         return false;
     stashBusy = true;
     stashStream = stream;

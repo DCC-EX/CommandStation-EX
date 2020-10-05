@@ -68,32 +68,9 @@ void setup()
   Serial.begin(115200);
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
-//  NOTE: References to Serial1 are for the serial port used to connect
-//        your wifi chip/shield.
 
-#if WIFI_ON
-  bool wifiUp = false;
-  const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
-  const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
-  const __FlashStringHelper *dccex = F(WIFI_HOSTNAME);
-  const uint16_t port = IP_PORT;
-
-  Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
-#if NUM_SERIAL > 1
-  if (!wifiUp)
-  {
-    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
-  }
-#if NUM_SERIAL > 2
-  if (!wifiUp)
-  {
-    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
-  }
-#endif // >2
-#endif // >1
+#ifdef WIFI_ON
+  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT);
 #endif // WIFI_ON
 
   // Responsibility 3: Start the DCC engine.
