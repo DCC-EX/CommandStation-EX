@@ -31,6 +31,8 @@
   #define __FlashStringHelper char
 #endif
 
+#include "LCDDisplay.h"
+
 bool Diag::ACK=false;
 bool Diag::CMD=false;
 bool Diag::WIFI=false;
@@ -42,6 +44,15 @@ void StringFormatter::diag( const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
+}
+
+void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
+  if (!LCDDisplay::lcdDisplay) return;
+  LCDDisplay::lcdDisplay->setRow(row);    
+  va_list args;
+  va_start(args, input);
+  send2(LCDDisplay::lcdDisplay,input,args);
+  LCDDisplay::lcdDisplay->display();
 }
 
 void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {

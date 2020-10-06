@@ -11,6 +11,7 @@
 #include "version.h"
 #include "WifiInterface.h"
 #include "EthernetInterface.h"
+#include "LCD_Implementation.h"
 
 #include <Arduino.h>
 

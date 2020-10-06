@@ -12,18 +12,6 @@
 #include "config.h"
 #include "DCCEX.h"
 
-////////////////////////////////////////////////////////////////
-//
-// Enables an I2C 2x24 or 4x24 LCD Screen
-#if ENABLE_LCD
-bool lcdEnabled = false;
-#if defined(LIB_TYPE_PCF8574)
-LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
-#elif defined(LIB_TYPE_I2C)
-LiquidCrystal_I2C lcdDisplay = LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_LINES);
-#endif
-#endif
-
 // Create a serial command parser for the USB connection, 
 // This supports JMRI or manual diagnostics and commands
 // to be issued from the USB serial console.
@@ -31,35 +19,8 @@ DCCEXParser serialParser;
 
 void setup()
 {
-////////////////////////////////////////////
-//
-// More display stuff. Need to put this in a .h file and make
-// it a class
-#if ENABLE_LCD
-  Wire.begin();
-  // Check that we can find the LCD by its address before attempting to use it.
-  Wire.beginTransmission(LCD_ADDRESS);
-  if (Wire.endTransmission() == 0)
-  {
-    lcdEnabled = true;
-    lcdDisplay.begin(LCD_COLUMNS, LCD_LINES);
-    lcdDisplay.setBacklight(255);
-    lcdDisplay.clear();
-    lcdDisplay.setCursor(0, 0);
-    lcdDisplay.print("DCC++ EX v");
-    lcdDisplay.print(VERSION);
-    lcdDisplay.setCursor(0, 1);
-#if COMM_INTERFACE >= 1
-    lcdDisplay.print("IP: PENDING");
-#else
-    lcdDisplay.print("SERIAL: READY");
-#endif
-#if LCD_LINES > 2
-    lcdDisplay.setCursor(0, 3);
-    lcdDisplay.print("TRACK POWER: OFF");
-#endif
-  }
-#endif
+    LCD(1,F("DCC++ EX v%S"),F(VERSION));
+    LCD(2,F("TRACK POWER: OFF"));
 
   // The main sketch has responsibilities during setup()
 
