@@ -12,7 +12,6 @@
 #include "config.h"
 #include "DCCEX.h"
 
-
 ////////////////////////////////////////////////////////////////
 //
 // Enables an I2C 2x24 or 4x24 LCD Screen
@@ -32,7 +31,6 @@ DCCEXParser serialParser;
 
 void setup()
 {
-  
 ////////////////////////////////////////////
 //
 // More display stuff. Need to put this in a .h file and make
@@ -70,32 +68,9 @@ void setup()
   Serial.begin(115200);
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
-//  NOTE: References to Serial1 are for the serial port used to connect
-//        your wifi chip/shield.
 
 #ifdef WIFI_ON
-  bool wifiUp = false;
-  const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
-  const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
-  const __FlashStringHelper *dccex = F(WIFI_HOSTNAME);
-  const uint16_t port = IP_PORT;
-
-  Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
-#if NUM_SERIAL > 1
-  if (!wifiUp)
-  {
-    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
-  }
-#if NUM_SERIAL > 2
-  if (!wifiUp)
-  {
-    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
-  }
-#endif // >2
-#endif // >1
+  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT);
 #endif // WIFI_ON
 
   // Responsibility 3: Start the DCC engine.
@@ -123,10 +98,10 @@ void loop()
   serialParser.loop(Serial);
 
 // Responsibility 3: Optionally handle any incoming WiFi traffic
-#ifdef WIFI_ON
+#if WIFI_ON
   WifiInterface::loop();
 #endif
-
+ 
 // Optionally report any decrease in memory (will automatically trigger on first call)
 #if ENABLE_FREE_MEM_WARNING
   static int ramLowWatermark = 32767; // replaced on first loop 
