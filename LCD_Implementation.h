@@ -67,7 +67,7 @@
   void LCDDisplay::clear() {LCDDriver.clearDisplay();}
   void LCDDisplay::setRow(byte row) { 
     int y=8*(row-1);
-    LCDDriver.fillRect(0, y, display.width(), 8, SSD1306_BLACK);
+    LCDDriver.fillRect(0, y, LCDDriver.width(), 8, SSD1306_BLACK);
     LCDDriver.setCursor(0, y); 
     }
   size_t LCDDisplay::write(uint8_t b){ return LCDDriver.write(b); }    
