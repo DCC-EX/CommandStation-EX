@@ -20,11 +20,8 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
 // but the implementation is compiled here with dependencies on LCDDriver which is 
 // specific to the library in use.
 // Thats the workaround to the drivers not all implementing a common interface. 
-
-#if  defined(LCD_DRIVER_ADVANCED)
-  #include "LCD_ADVANCED.h"
  
-#elif defined(OLED_DRIVER) 
+#if defined(OLED_DRIVER) 
   #include "LCD_OLED.h"
 
 #elif defined(LCD_DRIVER)  
