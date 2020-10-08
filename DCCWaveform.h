@@ -76,6 +76,9 @@ class DCCWaveform {
 	    autoPowerOff=false;
 	}
     };
+    inline void setAckLimit(int mA) {
+	ackLimitmA = mA;
+    }
      
   private:
     static VirtualTimer * interruptTimer;      
@@ -118,6 +121,7 @@ class DCCWaveform {
     bool ackPending;    
     bool ackDetected;   
     int  ackThreshold; 
+    int  ackLimitmA = 60;
     int ackMaxCurrent;
     unsigned long ackCheckStart; // millis
     unsigned int ackCheckDuration; // millis       

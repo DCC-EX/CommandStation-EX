@@ -47,6 +47,7 @@ const int HASH_KEYWORD_DCC = 6436;
 const int HASH_KEYWORD_SLOW = -17209;
 const int HASH_KEYWORD_PROGBOOST = -6353;
 const int HASH_KEYWORD_EEPROM = -7168;
+const int HASH_KEYWORD_LIMIT = 27413;
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -586,7 +587,11 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         break;
 
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF>
-        Diag::ACK = onOff;
+	if (params >= 2 && p[1] == HASH_KEYWORD_LIMIT) {
+	  DCCWaveform::progTrack.setAckLimit(p[2]);
+          StringFormatter::send(stream, F("\nAck limit=%dmA\n"), p[2]);
+	} else
+	  Diag::ACK = onOff;
         return true;
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>
