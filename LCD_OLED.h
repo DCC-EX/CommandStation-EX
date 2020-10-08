@@ -3,7 +3,7 @@
 // It is NOT a .cpp file to prevent it being compiled and demanding libraraies even when not needed.
   
 #include <Adafruit_SSD1306.h>
-Adafruit_SSD1306 LCDDriver(128, 32);
+Adafruit_SSD1306 LCDDriver(OLED_DRIVER);
   
 // DEVICE SPECIFIC LCDDisplay Implementation for OLED
 

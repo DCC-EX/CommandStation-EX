@@ -19,15 +19,16 @@ DCCEXParser serialParser;
 
 void setup()
 {
-    CONDITIONAL_LCD_START;    
-    LCD(1,F("DCC++ EX v%S"),F(VERSION));
-    LCD(2,F("TRACK POWER: OFF"));
-
   // The main sketch has responsibilities during setup()
 
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
+
+  CONDITIONAL_LCD_START;    
+    LCD(1,F("DCC++ EX v%S"),F(VERSION));
+    LCD(2,F("STARTING"));
+
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 

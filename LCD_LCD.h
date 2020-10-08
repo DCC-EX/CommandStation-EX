@@ -1,5 +1,5 @@
   #include <LiquidCrystal_I2C.h> 
-  LiquidCrystal_I2C LCDDriver(0x3F,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+  LiquidCrystal_I2C LCDDriver(LCD_DRIVER);  // set the LCD address, cols, rows 
   // DEVICE SPECIFIC LCDDisplay Implementation for LCD_DRIVER
   LCDDisplay::LCDDisplay() { 
     lcdDisplay=this;
