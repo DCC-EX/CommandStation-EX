@@ -9,6 +9,7 @@ class LCDDisplay : public Print {
   public:
     static LCDDisplay* lcdDisplay; 
     LCDDisplay();
+
     void clear();
     void display();
     void setRow(byte line); 

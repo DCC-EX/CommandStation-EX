@@ -19,6 +19,7 @@ DCCEXParser serialParser;
 
 void setup()
 {
+    CONDITIONAL_LCD_START;    
     LCD(1,F("DCC++ EX v%S"),F(VERSION));
     LCD(2,F("TRACK POWER: OFF"));
 
