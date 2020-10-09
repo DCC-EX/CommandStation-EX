@@ -6,12 +6,14 @@
     LCDDriver.init();
     LCDDriver.backlight();
     LCDDriver.clear();
+    interfake(LCD_DRIVER);
     }
-  void LCDDisplay::clear() {LCDDriver.clear();}
-  void LCDDisplay::setRow(byte row) { 
-    LCDDriver.setCursor(0, row-1);
-    LCDDriver.print(F("                    "));
-    LCDDriver.setCursor(0, row-1);
+  void LCDDisplay::interfake(int p1, int p2, int p3) {(void)p1; (void)p2; lcdRows=p3; }   
+  void LCDDisplay::clearNative() {LCDDriver.clear();}
+  void LCDDisplay::setRowNative(byte row) { 
+    LCDDriver.setCursor(0, row);
+    LCDDriver.print(F("                "));
+    LCDDriver.setCursor(0, row);
     }
-  size_t LCDDisplay::write(uint8_t b){ return LCDDriver.write(b); }    
-  void LCDDisplay::display() { LCDDriver.display(); }
+  void LCDDisplay::writeNative(char * b){ LCDDriver.print(b); }    
+  void LCDDisplay::displayNative() { LCDDriver.display(); }
