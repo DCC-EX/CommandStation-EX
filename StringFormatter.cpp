@@ -67,7 +67,6 @@ void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) 
   send2(&stream,input,args);
 }
 
-
 void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va_list args) {
     
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
@@ -77,6 +76,12 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
     char c=pgm_read_byte_near(flash+i);
     if (c=='\0') return;
     if(c!='%') { stream->print(c); continue; }
+
+    bool formatContinues=false;
+    byte formatWidth=0;
+  do {
+    
+    formatContinues=false;
     i++;
     c=pgm_read_byte_near(flash+i);
     switch(c) {
@@ -85,13 +90,28 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
       case 'S': stream->print((const __FlashStringHelper*)va_arg(args, char*)); break;
-      case 'd': stream->print(va_arg(args, int), DEC); break;
-      case 'l': stream->print(va_arg(args, long), DEC); break;
+      case 'd': printPadded(stream,va_arg(args, int), formatWidth); break;
+      case 'l': printPadded(stream,va_arg(args, long), formatWidth); break;
       case 'b': stream->print(va_arg(args, int), BIN); break;
       case 'o': stream->print(va_arg(args, int), OCT); break;
       case 'x': stream->print(va_arg(args, int), HEX); break;
       case 'f': stream->print(va_arg(args, double), 2); break;
+      //format width prefix
+      case '0': 
+      case '1': 
+      case '2': 
+      case '3': 
+      case '4': 
+      case '5': 
+      case '6': 
+      case '7': 
+      case '8': 
+      case '9': 
+            formatWidth=formatWidth * 10 + (c-'0');
+            formatContinues=true;
+            break;
     }
+  } while(formatContinues);
   }
   va_end(args);
 }
@@ -120,4 +140,22 @@ void StringFormatter::printEscape(Print * stream, char c) {
      default: stream->print(c);
   }
  }
+
+ 
+void StringFormatter::printPadded(Print* stream, long value, byte width) {
+  if (width>0) { 
+    int digits=(value <= 0)? 1: 0;  // zero and negative need extra digot
+    long v=value;
+    while (v) {
+        v /= 10;
+        digits++;
+    }
+    while(digits<width) {
+      stream->print(' ');
+      digits++;
+    }
+  }
+  stream->print(value, DEC);
+}
+
  
