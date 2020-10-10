@@ -54,7 +54,7 @@ class StringFormatter
 
     private: 
     static void send2(Print * serial, const __FlashStringHelper* input,va_list args);
-    static void printPadded(Print* stream, long value, byte width);
+    static void printPadded(Print* stream, long value, byte width, bool formatLeft);
 
 };
 #endif
