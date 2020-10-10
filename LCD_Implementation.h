@@ -12,7 +12,7 @@
 #include "config.h"
 #include <Wire.h>
 #include "LCDDisplay.h"
-#define CONDITIONAL_LCD_START new LCDDisplay();    
+  
 LCDDisplay * LCDDisplay::lcdDisplay=0;
 
 // Implement the LCDDisplay shim class as a singleton.
@@ -23,9 +23,11 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
  
 #if defined(OLED_DRIVER) 
   #include "LCD_OLED.h"
+  #define CONDITIONAL_LCD_START new LCDDisplay();  
 
 #elif defined(LCD_DRIVER)  
   #include "LCD_LCD.h"      
+  #define CONDITIONAL_LCD_START new LCDDisplay();  
 
 #else 
   #include "LCD_NONE.h"
