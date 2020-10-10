@@ -5,9 +5,9 @@
     lcdDisplay=this;
     LCDDriver.init();
     LCDDriver.backlight();
-    LCDDriver.clear();
     interfake(LCD_DRIVER);
-    }
+    clear();
+  }
   void LCDDisplay::interfake(int p1, int p2, int p3) {(void)p1; (void)p2; lcdRows=p3; }   
   void LCDDisplay::clearNative() {LCDDriver.clear();}
   void LCDDisplay::setRowNative(byte row) { 

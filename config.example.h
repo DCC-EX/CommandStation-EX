@@ -77,6 +77,7 @@ The configuration file for DCC++ EX Command Station
 // #define LCD_DRIVER  0x3F,16,2
 
 //OR define OLED_DRIVER width,height in pixels (address auto detected) 
+// This will not work on a UNO due to memory constraints
 // #define OLED_DRIVER 128,32
 
 /////////////////////////////////////////////////////////////////////////////////////

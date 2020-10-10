@@ -2,6 +2,10 @@
 // CAUTION: the device dependent parts of this class are created in the .ini using LCD_Implementation.h
 #include "LCDDisplay.h"
 
+ void LCDDisplay::clear() {
+      clearNative();
+      for (byte row=0;row<MAX_LCD_ROWS; row++)  rowBuffer[row][0]='\0';
+ }
 
  void LCDDisplay::setRow(byte line) {
       hotRow=line;

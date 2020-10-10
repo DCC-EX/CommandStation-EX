@@ -12,10 +12,10 @@ LCDDisplay::LCDDisplay() {
       DIAG(F("\nOLED display found")); 
       delay(2000); // painful Adafruit splash pants! 
       lcdDisplay=this;
-      LCDDriver.clearDisplay();
       LCDDriver.setTextSize(1);             // Normal 1:1 pixel scale
       LCDDriver.setTextColor(SSD1306_WHITE);            // Draw white text
       interfake(OLED_DRIVER,0);
+      clear();
       return;  
       }
     DIAG(F("\nOLED display not found\n"));

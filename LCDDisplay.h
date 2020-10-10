@@ -20,6 +20,7 @@ class LCDDisplay : public Print {
     void loop2();
     void setRow(byte line); 
     void display();
+    void clear();
     virtual size_t write(uint8_t b);
     using Print::write;
     
