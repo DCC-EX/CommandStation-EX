@@ -43,6 +43,7 @@ class StringFormatter
     static void send(Print & serial, const __FlashStringHelper* input...);
     
     static void printEscapes(Print * serial,char * input);
+    static void printEscapes(Print * serial,const __FlashStringHelper* input);
     static void printEscape(Print * serial, char c);
 
     // DIAG support

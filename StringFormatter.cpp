@@ -89,6 +89,7 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
       case 'c': stream->print((char) va_arg(args, int)); break;
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
+      case 'E': printEscapes(stream,(const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'S': stream->print((const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'd': printPadded(stream,va_arg(args, int), formatWidth, formatLeft); break;
       case 'l': printPadded(stream,va_arg(args, long), formatWidth, formatLeft); break;
@@ -124,6 +125,17 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
  if (!stream) return;
  for(int i=0; ; ++i) {
   char c=input[i];
+  printEscape(stream,c);
+  if (c=='\0') return;
+ }
+}
+
+void StringFormatter::printEscapes(Print * stream, const __FlashStringHelper * input) {
+ 
+ if (!stream) return;
+ char* flash=(char*)input;
+ for(int i=0; ; ++i) {
+  char c=pgm_read_byte_near(flash+i);
   printEscape(stream,c);
   if (c=='\0') return;
  }
