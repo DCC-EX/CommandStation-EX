@@ -239,8 +239,11 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
-                    // TODO... get known Fn states from DCC (need memoryStream improvements to handle data length)
-                    // for(fKey=0; fKey<29; fKey++)StringFormatter::send(stream,F("M%cA%c<;>F0&s\n"),throttleChar,cmd[3],fkey);
+                    //Get known Fn states from DCC 
+                    for(int fKey=0; fKey<=12; fKey++) { 
+                      int fstate=DCC::getFn(locoid,fKey);
+                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c<;>F%d%d\n"),throttleChar,cmd[3],fstate,fKey);
+                    }
                     StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
                     StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
                     StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
