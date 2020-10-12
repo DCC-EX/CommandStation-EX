@@ -34,20 +34,24 @@ class LCDDisplay : public Print {
     void interfake(int p1, int p2, int p3);    
 
     // Internally handled functions
-    static void loop();
-    void loop2();
+    static void loop(bool force=false);
+    void loop2(bool force);
     void setRow(byte line); 
     void display();
     void clear();
+   
     virtual size_t write(uint8_t b);
     using Print::write;
     
   private:
+    int nextFilledRow();
+  
    // Relay functions to the live driver
     void clearNative();
     void displayNative();
     void setRowNative(byte line); 
     void writeNative(char * b);
+  
    unsigned long lastScrollTime=0;
    int hotRow=0;
    int hotCol=0; 

@@ -23,49 +23,56 @@
  void LCDDisplay::clear() {
       clearNative();
       for (byte row=0;row<MAX_LCD_ROWS; row++)  rowBuffer[row][0]='\0';
+      topRow=-1; // loop2 will fill from row 0
  }
 
  void LCDDisplay::setRow(byte line) {
       hotRow=line;
       hotCol=0;
-      if (hotRow<MAX_LCD_ROWS) memset(rowBuffer[hotRow],0,MAX_LCD_COLS+1);       
  }
 
 size_t LCDDisplay::write(uint8_t b) {
      if (hotRow>=MAX_LCD_ROWS || hotCol>=MAX_LCD_COLS) return -1;
      rowBuffer[hotRow][hotCol]=b;
      hotCol++;
+     rowBuffer[hotRow][hotCol]=0;
      return 1;
  }
 
  void LCDDisplay::display() {
-     if (hotRow>=topRow && hotRow<topRow+lcdRows) {
-        renderRow(hotRow);
-        displayNative(); 
-     }
+      displayNative(); 
  }
  
- void LCDDisplay::renderRow(byte row) {
-      setRowNative(row-topRow);
-      writeNative(rowBuffer[row]);
- }
- 
- void LCDDisplay::loop() {
+ void LCDDisplay::loop(bool force) {
     if (!lcdDisplay) return;
-    lcdDisplay->loop2();
+    lcdDisplay->loop2(force);
  }
  
- void LCDDisplay::loop2() { 
-    if ((millis() - lastScrollTime)< LCD_SCROLL_TIME) return;
+ void LCDDisplay::loop2(bool force) { 
+    if ((!force) && (millis() - lastScrollTime)< LCD_SCROLL_TIME) return;
     lastScrollTime=millis();
     clearNative();
-    topRow+=lcdRows;
-    if (topRow>MAX_LCD_ROWS-lcdRows) topRow=0;
-    for (int r=0; r<lcdRows; r++) {
-       renderRow(topRow+r); 
+    int rowFirst=nextFilledRow();
+    if (rowFirst<0)return; // No filled rows
+    setRowNative(0);
+    writeNative(rowBuffer[rowFirst]);
+    for (int slot=1;slot<lcdRows;slot++) {
+      int rowNext=nextFilledRow();
+      if (rowNext<0 || rowNext==rowFirst) return; 
+      setRowNative(slot);
+      writeNative(rowBuffer[rowNext]);
     } 
     displayNative();   
  }
- 
+
+ int LCDDisplay::nextFilledRow() {
+      for (int rx=1;rx<=MAX_LCD_ROWS;rx++) {
+          topRow++;
+          topRow %= MAX_LCD_ROWS;
+          if (rowBuffer[topRow][0]) return topRow; 
+      }
+      return -1;
+ }
+
   
    

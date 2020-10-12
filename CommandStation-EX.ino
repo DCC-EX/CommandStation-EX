@@ -24,15 +24,16 @@ void setup()
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
-
+  DIAG(F("DCC++ EX v%S"),F(VERSION));
+   
   CONDITIONAL_LCD_START;    
-    LCD(1,F("DCC++ EX v%S"),F(VERSION));
-    LCD(2,F("STARTING"));
-
+    LCD(0,F("DCC++ EX v%S"),F(VERSION));
+    LCD(1,F("Starting")); 
+    LCDDisplay::loop(true);  // ignored if LCD not in use 
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 
-#ifdef WIFI_ON
+#if WIFI_ON
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT);
 #endif // WIFI_ON
 
@@ -46,7 +47,8 @@ void setup()
   // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
-  DCC::begin(MOTOR_SHIELD_TYPE);
+  DCC::begin(MOTOR_SHIELD_TYPE); 
+  LCD(1,F("Ready")); 
 }
 
 void loop()
@@ -64,7 +66,9 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif
- 
+
+  LCDDisplay::loop();  // ignored if LCD not in use 
+  
 // Optionally report any decrease in memory (will automatically trigger on first call)
 #if ENABLE_FREE_MEM_WARNING
   static int ramLowWatermark = 32767; // replaced on first loop 
@@ -73,7 +77,7 @@ void loop()
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
-    DIAG(F("\nFree RAM=%d\n"), ramLowWatermark);
+    LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
 #endif
 }
