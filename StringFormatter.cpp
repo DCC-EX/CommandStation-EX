@@ -52,7 +52,6 @@ void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
   send2(LCDDisplay::lcdDisplay,input,args);
-  LCDDisplay::lcdDisplay->display();
 }
 
 void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {

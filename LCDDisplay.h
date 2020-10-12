@@ -34,10 +34,9 @@ class LCDDisplay : public Print {
     void interfake(int p1, int p2, int p3);    
 
     // Internally handled functions
-    static void loop(bool force=false);
-    void loop2(bool force);
+    static void loop();
+    LCDDisplay*  loop2(bool force);
     void setRow(byte line); 
-    void display();
     void clear();
    
     virtual size_t write(uint8_t b);

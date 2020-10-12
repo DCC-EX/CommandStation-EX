@@ -26,10 +26,11 @@ void setup()
   Serial.begin(115200);
   DIAG(F("DCC++ EX v%S"),F(VERSION));
    
-  CONDITIONAL_LCD_START;    
+  CONDITIONAL_LCD_START {
+    // This block is ignored if LCD not in use 
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
     LCD(1,F("Starting")); 
-    LCDDisplay::loop(true);  // ignored if LCD not in use 
+    }   
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 

@@ -39,15 +39,16 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
  
 #if defined(OLED_DRIVER) 
   #include "LCD_OLED.h"
-  #define CONDITIONAL_LCD_START new LCDDisplay();  
+  #define CONDITIONAL_LCD_START for (LCDDisplay * dummy=new LCDDisplay();dummy!=NULL; dummy=dummy->loop2(true)) 
+  
 
 #elif defined(LCD_DRIVER)  
   #include "LCD_LCD.h"      
-  #define CONDITIONAL_LCD_START new LCDDisplay();  
+  #define CONDITIONAL_LCD_START for (LCDDisplay * dummy=new LCDDisplay();dummy!=NULL; dummy=dummy->loop2(true))  
 
 #else 
   #include "LCD_NONE.h"
-  #define CONDITIONAL_LCD_START // NO LCD CONFIGURED      
+  #define CONDITIONAL_LCD_START if (false) /* NO LCD CONFIG */      
 #endif
  
 

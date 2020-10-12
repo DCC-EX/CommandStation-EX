@@ -38,31 +38,32 @@ size_t LCDDisplay::write(uint8_t b) {
      rowBuffer[hotRow][hotCol]=0;
      return 1;
  }
-
- void LCDDisplay::display() {
-      displayNative(); 
- }
  
- void LCDDisplay::loop(bool force) {
+ void LCDDisplay::loop() {
     if (!lcdDisplay) return;
-    lcdDisplay->loop2(force);
+    lcdDisplay->loop2(false);
  }
  
- void LCDDisplay::loop2(bool force) { 
-    if ((!force) && (millis() - lastScrollTime)< LCD_SCROLL_TIME) return;
+ LCDDisplay*  LCDDisplay::loop2(bool force) { 
+    if ((!force) && (millis() - lastScrollTime)< LCD_SCROLL_TIME) return NULL;
     lastScrollTime=millis();
     clearNative();
     int rowFirst=nextFilledRow();
-    if (rowFirst<0)return; // No filled rows
+    if (rowFirst<0)return NULL; // No filled rows
     setRowNative(0);
     writeNative(rowBuffer[rowFirst]);
     for (int slot=1;slot<lcdRows;slot++) {
       int rowNext=nextFilledRow();
-      if (rowNext<0 || rowNext==rowFirst) return; 
+      if (rowNext==rowFirst){
+         // we have wrapped around and not filled the screen 
+         topRow=-1; // start again at first row next time.  
+         break; 
+      }
       setRowNative(slot);
       writeNative(rowBuffer[rowNext]);
     } 
     displayNative();   
+    return NULL; 
  }
 
  int LCDDisplay::nextFilledRow() {
@@ -70,8 +71,8 @@ size_t LCDDisplay::write(uint8_t b) {
           topRow++;
           topRow %= MAX_LCD_ROWS;
           if (rowBuffer[topRow][0]) return topRow; 
-      }
-      return -1;
+          }
+      return -1; // No slots filled
  }
 
   
