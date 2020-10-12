@@ -103,7 +103,7 @@ void WiThrottle::parse(Print & stream, byte * cmdx) {
   
   // we have to take a copy of the cmd buffer as the reply will get built into the cmdx  
   byte local[150];
-  for (byte i=0;i<sizeof(local);i++) {
+  for (byte i=0;i<sizeof(local)-1;i++) {
     local[i]=cmdx[i];
     if (!cmdx[i]) break;
   }

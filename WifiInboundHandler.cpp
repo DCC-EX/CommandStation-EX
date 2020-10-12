@@ -179,7 +179,11 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case GOT_CLIENT_ID3:  // got "x C" before CLOSE or CONNECTED (which is ignored)
-         if(ch=='L') clientStatus[runningClientId]=UNUSED;
+         if(ch=='L') {
+          // CLOSE 
+          clientStatus[runningClientId]=UNUSED;
+          if (runningClientId==clientPendingCIPSEND) clientPendingCIPSEND=-1; 
+         }
          loopState=SKIPTOEND;   
          break;
          
