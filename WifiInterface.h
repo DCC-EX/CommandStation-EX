@@ -50,8 +50,6 @@ private:
   static int datalength;
   static int connectionId;
   static unsigned long loopTimeoutStart;
-  static const byte MAX_WIFI_BUFFER = 250;
-  static byte buffer[MAX_WIFI_BUFFER + 1];
-  static MemStream * streamer;
+   static MemStream * streamer;
 };
 #endif
