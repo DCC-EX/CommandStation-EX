@@ -466,19 +466,19 @@ bool DCCEXParser::parsef(Print *stream, int params, int p[])
     //      convenient for other processing
     if (params == 2)
     {
-        byte groupcode = p[1] & 0xE0;
-        if (groupcode == 0x80)
+        byte instructionField = p[1] & 0xE0;   // 1110 0000
+        if (instructionField == 0x80)          // 1000 0000 Function group 1
         {
+	    // Shuffle bits from order F0 F4 F3 F2 F1 to F4 F3 F2 F1 F0 
             byte normalized = (p[1] << 1 & 0x1e) | (p[1] >> 4 & 0x01);
             funcmap(p[0], normalized, 0, 4);
         }
-        else if (groupcode == 0xC0)
+        else if (instructionField == 0xA0)     // 1010 0000 Function group 2
         {
-            funcmap(p[0], p[1], 5, 8);
-        }
-        else if (groupcode == 0xA0)
-        {
-            funcmap(p[0], p[1], 9, 12);
+	    if (p[1] & 0x10)                   // 0001 0000 Bit selects F5toF8 / F9toF12
+		funcmap(p[0], p[1], 5, 8);
+	    else
+		funcmap(p[0], p[1], 9, 12);
         }
     }
     if (params == 3)
