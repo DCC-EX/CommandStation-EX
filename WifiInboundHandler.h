@@ -1,8 +1,7 @@
 #ifndef WifiInboundHandler_h
 #define WifiInboundHandler_h
 
-#include "MemStream.h"
-#include "DCCEXParser.h"
+#include "RingStream.h"
 #include "DIAG.h"
 
 class WifiInboundHandler {
@@ -14,9 +13,7 @@ class WifiInboundHandler {
 
    static WifiInboundHandler * singleton;
   
-   static const byte MAX_CLIENTS=5;
-   static const byte MAX_WIFI_BUFFER=255;
-  
+   
    enum INBOUND_STATE {
         INBOUND_BUSY,     // keep calling in loop() 
         INBOUND_IDLE     // Nothing happening, outbound may xcall CIPSEND
@@ -41,32 +38,23 @@ class WifiInboundHandler {
           GOT_CLIENT_ID3  // clientid prefix to CONNECTED / CLOSED
   };
 
-  enum CLIENT_STATUS {
-    UNUSED,            // client slot not in use
-    INBOUND_ARRIVING,      // data is arriving 
-    READY_TO_PROCESS,  // data has arrived, may call parser now
-    PROCESSING,        // command in progress
-    REPLY_PENDING,     // reply is ready to CIPSEND
-    CIPSEND_PENDING,   // CIPSEND waiting for >
-    CLOSE_PENDING,     // CLOSE received
-    CLOSE_AFTER_SEND   // Send CLOSE after CIPSEND completed  
-  };
   
    WifiInboundHandler(Stream * ESStream);
    void loop1();
    INBOUND_STATE loop2();
-   void processCommand(byte clientId);
    Stream * wifiStream;
    
-   DCCEXParser  *parser;
-
+   static const int INBOUND_RING = 200;
+   static const int OUTBOUND_RING = 1024;
+ 
+   RingStream * inboundRing;
+   RingStream * outboundRing;
+     
   LOOP_STATE loopState=ANYTHING;
   int runningClientId;   // latest client inbound processing data or CLOSE
   int dataLength; // dataLength of +IPD
-  byte * clientBuffer[MAX_CLIENTS];
-  MemStream * clientStream[MAX_CLIENTS]; 
-  CLIENT_STATUS clientStatus[MAX_CLIENTS];
-  bool clientCloseAfterReply[MAX_CLIENTS];
   int clientPendingCIPSEND=-1;
+  int currentReplySize;
+  bool pendingCipsend;
 };
 #endif

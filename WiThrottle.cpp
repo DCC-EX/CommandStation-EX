@@ -101,15 +101,7 @@ WiThrottle::~WiThrottle() {
 
 void WiThrottle::parse(Print & stream, byte * cmdx) {
   
-  // we have to take a copy of the cmd buffer as the reply will get built into the cmdx  
-  byte local[150];
-  for (byte i=0;i<sizeof(local)-1;i++) {
-    local[i]=cmdx[i];
-    if (!cmdx[i]) break;
-  }
-  local[149]='\0'; // prevent runaway parser
-  
-  byte * cmd=local;
+  byte * cmd=cmdx;
   
   heartBeat=millis();
   if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);

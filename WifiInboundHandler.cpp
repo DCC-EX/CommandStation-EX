@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "WifiInboundHandler.h"
+#include "RingStream.h"
 #include "CommandDistributor.h"
 #include "DIAG.h"
 
@@ -16,14 +17,10 @@ void WifiInboundHandler::loop() {
 
 WifiInboundHandler::WifiInboundHandler(Stream * ESStream) {
   wifiStream=ESStream;
-  for (int clientId=0;clientId<MAX_CLIENTS;clientId++) {
-      clientStatus[clientId]=UNUSED;
-      // Note buffer is 1 byte longer than MemStream is told 
-      // so that we can always inject a '\0' at stream->available()
-      clientBuffer[clientId]=new byte[MAX_WIFI_BUFFER+1];
-      clientStream[clientId]=new MemStream(clientBuffer[clientId], MAX_WIFI_BUFFER);      
-  }
   clientPendingCIPSEND=-1;
+  inboundRing=new RingStream(INBOUND_RING);
+  outboundRing=new RingStream(OUTBOUND_RING);
+  pendingCipsend=false;
 } 
 
 
@@ -31,38 +28,50 @@ WifiInboundHandler::WifiInboundHandler(Stream * ESStream) {
 // +IPD,x,lll:data is stored in streamer[x]
 // Other input returns  
 void WifiInboundHandler::loop1() {
-   
- // First handle all inbound traffic events 
- if (loop2()!=INBOUND_IDLE) return;
+   // First handle all inbound traffic events because they will block the sending 
+   if (loop2()!=INBOUND_IDLE) return;
 
     // if nothing is already CIPSEND pending, we can CIPSEND one reply
     if (clientPendingCIPSEND<0) {
-      for (int clientId=0;clientId<MAX_CLIENTS;clientId++) {
-         if (clientStatus[clientId]==REPLY_PENDING) {
-            clientPendingCIPSEND=clientId;
-            if (Diag::WIFI) DIAG( F("\nWiFi: [[CIPSEND=%d,%d]]"), clientId, clientStream[clientId]->available());
-            StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"), clientId, clientStream[clientId]->available());
-            clientStatus[clientId]=CIPSEND_PENDING;
-            return;
+       int next=outboundRing->read();
+       if (next>=0) {
+         currentReplySize=outboundRing->count();
+         if (currentReplySize==0) {
+          outboundRing->read(); // drop end marker
          }
-      }
-    }
-    
-    // if something waiting to close we can call one of them 
-         
-    for (int clientId=0;clientId<MAX_CLIENTS;clientId++) {
-      if (clientStatus[clientId]==CLOSE_AFTER_SEND) {
-         if (Diag::WIFI)  DIAG(F("AT+CIPCLOSE=%d\r\n"), clientId);
-         StringFormatter::send(wifiStream, F("AT+CIPCLOSE=%d\r\n"), clientId); 
-         clientStatus[clientId]=UNUSED;
+         else {
+          clientPendingCIPSEND=next-'0'; // convert back to int         
+          pendingCipsend=true;
+         }
+       }
+    } 
+
+    if (pendingCipsend) {
+         if (Diag::WIFI) DIAG( F("\nWiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
+         StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"),  clientPendingCIPSEND, currentReplySize);
+         pendingCipsend=false;
          return;
       }
-      if (clientStatus[clientId]==READY_TO_PROCESS) {
-         processCommand(clientId); 
+    
+    
+    // if something waiting to execute, we can call it 
+      int next=inboundRing->read();
+      if (next>0) {
+         int clientId=next-'0'; //convert char to int
+         int count=inboundRing->count();
+         if (Diag::WIFI) DIAG(F("\nExec waiting %d %d:"),clientId,count); 
+         byte cmd[count+1];
+         for (int i=0;i<count;i++) cmd[i]=inboundRing->read();   
+         cmd[count]=0;
+         if (Diag::WIFI) DIAG(F("%e\n"),cmd); 
+         
+         outboundRing->print(clientId);
+         CommandDistributor::parse(clientId,cmd,outboundRing);
+         outboundRing->write((byte)0);
          return;
       }
    }
-}
+
 
 
 // This is a Finite State Automation (FSA) handling the inbound bytes from an ES AT command processor    
@@ -86,10 +95,11 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         }
         
         if (ch=='>') { 
-           if (Diag::WIFI) DIAG(F("[[XMIT %d]]"),clientStream[clientPendingCIPSEND]->available());
-           wifiStream->write(clientBuffer[clientPendingCIPSEND], clientStream[clientPendingCIPSEND]->available());
-           clientStatus[clientPendingCIPSEND]=clientCloseAfterReply[clientPendingCIPSEND]? CLOSE_AFTER_SEND: UNUSED;
+           if (Diag::WIFI) DIAG(F("[[XMIT %d]]"),currentReplySize);
+           for (int i=0;i<currentReplySize;i++) wifiStream->write(outboundRing->read());
+           outboundRing->read(); // drop the end marker
            clientPendingCIPSEND=-1;
+           pendingCipsend=false;
            loopState=SKIPTOEND;
            break;
         }
@@ -100,15 +110,12 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         }
         
         if (ch=='b') {   // This is a busy indicator... probabaly must restart a CIPSEND  
-           if (clientPendingCIPSEND>=0) {
-              clientStatus[clientPendingCIPSEND]=REPLY_PENDING;
-              clientPendingCIPSEND=-1;
-           }
+           pendingCipsend=(clientPendingCIPSEND>=0);
            loopState=SKIPTOEND; 
            break; 
         }
         
-        if (ch>='0' && ch<=('0'+MAX_CLIENTS)) { 
+        if (ch>='0' && ch<='9') { 
               runningClientId=ch-'0';
               loopState=GOT_CLIENT_ID;
               break;
@@ -133,7 +140,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case IPD4_CLIENT:  // reading connection id
-        if (ch >= '0' || ch <('0'+MAX_CLIENTS)){
+        if (ch >= '0' || ch <='9'){
            runningClientId=ch-'0';
            loopState=IPD5;
         }
@@ -151,8 +158,8 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
             loopState=ANYTHING;
             break;
           }
-          clientStream[runningClientId]->flush(); // prepare streamer for input
-          clientStatus[runningClientId]=INBOUND_ARRIVING;
+          if (Diag::WIFI) DIAG(F("\nWifi inbound data(%d:%d):"),runningClientId,dataLength); 
+          inboundRing->print(runningClientId); // prefix inbound with client id
           loopState=IPD_DATA;
           break; 
         }
@@ -160,12 +167,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case IPD_DATA: // reading data
-        clientStream[runningClientId]->write(ch); // NOTE: The MemStream will throw away bytes that do not fit in the buffer.
-                            // This protects against buffer overflows even with things as innocent
-                            // as a browser which send massive, irrlevent HTTP headers.   
+         inboundRing->write(ch);    
         dataLength--;
         if (dataLength == 0) {
-          clientStatus[runningClientId]=READY_TO_PROCESS;
+           inboundRing->write((byte)0);    
           loopState = ANYTHING;
         }
         break;
@@ -181,8 +186,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
       case GOT_CLIENT_ID3:  // got "x C" before CLOSE or CONNECTED (which is ignored)
          if(ch=='L') {
           // CLOSE 
-          clientStatus[runningClientId]=UNUSED;
-          if (runningClientId==clientPendingCIPSEND) clientPendingCIPSEND=-1; 
+          if (runningClientId==clientPendingCIPSEND) {
+            // clear the outbound for this client
+            for (int i=0;i<=currentReplySize;i++) outboundRing->read(); 
+          }
          }
          loopState=SKIPTOEND;   
          break;
@@ -193,26 +200,4 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
     }  // switch
   } // available
   return (loopState==ANYTHING) ? INBOUND_IDLE: INBOUND_BUSY;
-}
-
-
-void WifiInboundHandler::processCommand(byte clientId) {
-  clientStatus[clientId]=PROCESSING;             
-  byte * buffer=clientBuffer[clientId];
-  MemStream * streamer=clientStream[clientId];
-  buffer[streamer->available()]='\0';
-
-  if (Diag::WIFI) DIAG(F("\n%l Wifi(%d)<-[%e]\n"), millis(),clientId, buffer);
-  streamer->setBufferContentPosition(0, 0); // reset write position to start of buffer
-  
-  clientCloseAfterReply[clientId]=CommandDistributor::parse(clientId,buffer,streamer);
-  
-  if (streamer->available() == 0) {
-    clientStatus[clientId]=UNUSED;
-  }
-  else {
-    buffer[streamer->available()]='\0'; // mark end of buffer, so it can be used as a string later
-    if (Diag::WIFI) DIAG(F("%l WiFi(%d)->[%e] l(%d)\n"), millis(), clientId, buffer, streamer->available());
-    clientStatus[clientId]=REPLY_PENDING;
-  }
 }
