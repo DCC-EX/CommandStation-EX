@@ -118,8 +118,8 @@ class DCCWaveform {
     unsigned int power_good_counter = 0;
 
     // ACK management (Prog track only)  
-    bool ackPending;    
-    bool ackDetected;   
+    volatile bool ackPending;
+    volatile bool ackDetected;
     int  ackThreshold; 
     int  ackLimitmA = 60;
     int ackMaxCurrent;
