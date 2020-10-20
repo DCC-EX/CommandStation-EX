@@ -128,7 +128,7 @@ void DCCWaveform::checkPowerOverload() {
 
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
-  int tripValue= motorDriver->rawCurrentTripValue;
+  int tripValue= motorDriver->getRawCurrentTripValue();
   if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
@@ -292,9 +292,12 @@ int DCCWaveform::getLastCurrent() {
 // (yes I know I could have subclassed the main track but...) 
 
 void DCCWaveform::setAckBaseline() {
-      if (isMainTrack) return; 
-      ackThreshold=motorDriver->getCurrentRaw() + (int)(65 / motorDriver->senseFactor);
-      if (Diag::ACK) DIAG(F("\nACK-BASELINE %d/%dmA"),ackThreshold,motorDriver->raw2mA(ackThreshold));
+      if (isMainTrack) return;
+      int baseline = motorDriver->getCurrentRaw();
+      ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
+      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA threshold=%d/%dmA"),
+			  baseline,motorDriver->raw2mA(baseline),
+			  ackThreshold,motorDriver->raw2mA(ackThreshold));
 }
 
 void DCCWaveform::setAckPending() {

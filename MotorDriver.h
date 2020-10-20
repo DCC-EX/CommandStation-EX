@@ -29,12 +29,16 @@ class MotorDriver {
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
-  
+    inline int getRawCurrentTripValue() {
+	return rawCurrentTripValue;
+    }
+
+  private:
     byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
-   float senseFactor;
-   unsigned int tripMilliamps;
-   int rawCurrentTripValue;
-   const byte UNUSED_PIN = 255;
+    float senseFactor;
+    unsigned int tripMilliamps;
+    int rawCurrentTripValue;
+    const byte UNUSED_PIN = 255;
     
 };
 #endif

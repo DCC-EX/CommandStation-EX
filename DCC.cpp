@@ -465,15 +465,15 @@ bool DCC::issueReminder(int reg) {
          break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1) 
-              setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4));   
+              setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
           break;     
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2) 
-              setFunctionInternal(loco,0, 176 + ((functions>>5)& 0x0F));   
+              setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));                           // 1011 DDDD
           break;     
        case 3: // remind function group 3 F9-F12
           if (flags & FN_GROUP_3) 
-              setFunctionInternal(loco,0, 160 + ((functions>>9)& 0x0F));
+              setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));                           // 1010 DDDD
           break;   
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4) 
