@@ -17,6 +17,16 @@
 // to be issued from the USB serial console.
 DCCEXParser serialParser;
 
+// (1) Start NetworkInterface - HTTP callback
+void httpRequestHandler(ParsedRequest *req, Client* client) {
+  DIAG(F("\nParsed Request:"));
+  DIAG(F("\nMethod:         [%s]"), req->method);
+  DIAG(F("\nURI:            [%s]"), req->uri);
+  DIAG(F("\nHTTP version:   [%s]"), req->version);
+  DIAG(F("\nParameter count:[%d]\n"), *req->paramCount);
+}
+// (1) End NetworkInterface - HTTP callback
+
 void setup()
 {
   // The main sketch has responsibilities during setup()
@@ -49,6 +59,23 @@ void setup()
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
   DCC::begin(MOTOR_SHIELD_TYPE); 
+
+  // (2) Start NetworkInterface - The original WifiInterface is still there but disabled
+
+  DIAG(F("\nFree RAM before network init: [%d]\n"),freeMemory());
+  DIAG(F("\nNetwork Setup In Progress ...\n"));
+  NetworkInterface::setup(WIFI, TCP, 8888);           // specify WIFI or ETHERNET depending on if you have Wifi or an EthernetShield; Wifi has to be on Serial1 UDP or TCP for the protocol
+  NetworkInterface::setHttpCallback(httpRequestHandler);  // The network interface will provide and HTTP request object which can be used as well to send the reply. cf. example above
+  
+  // NetworkInterface::setup(WIFI, UDP, 8888);      // Setup without port will use the by default port 2560 :: Wifi+UDP IS NOT YET SUPPORTED 
+  // NetworkInterface::setup(WIFI);                 // setup without port and protocol will use by default TCP on port 2560 
+  // NetworkInterface::setup();                     // all defaults ETHERNET, TCP on port 2560
+
+  DIAG(F("\nNetwork Setup done ..."));
+  DIAG(F("\nFree RAM after network init: [%d]\n"),freeMemory());
+
+  // (2) End starting NetworkInterface
+
   LCD(1,F("Ready")); 
 }
 
@@ -67,7 +94,9 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif
-
+// (3) Start Loop NetworkInterface
+  NetworkInterface::loop();
+// (3) End Loop NetworkInterface
   LCDDisplay::loop();  // ignored if LCD not in use 
   
 // Optionally report any decrease in memory (will automatically trigger on first call)

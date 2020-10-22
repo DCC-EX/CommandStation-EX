@@ -24,7 +24,7 @@
 #include "EthernetSetup.h"
 #include "WifiSetup.h"
 
-HttpCallback NetworkInterface::httpCallback;
+HttpCallback NetworkInterface::httpCallback = 0;
 
 Transport<WiFiServer, WiFiClient, WiFiUDP> *NetworkInterface::wifiTransport;
 Transport<EthernetServer, EthernetClient, EthernetUDP> *NetworkInterface::ethernetTransport;

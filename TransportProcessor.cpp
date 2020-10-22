@@ -48,6 +48,11 @@ uint8_t diagNetworkClient = 0;
  */
 void httpProcessor(Connection* c)
 {
+    if (httpReq.callback == 0) return;  // no callback i.e. nothing to do
+    /**
+     * @todo look for jmri formatted uris and execute those if there is no callback. If no command found ignore and 
+     * ev. send a 401 error back
+     */
     uint8_t i, l = 0;
     ParsedRequest preq;
     l = strlen((char *)buffer);
@@ -158,8 +163,6 @@ appProtocol setAppProtocol(char a, char b, Connection *c)
  * @brief Parses the buffer to extract commands to be executed
  * 
  */
-
-// void TransportProcessor::processStream(Connection *c)
 void processStream(Connection *c)
 {
     uint8_t i, j, k, l = 0;
@@ -178,22 +181,18 @@ void processStream(Connection *c)
 
     // check if there is again an overflow and copy if needed
     if ((i = strlen((char *)buffer)) == MAX_ETH_BUFFER - 1)
-    { // only then we shall be in an overflow situation
-        // DIAG(F("\nPossible overflow situation detected: %d "), i);
+    { 
         j = i;
         while (buffer[i] != c->delimiter)
-        { // what if there is none: ?
-            //  DIAG(F("%c"),(char) buffer[i]);
+        { 
             i--;
         }
-        i++; // start of the buffer to copy
+        i++;        // start of the buffer to copy
         l = i;
-        k = j - i; // length to copy
-
+        k = j - i;  // length to copy
         for (j = 0; j < k; j++, i++)
         {
             c->overflow[j] = buffer[i];
-            // DIAG(F("\n%d %d %d %c"),k,j,i, buffer[i]); // c->overflow[j]);
         }
         buffer[l] = '\0'; // terminate buffer just after the last '>'
         // DIAG(F("\nNew buffer: [%s] New overflow: [%s]\n"), (char*) buffer, c->overflow );
@@ -201,24 +200,19 @@ void processStream(Connection *c)
 
     // breakup the buffer using its changed length
     i = 0;
-    k = strlen(command);            // current length of the command buffer telling us where to start copy in
+    k = strlen(command);            
     l = strlen((char *)buffer);
     // DIAG(F("\nCommand buffer: [%s]:[%d:%d:%d]\n"), command, i, l, k );
     while (i < l)
     {
-        // DIAG(F("\nl: %d k: %d , i: %d"), l, k, i);
         command[k] = buffer[i];
         if (buffer[i] == c->delimiter)
-        { // closing bracket need to fix if there is none before an opening bracket ?
-
+        { 
             command[k+1] = '\0';
-
             DIAG(F("Command:                [%d:%e]\n"),_rseq[c->id], command);
 
-            // parse(client, buffer, true);
+            parse(c, (byte *)command, true);
             // sendReply(c->client, command, c);
-            // memset(command, 0, MAX_JMRI_CMD); // clear out the command
-
             _rseq[c->id]++;
             j = 0;
             k = 0;
@@ -254,7 +248,7 @@ void withrottleProcessor(Connection *c)
 /**
  * @brief Reads what is available on the incomming TCP stream and hands it over to the protocol handler.
  * 
- * @param c    Pointer to the connection struct contining relevant information handling the data from that connection
+ * @param c    Pointer to the connection contining relevant information handling the data from that connection
  */
 
 void TransportProcessor::readStream(Connection *c)
@@ -313,21 +307,21 @@ void TransportProcessor::readStream(Connection *c)
 /**
  * @brief Sending a reply by using the StringFormatter (this will result in every byte send individually which may/will create an important Network overhead).
  * Here we hook back into the DCC code for actually processing the command using a DCCParser. Alternatively we could use MemeStream in order to build the entiere reply
- * before ending it (cf. Scratch pad below)
+ * before ending it.
  * 
  * @param stream    Actually the Client to whom to send the reply. As Clients implement Print this is working
  * @param command   The reply to be send ( echo as in sendReply() )
  * @param blocking  if set to true will instruct the DCC code to not use the async callback functions
  */
-void parse(Print *stream, byte *command, bool blocking)
+void parse(Connection* c , byte *command, bool blocking)
 {
     DIAG(F("DCC parsing:            [%e]\n"), command);
     // echo back (as mock parser )
-    StringFormatter::send(stream, F("reply to: %s"), command);
+    StringFormatter::send(c->client, F("reply to: %s"), command);
 }
 
 /**
- * @brief Sending a reply without going through the StringFormatter. Sends the repy in one go
+ * @brief Sending a reply without going through the StringFormatter. Sends the repy in one go; For testing purposes; Adds sequence numbers to the reply
  * 
  * @param client  Client who send the command to which the reply shall be send
  * @param command Command initaliy recieved to be echoed back 
@@ -359,61 +353,3 @@ void sendReply(Client *client, char *command, uint8_t c)
         DIAG(F(" send\n"));
     }
 };
-
-/*
-            // Alternative reply mechanism using MemStream thus allowing to send all in one go using the parser
-            streamer.setBufferContentPosition(0, 0);
-
-            // Parse via MemBuffer to be replaced by DCCEXparser.parse later
-
-            parse(&streamer, buffer, true); // set to true to that the execution in DCC is sync
-            
-            if (streamer.available() == 0)
-            {
-                DIAG(F("No response\n"));
-            }
-            else
-            {
-                buffer[streamer.available()] = '\0'; // mark end of buffer, so it can be used as a string later
-                DIAG(F("Response:               [%s]\n"), (char *)reply);
-                if (clients[i]->connected())
-                {
-                    clients[i]->write(reply, streamer.available());
-                }
-            }
-*/
-/*  This should work but creates a segmentation fault ??
-
-        // check if we have one parameter with name 'jmri' then send the payload directly and don't call the callback
-        preq = httpReq.getParsedRequest();
-        DIAG(F("Check parameter count\n"));
-        if (*preq.paramCount == 1)
-        {
-            Params *p;
-            int cmp;
-            p = httpReq.getParam(1);
-
-            DIAG(F("Parameter name[%s]\n"), p->name);
-            DIAG(F("Parameter value[%s]\n"), p->value);
-            
-            cmp = strcmp("jmri", p->name);
-            if ( cmp == 0 ) { 
-                memset(buffer, 0, MAX_ETH_BUFFER); // reset PacktBuffer
-                strncpy((char *)buffer, p->value, strlen(p->value));
-                jmriHandler(client, c);
-            } else {
-                DIAG(F("Callback 1\n"));
-                httpReq.callback(&preq, client);
-            }
-        }
-        else
-        {
-            DIAG(F("Callback 2\n"));
-            httpReq.callback(&preq, client);
-        }
-        DIAG(F("ResetRequest\n"));
-        httpReq.resetRequest();
-
-    } // else do nothing and wait for the next packet
-}
-*/
