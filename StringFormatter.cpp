@@ -31,8 +31,6 @@
   #define __FlashStringHelper char
 #endif
 
-#include "LCDDisplay.h"
-
 bool Diag::ACK=false;
 bool Diag::CMD=false;
 bool Diag::WIFI=false;
@@ -44,14 +42,6 @@ void StringFormatter::diag( const __FlashStringHelper* input...) {
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
-}
-
-void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
-  if (!LCDDisplay::lcdDisplay) return;
-  LCDDisplay::lcdDisplay->setRow(row);    
-  va_list args;
-  va_start(args, input);
-  send2(LCDDisplay::lcdDisplay,input,args);
 }
 
 void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {
@@ -66,6 +56,7 @@ void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) 
   send2(&stream,input,args);
 }
 
+
 void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va_list args) {
     
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
@@ -75,13 +66,6 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
     char c=pgm_read_byte_near(flash+i);
     if (c=='\0') return;
     if(c!='%') { stream->print(c); continue; }
-
-    bool formatContinues=false;
-    byte formatWidth=0;
-    bool formatLeft=false; 
-  do {
-    
-    formatContinues=false;
     i++;
     c=pgm_read_byte_near(flash+i);
     switch(c) {
@@ -89,34 +73,14 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
       case 'c': stream->print((char) va_arg(args, int)); break;
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
-      case 'E': printEscapes(stream,(const __FlashStringHelper*)va_arg(args, char*)); break;
       case 'S': stream->print((const __FlashStringHelper*)va_arg(args, char*)); break;
-      case 'd': printPadded(stream,va_arg(args, int), formatWidth, formatLeft); break;
-      case 'l': printPadded(stream,va_arg(args, long), formatWidth, formatLeft); break;
+      case 'd': stream->print(va_arg(args, int), DEC); break;
+      case 'l': stream->print(va_arg(args, long), DEC); break;
       case 'b': stream->print(va_arg(args, int), BIN); break;
       case 'o': stream->print(va_arg(args, int), OCT); break;
       case 'x': stream->print(va_arg(args, int), HEX); break;
       case 'f': stream->print(va_arg(args, double), 2); break;
-      //format width prefix
-      case '-': 
-            formatLeft=true;
-            formatContinues=true;
-            break; 
-      case '0': 
-      case '1': 
-      case '2': 
-      case '3': 
-      case '4': 
-      case '5': 
-      case '6': 
-      case '7': 
-      case '8': 
-      case '9': 
-            formatWidth=formatWidth * 10 + (c-'0');
-            formatContinues=true;
-            break;
     }
-  } while(formatContinues);
   }
   va_end(args);
 }
@@ -125,17 +89,6 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
  if (!stream) return;
  for(int i=0; ; ++i) {
   char c=input[i];
-  printEscape(stream,c);
-  if (c=='\0') return;
- }
-}
-
-void StringFormatter::printEscapes(Print * stream, const __FlashStringHelper * input) {
- 
- if (!stream) return;
- char* flash=(char*)input;
- for(int i=0; ; ++i) {
-  char c=pgm_read_byte_near(flash+i);
   printEscape(stream,c);
   if (c=='\0') return;
  }
@@ -156,27 +109,4 @@ void StringFormatter::printEscape(Print * stream, char c) {
      default: stream->print(c);
   }
  }
-
- 
-void StringFormatter::printPadded(Print* stream, long value, byte width, bool formatLeft) {
-  if (width==0) {
-    stream->print(value, DEC);
-    return;
-  }
-  
-    int digits=(value <= 0)? 1: 0;  // zero and negative need extra digot
-    long v=value;
-    while (v) {
-        v /= 10;
-        digits++;
-    }
-    
-    if (formatLeft) stream->print(value, DEC);
-    while(digits<width) {
-      stream->print(' ');
-      digits++;
-    }
-    if (!formatLeft) stream->print(value, DEC);    
-  }
-
  
