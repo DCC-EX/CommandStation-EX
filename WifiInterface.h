@@ -20,7 +20,6 @@
 #ifndef WifiInterface_h
 #define WifiInterface_h
 #include "DCCEXParser.h"
-#include "MemStream.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
@@ -50,6 +49,5 @@ private:
   static int datalength;
   static int connectionId;
   static unsigned long loopTimeoutStart;
-   static MemStream * streamer;
 };
 #endif
