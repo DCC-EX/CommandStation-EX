@@ -19,8 +19,6 @@
 
 #include "DIAG.h"
 #include "NetworkInterface.h"
-// #include "Singelton.h"
-// #include "WifiTransport.h"
 #include "EthernetSetup.h"
 #include "WifiSetup.h"
 

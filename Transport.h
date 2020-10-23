@@ -23,7 +23,7 @@
 #include <Ethernet.h>
 #include <WiFiEspAT.h>
 
-#include <NetworkInterface.h>
+#include "NetworkInterface.h"
 #include "TransportProcessor.h"
 
  
