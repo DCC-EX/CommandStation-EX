@@ -284,7 +284,7 @@ void processStream(Connection *c)
     i = 0;
     k = strlen(command);            // current length of the command buffer telling us where to start copy in
     l = strlen((char *)buffer);
-    DIAG(F("\nCommand buffer: [%s]:[%d:%d:%d]\n"), command, i, l, k );
+    // DIAG(F("\nCommand buffer: [%s]:[%d:%d:%d]\n"), command, i, l, k );
     while (i < l)
     {
         // DIAG(F("\nl: %d k: %d , i: %d"), l, k, i);
