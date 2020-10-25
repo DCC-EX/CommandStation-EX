@@ -31,6 +31,7 @@ struct SensorData {
 
 struct Sensor{
   static Sensor *firstSensor;
+  static Sensor *readingSensor;
   SensorData data;
   boolean active;
   float signal;

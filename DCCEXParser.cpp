@@ -360,8 +360,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
 
     case 'Q': // SENSORS <Q>
-        Sensor::checkAll(NULL);    // Update, don't print changes
-        Sensor::printAll(stream);  // Print all
+        Sensor::printAll(stream);
         return;
 
     case 's': // <s>

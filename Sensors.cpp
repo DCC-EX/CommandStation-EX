@@ -72,26 +72,27 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// checks all defined sensors and prints _changed_ sensor states
+// checks one defined sensors and prints _changed_ sensor state
 // to stream unless stream is NULL in which case only internal
-// state is updated
+// state is updated. Then advances to next sensor which will
+// be checked att next invocation.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::checkAll(Print *stream){
+
+  if (firstSensor == NULL) return;
+  if (readingSensor == NULL) readingSensor=firstSensor;
+  readingSensor->signal=readingSensor->signal*(1.0-SENSOR_DECAY)+digitalRead(readingSensor->data.pin)*SENSOR_DECAY;
   
-  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-    tt->signal=tt->signal*(1.0-SENSOR_DECAY)+digitalRead(tt->data.pin)*SENSOR_DECAY;
-
-    if(!tt->active && tt->signal<0.5){
-      tt->active=true;
-      if (stream != NULL) StringFormatter::send(stream, F("<Q %d>"), tt->data.snum);
-    } else if(tt->active && tt->signal>0.9){
-      tt->active=false;
-      if (stream != NULL) StringFormatter::send(stream, F("<q %d>"), tt->data.snum);
-    }
-  } // loop over all sensors
-
+  if(!readingSensor->active && readingSensor->signal<0.5){
+    readingSensor->active=true;
+    if (stream != NULL) StringFormatter::send(stream, F("<Q %d>"), readingSensor->data.snum);
+  } else if(readingSensor->active && readingSensor->signal>0.9){
+    readingSensor->active=false;
+    if (stream != NULL) StringFormatter::send(stream, F("<q %d>"), readingSensor->data.snum);
+  }
+  readingSensor=readingSensor->nextSensor;
 } // Sensor::checkAll
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,6 +160,7 @@ bool Sensor::remove(int n){
   else
     pp->nextSensor=tt->nextSensor;
 
+  if (readingSensor==tt) readingSensor=tt->nextSensor;
   free(tt);
 
   return true;
@@ -196,3 +198,4 @@ void Sensor::store(){
 ///////////////////////////////////////////////////////////////////////////////
 
 Sensor *Sensor::firstSensor=NULL;
+Sensor *Sensor::readingSensor=NULL;
