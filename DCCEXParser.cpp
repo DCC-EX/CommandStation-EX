@@ -96,6 +96,7 @@ void DCCEXParser::loop(Stream &stream)
             buffer[bufferLength++] = ch;
         }
     }
+    Sensor::checkAll(&stream); // Update and print changes
 }
 
 int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
@@ -359,11 +360,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
 
     case 'Q': // SENSORS <Q>
-        Sensor::checkAll();
-        for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
-        {
-            StringFormatter::send(stream, F("<%c %d>"), tt->active ? 'Q' : 'q', tt->data.snum);
-        }
+        Sensor::checkAll(NULL);    // Update, don't print changes
+        Sensor::printAll(stream);  // Print all
         return;
 
     case 's': // <s>

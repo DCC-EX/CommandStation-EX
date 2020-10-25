@@ -40,7 +40,8 @@ struct Sensor{
   static Sensor *create(int, int, int);
   static Sensor* get(int);  
   static bool remove(int);  
-  static void checkAll();   
+  static void checkAll(Print *);
+  static void printAll(Print *);
 }; // Sensor
 
 #endif
