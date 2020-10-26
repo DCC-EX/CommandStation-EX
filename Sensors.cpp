@@ -83,15 +83,27 @@ void Sensor::checkAll(Print *stream){
 
   if (firstSensor == NULL) return;
   if (readingSensor == NULL) readingSensor=firstSensor;
-  readingSensor->signal=readingSensor->signal*(1.0-SENSOR_DECAY)+digitalRead(readingSensor->data.pin)*SENSOR_DECAY;
-  
-  if(!readingSensor->active && readingSensor->signal<0.5){
-    readingSensor->active=true;
-    if (stream != NULL) StringFormatter::send(stream, F("<Q %d>"), readingSensor->data.snum);
-  } else if(readingSensor->active && readingSensor->signal>0.9){
-    readingSensor->active=false;
-    if (stream != NULL) StringFormatter::send(stream, F("<q %d>"), readingSensor->data.snum);
+
+  bool sensorstate = digitalRead(readingSensor->data.pin);
+
+  if (!sensorstate == readingSensor->active) { // active==true means sensorstate=0/false so sensor unchanged
+    // no change
+    if (readingSensor->latchdelay != 0) {
+      // enable if you want to debug contact jitter
+      //if (stream != NULL) StringFormatter::send(stream, F("JITTER %d %d\n"), 
+      //                                          readingSensor->latchdelay, readingSensor->data.snum);
+       readingSensor->latchdelay=0; // reset
+    }
+  } else if (readingSensor->latchdelay < 127) { // byte, max 255, good value unknown yet
+    // change but first increase anti-jitter counter
+    readingSensor->latchdelay++;
+  } else {
+    // make the change
+    readingSensor->active = !sensorstate;
+    readingSensor->latchdelay=0; // reset 
+    if (stream != NULL) StringFormatter::send(stream, F("<%c %d>"), readingSensor->active ? 'Q' : 'q', readingSensor->data.snum);
   }
+
   readingSensor=readingSensor->nextSensor;
 } // Sensor::checkAll
 
@@ -131,7 +143,7 @@ Sensor *Sensor::create(int snum, int pin, int pullUp){
   tt->data.pin=pin;
   tt->data.pullUp=(pullUp==0?LOW:HIGH);
   tt->active=false;
-  tt->signal=1;
+  tt->latchdelay=0;
   pinMode(pin,INPUT);         // set mode to input
   digitalWrite(pin,pullUp);   // don't use Arduino's internal pull-up resistors for external infrared sensors --- each sensor must have its own 1K external pull-up resistor
 

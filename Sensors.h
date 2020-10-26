@@ -34,7 +34,7 @@ struct Sensor{
   static Sensor *readingSensor;
   SensorData data;
   boolean active;
-  float signal;
+  byte latchdelay;
   Sensor *nextSensor;
   static void load();
   static void store();
