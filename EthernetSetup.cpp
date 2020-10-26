@@ -54,7 +54,7 @@ EthernetServer* EthernetSetup::setup()
     }
     else if (Ethernet.hardwareStatus() == EthernetW5500)
     {
-        DIAG(F("\nW5500 Ethernet controller detected."));
+        DIAG(F("W5500 Ethernet controller detected."));
         maxConnections = 8;
     }
 

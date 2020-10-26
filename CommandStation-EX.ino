@@ -17,6 +17,11 @@
 // to be issued from the USB serial console.
 DCCEXParser serialParser;
 
+// (0) Declare NetworkInterfaces
+NetworkInterface wifi;
+NetworkInterface eth;
+// (0) Declared NetworkInterfaces
+
 // (1) Start NetworkInterface - HTTP callback
 void httpRequestHandler(ParsedRequest *req, Client* client) {
   DIAG(F("\nParsed Request:"));
@@ -64,12 +69,10 @@ void setup()
 
   DIAG(F("\nFree RAM before network init: [%d]\n"),freeMemory());
   DIAG(F("\nNetwork Setup In Progress ...\n"));
-  NetworkInterface::setup(ETHERNET, TCP, 8888);           // specify WIFI or ETHERNET depending on if you have Wifi or an EthernetShield; Wifi has to be on Serial1 UDP or TCP for the protocol
-  NetworkInterface::setHttpCallback(httpRequestHandler);  // The network interface will provide and HTTP request object which can be used as well to send the reply. cf. example above
-  
-  // NetworkInterface::setup(WIFI, UDP, 8888);      // Setup without port will use the by default port 2560 :: Wifi+UDP IS NOT YET SUPPORTED 
-  // NetworkInterface::setup(WIFI);                 // setup without port and protocol will use by default TCP on port 2560 
-  // NetworkInterface::setup();                     // all defaults ETHERNET, TCP on port 2560
+
+  wifi.setup(WIFI);                                    // WIFI, TCP on Port 2560
+  eth.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
+  eth.setHttpCallback(httpRequestHandler);             // HTTP callback
 
   DIAG(F("\nNetwork Setup done ..."));
   DIAG(F("\nFree RAM after network init: [%d]\n"),freeMemory());
@@ -94,9 +97,14 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif
-// (3) Start Loop NetworkInterface
-  NetworkInterface::loop();
+
+
+// (3) Start Loop NetworkInterface 
+  wifi.loop();
+  eth.loop();
 // (3) End Loop NetworkInterface
+
+
   LCDDisplay::loop();  // ignored if LCD not in use 
   
 // Optionally report any decrease in memory (will automatically trigger on first call)

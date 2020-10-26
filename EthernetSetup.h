@@ -30,7 +30,6 @@ private:
 
 public:
 
-    // EthernetServer *setup(uint16_t port);
     EthernetServer *setup();
 
     EthernetSetup();

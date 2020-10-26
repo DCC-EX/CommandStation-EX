@@ -40,13 +40,11 @@ private:
 
 public:
 
-    // WiFiServer *setup(uint16_t port);
     bool setup();
 
     WiFiUDP* getUdp() {
         return udp;
     }
-
     WiFiServer* getServer() {
         return server;
     }

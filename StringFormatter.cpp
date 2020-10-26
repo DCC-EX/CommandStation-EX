@@ -178,5 +178,4 @@ void StringFormatter::printPadded(Print* stream, long value, byte width, bool fo
     }
     if (!formatLeft) stream->print(value, DEC);    
   }
-
  

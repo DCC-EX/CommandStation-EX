@@ -25,11 +25,12 @@ extern bool diagNetwork;
 extern uint8_t diagNetworkClient;
 
 template<class S, class C, class U> 
-bool Transport<S,C,U>::setup() {
+bool Transport<S,C,U>::setup(NetworkInterface *nw) {
     if (protocol == TCP) { 
-        connectionPool(server);         // server should have started here so create the connection pool only for TCP though
+        connectionPool(server);     // server should have started here so create the connection pool only for TCP though
     }
     t = new TransportProcessor();
+    t->nwi = nw;                    // The TransportProcesor needs to know which Interface he is connected to
     connected = true;               // server & clients which will recieve/send data have all e setup and are available
     return true;
 } 
@@ -45,8 +46,7 @@ void Transport<S,C,U>::loop() {
     };
     case TCP:
     {
-        tcpSessionHandler(server);     // for session oriented coms
-        break;
+        tcpSessionHandler(server);    
     };
     case MQTT:
     {
@@ -64,7 +64,7 @@ void Transport<S, C, U>::connectionPool(S *server)
         clients[i] = server->accept();
         connections[i].client = &clients[i];
         connections[i].id = i;
-        DIAG(F("\nConnection pool:       [%d:%x]"), i, clients[i]);
+        DIAG(F("\nConnection pool:       [%d:%x]"), i, connections[i].client);
     }
 }
 
@@ -110,11 +110,11 @@ void Transport<S,C,U>::tcpSessionHandler(S* server)
 {
     // get client from the server
     C client = server->accept();
-     
-    // check for new client
+    
+    // check for new client 
     if (client)
     {
-        for (byte i = 0; i < Transport<S,C,U>::maxConnections; i++)
+        for (byte i = 0; i < maxConnections; i++)
         {
             if (!clients[i])
             {
@@ -126,23 +126,24 @@ void Transport<S,C,U>::tcpSessionHandler(S* server)
             }
         }
     }
+
     // check for incoming data from all possible clients
-    for (byte i = 0; i < Transport<S,C,U>::maxConnections; i++)
+    for (byte i = 0; i < maxConnections; i++)
     {
         if (clients[i] && clients[i].available() > 0)
         {
-            // readStream(i);
             t->readStream(&connections[i]);
         }
         // stop any clients which disconnect
-        for (byte i = 0; i < Transport<S,C,U>::maxConnections; i++)
+        for (byte i = 0; i < maxConnections; i++)
         {
             if (clients[i] && !clients[i].connected())
             {
                 DIAG(F("\nDisconnect client #%d"), i);
                 clients[i].stop();
                 connections[i].isProtocolDefined = false;
-                if (diagNetworkClient == i && diagNetwork) {
+                if (diagNetworkClient == i && diagNetwork) 
+                {
                     diagNetwork = false;
                     StringFormatter::resetDiagOut();
                 }
@@ -152,22 +153,10 @@ void Transport<S,C,U>::tcpSessionHandler(S* server)
 }
 
 template<class S, class C, class U> 
-Transport<S,C,U>::Transport()
-{
-    // DIAG(F("Transport created "));
-}
-
+Transport<S,C,U>::Transport(){}
 template<class S, class C, class U> 
-Transport<S,C,U>::~Transport()
-{
-    // DIAG(F("Transport destroyed"));
-}
+Transport<S,C,U>::~Transport(){}
 
 // explicitly instatiate to get the relevant copies for ethernet / wifi build @compile time
 template class Transport<EthernetServer,EthernetClient,EthernetUDP>;
 template class Transport<WiFiServer, WiFiClient, WiFiUDP>;
-
-/*
- * Scratch pad Section
- */
-

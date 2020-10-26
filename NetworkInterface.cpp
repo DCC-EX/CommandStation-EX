@@ -19,14 +19,12 @@
 
 #include "DIAG.h"
 #include "NetworkInterface.h"
+#include "Transport.h"
 #include "EthernetSetup.h"
 #include "WifiSetup.h"
 
-HttpCallback NetworkInterface::httpCallback = 0;
-
-Transport<WiFiServer, WiFiClient, WiFiUDP> *NetworkInterface::wifiTransport;
-Transport<EthernetServer, EthernetClient, EthernetUDP> *NetworkInterface::ethernetTransport;
-transportType t;
+Transport<WiFiServer, WiFiClient, WiFiUDP>* wifiTransport;
+Transport<EthernetServer, EthernetClient, EthernetUDP>* ethernetTransport;
 
 void NetworkInterface::setup(transportType transport, protocolType protocol, uint16_t port)
 {
@@ -43,31 +41,29 @@ void NetworkInterface::setup(transportType transport, protocolType protocol, uin
     case WIFI:
     {
         WifiSetup wSetup(port, protocol);
-
-        wifiTransport = new Transport<WiFiServer, WiFiClient, WiFiUDP>();
         ok = wSetup.setup();
         if (ok)
         {
+            wifiTransport = new Transport<WiFiServer, WiFiClient, WiFiUDP>;
             wifiTransport->server = wSetup.getServer();
             wifiTransport->port = port;
             wifiTransport->protocol = protocol;
             wifiTransport->transport = transport;
             wifiTransport->maxConnections = wSetup.maxConnections;
-            ok = wifiTransport->setup();
+            ok = wifiTransport->setup(this);
         }
         break;
     };
     case ETHERNET:
     {
         EthernetSetup eSetup(port, protocol);
-
-        ethernetTransport = new Transport<EthernetServer, EthernetClient, EthernetUDP>();
-        ethernetTransport->server = eSetup.setup(); // returns (NULL) 0 if we run over UDP
+        ethernetTransport = new Transport<EthernetServer, EthernetClient, EthernetUDP>;
+        ethernetTransport->server = eSetup.setup(); // returns (NULL) 0 if we run over UDP; todo: error handling if something goes wrong in the init
         ethernetTransport->port = port;
         ethernetTransport->protocol = protocol;
         ethernetTransport->transport = transport;
         ethernetTransport->maxConnections = eSetup.maxConnections; // that has been determined during the ethernet/wifi setup
-        ok = ethernetTransport->setup();                           // start the transport i.e. setup all the client connections; We don't need the setup object anymore from here on
+        ok = ethernetTransport->setup(this);                           // start the transport i.e. setup all the client connections; We don't need the setup object anymore from here on
         break;
     };
     default:
@@ -117,19 +113,13 @@ void NetworkInterface::loop()
 
 void NetworkInterface::setHttpCallback(HttpCallback callback)
 {
-    httpCallback = callback;
+   this->httpCallback = callback;
 }
+
 HttpCallback NetworkInterface::getHttpCallback()
 {
-    return httpCallback;
+    return this->httpCallback;
 }
 
-NetworkInterface::NetworkInterface()
-{
-    // DIAG(F("NetworkInterface created "));
-}
-
-NetworkInterface::~NetworkInterface()
-{
-    // DIAG(F("NetworkInterface destroyed"));
-}
+NetworkInterface::NetworkInterface(){}
+NetworkInterface::~NetworkInterface(){}

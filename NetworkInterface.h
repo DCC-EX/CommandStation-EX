@@ -20,7 +20,7 @@
 
 #include <Arduino.h>
 
-#include "Transport.h"
+// #include "Transport.h"
 #include "HttpRequest.h"
 
 typedef enum protocolType {
@@ -32,29 +32,27 @@ typedef enum protocolType {
 typedef enum transportType {
     WIFI,                   // using an AT (Version >= V1.7) command enabled ESP8266 not to be used in conjunction with the WifiInterface though! not tested for conflicts
     ETHERNET                // using the EthernetShield
-} transoprtType;
+} transportType;
 
-// typedef void (*HttpCallback)(ParsedRequest *req, Client *client);
 using HttpCallback = void(*)(ParsedRequest *req, Client *client);
 
 class NetworkInterface
 {
 private:
 
-    static Transport<WiFiServer,WiFiClient,WiFiUDP>* wifiTransport;
-    static Transport<EthernetServer,EthernetClient,EthernetUDP>* ethernetTransport;
-    static HttpCallback httpCallback;
+    HttpCallback httpCallback;
+    transportType t;
 
 public:
     
-    static void setHttpCallback(HttpCallback callback);
-    static HttpCallback getHttpCallback();
-    static void setup(transportType t, protocolType p, uint16_t port);        // specific port nummber
-    static void setup(transportType t, protocolType p);                       // uses default port number
-    static void setup(transportType t);                                       // defaults for protocol/port 
+    void setHttpCallback(HttpCallback callback);
+    HttpCallback getHttpCallback();
+    void setup(transportType t, protocolType p, uint16_t port);        // specific port nummber
+    void setup(transportType t, protocolType p);                       // uses default port number
+    void setup(transportType t);                                       // defaults for protocol/port 
     
-    static void setup();                                                      // defaults for all as above plus CABLE (i.e. using EthernetShield ) as default
-    static void loop();
+    void setup();                                                      // defaults for all as above plus CABLE (i.e. using EthernetShield ) as default
+    void loop();
 
     NetworkInterface();
     ~NetworkInterface();

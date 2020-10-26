@@ -54,8 +54,6 @@ class StringFormatter
     static void printEscapes(char * input);
     static void printEscape( char c);
 
-
-
     static void setDiagOut(Connection *c) {
       if ( c->client->connected() ) {
         diagSerial = c->client;

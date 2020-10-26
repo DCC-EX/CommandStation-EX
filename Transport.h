@@ -23,37 +23,17 @@
 #include <Ethernet.h>
 #include <WiFiEspAT.h>
 
+#include "NetworkConfig.h"
 #include "NetworkInterface.h"
 #include "TransportProcessor.h"
-
- 
-#define MAX_SOCK_NUM 8                      // Maximum number of sockets allowed for any WizNet based EthernetShield. The W5100 only supports 4
-#define MAX_WIFI_SOCK 5                     // ESP8266 doesn't support more than 5 connections in //
-#define LISTEN_PORT 2560                    // default listen port for the server
-
-
-#define MAC_ADDRESS                        \
-    {                                      \
-        0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 \
-    }                            // MAC address of your networking card found on the sticker on your card or take one from above
-#define IP_ADDRESS 10, 0, 0, 101 // Just in case we don't get an adress from DHCP try a static one;
-
-// Emulate Serial1 on pins 6/7 if not present
-#if defined(ARDUINO_ARCH_AVR) && !defined(HAVE_HWSERIAL1)
-#include <SoftwareSerial.h>
-SoftwareSerial Serial1(6, 7); // RX, TX
-#define AT_BAUD_RATE 9600
-#else
-#define AT_BAUD_RATE 115200
-#endif
 
 template <class S, class C, class U> class Transport 
 {
 
 private:
-    C               clients[MAX_SOCK_NUM];              // Client objects created by the connectionPool
-    Connection      connections[MAX_SOCK_NUM];          // All the connections build by the connectionPool
-    bool            connected = false;                          
+    C                   clients[MAX_SOCK_NUM];          // Client objects created by the connectionPool
+    Connection          connections[MAX_SOCK_NUM];      // All the connections build by the connectionPool
+    bool                connected = false;                          
     TransportProcessor* t;                              // pointer to the object which handles the incomming flow
 
     void udpHandler();                                  // Reads from a Udp socket - todo add incomming queue for processing when the flow is faster than we can process commands
@@ -66,9 +46,9 @@ public:
     uint8_t         transport;              // WIFI or ETHERNET 
     S*              server;                 // WiFiServer or EthernetServer 
     U*              udp;                    // UDP socket object
-    uint8_t         maxConnections;         // number of supported connections depending on the network equipment used
+    uint8_t         maxConnections;         // number of supported connections depending on the network equipment use
 
-    bool setup();
+    bool setup(NetworkInterface* nwi);
     void loop(); 
 
     bool isConnected() {
