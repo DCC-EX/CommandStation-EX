@@ -562,7 +562,6 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
           return false;
         StringFormatter::send(stream, F("<O>"));
         return true;
-        break;
 
     case 0: // <S> lit sensor states
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
