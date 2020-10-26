@@ -435,14 +435,12 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
         return true;
 
     case 3: // <Z ID PIN INVERT>
-        Output::create(p[0], p[1], p[2], 1);
         if (!Output::create(p[0], p[1], p[2], 1))
           return false;            
         StringFormatter::send(stream, F("<O>"));
         return true;
 
     case 1: // <Z ID>
-        return Output::remove(p[0]);
         if (!Output::remove(p[0]))
           return false;
         StringFormatter::send(stream, F("<O>"));
@@ -554,15 +552,12 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
     switch (params)
     {
     case 3: // <S id pin pullup>  create sensor. pullUp indicator (0=LOW/1=HIGH)
-        Sensor::create(p[0], p[1], p[2]);
         if (!Sensor::create(p[0], p[1], p[2]))
           return false;
         StringFormatter::send(stream, F("<O>"));    
         return true;
 
     case 1: // S id> remove sensor
-        if (Sensor::remove(p[0]))
-            return true;
         if (!Sensor::remove(p[0]))
           return false;
         StringFormatter::send(stream, F("<O>"));
