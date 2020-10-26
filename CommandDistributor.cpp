@@ -27,5 +27,5 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     if (!parser) parser = new DCCEXParser();
     parser->parse(streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async
   }
-  else WiThrottle::getThrottle(clientId)->parse(*streamer, buffer);
+  else WiThrottle::getThrottle(clientId)->parse(streamer, buffer);
 }
