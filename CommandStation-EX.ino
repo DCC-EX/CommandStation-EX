@@ -19,7 +19,8 @@ DCCEXParser serialParser;
 
 // (0) Declare NetworkInterfaces
 // NetworkInterface wifi;
-NetworkInterface eth;
+NetworkInterface eth1;
+NetworkInterface eth2;
 // (0) Declared NetworkInterfaces
 
 // (1) Start NetworkInterface - HTTP callback
@@ -70,9 +71,10 @@ void setup()
   DIAG(F("\nFree RAM before network init: [%d]\n"),freeMemory());
   DIAG(F("\nNetwork Setup In Progress ...\n"));
 
-  // wifi.setup(WIFI);                                    // WIFI, TCP on Port 2560
-  eth.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
-  eth.setHttpCallback(httpRequestHandler);             // HTTP callback
+  // wifi.setup(WIFI);                                  // WIFI, TCP on Port 2560
+  eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
+  eth2.setup(ETHERNET, TCP);  
+  eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
 
   DIAG(F("\nNetwork Setup done ..."));
   DIAG(F("\nFree RAM after network init: [%d]\n"),freeMemory());
@@ -101,7 +103,8 @@ void loop()
 
 // (3) Start Loop NetworkInterface 
   // wifi.loop();
-  eth.loop();
+  eth1.loop();
+  eth2.loop();
 // (3) End Loop NetworkInterface
 
 
