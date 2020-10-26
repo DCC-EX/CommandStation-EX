@@ -394,12 +394,15 @@ void TransportProcessor::readStream(Connection *c)
             c->appProtocolHandler = (appProtocolCallback)echoProcessor;
             break;
         }
-        }
+        }   
     }
-
+#ifdef DCCEX_ENABLED 
+    DIAG(F("\nReceived packet of size:[%d]\n"), count);
+#else
     IPAddress remote = c->client->remoteIP();
-    buffer[count] = '\0'; // terminate the string properly
     DIAG(F("\nReceived packet of size:[%d] from [%d.%d.%d.%d]\n"), count, remote[0], remote[1], remote[2], remote[3]);
+#endif
+    buffer[count] = '\0'; // terminate the string properly
     DIAG(F("Client #:               [%d]\n"), c->id);
     DIAG(F("Packet:                 [%e]\n"), buffer);
 
