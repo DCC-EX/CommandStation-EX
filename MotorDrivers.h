@@ -21,7 +21,7 @@ const byte UNUSED_PIN = 255;
 // Arduino standard Motor Shield
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+                              new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A2, 2.99, 2000, UNUSED_PIN)
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                               \

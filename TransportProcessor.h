@@ -26,7 +26,7 @@
 #include "NetworkConfig.h"
 #include "NetworkInterface.h"
 
-// #define DCCEX_ENABLED
+#define DCCEX_ENABLED
 
 typedef enum
 {
