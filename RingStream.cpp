@@ -28,11 +28,12 @@ RingStream::RingStream( const uint16_t len)
   _pos_read=0;
   _buffer[0]=0;
   _overflow=false;
+  _mark=0;
 }
 
-size_t RingStream::write(uint8_t byte) {
+size_t RingStream::write(uint8_t b) {
   if (_overflow) return 0;
-  _buffer[_pos_write] = byte;
+  _buffer[_pos_write] = b;
   ++_pos_write;
   if (_pos_write>=_len) _pos_write=0;
   if (_pos_write==_pos_read) {
@@ -63,3 +64,23 @@ int RingStream::count() {
   }
   return counter;
   }
+
+int RingStream::freeSpace() {
+  if (_pos_read>_pos_write) return _pos_read-_pos_write-2;
+  else return _len - _pos_write + _pos_read-2;  
+}
+
+
+void RingStream::mark() {
+    _mark=_pos_write;
+}
+
+bool RingStream::commit() {
+  if (_overflow) {
+    _pos_write=_mark;
+    _overflow=false;
+    return false; // commit failed
+  }
+  write((uint8_t)0);
+  return true; // commit worked
+}

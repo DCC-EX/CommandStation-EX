@@ -65,9 +65,12 @@ void WifiInboundHandler::loop1() {
          cmd[count]=0;
          if (Diag::WIFI) DIAG(F("%e\n"),cmd); 
          
+         outboundRing->mark();  // remember start of outbound data 
          outboundRing->print(clientId);
          CommandDistributor::parse(clientId,cmd,outboundRing);
-         outboundRing->write((byte)0);
+         // The commit call will either write the null byte at the end of the output,
+         // OR rollback to the mark because the commend generated more than fits rthe buffer 
+         outboundRing->commit();
          return;
       }
    }
@@ -95,8 +98,11 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         }
         
         if (ch=='>') { 
-           if (Diag::WIFI) DIAG(F("[[XMIT %d]]"),currentReplySize);
-           for (int i=0;i<currentReplySize;i++) wifiStream->write(outboundRing->read());
+           for (int i=0;i<currentReplySize;i++) {
+             int cout=outboundRing->read();
+             wifiStream->write(cout);
+             if (Diag::WIFI) StringFormatter::printEscape(cout); // DIAG in disguise
+           }
            outboundRing->read(); // drop the end marker
            clientPendingCIPSEND=-1;
            pendingCipsend=false;
@@ -159,6 +165,12 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
             break;
           }
           if (Diag::WIFI) DIAG(F("\nWifi inbound data(%d:%d):"),runningClientId,dataLength); 
+          if (inboundRing->freeSpace()<=(dataLength+1)) {
+            // This input would overflow the inbound ring, ignore it  
+            loopState=IPD_IGNORE_DATA;
+            break;
+          }
+          inboundRing->mark();
           inboundRing->print(runningClientId); // prefix inbound with client id
           loopState=IPD_DATA;
           break; 
@@ -170,9 +182,14 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
          inboundRing->write(ch);    
         dataLength--;
         if (dataLength == 0) {
-           inboundRing->write((byte)0);    
+           inboundRing->commit();    
           loopState = ANYTHING;
         }
+        break;
+
+      case IPD_IGNORE_DATA: // ignoring data that would not fit in inbound ring
+        dataLength--;
+        if (dataLength == 0) loopState = ANYTHING;
         break;
 
       case GOT_CLIENT_ID:  // got x before CLOSE or CONNECTED
