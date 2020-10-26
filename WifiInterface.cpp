@@ -22,7 +22,7 @@
 #include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
-#include "WiThrottle.h"
+
 #include "WifiInboundHandler.h"
 
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
@@ -295,7 +295,6 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
 
 void WifiInterface::loop() {
   if (connected) {
-    WiThrottle::loop();
     WifiInboundHandler::loop(); 
   }
 }

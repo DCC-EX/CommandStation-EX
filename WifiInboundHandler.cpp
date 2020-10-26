@@ -31,6 +31,8 @@ void WifiInboundHandler::loop1() {
    // First handle all inbound traffic events because they will block the sending 
    if (loop2()!=INBOUND_IDLE) return;
 
+   WiThrottle::loop(outboundRing);
+   
     // if nothing is already CIPSEND pending, we can CIPSEND one reply
     if (clientPendingCIPSEND<0) {
        int next=outboundRing->read();

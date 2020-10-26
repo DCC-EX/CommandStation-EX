@@ -99,7 +99,7 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parse(Print & stream, byte * cmdx) {
+void WiThrottle::parse(RingStream & stream, byte * cmdx) {
   
   byte * cmd=cmdx;
   
@@ -334,10 +334,18 @@ int WiThrottle::WiTToDCCSpeed(int WiTSpeed) {
   return WiTSpeed + 1; //offset others by 1
 }
 
-void WiThrottle::loop() {
+void WiThrottle::loop(RingStream & stream) {
   // for each WiThrottle, check the heartbeat
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
      wt->checkHeartbeat();
+
+   // TODO... any broadcasts to be done 
+   /* MUST follow this model in  this loop. 
+    *   stream->mark();
+    *   send 1 digit client id, and any data 
+    *   stream->commit() 
+     */
+
 }
 
 void WiThrottle::checkHeartbeat() {

@@ -19,11 +19,12 @@
 #ifndef CommandDistributor_h
 #define CommandDistributor_h
 #include "DCCEXParser.h"
+#include "RingStream.h"
 
 class CommandDistributor {
 
 public :
-  static void parse(byte clientId,byte* buffer, Print * streamer);
+  static void parse(byte clientId,byte* buffer, RingStream * streamer);
 private:
    static DCCEXParser * parser;
 };

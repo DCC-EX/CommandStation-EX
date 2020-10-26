@@ -22,7 +22,7 @@
 
 DCCEXParser * CommandDistributor::parser=0; 
 
-void  CommandDistributor::parse(byte clientId,byte * buffer, Print * streamer) {
+void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * streamer) {
  if (buffer[0] == '<')  {
     if (!parser) parser = new DCCEXParser();
     parser->parse(streamer, buffer, true); // tell JMRI parser that ACKS are blocking because we can't handle the async

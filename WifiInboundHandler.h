@@ -2,6 +2,7 @@
 #define WifiInboundHandler_h
 
 #include "RingStream.h"
+#include "WiThrottle.h"
 #include "DIAG.h"
 
 class WifiInboundHandler {
