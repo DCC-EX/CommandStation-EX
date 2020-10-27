@@ -233,6 +233,8 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     }
   }
 
+  StringFormatter::send(wifiStream, F("AT+CIPSERVER=0\r\n")); // turn off tcp server (to clean connections before CIPMUX=1)
+  checkForOK(10000, OK_SEARCH, true); // ignore result in case it already was off
    
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
