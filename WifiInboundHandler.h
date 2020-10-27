@@ -44,6 +44,7 @@ class WifiInboundHandler {
    WifiInboundHandler(Stream * ESStream);
    void loop1();
    INBOUND_STATE loop2();
+   void purgeCurrentCIPSEND();
    Stream * wifiStream;
    
    static const int INBOUND_RING = 512;

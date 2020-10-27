@@ -127,13 +127,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
               break;
         }
 
-        if (ch=='E') { // ERROR
-          if (pendingCipsend) {
+        if (ch=='E' || ch=='l') { // ERROR or "link is not valid"
+          if (clientPendingCIPSEND>=0) {
             // A CIPSEND was errored... just toss it away
-            if (Diag::WIFI) DIAG(F("Wifi: drop previous CIPSEND\n"));
-            for (int i=0;i<=currentReplySize;i++) outboundRing->read();
-            clientPendingCIPSEND=-1;
-            pendingCipsend=false;  
+            purgeCurrentCIPSEND();  
           }
           loopState=SKIPTOEND; 
           break; 
@@ -208,22 +205,13 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         loopState=(ch==',') ? GOT_CLIENT_ID2: SKIPTOEND;
         break;
         
-      case GOT_CLIENT_ID2:  // got "x,"  before CLOSE or CONNECTED
-        loopState=(ch=='C') ? GOT_CLIENT_ID3: SKIPTOEND;
+      case GOT_CLIENT_ID2:  // got "x,"  
+        if (ch=='C') {
+         // got "x C" before CLOSE or CONNECTED, or CONNECT FAILED
+         if (runningClientId==clientPendingCIPSEND) purgeCurrentCIPSEND();
+        }
+        loopState=SKIPTOEND;   
         break;
-        
-      case GOT_CLIENT_ID3:  // got "x C" before CLOSE or CONNECTED (which is ignored)
-         if(ch=='L') {
-          // CLOSE 
-          if (runningClientId==clientPendingCIPSEND) {
-            // clear the outbound for this client
-            for (int i=0;i<=currentReplySize;i++) outboundRing->read();
-            clientPendingCIPSEND=-1;
-            pendingCipsend=false;  
-          }
-         }
-         loopState=SKIPTOEND;   
-         break;
          
       case SKIPTOEND: // skipping for /n
         if (ch=='\n') loopState=ANYTHING;
@@ -231,4 +219,12 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
     }  // switch
   } // available
   return (loopState==ANYTHING) ? INBOUND_IDLE: INBOUND_BUSY;
+}
+
+void WifiInboundHandler::purgeCurrentCIPSEND() {
+         // A CIPSEND was sent but errored... or the client closed just toss it away
+         if (Diag::WIFI) DIAG(F("Wifi: DROPPING CIPSEND=%d,%d\n"),clientPendingCIPSEND,currentReplySize);
+         for (int i=0;i<=currentReplySize;i++) outboundRing->read();
+         pendingCipsend=false;  
+         clientPendingCIPSEND=-1;
 }
