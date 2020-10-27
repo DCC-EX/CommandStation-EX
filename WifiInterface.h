@@ -24,6 +24,8 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 
+enum wifiSerialState { WIFI_NOAT, WIFI_DISCONNECTED, WIFI_CONNECTED };
+
 class WifiInterface
 {
 
@@ -37,11 +39,11 @@ public:
   static void ATCommand(const byte *command);
 
 private:
-  static bool setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
+  static wifiSerialState setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                     const __FlashStringHelper *hostname, int port);
   static Stream *wifiStream;
   static DCCEXParser parser;
-  static bool setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
+  static wifiSerialState setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                      const __FlashStringHelper *hostname, int port);
   static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
