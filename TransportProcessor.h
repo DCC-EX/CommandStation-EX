@@ -26,8 +26,6 @@
 #include "NetworkConfig.h"
 #include "NetworkInterface.h"
 
-#define DCCEX_ENABLED
-
 typedef enum
 {
     DCCEX,      // if char[0] = < opening bracket the client should be a JMRI / DCC EX client_h
@@ -45,13 +43,13 @@ using appProtocolCallback = void (*)(Connection* c, TransportProcessor* t);
 
 struct Connection
 {
-    uint8_t id;
-    Client *client;
-    char overflow[MAX_OVERFLOW];
-    appProtocol p;
-    char delimiter = '\0';
-    bool isProtocolDefined = false;
-    appProtocolCallback appProtocolHandler;
+    uint8_t id;                             // initalized when the pool is setup
+    Client *client;                         // idem
+    char overflow[MAX_OVERFLOW];            // idem
+    appProtocol p;                          // dynamically determined upon message reception; first message wins
+    char delimiter = '\0';                  // idem
+    bool isProtocolDefined = false;         // idem
+    appProtocolCallback appProtocolHandler; // idem
 };
 
 class TransportProcessor

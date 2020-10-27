@@ -18,9 +18,8 @@
 DCCEXParser serialParser;
 
 // (0) Declare NetworkInterfaces
-// NetworkInterface wifi;
+NetworkInterface wifi;
 NetworkInterface eth1;
-NetworkInterface eth2;
 // (0) Declared NetworkInterfaces
 
 // (1) Start NetworkInterface - HTTP callback
@@ -70,10 +69,18 @@ void setup()
 
   DIAG(F("\nFree RAM before network init: [%d]\n"),freeMemory());
   DIAG(F("\nNetwork Setup In Progress ...\n"));
+  
+  // WIFI, TCP on Port 2560, Wifi (ssid/password) has been configured permanetly already on the esp. If
+  // the connection fails will go into AP mode 
+  // wifi.setup(WIFI);   
 
-  // wifi.setup(WIFI);                                  // WIFI, TCP on Port 2560
+  // New connection on known ssid / password combo / port can be added as a last parameter other wise the default of 2560
+  // will be used. If it passes the connection will be stored as permanent default. If fails will go into AP mode.                
+  // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME));
+  // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME, 2323)
+
   eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
-  eth2.setup(ETHERNET, TCP);  
+  wifi.setup(WIFI, TCP);                                // WIFI on Port 2560
   eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
 
   DIAG(F("\nNetwork Setup done ..."));
@@ -104,7 +111,6 @@ void loop()
 // (3) Start Loop NetworkInterface 
 NetworkInterface::loop();
 // (3) End Loop NetworkInterface
-
 
   LCDDisplay::loop();  // ignored if LCD not in use 
   

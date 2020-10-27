@@ -27,7 +27,7 @@
 #include "DCCEXParser.h"
 #include "MemStream.h"
 
-DCCEXParser ethParser;
+DCCEXParser dccParser;
 
 #endif
 
@@ -35,7 +35,7 @@ HttpRequest httpReq;
 uint16_t _rseq[MAX_SOCK_NUM] = {0};
 uint16_t _sseq[MAX_SOCK_NUM] = {0};
 
-char protocolName[4][11] = {"JMRI", "WITHROTTLE", "HTTP", "UNKNOWN"}; // change for Progmem
+char protocolName[5][11] = {"JMRI", "WITHROTTLE", "HTTP", "DIAG" , "UNKNOWN"}; // change for Progmem
 bool diagNetwork = false;
 uint8_t diagNetworkClient = 0;
 
@@ -52,25 +52,24 @@ uint8_t diagNetworkClient = 0;
 
 void sendToDCC(Connection *c, TransportProcessor* t, bool blocking)
 {
-    static MemStream *streamer = new MemStream((byte *)t->command, MAX_ETH_BUFFER, MAX_ETH_BUFFER, true);
+    MemStream streamer((byte *)t->command, MAX_ETH_BUFFER, MAX_ETH_BUFFER, true);
 
     DIAG(F("DCC parsing:            [%e]\n"), t->command);
     // as we use buffer for recv and send we have to reset the write position
-    streamer->setBufferContentPosition(0, 0);
+    streamer.setBufferContentPosition(0, 0);
+    dccParser.parse(&streamer, (byte *)t->command, true); // set to true to that the execution in DCC is sync
 
-    ethParser.parse(streamer, (byte *)t->command, true); // set to true to that the execution in DCC is sync
-
-    if (streamer->available() == 0)
+    if (streamer.available() == 0)
     {
         DIAG(F("No response\n"));
     }
     else
     {
-        t->command[streamer->available()] = '\0'; // mark end of buffer, so it can be used as a string later
+        t->command[streamer.available()] = '\0'; // mark end of buffer, so it can be used as a string later
         DIAG(F("Response: %s\n"), t->command);
         if (c->client->connected())
         {
-            c->client->write((byte *)t->command, streamer->available());
+            c->client->write((byte *)t->command, streamer.available());
         }
     }
 }

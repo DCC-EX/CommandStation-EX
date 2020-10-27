@@ -46,6 +46,7 @@ void Transport<S,C,U>::loop() {
     };
     case TCP:
     {
+        // DIAG(F("Transport: %s\n"), this->transport == WIFI ? "WIFI" : "ETHERNET"); 
         tcpSessionHandler(server);    
     };
     case MQTT:
@@ -62,9 +63,9 @@ void Transport<S, C, U>::connectionPool(S *server)
     for (int i = 0; i < Transport::maxConnections; i++)
     {
         clients[i] = server->accept();
-        connections[i].client = &clients[i];                // set the client 
-        memset(connections[i].overflow, 0, MAX_OVERFLOW);   // clear overflow buffer
-        connections[i].id = i;                              // ser the client id
+        connections[i].client = &clients[i];              
+        memset(connections[i].overflow, 0, MAX_OVERFLOW); 
+        connections[i].id = i;
         DIAG(F("\nConnection pool:       [%d:%x]"), i, connections[i].client);
     }
 }
