@@ -20,13 +20,13 @@
 
 #include <Arduino.h>
 
-// #include "Transport.h"
+#include "NetworkConfig.h"
 #include "HttpRequest.h"
 
 typedef enum protocolType {
     TCP,
     UDP,
-    MQTT                
+    MQTT                      
 } protocolType;
 
 typedef enum transportType {
@@ -36,15 +36,46 @@ typedef enum transportType {
 
 using HttpCallback = void(*)(ParsedRequest *req, Client *client);
 
+/**
+ * @brief Abstract parent class of the templated ( Ethernet or Wifi ) class 
+ * Instances of Transports are hold through this in an array in DCCNetwork which describes and 
+ * actually manages the available transports.
+ */
+struct AbstractTransport {
+    void loop(){};
+    virtual ~AbstractTransport(){};
+};
+
+/**
+ * @brief Core class holding and running the instantiated Transports 
+ * initalized through the NetworkInterface. The number of transports is 
+ * limited by MAX_INTERFACES
+ * 
+ */
+class DCCNetwork {
+    private:
+        byte _tCounter = 0;
+        transportType _t[MAX_INTERFACES];
+    public: 
+        AbstractTransport *transports[MAX_INTERFACES];
+
+        byte add(AbstractTransport* t, transportType _t);
+        void loop();
+};
+
+/**
+ * @brief Main entry point and provider of callbacks. Sole responsibility is to create
+ * the transport endpoints and loop over them for processing
+ * 
+ */
 class NetworkInterface
 {
 private:
-
     HttpCallback httpCallback;
     transportType t;
 
 public:
-    
+
     void setHttpCallback(HttpCallback callback);
     HttpCallback getHttpCallback();
     void setup(transportType t, protocolType p, uint16_t port);        // specific port nummber
@@ -52,7 +83,7 @@ public:
     void setup(transportType t);                                       // defaults for protocol/port 
     
     void setup();                                                      // defaults for all as above plus CABLE (i.e. using EthernetShield ) as default
-    void loop();
+    static void loop();
 
     NetworkInterface();
     ~NetworkInterface();

@@ -27,7 +27,7 @@
 #include "NetworkInterface.h"
 #include "TransportProcessor.h"
 
-template <class S, class C, class U> class Transport 
+template <class S, class C, class U> class Transport: public AbstractTransport
 {
 
 private:
@@ -41,6 +41,7 @@ private:
     void connectionPool(S* server);                     // allocates the Sockets at setup time and creates the Connections
    
 public:
+    uint8_t         id;
     uint16_t        port;
     uint8_t         protocol;               // TCP or UDP  
     uint8_t         transport;              // WIFI or ETHERNET 
@@ -48,7 +49,7 @@ public:
     U*              udp;                    // UDP socket object
     uint8_t         maxConnections;         // number of supported connections depending on the network equipment use
 
-    bool setup(NetworkInterface* nwi);
+    bool setup(NetworkInterface* nwi);      // we get the callbacks from the NetworkInterface 
     void loop(); 
 
     bool isConnected() {

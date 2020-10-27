@@ -102,9 +102,7 @@ void loop()
 
 
 // (3) Start Loop NetworkInterface 
-  // wifi.loop();
-  eth1.loop();
-  eth2.loop();
+NetworkInterface::loop();
 // (3) End Loop NetworkInterface
 
 

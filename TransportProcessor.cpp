@@ -52,30 +52,25 @@ uint8_t diagNetworkClient = 0;
 
 void sendToDCC(Connection *c, TransportProcessor* t, bool blocking)
 {
-    char * _command = t->command;
+    static MemStream *streamer = new MemStream((byte *)t->command, MAX_ETH_BUFFER, MAX_ETH_BUFFER, true);
 
-    static MemStream *streamer = new MemStream((byte *)_command, MAX_ETH_BUFFER, MAX_ETH_BUFFER, true);
-
-    DIAG(F("DCC parsing:            [%e]\n"), _command);
+    DIAG(F("DCC parsing:            [%e]\n"), t->command);
     // as we use buffer for recv and send we have to reset the write position
     streamer->setBufferContentPosition(0, 0);
 
-    ethParser.parse(streamer, (byte *)_command, true); // set to true to that the execution in DCC is sync
+    ethParser.parse(streamer, (byte *)t->command, true); // set to true to that the execution in DCC is sync
 
     if (streamer->available() == 0)
     {
-        if (c->client->connected())
-        {
-            c->client->write((byte *)F("No response\n"), streamer->available());
-        }
+        DIAG(F("No response\n"));
     }
     else
     {
-        _command[streamer->available()] = '\0'; // mark end of buffer, so it can be used as a string later
-        DIAG(F("Response: %s\n"), _command);
+        t->command[streamer->available()] = '\0'; // mark end of buffer, so it can be used as a string later
+        DIAG(F("Response: %s\n"), t->command);
         if (c->client->connected())
         {
-            c->client->write((byte *)_command, streamer->available());
+            c->client->write((byte *)t->command, streamer->available());
         }
     }
 }
@@ -257,17 +252,16 @@ appProtocol setAppProtocol(char a, char b, Connection *c)
 void processStream(Connection *c, TransportProcessor *t)
 {
     uint8_t i, j, k, l = 0;
-    uint8_t* _buffer = t->buffer;
-    char* _command = t->command;
+    uint8_t *_buffer = t->buffer;
 
     DIAG(F("\nBuffer:                 [%e]\n"), _buffer);
-    memset(_command, 0, MAX_JMRI_CMD); // clear out the command
+    memset(t->command, 0, MAX_JMRI_CMD); // clear out the command
 
     // copy overflow into the command
     if ((i = strlen(c->overflow)) != 0)
     {
         // DIAG(F("\nCopy overflow to command: %e"), c->overflow);
-        strncpy(_command, c->overflow, i);
+        strncpy(t->command, c->overflow, i);
         k = i;
     }
     // reset the overflow
@@ -296,19 +290,19 @@ void processStream(Connection *c, TransportProcessor *t)
     }
     // breakup the buffer using its changed length
     i = 0;
-    k = strlen(_command); // current length of the command buffer telling us where to start copy in
+    k = strlen(t->command); // current length of the command buffer telling us where to start copy in
     l = strlen((char *)_buffer);
     // DIAG(F("\nCommand buffer: [%s]:[%d:%d:%d]\n"), command, i, l, k );
     while (i < l)
     {
         // DIAG(F("\nl: %d k: %d , i: %d"), l, k, i);
-        _command[k] = _buffer[i];
+        t->command[k] = _buffer[i];
         if (_buffer[i] == c->delimiter)
         { // closing bracket need to fix if there is none before an opening bracket ?
 
-            _command[k + 1] = '\0';
+            t->command[k + 1] = '\0';
 
-            DIAG(F("Command:                [%d:%e]\n"), _rseq[c->id], _command);
+            DIAG(F("Command:                [%d:%e]\n"), _rseq[c->id], t->command);
 #ifdef DCCEX_ENABLED
             sendToDCC(c, t, true);
 #else
@@ -394,7 +388,7 @@ void TransportProcessor::readStream(Connection *c)
             c->appProtocolHandler = (appProtocolCallback)echoProcessor;
             break;
         }
-        }   
+        }
     }
 #ifdef DCCEX_ENABLED 
     DIAG(F("\nReceived packet of size:[%d]\n"), count);

@@ -62,8 +62,9 @@ void Transport<S, C, U>::connectionPool(S *server)
     for (int i = 0; i < Transport::maxConnections; i++)
     {
         clients[i] = server->accept();
-        connections[i].client = &clients[i];
-        connections[i].id = i;
+        connections[i].client = &clients[i];                // set the client 
+        memset(connections[i].overflow, 0, MAX_OVERFLOW);   // clear overflow buffer
+        connections[i].id = i;                              // ser the client id
         DIAG(F("\nConnection pool:       [%d:%x]"), i, connections[i].client);
     }
 }
