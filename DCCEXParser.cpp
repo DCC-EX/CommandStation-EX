@@ -436,7 +436,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
 
     case 3: // <Z ID PIN INVERT>
         if (!Output::create(p[0], p[1], p[2], 1))
-          return false;            
+          return false;
         StringFormatter::send(stream, F("<O>"));
         return true;
 
@@ -554,7 +554,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
     case 3: // <S id pin pullup>  create sensor. pullUp indicator (0=LOW/1=HIGH)
         if (!Sensor::create(p[0], p[1], p[2]))
           return false;
-        StringFormatter::send(stream, F("<O>"));    
+        StringFormatter::send(stream, F("<O>"));
         return true;
 
     case 1: // S id> remove sensor
@@ -564,6 +564,8 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
         return true;
 
     case 0: // <S> lit sensor states
+	if (Sensor::firstSensor == NULL)
+	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
         {
             StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
