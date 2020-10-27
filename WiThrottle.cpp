@@ -99,7 +99,7 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parse(Print & stream, byte * cmdx) {
+void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   
   byte * cmd=cmdx;
   
@@ -205,7 +205,7 @@ int WiThrottle::getLocoId(byte * cmd) {
     if (cmd[0]!='L' && cmd[0]!='S') return 0; // should not match any locos
     return getInt(cmd+1); 
 }
-void WiThrottle::multithrottle(Print & stream, byte * cmd){ 
+void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
           byte * aval=cmd;
@@ -256,7 +256,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
             }
 }
 
-void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int cab){
+void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
 //    DIAG(F("\nLoco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
      switch (aval[0]) {
@@ -334,10 +334,19 @@ int WiThrottle::WiTToDCCSpeed(int WiTSpeed) {
   return WiTSpeed + 1; //offset others by 1
 }
 
-void WiThrottle::loop() {
+void WiThrottle::loop(RingStream * stream) {
   // for each WiThrottle, check the heartbeat
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
      wt->checkHeartbeat();
+
+   // TODO... any broadcasts to be done 
+   (void)stream; 
+   /* MUST follow this model in  this loop. 
+    *   stream->mark();
+    *   send 1 digit client id, and any data 
+    *   stream->commit() 
+     */
+
 }
 
 void WiThrottle::checkHeartbeat() {

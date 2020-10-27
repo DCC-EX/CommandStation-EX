@@ -2,6 +2,7 @@
 #define WifiInboundHandler_h
 
 #include "RingStream.h"
+#include "WiThrottle.h"
 #include "DIAG.h"
 
 class WifiInboundHandler {
@@ -32,6 +33,7 @@ class WifiInboundHandler {
           IPD5,        // got +IPD,c 
           IPD6_LENGTH, // got +IPD,c, reading length 
           IPD_DATA,    // got +IPD,c,ll,: collecting data
+          IPD_IGNORE_DATA, // got +IPD,c,ll,: ignoring the data that won't fit inblound Ring
 
           GOT_CLIENT_ID,  // clientid prefix to CONNECTED / CLOSED
           GOT_CLIENT_ID2,  // clientid prefix to CONNECTED / CLOSED
@@ -42,10 +44,11 @@ class WifiInboundHandler {
    WifiInboundHandler(Stream * ESStream);
    void loop1();
    INBOUND_STATE loop2();
+   void purgeCurrentCIPSEND();
    Stream * wifiStream;
    
-   static const int INBOUND_RING = 200;
-   static const int OUTBOUND_RING = 1024;
+   static const int INBOUND_RING = 512;
+   static const int OUTBOUND_RING = 2048;
  
    RingStream * inboundRing;
    RingStream * outboundRing;

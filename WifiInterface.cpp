@@ -22,7 +22,7 @@
 #include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
-#include "WiThrottle.h"
+
 #include "WifiInboundHandler.h"
 
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
@@ -90,6 +90,11 @@ bool WifiInterface::setup(long serial_link_speed,
   }
 #endif
 
+DCCEXParser::setAtCommandCallback(ATCommand);
+
+// CAUTION... ONLY CALL THIS ONCE 
+WifiInboundHandler::setup(wifiStream);
+  
 return wifiUp; 
 }
 
@@ -109,8 +114,6 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     checkForOK(200, OK_SEARCH, true);      
   }
 
-  DCCEXParser::setAtCommandCallback(ATCommand);
-  WifiInboundHandler::setup(wifiStream);
     
   DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
   return connected;
@@ -297,7 +300,6 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
 
 void WifiInterface::loop() {
   if (connected) {
-    WiThrottle::loop();
     WifiInboundHandler::loop(); 
   }
 }

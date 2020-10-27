@@ -19,6 +19,7 @@
 #ifndef WiThrottle_h
 #define WiThrottle_h
 
+#include "RingStream.h"
 
 struct MYLOCO {
     char throttle; //indicates which throttle letter on client, often '0','1' or '2'
@@ -27,8 +28,8 @@ struct MYLOCO {
 
 class WiThrottle {
   public:  
-    static void loop();
-    void parse(Print & stream, byte * cmd);
+    static void loop(RingStream * stream);
+    void parse(RingStream * stream, byte * cmd);
     static WiThrottle* getThrottle( int wifiClient); 
     static bool annotateLeftRight;
   private: 
@@ -56,9 +57,9 @@ class WiThrottle {
       bool lastPowerState;  // last power state sent to this client
       int DCCToWiTSpeed(int DCCSpeed);
       int WiTToDCCSpeed(int WiTSpeed);
-      void multithrottle(Print & stream, byte * cmd);
-      void locoAction(Print & stream, byte* aval, char throttleChar, int cab);
-      void accessory(Print & stream, byte* cmd);
+      void multithrottle(RingStream * stream, byte * cmd);
+      void locoAction(RingStream * stream, byte* aval, char throttleChar, int cab);
+      void accessory(RingStream *, byte* cmd);
       void checkHeartbeat();  
 };
 #endif

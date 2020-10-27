@@ -30,12 +30,17 @@ class RingStream : public Print {
     using Print::write;
     int read();
     int count();
+    int freeSpace();
+    void mark(uint8_t b);
+    bool commit();
 
  private:
    int _len;
    int _pos_write;
    int _pos_read;
    bool _overflow;
+   int _mark;
+   int _count;
    byte * _buffer;
 };
 
