@@ -85,7 +85,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
     }
 
     switch (loopState) {
-      case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED, ERROR 
+      case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED, ERROR, SEND OK 
         
         if (ch == '+') {
           loopState = IPD;
@@ -109,6 +109,11 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
           loopState=SKIPTOEND;
           break;
         }
+       
+        if (ch=='S') { // SEND OK probably 
+          loopState=SKIPTOEND;
+          break;
+        }
         
         if (ch=='b') {   // This is a busy indicator... probabaly must restart a CIPSEND  
            pendingCipsend=(clientPendingCIPSEND>=0);
@@ -120,6 +125,18 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
               runningClientId=ch-'0';
               loopState=GOT_CLIENT_ID;
               break;
+        }
+
+        if (ch=='E') { // ERROR
+          if (pendingCipsend) {
+            // A CIPSEND was errored... just toss it away
+            if (Diag::WIFI) DIAG(F("Wifi: drop previous CIPSEND\n"));
+            for (int i=0;i<=currentReplySize;i++) outboundRing->read();
+            clientPendingCIPSEND=-1;
+            pendingCipsend=false;  
+          }
+          loopState=SKIPTOEND; 
+          break; 
         }
         
         break;
@@ -200,7 +217,9 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
           // CLOSE 
           if (runningClientId==clientPendingCIPSEND) {
             // clear the outbound for this client
-            for (int i=0;i<=currentReplySize;i++) outboundRing->read(); 
+            for (int i=0;i<=currentReplySize;i++) outboundRing->read();
+            clientPendingCIPSEND=-1;
+            pendingCipsend=false;  
           }
          }
          loopState=SKIPTOEND;   
