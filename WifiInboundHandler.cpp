@@ -35,18 +35,13 @@ void WifiInboundHandler::loop1() {
    
     // if nothing is already CIPSEND pending, we can CIPSEND one reply
     if (clientPendingCIPSEND<0) {
-       int next=outboundRing->read();
-       if (next>=0) {
+       clientPendingCIPSEND=outboundRing->read();
+       if (clientPendingCIPSEND>=0) {
          currentReplySize=outboundRing->count();
-         if (currentReplySize==0) {
-          outboundRing->read(); // drop end marker
-         }
-         else {
-          clientPendingCIPSEND=next-'0'; // convert back to int         
-          pendingCipsend=true;
-         }
+         pendingCipsend=true;
        }
-    } 
+     }
+    
 
     if (pendingCipsend) {
          if (Diag::WIFI) DIAG( F("\nWiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
@@ -57,21 +52,19 @@ void WifiInboundHandler::loop1() {
     
     
     // if something waiting to execute, we can call it 
-      int next=inboundRing->read();
-      if (next>0) {
-         int clientId=next-'0'; //convert char to int
+      int clientId=inboundRing->read();
+      if (clientId>=0) {
          int count=inboundRing->count();
-         if (Diag::WIFI) DIAG(F("\nExec waiting %d %d:"),clientId,count); 
+         if (Diag::WIFI) DIAG(F("\nWifi EXEC: %d %d:"),clientId,count); 
          byte cmd[count+1];
          for (int i=0;i<count;i++) cmd[i]=inboundRing->read();   
          cmd[count]=0;
          if (Diag::WIFI) DIAG(F("%e\n"),cmd); 
          
-         outboundRing->mark();  // remember start of outbound data 
-         outboundRing->print(clientId);
+         outboundRing->mark(clientId);  // remember start of outbound data 
          CommandDistributor::parse(clientId,cmd,outboundRing);
-         // The commit call will either write the null byte at the end of the output,
-         // OR rollback to the mark because the commend generated more than fits rthe buffer 
+         // The commit call will either write the lenbgth bytes 
+         // OR rollback to the mark because the reply is empty or commend generated more than fits the buffer 
          outboundRing->commit();
          return;
       }
@@ -92,7 +85,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
     }
 
     switch (loopState) {
-      case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED 
+      case ANYTHING:  // looking for +IPD, > , busy ,  n,CONNECTED, n,CLOSED, ERROR 
         
         if (ch == '+') {
           loopState = IPD;
@@ -100,12 +93,12 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         }
         
         if (ch=='>') { 
+           if (Diag::WIFI) DIAG(F("[XMIT %d]"),currentReplySize); 
            for (int i=0;i<currentReplySize;i++) {
              int cout=outboundRing->read();
              wifiStream->write(cout);
              if (Diag::WIFI) StringFormatter::printEscape(cout); // DIAG in disguise
            }
-           outboundRing->read(); // drop the end marker
            clientPendingCIPSEND=-1;
            pendingCipsend=false;
            loopState=SKIPTOEND;
@@ -170,10 +163,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
           if (inboundRing->freeSpace()<=(dataLength+1)) {
             // This input would overflow the inbound ring, ignore it  
             loopState=IPD_IGNORE_DATA;
+            if (Diag::WIFI) DIAG(F("\nWifi OVERFLOW IGNORING:"));    
             break;
           }
-          inboundRing->mark();
-          inboundRing->print(runningClientId); // prefix inbound with client id
+          inboundRing->mark(runningClientId);
           loopState=IPD_DATA;
           break; 
         }
@@ -181,10 +174,10 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case IPD_DATA: // reading data
-         inboundRing->write(ch);    
+        inboundRing->write(ch);    
         dataLength--;
         if (dataLength == 0) {
-           inboundRing->commit();    
+          inboundRing->commit();    
           loopState = ANYTHING;
         }
         break;

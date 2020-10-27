@@ -29,58 +29,71 @@ RingStream::RingStream( const uint16_t len)
   _buffer[0]=0;
   _overflow=false;
   _mark=0;
+  _count=0; 
 }
 
 size_t RingStream::write(uint8_t b) {
   if (_overflow) return 0;
   _buffer[_pos_write] = b;
   ++_pos_write;
-  if (_pos_write>=_len) _pos_write=0;
+  if (_pos_write==_len) _pos_write=0;
   if (_pos_write==_pos_read) {
     _overflow=true; 
-    DIAG(F("\nRingStream(%d) OVERFLOW  %d %d \n"),_len, _pos_write, _pos_read);
     return 0;
   }
+  _count++;
   return 1;
 }
 
 int RingStream::read() {
-  if (_pos_read==_pos_write) return -1; 
+  if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty  
   byte b=_buffer[_pos_read];
   _pos_read++;
-  if (_pos_read>=_len) _pos_read=0;
+  if (_pos_read==_len) _pos_read=0;
   _overflow=false;
   return b;
 }
 
 
 int RingStream::count() {
-  int peek=_pos_read;
-  int counter=0;
-  while(_buffer[peek]) {
-    counter++;
-    peek++;
-    if (peek >= _len) peek=0;
-  }
-  return counter;
+  return (read()<<8) | read(); 
   }
 
 int RingStream::freeSpace() {
-  if (_pos_read>_pos_write) return _pos_read-_pos_write-2;
-  else return _len - _pos_write + _pos_read-2;  
+  // allow space for client flag and length bytes
+  if (_pos_read>_pos_write) return _pos_read-_pos_write-3;
+  else return _len - _pos_write + _pos_read-3;  
 }
 
 
-void RingStream::mark() {
+// mark start of message with client id (0...9)
+void RingStream::mark(uint8_t b) {
     _mark=_pos_write;
+    write(b); // client id
+    write((uint8_t)0);  // count MSB placemarker
+    write((uint8_t)0);  // count LSB placemarker
+    _count=0;
 }
 
 bool RingStream::commit() {
   if (_overflow) {
-    _pos_write=_mark;
-    _overflow=false;
-    return false; // commit failed
+        DIAG(F("\nRingStream(%d) commit(%d) OVERFLOW\n"),_len, _count);
+        // just throw it away 
+        _pos_write=_mark;
+        _overflow=false;
+        return false; // commit failed
   }
-  write((uint8_t)0);
+  if (_count==0) {
+    // ignore empty response 
+    _pos_write=_mark;
+    return true; // true=commit ok
+  }
+  // Go back to the _mark and inject the count 1 byte later
+  _mark++;
+  if (_mark==_len) _mark=0;
+  _buffer[_mark]=highByte(_count);
+  _mark++;
+  if (_mark==_len) _mark=0;
+  _buffer[_mark]=lowByte(_count);
   return true; // commit worked
 }

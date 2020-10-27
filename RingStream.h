@@ -31,7 +31,7 @@ class RingStream : public Print {
     int read();
     int count();
     int freeSpace();
-    void mark();
+    void mark(uint8_t b);
     bool commit();
 
  private:
@@ -40,6 +40,7 @@ class RingStream : public Print {
    int _pos_read;
    bool _overflow;
    int _mark;
+   int _count;
    byte * _buffer;
 };
 
