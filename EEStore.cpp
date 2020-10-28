@@ -18,7 +18,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <ctype.h>     // isascii in dump for diagnostics
 #include "EEStore.h"
 #include "Turnouts.h"
 #include "Sensors.h"
@@ -98,7 +97,7 @@ void EEStore::dump(int num) {
     DIAG(F("\nAddr  0x  char\n"));
     for (int n=0 ; n<num; n++) {
 	EEPROM.get(n, b);
-	DIAG(F("%d     %x    %c\n"),n,b,isascii(b) ? b : ' ');
+	DIAG(F("%d     %x    %c\n"),n,b,isprint(b) ? b : ' ');
     }
 }
 ///////////////////////////////////////////////////////////////////////////////
