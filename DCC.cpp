@@ -155,6 +155,15 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
   return funcstate;
 }
 
+int DCC::getFn( int cab, byte functionNumber) {
+  if (cab<=0 || functionNumber>28) return -1;  // unknown
+  int reg = lookupSpeedTable(cab);
+  if (reg<0) return -1;  
+
+  unsigned long funcmask = (1UL<<functionNumber);
+  return  (speedTable[reg].functions & funcmask)? 1 : 0;
+}
+
 // Set the group flag to say we have touched the particular group.
 // A group will be reminded only if it has been touched.  
 void DCC::updateGroupflags(byte & flags, int functionNumber) {

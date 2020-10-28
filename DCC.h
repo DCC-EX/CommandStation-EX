@@ -72,6 +72,7 @@ public:
   static void setFunction(int cab, byte fByte, byte eByte);
   static void setFn(int cab, byte functionNumber, bool on);
   static int changeFn(int cab, byte functionNumber, bool pressed);
+  static int  getFn(int cab, byte functionNumber);
   static void updateGroupflags(byte &flags, int functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);

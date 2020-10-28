@@ -22,7 +22,7 @@
 #include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
-#include "WiThrottle.h"
+
 #include "WifiInboundHandler.h"
 
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
@@ -90,6 +90,11 @@ bool WifiInterface::setup(long serial_link_speed,
   }
 #endif
 
+DCCEXParser::setAtCommandCallback(ATCommand);
+
+// CAUTION... ONLY CALL THIS ONCE 
+WifiInboundHandler::setup(wifiStream);
+  
 return wifiUp; 
 }
 
@@ -109,8 +114,6 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
     checkForOK(200, OK_SEARCH, true);      
   }
 
-  DCCEXParser::setAtCommandCallback(ATCommand);
-  WifiInboundHandler::setup(wifiStream);
     
   DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
   return connected;
@@ -233,6 +236,8 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     }
   }
 
+  StringFormatter::send(wifiStream, F("AT+CIPSERVER=0\r\n")); // turn off tcp server (to clean connections before CIPMUX=1)
+  checkForOK(10000, OK_SEARCH, true); // ignore result in case it already was off
    
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
   if (!checkForOK(10000, OK_SEARCH, true)) return false;
@@ -295,7 +300,6 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
 
 void WifiInterface::loop() {
   if (connected) {
-    WiThrottle::loop();
     WifiInboundHandler::loop(); 
   }
 }

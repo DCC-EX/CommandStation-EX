@@ -99,17 +99,9 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parse(Print & stream, byte * cmdx) {
+void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   
-  // we have to take a copy of the cmd buffer as the reply will get built into the cmdx  
-  byte local[150];
-  for (byte i=0;i<sizeof(local)-1;i++) {
-    local[i]=cmdx[i];
-    if (!cmdx[i]) break;
-  }
-  local[149]='\0'; // prevent runaway parser
-  
-  byte * cmd=local;
+  byte * cmd=cmdx;
   
   heartBeat=millis();
   if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
@@ -213,7 +205,7 @@ int WiThrottle::getLocoId(byte * cmd) {
     if (cmd[0]!='L' && cmd[0]!='S') return 0; // should not match any locos
     return getInt(cmd+1); 
 }
-void WiThrottle::multithrottle(Print & stream, byte * cmd){ 
+void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
           byte * aval=cmd;
@@ -239,8 +231,11 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
-                    // TODO... get known Fn states from DCC (need memoryStream improvements to handle data length)
-                    // for(fKey=0; fKey<29; fKey++)StringFormatter::send(stream,F("M%cA%c<;>F0&s\n"),throttleChar,cmd[3],fkey);
+                    //Get known Fn states from DCC 
+                    for(int fKey=0; fKey<=28; fKey++) { 
+                      int fstate=DCC::getFn(locoid,fKey);
+                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c<;>F%d%d\n"),throttleChar,cmd[3],fstate,fKey);
+                    }
                     StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
                     StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
                     StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
@@ -261,7 +256,7 @@ void WiThrottle::multithrottle(Print & stream, byte * cmd){
             }
 }
 
-void WiThrottle::locoAction(Print & stream, byte* aval, char throttleChar, int cab){
+void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
 //    DIAG(F("\nLoco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
      switch (aval[0]) {
@@ -339,10 +334,19 @@ int WiThrottle::WiTToDCCSpeed(int WiTSpeed) {
   return WiTSpeed + 1; //offset others by 1
 }
 
-void WiThrottle::loop() {
+void WiThrottle::loop(RingStream * stream) {
   // for each WiThrottle, check the heartbeat
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
      wt->checkHeartbeat();
+
+   // TODO... any broadcasts to be done 
+   (void)stream; 
+   /* MUST follow this model in  this loop. 
+    *   stream->mark();
+    *   send 1 digit client id, and any data 
+    *   stream->commit() 
+     */
+
 }
 
 void WiThrottle::checkHeartbeat() {
