@@ -324,11 +324,12 @@ void echoProcessor(Connection *c, TransportProcessor *t)
     byte reply[MAX_ETH_BUFFER];
 
     memset(reply, 0, MAX_ETH_BUFFER);
-    sprintf((char *)reply, "ERROR: malformed content in [%s]", t->buffer);
+    sprintf((char *)reply, "ERROR: malformed content in [%s]\n", t->buffer);
     if (c->client->connected())
     {
         c->client->write(reply, strlen((char *)reply));
         _sseq[c->id]++;
+        c->isProtocolDefined = false;       // reset the protocol to not defined so that we can recover the next time
     }
 }
 void jmriProcessor(Connection *c, TransportProcessor *t)
