@@ -423,7 +423,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
 
     switch (params)
     {
-
+    
     case 2: // <Z ID ACTIVATE>
     {
         Output *o = Output::get(p[0]);
