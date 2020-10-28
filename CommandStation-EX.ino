@@ -12,19 +12,6 @@
 #include "config.h"
 #include "DCCEX.h"
 
-
-////////////////////////////////////////////////////////////////
-//
-// Enables an I2C 2x24 or 4x24 LCD Screen
-#ifdef ENABLE_LCD
-bool lcdEnabled = false;
-#if defined(LIB_TYPE_PCF8574)
-LiquidCrystal_PCF8574 lcdDisplay(LCD_ADDRESS);
-#elif defined(LIB_TYPE_I2C)
-LiquidCrystal_I2C lcdDisplay = LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_LINES);
-#endif
-#endif
-
 // Create a serial command parser for the USB connection, 
 // This supports JMRI or manual diagnostics and commands
 // to be issued from the USB serial console.
@@ -32,70 +19,23 @@ DCCEXParser serialParser;
 
 void setup()
 {
-  
-////////////////////////////////////////////
-//
-// More display stuff. Need to put this in a .h file and make
-// it a class
-#ifdef ENABLE_LCD
-  Wire.begin();
-  // Check that we can find the LCD by its address before attempting to use it.
-  Wire.beginTransmission(LCD_ADDRESS);
-  if (Wire.endTransmission() == 0)
-  {
-    lcdEnabled = true;
-    lcdDisplay.begin(LCD_COLUMNS, LCD_LINES);
-    lcdDisplay.setBacklight(128);
-    lcdDisplay.clear();
-    lcdDisplay.setCursor(0, 0);
-    lcdDisplay.print("DCC++ EX v");
-    lcdDisplay.print(VERSION);
-    lcdDisplay.setCursor(0, 1);
-//#if COMM_INTERFACE >= 1
-//    lcdDisplay.print("IP: PENDING");
-//#else
-    lcdDisplay.print("SERIAL: READY 1");
-//#endif
-#if LCD_LINES > 2
-    lcdDisplay.setCursor(0, 3);
-    lcdDisplay.print("TRACK POWER: OFF");
-#endif
-  }
-#endif
-
   // The main sketch has responsibilities during setup()
 
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
+  DIAG(F("DCC++ EX v%S"),F(VERSION));
+   
+  CONDITIONAL_LCD_START {
+    // This block is ignored if LCD not in use 
+    LCD(0,F("DCC++ EX v%S"),F(VERSION));
+    LCD(1,F("Starting")); 
+    }   
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
-//  NOTE: References to Serial1 are for the serial port used to connect
-//        your wifi chip/shield.
 
-#ifdef WIFI_ON
-  bool wifiUp = false;
-  const __FlashStringHelper *wifiESSID = F(WIFI_SSID);
-  const __FlashStringHelper *wifiPassword = F(WIFI_PASSWORD);
-  const __FlashStringHelper *dccex = F(WIFI_HOSTNAME);
-  const uint16_t port = IP_PORT;
-
-  Serial1.begin(WIFI_SERIAL_LINK_SPEED);
-  wifiUp = WifiInterface::setup(Serial1, wifiESSID, wifiPassword, dccex, port);
-#if NUM_SERIAL > 1
-  if (!wifiUp)
-  {
-    Serial2.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial2, wifiESSID, wifiPassword, dccex, port);
-  }
-#if NUM_SERIAL > 2
-  if (!wifiUp)
-  {
-    Serial3.begin(WIFI_SERIAL_LINK_SPEED);
-    wifiUp = WifiInterface::setup(Serial3, wifiESSID, wifiPassword, dccex, port);
-  }
-#endif // >2
-#endif // >1
+#if WIFI_ON
+  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT);
 #endif // WIFI_ON
 
   // Responsibility 3: Start the DCC engine.
@@ -108,7 +48,8 @@ void setup()
   // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
-  DCC::begin(MOTOR_SHIELD_TYPE);
+  DCC::begin(MOTOR_SHIELD_TYPE); 
+  LCD(1,F("Ready")); 
 }
 
 void loop()
@@ -123,10 +64,12 @@ void loop()
   serialParser.loop(Serial);
 
 // Responsibility 3: Optionally handle any incoming WiFi traffic
-#ifdef WIFI_ON
+#if WIFI_ON
   WifiInterface::loop();
 #endif
 
+  LCDDisplay::loop();  // ignored if LCD not in use 
+  
 // Optionally report any decrease in memory (will automatically trigger on first call)
 #if ENABLE_FREE_MEM_WARNING
   static int ramLowWatermark = 32767; // replaced on first loop 
@@ -135,7 +78,7 @@ void loop()
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
-    DIAG(F("\nFree RAM=%d\n"), ramLowWatermark);
+    LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
 #endif
 }
