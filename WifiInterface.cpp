@@ -223,8 +223,9 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     if (oldCmd) {
       while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
-      StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
-      checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
+      int i=0;
+      do StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
+      while (i++<2 && !checkForOK(16000, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
       
     } else {
 
