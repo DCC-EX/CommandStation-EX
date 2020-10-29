@@ -22,7 +22,6 @@
 //
 // WIFI_ON: All prereqs for running with WIFI are met
 //
-
 #if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO))
 #define WIFI_ON true
 #else
