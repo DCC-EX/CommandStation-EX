@@ -22,8 +22,11 @@
 //
 // WIFI_ON: All prereqs for running with WIFI are met
 //
+
 #if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO))
-#define WIFI_ON
+#define WIFI_ON true
+#else
+#define WIFI_ON false
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,14 +35,3 @@
 // Currently only devices which can communicate at 115200 are supported.
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Figure out number of serial ports depending on hardware
-//
-#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
-#define NUM_SERIAL 3
-#endif
-#ifndef NUM_SERIAL
-#define NUM_SERIAL 1
-#endif
