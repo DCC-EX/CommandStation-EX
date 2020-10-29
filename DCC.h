@@ -72,6 +72,7 @@ public:
   static void setFunction(int cab, byte fByte, byte eByte);
   static void setFn(int cab, byte functionNumber, bool on);
   static int changeFn(int cab, byte functionNumber, bool pressed);
+  static int  getFn(int cab, byte functionNumber);
   static void updateGroupflags(byte &flags, int functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);
@@ -162,16 +163,5 @@ private:
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
 #endif
 
-#if ENABLE_LCD
-#include <Wire.h>
-#if defined(LIB_TYPE_PCF8574)
-#include <LiquidCrystal_PCF8574.h>
-extern LiquidCrystal_PCF8574 lcdDisplay;
-#elif defined(LIB_TYPE_I2C)
-#include <LiquidCrystal_I2C.h>
-extern LiquidCrystal_I2C lcdDisplay;
-#endif
-extern bool lcdEnabled;
-#endif
 
 #endif

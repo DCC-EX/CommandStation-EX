@@ -20,9 +20,10 @@
 #ifndef WifiInterface_h
 #define WifiInterface_h
 #include "DCCEXParser.h"
-#include "MemStream.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
+
+enum wifiSerialState { WIFI_NOAT, WIFI_DISCONNECTED, WIFI_CONNECTED };
 
 class WifiInterface
 {
@@ -37,11 +38,11 @@ public:
   static void ATCommand(const byte *command);
 
 private:
-  static bool setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
+  static wifiSerialState setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                     const __FlashStringHelper *hostname, int port);
   static Stream *wifiStream;
   static DCCEXParser parser;
-  static bool setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
+  static wifiSerialState setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                      const __FlashStringHelper *hostname, int port);
   static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
@@ -50,8 +51,5 @@ private:
   static int datalength;
   static int connectionId;
   static unsigned long loopTimeoutStart;
-  static const byte MAX_WIFI_BUFFER = 250;
-  static byte buffer[MAX_WIFI_BUFFER + 1];
-  static MemStream * streamer;
 };
 #endif

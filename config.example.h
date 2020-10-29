@@ -70,37 +70,17 @@ The configuration file for DCC++ EX Command Station
 //
 // Note: This feature requires an I2C enabled LCD screen using a PCF8574 based chipset.
 //       or one using a Hitachi  HD44780.
-//
-// To enable, uncomment the line below and make sure only the correct LIB_TYPE line
-// is uncommented below to select the library used for your LCD backpack
+//       OR an I2C Oled screen.
+// To enable, uncomment one of the lines below
 
-//#define ENABLE_LCD
+// define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
+// #define LCD_DRIVER  0x3F,16,2
 
-#ifdef ENABLE_LCD
-    #define LIB_TYPE_PCF8574
-	//#define LIB_TYPE_I2C
-	// This defines the I2C address for the LCD device
-	#define LCD_ADDRESS 0x27 //common defaults are 0x27 and 0x3F
-
-	// This defines the number of columns the LCD device has
-	#define LCD_COLUMNS 16
-
-	// This defines the number of lines the LCD device has
-	#define LCD_LINES 2
-#endif
-
+//OR define OLED_DRIVER width,height in pixels (address auto detected) 
+// This will not work on a UNO due to memory constraints
+// #define OLED_DRIVER 128,32
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// Enable custom command filtering
-#define ENABLE_CUSTOM_FILTER false
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Enable custom command filtering
-#define ENABLE_CUSTOM_CALLBACK false
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Enable custom command filtering
+// Enable warning as memory gets depleted
 #define ENABLE_FREE_MEM_WARNING false

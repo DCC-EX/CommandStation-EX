@@ -1,3 +1,23 @@
+/*
+ *  © 2013-2016 Gregg E. Berman
+ *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020, Harald Barth.
+ *
+ *  This file is part of Asbelos DCC API
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "EEStore.h"
 #include "Turnouts.h"
 #include "Sensors.h"
@@ -77,7 +97,7 @@ void EEStore::dump(int num) {
     DIAG(F("\nAddr  0x  char\n"));
     for (int n=0 ; n<num; n++) {
 	EEPROM.get(n, b);
-	DIAG(F("%d     %x    %c\n"),n,b,isascii(b) ? b : ' ');
+	DIAG(F("%d     %x    %c\n"),n,b,isprint(b) ? b : ' ');
     }
 }
 ///////////////////////////////////////////////////////////////////////////////

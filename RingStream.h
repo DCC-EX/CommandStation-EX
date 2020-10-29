@@ -1,7 +1,9 @@
+#ifndef RingStream_h
+#define RingStream_h
 /*
- *  © 2020,Gregor Baues,  Chris Harlow. All rights reserved.
+ *  © 2020, Chris Harlow. All rights reserved.
  *  
- *  This file is part of CommandStation-EX
+ *  This file is part of DCC-EX CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,17 +18,30 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef CommandDistributor_h
-#define CommandDistributor_h
-#include "DCCEXParser.h"
-#include "RingStream.h"
 
-class CommandDistributor {
+#include <Arduino.h>
+  
+class RingStream : public Print {
 
-public :
-  static void parse(byte clientId,byte* buffer, RingStream * streamer);
-private:
-   static DCCEXParser * parser;
+  public:
+    RingStream( const uint16_t len);
+  
+    virtual size_t write(uint8_t b);
+    using Print::write;
+    int read();
+    int count();
+    int freeSpace();
+    void mark(uint8_t b);
+    bool commit();
+
+ private:
+   int _len;
+   int _pos_write;
+   int _pos_read;
+   bool _overflow;
+   int _mark;
+   int _count;
+   byte * _buffer;
 };
 
 #endif

@@ -47,6 +47,7 @@ const int HASH_KEYWORD_DCC = 6436;
 const int HASH_KEYWORD_SLOW = -17209;
 const int HASH_KEYWORD_PROGBOOST = -6353;
 const int HASH_KEYWORD_EEPROM = -7168;
+const int HASH_KEYWORD_LIMIT = 27413;
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -95,6 +96,7 @@ void DCCEXParser::loop(Stream &stream)
             buffer[bufferLength++] = ch;
         }
     }
+    Sensor::checkAll(&stream); // Update and print changes
 }
 
 int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
@@ -358,11 +360,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
 
     case 'Q': // SENSORS <Q>
-        Sensor::checkAll();
-        for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
-        {
-            StringFormatter::send(stream, F("<%c %d>"), tt->active ? 'Q' : 'q', tt->data.snum);
-        }
+        Sensor::printAll(stream);
         return;
 
     case 's': // <s>
@@ -425,7 +423,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
 
     switch (params)
     {
-
+    
     case 2: // <Z ID ACTIVATE>
     {
         Output *o = Output::get(p[0]);
@@ -437,11 +435,16 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
         return true;
 
     case 3: // <Z ID PIN INVERT>
-        Output::create(p[0], p[1], p[2], 1);
+        if (!Output::create(p[0], p[1], p[2], 1))
+          return false;
+        StringFormatter::send(stream, F("<O>"));
         return true;
 
     case 1: // <Z ID>
-        return Output::remove(p[0]);
+        if (!Output::remove(p[0]))
+          return false;
+        StringFormatter::send(stream, F("<O>"));
+        return true;
 
     case 0: // <Z>
     {
@@ -465,19 +468,19 @@ bool DCCEXParser::parsef(Print *stream, int params, int p[])
     //      convenient for other processing
     if (params == 2)
     {
-        byte groupcode = p[1] & 0xE0;
-        if (groupcode == 0x80)
+        byte instructionField = p[1] & 0xE0;   // 1110 0000
+        if (instructionField == 0x80)          // 1000 0000 Function group 1
         {
+	    // Shuffle bits from order F0 F4 F3 F2 F1 to F4 F3 F2 F1 F0 
             byte normalized = (p[1] << 1 & 0x1e) | (p[1] >> 4 & 0x01);
             funcmap(p[0], normalized, 0, 4);
         }
-        else if (groupcode == 0xC0)
+        else if (instructionField == 0xA0)     // 1010 0000 Function group 2
         {
-            funcmap(p[0], p[1], 5, 8);
-        }
-        else if (groupcode == 0xA0)
-        {
-            funcmap(p[0], p[1], 9, 12);
+	    if (p[1] & 0x10)                   // 0001 0000 Bit selects F5toF8 / F9toF12
+		funcmap(p[0], p[1], 5, 8);
+	    else
+		funcmap(p[0], p[1], 9, 12);
         }
     }
     if (params == 3)
@@ -549,15 +552,20 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
     switch (params)
     {
     case 3: // <S id pin pullup>  create sensor. pullUp indicator (0=LOW/1=HIGH)
-        Sensor::create(p[0], p[1], p[2]);
+        if (!Sensor::create(p[0], p[1], p[2]))
+          return false;
+        StringFormatter::send(stream, F("<O>"));
         return true;
 
     case 1: // S id> remove sensor
-        if (Sensor::remove(p[0]))
-            return true;
-        break;
+        if (!Sensor::remove(p[0]))
+          return false;
+        StringFormatter::send(stream, F("<O>"));
+        return true;
 
     case 0: // <S> lit sensor states
+	if (Sensor::firstSensor == NULL)
+	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
         {
             StringFormatter::send(stream, F("<Q %d %d %d>"), tt->data.snum, tt->data.pin, tt->data.pullUp);
@@ -586,7 +594,11 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         break;
 
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF>
-        Diag::ACK = onOff;
+	if (params >= 2 && p[1] == HASH_KEYWORD_LIMIT) {
+	  DCCWaveform::progTrack.setAckLimit(p[2]);
+          StringFormatter::send(stream, F("\nAck limit=%dmA\n"), p[2]);
+	} else
+	  Diag::ACK = onOff;
         return true;
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>

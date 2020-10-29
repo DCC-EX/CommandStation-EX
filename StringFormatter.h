@@ -27,6 +27,7 @@
   #define __FlashStringHelper char
 #endif
 
+#include "LCDDisplay.h"
 class Diag {
   public:
   static bool ACK;
@@ -42,16 +43,19 @@ class StringFormatter
     static void send(Print & serial, const __FlashStringHelper* input...);
     
     static void printEscapes(Print * serial,char * input);
+    static void printEscapes(Print * serial,const __FlashStringHelper* input);
     static void printEscape(Print * serial, char c);
 
     // DIAG support
     static Print * diagSerial;
     static void diag( const __FlashStringHelper* input...);
+    static void lcd(byte row, const __FlashStringHelper* input...);
     static void printEscapes(char * input);
     static void printEscape( char c);
 
     private: 
     static void send2(Print * serial, const __FlashStringHelper* input,va_list args);
+    static void printPadded(Print* stream, long value, byte width, bool formatLeft);
 
 };
 #endif
