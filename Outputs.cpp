@@ -90,7 +90,6 @@ void  Output::activate(int s){
   digitalWrite(data.pin,data.oStatus ^ bitRead(data.iFlag,0));      // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
   if(num>0)
     EEPROM.put(num,data.oStatus);
- 
 }
 
 ///////////////////////////////////////////////////////////////////////////////

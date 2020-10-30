@@ -57,7 +57,7 @@ bool WifiInterface::setup(long serial_link_speed,
                           const __FlashStringHelper *hostname,
                           const int port) {
 
-  bool wifiUp = false;
+  wifiSerialState wifiUp = WIFI_NOAT;
 
 #if NUM_SERIAL == 0
   // no warning about unused parameters. 
@@ -75,7 +75,7 @@ bool WifiInterface::setup(long serial_link_speed,
 
 // Other serials are tried, depending on hardware.
 #if NUM_SERIAL > 1
-  if (!wifiUp)
+  if (wifiUp == WIFI_NOAT)
   {
     Serial2.begin(serial_link_speed);
     wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port);
@@ -83,23 +83,29 @@ bool WifiInterface::setup(long serial_link_speed,
 #endif
   
 #if NUM_SERIAL > 2
-  if (!wifiUp)
+  if (wifiUp == WIFI_NOAT)
   {
     Serial3.begin(serial_link_speed);
     wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port);
   }
 #endif
 
-DCCEXParser::setAtCommandCallback(ATCommand);
+  if (wifiUp == WIFI_NOAT) // here and still not AT commands found
+      return false;
 
-// CAUTION... ONLY CALL THIS ONCE 
-WifiInboundHandler::setup(wifiStream);
-  
-return wifiUp; 
+  DCCEXParser::setAtCommandCallback(ATCommand);
+  // CAUTION... ONLY CALL THIS ONCE 
+  WifiInboundHandler::setup(wifiStream);
+  if (wifiUp == WIFI_CONNECTED)
+      connected = true;
+  else
+      connected = false;
+  return connected; 
 }
 
-bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
-                          const __FlashStringHelper* hostname,  int port) {
+wifiSerialState WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+				     const __FlashStringHelper* hostname,  int port) {
+  wifiSerialState wifiState;
   static uint8_t ntry = 0;
   ntry++;
 
@@ -107,20 +113,25 @@ bool WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid
 
   DIAG(F("\n++ Wifi Setup Try %d ++\n"), ntry);
 
-  connected = setup2( SSid, password, hostname,  port);
+  wifiState = setup2( SSid, password, hostname,  port);
+
+  if (wifiState == WIFI_NOAT) {
+      DIAG(F("\n++ Wifi Setup NO AT ++\n"));
+      return wifiState;
+  }
  
-  if (connected) {
+  if (wifiState == WIFI_CONNECTED) {
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
     checkForOK(200, OK_SEARCH, true);      
   }
 
     
-  DIAG(F("\n++ Wifi Setup %S ++\n"), connected ? F("OK") : F("FAILED"));
-  return connected;
+  DIAG(F("\n++ Wifi Setup %S ++\n"), wifiState == WIFI_CONNECTED ? F("CONNECTED") : F("DISCONNECTED"));
+  return wifiState;
 }
 
-bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
-                           const __FlashStringHelper* hostname, int port) {
+wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
+				      const __FlashStringHelper* hostname, int port) {
   bool ipOK = false;
   bool oldCmd = false;
 
@@ -132,12 +143,12 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   if (checkForOK(200,IPD_SEARCH, true)) {
     DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
    // loopstate=4;  // carry on from correct place... or not as the case may be  
-    return true; 
+    return WIFI_CONNECTED; 
   }
 
   StringFormatter::send(wifiStream, F("AT\r\n"));   // Is something here that understands AT?
   if(!checkForOK(200, OK_SEARCH, true))
-    return false;                                   // No AT compatible WiFi module here
+    return WIFI_NOAT;                               // No AT compatible WiFi module here
 
   StringFormatter::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
   checkForOK(2000, OK_SEARCH, true);                // Makes this visible on the console
@@ -223,8 +234,9 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
     if (oldCmd) {
       while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
-      StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
-      checkForOK(16000, OK_SEARCH, true); // can ignore failure as AP mode may still be ok
+      int i=0;
+      do StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
+      while (i++<2 && !checkForOK(16000, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
       
     } else {
 
@@ -240,16 +252,16 @@ bool WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringH
   checkForOK(10000, OK_SEARCH, true); // ignore result in case it already was off
    
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
-  if (!checkForOK(10000, OK_SEARCH, true)) return false;
+  if (!checkForOK(10000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
-  if (!checkForOK(10000, OK_SEARCH, true)) return false;
+  if (!checkForOK(10000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
-  if (!checkForOK(10000, OK_SEARCH, true, false)) return false;
+  if (!checkForOK(10000, OK_SEARCH, true, false)) return WIFI_DISCONNECTED;
   DIAG(F("\nPORT=%d\n"),port);
    
-  return true;
+  return WIFI_CONNECTED;
 }
 
 
