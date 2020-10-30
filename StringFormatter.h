@@ -34,6 +34,8 @@ class Diag {
   static bool CMD;
   static bool WIFI;
   static bool WITHROTTLE;
+  static bool ETHERNET;
+  
 };
 
 class StringFormatter

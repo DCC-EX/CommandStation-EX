@@ -28,6 +28,7 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <Ethernet.h>
+#include "RingStream.h"
 
 /* some generated mac addresses as EthernetShields don't have one by default in HW.
  * Sometimes they come on a sticker on the EthernetShield then use this address otherwise
@@ -46,62 +47,28 @@
  * 
  */
 #define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
-#define IP_ADDRESS 10, 0, 0, 101                                // Just in case we don't get an adress from DHCP try a static one; make sure 
                                                                 // this one is not used elsewhere and corresponds to your network layout
-#define LISTEN_PORT 3366                                        // default listen port for the server 
-#define MAX_ETH_BUFFER 250
-
-typedef void (*HTTP_CALLBACK)(Print * stream, byte * cmd);
-
-enum protocolType {
-    TCP,
-    UDP
-};
-
-typedef void (*protocolCallback)();
+#define LISTEN_PORT 2560                                        // default listen port for the server 
+#define MAX_ETH_BUFFER 512
+#define OUTBOUND_RING_SIZE 2048
 
 class EthernetInterface {
 
-private:
-     EthernetServer server;
-
  public:
-     DCCEXParser  ethParser;
-     bool         connected;
-     byte         mac[6];
-     IPAddress    ip;
-     uint16_t     port;
-     IPAddress    dnsip;
-
-     void setup(protocolType pt, uint16_t lp);        // specific port nummber
-     void setup(protocolType pt);                     // uses default port number
-     void setup();                                    // all defaults (protocol/port)
-
-     protocolCallback protocolHandler;
-
-     void loop();
-
-  private:
-     static EthernetInterface * singleton;
      
-     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];                              // buffer to hold incoming UDP packet,
-     uint8_t buffer[MAX_ETH_BUFFER];                                         // buffer provided to the streamer to be filled with the reply (used by TCP also for the recv)
-     MemStream * streamer;                                                     // streamer who writes the results to the buffer
-     EthernetClient clients[MAX_SOCK_NUM];                                   // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
-
-     bool setupConnection();
-     static void udpHandler();
-     static void tcpHandler();
-     void udpHandler2();
-     void tcpHandler2();
-     EthernetUDP Udp; 
-    
-     EthernetServer getServer() {
-        return server;
-    };
-     void setServer(EthernetServer s) {
-        server = s;
-    };
+     static void setup();       
+     static void loop();
+   
+ private:
+     static EthernetInterface * singleton;
+     bool connected;
+     EthernetInterface();
+     void loop2();
+    EthernetServer * server;
+    EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
+    uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
+    RingStream * outboundRing;
+  
 };
 
 #endif
