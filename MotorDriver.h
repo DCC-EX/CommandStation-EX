@@ -22,7 +22,7 @@
 
 class MotorDriver {
   public:
-    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
@@ -34,7 +34,8 @@ class MotorDriver {
     }
 
   private:
-    byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
+    byte powerPin, signalPin, signalPin2, currentPin, faultPin;
+    int8_t brakePin;
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;

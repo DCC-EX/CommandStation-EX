@@ -15,8 +15,12 @@
 
 const byte UNUSED_PIN = 255;
 
-// MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin,
+// MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin,
 //             float senseFactor, unsigned int tripMilliamps, byte faultPin);
+//
+// If the brakePin is negative that means the sense
+// of the brake pin on the motor bridge is inverted
+// (HIGH == release brake)
 
 // Arduino standard Motor Shield
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
@@ -25,8 +29,8 @@ const byte UNUSED_PIN = 255;
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                               \
-                            new MotorDriver(4, 7, UNUSED_PIN, 9, A0, 18, 3000, 12), \
-                            new MotorDriver(2, 8, UNUSED_PIN, 10, A1, 18, 3000, UNUSED_PIN)
+                            new MotorDriver(4, 7, UNUSED_PIN, -9, A0, 18, 3000, 12), \
+                            new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, UNUSED_PIN)
 
 // Firebox Mk1
 #define FIREBOX_MK1 F("FIREBOX_MK1"),                                                  \
