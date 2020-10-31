@@ -36,15 +36,15 @@
     
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
-   powerPin=power_pin;
-   signalPin=signal_pin;
-   signalPin2=signal_pin2;
-   brakePin=brake_pin;
-   currentPin=current_pin;
-   senseFactor=sense_factor;
-   faultPin=fault_pin;
-   tripMilliamps=trip_milliamps;
-   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  powerPin=power_pin;
+  signalPin=signal_pin;
+  signalPin2=signal_pin2;
+  brakePin=brake_pin;
+  currentPin=current_pin;
+  senseFactor=sense_factor;
+  faultPin=fault_pin;
+  tripMilliamps=trip_milliamps;
+  rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
   pinMode(powerPin, OUTPUT);
   pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
   setBrake(false);
