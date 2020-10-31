@@ -35,7 +35,7 @@ class MotorDriver {
 
   private:
     byte powerPin, signalPin, signalPin2, currentPin, faultPin;
-    int8_t brakePin;
+    int8_t brakePin;       // negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
