@@ -55,6 +55,12 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
 }
 
 void MotorDriver::setPower(bool on) {
+  if (brakePin == -4 && on) {
+    // toggle brake before turning power on - resets overcurrent error
+    // on the Pololu board if brake is wired to ^D2.
+    setBrake(true);
+    setBrake(false);
+  }
   WritePin(powerPin, on ? HIGH : LOW);
 }
 
