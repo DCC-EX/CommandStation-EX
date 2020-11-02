@@ -25,6 +25,7 @@
 #ifdef DCCEX_ENABLED
 
 #include "DCCEXParser.h"
+#include "WiThrottle.h"
 #include "MemStream.h"
 
 DCCEXParser dccParser;
@@ -35,22 +36,51 @@ HttpRequest httpReq;
 uint16_t _rseq[MAX_SOCK_NUM] = {0};
 uint16_t _sseq[MAX_SOCK_NUM] = {0};
 
-char protocolName[5][11] = {"JMRI", "WITHROTTLE", "HTTP", "DIAG" , "UNKNOWN"}; // change for Progmem
+char protocolName[5][11] = {"JMRI", "WITHROTTLE", "HTTP", "DIAG", "UNKNOWN"}; // change for Progmem
 bool diagNetwork = false;
 uint8_t diagNetworkClient = 0;
 
 #ifdef DCCEX_ENABLED
-/**
- * @brief Sending a reply by using the StringFormatter (this will result in every byte send individually which may/will create an important Network overhead).
- * Here we hook back into the DCC code for actually processing the command using a DCCParser. Alternatively we could use MemeStream in order to build the entiere reply
- * before ending it.
- * 
- * @param stream    Actually the Client to whom to send the reply. As Clients implement Print this is working
- * @param t         TransportProcessor used for accessing the buffers to be send
- * @param blocking  if set to true will instruct the DCC code to not use the async callback functions
- */
 
-void sendToDCC(Connection *c, TransportProcessor* t, bool blocking)
+void dumpRingStreamBuffer(byte *b, int len)
+{
+
+    DIAG(F("RingStream buffer length [%d] out of [%d] bytes\n"), strlen((char *)b), len);
+    DIAG(F("%e"), b);
+    /*
+    for ( int i = 0; i < len; i++) {
+        DIAG(F("%c"), b[i]);
+    }
+    */
+    DIAG(F("\nRingStream buffer end\n"));
+}
+
+RingStream streamer(512); // buffer into which to feed the commands for handling; there will not be an immediate reply
+                          // as this is async written to another RingStream i.e. we have to see where in the loop we
+                          // generate the replies.
+
+void sendWiThrottleToDCC(Connection *c, TransportProcessor *t, bool blocking)
+{
+    streamer.printStream();
+    byte *_buffer = streamer.getBuffer();
+    memset(_buffer, 0, 512);                         // clear out the _buffer
+    WiThrottle *wt = WiThrottle::getThrottle(c->id); // get a throttle for the Connection; will be created if it doesn't exist
+
+    DIAG(F("WiThrottle [%x:%x] parsing:     [%e]\n"), wt, _buffer, t->command);
+
+    wt->parse(&streamer, (byte *)t->command); // get the response; not all commands will produce a reply
+    if (streamer.count() != -1)
+    {
+        dumpRingStreamBuffer(_buffer, 512);
+        if (c->client->connected())
+        {
+            c->client->write(_buffer, strlen((char *)_buffer));
+        }
+    }
+    streamer.printStream();
+}
+
+void sendJmriToDCC(Connection *c, TransportProcessor *t, bool blocking)
 {
     MemStream streamer((byte *)t->command, MAX_ETH_BUFFER, MAX_ETH_BUFFER, true);
 
@@ -73,6 +103,42 @@ void sendToDCC(Connection *c, TransportProcessor* t, bool blocking)
         }
     }
 }
+
+/**
+ * @brief Sending a reply by using the StringFormatter (this will result in every byte send individually which may/will create an important Network overhead).
+ * Here we hook back into the DCC code for actually processing the command using a DCCParser. Alternatively we could use MemeStream in order to build the entiere reply
+ * before ending it.
+ * 
+ * @param stream    Actually the Client to whom to send the reply. As Clients implement Print this is working
+ * @param t         TransportProcessor used for accessing the buffers to be send
+ * @param blocking  if set to true will instruct the DCC code to not use the async callback functions
+ */
+
+void sendToDCC(Connection *c, TransportProcessor *t, bool blocking)
+{
+
+    switch (c->p)
+    {
+    case WITHROTTLE:
+    {
+        sendWiThrottleToDCC(c, t, blocking);
+        break;
+    }
+    case DCCEX:
+    {
+        sendJmriToDCC(c, t, blocking);
+        break;
+    }
+    case N_DIAG:
+    case HTTP:
+    case UNKNOWN_PROTOCOL:
+    {
+        // we shall never get here they should have been caught before
+        break;
+    }
+    }
+}
+
 #else
 /**
  * @brief Sending a reply without going through the StringFormatter. Sends the repy in one go
@@ -107,7 +173,9 @@ void sendReply(Connection *c, TransportProcessor *t)
         strcat((char *)reply, seqNumber);
         strcat((char *)reply, ">");
         response = reply;
-    } else {
+    }
+    else
+    {
         response = (byte *)command;
     }
 
@@ -303,9 +371,9 @@ void processStream(Connection *c, TransportProcessor *t)
 
             DIAG(F("Command:                [%d:%e]\n"), _rseq[c->id], t->command);
 #ifdef DCCEX_ENABLED
-            sendToDCC(c, t, true);
+            sendToDCC(c, t, true); // send the command into the parser and replies back to the client
 #else
-            sendReply(c, t);
+            sendReply(c, t); // standalone version without CS-EX integration
 #endif
             _rseq[c->id]++;
             j = 0;
@@ -329,7 +397,7 @@ void echoProcessor(Connection *c, TransportProcessor *t)
     {
         c->client->write(reply, strlen((char *)reply));
         _sseq[c->id]++;
-        c->isProtocolDefined = false;       // reset the protocol to not defined so that we can recover the next time
+        c->isProtocolDefined = false; // reset the protocol to not defined so that we can recover the next time
     }
 }
 void jmriProcessor(Connection *c, TransportProcessor *t)
@@ -390,7 +458,7 @@ void TransportProcessor::readStream(Connection *c)
         }
         }
     }
-#ifdef DCCEX_ENABLED 
+#ifdef DCCEX_ENABLED
     DIAG(F("\nReceived packet of size:[%d]\n"), count);
 #else
     IPAddress remote = c->client->remoteIP();

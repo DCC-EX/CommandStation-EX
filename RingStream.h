@@ -20,6 +20,7 @@
  */
 
 #include <Arduino.h>
+#include "DIAG.h"
   
 class RingStream : public Print {
 
@@ -33,6 +34,15 @@ class RingStream : public Print {
     int freeSpace();
     void mark(uint8_t b);
     bool commit();
+
+    // grbba for debugging
+    byte *getBuffer() {
+      return _buffer;
+    }
+
+    void printStream() {
+      DIAG(F(" _len %d _pos_write %d _pos_read %d _overflow %d _mark %d _count %d\n"), _len, _pos_write, _pos_read, _overflow, _mark, _count);
+    }
 
  private:
    int _len;
