@@ -36,8 +36,7 @@ class WifiInboundHandler {
           IPD_IGNORE_DATA, // got +IPD,c,ll,: ignoring the data that won't fit inblound Ring
 
           GOT_CLIENT_ID,  // clientid prefix to CONNECTED / CLOSED
-          GOT_CLIENT_ID2,  // clientid prefix to CONNECTED / CLOSED
-          GOT_CLIENT_ID3  // clientid prefix to CONNECTED / CLOSED
+          GOT_CLIENT_ID2  // clientid prefix to CONNECTED / CLOSED
   };
 
   
