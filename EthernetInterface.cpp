@@ -45,15 +45,21 @@ EthernetInterface::EthernetInterface()
     byte mac[]=MAC_ADDRESS;
     
     DIAG(F("\n+++++ Ethernet Setup "));
+        connected=false;
    
     if (Ethernet.begin(mac) == 0)
     {
-        DIAG(F("FAILED ")); 
-        if (Ethernet.hardwareStatus() == EthernetNoHardware) DIAG(F("shield not found"));
-        else if (Ethernet.linkStatus() == LinkOFF) DIAG(F("cable not connected"));
-        DIAG(F(" ++++++\n"));
-        connected=false;
+        DIAG(F("begin FAILED\n"));
         return;
+    } 
+    DIAG(F("begin OK."));
+     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      DIAG(F("shield not found\n"));
+      return;
+    }
+    if (Ethernet.linkStatus() == LinkOFF) {
+      DIAG(F("cable not connected\n"));
+      return;
     }
     
     connected=true;
@@ -108,16 +114,20 @@ void EthernetInterface::loop()
     // check for new client
     if (client)
     {
-        for (byte i = 0; i < MAX_SOCK_NUM; i++)
+        if (Diag::ETHERNET) DIAG(F("\nEthernet: New client "));
+        byte socket;
+        for (socket = 0; socket < MAX_SOCK_NUM; socket++)
         {
-            if (!clients[i])
+            if (!clients[socket])
             {
                 // On accept() the EthernetServer doesn't track the client anymore
                 // so we store it in our client array
-                clients[i] = client;
+                if (Diag::ETHERNET) DIAG(F("%d\n"),socket);
+                clients[socket] = client;
                 break;
             }
         }
+        if (socket==MAX_SOCK_NUM) DIAG(F("new Ethernet OVERFLOW\n")); 
     }
 
     // check for incoming data from all possible clients
@@ -125,13 +135,6 @@ void EthernetInterface::loop()
     {
         if (clients[socket]) {
         
-            // stop any clients which disconnect
-            if (!clients[socket].connected())
-            {
-                if (Diag::ETHERNET)  DIAG(F("\nEthernet: disconnect %d \n"), socket);
-                clients[socket].stop();
-                clients[socket]=NULL;//????
-            }
         int available=clients[socket].available();
         if (available > 0) {
             if (Diag::ETHERNET)  DIAG(F("\nEthernet: available socket=%d,avail=%d,count="), socket, available);
@@ -148,6 +151,14 @@ void EthernetInterface::loop()
         }
     }
 
+    // stop any clients which disconnect
+   for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
+     if (clients[socket] && !clients[socket].connected()) {
+      clients[socket].stop();
+      if (Diag::ETHERNET)  DIAG(F("\nEthernet: disconnect %d \n"), socket);             
+     }
+    }
+    
     // handle at most 1 outbound transmission 
     int socketOut=outboundRing->read();
     if (socketOut>=0) {
@@ -158,4 +169,5 @@ void EthernetInterface::loop()
       }
       
     }
-  
+
+ 
