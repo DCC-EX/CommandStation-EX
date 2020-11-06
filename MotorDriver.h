@@ -20,9 +20,13 @@
 #define MotorDriver_h
 // Virtualised Motor shield 1-track hardware Interface
 
+#ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
+#define UNUSED_PIN 127 // inside int8_t
+#endif
+
 class MotorDriver {
   public:
-    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, byte brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
@@ -34,11 +38,10 @@ class MotorDriver {
     }
 
   private:
-    byte powerPin, signalPin, signalPin2, brakePin,currentPin,faultPin;
+    byte powerPin, signalPin, signalPin2, currentPin, faultPin;
+    int8_t brakePin;       // negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
-    const byte UNUSED_PIN = 255;
-    
 };
 #endif
