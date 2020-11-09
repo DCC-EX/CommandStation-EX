@@ -27,6 +27,36 @@
 #include "NetworkInterface.h"
 #include "TransportProcessor.h"
 
+
+typedef enum
+{
+    DCCEX,      // if char[0] = < opening bracket the client should be a JMRI / DCC EX client_h
+    WITHROTTLE, //
+    HTTP,       // If char[0] = G || P || D; if P then char [1] = U || O || A
+    N_DIAG,     // '#' send form a telnet client as FIRST message will then reroute all DIAG messages to that client whilst being able to send jmri type commands
+    UNKNOWN_PROTOCOL
+} appProtocol;
+
+// Needed forward declarations
+struct Connection;
+class TransportProcessor;
+
+using appProtocolCallback = void (*)(Connection* c, TransportProcessor* t);
+
+struct Connection
+{
+    uint8_t id;                             // initalized when the pool is setup
+    Client *client;                         // idem
+    char overflow[MAX_OVERFLOW];            // idem
+    appProtocol p;                          // dynamically determined upon message reception; first message wins
+    char delimiter = '\0';                  // idem
+    bool isProtocolDefined = false;         // idem
+    appProtocolCallback appProtocolHandler; // idem
+};
+
+
+
+
 template <class S, class C, class U> class Transport: public AbstractTransport
 {
 
@@ -34,7 +64,7 @@ private:
     C                   clients[MAX_SOCK_NUM];          // Client objects created by the connectionPool
     Connection          connections[MAX_SOCK_NUM];      // All the connections build by the connectionPool
     bool                connected = false;                          
-    TransportProcessor* t;                              // pointer to the object which handles the incomming flow
+    TransportProcessor* t;                              // pointer to the object which handles the incomming/outgoing flow
 
     void udpHandler(U* udp);                            // Reads from a Udp socket - todo add incomming queue for processing when the flow is faster than we can process commands
     void tcpSessionHandler(S* server);                  // tcpSessionHandler -> connections are maintained open until close by the client
@@ -42,6 +72,7 @@ private:
     void connectionPool(U* udp);                        // allocates the UDP Sockets at setup time and creates the Connection
    
 public:
+
     uint8_t         id;
     uint16_t        port;
     uint8_t         protocol;               // TCP or UDP  

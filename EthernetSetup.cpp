@@ -61,7 +61,7 @@ byte EthernetSetup::setup()
    INFO(F("Network Protocol:      [%s]"), protocol ? "UDP" : "TCP");
     switch (protocol)
     {
-        case UDP:
+        case UDPR:
         { 
             udp = new EthernetUDP();
             byte udpState = udp->begin(port);

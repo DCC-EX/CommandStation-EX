@@ -42,7 +42,7 @@ template<class S, class C, class U>
 void Transport<S,C,U>::loop() {
     switch (protocol)
     {
-    case UDP:
+    case UDPR:
     {
         udpHandler(udp);
         break;
@@ -106,14 +106,14 @@ void Transport<S, C, U>::udpHandler(U* udp)
 
         udp->read(t->buffer, MAX_ETH_BUFFER);   
         t->buffer[packetSize] = 0;           // terminate buffer
-        t->readStream(&connections[0], false);  // there is only one connection for UDP; reading into the buffer has been done
+        t->readStream(&connections[0], false );  // there is only one connection for UDP; reading into the buffer has been done
 
         memset(t->buffer, 0, MAX_ETH_BUFFER);   // reset PacktBuffer
         return; 
 
         // send the reply
         // udp.beginPacket(udp.remoteIP(), udp.remotePort());
-        // parse(&udp, (byte *)buffer, true); //////////// Put into the TransportProcessor
+        // parse(&udp, (byte *)buffer, true); //////////// Put into the TransportProcessor Attn the default udp TX buffer on ethernet is 24 on wifi its 256 ?? 
         // udp.endPacket();
     }
     return;

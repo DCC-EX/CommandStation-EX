@@ -25,7 +25,7 @@
 
 typedef enum protocolType {
     TCP,
-    UDP,
+    UDPR,            // UDP clashes with a class name in the network stack
     MQTT                      
 } protocolType;
 

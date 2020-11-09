@@ -24,36 +24,10 @@
 #include <WiFiEspAT.h>
 
 #include "RingStream.h"
-
+#include "Transport.h"
 #include "NetworkConfig.h"
 #include "NetworkInterface.h"
 
-
-typedef enum
-{
-    DCCEX,      // if char[0] = < opening bracket the client should be a JMRI / DCC EX client_h
-    WITHROTTLE, //
-    HTTP,       // If char[0] = G || P || D; if P then char [1] = U || O || A
-    N_DIAG,     // '#' send form a telnet client as FIRST message will then reroute all DIAG messages to that client whilst being able to send jmri type commands
-    UNKNOWN_PROTOCOL
-} appProtocol;
-
-// Needed forward declarations
-struct Connection;
-class TransportProcessor;
-
-using appProtocolCallback = void (*)(Connection* c, TransportProcessor* t);
-
-struct Connection
-{
-    uint8_t id;                             // initalized when the pool is setup
-    Client *client;                         // idem
-    char overflow[MAX_OVERFLOW];            // idem
-    appProtocol p;                          // dynamically determined upon message reception; first message wins
-    char delimiter = '\0';                  // idem
-    bool isProtocolDefined = false;         // idem
-    appProtocolCallback appProtocolHandler; // idem
-};
 
 class TransportProcessor
 {

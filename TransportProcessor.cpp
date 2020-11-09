@@ -66,8 +66,6 @@ void sendWiThrottleToDCC(Connection *c, TransportProcessor *t, bool blocking)
 
     // STRINGIFY(__FILE__);
     DBG(F("WiThrottle [%x:%x] parsing: [%e]"), wt, _buffer, t->command);
-
-
     wt->parse(&streamer, (byte *)t->command); // get the response; not all commands will produce a reply
     if (streamer.count() != -1)
     {

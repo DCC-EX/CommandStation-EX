@@ -44,7 +44,7 @@ bool WifiSetup::setup() {
 
     switch (protocol)
     {
-    case UDP:
+    case UDPR:
     {
         INFO(F("\nUDP over Wifi is not yet supported\n"));
         connected = false;
@@ -97,7 +97,7 @@ bool WifiSetup::setup() {
         dnsip = WiFi.dnsServer1();
         INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
         INFO(F("Number of connections: [%d]"), maxConnections);
-        if( protocol == UDP ) return 0;  // no server here as we use UDP
+        if( protocol == UDPR ) return 0;  // no server here as we use UDP
         return true;
     }
     // something went wrong
