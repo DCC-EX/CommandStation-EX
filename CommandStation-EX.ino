@@ -18,8 +18,9 @@
 DCCEXParser serialParser;
 
 // (0) Declare NetworkInterfaces
-NetworkInterface wifi;
+// NetworkInterface wifi;
 NetworkInterface eth1;
+NetworkInterface eth2;
 // (0) Declared NetworkInterfaces
 
 // (1) Start NetworkInterface - HTTP callback
@@ -68,7 +69,7 @@ void setup()
   // (2) Start NetworkInterface - The original WifiInterface is still there but disabled
 
   DIAG(F("\nFree RAM before network init: [%d]\n"),freeMemory());
-  DIAG(F("\nNetwork Setup In Progress ...\n"));
+  DIAG(F("\nNetwork Setup In Progress ...\n\n"));
   
   // WIFI, TCP on Port 2560, Wifi (ssid/password) has been configured permanetly already on the esp. If
   // the connection fails will go into AP mode 
@@ -79,11 +80,14 @@ void setup()
   // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME));
   // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME, 2323)
 
-  eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
-  wifi.setup(WIFI, TCP);                                // WIFI on Port 2560
-  eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
+  eth1.setup(ETHERNET, UDP);                          // ETHERNET, UDP on Port 2560 
+  // eth1.setup(ETHERNET, TCP);                          // ETHERNET, UDP on Port 2560 
+  eth2.setup(ETHERNET, TCP, 23);                      // ETHERNET, TCP on Port 23 for the CLI
+  // eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
+  // wifi.setup(WIFI, TCP);                                // WIFI on Port 2560
+  // eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
 
-  DIAG(F("\nNetwork Setup done ..."));
+  DIAG(F("\nNetwork Setup done ...\n"));
   DIAG(F("\nFree RAM after network init: [%d]\n"),freeMemory());
 
   // (2) End starting NetworkInterface

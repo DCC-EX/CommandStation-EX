@@ -19,7 +19,6 @@
 #ifndef StringFormatter_h
 #define StringFormatter_h
 #include <Arduino.h>
-#include "TransportProcessor.h"
 
 #if defined(ARDUINO_ARCH_SAMD)
    // Some processors use a gcc compiler that renames va_list!!!
@@ -53,15 +52,6 @@ class StringFormatter
     static void lcd(byte row, const __FlashStringHelper* input...);
     static void printEscapes(char * input);
     static void printEscape( char c);
-
-    static void setDiagOut(Connection *c) {
-      if ( c->client->connected() ) {
-        diagSerial = c->client;
-      }
-    }
-    static void resetDiagOut() {
-      diagSerial = &Serial;
-    }
 
     private: 
     static void send2(Print * serial, const __FlashStringHelper* input,va_list args);

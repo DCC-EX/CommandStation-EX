@@ -17,8 +17,9 @@
 
 #include <Arduino.h>
 
-#include "DIAG.h"
+#include "NetworkDiag.h"
 #include "NetworkInterface.h"
+#include "RingStream.h"
 #include "Transport.h"
 
 extern bool diagNetwork;
@@ -28,9 +29,11 @@ template<class S, class C, class U>
 bool Transport<S,C,U>::setup(NetworkInterface *nw) {
     if (protocol == TCP) { 
         connectionPool(server);     // server should have started here so create the connection pool only for TCP though
+    } else {
+        connectionPool(udp);
     }
     t = new TransportProcessor();
-    t->nwi = nw;                    // The TransportProcesor needs to know which Interface he is connected to
+    t->nwi = nw;                    // The TransportProcessor needs to know which Interface he is connected to
     connected = true;               // server & clients which will recieve/send data have all e setup and are available
     return true;
 } 
@@ -41,12 +44,12 @@ void Transport<S,C,U>::loop() {
     {
     case UDP:
     {
-        udpHandler();
+        udpHandler(udp);
         break;
     };
     case TCP:
     {
-        // DIAG(F("Transport: %s\n"), this->transport == WIFI ? "WIFI" : "ETHERNET"); 
+        DBG(F("Transport: %s\n"), this->transport == WIFI ? "WIFI" : "ETHERNET"); 
         tcpSessionHandler(server);    
     };
     case MQTT:
@@ -66,40 +69,54 @@ void Transport<S, C, U>::connectionPool(S *server)
         connections[i].client = &clients[i];              
         memset(connections[i].overflow, 0, MAX_OVERFLOW); 
         connections[i].id = i;
-        DIAG(F("\nConnection pool:       [%d:%x]"), i, connections[i].client);
+        TRC(F("\nTCP Connection pool:       [%d:%x]"), i, connections[i].client);
     }
 }
+template<class S, class C, class U> 
+void Transport<S, C, U>::connectionPool(U *udp)
+{
+    for (int i = 0; i < Transport::maxConnections; i++)
+    {
+        // clients[i] = server->accept();
+        // connections[i].client = &clients[i];              
+        memset(connections[i].overflow, 0, MAX_OVERFLOW); 
+        connections[i].id = i;
+
+        TRC(F("\nUDP Connection pool:       [%d:%x]"), i, connections[i].client);
+    }
+}
+/**
+ * @todo implement UDP properly
+ * 
+ * @tparam S 
+ * @tparam C 
+ * @tparam U 
+ */
 
 template<class S, class C, class U> 
-void Transport<S, C, U>::udpHandler()
+void Transport<S, C, U>::udpHandler(U* udp)
 {
-    // DIAG(F("UdpHandler\n"));
     int packetSize = udp->parsePacket();
-    if (packetSize)
+    if (packetSize > 0)
     {
-        DIAG(F("\nReceived packet of size:[%d]\n"), packetSize);
+        TRC(F("\nReceived packet of size:[%d]"), packetSize);
         IPAddress remote = udp->remoteIP();
-        DIAG(F("From:                   [%d.%d.%d.%d:"), remote[0], remote[1], remote[2], remote[3]);
         char portBuffer[6];
-        DIAG(F("%s]\n"), utoa(udp->remotePort(), portBuffer, 10)); // DIAG has issues with unsigend int's so go through utoa
+        TRC(F("From: [%d.%d.%d.%d: %s]"), remote[0], remote[1], remote[2], remote[3], utoa(udp->remotePort(), portBuffer, 10)); // DIAG has issues with unsigend int's so go through utoa
 
-        // read the packet into packetBufffer
-        // udp.read(buffer, MAX_ETH_BUFFER); /////////// Put into the TransportProcessor
-        // terminate buffer properly
-        // buffer[packetSize] = '\0';
+        udp->read(t->buffer, MAX_ETH_BUFFER);   
+        t->buffer[packetSize] = 0;           // terminate buffer
+        t->readStream(&connections[0], false);  // there is only one connection for UDP; reading into the buffer has been done
 
-        // DIAG(F("Command:                 [%s]\n"),buffer);
-        // execute the command via the parser
-        // check if we have a response if yes then
+        memset(t->buffer, 0, MAX_ETH_BUFFER);   // reset PacktBuffer
+        return; 
+
         // send the reply
         // udp.beginPacket(udp.remoteIP(), udp.remotePort());
         // parse(&udp, (byte *)buffer, true); //////////// Put into the TransportProcessor
         // udp.endPacket();
-
-        // clear out the PacketBuffer
-        // memset(buffer, 0, MAX_ETH_BUFFER); // reset PacktBuffer
-        return;
     }
+    return;
 }
 
 /**
@@ -123,7 +140,7 @@ void Transport<S,C,U>::tcpSessionHandler(S* server)
                 // On accept() the EthernetServer doesn't track the client anymore
                 // so we store it in our client array
                 clients[i] = client;
-                DIAG(F("\nNew Client:             [%d:%x]"), i, clients[i]);
+                INFO(F("New Client: [%d:%x]"), i, clients[i]);
                 break;
             }
         }
@@ -134,20 +151,20 @@ void Transport<S,C,U>::tcpSessionHandler(S* server)
     {
         if (clients[i] && clients[i].available() > 0)
         {
-            t->readStream(&connections[i]);
+            t->readStream(&connections[i], true);
         }
         // stop any clients which disconnect
         for (byte i = 0; i < maxConnections; i++)
         {
             if (clients[i] && !clients[i].connected())
             {
-                DIAG(F("\nDisconnect client #%d"), i);
+                INFO(F("Disconnect client #%d"), i);
                 clients[i].stop();
                 connections[i].isProtocolDefined = false;
                 if (diagNetworkClient == i && diagNetwork) 
                 {
                     diagNetwork = false;
-                    StringFormatter::resetDiagOut();
+                    NetworkDiag::resetDiagOut();
                 }
             }
         }

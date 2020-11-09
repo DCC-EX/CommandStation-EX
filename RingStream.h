@@ -35,14 +35,11 @@ class RingStream : public Print {
     void mark(uint8_t b);
     bool commit();
 
-    // grbba for debugging
-    byte *getBuffer() {
-      return _buffer;
-    }
-
-    void printStream() {
-      DIAG(F(" _len %d _pos_write %d _pos_read %d _overflow %d _mark %d _count %d\n"), _len, _pos_write, _pos_read, _overflow, _mark, _count);
-    }
+    // grbba
+    byte *getBuffer();
+    void resetStream();
+    void printStream();
+    // grbba
 
  private:
    int _len;
@@ -52,6 +49,7 @@ class RingStream : public Print {
    int _mark;
    int _count;
    byte * _buffer;
+
 };
 
 #endif

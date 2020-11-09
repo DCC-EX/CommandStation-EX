@@ -104,9 +104,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   byte * cmd=cmdx;
   
   heartBeat=millis();
-  // grbba
-  // if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
-  DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
+  if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
 
   if (initSent) {
     // Send power state if different than last sent
@@ -167,7 +165,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
             multithrottle(stream, cmd); 
             break;
        case 'H': // send initial connection info after receiving "HU" message
-            DIAG(F("In H(U) command\n"));
             if (cmd[1] == 'U') {
               StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
               StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
@@ -185,9 +182,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
               }
             }
-            // grbba
-            // if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit\n"),millis(),clientid);
-            DIAG(F("%l WiThrottle(%d) Quit\n"),millis(),clientid);
+            if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit\n"),millis(),clientid);
             delete this; 
             break;           
    }

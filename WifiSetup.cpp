@@ -17,7 +17,8 @@
 
 #include <Arduino.h>
 
-#include "DIAG.h"
+#include "NetworkDiag.h"
+#include "NetworkSetup.h"
 #include "WifiSetup.h"
 
 bool WifiSetup::setup() {
@@ -28,24 +29,24 @@ bool WifiSetup::setup() {
 
     if (WiFi.status() == WL_NO_MODULE)
     {
-        DIAG(F("Communication with WiFi module failed!\n"));
+        ERR(F("Communication with WiFi module failed!"));
         return 0;
     }
 
-    DIAG(F("Waiting for connection to WiFi "));
+    INFO(F("Waiting for connection to WiFi "));
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(1000);
-        DIAG(F("."));
+        DBG(F("."));
     }
     // Setup the protocol handler
-    DIAG(F("\n\nNetwork Protocol:      [%s]"), protocol ? "UDP" : "TCP");
+    INFO(F("Network Protocol: [%s]"), protocol ? "UDP" : "TCP");
 
     switch (protocol)
     {
     case UDP:
     {
-        DIAG(F("\nUDP over Wifi is not yet supported\n"));
+        INFO(F("\nUDP over Wifi is not yet supported\n"));
         connected = false;
         /*
         udp = new WiFiUDP(); 
@@ -72,7 +73,7 @@ bool WifiSetup::setup() {
             connected = true;
         
         } else {
-            DIAG(F("\nWiFi server failed to start"));
+            ERR(F("\nWiFi server failed to start"));
             connected = false;
         } // Connection pool not used for WiFi
         break;
@@ -82,7 +83,7 @@ bool WifiSetup::setup() {
     };
     default:
     {
-        DIAG(F("Unkown Ethernet protocol; Setup failed"));
+        ERR(F("Unkown Ethernet protocol; Setup failed"));
         connected = false;
         break;
     }
@@ -91,11 +92,11 @@ bool WifiSetup::setup() {
     if (connected)
     {
         ip = WiFi.localIP();
-        DIAG(F("\nLocal IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
-        DIAG(F("\nListening on port:     [%d]"), port);
+        INFO(F("Local IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
+        INFO(F("Listening on port:     [%d]"), port);
         dnsip = WiFi.dnsServer1();
-        DIAG(F("\nDNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
-        DIAG(F("\nNumber of connections: [%d]"), maxConnections);
+        INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
+        INFO(F("Number of connections: [%d]"), maxConnections);
         if( protocol == UDP ) return 0;  // no server here as we use UDP
         return true;
     }
@@ -103,7 +104,6 @@ bool WifiSetup::setup() {
     return false;
 
 };
-
 
 WifiSetup::WifiSetup() {}
 WifiSetup::WifiSetup(uint16_t p, protocolType pt ) { port = p; protocol = pt; }

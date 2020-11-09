@@ -25,12 +25,18 @@ class EthernetSetup: public NetworkSetup {
 
 private:
 
-    EthernetServer*         server;
-    EthernetUDP             udp;
+    EthernetServer*         server = 0;
+    EthernetUDP*            udp = 0;
 
 public:
 
-    EthernetServer *setup();
+    byte setup();      // sets the TCP server or UDP udp object; returns 1 if the connection was successfull 0 otherwise
+    EthernetServer *getTCPServer() {
+        return server;
+    }
+    EthernetUDP *getUDPServer() {
+        return udp;
+    }
 
     EthernetSetup();
     EthernetSetup(uint16_t port, protocolType protocol);

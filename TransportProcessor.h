@@ -23,8 +23,11 @@
 #include <Ethernet.h>
 #include <WiFiEspAT.h>
 
+#include "RingStream.h"
+
 #include "NetworkConfig.h"
 #include "NetworkInterface.h"
+
 
 typedef enum
 {
@@ -64,8 +67,8 @@ public:
     NetworkInterface *nwi;
     uint8_t buffer[MAX_ETH_BUFFER];
     char command[MAX_JMRI_CMD];
-    
-    void readStream(Connection *c); // reads incomming packets and hands over to the commandHandle for taking the stream apart for commands
+
+    void readStream(Connection *c, bool read); // process incomming packets and processes them; if read = false the buffer has already been filled 
 
     TransportProcessor(){};
     ~TransportProcessor(){};

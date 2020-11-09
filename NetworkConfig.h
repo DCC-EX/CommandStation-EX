@@ -52,11 +52,13 @@
 #define MAX_ETH_BUFFER  128                                      // maximum length we read in one go from a TCP packet.
 #define MAX_OVERFLOW    MAX_ETH_BUFFER / 2                      // length of the overflow buffer to be used for a given connection.
 #define MAX_JMRI_CMD    MAX_ETH_BUFFER / 2                      // MAX Length of a JMRI Command
+#define OUTBOUND_RING_SIZE 2048
 
 
 
 /**
  * @todo - MAC address automation
  * @todo - Wifi setup process in case no permanent setup yet done
+ * @todo - RingBuffer hack to be reviewed
  * 
  */

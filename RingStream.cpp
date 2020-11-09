@@ -97,3 +97,24 @@ bool RingStream::commit() {
   _buffer[_mark]=lowByte(_count);
   return true; // commit worked
 }
+
+//grbba
+byte *RingStream::getBuffer() {
+      return _buffer;
+}
+
+void RingStream::printStream() {
+   DIAG(F(" _len %d _pos_write %d _pos_read %d _overflow %d _mark %d _count %d\n"), _len, _pos_write, _pos_read, _overflow, _mark, _count);
+};
+
+void RingStream::resetStream() 
+{
+  memset(_buffer, 0, _len);
+  _pos_write=0;
+  _pos_read=0;
+  _buffer[0]=0;
+  _overflow=false;
+  _mark=0;
+  _count=0; 
+}
+//grbba

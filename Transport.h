@@ -36,9 +36,10 @@ private:
     bool                connected = false;                          
     TransportProcessor* t;                              // pointer to the object which handles the incomming flow
 
-    void udpHandler();                                  // Reads from a Udp socket - todo add incomming queue for processing when the flow is faster than we can process commands
+    void udpHandler(U* udp);                            // Reads from a Udp socket - todo add incomming queue for processing when the flow is faster than we can process commands
     void tcpSessionHandler(S* server);                  // tcpSessionHandler -> connections are maintained open until close by the client
     void connectionPool(S* server);                     // allocates the Sockets at setup time and creates the Connections
+    void connectionPool(U* udp);                        // allocates the UDP Sockets at setup time and creates the Connection
    
 public:
     uint8_t         id;

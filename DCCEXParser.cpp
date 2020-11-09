@@ -28,6 +28,8 @@
 #include "GITHUB_SHA.h"
 #include "version.h"
 
+#include "NetworkDiag.h"
+
 #include "EEStore.h"
 #include "DIAG.h"
 
@@ -48,6 +50,7 @@ const int HASH_KEYWORD_SLOW = -17209;
 const int HASH_KEYWORD_PROGBOOST = -6353;
 const int HASH_KEYWORD_EEPROM = -7168;
 const int HASH_KEYWORD_LIMIT = 27413;
+const int HASH_KEYWORD_NET = 21503;
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -618,6 +621,10 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 	if (params >= 1)
 	    EEStore::dump(p[1]);
 	return true;
+
+    case HASH_KEYWORD_NET:
+        _nLogLevel = p[1]; 
+    return true;
 
     default: // invalid/unknown
         break;

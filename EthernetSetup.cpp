@@ -16,26 +16,26 @@
  */
 
 #include <Arduino.h>
-#include "DIAG.h"
+#include "NetworkDiag.h"
 #include "EthernetSetup.h"
 
-EthernetServer* EthernetSetup::setup() 
+byte EthernetSetup::setup() 
 {
 
-    DIAG(F("\nInitialize Ethernet with DHCP"));
+    INFO(F("Initialize Ethernet with DHCP"));
     if (Ethernet.begin(mac) == 0)
     {
-        DIAG(F("\nFailed to configure Ethernet using DHCP ... Trying with fixed IP"));
+        WARN(F("Failed to configure Ethernet using DHCP ... Trying with fixed IP"));
         Ethernet.begin(mac, IPAddress(IP_ADDRESS)); // default ip address
 
         if (Ethernet.hardwareStatus() == EthernetNoHardware)
         {
-            DIAG(F("\nEthernet shield was not found. Sorry, can't run without hardware. :("));
+            ERR(F("Ethernet shield was not found. Sorry, can't run without hardware. :("));
             return 0;
         };
         if (Ethernet.linkStatus() == LinkOFF)
         {
-            DIAG(F("\nEthernet cable is not connected."));
+            ERR(F("Ethernet cable is not connected."));
             return 0;
         }
     }
@@ -44,33 +44,36 @@ EthernetServer* EthernetSetup::setup()
 
     if (Ethernet.hardwareStatus() == EthernetW5100)
     {
-        DIAG(F("\nW5100 Ethernet controller detected."));
+        INFO(F("W5100 Ethernet controller detected."));
         maxConnections = 4;  // Max supported officaly by the W5100 but i have been running over 8 as well. Perf has to be evaluated though comparing 4 vs. 8 connections
     }
     else if (Ethernet.hardwareStatus() == EthernetW5200)
     {
-        DIAG(F("\nW5200 Ethernet controller detected."));
+        INFO(F("W5200 Ethernet controller detected."));
         maxConnections = 8;
     }
     else if (Ethernet.hardwareStatus() == EthernetW5500)
     {
-        DIAG(F("W5500 Ethernet controller detected."));
+        INFO(F("W5500 Ethernet controller detected."));
         maxConnections = 8;
     }
 
-   DIAG(F("\nNetwork Protocol:      [%s]"), protocol ? "UDP" : "TCP");
+   INFO(F("Network Protocol:      [%s]"), protocol ? "UDP" : "TCP");
     switch (protocol)
     {
         case UDP:
         { 
-            if (udp.begin(port)) 
+            udp = new EthernetUDP();
+            byte udpState = udp->begin(port);
+            if (udpState) 
             {
+                TRC(F("UDP status: %d"), udpState);
                 maxConnections = 1;             // there is only one UDP object listening for incomming data
                 connected = true;
             }
             else
             {
-                DIAG(F("\nUDP client failed to start"));
+                ERR(F("\nUDP failed to start"));
                 connected = false;
             }
             break;
@@ -88,7 +91,7 @@ EthernetServer* EthernetSetup::setup()
         };
         default:
         {
-            DIAG(F("\nUnkown Ethernet protocol; Setup failed"));
+            ERR(F("\nUnkown Ethernet protocol; Setup failed"));
             connected = false;
             break;
         }
@@ -96,15 +99,13 @@ EthernetServer* EthernetSetup::setup()
     if (connected)
     {
         ip = Ethernet.localIP();
-        DIAG(F("\nLocal IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
-        DIAG(F("\nListening on port:     [%d]"), port);
+        INFO(F("Local IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
+        INFO(F("Listening on port:     [%d]"), port);
         dnsip = Ethernet.dnsServerIP();
-        DIAG(F("\nDNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
-        DIAG(F("\nNumber of connections: [%d]"), maxConnections);
-        if( protocol == UDP ) return 0;  // no server here as we use UDB
-        return server;
+        INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
+        INFO(F("Number of connections: [%d]"), maxConnections);
     }
-    return 0;
+    return connected;
 }
 
 EthernetSetup::EthernetSetup() {}

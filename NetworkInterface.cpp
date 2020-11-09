@@ -17,7 +17,7 @@
 
 #include <Arduino.h>
 
-#include "DIAG.h"
+#include "NetworkDiag.h"
 #include "NetworkInterface.h"
 #include "Transport.h"
 #include "EthernetSetup.h"
@@ -72,8 +72,9 @@ byte DCCNetwork::add(AbstractTransport *t, transportType transport)
 void NetworkInterface::setup(transportType transport, protocolType protocol, uint16_t port)
 {
     bool ok = false;
+    _nLogLevel = 4;    // set the log level to ERROR during setup to get proper information 
 
-    DIAG(F("\n[%s] Transport Setup In Progress ...\n"), transport ? "Ethernet" : "Wifi");
+    INFO(F("[%s] Transport Setup In Progress ..."), transport ? "Ethernet" : "Wifi");
 
     // configure the Transport and get Ethernet/Wifi server up and running
 
@@ -94,32 +95,38 @@ void NetworkInterface::setup(transportType transport, protocolType protocol, uin
             wifiTransport->transport = transport;
             wifiTransport->maxConnections = wSetup.maxConnections;
             ok = wifiTransport->setup(this);
-            DIAG(F("\n\nInterface [%x] bound to transport id [%d:%x]"), this, wifiTransport->id, wifiTransport);
+            DBG(F("Interface [%x] bound to transport id [%d:%x]"), this, wifiTransport->id, wifiTransport);
             break;
         };
     };
     case ETHERNET:
     {
         EthernetSetup eSetup(port, protocol);
-        ethernetTransport = new Transport<EthernetServer, EthernetClient, EthernetUDP>;
-        ethernetTransport->id = _dccNet.add(ethernetTransport, transport);
-        ethernetTransport->server = eSetup.setup(); // returns (NULL) 0 if we run over UDP; todo: error handling if something goes wrong in the init
-        ethernetTransport->port = port;
-        ethernetTransport->protocol = protocol;
-        ethernetTransport->transport = transport;
-        ethernetTransport->maxConnections = eSetup.maxConnections; // that has been determined during the ethernet/wifi setup
-        ok = ethernetTransport->setup(this);                       // start the transport i.e. setup all the client connections; We don't need the setup object anymore from here on
-        DIAG(F("\n\nInterface [%x] bound to transport id [%d:%x]"), this, ethernetTransport->id, ethernetTransport);
+        if( eSetup.setup() ) {
+            ethernetTransport = new Transport<EthernetServer, EthernetClient, EthernetUDP>;
+            ethernetTransport->id = _dccNet.add(ethernetTransport, transport);
+            ethernetTransport->server = eSetup.getTCPServer();          // 0 if UDP is used
+            ethernetTransport->port = port;
+            ethernetTransport->protocol = protocol;
+            ethernetTransport->transport = transport;
+            ethernetTransport->udp = eSetup.getUDPServer();             // 0 if TCP is used
+            ethernetTransport->maxConnections = eSetup.maxConnections;  // that has been determined during the ethernet/wifi setup
+            ok = ethernetTransport->setup(this);                        // start the transport i.e. setup all the client connections; We don't need the setup object anymore from here on
+            DBG(F("Interface [%x] bound to transport id [%d:%x]"), this, ethernetTransport->id, ethernetTransport);
+        } else {
+            ok = false;
+        }
         break;
     };
     default:
     {
-        DIAG(F("\nERROR: Unknown Transport")); // Something went wrong
+        ERR(F("ERROR: Unknown Transport")); // Something went wrong
         break;
     }
     }
 
-    DIAG(F("\n[%s] Transport %s ..."), transport ? "Ethernet" : "Wifi", ok ? "OK" : "Failed");
+    INFO(F("[%s] Transport %s ..."), transport ? "Ethernet" : "Wifi", ok ? "OK" : "Failed");
+    _nLogLevel = 0;   // set loging back to silent;
 }
 
 void NetworkInterface::setup(transportType tt, protocolType pt)
