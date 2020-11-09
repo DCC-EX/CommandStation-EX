@@ -73,7 +73,7 @@ byte EthernetSetup::setup()
             }
             else
             {
-                ERR(F("\nUDP failed to start"));
+                ERR(F("UDP failed to start"));
                 connected = false;
             }
             break;

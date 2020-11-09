@@ -59,23 +59,28 @@ RingStream streamer(512); // buffer into which to feed the commands for handling
 
 void sendWiThrottleToDCC(Connection *c, TransportProcessor *t, bool blocking)
 {
-    // streamer.printStream();
+
     byte *_buffer = streamer.getBuffer();
     memset(_buffer, 0, 512);                         // clear out the _buffer
     WiThrottle *wt = WiThrottle::getThrottle(c->id); // get a throttle for the Connection; will be created if it doesn't exist
 
-    // STRINGIFY(__FILE__);
-    DBG(F("WiThrottle [%x:%x] parsing: [%e]"), wt, _buffer, t->command);
+    TRC(F("WiThrottle [%x:%x] parsing: [%e]"), wt, _buffer, t->command);
+
     wt->parse(&streamer, (byte *)t->command); // get the response; not all commands will produce a reply
     if (streamer.count() != -1)
     {
         dumpRingStreamBuffer(_buffer, 512);
-        if (c->client->connected())
-        {
+        TRC(F("UDP %x"), t->udp);
+
+        if ( t->udp != 0) {
+            TRC(F("Sending UDP WiThrottle response ..."));
+            t->udp->beginPacket(t->udp->remoteIP(), t->udp->remotePort());
+            t->udp->write(_buffer, strlen((char *)_buffer));
+            t->udp->endPacket();
+        } else if (c->client->connected()) {
             c->client->write(_buffer, strlen((char *)_buffer));
         }
     }
-    // streamer.printStream();
     streamer.resetStream();
 }
 

@@ -27,12 +27,15 @@ extern uint8_t diagNetworkClient;
 
 template<class S, class C, class U> 
 bool Transport<S,C,U>::setup(NetworkInterface *nw) {
+    t = new TransportProcessor();
+
     if (protocol == TCP) { 
         connectionPool(server);     // server should have started here so create the connection pool only for TCP though
+        t->udp = 0;
     } else {
         connectionPool(udp);
+        t->udp = udp;
     }
-    t = new TransportProcessor();
     t->nwi = nw;                    // The TransportProcessor needs to know which Interface he is connected to
     connected = true;               // server & clients which will recieve/send data have all e setup and are available
     return true;
@@ -49,7 +52,7 @@ void Transport<S,C,U>::loop() {
     };
     case TCP:
     {
-        DBG(F("Transport: %s\n"), this->transport == WIFI ? "WIFI" : "ETHERNET"); 
+        DBG(F("Transport: %s"), this->transport == WIFI ? "WIFI" : "ETHERNET"); 
         tcpSessionHandler(server);    
     };
     case MQTT:
@@ -69,7 +72,7 @@ void Transport<S, C, U>::connectionPool(S *server)
         connections[i].client = &clients[i];              
         memset(connections[i].overflow, 0, MAX_OVERFLOW); 
         connections[i].id = i;
-        TRC(F("\nTCP Connection pool:       [%d:%x]"), i, connections[i].client);
+        TRC(F("TCP Connection pool:       [%d:%x]"), i, connections[i].client);
     }
 }
 template<class S, class C, class U> 
@@ -82,7 +85,7 @@ void Transport<S, C, U>::connectionPool(U *udp)
         memset(connections[i].overflow, 0, MAX_OVERFLOW); 
         connections[i].id = i;
 
-        TRC(F("\nUDP Connection pool:       [%d:%x]"), i, connections[i].client);
+        TRC(F("UDP Connection pool:       [%d:%x]"), i, udp);
     }
 }
 /**
@@ -99,7 +102,7 @@ void Transport<S, C, U>::udpHandler(U* udp)
     int packetSize = udp->parsePacket();
     if (packetSize > 0)
     {
-        TRC(F("\nReceived packet of size:[%d]"), packetSize);
+        TRC(F("Received packet of size:[%d]"), packetSize);
         IPAddress remote = udp->remoteIP();
         char portBuffer[6];
         TRC(F("From: [%d.%d.%d.%d: %s]"), remote[0], remote[1], remote[2], remote[3], utoa(udp->remotePort(), portBuffer, 10)); // DIAG has issues with unsigend int's so go through utoa

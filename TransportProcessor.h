@@ -35,9 +35,10 @@ private:
 #ifdef DCCEX_ENABLED
     void sendToDCC(Connection *c, TransportProcessor* t, bool blocking);
 #endif
+    
 
 public:
-
+    UDP *udp;                                 // need to carry the single UDP server instance over to the processor for sending packest
     NetworkInterface *nwi;
     uint8_t buffer[MAX_ETH_BUFFER];
     char command[MAX_JMRI_CMD];

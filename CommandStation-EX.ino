@@ -82,7 +82,7 @@ void setup()
 
   eth1.setup(ETHERNET, UDPR);                          // ETHERNET, UDP on Port 2560 
   // eth1.setup(ETHERNET, TCP);                          // ETHERNET, UDP on Port 2560 
-  eth2.setup(ETHERNET, TCP, 23);                      // ETHERNET, TCP on Port 23 for the CLI
+  // eth2.setup(ETHERNET, TCP, 23);                      // ETHERNET, TCP on Port 23 for the CLI
   // eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
   // wifi.setup(WIFI, TCP);                                // WIFI on Port 2560
   // eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
