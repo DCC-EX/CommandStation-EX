@@ -46,23 +46,20 @@ bool WifiSetup::setup() {
     {
     case UDPR:
     {
-        INFO(F("\nUDP over Wifi is not yet supported\n"));
         connected = false;
-        /*
         udp = new WiFiUDP(); 
-        
-        maxConnections = 1;
-        // DIAG(F("Wifi/UDP: [%x:%d]"), udp, port);
-        if (udp->begin(port))     // no need to call begin for the WiFiEspAT library but doesn't run properly in the context of the application
+        byte udpState = udp->begin(port);
+        if (udpState) 
         {
+            TRC(F("UDP status: %d"), udpState);
+            maxConnections = 1;             // there is only one UDP object listening for incomming data
             connected = true;
         }
         else
         {
-            DIAG(F("\nUDP client failed to start"));
+            ERR(F("UDP failed to start"));
             connected = false;
         }
-        */
         break;
     };
     case TCP:
@@ -97,11 +94,9 @@ bool WifiSetup::setup() {
         dnsip = WiFi.dnsServer1();
         INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
         INFO(F("Number of connections: [%d]"), maxConnections);
-        if( protocol == UDPR ) return 0;  // no server here as we use UDP
         return true;
     }
-    // something went wrong
-    return false;
+    return false; // something went wrong
 
 };
 

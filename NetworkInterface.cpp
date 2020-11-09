@@ -84,20 +84,22 @@ void NetworkInterface::setup(transportType transport, protocolType protocol, uin
     case WIFI:
     {
         WifiSetup wSetup(port, protocol);
-        ok = wSetup.setup();
-        if (ok)
+        if (wSetup.setup())
         {
             wifiTransport = new Transport<WiFiServer, WiFiClient, WiFiUDP>;
             wifiTransport->id = _dccNet.add(wifiTransport, transport);
-            wifiTransport->server = wSetup.getServer();
+            wifiTransport->server = wSetup.getTCPServer();
             wifiTransport->port = port;
             wifiTransport->protocol = protocol;
             wifiTransport->transport = transport;
+            wifiTransport->udp = wSetup.getUDPServer();             // 0 if TCP is used
             wifiTransport->maxConnections = wSetup.maxConnections;
             ok = wifiTransport->setup(this);
             DBG(F("Interface [%x] bound to transport id [%d:%x]"), this, wifiTransport->id, wifiTransport);
-            break;
-        };
+        } else {
+            ok = false;
+        }
+        break;
     };
     case ETHERNET:
     {

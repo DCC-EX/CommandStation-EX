@@ -104,8 +104,9 @@ byte EthernetSetup::setup()
         dnsip = Ethernet.dnsServerIP();
         INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
         INFO(F("Number of connections: [%d]"), maxConnections);
+        return true; 
     }
-    return connected;
+    return false; // something went wrong
 }
 
 EthernetSetup::EthernetSetup() {}

@@ -42,10 +42,11 @@ public:
 
     bool setup();
 
-    WiFiUDP* getUdp() {
+    WiFiUDP* getUDPServer() {
         return udp;
     }
-    WiFiServer* getServer() {
+
+    WiFiServer* getTCPServer() {
         return server;
     }
 
