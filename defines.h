@@ -27,9 +27,14 @@
 #define WIFI_ON true
 #else
 #define WIFI_ON false
-
 #endif
 
+#if ENABLE_ETHERNET && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO))
+#define ETHERNET_ON true
+#else
+#define ETHERNET_ON false
+#endif
+ 
 ////////////////////////////////////////////////////////////////////////////////
 //
 // This defines the speed at which the Arduino will communicate with the ESP8266 module.

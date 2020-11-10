@@ -48,6 +48,7 @@ const int HASH_KEYWORD_SLOW = -17209;
 const int HASH_KEYWORD_PROGBOOST = -6353;
 const int HASH_KEYWORD_EEPROM = -7168;
 const int HASH_KEYWORD_LIMIT = 27413;
+const int HASH_KEYWORD_ETHERNET = -30767;    
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -607,6 +608,10 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 
     case HASH_KEYWORD_WIFI: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
+        return true;
+
+   case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
+        Diag::ETHERNET = onOff;
         return true;
 
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
