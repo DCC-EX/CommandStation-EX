@@ -20,10 +20,13 @@
 #include <Arduino.h>
 
 #include "NetworkDiag.h"
+#include "NetworkSetup.h"
 #include "EthernetSetup.h"
 
 byte EthernetSetup::setup() 
 {
+    INFO(F("Initialize MAC Address ..."));
+    NetworkSetup::genMacAddress();
 
     INFO(F("Initialize Ethernet with DHCP"));
     if (Ethernet.begin(mac) == 0)
@@ -61,7 +64,7 @@ byte EthernetSetup::setup()
         maxConnections = 8;
     }
 
-   INFO(F("Network Protocol:      [%s]"), protocol ? "UDP" : "TCP");
+   INFO(F("Network Protocol: [%s]"), protocol ? "UDP" : "TCP");
     switch (protocol)
     {
         case UDPR:
@@ -102,8 +105,9 @@ byte EthernetSetup::setup()
     if (connected)
     {
         ip = Ethernet.localIP();
-        INFO(F("Local IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
-        INFO(F("Listening on port:     [%d]"), port);
+        NetworkSetup::printMacAddress(NetworkSetup::mac);
+        INFO(F("Local IP address: [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
+        INFO(F("Listening on port: [%d]"), port);
         dnsip = Ethernet.dnsServerIP();
         INFO(F("DNS server IP address: [%d.%d.%d.%d] "), dnsip[0], dnsip[1], dnsip[2], dnsip[3]);
         INFO(F("Number of connections: [%d]"), maxConnections);

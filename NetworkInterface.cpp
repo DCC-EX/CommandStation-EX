@@ -20,6 +20,7 @@
 #include <Arduino.h>
 
 #include "NetworkDiag.h"
+#include "NetworkSetup.h"
 #include "NetworkInterface.h"
 #include "Transport.h"
 #include "EthernetSetup.h"
@@ -76,6 +77,8 @@ void NetworkInterface::setup(transportType transport, protocolType protocol, uin
     bool ok = false;
     _nLogLevel = 4;    // set the log level to ERROR during setup to get proper information 
 
+    NetworkSetup::setDeviceId();
+
     INFO(F("[%s] Transport Setup In Progress ..."), transport ? "Ethernet" : "Wifi");
 
     // configure the Transport and get Ethernet/Wifi server up and running
@@ -130,7 +133,7 @@ void NetworkInterface::setup(transportType transport, protocolType protocol, uin
     }
 
     INFO(F("[%s] Transport %s ..."), transport ? "Ethernet" : "Wifi", ok ? "OK" : "Failed");
-    _nLogLevel = 0;   // set loging back to silent;
+    // _nLogLevel = 0;   // set loging back to silent;
 }
 
 void NetworkInterface::setup(transportType tt, protocolType pt)

@@ -25,17 +25,35 @@
 #include "NetworkConfig.h"
 #include "NetworkInterface.h"
 
+#define MAXDEVICEID 20
+
 class NetworkSetup
 {
 private:
+    
+    
+    static char _deviceId[MAXDEVICEID];
+    static bool macAddressSet;
+    static bool deviceIdSet;
+
 public:
     IPAddress       dnsip;
     IPAddress       ip;
-    uint8_t         mac[6] = MAC_ADDRESS;
+    static uint8_t  mac[6];              // Default if not set automatically for EthernetShield
+    static uint8_t  apWifiMacAddress[6]; // for the WiFi AP
+    static uint8_t  stWifiMacAddress[6]; // for the normal WiFi connection
+
     uint8_t         maxConnections;
     bool            connected;                  // semantics is that the server has successfullt started  or not; client connections will be started in the Transport object
     protocolType    protocol;
     uint16_t        port = LISTEN_PORT;         // Default port
+
+    static void setDeviceId();
+    char *getDeviceId() {
+        return _deviceId;
+    }
+    static void genMacAddress();
+    static void printMacAddress(uint8_t a[]);
 
     NetworkSetup();
     ~NetworkSetup();

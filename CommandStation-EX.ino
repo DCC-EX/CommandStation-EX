@@ -86,7 +86,7 @@ void setup()
   // nwi1.setup(ETHERNET, TCP);                     // ETHERNET/TCP on Port 2560 
   nwi2.setup(ETHERNET, TCP, 23);                  // ETHERNET/TCP on Port 23 for the CLI
   // nwi1.setup(ETHERNET, TCP, 8888);               // ETHERNET/TCP on Port 8888
-  // nwi2.setup(WIFI, TCP);                         // WIFI/TCP on Port 2560
+  nwi2.setup(WIFI, TCP);                         // WIFI/TCP on Port 2560
   // nwi1.setHttpCallback(httpRequestHandler);      // HTTP callback
 
   DIAG(F("\nNetwork Setup done ...\n"));

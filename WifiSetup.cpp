@@ -23,6 +23,8 @@
 #include "NetworkSetup.h"
 #include "WifiSetup.h"
 
+void reverseArray(uint8_t arr[], int start, int end);
+
 bool WifiSetup::setup() {
     /**
      * @todo setup using SoftwareSerial or any other Hardware Serial port on the mega (i.e. 2 or 3);
@@ -47,6 +49,11 @@ bool WifiSetup::setup() {
     }
     
     INFO(F("Network Protocol: [%s]"), protocol ? "UDP" : "TCP");
+    INFO(F("Initialize MAC Addresses ... "));
+    WiFi.apMacAddress(apWifiMacAddress);
+    reverseArray(apWifiMacAddress, 0, 5);   // the MAc is provided in reverse order ...
+    WiFi.macAddress(stWifiMacAddress);
+    reverseArray(stWifiMacAddress, 0, 5);
 
     // Setup the protocol handler
     switch (protocol)
@@ -96,6 +103,9 @@ bool WifiSetup::setup() {
     if (connected)
     {
         ip = WiFi.localIP();
+        NetworkSetup::printMacAddress(apWifiMacAddress);
+        NetworkSetup::printMacAddress(stWifiMacAddress);
+
         INFO(F("Local IP address:      [%d.%d.%d.%d]"), ip[0], ip[1], ip[2], ip[3]);
         INFO(F("Listening on port:     [%d]"), port);
         dnsip = WiFi.dnsServer1();
@@ -106,6 +116,18 @@ bool WifiSetup::setup() {
     return false; // something went wrong
 
 };
+
+void reverseArray(uint8_t arr[], int start, int end)
+{
+    while (start < end)
+    {
+        uint8_t temp = arr[start]; 
+        arr[start] = arr[end];
+        arr[end] = temp;
+        start++;
+        end--;
+    } 
+} 
 
 WifiSetup::WifiSetup() {}
 WifiSetup::WifiSetup(uint16_t p, protocolType pt ) { port = p; protocol = pt; }
