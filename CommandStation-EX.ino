@@ -18,9 +18,8 @@
 DCCEXParser serialParser;
 
 // (0) Declare NetworkInterfaces
-// NetworkInterface wifi;
-NetworkInterface eth1;
-NetworkInterface eth2;
+NetworkInterface nwi1;
+NetworkInterface nwi2;
 // (0) Declared NetworkInterfaces
 
 // (1) Start NetworkInterface - HTTP callback
@@ -77,15 +76,18 @@ void setup()
 
   // New connection on known ssid / password combo / port can be added as a last parameter other wise the default of 2560
   // will be used. If it passes the connection will be stored as permanent default. If fails will go into AP mode.                
-  // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME));
-  // wifi.setup(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME, 2323)
+  // wifi.init(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME));
+  // wifi.init(WIFI, TCP, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME, 2323)
+  // wifi.init
 
-  eth1.setup(WIFI, UDPR);                          // ETHERNET, UDP on Port 2560 
-  // eth1.setup(ETHERNET, TCP);                          // ETHERNET, UDP on Port 2560 
-  // eth2.setup(ETHERNET, TCP, 23);                      // ETHERNET, TCP on Port 23 for the CLI
-  // eth1.setup(ETHERNET, TCP, 8888);                      // ETHERNET, TCP on Port 8888
-  // wifi.setup(WIFI, TCP);                                // WIFI on Port 2560
-  // eth1.setHttpCallback(httpRequestHandler);             // HTTP callback
+
+  // nwi1.setup(ETHERNET, UDPR);                    // ETHERNET/UDP on Port 2560 
+  // nwi2.setup(ETHERNET, UDPR, 8888);              // ETHERNET/UDP on Port 8888 
+  // nwi1.setup(ETHERNET, TCP);                     // ETHERNET/TCP on Port 2560 
+  nwi2.setup(ETHERNET, TCP, 23);                  // ETHERNET/TCP on Port 23 for the CLI
+  // nwi1.setup(ETHERNET, TCP, 8888);               // ETHERNET/TCP on Port 8888
+  // nwi2.setup(WIFI, TCP);                         // WIFI/TCP on Port 2560
+  // nwi1.setHttpCallback(httpRequestHandler);      // HTTP callback
 
   DIAG(F("\nNetwork Setup done ...\n"));
   DIAG(F("\nFree RAM after network init: [%d]\n"),freeMemory());
