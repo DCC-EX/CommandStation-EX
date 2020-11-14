@@ -137,6 +137,11 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const __FlashStringH
   return wifiState;
 }
 
+#ifdef DONT_TOUCH_WIFI_CONF
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
 				      const __FlashStringHelper* hostname, int port) {
   bool ipOK = false;
@@ -274,6 +279,9 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
    
   return WIFI_CONNECTED;
 }
+#ifdef DONT_TOUCH_WIFI_CONF
+#pragma GCC diagnostic pop
+#endif
 
 
 // This function is used to allow users to enter <+ commands> through the DCCEXParser
