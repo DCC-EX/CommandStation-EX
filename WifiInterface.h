@@ -19,6 +19,7 @@
  */
 #ifndef WifiInterface_h
 #define WifiInterface_h
+#include "config.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
