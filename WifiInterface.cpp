@@ -22,8 +22,8 @@
 #include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
-
 #include "WifiInboundHandler.h"
+#include "Display.h"
 
 const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
 const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
@@ -33,6 +33,10 @@ const char  PROGMEM IPD_SEARCH[] = "+IPD";
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 Stream * WifiInterface::wifiStream;
+wifiESPMode WifiInterface::wifiMode = WIFIMODE_UNKNOWN;
+char WifiInterface::ip[16] = "\0234567890123456";
+//char WifiInterface::ip[0] = 0;
+int WifiInterface::wifiPort = 0;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +125,9 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const __FlashStringH
   }
  
   if (wifiState == WIFI_CONNECTED) {
+    /// test here
+    SetIP();
+    DisplayIP();
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
     checkForOK(200, OK_SEARCH, true);      
   }
@@ -286,7 +293,49 @@ void WifiInterface::ATCommand(const byte * command) {
   }
 }
 
+void WifiInterface::SetIP() {
 
+  StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+  if (!checkForOK(10000, (const char *)F("+CIFSR:"), true, false))
+    return;
+  // now we should be at APIP," or STAIP,"
+  char c = ':';
+  char oldc = ':';
+  while (c != '"') {
+    while (!wifiStream->available());
+    switch(c = wifiStream->read()) {
+    case 'T':
+      if (oldc == 'S') wifiMode = WIFIMODE_STA;
+      break;
+    case 'P':
+      if (oldc == 'A') wifiMode = WIFIMODE_AP;
+      break;
+    default:
+      // ignore other chars
+      break;
+    }
+    oldc = c;
+  }
+
+  byte i=0;
+  for (;;) {
+    while(!wifiStream->available());
+    ip[i]=wifiStream->read();
+    if (ip[i] == '"' || i >= 15) {
+      ip[i]='\0';
+      break;
+    }
+    i++;
+  }
+}
+
+void  WifiInterface::DisplayIP() {
+  //XXXX here I want to something like Display::displayIP(ip);
+  if (wifiMode == WIFIMODE_STA)
+    LCD(3,F("WifiCLIENT"));
+  else 
+    LCD(3,F("AP"));
+}
 
 bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo, bool escapeEcho) {
   unsigned long  startTime = millis();

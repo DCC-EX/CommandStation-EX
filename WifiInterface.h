@@ -25,6 +25,7 @@
 #include <avr/pgmspace.h>
 
 enum wifiSerialState { WIFI_NOAT, WIFI_DISCONNECTED, WIFI_CONNECTED };
+enum wifiESPMode { WIFIMODE_UNKNOWN = 0, WIFIMODE_STA = 1, WIFIMODE_AP = 2 };
 
 class WifiInterface
 {
@@ -37,7 +38,8 @@ public:
                           const int port = 2560);
   static void loop();
   static void ATCommand(const byte *command);
-
+  static void SetIP();
+  static void DisplayIP();
 private:
   static wifiSerialState setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
                     const __FlashStringHelper *hostname, int port);
@@ -52,5 +54,8 @@ private:
   static int datalength;
   static int connectionId;
   static unsigned long loopTimeoutStart;
+  static wifiESPMode wifiMode;
+  static char ip[16];
+  static int wifiPort;
 };
 #endif
