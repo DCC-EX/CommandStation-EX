@@ -1,52 +1,60 @@
-# What's DCC++ EX
-------------
+# What is DCC++ EX?
+DCC++ EX is the organization maintaining several codebases that together represent a fully open source DCC system. Currently, this includes the following:
 
-DCC++ EX is an open-source hardware and software system for the operation of DCC-equipped model railroads. It expands on the work of Gregg E. Berman's original DCC++ (which can be found here in the BaseStation-Classic repository)
+* [CommandStation-EX](https://github.com/DCC-EX/CommandStation-EX/releases) - the latest take on the DCC++ command station for controlling your trains. Runs on an Arduino board, and includes advanced features such as a WiThrottle server implementation, turnout operation, general purpose inputs and outputs (I/O), and JMRI integration.
+* [exWebThrottle](https://github.com/DCC-EX/exWebThrottle) - a simple web based controller for your DCC++ command station.
+* [BaseStation-installer](https://github.com/DCC-EX/BaseStation-Installer) - an installer executable that takes care of downloading and installing DCC++ firmware onto your hardware setup.
+* [BaseStation-Classic](https://github.com/DCC-EX/BaseStation-Classic) - the original DCC++ software, packaged in a stable release. No active development, bug fixes only.
 
-The system consists of two parts, the DCC++ EX Command Station and one of many front end controllers. These controllers can be hardware controllers (called CABs or Throttles), software applications like JMRI, phone apps like Engine Driver, or our exWebThrottle that is a simple application you run in a browser like a web page and control your model trains.
+A basic DCC++ EX hardware setup can use easy to find, widely avalable Arduino boards that you can assemble yourself.
 
-The DCC++ EX Command Station consists of an Arduino micro controller fitted with an Arduino Motor Shield (or other supported motor controllers) that can be connected directly to the tracks of a model railroad.
+Both CommandStation-EX and BaseStation-Classic support much of the NMRA Digital Command Control (DCC) [standards](http://www.nmra.org/dcc-working-group "NMRA DCC Working Group"), including:
 
-# What’s in this Repository
--------------------------
+* simultaneous control of multiple locomotives
+* 2-byte and 4-byte locomotive addressing
+* 128-step speed throttling
+* Activate/de-activate all accessory function addresses 0-2048
+* Control of all cab functions F0-F28
+* Main Track: Write configuration variable bytes and set/clear specific configuration variable (CV) bits (aka Programming on Main or POM)
+* Programming Track: Same as the main track with the addition of reading configuration variable bytes
 
-This repository, CommandStation-EX, contains a complete DCC++ EX Commmand Station sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.  All sketch files are in the folder named CommandStation-EX and its subforlders. More information about the sketch can be found in the included PDF file.
+# What’s in this Repository?
 
-To utilize this sketch, you can use the following methods: 
+This repository, CommandStation-EX, contains a complete DCC++ EX Commmand Station sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.  All sketch files are in the folder named CommandStation-EX and its subforlders. 
 
-* our automated installer
-* download a zip file from this repository (green Code button above) and unzip it
-* use git clone on this repository
+To utilize this sketch, you can use the following: 
 
-With the manual methods you unzip or git clone to the Arduino IDE
-projects folder and then open the file "CommandStation-EX.ino" in the
+1. (beginner) our [automated installer](https://github.com/DCC-EX/BaseStation-Installer)
+2. (intermediate) download the latest version from the [releases page](https://github.com/DCC-EX/CommandStation-EX/releases)
+3. (advanced) use git clone on this repository 
+
+Not using the installer? Open the file "CommandStation-EX.ino" in the
 Arduino IDE. Please do not rename the folder containing the sketch
 code, nor add any files in that folder. The Arduino IDE relies on the
 structure and name of the folder to properly display and compile the
-code. If you do not run the installer, you have to copy
-config.example.h to config.h. If you do not have the standard config
-you edit config.h according to the help texts in config.h.
+code. Rename or copy config.example.h to config.h. If you do not have 
+the standard setup, you must edit config.h according to the help texts 
+in config.h.
 
-The latest production release of the Master branch is 3.0.1:
+## What's new in CommandStation-EX?
 
-* Supports the Arduino Uno, Arduino Mega, and Arduino Nano
-* Built-in configuration for both the original Arduino Motor Shield, Pololu MC33926 Motor Shield, LMD18200, and BTS7960B
-* Built-in configuration and support of Ethernet Shields and the ESP82266 WiFi module (networking for use with Mega only).
+* WiThrottle server built in. Connect Engine Driver or WiThrottle clients directly to your Command Station
+* WiFi and Ethernet shield support
+* No more jumpers or soldering!
+* Direct support for all the most popular motor control boards
+* I2C Display support
+* Improved short circuit detection and automatic reset from an overload
+* Current reading, sensing and ACK detection settings in milliAmps instead of just pin readings
+* Improved adherence to the NMRA DCC specification
+* Complete support for all the old commands and front ends like JMRI
+* Railcom cutout (beta)
+* Simpler, modular, faster code with an API Library for developers for easy expansion
+* New features and functions in JMRI
+* Automation (coming soon)
 
-For more information on the overall DCC++ EX system, please follow the links in the PDF file.
+NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means to you, click [HERE](notes/rewrite.md).
 
-Detailed diagrams showing pin mappings and required jumpers for the Motor Shields can be found in the Documentation Repository
+# More information
+You can learn more at the [DCC++ EX website](https://dcc-ex.com/)
 
-The Master branch contains all of the Command Station functionality showed in the DCC-EX YouTube channel.
-
-# How to find more information
---------------------------
-
-[DCC++ EX WEB Page](https://dcc-ex.github.io "DCC++ EX WEB Page")
-
-[The DCC++ EX Discord and live support](https://discord.gg/y2sB4Fp "The DCC++ EX Discord Server")
-
-[TrainBoard DCC++ Forum](https://www.trainboard.com/highball/index.php?forums/dcc.177/ "TrainBoard DCC++ Forum")
-
--May 2020
-!!
+- November 14, 2020

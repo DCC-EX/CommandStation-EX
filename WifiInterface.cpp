@@ -18,7 +18,7 @@
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "WifiInterface.h"        /* config.h and defines.h included here */
+#include "WifiInterface.h"        /* config.h included there */
 #include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
@@ -157,6 +157,9 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
   checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
 
+#ifdef DONT_TOUCH_WIFI_CONF
+  DIAG(F("\nDONT_TOUCH_WIFI_CONF was set: Using existing config\n"));
+#else
   StringFormatter::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as "station" = WiFi client
   checkForOK(1000, OK_SEARCH, true);                       // Not always OK, sometimes "no change"
 
@@ -256,6 +259,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(10000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
+#endif //DONT_TOUCH_WIFI_CONF
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
   if (!checkForOK(10000, OK_SEARCH, true, false)) return WIFI_DISCONNECTED;
