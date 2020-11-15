@@ -3,39 +3,7 @@
 
 #include <Arduino.h>
 
-#if defined(ARDUINO_SAMD_ZERO)
-
-#if defined(SAMC21)
-#include "ATSAMC21G/Timer.h"
-#else
-#include "ATSAMD21G/Timer.h"
-#endif
-
-Timer TimerA(TCC0);
-Timer TimerB(TCC1);
-Timer TimerC(TCC2);
-
-void TCC0_Handler() {
-    if(TCC0->INTFLAG.bit.OVF) {
-        TCC0->INTFLAG.bit.OVF = 1;
-        TimerA.isrCallback();
-    }
-}
-
-void TCC1_Handler() {
-    if(TCC1->INTFLAG.bit.OVF) {
-        TCC1->INTFLAG.bit.OVF = 1;
-        TimerB.isrCallback();
-    }
-}
-
-void TCC2_Handler() {
-    if(TCC2->INTFLAG.bit.OVF) {
-        TCC2->INTFLAG.bit.OVF = 1;
-        TimerC.isrCallback();
-    }
-}
-#elif defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
 
 #include "ATMEGA2560/Timer.h"
 
@@ -79,16 +47,6 @@ ISR(TIMER1_OVF_vect)
 ISR(TIMER2_OVF_vect)
 {
     TimerB.isrCallback();
-}
-
-#elif defined(ARDUINO_ARCH_MEGAAVR)
-
-#include "ATMEGA4809/Timer.h"
-
-Timer TimerA(0);
-
-ISR(TCA0_OVF_vect) {
-    TimerA.isrCallback();
 }
 
 #endif
