@@ -44,14 +44,23 @@ The configuration file for DCC++ EX Command Station
 //
 // DEFINE WiFi Parameters (only in effect if WIFI is on)
 //
+// If DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
+// the <+> commands and this sketch will not change anything over
+// AT commands and the other WIFI_* defines below do not have any effect.
 //#define DONT_TOUCH_WIFI_CONF
 //
-// if DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
-// the <+> commands and this sketch will not change anything over
-// AT commands and the WIFI_* defines below do not have any effect.
-//
+// WIFI_SSID is the network name IF you want to use your home network.
+// Do NOT change this if you want to use the WiFi in Access Point mode.
+// Your SSID may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
+//
+// WIFI_PASSWORD is the network password for your home network or if
+// you want to change the password from default AP mode password
+// to the AP password you want. 
+// Your password may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_PASSWORD "Your network passwd"
+//
+// WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
 
 /////////////////////////////////////////////////////////////////////////////////////
