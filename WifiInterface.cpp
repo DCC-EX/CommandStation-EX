@@ -172,7 +172,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   // ESP8266 is preconfigured. We check the first 13 chars
   // of the SSid.
   char *yourNetwork = "Your network ";
-  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0) {
+  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || SSid[0] == '\0') {
     delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
 
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));

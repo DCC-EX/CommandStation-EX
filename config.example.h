@@ -49,8 +49,14 @@ The configuration file for DCC++ EX Command Station
 // AT commands and the other WIFI_* defines below do not have any effect.
 //#define DONT_TOUCH_WIFI_CONF
 //
-// WIFI_SSID is the network name IF you want to use your home network.
-// Do NOT change this if you want to use the WiFi in Access Point mode.
+// WIFI_SSID is the network name IF you want to use your existing home network.
+// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
+//
+// If you do NOT set the WIFI_SSID, the WiFi chip will first try
+// to connect to the previously configured network and if that fails
+// fall back to Access Point mode. The SSID of the AP will be
+// automatically set to DCCEX_*.
+//
 // Your SSID may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
 //
