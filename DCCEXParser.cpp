@@ -515,7 +515,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
         {
             gotOne = true;
-            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
+            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
         }
         return gotOne; // will <X> if none found
     }
@@ -532,7 +532,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
         if (!tt)
             return false;
         tt->activate(p[1]);
-        StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
+        StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
     }
         return true;
 
