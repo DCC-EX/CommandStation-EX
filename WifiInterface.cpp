@@ -171,8 +171,8 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   // If the source code looks unconfigured, check if the
   // ESP8266 is preconfigured. We check the first 13 chars
   // of the SSid.
-  char *yourNetwork = "Your network ";
-  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || SSid[0] == '\0') {
+  const char *yourNetwork = "Your network ";
+  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || ((const char *)SSid)[0] == '\0') {
     delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
 
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
@@ -247,10 +247,11 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
       do {
         if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
 	  // unconfigured
-          StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
+	  StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
 	} else {
 	  // password configured by user
           StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"%s\",1,4\r\n"), macTail, password);
+	}
       } while (i++<2 && !checkForOK(16000, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
       
     } else {
