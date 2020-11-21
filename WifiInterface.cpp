@@ -178,7 +178,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
     if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
 	if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
 	    ipOK = true;
-  } else {
+  } else { // Should this really be "else" here /haba
 
     if (!ipOK) {
 
@@ -191,7 +191,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 	// AT command early version supports CWJAP/CWSAP
 	if (SSid) {
 	  StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
-	  ipOK = checkForOK(16000, OK_SEARCH, true);
+	  ipOK = checkForOK(8000, OK_SEARCH, true);
 	}
 	DIAG(F("\n**\n"));
 
@@ -203,10 +203,9 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
       
 	if (SSid) {
 	  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
-	  ipOK = checkForOK(20000, OK_SEARCH, true);
+	  ipOK = checkForOK(8000, OK_SEARCH, true);
 	}
       }
-      delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
 
       if (ipOK) {
 	// But we really only have the ESSID and password correct
@@ -244,7 +243,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 
       int i=0;
       do StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
-      while (i++<2 && !checkForOK(16000, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
+      while (i++<2 && !checkForOK(8000, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
       
     } else {
 
@@ -257,17 +256,17 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   }
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=0\r\n")); // turn off tcp server (to clean connections before CIPMUX=1)
-  checkForOK(10000, OK_SEARCH, true); // ignore result in case it already was off
+  checkForOK(1000, OK_SEARCH, true); // ignore result in case it already was off
    
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
-  if (!checkForOK(10000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
+  if (!checkForOK(1000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
-  if (!checkForOK(10000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
+  if (!checkForOK(1000, OK_SEARCH, true)) return WIFI_DISCONNECTED;
 #endif //DONT_TOUCH_WIFI_CONF
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
-  if (!checkForOK(10000, OK_SEARCH, true, false)) return WIFI_DISCONNECTED;
+  if (!checkForOK(1000, OK_SEARCH, true, false)) return WIFI_DISCONNECTED;
   DIAG(F("\nPORT=%d\n"),port);
    
   return WIFI_CONNECTED;
