@@ -35,7 +35,8 @@ bool WifiInterface::connected = false;
 Stream * WifiInterface::wifiStream;
 
 #ifndef WIFI_CONNECT_TIMEOUT
-#define WIFI_CONNECT_TIMEOUT 8000
+// Tested how long it takes to FAIL an unknown SSID on firmware 1.7.4.
+#define WIFI_CONNECT_TIMEOUT 14000
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -175,8 +176,8 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   // ESP8266 is preconfigured. We check the first 13 chars
   // of the password.
   if (strncmp_P("Your network ",(const char*)password,13) == 0) {
-    delay(WIFI_CONNECT_TIMEOUT); // give a preconfigured ES8266 a chance to connect to a router  
-
+    delay(8000); // give a preconfigured ES8266 a chance to connect to a router
+                 // typical connect time approx 7 seconds
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
     if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
 	if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
