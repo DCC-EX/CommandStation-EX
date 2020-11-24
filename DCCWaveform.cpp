@@ -298,7 +298,7 @@ void DCCWaveform::setAckBaseline() {
       if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
 			  ackThreshold,motorDriver->raw2mA(ackThreshold),
-                          MIN_ACK_PULSE_DURATION, MAX_ACK_PULSE_DURATION);
+                          minAckPulseDuration, maxAckPulseDuration);
 }
 
 void DCCWaveform::setAckPending() {
@@ -330,7 +330,7 @@ void DCCWaveform::checkAck() {
       
     lastCurrent=motorDriver->getCurrentRaw();
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
-    // An ACK is a pulse lasting between MIN_ACK_PULSE_DURATION and MAX_ACK_PULSE_DURATION uSecs (refer @haba)
+    // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
     if (lastCurrent>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
@@ -343,7 +343,7 @@ void DCCWaveform::checkAck() {
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
                
-    if (ackPulseDuration>=MIN_ACK_PULSE_DURATION && ackPulseDuration<=MAX_ACK_PULSE_DURATION) {
+    if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;
