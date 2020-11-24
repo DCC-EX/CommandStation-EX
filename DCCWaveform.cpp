@@ -295,9 +295,10 @@ void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
       int baseline = motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA threshold=%d/%dmA"),
+      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
-			  ackThreshold,motorDriver->raw2mA(ackThreshold));
+			  ackThreshold,motorDriver->raw2mA(ackThreshold),
+                          MIN_ACK_PULSE_DURATION, MAX_ACK_PULSE_DURATION);
 }
 
 void DCCWaveform::setAckPending() {
@@ -312,7 +313,7 @@ void DCCWaveform::setAckPending() {
 
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("\nACK-%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("OK"):F("FAIL"), ackCheckDuration, 
+      if (Diag::ACK) DIAG(F("\n%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
            ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
