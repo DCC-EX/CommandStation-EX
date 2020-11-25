@@ -40,6 +40,7 @@ struct DCCEXParser
      bool  inCommandPayload=false;
      byte  buffer[MAX_BUFFER+2]; 
     int splitValues( int result[MAX_PARAMS], const byte * command);
+    int splitHexValues( int result[MAX_PARAMS], const byte * command);
      
      bool parseT(Print * stream, int params, int p[]);
      bool parseZ(Print * stream, int params, int p[]);
