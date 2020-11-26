@@ -26,3 +26,46 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Number of locos discovery command** - ```<#>``` command 
  - **Support for more locomotives** - 20 locomotives on an UNO and 50 an a Mega.
  - **Automatic slot managment** - slot variable in throttle/function commands are ignored and slot management is taken care of automatically. ```<!>``` command added to release locos from memory.
+
+
+**Key Contributors**
+
+**Project Lead**
+    Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
+
+**CommandStation-EX Developers**
+    Chris Harlow - Bournemouth, UK (UKBloke)
+    Harald Barth - Stockholm, Sweden (Haba)
+    Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
+    Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
+    M Steve Todd - - Engine Driver and JMRI Interface
+    Scott Catalanno - Pennsylvania
+    Gregor Baues - Île-de-France, France (grbba)
+
+**exInstaller Software**
+    Anthony W - Dayton, Ohio, USA (Dex, Dex++)
+
+**Website and Documentation**
+    Mani Kumar - Bangalor, India (Mani / Mani Kumar)
+    Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
+    Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
+    Roger Beschizza - Dorset, UK (Roger Beschizza)
+    Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
+    Kevin Smith - (KCSmith)
+
+**Beta Testing / Release Management / Support**
+    Larry Dribin	larry@dribin.org - Release Management
+    Keith Ledbetter	kwledbetter@hotmail.com
+    BradVan der Elst	brad.vanderelst@gci.net
+    Andrew Pye	andrew@ajpye.org
+    Mike Bowers	springlake1925@gmail.com
+    Randy McKenzie	kk4ej@yahoo.com
+    Roberto Bravin	roberto.bravin@gmail.com
+    Sim Brigden	sim.brigden@gmail.com
+    Alan Lautenslager	alan.lautenslager@gmail.com
+    Martin Bafver	martin.bafver@gmail.com
+    Mário André Silva	andre_bb@live.com.pt
+    Anthony Kochevar	ajkochevar@comcast.net
+    Gajanatha Kobbekaduwe	gajanatha@gmail.com
+    Sumner Patterson - Blanding, Utah, USA (Sumner)
+    Paul - Virginia, USA (Paul1361)
