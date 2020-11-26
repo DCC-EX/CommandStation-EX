@@ -158,6 +158,66 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     return parameterCount;
 }
 
+int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
+{
+    byte state = 1;
+    byte parameterCount = 0;
+    int runningValue = 0;
+    const byte *remainingCmd = cmd + 1; // skips the opcode
+    
+    // clear all parameters in case not enough found
+    for (int i = 0; i < MAX_PARAMS; i++)
+        result[i] = 0;
+
+    while (parameterCount < MAX_PARAMS)
+    {
+        byte hot = *remainingCmd;
+
+        switch (state)
+        {
+
+        case 1: // skipping spaces before a param
+            if (hot == ' ')
+                break;
+            if (hot == '\0' || hot == '>')
+                return parameterCount;
+            state = 2;
+            continue;
+
+        case 2: // checking first hex digit
+            runningValue = 0;
+            state = 3;
+            continue;
+
+        case 3: // building a parameter
+            if (hot >= '0' && hot <= '9')
+            {
+                runningValue = 16 * runningValue + (hot - '0');
+                break;
+            }
+            if (hot >= 'A' && hot <= 'F')
+            {
+                runningValue = 16 * runningValue + 10 + (hot - 'A');
+                break;
+            }
+            if (hot >= 'a' && hot <= 'f')
+            {
+                runningValue = 16 * runningValue + 10 + (hot - 'a');
+                break;
+            }
+            if (hot==' ' || hot=='>' || hot=='\0') { 
+               result[parameterCount] = runningValue;
+               parameterCount++;
+               state = 1;
+               continue;
+            }
+            return -1; // invalid hex digit
+        }
+        remainingCmd++;
+    }
+    return parameterCount;
+}
+
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
@@ -265,6 +325,21 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
         return;
 
+    case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
+    case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
+        // Re-parse the command using a hex-only splitter
+        params=splitHexValues(p,com)-1; // drop REG
+        if (params<1) break;  
+        {
+          byte packet[params];
+          for (int i=0;i<params;i++) {
+            packet[i]=(byte)p[i+1];
+            if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)\n"), i, packet[i], packet[i]);
+          }
+          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
+        }
+        return;
+        
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream, p))
             break;
@@ -515,7 +590,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
         {
             gotOne = true;
-            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
+            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
         }
         return gotOne; // will <X> if none found
     }
@@ -532,7 +607,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
         if (!tt)
             return false;
         tt->activate(p[1]);
-        StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, tt->data.tStatus & STATUS_ACTIVE);
+        StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
     }
         return true;
 
