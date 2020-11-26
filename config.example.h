@@ -68,6 +68,13 @@ The configuration file for DCC++ EX Command Station
 //
 // WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
+//
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
+// to set this if you have an extremely slow Wifi router.
+//
+//#define WIFI_CONNECT_TIMEOUT 14000
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
