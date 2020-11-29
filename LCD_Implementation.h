@@ -25,6 +25,8 @@
 // which libraray is involved.
 ////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef LCD_Implementation_h
+#define LCD_Implementation_h
 #include "config.h"
 #include <Wire.h>
 #include "LCDDisplay.h"
@@ -50,6 +52,5 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
   #include "LCD_NONE.h"
   #define CONDITIONAL_LCD_START if (false) /* NO LCD CONFIG */      
 #endif
- 
 
-  
+#endif // LCD_Implementation_h
