@@ -25,6 +25,17 @@
 #include <Arduino.h>
 
 int inline analogReadFast(uint8_t ADCpin);
+#if defined(ARDUINO_AVR_UNO_WIFI_REV2)
+
+int inline analogReadFast(uint8_t ADCpin) 
+{ byte ADC0CTRLCoriginal = ADC0.CTRLC; 
+  ADC0.CTRLC = (ADC0CTRLCoriginal & 0b00110000) + 0b01000011; 
+  int adc = analogRead(ADCpin);  
+  ADC0.CTRLC = ADC0CTRLCoriginal;
+  return adc;
+}
+
+#else
 
 int inline analogReadFast(uint8_t ADCpin) 
 { byte ADCSRAoriginal = ADCSRA; 
@@ -33,5 +44,7 @@ int inline analogReadFast(uint8_t ADCpin)
   ADCSRA = ADCSRAoriginal;
   return adc;
 }
+#endif
 
-#endif  // COMMANDSTATION_DCC_ANALOGREADFAST_H_
+#endif 
+// COMMANDSTATION_DCC_ANALOGREADFAST_H_v
