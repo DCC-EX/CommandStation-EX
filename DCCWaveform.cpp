@@ -41,9 +41,11 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
   progTrack.setPowerMode(POWERMODE::OFF);
   switch (timerNumber) {
     case 1: interruptTimer= &TimerA; break;
+#ifndef ARDUINO_AVR_UNO_WIFI_DEV_ED  
     case 2: interruptTimer= &TimerB; break;
 #ifndef ARDUINO_AVR_UNO  
     case 3: interruptTimer= &TimerC; break;
+#endif    
 #endif    
     default:
       DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
