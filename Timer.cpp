@@ -62,4 +62,14 @@ ISR(TIMER2_OVF_vect)
     TimerB.isrCallback();
 }
 
+#elif defined(ARDUINO_AVR_UNO_WIFI_REV2)
+
+#include "ATMEGA4809/Timer.h"
+
+Timer TimerA(0);
+
+ISR(TCA0_OVF_vect) {
+    TimerA.isrCallback();
+}
+
 #endif
