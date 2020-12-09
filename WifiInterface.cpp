@@ -52,9 +52,9 @@ Stream * WifiInterface::wifiStream;
 #endif
 
 bool WifiInterface::setup(long serial_link_speed, 
-                          const __FlashStringHelper *wifiESSID,
-                          const __FlashStringHelper *wifiPassword,
-                          const __FlashStringHelper *hostname,
+                          const FSH *wifiESSID,
+                          const FSH *wifiPassword,
+                          const FSH *hostname,
                           const int port) {
 
   wifiSerialState wifiUp = WIFI_NOAT;
@@ -103,8 +103,8 @@ bool WifiInterface::setup(long serial_link_speed,
   return connected; 
 }
 
-wifiSerialState WifiInterface::setup(Stream & setupStream,  const __FlashStringHelper* SSid, const __FlashStringHelper* password,
-				     const __FlashStringHelper* hostname,  int port) {
+wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, const FSH* password,
+				     const FSH* hostname,  int port) {
   wifiSerialState wifiState;
   static uint8_t ntry = 0;
   ntry++;
@@ -135,8 +135,8 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const __FlashStringH
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __FlashStringHelper* password,
-				      const __FlashStringHelper* hostname, int port) {
+wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
+				      const FSH* hostname, int port) {
   bool ipOK = false;
   bool oldCmd = false;
 

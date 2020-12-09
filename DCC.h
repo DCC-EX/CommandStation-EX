@@ -21,7 +21,7 @@
 #include <Arduino.h>
 #include "MotorDriver.h"
 #include "MotorDrivers.h"
-
+#include "FSH.h"
 typedef void (*ACK_CALLBACK)(int result);
 
 enum ackOp
@@ -60,7 +60,7 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const __FlashStringHelper *motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver, byte timerNumber = 1);
+  static void begin(const FSH *motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver, byte timerNumber = 1);
   static void loop();
 
   // Public DCC API functions
@@ -94,7 +94,7 @@ public:
   static void forgetAllLocos();    // removes all speed reminders
   static void displayCabList(Print *stream);
 
-  static __FlashStringHelper *getMotorShieldName();
+  static FSH *getMotorShieldName();
 
 private:
   struct LOCO
@@ -110,7 +110,7 @@ private:
   static void setFunctionInternal(int cab, byte fByte, byte eByte);
   static bool issueReminder(int reg);
   static int nextLoco;
-  static __FlashStringHelper *shieldName;
+  static FSH *shieldName;
 
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
@@ -155,7 +155,7 @@ private:
 #define ARDUINO_TYPE "NANO"
 #elif defined(ARDUINO_AVR_MEGA2560)
 #define ARDUINO_TYPE "MEGA"
-#elif defined(ARDUINO_AVR_UNO_WIFI_DEV_ED)
+#elif defined(ARDUINO_AVR_UNO_WIFI_REV2)
 #define ARDUINO_TYPE "UNOWIFIR2"
 #else
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560

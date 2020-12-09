@@ -17,9 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
-#include "DIAG.h"
 #include "EEStore.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
@@ -43,10 +43,10 @@ const byte FN_GROUP_3=0x04;
 const byte FN_GROUP_4=0x08;         
 const byte FN_GROUP_5=0x10;         
 
-__FlashStringHelper* DCC::shieldName=NULL;
+FSH* DCC::shieldName=NULL;
 
-void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
-  shieldName=(__FlashStringHelper*)motorShieldName;
+void DCC::begin(const FSH* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
+  shieldName=(FSH*)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
   // Load stuff from EEprom
@@ -228,7 +228,7 @@ void DCC::setProgTrackBoost(bool on) {
   DCCWaveform::progTrackBoosted=on;
 }
 
-__FlashStringHelper* DCC::getMotorShieldName() {
+FSH* DCC::getMotorShieldName() {
   return shieldName;
 }
   

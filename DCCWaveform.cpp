@@ -41,7 +41,7 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
   progTrack.setPowerMode(POWERMODE::OFF);
   switch (timerNumber) {
     case 1: interruptTimer= &TimerA; break;
-#ifndef ARDUINO_AVR_UNO_WIFI_DEV_ED  
+#ifndef ARDUINO_AVR_UNO_WIFI_REV2 
     case 2: interruptTimer= &TimerB; break;
 #ifndef ARDUINO_AVR_UNO  
     case 3: interruptTimer= &TimerC; break;

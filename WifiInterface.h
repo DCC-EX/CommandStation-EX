@@ -19,6 +19,7 @@
  */
 #ifndef WifiInterface_h
 #define WifiInterface_h
+#include "FSH.h"
 #include "config.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
@@ -31,20 +32,20 @@ class WifiInterface
 
 public:
   static bool setup(long serial_link_speed, 
-                          const __FlashStringHelper *wifiESSID,
-                          const __FlashStringHelper *wifiPassword,
-                          const __FlashStringHelper *hostname,
+                          const FSH *wifiESSID,
+                          const FSH *wifiPassword,
+                          const FSH *hostname,
                           const int port = 2560);
   static void loop();
   static void ATCommand(const byte *command);
 
 private:
-  static wifiSerialState setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
-                    const __FlashStringHelper *hostname, int port);
+  static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
+                    const FSH *hostname, int port);
   static Stream *wifiStream;
   static DCCEXParser parser;
-  static wifiSerialState setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
-                     const __FlashStringHelper *hostname, int port);
+  static wifiSerialState setup2(const FSH *SSSid, const FSH *password,
+                     const FSH *hostname, int port);
   static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
   static bool closeAfter;

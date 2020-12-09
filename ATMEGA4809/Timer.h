@@ -1,5 +1,5 @@
-#ifndef ATMEGA328Timer_h
-#define ATMEGA328Timer_h
+#ifndef ATMEGA4809Timer_h
+#define ATMEGA4809imer_h
 
 #include "../VirtualTimer.h"
 #include <Arduino.h>
@@ -127,5 +127,6 @@ public:
 };
 
 extern Timer TimerA;
+
 
 #endif

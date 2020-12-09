@@ -32,6 +32,19 @@ ISR(TIMER5_OVF_vect)
     TimerD.isrCallback();
 }
 
+#elif defined(ARDUINO_ARCH_MEGAAVR)      // Todo: add other 328 boards for compatibility
+
+#include "ATMEGA4809/Timer.h"
+
+Timer TimerA(1);
+
+
+ISR(TIMER1_OVF_vect)
+{
+    TimerA.isrCallback();
+}
+
+
 #elif defined(ARDUINO_AVR_UNO)      // Todo: add other 328 boards for compatibility
 
 #include "ATMEGA328/Timer.h"
