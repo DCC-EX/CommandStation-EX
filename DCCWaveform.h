@@ -57,6 +57,11 @@ class DCCWaveform {
     POWERMODE getPowerMode();
     void checkPowerOverload();
     int  getLastCurrent();
+    inline int get1024Current() {
+	if (powerMode == POWERMODE::ON)
+	    return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
+	return 0;
+    }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
