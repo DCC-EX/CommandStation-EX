@@ -272,7 +272,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         else
             break;
 
-        // Convert JMRI bizarre -1=emergency stop, 0-126 as speeds
+        // Convert DCC-EX protocol speed steps where
+        // -1=emergency stop, 0-126 as speeds
         // to DCC 0=stop, 1= emergency stop, 2-127 speeds
         if (tspeed > 126 || tspeed < -1)
             break; // invalid JMRI speed code
