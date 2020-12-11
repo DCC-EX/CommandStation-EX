@@ -18,6 +18,9 @@
  * 
  */
 
+#include "config.h"
+#include "defines.h" // This should be changed to DCCEX.h when possible
+#if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
@@ -166,8 +169,6 @@ void EthernetInterface::loop()
       if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d\n"), socketOut,count);
       for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
       clients[socketOut].flush(); //maybe 
-      }
-      
     }
-
- 
+}
+#endif
