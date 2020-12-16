@@ -78,6 +78,14 @@ The configuration file for DCC++ EX Command Station
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
+// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired). This
+// is not for Wifi. You will then need the Arduino Ethernet library as well
+//
+//#define ENABLE_ETHERNET true
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
 // DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
 //
 //#define IP_ADDRESS { 192, 168, 1, 200 }
