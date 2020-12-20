@@ -50,11 +50,15 @@ EthernetInterface::EthernetInterface()
     DIAG(F("\n+++++ Ethernet Setup "));
         connected=false;
    
+    #ifdef IP_ADDRESS
+    Ethernet.begin(mac, IP_ADDRESS);
+    #else
     if (Ethernet.begin(mac) == 0)
     {
         DIAG(F("begin FAILED\n"));
         return;
     } 
+    #endif
     DIAG(F("begin OK."));
      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("shield not found\n"));
