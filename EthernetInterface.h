@@ -46,8 +46,10 @@
  * @brief Network Configuration
  * 
  */
+#ifndef MAC_ADDRESS
 #define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
                                                                 // this one is not used elsewhere and corresponds to your network layout
+#endif
 #define LISTEN_PORT 2560                                        // default listen port for the server 
 #define MAX_ETH_BUFFER 512
 #define OUTBOUND_RING_SIZE 2048
