@@ -188,13 +188,17 @@ bool DCCWaveform::interrupt1() {
         setSignal(LOW);
         state = 0;
       }
-      else state = 2;
+      else  {
+        setSignal(HIGH);  // jitter prevention
+        state = 2;
+      }
       break;
     case 2:  // 116us after case 0
       setSignal(LOW);
       state = 3;
       break;
     case 3:  // finished sending zero bit
+      setSignal(LOW);  // jitter prevention
       state = 0;
       break;
   }

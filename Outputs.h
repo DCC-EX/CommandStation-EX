@@ -39,6 +39,7 @@ class Output{
   static Output *firstOutput;
   struct OutputData data;
   Output *nextOutput;
+  static void printAll(Print *);
   private:
   int num;  // Chris has no idea what this is all about!
   

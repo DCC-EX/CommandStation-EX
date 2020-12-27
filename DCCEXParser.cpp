@@ -445,9 +445,11 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     case 's': // <s>
         StringFormatter::send(stream, F("<p%d>"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+        parseT(stream, 0, p);      //send all Turnout states
+        Output::printAll(stream);  //send all Output  states
+        Sensor::printAll(stream);  //send all Sensor  states
         // TODO Send stats of  speed reminders table
-        // TODO send status of turnouts etc etc
-        return;
+        return;       
 
     case 'E': // STORE EPROM <E>
         EEStore::store();
@@ -589,7 +591,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
 {
     switch (params)
     {
-    case 0: // <T>  show all turnouts
+    case 0: // <T>  list all turnout states
     {
         bool gotOne = false;
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
@@ -644,7 +646,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <S> lit sensor states
+    case 0: // <S> list sensor states
 	if (Sensor::firstSensor == NULL)
 	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)

@@ -5,9 +5,15 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
  - **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry 
 
+**Summary of the key new features added to CommandStation-EX V3.0.1:**
+ - **Add back fix for jitter**
+ - **Add Turnouts, Outputs and Sensors to ```<s>``` command output**
+
  **Summary of the key new features added to CommandStation-EX V3.0.0:**
+
+ - **New USB Browser Based Throttle** - WebThrottle-EX is a full front-end to controller to control the CS to run trains.
  - **WiFi Support** - AP and station modes supported. Auto-detection of an ESP8266 WiFi module with AT firmware on a Mega's serial port. Connection to JMRI and WiThrottle clients.
- - **Withrottle Integrations** - Act as a host for four WiThrottle clients concurrently. 
+ - **Withrottle Integrations** - Act as a host for up to four WiThrottle clients concurrently. 
  - **Add LCD/OLED support** - OLED supported on Mega only
  - **Improved CV programming routines** - checks for length of CV pulse, and breaks out of the wait state once it has received an ACK, now reading one CV per second.
  - **Improved current sensing** - rewrote current sensing routines for safer operation. Current thresholds based on milliamps, not magic numbers
@@ -16,7 +22,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **New, simpler function command** - ```<F>``` command allows setting functions based on their number, not based on a code as in ```<f>```
  - **Function reminders** - Function reminders are sent in addition to speed reminders
  - **Functions to F28** - All NMRA functions are now supported
- - **Filters and user functions** - Ability to filter commands in the parser and execute custom code based on them
+ - **Filters and user functions** - Ability to filter commands in the parser and execute custom code based on them. (ex: Redirect Turnout commands via NRF24)
  - **Diagnostic ```<D>``` commands** - See documentation for a full list of new diagnostic commands
  - **Rewrote DCC++ Parser** - more efficient operation, accepts multi-char input and uses less RAM
  - **Rewritten waveform generator** - capable of using any pin for DCC waveform out, eliminating the need for jumpers
@@ -51,7 +57,14 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
 - Roger Beschizza - Dorset, UK (Roger Beschizza)
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
--Kevin Smith - (KCSmith)
+- Kevin Smith - (KCSmith)
+
+**WebThrotle-EX**
+- Fred Decker - Holly Springs, NC (FlightRisk/FrightRisk)
+- Mani Kumar - Bangalor, India (Mani /Mani Kumar)
+- Matt H - 
+
+
 
 **Beta Testing / Release Management / Support**
 - Larry Dribin	- Release Management
