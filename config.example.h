@@ -44,15 +44,45 @@ The configuration file for DCC++ EX Command Station
 //
 // DEFINE WiFi Parameters (only in effect if WIFI is on)
 //
+// If DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
+// the <+> commands and this sketch will not change anything over
+// AT commands and the other WIFI_* defines below do not have any effect.
 //#define DONT_TOUCH_WIFI_CONF
 //
-// if DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
-// the <+> commands and this sketch will not change anything over
-// AT commands and the WIFI_* defines below do not have any effect.
+// WIFI_SSID is the network name IF you want to use your existing home network.
+// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
 //
+// If you do NOT set the WIFI_SSID, the WiFi chip will first try
+// to connect to the previously configured network and if that fails
+// fall back to Access Point mode. The SSID of the AP will be
+// automatically set to DCCEX_*.
+//
+// Your SSID may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
+//
+// WIFI_PASSWORD is the network password for your home network or if
+// you want to change the password from default AP mode password
+// to the AP password you want. 
+// Your password may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_PASSWORD "Your network passwd"
+//
+// WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
+//
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
+// to set this if you have an extremely slow Wifi router.
+//
+//#define WIFI_CONNECT_TIMEOUT 14000
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired). This
+// is not for Wifi. You will then need the Arduino Ethernet library as well
+//
+//#define ENABLE_ETHERNET true
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -66,7 +96,18 @@ The configuration file for DCC++ EX Command Station
 //
 // Uncomment to use with Ethernet Shields
 //
+// Ethernet Shields do not have have a MAC address in hardware. There may be one on 
+// a sticker on the Shield that you should use. Otherwise choose one of the ones below
+// Be certain that no other device on your network has this same MAC address!
+//
+// 52:b8:8a:8e:ce:21
+// e3:e9:73:e1:db:0d
+// 54:2b:13:52:ac:0c
+
 // NOTE: This is not used with ESP8266 WiFi modules.
+
+//#define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
+
 // 
 // #define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
 

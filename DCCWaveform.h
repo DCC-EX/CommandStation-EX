@@ -27,10 +27,6 @@ const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
-// Ack time thresholds. Unit: microseconds
-const int  MIN_ACK_PULSE_DURATION = 2000;
-const int  MAX_ACK_PULSE_DURATION = 8500;
- 
 // Number of preamble bits.
 const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
@@ -61,6 +57,11 @@ class DCCWaveform {
     POWERMODE getPowerMode();
     void checkPowerOverload();
     int  getLastCurrent();
+    inline int get1024Current() {
+	if (powerMode == POWERMODE::ON)
+	    return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
+	return 0;
+    }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
@@ -79,7 +80,13 @@ class DCCWaveform {
     inline void setAckLimit(int mA) {
 	ackLimitmA = mA;
     }
-     
+    inline void setMinAckPulseDuration(unsigned int i) {
+	minAckPulseDuration = i;
+    }
+    inline void setMaxAckPulseDuration(unsigned int i) {
+	maxAckPulseDuration = i;
+    }
+
   private:
     static VirtualTimer * interruptTimer;      
     static void interruptHandler();
@@ -128,6 +135,9 @@ class DCCWaveform {
     
     unsigned int ackPulseDuration;  // micros
     unsigned long ackPulseStart; // micros
+
+    unsigned int minAckPulseDuration = 2000; // micros
+    unsigned int maxAckPulseDuration = 8500; // micros
            
 };
 #endif

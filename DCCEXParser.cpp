@@ -49,6 +49,8 @@ const int HASH_KEYWORD_PROGBOOST = -6353;
 const int HASH_KEYWORD_EEPROM = -7168;
 const int HASH_KEYWORD_LIMIT = 27413;
 const int HASH_KEYWORD_ETHERNET = -30767;    
+const int HASH_KEYWORD_MAX = 16244;
+const int HASH_KEYWORD_MIN = 15978;
 
 int DCCEXParser::stashP[MAX_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -158,6 +160,66 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     return parameterCount;
 }
 
+int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
+{
+    byte state = 1;
+    byte parameterCount = 0;
+    int runningValue = 0;
+    const byte *remainingCmd = cmd + 1; // skips the opcode
+    
+    // clear all parameters in case not enough found
+    for (int i = 0; i < MAX_PARAMS; i++)
+        result[i] = 0;
+
+    while (parameterCount < MAX_PARAMS)
+    {
+        byte hot = *remainingCmd;
+
+        switch (state)
+        {
+
+        case 1: // skipping spaces before a param
+            if (hot == ' ')
+                break;
+            if (hot == '\0' || hot == '>')
+                return parameterCount;
+            state = 2;
+            continue;
+
+        case 2: // checking first hex digit
+            runningValue = 0;
+            state = 3;
+            continue;
+
+        case 3: // building a parameter
+            if (hot >= '0' && hot <= '9')
+            {
+                runningValue = 16 * runningValue + (hot - '0');
+                break;
+            }
+            if (hot >= 'A' && hot <= 'F')
+            {
+                runningValue = 16 * runningValue + 10 + (hot - 'A');
+                break;
+            }
+            if (hot >= 'a' && hot <= 'f')
+            {
+                runningValue = 16 * runningValue + 10 + (hot - 'a');
+                break;
+            }
+            if (hot==' ' || hot=='>' || hot=='\0') { 
+               result[parameterCount] = runningValue;
+               parameterCount++;
+               state = 1;
+               continue;
+            }
+            return -1; // invalid hex digit
+        }
+        remainingCmd++;
+    }
+    return parameterCount;
+}
+
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
@@ -210,7 +272,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         else
             break;
 
-        // Convert JMRI bizarre -1=emergency stop, 0-126 as speeds
+        // Convert DCC-EX protocol speed steps where
+        // -1=emergency stop, 0-126 as speeds
         // to DCC 0=stop, 1= emergency stop, 2-127 speeds
         if (tspeed > 126 || tspeed < -1)
             break; // invalid JMRI speed code
@@ -265,6 +328,21 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
         return;
 
+    case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
+    case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
+        // Re-parse the command using a hex-only splitter
+        params=splitHexValues(p,com)-1; // drop REG
+        if (params<1) break;  
+        {
+          byte packet[params];
+          for (int i=0;i<params;i++) {
+            packet[i]=(byte)p[i+1];
+            if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)\n"), i, packet[i], packet[i]);
+          }
+          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
+        }
+        return;
+        
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream, p))
             break;
@@ -357,7 +435,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
 
     case 'c': // READ CURRENT <c>
-        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.getLastCurrent());
+        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current());
         return;
 
     case 'Q': // SENSORS <Q>
@@ -367,9 +445,11 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     case 's': // <s>
         StringFormatter::send(stream, F("<p%d>"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+        parseT(stream, 0, p);      //send all Turnout states
+        Output::printAll(stream);  //send all Output  states
+        Sensor::printAll(stream);  //send all Sensor  states
         // TODO Send stats of  speed reminders table
-        // TODO send status of turnouts etc etc
-        return;
+        return;       
 
     case 'E': // STORE EPROM <E>
         EEStore::store();
@@ -402,6 +482,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback) {
+          DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
+          DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
           atCommandCallback(com);
           return;
         }
@@ -509,7 +591,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
 {
     switch (params)
     {
-    case 0: // <T>  show all turnouts
+    case 0: // <T>  list all turnout states
     {
         bool gotOne = false;
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
@@ -564,7 +646,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <S> lit sensor states
+    case 0: // <S> list sensor states
 	if (Sensor::firstSensor == NULL)
 	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
@@ -594,12 +676,22 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("\nFree memory=%d\n"), freeMemory());
         break;
 
-    case HASH_KEYWORD_ACK: // <D ACK ON/OFF>
-	if (params >= 2 && p[1] == HASH_KEYWORD_LIMIT) {
-	  DCCWaveform::progTrack.setAckLimit(p[2]);
-          StringFormatter::send(stream, F("\nAck limit=%dmA\n"), p[2]);
-	} else
+    case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX] Value>
+	if (params >= 3) {
+	    if (p[1] == HASH_KEYWORD_LIMIT) {
+	      DCCWaveform::progTrack.setAckLimit(p[2]);
+	      StringFormatter::send(stream, F("\nAck limit=%dmA\n"), p[2]);
+	    } else if (p[1] == HASH_KEYWORD_MIN) {
+	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
+	      StringFormatter::send(stream, F("\nAck min=%dus\n"), p[2]);
+	    } else if (p[1] == HASH_KEYWORD_MAX) {
+	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
+	      StringFormatter::send(stream, F("\nAck max=%dus\n"), p[2]);
+	    }
+	} else {
+	  StringFormatter::send(stream, F("\nAck diag %S\n"), onOff ? F("on") : F("off"));
 	  Diag::ACK = onOff;
+	}
         return true;
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>
@@ -626,8 +718,8 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         DCC::setProgTrackBoost(true);
 	return true;
 
-    case HASH_KEYWORD_EEPROM:
-	if (params >= 1)
+    case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>
+	if (params >= 2)
 	    EEStore::dump(p[1]);
 	return true;
 

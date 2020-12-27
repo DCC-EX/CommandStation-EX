@@ -262,10 +262,10 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
      switch (aval[0]) {
            case 'V':  // Vspeed
              { 
-              byte locospeed=WiTToDCCSpeed(getInt(aval+1));
+              int witSpeed=getInt(aval+1);
               LOOPLOCOS(throttleChar, cab) {
-                DCC::setThrottle(myLocos[loco].cab, locospeed, DCC::getThrottleDirection(myLocos[loco].cab));
-                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, locospeed);
+                DCC::setThrottle(myLocos[loco].cab, WiTToDCCSpeed(witSpeed), DCC::getThrottleDirection(myLocos[loco].cab));
+                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, witSpeed);
                 }
              } 
             break;
