@@ -5,6 +5,10 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
  - **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry 
 
+**Summary of the key new features added to CommandStation-EX V3.0.1:**
+ - **Add back fix for jitter
+ - **Add Turnouts, Outputs and Sensors to <s> command output
+
  **Summary of the key new features added to CommandStation-EX V3.0.0:**
  - **New USB Browser Based Throttle** - WebThrottle-EX is a full front-end to controller to control the CS to run trains.
  - **WiFi Support** - AP and station modes supported. Auto-detection of an ESP8266 WiFi module with AT firmware on a Mega's serial port. Connection to JMRI and WiThrottle clients.
