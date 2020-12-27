@@ -7,7 +7,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 
 **Summary of the key new features added to CommandStation-EX V3.0.1:**
  - **Add back fix for jitter**
- - **Add Turnouts, Outputs and Sensors to <s> command output**
+ - **Add Turnouts, Outputs and Sensors to ''<s>'' command output**
 
  **Summary of the key new features added to CommandStation-EX V3.0.0:**
 
