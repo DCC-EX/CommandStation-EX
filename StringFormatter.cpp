@@ -34,8 +34,8 @@
 #include "LCDDisplay.h"
 
 bool Diag::ACK=false;
-bool Diag::CMD=false;
-bool Diag::WIFI=false;
+bool Diag::CMD=true;
+bool Diag::WIFI=true;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 
