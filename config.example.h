@@ -96,7 +96,18 @@ The configuration file for DCC++ EX Command Station
 //
 // Uncomment to use with Ethernet Shields
 //
+// Ethernet Shields do not have have a MAC address in hardware. There may be one on 
+// a sticker on the Shield that you should use. Otherwise choose one of the ones below
+// Be certain that no other device on your network has this same MAC address!
+//
+// 52:b8:8a:8e:ce:21
+// e3:e9:73:e1:db:0d
+// 54:2b:13:52:ac:0c
+
 // NOTE: This is not used with ESP8266 WiFi modules.
+
+//#define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
+
 // 
 // #define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
 

@@ -30,24 +30,14 @@
 #include <Ethernet.h>
 #include "RingStream.h"
 
-/* some generated mac addresses as EthernetShields don't have one by default in HW.
- * Sometimes they come on a sticker on the EthernetShield then use this address otherwise
- * just choose one from below or generate one yourself. Only condition is that there is no 
- * other device on your network with the same Mac address.
- * 
- * 52:b8:8a:8e:ce:21
- * e3:e9:73:e1:db:0d
- * 54:2b:13:52:ac:0c
- * c2:d8:d4:7d:7c:cb
- * 86:cf:fa:9f:07:79
- */
-
 /**
  * @brief Network Configuration
  * 
  */
-#define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
-                                                                // this one is not used elsewhere and corresponds to your network layout
+#ifndef MAC_ADDRESS
+#error define MAC_ADDRESS in config.h
+#endif
+
 #define LISTEN_PORT 2560                                        // default listen port for the server 
 #define MAX_ETH_BUFFER 512
 #define OUTBOUND_RING_SIZE 2048
