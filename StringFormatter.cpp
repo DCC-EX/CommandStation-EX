@@ -28,7 +28,6 @@
   Print * StringFormatter::diagSerial= &Serial;
 #elif defined(ARDUINO_ARCH_MEGAAVR)
   Print * StringFormatter::diagSerial=&Serial;
-  #define FSH char
 #endif
 
 #include "LCDDisplay.h"
@@ -45,6 +44,7 @@ void StringFormatter::diag( const FSH* input...) {
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
+  diagSerial->flush();
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
@@ -80,7 +80,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
 
   char* flash=(char*)format;
   for(int i=0; ; ++i) {
-    char c=pgm_read_byte_near(flash+i);
+    char c=GETFLASH(flash+i);
     if (c=='\0') return;
     if(c!='%') { stream->print(c); continue; }
 
@@ -91,7 +91,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
     
     formatContinues=false;
     i++;
-    c=pgm_read_byte_near(flash+i);
+    c=GETFLASH(flash+i);
     switch(c) {
       case '%': stream->print('%'); break;
       case 'c': stream->print((char) va_arg(args, int)); break;
@@ -143,7 +143,7 @@ void StringFormatter::printEscapes(Print * stream, const FSH * input) {
  if (!stream) return;
  char* flash=(char*)input;
  for(int i=0; ; ++i) {
-  char c=pgm_read_byte_near(flash+i);
+  char c=GETFLASH(flash+i);
   printEscape(stream,c);
   if (c=='\0') return;
  }

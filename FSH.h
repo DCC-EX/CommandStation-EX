@@ -3,7 +3,11 @@
 #include <Arduino.h>
 #if defined(ARDUINO_ARCH_MEGAAVR)
 typedef char FSH; 
+#define GETFLASH(addr) (*(const unsigned char *)(addr))
+#define FLASH
 #else 
 typedef __FlashStringHelper FSH;
+#define GETFLASH(addr) pgm_read_byte_near(addr)
+#define FLASH PROGMEM
 #endif
 #endif

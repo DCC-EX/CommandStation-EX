@@ -25,11 +25,11 @@
 
 #include "WifiInboundHandler.h"
 
-const char  PROGMEM READY_SEARCH[]  = "\r\nready\r\n";
-const char  PROGMEM OK_SEARCH[] = "\r\nOK\r\n";
-const char  PROGMEM END_DETAIL_SEARCH[] = "@ 1000";
-const char  PROGMEM SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
-const char  PROGMEM IPD_SEARCH[] = "+IPD";
+const char  FLASH READY_SEARCH[]  = "\r\nready\r\n";
+const char  FLASH OK_SEARCH[] = "\r\nOK\r\n";
+const char  FLASH END_DETAIL_SEARCH[] = "@ 1000";
+const char  FLASH SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
+const char  FLASH IPD_SEARCH[] = "+IPD";
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 Stream * WifiInterface::wifiStream;
@@ -317,10 +317,10 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
         else DIAG(F("%c"), ch); 
       }
-      if (ch != pgm_read_byte_near(locator)) locator = waitfor;
-      if (ch == pgm_read_byte_near(locator)) {
+      if (ch != GETFLASH(locator)) locator = waitfor;
+      if (ch == GETFLASH(locator)) {
         locator++;
-        if (!pgm_read_byte_near(locator)) {
+        if (!GETFLASH(locator)) {
           DIAG(F("\nFound in %dms"), millis() - startTime);
           return true;
         }

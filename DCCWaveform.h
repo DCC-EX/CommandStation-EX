@@ -20,7 +20,7 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 #include "MotorDriver.h"
-#include "ArduinoTimers.h"
+
 
 // Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
@@ -88,7 +88,6 @@ class DCCWaveform {
     }
 
   private:
-    static VirtualTimer * interruptTimer;      
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();

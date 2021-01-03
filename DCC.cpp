@@ -232,14 +232,14 @@ FSH* DCC::getMotorShieldName() {
   return shieldName;
 }
   
-const ackOp PROGMEM WRITE_BIT0_PROG[] = {
+const ackOp FLASH WRITE_BIT0_PROG[] = {
      BASELINE,
      W0,WACK,
      V0, WACK,  // validate bit is 0 
      ITC1,      // if acked, callback(1)
      FAIL  // callback (-1)
 };
-const ackOp PROGMEM WRITE_BIT1_PROG[] = {
+const ackOp FLASH WRITE_BIT1_PROG[] = {
      BASELINE,
      W1,WACK,
      V1, WACK,  // validate bit is 1 
@@ -247,7 +247,7 @@ const ackOp PROGMEM WRITE_BIT1_PROG[] = {
      FAIL  // callback (-1)
 };
 
-const ackOp PROGMEM VERIFY_BIT0_PROG[] = {
+const ackOp FLASH VERIFY_BIT0_PROG[] = {
      BASELINE,
      V0, WACK,  // validate bit is 0 
      ITC0,      // if acked, callback(0)
@@ -255,7 +255,7 @@ const ackOp PROGMEM VERIFY_BIT0_PROG[] = {
      ITC1,       
      FAIL  // callback (-1)
 };
-const ackOp PROGMEM VERIFY_BIT1_PROG[] = {
+const ackOp FLASH VERIFY_BIT1_PROG[] = {
      BASELINE,
      V1, WACK,  // validate bit is 1 
      ITC1,      // if acked, callback(1)
@@ -264,7 +264,7 @@ const ackOp PROGMEM VERIFY_BIT1_PROG[] = {
      FAIL  // callback (-1)
 };
 
-const ackOp PROGMEM READ_BIT_PROG[] = {
+const ackOp FLASH READ_BIT_PROG[] = {
      BASELINE,
      V1, WACK,  // validate bit is 1 
      ITC1,      // if acked, callback(1)
@@ -273,7 +273,7 @@ const ackOp PROGMEM READ_BIT_PROG[] = {
      FAIL       // bit not readable 
      };
      
-const ackOp PROGMEM WRITE_BYTE_PROG[] = {
+const ackOp FLASH WRITE_BYTE_PROG[] = {
       BASELINE,
       WB,WACK,    // Write 
       VB,WACK,     // validate byte 
@@ -281,7 +281,7 @@ const ackOp PROGMEM WRITE_BYTE_PROG[] = {
       FAIL        // callback (-1)
       };
       
-const ackOp PROGMEM VERIFY_BYTE_PROG[] = {
+const ackOp FLASH VERIFY_BYTE_PROG[] = {
       BASELINE,
       VB,WACK,     // validate byte 
       ITCB,       // if ok callback value
@@ -306,7 +306,7 @@ const ackOp PROGMEM VERIFY_BYTE_PROG[] = {
       FAIL };
       
       
-const ackOp PROGMEM READ_CV_PROG[] = {
+const ackOp FLASH READ_CV_PROG[] = {
       BASELINE,
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
@@ -329,7 +329,7 @@ const ackOp PROGMEM READ_CV_PROG[] = {
       FAIL };          // verification failed
 
 
-const ackOp PROGMEM LOCO_ID_PROG[] = {
+const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
@@ -581,7 +581,7 @@ bool DCC::checkResets(bool blocking, uint8_t numResets) {
 
 void DCC::ackManagerLoop(bool blocking) {
   while (ackManagerProg) {
-    byte opcode=pgm_read_byte_near(ackManagerProg);
+    byte opcode=GETFLASH(ackManagerProg);
     
     // breaks from this switch will step to next prog entry
     // returns from this switch will stay on same entry
@@ -700,12 +700,12 @@ void DCC::ackManagerLoop(bool blocking) {
 
       case SETBIT:
           ackManagerProg++; 
-          ackManagerBitNum=pgm_read_byte_near(ackManagerProg);
+          ackManagerBitNum=GETFLASH(ackManagerProg);
           break;
 
      case SETCV:
           ackManagerProg++; 
-          ackManagerCv=pgm_read_byte_near(ackManagerProg);
+          ackManagerCv=GETFLASH(ackManagerProg);
           break;
 
      case STASHLOCOID:
@@ -723,7 +723,7 @@ void DCC::ackManagerLoop(bool blocking) {
           // SKIP opcodes until SKIPTARGET found
           while (opcode!=SKIPTARGET) {
             ackManagerProg++; 
-            opcode=pgm_read_byte_near(ackManagerProg);
+            opcode=GETFLASH(ackManagerProg);
           }
           break;
      case SKIPTARGET: 

@@ -21,7 +21,14 @@
 
 #include "DCCWaveform.h"
 #include "DIAG.h"
- 
+
+#ifdef ARDUINO_ARCH_MEGAAVR
+#include "EveryTimerB.h"
+#define Timer1 TimerB2 // use TimerB2 as a drop in replacement for Timer1
+#else // assume architecture supported by TimerOne ....
+#include "TimerOne.h"
+#endif 
+
 const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
 const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
 
@@ -31,7 +38,6 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
-VirtualTimer * DCCWaveform::interruptTimer=NULL;      
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
   mainTrack.motorDriver=mainDriver;
@@ -39,26 +45,15 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
 
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
-  switch (timerNumber) {
-    case 1: interruptTimer= &TimerA; break;
-#ifndef ARDUINO_ARCH_MEGAAVR 
-    case 2: interruptTimer= &TimerB; break;
-#ifndef ARDUINO_AVR_UNO  
-    case 3: interruptTimer= &TimerC; break;
-#endif    
-#endif    
-    default:
-      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
-      return;
-  }
-  interruptTimer->initialize();
-  interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
-  interruptTimer->attachInterrupt(interruptHandler);
-  interruptTimer->start();
+ 
+  Timer1.initialize();
+  Timer1.setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
+  Timer1.attachInterrupt(interruptHandler);
+  Timer1.start();
 }
 void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-  interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-  interruptTimer->start(); 
+  Timer1.setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
+  Timer1.start(); 
   DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
 }
 
@@ -114,9 +109,6 @@ POWERMODE DCCWaveform::getPowerMode() {
 }
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-
-  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
-  if (!interruptTimer) return; 
   
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);

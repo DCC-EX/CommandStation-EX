@@ -24,7 +24,6 @@
 #define EthernetInterface_h
 
 #include "DCCEXParser.h"
-#include "MemStream.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <Ethernet.h>
