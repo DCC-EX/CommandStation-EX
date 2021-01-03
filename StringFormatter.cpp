@@ -22,11 +22,8 @@
 #if defined(ARDUINO_ARCH_SAMD)
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>
-  Print * StringFormatter::diagSerial= &SerialUSB;
-  
-#elif defined(ARDUINO_ARCH_AVR)
-  Print * StringFormatter::diagSerial= &Serial;
-#elif defined(ARDUINO_ARCH_MEGAAVR)
+  Print * StringFormatter::diagSerial= &SerialUSB; 
+#else
   Print * StringFormatter::diagSerial=&Serial;
 #endif
 
@@ -44,7 +41,6 @@ void StringFormatter::diag( const FSH* input...) {
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
-  diagSerial->flush();
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
