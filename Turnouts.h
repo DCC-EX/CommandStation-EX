@@ -49,6 +49,7 @@ class Turnout {
   static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle);
   static Turnout *create(int id);
   void activate(bool state);
+  static void printAll(Print *);
 #ifdef EESTOREDEBUG
   void print(Turnout *tt);
 #endif

@@ -445,7 +445,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     case 's': // <s>
         StringFormatter::send(stream, F("<p%d>"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-        parseT(stream, 0, p);      //send all Turnout states
+        Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states
         // TODO Send stats of  speed reminders table
@@ -529,7 +529,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <Z>
+    case 0: // <Z> list Output definitions
     {
         bool gotone = false;
         for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
@@ -591,13 +591,14 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
 {
     switch (params)
     {
-    case 0: // <T>  list all turnout states
+    case 0: // <T>  list turnout definitions
     {
         bool gotOne = false;
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
         {
             gotOne = true;
-            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
+            StringFormatter::send(stream, F("<H %d %d %d %d>"), tt->data.id, tt->data.address, 
+                tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
         }
         return gotOne; // will <X> if none found
     }
@@ -646,7 +647,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <S> list sensor states
+    case 0: // <S> list sensor definitions
 	if (Sensor::firstSensor == NULL)
 	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
