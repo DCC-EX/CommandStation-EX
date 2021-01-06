@@ -221,10 +221,15 @@ int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
 }
 
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
+}
+void DCCEXParser::setRMFTFilter(FILTER_CALLBACK filter)
+{
+    filterRMFTCallback = filter;
 }
 void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 {
@@ -245,6 +250,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
+    if (filterRMFTCallback && opcode!='\0')
+        filterRMFTCallback(stream, opcode, params, p);
 
     // Functions return from this switch if complete, break from switch implies error <X> to send
     switch (opcode)

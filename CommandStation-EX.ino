@@ -53,6 +53,11 @@ void setup()
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
   DCC::begin(MOTOR_SHIELD_TYPE); 
+  
+  #if defined(RMFT_ACTIVE) 
+      RMFT::begin();
+  #endif
+      
   LCD(1,F("Ready")); 
 }
 
@@ -73,6 +78,10 @@ void loop()
 #endif
 #if ETHERNET_ON
   EthernetInterface::loop();
+#endif
+
+#if defined(RMFT_ACTIVE) 
+  RMFT::loop();
 #endif
 
   LCDDisplay::loop();  // ignored if LCD not in use 
