@@ -73,9 +73,6 @@ class DCCWaveform {
         }
         return maxmA;        
     }
-    inline int getRawCurrentTripValue() {
-        return motorDriver->getRawCurrentTripValue();
-    }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
