@@ -63,13 +63,13 @@ class DCCWaveform {
 	  return 0;
     }
     inline int getCurrentmA() {
-	  if (powerMode == POWERMODE::ON)
-          return motorDriver->raw2mA(lastCurrent);
-	  return 0;
+      if (powerMode == POWERMODE::ON)
+        return motorDriver->raw2mA(lastCurrent);
+      return 0;
     }
     inline int getMaxmA() {
       if (maxmA == 0) { //only calculate this for first request, it doesn't change
-          maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
+        maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
       }
       return maxmA;        
     }
