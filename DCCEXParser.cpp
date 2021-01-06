@@ -442,7 +442,10 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
 
     case 'c': // READ CURRENT <c>
-        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current());
+        //                               <c MeterName val C/V unit min max res>
+        StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1>"), DCCWaveform::mainTrack.getCurrentmA(), DCCWaveform::mainTrack.getMaxmA());
+     // StringFormatter::send(stream, F("<c CurrentPROG %d C Milli 0 %d 1>"), DCCWaveform::progTrack.getCurrentmA(), DCCWaveform::progTrack.getMaxmA());        
+        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
         return;
 
     case 'Q': // SENSORS <Q>
