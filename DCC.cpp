@@ -331,10 +331,31 @@ const ackOp PROGMEM READ_CV_PROG[] = {
 
 const ackOp PROGMEM LOCO_ID_PROG[] = {
       BASELINE,
+      SETCV, (ackOp)1,   
+      SETBIT, (ackOp)7,
+      V0,WACK,NAKFAIL, // test CV 1 bit 7 is a zero... NAK means no loco found
+
+      SETCV, (ackOp)19,     // CV 19 is consist setting
+      SETBYTE, (ackOp)0,    
+      VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
+      SETBYTE, (ackOp)128,
+      VB, WACK, ITSKIP,     // ignore consist if cv19 is 128 (no consist, direction bit set)
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,  
+      V0, WACK, MERGE,  
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB7,  // return 7 bits only, No_ACK means CV19 not supported so ignore it
+      
+      SKIPTARGET,     // continue here if CV 19 is zero or fails all validation      
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
       V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
-      V1, WACK, NAKFAIL, // fast fail if no loco on track
+      
       // Long locoid  
       SETCV, (ackOp)17,       // CV 17 is part of locoid
       STARTMERGE,
@@ -366,7 +387,7 @@ const ackOp PROGMEM LOCO_ID_PROG[] = {
       SKIPTARGET,
       SETCV, (ackOp)1,
       STARTMERGE,
-      V0, WACK, MERGE,  // read and merge bit 1 etc
+      SETBIT, (ackOp)6,  // skip over first bit as we know its a zero
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
@@ -668,7 +689,15 @@ void DCC::ackManagerLoop(bool blocking) {
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
             ackManagerProg = NULL; // all done now
-	          callback(ackManagerByte);
+            callback(ackManagerByte);
+            return;
+          }
+        break;
+
+      case ITCB7:   // If True callback(byte & 0xF)
+          if (ackReceived) {
+            ackManagerProg = NULL; // all done now
+            callback(ackManagerByte & 0x7F);
             return;
           }
         break;
@@ -708,6 +737,11 @@ void DCC::ackManagerLoop(bool blocking) {
           ackManagerCv=pgm_read_byte_near(ackManagerProg);
           break;
 
+     case SETBYTE:
+          ackManagerProg++; 
+          ackManagerByte=pgm_read_byte_near(ackManagerProg);
+          break;
+
      case STASHLOCOID:
           ackManagerStash=ackManagerByte;  // stash value from CV17 
           break;
@@ -724,6 +758,8 @@ void DCC::ackManagerLoop(bool blocking) {
           while (opcode!=SKIPTARGET) {
             ackManagerProg++; 
             opcode=pgm_read_byte_near(ackManagerProg);
+            // Jump over second byte of any 2-byte opcodes.
+            if (opcode==SETBIT || opcode==SETBYTE || opcode==SETCV) ackManagerProg++;
           }
           break;
      case SKIPTARGET: 
