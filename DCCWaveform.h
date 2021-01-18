@@ -69,9 +69,15 @@ class DCCWaveform {
     }
     inline int getMaxmA() {
       if (maxmA == 0) { //only calculate this for first request, it doesn't change
-        maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
+        maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue()); //TODO: replace with actual max value or calc
       }
       return maxmA;        
+    }
+    inline int getTripmA() { 
+      if (tripmA == 0) { //only calculate this for first request, it doesn't change
+        tripmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
+      }
+      return tripmA;        
     }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
@@ -124,6 +130,7 @@ class DCCWaveform {
     byte pendingRepeats;
     int lastCurrent;
     int maxmA;
+    int tripmA;
     
     // current sampling
     POWERMODE powerMode;
