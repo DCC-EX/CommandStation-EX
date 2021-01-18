@@ -59,6 +59,7 @@ struct DCCEXParser
     static void callback_B(int result);        
     static void callback_R(int result);
     static void callback_Rloco(int result);
+    static void callback_Wloco(int result);
     static void callback_Vbit(int result);
     static void callback_Vbyte(int result);
     static FILTER_CALLBACK  filterCallback;

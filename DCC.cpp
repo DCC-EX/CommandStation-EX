@@ -399,6 +399,44 @@ const ackOp PROGMEM LOCO_ID_PROG[] = {
       FAIL
       };    
 
+const ackOp PROGMEM SHORT_LOCO_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)19,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore router without cv19 support
+      // Turn off long address flag
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      W0,WACK,NAKFAIL,
+      SETCV, (ackOp)1,   
+      SETBYTEL,   // low byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,ITCB,
+      FAIL
+};    
+
+const ackOp PROGMEM LONG_LOCO_ID_PROG[] = {
+      BASELINE,
+      // Clear consist CV 19
+      SETCV,(ackOp)19,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore router without cv19 support
+      // Turn on long address flag cv29 bit 5
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      W1,WACK,NAKFAIL,
+      // Store high byte of address in cv 17
+      SETCV, (ackOp)17,
+      SETBYTEH,   // high byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,NAKFAIL,
+      // store 
+      SETCV, (ackOp)18,
+      SETBYTEL,   // low byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,ITC1,   // callback(1) means Ok
+      FAIL
+};    
 
 // On the following prog-track functions blocking defaults to false.
 // blocking=true forces the API to block, waiting for the response and invoke the callback BEFORE returning.
@@ -439,6 +477,13 @@ void DCC::readCV(int cv, ACK_CALLBACK callback, bool blocking)  {
 
 void DCC::getLocoId(ACK_CALLBACK callback, bool blocking) {
   ackManagerSetup(0,0, LOCO_ID_PROG, callback, blocking);
+}
+
+void DCC::setLocoId(int id,ACK_CALLBACK callback, bool blocking) {
+  if (id<=0 || id>9999) callback(-1);
+  int wordval;
+  if (id<=127) ackManagerSetup(id,SHORT_LOCO_ID_PROG, callback, blocking);
+  else ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback, blocking);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
@@ -573,7 +618,8 @@ int DCC::nextLoco = 0;
 ackOp  const *  DCC::ackManagerProg;
 byte   DCC::ackManagerByte;
 byte   DCC::ackManagerStash;
-int   DCC::ackManagerCv;
+int    DCC::ackManagerWord;
+int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 
@@ -584,6 +630,13 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
+  ackManagerCallback = callback;
+  if (blocking) ackManagerLoop(blocking);
+}
+
+void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback, bool blocking) {
+  ackManagerWord=wordval;
+  ackManagerProg = program;
   ackManagerCallback = callback;
   if (blocking) ackManagerLoop(blocking);
 }
@@ -740,6 +793,14 @@ void DCC::ackManagerLoop(bool blocking) {
      case SETBYTE:
           ackManagerProg++; 
           ackManagerByte=pgm_read_byte_near(ackManagerProg);
+          break;
+
+    case SETBYTEH:
+          ackManagerByte=highByte(ackManagerWord);
+          break;
+          
+    case SETBYTEL:
+          ackManagerByte=lowByte(ackManagerWord);
           break;
 
      case STASHLOCOID:

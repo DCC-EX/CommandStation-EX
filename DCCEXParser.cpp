@@ -351,9 +351,12 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
         
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
-        if (!stashCallback(stream, p))
-            break;
-        DCC::writeCVByte(p[0], p[1], callback_W, blocking);
+            if (!stashCallback(stream, p))
+                break;
+        if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
+            DCC::setLocoId(p[0],callback_Wloco, blocking);
+        else // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+            DCC::writeCVByte(p[0], p[1], callback_W, blocking);
         return;
 
     case 'V': // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
@@ -780,6 +783,13 @@ void DCCEXParser::callback_R(int result)
 
 void DCCEXParser::callback_Rloco(int result)
 {
-    StringFormatter::send(stashStream, F("<r %d>"), result);
+    StringFormatter::send(stashStream, F("<r %d>"), result & 0x3FFF);
+    stashBusy = false;
+}
+
+void DCCEXParser::callback_Wloco(int result)
+{
+    if (result==1) result=stashP[0]; // pick up original requested id from command
+    StringFormatter::send(stashStream, F("<w %d>"), result);
     stashBusy = false;
 }
