@@ -37,12 +37,16 @@ enum ackOp
   ITC1,             // If True Callback(1)  (if prevous WACK got an ACK)
   ITC0,             // If True callback(0);
   ITCB,             // If True callback(byte)
+  ITCB7,            // If True callback(byte &0x7F)
   NAKFAIL,          // if false callback(-1)
   FAIL,             // callback(-1)
   STARTMERGE,       // Clear bit and byte settings ready for merge pass
   MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
   SETBIT,           // sets bit number to next prog byte
   SETCV,            // sets cv number to next prog byte
+  SETBYTE,          // sets current byte to next prog byte
+  SETBYTEH,         // sets current byte to word high byte
+  SETBYTEL,         // sets current byte to word low byte
   STASHLOCOID,      // keeps current byte value for later
   COMBINELOCOID,    // combines current value with stashed value and returns it
   ITSKIP,           // skip to SKIPTARGET if ack true
@@ -88,6 +92,7 @@ public:
   static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
 
   static void getLocoId(ACK_CALLBACK callback, bool blocking = false);
+  static void setLocoId(int id,ACK_CALLBACK callback, bool blocking = false);
 
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
@@ -124,10 +129,12 @@ private:
   static byte ackManagerByte;
   static byte ackManagerBitNum;
   static int ackManagerCv;
+  static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
   static ACK_CALLBACK ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback, bool blocking);
+  static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback, bool blocking);
   static void ackManagerLoop(bool blocking);
   static bool checkResets(bool blocking, uint8_t numResets);
   static const int PROG_REPEATS = 8; // repeats of programming commands (some decoders need at least 8 to be reliable)
