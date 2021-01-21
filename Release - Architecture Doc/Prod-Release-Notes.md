@@ -4,6 +4,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Consisting through JMRI** - currently does not work in this release.  A number of testers were able to develop a work around.  If interested enter a Support Ticket.
  - **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
  - **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry 
+ 
 **Summary of the key new features added to CommandStation-EX V3.0.3**
  - **<W addr> command to write loco address and clear consist** 
  - **<R> command will allow for consist address**
