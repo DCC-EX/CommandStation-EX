@@ -306,12 +306,33 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             return;
         break;
 
-    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE>
-        if (p[2] != (p[2] & 1))
-            return;
-        DCC::setAccessory(p[0], p[1], p[2] == 1);
+    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE> or <a LINEARADDRESS ACTIVATE>
+        { 
+          int address;
+          byte subaddress;
+          byte activep;
+          if (params==2) { // <a LINEARADDRESS ACTIVATE>
+              address=(p[0] - 1) / 4 + 1;
+              subaddress=(p[0] - 1)  % 4;
+              activep=1;        
+          }
+          else if (params==3) { // <a ADDRESS SUBADDRESS ACTIVATE>
+              address=p[0];
+              subaddress=p[1];
+              activep=2;        
+          }
+          else break; // invalid no of parameters
+          
+          if (
+             ((address & 0x01FF) != address)      // invalid address (limit 9 bits ) 
+          || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
+          || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
+          ) break; 
+            
+          DCC::setAccessory(address, subaddress,p[activep]==1);
+        }
         return;
-
+     
     case 'T': // TURNOUT  <T ...>
         if (parseT(stream, params, p))
             return;
