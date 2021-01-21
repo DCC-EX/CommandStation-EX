@@ -236,6 +236,14 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
     atCommandCallback = callback;
 }
 
+// Parse an F() string 
+void DCCEXParser::parse(const __FlashStringHelper * cmd) {
+      int size=strlen_P((char *)cmd)+1; 
+      char buffer[size];
+      strcpy_P(buffer,(char *)cmd);
+      parse(&Serial,(byte *)buffer,true);
+}
+
 // See documentation on DCC class for info on this section
 void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 {

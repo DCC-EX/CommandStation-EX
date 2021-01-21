@@ -28,6 +28,7 @@ struct DCCEXParser
    DCCEXParser();
    void loop(Stream & stream);
    void parse(Print * stream,  byte * command, bool blocking);
+   void parse(const __FlashStringHelper * cmd);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
