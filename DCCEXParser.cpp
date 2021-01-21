@@ -143,6 +143,7 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
                 runningValue = 10 * runningValue + (hot - '0');
                 break;
             }
+            if (hot >= 'a' && hot <= 'z') hot=hot-'a'+'A'; // uppercase a..z
             if (hot >= 'A' && hot <= 'Z')
             {
                 // Since JMRI got modified to send keywords in some rare cases, we need this
