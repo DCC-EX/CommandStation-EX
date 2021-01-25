@@ -20,10 +20,9 @@
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
  
-const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -31,32 +30,18 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
-VirtualTimer * DCCWaveform::interruptTimer=NULL;      
   
-void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
 
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
-  switch (timerNumber) {
-    case 1: interruptTimer= &TimerA; break;
-    case 2: interruptTimer= &TimerB; break;
-#ifndef ARDUINO_AVR_UNO  
-    case 3: interruptTimer= &TimerC; break;
-#endif    
-    default:
-      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
-      return;
-  }
-  interruptTimer->initialize();
-  interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
-  interruptTimer->attachInterrupt(interruptHandler);
-  interruptTimer->start();
+  DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
-void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-  interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-  interruptTimer->start(); 
+
+void DCCWaveform::setDiagnosticSlowWave(bool slow) {  
+  DCCTimer::begin(DCCWaveform::interruptHandler, slow);     
   DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
 }
 
@@ -65,8 +50,6 @@ void DCCWaveform::loop() {
   progTrack.checkPowerOverload();
 }
 
-
-// static //
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   bool mainCall2 = mainTrack.interrupt1();
@@ -112,10 +95,6 @@ POWERMODE DCCWaveform::getPowerMode() {
 }
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-
-  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
-  if (!interruptTimer) return; 
-  
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
@@ -167,10 +146,6 @@ void DCCWaveform::checkPowerOverload() {
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
   }
 }
-
-
-
-
 
 // process time-edge sensitive part of interrupt
 // return true if second level required

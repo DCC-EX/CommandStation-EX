@@ -64,7 +64,7 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const __FlashStringHelper *motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver, byte timerNumber = 1);
+  static void begin(const __FlashStringHelper *motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver);
   static void loop();
 
   // Public DCC API functions
