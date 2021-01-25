@@ -38,17 +38,36 @@ INTERRUPT_CALLBACK interruptHandler=0;
 void DCCTimer::begin(INTERRUPT_CALLBACK callback, bool slow) {
   interruptHandler=callback;
   // Initialise timer1 to trigger every 58us (DCC_SIGNAL_TIME)
+  long clockCycles=((F_CPU / 1000000) * (slow? DCC_SLOW_TIME : DCC_SIGNAL_TIME)) >>1;
   noInterrupts();
-  TCCR1A = 0;
-  ICR1 = ((F_CPU / 1000000) * (slow? DCC_SLOW_TIME : DCC_SIGNAL_TIME)) >>1;
-  TCNT1 = 0;   
-  TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
-  TIMSK1 = _BV(TOIE1); // Enable Software interrupt
+  
+#ifdef ARDUINO_ARCH_MEGAAVR
+      // Arduino unoWifi Rev2 and nanoEvery architectire 
+      TCB0.CCMP = clockCycles;
+      TCB0.INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
+      TCB0.INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
+      TCB0.CNT = 0;
+      TCB0.CTRLA |= TCB_ENABLE_bm;  // start
+      #define ISR_NAME TCB2_INT_vect
+
+#else 
+      // Arduino nano, uno, mega 
+      TCCR1A = 0;
+      ICR1 = clockCycles;
+      TCNT1 = 0;   
+      TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
+      TIMSK1 = _BV(TOIE1); // Enable Software interrupt
+      #define ISR_NAME TIMER1_OVF_vect
+#endif
+  
   interrupts();
 }
 
-// Timer interrupt every 58uS
-ISR(TIMER1_OVF_vect)
+// ISR called by timer interrupt every 58uS
+ISR(ISR_NAME)
 {
+#ifdef ARDUINO_ARCH_MEGAAVR
+    TCB0.INTFLAGS = TCB_CAPT_bm;
+#endif
     if (interruptHandler) interruptHandler();
 }
