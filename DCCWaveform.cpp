@@ -1,7 +1,7 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
  *  © 2020, Harald Barth.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -21,61 +21,47 @@
 
 #include "DCCWaveform.h"
 #include "DIAG.h"
- 
-const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
+
+const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle
 const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
-bool DCCWaveform::progTrackSyncMain=false; 
+bool DCCWaveform::progTrackSyncMain=false;
 bool DCCWaveform::progTrackBoosted=false;
-#if !defined(TEENSYDUINO)
-VirtualTimer * DCCWaveform::interruptTimer=NULL;      
-#endif
+
+VirtualTimer * DCCWaveform::interruptTimer=NULL;
+
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
 
-  mainTrack.setPowerMode(POWERMODE::OFF);      
+  mainTrack.setPowerMode(POWERMODE::OFF);
   progTrack.setPowerMode(POWERMODE::OFF);
   switch (timerNumber) {
     case 1: interruptTimer= &TimerA; break;
     case 2: interruptTimer= &TimerB; break;
-#ifndef ARDUINO_AVR_UNO  
+#ifndef ARDUINO_AVR_UNO
     case 3: interruptTimer= &TimerC; break;
-#endif    
+#endif
     default:
       DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
       return;
   }
-#if defined(TEENSYDUINO)
-#if defined(__IMXRT1062__)
-interruptTimer.begin(interruptHandler, NORMAL_SIGNAL_TIME);
-#else
-//TBD
-#endif
-#else
+
   interruptTimer->initialize();
   interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
   interruptTimer->attachInterrupt(interruptHandler);
   interruptTimer->start();
-#endif
+
 }
 void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-#if defined(TEENSYDUINO)
-#if defined(__IMXRT1062__)
-	interruptTimer.begin(interruptHandler, slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-#else
-//TBD
-#endif
-#else
   interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-  interruptTimer->start(); 
-#endif
-  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
+  interruptTimer->start();
+  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET"));
 }
 
 void DCCWaveform::loop() {
@@ -116,8 +102,8 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = 0;
   // The +1 below is to allow the preamble generator to create the stop bit
-  // fpr the previous packet. 
-  requiredPreambles = preambleBits+1;  
+  // fpr the previous packet.
+  requiredPreambles = preambleBits+1;
   bytes_sent = 0;
   bits_sent = 0;
   sampleDelay = 0;
@@ -131,9 +117,9 @@ POWERMODE DCCWaveform::getPowerMode() {
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
 
-  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
-  if (!interruptTimer) return; 
-  
+  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.
+  if (!interruptTimer) return;
+
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
@@ -141,7 +127,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 
 void DCCWaveform::checkPowerOverload() {
-  
+
   static int progTripValue = motorDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once, hence static
 
   if (millis() - lastSampleTaken  < sampleDelay) return;
@@ -149,7 +135,7 @@ void DCCWaveform::checkPowerOverload() {
   int tripValue= motorDriver->getRawCurrentTripValue();
   if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
-  
+
   switch (powerMode) {
     case POWERMODE::OFF:
       sampleDelay = POWER_SAMPLE_OFF_WAIT;
@@ -221,7 +207,7 @@ bool DCCWaveform::interrupt1() {
       break;
   }
 
-  // ACK check is prog track only and will only be checked if 
+  // ACK check is prog track only and will only be checked if
   // this is not case(0) which needs  relatively expensive packet change code to be called.
   if (ackPending) checkAck();
 
@@ -235,11 +221,11 @@ void DCCWaveform::setSignal(bool high) {
     // set both tracks to same signal
     motorDriver->setSignal(high);
     progTrack.motorDriver->setSignal(high);
-    return;     
+    return;
   }
   motorDriver->setSignal(high);
 }
-      
+
 void DCCWaveform::interrupt2() {
   // set currentBit to be the next bit to be sent.
 
@@ -284,7 +270,7 @@ void DCCWaveform::interrupt2() {
         if (sentResetsSincePacket<250) sentResetsSincePacket++;
       }
     }
-  }  
+  }
 }
 
 
@@ -311,7 +297,7 @@ int DCCWaveform::getLastCurrent() {
 }
 
 // Operations applicable to PROG track ONLY.
-// (yes I know I could have subclassed the main track but...) 
+// (yes I know I could have subclassed the main track but...)
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
@@ -324,7 +310,7 @@ void DCCWaveform::setAckBaseline() {
 }
 
 void DCCWaveform::setAckPending() {
-      if (isMainTrack) return; 
+      if (isMainTrack) return;
       ackMaxCurrent=0;
       ackPulseStart=0;
       ackPulseDuration=0;
@@ -335,42 +321,42 @@ void DCCWaveform::setAckPending() {
 
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("\n%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
+      if (Diag::ACK) DIAG(F("\n%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
            ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
-      return(0);  // pending set off but not detected means no ACK.   
+      return(0);  // pending set off but not detected means no ACK.
 }
 
 void DCCWaveform::checkAck() {
-    // This function operates in interrupt() time so must be fast and can't DIAG 
-    
+    // This function operates in interrupt() time so must be fast and can't DIAG
+
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
-        return; 
+        return;
     }
-      
+
     lastCurrent=motorDriver->getCurrentRaw();
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
-        
+
     if (lastCurrent>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
        return;
     }
-    
+
     // not in pulse
-    if (ackPulseStart==0) return; // keep waiting for leading edge 
-    
+    if (ackPulseStart==0) return; // keep waiting for leading edge
+
     // detected trailing edge of pulse
     ackPulseDuration=micros()-ackPulseStart;
-               
+
     if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;
-        transmitRepeats=0;  // shortcut remaining repeat packets 
+        transmitRepeats=0;  // shortcut remaining repeat packets
         return;  // we have a genuine ACK result
-    }      
-    ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
+    }
+    ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge
 }
