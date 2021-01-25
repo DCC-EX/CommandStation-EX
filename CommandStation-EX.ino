@@ -49,10 +49,19 @@ void setup()
 
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
 
-  // Optionally a Timer number (1..4) may be passed to DCC::begin to override the default Timer1 used for the
-  // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
-
+ 
   DCC::begin(MOTOR_SHIELD_TYPE); 
+         
+  #if defined(RMFT_ACTIVE) 
+      RMFT::begin();
+  #endif
+
+  #if __has_include ( "mySetup.h")
+        #define SETUP(cmd) serialParser.parse(F(cmd))  
+        #include "mySetup.h"
+        #undef SETUP
+       #endif
+
   LCD(1,F("Ready")); 
 }
 
@@ -73,6 +82,10 @@ void loop()
 #endif
 #if ETHERNET_ON
   EthernetInterface::loop();
+#endif
+
+#if defined(RMFT_ACTIVE) 
+  RMFT::loop();
 #endif
 
   LCDDisplay::loop();  // ignored if LCD not in use 

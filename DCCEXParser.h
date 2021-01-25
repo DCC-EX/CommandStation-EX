@@ -28,8 +28,10 @@ struct DCCEXParser
    DCCEXParser();
    void loop(Stream & stream);
    void parse(Print * stream,  byte * command, bool blocking);
+   void parse(const __FlashStringHelper * cmd);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
+   static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_PARAMS=10;  // Must not exceed this
  
@@ -58,9 +60,11 @@ struct DCCEXParser
     static void callback_B(int result);        
     static void callback_R(int result);
     static void callback_Rloco(int result);
+    static void callback_Wloco(int result);
     static void callback_Vbit(int result);
     static void callback_Vbyte(int result);
     static FILTER_CALLBACK  filterCallback;
+    static FILTER_CALLBACK  filterRMFTCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static void funcmap(int cab, byte value, byte fstart, byte fstop);
 

@@ -21,7 +21,6 @@
 #define DCCWaveform_h
 #include "MotorDriver.h"
 
-
 // Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
@@ -46,7 +45,7 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
-    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber);
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
     static void setDiagnosticSlowWave(bool slow);
     static void loop();
     static DCCWaveform  mainTrack;
@@ -58,9 +57,26 @@ class DCCWaveform {
     void checkPowerOverload();
     int  getLastCurrent();
     inline int get1024Current() {
-	if (powerMode == POWERMODE::ON)
-	    return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
-	return 0;
+	  if (powerMode == POWERMODE::ON)
+	      return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
+	  return 0;
+    }
+    inline int getCurrentmA() {
+      if (powerMode == POWERMODE::ON)
+        return motorDriver->raw2mA(lastCurrent);
+      return 0;
+    }
+    inline int getMaxmA() {
+      if (maxmA == 0) { //only calculate this for first request, it doesn't change
+        maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue()); //TODO: replace with actual max value or calc
+      }
+      return maxmA;        
+    }
+    inline int getTripmA() { 
+      if (tripmA == 0) { //only calculate this for first request, it doesn't change
+        tripmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
+      }
+      return tripmA;        
     }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
@@ -88,6 +104,7 @@ class DCCWaveform {
     }
 
   private:
+     
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();
@@ -111,7 +128,8 @@ class DCCWaveform {
     byte pendingLength;
     byte pendingRepeats;
     int lastCurrent;
-
+    int maxmA;
+    int tripmA;
     
     // current sampling
     POWERMODE powerMode;

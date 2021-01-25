@@ -23,6 +23,7 @@
 #include "EEStore.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
+#include "FSH.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -45,15 +46,15 @@ const byte FN_GROUP_5=0x10;
 
 FSH* DCC::shieldName=NULL;
 
-void DCC::begin(const FSH* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
-  shieldName=(FSH*)motorShieldName;
+void DCC::begin( FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+  shieldName=motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
+  DCCWaveform::begin(mainDriver,progDriver); 
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
@@ -331,10 +332,31 @@ const ackOp FLASH READ_CV_PROG[] = {
 
 const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
+      SETCV, (ackOp)1,   
+      SETBIT, (ackOp)7,
+      V0,WACK,NAKFAIL, // test CV 1 bit 7 is a zero... NAK means no loco found
+
+      SETCV, (ackOp)19,     // CV 19 is consist setting
+      SETBYTE, (ackOp)0,    
+      VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
+      SETBYTE, (ackOp)128,
+      VB, WACK, ITSKIP,     // ignore consist if cv19 is 128 (no consist, direction bit set)
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,  
+      V0, WACK, MERGE,  
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB7,  // return 7 bits only, No_ACK means CV19 not supported so ignore it
+      
+      SKIPTARGET,     // continue here if CV 19 is zero or fails all validation      
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
       V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
-      V1, WACK, NAKFAIL, // fast fail if no loco on track
+      
       // Long locoid  
       SETCV, (ackOp)17,       // CV 17 is part of locoid
       STARTMERGE,
@@ -366,7 +388,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       SKIPTARGET,
       SETCV, (ackOp)1,
       STARTMERGE,
-      V0, WACK, MERGE,  // read and merge bit 1 etc
+      SETBIT, (ackOp)6,  // skip over first bit as we know its a zero
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
@@ -378,6 +400,44 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       FAIL
       };    
 
+const ackOp PROGMEM SHORT_LOCO_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)19,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore router without cv19 support
+      // Turn off long address flag
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      W0,WACK,NAKFAIL,
+      SETCV, (ackOp)1,   
+      SETBYTEL,   // low byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,ITCB,
+      FAIL
+};    
+
+const ackOp PROGMEM LONG_LOCO_ID_PROG[] = {
+      BASELINE,
+      // Clear consist CV 19
+      SETCV,(ackOp)19,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore router without cv19 support
+      // Turn on long address flag cv29 bit 5
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      W1,WACK,NAKFAIL,
+      // Store high byte of address in cv 17
+      SETCV, (ackOp)17,
+      SETBYTEH,   // high byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,NAKFAIL,
+      // store 
+      SETCV, (ackOp)18,
+      SETBYTEL,   // low byte of word 
+      WB,WACK,NAKFAIL,
+      VB,WACK,ITC1,   // callback(1) means Ok
+      FAIL
+};    
 
 // On the following prog-track functions blocking defaults to false.
 // blocking=true forces the API to block, waiting for the response and invoke the callback BEFORE returning.
@@ -418,6 +478,12 @@ void DCC::readCV(int cv, ACK_CALLBACK callback, bool blocking)  {
 
 void DCC::getLocoId(ACK_CALLBACK callback, bool blocking) {
   ackManagerSetup(0,0, LOCO_ID_PROG, callback, blocking);
+}
+
+void DCC::setLocoId(int id,ACK_CALLBACK callback, bool blocking) {
+  if (id<=0 || id>9999) callback(-1);
+  if (id<=127) ackManagerSetup(id,SHORT_LOCO_ID_PROG, callback, blocking);
+  else ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback, blocking);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
@@ -552,7 +618,8 @@ int DCC::nextLoco = 0;
 ackOp  const *  DCC::ackManagerProg;
 byte   DCC::ackManagerByte;
 byte   DCC::ackManagerStash;
-int   DCC::ackManagerCv;
+int    DCC::ackManagerWord;
+int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 
@@ -563,6 +630,13 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
+  ackManagerCallback = callback;
+  if (blocking) ackManagerLoop(blocking);
+}
+
+void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback, bool blocking) {
+  ackManagerWord=wordval;
+  ackManagerProg = program;
   ackManagerCallback = callback;
   if (blocking) ackManagerLoop(blocking);
 }
@@ -668,7 +742,15 @@ void DCC::ackManagerLoop(bool blocking) {
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
             ackManagerProg = NULL; // all done now
-	          callback(ackManagerByte);
+            callback(ackManagerByte);
+            return;
+          }
+        break;
+
+      case ITCB7:   // If True callback(byte & 0xF)
+          if (ackReceived) {
+            ackManagerProg = NULL; // all done now
+            callback(ackManagerByte & 0x7F);
             return;
           }
         break;
@@ -706,6 +788,19 @@ void DCC::ackManagerLoop(bool blocking) {
      case SETCV:
           ackManagerProg++; 
           ackManagerCv=GETFLASH(ackManagerProg);
+          break;
+
+     case SETBYTE:
+          ackManagerProg++; 
+          ackManagerByte=GETFLASH(ackManagerProg);
+          break;
+
+    case SETBYTEH:
+          ackManagerByte=highByte(ackManagerWord);
+          break;
+          
+    case SETBYTEL:
+          ackManagerByte=lowByte(ackManagerWord);
           break;
 
      case STASHLOCOID:

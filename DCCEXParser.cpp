@@ -221,14 +221,27 @@ int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
 }
 
 FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
 }
+void DCCEXParser::setRMFTFilter(FILTER_CALLBACK filter)
+{
+    filterRMFTCallback = filter;
+}
 void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 {
     atCommandCallback = callback;
+}
+
+// Parse an F() string 
+void DCCEXParser::parse(const __FlashStringHelper * cmd) {
+      int size=strlen_P((char *)cmd)+1; 
+      char buffer[size];
+      strcpy_P(buffer,(char *)cmd);
+      parse(&Serial,(byte *)buffer,true);
 }
 
 // See documentation on DCC class for info on this section
@@ -245,6 +258,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
 
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
+    if (filterRMFTCallback && opcode!='\0')
+        filterRMFTCallback(stream, opcode, params, p);
 
     // Functions return from this switch if complete, break from switch implies error <X> to send
     switch (opcode)
@@ -344,9 +359,12 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         return;
         
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
-        if (!stashCallback(stream, p))
-            break;
-        DCC::writeCVByte(p[0], p[1], callback_W, blocking);
+            if (!stashCallback(stream, p))
+                break;
+        if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
+            DCC::setLocoId(p[0],callback_Wloco, blocking);
+        else // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+            DCC::writeCVByte(p[0], p[1], callback_W, blocking);
         return;
 
     case 'V': // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
@@ -434,8 +452,11 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         }
         return;
 
-    case 'c': // READ CURRENT <c>
-        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current());
+    case 'c': // SEND METER RESPONSES <c>
+        //                               <c MeterName value C/V unit min max res warn>
+        StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>"), DCCWaveform::mainTrack.getCurrentmA(), 
+            DCCWaveform::mainTrack.getMaxmA(), DCCWaveform::mainTrack.getTripmA());
+        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
         return;
 
     case 'Q': // SENSORS <Q>
@@ -445,7 +466,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     case 's': // <s>
         StringFormatter::send(stream, F("<p%d>"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-        parseT(stream, 0, p);      //send all Turnout states
+        Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states
         // TODO Send stats of  speed reminders table
@@ -529,7 +550,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <Z>
+    case 0: // <Z> list Output definitions
     {
         bool gotone = false;
         for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
@@ -591,13 +612,14 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
 {
     switch (params)
     {
-    case 0: // <T>  list all turnout states
+    case 0: // <T>  list turnout definitions
     {
         bool gotOne = false;
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
         {
             gotOne = true;
-            StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
+            StringFormatter::send(stream, F("<H %d %d %d %d>"), tt->data.id, tt->data.address, 
+                tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
         }
         return gotOne; // will <X> if none found
     }
@@ -646,7 +668,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
         StringFormatter::send(stream, F("<O>"));
         return true;
 
-    case 0: // <S> list sensor states
+    case 0: // <S> list sensor definitions
 	if (Sensor::firstSensor == NULL)
 	    return false;
         for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
@@ -769,6 +791,13 @@ void DCCEXParser::callback_R(int result)
 
 void DCCEXParser::callback_Rloco(int result)
 {
-    StringFormatter::send(stashStream, F("<r %d>"), result);
+    StringFormatter::send(stashStream, F("<r %d>"), result & 0x3FFF);
+    stashBusy = false;
+}
+
+void DCCEXParser::callback_Wloco(int result)
+{
+    if (result==1) result=stashP[0]; // pick up original requested id from command
+    StringFormatter::send(stashStream, F("<w %d>"), result);
     stashBusy = false;
 }

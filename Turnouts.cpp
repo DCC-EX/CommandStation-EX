@@ -21,9 +21,16 @@
 #include "Turnouts.h"
 #include "EEStore.h"
 #include "PWMServoDriver.h"
+#include "StringFormatter.h"
 #ifdef EESTOREDEBUG
 #include "DIAG.h"
 #endif
+
+// print all turnout states to stream
+void Turnout::printAll(Print *stream){
+  for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
+    StringFormatter::send(stream, F("<H %d %d>"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
+} // Turnout::printAll
 
 bool Turnout::activate(int n,bool state){
 #ifdef EESTOREDEBUG

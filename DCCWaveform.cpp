@@ -20,17 +20,9 @@
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
-
-#ifdef ARDUINO_ARCH_MEGAAVR
-#include "EveryTimerB.h"
-#define Timer1 TimerB2 // use TimerB2 as a drop in replacement for Timer1
-#else // assume architecture supported by TimerOne ....
-#include "TimerOne.h"
-#endif 
-
-const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
+ 
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -39,21 +31,17 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
   
-void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
 
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
- 
-  Timer1.initialize();
-  Timer1.setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
-  Timer1.attachInterrupt(interruptHandler);
-  Timer1.start();
+  DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
-void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-  Timer1.setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-  Timer1.start(); 
+
+void DCCWaveform::setDiagnosticSlowWave(bool slow) {  
+  DCCTimer::begin(DCCWaveform::interruptHandler, slow);     
   DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
 }
 
@@ -62,8 +50,6 @@ void DCCWaveform::loop() {
   progTrack.checkPowerOverload();
 }
 
-
-// static //
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   bool mainCall2 = mainTrack.interrupt1();
@@ -109,7 +95,6 @@ POWERMODE DCCWaveform::getPowerMode() {
 }
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-  
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
@@ -161,10 +146,6 @@ void DCCWaveform::checkPowerOverload() {
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
   }
 }
-
-
-
-
 
 // process time-edge sensitive part of interrupt
 // return true if second level required
