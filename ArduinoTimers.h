@@ -11,6 +11,9 @@
     #include "ATMEGA2560/Timer.h"
 #elif defined(ARDUINO_AVR_UNO)
     #include "ATMEGA328/Timer.h"
+#elif defined(TEENSYDUINO)
+	#include "TeensyTimerTool.h"
+	using namespace TeensyTimerTool;
 #else
     #error "Cannot compile - ArduinoTimers library does not support your board, or you are missing compatible build flags."
 #endif

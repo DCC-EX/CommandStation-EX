@@ -49,4 +49,17 @@ ISR(TIMER2_OVF_vect)
     TimerB.isrCallback();
 }
 
+#elif defined(TEENSYDUINO)
+#include "TeensyTimerTool.h"
+using namespace TeensyTimerTool;
+
+#if defined(__IMXRT1062__)
+	PeriodicTimer TimerA(TMR1); // first free channel of TMR1
+	PeriodicTimer TimerB(TMR1); // first free channel of TMR1
+	PeriodicTimer TimerC(TMR1); // next free channel of TMR1 (up to 4)
+	PeriodicTimer TimerD(TMR1); // first free channel of TMR3
+#else
+
+//TBD
+#endif
 #endif

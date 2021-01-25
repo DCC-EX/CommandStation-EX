@@ -38,7 +38,7 @@ The configuration file for DCC++ EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
+#define ENABLE_WIFI false
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

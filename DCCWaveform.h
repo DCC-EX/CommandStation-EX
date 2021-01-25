@@ -105,7 +105,9 @@ class DCCWaveform {
     }
 
   private:
-    static VirtualTimer * interruptTimer;      
+  #if !defined(TEENSYDUINO)
+    static VirtualTimer * interruptTimer; 
+  #endif	
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();

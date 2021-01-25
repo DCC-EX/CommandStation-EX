@@ -18,12 +18,14 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
+#if !defined(TEENSYDUINO)
 #include "AnalogReadFast.h"
+#endif
 #include "DIAG.h"
 
 
 
-#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC) || defined(ARDUINO_ARCH_MEGAAVR)
+#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC) || defined(ARDUINO_ARCH_MEGAAVR) || defined(TEENSYDUINO)
     #define WritePin digitalWrite
     #define ReadPin digitalRead
 #else
@@ -96,7 +98,8 @@ int MotorDriver::getCurrentRaw() {
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
-  return analogReadFast(currentPin);
+  //return analogReadFast(currentPin);
+  return analogRead(currentPin);
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {
