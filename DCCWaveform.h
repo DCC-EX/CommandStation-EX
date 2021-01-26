@@ -1,7 +1,7 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
  *  © 2020, Harald Barth.
- *
+ *  
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -71,13 +71,13 @@ class DCCWaveform {
       if (maxmA == 0) { //only calculate this for first request, it doesn't change
         maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue()); //TODO: replace with actual max value or calc
       }
-      return maxmA;
+      return maxmA;        
     }
-    inline int getTripmA() {
+    inline int getTripmA() { 
       if (tripmA == 0) { //only calculate this for first request, it doesn't change
         tripmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue());
       }
-      return tripmA;
+      return tripmA;        
     }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
@@ -105,14 +105,15 @@ class DCCWaveform {
     }
 
   private:
-    static VirtualTimer * interruptTimer;
-  
+  #if !defined(TEENSYDUINO)
+    static VirtualTimer * interruptTimer; 
+  #endif	
     static void interruptHandler();
     bool interrupt1();
     void interrupt2();
     void checkAck();
     void setSignal(bool high);
-
+    
     bool isMainTrack;
     MotorDriver*  motorDriver;
     // Transmission controller
@@ -132,7 +133,7 @@ class DCCWaveform {
     int lastCurrent;
     int maxmA;
     int tripmA;
-
+    
     // current sampling
     POWERMODE powerMode;
     unsigned long lastSampleTaken;
@@ -143,20 +144,20 @@ class DCCWaveform {
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 
-    // ACK management (Prog track only)
+    // ACK management (Prog track only)  
     volatile bool ackPending;
     volatile bool ackDetected;
-    int  ackThreshold;
+    int  ackThreshold; 
     int  ackLimitmA = 60;
     int ackMaxCurrent;
     unsigned long ackCheckStart; // millis
-    unsigned int ackCheckDuration; // millis
-
+    unsigned int ackCheckDuration; // millis       
+    
     unsigned int ackPulseDuration;  // micros
     unsigned long ackPulseStart; // micros
 
     unsigned int minAckPulseDuration = 2000; // micros
     unsigned int maxAckPulseDuration = 8500; // micros
-
+           
 };
 #endif
