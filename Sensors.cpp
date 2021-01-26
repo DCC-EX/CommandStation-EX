@@ -69,7 +69,6 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 #include "Sensors.h"
 #include "EEStore.h"
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //
 // checks one defined sensors and prints _changed_ sensor state

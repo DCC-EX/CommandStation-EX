@@ -31,9 +31,9 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false;
+
 #if !defined(TEENSYDUINO)
 VirtualTimer * DCCWaveform::interruptTimer=NULL;      
-#endif
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
   mainTrack.motorDriver=mainDriver;
@@ -51,32 +51,53 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte
       DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
       return;
   }
-#if defined(TEENSYDUINO)
-#if defined(__IMXRT1062__)
-interruptTimer.begin(interruptHandler, NORMAL_SIGNAL_TIME);
-#else
-//TBD
-#endif
-#else
   interruptTimer->initialize();
   interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
   interruptTimer->attachInterrupt(interruptHandler);
   interruptTimer->start();
-#endif
+
 }
+
 void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-#if defined(TEENSYDUINO)
-#if defined(__IMXRT1062__)
-	interruptTimer.begin(interruptHandler, slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-#else
-//TBD
-#endif
-#else
   interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
   interruptTimer->start(); 
-#endif
   DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
 }
+
+#else
+#if(__IMXRT1062__)
+PeriodicTimer interruptTimer(GPT1); 
+#else
+IntervalTimer interruptTimer;
+#endif
+
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
+  mainTrack.motorDriver=mainDriver;
+  progTrack.motorDriver=progDriver;
+
+  mainTrack.setPowerMode(POWERMODE::OFF);      
+  progTrack.setPowerMode(POWERMODE::OFF);
+
+  // Initialise timer1 to trigger every 58us (NORMAL_SIGNAL_TIME)
+  interruptTimer.begin(interruptHandler, NORMAL_SIGNAL_TIME);
+  #if defined(__IMXRT1062__)
+  interruptTimer.start();
+  #endif
+
+}
+
+void DCCWaveform::setDiagnosticSlowWave(bool slow) {
+  #if defined(__IMXRT1062__)
+  interruptTimer.begin(interruptHandler, slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
+  interruptTimer.start();
+  #else
+  interruptTimer.update(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
+  #endif
+  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
+}
+#endif
+
+
 
 void DCCWaveform::loop() {
   mainTrack.checkPowerOverload();
@@ -132,7 +153,7 @@ POWERMODE DCCWaveform::getPowerMode() {
 void DCCWaveform::setPowerMode(POWERMODE mode) {
 
   // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
-  if (!interruptTimer) return; 
+  //if (!interruptTimer) return;    ????????????????????????????????????????????????????
   
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);

@@ -23,10 +23,9 @@
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>
   Print * StringFormatter::diagSerial= &SerialUSB;
-  
-#elif defined(ARDUINO_ARCH_AVR)
+#elif defined(ARDUINO_ARCH_AVR) || defined(TEENSYDUINO)
   Print * StringFormatter::diagSerial= &Serial;
-#elif defined(ARDUINO_ARCH_MEGAAVR)
+#elif defined(ARDUINO_ARCH_MEGAAVR) 
   Print * StringFormatter::diagSerial=&Serial;
   #define __FlashStringHelper char
 #endif
