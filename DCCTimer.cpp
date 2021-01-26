@@ -28,7 +28,7 @@
  */
 
 #include "DCCTimer.h"
-
+#include "DIAG.h" 
 const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
 const int DCC_SLOW_TIME=58*512;  // for <D DCC SLOW> command diagnostics 
 
@@ -38,20 +38,24 @@ INTERRUPT_CALLBACK interruptHandler=0;
 void DCCTimer::begin(INTERRUPT_CALLBACK callback, bool slow) {
   interruptHandler=callback;
   // Initialise timer1 to trigger every 58us (DCC_SIGNAL_TIME)
-  long clockCycles=((F_CPU / 1000000) * (slow? DCC_SLOW_TIME : DCC_SIGNAL_TIME)) >>1;
   noInterrupts();
   
 #ifdef ARDUINO_ARCH_MEGAAVR
       // Arduino unoWifi Rev2 and nanoEvery architectire 
+      long clockCycles=slow? (14*512) : 14;  // guesswork!!!!
+      DIAG(F("\nTimer unoWifi/nanoEvery F_CPU=%l c=%d"),F_CPU,clockCycles); 
       TCB0.CCMP = clockCycles;
       TCB0.INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
       TCB0.INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
       TCB0.CNT = 0;
       TCB0.CTRLA |= TCB_ENABLE_bm;  // start
-      #define ISR_NAME TCB2_INT_vect
+      #define ISR_NAME TCB0_INT_vect
 
 #else 
-      // Arduino nano, uno, mega 
+
+      // Arduino nano, uno, mega
+      long clockCycles=((F_CPU / 1000000) * (slow? DCC_SLOW_TIME : DCC_SIGNAL_TIME)) >>1;
+      DIAG(F("\nTimer nano/uno/mega F_CPU=%l c=%d"),F_CPU,clockCycles); 
       TCCR1A = 0;
       ICR1 = clockCycles;
       TCNT1 = 0;   
