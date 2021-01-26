@@ -40,11 +40,6 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::setDiagnosticSlowWave(bool slow) {  
-  DCCTimer::begin(DCCWaveform::interruptHandler, slow);     
-  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
-}
-
 void DCCWaveform::loop() {
   mainTrack.checkPowerOverload();
   progTrack.checkPowerOverload();

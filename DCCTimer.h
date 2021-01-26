@@ -6,7 +6,7 @@ typedef void (*INTERRUPT_CALLBACK)();
 
 class DCCTimer {
   public:
-  static void begin(INTERRUPT_CALLBACK interrupt, bool slow=false);
+  static void begin(INTERRUPT_CALLBACK interrupt);
   private:
 };
 

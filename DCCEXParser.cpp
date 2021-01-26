@@ -732,10 +732,6 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         Diag::WITHROTTLE = onOff;
         return true;
 
-    case HASH_KEYWORD_DCC:
-        DCCWaveform::setDiagnosticSlowWave(params >= 1 && p[1] == HASH_KEYWORD_SLOW);
-        return true;
-
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);
 	return true;

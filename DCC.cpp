@@ -46,8 +46,8 @@ const byte FN_GROUP_5=0x10;
 
 FSH* DCC::shieldName=NULL;
 
-void DCC::begin( FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
-  shieldName=motorShieldName;
+void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+  shieldName=(FSH *)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
   // Load stuff from EEprom
