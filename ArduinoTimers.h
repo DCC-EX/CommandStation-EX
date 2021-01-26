@@ -3,7 +3,7 @@
 // The files included below come from the same source.
 // This library had been included with the DCC code to avoid issues with
 // library management for inexperienced users. "It just works (TM)"
-
+ 
 #ifndef ArduinoTimers_h
 #define ArduinoTimers_h
 
@@ -12,7 +12,8 @@
 #elif defined(ARDUINO_AVR_UNO)
     #include "ATMEGA328/Timer.h"
 #elif defined(TEENSYDUINO)
-    #include "TEENSY4X/Timer.h"
+	#include "TeensyTimerTool.h"
+	using namespace TeensyTimerTool;
 #else
     #error "Cannot compile - ArduinoTimers library does not support your board, or you are missing compatible build flags."
 #endif
