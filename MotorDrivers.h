@@ -1,8 +1,6 @@
 #ifndef MotorDrivers_h
 #define MotorDrivers_h
-#if defined(ARDUINO_ARCH_MEGAAVR)
 #include <Arduino.h>
-#endif
 
 // *** PLEASE NOTE *** THIS FILE IS  **NOT**  INTENDED TO BE EDITED WHEN CONFIGURING A SYSTEM.
 // It will be overwritten if the library is updated.

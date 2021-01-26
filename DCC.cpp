@@ -400,7 +400,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       FAIL
       };    
 
-const ackOp PROGMEM SHORT_LOCO_ID_PROG[] = {
+const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
@@ -416,7 +416,7 @@ const ackOp PROGMEM SHORT_LOCO_ID_PROG[] = {
       FAIL
 };    
 
-const ackOp PROGMEM LONG_LOCO_ID_PROG[] = {
+const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       BASELINE,
       // Clear consist CV 19
       SETCV,(ackOp)19,

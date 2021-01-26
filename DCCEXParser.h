@@ -19,6 +19,7 @@
 #ifndef DCCEXParser_h
 #define DCCEXParser_h
 #include <Arduino.h>
+#include "FSH.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int p[]);
 typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
@@ -28,7 +29,7 @@ struct DCCEXParser
    DCCEXParser();
    void loop(Stream & stream);
    void parse(Print * stream,  byte * command, bool blocking);
-   void parse(const __FlashStringHelper * cmd);
+   void parse(const FSH * cmd);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
