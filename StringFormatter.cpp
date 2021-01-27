@@ -1,6 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -23,11 +23,14 @@
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>
   Print * StringFormatter::diagSerial= &SerialUSB;
-#elif defined(ARDUINO_ARCH_AVR) || defined(TEENSYDUINO)
+
+#elif defined(ARDUINO_ARCH_AVR)
   Print * StringFormatter::diagSerial= &Serial;
-#elif defined(ARDUINO_ARCH_MEGAAVR) 
+#elif defined(ARDUINO_ARCH_MEGAAVR)
   Print * StringFormatter::diagSerial=&Serial;
   #define __FlashStringHelper char
+#elif defined(TEENSYDUINO)
+  Print * StringFormatter::diagSerial=&Serial;
 #endif
 
 #include "LCDDisplay.h"
@@ -38,9 +41,9 @@ bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 
- 
+
 void StringFormatter::diag( const __FlashStringHelper* input...) {
-  if (!diagSerial) return;    
+  if (!diagSerial) return;
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
@@ -54,9 +57,9 @@ void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
   va_start(args, input);
   send2(diagSerial,input,args);
   diag(F("\n"));
-  
+
   if (!LCDDisplay::lcdDisplay) return;
-  LCDDisplay::lcdDisplay->setRow(row);    
+  LCDDisplay::lcdDisplay->setRow(row);
   va_start(args, input);
   send2(LCDDisplay::lcdDisplay,input,args);
 }
@@ -74,7 +77,7 @@ void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) 
 }
 
 void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va_list args) {
-    
+
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
 
   char* flash=(char*)format;
@@ -85,9 +88,9 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
 
     bool formatContinues=false;
     byte formatWidth=0;
-    bool formatLeft=false; 
+    bool formatLeft=false;
   do {
-    
+
     formatContinues=false;
     i++;
     c=pgm_read_byte_near(flash+i);
@@ -105,20 +108,20 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
       case 'x': stream->print(va_arg(args, int), HEX); break;
       case 'f': stream->print(va_arg(args, double), 2); break;
       //format width prefix
-      case '-': 
+      case '-':
             formatLeft=true;
             formatContinues=true;
-            break; 
-      case '0': 
-      case '1': 
-      case '2': 
-      case '3': 
-      case '4': 
-      case '5': 
-      case '6': 
-      case '7': 
-      case '8': 
-      case '9': 
+            break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
             formatWidth=formatWidth * 10 + (c-'0');
             formatContinues=true;
             break;
@@ -138,7 +141,7 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
 }
 
 void StringFormatter::printEscapes(Print * stream, const __FlashStringHelper * input) {
- 
+
  if (!stream) return;
  char* flash=(char*)input;
  for(int i=0; ; ++i) {
@@ -155,35 +158,35 @@ void StringFormatter::printEscape( char c) {
 void StringFormatter::printEscape(Print * stream, char c) {
   if (!stream) return;
   switch(c) {
-     case '\n': stream->print(F("\\n")); break; 
-     case '\r': stream->print(F("\\r")); break; 
-     case '\0': stream->print(F("\\0")); return; 
+     case '\n': stream->print(F("\\n")); break;
+     case '\r': stream->print(F("\\r")); break;
+     case '\0': stream->print(F("\\0")); return;
      case '\t': stream->print(F("\\t")); break;
      case '\\': stream->print(F("\\")); break;
      default: stream->print(c);
   }
  }
 
- 
+
 void StringFormatter::printPadded(Print* stream, long value, byte width, bool formatLeft) {
   if (width==0) {
     stream->print(value, DEC);
     return;
   }
-  
+
     int digits=(value <= 0)? 1: 0;  // zero and negative need extra digot
     long v=value;
     while (v) {
         v /= 10;
         digits++;
     }
-    
+
     if (formatLeft) stream->print(value, DEC);
     while(digits<width) {
       stream->print(' ');
       digits++;
     }
-    if (!formatLeft) stream->print(value, DEC);    
+    if (!formatLeft) stream->print(value, DEC);
   }
 
- 
+

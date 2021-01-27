@@ -25,8 +25,6 @@
   #include <cstdarg>  
 #elif defined(ARDUINO_ARCH_MEGAAVR)
   #define __FlashStringHelper char
-#elif defined(TEENSYDUINO)
-  #include <stdarg.h>
 #endif
 
 #include "LCDDisplay.h"

@@ -26,7 +26,6 @@
 #include "DIAG.h"
 #endif
 
-
 // print all turnout states to stream
 void Turnout::printAll(Print *stream){
   for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
