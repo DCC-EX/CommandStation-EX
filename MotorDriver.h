@@ -43,5 +43,6 @@ class MotorDriver {
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
+    int simulatedOverload;
 };
 #endif

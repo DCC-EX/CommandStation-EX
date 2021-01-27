@@ -45,6 +45,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   faultPin=fault_pin;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  simulatedOverload=(int)(32000/senseFactor);
   pinMode(powerPin, OUTPUT);
   pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
   setBrake(false);
@@ -91,7 +92,7 @@ void MotorDriver::setSignal( bool high) {
 
 int MotorDriver::getCurrentRaw() {
   if (faultPin != UNUSED_PIN && ReadPin(faultPin) == LOW && ReadPin(powerPin) == HIGH)
-      return (int)(32000/senseFactor);
+      return simulatedOverload;
   
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic

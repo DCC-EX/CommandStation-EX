@@ -38,6 +38,7 @@ const byte   MAX_PACKET_SIZE = 12;
 
 
 enum class POWERMODE { OFF, ON, OVERLOAD };
+enum  WAVE_STATE {WAVE_START,WAVE_MID_1,WAVE_HIGH_0,WAVE_MID_0,WAVE_LOW_0,WAVE_PENDING};
 
 const byte idlePacket[] = {0xFF, 0x00, 0xFF};
 const byte resetPacket[] = {0x00, 0x00, 0x00};
@@ -118,12 +119,10 @@ class DCCWaveform {
     byte transmitRepeats;      // remaining repeats of transmission
     byte remainingPreambles;
     byte requiredPreambles;
-    bool currentBit;           // bit to be transmitted
     byte bits_sent;           // 0-8 (yes 9 bits) sent for current byte
     byte bytes_sent;          // number of bytes sent from transmitPacket
-    byte state;               // wave generator state machine
-
-    byte pendingPacket[MAX_PACKET_SIZE];
+    WAVE_STATE state;         // wave generator state machine
+     byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;
     byte pendingRepeats;
     int lastCurrent;

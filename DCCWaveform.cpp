@@ -56,6 +56,10 @@ void DCCWaveform::interruptHandler() {
   // after the rising edge of the signal
   if (mainCall2) mainTrack.interrupt2();
   if (progCall2) progTrack.interrupt2();
+
+  // Read current if in high middle of zero wave (state is set for NEXT interrupt!)
+  if (mainTrack.state==WAVE_MID_0)  mainTrack.lastCurrent=mainTrack.motorDriver->getCurrentRaw();
+  if (progTrack.state==WAVE_MID_0)  progTrack.lastCurrent=progTrack.motorDriver->getCurrentRaw();
 }
 
 
@@ -74,7 +78,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
-  state = 0;
+  state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
   // fpr the previous packet. 
   requiredPreambles = preambleBits+1;  
@@ -112,7 +116,6 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent = motorDriver->getCurrentRaw();
       if (lastCurrent <= tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
@@ -144,41 +147,49 @@ void DCCWaveform::checkPowerOverload() {
 
 // process time-edge sensitive part of interrupt
 // return true if second level required
+
 bool DCCWaveform::interrupt1() {
   // NOTE: this must consume transmission buffers even if the power is off
   // otherwise can cause hangs in main loop waiting for the pendingBuffer.
+  byte sigwave; 
   switch (state) {
-    case 0:  // start of bit transmission
-      setSignal(HIGH);
-      state = 1;
-      return true; // must call interrupt2 to set currentBit
+    // Each section of this case is designed to run as near as possible in the same cpu time
+    // hence some unnecessary duplication and pin setting.
+    // Breaking this causes jitter in the prog track waveform.
+        
+    case WAVE_START:  // start of bit transmission
+      sigwave=HIGH;
+      state = WAVE_PENDING;
+      break; // must call interrupt2 to set  next state 
 
-    case 1:  // 58us after case 0
-      if (currentBit) {
-        setSignal(LOW);
-        state = 0;
-      }
-      else  {
-        setSignal(HIGH);  // jitter prevention
-        state = 2;
-      }
+    case WAVE_MID_1:  // 58us after case 0 with currentbit=1
+      sigwave=LOW;  
+      state = WAVE_START;
+      break;     
+
+    case WAVE_HIGH_0:  // 58us after case 0 with currentbit=0
+        sigwave=HIGH;  
+        state = WAVE_MID_0;
+        break;
+
+    case WAVE_MID_0:  // 116us after case 0 with currentbit=0
+      sigwave=LOW;
+      state = WAVE_LOW_0;
       break;
-    case 2:  // 116us after case 0
-      setSignal(LOW);
-      state = 3;
-      break;
-    case 3:  // finished sending zero bit
-      setSignal(LOW);  // jitter prevention
-      state = 0;
+    
+    case WAVE_LOW_0:  // half way through zero-low
+      sigwave=LOW;  // jitter prevention
+      state = WAVE_START;
       break;
   }
-
+  
+  setSignal(sigwave);
+  
   // ACK check is prog track only and will only be checked if 
   // this is not case(0) which needs  relatively expensive packet change code to be called.
-  if (ackPending) checkAck();
+  if (ackPending && state!=WAVE_PENDING) checkAck();
 
-  return false;
-
+  return state==WAVE_PENDING; // true, caller must call Interrupt2
 }
 
 void DCCWaveform::setSignal(bool high) {
@@ -193,16 +204,16 @@ void DCCWaveform::setSignal(bool high) {
 }
       
 void DCCWaveform::interrupt2() {
-  // set currentBit to be the next bit to be sent.
+  // calculate the next bit to be sent.
 
   if (remainingPreambles > 0 ) {
-    currentBit = true;
+    state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
     return;
   }
 
   // beware OF 9-BIT MASK  generating a zero to start each byte
-  currentBit = transmitPacket[bytes_sent] & bitMask[bits_sent];
+  state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
   bits_sent++;
 
   // If this is the last bit of a byte, prepare for the next byte
@@ -267,7 +278,7 @@ int DCCWaveform::getLastCurrent() {
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
-      int baseline = motorDriver->getCurrentRaw();
+      int baseline = lastCurrent;
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -302,7 +313,6 @@ void DCCWaveform::checkAck() {
         return; 
     }
       
-    lastCurrent=motorDriver->getCurrentRaw();
     if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
