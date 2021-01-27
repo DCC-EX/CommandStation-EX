@@ -47,19 +47,30 @@ void DCCWaveform::loop() {
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
-  bool mainCall2 = mainTrack.interrupt1();
-  bool progCall2 = progTrack.interrupt1();
+  // member functions would be cleaner but have more overhead
+  byte sigMain=signalTransform[mainTrack.state];
+  byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
+  
+  // Set the signal state for both tracks
+  mainTrack.motorDriver->setSignal(sigMain);
+  progTrack.motorDriver->setSignal(sigProg);
+  
+  // Move on in the state engine
+  mainTrack.state=stateTransform[mainTrack.state];    
+  progTrack.state=stateTransform[progTrack.state];    
 
-  // call (if necessary) the procs to get the current bits
-  // these must complete within 50microsecs of the interrupt
-  // but they are only called ONCE PER BIT TRANSMITTED
-  // after the rising edge of the signal
-  if (mainCall2) mainTrack.interrupt2();
-  if (progCall2) progTrack.interrupt2();
 
-  // Read current if in high middle of zero wave (state is set for NEXT interrupt!)
-  if (mainTrack.state==WAVE_MID_0)  mainTrack.lastCurrent=mainTrack.motorDriver->getCurrentRaw();
-  if (progTrack.state==WAVE_MID_0)  progTrack.lastCurrent=progTrack.motorDriver->getCurrentRaw();
+  // WAVE_PENDING means we dont yet know what the next bit is
+  // so we dont check cutrrent on this cycle
+  if (mainTrack.state!=WAVE_PENDING && progTrack.state!=WAVE_PENDING) {
+    mainTrack.lastCurrent=mainTrack.motorDriver->getCurrentRaw();
+    progTrack.lastCurrent=progTrack.motorDriver->getCurrentRaw();   
+  }
+
+  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
+  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
+  else if (progTrack.ackPending) progTrack.checkAck();
+
 }
 
 
@@ -74,13 +85,12 @@ const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
-  // establish appropriate pins
   isMainTrack = isMain;
   packetPending = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
-  // fpr the previous packet. 
+  // for the previous packet. 
   requiredPreambles = preambleBits+1;  
   bytes_sent = 0;
   bits_sent = 0;
@@ -144,67 +154,28 @@ void DCCWaveform::checkPowerOverload() {
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
   }
 }
+// For each state of the wave  nextState=stateTransform[currentState] 
+const WAVE_STATE DCCWaveform::stateTransform[]={
+   /* WAVE_START   -> */ WAVE_PENDING,
+   /* WAVE_MID_1   -> */ WAVE_START,
+   /* WAVE_HIGH_0  -> */ WAVE_MID_0,
+   /* WAVE_MID_0   -> */ WAVE_LOW_0,
+   /* WAVE_LOW_0   -> */ WAVE_START,
+   /* WAVE_PENDING (should not happen) -> */ WAVE_PENDING};
 
-// process time-edge sensitive part of interrupt
-// return true if second level required
-
-bool DCCWaveform::interrupt1() {
-  // NOTE: this must consume transmission buffers even if the power is off
-  // otherwise can cause hangs in main loop waiting for the pendingBuffer.
-  byte sigwave; 
-  switch (state) {
-    // Each section of this case is designed to run as near as possible in the same cpu time
-    // hence some unnecessary duplication and pin setting.
-    // Breaking this causes jitter in the prog track waveform.
+// For each state of the wave, signal pin is HIGH or LOW   
+const bool DCCWaveform::signalTransform[]={
+   /* WAVE_START   -> */ HIGH,
+   /* WAVE_MID_1   -> */ LOW,
+   /* WAVE_HIGH_0  -> */ HIGH,
+   /* WAVE_MID_0   -> */ LOW,
+   /* WAVE_LOW_0   -> */ LOW,
+   /* WAVE_PENDING (should not happen) -> */ LOW};
         
-    case WAVE_START:  // start of bit transmission
-      sigwave=HIGH;
-      state = WAVE_PENDING;
-      break; // must call interrupt2 to set  next state 
-
-    case WAVE_MID_1:  // 58us after case 0 with currentbit=1
-      sigwave=LOW;  
-      state = WAVE_START;
-      break;     
-
-    case WAVE_HIGH_0:  // 58us after case 0 with currentbit=0
-        sigwave=HIGH;  
-        state = WAVE_MID_0;
-        break;
-
-    case WAVE_MID_0:  // 116us after case 0 with currentbit=0
-      sigwave=LOW;
-      state = WAVE_LOW_0;
-      break;
-    
-    case WAVE_LOW_0:  // half way through zero-low
-      sigwave=LOW;  // jitter prevention
-      state = WAVE_START;
-      break;
-  }
-  
-  setSignal(sigwave);
-  
-  // ACK check is prog track only and will only be checked if 
-  // this is not case(0) which needs  relatively expensive packet change code to be called.
-  if (ackPending && state!=WAVE_PENDING) checkAck();
-
-  return state==WAVE_PENDING; // true, caller must call Interrupt2
-}
-
-void DCCWaveform::setSignal(bool high) {
-  if (progTrackSyncMain) {
-    if (!isMainTrack) return; // ignore PROG track waveform while in sync
-    // set both tracks to same signal
-    motorDriver->setSignal(high);
-    progTrack.motorDriver->setSignal(high);
-    return;     
-  }
-  motorDriver->setSignal(high);
-}
-      
 void DCCWaveform::interrupt2() {
-  // calculate the next bit to be sent.
+  // calculate the next bit to be sent:
+  // set state WAVE_MID_1  for a 1=bit
+  //        or WAVE_HIGH_0 for a 0 bit.
 
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
@@ -212,6 +183,7 @@ void DCCWaveform::interrupt2() {
     return;
   }
 
+  // Wave has gone HIGH but what happens next depends on the bit to be transmitted
   // beware OF 9-BIT MASK  generating a zero to start each byte
   state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
   bits_sent++;

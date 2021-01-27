@@ -15,12 +15,12 @@ class WifiInboundHandler {
    static WifiInboundHandler * singleton;
   
    
-   enum INBOUND_STATE {
+   enum INBOUND_STATE : byte {
         INBOUND_BUSY,     // keep calling in loop() 
         INBOUND_IDLE     // Nothing happening, outbound may xcall CIPSEND
    };      
 
-        enum LOOP_STATE {
+        enum LOOP_STATE : byte {
           ANYTHING,    // ready for +IPD, n CLOSED, n CONNECTED, busy etc...
           SKIPTOEND,   // skip to newline
           

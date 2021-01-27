@@ -29,16 +29,18 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 // Number of preamble bits.
 const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
-
-
-
 const byte   MAX_PACKET_SIZE = 12;
+
+// The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
+// to the transform array.
+enum  WAVE_STATE : byte {WAVE_START=0,WAVE_MID_1=1,WAVE_HIGH_0=2,WAVE_MID_0=3,WAVE_LOW_0=4,WAVE_PENDING=5};
+
+
 // NOTE: static functions are used for the overall controller, then
 // one instance is created for each track.
 
 
-enum class POWERMODE { OFF, ON, OVERLOAD };
-enum  WAVE_STATE {WAVE_START,WAVE_MID_1,WAVE_HIGH_0,WAVE_MID_0,WAVE_LOW_0,WAVE_PENDING};
+enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 
 const byte idlePacket[] = {0xFF, 0x00, 0xFF};
 const byte resetPacket[] = {0x00, 0x00, 0x00};
@@ -104,12 +106,16 @@ class DCCWaveform {
     }
 
   private:
-     
+    
+// For each state of the wave  nextState=stateTransform[currentState] 
+   static const WAVE_STATE stateTransform[6];
+
+// For each state of the wave, signal pin is HIGH or LOW   
+   static const bool signalTransform[6];
+  
     static void interruptHandler();
-    bool interrupt1();
     void interrupt2();
     void checkAck();
-    void setSignal(bool high);
     
     bool isMainTrack;
     MotorDriver*  motorDriver;
@@ -122,10 +128,10 @@ class DCCWaveform {
     byte bits_sent;           // 0-8 (yes 9 bits) sent for current byte
     byte bytes_sent;          // number of bytes sent from transmitPacket
     WAVE_STATE state;         // wave generator state machine
-     byte pendingPacket[MAX_PACKET_SIZE];
+    byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;
     byte pendingRepeats;
-    int lastCurrent;
+    volatile int lastCurrent;
     int maxmA;
     int tripmA;
     

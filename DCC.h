@@ -24,7 +24,7 @@
 #include "FSH.h"
 typedef void (*ACK_CALLBACK)(int result);
 
-enum ackOp
+enum ackOp : byte
 {           // Program opcodes for the ack Manager
   BASELINE, // ensure enough resets sent before starting and obtain baseline current
   W0,
