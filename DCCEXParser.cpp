@@ -809,7 +809,7 @@ void DCCEXParser::callback_R(int result)
 
 void DCCEXParser::callback_Rloco(int result)
 {
-    StringFormatter::send(stashStream, F("<r %d>"), result & 0x3FFF);
+    StringFormatter::send(stashStream, F("<r %d>"), result);
     stashBusy = false;
 }
 
