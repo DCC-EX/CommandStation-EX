@@ -30,11 +30,12 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
+int  DCCWaveform::progTripValue=0;
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
-
+  progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
   DCCTimer::begin(DCCWaveform::interruptHandler);     
@@ -61,12 +62,6 @@ void DCCWaveform::interruptHandler() {
 
 
   // WAVE_PENDING means we dont yet know what the next bit is
-  // so we dont check cutrrent on this cycle
-  if (mainTrack.state!=WAVE_PENDING && progTrack.state!=WAVE_PENDING) {
-    mainTrack.lastCurrent=mainTrack.motorDriver->getCurrentRaw();
-    progTrack.lastCurrent=progTrack.motorDriver->getCurrentRaw();   
-  }
-
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
   else if (progTrack.ackPending) progTrack.checkAck();
@@ -110,10 +105,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 }
 
 
-void DCCWaveform::checkPowerOverload() {
-  
-  static int progTripValue = motorDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once, hence static
-
+void DCCWaveform::checkPowerOverload() {  
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->getRawCurrentTripValue();
@@ -126,6 +118,7 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
+      lastCurrent=motorDriver->getCurrentRaw();
       if (lastCurrent <= tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
@@ -241,16 +234,12 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   sentResetsSincePacket=0;
 }
 
-int DCCWaveform::getLastCurrent() {
-   return lastCurrent;
-}
-
 // Operations applicable to PROG track ONLY.
 // (yes I know I could have subclassed the main track but...) 
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
-      int baseline = lastCurrent;
+      int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -278,17 +267,17 @@ byte DCCWaveform::getAck() {
 
 void DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
-    
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
         return; 
     }
       
-    if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
+    int current=motorDriver->getCurrentRaw();
+    if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
-    if (lastCurrent>ackThreshold) {
+    if (current>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
        return;
     }

@@ -57,7 +57,6 @@ class DCCWaveform {
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
     void checkPowerOverload();
-    int  getLastCurrent();
     inline int get1024Current() {
 	  if (powerMode == POWERMODE::ON)
 	      return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
@@ -131,7 +130,8 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;
     byte pendingRepeats;
-    volatile int lastCurrent;
+    int  lastCurrent;
+    static int progTripValue;
     int maxmA;
     int tripmA;
     
