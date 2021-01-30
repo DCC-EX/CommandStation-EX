@@ -172,29 +172,33 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   StringFormatter::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as "station" = WiFi client
   checkForOK(1000, OK_SEARCH, true);                       // Not always OK, sometimes "no change"
 
-  // If the source code looks unconfigured, check if the
-  // ESP8266 is preconfigured. We check the first 13 chars
-  // of the SSid.
+  // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
+  StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
+  if (checkForOK(2000, OK_SEARCH, true)) {
+      oldCmd=true;
+      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+  }
+
   const char *yourNetwork = "Your network ";
   if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || ((const char *)SSid)[0] == '\0') {
-    delay(8000); // give a preconfigured ES8266 a chance to connect to a router  
-                 // typical connect time approx 7 seconds
-    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
-    if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
-	if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
-	    ipOK = true;
-  } else { // Should this really be "else" here /haba
+    if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
+      // If the source code looks unconfigured, check if the
+      // ESP8266 is preconfigured in station mode.
+      // We check the first 13 chars of the SSid and the password
 
-    if (!ipOK) {
-
-      // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-      StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
-      if (checkForOK(2000, OK_SEARCH, true)) {
-        oldCmd=true;
-	while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
-
+      // give a preconfigured ES8266 a chance to connect to a router
+      // typical connect time approx 7 seconds
+      delay(8000);
+      StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+      if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	      ipOK = true;
+    }
+  } else {
+      // SSID was configured, so we assume station (client) mode.
+      if (oldCmd) {
 	// AT command early version supports CWJAP/CWSAP
-	if (SSid) {
+	if (SSid) { // why if SSid
 	  StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
 	  ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
 	}
@@ -206,7 +210,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
         StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
 	checkForOK(2000, OK_SEARCH, true); // dont care if not supported
       
-	if (SSid) {
+	if (SSid) { // why if SSid
 	  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
 	  ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
 	}
@@ -214,14 +218,13 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 
       if (ipOK) {
 	// But we really only have the ESSID and password correct
-        // Let's check for IP
+        // Let's check for IP (via DHCP)
         ipOK = false;
 	StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
 	if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
 	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
 	    ipOK = true;
       }
-    }
   }
 
   if (!ipOK) {
@@ -243,24 +246,23 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
     }
     char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
 
-    if (oldCmd) {
-      while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+    while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
-      int i=0;
-      do {
-        if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
-	  // unconfigured
-	  StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
-	} else {
-	  // password configured by user
-          StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"%S\",1,4\r\n"), macTail, password);
-	}
-      } while (i++<2 && !checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
-    } else {
+    int i=0;
+    int ret=0;
+    do {
+      if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
+	// unconfigured
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), oldCmd ? "" : "_CUR", macTail, macTail);
+      } else {
+        // password configured by user
+	StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",1,4\r\n"), oldCmd ? "" : "_CUR", macTail, password);
+      }
+    } while (!checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
+    if (i >= 2)
+	DIAG(F("\nWarning: Setting AP SSID and password failed\n"));       // but issue warning
 
-      StringFormatter::send(wifiStream, F("AT+CWSAP_CUR=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
-      checkForOK(20000, OK_SEARCH, true); // can ignore failure as SSid mode may still be ok
-      
+    if (!oldCmd) {
       StringFormatter::send(wifiStream, F("AT+CIPRECVMODE=0\r\n"), port); // make sure transfer mode is correct
       checkForOK(2000, OK_SEARCH, true);
     }
