@@ -198,22 +198,15 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
       // SSID was configured, so we assume station (client) mode.
       if (oldCmd) {
 	// AT command early version supports CWJAP/CWSAP
-	if (SSid) { // why if SSid
-	  StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
-	  ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
-	}
-	DIAG(F("\n**\n"));
-
+	StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
+	ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
       } else {
       // later version supports CWJAP_CUR
-
         StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
 	checkForOK(2000, OK_SEARCH, true); // dont care if not supported
       
-	if (SSid) { // why if SSid
-	  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
-	  ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
-	}
+        StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
+	ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true);
       }
 
       if (ipOK) {
