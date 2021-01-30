@@ -230,8 +230,17 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   if (!ipOK) {
     // If we have not managed to get this going in station mode, go for AP mode
 
-    StringFormatter::send(wifiStream, F("AT+CWMODE=2\r\n")); // configure as AccessPoint.
-    checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
+//    StringFormatter::send(wifiStream, F("AT+RST\r\n"));
+//    checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
+
+    int i=0;
+    do {
+      // configure as AccessPoint. Try really hard as this is the
+      // last way out to get any Wifi connectivity.
+      StringFormatter::send(wifiStream, F("AT+CWMODE=2\r\n")); 
+    } while (!checkForOK(1000+i*500, OK_SEARCH, true) && i++<10);
+
+    while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
     // Figure out MAC addr
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
@@ -245,15 +254,12 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
       }
     } else {
 	memset(macAddress,'f',sizeof(macAddress));
-        // run a GMR just for fun
-	StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
-	checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
     }
     char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
-    int i=0;
+    i=0;
     do {
       if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
 	// unconfigured
