@@ -253,7 +253,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 	  StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), macTail, macTail);
 	} else {
 	  // password configured by user
-          StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"%s\",1,4\r\n"), macTail, password);
+          StringFormatter::send(wifiStream, F("AT+CWSAP=\"DCCEX_%s\",\"%S\",1,4\r\n"), macTail, password);
 	}
       } while (i++<2 && !checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true)); // do twice if necessary but ignore failure as AP mode may still be ok
     } else {
