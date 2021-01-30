@@ -180,7 +180,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
   }
 
   const char *yourNetwork = "Your network ";
-  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || ((const char *)SSid)[0] == '\0') {
+  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || strncmp_P("", (const char*)SSid, 13) == 0) {
     if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
       // If the source code looks unconfigured, check if the
       // ESP8266 is preconfigured in station mode.
@@ -234,7 +234,7 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
     checkForOK(1000, OK_SEARCH, true); // Not always OK, sometimes "no change"
 
     // Figure out MAC addr
-    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
+    StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
     // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
     if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
       // Copy 17 byte mac address
@@ -243,13 +243,17 @@ wifiSerialState WifiInterface::setup2(const __FlashStringHelper* SSid, const __F
 	macAddress[i]=wifiStream->read();
 	StringFormatter::printEscape(macAddress[i]);
       }
+    } else {
+	memset(macAddress,'f',sizeof(macAddress));
+        // run a GMR just for fun
+	StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
+	checkForOK(2000, OK_SEARCH, true, false);      // Makes this visible on the console
     }
     char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
     int i=0;
-    int ret=0;
     do {
       if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
 	// unconfigured
