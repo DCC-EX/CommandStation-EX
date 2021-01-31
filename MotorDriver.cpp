@@ -18,9 +18,7 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
-#if !defined(TEENSYDUINO)
 #include "AnalogReadFast.h"
-#endif
 #include "DIAG.h"
 
 
@@ -99,7 +97,7 @@ int MotorDriver::getCurrentRaw() {
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
   //return analogReadFast(currentPin);
-  return analogRead(currentPin);
+  return analogReadFast(currentPin);
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {

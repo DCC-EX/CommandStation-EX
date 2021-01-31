@@ -27,10 +27,15 @@
 int inline analogReadFast(uint8_t ADCpin);
 
 int inline analogReadFast(uint8_t ADCpin) 
-{ byte ADCSRAoriginal = ADCSRA; 
+{ 
+#if !defined(TEENSYDUINO)
+  byte ADCSRAoriginal = ADCSRA; 
   ADCSRA = (ADCSRA & B11111000) | 4; 
   int adc = analogRead(ADCpin);  
   ADCSRA = ADCSRAoriginal;
+#else
+  int adc = analogRead(ADCpin);
+#endif
   return adc;
 }
 
