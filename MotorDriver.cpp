@@ -96,7 +96,6 @@ int MotorDriver::getCurrentRaw() {
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so analogReadFast is used here. (-2uS) 
-  //return analogReadFast(currentPin);
   return analogReadFast(currentPin);
 }
 
