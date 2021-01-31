@@ -24,6 +24,12 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+struct FASTPIN {
+  volatile uint8_t *out;
+  uint8_t maskHIGH;  
+  uint8_t maskLOW;  
+};
+
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
@@ -38,7 +44,10 @@ class MotorDriver {
     }
 
   private:
+    void  getFastPin(int pin, FASTPIN & result);
     byte powerPin, signalPin, signalPin2, currentPin, faultPin;
+    FASTPIN fastSignalPin, fastSignalPin2;
+    bool dualSignal;       // true to use signalPin2
     int8_t brakePin;       // negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;

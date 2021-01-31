@@ -21,24 +21,21 @@
 #include "AnalogReadFast.h"
 #include "DIAG.h"
 
-
-
-#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC) || defined(ARDUINO_ARCH_MEGAAVR)
-    #define WritePin digitalWrite
-    #define ReadPin digitalRead
-#else
-    // use the DIO2 libraray for much faster pin access
-    #define GPIO2_PREFER_SPEED 1
-    #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
-    #define WritePin digitalWrite2
-    #define ReadPin digitalRead2
-#endif
+#define setHIGH(fastpin)  *fastpin.out |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.out &= fastpin.maskLOW
     
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
   signalPin=signal_pin;
+  getFastPin(signalPin,fastSignalPin);
   signalPin2=signal_pin2;
+  if (signalPin2!=UNUSED_PIN) {
+    dualSignal=true;
+    getFastPin(signalPin2,fastSignalPin2);
+  }
+  else dualSignal=false; 
+  
   brakePin=brake_pin;
   currentPin=current_pin;
   senseFactor=sense_factor;
@@ -62,7 +59,7 @@ void MotorDriver::setPower(bool on) {
     setBrake(true);
     setBrake(false);
   }
-  WritePin(powerPin, on ? HIGH : LOW);
+  digitalWrite(powerPin, on ? HIGH : LOW);
 }
 
 // setBrake applies brake if on == true. So to get
@@ -80,18 +77,23 @@ void MotorDriver::setBrake(bool on) {
       pin=-pin;
       state=!state;
     }
-    WritePin(pin, state ? HIGH : LOW);
-    //DIAG(F("BrakePin: %d is %d\n"), pin, ReadPin(pin));
+    digitalWrite(pin, state ? HIGH : LOW);
 }
 
 void MotorDriver::setSignal( bool high) {
-  WritePin(signalPin, high ? HIGH : LOW);
-  if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
+   if (high) {
+      setHIGH(fastSignalPin);
+      if (dualSignal) setLOW(fastSignalPin2);
+   }
+   else {
+      setLOW(fastSignalPin);
+      if (dualSignal) setHIGH(fastSignalPin2);
+   }
 }
 
 
 int MotorDriver::getCurrentRaw() {
-  if (faultPin != UNUSED_PIN && ReadPin(faultPin) == LOW && ReadPin(powerPin) == HIGH)
+  if (faultPin != UNUSED_PIN && digitalRead(faultPin) == LOW && digitalRead(powerPin) == HIGH)
       return simulatedOverload;
   
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
@@ -105,4 +107,13 @@ unsigned int MotorDriver::raw2mA( int raw) {
 }
 int MotorDriver::mA2raw( unsigned int mA) {
   return (int)(mA / senseFactor);
+}
+
+void  MotorDriver::getFastPin(int pin, FASTPIN & result) {
+    DIAG(F("\nMotorDriver Pin=%d,"),pin);
+    uint8_t port = digitalPinToPort(pin);
+    result.out = portOutputRegister(port);
+    result.maskHIGH = digitalPinToBitMask(pin);
+    result.maskLOW = ~result.maskHIGH;
+    DIAG(F(" port=0x%x, out=0x%x, mask=0x%x\n"),port, result.out,result.maskHIGH);
 }
