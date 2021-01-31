@@ -481,9 +481,14 @@ void DCC::getLocoId(ACK_CALLBACK callback, bool blocking) {
 }
 
 void DCC::setLocoId(int id,ACK_CALLBACK callback, bool blocking) {
-  if (id<=0 || id>9999) callback(-1);
-  if (id<=127) ackManagerSetup(id,SHORT_LOCO_ID_PROG, callback, blocking);
-  else ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback, blocking);
+  if (id<1 || id>10239) { //0x27FF according to standard
+    callback(-1);
+    return;
+  }
+  if (id<=127)
+      ackManagerSetup(id, SHORT_LOCO_ID_PROG, callback, blocking);
+  else
+      ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback, blocking);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
