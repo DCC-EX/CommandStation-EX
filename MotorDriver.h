@@ -18,6 +18,8 @@
  */
 #ifndef MotorDriver_h
 #define MotorDriver_h
+#include "FSH.h"
+
 // Virtualised Motor shield 1-track hardware Interface
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
@@ -40,11 +42,11 @@ class MotorDriver {
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
-	return rawCurrentTripValue;
+	    return rawCurrentTripValue;
     }
 
   private:
-    void  getFastPin(int pin, FASTPIN & result);
+    void  getFastPin(const FSH* type,int pin, FASTPIN & result);
     byte powerPin, signalPin, signalPin2, currentPin, faultPin;
     FASTPIN fastSignalPin, fastSignalPin2;
     bool dualSignal;       // true to use signalPin2

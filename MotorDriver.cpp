@@ -18,7 +18,6 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
-#include "AnalogReadFast.h"
 #include "DIAG.h"
 
 #define setHIGH(fastpin)  *fastpin.out |= fastpin.maskHIGH
@@ -27,29 +26,36 @@
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
+  pinMode(powerPin, OUTPUT);
+  
   signalPin=signal_pin;
-  getFastPin(signalPin,fastSignalPin);
+  getFastPin(F("SIG"),signalPin,fastSignalPin);
+  pinMode(signalPin, OUTPUT);
+  
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
     dualSignal=true;
-    getFastPin(signalPin2,fastSignalPin2);
+    getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
+    pinMode(signalPin2, OUTPUT);
   }
   else dualSignal=false; 
   
   brakePin=brake_pin;
+  if (brakePin!=UNUSED_PIN){
+    pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
+    setBrake(false);
+  }
+  
   currentPin=current_pin;
-  senseFactor=sense_factor;
+  pinMode(currentPin, INPUT);
+
   faultPin=fault_pin;
+  if (faultPin != UNUSED_PIN) pinMode(faultPin, INPUT);
+
+  senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
   simulatedOverload=(int)(32000/senseFactor);
-  pinMode(powerPin, OUTPUT);
-  pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
-  setBrake(false);
-  pinMode(signalPin, OUTPUT);
-  if (signalPin2 != UNUSED_PIN) pinMode(signalPin2, OUTPUT);
-  pinMode(currentPin, INPUT);
-  if (faultPin != UNUSED_PIN) pinMode(faultPin, INPUT);
 }
 
 void MotorDriver::setPower(bool on) {
@@ -98,8 +104,8 @@ int MotorDriver::getCurrentRaw() {
   
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
-  //             so analogReadFast is used here. (-2uS) 
-  return analogReadFast(currentPin);
+  //             so DCCTimer has set the sample time to be much faster.  
+  return analogRead(currentPin);
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {
@@ -109,8 +115,8 @@ int MotorDriver::mA2raw( unsigned int mA) {
   return (int)(mA / senseFactor);
 }
 
-void  MotorDriver::getFastPin(int pin, FASTPIN & result) {
-    DIAG(F("\nMotorDriver Pin=%d,"),pin);
+void  MotorDriver::getFastPin(const FSH* type,int pin, FASTPIN & result) {
+    DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
     uint8_t port = digitalPinToPort(pin);
     result.out = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);

@@ -38,6 +38,7 @@ INTERRUPT_CALLBACK interruptHandler=0;
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
     noInterrupts(); 
+    ADC0.CTRLC = (ADC0.CTRLC & 0b00110000) | 0b01000011;  // speed up analogRead sample time   
     TCB0.CTRLB = TCB_CNTMODE_INT_gc & ~TCB_CCMPEN_bm; // timer compare mode with output disabled
     TCB0.CTRLA = TCB_CLKSEL_CLKDIV2_gc; //   8 MHz ~ 0.125 us      
     TCB0.CCMP =  CLOCK_CYCLES -1;  // 1 tick less for timer reset 
@@ -59,6 +60,7 @@ INTERRUPT_CALLBACK interruptHandler=0;
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
     noInterrupts(); 
+    ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time 
     TCCR1A = 0;
     ICR1 = CLOCK_CYCLES;
     TCNT1 = 0;   
