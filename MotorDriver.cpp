@@ -22,10 +22,14 @@
 
 #define setHIGH(fastpin)  *fastpin.out |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.out &= fastpin.maskLOW
-    
+#define isHIGH(fastpin)   (*fastpin.out & fastpin.maskHIGH)
+#define isLOW(fastpin)    (!isHIGH(fastpin))
+
+       
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
+  getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
   
   signalPin=signal_pin;
@@ -41,16 +45,23 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   else dualSignal=false; 
   
   brakePin=brake_pin;
-  if (brakePin!=UNUSED_PIN){
-    pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
+  if (brake_pin!=UNUSED_PIN){
+    invertBrake=brake_pin < 0;
+    brakePin=invertBrake ? 0-brake_pin : brake_pin;
+    getFastPin(F("BRAKE"),brakePin,fastBrakePin);
+    pinMode(brakePin, OUTPUT);
     setBrake(false);
   }
+  else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
   pinMode(currentPin, INPUT);
 
   faultPin=fault_pin;
-  if (faultPin != UNUSED_PIN) pinMode(faultPin, INPUT);
+  if (faultPin != UNUSED_PIN) {
+    getFastPin(F("FAULT"),faultPin,fastFaultPin);
+    pinMode(faultPin, INPUT);
+  }
 
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
@@ -59,13 +70,14 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
 }
 
 void MotorDriver::setPower(bool on) {
-  if (brakePin == -4 && on) {
+  if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
     setBrake(true);
     setBrake(false);
+    setHIGH(fastPowerPin);
   }
-  digitalWrite(powerPin, on ? HIGH : LOW);
+  else setLOW(fastPowerPin);
 }
 
 // setBrake applies brake if on == true. So to get
@@ -77,13 +89,9 @@ void MotorDriver::setPower(bool on) {
 // compensate for that.
 //
 void MotorDriver::setBrake(bool on) {
-    bool state = on;
-    byte pin = brakePin;
-    if (brakePin < 0) {
-      pin=-pin;
-      state=!state;
-    }
-    digitalWrite(pin, state ? HIGH : LOW);
+  if (brakePin == UNUSED_PIN) return;
+  if (on ^ invertBrake) setHIGH(fastBrakePin);
+  else setLOW(fastBrakePin);
 }
 
 void MotorDriver::setSignal( bool high) {
@@ -99,7 +107,7 @@ void MotorDriver::setSignal( bool high) {
 
 
 int MotorDriver::getCurrentRaw() {
-  if (faultPin != UNUSED_PIN && digitalRead(faultPin) == LOW && digitalRead(powerPin) == HIGH)
+  if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return simulatedOverload;
   
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer

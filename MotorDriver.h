@@ -47,10 +47,10 @@ class MotorDriver {
 
   private:
     void  getFastPin(const FSH* type,int pin, FASTPIN & result);
-    byte powerPin, signalPin, signalPin2, currentPin, faultPin;
-    FASTPIN fastSignalPin, fastSignalPin2;
+    byte powerPin, signalPin, signalPin2, currentPin, faultPin, brakePin;
+    FASTPIN fastPowerPin,fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
     bool dualSignal;       // true to use signalPin2
-    int8_t brakePin;       // negative means pin is inverted
+    bool invertBrake;       // brake pin passed as negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
