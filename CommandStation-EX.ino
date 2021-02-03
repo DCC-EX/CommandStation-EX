@@ -53,11 +53,17 @@ void setup()
   // waveform generation.  e.g.  DCC::begin(STANDARD_MOTOR_SHIELD,2); to use timer 2
 
   DCC::begin(MOTOR_SHIELD_TYPE); 
-  
+         
   #if defined(RMFT_ACTIVE) 
       RMFT::begin();
   #endif
-      
+
+  #if __has_include ( "mySetup.h")
+        #define SETUP(cmd) serialParser.parse(F(cmd))  
+        #include "mySetup.h"
+        #undef SETUP
+       #endif
+
   LCD(1,F("Ready")); 
 }
 
