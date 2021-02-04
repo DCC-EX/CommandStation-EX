@@ -120,6 +120,11 @@ void DCCWaveform::checkPowerOverload() {
     case POWERMODE::ON:
       // Check current
       lastCurrent=motorDriver->getCurrentRaw();
+      if (lastCurrent < 0) {
+	  // We have a fault pin condition to take care of
+	  DIAG(F("\n*** %S FAULT PIN ACTIVE TOGGLE POWER ON THIS OR BOTH TRACKS ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+	  lastCurrent = -lastCurrent;
+      }
       if (lastCurrent <= tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
@@ -130,9 +135,9 @@ void DCCWaveform::checkPowerOverload() {
         setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=motorDriver->raw2mA(lastCurrent);
         unsigned int maxmA=motorDriver->raw2mA(tripValue);
-        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
+        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
 	    power_sample_overload_wait = 10000;
 	else
@@ -143,6 +148,8 @@ void DCCWaveform::checkPowerOverload() {
       // Try setting it back on after the OVERLOAD_WAIT
       setPowerMode(POWERMODE::ON);
       sampleDelay = POWER_SAMPLE_ON_WAIT;
+      // Debug code....
+      DIAG(F("\n*** %S TRACK POWER RESET delay=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), sampleDelay);
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.

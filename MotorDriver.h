@@ -27,7 +27,7 @@
 #endif
 
 struct FASTPIN {
-  volatile uint8_t *out;
+  volatile uint8_t *inout;
   uint8_t maskHIGH;  
   uint8_t maskLOW;  
 };
@@ -46,7 +46,10 @@ class MotorDriver {
     }
 
   private:
-    void  getFastPin(const FSH* type,int pin, FASTPIN & result);
+    void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
+    void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
+	getFastPin(type, pin, 0, result);
+    }
     byte powerPin, signalPin, signalPin2, currentPin, faultPin, brakePin;
     FASTPIN fastPowerPin,fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
     bool dualSignal;       // true to use signalPin2
@@ -54,6 +57,5 @@ class MotorDriver {
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
-    int simulatedOverload;
 };
 #endif
