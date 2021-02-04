@@ -20,9 +20,9 @@
 #include "MotorDriver.h"
 #include "DIAG.h"
 
-#define setHIGH(fastpin)  *fastpin.out |= fastpin.maskHIGH
-#define setLOW(fastpin)   *fastpin.out &= fastpin.maskLOW
-#define isHIGH(fastpin)   (*fastpin.out & fastpin.maskHIGH)
+#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
        
@@ -59,14 +59,13 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
-    getFastPin(F("FAULT"),faultPin,fastFaultPin);
+    getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
   }
 
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
-  simulatedOverload=(int)(32000/senseFactor);
 }
 
 void MotorDriver::setPower(bool on) {
@@ -107,13 +106,13 @@ void MotorDriver::setSignal( bool high) {
 
 
 int MotorDriver::getCurrentRaw() {
+  int current = analogRead(currentPin);
   if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
-      return simulatedOverload;
-  
+      return -current;
+  return current;
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so DCCTimer has set the sample time to be much faster.  
-  return analogRead(currentPin);
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {
@@ -123,11 +122,14 @@ int MotorDriver::mA2raw( unsigned int mA) {
   return (int)(mA / senseFactor);
 }
 
-void  MotorDriver::getFastPin(const FSH* type,int pin, FASTPIN & result) {
+void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
     uint8_t port = digitalPinToPort(pin);
-    result.out = portOutputRegister(port);
+    if (input)
+      result.inout = portInputRegister(port);
+    else
+      result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    DIAG(F(" port=0x%x, out=0x%x, mask=0x%x\n"),port, result.out,result.maskHIGH);
+    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
 }
