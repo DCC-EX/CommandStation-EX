@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+ #pragma GCC optimize ("-O3")
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
@@ -198,7 +199,10 @@ void DCCWaveform::interrupt2() {
       }
       else if (packetPending) {
         // Copy pending packet to transmit packet
-        for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        // a fixed length memcpy is faster than a variable length loop for these small lengths
+        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+        
         transmitLength = pendingLength;
         transmitRepeats = pendingRepeats;
         packetPending = false;
@@ -223,7 +227,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   while (packetPending);
 
   byte checksum = 0;
-  for (int b = 0; b < byteCount; b++) {
+  for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];
   }

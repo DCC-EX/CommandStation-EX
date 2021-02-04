@@ -29,7 +29,7 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 // Number of preamble bits.
 const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 12;
+const byte   MAX_PACKET_SIZE = 5;  // NMRA standard exrtended packets 
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
 // to the transform array.
