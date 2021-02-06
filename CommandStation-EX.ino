@@ -1,15 +1,48 @@
 ////////////////////////////////////////////////////////////////////////////////////
-//  © 2020, Chris Harlow. All rights reserved.
+//  DCC-EX CommandStation-EX   Please see https://DCC-EX.com 
 //
-//  This file is a demonstattion of setting up a DCC-EX
-// Command station with optional support for direct connection of WiThrottle devices
-// such as "Engine Driver". If you contriol your layout through JMRI
-// then DON'T connect throttles to this wifi, connect them to JMRI.
+// This file is the main sketch for the Command Station.
+// 
+// CONFIGURATION: 
+// Configuration is normally performed by editing a file called config.h.
+// This file is NOT shipped with the code so that if you pull a later version
+// of the code, your configuration will not be overwritten.
 //
-//  THE WIFI FEATURE IS NOT SUPPORTED ON ARDUINO DEVICES WITH ONLY 2KB RAM.
+// If you used the automatic installer program, config.h will have been created automatically.
+// 
+// To obtain a starting copy of config.h please copy the file config.example.h which is 
+// shipped with the code and may be updated as new features are added. 
+// 
+// If config.h is not found, config.example.h will be used with all defaults.
 ////////////////////////////////////////////////////////////////////////////////////
 
-#include "config.h"
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #include "config.example.h"
+#endif
+
+
+/*
+ *  © 2020,2021 Chris Harlow, Harald Barth, David Cutting, 
+ *  Fred Decker, Gregor Baues, Anthony W - Dayton  All rights reserved.
+ * 
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
 #include "DCCEX.h"
 
 // Create a serial command parser for the USB connection, 
