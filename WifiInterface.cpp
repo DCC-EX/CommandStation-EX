@@ -277,8 +277,27 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 #endif //DONT_TOUCH_WIFI_CONF
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
+  if (!checkForOK(1000, (const char *)F("IP,\"") , true, false)) return WIFI_DISCONNECTED;
+  // Copy the IP address
+  {
+    const byte MAX_IP_LENGTH=15;
+    char ipString[MAX_IP_LENGTH+1];
+    byte ipLen=0;
+    for(byte ipLen=0;ipLen<MAX_IP_LENGTH;ipLen++) {
+      while(!wifiStream->available());
+      int ipChar=wifiStream->read();
+      StringFormatter::printEscape(ipChar);
+      if (ipChar=='"') {
+        ipString[ipLen]='\0';
+        break;
+      }
+      ipString[ipLen]=ipChar;
+    }
+    LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this      
+  }
+  // suck up anything after the IP. 
   if (!checkForOK(1000, OK_SEARCH, true, false)) return WIFI_DISCONNECTED;
-  DIAG(F("\nPORT=%d\n"),port);
+  LCD(5,F("PORT=%d\n"),port);
    
   return WIFI_CONNECTED;
 }
