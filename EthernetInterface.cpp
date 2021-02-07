@@ -18,8 +18,7 @@
  * 
  */
 
-#include "config.h"
-#include "defines.h" // This should be changed to DCCEX.h when possible
+#include "defines.h" 
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #include "DIAG.h"

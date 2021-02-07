@@ -22,7 +22,12 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #warning config.h not found. Using defaults from config.example.h 
+  #include "config.example.h"
+#endif
 #include "DCCEXParser.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>

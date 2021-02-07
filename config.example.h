@@ -1,10 +1,9 @@
 /**********************************************************************
 
-Config.h
-COPYRIGHT (c) 2013-2016 Gregg E. Berman
+config.h
 COPYRIGHT (c) 2020 Fred Decker
 
-The configuration file for DCC++ EX Command Station
+The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 

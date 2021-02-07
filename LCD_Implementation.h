@@ -27,7 +27,6 @@
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include "config.h"
 #include <Wire.h>
 #include "LCDDisplay.h"
   
