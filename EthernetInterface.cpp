@@ -17,12 +17,18 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  * 
  */
-
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #warning config.h not found. Using defaults from config.example.h 
+  #include "config.example.h"
+#endif
 #include "defines.h" 
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
+#include "DCCTimer.h"
 
 EthernetInterface * EthernetInterface::singleton=NULL;
 /**
@@ -44,10 +50,15 @@ void EthernetInterface::setup()
  */
 EthernetInterface::EthernetInterface()
 {
-    byte mac[]=MAC_ADDRESS;
+    byte mac[6];
+    DCCTimer::getSimulatedMacAddress(mac);
+    DIAG(F("\n+++++ Ethernet Setup. Simulatd mac="));
+    for (byte i=0;i<sizeof(mac); i++) {
+        DIAG(F("%x:"),mac[i]);
+    }
+    DIAG(F("\n"));
     
-    DIAG(F("\n+++++ Ethernet Setup "));
-        connected=false;
+    connected=false;
    
     #ifdef IP_ADDRESS
     Ethernet.begin(mac, IP_ADDRESS);

@@ -54,12 +54,16 @@ INTERRUPT_CALLBACK interruptHandler=0;
     TCB0.INTFLAGS = TCB_CAPT_bm;
     interruptHandler();
   }
-  
+
+  void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+    memcpy(mac,&SIGROW.SERNUM0,6);  // serial number
+  }
+
 #else 
-  // Arduino nano, uno, mega etc 
+  // Arduino nano, uno, mega etc
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts(); 
+    noInterrupts();          
     ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time 
     TCCR1A = 0;
     ICR1 = CLOCK_CYCLES;
@@ -71,4 +75,10 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
 // ISR called by timer interrupt every 58uS
   ISR(TIMER1_OVF_vect){ interruptHandler(); }
+
+  #include <avr/boot.h> 
+  void DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+    for (byte i=0; i<6; i++) mac[i]=boot_signature_byte_get(0x0E + i);
+  }
+
 #endif
