@@ -43,7 +43,7 @@ Stream * WifiInterface::wifiStream;
 //
 // Figure out number of serial ports depending on hardware
 //
-#if defined(ARDUINO_AVR_UNO)
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
 #define NUM_SERIAL 0
 #endif
  
