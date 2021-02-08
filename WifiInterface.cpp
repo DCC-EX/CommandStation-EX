@@ -287,6 +287,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   {
     const byte MAX_IP_LENGTH=15;
     char ipString[MAX_IP_LENGTH+1];
+    ipString[MAX_IP_LENGTH]='\0'; // protection against missing " character on end. 
     byte ipLen=0;
     for(byte ipLen=0;ipLen<MAX_IP_LENGTH;ipLen++) {
       while(!wifiStream->available());
