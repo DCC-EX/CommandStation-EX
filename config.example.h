@@ -45,10 +45,14 @@ The configuration file for DCC-EX Command Station
 // WIFI_SSID is the network name IF you want to use your existing home network.
 // Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
 //
-// If you do NOT set the WIFI_SSID, the WiFi chip will first try
-// to connect to the previously configured network and if that fails
-// fall back to Access Point mode. The SSID of the AP will be
-// automatically set to DCCEX_*.
+// If you do NOT set the WIFI_SSID and do NOT set the WIFI_PASSWORD,
+// then the WiFi chip will first try to connect to the previously
+// configured network and if that fails fall back to Access Point mode.
+// The SSID of the AP will be automatically set to DCCEX_*.
+// If you DO set the WIFI_SSID then the WiFi chip will try to connect
+// to that (home) network in station (client) mode. If a WIFI_PASSWORD
+// is set (recommended), that password will be used for AP mode.
+// The AP mode password must be at least 8 characters long.
 //
 // Your SSID may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
