@@ -9,7 +9,11 @@
 #include "DIAG.h"
 #include "DCCEXParser.h"
 #include "version.h"
-#include "WifiInterface.h"
+#ifdef ARDUINO_AVR_UNO_WIFI_REV2
+  #include "WifiInterfaceRev2.h"
+#else   
+  #include "WifiInterface.h"
+#endif  
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif
