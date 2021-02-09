@@ -52,7 +52,7 @@ const int HASH_KEYWORD_ETHERNET = -30767;
 const int HASH_KEYWORD_MAX = 16244;
 const int HASH_KEYWORD_MIN = 15978;
 
-int DCCEXParser::stashP[MAX_PARAMS];
+int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
 
 Print *DCCEXParser::stashStream = NULL;
@@ -102,7 +102,7 @@ void DCCEXParser::loop(Stream &stream)
     Sensor::checkAll(&stream); // Update and print changes
 }
 
-int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
+int DCCEXParser::splitValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -111,10 +111,10 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     bool signNegative = false;
 
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_PARAMS; i++)
+    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
-    while (parameterCount < MAX_PARAMS)
+    while (parameterCount < MAX_COMMAND_PARAMS)
     {
         byte hot = *remainingCmd;
 
@@ -161,7 +161,7 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     return parameterCount;
 }
 
-int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
+int DCCEXParser::splitHexValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -169,10 +169,10 @@ int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
     const byte *remainingCmd = cmd + 1; // skips the opcode
     
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_PARAMS; i++)
+    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
-    while (parameterCount < MAX_PARAMS)
+    while (parameterCount < MAX_COMMAND_PARAMS)
     {
         byte hot = *remainingCmd;
 
@@ -251,7 +251,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
         DIAG(F("\nPARSING:%s\n"), com);
-    int p[MAX_PARAMS];
+    int p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte params = splitValues(p, com);
@@ -770,13 +770,13 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 }
 
 // CALLBACKS must be static
-bool DCCEXParser::stashCallback(Print *stream, int p[MAX_PARAMS])
+bool DCCEXParser::stashCallback(Print *stream, int p[MAX_COMMAND_PARAMS])
 {
     if (stashBusy )
         return false;
     stashBusy = true;
     stashStream = stream;
-    memcpy(stashP, p, MAX_PARAMS * sizeof(p[0]));
+    memcpy(stashP, p, MAX_COMMAND_PARAMS * sizeof(p[0]));
     return true;
 }
 void DCCEXParser::callback_W(int result)

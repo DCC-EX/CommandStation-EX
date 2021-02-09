@@ -34,7 +34,7 @@ struct DCCEXParser
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
-   static const int MAX_PARAMS=10;  // Must not exceed this
+   static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
  
    private:
   
@@ -42,8 +42,8 @@ struct DCCEXParser
      byte  bufferLength=0;
      bool  inCommandPayload=false;
      byte  buffer[MAX_BUFFER+2]; 
-    int splitValues( int result[MAX_PARAMS], const byte * command);
-    int splitHexValues( int result[MAX_PARAMS], const byte * command);
+    int splitValues( int result[MAX_COMMAND_PARAMS], const byte * command);
+    int splitHexValues( int result[MAX_COMMAND_PARAMS], const byte * command);
      
      bool parseT(Print * stream, int params, int p[]);
      bool parseZ(Print * stream, int params, int p[]);
@@ -55,8 +55,8 @@ struct DCCEXParser
     static bool stashBusy;
    
     static Print * stashStream;
-    static int stashP[MAX_PARAMS];
-    bool stashCallback(Print * stream, int p[MAX_PARAMS]);
+    static int stashP[MAX_COMMAND_PARAMS];
+    bool stashCallback(Print * stream, int p[MAX_COMMAND_PARAMS]);
     static void callback_W(int result);
     static void callback_B(int result);        
     static void callback_R(int result);

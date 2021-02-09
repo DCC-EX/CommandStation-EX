@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef ARDUINO_AVR_UNO_WIFI_REV2
 #include <Arduino.h>
 #include "WifiInboundHandler.h"
 #include "RingStream.h"
@@ -247,3 +248,5 @@ void WifiInboundHandler::purgeCurrentCIPSEND() {
          pendingCipsend=false;  
          clientPendingCIPSEND=-1;
 }
+
+#endif

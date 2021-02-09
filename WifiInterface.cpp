@@ -17,7 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-
+#ifndef ARDUINO_AVR_UNO_WIFI_REV2
+// This code is NOT compiled on a unoWifiRev2 processor which uses a different architecture 
 #include "WifiInterface.h"        /* config.h included there */
 #include <avr/pgmspace.h>
 #include "DIAG.h"
@@ -288,7 +289,6 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     const byte MAX_IP_LENGTH=15;
     char ipString[MAX_IP_LENGTH+1];
     ipString[MAX_IP_LENGTH]='\0'; // protection against missing " character on end. 
-    byte ipLen=0;
     for(byte ipLen=0;ipLen<MAX_IP_LENGTH;ipLen++) {
       while(!wifiStream->available());
       int ipChar=wifiStream->read();
@@ -362,3 +362,5 @@ void WifiInterface::loop() {
     WifiInboundHandler::loop(); 
   }
 }
+
+#endif
