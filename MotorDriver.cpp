@@ -18,6 +18,7 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
@@ -25,6 +26,7 @@
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
+bool MotorDriver::usePWM=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
@@ -68,6 +70,11 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
 }
 
+bool MotorDriver::isPWMCapable() {
+    return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
+}
+
+
 void MotorDriver::setPower(bool on) {
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
@@ -94,16 +101,20 @@ void MotorDriver::setBrake(bool on) {
 }
 
 void MotorDriver::setSignal( bool high) {
-   if (high) {
-      setHIGH(fastSignalPin);
-      if (dualSignal) setLOW(fastSignalPin2);
+   if (usePWM) {
+    DCCTimer::setPWM(signalPin,high);
    }
    else {
-      setLOW(fastSignalPin);
-      if (dualSignal) setHIGH(fastSignalPin2);
+     if (high) {
+        setHIGH(fastSignalPin);
+        if (dualSignal) setLOW(fastSignalPin2);
+     }
+     else {
+        setLOW(fastSignalPin);
+        if (dualSignal) setHIGH(fastSignalPin2);
+     }
    }
 }
-
 
 int MotorDriver::getCurrentRaw() {
   int current = analogRead(currentPin);

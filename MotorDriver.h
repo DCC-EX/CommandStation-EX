@@ -44,7 +44,9 @@ class MotorDriver {
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
     }
-
+    bool isPWMCapable();
+    static bool usePWM;
+    
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
