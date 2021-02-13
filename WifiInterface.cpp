@@ -251,8 +251,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     }
     char macTail[]={macAddress[9],macAddress[10],macAddress[12],macAddress[13],macAddress[15],macAddress[16],'\0'};
 
-    while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
-
+    checkForOK(1000, OK_SEARCH, true, false);  // suck up remainder of AT+CIFSR
+  
     i=0;
     do {
       if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
