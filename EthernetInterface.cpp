@@ -83,11 +83,11 @@ EthernetInterface::EthernetInterface()
     
     IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
 
-    server = new EthernetServer(LISTEN_PORT); // Ethernet Server listening on default port LISTEN_PORT
+    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
     server->begin();
   
     LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), LISTEN_PORT);
+    LCD(5,F("Port:%d"), IP_PORT);
 
     outboundRing=new RingStream(OUTBOUND_RING_SIZE);     
 }
