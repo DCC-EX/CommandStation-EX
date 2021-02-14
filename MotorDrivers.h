@@ -29,8 +29,8 @@
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \
-                            new MotorDriver( 9, 7, UNUSED_PIN,         -4, A0, 18, 3000,         12), \
-                            new MotorDriver(10, 8, UNUSED_PIN, UNUSED_PIN, A1, 18, 3000, UNUSED_PIN)
+                            new MotorDriver( 9, 7, UNUSED_PIN,         -4, A0, 18, 3000, 12), \
+                            new MotorDriver(10, 8, UNUSED_PIN, UNUSED_PIN, A1, 18, 3000, 12)
 //
 // Actually, on the Pololu MC33926 shield the enable lines are tied together on pin 4 and the
 // pins 9 and 10 work as "inverted brake" but as we turn on and off the tracks individually
@@ -38,8 +38,8 @@
 // version of the code always will be high. That means this config is not usable for generating
 // a railcom cuotout in the future. For that one must wire the second ^D2 to pin 2 and define
 // the motor driver like this:
-//                          new MotorDriver(4, 7, UNUSED_PIN,  -9, A0, 18, 3000,         12)
-//                          new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, UNUSED_PIN)
+//                          new MotorDriver(4, 7, UNUSED_PIN,  -9, A0, 18, 3000, 12), \
+//                          new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, 12)
 // See Pololu dial_mc33926_shield_schematic.pdf and truth table on page 17 of the MC33926 data sheet.
 
 // Firebox Mk1

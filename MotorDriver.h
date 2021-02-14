@@ -46,6 +46,10 @@ class MotorDriver {
     }
     bool isPWMCapable();
     static bool usePWM;
+    static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
+    inline byte getFaultPin() {
+	return faultPin;
+    }
     
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
