@@ -26,11 +26,8 @@
 
 #include "WifiInboundHandler.h"
 
-const char  FLASH READY_SEARCH[]  = "\r\nready\r\n";
-const char  FLASH OK_SEARCH[] = "\r\nOK\r\n";
-const char  FLASH END_DETAIL_SEARCH[] = "@ 1000";
-const char  FLASH SEND_OK_SEARCH[] = "\r\nSEND OK\r\n";
-const char  FLASH IPD_SEARCH[] = "+IPD";
+#define OK_SEARCH F("\r\nOK\r\n")
+
 const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 Stream * WifiInterface::wifiStream;
@@ -60,7 +57,8 @@ bool WifiInterface::setup(long serial_link_speed,
                           const FSH *wifiESSID,
                           const FSH *wifiPassword,
                           const FSH *hostname,
-                          const int port) {
+                          const int port,
+                          const byte channel) {
 
   wifiSerialState wifiUp = WIFI_NOAT;
 
@@ -75,7 +73,7 @@ bool WifiInterface::setup(long serial_link_speed,
   
 #if NUM_SERIAL > 0
   Serial1.begin(serial_link_speed);
-  wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port);
+  wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port, channel);
 #endif
 
 // Other serials are tried, depending on hardware.
@@ -83,7 +81,7 @@ bool WifiInterface::setup(long serial_link_speed,
   if (wifiUp == WIFI_NOAT)
   {
     Serial2.begin(serial_link_speed);
-    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port);
+    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel);
   }
 #endif
   
@@ -91,7 +89,7 @@ bool WifiInterface::setup(long serial_link_speed,
   if (wifiUp == WIFI_NOAT)
   {
     Serial3.begin(serial_link_speed);
-    wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port);
+    wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port, channel);
   }
 #endif
 
@@ -109,7 +107,7 @@ bool WifiInterface::setup(long serial_link_speed,
 }
 
 wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, const FSH* password,
-				     const FSH* hostname,  int port) {
+				     const FSH* hostname,  int port, byte channel) {
   wifiSerialState wifiState;
   static uint8_t ntry = 0;
   ntry++;
@@ -118,7 +116,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 
   DIAG(F("\n++ Wifi Setup Try %d ++\n"), ntry);
 
-  wifiState = setup2( SSid, password, hostname,  port);
+  wifiState = setup2( SSid, password, hostname,  port, channel);
 
   if (wifiState == WIFI_NOAT) {
       DIAG(F("\n++ Wifi Setup NO AT ++\n"));
@@ -141,7 +139,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
-				      const FSH* hostname, int port) {
+				      const FSH* hostname, int port, byte channel) {
   bool ipOK = false;
   bool oldCmd = false;
 
@@ -150,9 +148,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   // First check... Restarting the Arduino does not restart the ES. 
   //  There may alrerady be a connection with data in the pipeline.
   // If there is, just shortcut the setup and continue to read the data as normal.
-  if (checkForOK(200,IPD_SEARCH, true)) {
+  if (checkForOK(200,F("+IPD"), true)) {
     DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
-   // loopstate=4;  // carry on from correct place... or not as the case may be  
     return WIFI_CONNECTED; 
   }
 
@@ -191,8 +188,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       // typical connect time approx 7 seconds
       delay(8000);
       StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
-      if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
-	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+      if (checkForOK(5000, F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, F("0.0.0.0"), true,false))
 	      ipOK = true;
     }
   } else {
@@ -215,8 +212,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
         // Let's check for IP (via DHCP)
         ipOK = false;
 	StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
-	if (checkForOK(5000, (const char*) F("+CIFSR:STAIP"), true,false))
-	  if (!checkForOK(1000, (const char*) F("0.0.0.0"), true,false))
+	if (checkForOK(5000, F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, F("0.0.0.0"), true,false))
 	    ipOK = true;
       }
   }
@@ -239,7 +236,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     // Figure out MAC addr
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
     // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
-    if (checkForOK(5000, (const char*) F("+CIFSR:APMAC,\""), true,false)) {
+    if (checkForOK(5000, F("+CIFSR:APMAC,\""), true,false)) {
       // Copy 17 byte mac address
       for (int i=0; i<17;i++) {
         while(!wifiStream->available());
@@ -257,10 +254,12 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     do {
       if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
 	// unconfigured
-        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",1,4\r\n"), oldCmd ? "" : "_CUR", macTail, macTail);
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
+                                          oldCmd ? "" : "_CUR", macTail, macTail, channel);
       } else {
         // password configured by user
-	StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",1,4\r\n"), oldCmd ? "" : "_CUR", macTail, password);
+	StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
+	                                       macTail, password, channel);
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, OK_SEARCH, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
     if (i >= 2)
@@ -283,7 +282,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 #endif //DONT_TOUCH_WIFI_CONF
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
-  if (!checkForOK(1000, (const char *)F("IP,\"") , true, false)) return WIFI_DISCONNECTED;
+  if (!checkForOK(1000, F("IP,\"") , true, false)) return WIFI_DISCONNECTED;
   // Copy the IP address
   {
     const byte MAX_IP_LENGTH=15;
@@ -331,9 +330,9 @@ void WifiInterface::ATCommand(const byte * command) {
 
 
 
-bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor, bool echo, bool escapeEcho) {
+bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor, bool echo, bool escapeEcho) {
   unsigned long  startTime = millis();
-  char  const *locator = waitfor;
+  char *locator = (char *)waitfor;
   DIAG(F("\nWifi Check: [%E]"), waitfor);
   while ( millis() - startTime < timeout) {
     while (wifiStream->available()) {
@@ -342,7 +341,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const char * waitfor
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
         else DIAG(F("%c"), ch); 
       }
-      if (ch != GETFLASH(locator)) locator = waitfor;
+      if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {
         locator++;
         if (!GETFLASH(locator)) {

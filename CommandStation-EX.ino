@@ -69,7 +69,7 @@ void setup()
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 
 #if WIFI_ON
-  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT);
+  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
 #endif // WIFI_ON
 
 #if ETHERNET_ON
