@@ -38,7 +38,7 @@
 // version of the code always will be high. That means this config is not usable for generating
 // a railcom cuotout in the future. For that one must wire the second ^D2 to pin 2 and define
 // the motor driver like this:
-//                          new MotorDriver(4, 7, UNUSED_PIN,  -9, A0, 18, 3000, 12), \
+//                          new MotorDriver(4, 7, UNUSED_PIN,  -9, A0, 18, 3000, 12)
 //                          new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, 12)
 // See Pololu dial_mc33926_shield_schematic.pdf and truth table on page 17 of the MC33926 data sheet.
 
