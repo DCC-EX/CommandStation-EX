@@ -21,7 +21,7 @@
 // Note: this file is optionally included by LCD_Implementation.h
 // It is NOT a .cpp file to prevent it being compiled and demanding libraries even when not needed.
   
-#include "SSD1306/SSD1306Ascii.h"
+#include "Wire.h"
 #include "SSD1306/SSD1306AsciiWire.h"
 SSD1306AsciiWire LCDDriver;
   
@@ -29,6 +29,7 @@ SSD1306AsciiWire LCDDriver;
 
   LCDDisplay::LCDDisplay() {
     // Scan for device on 0x3c and 0x3d.
+    Wire.begin();
     for (byte address=0x3c; address<=0x3d; address++) {
       Wire.beginTransmission(address);
       byte error = Wire.endTransmission();
