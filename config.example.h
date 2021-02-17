@@ -100,7 +100,8 @@ The configuration file for DCC-EX Command Station
 // define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
 // #define LCD_DRIVER  0x3F,16,2
 
-//OR define OLED_DRIVER width,height in pixels (address auto detected) 
+//OR define OLED_DRIVER width,height in pixels (address auto detected)
+// 128x32 or 128x64 I2C SSD1306-based devices are supported.
 // This will not work on a UNO due to memory constraints
 // #define OLED_DRIVER 128,32
 
