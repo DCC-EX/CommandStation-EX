@@ -57,4 +57,9 @@
                          new MotorDriver(10, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
                          new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
+// IBT_2 Motor Board for Main and Arduino Motor Shield for Prog
+#define IBT_2_WITH_ARDUINO("IBT_2_WITH_ARDUINO_SHIELD"),                                              \
+                         new MotorDriver(4, 5, 6, UNUSED_PIN, A5, 41.54, 5000, UNUSED_PIN), \
+                         new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+
 #endif
