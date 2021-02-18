@@ -40,10 +40,10 @@ SSD1306AsciiWire LCDDriver;
         const DevType *devType;
         if (lcdCols == 132)
           devType = &SH1106_128x64; // Actually 132x64 but treated as 128x64
-        else if (lcdCols == 128 && lcdRows == 8) 
-          devType = &Adafruit128x64;
-        else 
+        else if (lcdCols == 128 && lcdRows == 4) 
           devType = &Adafruit128x32;
+        else 
+          devType = &Adafruit128x64;
         LCDDriver.begin(devType, address);
         lcdDisplay=this;
         LCDDriver.setFont(System5x7);  // Normal 1:1 pixel scale, 8 bits high
