@@ -31,16 +31,7 @@
  */
 class SSD1306AsciiWire : public SSD1306Ascii {
  public:
-#if MULTIPLE_I2C_PORTS
-  /**
-   * @brief Initialize object on specific I2C bus.
-   *
-   * @param[in] bus The I2C bus to be used.
-   */
-  explicit SSD1306AsciiWire(decltype(Wire) &bus = Wire) : m_oledWire(bus) {}
-#else  // MULTIPLE_I2C_PORTS
 #define m_oledWire Wire
-#endif  // MULTIPLE_I2C_PORTS
   /**
    * @brief Initialize the display controller.
    *
@@ -100,9 +91,6 @@ class SSD1306AsciiWire : public SSD1306Ascii {
   }
 
  protected:
-#if MULTIPLE_I2C_PORTS
-  decltype(Wire)& m_oledWire;
-#endif  // MULTIPLE_I2C_PORTS
   uint8_t m_i2cAddr;
 #if OPTIMIZE_I2C
   uint8_t m_nData;
