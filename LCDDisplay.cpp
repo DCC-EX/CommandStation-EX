@@ -43,37 +43,79 @@ size_t LCDDisplay::write(uint8_t b) {
     if (!lcdDisplay) return;
     lcdDisplay->loop2(false);
  }
- 
- LCDDisplay*  LCDDisplay::loop2(bool force) { 
-    if ((!force) && (millis() - lastScrollTime)< LCD_SCROLL_TIME) return NULL;
-    lastScrollTime=millis();
-    clearNative();
-    int rowFirst=nextFilledRow();
-    if (rowFirst<0)return NULL; // No filled rows
-    setRowNative(0);
-    writeNative(rowBuffer[rowFirst]);
-    for (int slot=1;slot<lcdRows;slot++) {
-      int rowNext=nextFilledRow();
-      if (rowNext==rowFirst){
-         // we have wrapped around and not filled the screen 
-         topRow=-1; // start again at first row next time.  
-         break; 
-      }
-      setRowNative(slot);
-      writeNative(rowBuffer[rowNext]);
-    } 
-    displayNative();   
-    return NULL; 
- }
 
- int LCDDisplay::nextFilledRow() {
-      for (int rx=1;rx<=MAX_LCD_ROWS;rx++) {
-          topRow++;
-          topRow %= MAX_LCD_ROWS;
-          if (rowBuffer[topRow][0]) return topRow; 
+LCDDisplay *LCDDisplay::loop2(bool force)
+{
+     static int rowFirst = -1;
+     static int rowNext = 0;
+     static int charIndex = 0;
+     static char buffer[MAX_LCD_COLS+1];
+     static char *bptr = 0;
+     static bool done = false;
+
+     unsigned long currentMillis = millis();
+
+     if ((!force) && (currentMillis - lastScrollTime) < LCD_SCROLL_TIME)
+          return NULL;
+
+     do {
+          if (bptr == 0) { 
+               // No pending write, so go and look for one.
+               if (!done) {
+                    if (rowFirst < 0) rowFirst = rowNext;
+                    // Skip blank rows
+                    while (rowBuffer[rowNext][0] == 0) {
+                         rowNext = (rowNext + 1) % MAX_LCD_ROWS;
+                         if (rowNext == rowFirst) {
+                              done = true;
+                              break;
+                         }
+                    }
+               }
+
+               if (!done) {
+                    // Non-blank line found, so copy it.
+                    strncpy(buffer, rowBuffer[rowNext], MAX_LCD_COLS);
+               } else
+                    buffer[0] = '\0'; // Empty line
+
+               setRowNative(slot);  // Set position for display
+               charIndex = 0; 
+               bptr = &buffer[0];
+
+          } else {
+
+               // Write one character, which will be a space if the string is exhausted.
+               char ch = *bptr;
+               if (ch) {
+                    writeNative(ch);
+                    bptr++;
+               } else
+                    writeNative(' ');
+
+               if (++charIndex >= MAX_LCD_COLS) {
+                    // Screen slot completed, move to next one
+                    slot++;
+                    bptr = 0;
+                    if (!done) {
+                         rowNext = (rowNext + 1) % MAX_LCD_ROWS;
+                         if (rowNext == rowFirst) done = true;
+                    }
+               }
+
+               if (slot >= lcdRows) {
+                    // Last slot done, reset ready for next update.
+                    slot = 0; 
+                    done = false;
+                    rowFirst = -1;
+                    lastScrollTime = currentMillis;
+                    return NULL;
+               }
           }
-      return -1; // No slots filled
- }
+     } while (force);
+
+     return NULL;
+}
 
   
    

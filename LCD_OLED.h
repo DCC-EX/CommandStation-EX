@@ -32,14 +32,21 @@ SSD1306AsciiWire LCDDriver;
     Wire.begin();
     for (byte address=0x3c; address<=0x3d; address++) {
       Wire.beginTransmission(address);
-      byte error = Wire.endTransmission();
+      byte error = Wire.endTransmission(true);
       if (!error) {
         // Device found
         DIAG(F("\nOLED display found at 0x%x"), address); 
         interfake(OLED_DRIVER,0);
-        LCDDriver.begin(lcdRows==32 ? &Adafruit128x32 : &Adafruit128x64, address);
+        const DevType *devType;
+        if (lcdCols == 132)
+          devType = &SH1106_128x64; // Actually 132x64 but treated as 128x64
+        else if (lcdCols == 128 && lcdRows == 8) 
+          devType = &Adafruit128x64;
+        else 
+          devType = &Adafruit128x32;
+        LCDDriver.begin(devType, address);
         lcdDisplay=this;
-        LCDDriver.setFont(System5x7);             // Normal 1:1 pixel scale
+        LCDDriver.setFont(System5x7);  // Normal 1:1 pixel scale, 8 bits high
         clear();
         return;  
       }
@@ -47,7 +54,7 @@ SSD1306AsciiWire LCDDriver;
     DIAG(F("\nOLED display not found\n"));
   }
 
-  void LCDDisplay::interfake(int p1, int p2, int p3) {(void)p1; lcdRows=p2/8; (void)p3;}   
+  void LCDDisplay::interfake(int p1, int p2, int p3) {lcdCols=p1; lcdRows=p2/8; (void)p3;}   
 
   void LCDDisplay::clearNative() {LCDDriver.clear();}
 
@@ -55,10 +62,12 @@ SSD1306AsciiWire LCDDriver;
     // Positions text write to start of row 1..n and clears previous text 
     int y=row;
     LCDDriver.setCursor(0, y); 
-    LCDDriver.clearToEOL();
+    //LCDDriver.clearToEOL();
   }
   
-  void LCDDisplay::writeNative(char * b){ LCDDriver.write(b); }    
+  void LCDDisplay::writeNative(char b) {
+    LCDDriver.write(b);
+  }
   
   void LCDDisplay::displayNative() {  }  
   
