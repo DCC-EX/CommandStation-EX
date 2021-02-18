@@ -55,7 +55,7 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   joinRelay=joinRelayPin;
   if (joinRelay!=UNUSED_PIN) {
     pinMode(joinRelay,OUTPUT);
-    digitalWrite(joinRelay,HIGH);  // high is relay disengaged
+    digitalWrite(joinRelay,LOW);  // high is relay disengaged
   }
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
@@ -230,7 +230,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 }
 
 void DCC::setProgTrackSyncMain(bool on) {
-  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,on?LOW:HIGH);
+  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,on?HIGH:LOW);
   DCCWaveform::progTrackSyncMain=on;
 }
 void DCC::setProgTrackBoost(bool on) {
