@@ -103,7 +103,6 @@ The configuration file for DCC-EX Command Station
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
 // Also 132x64 I2C SH1106 devices.
-// This will not work on a UNO due to memory constraints
 // #define OLED_DRIVER 128,32
 
 /////////////////////////////////////////////////////////////////////////////////////
