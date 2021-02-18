@@ -25,7 +25,6 @@ The configuration file for DCC-EX Command Station
 //   +-----------------------v
 //
 #define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
-
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
@@ -77,13 +76,6 @@ The configuration file for DCC-EX Command Station
 // this line exists or not. If you need to use an alternate channel (we recommend
 // using only 1,6, or 11) you may change it here.
 #define WIFI_CHANNEL 1
-//
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
-// to set this if you have an extremely slow Wifi router.
-//
-//#define WIFI_CONNECT_TIMEOUT 14000
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

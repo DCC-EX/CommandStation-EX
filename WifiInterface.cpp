@@ -35,7 +35,9 @@ Stream * WifiInterface::wifiStream;
 
 #ifndef WIFI_CONNECT_TIMEOUT
 // Tested how long it takes to FAIL an unknown SSID on firmware 1.7.4.
-#define WIFI_CONNECT_TIMEOUT 14000
+// The ES should fail a connect in 15 seconds, we don't want to fail BEFORE that
+// or ot will cause issues with the following commands. 
+#define WIFI_CONNECT_TIMEOUT 16000
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
