@@ -64,7 +64,8 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver);
+  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver,
+                    byte joinRelayPin=UNUSED_PIN);
   static void loop();
 
   // Public DCC API functions
@@ -109,6 +110,7 @@ private:
     byte groupFlags;
     unsigned long functions;
   };
+  static byte joinRelay;
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);

@@ -45,11 +45,18 @@ const byte FN_GROUP_4=0x08;
 const byte FN_GROUP_5=0x10;         
 
 FSH* DCC::shieldName=NULL;
+byte DCC::joinRelay=UNUSED_PIN;
 
-void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver,
+                 byte joinRelayPin) {
   shieldName=(FSH *)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
+  joinRelay=joinRelayPin;
+  if (joinRelay!=UNUSED_PIN) {
+    pinMode(joinRelay,OUTPUT);
+    digitalWrite(joinRelay,LOW);  // high is relay disengaged
+  }
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
@@ -223,6 +230,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 }
 
 void DCC::setProgTrackSyncMain(bool on) {
+  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,on?HIGH:LOW);
   DCCWaveform::progTrackSyncMain=on;
 }
 void DCC::setProgTrackBoost(bool on) {
