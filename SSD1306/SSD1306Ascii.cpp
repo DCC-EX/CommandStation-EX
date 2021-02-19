@@ -1,7 +1,5 @@
-/* Arduino SSD1306Ascii Library
- * Copyright (C) 2015 by William Greiman
- *
- * This file is part of the Arduino SSD1306Ascii Library
+/* Based on Arduino SSD1306Ascii Library, Copyright (C) 2015 by William Greiman
+ * Modifications (C) 2021 Neil McKechnie
  *
  * This Library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +27,8 @@ void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
 
   for (uint8_t r = r0; r <= r1; r++) {
     setCursor(c0, r);
-    for (uint8_t c = c0; c <= c1; c++) {
-      // Ensure clear() writes zero. result is (m_invertMask^m_invertMask).
-      ssd1306WriteRamBuf(m_invertMask);
-    }
+    for (uint8_t c = c0; c <= c1; c++)
+      ssd1306WriteRamBuf(0);
   }
   setCursor(c0, r0);
 }
@@ -76,11 +72,6 @@ void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setFont(const uint8_t* font) {
   m_font = font;
-  m_letterSpacing = 1;
-  m_fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
-  m_fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT);  
-  m_fontHeight = readFontByte(m_font + FONT_HEIGHT);
-  m_fontWidth = readFontByte(m_font + FONT_WIDTH);
 }
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setRow(uint8_t row) {
@@ -92,14 +83,14 @@ void SSD1306Ascii::setRow(uint8_t row) {
 //------------------------------------------------------------------------------
 void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
   if (m_col < m_displayWidth) {
-    writeDisplay(c^m_invertMask, SSD1306_MODE_RAM);
+    writeDisplay(c, SSD1306_MODE_RAM);
     m_col++;
   }
 }
 //------------------------------------------------------------------------------
 void SSD1306Ascii::ssd1306WriteRamBuf(uint8_t c) {
   if (m_col < m_displayWidth) {
-    writeDisplay(c^m_invertMask, SSD1306_MODE_RAM_BUF);
+    writeDisplay(c, SSD1306_MODE_RAM_BUF);
     m_col++;
   }
 }
@@ -108,30 +99,21 @@ size_t SSD1306Ascii::write(uint8_t ch) {
   if (!m_font) {
     return 0;
   }
-  uint8_t w = readFontByte(m_font + FONT_WIDTH);
-  uint8_t h = readFontByte(m_font + FONT_HEIGHT);
-  uint8_t nr = (h + 7)/8;
-  uint8_t first = readFontByte(m_font + FONT_FIRST_CHAR);
-  uint8_t count = readFontByte(m_font + FONT_CHAR_COUNT);
   const uint8_t* base = m_font + FONT_WIDTH_TABLE;
+  const uint8_t letterSpacing = 1;
+  uint8_t fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
+  uint8_t fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT); 
+  uint8_t fontWidth = readFontByte(m_font + FONT_WIDTH);
 
-  if (ch < first || ch >= (first + count)) return 0;
-  ch -= first;
-  uint8_t s = letterSpacing();
-  // Fixed width font.
-  base += nr*w*ch;
-  uint8_t scol = m_col;
-  for (uint8_t r = 0; r < nr; r++) {
-    if (r) {
-      setCursor(scol, m_row + 1);
-    }
-    for (uint8_t c = 0; c < w; c++) {
-      uint8_t b = readFontByte(base + c + r*w);
-      ssd1306WriteRamBuf(b);
-    }
-    for (uint8_t i = 0; i < s; i++) {
-      ssd1306WriteRamBuf(0);
-    }
+  if (ch < fontFirstChar || ch >= (fontFirstChar + fontCharCount)) return 0;
+  ch -= fontFirstChar;
+  base += fontWidth * ch;
+  for (uint8_t c = 0; c < fontWidth; c++) {
+    uint8_t b = readFontByte(base + c);
+    ssd1306WriteRamBuf(b);
+  }
+  for (uint8_t i = 0; i < letterSpacing; i++) {
+    ssd1306WriteRamBuf(0);
   }
   flushDisplay();
   return 1;

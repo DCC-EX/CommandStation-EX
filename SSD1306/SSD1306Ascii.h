@@ -1,7 +1,5 @@
-/* Arduino SSD1306Ascii Library
- * Copyright (C) 2015 by William Greiman
- *
- * This file is part of the Arduino SSD1306Ascii Library
+/* Based on Arduino SSD1306Ascii Library, Copyright (C) 2015 by William Greiman
+ * Modifications (C) 2021 Neil McKechnie
  *
  * This Library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +25,7 @@
 #include "SSD1306init.h"
 #include "fonts/allFonts.h"
 //------------------------------------------------------------------------------
-/** SSD1306Ascii version */
+/** SSD1306Ascii version basis */
 #define SDD1306_ASCII_VERSION 1.3.0
 //------------------------------------------------------------------------------
 // Configuration options.
@@ -125,22 +123,6 @@ class SSD1306Ascii : public Print {
    */
   inline uint8_t displayWidth() const {return m_displayWidth;}
   /**
-   * @return The current font pointer.
-   */
-  const uint8_t* font() const {return m_font;}
-  /**
-   * @return The count of characters in a font.
-   */
-  inline uint8_t fontCharCount() const {return m_fontCharCount;};
-  /**
-   * @return The first character in a font.
-   */
-  inline char fontFirstChar() const {return m_fontFirstChar;};
-  /**
-   * @return The current font height in pixels.
-   */
-  inline uint8_t fontHeight() const {return m_fontHeight;};
-  /**
    * @brief Set the cursor position to (0, 0).
    */
   inline void home() {setCursor(0, 0);}
@@ -150,26 +132,6 @@ class SSD1306Ascii : public Print {
    * @param[in] dev A display initialization structure.
    */
   void init(const DevType* dev);
-  /**
-   * @brief Set pixel mode for for entire display.
-   *
-   * @param[in] invert Inverted display if true or normal display if false.
-   */
-  void invertDisplay(bool invert);
-  /**
-   * @return invert mode.
-   */
-  inline bool invertMode() const {return !!m_invertMask;}
-  /**
-   * @brief Set invert mode for write/print.
-   *
-   * @param[in] mode Invert pixels if true and use normal mode if false.
-   */
-  inline void setInvertMode(bool mode) {m_invertMask = mode ? 0XFF : 0;}
-  /**
-   * @return letter-spacing in pixels with magnification factor.
-   */
-  inline uint8_t letterSpacing() const {return m_letterSpacing;}
   /**
    * @return the current row number with eight pixels to a row.
    */
@@ -245,14 +207,6 @@ class SSD1306Ascii : public Print {
   uint8_t m_displayWidth;   // Display width.
   uint8_t m_displayHeight;  // Display height.
   uint8_t m_colOffset;      // Column offset RAM to SEG.
-  uint8_t m_letterSpacing;  // Letter-spacing in pixels.
   const uint8_t* m_font = nullptr;  // Current font.
-  uint8_t m_invertMask = 0;  // font invert mask
-
-  char m_fontFirstChar;
-  uint8_t m_fontCharCount;
-  uint8_t m_fontHeight;
-  uint8_t m_fontWidth;
-
 };
 #endif  // SSD1306Ascii_h
