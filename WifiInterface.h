@@ -34,23 +34,20 @@ public:
                           const FSH *wifiESSID,
                           const FSH *wifiPassword,
                           const FSH *hostname,
-                          const int port = 2560);
+                          const int port,
+                          const byte channel);
   static void loop();
   static void ATCommand(const byte *command);
-
+  
 private:
   static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
-                    const FSH *hostname, int port);
+                    const FSH *hostname, int port, byte channel);
   static Stream *wifiStream;
   static DCCEXParser parser;
   static wifiSerialState setup2(const FSH *SSSid, const FSH *password,
-                     const FSH *hostname, int port);
-  static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
+                     const FSH *hostname, int port, byte channel);
+  static bool checkForOK(const unsigned int timeout, bool echo, bool escapeEcho = true);
+  static bool checkForOK(const unsigned int timeout, const FSH *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
-  static bool closeAfter;
-  static byte loopstate;
-  static int datalength;
-  static int connectionId;
-  static unsigned long loopTimeoutStart;
 };
 #endif

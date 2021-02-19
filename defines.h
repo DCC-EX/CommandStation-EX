@@ -21,10 +21,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // WIFI_ON: All prereqs for running with WIFI are met
-//
+// Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
 #if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO))
 #define WIFI_ON true
+#ifndef WIFI_CHANNEL
+#define WIFI_CHANNEL 1
+#endif
 #else
 #define WIFI_ON false
 #endif

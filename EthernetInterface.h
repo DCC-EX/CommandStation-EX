@@ -39,7 +39,6 @@
  * 
  */
 
-#define LISTEN_PORT 2560                      // standard listen port for the server 
 #define MAX_ETH_BUFFER 512
 #define OUTBOUND_RING_SIZE 2048
 

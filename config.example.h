@@ -28,6 +28,12 @@ The configuration file for DCC-EX Command Station
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
+// The IP port to talk to a WIFI or Ethernet shield.
+//
+#define IP_PORT 2560
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
@@ -65,6 +71,12 @@ The configuration file for DCC-EX Command Station
 //
 // WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
+//
+// WIFI_CHANNEL: If the line "#define ENABLE_WIFI true" is uncommented, 
+// WiFi will be enabled (Mega only). The default channel is set to "1" whether
+// this line exists or not. If you need to use an alternate channel (we recommend
+// using only 1,6, or 11) you may change it here.
+#define WIFI_CHANNEL 1
 //
 /////////////////////////////////////////////////////////////////////////////////////
 //
