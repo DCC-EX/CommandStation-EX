@@ -74,13 +74,6 @@ The configuration file for DCC-EX Command Station
 //
 // WIFI_CHANNEL: 
 #define WIFI_CHANNEL 1
-//
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
-// to set this if you have an extremely slow Wifi router.
-//
-//#define WIFI_CONNECT_TIMEOUT 14000
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
