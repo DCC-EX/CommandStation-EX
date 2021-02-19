@@ -60,14 +60,14 @@ LCDDisplay *LCDDisplay::loop2(bool force)
 
      do {
           if (bptr == 0) { 
-               // No pending write, so go and look for one.
+               // Find a line of data to write to the screen.
                if (!done) {
                     if (rowFirst < 0) rowFirst = rowNext;
                     // Skip blank rows
                     while (rowBuffer[rowNext][0] == 0) {
                          rowNext = (rowNext + 1) % MAX_LCD_ROWS;
                          if (rowNext == rowFirst) {
-                              done = true;
+                              done = true;  // All lines done
                               break;
                          }
                     }
@@ -104,7 +104,7 @@ LCDDisplay *LCDDisplay::loop2(bool force)
                }
 
                if (slot >= lcdRows) {
-                    // Last slot done, reset ready for next update.
+                    // Last slot finished, reset ready for next update.
                     slot = 0; 
                     done = false;
                     rowFirst = -1;
