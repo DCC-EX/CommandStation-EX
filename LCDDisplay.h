@@ -55,8 +55,8 @@ class LCDDisplay : public Print {
    int8_t hotRow=0;
    int8_t hotCol=0; 
    int8_t topRow=0;
-   int8_t lcdRows;
-   int8_t lcdCols;
+   uint8_t lcdRows;
+   uint8_t lcdCols;
    int8_t slot=0;
    int8_t rowFirst=-1;
    int8_t rowNext=0;
