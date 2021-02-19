@@ -1,5 +1,5 @@
 /*
- *  © 2020, Chris Harlow, 2021, Neil McKechnie. All rights reserved.
+ *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *
@@ -62,7 +62,6 @@ SSD1306AsciiWire LCDDriver;
     // Positions text write to start of row 1..n and clears previous text 
     int y=row;
     LCDDriver.setCursor(0, y); 
-    //LCDDriver.clearToEOL();
   }
   
   void LCDDisplay::writeNative(char b) {

@@ -1,5 +1,5 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *
@@ -22,7 +22,7 @@
 //
 // It will create a driver implemntation and a shim class implementation.
 // This means that other classes can reference the shim without knowing
-// which libraray is involved.
+// which library is involved.
 ////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LCD_Implementation_h

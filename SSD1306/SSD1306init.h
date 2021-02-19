@@ -1,7 +1,5 @@
-/* Arduino SSD1306Ascii Library
- * Copyright (C) 2015 by William Greiman
- *
- * This file is part of the Arduino SSD1306Ascii Library
+/* Based on Arduino SSD1306Ascii Library, Copyright (C) 2015 by William Greiman
+ * Modifications (C) 2021 Neil McKechnie
  *
  * This Library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

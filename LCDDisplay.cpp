@@ -1,5 +1,5 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *
@@ -72,20 +72,17 @@ LCDDisplay *LCDDisplay::loop2(bool force)
                          }
                     }
                }
-
                if (!done) {
                     // Non-blank line found, so copy it.
-                    strncpy(buffer, rowBuffer[rowNext], MAX_LCD_COLS);
+                    for (int i=0; i<MAX_LCD_COLS+1; i++)
+                         buffer[i] = rowBuffer[rowNext][i];
                } else
                     buffer[0] = '\0'; // Empty line
-
                setRowNative(slot);  // Set position for display
                charIndex = 0; 
                bptr = &buffer[0];
-
           } else {
-
-               // Write one character, which will be a space if the string is exhausted.
+               // Write next character, or a space to erase current position.
                char ch = *bptr;
                if (ch) {
                     writeNative(ch);
