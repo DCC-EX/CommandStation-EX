@@ -121,7 +121,6 @@ size_t SSD1306Ascii::write(uint8_t ch) {
   // Fixed width font.
   base += nr*w*ch;
   uint8_t scol = m_col;
-  uint8_t srow = m_row;
   for (uint8_t r = 0; r < nr; r++) {
     if (r) {
       setCursor(scol, m_row + 1);
@@ -134,6 +133,6 @@ size_t SSD1306Ascii::write(uint8_t ch) {
       ssd1306WriteRamBuf(0);
     }
   }
-  setRow(srow);
+  flushDisplay();
   return 1;
 }

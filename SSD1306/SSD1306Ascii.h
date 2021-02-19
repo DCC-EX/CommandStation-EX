@@ -224,7 +224,7 @@ class SSD1306Ascii : public Print {
    *
    * @param[in] c The data byte.
    * @note The byte may be buffered until a call to ssd1306WriteCmd
-   *       or ssd1306WriteRam.
+   *       or ssd1306WriteRam or endWrite.
    */
   void ssd1306WriteRamBuf(uint8_t c);
    /**
@@ -235,8 +235,11 @@ class SSD1306Ascii : public Print {
    */
   size_t write(uint8_t c);
 
+
+
  protected:
   virtual void writeDisplay(uint8_t b, uint8_t mode) = 0;
+  virtual void flushDisplay() = 0;
   uint8_t m_col;            // Cursor column.
   uint8_t m_row;            // Cursor RAM row.
   uint8_t m_displayWidth;   // Display width.

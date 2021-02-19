@@ -90,6 +90,15 @@ class SSD1306AsciiWire : public SSD1306Ascii {
 #endif    // OPTIMIZE_I2C
   }
 
+  void flushDisplay() {
+#if OPTIMIZE_I2C
+    if (m_nData) {
+      m_oledWire.endTransmission();
+      m_nData = 0;
+    }
+#endif // OPTIMIZE_I2C
+  }
+
  protected:
   uint8_t m_i2cAddr;
 #if OPTIMIZE_I2C
