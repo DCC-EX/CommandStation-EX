@@ -52,12 +52,19 @@ class LCDDisplay : public Print {
     void writeNative(char b);
   
    unsigned long lastScrollTime=0;
-   int hotRow=0;
-   int hotCol=0; 
-   int topRow=0;
-   int lcdRows;
-   int lcdCols;
-   int slot=0;
+   int8_t hotRow=0;
+   int8_t hotCol=0; 
+   int8_t topRow=0;
+   int8_t lcdRows;
+   int8_t lcdCols;
+   int8_t slot=0;
+   int8_t rowFirst=-1;
+   int8_t rowNext=0;
+   int8_t charIndex = 0;
+   char buffer[MAX_LCD_COLS+1];
+   char *bufferPointer = 0;
+   bool done = false;
+
    void renderRow(byte row);
    char rowBuffer[MAX_LCD_ROWS][MAX_LCD_COLS+1];     
 };

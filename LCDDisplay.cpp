@@ -46,20 +46,13 @@ size_t LCDDisplay::write(uint8_t b) {
 
 LCDDisplay *LCDDisplay::loop2(bool force)
 {
-     static int rowFirst = -1;
-     static int rowNext = 0;
-     static int charIndex = 0;
-     static char buffer[MAX_LCD_COLS+1];
-     static char *bptr = 0;
-     static bool done = false;
-
      unsigned long currentMillis = millis();
 
      if ((!force) && (currentMillis - lastScrollTime) < LCD_SCROLL_TIME)
           return NULL;
 
      do {
-          if (bptr == 0) { 
+          if (bufferPointer == 0) { 
                // Find a line of data to write to the screen.
                if (!done) {
                     if (rowFirst < 0) rowFirst = rowNext;
@@ -74,26 +67,26 @@ LCDDisplay *LCDDisplay::loop2(bool force)
                }
                if (!done) {
                     // Non-blank line found, so copy it.
-                    for (int i=0; i<MAX_LCD_COLS+1; i++)
+                    for (uint8_t i=0; i<sizeof(buffer); i++)
                          buffer[i] = rowBuffer[rowNext][i];
                } else
                     buffer[0] = '\0'; // Empty line
                setRowNative(slot);  // Set position for display
                charIndex = 0; 
-               bptr = &buffer[0];
+               bufferPointer = &buffer[0];
           } else {
                // Write next character, or a space to erase current position.
-               char ch = *bptr;
+               char ch = *bufferPointer;
                if (ch) {
                     writeNative(ch);
-                    bptr++;
+                    bufferPointer++;
                } else
                     writeNative(' ');
 
                if (++charIndex >= MAX_LCD_COLS) {
                     // Screen slot completed, move to next one
                     slot++;
-                    bptr = 0;
+                    bufferPointer = 0;
                     if (!done) {
                          rowNext = (rowNext + 1) % MAX_LCD_ROWS;
                          if (rowNext == rowFirst) done = true;
