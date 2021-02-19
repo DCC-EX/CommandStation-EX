@@ -436,7 +436,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         {
             POWERMODE mode = opcode == '1' ? POWERMODE::ON : POWERMODE::OFF;
             DCC::setProgTrackSyncMain(false); // Only <1 JOIN> will set this on, all others set it off
-            if (params == 0)
+            if (params == 0 ||
+		(MotorDriver::commonFaultPin && p[0] != HASH_KEYWORD_JOIN)) // commonFaultPin prevents individual track handling
             {
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 DCCWaveform::progTrack.setPowerMode(mode);
