@@ -16,6 +16,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 #include "SSD1306Ascii.h"
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clear() {
   clear(0, displayWidth() - 1, 0 , displayRows() - 1);

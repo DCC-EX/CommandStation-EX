@@ -16,14 +16,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 /**
- * @file SSD1306Ascii.h
- * @brief Base class for ssd1306 displays.
+ * @file SSD1306AsciiWire.h
+ * @brief Class for I2C displays using Wire.
  */
-#ifndef SSD1306Ascii_h
-#define SSD1306Ascii_h
+#ifndef SSD1306AsciiWire_h
+#define SSD1306AsciiWire_h
+
+#include <Wire.h>
 #include "Arduino.h"
 #include "SSD1306init.h"
-#include "fonts/allFonts.h"
+#include "SSD1306font.h"
+
 //------------------------------------------------------------------------------
 /** SSD1306Ascii version basis */
 #define SDD1306_ASCII_VERSION 1.3.0
@@ -33,8 +36,6 @@
 /** Use larger faster I2C code. */
 #define OPTIMIZE_I2C 1
 
-/** AvrI2c uses 400 kHz fast mode if AVRI2C_FASTMODE is nonzero else 100 kHz. */
-#define AVRI2C_FASTMODE 1
 //------------------------------------------------------------------------------
 // Values for writeDisplay() mode parameter.
 /** Write to Command register. */
@@ -44,19 +45,7 @@
 /** Write to display RAM with possible buffering. */
 #define SSD1306_MODE_RAM_BUF 2
 //------------------------------------------------------------------------------
-/**
- * @brief Reset the display controller.
- *
- * @param[in] rst Reset pin number.
- */
-inline void oledReset(uint8_t rst) {
-  pinMode(rst, OUTPUT);
-  digitalWrite(rst, LOW);
-  delay(10);
-  digitalWrite(rst, HIGH);
-  delay(10);
-}
-//------------------------------------------------------------------------------
+
 /**
  * @class SSD1306Ascii
  * @brief SSD1306 base class
@@ -197,8 +186,6 @@ class SSD1306Ascii : public Print {
    */
   size_t write(uint8_t c);
 
-
-
  protected:
   virtual void writeDisplay(uint8_t b, uint8_t mode) = 0;
   virtual void flushDisplay() = 0;
@@ -209,4 +196,68 @@ class SSD1306Ascii : public Print {
   uint8_t m_colOffset;      // Column offset RAM to SEG.
   const uint8_t* m_font = nullptr;  // Current font.
 };
-#endif  // SSD1306Ascii_h
+
+
+/**
+ * @class SSD1306AsciiWire
+ * @brief Class for I2C displays using Wire.
+ */
+class SSD1306AsciiWire : public SSD1306Ascii {
+ public:
+#define m_oledWire Wire
+  /**
+   * @brief Initialize the display controller.
+   *
+   * @param[in] dev A device initialization structure.
+   * @param[in] i2cAddr The I2C address of the display controller.
+   */
+  void begin(const DevType* dev, uint8_t i2cAddr) {
+#if OPTIMIZE_I2C
+    m_nData = 0;
+#endif  // OPTIMIZE_I2C
+    m_i2cAddr = i2cAddr;
+    init(dev);
+  }
+  
+ protected:
+  void writeDisplay(uint8_t b, uint8_t mode) {
+#if OPTIMIZE_I2C
+    if (m_nData > 16 || (m_nData && mode == SSD1306_MODE_CMD)) {
+      m_oledWire.endTransmission();
+      m_nData = 0;
+    }
+    if (m_nData == 0) {
+      m_oledWire.beginTransmission(m_i2cAddr);
+      m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
+    }
+    m_oledWire.write(b);
+    if (mode == SSD1306_MODE_RAM_BUF) {
+      m_nData++;
+    } else {
+      m_oledWire.endTransmission();
+      m_nData = 0;
+    }
+#else  // OPTIMIZE_I2C
+    m_oledWire.beginTransmission(m_i2cAddr);
+    m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00: 0X40);
+    m_oledWire.write(b);
+    m_oledWire.endTransmission();
+#endif    // OPTIMIZE_I2C
+  }
+
+  void flushDisplay() {
+#if OPTIMIZE_I2C
+    if (m_nData) {
+      m_oledWire.endTransmission();
+      m_nData = 0;
+    }
+#endif // OPTIMIZE_I2C
+  }
+
+ protected:
+  uint8_t m_i2cAddr;
+#if OPTIMIZE_I2C
+  uint8_t m_nData;
+#endif  // OPTIMIZE_I2C
+};
+#endif  // SSD1306AsciiWire_h

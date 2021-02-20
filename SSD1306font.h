@@ -29,11 +29,43 @@
  *                  // bit field of all characters
  */
 
-#ifndef SYSTEM5x7_H
-#define SYSTEM5x7_H
+#ifndef SSD1306font_H
+#define SSD1306font_H
 
 #define SYSTEM5x7_WIDTH 5
 #define SYSTEM5x7_HEIGHT 7
+
+#ifdef __AVR__
+#include <avr/pgmspace.h>
+/** declare a font for AVR. */
+#define GLCDFONTDECL(_n) static const uint8_t __attribute__ ((progmem))_n[]
+#define readFontByte(addr) pgm_read_byte(addr)
+#else  // __AVR__
+/** declare a font. */
+#define GLCDFONTDECL(_n) static const uint8_t _n[]
+/** Fake read from flash. */
+#define readFontByte(addr) (*(const unsigned char *)(addr))
+#endif  // __AVR__
+//------------------------------------------------------------------------------
+// Font Indices
+/** No longer used Big Endian length field. Now indicates font type.
+ *
+ * 00 00 (fixed width font with 1 padding pixel on right and below)
+ * 
+ * 00 01 (fixed width font with no padding pixels)
+ */
+#define FONT_LENGTH      0
+/** Maximum character width. */
+#define FONT_WIDTH       2
+/** Font hight in pixels */ 
+#define FONT_HEIGHT      3
+/** Ascii value of first character */
+#define FONT_FIRST_CHAR  4
+/** count of characters in font. */
+#define FONT_CHAR_COUNT  5
+/** Offset to width table. */
+#define FONT_WIDTH_TABLE 6
+//------------------------------------------------------------------------------
 
 GLCDFONTDECL(System5x7) = {
     0x0, 0x0, // size of zero indicates fixed width font,

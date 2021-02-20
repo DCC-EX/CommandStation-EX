@@ -22,7 +22,7 @@
 // It is NOT a .cpp file to prevent it being compiled and demanding libraries even when not needed.
   
 #include "Wire.h"
-#include "SSD1306/SSD1306AsciiWire.h"
+#include "SSD1306Ascii.h"
 SSD1306AsciiWire LCDDriver;
   
 // DEVICE SPECIFIC LCDDisplay Implementation for OLED
