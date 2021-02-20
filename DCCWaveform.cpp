@@ -39,9 +39,15 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
+  // Fault pin config for odd motor boards (example pololu)
+  MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  if (MotorDriver::usePWM) DIAG(F("\nWaveform using PWM pins for accuracy."));
-  else  DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
+  if (MotorDriver::usePWM)
+    DIAG(F("\nWaveform using PWM pins for accuracy."));
+  else
+    DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -109,7 +115,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 }
 
 
-void DCCWaveform::checkPowerOverload() {  
+void DCCWaveform::checkPowerOverload() {
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->getRawCurrentTripValue();
@@ -125,10 +131,23 @@ void DCCWaveform::checkPowerOverload() {
       lastCurrent=motorDriver->getCurrentRaw();
       if (lastCurrent < 0) {
 	  // We have a fault pin condition to take care of
-	  DIAG(F("\n*** %S FAULT PIN ACTIVE TOGGLE POWER ON THIS OR BOTH TRACKS ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
 	  lastCurrent = -lastCurrent;
+	  setPowerMode(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
+	  if (MotorDriver::commonFaultPin) {
+	      if (lastCurrent <= tripValue) {
+		setPowerMode(POWERMODE::ON); // maybe other track
+	      }
+	      // Write this after the fact as we want to turn on as fast as possible
+	      // because we don't know which output actually triggered the fault pin
+	      DIAG(F("\n*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+	  } else {
+	      DIAG(F("\n*** %S FAULT PIN ACTIVE - OVERLOAD ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+	      if (lastCurrent < tripValue) {
+		  lastCurrent = tripValue; // exaggerate
+	      }
+	  }
       }
-      if (lastCurrent <= tripValue) {
+      if (lastCurrent < tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
 	  power_good_counter++;

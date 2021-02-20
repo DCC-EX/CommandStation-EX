@@ -27,6 +27,7 @@
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
 bool MotorDriver::usePWM=false;
+bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
@@ -116,10 +117,15 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
+/*
+ * Return the current reading as pin reading 0 to 1023. If the fault
+ * pin is activated return a negative current to show active fault pin.
+ * As there is no -0, ceat a little and return -1 in that case.
+ */
 int MotorDriver::getCurrentRaw() {
   int current = analogRead(currentPin);
   if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
-      return -current;
+      return (current == 0 ? -1 : -current);
   return current;
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
