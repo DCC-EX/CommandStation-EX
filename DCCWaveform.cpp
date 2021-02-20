@@ -39,10 +39,15 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
+  // Fault pin config for odd motor boards (example pololu)
+  MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  MotorDriver::commonFaultPin = (mainDriver->getFaultPin() == progDriver->getFaultPin());
-  if (MotorDriver::usePWM) DIAG(F("\nWaveform using PWM pins for accuracy."));
-  else  DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
+  if (MotorDriver::usePWM)
+    DIAG(F("\nWaveform using PWM pins for accuracy."));
+  else
+    DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
