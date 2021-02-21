@@ -30,6 +30,7 @@ SSD1306AsciiWire LCDDriver;
   LCDDisplay::LCDDisplay() {
     // Scan for device on 0x3c and 0x3d.
     Wire.begin();
+    Wire.setClock(400000);  // This should really be done centrally somewhere!!
     for (byte address=0x3c; address<=0x3d; address++) {
       Wire.beginTransmission(address);
       byte error = Wire.endTransmission(true);
