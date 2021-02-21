@@ -200,8 +200,8 @@ class SSD1306Ascii : public Print {
   const int fontWidth = 5;
   const int fontHeight = 7;
   const uint8_t letterSpacing = 1;
-  uint8_t fontFirstChar;
-  uint8_t fontCharCount;
+  uint8_t m_fontFirstChar;
+  uint8_t m_fontCharCount;
 };
 
 

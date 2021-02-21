@@ -73,8 +73,8 @@ void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setFont(const uint8_t* font) {
   m_font = font;
-  fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
-  fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT); 
+  m_fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
+  m_fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT); 
 }
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setRow(uint8_t row) {
@@ -104,8 +104,8 @@ size_t SSD1306Ascii::write(uint8_t ch) {
   }
   const uint8_t* base = m_font + FONT_WIDTH_TABLE;
 
-  if (ch < fontFirstChar || ch >= (fontFirstChar + fontCharCount)) return 0;
-  ch -= fontFirstChar;
+  if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount)) return 0;
+  ch -= m_fontFirstChar;
   base += fontWidth * ch;
   for (uint8_t c = 0; c < fontWidth; c++) {
     uint8_t b = readFontByte(base + c);
