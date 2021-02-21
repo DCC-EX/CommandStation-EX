@@ -683,7 +683,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
     return false;
 }
 
-bool DCCEXParser::parseD(Print *stream, int params, int p[])
+bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
     if (params == 0)
         return false;

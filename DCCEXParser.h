@@ -48,7 +48,7 @@ struct DCCEXParser
      bool parseZ(Print * stream, int params, int p[]);
      bool parseS(Print * stream,  int params, int p[]);
      bool parsef(Print * stream,  int params, int p[]);
-     bool parseD(Print * stream,  int params, int p[]);
+     bool parseD(Print * stream,  int16_t params, int16_t p[]);
 
     
     static bool stashBusy;
