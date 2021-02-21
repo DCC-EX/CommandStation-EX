@@ -195,6 +195,13 @@ class SSD1306Ascii : public Print {
   uint8_t m_displayHeight;  // Display height.
   uint8_t m_colOffset;      // Column offset RAM to SEG.
   const uint8_t* m_font = nullptr;  // Current font.
+
+  // Only fixed size 5x7 fonts in a 6x8 cell are supported.
+  const int fontWidth = 5;
+  const int fontHeight = 7;
+  const uint8_t letterSpacing = 1;
+  uint8_t fontFirstChar;
+  uint8_t fontCharCount;
 };
 
 
