@@ -49,7 +49,7 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
 
 #else 
   #include "LCD_NONE.h"
-  #define CONDITIONAL_LCD_START if (false) /* NO LCD CONFIG */      
+  #define CONDITIONAL_LCD_START if (true) /* NO LCD CONFIG, but do the LCD macros to get DIAGS */      
 #endif
 
 #endif // LCD_Implementation_h
