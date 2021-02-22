@@ -12,5 +12,5 @@ ECHO ++++++++++++++++++++++++++++++++++ >>%TMP%\OBJDUMP_%a%.txt
 avr-objdump -x -C %ELF% | find ".bss" | sort /+25 /R >>%TMP%\OBJDUMP_%a%.txt
 ECHO ++++++++++++++++++++++++++++++++++ >>%TMP%\OBJDUMP_%a%.txt
 avr-objdump -D -S %ELF%  >>%TMP%\OBJDUMP_%a%.txt
-notepad %TMP%\OBJDUMP_%a%.txt
+%TMP%\OBJDUMP_%a%.txt
 EXIT
