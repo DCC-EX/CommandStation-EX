@@ -445,33 +445,33 @@ const ackOp PROGMEM LONG_LOCO_ID_PROG[] = {
 //  but that would be very inconvenient in a Wifi situaltion where the stream becomes 
 //  unuavailable immediately after the API rerturns. 
 
-void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
+void  DCC::writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
   ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback, blocking);
 }
 
 
-void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
+void DCC::writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback, blocking);
 }
 
-void  DCC::verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
+void  DCC::verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback, bool blocking)  {
   ackManagerSetup(cv, byteValue,  VERIFY_BYTE_PROG, callback, blocking);
 }
 
 
-void DCC::verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
+void DCC::verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum, bitValue?VERIFY_BIT1_PROG:VERIFY_BIT0_PROG, callback, blocking);
 }
 
 
-void DCC::readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking)  {
+void DCC::readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback, bool blocking)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback, blocking);
 }
 
-void DCC::readCV(int cv, ACK_CALLBACK callback, bool blocking)  {
+void DCC::readCV(int16_t cv, ACK_CALLBACK callback, bool blocking)  {
   ackManagerSetup(cv, 0,READ_CV_PROG, callback, blocking);
 }
 

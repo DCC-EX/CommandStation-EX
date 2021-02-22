@@ -22,7 +22,7 @@
 #include "MotorDriver.h"
 #include "MotorDrivers.h"
 
-typedef void (*ACK_CALLBACK)(int result);
+typedef void (*ACK_CALLBACK)(int16_t result);
 
 enum ackOp
 {           // Program opcodes for the ack Manager
@@ -84,12 +84,12 @@ public:
   static void setProgTrackBoost(bool on);    // when true, special prog track current limit does not apply
 
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
-  static void readCV(int cv, ACK_CALLBACK callback, bool blocking = false);
-  static void readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking = false); // -1 for error
-  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
-  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
-  static void verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
-  static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
+  static void readCV(int16_t cv, ACK_CALLBACK callback, bool blocking = false);
+  static void readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback, bool blocking = false); // -1 for error
+  static void writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
+  static void writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
+  static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
+  static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
 
   static void getLocoId(ACK_CALLBACK callback, bool blocking = false);
   static void setLocoId(int id,ACK_CALLBACK callback, bool blocking = false);

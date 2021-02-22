@@ -20,7 +20,7 @@
 #define DCCEXParser_h
 #include <Arduino.h>
 
-typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int p[]);
+typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
 
 struct DCCEXParser
@@ -33,40 +33,40 @@ struct DCCEXParser
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
-   static const int MAX_PARAMS=10;  // Must not exceed this
+   static const int16_t MAX_PARAMS=10;  // Must not exceed this
  
    private:
   
-    static const int MAX_BUFFER=50;  // longest command sent in
+    static const int16_t MAX_BUFFER=50;  // longest command sent in
      byte  bufferLength=0;
      bool  inCommandPayload=false;
      byte  buffer[MAX_BUFFER+2]; 
-    int splitValues( int result[MAX_PARAMS], const byte * command);
-    int splitHexValues( int result[MAX_PARAMS], const byte * command);
+    int16_t splitValues( int16_t result[MAX_PARAMS], const byte * command);
+    int16_t splitHexValues( int16_t result[MAX_PARAMS], const byte * command);
      
-     bool parseT(Print * stream, int params, int p[]);
-     bool parseZ(Print * stream, int params, int p[]);
-     bool parseS(Print * stream,  int params, int p[]);
-     bool parsef(Print * stream,  int params, int p[]);
+     bool parseT(Print * stream, int16_t params, int16_t p[]);
+     bool parseZ(Print * stream, int16_t params, int16_t p[]);
+     bool parseS(Print * stream,  int16_t params, int16_t p[]);
+     bool parsef(Print * stream,  int16_t params, int16_t p[]);
      bool parseD(Print * stream,  int16_t params, int16_t p[]);
 
     
     static bool stashBusy;
    
     static Print * stashStream;
-    static int stashP[MAX_PARAMS];
-    bool stashCallback(Print * stream, int p[MAX_PARAMS]);
-    static void callback_W(int result);
-    static void callback_B(int result);        
-    static void callback_R(int result);
-    static void callback_Rloco(int result);
-    static void callback_Wloco(int result);
-    static void callback_Vbit(int result);
-    static void callback_Vbyte(int result);
+    static int16_t stashP[MAX_PARAMS];
+    bool stashCallback(Print * stream, int16_t p[MAX_PARAMS]);
+    static void callback_W(int16_t result);
+    static void callback_B(int16_t result);        
+    static void callback_R(int16_t result);
+    static void callback_Rloco(int16_t result);
+    static void callback_Wloco(int16_t result);
+    static void callback_Vbit(int16_t result);
+    static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;
     static FILTER_CALLBACK  filterRMFTCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
-    static void funcmap(int cab, byte value, byte fstart, byte fstop);
+    static void funcmap(int16_t cab, byte value, byte fstart, byte fstop);
 
 };
 
