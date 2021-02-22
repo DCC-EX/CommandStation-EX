@@ -8,3 +8,4 @@ Release/*
 .vscode/
 config.h
 .vscode/extensions.json
+mySetup.h
