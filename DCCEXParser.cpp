@@ -685,9 +685,6 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
 
 bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
-Serial.println(p[0]);
-Serial.println(p[1]);
-Serial.println(p[2]);
     if (params == 0)
         return false;
     bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
