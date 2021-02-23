@@ -51,9 +51,9 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::loop() {
-  mainTrack.checkPowerOverload();
-  progTrack.checkPowerOverload();
+void DCCWaveform::loop(bool ackManagerActive) {
+  mainTrack.checkPowerOverload(false);
+  progTrack.checkPowerOverload(ackManagerActive);
 }
 
 void DCCWaveform::interruptHandler() {
@@ -115,11 +115,11 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 }
 
 
-void DCCWaveform::checkPowerOverload() {
+void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->getRawCurrentTripValue();
-  if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
+  if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
   switch (powerMode) {

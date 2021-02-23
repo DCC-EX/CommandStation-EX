@@ -49,14 +49,14 @@ class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
     static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
-    static void loop();
+    static void loop(bool ackManagerActive);
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
 
     void beginTrack();
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
-    void checkPowerOverload();
+    void checkPowerOverload(bool ackManagerActive);
     inline int get1024Current() {
 	  if (powerMode == POWERMODE::ON)
 	      return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
