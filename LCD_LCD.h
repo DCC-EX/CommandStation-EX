@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-  #include <LiquidCrystal_I2C.h> 
+  #include "LiquidCrystal_I2C.h" 
   LiquidCrystal_I2C LCDDriver(LCD_DRIVER);  // set the LCD address, cols, rows 
   // DEVICE SPECIFIC LCDDisplay Implementation for LCD_DRIVER
   LCDDisplay::LCDDisplay() { 
