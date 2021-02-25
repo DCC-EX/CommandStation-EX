@@ -26,6 +26,7 @@
 #include <Wire.h>
 #include "PWMServoDriver.h"
 #include "DIAG.h"
+#include "I2CManager.h"
 
 
 // REGISTER ADDRESSES
@@ -40,6 +41,7 @@ const byte MODE1_RESTART=0x80; /**< Restart enabled */
 const byte PCA9685_I2C_ADDRESS=0x40;      /** First PCA9685 I2C Slave Address */
 const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
 const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
+const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
   
 /*!
  *  @brief  Sets the PWM frequency for a chip to 50Hz for servos
@@ -52,13 +54,14 @@ bool PWMServoDriver::setup(int board) {
   if (board>3 || (failFlags & (1<<board))) return false; 
   if (setupFlags & (1<<board)) return true; 
   
-  Wire.begin();
+  I2CManager.begin();
+  I2CManager.setClock(MAX_I2C_SPEED);
+  
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
 
-  // Terst if device is available
-  Wire.beginTransmission(i2caddr);
-  byte error = Wire.endTransmission();
-  if (error!=0) {
+  // Test if device is available
+  byte error = I2CManager.exists(i2caddr);
+  if (error) {
     DIAG(F("\nI2C Servo device 0x%x Not Found %d\n"),i2caddr, error);
     failFlags|=1<<board;  
     return false;
@@ -98,5 +101,4 @@ void PWMServoDriver::writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uin
   Wire.write(hardwareRegister);
   Wire.write(d);
   Wire.endTransmission();
-  delay(5); // allow registers to settle before continuing
 }
