@@ -17,9 +17,12 @@
  */
 #include "SSD1306Ascii.h"
 
+//==============================================================================
+// SSD1306Ascii Method Definitions
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clear() {
-  clear(0, displayWidth() - 1, 0 , displayRows() - 1);
+  clear(0, displayWidth() - 1, 0, displayRows() - 1);
 }
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
@@ -28,8 +31,7 @@ void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
 
   for (uint8_t r = r0; r <= r1; r++) {
     setCursor(c0, r);
-    for (uint8_t c = c0; c <= c1; c++)
-      ssd1306WriteRamBuf(0);
+    for (uint8_t c = c0; c <= c1; c++) ssd1306WriteRamBuf(0);
   }
   setCursor(c0, r0);
 }
@@ -39,7 +41,7 @@ void SSD1306Ascii::init(const DevType* dev) {
   m_row = 0;
 #ifdef __AVR__
   const uint8_t* table = (const uint8_t*)pgm_read_word(&dev->initcmds);
-#else  // __AVR__
+#else   // __AVR__
   const uint8_t* table = dev->initcmds;
 #endif  // __AVR
   uint8_t size = readFontByte(&dev->initSize);
@@ -74,7 +76,7 @@ void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
 void SSD1306Ascii::setFont(const uint8_t* font) {
   m_font = font;
   m_fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
-  m_fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT); 
+  m_fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT);
 }
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setRow(uint8_t row) {
@@ -104,7 +106,8 @@ size_t SSD1306Ascii::write(uint8_t ch) {
   }
   const uint8_t* base = m_font + FONT_WIDTH_TABLE;
 
-  if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount)) return 0;
+  if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount))
+    return 0;
   ch -= m_fontFirstChar;
   base += fontWidth * ch;
   for (uint8_t c = 0; c < fontWidth; c++) {
@@ -117,3 +120,53 @@ size_t SSD1306Ascii::write(uint8_t ch) {
   flushDisplay();
   return 1;
 }
+
+//=============================================================================
+// SSD1306AsciiWire method definitions
+
+#define m_oledWire Wire
+
+void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
+#if OPTIMIZE_I2C
+  m_nData = 0;
+#endif  // OPTIMIZE_I2C
+  m_i2cAddr = i2cAddr;
+  init(dev);
+}
+
+//------------------------------------------------------------------------------
+void SSD1306AsciiWire::writeDisplay(uint8_t b, uint8_t mode) {
+#if OPTIMIZE_I2C
+  if (m_nData > 16 || (m_nData && mode == SSD1306_MODE_CMD)) {
+    m_oledWire.endTransmission();
+    m_nData = 0;
+  }
+  if (m_nData == 0) {
+    m_oledWire.beginTransmission(m_i2cAddr);
+    m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
+  }
+  m_oledWire.write(b);
+  if (mode == SSD1306_MODE_RAM_BUF) {
+    m_nData++;
+  } else {
+    m_oledWire.endTransmission();
+    m_nData = 0;
+  }
+#else   // OPTIMIZE_I2C
+  m_oledWire.beginTransmission(m_i2cAddr);
+  m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
+  m_oledWire.write(b);
+  m_oledWire.endTransmission();
+#endif  // OPTIMIZE_I2C
+}
+
+//------------------------------------------------------------------------------
+void SSD1306AsciiWire::flushDisplay() {
+#if OPTIMIZE_I2C
+  if (m_nData) {
+    m_oledWire.endTransmission();
+    m_nData = 0;
+  }
+#endif  // OPTIMIZE_I2C
+}
+//------------------------------------------------------------------------------
