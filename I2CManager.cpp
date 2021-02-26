@@ -30,8 +30,18 @@ void I2CManagerClass::begin(void) {
 // Set clock speed to the lowest requested one. If none requested,
 //  the Wire default is 100kHz.
 void I2CManagerClass::setClock(uint32_t speed) {
-  if (speed < _clockSpeed) {
+  if (speed < _clockSpeed && !_clockSpeedFixed) {
     _clockSpeed = speed;
+    Wire.setClock(_clockSpeed);
+  }
+}
+
+// Force clock speed to that specified.  It can then only 
+// be overridden by calling Wire.setClock directly.
+void I2CManagerClass::forceClock(uint32_t speed) {
+  if (!_clockSpeedFixed) {
+    _clockSpeed = speed;
+    _clockSpeedFixed = true;
     Wire.setClock(_clockSpeed);
   }
 }

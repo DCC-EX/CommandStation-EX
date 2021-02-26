@@ -45,11 +45,14 @@ public:
   void begin(void);
   // Set clock speed to the lowest requested one.
   void setClock(uint32_t speed);
+  // Force clock speed 
+  void forceClock(uint32_t speed);
   // Check if specified I2C address is responding.
   uint8_t exists(uint8_t address);
 
 private:
   bool _beginCompleted = false;
+  bool _clockSpeedFixed = false;
   uint32_t _clockSpeed = 1000000L; // 1MHz max on Arduino.
 };
 
