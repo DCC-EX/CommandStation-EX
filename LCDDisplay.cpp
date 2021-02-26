@@ -46,7 +46,9 @@
  */
 
 #include "LCDDisplay.h"
-#include "Config.h"
+#if __has_include ( "config.h")
+  #include "config.h"
+#endif
 
 void LCDDisplay::clear() {
   clearNative();
