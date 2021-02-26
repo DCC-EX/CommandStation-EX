@@ -21,7 +21,7 @@ The configuration file for DCC-EX Command Station
 //  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
 //  FIREBOX_MK1           : The Firebox MK1                    
 //  FIREBOX_MK1S          : The Firebox MK1S
-//  IBT_2_WITH_ARDUINO.   : Arduino Motor Shield for PROG and IBT-2 for MAIN
+//  IBT_2_WITH_ARDUINO    : Arduino Motor Shield for PROG and IBT-2 for MAIN
 //   |
 //   +-----------------------v
 //
