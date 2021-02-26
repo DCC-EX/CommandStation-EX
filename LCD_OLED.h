@@ -1,6 +1,6 @@
 /*
  *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -17,57 +17,59 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// OLED Implementation of LCDDisplay class 
+// OLED Implementation of LCDDisplay class
 // Note: this file is optionally included by LCD_Implementation.h
-// It is NOT a .cpp file to prevent it being compiled and demanding libraries even when not needed.
-  
-#include "Wire.h"
+// It is NOT a .cpp file to prevent it being compiled and demanding libraries
+// even when not needed.
+
+#include "I2CManager.h"
 #include "SSD1306Ascii.h"
+#include "Wire.h"
 SSD1306AsciiWire LCDDriver;
-  
+
 // DEVICE SPECIFIC LCDDisplay Implementation for OLED
 
-  LCDDisplay::LCDDisplay() {
-    // Scan for device on 0x3c and 0x3d.
-    Wire.begin();
-    Wire.setClock(400000);  // This should really be done centrally somewhere!!
-    for (byte address=0x3c; address<=0x3d; address++) {
-      Wire.beginTransmission(address);
-      byte error = Wire.endTransmission(true);
-      if (!error) {
-        // Device found
-        DIAG(F("\nOLED display found at 0x%x"), address); 
-        interfake(OLED_DRIVER,0);
-        const DevType *devType;
-        if (lcdCols == 132)
-          devType = &SH1106_128x64; // Actually 132x64 but treated as 128x64
-        else if (lcdCols == 128 && lcdRows == 4) 
-          devType = &Adafruit128x32;
-        else 
-          devType = &Adafruit128x64;
-        LCDDriver.begin(devType, address);
-        lcdDisplay=this;
-        LCDDriver.setFont(System5x7);  // Normal 1:1 pixel scale, 8 bits high
-        clear();
-        return;  
-      }
+LCDDisplay::LCDDisplay() {
+  // Scan for device on 0x3c and 0x3d.
+  I2CManager.begin();
+  I2CManager.setClock(400000L);  // Set max supported I2C speed
+  for (byte address = 0x3c; address <= 0x3d; address++) {
+    byte error = I2CManager.exists(address);
+    if (!error) {
+      // Device found
+      DIAG(F("\nOLED display found at 0x%x"), address);
+      interfake(OLED_DRIVER, 0);
+      const DevType *devType;
+      if (lcdCols == 132)
+        devType = &SH1106_128x64;  // Actually 132x64 but treated as 128x64
+      else if (lcdCols == 128 && lcdRows == 4)
+        devType = &Adafruit128x32;
+      else
+        devType = &Adafruit128x64;
+      LCDDriver.begin(devType, address);
+      lcdDisplay = this;
+      LCDDriver.setFont(System5x7);  // Normal 1:1 pixel scale, 8 bits high
+      clear();
+      return;
     }
-    DIAG(F("\nOLED display not found\n"));
   }
+  DIAG(F("\nOLED display not found\n"));
+}
 
-  void LCDDisplay::interfake(int p1, int p2, int p3) {lcdCols=p1; lcdRows=p2/8; (void)p3;}   
+void LCDDisplay::interfake(int p1, int p2, int p3) {
+  lcdCols = p1;
+  lcdRows = p2 / 8;
+  (void)p3;
+}
 
-  void LCDDisplay::clearNative() {LCDDriver.clear();}
+void LCDDisplay::clearNative() { LCDDriver.clear(); }
 
-  void LCDDisplay::setRowNative(byte row) {
-    // Positions text write to start of row 1..n and clears previous text 
-    int y=row;
-    LCDDriver.setCursor(0, y); 
-  }
-  
-  void LCDDisplay::writeNative(char b) {
-    LCDDriver.write(b);
-  }
-  
-  void LCDDisplay::displayNative() {  }  
-  
+void LCDDisplay::setRowNative(byte row) {
+  // Positions text write to start of row 1..n and clears previous text
+  int y = row;
+  LCDDriver.setCursor(0, y);
+}
+
+void LCDDisplay::writeNative(char b) { LCDDriver.write(b); }
+
+void LCDDisplay::displayNative() {}

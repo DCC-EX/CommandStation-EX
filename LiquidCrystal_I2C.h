@@ -1,6 +1,6 @@
 /*
  *  © 2021, Neil McKechnie. All rights reserved.
- *  Based on the work by DFRobot, Frank de Brabander and Macro Schwartz.
+ *  Based on the work by DFRobot, Frank de Brabander and Marco Schwartz.
  *
  *  This file is part of CommandStation-EX
  *

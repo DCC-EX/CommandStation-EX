@@ -1,6 +1,6 @@
 /*
  *  © 2021, Neil McKechnie. All rights reserved.
- *  Based on the work by DFRobot, Frank de Brabander and Macro Schwartz.
+ *  Based on the work by DFRobot, Frank de Brabander and Marco Schwartz.
  *
  *  This file is part of CommandStation-EX
  *
@@ -19,6 +19,7 @@
  */
 
 #include "LiquidCrystal_I2C.h"
+#include "I2CManager.h"
 
 #include <inttypes.h>
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -70,8 +71,9 @@ LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols,
 void LiquidCrystal_I2C::init() { init_priv(); }
 
 void LiquidCrystal_I2C::init_priv() {
-  Wire.begin();
-  Wire.setClock(400000);  // This should really be done centrally somewhere!!
+  I2CManager.begin();
+  I2CManager.setClock(100000L);    // PCF8574 is limited to 100kHz.
+
   _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
   begin(_cols, _rows);
 }
@@ -81,14 +83,12 @@ void LiquidCrystal_I2C::begin(uint8_t cols, uint8_t lines) {
     _displayfunction |= LCD_2LINE;
   }
   _numlines = lines;
+  (void)cols; // Suppress compiler warning.
 
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
-  // before sending commands. Arduino can turn on way befer 4.5V so we'll wait
-  // 50
-  delay(50);
-
-  // Now we pull both RS and R/W low to begin commands
+  // before sending commands. Arduino can turn on way befer 4.5V so we'll allow
+  // 100 milliseconds after pulling  both RS and R/W and backlight pin low
   expanderWrite(
       _backlightval);  // reset expander and turn backlight off (Bit 8 =1)
   delay(100);

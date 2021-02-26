@@ -23,9 +23,11 @@
 #define SSD1306AsciiWire_h
 
 #include <Wire.h>
+
 #include "Arduino.h"
-#include "SSD1306init.h"
+#include "LCDDisplay.h"
 #include "SSD1306font.h"
+#include "SSD1306init.h"
 
 //------------------------------------------------------------------------------
 /** SSD1306Ascii version basis */
@@ -39,9 +41,9 @@
 //------------------------------------------------------------------------------
 // Values for writeDisplay() mode parameter.
 /** Write to Command register. */
-#define SSD1306_MODE_CMD     0
+#define SSD1306_MODE_CMD 0
 /** Write one byte to display RAM. */
-#define SSD1306_MODE_RAM     1
+#define SSD1306_MODE_RAM 1
 /** Write to display RAM with possible buffering. */
 #define SSD1306_MODE_RAM_BUF 2
 //------------------------------------------------------------------------------
@@ -89,11 +91,11 @@ class SSD1306Ascii : public Print {
   /**
    * @return The current column in pixels.
    */
-  inline uint8_t col() const {return m_col;}
+  inline uint8_t col() const { return m_col; }
   /**
    * @return The display hight in pixels.
    */
-  inline uint8_t displayHeight() const {return m_displayHeight;}
+  inline uint8_t displayHeight() const { return m_displayHeight; }
   /**
    * @brief Set display to normal or 180 degree remap mode.
    *
@@ -106,15 +108,15 @@ class SSD1306Ascii : public Print {
   /**
    * @return The display height in rows with eight pixels to a row.
    */
-  inline uint8_t displayRows() const {return m_displayHeight/8;}
+  inline uint8_t displayRows() const { return m_displayHeight / 8; }
   /**
    * @return The display width in pixels.
    */
-  inline uint8_t displayWidth() const {return m_displayWidth;}
+  inline uint8_t displayWidth() const { return m_displayWidth; }
   /**
    * @brief Set the cursor position to (0, 0).
    */
-  inline void home() {setCursor(0, 0);}
+  inline void home() { setCursor(0, 0); }
   /**
    * @brief Initialize the display controller.
    *
@@ -124,7 +126,7 @@ class SSD1306Ascii : public Print {
   /**
    * @return the current row number with eight pixels to a row.
    */
-  inline uint8_t row() const {return m_row;}
+  inline uint8_t row() const { return m_row; }
   /**
    * @brief Set the current column number.
    *
@@ -162,7 +164,7 @@ class SSD1306Ascii : public Print {
    * @param[in] c The command byte.
    * @note The byte will immediately be sent to the controller.
    */
-  inline void ssd1306WriteCmd(uint8_t c) {writeDisplay(c, SSD1306_MODE_CMD);}
+  inline void ssd1306WriteCmd(uint8_t c) { writeDisplay(c, SSD1306_MODE_CMD); }
   /**
    * @brief Write a byte to RAM in the display controller.
    *
@@ -175,10 +177,10 @@ class SSD1306Ascii : public Print {
    *
    * @param[in] c The data byte.
    * @note The byte may be buffered until a call to ssd1306WriteCmd
-   *       or ssd1306WriteRam or endWrite.
+   *       or ssd1306WriteRam or flushDisplay.
    */
   void ssd1306WriteRamBuf(uint8_t c);
-   /**
+  /**
    * @brief Display a character.
    *
    * @param[in] c The character to display.
@@ -189,11 +191,11 @@ class SSD1306Ascii : public Print {
  protected:
   virtual void writeDisplay(uint8_t b, uint8_t mode) = 0;
   virtual void flushDisplay() = 0;
-  uint8_t m_col;            // Cursor column.
-  uint8_t m_row;            // Cursor RAM row.
-  uint8_t m_displayWidth;   // Display width.
-  uint8_t m_displayHeight;  // Display height.
-  uint8_t m_colOffset;      // Column offset RAM to SEG.
+  uint8_t m_col;                    // Cursor column.
+  uint8_t m_row;                    // Cursor RAM row.
+  uint8_t m_displayWidth;           // Display width.
+  uint8_t m_displayHeight;          // Display height.
+  uint8_t m_colOffset;              // Column offset RAM to SEG.
   const uint8_t* m_font = nullptr;  // Current font.
 
   // Only fixed size 5x7 fonts in a 6x8 cell are supported.
@@ -204,62 +206,23 @@ class SSD1306Ascii : public Print {
   uint8_t m_fontCharCount;
 };
 
-
 /**
  * @class SSD1306AsciiWire
  * @brief Class for I2C displays using Wire.
  */
 class SSD1306AsciiWire : public SSD1306Ascii {
  public:
-#define m_oledWire Wire
   /**
    * @brief Initialize the display controller.
    *
    * @param[in] dev A device initialization structure.
    * @param[in] i2cAddr The I2C address of the display controller.
    */
-  void begin(const DevType* dev, uint8_t i2cAddr) {
-#if OPTIMIZE_I2C
-    m_nData = 0;
-#endif  // OPTIMIZE_I2C
-    m_i2cAddr = i2cAddr;
-    init(dev);
-  }
-  
- protected:
-  void writeDisplay(uint8_t b, uint8_t mode) {
-#if OPTIMIZE_I2C
-    if (m_nData > 16 || (m_nData && mode == SSD1306_MODE_CMD)) {
-      m_oledWire.endTransmission();
-      m_nData = 0;
-    }
-    if (m_nData == 0) {
-      m_oledWire.beginTransmission(m_i2cAddr);
-      m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
-    }
-    m_oledWire.write(b);
-    if (mode == SSD1306_MODE_RAM_BUF) {
-      m_nData++;
-    } else {
-      m_oledWire.endTransmission();
-      m_nData = 0;
-    }
-#else  // OPTIMIZE_I2C
-    m_oledWire.beginTransmission(m_i2cAddr);
-    m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00: 0X40);
-    m_oledWire.write(b);
-    m_oledWire.endTransmission();
-#endif    // OPTIMIZE_I2C
-  }
+  void begin(const DevType* dev, uint8_t i2cAddr);
 
-  void flushDisplay() {
-#if OPTIMIZE_I2C
-    if (m_nData) {
-      m_oledWire.endTransmission();
-      m_nData = 0;
-    }
-#endif // OPTIMIZE_I2C
-  }
+ protected:
+  void writeDisplay(uint8_t b, uint8_t mode);
+  void flushDisplay();
 
  protected:
   uint8_t m_i2cAddr;
@@ -267,4 +230,5 @@ class SSD1306AsciiWire : public SSD1306Ascii {
   uint8_t m_nData;
 #endif  // OPTIMIZE_I2C
 };
+
 #endif  // SSD1306AsciiWire_h
