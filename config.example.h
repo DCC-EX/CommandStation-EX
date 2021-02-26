@@ -20,7 +20,8 @@ The configuration file for DCC-EX Command Station
 //  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
 //  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
 //  FIREBOX_MK1           : The Firebox MK1                    
-//  FIREBOX_MK1S          : The Firebox MK1S    
+//  FIREBOX_MK1S          : The Firebox MK1S
+//  IBT_2_WITH_ARDUINO.   : Arduino Motor Shield for PROG and IBT-2 for MAIN
 //   |
 //   +-----------------------v
 //
