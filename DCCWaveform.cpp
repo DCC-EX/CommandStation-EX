@@ -65,8 +65,10 @@ void DCCWaveform::setDiagnosticSlowWave(bool slow) {
 }
 
 void DCCWaveform::loop() {
+  noInterrupts();
   mainTrack.checkPowerOverload();
   progTrack.checkPowerOverload();
+  interrupts();
 }
 
 
