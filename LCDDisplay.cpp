@@ -46,9 +46,6 @@
  */
 
 #include "LCDDisplay.h"
-#if __has_include ( "config.h")
-  #include "config.h"
-#endif
 
 void LCDDisplay::clear() {
   clearNative();
@@ -93,12 +90,8 @@ LCDDisplay *LCDDisplay::loop2(bool force) {
   do {
     if (bufferPointer == 0) {
       // Find a line of data to write to the screen.
-      if (!done) {
-        if (rowFirst < 0) rowFirst = rowNext;
-        // Skip blank rows
-        while (rowBuffer[rowNext][0] == 0 && !done)
-          moveToNextRow();
-      }
+      if (rowFirst < 0) rowFirst = rowNext;
+      skipBlankRows();
       if (!done) {
         // Non-blank line found, so copy it.
         for (uint8_t i = 0; i < sizeof(buffer); i++)
@@ -123,19 +116,21 @@ LCDDisplay *LCDDisplay::loop2(bool force) {
         // Screen slot completed, move to next slot on screen
         slot++;
         bufferPointer = 0;
-        if (!done) 
+        if (!done) {
           moveToNextRow();
+          skipBlankRows();
+        }
       }
 
       if (slot >= lcdRows) {
         // Last slot finished, reset ready for next screen update.
 #if SCROLLMODE==2
-        // On next refresh, restart one row on from previous start.
-        done = false;
-        rowNext = rowFirst;
-        do {
+        if (!done) {
+          // On next refresh, restart one row on from previous start.
+          rowNext = rowFirst;
           moveToNextRow();
-        } while (rowBuffer[rowNext][0] == 0 && !done);
+          skipBlankRows();
+        }
 #endif
         done = false;
         slot = 0;
@@ -158,4 +153,9 @@ void LCDDisplay::moveToNextRow() {
   // Finished if we're back to the first one shown
   if (rowNext == rowFirst) done = true;
 #endif
+}
+
+void LCDDisplay::skipBlankRows() {
+  while (!done && rowBuffer[rowNext][0] == 0)
+    moveToNextRow();
 }

@@ -20,12 +20,21 @@
 #define LCDDisplay_h
 #include <Arduino.h>
 
+#if __has_include ( "config.h")
+  #include "config.h"
+#endif
+
+// Allow maximum message length to be overridden from config.h
+#if !defined(MAX_MSG_SIZE) 
+#define MAX_MSG_SIZE 16
+#endif
+
 // This class is created in LCDisplay_Implementation.h
 
 class LCDDisplay : public Print {
  public:
   static const int MAX_LCD_ROWS = 8;
-  static const int MAX_LCD_COLS = 16;
+  static const int MAX_LCD_COLS = MAX_MSG_SIZE;
   static const long LCD_SCROLL_TIME = 3000;  // 3 seconds
 
   static LCDDisplay* lcdDisplay;
@@ -43,6 +52,7 @@ class LCDDisplay : public Print {
 
  private:
   void moveToNextRow();
+  void skipBlankRows();
 
   // Relay functions to the live driver
   void clearNative();
@@ -64,7 +74,6 @@ class LCDDisplay : public Print {
   char* bufferPointer = 0;
   bool done = false;
 
-  void renderRow(byte row);
   char rowBuffer[MAX_LCD_ROWS][MAX_LCD_COLS + 1];
 };
 
