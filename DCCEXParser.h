@@ -20,6 +20,7 @@
 #define DCCEXParser_h
 #include <Arduino.h>
 #include "FSH.h"
+#include "RingStream.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int p[]);
 typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
@@ -28,7 +29,7 @@ struct DCCEXParser
 {
    DCCEXParser();
    void loop(Stream & stream);
-   void parse(Print * stream,  byte * command, bool blocking);
+   void parse(Print * stream,  byte * command,  RingStream * ringStream);
    void parse(const FSH * cmd);
    void flush();
    static void setFilter(FILTER_CALLBACK filter);
@@ -51,12 +52,16 @@ struct DCCEXParser
      bool parsef(Print * stream,  int params, int p[]);
      bool parseD(Print * stream,  int params, int p[]);
 
-    
+     static Print * getAsyncReplyStream();
+     static void commitAsyncReplyStream();
+
     static bool stashBusy;
-   
+    static byte stashTarget;
     static Print * stashStream;
+    static RingStream * stashRingStream;
+    
     static int stashP[MAX_COMMAND_PARAMS];
-    bool stashCallback(Print * stream, int p[MAX_COMMAND_PARAMS]);
+    bool stashCallback(Print * stream, int p[MAX_COMMAND_PARAMS], RingStream * ringStream);
     static void callback_W(int result);
     static void callback_B(int result);        
     static void callback_R(int result);

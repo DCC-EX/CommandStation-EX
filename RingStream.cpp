@@ -75,6 +75,12 @@ void RingStream::mark(uint8_t b) {
     _count=0;
 }
 
+// peekTargetMark is used by the parser stash routines to klnow which client
+// to send a callback response to some time later. 
+uint8_t RingStream::peekTargetMark() {
+  return _buffer[_mark];
+}
+
 bool RingStream::commit() {
   if (_overflow) {
         DIAG(F("\nRingStream(%d) commit(%d) OVERFLOW\n"),_len, _count);
