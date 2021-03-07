@@ -18,11 +18,19 @@
  */
 #ifndef MotorDriver_h
 #define MotorDriver_h
+#include "FSH.h"
+
 // Virtualised Motor shield 1-track hardware Interface
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
 #define UNUSED_PIN 127 // inside int8_t
 #endif
+
+struct FASTPIN {
+  volatile uint8_t *inout;
+  uint8_t maskHIGH;  
+  uint8_t maskLOW;  
+};
 
 class MotorDriver {
   public:
@@ -34,12 +42,24 @@ class MotorDriver {
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
-	return rawCurrentTripValue;
+	    return rawCurrentTripValue;
     }
-
+    bool isPWMCapable();
+    static bool usePWM;
+    static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
+    inline byte getFaultPin() {
+	return faultPin;
+    }
+    
   private:
-    byte powerPin, signalPin, signalPin2, currentPin, faultPin;
-    int8_t brakePin;       // negative means pin is inverted
+    void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
+    void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
+	getFastPin(type, pin, 0, result);
+    }
+    byte powerPin, signalPin, signalPin2, currentPin, faultPin, brakePin;
+    FASTPIN fastPowerPin,fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
+    bool dualSignal;       // true to use signalPin2
+    bool invertBrake;       // brake pin passed as negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;

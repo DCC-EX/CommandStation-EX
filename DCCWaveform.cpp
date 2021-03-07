@@ -17,13 +17,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+ #pragma GCC optimize ("-O3")
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
  
-const int NORMAL_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const int SLOW_SIGNAL_TIME=NORMAL_SIGNAL_TIME*512;
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -31,53 +31,51 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
-VirtualTimer * DCCWaveform::interruptTimer=NULL;      
+int  DCCWaveform::progTripValue=0;
   
-void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber) {
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
-
+  progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
   mainTrack.setPowerMode(POWERMODE::OFF);      
   progTrack.setPowerMode(POWERMODE::OFF);
-  switch (timerNumber) {
-    case 1: interruptTimer= &TimerA; break;
-    case 2: interruptTimer= &TimerB; break;
-#ifndef ARDUINO_AVR_UNO  
-    case 3: interruptTimer= &TimerC; break;
-#endif    
-    default:
-      DIAG(F("\n\n *** Invalid Timer number %d requested. Only 1..3 valid.  DCC will not work.*** \n\n"), timerNumber);
-      return;
-  }
-  interruptTimer->initialize();
-  interruptTimer->setPeriod(NORMAL_SIGNAL_TIME); // this is the 58uS DCC 1-bit waveform half-cycle
-  interruptTimer->attachInterrupt(interruptHandler);
-  interruptTimer->start();
-}
-void DCCWaveform::setDiagnosticSlowWave(bool slow) {
-  interruptTimer->setPeriod(slow? SLOW_SIGNAL_TIME : NORMAL_SIGNAL_TIME);
-  interruptTimer->start(); 
-  DIAG(F("\nDCC SLOW WAVE %S\n"),slow?F("SET. DO NOT ADD LOCOS TO TRACK"):F("RESET")); 
+  // Fault pin config for odd motor boards (example pololu)
+  MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
+  MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
+  if (MotorDriver::usePWM)
+    DIAG(F("\nWaveform using PWM pins for accuracy."));
+  else
+    DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
+  DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::loop() {
-  mainTrack.checkPowerOverload();
-  progTrack.checkPowerOverload();
+void DCCWaveform::loop(bool ackManagerActive) {
+  mainTrack.checkPowerOverload(false);
+  progTrack.checkPowerOverload(ackManagerActive);
 }
 
-
-// static //
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
-  bool mainCall2 = mainTrack.interrupt1();
-  bool progCall2 = progTrack.interrupt1();
+  // member functions would be cleaner but have more overhead
+  byte sigMain=signalTransform[mainTrack.state];
+  byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
+  
+  // Set the signal state for both tracks
+  mainTrack.motorDriver->setSignal(sigMain);
+  progTrack.motorDriver->setSignal(sigProg);
+  
+  // Move on in the state engine
+  mainTrack.state=stateTransform[mainTrack.state];    
+  progTrack.state=stateTransform[progTrack.state];    
 
-  // call (if necessary) the procs to get the current bits
-  // these must complete within 50microsecs of the interrupt
-  // but they are only called ONCE PER BIT TRANSMITTED
-  // after the rising edge of the signal
-  if (mainCall2) mainTrack.interrupt2();
-  if (progCall2) progTrack.interrupt2();
+
+  // WAVE_PENDING means we dont yet know what the next bit is
+  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
+  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
+  else if (progTrack.ackPending) progTrack.checkAck();
+
 }
 
 
@@ -92,13 +90,12 @@ const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
-  // establish appropriate pins
   isMainTrack = isMain;
   packetPending = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
-  state = 0;
+  state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
-  // fpr the previous packet. 
+  // for the previous packet. 
   requiredPreambles = preambleBits+1;  
   bytes_sent = 0;
   bits_sent = 0;
@@ -112,24 +109,17 @@ POWERMODE DCCWaveform::getPowerMode() {
 }
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-
-  // Prevent power switch on with no timer... Otheruise track will get full power DC and locos will run away.  
-  if (!interruptTimer) return; 
-  
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
 }
 
 
-void DCCWaveform::checkPowerOverload() {
-  
-  static int progTripValue = motorDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once, hence static
-
+void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->getRawCurrentTripValue();
-  if (!isMainTrack && !ackPending && !progTrackSyncMain && !progTrackBoosted)
+  if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
   switch (powerMode) {
@@ -138,8 +128,26 @@ void DCCWaveform::checkPowerOverload() {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent = motorDriver->getCurrentRaw();
-      if (lastCurrent <= tripValue) {
+      lastCurrent=motorDriver->getCurrentRaw();
+      if (lastCurrent < 0) {
+	  // We have a fault pin condition to take care of
+	  lastCurrent = -lastCurrent;
+	  setPowerMode(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
+	  if (MotorDriver::commonFaultPin) {
+	      if (lastCurrent <= tripValue) {
+		setPowerMode(POWERMODE::ON); // maybe other track
+	      }
+	      // Write this after the fact as we want to turn on as fast as possible
+	      // because we don't know which output actually triggered the fault pin
+	      DIAG(F("\n*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+	  } else {
+	      DIAG(F("\n*** %S FAULT PIN ACTIVE - OVERLOAD ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+	      if (lastCurrent < tripValue) {
+		  lastCurrent = tripValue; // exaggerate
+	      }
+	  }
+      }
+      if (lastCurrent < tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
 	if(power_good_counter<100)
 	  power_good_counter++;
@@ -149,9 +157,9 @@ void DCCWaveform::checkPowerOverload() {
         setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=motorDriver->raw2mA(lastCurrent);
         unsigned int maxmA=motorDriver->raw2mA(tripValue);
-        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%l ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, power_sample_overload_wait);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
+        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
 	    power_sample_overload_wait = 10000;
 	else
@@ -162,77 +170,45 @@ void DCCWaveform::checkPowerOverload() {
       // Try setting it back on after the OVERLOAD_WAIT
       setPowerMode(POWERMODE::ON);
       sampleDelay = POWER_SAMPLE_ON_WAIT;
+      // Debug code....
+      DIAG(F("\n*** %S TRACK POWER RESET delay=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), sampleDelay);
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
   }
 }
+// For each state of the wave  nextState=stateTransform[currentState] 
+const WAVE_STATE DCCWaveform::stateTransform[]={
+   /* WAVE_START   -> */ WAVE_PENDING,
+   /* WAVE_MID_1   -> */ WAVE_START,
+   /* WAVE_HIGH_0  -> */ WAVE_MID_0,
+   /* WAVE_MID_0   -> */ WAVE_LOW_0,
+   /* WAVE_LOW_0   -> */ WAVE_START,
+   /* WAVE_PENDING (should not happen) -> */ WAVE_PENDING};
 
-
-
-
-
-// process time-edge sensitive part of interrupt
-// return true if second level required
-bool DCCWaveform::interrupt1() {
-  // NOTE: this must consume transmission buffers even if the power is off
-  // otherwise can cause hangs in main loop waiting for the pendingBuffer.
-  switch (state) {
-    case 0:  // start of bit transmission
-      setSignal(HIGH);
-      state = 1;
-      return true; // must call interrupt2 to set currentBit
-
-    case 1:  // 58us after case 0
-      if (currentBit) {
-        setSignal(LOW);
-        state = 0;
-      }
-      else  {
-        setSignal(HIGH);  // jitter prevention
-        state = 2;
-      }
-      break;
-    case 2:  // 116us after case 0
-      setSignal(LOW);
-      state = 3;
-      break;
-    case 3:  // finished sending zero bit
-      setSignal(LOW);  // jitter prevention
-      state = 0;
-      break;
-  }
-
-  // ACK check is prog track only and will only be checked if 
-  // this is not case(0) which needs  relatively expensive packet change code to be called.
-  if (ackPending) checkAck();
-
-  return false;
-
-}
-
-void DCCWaveform::setSignal(bool high) {
-  if (progTrackSyncMain) {
-    if (!isMainTrack) return; // ignore PROG track waveform while in sync
-    // set both tracks to same signal
-    motorDriver->setSignal(high);
-    progTrack.motorDriver->setSignal(high);
-    return;     
-  }
-  motorDriver->setSignal(high);
-}
-      
+// For each state of the wave, signal pin is HIGH or LOW   
+const bool DCCWaveform::signalTransform[]={
+   /* WAVE_START   -> */ HIGH,
+   /* WAVE_MID_1   -> */ LOW,
+   /* WAVE_HIGH_0  -> */ HIGH,
+   /* WAVE_MID_0   -> */ LOW,
+   /* WAVE_LOW_0   -> */ LOW,
+   /* WAVE_PENDING (should not happen) -> */ LOW};
+        
 void DCCWaveform::interrupt2() {
-  // set currentBit to be the next bit to be sent.
+  // calculate the next bit to be sent:
+  // set state WAVE_MID_1  for a 1=bit
+  //        or WAVE_HIGH_0 for a 0 bit.
 
   if (remainingPreambles > 0 ) {
-    currentBit = true;
+    state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
     return;
   }
 
+  // Wave has gone HIGH but what happens next depends on the bit to be transmitted
   // beware OF 9-BIT MASK  generating a zero to start each byte
-  currentBit = transmitPacket[bytes_sent] & bitMask[bits_sent];
+  state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
   bits_sent++;
 
   // If this is the last bit of a byte, prepare for the next byte
@@ -252,7 +228,10 @@ void DCCWaveform::interrupt2() {
       }
       else if (packetPending) {
         // Copy pending packet to transmit packet
-        for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        // a fixed length memcpy is faster than a variable length loop for these small lengths
+        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+        
         transmitLength = pendingLength;
         transmitRepeats = pendingRepeats;
         packetPending = false;
@@ -277,7 +256,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   while (packetPending);
 
   byte checksum = 0;
-  for (int b = 0; b < byteCount; b++) {
+  for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];
   }
@@ -288,16 +267,12 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   sentResetsSincePacket=0;
 }
 
-int DCCWaveform::getLastCurrent() {
-   return lastCurrent;
-}
-
 // Operations applicable to PROG track ONLY.
 // (yes I know I could have subclassed the main track but...) 
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
-      int baseline = motorDriver->getCurrentRaw();
+      int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -325,18 +300,17 @@ byte DCCWaveform::getAck() {
 
 void DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
-    
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
         return; 
     }
       
-    lastCurrent=motorDriver->getCurrentRaw();
-    if (lastCurrent > ackMaxCurrent) ackMaxCurrent=lastCurrent;
+    int current=motorDriver->getCurrentRaw();
+    if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
-    if (lastCurrent>ackThreshold) {
+    if (current>ackThreshold) {
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
        return;
     }

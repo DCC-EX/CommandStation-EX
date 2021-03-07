@@ -1,5 +1,5 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *
@@ -22,12 +22,11 @@
 //
 // It will create a driver implemntation and a shim class implementation.
 // This means that other classes can reference the shim without knowing
-// which libraray is involved.
+// which library is involved.
 ////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include "config.h"
 #include <Wire.h>
 #include "LCDDisplay.h"
   
@@ -50,7 +49,7 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
 
 #else 
   #include "LCD_NONE.h"
-  #define CONDITIONAL_LCD_START if (false) /* NO LCD CONFIG */      
+  #define CONDITIONAL_LCD_START if (true) /* NO LCD CONFIG, but do the LCD macros to get DIAGS */      
 #endif
 
 #endif // LCD_Implementation_h

@@ -17,13 +17,18 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  * 
  */
-
-#include "config.h"
-#include "defines.h" // This should be changed to DCCEX.h when possible
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #warning config.h not found. Using defaults from config.example.h 
+  #include "config.example.h"
+#endif
+#include "defines.h" 
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
+#include "DCCTimer.h"
 
 EthernetInterface * EthernetInterface::singleton=NULL;
 /**
@@ -45,10 +50,15 @@ void EthernetInterface::setup()
  */
 EthernetInterface::EthernetInterface()
 {
-    byte mac[]=MAC_ADDRESS;
+    byte mac[6];
+    DCCTimer::getSimulatedMacAddress(mac);
+    DIAG(F("\n+++++ Ethernet Setup. Simulatd mac="));
+    for (byte i=0;i<sizeof(mac); i++) {
+        DIAG(F("%x:"),mac[i]);
+    }
+    DIAG(F("\n"));
     
-    DIAG(F("\n+++++ Ethernet Setup "));
-        connected=false;
+    connected=false;
    
     #ifdef IP_ADDRESS
     Ethernet.begin(mac, IP_ADDRESS);
@@ -73,11 +83,11 @@ EthernetInterface::EthernetInterface()
     
     IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
 
-    server = new EthernetServer(LISTEN_PORT); // Ethernet Server listening on default port LISTEN_PORT
+    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
     server->begin();
   
     LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), LISTEN_PORT);
+    LCD(5,F("Port:%d"), IP_PORT);
 
     outboundRing=new RingStream(OUTBOUND_RING_SIZE);     
 }

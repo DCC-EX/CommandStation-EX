@@ -22,13 +22,9 @@
 #if defined(ARDUINO_ARCH_SAMD)
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>
-  Print * StringFormatter::diagSerial= &SerialUSB;
-  
-#elif defined(ARDUINO_ARCH_AVR)
-  Print * StringFormatter::diagSerial= &Serial;
-#elif defined(ARDUINO_ARCH_MEGAAVR)
+  Print * StringFormatter::diagSerial= &SerialUSB; 
+#else
   Print * StringFormatter::diagSerial=&Serial;
-  #define __FlashStringHelper char
 #endif
 
 #include "LCDDisplay.h"
@@ -40,14 +36,14 @@ bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 
  
-void StringFormatter::diag( const __FlashStringHelper* input...) {
+void StringFormatter::diag( const FSH* input...) {
   if (!diagSerial) return;    
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
 }
 
-void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
+void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
 
   // Issue the LCD as a diag first
@@ -62,25 +58,25 @@ void StringFormatter::lcd(byte row, const __FlashStringHelper* input...) {
   send2(LCDDisplay::lcdDisplay,input,args);
 }
 
-void StringFormatter::send(Print * stream, const __FlashStringHelper* input...) {
+void StringFormatter::send(Print * stream, const FSH* input...) {
   va_list args;
   va_start(args, input);
   send2(stream,input,args);
 }
 
-void StringFormatter::send(Print & stream, const __FlashStringHelper* input...) {
+void StringFormatter::send(Print & stream, const FSH* input...) {
   va_list args;
   va_start(args, input);
   send2(&stream,input,args);
 }
 
-void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va_list args) {
+void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
     
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
 
   char* flash=(char*)format;
   for(int i=0; ; ++i) {
-    char c=pgm_read_byte_near(flash+i);
+    char c=GETFLASH(flash+i);
     if (c=='\0') return;
     if(c!='%') { stream->print(c); continue; }
 
@@ -91,14 +87,14 @@ void StringFormatter::send2(Print * stream,const __FlashStringHelper* format, va
     
     formatContinues=false;
     i++;
-    c=pgm_read_byte_near(flash+i);
+    c=GETFLASH(flash+i);
     switch(c) {
       case '%': stream->print('%'); break;
       case 'c': stream->print((char) va_arg(args, int)); break;
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
-      case 'E': printEscapes(stream,(const __FlashStringHelper*)va_arg(args, char*)); break;
-      case 'S': stream->print((const __FlashStringHelper*)va_arg(args, char*)); break;
+      case 'E': printEscapes(stream,(const FSH*)va_arg(args, char*)); break;
+      case 'S': stream->print((const FSH*)va_arg(args, char*)); break;
       case 'd': printPadded(stream,va_arg(args, int), formatWidth, formatLeft); break;
       case 'l': printPadded(stream,va_arg(args, long), formatWidth, formatLeft); break;
       case 'b': stream->print(va_arg(args, int), BIN); break;
@@ -138,12 +134,12 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
  }
 }
 
-void StringFormatter::printEscapes(Print * stream, const __FlashStringHelper * input) {
+void StringFormatter::printEscapes(Print * stream, const FSH * input) {
  
  if (!stream) return;
  char* flash=(char*)input;
  for(int i=0; ; ++i) {
-  char c=pgm_read_byte_near(flash+i);
+  char c=GETFLASH(flash+i);
   printEscape(stream,c);
   if (c=='\0') return;
  }

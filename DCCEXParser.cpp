@@ -52,7 +52,7 @@ const int HASH_KEYWORD_ETHERNET = -30767;
 const int HASH_KEYWORD_MAX = 16244;
 const int HASH_KEYWORD_MIN = 15978;
 
-int DCCEXParser::stashP[MAX_PARAMS];
+int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
 
 Print *DCCEXParser::stashStream = NULL;
@@ -102,7 +102,7 @@ void DCCEXParser::loop(Stream &stream)
     Sensor::checkAll(&stream); // Update and print changes
 }
 
-int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
+int DCCEXParser::splitValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -111,10 +111,10 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     bool signNegative = false;
 
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_PARAMS; i++)
+    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
-    while (parameterCount < MAX_PARAMS)
+    while (parameterCount < MAX_COMMAND_PARAMS)
     {
         byte hot = *remainingCmd;
 
@@ -143,6 +143,7 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
                 runningValue = 10 * runningValue + (hot - '0');
                 break;
             }
+            if (hot >= 'a' && hot <= 'z') hot=hot-'a'+'A'; // uppercase a..z
             if (hot >= 'A' && hot <= 'Z')
             {
                 // Since JMRI got modified to send keywords in some rare cases, we need this
@@ -160,7 +161,7 @@ int DCCEXParser::splitValues(int result[MAX_PARAMS], const byte *cmd)
     return parameterCount;
 }
 
-int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
+int DCCEXParser::splitHexValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -168,10 +169,10 @@ int DCCEXParser::splitHexValues(int result[MAX_PARAMS], const byte *cmd)
     const byte *remainingCmd = cmd + 1; // skips the opcode
     
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_PARAMS; i++)
+    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
-    while (parameterCount < MAX_PARAMS)
+    while (parameterCount < MAX_COMMAND_PARAMS)
     {
         byte hot = *remainingCmd;
 
@@ -237,7 +238,7 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 }
 
 // Parse an F() string 
-void DCCEXParser::parse(const __FlashStringHelper * cmd) {
+void DCCEXParser::parse(const FSH * cmd) {
       int size=strlen_P((char *)cmd)+1; 
       char buffer[size];
       strcpy_P(buffer,(char *)cmd);
@@ -250,7 +251,7 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
     (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
         DIAG(F("\nPARSING:%s\n"), com);
-    int p[MAX_PARAMS];
+    int p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte params = splitValues(p, com);
@@ -314,12 +315,33 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
             return;
         break;
 
-    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE>
-        if (p[2] != (p[2] & 1))
-            return;
-        DCC::setAccessory(p[0], p[1], p[2] == 1);
+    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE> or <a LINEARADDRESS ACTIVATE>
+        { 
+          int address;
+          byte subaddress;
+          byte activep;
+          if (params==2) { // <a LINEARADDRESS ACTIVATE>
+              address=(p[0] - 1) / 4 + 1;
+              subaddress=(p[0] - 1)  % 4;
+              activep=1;        
+          }
+          else if (params==3) { // <a ADDRESS SUBADDRESS ACTIVATE>
+              address=p[0];
+              subaddress=p[1];
+              activep=2;        
+          }
+          else break; // invalid no of parameters
+          
+          if (
+             ((address & 0x01FF) != address)      // invalid address (limit 9 bits ) 
+          || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
+          || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
+          ) break; 
+            
+          DCC::setAccessory(address, subaddress,p[activep]==1);
+        }
         return;
-
+     
     case 'T': // TURNOUT  <T ...>
         if (parseT(stream, params, p))
             return;
@@ -414,7 +436,8 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         {
             POWERMODE mode = opcode == '1' ? POWERMODE::ON : POWERMODE::OFF;
             DCC::setProgTrackSyncMain(false); // Only <1 JOIN> will set this on, all others set it off
-            if (params == 0)
+            if (params == 0 ||
+		(MotorDriver::commonFaultPin && p[0] != HASH_KEYWORD_JOIN)) // commonFaultPin prevents individual track handling
             {
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 DCCWaveform::progTrack.setPowerMode(mode);
@@ -732,10 +755,6 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         Diag::WITHROTTLE = onOff;
         return true;
 
-    case HASH_KEYWORD_DCC:
-        DCCWaveform::setDiagnosticSlowWave(params >= 1 && p[1] == HASH_KEYWORD_SLOW);
-        return true;
-
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);
 	return true;
@@ -752,13 +771,13 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 }
 
 // CALLBACKS must be static
-bool DCCEXParser::stashCallback(Print *stream, int p[MAX_PARAMS])
+bool DCCEXParser::stashCallback(Print *stream, int p[MAX_COMMAND_PARAMS])
 {
     if (stashBusy )
         return false;
     stashBusy = true;
     stashStream = stream;
-    memcpy(stashP, p, MAX_PARAMS * sizeof(p[0]));
+    memcpy(stashP, p, MAX_COMMAND_PARAMS * sizeof(p[0]));
     return true;
 }
 void DCCEXParser::callback_W(int result)
