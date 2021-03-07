@@ -19,7 +19,7 @@
  */
 #ifndef WifiInterface_h
 #define WifiInterface_h
-#include "config.h"
+#include "FSH.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
@@ -31,26 +31,23 @@ class WifiInterface
 
 public:
   static bool setup(long serial_link_speed, 
-                          const __FlashStringHelper *wifiESSID,
-                          const __FlashStringHelper *wifiPassword,
-                          const __FlashStringHelper *hostname,
-                          const int port = 2560);
+                          const FSH *wifiESSID,
+                          const FSH *wifiPassword,
+                          const FSH *hostname,
+                          const int port,
+                          const byte channel);
   static void loop();
   static void ATCommand(const byte *command);
-
+  
 private:
-  static wifiSerialState setup(Stream &setupStream, const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
-                    const __FlashStringHelper *hostname, int port);
+  static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
+                    const FSH *hostname, int port, byte channel);
   static Stream *wifiStream;
   static DCCEXParser parser;
-  static wifiSerialState setup2(const __FlashStringHelper *SSSid, const __FlashStringHelper *password,
-                     const __FlashStringHelper *hostname, int port);
-  static bool checkForOK(const unsigned int timeout, const char *waitfor, bool echo, bool escapeEcho = true);
+  static wifiSerialState setup2(const FSH *SSSid, const FSH *password,
+                     const FSH *hostname, int port, byte channel);
+  static bool checkForOK(const unsigned int timeout, bool echo, bool escapeEcho = true);
+  static bool checkForOK(const unsigned int timeout, const FSH *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
-  static bool closeAfter;
-  static byte loopstate;
-  static int datalength;
-  static int connectionId;
-  static unsigned long loopTimeoutStart;
 };
 #endif

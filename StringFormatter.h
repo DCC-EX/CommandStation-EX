@@ -19,12 +19,10 @@
 #ifndef StringFormatter_h
 #define StringFormatter_h
 #include <Arduino.h>
-
+#include "FSH.h"
 #if defined(ARDUINO_ARCH_SAMD)
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>  
-#elif defined(ARDUINO_ARCH_MEGAAVR)
-  #define __FlashStringHelper char
 #endif
 
 #include "LCDDisplay.h"
@@ -41,22 +39,22 @@ class Diag {
 class StringFormatter
 {
   public:
-    static void send(Print * serial, const __FlashStringHelper* input...);
-    static void send(Print & serial, const __FlashStringHelper* input...);
+    static void send(Print * serial, const FSH* input...);
+    static void send(Print & serial, const FSH* input...);
     
     static void printEscapes(Print * serial,char * input);
-    static void printEscapes(Print * serial,const __FlashStringHelper* input);
+    static void printEscapes(Print * serial,const FSH* input);
     static void printEscape(Print * serial, char c);
 
     // DIAG support
     static Print * diagSerial;
-    static void diag( const __FlashStringHelper* input...);
-    static void lcd(byte row, const __FlashStringHelper* input...);
+    static void diag( const FSH* input...);
+    static void lcd(byte row, const FSH* input...);
     static void printEscapes(char * input);
     static void printEscape( char c);
 
     private: 
-    static void send2(Print * serial, const __FlashStringHelper* input,va_list args);
+    static void send2(Print * serial, const FSH* input,va_list args);
     static void printPadded(Print* stream, long value, byte width, bool formatLeft);
 
 };

@@ -133,6 +133,8 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
        case 'P':  
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+	      if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling
+		DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
             }

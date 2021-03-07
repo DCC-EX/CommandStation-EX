@@ -20,7 +20,6 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 #include "MotorDriver.h"
-#include "ArduinoTimers.h"
 
 // Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
@@ -30,15 +29,18 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 // Number of preamble bits.
 const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
+const byte   MAX_PACKET_SIZE = 5;  // NMRA standard exrtended packets 
+
+// The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
+// to the transform array.
+enum  WAVE_STATE : byte {WAVE_START=0,WAVE_MID_1=1,WAVE_HIGH_0=2,WAVE_MID_0=3,WAVE_LOW_0=4,WAVE_PENDING=5};
 
 
-
-const byte   MAX_PACKET_SIZE = 12;
 // NOTE: static functions are used for the overall controller, then
 // one instance is created for each track.
 
 
-enum class POWERMODE { OFF, ON, OVERLOAD };
+enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 
 const byte idlePacket[] = {0xFF, 0x00, 0xFF};
 const byte resetPacket[] = {0x00, 0x00, 0x00};
@@ -46,17 +48,15 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
-    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber);
-    static void setDiagnosticSlowWave(bool slow);
-    static void loop();
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
+    static void loop(bool ackManagerActive);
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
 
     void beginTrack();
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
-    void checkPowerOverload();
-    int  getLastCurrent();
+    void checkPowerOverload(bool ackManagerActive);
     inline int get1024Current() {
 	  if (powerMode == POWERMODE::ON)
 	      return (int)(lastCurrent*(long int)1024/motorDriver->getRawCurrentTripValue());
@@ -105,12 +105,16 @@ class DCCWaveform {
     }
 
   private:
-    static VirtualTimer * interruptTimer;      
+    
+// For each state of the wave  nextState=stateTransform[currentState] 
+   static const WAVE_STATE stateTransform[6];
+
+// For each state of the wave, signal pin is HIGH or LOW   
+   static const bool signalTransform[6];
+  
     static void interruptHandler();
-    bool interrupt1();
     void interrupt2();
     void checkAck();
-    void setSignal(bool high);
     
     bool isMainTrack;
     MotorDriver*  motorDriver;
@@ -120,15 +124,14 @@ class DCCWaveform {
     byte transmitRepeats;      // remaining repeats of transmission
     byte remainingPreambles;
     byte requiredPreambles;
-    bool currentBit;           // bit to be transmitted
     byte bits_sent;           // 0-8 (yes 9 bits) sent for current byte
     byte bytes_sent;          // number of bytes sent from transmitPacket
-    byte state;               // wave generator state machine
-
+    WAVE_STATE state;         // wave generator state machine
     byte pendingPacket[MAX_PACKET_SIZE];
     byte pendingLength;
     byte pendingRepeats;
-    int lastCurrent;
+    int  lastCurrent;
+    static int progTripValue;
     int maxmA;
     int tripmA;
     

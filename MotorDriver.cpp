@@ -18,50 +18,73 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
-#include "AnalogReadFast.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
 
+#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
+#define isLOW(fastpin)    (!isHIGH(fastpin))
 
-
-#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_SAMC) || defined(ARDUINO_ARCH_MEGAAVR)
-    #define WritePin digitalWrite
-    #define ReadPin digitalRead
-#else
-    // use the DIO2 libraray for much faster pin access
-    #define GPIO2_PREFER_SPEED 1
-    #include <DIO2.h>  // use IDE menu Tools..Manage Libraries to locate and  install DIO2
-    #define WritePin digitalWrite2
-    #define ReadPin digitalRead2
-#endif
-    
+bool MotorDriver::usePWM=false;
+bool MotorDriver::commonFaultPin=false;
+       
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
+  getFastPin(F("POWER"),powerPin,fastPowerPin);
+  pinMode(powerPin, OUTPUT);
+  
   signalPin=signal_pin;
+  getFastPin(F("SIG"),signalPin,fastSignalPin);
+  pinMode(signalPin, OUTPUT);
+  
   signalPin2=signal_pin2;
+  if (signalPin2!=UNUSED_PIN) {
+    dualSignal=true;
+    getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
+    pinMode(signalPin2, OUTPUT);
+  }
+  else dualSignal=false; 
+  
   brakePin=brake_pin;
+  if (brake_pin!=UNUSED_PIN){
+    invertBrake=brake_pin < 0;
+    brakePin=invertBrake ? 0-brake_pin : brake_pin;
+    getFastPin(F("BRAKE"),brakePin,fastBrakePin);
+    pinMode(brakePin, OUTPUT);
+    setBrake(false);
+  }
+  else brakePin=UNUSED_PIN;
+  
   currentPin=current_pin;
-  senseFactor=sense_factor;
+  pinMode(currentPin, INPUT);
+
   faultPin=fault_pin;
+  if (faultPin != UNUSED_PIN) {
+    getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
+    pinMode(faultPin, INPUT);
+  }
+
+  senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
-  pinMode(powerPin, OUTPUT);
-  pinMode(brakePin < 0 ? -brakePin : brakePin, OUTPUT);
-  setBrake(false);
-  pinMode(signalPin, OUTPUT);
-  if (signalPin2 != UNUSED_PIN) pinMode(signalPin2, OUTPUT);
-  pinMode(currentPin, INPUT);
-  if (faultPin != UNUSED_PIN) pinMode(faultPin, INPUT);
 }
 
+bool MotorDriver::isPWMCapable() {
+    return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
+}
+
+
 void MotorDriver::setPower(bool on) {
-  if (brakePin == -4 && on) {
+  if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
     setBrake(true);
     setBrake(false);
+    setHIGH(fastPowerPin);
   }
-  WritePin(powerPin, on ? HIGH : LOW);
+  else setLOW(fastPowerPin);
 }
 
 // setBrake applies brake if on == true. So to get
@@ -73,30 +96,40 @@ void MotorDriver::setPower(bool on) {
 // compensate for that.
 //
 void MotorDriver::setBrake(bool on) {
-    bool state = on;
-    byte pin = brakePin;
-    if (brakePin < 0) {
-      pin=-pin;
-      state=!state;
-    }
-    WritePin(pin, state ? HIGH : LOW);
-    //DIAG(F("BrakePin: %d is %d\n"), pin, ReadPin(pin));
+  if (brakePin == UNUSED_PIN) return;
+  if (on ^ invertBrake) setHIGH(fastBrakePin);
+  else setLOW(fastBrakePin);
 }
 
 void MotorDriver::setSignal( bool high) {
-  WritePin(signalPin, high ? HIGH : LOW);
-  if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
+   if (usePWM) {
+    DCCTimer::setPWM(signalPin,high);
+   }
+   else {
+     if (high) {
+        setHIGH(fastSignalPin);
+        if (dualSignal) setLOW(fastSignalPin2);
+     }
+     else {
+        setLOW(fastSignalPin);
+        if (dualSignal) setHIGH(fastSignalPin2);
+     }
+   }
 }
 
-
+/*
+ * Return the current reading as pin reading 0 to 1023. If the fault
+ * pin is activated return a negative current to show active fault pin.
+ * As there is no -0, ceat a little and return -1 in that case.
+ */
 int MotorDriver::getCurrentRaw() {
-  if (faultPin != UNUSED_PIN && ReadPin(faultPin) == LOW && ReadPin(powerPin) == HIGH)
-      return (int)(32000/senseFactor);
-  
+  int current = analogRead(currentPin);
+  if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
+      return (current == 0 ? -1 : -current);
+  return current;
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
-  //             so analogReadFast is used here. (-2uS) 
-  return analogReadFast(currentPin);
+  //             so DCCTimer has set the sample time to be much faster.  
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {
@@ -104,4 +137,16 @@ unsigned int MotorDriver::raw2mA( int raw) {
 }
 int MotorDriver::mA2raw( unsigned int mA) {
   return (int)(mA / senseFactor);
+}
+
+void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
+    DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
+    uint8_t port = digitalPinToPort(pin);
+    if (input)
+      result.inout = portInputRegister(port);
+    else
+      result.inout = portOutputRegister(port);
+    result.maskHIGH = digitalPinToBitMask(pin);
+    result.maskLOW = ~result.maskHIGH;
+    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
 }

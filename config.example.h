@@ -1,10 +1,9 @@
 /**********************************************************************
 
-Config.h
-COPYRIGHT (c) 2013-2016 Gregg E. Berman
+config.h
 COPYRIGHT (c) 2020 Fred Decker
 
-The configuration file for DCC++ EX Command Station
+The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 
@@ -21,12 +20,12 @@ The configuration file for DCC++ EX Command Station
 //  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
 //  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
 //  FIREBOX_MK1           : The Firebox MK1                    
-//  FIREBOX_MK1S          : The Firebox MK1S    
+//  FIREBOX_MK1S          : The Firebox MK1S
+//  IBT_2_WITH_ARDUINO    : Arduino Motor Shield for PROG and IBT-2 for MAIN
 //   |
 //   +-----------------------v
 //
 #define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
-
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
@@ -52,10 +51,14 @@ The configuration file for DCC++ EX Command Station
 // WIFI_SSID is the network name IF you want to use your existing home network.
 // Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
 //
-// If you do NOT set the WIFI_SSID, the WiFi chip will first try
-// to connect to the previously configured network and if that fails
-// fall back to Access Point mode. The SSID of the AP will be
-// automatically set to DCCEX_*.
+// If you do NOT set the WIFI_SSID and do NOT set the WIFI_PASSWORD,
+// then the WiFi chip will first try to connect to the previously
+// configured network and if that fails fall back to Access Point mode.
+// The SSID of the AP will be automatically set to DCCEX_*.
+// If you DO set the WIFI_SSID then the WiFi chip will try to connect
+// to that (home) network in station (client) mode. If a WIFI_PASSWORD
+// is set (recommended), that password will be used for AP mode.
+// The AP mode password must be at least 8 characters long.
 //
 // Your SSID may not conain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
@@ -69,12 +72,11 @@ The configuration file for DCC++ EX Command Station
 // WIFI_HOSTNAME: You probably don't need to change this
 #define WIFI_HOSTNAME "dccex"
 //
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
-// to set this if you have an extremely slow Wifi router.
-//
-//#define WIFI_CONNECT_TIMEOUT 14000
+// WIFI_CHANNEL: If the line "#define ENABLE_WIFI true" is uncommented, 
+// WiFi will be enabled (Mega only). The default channel is set to "1" whether
+// this line exists or not. If you need to use an alternate channel (we recommend
+// using only 1,6, or 11) you may change it here.
+#define WIFI_CHANNEL 1
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -90,26 +92,6 @@ The configuration file for DCC++ EX Command Station
 //
 //#define IP_ADDRESS { 192, 168, 1, 200 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE MAC ADDRESS ARRAY FOR ETHERNET COMMUNICATIONS INTERFACE
-//
-// Uncomment to use with Ethernet Shields
-//
-// Ethernet Shields do not have have a MAC address in hardware. There may be one on 
-// a sticker on the Shield that you should use. Otherwise choose one of the ones below
-// Be certain that no other device on your network has this same MAC address!
-//
-// 52:b8:8a:8e:ce:21
-// e3:e9:73:e1:db:0d
-// 54:2b:13:52:ac:0c
-
-// NOTE: This is not used with ESP8266 WiFi modules.
-
-//#define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
-
-// 
-// #define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -123,8 +105,9 @@ The configuration file for DCC++ EX Command Station
 // define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
 // #define LCD_DRIVER  0x3F,16,2
 
-//OR define OLED_DRIVER width,height in pixels (address auto detected) 
-// This will not work on a UNO due to memory constraints
+//OR define OLED_DRIVER width,height in pixels (address auto detected)
+// 128x32 or 128x64 I2C SSD1306-based devices are supported.
+// Also 132x64 I2C SH1106 devices.
 // #define OLED_DRIVER 128,32
 
 /////////////////////////////////////////////////////////////////////////////////////
