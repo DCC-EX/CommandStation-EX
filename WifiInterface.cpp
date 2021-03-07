@@ -72,6 +72,7 @@ bool WifiInterface::setup(long serial_link_speed,
   (void) wifiPassword;
   (void) hostname;
   (void) port;
+  (void) channel;
 #endif  
   
 #if NUM_SERIAL > 0
