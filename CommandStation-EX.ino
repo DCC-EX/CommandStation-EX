@@ -127,7 +127,7 @@ void loop()
 #if ENABLE_FREE_MEM_WARNING
   static int ramLowWatermark = 32767; // replaced on first loop 
 
-  int freeNow = freeMemory();
+  int freeNow = updateMinimumFreeMemory();
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
