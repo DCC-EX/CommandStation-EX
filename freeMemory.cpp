@@ -1,5 +1,6 @@
 /*
  *  © 2020, Harald Barth
+ *  © 2021, Neil McKechnie
  *  
  *  This file is part of Asbelos DCC-EX
  *
@@ -30,6 +31,9 @@ extern char *__malloc_heap_start;
 #endif
 
 
+static int minimum_free_memory = 32767;
+
+
 int freeMemory() {
   char top;
 #if defined(__arm__)
@@ -39,4 +43,13 @@ int freeMemory() {
 #else
 #error bailed out alredy above
 #endif
+}
+
+// Update low ram level.  Allow for extra bytes to be specified
+// by estimation or inspection, that may be used by other 
+// called subroutines.
+int updateMinimumFreeMemory(unsigned char extraBytes) {
+  int spare = freeMemory()-extraBytes;
+  if (spare < minimum_free_memory) minimum_free_memory = spare;
+  return minimum_free_memory;
 }
