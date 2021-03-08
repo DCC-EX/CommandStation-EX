@@ -51,6 +51,8 @@ const int HASH_KEYWORD_LIMIT = 27413;
 const int HASH_KEYWORD_ETHERNET = -30767;    
 const int HASH_KEYWORD_MAX = 16244;
 const int HASH_KEYWORD_MIN = 15978;
+const int HASH_KEYWORD_LCN = 15137;   
+
 
 int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -755,6 +757,10 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
 
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
         Diag::WITHROTTLE = onOff;
+        return true;
+  
+    case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
+        Diag::LCN = onOff;
         return true;
 
     case HASH_KEYWORD_PROGBOOST:

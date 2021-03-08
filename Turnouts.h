@@ -21,11 +21,12 @@
 
 #include <Arduino.h>
 #include "DCC.h"
+#include "LCN.h"
 
 const byte STATUS_ACTIVE=0x80; // Flag as activated
 const byte STATUS_PWM=0x40; // Flag as a PWM turnout
 const byte STATUS_PWMPIN=0x3F; // PWM  pin 0-63
-
+const int  LCN_TURNOUT_ADDRESS=-1;  // spoof dcc address -1 indicates a LCN turnout
 struct TurnoutData {
    int id;
    uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  
