@@ -31,7 +31,7 @@ extern char *__malloc_heap_start;
 #endif
 
 
-static int minimum_free_memory = 32767;
+static volatile int minimum_free_memory = 32767;
 
 
 int freeMemory() {
