@@ -134,31 +134,4 @@ void loop()
     LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
 #endif
-
-// Optionally report average and maximum loop time
-#if ENABLE_LOOP_MEASUREMENT
-  static unsigned long startTime = micros();
-  static unsigned int maxElapsed = 0;
-  static unsigned long totalElapsed = 0;
-  static unsigned long count = 0;
-  static unsigned long lastOutput = millis();
-
-  unsigned long endTime = micros();
-  unsigned int elapsed = endTime - startTime;
-
-  if (elapsed > maxElapsed) maxElapsed = elapsed;
-  count++;
-  totalElapsed += elapsed;
-
-  unsigned long currentMillis = millis();
-  if (currentMillis - lastOutput >= 5000) {
-    DIAG(F("\nLoop: max=%dus ave=%dus\n"), maxElapsed, totalElapsed/count);
-    maxElapsed = 0;
-    totalElapsed = 0;
-    count = 0;
-    lastOutput = currentMillis;
-  }
-  startTime = micros();
-#endif
-
 }
