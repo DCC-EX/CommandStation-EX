@@ -123,8 +123,7 @@ void loop()
 
   LCDDisplay::loop();  // ignored if LCD not in use 
   
-// Optionally report any decrease in memory (will automatically trigger on first call)
-#if ENABLE_FREE_MEM_WARNING
+// Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = 32767; // replaced on first loop 
 
   int freeNow = updateMinimumFreeMemory();
@@ -133,5 +132,4 @@ void loop()
     ramLowWatermark = freeNow;
     LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
-#endif
 }
