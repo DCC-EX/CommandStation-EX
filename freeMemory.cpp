@@ -18,6 +18,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Arduino.h>
 #include "freeMemory.h"
 
 // thanks go to  https://github.com/mpflaga/Arduino-MemoryFree
@@ -50,6 +51,10 @@ int freeMemory() {
 // called subroutines.
 int updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
+  byte sreg_save = SREG;
+  noInterrupts();
   if (spare < minimum_free_memory) minimum_free_memory = spare;
-  return minimum_free_memory;
+  int returnValue = minimum_free_memory;
+  SREG = sreg_save;
+  return returnValue;
 }
