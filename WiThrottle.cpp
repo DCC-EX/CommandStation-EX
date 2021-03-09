@@ -207,6 +207,25 @@ int WiThrottle::getLocoId(byte * cmd) {
     if (cmd[0]!='L' && cmd[0]!='S') return 0; // should not match any locos
     return getInt(cmd+1); 
 }
+
+RingStream * WiThrottle::stashStream;
+WiThrottle * WiThrottle::stashInstance;
+byte         WiThrottle::stashClient;
+char         WiThrottle::stashThrottleChar;
+
+void WiThrottle::getLocoCallback(int locoid) {
+  stashStream->mark(stashClient);
+  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+  else {
+    char addcmd[20]={'M',stashThrottleChar,'+',(locoid>127)?'L':'S'};
+    itoa(locoid,addcmd+4,10);
+    stashInstance->multithrottle(stashStream, (byte *)addcmd);
+    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+    DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+  }
+  stashStream->commit();
+}
+
 void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
@@ -217,6 +236,16 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 //       DIAG(F("\nMultithrottle aval=%c cab=%d"), aval[0],locoid);    
        switch(cmd[2]) {
           case '+':  // add loco request
+                if (cmd[3]=='*') { 
+                  // M+* means get loco from prog track
+                  stashStream= stream;
+                  stashClient=stream->peekTargetMark();
+                  stashThrottleChar=throttleChar;
+                  stashInstance=this;
+                  DCC::setProgTrackSyncMain(false);  // remove JOIN so we can read prog
+                  DCC::getLocoId(getLocoCallback);                    
+                  return; // return nothing in stream as response comes later 
+                }
                 //return error if address zero requested
                 if (locoid==0) { 
                   StringFormatter::send(stream, F("HMAddress '0' not supported!\n"), cmd[3] ,locoid);                    
@@ -236,7 +265,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                     //Get known Fn states from DCC 
                     for(int fKey=0; fKey<=28; fKey++) { 
                       int fstate=DCC::getFn(locoid,fKey);
-                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);
+                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c<;>F%d%d\n"),throttleChar,cmd[3],fstate,fKey);
                     }
                     StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
                     StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
