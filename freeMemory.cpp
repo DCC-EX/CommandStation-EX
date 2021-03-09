@@ -35,26 +35,31 @@ extern char *__malloc_heap_start;
 static volatile int minimum_free_memory = 32767;
 
 
-int freeMemory() {
+static inline int freeMemory() {
   char top;
 #if defined(__arm__)
   return &top - reinterpret_cast<char*>(sbrk(0));
 #elif defined(__AVR__)
   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 #else
-#error bailed out alredy above
+#error bailed out already above
 #endif
 }
 
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
-// called subroutines.
-int updateMinimumFreeMemory(unsigned char extraBytes) {
-  byte sreg_save = SREG;
-  noInterrupts();
+// called subroutines.  Must be called with interrupts disabled.
+//
+void updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
   if (spare < minimum_free_memory) minimum_free_memory = spare;
-  int returnValue = minimum_free_memory;
-  SREG = sreg_save;
-  return returnValue;
+}
+
+// Return low memory value.
+int minimumFreeMemory() {
+  byte sreg_save = SREG;
+  noInterrupts(); // Disable interrupts
+  int retval = minimum_free_memory;
+  SREG = sreg_save; // Restore interrupt state
+  return retval;
 }

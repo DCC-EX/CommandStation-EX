@@ -126,7 +126,7 @@ void loop()
 // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = 32767; // replaced on first loop 
 
-  int freeNow = updateMinimumFreeMemory();
+  int freeNow = minimumFreeMemory();
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
