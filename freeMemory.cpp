@@ -32,7 +32,7 @@ extern char *__malloc_heap_start;
 #endif
 
 
-static volatile int minimum_free_memory = 32767;
+static volatile int minimum_free_memory = __INT_MAX__;
 
 
 static inline int freeMemory() {
@@ -52,6 +52,7 @@ static inline int freeMemory() {
 //
 void updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
+  if (spare < 0) spare = 0;
   if (spare < minimum_free_memory) minimum_free_memory = spare;
 }
 

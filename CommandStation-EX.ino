@@ -123,8 +123,8 @@ void loop()
 
   LCDDisplay::loop();  // ignored if LCD not in use 
   
-// Report any decrease in memory (will automatically trigger on first call)
-  static int ramLowWatermark = 32767; // replaced on first loop 
+  // Report any decrease in memory (will automatically trigger on first call)
+  static int ramLowWatermark = __INT_MAX__; // replaced on first loop 
 
   int freeNow = minimumFreeMemory();
   if (freeNow < ramLowWatermark)
