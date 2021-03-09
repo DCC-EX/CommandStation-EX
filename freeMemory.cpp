@@ -50,9 +50,9 @@ int freeMemory() {
 // by estimation or inspection, that may be used by other 
 // called subroutines.
 int updateMinimumFreeMemory(unsigned char extraBytes) {
-  int spare = freeMemory()-extraBytes;
   byte sreg_save = SREG;
   noInterrupts();
+  int spare = freeMemory()-extraBytes;
   if (spare < minimum_free_memory) minimum_free_memory = spare;
   int returnValue = minimum_free_memory;
   SREG = sreg_save;
