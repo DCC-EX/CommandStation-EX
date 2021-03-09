@@ -155,9 +155,9 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
   } else {
       // toggle function on press, ignore release
       if (pressed) {
-	  speedTable[reg].functions ^= funcmask;
+        speedTable[reg].functions ^= funcmask;
       }
-      funcstate = speedTable[reg].functions & funcmask;
+      funcstate = (speedTable[reg].functions & funcmask)? 1 : 0;
   }
   updateGroupflags(speedTable[reg].groupFlags, functionNumber);
   return funcstate;
