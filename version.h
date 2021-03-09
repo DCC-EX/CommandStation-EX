@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.4"
+#define VERSION "3.0.5"
+// 3.0.5 Includes:
+// Fix Fn Key startup with loco ID and fix state change for F16-28
 // 3.0.4 Includes:
 // Wifi startup bugfixes
 // 3.0.3 Includes:
