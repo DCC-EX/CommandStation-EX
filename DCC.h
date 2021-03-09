@@ -22,6 +22,7 @@
 #include "MotorDriver.h"
 #include "MotorDrivers.h"
 #include "FSH.h"
+
 typedef void (*ACK_CALLBACK)(int result);
 
 enum ackOp : byte
@@ -85,15 +86,15 @@ public:
   static void setProgTrackBoost(bool on);    // when true, special prog track current limit does not apply
 
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
-  static void readCV(int cv, ACK_CALLBACK callback, bool blocking = false);
-  static void readCVBit(int cv, byte bitNum, ACK_CALLBACK callback, bool blocking = false); // -1 for error
-  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
-  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
-  static void verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback, bool blocking = false);
-  static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback, bool blocking = false);
+  static void readCV(int cv, ACK_CALLBACK callback);
+  static void readCVBit(int cv, byte bitNum, ACK_CALLBACK callback); // -1 for error
+  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback);
+  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  static void verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback);
+  static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
 
-  static void getLocoId(ACK_CALLBACK callback, bool blocking = false);
-  static void setLocoId(int id,ACK_CALLBACK callback, bool blocking = false);
+  static void getLocoId(ACK_CALLBACK callback);
+  static void setLocoId(int id,ACK_CALLBACK callback);
 
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
@@ -135,10 +136,10 @@ private:
   static byte ackManagerStash;
   static bool ackReceived;
   static ACK_CALLBACK ackManagerCallback;
-  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback, bool blocking);
-  static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback, bool blocking);
-  static void ackManagerLoop(bool blocking);
-  static bool checkResets(bool blocking, uint8_t numResets);
+  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
+  static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback);
+  static void ackManagerLoop();
+  static bool checkResets( uint8_t numResets);
   static const int PROG_REPEATS = 8; // repeats of programming commands (some decoders need at least 8 to be reliable)
 
   // NMRA codes #

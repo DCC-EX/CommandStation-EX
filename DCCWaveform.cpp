@@ -23,6 +23,7 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include "freeMemory.h"
  
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
@@ -203,6 +204,9 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
+    // Update free memory diagnostic as we don't have anything else to do this time.
+    // Allow for checkAck and its called functions using 22 bytes more.
+    updateMinimumFreeMemory(22); 
     return;
   }
 

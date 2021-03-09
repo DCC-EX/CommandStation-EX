@@ -33,7 +33,8 @@ class RingStream : public Print {
     int freeSpace();
     void mark(uint8_t b);
     bool commit();
-
+    uint8_t peekTargetMark();
+    
  private:
    int _len;
    int _pos_write;
