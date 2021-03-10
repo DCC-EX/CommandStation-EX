@@ -49,6 +49,11 @@ static inline int freeMemory() {
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
 // called subroutines.  Must be called with interrupts disabled.
+// 
+// Although __brkval may go up and down as heap memory is allocated
+// and freed, this function records only the worst case encountered.
+// So even if all of the heap is freed, the reported minimum free 
+// memory will not increase.
 //
 void updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
