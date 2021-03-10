@@ -720,7 +720,7 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         return true;
 
     case HASH_KEYWORD_RAM: // <D RAM>
-        StringFormatter::send(stream, F("\nFree memory=%d\n"), freeMemory());
+        StringFormatter::send(stream, F("\nFree memory=%d\n"), minimumFreeMemory());
         break;
 
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX] Value>

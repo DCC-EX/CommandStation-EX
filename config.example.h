@@ -111,6 +111,4 @@ The configuration file for DCC-EX Command Station
 // #define OLED_DRIVER 128,32
 
 /////////////////////////////////////////////////////////////////////////////////////
-//
-// Enable warning as memory gets depleted
-#define ENABLE_FREE_MEM_WARNING false
+
