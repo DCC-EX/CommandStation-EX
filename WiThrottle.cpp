@@ -208,24 +208,6 @@ int WiThrottle::getLocoId(byte * cmd) {
     return getInt(cmd+1); 
 }
 
-RingStream * WiThrottle::stashStream;
-WiThrottle * WiThrottle::stashInstance;
-byte         WiThrottle::stashClient;
-char         WiThrottle::stashThrottleChar;
-
-void WiThrottle::getLocoCallback(int locoid) {
-  stashStream->mark(stashClient);
-  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
-  else {
-    char addcmd[20]={'M',stashThrottleChar,'+',(locoid>127)?'L':'S'};
-    itoa(locoid,addcmd+4,10);
-    stashInstance->multithrottle(stashStream, (byte *)addcmd);
-    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-    DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
-  }
-  stashStream->commit();
-}
-
 void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
@@ -237,14 +219,15 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
        switch(cmd[2]) {
           case '+':  // add loco request
                 if (cmd[3]=='*') { 
-                  // M+* means get loco from prog track
+                  // M+* means get loco from prog track, then join tracks ready to drive away
+                  // Stash the things the callback will need later
                   stashStream= stream;
                   stashClient=stream->peekTargetMark();
                   stashThrottleChar=throttleChar;
                   stashInstance=this;
-                  DCC::setProgTrackSyncMain(false);  // remove JOIN so we can read prog
-                  DCC::getLocoId(getLocoCallback);                    
-                  return; // return nothing in stream as response comes later 
+                  // ask DCC to call us back when the loco id has been read
+                  DCC::getLocoId(getLocoCallback); // will remove any previous join                    
+                  return; // return nothing in stream as response is sent later in the callback 
                 }
                 //return error if address zero requested
                 if (locoid==0) { 
@@ -396,4 +379,24 @@ void WiThrottle::checkHeartbeat() {
 
 char WiThrottle::LorS(int cab) {
     return (cab<127)?'S':'L';
-} 
+}
+
+// Drive Away feature. Callback handling
+ 
+RingStream * WiThrottle::stashStream;
+WiThrottle * WiThrottle::stashInstance;
+byte         WiThrottle::stashClient;
+char         WiThrottle::stashThrottleChar;
+
+void WiThrottle::getLocoCallback(int locoid) {
+  stashStream->mark(stashClient);
+  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+  else {
+    char addcmd[20]={'M',stashThrottleChar,'+',LorS(locoid) };
+    itoa(locoid,addcmd+4,10);
+    stashInstance->multithrottle(stashStream, (byte *)addcmd);
+    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+    DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+  }
+  stashStream->commit();
+}
