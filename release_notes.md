@@ -4,6 +4,9 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Consisting through JMRI** - currently does not work in this release.  You may use the <M> command to do this manually.
  - **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
  - **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry 
+
+**Summar of the key new features added to CommandStation-EX V3.0.4**
+ - **"Drive-Away" Feature added so that throttles like Engine Driver can allow a loco to be programmed on a usable, electrically isolated programming track and then drive off onto the main track.
  
 **Summary of the key new features added to CommandStation-EX V3.0.3**
  - **<W addr> command to write loco address and clear consist** 
