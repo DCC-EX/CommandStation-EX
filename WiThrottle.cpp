@@ -248,7 +248,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                     //Get known Fn states from DCC 
                     for(int fKey=0; fKey<=28; fKey++) { 
                       int fstate=DCC::getFn(locoid,fKey);
-                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c<;>F%d%d\n"),throttleChar,cmd[3],fstate,fKey);
+                        if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
                     }
                     StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
                     StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
