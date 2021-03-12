@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.5"
+#define VERSION "3.0.6"
+// 3.0.6 Includes:
+// Fix Bug that did not let us transmit 5 byte sized packets like PoM
 // 3.0.5 Includes:
 // Fix Fn Key startup with loco ID and fix state change for F16-28
 // 3.0.4 Includes:

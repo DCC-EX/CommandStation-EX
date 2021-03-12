@@ -198,6 +198,10 @@ void DCC::setAccessory(int address, byte number, bool activate) {
   DCCWaveform::mainTrack.schedulePacket(b, 2, 4);      // Repeat the packet four times
 }
 
+//
+// writeCVByteMain: Write a byte with PoM on main. This writes
+// the 5 byte sized packet to implement this DCC function
+//
 void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   byte b[5];
   byte nB = 0;
@@ -212,6 +216,10 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
+//
+// writeCVBitMain: Write a bit of a byte with PoM on main. This writes
+// the 5 byte sized packet to implement this DCC function
+//
 void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   byte b[5];
   byte nB = 0;

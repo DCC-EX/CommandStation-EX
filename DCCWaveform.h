@@ -29,7 +29,7 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 // Number of preamble bits.
 const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 5;  // NMRA standard exrtended packets 
+const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
 // to the transform array.
@@ -119,7 +119,7 @@ class DCCWaveform {
     bool isMainTrack;
     MotorDriver*  motorDriver;
     // Transmission controller
-    byte transmitPacket[MAX_PACKET_SIZE];  // packet being transmitted
+    byte transmitPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte transmitLength;
     byte transmitRepeats;      // remaining repeats of transmission
     byte remainingPreambles;
@@ -127,7 +127,7 @@ class DCCWaveform {
     byte bits_sent;           // 0-8 (yes 9 bits) sent for current byte
     byte bytes_sent;          // number of bytes sent from transmitPacket
     WAVE_STATE state;         // wave generator state machine
-    byte pendingPacket[MAX_PACKET_SIZE];
+    byte pendingPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte pendingLength;
     byte pendingRepeats;
     int  lastCurrent;

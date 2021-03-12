@@ -256,7 +256,7 @@ void DCCWaveform::interrupt2() {
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount >= MAX_PACKET_SIZE) return; // allow for chksum
+  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
   while (packetPending);
 
   byte checksum = 0;
@@ -264,6 +264,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
     checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];
   }
+  // buffer is MAX_PACKET_SIZE but pendingPacket is one bigger
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
