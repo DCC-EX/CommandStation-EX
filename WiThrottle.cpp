@@ -207,6 +207,7 @@ int WiThrottle::getLocoId(byte * cmd) {
     if (cmd[0]!='L' && cmd[0]!='S') return 0; // should not match any locos
     return getInt(cmd+1); 
 }
+
 void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
           char throttleChar=cmd[1];
           int locoid=getLocoId(cmd+3); // -1 for *
@@ -217,6 +218,17 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 //       DIAG(F("\nMultithrottle aval=%c cab=%d"), aval[0],locoid);    
        switch(cmd[2]) {
           case '+':  // add loco request
+                if (cmd[3]=='*') { 
+                  // M+* means get loco from prog track, then join tracks ready to drive away
+                  // Stash the things the callback will need later
+                  stashStream= stream;
+                  stashClient=stream->peekTargetMark();
+                  stashThrottleChar=throttleChar;
+                  stashInstance=this;
+                  // ask DCC to call us back when the loco id has been read
+                  DCC::getLocoId(getLocoCallback); // will remove any previous join                    
+                  return; // return nothing in stream as response is sent later in the callback 
+                }
                 //return error if address zero requested
                 if (locoid==0) { 
                   StringFormatter::send(stream, F("HMAddress '0' not supported!\n"), cmd[3] ,locoid);                    
@@ -236,7 +248,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                     //Get known Fn states from DCC 
                     for(int fKey=0; fKey<=28; fKey++) { 
                       int fstate=DCC::getFn(locoid,fKey);
-                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);
+                        if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
                     }
                     StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
                     StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
@@ -367,4 +379,24 @@ void WiThrottle::checkHeartbeat() {
 
 char WiThrottle::LorS(int cab) {
     return (cab<127)?'S':'L';
-} 
+}
+
+// Drive Away feature. Callback handling
+ 
+RingStream * WiThrottle::stashStream;
+WiThrottle * WiThrottle::stashInstance;
+byte         WiThrottle::stashClient;
+char         WiThrottle::stashThrottleChar;
+
+void WiThrottle::getLocoCallback(int locoid) {
+  stashStream->mark(stashClient);
+  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+  else {
+    char addcmd[20]={'M',stashThrottleChar,'+',LorS(locoid) };
+    itoa(locoid,addcmd+4,10);
+    stashInstance->multithrottle(stashStream, (byte *)addcmd);
+    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+    DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+  }
+  stashStream->commit();
+}

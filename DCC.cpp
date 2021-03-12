@@ -659,6 +659,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+      setProgTrackSyncMain(false);
 	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
         if (Diag::ACK) DIAG(F("\nAuto Prog power on"));
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
@@ -725,23 +726,20 @@ void DCC::ackManagerLoop() {
      case ITC0:
      case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
         if (ackReceived) {
-            ackManagerProg = NULL; // all done now
-	          callback(opcode==ITC0?0:1);
+            callback(opcode==ITC0?0:1);
             return;
           }
         break;
         
       case ITCB:   // If True callback(byte)
           if (ackReceived) {
-            ackManagerProg = NULL; // all done now
             callback(ackManagerByte);
             return;
           }
         break;
 
-      case ITCB7:   // If True callback(byte & 0xF)
+      case ITCB7:   // If True callback(byte & 0x7F)
           if (ackReceived) {
-            ackManagerProg = NULL; // all done now
             callback(ackManagerByte & 0x7F);
             return;
           }
@@ -749,15 +747,13 @@ void DCC::ackManagerLoop() {
         
       case NAKFAIL:   // If nack callback(-1)
           if (!ackReceived) {
-            ackManagerProg = NULL; // all done now
-	          callback(-1);
+            callback(-1);
             return;
           }
         break;
         
       case FAIL:  // callback(-1)
-           ackManagerProg = NULL;
-	         callback(-1);
+           callback(-1);
            return;
            
       case STARTMERGE:
@@ -801,7 +797,6 @@ void DCC::ackManagerLoop() {
           
      case COMBINELOCOID: 
           // ackManagerStash is  cv17, ackManagerByte is CV 18
-          ackManagerProg=NULL;
           callback( ackManagerByte + ((ackManagerStash - 192) << 8));
           return;            
 
@@ -817,7 +812,6 @@ void DCC::ackManagerLoop() {
           break;     
      default: 
           DIAG(F("\n!! ackOp %d FAULT!!"),opcode);
-          ackManagerProg=NULL;
           callback( -1);
           return;        
     
@@ -826,6 +820,7 @@ void DCC::ackManagerLoop() {
   }
 }
 void DCC::callback(int value) {
+    ackManagerProg=NULL;  // no more steps to execute
     if (DCCWaveform::progTrack.autoPowerOff) {
       if (Diag::ACK) DIAG(F("\nAuto Prog power off"));
       DCCWaveform::progTrack.doAutoPowerOff();
