@@ -114,7 +114,28 @@ bool DCC::getThrottleDirection(int cab) {
 
 // Set function to value on or off
 void DCC::setFn( int cab, byte functionNumber, bool on) {
-  if (cab<=0 || functionNumber>28) return;
+  if (cab<=0 ) return;
+  
+  if (functionNumber>28) { 
+    //non reminding advanced binary bit set 
+    byte b[5];
+    byte nB = 0;
+    if (cab > 127)
+      b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
+    b[nB++] = lowByte(cab);
+    if (functionNumber <= 127) {
+       b[nB++] = 0b11011101;   // Binary State Control Instruction short form  
+       b[nB++] = functionNumber | (on ? 0x80 : 0);
+    }
+    else  {
+       b[nB++] = 0b11000000;   // Binary State Control Instruction long form  
+       b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
+       b[nB++] = functionNumber >>8 ;  // high order bits
+    }
+    DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+    return;
+  }
+  
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;  
 
