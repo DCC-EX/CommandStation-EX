@@ -493,9 +493,11 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
   int reg=lookupSpeedTable(cab);
   if (reg>=0) speedTable[reg].loco=0;
+  setThrottle2(cab,1); // ESTOP if this loco still on track
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
   for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
+  setThrottle2(0,1); // ESTOP any loco still on track
 }
 
 byte DCC::loopStatus=0;  
