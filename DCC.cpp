@@ -314,7 +314,8 @@ const ackOp FLASH READ_BIT_PROG[] = {
 const ackOp FLASH WRITE_BYTE_PROG[] = {
       BASELINE,
       WB,WACK,    // Write 
-      VB,WACK,     // validate byte 
+  //    VB,WACK,     // validate byte, unnecessary after write gave ACK. 
+  //                    Also, in some cases, like decoder reset, the value read back is not the same as written. 
       ITC1,       // if ok callback (1)
       FAIL        // callback (-1)
       };
