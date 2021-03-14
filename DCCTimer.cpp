@@ -81,6 +81,8 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
   void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     memcpy(mac,(void *) &SIGROW.SERNUM0,6);  // serial number
+    mac[0] &= 0xFE;
+    mac[0] |= 0x02;
   }
 
 #else 
@@ -139,7 +141,12 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
   #include <avr/boot.h> 
   void DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-    for (byte i=0; i<6; i++) mac[i]=boot_signature_byte_get(0x0E + i);
+    for (byte i=0; i<6; i++) {
+      mac[i]=boot_signature_byte_get(0x0E + i);
+    }
+    mac[0] &= 0xFE;
+    mac[0] |= 0x02;
+
   }
 
 #endif

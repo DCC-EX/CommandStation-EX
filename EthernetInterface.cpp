@@ -54,7 +54,7 @@ EthernetInterface::EthernetInterface()
     DCCTimer::getSimulatedMacAddress(mac);
     DIAG(F("\n+++++ Ethernet Setup. Simulatd mac="));
     for (byte i=0;i<sizeof(mac); i++) {
-        DIAG(F("%x:"),mac[i]);
+        DIAG(F("%s%x:"),mac[i] < 0x10 ? "0" : "", mac[i]);
     }
     DIAG(F("\n"));
     
