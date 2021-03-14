@@ -45,6 +45,7 @@ class MotorDriver {
 	    return rawCurrentTripValue;
     }
     bool isPWMCapable();
+    bool canMeasureCurrent();
     static bool usePWM;
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {

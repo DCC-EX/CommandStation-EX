@@ -689,6 +689,10 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
+        callback(-2);
+        return;
+      }
       setProgTrackSyncMain(false);
 	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
         if (Diag::ACK) DIAG(F("\nAuto Prog power on"));

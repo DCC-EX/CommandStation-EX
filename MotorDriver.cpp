@@ -58,7 +58,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
-  pinMode(currentPin, INPUT);
+  if (currentPin!=UNUSED_PIN) pinMode(currentPin, INPUT);
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
@@ -117,12 +117,16 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
+bool MotorDriver::canMeasureCurrent() {
+  return currentPin!=UNUSED_PIN;
+}
 /*
  * Return the current reading as pin reading 0 to 1023. If the fault
  * pin is activated return a negative current to show active fault pin.
  * As there is no -0, ceat a little and return -1 in that case.
  */
 int MotorDriver::getCurrentRaw() {
+  if (currentPin==UNUSED_PIN) return 0; 
   int current = analogRead(currentPin);
   if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
