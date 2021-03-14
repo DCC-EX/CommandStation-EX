@@ -40,7 +40,7 @@ void LCN::loop() {
       id = 10 * id + ch - '0';
     }
     else if (ch == 't' || ch == 'T') { // Turnout opcodes
-      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),ch,id);
+      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),id,(char)ch);
       Turnout * tt = Turnout::get(id);
       if (!tt) Turnout::create(id, LCN_TURNOUT_ADDRESS, 0);
       if (ch == 't') tt->data.tStatus |= STATUS_ACTIVE;
@@ -49,7 +49,7 @@ void LCN::loop() {
       id = 0;
     }
     else if (ch == 'S' || ch == 's') {
-      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),ch,id);
+      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),id,(char)ch);
       Sensor * ss = Sensor::get(id);
       if (!ss) ss = Sensor::create(id, 255,0); // impossible pin
       ss->active = ch == 'S';
