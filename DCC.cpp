@@ -658,6 +658,7 @@ int    DCC::ackManagerWord;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
+bool   DCC::ackManagerRejoin;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -691,6 +692,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+      ackManagerRejoin=DCCWaveform::progTrackSyncMain;
       if (!DCCWaveform::progTrack.canMeasureCurrent()) {
         callback(-2);
         return;
@@ -861,6 +863,10 @@ void DCC::callback(int value) {
       if (Diag::ACK) DIAG(F("\nAuto Prog power off"));
       DCCWaveform::progTrack.doAutoPowerOff();
     }
+
+    // Restore <1 JOIN> to state before BASELINE
+    setProgTrackSyncMain(ackManagerRejoin);
+    
     if (Diag::ACK) DIAG(F("\nCallback(%d)\n"),value);
     (ackManagerCallback)( value);
 }
