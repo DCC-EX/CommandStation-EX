@@ -480,7 +480,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         }
         return;
 
-    case '9': // ESTOP ALL  <9>
+    case '!': // ESTOP ALL  <!>
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1. 
         return;
 
@@ -527,7 +527,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         StringFormatter::send(stream, F("<# %d>"), MAX_LOCOS);
         return;
 
-    case '!': // Forget Loco <# [cab]>
+    case '-': // Forget Loco <- [cab]>
         if (params > 1 || p[0]<0) break;
         if (p[0]==0) DCC::forgetAllLocos();
         else  DCC::forgetLoco(p[0]);
