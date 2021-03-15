@@ -30,7 +30,8 @@ bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin, 
+                         int sense_Offset) {
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
@@ -69,6 +70,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  senseOffset=sense_Offset;  
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -123,11 +125,14 @@ bool MotorDriver::canMeasureCurrent() {
 /*
  * Return the current reading as pin reading 0 to 1023. If the fault
  * pin is activated return a negative current to show active fault pin.
- * As there is no -0, ceat a little and return -1 in that case.
+ * As there is no -0, create a little and return -1 in that case.
+ * 
+ * senseOffset handles the case where a shield returns values above or below 
+ * a central value depending on direction.
  */
 int MotorDriver::getCurrentRaw() {
   if (currentPin==UNUSED_PIN) return 0; 
-  int current = analogRead(currentPin);
+  int current = abs(analogRead(currentPin)-senseOffset);
   if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
   return current;
