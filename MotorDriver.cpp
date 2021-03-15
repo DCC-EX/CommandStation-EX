@@ -30,8 +30,7 @@ bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin, 
-                         int sense_Offset) {
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
@@ -59,7 +58,10 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
-  if (currentPin!=UNUSED_PIN) pinMode(currentPin, INPUT);
+  if (currentPin!=UNUSED_PIN) {
+    pinMode(currentPin, INPUT);
+    senseOffset=analogRead(currentPin); // value of sensor at zero current
+  }
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
@@ -70,7 +72,6 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
-  senseOffset=sense_Offset;  
 }
 
 bool MotorDriver::isPWMCapable() {
