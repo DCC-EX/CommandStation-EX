@@ -72,6 +72,7 @@ void LCDDisplay::loop() {
 }
 
 LCDDisplay *LCDDisplay::loop2(bool force) {
+  if (!lcdDisplay) return NULL;
   unsigned long currentMillis = millis();
 
   if (!force) {
