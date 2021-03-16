@@ -8,6 +8,7 @@ class LCN {
     static void loop();
     static void send(char opcode, int id, bool state);
   private :
+    static bool firstLoop; 
     static Stream * stream; 
     static int id;
 };

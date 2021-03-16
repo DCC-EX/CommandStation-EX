@@ -24,6 +24,7 @@
 
 int  LCN::id = 0;
 Stream * LCN::stream=NULL;
+bool LCN::firstLoop=true;
 
 void LCN::init(Stream & lcnstream) {
   stream=&lcnstream; 
@@ -33,9 +34,15 @@ void LCN::init(Stream & lcnstream) {
 
 // Inbound LCN traffic is postfix notation...   nnnX  where nnn is an id, X is the opcode
 void LCN::loop() {
-  if (stream) while (stream->available()) {
-
-  int ch = stream->read();
+  if (!stream) return;
+  if (firstLoop) {
+    firstLoop=false;
+    stream->println('X');
+    return; 
+  }
+  
+  while (stream->available()) {
+    int ch = stream->read();
     if (ch >= 0 && ch <= '9') {  // accumulate id value
       id = 10 * id + ch - '0';
     }
