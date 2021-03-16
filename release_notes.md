@@ -5,8 +5,29 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
  - **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry 
 
-**Summar of the key new features added to CommandStation-EX V3.0.4**
+**Summary of the key new features added to CommandStation-EX V3.0.7**
+  - **Support for 28 Speed steps** - Option to turn on 28 step speed decoders in addition to 128. If set, all locos will use 28 steps.
+  - **Improved overload messages with raw values (relative to offset)**
+
+**Summary of the key new features added to CommandStation-EX V3.0.6**
+
+ - **Prevent compiler warning about deprecated B constants**
+ - **Fix Bug that did not let us transmit 5 byte sized packets** - 5 Byte commands like PoM (programming on main) were not being sent correctly
+ - **Huge function numbers (DCC BinaryStateControl)** - Support Functions beyond F28
+ - **<!> ESTOP all** - New command to emergency stop all locos on the main track
+ - **<- [cab]> estop and forget cab/all cabs** - Stop and remove loco from the CS. Stops the repeating throttle messages
+ - **<D RESET> command to reboot arduino**
+ - **Automatic sensor offset detect** -
+ - **Improved startup msgs from Motor Drivers (accuracy and auto sense factors)** -
+ - **Drop post-write verify** - No need to double check CV writes. Writes are now even faster.
+ - **Allow current sene pin set to UNUSED_PIN** - No need to ground an unused analog current pin. Produce startup warning and callback -2 for prog track cmds.
+
+**Summary of the key new features added to CommandStation-EX V3.0.5**
+ - **Fix Fn Key startup with loco ID and fix state change for F16-28**
+
+**Summary of the key new features added to CommandStation-EX V3.0.4**
  - **"Drive-Away" Feature added so that throttles like Engine Driver can allow a loco to be programmed on a usable, electrically isolated programming track and then drive off onto the main track.
+ - **WiFi Startup Fixes**
  
 **Summary of the key new features added to CommandStation-EX V3.0.3**
  - **<W addr> command to write loco address and clear consist** 
@@ -54,6 +75,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 **CommandStation-EX Developers**
 - Chris Harlow - Bournemouth, UK (UKBloke)
 - Harald Barth - Stockholm, Sweden (Haba)
+- Neil McKechnie - Worcestershire, UK (NeilMck)
 - Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
 - M Steve Todd - - Engine Driver and JMRI Interface
@@ -74,7 +96,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 **WebThrotle-EX**
 - Fred Decker - Holly Springs, NC (FlightRisk/FrightRisk)
 - Mani Kumar - Bangalor, India (Mani /Mani Kumar)
-- Matt H - 
+- Matt H - Somewhere in Europe
 
 
 
