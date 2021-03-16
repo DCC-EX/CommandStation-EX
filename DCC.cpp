@@ -46,6 +46,7 @@ const byte FN_GROUP_5=0x10;
 
 FSH* DCC::shieldName=NULL;
 byte DCC::joinRelay=UNUSED_PIN;
+byte DCC::globalSpeedsteps=128;
 
 void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver,
                  byte joinRelayPin) {
@@ -81,28 +82,33 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
 
-#ifdef USE_28_STEP
+  if (globalSpeedsteps <= 28) {
 
-  uint8_t speed128 = speedCode & 0x7F;
-  uint8_t speed28;
-  uint8_t code28;
+    uint8_t speed128 = speedCode & 0x7F;
+    uint8_t speed28;
+    uint8_t code28;
 
-  if (speed128 == 0 || speed128 == 1) { // stop or emergency stop
+    if (speed128 == 0 || speed128 == 1) { // stop or emergency stop
       code28 = speed128;
-  } else {
+    } else {
       speed28= (speed128*10+36)/46;                 // convert 2-127 to 1-28
-      code28 = (speed28+3)/2 + 16*(!(speed28 & 1)); // convert 1-28 to DCC 28 step speed code
+/*
+      if (globalSpeedsteps <= 14)                   // Don't want to do 14 steps, to get F0 there is ugly
+        code28 = (speed28+3)/2 | (Value of F0);     // convert 1-28 to DCC 14 step speed code
+      else
+*/
+      code28 = (speed28+3)/2 | ( (speed28 & 1) ? 0 : 0b00010000 ); // convert 1-28 to DCC 28 step speed code
+    }
+    //        Construct command byte from:
+    //        command      speed    direction
+    b[nB++] = 0b01000000 | code28 | (0b00100000 * (speedCode & 0x80));
+
+  } else { // 128 speedsteps
+
+    b[nB++] = SET_SPEED;                      // 128-step speed control byte
+    b[nB++] = speedCode; // for encoding see setThrottle
+
   }
-  //        Construct command byte from:
-  //        command      speed    direction
-  b[nB++] = 0b01000000 | code28 | (0b00100000 * (speedCode & 0x80));
-
-#else
-
-  b[nB++] = SET_SPEED;                      // 128-step speed control byte
-  b[nB++] = speedCode; // for encoding see setThrottle
-
-#endif
 
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
