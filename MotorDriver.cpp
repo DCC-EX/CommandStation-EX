@@ -72,6 +72,12 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  
+  if (currentPin==UNUSED_PIN) 
+    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
+  else  
+    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d faultPin=%d\n"),
+    currentPin-A0, senseOffset,rawCurrentTripValue, faultPin);
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -133,8 +139,11 @@ bool MotorDriver::canMeasureCurrent() {
  */
 int MotorDriver::getCurrentRaw() {
   if (currentPin==UNUSED_PIN) return 0; 
-  int current = abs(analogRead(currentPin)-senseOffset);
-  if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
+  
+  int current = analogRead(currentPin)-senseOffset;
+  if (current<0) current=0-current;
+  
+  if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
   return current;
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
