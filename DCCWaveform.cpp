@@ -23,6 +23,7 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include "freeMemory.h"
  
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
@@ -45,9 +46,9 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
   if (MotorDriver::usePWM)
-    DIAG(F("\nWaveform using PWM pins for accuracy."));
+    DIAG(F("\nSignal pin config: high accuracy waveform"));
   else
-    DIAG(F("\nWaveform accuracy limited by signal pin configuration."));
+    DIAG(F("\nSignal pin config: normal accuracy waveform"));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -203,6 +204,9 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
+    // Update free memory diagnostic as we don't have anything else to do this time.
+    // Allow for checkAck and its called functions using 22 bytes more.
+    updateMinimumFreeMemory(22); 
     return;
   }
 
@@ -252,7 +256,7 @@ void DCCWaveform::interrupt2() {
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount >= MAX_PACKET_SIZE) return; // allow for chksum
+  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
   while (packetPending);
 
   byte checksum = 0;
@@ -260,6 +264,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
     checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];
   }
+  // buffer is MAX_PACKET_SIZE but pendingPacket is one bigger
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;

@@ -60,6 +60,14 @@ class WiThrottle {
       void multithrottle(RingStream * stream, byte * cmd);
       void locoAction(RingStream * stream, byte* aval, char throttleChar, int cab);
       void accessory(RingStream *, byte* cmd);
-      void checkHeartbeat();  
+      void checkHeartbeat(); 
+
+       // callback stuff to support prog track acquire
+       static RingStream * stashStream;
+       static WiThrottle * stashInstance;
+       static byte         stashClient;
+       static char         stashThrottleChar;
+       static void         getLocoCallback(int locoid);
+
 };
 #endif

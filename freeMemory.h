@@ -1,5 +1,6 @@
 /*
  *  © 2020, Harald Barth
+ *  © 2021, Neil McKechnie
  *  
  *  This file is part of DCC-EX
  *
@@ -19,5 +20,6 @@
 
 #ifndef freeMemory_h
 #define freeMemory_h
-int freeMemory();
+void updateMinimumFreeMemory(unsigned char extraBytes=0);
+int minimumFreeMemory();
 #endif

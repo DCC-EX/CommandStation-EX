@@ -16,12 +16,12 @@
 #endif
 
 // MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin,
-//             float senseFactor, unsigned int tripMilliamps, byte faultPin);
+//             float senseFactor, unsigned int tripMilliamps, byte faultPin [ , int senseOffset ]);
 //
 // If the brakePin is negative that means the sense
 // of the brake pin on the motor bridge is inverted
 // (HIGH == release brake)
-
+//
 // Arduino standard Motor Shield
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \

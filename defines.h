@@ -37,7 +37,11 @@
 #else
 #define ETHERNET_ON false
 #endif
- 
+
+#if WIFI_ON && ETHERNET_ON
+ #error Command Station does not support WIFI and ETHERNET at the same time.
+#endif
+  
 ////////////////////////////////////////////////////////////////////////////////
 //
 // This defines the speed at which the Arduino will communicate with the ESP8266 module.

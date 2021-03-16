@@ -34,7 +34,8 @@ struct FASTPIN {
 
 class MotorDriver {
   public:
-    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
+                byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
@@ -45,6 +46,7 @@ class MotorDriver {
 	    return rawCurrentTripValue;
     }
     bool isPWMCapable();
+    bool canMeasureCurrent();
     static bool usePWM;
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
@@ -61,6 +63,7 @@ class MotorDriver {
     bool dualSignal;       // true to use signalPin2
     bool invertBrake;       // brake pin passed as negative means pin is inverted
     float senseFactor;
+    int senseOffset;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
 };
