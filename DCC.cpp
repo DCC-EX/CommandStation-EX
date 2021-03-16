@@ -101,7 +101,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
     }
     //        Construct command byte from:
     //        command      speed    direction
-    b[nB++] = 0b01000000 | code28 | (0b00100000 * (speedCode & 0x80));
+    b[nB++] = 0b01000000 | code28 | ((speedCode & 0x80) ? 0b00100000 : 0);
 
   } else { // 128 speedsteps
 
