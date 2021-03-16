@@ -76,8 +76,8 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   if (currentPin==UNUSED_PIN) 
     DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
   else  
-    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d faultPin=%d\n"),
-    currentPin-A0, senseOffset,rawCurrentTripValue, faultPin);
+    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
+    currentPin-A0, senseOffset,rawCurrentTripValue);
 }
 
 bool MotorDriver::isPWMCapable() {
