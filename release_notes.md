@@ -16,7 +16,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
  - **Huge function numbers (DCC BinaryStateControl)** - Support Functions beyond F28
  - **<!> ESTOP all** - New command to emergency stop all locos on the main track
  - **<- [cab]> estop and forget cab/all cabs** - Stop and remove loco from the CS. Stops the repeating throttle messages
- - **<D RESET> command to reboot arduino**
+ - **``<D RESET>`` command to reboot arduino**
  - **Automatic sensor offset detect** -
  - **Improved startup msgs from Motor Drivers (accuracy and auto sense factors)** -
  - **Drop post-write verify** - No need to double check CV writes. Writes are now even faster.
