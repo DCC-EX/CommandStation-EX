@@ -25,7 +25,6 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 **Summary of the key new features added to CommandStation-EX V3.0.5**
  - **Fix Fn Key startup with loco ID and fix state change for F16-28**
  - removed ethernet mac config and made it automatic
- - fixed e/wifi port  at 2560
  - show wifi ip and port on lcd
  - auto load config.example.h with warningh
  - dropped example .ino files
