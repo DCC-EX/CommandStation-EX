@@ -16,7 +16,7 @@
 #endif
 
 // MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin,
-//             float senseFactor, unsigned int tripMilliamps, byte faultPin [ , int senseOffset ]);
+//             float senseFactor, unsigned int tripMilliamps, byte faultPin);
 //
 // If the brakePin is negative that means the sense
 // of the brake pin on the motor bridge is inverted
