@@ -24,6 +24,28 @@ The DCC-EX Team is pleased to release CommandStation-EX-v3.0.0 as a Production R
 
 **Summary of the key new features added to CommandStation-EX V3.0.5**
  - **Fix Fn Key startup with loco ID and fix state change for F16-28**
+ - removed ethernet mac config and made it automatic
+ - fixed e/wifi port  at 2560
+ - show wifi ip and port on lcd
+ - auto load config.example.h with warningh
+ - dropped example .ino files
+ - corrected .ino comments 
+ - pololu fault pin handling
+ - waveform speed/simplicity improvements
+ - improved pin speed in waveform 
+ - portability to nanoEvery and UnoWifiRev2 CPUs
+ - analog read speed improvements
+ - drop need for DIO2 library
+ - improved current check code
+ - linear <a> command
+ - removed need for ArduinoTimers files
+ - removed <D DCC SLOW> 
+ - Removed option to choose different timer
+ - Added EX-RAIL hooks for later
+ - fixed Turnout list
+ - allow command keywords in mixed case
+ - dropped unused memstream
+ - PWM pin accuracy if requirements met.
 
 **Summary of the key new features added to CommandStation-EX V3.0.4**
  - **"Drive-Away" Feature added so that throttles like Engine Driver can allow a loco to be programmed on a usable, electrically isolated programming track and then drive off onto the main track.
