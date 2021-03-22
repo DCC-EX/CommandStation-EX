@@ -279,7 +279,7 @@ void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
       int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration: %dus <= pulse <= %dus"),
+      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %dus and %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
 			  ackThreshold,motorDriver->raw2mA(ackThreshold),
                           minAckPulseDuration, maxAckPulseDuration);
