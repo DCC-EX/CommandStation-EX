@@ -95,6 +95,11 @@ void setup()
         #undef SETUP
        #endif
 
+  #if defined(LCN_SERIAL)
+      LCN_SERIAL.begin(115200); 
+      LCN::init(LCN_SERIAL);
+  #endif
+
   LCD(1,F("Ready")); 
 }
 
@@ -120,6 +125,10 @@ void loop()
 #if defined(RMFT_ACTIVE) 
   RMFT::loop();
 #endif
+
+  #if defined(LCN_SERIAL) 
+      LCN::loop();
+  #endif
 
   LCDDisplay::loop();  // ignored if LCD not in use 
   

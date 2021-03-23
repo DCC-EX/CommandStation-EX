@@ -58,7 +58,10 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
-  pinMode(currentPin, INPUT);
+  if (currentPin!=UNUSED_PIN) {
+    pinMode(currentPin, INPUT);
+    senseOffset=analogRead(currentPin); // value of sensor at zero current
+  }
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
@@ -69,6 +72,12 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  
+  if (currentPin==UNUSED_PIN) 
+    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
+  else  
+    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
+    currentPin-A0, senseOffset,rawCurrentTripValue);
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -117,14 +126,24 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
+bool MotorDriver::canMeasureCurrent() {
+  return currentPin!=UNUSED_PIN;
+}
 /*
  * Return the current reading as pin reading 0 to 1023. If the fault
  * pin is activated return a negative current to show active fault pin.
- * As there is no -0, ceat a little and return -1 in that case.
+ * As there is no -0, create a little and return -1 in that case.
+ * 
+ * senseOffset handles the case where a shield returns values above or below 
+ * a central value depending on direction.
  */
 int MotorDriver::getCurrentRaw() {
-  int current = analogRead(currentPin);
-  if (faultPin != UNUSED_PIN && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
+  if (currentPin==UNUSED_PIN) return 0; 
+  
+  int current = analogRead(currentPin)-senseOffset;
+  if (current<0) current=0-current;
+  
+  if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
   return current;
   // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
@@ -140,7 +159,8 @@ int MotorDriver::mA2raw( unsigned int mA) {
 }
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
-    DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
+    // DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
+    (void) type; // avoid compiler warning if diag not used above. 
     uint8_t port = digitalPinToPort(pin);
     if (input)
       result.inout = portInputRegister(port);
@@ -148,5 +168,5 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
+    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
 }

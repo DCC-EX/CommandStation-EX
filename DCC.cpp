@@ -47,21 +47,23 @@ const byte FN_GROUP_5=0x10;
 FSH* DCC::shieldName=NULL;
 byte DCC::joinRelay=UNUSED_PIN;
 
-void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver,
-                 byte joinRelayPin) {
+void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
   shieldName=(FSH *)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
-  joinRelay=joinRelayPin;
-  if (joinRelay!=UNUSED_PIN) {
-    pinMode(joinRelay,OUTPUT);
-    digitalWrite(joinRelay,LOW);  // high is relay disengaged
-  }
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
   DCCWaveform::begin(mainDriver,progDriver); 
+}
+
+void DCC::setJoinRelayPin(byte joinRelayPin) {
+  joinRelay=joinRelayPin;
+  if (joinRelay!=UNUSED_PIN) {
+    pinMode(joinRelay,OUTPUT);
+    digitalWrite(joinRelay,LOW);  // LOW is relay disengaged
+  }
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
@@ -114,7 +116,28 @@ bool DCC::getThrottleDirection(int cab) {
 
 // Set function to value on or off
 void DCC::setFn( int cab, byte functionNumber, bool on) {
-  if (cab<=0 || functionNumber>28) return;
+  if (cab<=0 ) return;
+  
+  if (functionNumber>28) { 
+    //non reminding advanced binary bit set 
+    byte b[5];
+    byte nB = 0;
+    if (cab > 127)
+      b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
+    b[nB++] = lowByte(cab);
+    if (functionNumber <= 127) {
+       b[nB++] = 0b11011101;   // Binary State Control Instruction short form  
+       b[nB++] = functionNumber | (on ? 0x80 : 0);
+    }
+    else  {
+       b[nB++] = 0b11000000;   // Binary State Control Instruction long form  
+       b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
+       b[nB++] = functionNumber >>8 ;  // high order bits
+    }
+    DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+    return;
+  }
+  
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;  
 
@@ -293,7 +316,8 @@ const ackOp FLASH READ_BIT_PROG[] = {
 const ackOp FLASH WRITE_BYTE_PROG[] = {
       BASELINE,
       WB,WACK,    // Write 
-      VB,WACK,     // validate byte 
+  //    VB,WACK,     // validate byte, unnecessary after write gave ACK. 
+  //                    Also, in some cases, like decoder reset, the value read back is not the same as written. 
       ITC1,       // if ok callback (1)
       FAIL        // callback (-1)
       };
@@ -498,12 +522,15 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
       ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
 }
 
-void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco  
+void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
+  setThrottle2(cab,1); // ESTOP this loco if still on track  
   int reg=lookupSpeedTable(cab);
   if (reg>=0) speedTable[reg].loco=0;
+  setThrottle2(cab,1); // ESTOP if this loco still on track
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
-  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;  
+  setThrottle2(0,1); // ESTOP all locos still on track      
+  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;
 }
 
 byte DCC::loopStatus=0;  
@@ -634,6 +661,7 @@ int    DCC::ackManagerWord;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
+bool   DCC::ackManagerRejoin;
 
 ACK_CALLBACK DCC::ackManagerCallback;
 
@@ -667,6 +695,11 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+      ackManagerRejoin=DCCWaveform::progTrackSyncMain;
+      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
+        callback(-2);
+        return;
+      }
       setProgTrackSyncMain(false);
 	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
         if (Diag::ACK) DIAG(F("\nAuto Prog power on"));
@@ -833,6 +866,10 @@ void DCC::callback(int value) {
       if (Diag::ACK) DIAG(F("\nAuto Prog power off"));
       DCCWaveform::progTrack.doAutoPowerOff();
     }
+
+    // Restore <1 JOIN> to state before BASELINE
+    setProgTrackSyncMain(ackManagerRejoin);
+    
     if (Diag::ACK) DIAG(F("\nCallback(%d)\n"),value);
     (ackManagerCallback)( value);
 }

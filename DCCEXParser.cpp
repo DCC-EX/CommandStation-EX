@@ -30,6 +30,7 @@
 
 #include "EEStore.h"
 #include "DIAG.h"
+#include <avr/wdt.h>
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
@@ -51,6 +52,9 @@ const int HASH_KEYWORD_LIMIT = 27413;
 const int HASH_KEYWORD_ETHERNET = -30767;    
 const int HASH_KEYWORD_MAX = 16244;
 const int HASH_KEYWORD_MIN = 15978;
+const int HASH_KEYWORD_LCN = 15137;   
+const int HASH_KEYWORD_RESET = 26133;  
+
 
 int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -477,6 +481,10 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         }
         return;
 
+    case '!': // ESTOP ALL  <!>
+        DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1. 
+        return;
+
     case 'c': // SEND METER RESPONSES <c>
         //                               <c MeterName value C/V unit min max res warn>
         StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>"), DCCWaveform::mainTrack.getCurrentmA(), 
@@ -518,6 +526,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     case '#': // NUMBER OF LOCOSLOTS <#>
         StringFormatter::send(stream, F("<# %d>"), MAX_LOCOS);
+        return;
+
+    case '-': // Forget Loco <- [cab]>
+        if (params > 1 || p[0]<0) break;
+        if (p[0]==0) DCC::forgetAllLocos();
+        else  DCC::forgetLoco(p[0]);
         return;
 
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
@@ -756,11 +770,22 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
         Diag::WITHROTTLE = onOff;
         return true;
+  
+    case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
+        Diag::LCN = onOff;
+        return true;
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);
-	return true;
+	      return true;
 
+    case HASH_KEYWORD_RESET:
+        {
+          wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
+          delay(50);            // wait for the prescaller time to expire          
+          break; // and <X> if we didnt restart 
+        }
+        
     case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>
 	if (params >= 2)
 	    EEStore::dump(p[1]);

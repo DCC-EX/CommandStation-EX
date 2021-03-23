@@ -55,6 +55,11 @@ void Turnout::activate(bool state) {
 #ifdef EESTOREDEBUG
   DIAG(F("\nTurnout::activate(%d)\n"),state);
 #endif
+  if (data.address==LCN_TURNOUT_ADDRESS) {
+     // A LCN turnout is transmitted to the LCN master.
+     LCN::send('T',data.id,state);
+     return;   // The tStatus will be updated by a message from the LCN master, later.    
+  }
   if (state)
     data.tStatus|=STATUS_ACTIVE;
   else

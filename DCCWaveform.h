@@ -94,6 +94,9 @@ class DCCWaveform {
 	    autoPowerOff=false;
 	}
     };
+    inline bool canMeasureCurrent() {
+      return motorDriver->canMeasureCurrent();
+    };
     inline void setAckLimit(int mA) {
 	ackLimitmA = mA;
     }

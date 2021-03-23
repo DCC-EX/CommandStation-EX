@@ -65,8 +65,8 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver,
-                    byte joinRelayPin=UNUSED_PIN);
+  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver);
+  static void setJoinRelayPin(byte joinRelayPin);
   static void loop();
 
   // Public DCC API functions
@@ -135,6 +135,7 @@ private:
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
+  static bool ackManagerRejoin;
   static ACK_CALLBACK ackManagerCallback;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
   static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback);

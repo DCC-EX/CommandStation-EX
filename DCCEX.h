@@ -14,6 +14,7 @@
 #include "EthernetInterface.h"
 #endif
 #include "LCD_Implementation.h"
+#include "LCN.h"
 #include "freeMemory.h"
 
 #if __has_include ( "myAutomation.h")
