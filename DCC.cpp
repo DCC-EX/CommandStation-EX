@@ -315,10 +315,9 @@ const ackOp FLASH READ_BIT_PROG[] = {
      
 const ackOp FLASH WRITE_BYTE_PROG[] = {
       BASELINE,
-      WB,WACK,    // Write 
-  //    VB,WACK,     // validate byte, unnecessary after write gave ACK. 
-  //                    Also, in some cases, like decoder reset, the value read back is not the same as written. 
-      ITC1,       // if ok callback (1)
+      WB,WACK,ITC1,    // Write and callback(1) if ACK 
+      // handle decoders that dont ack a write 
+      VB,WACK,ITC1,    // validate byte and callback(1) if correct 
       FAIL        // callback (-1)
       };
       
@@ -444,14 +443,15 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
-      WB,WACK,     // ignore router without cv19 support
+      WB,WACK,     // ignore dedcoder without cv19 support
       // Turn off long address flag
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
-      W0,WACK,NAKFAIL,
+      W0,WACK,
+      V0,WACK,NAKFAIL,
       SETCV, (ackOp)1,   
       SETBYTEL,   // low byte of word 
-      WB,WACK,NAKFAIL,
+      WB,WACK,    // some decoders don't ACK writes
       VB,WACK,ITCB,
       FAIL
 };    
@@ -461,20 +461,21 @@ const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       // Clear consist CV 19
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
-      WB,WACK,     // ignore router without cv19 support
+      WB,WACK,     // ignore decoder without cv19 support
       // Turn on long address flag cv29 bit 5
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
-      W1,WACK,NAKFAIL,
+      W1,WACK,
+      V1,WACK,NAKFAIL,
       // Store high byte of address in cv 17
       SETCV, (ackOp)17,
       SETBYTEH,   // high byte of word 
-      WB,WACK,NAKFAIL,
+      WB,WACK,
       VB,WACK,NAKFAIL,
       // store 
       SETCV, (ackOp)18,
       SETBYTEL,   // low byte of word 
-      WB,WACK,NAKFAIL,
+      WB,WACK,
       VB,WACK,ITC1,   // callback(1) means Ok
       FAIL
 };    
