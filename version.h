@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.6"
+#define VERSION "3.0.7"
+// 3.0.7 Includes merge from assortedBits (many changes) and ACK manager change for lazy decoders
 // 3.0.6 Includes:
 // Fix Bug that did not let us transmit 5 byte sized packets like PoM
 // 3.0.5 Includes:
