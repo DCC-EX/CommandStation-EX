@@ -26,11 +26,19 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+#if defined(__IMXRT1062__)
+struct FASTPIN {
+  volatile uint32_t *inout;
+  uint32_t maskHIGH;  
+  uint32_t maskLOW;  
+};
+#else
 struct FASTPIN {
   volatile uint8_t *inout;
   uint8_t maskHIGH;  
   uint8_t maskLOW;  
 };
+#endif
 
 class MotorDriver {
   public:

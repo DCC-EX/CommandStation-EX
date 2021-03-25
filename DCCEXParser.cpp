@@ -34,29 +34,26 @@
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
-const int HASH_KEYWORD_PROG = -29718;
-const int HASH_KEYWORD_MAIN = 11339;
-const int HASH_KEYWORD_JOIN = -30750;
-const int HASH_KEYWORD_CABS = -11981;
-const int HASH_KEYWORD_RAM = 25982;
-const int HASH_KEYWORD_CMD = 9962;
-const int HASH_KEYWORD_WIT = 31594;
-const int HASH_KEYWORD_WIFI = -5583;
-const int HASH_KEYWORD_ACK = 3113;
-const int HASH_KEYWORD_ON = 2657;
-const int HASH_KEYWORD_DCC = 6436;
-const int HASH_KEYWORD_SLOW = -17209;
-const int HASH_KEYWORD_PROGBOOST = -6353;
-const int HASH_KEYWORD_EEPROM = -7168;
-const int HASH_KEYWORD_LIMIT = 27413;
-const int HASH_KEYWORD_ETHERNET = -30767;    
-const int HASH_KEYWORD_MAX = 16244;
-const int HASH_KEYWORD_MIN = 15978;
-const int HASH_KEYWORD_LCN = 15137;   
-const int HASH_KEYWORD_RESET = 26133;  
+const int16_t HASH_KEYWORD_PROG = -29718;
+const int16_t HASH_KEYWORD_MAIN = 11339;
+const int16_t HASH_KEYWORD_JOIN = -30750;
+const int16_t HASH_KEYWORD_CABS = -11981;
+const int16_t HASH_KEYWORD_RAM = 25982;
+const int16_t HASH_KEYWORD_CMD = 9962;
+const int16_t HASH_KEYWORD_WIT = 31594;
+const int16_t HASH_KEYWORD_WIFI = -5583;
+const int16_t HASH_KEYWORD_ACK = 3113;
+const int16_t HASH_KEYWORD_ON = 2657;
+const int16_t HASH_KEYWORD_DCC = 6436;
+const int16_t HASH_KEYWORD_SLOW = -17209;
+const int16_t HASH_KEYWORD_PROGBOOST = -6353;
+const int16_t HASH_KEYWORD_EEPROM = -7168;
+const int16_t HASH_KEYWORD_LIMIT = 27413;
+const int16_t HASH_KEYWORD_ETHERNET = -30767;    
+const int16_t HASH_KEYWORD_MAX = 16244;
+const int16_t HASH_KEYWORD_MIN = 15978;
 
-
-int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
+int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
 
 Print *DCCEXParser::stashStream = NULL;
@@ -108,16 +105,16 @@ void DCCEXParser::loop(Stream &stream)
     Sensor::checkAll(&stream); // Update and print changes
 }
 
-int DCCEXParser::splitValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
+int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
-    int runningValue = 0;
+    int16_t runningValue = 0;
     const byte *remainingCmd = cmd + 1; // skips the opcode
     bool signNegative = false;
 
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
+    for (int16_t i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
     while (parameterCount < MAX_COMMAND_PARAMS)
@@ -167,15 +164,15 @@ int DCCEXParser::splitValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
     return parameterCount;
 }
 
-int DCCEXParser::splitHexValues(int result[MAX_COMMAND_PARAMS], const byte *cmd)
+int16_t DCCEXParser::splitHexValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
     byte state = 1;
     byte parameterCount = 0;
-    int runningValue = 0;
+    int16_t runningValue = 0;
     const byte *remainingCmd = cmd + 1; // skips the opcode
     
     // clear all parameters in case not enough found
-    for (int i = 0; i < MAX_COMMAND_PARAMS; i++)
+    for (int16_t i = 0; i < MAX_COMMAND_PARAMS; i++)
         result[i] = 0;
 
     while (parameterCount < MAX_COMMAND_PARAMS)
@@ -257,7 +254,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
     (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
-    int p[MAX_COMMAND_PARAMS];
+    int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte params = splitValues(p, com);
@@ -275,9 +272,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
-        int cab;
-        int tspeed;
-        int direction;
+        int16_t cab;
+        int16_t tspeed;
+        int16_t direction;
 
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
@@ -561,7 +558,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
     StringFormatter::send(stream, F("<X>"));
 }
 
-bool DCCEXParser::parseZ(Print *stream, int params, int p[])
+bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
 {
 
     switch (params)
@@ -605,7 +602,7 @@ bool DCCEXParser::parseZ(Print *stream, int params, int p[])
 }
 
 //===================================
-bool DCCEXParser::parsef(Print *stream, int params, int p[])
+bool DCCEXParser::parsef(Print *stream, int16_t params, int16_t p[])
 {
     // JMRI sends this info in DCC message format but it's not exactly
     //      convenient for other processing
@@ -637,9 +634,9 @@ bool DCCEXParser::parsef(Print *stream, int params, int p[])
     return true;
 }
 
-void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop)
+void DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
 {
-    for (int i = fstart; i <= fstop; i++)
+    for (int16_t i = fstart; i <= fstop; i++)
     {
         DCC::setFn(cab, i, value & 1);
         value >>= 1;
@@ -647,7 +644,7 @@ void DCCEXParser::funcmap(int cab, byte value, byte fstart, byte fstop)
 }
 
 //===================================
-bool DCCEXParser::parseT(Print *stream, int params, int p[])
+bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
 {
     switch (params)
     {
@@ -690,7 +687,7 @@ bool DCCEXParser::parseT(Print *stream, int params, int p[])
     }
 }
 
-bool DCCEXParser::parseS(Print *stream, int params, int p[])
+bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
 {
 
     switch (params)
@@ -722,7 +719,7 @@ bool DCCEXParser::parseS(Print *stream, int params, int p[])
     return false;
 }
 
-bool DCCEXParser::parseD(Print *stream, int params, int p[])
+bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
     if (params == 0)
         return false;

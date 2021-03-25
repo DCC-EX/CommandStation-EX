@@ -53,8 +53,10 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 }
 
 void DCCWaveform::loop(bool ackManagerActive) {
+  noInterrupts();
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
+  interrupts();
 }
 
 void DCCWaveform::interruptHandler() {

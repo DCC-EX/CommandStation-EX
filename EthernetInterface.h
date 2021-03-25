@@ -31,8 +31,12 @@
 #include "DCCEXParser.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
-#include <Ethernet.h>
-#include "RingStream.h"
+#if defined (ARDUINO_TEENSY41)
+ #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
+ #include <NativeEthernetUdp.h>   
+#else
+ #include "Ethernet.h"
+#endif#include "RingStream.h"
 
 /**
  * @brief Network Configuration
