@@ -76,7 +76,7 @@ bool WiThrottle::areYouUsingThrottle(int cab) {
  // One instance of WiThrottle per connected client, so we know what the locos are 
  
 WiThrottle::WiThrottle( int wificlientid) {
-   if (Diag::WITHROTTLE) DIAG(F("\n%l Creating new WiThrottle for client %d\n"),millis(),wificlientid); 
+   if (Diag::WITHROTTLE) DIAG(F("%l Creating new WiThrottle for client %d"),millis(),wificlientid); 
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
@@ -104,7 +104,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   byte * cmd=cmdx;
   
   heartBeat=millis();
-  if (Diag::WITHROTTLE) DIAG(F("\n%l WiThrottle(%d)<-[%e]\n"),millis(),clientid,cmd);
+  if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d)<-[%e]"),millis(),clientid,cmd);
 
   if (initSent) {
     // Send power state if different than last sent
@@ -184,7 +184,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
                 StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
               }
             }
-            if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit\n"),millis(),clientid);
+            if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit"),millis(),clientid);
             delete this; 
             break;           
    }
@@ -215,7 +215,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
           while(*aval !=';' && *aval !='\0') aval++;
           if (*aval) aval+=2;  // skip ;>
 
-//       DIAG(F("\nMultithrottle aval=%c cab=%d"), aval[0],locoid);    
+//       DIAG(F("Multithrottle aval=%c cab=%d"), aval[0],locoid);    
        switch(cmd[2]) {
           case '+':  // add loco request
                 if (cmd[3]=='*') { 
@@ -272,7 +272,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 
 void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
-//    DIAG(F("\nLoco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
+//    DIAG(F("Loco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
      switch (aval[0]) {
            case 'V':  // Vspeed
              { 
@@ -366,10 +366,10 @@ void WiThrottle::loop(RingStream * stream) {
 void WiThrottle::checkHeartbeat() {
   // if eStop time passed... eStop any locos still assigned to this client and then drop the connection
   if(heartBeatEnable && (millis()-heartBeat > ESTOP_SECONDS*1000)) {
-  if (Diag::WITHROTTLE)  DIAG(F("\n\n%l WiThrottle(%d) eStop(%ds) timeout, drop connection\n"), millis(), clientid, ESTOP_SECONDS);
+  if (Diag::WITHROTTLE)  DIAG(F("%l WiThrottle(%d) eStop(%ds) timeout, drop connection"), millis(), clientid, ESTOP_SECONDS);
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0') {
-        if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d\n"),millis(),myLocos[loco].cab);
+        if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d"),millis(),myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
       }
     }

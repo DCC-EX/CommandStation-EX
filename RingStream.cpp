@@ -83,7 +83,7 @@ uint8_t RingStream::peekTargetMark() {
 
 bool RingStream::commit() {
   if (_overflow) {
-        DIAG(F("\nRingStream(%d) commit(%d) OVERFLOW\n"),_len, _count);
+        DIAG(F("RingStream(%d) commit(%d) OVERFLOW"),_len, _count);
         // just throw it away 
         _pos_write=_mark;
         _overflow=false;

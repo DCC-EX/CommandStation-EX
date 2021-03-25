@@ -73,7 +73,7 @@ DCCEXParser::DCCEXParser() {}
 void DCCEXParser::flush()
 {
     if (Diag::CMD)
-        DIAG(F("\nBuffer flush"));
+        DIAG(F("Buffer flush"));
     bufferLength = 0;
     inCommandPayload = false;
 }
@@ -256,7 +256,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 {
     (void)EEPROM; // tell compiler not to warn this is unused
     if (Diag::CMD)
-        DIAG(F("\nPARSING:%s\n"), com);
+        DIAG(F("PARSING:%s"), com);
     int p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
@@ -380,7 +380,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           byte packet[params];
           for (int i=0;i<params;i++) {
             packet[i]=(byte)p[i+1];
-            if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)\n"), i, packet[i], packet[i]);
+            if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)"), i, packet[i], packet[i]);
           }
           (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
         }
@@ -550,9 +550,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         break;
 
     default: //anything else will diagnose and drop out to <X>
-        DIAG(F("\nOpcode=%c params=%d\n"), opcode, params);
+        DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
-            DIAG(F("p[%d]=%d (0x%x)\n"), i, p[i], p[i]);
+            DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
         break;
 
     } // end of opcode switch

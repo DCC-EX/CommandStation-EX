@@ -74,9 +74,9 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
   
   if (currentPin==UNUSED_PIN) 
-    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
+    DIAG(F("MotorDriver ** WARNING ** No current or short detection"));  
   else  
-    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
+    DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
 }
 
@@ -159,7 +159,7 @@ int MotorDriver::mA2raw( unsigned int mA) {
 }
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
-    // DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
+    // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
     (void) type; // avoid compiler warning if diag not used above. 
     uint8_t port = digitalPinToPort(pin);
     if (input)
@@ -168,5 +168,5 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
+    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }

@@ -34,7 +34,7 @@ void Turnout::printAll(Print *stream){
 
 bool Turnout::activate(int n,bool state){
 #ifdef EESTOREDEBUG
-  DIAG(F("\nTurnout::activate(%d,%d)\n"),n,state);
+  DIAG(F("Turnout::activate(%d,%d)"),n,state);
 #endif
   Turnout * tt=get(n);
   if (tt==NULL) return false;
@@ -53,7 +53,7 @@ bool Turnout::isActive(int n){
 // activate is virtual here so that it can be overridden by a non-DCC turnout mechanism
 void Turnout::activate(bool state) {
 #ifdef EESTOREDEBUG
-  DIAG(F("\nTurnout::activate(%d)\n"),state);
+  DIAG(F("Turnout::activate(%d)"),state);
 #endif
   if (data.address==LCN_TURNOUT_ADDRESS) {
      // A LCN turnout is transmitted to the LCN master.
@@ -170,9 +170,9 @@ Turnout *Turnout::create(int id){
 #ifdef EESTOREDEBUG
 void Turnout::print(Turnout *tt) {
     if (tt->data.tStatus & STATUS_PWM )
-      DIAG(F("Turnout %d ZeroAngle %d MoveAngle %d Status %d\n"),tt->data.id, tt->data.inactiveAngle, tt->data.moveAngle,tt->data.tStatus & STATUS_ACTIVE);
+      DIAG(F("Turnout %d ZeroAngle %d MoveAngle %d Status %d"),tt->data.id, tt->data.inactiveAngle, tt->data.moveAngle,tt->data.tStatus & STATUS_ACTIVE);
     else
-	DIAG(F("Turnout %d Addr %d Subaddr %d Status %d\n"),tt->data.id, tt->data.address, tt->data.subAddress,tt->data.tStatus & STATUS_ACTIVE);
+	DIAG(F("Turnout %d Addr %d Subaddr %d Status %d"),tt->data.id, tt->data.address, tt->data.subAddress,tt->data.tStatus & STATUS_ACTIVE);
 }
 #endif
 

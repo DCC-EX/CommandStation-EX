@@ -94,10 +94,10 @@ int EEStore::pointer(){
 
 void EEStore::dump(int num) {
     byte b;
-    DIAG(F("\nAddr  0x  char\n"));
+    DIAG(F("Addr  0x  char"));
     for (int n=0 ; n<num; n++) {
 	EEPROM.get(n, b);
-	DIAG(F("%d     %x    %c\n"),n,b,isprint(b) ? b : ' ');
+	DIAG(F("%d     %x    %c"),n,b,isprint(b) ? b : ' ');
     }
 }
 ///////////////////////////////////////////////////////////////////////////////

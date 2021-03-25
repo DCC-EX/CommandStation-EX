@@ -37,7 +37,7 @@ LCDDisplay::LCDDisplay() {
     byte error = I2CManager.exists(address);
     if (!error) {
       // Device found
-      DIAG(F("\nOLED display found at 0x%x"), address);
+      DIAG(F("OLED display found at 0x%x"), address);
       interfake(OLED_DRIVER, 0);
       const DevType *devType;
       if (lcdCols == 132)
@@ -53,7 +53,7 @@ LCDDisplay::LCDDisplay() {
       return;
     }
   }
-  DIAG(F("\nOLED display not found\n"));
+  DIAG(F("OLED display not found"));
 }
 
 void LCDDisplay::interfake(int p1, int p2, int p3) {

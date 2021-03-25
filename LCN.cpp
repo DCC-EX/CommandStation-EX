@@ -28,7 +28,7 @@ bool LCN::firstLoop=true;
 
 void LCN::init(Stream & lcnstream) {
   stream=&lcnstream; 
-  DIAG(F("\nLCN connection setup\n")); 
+  DIAG(F("LCN connection setup")); 
 }
 
 
@@ -47,7 +47,7 @@ void LCN::loop() {
       id = 10 * id + ch - '0';
     }
     else if (ch == 't' || ch == 'T') { // Turnout opcodes
-      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),id,(char)ch);
+      if (Diag::LCN) DIAG(F("LCN IN %d%c"),id,(char)ch);
       Turnout * tt = Turnout::get(id);
       if (!tt) Turnout::create(id, LCN_TURNOUT_ADDRESS, 0);
       if (ch == 't') tt->data.tStatus |= STATUS_ACTIVE;
@@ -56,7 +56,7 @@ void LCN::loop() {
       id = 0;
     }
     else if (ch == 'S' || ch == 's') {
-      if (Diag::LCN) DIAG(F("\nLCN IN %d%c\n"),id,(char)ch);
+      if (Diag::LCN) DIAG(F("LCN IN %d%c"),id,(char)ch);
       Sensor * ss = Sensor::get(id);
       if (!ss) ss = Sensor::create(id, 255,0); // impossible pin
       ss->active = ch == 'S';
@@ -69,6 +69,6 @@ void LCN::loop() {
 void LCN::send(char opcode, int id, bool state) {
    if (stream) {
       StringFormatter::send(stream,F("%c/%d/%d"), opcode, id , state);
-      if (Diag::LCN) DIAG(F("\nLCN OUT %c/%d/%d\n"), opcode, id , state);
+      if (Diag::LCN) DIAG(F("LCN OUT %c/%d/%d"), opcode, id , state);
    }
 }

@@ -52,12 +52,6 @@ EthernetInterface::EthernetInterface()
 {
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    DIAG(F("\n+++++ Ethernet Setup. Simulatd mac="));
-    for (byte i=0;i<sizeof(mac); i++) {
-        DIAG(F("%s%x:"),mac[i] < 0x10 ? "0" : "", mac[i]);
-    }
-    DIAG(F("\n"));
-    
     connected=false;
    
     #ifdef IP_ADDRESS
@@ -65,17 +59,17 @@ EthernetInterface::EthernetInterface()
     #else
     if (Ethernet.begin(mac) == 0)
     {
-        DIAG(F("begin FAILED\n"));
+        DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
     #endif
     DIAG(F("begin OK."));
      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      DIAG(F("shield not found\n"));
+      DIAG(F("Ethernet shield not found"));
       return;
     }
     if (Ethernet.linkStatus() == LinkOFF) {
-      DIAG(F("cable not connected\n"));
+      DIAG(F("Ethernet cable not connected"));
       return;
     }
     
@@ -104,13 +98,13 @@ void EthernetInterface::loop()
     {
     case 1:
         //renewed fail
-        DIAG(F("\nEthernet Error: renewed fail\n"));
+        DIAG(F("Ethernet Error: renewed fail"));
         singleton=NULL;
         return;
 
     case 3:
         //rebind fail
-        DIAG(F("Ethernet Error: rebind fail\n"));
+        DIAG(F("Ethernet Error: rebind fail"));
         singleton=NULL;
         return;
 
@@ -131,7 +125,7 @@ void EthernetInterface::loop()
     // check for new client
     if (client)
     {
-        if (Diag::ETHERNET) DIAG(F("\nEthernet: New client "));
+        if (Diag::ETHERNET) DIAG(F("Ethernet: New client "));
         byte socket;
         for (socket = 0; socket < MAX_SOCK_NUM; socket++)
         {
@@ -139,12 +133,12 @@ void EthernetInterface::loop()
             {
                 // On accept() the EthernetServer doesn't track the client anymore
                 // so we store it in our client array
-                if (Diag::ETHERNET) DIAG(F("%d\n"),socket);
+                if (Diag::ETHERNET) DIAG(F("Socket %d"),socket);
                 clients[socket] = client;
                 break;
             }
         }
-        if (socket==MAX_SOCK_NUM) DIAG(F("new Ethernet OVERFLOW\n")); 
+        if (socket==MAX_SOCK_NUM) DIAG(F("new Ethernet OVERFLOW")); 
     }
 
     // check for incoming data from all possible clients
@@ -154,11 +148,11 @@ void EthernetInterface::loop()
         
         int available=clients[socket].available();
         if (available > 0) {
-            if (Diag::ETHERNET)  DIAG(F("\nEthernet: available socket=%d,avail=%d,count="), socket, available);
+            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
             // read bytes from a client
             int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
             buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F("%d:%e\n"), socket,buffer);
+            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
             // execute with data going directly back
             outboundRing->mark(socket); 
             CommandDistributor::parse(socket,buffer,outboundRing);
@@ -172,7 +166,7 @@ void EthernetInterface::loop()
    for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
      if (clients[socket] && !clients[socket].connected()) {
       clients[socket].stop();
-      if (Diag::ETHERNET)  DIAG(F("\nEthernet: disconnect %d \n"), socket);             
+      if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
      }
     }
     
@@ -180,7 +174,7 @@ void EthernetInterface::loop()
     int socketOut=outboundRing->read();
     if (socketOut>=0) {
       int count=outboundRing->count();
-      if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d\n"), socketOut,count);
+      if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
       for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
       clients[socketOut].flush(); //maybe 
     }

@@ -64,7 +64,7 @@ void WifiInboundHandler::loop1() {
     
 
     if (pendingCipsend) {
-         if (Diag::WIFI) DIAG( F("\nWiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
+         if (Diag::WIFI) DIAG( F("WiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"),  clientPendingCIPSEND, currentReplySize);
          pendingCipsend=false;
          return;
@@ -75,11 +75,11 @@ void WifiInboundHandler::loop1() {
       int clientId=inboundRing->read();
       if (clientId>=0) {
          int count=inboundRing->count();
-         if (Diag::WIFI) DIAG(F("\nWifi EXEC: %d %d:"),clientId,count); 
+         if (Diag::WIFI) DIAG(F("Wifi EXEC: %d %d:"),clientId,count); 
          byte cmd[count+1];
          for (int i=0;i<count;i++) cmd[i]=inboundRing->read();   
          cmd[count]=0;
-         if (Diag::WIFI) DIAG(F("%e\n"),cmd); 
+         if (Diag::WIFI) DIAG(F("%e"),cmd); 
          
          outboundRing->mark(clientId);  // remember start of outbound data 
          CommandDistributor::parse(clientId,cmd,outboundRing);
@@ -193,11 +193,11 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
             loopState=ANYTHING;
             break;
           }
-          if (Diag::WIFI) DIAG(F("\nWifi inbound data(%d:%d):"),runningClientId,dataLength); 
+          if (Diag::WIFI) DIAG(F("Wifi inbound data(%d:%d):"),runningClientId,dataLength); 
           if (inboundRing->freeSpace()<=(dataLength+1)) {
             // This input would overflow the inbound ring, ignore it  
             loopState=IPD_IGNORE_DATA;
-            if (Diag::WIFI) DIAG(F("\nWifi OVERFLOW IGNORING:"));    
+            if (Diag::WIFI) DIAG(F("Wifi OVERFLOW IGNORING:"));    
             break;
           }
           inboundRing->mark(runningClientId);
@@ -243,7 +243,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
 void WifiInboundHandler::purgeCurrentCIPSEND() {
          // A CIPSEND was sent but errored... or the client closed just toss it away
-         if (Diag::WIFI) DIAG(F("Wifi: DROPPING CIPSEND=%d,%d\n"),clientPendingCIPSEND,currentReplySize);
+         if (Diag::WIFI) DIAG(F("Wifi: DROPPING CIPSEND=%d,%d"),clientPendingCIPSEND,currentReplySize);
          for (int i=0;i<=currentReplySize;i++) outboundRing->read();
          pendingCipsend=false;  
          clientPendingCIPSEND=-1;

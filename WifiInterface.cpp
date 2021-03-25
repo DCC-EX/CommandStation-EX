@@ -118,12 +118,12 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 
   wifiStream = &setupStream;
 
-  DIAG(F("\n++ Wifi Setup Try %d ++\n"), ntry);
+  DIAG(F("++ Wifi Setup Try %d ++"), ntry);
 
   wifiState = setup2( SSid, password, hostname,  port, channel);
 
   if (wifiState == WIFI_NOAT) {
-      DIAG(F("\n++ Wifi Setup NO AT ++\n"));
+      DIAG(F("++ Wifi Setup NO AT ++"));
       return wifiState;
   }
  
@@ -133,7 +133,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
   }
 
     
-  DIAG(F("\n++ Wifi Setup %S ++\n"), wifiState == WIFI_CONNECTED ? F("CONNECTED") : F("DISCONNECTED"));
+  DIAG(F("++ Wifi Setup %S ++"), wifiState == WIFI_CONNECTED ? F("CONNECTED") : F("DISCONNECTED"));
   return wifiState;
 }
 
@@ -153,7 +153,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   //  There may alrerady be a connection with data in the pipeline.
   // If there is, just shortcut the setup and continue to read the data as normal.
   if (checkForOK(200,F("+IPD"), true)) {
-    DIAG(F("\nPreconfigured Wifi already running with data waiting\n"));
+    DIAG(F("Preconfigured Wifi already running with data waiting"));
     return WIFI_CONNECTED; 
   }
 
@@ -169,7 +169,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   checkForOK(2000, true, false);      // Makes this visible on the console
 
 #ifdef DONT_TOUCH_WIFI_CONF
-  DIAG(F("\nDONT_TOUCH_WIFI_CONF was set: Using existing config\n"));
+  DIAG(F("DONT_TOUCH_WIFI_CONF was set: Using existing config"));
 #else
   StringFormatter::send(wifiStream, F("AT+CWMODE=1\r\n")); // configure as "station" = WiFi client
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
@@ -267,7 +267,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
     if (i >= 2)
-	DIAG(F("\nWarning: Setting AP SSID and password failed\n"));       // but issue warning
+	DIAG(F("Warning: Setting AP SSID and password failed"));       // but issue warning
 
     if (!oldCmd) {
       StringFormatter::send(wifiStream, F("AT+CIPRECVMODE=0\r\n"), port); // make sure transfer mode is correct
@@ -306,7 +306,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   }
   // suck up anything after the IP. 
   if (!checkForOK(1000, true, false)) return WIFI_DISCONNECTED;
-  LCD(5,F("PORT=%d\n"),port);
+  LCD(5,F("PORT=%d"),port);
    
   return WIFI_CONNECTED;
 }
@@ -324,7 +324,7 @@ void WifiInterface::ATCommand(const byte * command) {
   command++;
   if (*command=='X') {
      connected = true;
-     DIAG(F("\n++++++ Wifi Connction forced on ++++++++\n"));
+     DIAG(F("++++++ Wifi Connction forced on ++++++++"));
   }
   else {
         StringFormatter::  send(wifiStream, F("AT+%s\r\n"), command);
@@ -341,25 +341,25 @@ bool WifiInterface::checkForOK( const unsigned int timeout,  bool echo, bool esc
 bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor, bool echo, bool escapeEcho) {
   unsigned long  startTime = millis();
   char *locator = (char *)waitfor;
-  DIAG(F("\nWifi Check: [%E]"), waitfor);
+  DIAG(F("Wifi Check: [%E]"), waitfor);
   while ( millis() - startTime < timeout) {
     while (wifiStream->available()) {
       int ch = wifiStream->read();
       if (echo) {
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
-        else DIAG(F("%c"), ch); 
+        else StringFormatter::diagSerial->print((char)ch); 
       }
       if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {
         locator++;
         if (!GETFLASH(locator)) {
-          DIAG(F("\nFound in %dms"), millis() - startTime);
+          DIAG(F("Found in %dms"), millis() - startTime);
           return true;
         }
       }
     }
   }
-  DIAG(F("\nTIMEOUT after %dms\n"), timeout);
+  DIAG(F("TIMEOUT after %dms"), timeout);
   return false;
 }
 
