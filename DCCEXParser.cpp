@@ -52,6 +52,8 @@ const int16_t HASH_KEYWORD_LIMIT = 27413;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;    
 const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
+const int16_t HASH_KEYWORD_LCN = 15137;   
+const int16_t HASH_KEYWORD_RESET = 26133;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -795,7 +797,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 }
 
 // CALLBACKS must be static
-bool DCCEXParser::stashCallback(Print *stream, int p[MAX_COMMAND_PARAMS], RingStream * ringStream)
+bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream)
 {
     if (stashBusy )
         return false;
@@ -820,43 +822,43 @@ void DCCEXParser::commitAsyncReplyStream() {
      stashBusy = false;
 }
 
-void DCCEXParser::callback_W(int result)
+void DCCEXParser::callback_W(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(),
           F("<r%d|%d|%d %d>"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
     commitAsyncReplyStream();
 }
 
-void DCCEXParser::callback_B(int result)
+void DCCEXParser::callback_B(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(), 
           F("<r%d|%d|%d %d %d>"), stashP[3], stashP[4], stashP[0], stashP[1], result == 1 ? stashP[2] : -1);
     commitAsyncReplyStream();
 }
-void DCCEXParser::callback_Vbit(int result)
+void DCCEXParser::callback_Vbit(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(), F("<v %d %d %d>"), stashP[0], stashP[1], result);
     commitAsyncReplyStream();
 }
-void DCCEXParser::callback_Vbyte(int result)
+void DCCEXParser::callback_Vbyte(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(), F("<v %d %d>"), stashP[0], result);
     commitAsyncReplyStream();
 }
 
-void DCCEXParser::callback_R(int result)
+void DCCEXParser::callback_R(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(), F("<r%d|%d|%d %d>"), stashP[1], stashP[2], stashP[0], result);
     commitAsyncReplyStream();
 }
 
-void DCCEXParser::callback_Rloco(int result)
+void DCCEXParser::callback_Rloco(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(), F("<r %d>"), result);
     commitAsyncReplyStream();
 }
 
-void DCCEXParser::callback_Wloco(int result)
+void DCCEXParser::callback_Wloco(int16_t result)
 {
     if (result==1) result=stashP[0]; // pick up original requested id from command
     StringFormatter::send(getAsyncReplyStream(), F("<w %d>"), result);
