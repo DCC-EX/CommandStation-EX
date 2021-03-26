@@ -52,12 +52,19 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
+#if defined(TEENSYDUINO)
 void DCCWaveform::loop(bool ackManagerActive) {
   noInterrupts();
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
   interrupts();
 }
+#else
+void DCCWaveform::loop(bool ackManagerActive) {
+  mainTrack.checkPowerOverload(false);
+  progTrack.checkPowerOverload(ackManagerActive);
+}
+#endif
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
