@@ -20,6 +20,14 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#if defined(TEENSYDUINO)
+#include <ADC.h>
+#include <ADC_util.h>
+ADC *adc = new ADC(); // adc object
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+ADC *adc1 = new ADC(); // adc object
+#endif
+#endif
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
@@ -63,6 +71,20 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     senseOffset=analogRead(currentPin); // value of sensor at zero current
   }
 
+#if defined(TEENSYDUINO)
+  if(currentPin != current_pin && currentPin!=UNUSED_PIN){
+    adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
+    adc->adc0->startContinuous(currentPin);
+  } else if(currentPin!=UNUSED_PIN){
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+    adc1->adc0->setReference(ADC_REFERENCE::REF_3V3);
+    adc1->adc0->startContinuous(currentPin);
+#else
+    adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
+    adc->adc1->startContinuous(currentPin);
+#endif
+  }
+#endif
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
@@ -137,10 +159,23 @@ bool MotorDriver::canMeasureCurrent() {
  * senseOffset handles the case where a shield returns values above or below 
  * a central value depending on direction.
  */
-int MotorDriver::getCurrentRaw() {
+int MotorDriver::getCurrentRaw(bool isMain) {
   if (currentPin==UNUSED_PIN) return 0; 
   
-  int current = analogRead(currentPin)-senseOffset;
+  int current;
+#if defined(TEENSYDUINO)
+  if(isMain) {
+    current = (uint16_t)adc->adc0->analogReadContinuous();
+  } else {
+    #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+    current = (uint16_t)adc1->adc0->analogReadContinuous();
+    #else
+    current = (uint16_t)adc->adc1->analogReadContinuous();
+    #endif
+  }
+#else
+  current = analogRead(currentPin)-senseOffset;
+#endif
   if (current<0) current=0-current;
   
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))

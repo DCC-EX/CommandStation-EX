@@ -24,11 +24,9 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
- 
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
-
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
@@ -52,19 +50,10 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-#if defined(TEENSYDUINO)
-void DCCWaveform::loop(bool ackManagerActive) {
-  noInterrupts();
-  mainTrack.checkPowerOverload(false);
-  progTrack.checkPowerOverload(ackManagerActive);
-  interrupts();
-}
-#else
 void DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
 }
-#endif
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
@@ -138,7 +127,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent=motorDriver->getCurrentRaw();
+      lastCurrent=motorDriver->getCurrentRaw(isMainTrack);
       if (lastCurrent < 0) {
 	  // We have a fault pin condition to take care of
 	  lastCurrent = -lastCurrent;
@@ -286,7 +275,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
-      int baseline=motorDriver->getCurrentRaw();
+      int baseline=motorDriver->getCurrentRaw(isMainTrack);
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %dus and %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -320,7 +309,7 @@ void DCCWaveform::checkAck() {
         return; 
     }
       
-    int current=motorDriver->getCurrentRaw();
+    int current=motorDriver->getCurrentRaw(isMainTrack);
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         

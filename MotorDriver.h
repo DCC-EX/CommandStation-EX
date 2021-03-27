@@ -47,7 +47,7 @@ class MotorDriver {
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
-    virtual int  getCurrentRaw();
+    virtual int  getCurrentRaw(bool isMain);
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
@@ -60,7 +60,6 @@ class MotorDriver {
     inline byte getFaultPin() {
 	return faultPin;
     }
-    
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
