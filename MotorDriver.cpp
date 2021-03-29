@@ -20,13 +20,14 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-#if defined(TEENSYDUINO)
+//#if defined(TEENSYDUINO)
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
 #include <ADC.h>
 #include <ADC_util.h>
 ADC *adc = new ADC(); // adc object
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
-ADC *adc1 = new ADC(); // adc object
-#endif
+//#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+//ADC *adc1 = new ADC(); // adc object
+//#endif
 #endif
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
@@ -71,18 +72,19 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     senseOffset=analogRead(currentPin); // value of sensor at zero current
   }
 
-#if defined(TEENSYDUINO)
+//#if defined(TEENSYDUINO)
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41) 
   if(currentPin != current_pin && currentPin!=UNUSED_PIN){
-    adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
+    //adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
     adc->adc0->startContinuous(currentPin);
   } else if(currentPin!=UNUSED_PIN){
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
-    adc1->adc0->setReference(ADC_REFERENCE::REF_3V3);
-    adc1->adc0->startContinuous(currentPin);
-#else
-    adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
+//#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+//    adc1->adc0->setReference(ADC_REFERENCE::REF_3V3);
+//    adc1->adc0->startContinuous(currentPin);
+//#else
+    //adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
     adc->adc1->startContinuous(currentPin);
-#endif
+//#endif
   }
 #endif
   faultPin=fault_pin;
@@ -148,6 +150,8 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
+volatile unsigned int overflow_count=0;
+
 bool MotorDriver::canMeasureCurrent() {
   return currentPin!=UNUSED_PIN;
 }
@@ -163,16 +167,24 @@ int MotorDriver::getCurrentRaw(bool isMain) {
   if (currentPin==UNUSED_PIN) return 0; 
   
   int current;
-#if defined(TEENSYDUINO)
+//#if defined(TEENSYDUINO)
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
   if(isMain) {
     current = (uint16_t)adc->adc0->analogReadContinuous();
   } else {
-    #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
-    current = (uint16_t)adc1->adc0->analogReadContinuous();
-    #else
+    //#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36) || defined(ARDUINO_TEENSY32)
+    //current = (uint16_t)adc1->adc0->analogReadContinuous();
+    //#else
     current = (uint16_t)adc->adc1->analogReadContinuous();
-    #endif
+    //#endif
   }
+#elif defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
+  unsigned char sreg_backup;
+  sreg_backup = SREG;   /* save interrupt enable/disable state */
+  cli();
+  current = analogRead(currentPin)-senseOffset;
+  overflow_count = 0;
+  SREG = sreg_backup;    /* restore interrupt state */
 #else
   current = analogRead(currentPin)-senseOffset;
 #endif
