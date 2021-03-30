@@ -36,7 +36,8 @@
  #include <NativeEthernetUdp.h>   
 #else
  #include "Ethernet.h"
-#endif#include "RingStream.h"
+#endif
+#include "RingStream.h"
 
 /**
  * @brief Network Configuration

@@ -81,6 +81,8 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
   void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     memcpy(mac,(void *) &SIGROW.SERNUM0,6);  // serial number
+    mac[0] &= 0xFE;
+    mac[0] |= 0x02;
   }
 
 #elif defined(TEENSYDUINO)
@@ -115,13 +117,13 @@ INTERRUPT_CALLBACK interruptHandler=0;
 #else
     read_mac(mac);
 #endif
-}
+  }
 
 #if !defined(__IMXRT1062__)
-void DCCTimer::read_mac(byte mac[6]) {
-  read(0xe,mac,0);
-  read(0xf,mac,3);
-}
+  void DCCTimer::read_mac(byte mac[6]) {
+    read(0xe,mac,0);
+    read(0xf,mac,3);
+  }
 
 // http://forum.pjrc.com/threads/91-teensy-3-MAC-address
 void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
