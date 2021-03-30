@@ -88,7 +88,7 @@ the state of any outputs being monitored or controlled by a separate interface o
 // print all output states to stream
 void Output::printAll(Print *stream){
   for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
-    StringFormatter::send(stream, F("<Y %d %d>"), tt->data.id, tt->data.oStatus);
+    StringFormatter::send(stream, F("<Y %d %d>\n"), tt->data.id, tt->data.oStatus);
 } // Output::printAll
 
 void  Output::activate(int s){

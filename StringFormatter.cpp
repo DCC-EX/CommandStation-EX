@@ -39,21 +39,21 @@ bool Diag::LCN=false;
  
 void StringFormatter::diag( const FSH* input...) {
   if (!diagSerial) return; 
-  diagSerial->print(F("\n<* "));   
+  diagSerial->print(F("<* "));   
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
-  diagSerial->print(F(" *>"));
+  diagSerial->print(F(" *>\n"));
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
 
   // Issue the LCD as a diag first
-  send(diagSerial,F("\n<* LCD%d:"),row);
+  send(diagSerial,F("<* LCD%d:"),row);
   va_start(args, input);
   send2(diagSerial,input,args);
-  send(diagSerial,F(" *>"));
+  send(diagSerial,F(" *>\n"));
   
   if (!LCDDisplay::lcdDisplay) return;
   LCDDisplay::lcdDisplay->setRow(row);    

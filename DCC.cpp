@@ -49,7 +49,7 @@ byte DCC::joinRelay=UNUSED_PIN;
 
 void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
   shieldName=(FSH *)motorShieldName;
-  DIAG(F("DCC-EX V-%S / %S / %S G-%S"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+  StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
@@ -881,10 +881,10 @@ void DCC::callback(int value) {
     for (int reg = 0; reg < MAX_LOCOS; reg++) {
        if (speedTable[reg].loco>0) {
         used ++;
-        StringFormatter::send(stream,F("\ncab=%d, speed=%d, dir=%c "),       
+        StringFormatter::send(stream,F("cab=%d, speed=%d, dir=%c \n"),       
            speedTable[reg].loco,  speedTable[reg].speedCode & 0x7f,(speedTable[reg].speedCode & 0x80) ? 'F':'R');
        }
      }
-     StringFormatter::send(stream,F("\nUsed=%d, max=%d\n"),used,MAX_LOCOS);
+     StringFormatter::send(stream,F("Used=%d, max=%d\n"),used,MAX_LOCOS);
      
 }

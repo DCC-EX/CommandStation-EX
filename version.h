@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.8"
-// 3.0.8 Includes <* > wraps around DIAGs for the benefit of JMRI.
+#define VERSION "3.0.9"
+// 3.0.9 rearranges serial newlines for the benefit of JMRI.
+// 3.0.8 Includes <* *> wraps around DIAGs for the benefit of JMRI.
 // 3.0.7 Includes merge from assortedBits (many changes) and ACK manager change for lazy decoders
 // 3.0.6 Includes:
 // Fix Bug that did not let us transmit 5 byte sized packets like PoM

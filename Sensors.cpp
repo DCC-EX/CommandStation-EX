@@ -101,7 +101,7 @@ void Sensor::checkAll(Print *stream){
     // make the change
     readingSensor->active = !sensorstate;
     readingSensor->latchdelay=0; // reset 
-    if (stream != NULL) StringFormatter::send(stream, F("<%c %d>"), readingSensor->active ? 'Q' : 'q', readingSensor->data.snum);
+    if (stream != NULL) StringFormatter::send(stream, F("<%c %d>\n"), readingSensor->active ? 'Q' : 'q', readingSensor->data.snum);
   }
 
   readingSensor=readingSensor->nextSensor;
@@ -117,7 +117,7 @@ void Sensor::printAll(Print *stream){
 
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     if (stream != NULL)
-      StringFormatter::send(stream, F("<%c %d>"), tt->active ? 'Q' : 'q', tt->data.snum);
+      StringFormatter::send(stream, F("<%c %d>\n"), tt->active ? 'Q' : 'q', tt->data.snum);
   } // loop over all sensors
 } // Sensor::printAll
 
