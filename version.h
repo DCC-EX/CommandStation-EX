@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.9"
+#define VERSION "3.0.10"
+// 3.0.10 Teensy Support
 // 3.0.9 rearranges serial newlines for the benefit of JMRI.
 // 3.0.8 Includes <* *> wraps around DIAGs for the benefit of JMRI.
 // 3.0.7 Includes merge from assortedBits (many changes) and ACK manager change for lazy decoders
