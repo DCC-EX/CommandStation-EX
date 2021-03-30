@@ -23,7 +23,7 @@
 #include "MotorDrivers.h"
 #include "FSH.h"
 
-typedef void (*ACK_CALLBACK)(int result);
+typedef void (*ACK_CALLBACK)(int16_t result);
 
 enum ackOp : byte
 {           // Program opcodes for the ack Manager
@@ -86,12 +86,12 @@ public:
   static void setProgTrackBoost(bool on);    // when true, special prog track current limit does not apply
 
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
-  static void readCV(int cv, ACK_CALLBACK callback);
-  static void readCVBit(int cv, byte bitNum, ACK_CALLBACK callback); // -1 for error
-  static void writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback);
-  static void writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
-  static void verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback);
-  static void verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  static void readCV(int16_t cv, ACK_CALLBACK callback);
+  static void readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback); // -1 for error
+  static void writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
+  static void writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
+  static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
 
   static void getLocoId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
@@ -168,6 +168,16 @@ private:
 #define ARDUINO_TYPE "MEGA"
 #elif defined(ARDUINO_ARCH_MEGAAVR)
 #define ARDUINO_TYPE "MEGAAVR"
+#elif defined(ARDUINO_TEENSY32)
+#define ARDUINO_TYPE "TEENSY32"
+#elif defined(ARDUINO_TEENSY35)
+#define ARDUINO_TYPE "TEENSY35"
+#elif defined(ARDUINO_TEENSY36)
+#define ARDUINO_TYPE "TEENSY36"
+#elif defined(ARDUINO_TEENSY40)
+#define ARDUINO_TYPE "TEENSY40"
+#elif defined(ARDUINO_TEENSY41)
+#define ARDUINO_TYPE "TEENSY41"
 #else
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
 #endif

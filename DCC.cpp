@@ -480,31 +480,31 @@ const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       FAIL
 };    
 
-void  DCC::writeCVByte(int cv, byte byteValue, ACK_CALLBACK callback)  {
+void  DCC::writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback)  {
   ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback);
 }
 
-void DCC::writeCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
+void DCC::writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback);
 }
 
-void  DCC::verifyCVByte(int cv, byte byteValue, ACK_CALLBACK callback)  {
+void  DCC::verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback)  {
   ackManagerSetup(cv, byteValue,  VERIFY_BYTE_PROG, callback);
 }
 
-void DCC::verifyCVBit(int cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
+void DCC::verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum, bitValue?VERIFY_BIT1_PROG:VERIFY_BIT0_PROG, callback);
 }
 
 
-void DCC::readCVBit(int cv, byte bitNum, ACK_CALLBACK callback)  {
+void DCC::readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
   else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback);
 }
 
-void DCC::readCV(int cv, ACK_CALLBACK callback)  {
+void DCC::readCV(int16_t cv, ACK_CALLBACK callback)  {
   ackManagerSetup(cv, 0,READ_CV_PROG, callback);
 }
 

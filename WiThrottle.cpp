@@ -388,7 +388,7 @@ WiThrottle * WiThrottle::stashInstance;
 byte         WiThrottle::stashClient;
 char         WiThrottle::stashThrottleChar;
 
-void WiThrottle::getLocoCallback(int locoid) {
+void WiThrottle::getLocoCallback(int16_t locoid) {
   stashStream->mark(stashClient);
   if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
   else {

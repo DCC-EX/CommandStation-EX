@@ -67,7 +67,7 @@ class WiThrottle {
        static WiThrottle * stashInstance;
        static byte         stashClient;
        static char         stashThrottleChar;
-       static void         getLocoCallback(int locoid);
+       static void         getLocoCallback(int16_t locoid);
 
 };
 #endif

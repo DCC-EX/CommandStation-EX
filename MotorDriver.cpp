@@ -126,6 +126,10 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
+#if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
+volatile unsigned int overflow_count=0;
+#endif
+
 bool MotorDriver::canMeasureCurrent() {
   return currentPin!=UNUSED_PIN;
 }
@@ -139,10 +143,22 @@ bool MotorDriver::canMeasureCurrent() {
  */
 int MotorDriver::getCurrentRaw() {
   if (currentPin==UNUSED_PIN) return 0; 
-  
-  int current = analogRead(currentPin)-senseOffset;
+  int current;
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
+  bool irq = disableInterrupts();
+  current = analogRead(currentPin)-senseOffset;
+  enableInterrupts(irq);
+#elif defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
+  unsigned char sreg_backup;
+  sreg_backup = SREG;   /* save interrupt enable/disable state */
+  cli();
+  current = analogRead(currentPin)-senseOffset;
+  overflow_count = 0;
+  SREG = sreg_backup;    /* restore interrupt state */
+#else
+  current = analogRead(currentPin)-senseOffset;
+#endif
   if (current<0) current=0-current;
-  
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
   return current;

@@ -85,6 +85,61 @@ INTERRUPT_CALLBACK interruptHandler=0;
     mac[0] |= 0x02;
   }
 
+#elif defined(TEENSYDUINO)
+  IntervalTimer myDCCTimer;
+
+  void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+    interruptHandler=callback;
+
+  myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
+
+  }
+
+  bool DCCTimer::isPWMPin(byte pin) {
+       //Teensy: digitalPinHasPWM, todo
+       return false;  // TODO what are the relevant pins? 
+  }
+
+ void DCCTimer::setPWM(byte pin, bool high) {
+    // TODO what are the relevant pins?
+ }
+
+  void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+#if defined(__IMXRT1062__)  //Teensy 4.0 and Teensy 4.1
+    uint32_t m1 = HW_OCOTP_MAC1;
+    uint32_t m2 = HW_OCOTP_MAC0;
+    mac[0] = m1 >> 8;
+    mac[1] = m1 >> 0;
+    mac[2] = m2 >> 24;
+    mac[3] = m2 >> 16;
+    mac[4] = m2 >> 8;
+    mac[5] = m2 >> 0;
+#else
+    read_mac(mac);
+#endif
+  }
+
+#if !defined(__IMXRT1062__)
+  void DCCTimer::read_mac(byte mac[6]) {
+    read(0xe,mac,0);
+    read(0xf,mac,3);
+  }
+
+// http://forum.pjrc.com/threads/91-teensy-3-MAC-address
+void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
+  FTFL_FCCOB0 = 0x41;             // Selects the READONCE command
+  FTFL_FCCOB1 = word;             // read the given word of read once area
+
+  // launch command and wait until complete
+  FTFL_FSTAT = FTFL_FSTAT_CCIF;
+  while(!(FTFL_FSTAT & FTFL_FSTAT_CCIF));
+
+  *(mac+offset) =   FTFL_FCCOB5;       // collect only the top three bytes,
+  *(mac+offset+1) = FTFL_FCCOB6;       // in the right orientation (big endian).
+  *(mac+offset+2) = FTFL_FCCOB7;       // Skip FTFL_FCCOB4 as it's always 0.
+}
+#endif
+
 #else 
   // Arduino nano, uno, mega etc
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
