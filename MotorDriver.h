@@ -47,7 +47,7 @@ class MotorDriver {
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
-    virtual int  getCurrentRaw(bool isMain);
+    virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
@@ -73,5 +73,16 @@ class MotorDriver {
     int senseOffset;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
+    static bool disableInterrupts() {
+      uint32_t primask;
+      __asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
+      __disable_irq();
+      return (primask == 0) ? true : false;
+    }
+    static void enableInterrupts(bool doit) {
+      if (doit) __enable_irq();
+    }
+#endif
 };
 #endif

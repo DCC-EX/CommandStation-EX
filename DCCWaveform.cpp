@@ -127,7 +127,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
       break;
     case POWERMODE::ON:
       // Check current
-      lastCurrent=motorDriver->getCurrentRaw(isMainTrack);
+      lastCurrent=motorDriver->getCurrentRaw();
       if (lastCurrent < 0) {
 	  // We have a fault pin condition to take care of
 	  lastCurrent = -lastCurrent;
@@ -275,7 +275,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
-      int baseline=motorDriver->getCurrentRaw(isMainTrack);
+      int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %dus and %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -309,7 +309,7 @@ void DCCWaveform::checkAck() {
         return; 
     }
       
-    int current=motorDriver->getCurrentRaw(isMainTrack);
+    int current=motorDriver->getCurrentRaw();
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         

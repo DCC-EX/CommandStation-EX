@@ -21,12 +21,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 
-#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
-#include <ADC.h>
-#include <ADC_util.h>
-ADC *adc = new ADC(); // adc object
-#endif
-
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
@@ -69,15 +63,6 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     senseOffset=analogRead(currentPin); // value of sensor at zero current
   }
 
-#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41) 
-  if(currentPin != current_pin && currentPin!=UNUSED_PIN){
-    //adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
-    adc->adc0->startContinuous(currentPin);
-  } else if(currentPin!=UNUSED_PIN){
-    //adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
-    adc->adc1->startContinuous(currentPin);
-  }
-#endif
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
@@ -154,16 +139,18 @@ bool MotorDriver::canMeasureCurrent() {
  * senseOffset handles the case where a shield returns values above or below 
  * a central value depending on direction.
  */
-int MotorDriver::getCurrentRaw(bool isMain) {
+int MotorDriver::getCurrentRaw() {
   if (currentPin==UNUSED_PIN) return 0; 
-  
   int current;
 #if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
-  if(isMain) {
-    current = (uint16_t)adc->adc0->analogReadContinuous();
-  } else {
-    current = (uint16_t)adc->adc1->analogReadContinuous();
-  }
+  //if(isMain) {
+  //  current = (uint16_t)adc->adc0->analogReadContinuous();
+  //} else {
+  //  current = (uint16_t)adc->adc1->analogReadContinuous();
+  //}
+  bool irq = disableInterrupts();
+  current = analogRead(currentPin)-senseOffset;
+  enableInterrupts(irq);
 #elif defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
   unsigned char sreg_backup;
   sreg_backup = SREG;   /* save interrupt enable/disable state */
