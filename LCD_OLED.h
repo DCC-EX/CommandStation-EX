@@ -24,7 +24,6 @@
 
 #include "I2CManager.h"
 #include "SSD1306Ascii.h"
-#include "Wire.h"
 SSD1306AsciiWire LCDDriver;
 
 // DEVICE SPECIFIC LCDDisplay Implementation for OLED
@@ -34,10 +33,9 @@ LCDDisplay::LCDDisplay() {
   I2CManager.begin();
   I2CManager.setClock(400000L);  // Set max supported I2C speed
   for (byte address = 0x3c; address <= 0x3d; address++) {
-    byte error = I2CManager.exists(address);
-    if (!error) {
+    if (I2CManager.exists(address)) {
       // Device found
-      DIAG(F("OLED display found at 0x%x"), address);
+      DIAG(F("\nOLED display found at 0x%x"), address);
       interfake(OLED_DRIVER, 0);
       const DevType *devType;
       if (lcdCols == 132)
@@ -65,7 +63,7 @@ void LCDDisplay::interfake(int p1, int p2, int p3) {
 void LCDDisplay::clearNative() { LCDDriver.clear(); }
 
 void LCDDisplay::setRowNative(byte row) {
-  // Positions text write to start of row 1..n and clears previous text
+  // Positions text write to start of row 1..n
   int y = row;
   LCDDriver.setCursor(0, y);
 }

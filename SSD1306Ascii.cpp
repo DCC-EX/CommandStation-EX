@@ -16,27 +16,38 @@
  * <http://www.gnu.org/licenses/>.
  */
 #include "SSD1306Ascii.h"
+#include "I2CManager.h"
+#include "FSH.h"
+
+
+// Maximum number of bytes we can send per transmission is 32.
+const uint8_t FLASH SSD1306AsciiWire::blankPixels[32] = 
+  {0x40,        // First byte specifies data mode
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
 
 //==============================================================================
-// SSD1306Ascii Method Definitions
-
+// SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
-void SSD1306Ascii::clear() {
+void SSD1306AsciiWire::clear() {
   clear(0, displayWidth() - 1, 0, displayRows() - 1);
 }
 //------------------------------------------------------------------------------
-void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
+void SSD1306AsciiWire::clear(uint8_t columnStart, uint8_t columnEnd, 
+                             uint8_t rowStart, uint8_t rowEnd) {
+  const int maxBytes = sizeof(blankPixels);  // max number of bytes sendable over Wire
   // Ensure only rows on display will be cleared.
-  if (r1 >= displayRows()) r1 = displayRows() - 1;
-
-  for (uint8_t r = r0; r <= r1; r++) {
-    setCursor(c0, r);
-    for (uint8_t c = c0; c <= c1; c++) ssd1306WriteRamBuf(0);
+  if (rowEnd >= displayRows()) rowEnd = displayRows() - 1;
+  for (uint8_t r = rowStart; r <= rowEnd; r++) {
+    setCursor(columnStart, r);   // Position at start of row to be erased
+    for (uint8_t c = columnStart; c <= columnEnd; c += maxBytes-1) {
+      uint8_t len = min((uint8_t)(columnEnd-c+1), maxBytes-1) + 1;
+      I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write up to 31 blank columns
+    }
   }
-  setCursor(c0, r0);
 }
 //------------------------------------------------------------------------------
-void SSD1306Ascii::init(const DevType* dev) {
+void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
+  m_i2cAddr = i2cAddr;
   m_col = 0;
   m_row = 0;
 #ifdef __AVR__
@@ -48,125 +59,50 @@ void SSD1306Ascii::init(const DevType* dev) {
   m_displayWidth = readFontByte(&dev->lcdWidth);
   m_displayHeight = readFontByte(&dev->lcdHeight);
   m_colOffset = readFontByte(&dev->colOffset);
-  for (uint8_t i = 0; i < size; i++) {
-    ssd1306WriteCmd(readFontByte(table + i));
+  I2CManager.write_P(m_i2cAddr, table, size);
+}
+//------------------------------------------------------------------------------
+void SSD1306AsciiWire::setContrast(uint8_t value) {
+  I2CManager.write(m_i2cAddr, 2, 
+    0x00,     // Set to command mode
+    SSD1306_SETCONTRAST, value);
+}
+//------------------------------------------------------------------------------
+void SSD1306AsciiWire::setCursor(uint8_t col, uint8_t row) {
+  if (row < displayRows() && col < m_displayWidth) {
+    m_row = row;
+    m_col = col + m_colOffset;
+    I2CManager.write(m_i2cAddr, 4,
+      0x00,    // Set to command mode
+      SSD1306_SETLOWCOLUMN | (col & 0XF), 
+      SSD1306_SETHIGHCOLUMN | (col >> 4),
+      SSD1306_SETSTARTPAGE | m_row);
   }
-  clear();
 }
 //------------------------------------------------------------------------------
-void SSD1306Ascii::setCol(uint8_t col) {
-  if (col < m_displayWidth) {
-    m_col = col;
-    col += m_colOffset;
-    ssd1306WriteCmd(SSD1306_SETLOWCOLUMN | (col & 0XF));
-    ssd1306WriteCmd(SSD1306_SETHIGHCOLUMN | (col >> 4));
-  }
-}
-//------------------------------------------------------------------------------
-void SSD1306Ascii::setContrast(uint8_t value) {
-  ssd1306WriteCmd(SSD1306_SETCONTRAST);
-  ssd1306WriteCmd(value);
-}
-//------------------------------------------------------------------------------
-void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
-  setCol(col);
-  setRow(row);
-}
-//------------------------------------------------------------------------------
-void SSD1306Ascii::setFont(const uint8_t* font) {
+void SSD1306AsciiWire::setFont(const uint8_t* font) {
   m_font = font;
   m_fontFirstChar = readFontByte(m_font + FONT_FIRST_CHAR);
   m_fontCharCount = readFontByte(m_font + FONT_CHAR_COUNT);
 }
 //------------------------------------------------------------------------------
-void SSD1306Ascii::setRow(uint8_t row) {
-  if (row < displayRows()) {
-    m_row = row;
-    ssd1306WriteCmd(SSD1306_SETSTARTPAGE | m_row);
-  }
-}
-//------------------------------------------------------------------------------
-void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
-  if (m_col < m_displayWidth) {
-    writeDisplay(c, SSD1306_MODE_RAM);
-    m_col++;
-  }
-}
-//------------------------------------------------------------------------------
-void SSD1306Ascii::ssd1306WriteRamBuf(uint8_t c) {
-  if (m_col < m_displayWidth) {
-    writeDisplay(c, SSD1306_MODE_RAM_BUF);
-    m_col++;
-  }
-}
-//------------------------------------------------------------------------------
-size_t SSD1306Ascii::write(uint8_t ch) {
-  if (!m_font) {
-    return 0;
-  }
+size_t SSD1306AsciiWire::write(uint8_t ch) {
   const uint8_t* base = m_font + FONT_WIDTH_TABLE;
 
   if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount))
     return 0;
   ch -= m_fontFirstChar;
   base += fontWidth * ch;
-  for (uint8_t c = 0; c < fontWidth; c++) {
-    uint8_t b = readFontByte(base + c);
-    ssd1306WriteRamBuf(b);
-  }
-  for (uint8_t i = 0; i < letterSpacing; i++) {
-    ssd1306WriteRamBuf(0);
-  }
-  flushDisplay();
+  uint8_t buffer[1+fontWidth+letterSpacing];
+  buffer[0] = 0x40;     // set SSD1306 controller to data mode
+  uint8_t bufferPos = 1;
+  // Copy character pixel columns
+  for (uint8_t i = 0; i < fontWidth; i++) 
+    buffer[bufferPos++] = readFontByte(base++);
+  // Add blank pixels between letters
+  for (uint8_t i = 0; i < letterSpacing; i++) 
+    buffer[bufferPos++] = 0;
+  // Write the data to I2C display
+  I2CManager.write(m_i2cAddr, buffer, bufferPos);
   return 1;
 }
-
-//=============================================================================
-// SSD1306AsciiWire method definitions
-
-#define m_oledWire Wire
-
-void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
-#if OPTIMIZE_I2C
-  m_nData = 0;
-#endif  // OPTIMIZE_I2C
-  m_i2cAddr = i2cAddr;
-  init(dev);
-}
-
-//------------------------------------------------------------------------------
-void SSD1306AsciiWire::writeDisplay(uint8_t b, uint8_t mode) {
-#if OPTIMIZE_I2C
-  if (m_nData > 16 || (m_nData && mode == SSD1306_MODE_CMD)) {
-    m_oledWire.endTransmission();
-    m_nData = 0;
-  }
-  if (m_nData == 0) {
-    m_oledWire.beginTransmission(m_i2cAddr);
-    m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
-  }
-  m_oledWire.write(b);
-  if (mode == SSD1306_MODE_RAM_BUF) {
-    m_nData++;
-  } else {
-    m_oledWire.endTransmission();
-    m_nData = 0;
-  }
-#else   // OPTIMIZE_I2C
-  m_oledWire.beginTransmission(m_i2cAddr);
-  m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
-  m_oledWire.write(b);
-  m_oledWire.endTransmission();
-#endif  // OPTIMIZE_I2C
-}
-
-//------------------------------------------------------------------------------
-void SSD1306AsciiWire::flushDisplay() {
-#if OPTIMIZE_I2C
-  if (m_nData) {
-    m_oledWire.endTransmission();
-    m_nData = 0;
-  }
-#endif  // OPTIMIZE_I2C
-}
-//------------------------------------------------------------------------------

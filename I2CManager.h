@@ -20,7 +20,7 @@
 #ifndef I2CManager_h
 #define I2CManager_h
 
-#include <Wire.h>
+#include "FSH.h"
 
 /* 
  * Helper class to manage access to the I2C 'Wire' subsystem.
@@ -48,12 +48,27 @@ public:
   // Force clock speed 
   void forceClock(uint32_t speed);
   // Check if specified I2C address is responding.
-  uint8_t exists(uint8_t address);
+  uint8_t checkAddress(uint8_t address);
+  bool exists(uint8_t address);
+  // Write a complete transmission to I2C from an array in RAM
+  uint8_t write(uint8_t address, const uint8_t buffer[], uint8_t size);
+  // Write a complete transmission to I2C from an array in Flash
+  uint8_t write_P(uint8_t address, const uint8_t buffer[], uint8_t size);
+  // Write a transmission to I2C from a list of bytes.
+  uint8_t write(uint8_t address, int nBytes, ...);
+  // Write a command from an array in RAM and read response
+  uint8_t read(uint8_t address, uint8_t writeBuffer[], uint8_t writeSize, 
+    uint8_t readBuffer[], uint8_t readSize);
+  // Write a command from an arbitrary list of bytes and read response
+  uint8_t read(uint8_t address, uint8_t readBuffer[], uint8_t readSize, 
+    uint8_t writeSize, ...);
+  // Write a null command and read the response.
+  uint8_t read(uint8_t address, uint8_t readBuffer[], uint8_t readSize);
 
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
-  uint32_t _clockSpeed = 1000000L; // 1MHz max on Arduino.
+  uint32_t _clockSpeed = 400000L;  // 400kHz max on Arduino.
 };
 
 extern I2CManagerClass I2CManager;
