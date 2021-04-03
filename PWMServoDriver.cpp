@@ -23,7 +23,6 @@
  *  BSD license, all text above must be included in any redistribution
  */
 #include <Arduino.h>
-#include <Wire.h>
 #include "PWMServoDriver.h"
 #include "DIAG.h"
 #include "I2CManager.h"
@@ -60,7 +59,7 @@ bool PWMServoDriver::setup(int board) {
   uint8_t i2caddr=PCA9685_I2C_ADDRESS + board;
 
   // Test if device is available
-  byte error = I2CManager.exists(i2caddr);
+  byte error = I2CManager.checkAddress(i2caddr);
   if (error) {
     DIAG(F("I2C Servo device 0x%x Not Found %d"),i2caddr, error);
     failFlags|=1<<board;  
@@ -85,20 +84,14 @@ void PWMServoDriver::setServo(byte servoNum, uint16_t value) {
   
   if (setup(board)) {
     DIAG(F("SetServo %d %d"),servoNum,value);  
-    Wire.beginTransmission(PCA9685_I2C_ADDRESS + board);
-    Wire.write(PCA9685_FIRST_SERVO + 4 * pin); // 4 registers per pin
-    Wire.write(0);
-    Wire.write(0);
-    Wire.write(value);
-    Wire.write(value >> 8);
-    byte error=Wire.endTransmission();
+    uint8_t buffer[] = {(uint8_t)(PCA9685_FIRST_SERVO + 4 * pin), // 4 registers per pin
+      0, 0, (uint8_t)(value & 0xff), (uint8_t)(value >> 8)};
+    if (value == 4095) buffer[2] = 0x10;   // Full on
+    byte error=I2CManager.write(PCA9685_I2C_ADDRESS + board, buffer, sizeof(buffer));
     if (error!=0) DIAG(F("SetServo error %d"),error); 
   }
 }
 
 void PWMServoDriver::writeRegister(uint8_t i2caddr,uint8_t hardwareRegister, uint8_t d) {
-  Wire.beginTransmission(i2caddr);
-  Wire.write(hardwareRegister);
-  Wire.write(d);
-  Wire.endTransmission();
+  I2CManager.write(i2caddr, 2, hardwareRegister, d);
 }

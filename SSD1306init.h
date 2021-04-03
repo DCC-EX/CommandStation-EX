@@ -118,6 +118,7 @@ struct DevType {
 /** Initialization commands for a 128x32 SSD1306 oled display. */
 static const uint8_t MEM_TYPE Adafruit128x32init[] = {
     // Init sequence for Adafruit 128x32 OLED module
+    0x00,                              // Set to command mode
     SSD1306_DISPLAYOFF,
     SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80
     SSD1306_SETMULTIPLEX, 0x1F,        // ratio 32
@@ -148,6 +149,7 @@ static const DevType MEM_TYPE Adafruit128x32 = {
 /** Initialization commands for a 128x64 SSD1306 oled display. */
 static const uint8_t MEM_TYPE Adafruit128x64init[] = {
     // Init sequence for Adafruit 128x64 OLED module
+    0x00,                              // Set to command mode
     SSD1306_DISPLAYOFF,
     SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80
     SSD1306_SETMULTIPLEX, 0x3F,        // ratio 64
@@ -177,6 +179,7 @@ static const DevType MEM_TYPE Adafruit128x64 = {
 // This section is based on https://github.com/stanleyhuangyc/MultiLCD
 /** Initialization commands for a 128x64 SH1106 oled display. */
 static const uint8_t MEM_TYPE SH1106_128x64init[] = {
+  0x00,                                  // Set to command mode
   SSD1306_DISPLAYOFF,
   SSD1306_SETSTARTPAGE | 0X0,            // set page address
   SSD1306_SETCONTRAST, 0x80,             // 128

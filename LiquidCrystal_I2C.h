@@ -21,9 +21,7 @@
 #ifndef LiquidCrystal_I2C_h
 #define LiquidCrystal_I2C_h
 
-#include <inttypes.h>
-#include "Print.h" 
-#include <Wire.h>
+#include <Arduino.h>
 
 // commands
 #define LCD_CLEARDISPLAY 0x01
@@ -82,25 +80,15 @@ public:
   void backlight();
   
   void setCursor(uint8_t, uint8_t); 
-#if defined(ARDUINO) && ARDUINO >= 100
   virtual size_t write(uint8_t);
-#else
-  virtual void write(uint8_t);
-#endif
   void command(uint8_t);
   void init();
-  void oled_init();
-
-////compatibility API function aliases
-void setBacklight(uint8_t new_val);				// alias for backlight() and nobacklight()
-void printstr(const char[]);
 
 private:
   void init_priv();
   void send(uint8_t, uint8_t);
-  void write4bits(uint8_t, bool inTransmission=false);
+  void write4bits(uint8_t);
   void expanderWrite(uint8_t);
-  void pulseEnable(uint8_t);
   uint8_t _Addr;
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
