@@ -102,6 +102,9 @@ public:
   static void displayCabList(Print *stream);
 
   static FSH *getMotorShieldName();
+  static inline void setGlobalSpeedsteps(byte s) {
+    globalSpeedsteps = s;
+  };
 
 private:
   struct LOCO
@@ -119,6 +122,7 @@ private:
   static bool issueReminder(int reg);
   static int nextLoco;
   static FSH *shieldName;
+  static byte globalSpeedsteps;
 
   static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
