@@ -33,29 +33,29 @@
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
-const int HASH_KEYWORD_PROG = -29718;
-const int HASH_KEYWORD_MAIN = 11339;
-const int HASH_KEYWORD_JOIN = -30750;
-const int HASH_KEYWORD_CABS = -11981;
-const int HASH_KEYWORD_RAM = 25982;
-const int HASH_KEYWORD_CMD = 9962;
-const int HASH_KEYWORD_WIT = 31594;
-const int HASH_KEYWORD_WIFI = -5583;
-const int HASH_KEYWORD_ACK = 3113;
-const int HASH_KEYWORD_ON = 2657;
-const int HASH_KEYWORD_DCC = 6436;
-const int HASH_KEYWORD_SLOW = -17209;
-const int HASH_KEYWORD_PROGBOOST = -6353;
-const int HASH_KEYWORD_EEPROM = -7168;
-const int HASH_KEYWORD_LIMIT = 27413;
-const int HASH_KEYWORD_ETHERNET = -30767;    
-const int HASH_KEYWORD_MAX = 16244;
-const int HASH_KEYWORD_MIN = 15978;
-const int HASH_KEYWORD_SPEED28 = -17064;
-const int HASH_KEYWORD_SPEED128 = 25816;
+const int16_t HASH_KEYWORD_PROG = -29718;
+const int16_t HASH_KEYWORD_MAIN = 11339;
+const int16_t HASH_KEYWORD_JOIN = -30750;
+const int16_t HASH_KEYWORD_CABS = -11981;
+const int16_t HASH_KEYWORD_RAM = 25982;
+const int16_t HASH_KEYWORD_CMD = 9962;
+const int16_t HASH_KEYWORD_WIT = 31594;
+const int16_t HASH_KEYWORD_WIFI = -5583;
+const int16_t HASH_KEYWORD_ACK = 3113;
+const int16_t HASH_KEYWORD_ON = 2657;
+const int16_t HASH_KEYWORD_DCC = 6436;
+const int16_t HASH_KEYWORD_SLOW = -17209;
+const int16_t HASH_KEYWORD_PROGBOOST = -6353;
+const int16_t HASH_KEYWORD_EEPROM = -7168;
+const int16_t HASH_KEYWORD_LIMIT = 27413;
+const int16_t HASH_KEYWORD_ETHERNET = -30767;    
+const int16_t HASH_KEYWORD_MAX = 16244;
+const int16_t HASH_KEYWORD_MIN = 15978;
+const int16_t HASH_KEYWORD_SPEED28 = -17064;
+const int16_t HASH_KEYWORD_SPEED128 = 25816;
 
 
-int DCCEXParser::stashP[MAX_COMMAND_PARAMS];
+int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
 
 Print *DCCEXParser::stashStream = NULL;
