@@ -72,10 +72,13 @@ INTERRUPT_CALLBACK interruptHandler=0;
   }
 
   bool DCCTimer::isPWMPin(byte pin) {
+       (void) pin; 
        return false;  // TODO what are the relevant pins? 
   }
 
  void DCCTimer::setPWM(byte pin, bool high) {
+    (void) pin;
+    (void) high;
     // TODO what are the relevant pins?
  }
 
@@ -97,12 +100,15 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
   bool DCCTimer::isPWMPin(byte pin) {
        //Teensy: digitalPinHasPWM, todo
+      (void) pin;
        return false;  // TODO what are the relevant pins? 
   }
 
  void DCCTimer::setPWM(byte pin, bool high) {
     // TODO what are the relevant pins?
- }
+    (void) pin;
+    (void) high;
+}
 
   void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
 #if defined(__IMXRT1062__)  //Teensy 4.0 and Teensy 4.1
