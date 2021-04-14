@@ -27,7 +27,8 @@
 /*
  *  © 2020,2021 Chris Harlow, Harald Barth, David Cutting, 
  *  Fred Decker, Gregor Baues, Anthony W - Dayton  All rights reserved.
- * 
+ *  
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,10 +60,18 @@ void setup()
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
    
+  // Responsibility 2: Start the DCC engine.
+  // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
+  // Standard supported devices have pre-configured macros but custome hardware installations require
+  //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
+  // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
+  DCC::begin(MOTOR_SHIELD_TYPE);
+  DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
+
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use 
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
-    LCD(1,F("Starting")); 
+    LCD(1,F("Lic GPLv3")); 
     }   
 
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
@@ -75,16 +84,6 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
-  // Responsibility 3: Start the DCC engine.
-  // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
-  // Standard supported devices have pre-configured macros but custome hardware installations require
-  //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
-
-  // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
-
- 
-  DCC::begin(MOTOR_SHIELD_TYPE); 
-         
   #if defined(RMFT_ACTIVE) 
       RMFT::begin();
   #endif

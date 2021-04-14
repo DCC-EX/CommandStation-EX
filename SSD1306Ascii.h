@@ -1,6 +1,8 @@
 /* Based on Arduino SSD1306Ascii Library, Copyright (C) 2015 by William Greiman
  * Modifications (C) 2021 Neil McKechnie
  *
+ *  This file is part of CommandStation-EX
+ *
  * This Library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
