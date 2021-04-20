@@ -60,7 +60,7 @@ The configuration file for DCC-EX Command Station
 // is set (recommended), that password will be used for AP mode.
 // The AP mode password must be at least 8 characters long.
 //
-// Your SSID may not conain ``"'' (double quote, ASCII 0x22).
+// Your SSID may not contain ``"'' (double quote, ASCII 0x22).
 #define WIFI_SSID "Your network name"
 //
 // WIFI_PASSWORD is the network password for your home network or if
