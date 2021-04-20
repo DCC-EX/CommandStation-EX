@@ -76,10 +76,10 @@ public:
   static void writeCVByteMain(int cab, int cv, byte bValue);
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction(int cab, byte fByte, byte eByte);
-  static void setFn(int cab, byte functionNumber, bool on);
-  static int changeFn(int cab, byte functionNumber, bool pressed);
-  static int  getFn(int cab, byte functionNumber);
-  static void updateGroupflags(byte &flags, int functionNumber);
+  static void setFn(int cab, int16_t functionNumber, bool on);
+  static int changeFn(int cab, int16_t functionNumber, bool pressed);
+  static int  getFn(int cab, int16_t functionNumber);
+  static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);
   static void setProgTrackSyncMain(bool on); // when true, prog track becomes driveable
