@@ -175,8 +175,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
 
   // Older ES versions have AT+CWJAP, newer ones have AT+CWJAP_CUR and AT+CWHOSTNAME
-  StringFormatter::send(wifiStream, F("AT+CWJAP?\r\n"));
-  if (checkForOK(2000, true)) {
+  StringFormatter::send(wifiStream, F("AT+CWJAP_CUR?\r\n"));
+  if !(checkForOK(2000, true)) {
       oldCmd=true;
       while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
   }
