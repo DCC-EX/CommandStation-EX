@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.11"
+#define VERSION "3.0.12"
 // 3.0.12 fix esp8266 test for new firmware
 // 3.0.11 ?
 // 3.0.10 Teensy Support
