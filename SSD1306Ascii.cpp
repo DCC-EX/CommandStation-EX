@@ -21,9 +21,9 @@
 
 
 // Maximum number of bytes we can send per transmission is 32.
-const uint8_t FLASH SSD1306AsciiWire::blankPixels[32] = 
+const uint8_t SSD1306AsciiWire::blankPixels[16] = 
   {0x40,        // First byte specifies data mode
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
 
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
@@ -41,7 +41,7 @@ void SSD1306AsciiWire::clear(uint8_t columnStart, uint8_t columnEnd,
     setCursor(columnStart, r);   // Position at start of row to be erased
     for (uint8_t c = columnStart; c <= columnEnd; c += maxBytes-1) {
       uint8_t len = min((uint8_t)(columnEnd-c+1), maxBytes-1) + 1;
-      I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write up to 31 blank columns
+      I2CManager.write(m_i2cAddr, blankPixels, len);  // Write up to 15 blank columns
     }
   }
 }
