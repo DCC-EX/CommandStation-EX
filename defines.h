@@ -33,13 +33,20 @@
 #endif
 
 #if ENABLE_ETHERNET && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO)) 
-#define ETHERNET_ON true
+    #define ETHERNET_ON true
 #else
-#define ETHERNET_ON false
+    #define ETHERNET_ON false
 #endif
 
+// MQTT is on only if the ethernet is enabled 
+#if ENABLE_MQTT && ETHERNET_ON
+    #define MQTT_ON
+#else
+    #warning MQTT requires Ethernet to be enabled. 
+#endif 
+
 // #if WIFI_ON && ETHERNET_ON
-//  #error Command Station does not support WIFI and ETHERNET at the same time.
+//   #error Command Station does not support WIFI and ETHERNET at the same time.
 // #endif
   
 ////////////////////////////////////////////////////////////////////////////////
