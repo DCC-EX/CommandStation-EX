@@ -25,6 +25,8 @@
 #include "DIAG.h"
 #include "freeMemory.h"
 
+bool gapDetected = false;
+
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
@@ -53,6 +55,10 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 void DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
+  if (gapDetected) {
+    LCD (7, F("GAP in ACK!"));
+    gapDetected = false;
+  }
 }
 
 void DCCWaveform::interruptHandler() {
@@ -303,6 +309,7 @@ byte DCCWaveform::getAck() {
 
 void DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
+    static byte trailingEdgeCounter = 0;
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
@@ -314,6 +321,10 @@ void DCCWaveform::checkAck() {
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
     if (current>ackThreshold) {
+       if (trailingEdgeCounter > 0) {
+	 gapDetected = true;
+	 trailingEdgeCounter = 0;
+       }
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
        return;
     }
@@ -321,9 +332,19 @@ void DCCWaveform::checkAck() {
     // not in pulse
     if (ackPulseStart==0) return; // keep waiting for leading edge 
     
+    // if we reach to this point, we have
     // detected trailing edge of pulse
-    ackPulseDuration=micros()-ackPulseStart;
-               
+
+    // but we do not trust it yet and return (which will force another
+    // measurement) and first the second time around with low current
+    // the ack detection will be finalized. 
+    if (trailingEdgeCounter < 1) {
+      ackPulseDuration=micros()-ackPulseStart;
+      trailingEdgeCounter++;
+      return;
+    }
+    trailingEdgeCounter = 0;
+
     if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
