@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.91"
+#define VERSION "3.0.92"
+// 3.0.XX gap in ack tolerant fix
+// 3.0.11 28 speedstep support
 // 3.0.10 Teensy Support
 // 3.0.9 rearranges serial newlines for the benefit of JMRI.
 // 3.0.8 Includes <* *> wraps around DIAGs for the benefit of JMRI.

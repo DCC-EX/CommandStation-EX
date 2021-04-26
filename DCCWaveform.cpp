@@ -25,15 +25,16 @@
 #include "DIAG.h"
 #include "freeMemory.h"
 
-bool gapDetected = false;
-
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
 int  DCCWaveform::progTripValue=0;
-  
+volatile uint8_t DCCWaveform::numAckGaps=0;
+volatile uint8_t DCCWaveform::numAckSamples=0;
+uint8_t DCCWaveform::trailingEdgeCounter=0;
+
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
@@ -55,10 +56,6 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 void DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
-  if (gapDetected) {
-    LCD (7, F("GAP in ACK!"));
-    gapDetected = false;
-  }
 }
 
 void DCCWaveform::interruptHandler() {
@@ -296,20 +293,20 @@ void DCCWaveform::setAckPending() {
       ackPulseDuration=0;
       ackDetected=false;
       ackCheckStart=millis();
+      numAckSamples=0;
       ackPending=true;  // interrupt routines will now take note
 }
 
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
-           ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
+      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
+			  ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration, numAckSamples, numAckGaps);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
 }
 
 void DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
-    static byte trailingEdgeCounter = 0;
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
@@ -317,12 +314,13 @@ void DCCWaveform::checkAck() {
     }
       
     int current=motorDriver->getCurrentRaw();
+    numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
     if (current>ackThreshold) {
        if (trailingEdgeCounter > 0) {
-	 gapDetected = true;
+	 numAckGaps++;
 	 trailingEdgeCounter = 0;
        }
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
