@@ -142,7 +142,7 @@ bool DCC::getThrottleDirection(int cab) {
 }
 
 // Set function to value on or off
-void DCC::setFn( int cab, byte functionNumber, bool on) {
+void DCC::setFn( int cab, int16_t functionNumber, bool on) {
   if (cab<=0 ) return;
   
   if (functionNumber>28) { 
@@ -159,7 +159,7 @@ void DCC::setFn( int cab, byte functionNumber, bool on) {
     else  {
        b[nB++] = 0b11000000;   // Binary State Control Instruction long form  
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
-       b[nB++] = functionNumber >>8 ;  // high order bits
+       b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
     return;
@@ -183,7 +183,7 @@ void DCC::setFn( int cab, byte functionNumber, bool on) {
 // Change function according to how button was pressed,
 // typically in WiThrottle.
 // Returns new state or -1 if nothing was changed.
-int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
+int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
   int funcstate = -1;
   if (cab<=0 || functionNumber>28) return funcstate;
   int reg = lookupSpeedTable(cab);
@@ -213,7 +213,7 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
   return funcstate;
 }
 
-int DCC::getFn( int cab, byte functionNumber) {
+int DCC::getFn( int cab, int16_t functionNumber) {
   if (cab<=0 || functionNumber>28) return -1;  // unknown
   int reg = lookupSpeedTable(cab);
   if (reg<0) return -1;  
@@ -224,7 +224,7 @@ int DCC::getFn( int cab, byte functionNumber) {
 
 // Set the group flag to say we have touched the particular group.
 // A group will be reminded only if it has been touched.  
-void DCC::updateGroupflags(byte & flags, int functionNumber) {
+void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
   byte groupMask;
   if (functionNumber<=4)       groupMask=FN_GROUP_1;
   else if (functionNumber<=8)  groupMask=FN_GROUP_2;
