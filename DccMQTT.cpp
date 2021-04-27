@@ -35,6 +35,7 @@
 void DccMQTT::setup()
 {
   
+  
   char _csidMsg[64]{'\0'}; //!< string buffer for the serialized message to return
   mqttClient.setServer(server, MQTT_BROKER_PORT); // Initalize MQ broker
 

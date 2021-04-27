@@ -1,30 +1,18 @@
 #ifndef _DccMQTT_h_
 #define _DccMQTT_h_
-/**
- * @file DccMQTT.h
- * @author Gregor Baues
- * @brief  MQTT protocol controller for DCC-EX. Sets up and maintains the connection to the MQTT broker incl setting up the topics.
- * Topics are created specifically for the command station on which the code runs. Manages subsriptions as well as recieving/sending of messages on the different topics.
- * @version 0.1
- * @date 2020-07-08
- * 
- * @copyright Copyright (c) 2020
- *
- *  This is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  It is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details <https://www.gnu.org/licenses/>.
- */
 
-// #include <Transport/MQTT/DccMQTTCommandMsg.h>
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #warning config.h not found. Using defaults from config.example.h 
+  #include "config.example.h"
+#endif
+#include "defines.h" 
+
 #include <PubSubClient.h>
 #include <DCCEXParser.h>
 #include <Queue.h>
+#include <Ethernet.h>
 
 #define MAXPAYLOAD 64
 
@@ -49,12 +37,14 @@ private:
     
     static DccMQTT singleton;
     DccMQTT() = default;
-    DccMQTT(const DccMQTT&); // non construction-copyable
-    DccMQTT& operator=( const DccMQTT& ); // non copyable
+    DccMQTT(const DccMQTT&);                // non construction-copyable
+    DccMQTT& operator=( const DccMQTT& );   // non copyable
 
-    IPAddress server(MQTT_BROKER_ADDRESS);
+    EthernetClient *ethClient;               // TCP Client object for the MQ Connection
+    IPAddress      *server;                  // MQTT server object
+    PubSubClient   *mqttClient;              // PubSub Endpoint for data exchange 
+
     // EthernetClient ethClient = ETHNetwork::getServer().available();
-
     
     Queue<DccMQTTMsg> in; 
     Queue<DccMQTTMsg> out;
