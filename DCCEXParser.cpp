@@ -56,7 +56,7 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
-const int16_t HASH_KEYWORD_MQTT = 11111;
+const int16_t HASH_KEYWORD_MQTT = 28220;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -801,6 +801,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     case HASH_KEYWORD_SPEED128:
         DCC::setGlobalSpeedsteps(128);
 	StringFormatter::send(stream, F("128 Speedsteps"));
+        return true;
+
+    case HASH_KEYWORD_MQTT: // <D LCN ON/OFF>
+        Diag::MQTT = onOff;
         return true;
 
     default: // invalid/unknown

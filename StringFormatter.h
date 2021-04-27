@@ -34,6 +34,7 @@ class Diag {
   static bool WITHROTTLE;
   static bool ETHERNET;
   static bool LCN;
+  static bool MQTT;
   
 };
 
