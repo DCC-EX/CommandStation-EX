@@ -76,8 +76,9 @@ void setup()
 #endif // ETHERNET_ON
 
 #if MQTT_ON
+  DccMQTT mq;
   // We assume here that we have a network connection
-  DccMQTT::setup(serialParser);
+  mq.setup();
 #endif
 
 
