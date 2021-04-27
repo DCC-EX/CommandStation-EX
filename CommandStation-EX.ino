@@ -75,6 +75,14 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
+#if MQTT_ON
+  // We assume here that we have a network connection
+  DccMQTT::setup(serialParser);
+#endif
+
+
+
+
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
   // Standard supported devices have pre-configured macros but custome hardware installations require

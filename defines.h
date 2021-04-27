@@ -40,8 +40,9 @@
 
 // MQTT is on only if the ethernet is enabled 
 #if ENABLE_MQTT && ETHERNET_ON
-    #define MQTT_ON
+    #define MQTT_ON true
 #else
+    #define MQTT_ON false
     #warning MQTT requires Ethernet to be enabled. 
 #endif 
 

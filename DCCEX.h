@@ -10,9 +10,15 @@
 #include "DCCEXParser.h"
 #include "version.h"
 #include "WifiInterface.h"
+
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif
+
+#if MQTT_ON == true
+#include "DccMQTT.h"
+#endif
+
 #include "LCD_Implementation.h"
 #include "LCN.h"
 #include "freeMemory.h"
