@@ -16,6 +16,23 @@
 
 #define MAXPAYLOAD 64
 
+// Define Broker configurations; Values are provided in the following order 
+// MQTT_BROKER_PORT 9883 
+// MQTT_BROKER_DOMAIN "dcclms.modelrailroad.ovh"
+// MQTT_BROKER_ADDRESS 51, 210, 151, 143
+// MQTT_BROKER_USER "dcccs"
+// MQTT_BROKER_PASSWD "dcccs$3020"
+// MQTT_BROKER_CLIENTID_PREFIX "dcc$lms-"
+
+
+#define LOCAL_MQTT_BROKER F("LOCAL_MQTT_BROKER"), new MQTTBroker( 1883, {10, 0, 0, 2}, "my.local.server", MQ_UNUSED, MQ_UNUSED, MQ_UNUSED)
+#define DCCEX_MQTT_BROKER F("DCCEX_MQTT_BROKER"), new MQTTBroker( 9883, {51, 210, 151, 143}, "dcclms.modelrailroad.ovh", "dcccs", "dcccs$3020", "dcc$lms-")
+
+struct MQTTBroker {
+    int port;
+
+    MQTTBroker(int p)(port(p)){};
+};
 struct DccMQTTMsg {
     char payload[MAXPAYLOAD];
 };

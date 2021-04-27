@@ -30,20 +30,96 @@
 #include <Arduino.h>
 #include <EthernetInterface.h>
 #include <PubSubClient.h> // Base (sync) MQTT library
+#include <DIAG.h>
 
 #include <DccMQTT.h>
 
+//---------
+// Defines
+//---------
+
+#define MAXTBUF 50  //!< max length of the buffer for building the topic name ;to be checked
+#define MAXTMSG 120 //!< max length of the messages for a topic               ;to be checked PROGMEM ?
+#define MAXTSTR 30  //!< max length of a topic string
+
+//---------
+// Variables
+//---------
+
+char topicName[MAXTBUF];
+char topicMessage[MAXTMSG];
+// char keyword[MAX_KEYWORD_LENGTH];
+
 DccMQTT DccMQTT::singleton;
+
+
+
+// callback when a message arrives from the broker
+void mqttCallback(char *topic, byte *payload, unsigned int length)
+{
+   topicName[0] = '\0';
+   topicMessage[0] = '\0';
+   strcpy(topicName, topic);
+   strlcpy(topicMessage, (char *)payload, length + 1);
+
+   DIAG(F("MQTT Message arrived [%s]: %s"), topicName, topicMessage);
+
+}
+
+/**
+ * @brief MQTT broker connection / reconnection
+ * 
+ */
+static void reconnect()
+{
+  DIAG(F("MQTT (re)connecting ..."));
+
+  while (!mqttClient.connected())
+  {
+    DIAG(F("Attempting MQTT Broker connection..."));
+    // Attempt to connect
+#ifdef CLOUDBROKER
+    char *connectID = new char[40];
+    
+    connectID[0] = '\0';
+    strcat(connectID, MQTT_BROKER_CLIENTID_PREFIX);
+    strcat(connectID,DccMQTT::getDeviceID());
+
+    INFO(F("ConnectID: %s %s %s"), connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD);
+    #ifdef MQTT_BROKER_USER
+    DBG(F("MQTT (re)connecting (Cloud/User) ..."));
+    if (mqttClient.connect(connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
+    #else
+    DBG(F("MQTT (re)connecting (Cloud) ..."));
+    if (mqttClient.connect(DccMQTT::getDeviceID()))
+    #endif
+#else
+    #ifdef MQTT_BROKER_USER
+    DBG(F("MQTT (re)connecting (Local/User) ..."));
+    if (mqttClient.connect(DccMQTT::getDeviceID(), MQTT_BROKER_USER, MQTT_BROKER_PASSWD))
+    #else
+    DBG(F("MQTT (re)connecting (Local) ..."));
+    if (mqttClient.connect(DccMQTT::getDeviceID()))
+    #endif
+#endif
+    {
+      INFO(F("MQTT broker connected ..."));
+      // publish on the  $connected topic 
+      DccMQTT::subscribe(); // required in case of a connection loss to do it again (this causes a mem leak !! of 200bytes each time!!)
+    }
+    else
+    {
+      INFO(F("MQTT broker connection failed, rc=%d, trying to reconnect"), mqttClient.state());
+    }
+  }
+}
+
+
+
 
 void DccMQTT::setup()
 {
-    
-  // IPAddress server(MQTT_BROKER_ADDRESS);
-// EthernetClient ethClient = ETHNetwork::getServer().available();
-
-// // MQTT connection
-// PubSubClient mqttClient(ethClient);
-// PubSubClient *DccMQTT::mqClient = &mqttClient;
+   //Create the MQTT environment and establish inital connection to the Broker 
 
   // get a eth client session 
   ethClient = EthernetInterface::get()->getServer()->available();
@@ -52,18 +128,19 @@ void DccMQTT::setup()
   mqttClient = PubSubClient(ethClient);
   mqttClient.setServer(IPAddress(MQTT_BROKER_ADDRESS), MQTT_BROKER_PORT);
 
-  // DBG(F("MQTT Client : Server ok ..."));
-  // mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages
-  // DBG(F("MQTT Client : Callback set ..."));
+  DIAG(F("MQTT Client : Server ok ..."));
+
+  mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages
+  
+  DIAG(F("MQTT Client : Callback set ..."));
 
   // DccMQTT::setDeviceID();                     // set the unique device ID to bu used for creating / listening to topic
 
-  // /**
-  //  * @todo check for connection failure
-  //  */
-  // reconnect();                                          // inital connection as well as reconnects
+
+  reconnect();                                          // inital connection as well as reconnects
   // DccMQTT::subscribe();                                 // set up all subscriptionn
-  // INFO(F("MQTT subscriptons done..."));
+  DIAG(F("MQTT subscriptons done..."));
+
   // sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
   // mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
   

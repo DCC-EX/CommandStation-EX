@@ -76,7 +76,7 @@ void setup()
 #endif // ETHERNET_ON
 
 #if MQTT_ON
-  DccMQTT::get()->setup();
+  DccMQTT::get()->setup(LOCAL_MQTT_BROKER);
 #endif
 
 
