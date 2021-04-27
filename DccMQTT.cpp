@@ -33,6 +33,8 @@
 
 #include <DccMQTT.h>
 
+DccMQTT DccMQTT::singleton;
+
 void DccMQTT::setup()
 {
     
@@ -43,11 +45,12 @@ void DccMQTT::setup()
 // PubSubClient mqttClient(ethClient);
 // PubSubClient *DccMQTT::mqClient = &mqttClient;
 
-  server = IPAddress(MQTT_BROKER_ADDRESS);
-  
-  // char _csidMsg[64]{'\0'}; //!< string buffer for the serialized message to return
-  // mqttClient.setServer(server, MQTT_BROKER_PORT); // Initalize MQ broker
+  // get a eth client session 
+  ethClient = EthernetInterface::get()->getServer()->available();
 
+  // initalize MQ Broker
+  mqttClient = PubSubClient(ethClient);
+  mqttClient.setServer(IPAddress(MQTT_BROKER_ADDRESS), MQTT_BROKER_PORT);
 
   // DBG(F("MQTT Client : Server ok ..."));
   // mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages

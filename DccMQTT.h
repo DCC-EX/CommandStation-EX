@@ -62,7 +62,6 @@ public:
     void loop();
 
     ~DccMQTT() = default;
-    DccMQTT()
 };
 
 

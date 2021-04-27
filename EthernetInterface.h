@@ -51,14 +51,26 @@ class EthernetInterface {
 
  public:
      
-     static void setup();       
-     static void loop();
-   
+    static void setup();       
+    static void loop();
+
+    bool isConnected() { return connected; };
+    static EthernetInterface *get() { return singleton; };
+    EthernetClient *getClient(int socket) { return &clients[socket]; };
+    EthernetServer *getServer() { return server; };
+
+   ~EthernetInterface() = default;
+
  private:
-     static EthernetInterface * singleton;
-     bool connected;
-     EthernetInterface();
-     void loop2();
+    
+    EthernetInterface();
+    EthernetInterface(const EthernetInterface&);                // non construction-copyable
+    EthernetInterface& operator=( const EthernetInterface& );   // non copyable
+    static EthernetInterface * singleton;
+    bool connected;
+    
+    void loop2();
+    
     EthernetServer * server;
     EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
