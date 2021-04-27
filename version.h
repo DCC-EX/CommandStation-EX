@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.11"
+#define VERSION "3.0.12"
+// 3.0.12 Functions>127 fix
 // 3.0.10 Teensy Support
 // 3.0.9 rearranges serial newlines for the benefit of JMRI.
 // 3.0.8 Includes <* *> wraps around DIAGs for the benefit of JMRI.
