@@ -21,14 +21,11 @@ struct DccMQTTMsg {
 };
 
 
-
-
-// IPAddress server(MQTT_BROKER_ADDRESS);
-// EthernetClient ethClient = ETHNetwork::getServer().available();
-
-// // MQTT connection
-// PubSubClient mqttClient(ethClient);
-// PubSubClient *DccMQTT::mqClient = &mqttClient;
+enum DccMQTTState {
+    INIT,           
+    CONFIGURED,       // server/client objects set
+    CONNECTED         // mqtt broker is connected
+};
 
 
 class DccMQTT 
@@ -40,14 +37,16 @@ private:
     DccMQTT(const DccMQTT&);                // non construction-copyable
     DccMQTT& operator=( const DccMQTT& );   // non copyable
 
-    EthernetClient *ethClient;               // TCP Client object for the MQ Connection
-    IPAddress      *server;                  // MQTT server object
-    PubSubClient   *mqttClient;              // PubSub Endpoint for data exchange 
+    EthernetClient ethClient;               // TCP Client object for the MQ Connection
+    IPAddress      server;                  // MQTT server object
+    PubSubClient   mqttClient;              // PubSub Endpoint for data exchange 
 
     // EthernetClient ethClient = ETHNetwork::getServer().available();
-    
+
     Queue<DccMQTTMsg> in; 
     Queue<DccMQTTMsg> out;
+
+    DccMQTTState mqState = INIT;
 
 public:
 
@@ -55,10 +54,15 @@ public:
         return &singleton;
     }
 
+    bool isConfigured()             { return mqState == CONFIGURED; };
+    bool isConnected()              { return mqState == CONNECTED; };
+    void setState(DccMQTTState s)   { mqState = s; };
+
     void setup();          // called at setup in the main ino file
     void loop();
 
     ~DccMQTT() = default;
+    DccMQTT()
 };
 
 

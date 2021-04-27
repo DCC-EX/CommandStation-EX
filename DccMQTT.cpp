@@ -28,40 +28,49 @@
 #include "defines.h" 
 
 #include <Arduino.h>
+#include <EthernetInterface.h>
 #include <PubSubClient.h> // Base (sync) MQTT library
 
 #include <DccMQTT.h>
 
 void DccMQTT::setup()
 {
+    
+  // IPAddress server(MQTT_BROKER_ADDRESS);
+// EthernetClient ethClient = ETHNetwork::getServer().available();
+
+// // MQTT connection
+// PubSubClient mqttClient(ethClient);
+// PubSubClient *DccMQTT::mqClient = &mqttClient;
+
+  server = IPAddress(MQTT_BROKER_ADDRESS);
+  
+  // char _csidMsg[64]{'\0'}; //!< string buffer for the serialized message to return
+  // mqttClient.setServer(server, MQTT_BROKER_PORT); // Initalize MQ broker
+
+
+  // DBG(F("MQTT Client : Server ok ..."));
+  // mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages
+  // DBG(F("MQTT Client : Callback set ..."));
+
+  // DccMQTT::setDeviceID();                     // set the unique device ID to bu used for creating / listening to topic
+
+  // /**
+  //  * @todo check for connection failure
+  //  */
+  // reconnect();                                          // inital connection as well as reconnects
+  // DccMQTT::subscribe();                                 // set up all subscriptionn
+  // INFO(F("MQTT subscriptons done..."));
+  // sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
+  // mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
   
   
-  char _csidMsg[64]{'\0'}; //!< string buffer for the serialized message to return
-  mqttClient.setServer(server, MQTT_BROKER_PORT); // Initalize MQ broker
+  // /**
+  //  * @todo set the connect status with a retained message on the $connected topic /admin/<csid>/$connected as used in the connect
+  //  * 
+  //  */
 
-
-  DBG(F("MQTT Client : Server ok ..."));
-  mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages
-  DBG(F("MQTT Client : Callback set ..."));
-
-  DccMQTT::setDeviceID();                     // set the unique device ID to bu used for creating / listening to topic
-
-  /**
-   * @todo check for connection failure
-   */
-  reconnect();                                          // inital connection as well as reconnects
-  DccMQTT::subscribe();                                 // set up all subscriptionn
-  INFO(F("MQTT subscriptons done..."));
-  sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
-  mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
-  
-  
-  /**
-   * @todo set the connect status with a retained message on the $connected topic /admin/<csid>/$connected as used in the connect
-   * 
-   */
-
-  mqttDccExParser = p;
+  // mqttDccExParser = p;
 }
 
 
