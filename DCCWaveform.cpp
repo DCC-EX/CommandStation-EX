@@ -294,6 +294,7 @@ void DCCWaveform::setAckPending() {
       ackDetected=false;
       ackCheckStart=millis();
       numAckSamples=0;
+      numAckGaps=0;
       ackPending=true;  // interrupt routines will now take note
 }
 
@@ -332,12 +333,14 @@ void DCCWaveform::checkAck() {
     
     // if we reach to this point, we have
     // detected trailing edge of pulse
+    if (trailingEdgeCounter == 0) {
+      ackPulseDuration=micros()-ackPulseStart;
+    }
 
     // but we do not trust it yet and return (which will force another
-    // measurement) and first the second time around with low current
+    // measurement) and first the third time around with low current
     // the ack detection will be finalized. 
-    if (trailingEdgeCounter < 1) {
-      ackPulseDuration=micros()-ackPulseStart;
+    if (trailingEdgeCounter < 2) {
       trailingEdgeCounter++;
       return;
     }

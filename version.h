@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.92"
+#define VERSION "3.0.93"
 // 3.0.XX gap in ack tolerant fix
 // 3.0.11 28 speedstep support
 // 3.0.10 Teensy Support
