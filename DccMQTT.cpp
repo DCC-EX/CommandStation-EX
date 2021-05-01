@@ -19,28 +19,24 @@
  *  GNU General Public License for more details <https://www.gnu.org/licenses/>.
  */
 
-#if __has_include ( "config.h")
-  #include "config.h"
+#if __has_include("config.h")
+#include "config.h"
 #else
-  #warning config.h not found. Using defaults from config.example.h 
-  #include "config.example.h"
+#warning config.h not found. Using defaults from config.example.h
+#include "config.example.h"
 #endif
-#include "defines.h" 
+#include "defines.h"
 
 #include <Arduino.h>
+#include <avr/pgmspace.h>
 #include <EthernetInterface.h>
 #include <PubSubClient.h> // Base (sync) MQTT library
 #include <DIAG.h>
+#include <Ethernet.h>
+#include <Dns.h>
+#include <DCCTimer.h>
 
 #include <DccMQTT.h>
-
-//---------
-// Defines
-//---------
-
-#define MAXTBUF 50  //!< max length of the buffer for building the topic name ;to be checked
-#define MAXTMSG 120 //!< max length of the messages for a topic               ;to be checked PROGMEM ?
-#define MAXTSTR 30  //!< max length of a topic string
 
 //---------
 // Variables
@@ -52,107 +48,197 @@ char topicMessage[MAXTMSG];
 
 DccMQTT DccMQTT::singleton;
 
+/**
+ * @brief Copies an byte array to a hex representation as string; used for generating the unique Arduino ID
+ * 
+ * @param array array containing bytes
+ * @param len length of the array
+ * @param buffer buffer to which the string will be written; make sure the buffer has appropriate length
+ */
+static void array_to_string(byte array[], unsigned int len, char buffer[])
+{
+  for (unsigned int i = 0; i < len; i++)
+  {
+    byte nib1 = (array[i] >> 4) & 0x0F;
+    byte nib2 = (array[i] >> 0) & 0x0F;
+    buffer[i * 2 + 0] = nib1 < 0xA ? '0' + nib1 : 'A' + nib1 - 0xA;
+    buffer[i * 2 + 1] = nib2 < 0xA ? '0' + nib2 : 'A' + nib2 - 0xA;
+  }
+  buffer[len * 2] = '\0';
+}
 
-
-// callback when a message arrives from the broker
+// callback when a message arrives from the broker; push cmd into the incommming queue
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
-   topicName[0] = '\0';
-   topicMessage[0] = '\0';
-   strcpy(topicName, topic);
-   strlcpy(topicMessage, (char *)payload, length + 1);
-
-   DIAG(F("MQTT Message arrived [%s]: %s"), topicName, topicMessage);
-
+  topicName[0] = '\0';
+  topicMessage[0] = '\0';
+  strcpy(topicName, topic);
+  strlcpy(topicMessage, (char *)payload, length + 1);
+  Serial.println("some msg arrived");
+  DIAG(F("MQTT Message arrived [%s]: %s"), topicName, topicMessage);
 }
 
 /**
  * @brief MQTT broker connection / reconnection
  * 
  */
-static void reconnect()
+void DccMQTT::connect()
 {
-  DIAG(F("MQTT (re)connecting ..."));
 
-  while (!mqttClient.connected())
+  char *connectID = new char[MAXCONNECTID];
+  connectID[0] = '\0';
+
+  int reconnectCount = 0;
+  
+  // if(broker->prefix != nullptr) {
+  //   char tmp[20];
+  //   strcpy_P(tmp, (const char *)broker->prefix);
+  //   Serial.println(tmp);
+  //   Serial.println(broker->prefix);
+  //   connectID[0] = '\0';
+  //   strcat(connectID, tmp);
+  // }
+
+  strcat(connectID, clientID);
+
+
+  DIAG(F("MQTT %s (re)connecting ..."), connectID);
+  // Build the connect ID : Prefix + clientID
+
+  while (!mqttClient.connected() && reconnectCount < MAXRECONNECT)
   {
-    DIAG(F("Attempting MQTT Broker connection..."));
-    // Attempt to connect
-#ifdef CLOUDBROKER
-    char *connectID = new char[40];
-    
-    connectID[0] = '\0';
-    strcat(connectID, MQTT_BROKER_CLIENTID_PREFIX);
-    strcat(connectID,DccMQTT::getDeviceID());
-
-    INFO(F("ConnectID: %s %s %s"), connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD);
-    #ifdef MQTT_BROKER_USER
-    DBG(F("MQTT (re)connecting (Cloud/User) ..."));
-    if (mqttClient.connect(connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
-    #else
-    DBG(F("MQTT (re)connecting (Cloud) ..."));
-    if (mqttClient.connect(DccMQTT::getDeviceID()))
-    #endif
-#else
-    #ifdef MQTT_BROKER_USER
-    DBG(F("MQTT (re)connecting (Local/User) ..."));
-    if (mqttClient.connect(DccMQTT::getDeviceID(), MQTT_BROKER_USER, MQTT_BROKER_PASSWD))
-    #else
-    DBG(F("MQTT (re)connecting (Local) ..."));
-    if (mqttClient.connect(DccMQTT::getDeviceID()))
-    #endif
-#endif
+    DIAG(F("Attempting MQTT Broker connection[%d]..."), broker->cType);
+    switch (broker->cType)
     {
-      INFO(F("MQTT broker connected ..."));
-      // publish on the  $connected topic 
-      DccMQTT::subscribe(); // required in case of a connection loss to do it again (this causes a mem leak !! of 200bytes each time!!)
+    case 6:
+    case 1:
+    { // port(p), ip(i), domain(d),
+      if (mqttClient.connect(clientID))
+      {
+        DIAG(F("MQTT broker connected ..."));
+      }
+      else
+      {
+        DIAG(F("MQTT broker connection failed, rc=%d, trying to reconnect"), mqttClient.state());
+        reconnectCount++;
+      }
+      break;
     }
-    else
-    {
-      INFO(F("MQTT broker connection failed, rc=%d, trying to reconnect"), mqttClient.state());
+    case 2:
+    { // port(p), ip(i), domain(d), user(uid), pwd(pass),
+      break;
+    }
+    case 3:
+    { // port(p), ip(i), domain(d), user(uid), pwd(pass), prefix(pfix)
+      // mqttClient.connect(connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
+      break;
+    }
+    case 4:
+    { // port(p), domain(d), user(uid), pwd(pass), prefix(pfix)
+      break;
+    }
+    case 5:
+    { // port(p), domain(d), user(uid), pwd(pass)
+      break;
+    }
+    // case 6:
+    // { // port(p), domain(d)
+    //   mqttClient.connect()
+    //   break;
+    // }
+    }
+    if (reconnectCount == MAXRECONNECT) {
+      DIAG(F("MQTT Connection aborted after %d tries"), MAXRECONNECT);
     }
   }
 }
 
+// for the time being only one topic at the root which os the unique clientID from the MCU
+// QoS is 0 by default
+boolean DccMQTT::subscribe() {
+  return mqttClient.subscribe(clientID); 
+}
 
-
-
+/**
+ * @brief Public part of the MQTT setup function. Will call the secondary private setup function following the broker 
+ * configuration from config.h
+ * 
+ */
 void DccMQTT::setup()
 {
-   //Create the MQTT environment and establish inital connection to the Broker 
+  setup(CSMQTTBROKER);
+}
 
-  // get a eth client session 
-  ethClient = EthernetInterface::get()->getServer()->available();
+/**
+ * @brief Private part of the MQTT setup function. Realizes all required actions for establishing the MQTT connection.
+ * 
+ * @param id Name provided to the broker configuration
+ * @param b MQTT broker object containing the main configuration parameters
+ */
+void DccMQTT::setup(const FSH *id, MQTTBroker *b)
+{
 
+  //Create the MQTT environment and establish inital connection to the Broker
+  broker = b;
+  // get a eth client session
+
+  DIAG(F("MQTT Connect to %S at %S/%d.%d.%d.%d:%d"), id, broker->domain, broker->ip[0], broker->ip[1], broker->ip[2], broker->ip[3], broker->port);
+
+  // ethClient = EthernetInterface::get()->getServer()->available();
+  ethClient = EthernetInterface::get()->getServer()->accept();
   // initalize MQ Broker
-  mqttClient = PubSubClient(ethClient);
-  mqttClient.setServer(IPAddress(MQTT_BROKER_ADDRESS), MQTT_BROKER_PORT);
 
-  DIAG(F("MQTT Client : Server ok ..."));
+  mqttClient = PubSubClient(ethClient);
+  mqttClient.setServer(broker->ip, broker->port);
+
+  DIAG(F("MQTT Client : Server ok ...%x/%x"), ethClient, mqttClient);
 
   mqttClient.setCallback(mqttCallback); // Initalize callback function for incomming messages
-  
+
   DIAG(F("MQTT Client : Callback set ..."));
 
-  // DccMQTT::setDeviceID();                     // set the unique device ID to bu used for creating / listening to topic
+  byte mqbid[CLIENTIDSIZE] = {0};
+  DCCTimer::getSimulatedMacAddress(mqbid);
 
+  array_to_string(mqbid, CLIENTIDSIZE, clientID);
+  DIAG(F("MQTT Client ID : %s"), clientID);
 
-  reconnect();                                          // inital connection as well as reconnects
-  // DccMQTT::subscribe();                                 // set up all subscriptionn
-  DIAG(F("MQTT subscriptons done..."));
+  connect();                                            // inital connection as well as reconnects
+  auto sub = DccMQTT::subscribe();                                 // set up all subscriptions
+
+  DIAG(F("MQTT subscriptons %s..."), sub ? "ok":"failed");
+
+  mqttClient.publish(clientID, "Hello from DccEX");
 
   // sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
   // mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
-  
-  
+
   // /**
   //  * @todo set the connect status with a retained message on the $connected topic /admin/<csid>/$connected as used in the connect
-  //  * 
+  //  *
   //  */
 
   // mqttDccExParser = p;
 }
 
+
+void DccMQTT::loop()
+{
+
+  // DccTelemetry::deltaT(1);
+
+  if (!mqttClient.connected())
+  {
+    connect();
+  }
+  if (!mqttClient.loop())
+  {
+    DIAG(F("mqttClient returned with error; state: %d"), mqttClient.state());
+  };
+  // DccMQTTProc::loop(); //!< give time to the command processor to handle msg ..
+  // DccMQTT::publish();  //!< publish waiting messages from the outgoing queue
+  // DccTelemetry::deltaT(1);
+}
 
 // #include <avr/pgmspace.h> // for PROGMEM use
 
@@ -221,7 +307,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Copies an array to a string; used for generating the unique Arduino ID
-//  * 
+//  *
 //  * @param array array containing bytes
 //  * @param len length of the array
 //  * @param buffer buffer to which the string will be written; make sure the buffer has appropriate length
@@ -240,7 +326,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Maps a command recieved from the JSON string to the corresponding enum value
-//  * 
+//  *
 //  * @param c  string containing the command
 //  * @return Commands enum value from the Command enum
 //  * @throw Returns an INVALID_C - invalid command for unknown Commands send
@@ -278,7 +364,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Maps parameters names recieved from the JSON string to the corresponding enum value
-//  * 
+//  *
 //  * @param c  string containing the parameter name
 //  * @return parameters enum value from the Parameter enum
 //  */
@@ -308,9 +394,9 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Maps Parameters enum values to the corresponding string
-//  * 
+//  *
 //  * @param p : Enum value of the Parameter
-//  * @return const char* 
+//  * @return const char*
 //  */
 // const char *resolveParameters(Parameters p)
 // {
@@ -342,11 +428,11 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Callback executed upon reception of a message by the PubSubClient
-//  * 
+//  *
 //  * @param topic   topic string
 //  * @param payload serialized content of the message
 //  * @param length  length of the recieved message
-//  * 
+//  *
 //  */
 // void mqttCallback(char *topic, byte *payload, unsigned int length)
 // {
@@ -391,12 +477,12 @@ void DccMQTT::setup()
 // }
 
 // /**
-//  * @brief Central nervous system. All messages are passed through here parse and a pool item gets build. Syntax and Semantic checks are done here on all commands parameters etc ... 
+//  * @brief Central nervous system. All messages are passed through here parse and a pool item gets build. Syntax and Semantic checks are done here on all commands parameters etc ...
 //  * All error get printed to Serial for now but will be send over MQ as well in the future for further processing by the client
-//  * 
+//  *
 //  * @param topicName : Topic on which the message has been recieved
 //  * @param topicMessage : Message that has been recieved
-//  * 
+//  *
 //  */
 // void dccmqttCommandHandler(char *topicName, char *topicMessage)
 // {
@@ -552,12 +638,12 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Set the parameters in the pool item to be send to the processor
-//  * 
+//  *
 //  * @param mdix : Index of the pool item
 //  * @param p : Parameter to be set
 //  * @param v : Json object of the parameter value recieved
 //  * @param mandatory : if the parameter is mandatory
-//  * @return true 
+//  * @return true
 //  * @return false  the value is 0 return false
 //  */
 // bool setMsgParamsByObj(int mdix, Parameters p, JsonObject v, bool mandatory)
@@ -611,10 +697,10 @@ void DccMQTT::setup()
 //     char st[4] = {0};
 //     strncpy(st, v[kw], 3);
 //     /**
-//      * @todo validate ON/OFF keywords here so that we don't handle any garbage comming in 
-//      * 
+//      * @todo validate ON/OFF keywords here so that we don't handle any garbage comming in
+//      *
 //      */
-//     DBG(F("State keyword [%s] [%s]"), kw, st); 
+//     DBG(F("State keyword [%s] [%s]"), kw, st);
 //     if (st[1] == 'N') {
 //       DccMQTTCommandMsg::msg[midx].params[p] = 1;
 //     } else {
@@ -644,7 +730,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Validates permitted values for Parameters
-//  * 
+//  *
 //  * @param p : Parameter
 //  * @param v : value to validate for the given Parameter
 //  * @return true : if value is allowed
@@ -714,7 +800,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Retrieves a keyword from PROGMEM
-//  * 
+//  *
 //  * @param k keyword to retrieve
 //  * @return char* string copied into SRAM
 //  */
@@ -726,7 +812,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Pushes a message into the the in comming queue; locks the pool item
-//  * 
+//  *
 //  * @param midx the index of the message in the pool to be pushed into the queue
 //  */
 // void DccMQTT::pushIn(uint8_t midx)
@@ -751,7 +837,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Pushes a message into the the outgoing queue; locks the pool item;
-//  * 
+//  *
 //  * @param midx the index of the message in the pool to be pushed into the queue
 //  */
 // void DccMQTT::pushOut(uint8_t midx)
@@ -774,7 +860,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief pops a message from the the in comming queue; The pool item used is still in use and stays locked
-//  * 
+//  *
 //  * @param midx the index of the message in the pool to be poped
 //  * @return index in the message pool of the message which has been poped; -1 if the queue is empty
 //  */
@@ -792,7 +878,7 @@ void DccMQTT::setup()
 // }
 // /**
 //  * @brief pops a message from the the outgoing queue; The pool item used is freed and can be reused
-//  * 
+//  *
 //  * @param midx the index of the message in the pool to be poped
 //  * @return index in the message pool of the message which has been poped; -1 if the queue is empty
 //  */
@@ -813,7 +899,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief in case we lost the connection to the MQTT broker try to restablish a conection
-//  * 
+//  *
 //  */
 // static void reconnect()
 // {
@@ -825,7 +911,7 @@ void DccMQTT::setup()
 //     // Attempt to connect
 // #ifdef CLOUDBROKER
 //     char *connectID = new char[40];
-    
+
 //     connectID[0] = '\0';
 //     strcat(connectID, MQTT_BROKER_CLIENTID_PREFIX);
 //     strcat(connectID,DccMQTT::getDeviceID());
@@ -849,7 +935,7 @@ void DccMQTT::setup()
 // #endif
 //     {
 //       INFO(F("MQTT broker connected ..."));
-//       // publish on the  $connected topic 
+//       // publish on the  $connected topic
 //       DccMQTT::subscribe(); // required in case of a connection loss to do it again (this causes a mem leak !! of 200bytes each time!!)
 //     }
 //     else
@@ -861,7 +947,7 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief Test if the mqtt client is connected
-//  * 
+//  *
 //  * @return true - connected
 //  * @return false - not connected
 //  */
@@ -872,9 +958,9 @@ void DccMQTT::setup()
 
 // /**
 //  * @brief builds the topic strings for the intents together with the unique ID and the Ressource letter
-//  * 
+//  *
 //  * @param c char for specific chnalle under the intent; if '_' it will not be used
-//  * @param t index for the topic in the list of topics 
+//  * @param t index for the topic in the list of topics
 //  * @return char* of the topic string build
 //  */
 // static char *buildTopicID(char c, DccTopics t)
@@ -996,11 +1082,10 @@ void DccMQTT::setup()
 // }
 // /**
 //  * @brief Initalizes the MQTT broker connection; subcribes to all reqd topics and sends the deviceID to the broker on the /admin channel
-//  * 
+//  *
 //  */
 // #define PUB_CSID_FMT "{\"csid\":\"%s\"}"
 // PROGMEM const char csidfmt[] = {PUB_CSID_FMT};
-
 
 // void DccMQTT::setup(DCCEXParser p)
 // {
@@ -1020,11 +1105,10 @@ void DccMQTT::setup()
 //   INFO(F("MQTT subscriptons done..."));
 //   sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
 //   mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
-  
-  
+
 //   /**
 //    * @todo set the connect status with a retained message on the $connected topic /admin/<csid>/$connected as used in the connect
-//    * 
+//    *
 //    */
 
 //   DccTelemetry::setup();

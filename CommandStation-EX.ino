@@ -76,7 +76,7 @@ void setup()
 #endif // ETHERNET_ON
 
 #if MQTT_ON
-  DccMQTT::get()->setup(LOCAL_MQTT_BROKER);
+  DccMQTT::get()->setup();
 #endif
 
 
@@ -128,6 +128,10 @@ void loop()
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
+#if MQTT_ON
+  DccMQTT::get()->loop();
+#endif
+
 
 #if defined(RMFT_ACTIVE) 
   RMFT::loop();
