@@ -89,32 +89,30 @@ void DccMQTT::connect()
 
   int reconnectCount = 0;
   
-  // if(broker->prefix != nullptr) {
-  //   char tmp[20];
-  //   strcpy_P(tmp, (const char *)broker->prefix);
-  //   Serial.println(tmp);
-  //   Serial.println(broker->prefix);
-  //   connectID[0] = '\0';
-  //   strcat(connectID, tmp);
-  // }
+  if(broker->prefix != nullptr) {
+    char tmp[20];
+    strcpy_P(tmp, (const char *)broker->prefix);
+    connectID[0] = '\0';
+    strcat(connectID, tmp);
+  }
 
   strcat(connectID, clientID);
-
 
   DIAG(F("MQTT %s (re)connecting ..."), connectID);
   // Build the connect ID : Prefix + clientID
 
-  while (!mqttClient.connected() && reconnectCount < MAXRECONNECT)
+while (!mqttClient.connected() && reconnectCount < MAXRECONNECT)
   {
     DIAG(F("Attempting MQTT Broker connection[%d]..."), broker->cType);
     switch (broker->cType)
     {
+    // no uid no pwd
     case 6:
     case 1:
     { // port(p), ip(i), domain(d),
       if (mqttClient.connect(connectID))
       {
-        DIAG(F("MQTT broker connected ..."));
+        DIAG(F("MQTT Broker connected ..."));
       }
       else
       {
@@ -123,30 +121,23 @@ void DccMQTT::connect()
       }
       break;
     }
+    // with uid passwd
+    case 5:
     case 2:
     { // port(p), ip(i), domain(d), user(uid), pwd(pass),
       break;
     }
+    // with uid, passwd & prefix
+    case 4:
     case 3:
     { // port(p), ip(i), domain(d), user(uid), pwd(pass), prefix(pfix)
+      // port(p), domain(d), user(uid), pwd(pass), prefix(pfix)
       // mqttClient.connect(connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
       break;
     }
-    case 4:
-    { // port(p), domain(d), user(uid), pwd(pass), prefix(pfix)
-      break;
     }
-    case 5:
-    { // port(p), domain(d), user(uid), pwd(pass)
-      break;
-    }
-    // case 6:
-    // { // port(p), domain(d)
-    //   mqttClient.connect()
-    //   break;
-    // }
-    }
-    if (reconnectCount == MAXRECONNECT) {
+    if (reconnectCount == MAXRECONNECT)
+    {
       DIAG(F("MQTT Connection aborted after %d tries"), MAXRECONNECT);
     }
   }
