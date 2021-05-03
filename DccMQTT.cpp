@@ -35,8 +35,8 @@
 #include <Ethernet.h>
 #include <Dns.h>
 #include <DCCTimer.h>
-
 #include <DccMQTT.h>
+#include <Queue.h>
 
 //---------
 // Variables
@@ -74,8 +74,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
   topicMessage[0] = '\0';
   strcpy(topicName, topic);
   strlcpy(topicMessage, (char *)payload, length + 1);
-  Serial.println("some msg arrived");
-  DIAG(F("MQTT Message arrived [%s]: %s"), topicName, topicMessage);
+  DIAG(F("MQTT Message arrived [%s]: [%s]"), topicName, topicMessage);
 }
 
 /**
@@ -113,7 +112,7 @@ void DccMQTT::connect()
     case 6:
     case 1:
     { // port(p), ip(i), domain(d),
-      if (mqttClient.connect(clientID))
+      if (mqttClient.connect(connectID))
       {
         DIAG(F("MQTT broker connected ..."));
       }
