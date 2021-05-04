@@ -694,6 +694,25 @@ bool   DCC::ackManagerRejoin;
 ACK_CALLBACK DCC::ackManagerCallback;
 
 void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  if (!DCCWaveform::progTrack.canMeasureCurrent()) {
+    callback(-2);
+    return;
+  }
+
+  ackManagerRejoin=DCCWaveform::progTrackSyncMain;     
+  if (ackManagerRejoin ) {
+        // Change from JOIN must zero resets packet.
+        setProgTrackSyncMain(false);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+      }
+      
+   DCCWaveform::progTrack.autoPowerOff=false;           
+   if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+        if (Diag::ACK) DIAG(F("Auto Prog power on"));
+        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+    }
+
   ackManagerCv = cv;
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
@@ -703,8 +722,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
 void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
   ackManagerWord=wordval;
-  ackManagerProg = program;
-  ackManagerCallback = callback;
+  ackManagerSetup(0, 0, program, callback);
   }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
@@ -723,20 +741,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
-      ackManagerRejoin=DCCWaveform::progTrackSyncMain;
-      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
-        callback(-2);
-        return;
-      }
-      setProgTrackSyncMain(false);
-	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
-        if (Diag::ACK) DIAG(F("Auto Prog power on"));
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-	      DCCWaveform::progTrack.autoPowerOff=true;
-	      return;
-	  }
-	  if (checkResets(DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
+      	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
           break;   
       case W0:    // write 0 bit 
@@ -896,7 +901,10 @@ void DCC::callback(int value) {
     }
 
     // Restore <1 JOIN> to state before BASELINE
-    setProgTrackSyncMain(ackManagerRejoin);
+    if (ackManagerRejoin) {
+      setProgTrackSyncMain(true);
+      if (Diag::ACK) DIAG(F("Auto JOIN"));
+    }  
     
     if (Diag::ACK) DIAG(F("Callback(%d)"),value);
     (ackManagerCallback)( value);
