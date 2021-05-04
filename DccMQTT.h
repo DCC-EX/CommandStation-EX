@@ -14,6 +14,7 @@
 #include <Queue.h>
 #include <Ethernet.h>
 #include <Dns.h>
+#include <ObjectPool.h>
 
 #define MAXPAYLOAD 64
 #define MAXDOMAINLENGTH 32
@@ -78,10 +79,9 @@ struct MQTTBroker
     };
 };
 
-struct DccMQTTMsg
-{
-    char payload[MAXPAYLOAD];
-};
+typedef struct csmsg_t { 
+	char cmd[MAXPAYLOAD]; 
+} csmsg_t; 
 
 enum DccMQTTState
 {
@@ -107,8 +107,9 @@ private:
     PubSubClient    mqttClient;     // PubSub Endpoint for data exchange
     MQTTBroker      *broker;        // Broker configuration object as set in config.h
  
-    Queue<DccMQTTMsg> in;
-    Queue<DccMQTTMsg> out;
+    ObjectPool<csmsg_t,MAXPOOLSIZE> pool;
+    Queue<int> in;
+    Queue<int> out;
 
     char clientID[(CLIENTIDSIZE*2)+1];
 
@@ -123,6 +124,11 @@ public:
     bool isConfigured() { return mqState == CONFIGURED; };
     bool isConnected() { return mqState == CONNECTED; };
     void setState(DccMQTTState s) { mqState = s; };
+
+    ObjectPool<csmsg_t,MAXPOOLSIZE> *getPool() { return &pool; };
+    Queue<int> *getIncomming() { return &in; };
+    Queue<int> *getOutgoing() { return &out; };
+
 
     void setup(); // called at setup in the main ino file
     void loop();

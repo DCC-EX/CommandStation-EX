@@ -37,16 +37,20 @@
 #include <DCCTimer.h>
 #include <DccMQTT.h>
 #include <Queue.h>
+#include <ObjectPool.h>
 
 //---------
 // Variables
 //---------
 
+DccMQTT DccMQTT::singleton;
+auto mqtt = DccMQTT::get();
+
 char topicName[MAXTBUF];
 char topicMessage[MAXTMSG];
 // char keyword[MAX_KEYWORD_LENGTH];
 
-DccMQTT DccMQTT::singleton;
+
 
 /**
  * @brief Copies an byte array to a hex representation as string; used for generating the unique Arduino ID
@@ -73,8 +77,21 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
   topicName[0] = '\0';
   topicMessage[0] = '\0';
   strcpy(topicName, topic);
-  strlcpy(topicMessage, (char *)payload, length + 1);
-  DIAG(F("MQTT Message arrived [%s]: [%s]"), topicName, topicMessage);
+
+  auto pool = mqtt->getPool();
+  auto q = mqtt->getIncomming();
+
+  csmsg_t tm;
+  strlcpy(tm.cmd, (char *)payload, length + 1);
+  // Add the recieved command to the pool
+  int idx = pool->setItem(tm);
+  if ( idx == -1) {
+    DIAG(F("MQTT Command pool full. Could not handle recieved command."));
+    return;
+  }
+  // Add the index of the pool item to the incomming queue 
+  q->push(idx);
+  DIAG(F("MQTT Message arrived [%s]: [%s]"), topicName, tm.cmd);
 }
 
 /**
