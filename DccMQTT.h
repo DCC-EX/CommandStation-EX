@@ -22,9 +22,10 @@
 #define MAXTBUF 50  //!< max length of the buffer for building the topic name ;to be checked
 #define MAXTMSG 120 //!< max length of the messages for a topic               ;to be checked PROGMEM ?
 #define MAXTSTR 30  //!< max length of a topic string
-#define MAXCONNECTID 40
-#define CLIENTIDSIZE 6
-#define MAXRECONNECT 5
+#define MAXCONNECTID 40             // Broker connection id length incl possible prefixes
+#define CLIENTIDSIZE 6              //  
+#define MAXRECONNECT 5              // reconnection tries before final failure
+#define MAXMQTTCONNECTIONS 20       // maximum number of unique tpoics available for subscribers
 
 // Define Broker configurations; Values are provided in the following order
 // MQTT_BROKER_PORT 9883
@@ -79,9 +80,19 @@ struct MQTTBroker
     };
 };
 
+/**
+ * @brief dcc-ex command as recieved via MQ
+ * 
+ */
 typedef struct csmsg_t { 
 	char cmd[MAXPAYLOAD]; 
 } csmsg_t; 
+
+typedef struct csmqttclient_t {
+    uint8_t subscriber;
+    uint8_t cs;
+
+} csmqttclient_t
 
 enum DccMQTTState
 {
@@ -100,7 +111,9 @@ private:
 
     void setup(const FSH *id, MQTTBroker *broker);
     void connect();                 // (re)connects to the broker 
-    boolean subscribe();           
+    boolean subscribe();      
+    // static int cantorEncode(int a, int b);
+    // static void cantorDecode(int c, int *a, int *b);     
 
     EthernetClient  ethClient;      // TCP Client object for the MQ Connection
     IPAddress       server;         // MQTT server object
@@ -114,6 +127,9 @@ private:
     char clientID[(CLIENTIDSIZE*2)+1];
 
     DccMQTTState mqState = INIT;
+
+    
+
 
 public:
     static DccMQTT *get() noexcept
