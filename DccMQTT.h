@@ -15,6 +15,7 @@
 #include <Ethernet.h>
 #include <Dns.h>
 #include <ObjectPool.h>
+#include <limits.h>
 
 #define MAXPAYLOAD 64
 #define MAXDOMAINLENGTH 32
@@ -26,6 +27,7 @@
 #define CLIENTIDSIZE 6              //  
 #define MAXRECONNECT 5              // reconnection tries before final failure
 #define MAXMQTTCONNECTIONS 20       // maximum number of unique tpoics available for subscribers
+#define MAXTOPICLENGTH  20
 
 // Define Broker configurations; Values are provided in the following order
 // MQTT_BROKER_PORT 9883
@@ -89,10 +91,10 @@ typedef struct csmsg_t {
 } csmsg_t; 
 
 typedef struct csmqttclient_t {
-    uint8_t subscriber;
-    uint8_t cs;
-
-} csmqttclient_t
+    int distant;        // random int number recieved from the subscriber
+    byte mqsocket;      // mqtt socket = subscriberid provided by the cs
+    int topic;          // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
+} csmqttclient_t;
 
 enum DccMQTTState
 {
@@ -111,10 +113,10 @@ private:
 
     void setup(const FSH *id, MQTTBroker *broker);
     void connect();                 // (re)connects to the broker 
-    boolean subscribe();      
-    // static int cantorEncode(int a, int b);
-    // static void cantorDecode(int c, int *a, int *b);     
-
+    // boolean subscribe();
+   
+         
+      
     EthernetClient  ethClient;      // TCP Client object for the MQ Connection
     IPAddress       server;         // MQTT server object
     PubSubClient    mqttClient;     // PubSub Endpoint for data exchange
@@ -124,18 +126,21 @@ private:
     Queue<int> in;
     Queue<int> out;
 
-    char clientID[(CLIENTIDSIZE*2)+1];
+    char clientID[(CLIENTIDSIZE*2)+1];          // unique ID of the commandstation; not to confused with the connectionID
+    csmqttclient_t clients[MAXMQTTCONNECTIONS]; // array of connected mqtt clients
 
+    uint8_t subscriberid = 0;       // id assigned to a mqtt client when recieving the inital 
+                                    // handshake in form of a random number
     DccMQTTState mqState = INIT;
-
-    
-
 
 public:
     static DccMQTT *get() noexcept
     {
         return &singleton;
     }
+    
+    boolean subscribe(char *topic);
+    void publish(char *topic, char* payload); 
 
     bool isConfigured() { return mqState == CONFIGURED; };
     bool isConnected() { return mqState == CONNECTED; };
@@ -145,6 +150,23 @@ public:
     Queue<int> *getIncomming() { return &in; };
     Queue<int> *getOutgoing() { return &out; };
 
+    char *getClientID() { return clientID; };
+
+    uint8_t obtainSubscriberID(){
+        if ( subscriberid == UCHAR_MAX) {
+            return 0;  // no more subscriber id available 
+        } 
+        return (++subscriberid);
+    }
+
+    // this could be calculated once forever at each new connect and be stored
+    // but to save space we calculate it at each publish
+
+    void getSubscriberTopic( uint8_t subscriberid, char *tbuffer ){
+        sprintf(tbuffer, "%s/%d", clientID, clients[subscriberid].topic);
+    }
+    
+    csmqttclient_t *getClients() { return clients; };
 
     void setup(); // called at setup in the main ino file
     void loop();

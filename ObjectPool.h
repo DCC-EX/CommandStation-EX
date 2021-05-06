@@ -11,7 +11,6 @@ class ObjectPool
 
     // just make sure that we don't create a pool eating up all memory @compiletime
     static_assert(length <= MAXPOOLSIZE); 
-
     struct item
     {
         T i;

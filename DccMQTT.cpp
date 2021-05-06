@@ -38,6 +38,8 @@
 #include <DccMQTT.h>
 #include <Queue.h>
 #include <ObjectPool.h>
+#include <errno.h>
+#include <limits.h>
 
 //---------
 // Variables
@@ -45,10 +47,6 @@
 
 DccMQTT DccMQTT::singleton;
 auto mqtt = DccMQTT::get();
-
-char topicName[MAXTBUF];
-char topicMessage[MAXTMSG];
-// char keyword[MAX_KEYWORD_LENGTH];
 
 // pairing functions used for creating a client identifier
 // when a external system connects via MQ to the CS i.e. subscribes to the main channel the first message to be published
@@ -61,7 +59,6 @@ char topicMessage[MAXTMSG];
 
 int cantorEncode(int a, int b)
 {
-
   return (((a + b) * (a + b + 1)) / 2) + b;
 }
 
@@ -96,9 +93,7 @@ static void array_to_string(byte array[], unsigned int len, char buffer[])
 // callback when a message arrives from the broker; push cmd into the incommming queue
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
-  topicName[0] = '\0';
-  topicMessage[0] = '\0';
-  strcpy(topicName, topic);
+  errno = 0;
 
   switch (payload[0])
   {
@@ -119,14 +114,56 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     }
     // Add the index of the pool item to the incomming queue
     q->push(idx);
-    DIAG(F("MQTT Message arrived [%s]: [%s]"), topicName, tm.cmd);
+    DIAG(F("MQTT Message arrived [%s]: [%s]"), topic, tm.cmd);
     break;
   }
   case '(':
   {
-    // MQTT Ctrl command
+    char buffer[30];
+    memset(buffer, 0, 30);
     payload[length] = '\0';
-    DIAG(F("MQTT Ctrl Message arrived [%s]: [%s]"), topicName, (char *)payload);
+
+    char *tmp = (char *)payload + 1;
+    strlcpy(buffer, tmp, length);
+    buffer[length - 2] = '\0';
+
+    DIAG(F("MQTT buffer %s - %s - %s - %d"), payload, tmp, buffer, length);
+
+    auto distantid = strtol(buffer, NULL, 10);
+
+    if (errno == ERANGE || distantid > INT16_MAX)
+    {
+      DIAG(F("Invalid Handshake ID; must be in the range of int"));
+      return;
+    }
+    if (distantid == 0)
+    {
+      DIAG(F("Invalid Handshake ID"));
+      return;
+    }
+
+    // All is ok so set up the channel; MQTT Ctrl command
+    auto subscriberid = DccMQTT::get()->obtainSubscriberID(); // to be used in the parsing process for the clientid in the ringbuffer
+    auto topicid = cantorEncode(subscriberid, (int)distantid);
+
+    DIAG(F("MQTT Ctrl Message arrived [%s] : subscriber [%d] : distant [%d] : topic: [%d]"), buffer, subscriberid, (int)distantid, topicid);
+    // extract the number delivered from
+
+    auto clients = mqtt->getClients();
+
+    // we need to check if the id we got from the client has been used allready and if yes reject and ask for a different one
+
+    clients[subscriberid] = {(int)distantid, subscriberid, topicid}; // add subscribertopic
+
+    char tbuffer[(CLIENTIDSIZE * 2) + 1 + MAXTOPICLENGTH];
+    mqtt->getSubscriberTopic(subscriberid, tbuffer);  
+    auto ok = mqtt->subscribe(tbuffer);
+    DIAG(F("MQTT new subscriber topic: %s %s"), tbuffer, ok ? "OK":"NOK");  
+
+    memset(buffer, 0, 30);
+    sprintf(buffer, "(%d,%d)", (int) distantid, topicid );
+    mqtt->publish(topic, buffer);
+
     break;
   }
   default:
@@ -208,9 +245,14 @@ void DccMQTT::connect()
 
 // for the time being only one topic at the root which os the unique clientID from the MCU
 // QoS is 0 by default
-boolean DccMQTT::subscribe()
+boolean DccMQTT::subscribe(char *topic)
 {
-  return mqttClient.subscribe(clientID);
+  return mqttClient.subscribe(topic);
+}
+
+void DccMQTT::publish(char *topic, char *payload) 
+{
+  mqttClient.publish(topic, payload);
 }
 
 /**
@@ -258,11 +300,11 @@ void DccMQTT::setup(const FSH *id, MQTTBroker *b)
   DIAG(F("MQTT Client ID : %s"), clientID);
 
   connect();                       // inital connection as well as reconnects
-  auto sub = DccMQTT::subscribe(); // set up all subscriptions
+  auto sub = DccMQTT::subscribe(clientID); // set up all subscriptions
 
   DIAG(F("MQTT subscriptons %s..."), sub ? "ok" : "failed");
 
-  mqttClient.publish(clientID, "Hello from DccEX");
+  // mqttClient.publish(clientID, "Hello from DccEX");
 
   // sprintf_P(_csidMsg, csidfmt, DccMQTT::getDeviceID());
   // mqttClient.publish(DccMQTT::topics[ADMIN], _csidMsg); // say hello to the broker and the API who listens to this topic
