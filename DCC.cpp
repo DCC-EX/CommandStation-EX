@@ -710,6 +710,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
       
    DCCWaveform::progTrack.autoPowerOff=false;           
    if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+        DCCWaveform::progTrack.autoPowerOff=true;  // power off afterwards           
         if (Diag::ACK) DIAG(F("Auto Prog power on"));
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.sentResetsSincePacket = 0;      
