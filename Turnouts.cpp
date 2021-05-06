@@ -39,7 +39,6 @@ bool Turnout::activate(int n,bool state){
   Turnout * tt=get(n);
   if (tt==NULL) return false;
   tt->activate(state);
-  EEStore::store();
   turnoutlistHash++;
   return true;
 }
@@ -68,7 +67,9 @@ void Turnout::activate(bool state) {
     PWMServoDriver::setServo(data.tStatus & STATUS_PWMPIN, (data.inactiveAngle+(state?data.moveAngle:0)));
   else
     DCC::setAccessory(data.address,data.subAddress, state);
-  EEStore::store();
+  // Save state if stored in EEPROM
+  if (EEStore::eeStore->data.nTurnouts > 0 && num > 0) 
+    EEPROM.put(num, data.tStatus);
 }
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -107,6 +108,7 @@ void Turnout::load(){
     if (data.tStatus & STATUS_PWM) tt=create(data.id,data.tStatus & STATUS_PWMPIN, data.inactiveAngle,data.moveAngle);
     else tt=create(data.id,data.address,data.subAddress);
     tt->data.tStatus=data.tStatus;
+    tt->num=EEStore::pointer()+offsetof(TurnoutData,tStatus); // Save pointer to status byte within EEPROM
     EEStore::advance(sizeof(tt->data));
 #ifdef EESTOREDEBUG
     tt->print(tt);
@@ -126,6 +128,7 @@ void Turnout::store(){
 #ifdef EESTOREDEBUG
     tt->print(tt);
 #endif
+    tt->num=EEStore::pointer()+offsetof(TurnoutData,tStatus); // Save pointer to tstatus byte within EEPROM
     EEPROM.put(EEStore::pointer(),tt->data);
     EEStore::advance(sizeof(tt->data));
     tt=tt->nextTurnout;
