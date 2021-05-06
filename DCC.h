@@ -54,6 +54,14 @@ enum ackOp : byte
   SKIPTARGET = 0xFF // jump to target
 };
 
+enum   CALLBACK_STATE : byte {
+  AFTER_WRITE,  // Start callback sequence after something was written to the decoder  
+  WAITING_100,        // Waiting for 100mS of stable power 
+  WAITING_30,         // waiting to 30ms of power off gap. 
+  READY,              // Ready to complete callback  
+  }; 
+
+
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 #ifdef ARDUINO_AVR_UNO
@@ -141,12 +149,13 @@ private:
   static bool ackReceived;
   static bool ackManagerRejoin;
   static ACK_CALLBACK ackManagerCallback;
+  static CALLBACK_STATE callbackState;
   static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
   static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback);
   static void ackManagerLoop();
   static bool checkResets( uint8_t numResets);
   static const int PROG_REPEATS = 8; // repeats of programming commands (some decoders need at least 8 to be reliable)
-
+  
   // NMRA codes #
   static const byte SET_SPEED = 0x3f;
   static const byte WRITE_BYTE_MAIN = 0xEC;
