@@ -93,7 +93,8 @@ typedef struct csmsg_t {
 typedef struct csmqttclient_t {
     int distant;        // random int number recieved from the subscriber
     byte mqsocket;      // mqtt socket = subscriberid provided by the cs
-    int topic;          // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
+    int32_t topic;          // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
+    bool open;  // true as soon as we have send the id to the mq broker for the client to pickup
 } csmqttclient_t;
 
 enum DccMQTTState
@@ -138,7 +139,7 @@ public:
     {
         return &singleton;
     }
-    
+
     boolean subscribe(char *topic);
     void publish(char *topic, char* payload); 
 
@@ -153,7 +154,7 @@ public:
     char *getClientID() { return clientID; };
 
     uint8_t obtainSubscriberID(){
-        if ( subscriberid == UCHAR_MAX) {
+        if ( subscriberid == MAXMQTTCONNECTIONS) {
             return 0;  // no more subscriber id available 
         } 
         return (++subscriberid);
@@ -163,7 +164,7 @@ public:
     // but to save space we calculate it at each publish
 
     void getSubscriberTopic( uint8_t subscriberid, char *tbuffer ){
-        sprintf(tbuffer, "%s/%d", clientID, clients[subscriberid].topic);
+        sprintf(tbuffer, "%s/%ld", clientID, (long) clients[subscriberid].topic);
     }
     
     csmqttclient_t *getClients() { return clients; };
