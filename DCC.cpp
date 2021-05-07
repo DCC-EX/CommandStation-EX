@@ -691,9 +691,31 @@ byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 bool   DCC::ackManagerRejoin;
 
+CALLBACK_STATE DCC::callbackState=READY;
+
 ACK_CALLBACK DCC::ackManagerCallback;
 
 void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  if (!DCCWaveform::progTrack.canMeasureCurrent()) {
+    callback(-2);
+    return;
+  }
+
+  ackManagerRejoin=DCCWaveform::progTrackSyncMain;     
+  if (ackManagerRejoin ) {
+        // Change from JOIN must zero resets packet.
+        setProgTrackSyncMain(false);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+      }
+      
+   DCCWaveform::progTrack.autoPowerOff=false;           
+   if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+        DCCWaveform::progTrack.autoPowerOff=true;  // power off afterwards           
+        if (Diag::ACK) DIAG(F("Auto Prog power on"));
+        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+    }
+
   ackManagerCv = cv;
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
@@ -703,8 +725,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
 void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
   ackManagerWord=wordval;
-  ackManagerProg = program;
-  ackManagerCallback = callback;
+  ackManagerSetup(0, 0, program, callback);
   }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
@@ -723,21 +744,9 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
-      ackManagerRejoin=DCCWaveform::progTrackSyncMain;
-      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
-        callback(-2);
-        return;
-      }
-      setProgTrackSyncMain(false);
-	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
-        if (Diag::ACK) DIAG(F("Auto Prog power on"));
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-	      DCCWaveform::progTrack.autoPowerOff=true;
-	      return;
-	  }
-	  if (checkResets(DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
+      	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
+          callbackState=READY;
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
@@ -748,6 +757,7 @@ void DCC::ackManagerLoop() {
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
+             callbackState=AFTER_WRITE;
          }
             break; 
       
@@ -758,6 +768,7 @@ void DCC::ackManagerLoop() {
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
+              callbackState=AFTER_WRITE;
             }
             break;
       
@@ -888,21 +899,61 @@ void DCC::ackManagerLoop() {
     ackManagerProg++;
   }
 }
-void DCC::callback(int value) {
-    ackManagerProg=NULL;  // no more steps to execute
-    if (DCCWaveform::progTrack.autoPowerOff) {
-      if (Diag::ACK) DIAG(F("Auto Prog power off"));
-      DCCWaveform::progTrack.doAutoPowerOff();
-    }
 
-    // Restore <1 JOIN> to state before BASELINE
-    setProgTrackSyncMain(ackManagerRejoin);
+void DCC::callback(int value) {
+    static unsigned long callbackStart;
+    // We are about to leave programming mode
+    // Rule 1: If we have written to a decoder we must maintain power for 100mS
+    // Rule 2: If we are re-joining the main track we must power off for 30mS
+
+    switch (callbackState) {    
+       case AFTER_WRITE:  // first attempt to callback after a write operation
+            callbackStart=millis();
+            callbackState=WAITING_100;
+            if (Diag::ACK) DIAG(F("Stable 100mS"));
+            break;
+            
+       case WAITING_100:  // waiting for 100mS
+            if (millis()-callbackStart < 100) break;
+            // stable after power maintained for 100mS
+
+            // If we are going to power off anyway, it doesnt matter
+            // but if we will keep the power on, we must off it for 30mS
+            if (DCCWaveform::progTrack.autoPowerOff) callbackState=READY;
+            else { // Need to cycle power off and on
+                DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF); 
+                callbackStart=millis();
+                callbackState=WAITING_30;
+                if (Diag::ACK) DIAG(F("OFF 30mS"));
+            }
+            break;
+ 
+        case WAITING_30:  // waiting for 30mS with power off
+            if (millis()-callbackStart < 30) break;
+            //power has been off for 30mS
+            DCCWaveform::progTrack.setPowerMode(POWERMODE::ON); 
+            callbackState=READY;
+            break;
+     
+       case READY:  // ready after read, or write after power delay and off period.
+            // power off if we powered it on
+           if (DCCWaveform::progTrack.autoPowerOff) {
+              if (Diag::ACK) DIAG(F("Auto Prog power off"));
+              DCCWaveform::progTrack.doAutoPowerOff();
+           }
+          // Restore <1 JOIN> to state before BASELINE
+          if (ackManagerRejoin) {
+              setProgTrackSyncMain(true);
+              if (Diag::ACK) DIAG(F("Auto JOIN"));
+          }  
     
-    if (Diag::ACK) DIAG(F("Callback(%d)"),value);
-    (ackManagerCallback)( value);
+          ackManagerProg=NULL;  // no more steps to execute
+          if (Diag::ACK) DIAG(F("Callback(%d)"),value);
+          (ackManagerCallback)( value);
+    }
 }
 
- void DCC::displayCabList(Print * stream) {
+void DCC::displayCabList(Print * stream) {
 
     int used=0;
     for (int reg = 0; reg < MAX_LOCOS; reg++) {
