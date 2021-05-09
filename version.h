@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.0.14"
+#define VERSION "3.0.15"
+// 3.0.15 only send function commands once, not 4 times
 // 3.0.14 gap in ack tolerant fix,  prog track power management over join fix. 
 // 3.0.13 Functions>127 fix
 // 3.0.12 Fix HOSTNAME function for STA mode for WiFi
