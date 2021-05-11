@@ -46,8 +46,12 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  if (MotorDriver::usePWM)
+  MotorDriver::useRailcom= MotorDriver::usePWM && mainDriver->isRailcomCapable() && progDriver->isRailcomCapable();
+  
+  if (MotorDriver::usePWM){
     DIAG(F("Signal pin config: high accuracy waveform"));
+    if (MotorDriver::useRailcom) DIAG(F("Railcom Enabled"));
+  }
   else
     DIAG(F("Signal pin config: normal accuracy waveform"));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
@@ -205,6 +209,10 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
+    // Railcom cutout
+    if (remainingPreambles==requiredPreambles-2) motorDriver->setRailcomCutout(true);
+    else if (remainingPreambles==requiredPreambles-4) motorDriver->setRailcomCutout(false);
+     
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
     updateMinimumFreeMemory(22); 

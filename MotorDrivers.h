@@ -27,6 +27,11 @@
                               new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
                               new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
+// Arduino standard Motor Shield with railcom (mega brakes on 6,7 require jumpers )
+#define STANDARD_WITH_RAILCOM F("STANDARD_WITH_RAILCOM"),                                                 \
+                              new MotorDriver(3, 12, UNUSED_PIN, 6, A0, 2.99, 2000, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, 7, A1, 2.99, 2000, UNUSED_PIN)
+
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \
                             new MotorDriver( 9, 7, UNUSED_PIN,         -4, A0, 18, 3000, 12), \
