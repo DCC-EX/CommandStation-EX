@@ -210,12 +210,12 @@ void DCCWaveform::interrupt2() {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
     // Railcom cutout
-    if (remainingPreambles==requiredPreambles-2) motorDriver->setRailcomCutout(true);
-    else if (remainingPreambles==requiredPreambles-4) motorDriver->setRailcomCutout(false);
+    if (remainingPreambles==(requiredPreambles-2)) motorDriver->setRailcomCutout(true);
+    else if (remainingPreambles==(requiredPreambles-4)) motorDriver->setRailcomCutout(false);
      
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+    else updateMinimumFreeMemory(22); 
     return;
   }
 
