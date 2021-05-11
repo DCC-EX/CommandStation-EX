@@ -398,10 +398,6 @@ const ackOp FLASH READ_CV_PROG[] = {
 
 const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
-      SETCV, (ackOp)1,   
-      SETBIT, (ackOp)7,
-      V0,WACK,NAKFAIL, // test CV 1 bit 7 is a zero... NAK means no loco found
-
       SETCV, (ackOp)19,     // CV 19 is consist setting
       SETBYTE, (ackOp)0,    
       VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
