@@ -126,7 +126,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 3);     // send packet 3 times
+  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
 uint8_t DCC::getThrottleSpeed(int cab) {
