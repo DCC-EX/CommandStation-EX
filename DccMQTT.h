@@ -94,7 +94,7 @@ typedef struct csmsg_t {
 typedef struct csmqttclient_t {
     int     distant;    // random int number recieved from the subscriber
     byte    mqsocket;   // mqtt socket = subscriberid provided by the cs
-    int32_t topic;      // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
+    long    topic;      // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
     bool    open;       // true as soon as we have send the id to the mq broker for the client to pickup
 } csmqttclient_t;
 
