@@ -87,14 +87,15 @@ struct MQTTBroker
  * 
  */
 typedef struct csmsg_t { 
-	char cmd[MAXPAYLOAD]; 
+	char cmd[MAXPAYLOAD];     // recieved command message
+    byte mqsocket;            // from which mqsocket / subscriberid
 } csmsg_t; 
 
 typedef struct csmqttclient_t {
-    int distant;        // random int number recieved from the subscriber
-    byte mqsocket;      // mqtt socket = subscriberid provided by the cs
-    int32_t topic;          // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
-    bool open;  // true as soon as we have send the id to the mq broker for the client to pickup
+    int     distant;    // random int number recieved from the subscriber
+    byte    mqsocket;   // mqtt socket = subscriberid provided by the cs
+    int32_t topic;      // cantor(subscriber,cs) encoded tpoic used to send / recieve commands
+    bool    open;       // true as soon as we have send the id to the mq broker for the client to pickup
 } csmqttclient_t;
 
 enum DccMQTTState
@@ -107,32 +108,31 @@ enum DccMQTTState
 class DccMQTT
 {
 private:
-    static DccMQTT singleton;
-    DccMQTT() = default;
-    DccMQTT(const DccMQTT &);            // non construction-copyable
-    DccMQTT &operator=(const DccMQTT &); // non copyable
+// Methods    
+        DccMQTT() = default;
+        DccMQTT(const DccMQTT &);                                       // non construction-copyable
+        DccMQTT &operator=(const DccMQTT &);                            // non copyable
 
-    void setup(const FSH *id, MQTTBroker *broker);
-    void connect();                 // (re)connects to the broker 
-    // boolean subscribe();
-   
-         
-      
-    EthernetClient  ethClient;      // TCP Client object for the MQ Connection
-    IPAddress       server;         // MQTT server object
-    PubSubClient    mqttClient;     // PubSub Endpoint for data exchange
-    MQTTBroker      *broker;        // Broker configuration object as set in config.h
+void    setup(const FSH *id, MQTTBroker *broker);
+void    connect();                                                      // (re)connects to the broker 
+// Members
+static  DccMQTT                         singleton;                       
+        EthernetClient                  ethClient;                      // TCP Client object for the MQ Connection
+        IPAddress                       server;                         // MQTT server object
+        PubSubClient                    mqttClient;                     // PubSub Endpoint for data exchange
+        MQTTBroker                     *broker;                         // Broker configuration object as set in config.h
  
-    ObjectPool<csmsg_t,MAXPOOLSIZE> pool;
-    Queue<int> in;
-    Queue<int> out;
+        ObjectPool<csmsg_t,MAXPOOLSIZE> pool;                           // Pool of commands recieved for the CS
+        Queue<int>                      in;                             // Queue of indexes into the pool according to incomming cmds
 
-    char clientID[(CLIENTIDSIZE*2)+1];          // unique ID of the commandstation; not to confused with the connectionID
-    csmqttclient_t clients[MAXMQTTCONNECTIONS]; // array of connected mqtt clients
-
-    uint8_t subscriberid = 0;       // id assigned to a mqtt client when recieving the inital 
-                                    // handshake in form of a random number
-    DccMQTTState mqState = INIT;
+        char                            clientID[(CLIENTIDSIZE*2)+1];   // unique ID of the commandstation; not to confused with the connectionID
+        csmqttclient_t                  clients[MAXMQTTCONNECTIONS];    // array of connected mqtt clients
+        char                            connectID[MAXCONNECTID];        // clientId plus possible prefix if required by the broker
+        uint8_t                         subscriberid = 0;               // id assigned to a mqtt client when recieving the inital handshake; +1 at each connection
+                                    
+        DccMQTTState                    mqState = INIT;
+        RingStream                     *outboundRing;
+        char                            buffer[MAXTMSG];                // temp buffer for manipulating strings / messages 
 
 public:
     static DccMQTT *get() noexcept
@@ -149,10 +149,13 @@ public:
 
     ObjectPool<csmsg_t,MAXPOOLSIZE> *getPool() { return &pool; };
     Queue<int> *getIncomming() { return &in; };
-    Queue<int> *getOutgoing() { return &out; };
 
     char *getClientID() { return clientID; };
+    uint8_t getClientSize() { return subscriberid; }
 
+    // initalized to 0 so that the first id comming back is 1
+    // index 0 in the clients array is not used therefore
+    //! improvement here to be done to save some bytes
     uint8_t obtainSubscriberID(){
         if ( subscriberid == MAXMQTTCONNECTIONS) {
             return 0;  // no more subscriber id available 
@@ -164,7 +167,7 @@ public:
     // but to save space we calculate it at each publish
 
     void getSubscriberTopic( uint8_t subscriberid, char *tbuffer ){
-        sprintf(tbuffer, "%s/%ld", clientID, (long) clients[subscriberid].topic);
+        sprintf(tbuffer, "%s/%ld/cmd", clientID, (long) clients[subscriberid].topic);
     }
     
     csmqttclient_t *getClients() { return clients; };
