@@ -145,7 +145,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     {
       auto topicid = atoi(token);
       // verify that there is a MQTT client with that topic id connected
-      // auto clients = mqtt->getClients();
       bool isClient = false;
       // check in the array of clients if we have one with the topicid
       // start at 1 as 0 is not allocated as mqsocket
@@ -202,9 +201,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     case 'i':
     {
       
-
+      
       char buffer[30];
-      memset(buffer, 0, 30);
       char *tmp = (char *)payload + 3;
       strlcpy(buffer, tmp, length);
       buffer[length - 4] = '\0';
@@ -241,10 +239,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
         return;
       }
 
-      // long a = subscriberid;
-      // long b = distantid;
-      // auto topicid = cantorEncode(a, b);
-
       auto topicid = cantorEncode((long)subscriberid, (long)distantid);
       DIAG(F("MQTT Ctrl Message arrived [%s] : subscriber [%d] : distant [%d] : topic: [%d]"), buffer, subscriberid, (int)distantid, topicid);
       // extract the number delivered from
@@ -263,7 +257,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 
       // send the topicid on which the CS will listen for commands to the MQTT client on the root topic
       memset(buffer, 0, 30);
-      sprintf(buffer, "mc(%d,%ld)", (int)distantid, (long)topicid);
+      sprintf(buffer, "mc(%d,%ld)", (int)distantid, topicid);
       DIAG(F("Publishing: [%s] to [%s]"), buffer, mqtt->getClientID());
       mqtt->publish(mqtt->getClientID(), buffer);
 
@@ -293,7 +287,6 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
   default:
   {
     // invalid command
-    payload[length] = '\0';
     DIAG(F("MQTT Invalid DCC-EX command: %s"), (char *)payload);
     break;
   }
@@ -443,21 +436,19 @@ void DccMQTT::loop()
     DIAG(F("MQTT Processing pool: %d with command: %s from client %d"), idx, c->cmd, c->mqsocket);
     DIAG(F("Ring free space1: %d"),outboundRing->freeSpace());
     outboundRing->mark((uint8_t)c->mqsocket);
-    CommandDistributor::parse(c->mqsocket, (byte *)c->cmd, outboundRing);
-    DIAG(F("Return from CDS"));
+    // CommandDistributor::parse(c->mqsocket, (byte *)c->cmd, outboundRing);
+    StringFormatter::send(outboundRing, F("Test result message"));
     outboundRing->commit();
     DIAG(F("Ring free space2: %d"),outboundRing->freeSpace());
     pool.returnItem(idx); 
   }
 
-  // 
+  
   // handle at most 1 outbound transmission
   int socketOut = outboundRing->read();
   if (socketOut > 0) // mqsocket / clientid can't be 0 ....
   {
     int count = outboundRing->count();
-    DIAG(F("Ring free space3: %d"),outboundRing->freeSpace());
-    // construct the topic : clientID/topicId/result
     buffer[0] = '\0';
     sprintf(buffer, "%s/%d/result", clientID, (int)clients[socketOut].topic);
     DIAG(F("MQTT publish to mqsocket=%d, count=:%d on topic %s"), socketOut, count, buffer);
@@ -470,7 +461,7 @@ void DccMQTT::loop()
       *tmp = (char)outboundRing->read();
       tmp++;
     }
-    DIAG(F("Ring free space4: %d"),outboundRing->freeSpace());
+    // DIAG(F("Ring free space4: %d"),outboundRing->freeSpace());
     DIAG(F("MQTT publish with payload:\n%s"), payload);
     // mqtt->publish(buffer, payload);
   }
