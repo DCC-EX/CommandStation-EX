@@ -19,13 +19,18 @@
 #include <Arduino.h>
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
+#include "DIAG.h"
 
 DCCEXParser * CommandDistributor::parser=0; 
 
 void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * streamer) {
+  DIAG(F("CDS %d : %s : %x"), clientId, (char *) buffer, streamer);
  if (buffer[0] == '<')  {
     if (!parser) parser = new DCCEXParser();
     parser->parse(streamer, buffer, streamer); 
   }
-  else WiThrottle::getThrottle(clientId)->parse(streamer, buffer);
+  else {
+    DIAG(F("CDS WiThrottle"));
+    WiThrottle::getThrottle(clientId)->parse(streamer, buffer);
+  }
 }
