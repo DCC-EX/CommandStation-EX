@@ -164,7 +164,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
 - Roger Beschizza - Dorset, UK (Roger Beschizza)
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
-- Kevin Smith - (KCSmith)
+- Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
 
 **WebThrotle-EX**
 
@@ -176,7 +176,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 
 - Larry Dribin - Release Management
 - Keith Ledbetter
-- Kevin Smith Rochester Hills, Michigan USA (KC Smith)
+- Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
 - Brad Van der Elst
 - Andrew Pye
 - Mike Bowers
