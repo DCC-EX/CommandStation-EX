@@ -101,8 +101,9 @@ typedef struct csmqttclient_t {
 enum DccMQTTState
 {
     INIT,
-    CONFIGURED, // server/client objects set
-    CONNECTED   // mqtt broker is connected
+    CONFIGURED,         // server/client objects set
+    CONNECTED,          // mqtt broker is connected
+    CONNECTION_FAILED   // Impossible to get the connection set after MAXRECONNECT tries
 };
 
 class DccMQTT

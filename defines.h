@@ -38,12 +38,9 @@
     #define ETHERNET_ON false
 #endif
 
-// MQTT is on only if the ethernet is enabled 
-#if ENABLE_MQTT && ETHERNET_ON
+// MQTT handles ethernet on it's own
+#if ENABLE_MQTT && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO)) 
     #define MQTT_ON true
-#else
-    #define MQTT_ON false
-    #warning MQTT requires Ethernet to be enabled. 
 #endif 
 
 // #if WIFI_ON && ETHERNET_ON
