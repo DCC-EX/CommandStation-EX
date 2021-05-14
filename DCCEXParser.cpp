@@ -32,7 +32,7 @@
 #include "DIAG.h"
 #include <avr/wdt.h>
 
-// These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
+// These keywords are used in various commands. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
 const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
@@ -56,6 +56,7 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
+const int16_t HASH_KEYWORD_RAILCOM = 29097; 
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -775,6 +776,9 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
         Diag::LCN = onOff;
         return true;
+
+    case HASH_KEYWORD_RAILCOM: // <D RAILCOM ON/OFF>
+        return DCCWaveform::setUseRailcom(onOff);        
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);

@@ -53,10 +53,14 @@ class DCCWaveform {
     static void loop(bool ackManagerActive);
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
+    static bool supportsRailcom;
+    static bool useRailcom;
 
     void beginTrack();
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
+    static bool setUseRailcom(bool on); 
+    
     void checkPowerOverload(bool ackManagerActive);
     inline int get1024Current() {
 	  if (powerMode == POWERMODE::ON)

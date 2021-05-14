@@ -28,6 +28,8 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
+bool DCCWaveform::useRailcom=false;
+bool DCCWaveform::supportsRailcom=false;
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
 int  DCCWaveform::progTripValue=0;
@@ -46,11 +48,15 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  MotorDriver::useRailcom= MotorDriver::usePWM && mainDriver->isRailcomCapable() && progDriver->isRailcomCapable();
+  supportsRailcom= MotorDriver::usePWM && mainDriver->isRailcomCapable() && progDriver->isRailcomCapable();
+  
+  // supportsRailcom depends on hardware caopability
+  // useRailcom is user switchable at run time. 
+  useRailcom=supportsRailcom;
   
   if (MotorDriver::usePWM){
     DIAG(F("Signal pin config: high accuracy waveform"));
-    if (MotorDriver::useRailcom) DIAG(F("Railcom Enabled"));
+    if (supportsRailcom) DIAG(F("Railcom cutout enabled"));
   }
   else
     DIAG(F("Signal pin config: normal accuracy waveform"));
@@ -120,6 +126,16 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
   motorDriver->setPower( ison);
 }
 
+bool DCCWaveform::setUseRailcom(bool on) {
+  if (!supportsRailcom) return false; 
+  useRailcom=on;
+  if (!on) {
+    // turn off any existing cutout 
+    mainTrack.motorDriver->setRailcomCutout(false);
+    progTrack.motorDriver->setRailcomCutout(false);
+  }
+  return true;
+}
 
 void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   if (millis() - lastSampleTaken  < sampleDelay) return;
@@ -209,13 +225,20 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
-    // Railcom cutout
-    if (remainingPreambles==(requiredPreambles-2)) motorDriver->setRailcomCutout(true);
-    else if (remainingPreambles==(requiredPreambles-4)) motorDriver->setRailcomCutout(false);
+    
+    // Railcom cutout processing but not on prog if synced with main
+    if (useRailcom && (isMainTrack || !progTrackSyncMain)) do {
+        bool cutout;
+        if (remainingPreambles==(requiredPreambles-2)) cutout=true;
+        else if (remainingPreambles==(requiredPreambles-6)) cutout=false;    
+        else break;
+        motorDriver->setRailcomCutout(cutout);
+        if (progTrackSyncMain) progTrack.motorDriver->setRailcomCutout(cutout);   
+        } while(false);  // this is to allow break out of do {...} above 
      
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    else updateMinimumFreeMemory(22); 
+    updateMinimumFreeMemory(22); 
     return;
   }
 

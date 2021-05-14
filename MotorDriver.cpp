@@ -27,8 +27,6 @@
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
 bool MotorDriver::usePWM=false;
-bool MotorDriver::useRailcom=false;
-
 bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
@@ -117,7 +115,7 @@ void MotorDriver::setBrake(bool on) {
 }
 
 void MotorDriver::setRailcomCutout(bool on) {
-  if (useRailcom) DCCTimer::setPWM(brakePin,on);
+  DCCTimer::setPWM(brakePin,on);
 }
 
 void MotorDriver::setSignal( bool high) {
