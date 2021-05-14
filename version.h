@@ -9,7 +9,6 @@
 // 3.0.14 gap in ack tolerant fix,  prog track power management over join fix. 
 // 3.0.13 Functions>127 fix
 // 3.0.12 Fix HOSTNAME function for STA mode for WiFi
-// 3.0.11 ?
 // 3.0.11 28 speedstep support
 // 3.0.10 Teensy Support
 // 3.0.9 rearranges serial newlines for the benefit of JMRI.
