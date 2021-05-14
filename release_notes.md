@@ -176,7 +176,8 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 
 - Larry Dribin - Release Management
 - Keith Ledbetter
-- BradVan der Elst
+- Kevin Smith Rochester Hills, Michigan USA (KC Smith)
+- Brad Van der Elst
 - Andrew Pye
 - Mike Bowers
 - Randy McKenzie
