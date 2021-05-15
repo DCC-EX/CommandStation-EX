@@ -1,4 +1,4 @@
-DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Release.  Release v3.1.0 is a minor release that adds additional features and fixes a number of bugs. With the number of new features, this could have easily been a major release. The team is continually improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more perfromance from the Arduino microprocessors.  This release includes  all of the Point Releases from v3.0.1 to v3.0.16.
+DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Release.  Release v3.1.0 is a minor release that adds additional features and fixes a number of bugs. With the number of new features, this could have easily been a major release. The team is continually improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino microprocessors.  This release includes  all of the Point Releases from v3.0.1 to v3.0.16.
 
 **Known Issues**
 
