@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.1.0
+#define VERSION "3.1.0"
 // 3.0.16 Ignore CV1 bit 7 read rejected by decoder when identifying loco id.  
 // 3.0.15 only send function commands once, not 4 times
 // 3.0.14 gap in ack tolerant fix,  prog track power management over join fix. 
