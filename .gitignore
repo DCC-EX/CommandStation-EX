@@ -9,3 +9,4 @@ Release/*
 config.h
 .vscode/extensions.json
 mySetup.h
+myFilter.cpp

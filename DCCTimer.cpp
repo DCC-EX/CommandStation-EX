@@ -95,30 +95,65 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
 #elif defined(TEENSYDUINO)
   IntervalTimer myDCCTimer;
-
+  bool interruptFlipflop=false; 
+  byte railcomPin[2]={0,0];
+  enum RAILCOM_NEXT:byte {SKIP,CUT_OUT,CUT_IN);
+  RAILCOM_NEXT railcom1Next[]={SKIP,SKIP};
+  
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-
-  myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
-
+    myDCCTimer.begin(interruptFast, DCC_SIGNAL_TIME/2);
   }
 
+  // This interrupt happens every 29uS, and alternately calls the DCC waveform
+  // or handles any pending Railcom cutout pins. 
+  void interruptFast() {
+       nterruptFlipflop=!interruptFlipflop;
+       if (interruptFiliflop) {
+        interruptHandler();
+        return;
+       }
+      
+       // Railcom interrupt, half way between DCC interruots
+       for (byte channel=0;channel<2;channel++) {
+          byte pin=railcomPin[channel;
+          if (pin) {
+            switch (railcomNext[channel]) {
+              case CUT_OUT: 
+                    digitalWrite(pin,HIGH);
+                    break;
+              case CUT_IN:          
+                    digitalWrite(pin,HIGH);
+                    break;
+              case IGNORE: break;               
+            }
+            railcomNext[channel]=IGNORE;
+          }
+       }
+  }
+  
   bool DCCTimer::isPWMPin(byte pin) {
-       //Teensy: digitalPinHasPWM, todo
       (void) pin;
-       return false;  // TODO what are the relevant pins? 
+       return true;  // We are so fast we can pretend we do support this 
   }
 
   bool DCCTimer::isRailcomPin(byte pin) {
-       //Teensy: digitalPinHasPWM, todo
       (void) pin;
-       return false;  // TODO what are the relevant pins? 
+      if (railcomPin[0]==0) railcomPin[0]=pin;
+      else if (railcomPin[1]==0) railcomPin[1]=pin;
+      else return false; 
+      return true;  // We are so fast we can pretend we do support this 
   }
 
  void DCCTimer::setPWM(byte pin, bool high) {
-    // TODO what are the relevant pins?
-    (void) pin;
-    (void) high;
+    // setting pwm on a railcom pin is deferred to the next railcom interruyupt.
+    for (byte channel=0;channel<2;channel++) {
+      if (pin==railcomPin[channel]) {
+        railcomNext[channel]=high?CUT_OUT:CUT_IN;
+        return; 
+      }
+    }
+    digitalWrite(pin,high?HIGH:LOW);
 }
 
   void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
