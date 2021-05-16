@@ -54,6 +54,8 @@ class Turnout {
 #ifdef EESTOREDEBUG
   void print(Turnout *tt);
 #endif
+private:
+  int num;  // EEPROM address of tStatus in TurnoutData struct, or zero if not stored.
 }; // Turnout
   
 #endif

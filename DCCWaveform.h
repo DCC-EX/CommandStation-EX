@@ -161,8 +161,11 @@ class DCCWaveform {
     unsigned int ackPulseDuration;  // micros
     unsigned long ackPulseStart; // micros
 
-    unsigned int minAckPulseDuration = 2000; // micros
+    unsigned int minAckPulseDuration = 4000; // micros
     unsigned int maxAckPulseDuration = 8500; // micros
-           
+
+    volatile static uint8_t numAckGaps;
+    volatile static uint8_t numAckSamples;
+    static uint8_t trailingEdgeCounter;
 };
 #endif

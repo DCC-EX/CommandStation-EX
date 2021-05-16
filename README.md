@@ -12,11 +12,13 @@ Both CommandStation-EX and BaseStation-Classic support much of the NMRA Digital 
 
 * simultaneous control of multiple locomotives
 * 2-byte and 4-byte locomotive addressing
-* 128-step speed throttling
+* 28 or 128-step speed throttling
 * Activate/de-activate all accessory function addresses 0-2048
-* Control of all cab functions F0-F28
+* Control of all cab functions F0-F28 and F29-F68
 * Main Track: Write configuration variable bytes and set/clear specific configuration variable (CV) bits (aka Programming on Main or POM)
 * Programming Track: Same as the main track with the addition of reading configuration variable bytes
+* And manu more custom features. see [What's new in CommandStation-EX?](#whats-new-in-commandstation-ex)
+
 
 # What’s in this Repository?
 
@@ -38,11 +40,11 @@ in config.h.
 
 ## What's new in CommandStation-EX?
 
-* WiThrottle server built in. Connect Engine Driver or WiThrottle clients directly to your Command Station
+* WiThrottle server built in. Connect Engine Driver or WiThrottle clients directly to your Command Station (or through JMRI as before)
 * WiFi and Ethernet shield support
 * No more jumpers or soldering!
-* Direct support for all the most popular motor control boards
-* I2C Display support
+* Direct support for all the most popular motor control boards including single pin (Arduino) or dual pin (IBT_2) type PWM inputs without the need for an adapter circuit
+* I2C Display support (LCD and OLED)
 * Improved short circuit detection and automatic reset from an overload
 * Current reading, sensing and ACK detection settings in milliAmps instead of just pin readings
 * Improved adherence to the NMRA DCC specification
@@ -50,6 +52,21 @@ in config.h.
 * Railcom cutout (beta)
 * Simpler, modular, faster code with an API Library for developers for easy expansion
 * New features and functions in JMRI
+* Ability to join MAIN and PROG tracks into one MAIN track to run your locos
+* "Drive-Away" feature - Throttles with support, like Engine Driver, can allow a loco to be programmed on a usable, electrically isolated programming track and then drive off onto the main track
+* Diagnostic commands to test decoders that aren't reading or writing correctly
+* Support for Uno, Nano, Mega, Nano Every and Teensy microcontrollers
+* User Functions: Filter regular commands (like a turnout or output command) and pass it to your own function or accessory
+* Support for LCN (layout control nodes)
+* mySetup.h file that acts like an Autoexec.Bat command to send startup commands to the CS
+* High Accuracty Waveform option for rock steady DCC signals
+* New current response outputs current in mA, overlimit current, and maximum board capable current. Support for new current meter in JMRI
+* USB Browser based EX-WebThrottle
+* New, simpler, function control command
+* Number of locos discovery command `<#>`
+* Emergency stop command <!>
+* Release cabs from memory command <-> all cabs, <- CAB> for just one loco address
+* Automatic slot (register) management 
 * Automation (coming soon)
 
 NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means to you, click [HERE](notes/rewrite.md).

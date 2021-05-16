@@ -126,7 +126,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 3);     // send packet 3 times
+  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
 uint8_t DCC::getThrottleSpeed(int cab) {
@@ -142,7 +142,7 @@ bool DCC::getThrottleDirection(int cab) {
 }
 
 // Set function to value on or off
-void DCC::setFn( int cab, byte functionNumber, bool on) {
+void DCC::setFn( int cab, int16_t functionNumber, bool on) {
   if (cab<=0 ) return;
   
   if (functionNumber>28) { 
@@ -159,7 +159,7 @@ void DCC::setFn( int cab, byte functionNumber, bool on) {
     else  {
        b[nB++] = 0b11000000;   // Binary State Control Instruction long form  
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
-       b[nB++] = functionNumber >>8 ;  // high order bits
+       b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
     return;
@@ -183,7 +183,7 @@ void DCC::setFn( int cab, byte functionNumber, bool on) {
 // Change function according to how button was pressed,
 // typically in WiThrottle.
 // Returns new state or -1 if nothing was changed.
-int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
+int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
   int funcstate = -1;
   if (cab<=0 || functionNumber>28) return funcstate;
   int reg = lookupSpeedTable(cab);
@@ -213,7 +213,7 @@ int DCC::changeFn( int cab, byte functionNumber, bool pressed) {
   return funcstate;
 }
 
-int DCC::getFn( int cab, byte functionNumber) {
+int DCC::getFn( int cab, int16_t functionNumber) {
   if (cab<=0 || functionNumber>28) return -1;  // unknown
   int reg = lookupSpeedTable(cab);
   if (reg<0) return -1;  
@@ -224,7 +224,7 @@ int DCC::getFn( int cab, byte functionNumber) {
 
 // Set the group flag to say we have touched the particular group.
 // A group will be reminded only if it has been touched.  
-void DCC::updateGroupflags(byte & flags, int functionNumber) {
+void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
   byte groupMask;
   if (functionNumber<=4)       groupMask=FN_GROUP_1;
   else if (functionNumber<=8)  groupMask=FN_GROUP_2;
@@ -398,10 +398,6 @@ const ackOp FLASH READ_CV_PROG[] = {
 
 const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
-      SETCV, (ackOp)1,   
-      SETBIT, (ackOp)7,
-      V0,WACK,NAKFAIL, // test CV 1 bit 7 is a zero... NAK means no loco found
-
       SETCV, (ackOp)19,     // CV 19 is consist setting
       SETBYTE, (ackOp)0,    
       VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
@@ -691,9 +687,31 @@ byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
 bool   DCC::ackManagerRejoin;
 
+CALLBACK_STATE DCC::callbackState=READY;
+
 ACK_CALLBACK DCC::ackManagerCallback;
 
 void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  if (!DCCWaveform::progTrack.canMeasureCurrent()) {
+    callback(-2);
+    return;
+  }
+
+  ackManagerRejoin=DCCWaveform::progTrackSyncMain;     
+  if (ackManagerRejoin ) {
+        // Change from JOIN must zero resets packet.
+        setProgTrackSyncMain(false);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+      }
+      
+   DCCWaveform::progTrack.autoPowerOff=false;           
+   if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+        DCCWaveform::progTrack.autoPowerOff=true;  // power off afterwards           
+        if (Diag::ACK) DIAG(F("Auto Prog power on"));
+        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+        DCCWaveform::progTrack.sentResetsSincePacket = 0;      
+    }
+
   ackManagerCv = cv;
   ackManagerProg = program;
   ackManagerByte = byteValueOrBitnum;
@@ -703,8 +721,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
 void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
   ackManagerWord=wordval;
-  ackManagerProg = program;
-  ackManagerCallback = callback;
+  ackManagerSetup(0, 0, program, callback);
   }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
@@ -723,21 +740,9 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
-      ackManagerRejoin=DCCWaveform::progTrackSyncMain;
-      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
-        callback(-2);
-        return;
-      }
-      setProgTrackSyncMain(false);
-	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
-        if (Diag::ACK) DIAG(F("Auto Prog power on"));
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-	      DCCWaveform::progTrack.autoPowerOff=true;
-	      return;
-	  }
-	  if (checkResets(DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
+      	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
+          callbackState=READY;
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
@@ -748,6 +753,7 @@ void DCC::ackManagerLoop() {
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
+             callbackState=AFTER_WRITE;
          }
             break; 
       
@@ -758,6 +764,7 @@ void DCC::ackManagerLoop() {
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
               DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
+              callbackState=AFTER_WRITE;
             }
             break;
       
@@ -888,21 +895,61 @@ void DCC::ackManagerLoop() {
     ackManagerProg++;
   }
 }
-void DCC::callback(int value) {
-    ackManagerProg=NULL;  // no more steps to execute
-    if (DCCWaveform::progTrack.autoPowerOff) {
-      if (Diag::ACK) DIAG(F("Auto Prog power off"));
-      DCCWaveform::progTrack.doAutoPowerOff();
-    }
 
-    // Restore <1 JOIN> to state before BASELINE
-    setProgTrackSyncMain(ackManagerRejoin);
+void DCC::callback(int value) {
+    static unsigned long callbackStart;
+    // We are about to leave programming mode
+    // Rule 1: If we have written to a decoder we must maintain power for 100mS
+    // Rule 2: If we are re-joining the main track we must power off for 30mS
+
+    switch (callbackState) {    
+       case AFTER_WRITE:  // first attempt to callback after a write operation
+            callbackStart=millis();
+            callbackState=WAITING_100;
+            if (Diag::ACK) DIAG(F("Stable 100mS"));
+            break;
+            
+       case WAITING_100:  // waiting for 100mS
+            if (millis()-callbackStart < 100) break;
+            // stable after power maintained for 100mS
+
+            // If we are going to power off anyway, it doesnt matter
+            // but if we will keep the power on, we must off it for 30mS
+            if (DCCWaveform::progTrack.autoPowerOff) callbackState=READY;
+            else { // Need to cycle power off and on
+                DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF); 
+                callbackStart=millis();
+                callbackState=WAITING_30;
+                if (Diag::ACK) DIAG(F("OFF 30mS"));
+            }
+            break;
+ 
+        case WAITING_30:  // waiting for 30mS with power off
+            if (millis()-callbackStart < 30) break;
+            //power has been off for 30mS
+            DCCWaveform::progTrack.setPowerMode(POWERMODE::ON); 
+            callbackState=READY;
+            break;
+     
+       case READY:  // ready after read, or write after power delay and off period.
+            // power off if we powered it on
+           if (DCCWaveform::progTrack.autoPowerOff) {
+              if (Diag::ACK) DIAG(F("Auto Prog power off"));
+              DCCWaveform::progTrack.doAutoPowerOff();
+           }
+          // Restore <1 JOIN> to state before BASELINE
+          if (ackManagerRejoin) {
+              setProgTrackSyncMain(true);
+              if (Diag::ACK) DIAG(F("Auto JOIN"));
+          }  
     
-    if (Diag::ACK) DIAG(F("Callback(%d)"),value);
-    (ackManagerCallback)( value);
+          ackManagerProg=NULL;  // no more steps to execute
+          if (Diag::ACK) DIAG(F("Callback(%d)"),value);
+          (ackManagerCallback)( value);
+    }
 }
 
- void DCC::displayCabList(Print * stream) {
+void DCC::displayCabList(Print * stream) {
 
     int used=0;
     for (int reg = 0; reg < MAX_LOCOS; reg++) {

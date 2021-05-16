@@ -31,7 +31,10 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
 int  DCCWaveform::progTripValue=0;
-  
+volatile uint8_t DCCWaveform::numAckGaps=0;
+volatile uint8_t DCCWaveform::numAckSamples=0;
+uint8_t DCCWaveform::trailingEdgeCounter=0;
+
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
@@ -290,13 +293,15 @@ void DCCWaveform::setAckPending() {
       ackPulseDuration=0;
       ackDetected=false;
       ackCheckStart=millis();
+      numAckSamples=0;
+      numAckGaps=0;
       ackPending=true;  // interrupt routines will now take note
 }
 
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
-           ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
+      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
+			  ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration, numAckSamples, numAckGaps);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
 }
@@ -310,10 +315,15 @@ void DCCWaveform::checkAck() {
     }
       
     int current=motorDriver->getCurrentRaw();
+    numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
         
     if (current>ackThreshold) {
+       if (trailingEdgeCounter > 0) {
+	 numAckGaps++;
+	 trailingEdgeCounter = 0;
+       }
        if (ackPulseStart==0) ackPulseStart=micros();    // leading edge of pulse detected
        return;
     }
@@ -321,9 +331,21 @@ void DCCWaveform::checkAck() {
     // not in pulse
     if (ackPulseStart==0) return; // keep waiting for leading edge 
     
+    // if we reach to this point, we have
     // detected trailing edge of pulse
-    ackPulseDuration=micros()-ackPulseStart;
-               
+    if (trailingEdgeCounter == 0) {
+      ackPulseDuration=micros()-ackPulseStart;
+    }
+
+    // but we do not trust it yet and return (which will force another
+    // measurement) and first the third time around with low current
+    // the ack detection will be finalized. 
+    if (trailingEdgeCounter < 2) {
+      trailingEdgeCounter++;
+      return;
+    }
+    trailingEdgeCounter = 0;
+
     if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
