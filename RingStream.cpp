@@ -103,3 +103,43 @@ bool RingStream::commit() {
   _buffer[_mark]=lowByte(_count);
   return true; // commit worked
 }
+
+// grbba to be removed 
+// print the buffer one line for 10 chars in the array
+// void RingStream::printBuffer() {
+//     int j = 0;
+//     for ( int k = 0; k < _len; k++ ) {
+//         if ( j == 10) {
+//           j = 0;
+//           Serial.println();
+//         }
+//         j++;
+//         Serial.print((char) _buffer[k]);
+//         Serial.print(" ");
+//     }
+// }
+
+// void RingStream::printInfo() { 
+//   Serial.print("_len: "); Serial.println(_len);
+//   Serial.print("_pos_write: "); Serial.println(_pos_write);
+//   Serial.print("_pos_read: "); Serial.println(_pos_read);
+//   Serial.print("_overflow: "); Serial.println(_overflow);
+//   Serial.print("_mark: "); Serial.println(_mark);
+//   Serial.print("_count: ");Serial.println(_count);
+
+// }
+
+// void RingStream::reset(const uint16_t len)
+// {
+//   _len=len;
+//   memset(_buffer,0,len);
+//   // _buffer=new byte[len];
+//   _pos_write=0;
+//   _pos_read=0;
+//   _buffer[0]=0;
+//   _overflow=false;
+//   _mark=0;
+//   _count=0; 
+// }
+
+// grbba to be removed 

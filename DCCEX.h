@@ -16,7 +16,7 @@
 #endif
 
 #if MQTT_ON == true
-#include "DccMQTT.h"
+#include "MQTTInterface.h"
 #endif
 
 #include "LCD_Implementation.h"

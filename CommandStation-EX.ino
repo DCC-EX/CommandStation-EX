@@ -1,28 +1,27 @@
 ////////////////////////////////////////////////////////////////////////////////////
-//  DCC-EX CommandStation-EX   Please see https://DCC-EX.com 
+//  DCC-EX CommandStation-EX   Please see https://DCC-EX.com
 //
 // This file is the main sketch for the Command Station.
-// 
-// CONFIGURATION: 
+//
+// CONFIGURATION:
 // Configuration is normally performed by editing a file called config.h.
 // This file is NOT shipped with the code so that if you pull a later version
 // of the code, your configuration will not be overwritten.
 //
 // If you used the automatic installer program, config.h will have been created automatically.
-// 
-// To obtain a starting copy of config.h please copy the file config.example.h which is 
-// shipped with the code and may be updated as new features are added. 
-// 
+//
+// To obtain a starting copy of config.h please copy the file config.example.h which is
+// shipped with the code and may be updated as new features are added.
+//
 // If config.h is not found, config.example.h will be used with all defaults.
 ////////////////////////////////////////////////////////////////////////////////////
 
-#if __has_include ( "config.h")
-  #include "config.h"
+#if __has_include("config.h")
+#include "config.h"
 #else
-  #warning config.h not found. Using defaults from config.example.h 
-  #include "config.example.h"
+#warning config.h not found. Using defaults from config.example.h
+#include "config.example.h"
 #endif
-
 
 /*
  *  © 2020,2021 Chris Harlow, Harald Barth, David Cutting, 
@@ -43,10 +42,9 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "DCCEX.h"
 
-// Create a serial command parser for the USB connection, 
+// Create a serial command parser for the USB connection,
 // This supports JMRI or manual diagnostics and commands
 // to be issued from the USB serial console.
 DCCEXParser serialParser;
@@ -58,14 +56,15 @@ void setup()
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
-   
-  CONDITIONAL_LCD_START {
-    // This block is still executed for DIAGS if LCD not in use 
-    LCD(0,F("DCC++ EX v%S"),F(VERSION));
-    LCD(1,F("Starting")); 
-    }   
 
-//  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
+  CONDITIONAL_LCD_START
+  {
+    // This block is still executed for DIAGS if LCD not in use
+    LCD(0, F("DCC++ EX v%S"), F(VERSION));
+    LCD(1, F("Starting"));
+  }
+
+  //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 
 #if WIFI_ON
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
@@ -76,11 +75,8 @@ void setup()
 #endif // ETHERNET_ON
 
 #if MQTT_ON
-  DccMQTT::get()->setup();
+  MQTTInterface::setup();
 #endif
-
-
-
 
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
@@ -89,25 +85,26 @@ void setup()
 
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
 
- 
-  DCC::begin(MOTOR_SHIELD_TYPE); 
-         
-  #if defined(RMFT_ACTIVE) 
-      RMFT::begin();
-  #endif
+  DCC::begin(MOTOR_SHIELD_TYPE);
 
-  #if __has_include ( "mySetup.h")
-        #define SETUP(cmd) serialParser.parse(F(cmd))  
-        #include "mySetup.h"
-        #undef SETUP
-       #endif
+#if defined(RMFT_ACTIVE)
+  RMFT::begin();
+#endif
 
-  #if defined(LCN_SERIAL)
-      LCN_SERIAL.begin(115200); 
-      LCN::init(LCN_SERIAL);
-  #endif
+#if __has_include("mySetup.h")
+#define SETUP(cmd) serialParser.parse(F(cmd))
+#include "mySetup.h"
+#undef SETUP
+#endif
 
-  LCD(1,F("Ready")); 
+#if defined(LCN_SERIAL)
+  LCN_SERIAL.begin(115200);
+  LCN::init(LCN_SERIAL);
+#endif
+
+
+
+  LCD(1, F("Ready"));
 }
 
 void loop()
@@ -125,31 +122,32 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif
+
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
+
 #if MQTT_ON
-  DccMQTT::get()->loop();
+  MQTTInterface::loop();
 #endif
 
-
-#if defined(RMFT_ACTIVE) 
+#if defined(RMFT_ACTIVE)
   RMFT::loop();
 #endif
 
-  #if defined(LCN_SERIAL) 
-      LCN::loop();
-  #endif
+#if defined(LCN_SERIAL)
+  LCN::loop();
+#endif
 
-  LCDDisplay::loop();  // ignored if LCD not in use 
-  
+  LCDDisplay::loop(); // ignored if LCD not in use
+
   // Report any decrease in memory (will automatically trigger on first call)
-  static int ramLowWatermark = __INT_MAX__; // replaced on first loop 
+  static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 
   int freeNow = minimumFreeMemory();
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
-    LCD(2,F("Free RAM=%5db"), ramLowWatermark);
+    LCD(2, F("Free RAM=%5db"), ramLowWatermark);
   }
 }

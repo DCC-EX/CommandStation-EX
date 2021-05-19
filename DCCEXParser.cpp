@@ -499,17 +499,11 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 's': // <s>
-        // DIAG(F("s1"));
         StringFormatter::send(stream, F("<p%d>\n"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
-        // DIAG(F("s2"));
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-        // DIAG(F("s3"));
         Turnout::printAll(stream); //send all Turnout states
-        // DIAG(F("s4"));
         Output::printAll(stream);  //send all Output  states
-        // DIAG(F("s5"));
         Sensor::printAll(stream);  //send all Sensor  states
-        //DIAG(F("s6"));
         // TODO Send stats of  speed reminders table
         return;       
 

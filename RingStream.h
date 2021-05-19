@@ -21,10 +21,12 @@
 
 #include <Arduino.h>
   
+// template <size_t S>
 class RingStream : public Print {
 
   public:
     RingStream( const uint16_t len);
+    ~RingStream() = default;
   
     virtual size_t write(uint8_t b);
     using Print::write;
@@ -34,15 +36,27 @@ class RingStream : public Print {
     void mark(uint8_t b);
     bool commit();
     uint8_t peekTargetMark();
-    
+
+    int size() {return _len;}
+    byte *getBuffer() { return _buffer; }
+// grbba to be removed 
+    // void printBuffer();
+    // void printInfo();
+    // void reset(const uint16_t len);
+// grbba to be removed 
+
+    int getLen() { return _len; };
+
  private:
    int _len;
-   int _pos_write;
+   // int _len = S;
+   int _pos_write ;
    int _pos_read;
    bool _overflow;
    int _mark;
    int _count;
-   byte * _buffer;
+   // byte _buffer[S];
+   byte *_buffer;
 };
 
 #endif
