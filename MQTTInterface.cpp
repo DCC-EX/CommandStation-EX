@@ -404,7 +404,7 @@ bool MQTTInterface::setupNetwork()
     IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
     DIAG(F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
     DIAG(F("Port:%d"), IP_PORT);
-
+    
     return true;
 }
 

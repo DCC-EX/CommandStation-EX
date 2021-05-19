@@ -98,11 +98,14 @@ The configuration file for DCC-EX Command Station
 // library from <add link here> or get via the libray manager either from the IDE
 // or PIO
 
+// The following is only needed if the Broker requires it. cf broker descriptions below
 #define MQTT_USER   "your broker user name"
 #define MQTT_PWD    "your broker passwd"
 #define MQTT_PREFIX "prefix if required by the broker"
 
+// UNCOMMENT THE FOLLOWING LINE TO ENABLE MQTT 
 // #define ENABLE_MQTT true
+
 // Set the used broker to one of the configurations from MQTTBrokers.h where some
 // public freely avaiable brokers are configured
 

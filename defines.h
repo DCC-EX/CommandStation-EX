@@ -40,7 +40,11 @@
 
 // MQTT handles ethernet on it's own
 #if ENABLE_MQTT && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO)) 
+#if ENABLE_ETHERNET
+    #error Ethernet and MQTT can not be enabled simultaneaously
+#else
     #define MQTT_ON true
+#endif
 #endif 
 
 // #if WIFI_ON && ETHERNET_ON
