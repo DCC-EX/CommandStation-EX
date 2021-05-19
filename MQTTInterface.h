@@ -99,9 +99,9 @@ struct MQTTBroker
     };
 
     // port & ip & prefix
-    MQTTBroker(int p, IPAddress i, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), ip(i), prefix(pfix), cType(1){};
+    MQTTBroker(int p, IPAddress i, const FSH *pfix) : port(p), ip(i), prefix(pfix), cType(1){};
     // port & domain & prefix
-    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), domain(d), prefix(pfix), cType(1)
+    MQTTBroker(int p, const FSH *d, const FSH *pfix) : port(p), domain(d), prefix(pfix), cType(1)
     {
         ip = resovleBroker(d);
     };
