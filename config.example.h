@@ -98,15 +98,34 @@ The configuration file for DCC-EX Command Station
 // library from <add link here> or get via the libray manager either from the IDE
 // or PIO
 
+#define MQTT_USER   "your broker user name"
+#define MQTT_PWD    "your broker passwd"
+#define MQTT_PREFIX "prefix if required by the broker"
 
 // #define ENABLE_MQTT true
 // Set the used broker to one of the configurations from MQTTBrokers.h where some
 // public freely avaiable brokers are configured
 
+// DEFINE THE MQTT BROKER BELOW ACCORDING TO THE FOLLOWING TABLE:
+//
+//  DCCEX_MQTT_BROKER : DCCEX Team best effort operated MQTT broker; pls apply for user/pwd on discord in the mqtt channel if you want to try it
+//  DCCEX_MOSQUITTO   : Mosquitto.org public test broker no user / pwd required so anyone can subscribe/publish to any topic here; good for testing only
+//  DCCEX_HIVEMQ      : Provided by HiveMQ; Public no user / pwd required 
+//   |
+//   +-----------------------v
+
 #define CSMQTTBROKER DCCEX_MOSQUITTO
 
-// Example for configuring your own MQTT broker
+// --------------------------
+// CUSTOMIZED EXAMPLE
+// Configuration for a broker installed on a machine on you home netowrk where the IP address of the machine runing the broker
+// is 192.168.0.2 and requires user authentication. The uid ad pwd are set in the config.h file 
 
+//                                                             Port     IPAddress      Username (opt)  Password(opt)  Prefix (opt)             
+// #define MY_PERSONAL_BROKER F("MYBROKERMQ"), new MQTTBroker( 1883, {192, 168, 0, 2}, F("username"), F("password"), F("prefix-if-required"))
+//
+// If you have access to a broker on the internet replace the IPAddress by F("my-broker-domain-name")
+// -------------------------
 
 
 /////////////////////////////////////////////////////////////////////////////////////

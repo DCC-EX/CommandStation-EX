@@ -1,3 +1,23 @@
+/*
+ *  © 2021, Gregor Baues, All rights reserved.
+ *  
+ *  This file is part of DCC-EX/CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ */
+
 #if __has_include("config.h")
 #include "config.h"
 #else
@@ -274,9 +294,9 @@ void MQTTInterface::connect()
         switch (broker->cType)
         {
         // no uid no pwd
-        case 6:
         case 1:
         { // port(p), ip(i), domain(d),
+            DIAG(F("MQTT Broker connecting anonymous ..."));
             if (mqttClient->connect(connectID))
             {
                 DIAG(F("MQTT Broker connected ..."));
@@ -288,24 +308,37 @@ void MQTTInterface::connect()
             else
             {
                 DIAG(F("MQTT broker connection failed, rc=%d, trying to reconnect"), mqttClient->state());
-                mqState = CONNECTION_FAILED;
                 reconnectCount++;
             }
             break;
         }
         // with uid passwd
-        case 5:
         case 2:
-        { // port(p), ip(i), domain(d), user(uid), pwd(pass),
-            break;
-        }
-        // with uid, passwd & prefix
-        case 4:
-        case 3:
-        { // port(p), ip(i), domain(d), user(uid), pwd(pass), prefix(pfix)
-            // port(p), domain(d), user(uid), pwd(pass), prefix(pfix)
-            // mqttClient.connect(connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
-            break;
+        {   
+            DIAG(F("MQTT Broker connecting with uid/pwd ..."));
+            char user[strlen_P((const char *) broker->user)];
+            char pwd[strlen_P((const char *) broker->pwd)];
+
+            // need to copy from progmem to lacal
+            strcpy_P(user, (const char *)broker->user);
+            strcpy_P(pwd, (const char *)broker->pwd);
+
+            if (mqttClient->connect(connectID, user, pwd))
+            {
+                DIAG(F("MQTT Broker connected ..."));
+                auto sub = subscribe(clientID);                // set up the main subscription on which we will recieve the intal mi message from a subscriber
+                if (Diag::MQTT)
+                    DIAG(F("MQTT subscriptons %s..."), sub ? "ok" : "failed");
+                mqState = CONNECTED;
+            }
+            else
+            {
+                DIAG(F("MQTT broker connection failed, rc=%d, trying to reconnect"), mqttClient->state());
+                reconnectCount++;
+            }
+            break;          
+            // ! add last will messages for the client     
+            // (connectID, MQTT_BROKER_USER, MQTT_BROKER_PASSWD, "$connected", 0, true, "0", 0))
         }
         }
         if (reconnectCount == MAXRECONNECT)
@@ -500,12 +533,17 @@ void MQTTInterface::loop()
     singleton->loop2();
 }
 
+
+bool showonce = false;
 void MQTTInterface::loop2()
 {
     // Connection impossible so just don't do anything
     if (singleton->mqState == CONNECTION_FAILED)
     {
-        DIAG(F("MQTT connection failed..."));
+        if(!showonce) {
+            DIAG(F("MQTT connection failed..."));
+            showonce = true;
+        }
         return;
     }
     if (!mqttClient->connected())

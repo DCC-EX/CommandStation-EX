@@ -1,3 +1,23 @@
+/*
+ *  © 2021, Gregor Baues, All rights reserved.
+ *  
+ *  This file is part of DCC-EX/CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ */
+
 #ifndef _MQTTInterface_h_
 #define _MQTTInterface_h_
 
@@ -67,21 +87,41 @@ struct MQTTBroker
         return bip;
     }
 
-    MQTTBroker(int p, IPAddress i, const FSH *d) : port(p), ip(i), domain(d), cType(1){};
-    MQTTBroker(int p, IPAddress i, const FSH *d, const FSH *uid, const FSH *pass) : port(p), ip(i), domain(d), user(uid), pwd(pass), cType(2){};
-    MQTTBroker(int p, IPAddress i, const FSH *d, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), ip(i), domain(d), user(uid), pwd(pass), prefix(pfix), cType(3){};
-    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), domain(d), user(uid), pwd(pass), prefix(pfix), cType(4)
+    // all boils down to the ip address type = 1 without user authentication 2 with user authentication 
+    // no ssl support !  
+
+    // port & ip address
+    MQTTBroker(int p, IPAddress i) : port(p), ip(i), cType(1){};
+    // port & domain name
+    MQTTBroker(int p, const FSH *d) : port(p), domain(d), cType(1)
     {
         ip = resovleBroker(d);
     };
-    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass) : port(p), domain(d), user(uid), pwd(pass), cType(5)
+
+    // port & ip & prefix
+    MQTTBroker(int p, IPAddress i, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), ip(i), prefix(pfix), cType(1){};
+    // port & domain & prefix
+    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), domain(d), prefix(pfix), cType(1)
     {
         ip = resovleBroker(d);
     };
-    MQTTBroker(int p, const FSH *d) : port(p), domain(d), cType(6)
+
+    // port & ip & user & pwd
+    MQTTBroker(int p, IPAddress i, const FSH *uid, const FSH *pass) : port(p), ip(i), user(uid), pwd(pass), cType(2){};
+    // port & domain & user & pwd
+    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass) : port(p), domain(d), user(uid), pwd(pass), cType(2)
     {
         ip = resovleBroker(d);
     };
+    
+    // port & ip & user & pwd & prefix
+    MQTTBroker(int p, IPAddress i, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), ip(i), user(uid), pwd(pass), prefix(pfix), cType(2){};
+    // port & domain & user & pwd & prefix
+    MQTTBroker(int p, const FSH *d, const FSH *uid, const FSH *pass, const FSH *pfix) : port(p), domain(d), user(uid), pwd(pass), prefix(pfix), cType(2)
+    {
+        ip = resovleBroker(d);
+    };
+
 };
 
 /**
