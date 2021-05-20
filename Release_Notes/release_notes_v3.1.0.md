@@ -1,9 +1,33 @@
-DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Release.  Release v3.1.0 is a minor release that adds additional features and fixes a number of bugs. The team is continually improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more perfromance from the Arduino microprocessors.  This release includes  all of the Point Releases from v3.0.1 to v3.0.12.
+The DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Release.  Release v3.1.0 is a minor release that adds additional features and fixes a number of bugs. With the number of new features, this could have easily been a major release. The team is continually improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.0.1 to v3.0.16.
 
-- **Wi-Fi** - works, but can be challenging to use if you want to switch between AP mode and STA station mode.
-- **Pololu Motor Shield** - is supported with this release, but the user may have to play around with some timings to enable programming mode due to limitation in its current sensing circuitry
+**Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
+
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v3.1.0-Prod/CommandStation-EX.zip)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v3.1.0-Prod/CommandStation-EX.tar.gz)
+
+**Known Issues**
+
+- **Wi-Fi** - works, but requires sending <AT> commands from a serial monitor if you want to switch between AP mode and STA station mode after initial setup
+- **Pololu Motor Shield** - is supported with this release, but the user may have to adjust timings to enable programming mode due to limitation in its current sensing circuitry
 
 #### Summary of key features and/or bug fixes by Point Release
+
+**Summary of the key new features added to CommandStation-EX V3.0.16**
+
+- Ignore CV1 bit 7 read if rejected by a non NMRA compliant decoder when identifying loco id
+
+**Summary of the key new features added to CommandStation-EX V3.0.15**
+
+- Send function commands just once instead of repeating them 4 times
+
+**Summary of the key new features added to CommandStation-EX V3.0.14**
+
+- Add feature to tolerate decoders that incorrectly have gaps in their ACK pulse
+- Provide proper track power management when joining and unjoining tracks with <1 JOIN>
+
+**Summary of the key new features added to CommandStation-EX V3.0.13**
+
+- Fix for CAB Functions greater than 127
 
 **Summary of the key new features added to CommandStation-EX V3.0.12**
 
@@ -15,12 +39,14 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 
 **Summary of the key new features added to CommandStation-EX V3.0.10**
 
-- Includes support for the Arduino Teensy
+- Added Support for the Teensy 3.2, 3.5, 3.6, 4.0 and 4.1 MCUs
 - No functional change just changes to avoid complier warnings for Teensy/nanoEvery
 
 **Summary of the key new features added to CommandStation-EX V3.0.9**
 
 - Rearranges serial newlines for the benefit of JMRI
+- Major update for efficiencies in displays (LCD, OLED)
+- Add I2C Support functions
 
 **Summary of the key new features added to CommandStation-EX V3.0.8**
 
@@ -52,7 +78,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Auto load config.example.h with warning
 - Dropped example .ino files
 - Corrected .ino comments
-- Pololu fault pin handling
+- Add Pololu fault pin handling
 - Waveform speed/simplicity improvements
 - Improved pin speed in waveform
 - Portability to nanoEvery and UnoWifiRev2 CPUs
@@ -62,7 +88,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Linear command
 - Removed need for ArduinoTimers files
 - Removed option to choose different timer
-- Added EX-RAIL hooks for later
+- Added EX-RAIL hooks for automation in future version
 - Fixed Turnout list
 - Allow command keywords in mixed case
 - Dropped unused memstream
@@ -113,7 +139,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - **Fix EEPROM bugs**
 - **Number of locos discovery command** - `<#>` command
 - **Support for more locomotives** - 20 locomotives on an UNO and 50 an a Mega.
-- **Automatic slot managment** - slot variable in throttle/function commands are ignored and slot management is taken care of automatically. `<!>` command added to release locos from memory.
+- **Automatic slot management** - slot variable in throttle/function commands are ignored and slot management is taken care of automatically. `<->` and `<- CAB>` commands added to release locos from memory and stop packets to the track.
 
 **Key Contributors**
 
@@ -128,9 +154,13 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Neil McKechnie - Worcestershire, UK (NeilMck)
 - Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
-- M Steve Todd - - Engine Driver and JMRI Interface
-- Scott Catalanno - Pennsylvania
+- M Steve Todd -  
+- Scott Catalano - Pennsylvania
 - Gregor Baues - Île-de-France, France (grbba)
+
+**Engine Driver and JMRI Interface**
+
+- M Steve Todd
 
 **exInstaller Software**
 
@@ -143,7 +173,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
 - Roger Beschizza - Dorset, UK (Roger Beschizza)
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
-- Kevin Smith - (KCSmith)
+- Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
 
 **WebThrotle-EX**
 
@@ -154,6 +184,7 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 **Beta Testing / Release Management / Support**
 
 - Larry Dribin - Release Management
+- Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
 - Keith Ledbetter
 - BradVan der Elst
 - Andrew Pye
@@ -168,3 +199,8 @@ DCC-EX Team is pleased to release CommandStation-EX-v3.1.0 as a Production Relea
 - Gajanatha Kobbekaduwe
 - Sumner Patterson
 - Paul - Virginia, USA
+
+**Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
+
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v3.1.0-Prod/CommandStation-EX.zip)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v3.1.0-Prod/CommandStation-EX.tar.gz)
