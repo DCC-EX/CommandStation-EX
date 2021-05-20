@@ -37,7 +37,7 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
+// #define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -104,7 +104,7 @@ The configuration file for DCC-EX Command Station
 #define MQTT_PREFIX "prefix if required by the broker"
 
 // UNCOMMENT THE FOLLOWING LINE TO ENABLE MQTT 
-// #define ENABLE_MQTT true
+#define ENABLE_MQTT true
 
 // Set the used broker to one of the configurations from MQTTBrokers.h where some
 // public freely avaiable brokers are configured
