@@ -220,7 +220,9 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     }
     default:    // invalid command / message
     {   
-        DIAG(F("MQTT Invalid DCC-EX command: %s"), (char *)payload);
+        // this may be the echo comming back on the main channel to which we are also subscribed
+        // si just ignore for now 
+        // DIAG(F("MQTT Invalid DCC-EX command: %s"), (char *)payload);
         break;
     }
     }
@@ -404,7 +406,7 @@ bool MQTTInterface::setupNetwork()
     IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
     DIAG(F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
     DIAG(F("Port:%d"), IP_PORT);
-    
+
     return true;
 }
 

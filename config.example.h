@@ -92,7 +92,7 @@ The configuration file for DCC-EX Command Station
 //
 //#define IP_ADDRESS { 192, 168, 1, 200 }
 
-//
+
 // ENABLE_MQTT: if set to true you have to have an Arduino Ethernet card (wired). This
 // is not for Wifi. You will need the Arduino Ethernet library as well as the PubSub
 // library from <add link here> or get via the libray manager either from the IDE
