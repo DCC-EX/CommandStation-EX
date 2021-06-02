@@ -50,8 +50,39 @@ void cantorDecode(int32_t c, int *a, int *b)
     *a = w - *b;
 }
 
+/**
+ * @brief callback used from DIAG to send diag messages to the broker / clients
+ * 
+ * @param msg 
+ * @param length 
+ */
+void mqttDiag(const char *msg, const int length)
+{
+
+    if (MQTTInterface::get()->getState() == CONNECTED)
+    {
+        // if not connected all goes only to Serial;
+        // if CONNECTED we have at least the root topic subscribed to
+        auto mqSocket = MQTTInterface::get()->getActive();
+        char topic[MAXTSTR];
+        memset(topic, 0, MAXTSTR);
+
+        if (mqSocket == 0)
+        { // send to root topic of the commandstation as it doen't concern a specific client at this point
+            sprintf(topic, "%s", MQTTInterface::get()->getClientID());
+        }
+        else
+        {
+            sprintf(topic, "%s/%ld/diag", MQTTInterface::get()->getClientID(), MQTTInterface::get()->getClients()[mqSocket].topic);
+        }
+        // Serial.print(" ---- MQTT pub to: "); Serial.print(topic); Serial.print(" Msg: "); Serial.print(msg);
+        MQTTInterface::get()->publish(topic, msg);
+    }
+}
+
 void MQTTInterface::setup()
 {
+    StringLogger::get().addDiagWriter(mqttDiag);
     singleton = new MQTTInterface();
 
     if (!singleton->connected)
@@ -97,6 +128,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
     {
     case '<':   // Recieved a DCC-EX Command
     {
+        if (payload[1] == '*') { return;} // it's a bounced diag message
         const char s[2] = "/"; // topic delimiter is /
         char *token;
         byte mqsocket;
@@ -538,8 +570,22 @@ void MQTTInterface::loop()
 
 
 bool showonce = false;
+auto s = millis();
+void loopPing(int interval)
+{
+    auto c = millis();
+    if (c - s > 2000)
+    {
+        DIAG(F("loop alive")); // ping every 2 sec
+        s = c;
+    }
+}
+
+
 void MQTTInterface::loop2()
 {
+ 
+    loopPing(2000); // ping every 2 sec
     // Connection impossible so just don't do anything
     if (singleton->mqState == CONNECTION_FAILED)
     {

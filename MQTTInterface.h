@@ -178,34 +178,33 @@ private:
     char                    clientID[(CLIENTIDSIZE * 2) + 1];   // unique ID of the commandstation; not to confused with the connectionID
     csmqttclient_t          clients[MAXMQTTCONNECTIONS];        // array of connected mqtt clients
     char                    connectID[MAXCONNECTID];            // clientId plus possible prefix if required by the broker
-    uint8_t                 subscriberid = 0;                   // id assigned to a mqtt client when recieving the inital handshake; +1 at each connection
+    byte                    subscriberid = 0;                   // id assigned to a mqtt client when recieving the inital handshake; +1 at each connection
+    byte                    activeSubscriber = 0;               // if its 0 no active Subscriber; set as soon as we recieve a command of go into processing on the CS
 
     bool                    connected = false;  // set to true if the ethernet connection is available
     MQTTInterfaceState      mqState = INIT;     // Status of the MQBroker connection
     RingStream             *outboundRing;       // Buffer for collecting the results from the command parser
     PubSubClient           *mqttClient;         // PubSub Endpoint for data exchange
 
+
 public:
-    static MQTTInterface *get() noexcept
-    {
-        return singleton;
-    }
+    static MQTTInterface              *get() noexcept           { return singleton;}
 
-    boolean subscribe(const char *topic);
+    boolean                            subscribe(const char *topic);
+    void                               publish(const char *topic, const char *payload);
 
-    void publish(const char *topic, const char *payload);
-
-    ObjectPool<csmsg_t, MAXPOOLSIZE> *getPool() { return &pool; };
-    Queue<int> *getIncomming() { return &in; };
-    Queue<int> *getSubscriptionQueue() { return &subscriberQueue; };
-
-    char *getClientID() { return clientID; };
-    uint8_t getClientSize() { return subscriberid; }
+    ObjectPool<csmsg_t, MAXPOOLSIZE>  *getPool()                { return &pool; };
+    Queue<int>                        *getIncomming()           { return &in; };
+    Queue<int>                        *getSubscriptionQueue()   { return &subscriberQueue; };
+    MQTTInterfaceState                 getState()               { return mqState; };
+    byte                               getActive()              { return activeSubscriber; };
+    void                               setActive(byte mqSocket) { activeSubscriber = mqSocket; };
+    char                              *getClientID()            { return clientID; };
+    uint8_t                            getClientSize()          { return subscriberid; };
 
     // initalized to 0 so that the first id comming back is 1
     // index 0 in the clients array is not used therefore
-    //! improvement here to be done to save some bytes
-    
+
     uint8_t obtainSubscriberID()
     {
         if (subscriberid == MAXMQTTCONNECTIONS)
@@ -216,12 +215,13 @@ public:
     }
 
     csmqttclient_t *getClients() { return clients; };
-    RingStream *getRingStream() { return outboundRing; }; // debug only
+    RingStream *getRingStream() { return outboundRing; }; 
 
     static void setup();
     static void loop();
 
     ~MQTTInterface() = default;
 };
+
 
 #endif
