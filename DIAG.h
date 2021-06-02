@@ -20,6 +20,10 @@
 #define DIAG_h
 
 #include "StringFormatter.h"
-#define DIAG  StringFormatter::diag
+#include "StringLogger.h"
+
+// #define DIAG  StringFormatter::diag
+#define DIAG  StringLogger::get().diag  // allows to add other log writers 
 #define LCD   StringFormatter::lcd
+
 #endif
