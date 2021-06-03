@@ -16,14 +16,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef DIAG_h
 #define DIAG_h
 
 #include "StringFormatter.h"
-#include "StringLogger.h"
+#include "DiagLogger.h"
 
-// #define DIAG  StringFormatter::diag
-#define DIAG  StringLogger::get().diag  // allows to add other log writers 
+// #define DIAG  StringFormatter::diag        // Std logging to serial only 
+#define DIAG  DiagLogger::get().diag          // allows to add other log writers 
 #define LCD   StringFormatter::lcd
 
 #endif

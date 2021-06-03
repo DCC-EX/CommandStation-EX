@@ -41,23 +41,17 @@
 #define MAXPAYLOAD 64        // max length of a payload recieved
 #define MAXDOMAINLENGTH 32   // domain name length for the broker e.g. test.mosquitto.org 
 
-#define MAXTBUF 50            //!< max length of the buffer for building the topic name ;to be checked
-#define MAXTMSG 120           //!< max length of the messages for a topic               ;to be checked PROGMEM ?
-#define MAXTSTR 30            //!< max length of a topic string
-#define MAXCONNECTID 40       // broker connection id length incl possible prefixes
+#define MAXTBUF 64            //!< max length of the buffer for building the topic name ;to be checked
+#define MAXTMSG 64            //!< max length of the messages for a topic               ;to be checked PROGMEM ?
+#define MAXTSTR 32            //!< max length of a topic string
+#define MAXCONNECTID 32       // broker connection id length incl possible prefixes
 #define CLIENTIDSIZE 6        // max length of the clientid used for connection to the broker
 #define MAXRECONNECT 5        // reconnection tries before final failure
 #define MAXMQTTCONNECTIONS 20 // maximum number of unique tpoics available for subscribers
-#define OUT_BOUND_SIZE 256    // Size of the RingStream used to provide results from the parser and publish
-#define MAX_POOL_SIZE 32      // recieved command store size
+#define OUT_BOUND_SIZE 128    // Size of the RingStream used to provide results from the parser and publish
+#define MAX_POOL_SIZE 16      // recieved command store size
+#define MAX_CALLBACKS 10
 
-// Define Broker configurations; Values are provided in the following order
-// MQTT_BROKER_PORT 9883
-// MQTT_BROKER_DOMAIN "dcclms.modelrailroad.ovh"
-// MQTT_BROKER_ADDRESS 51, 210, 151, 143
-// MQTT_BROKER_USER "dcccs"
-// MQTT_BROKER_PASSWD "dcccs$3020"
-// MQTT_BROKER_CLIENTID_PREFIX "dcc$lms-"
 struct MQTTBroker
 {
     int port;
