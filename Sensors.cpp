@@ -68,6 +68,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 #include "StringFormatter.h"
 #include "Sensors.h"
 #include "EEStore.h"
+#include "S88Mega.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,6 +81,15 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::checkAll(Print *stream){
+#ifdef S88_MEGA // if you use the S88 Bus, check the states
+    S88Mega *s88mega = S88Mega::getInstance();
+    if (S88Mega::getInstance() != NULL) {
+#ifndef S88_USE_TIMER //if you don't want to use the timer, do the loop manually
+        s88mega->loop();
+#endif
+        s88mega->S88_CheckChanges(stream);
+    }
+#endif
 
   if (firstSensor == NULL) return;
   if (readingSensor == NULL) readingSensor=firstSensor;
@@ -114,6 +124,9 @@ void Sensor::checkAll(Print *stream){
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::printAll(Print *stream){
+#ifdef S88_MEGA
+    if (S88Mega::getInstance() != NULL) S88Mega::getInstance()->S88_Status();
+#endif
 
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     if (stream != NULL)
