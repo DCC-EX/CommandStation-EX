@@ -37,6 +37,7 @@
 #include "DCCEXParser.h"
 #include "Queue.h"
 #include "ObjectPool.h"
+#include "MemoryFree.h"
 
 #define MAXPAYLOAD 64        // max length of a payload recieved
 #define MAXDOMAINLENGTH 32   // domain name length for the broker e.g. test.mosquitto.org 
@@ -52,6 +53,7 @@
 #define MAX_POOL_SIZE 16      // recieved command store size
 #define MAX_CALLBACKS 10
 
+// extern int freeMemory();
 struct MQTTBroker
 {
     int port;
@@ -73,7 +75,8 @@ struct MQTTBroker
         dns.begin(Ethernet.dnsServerIP());
         if (dns.getHostByName(domain, bip) == 1)
         {
-            DIAG(F("MQTT Broker/ %s = %d.%d.%d.%d"), domain, bip[0], bip[1], bip[2], bip[3]);
+            DIAG(F("[%d] MQTT Broker: %s = %d.%d.%d.%d"), freeMemory(), domain, bip[0], bip[1], bip[2], bip[3]);
+            
         }
         else
         {

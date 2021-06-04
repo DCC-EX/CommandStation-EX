@@ -33,6 +33,7 @@
 #include "MQTTBrokers.h"
 #include "DCCTimer.h"
 #include "CommandDistributor.h"
+#include "MemoryFree.h"
 
 MQTTInterface *MQTTInterface::singleton = NULL;
 
@@ -43,7 +44,6 @@ long cantorEncode(long a, long b)
 
 void cantorDecode(int32_t c, int *a, int *b)
 {
-
     int w = floor((sqrt(8 * c + 1) - 1) / 2);
     int t = (w * (w + 1)) / 2;
     *b = c - t;
@@ -158,12 +158,12 @@ void mqttCallback(char *topic, byte *pld, unsigned int length)
 {
     // it's a bounced diag message ignore in all cases
     // but it should not be necessary here .. that means the active mqsocket is wrong when sending to diag message
-    if ( (pld[0] == '<') && (pld[1] == '*'))
+    if ((pld[0] == '<') && (pld[1] == '*'))
     {
         return;
     }
     // ignore anything above the PAYLOAD limit of 64 char which should be enough
-    // in general things rejected here is the bounce of the inital messages setting up the chnanel etc 
+    // in general things rejected here is the bounce of the inital messages setting up the chnanel etc
     if (length >= MAXPAYLOAD)
     {
         return;
@@ -172,36 +172,38 @@ void mqttCallback(char *topic, byte *pld, unsigned int length)
     MQTTInterface *mqtt = MQTTInterface::get();
     auto clients = mqtt->getClients();
     errno = 0;
-    csmsg_t tm;                                   // topic message
+    csmsg_t tm; // topic message
 
-    // FOR DIAGS and MQTT ON in the callback we need to copy the payload buffer 
+    // FOR DIAGS and MQTT ON in the callback we need to copy the payload buffer
     // as during the publish of the diag messages the original payload gets destroyed
     // so we setup the csmsg_t now to save yet another buffer
     // if tm not used it will just be discarded at the end of the function call
 
-    memset(tm.cmd, 0, MAXPAYLOAD);                // Clean up the cmd buffer  - should not be necessary
-    strlcpy(tm.cmd, (char *)pld, length + 1);     // Message payload
-    tm.mqsocket = senderMqSocket(mqtt,topic);     // On which socket did we recieve the mq message
-    mqtt->setActive(tm.mqsocket);                    // connection from where we recieved the command is active now
-    
-    if (Diag::MQTT) DIAG(F("MQTT Callback:[%s/%d] [%s] [%d] on interface [%x]"), topic, tm.mqsocket, tm.cmd, length, mqtt);
+    memset(tm.cmd, 0, MAXPAYLOAD);             // Clean up the cmd buffer  - should not be necessary
+    strlcpy(tm.cmd, (char *)pld, length + 1);  // Message payload
+    tm.mqsocket = senderMqSocket(mqtt, topic); // On which socket did we recieve the mq message
+    mqtt->setActive(tm.mqsocket);              // connection from where we recieved the command is active now
+
+    if (Diag::MQTT)
+        DIAG(F("MQTT Callback:[%s/%d] [%s] [%d] on interface [%x]"), topic, tm.mqsocket, tm.cmd, length, mqtt);
 
     switch (tm.cmd[0])
     {
     case '<': // Recieved a DCC-EX Command
     {
-        if(!tm.mqsocket) {
+        if (!tm.mqsocket)
+        {
             DIAG(F("MQTT Can't identify sender; command send on wrong topic"));
             return;
         }
-        int idx = mqtt->getPool()->setItem(tm);       // Add the recieved command to the pool
+        int idx = mqtt->getPool()->setItem(tm); // Add the recieved command to the pool
         if (idx == -1)
         {
             DIAG(F("MQTT Command pool full. Could not handle recieved command."));
             return;
         }
         mqtt->getIncomming()->push(idx); // Add the index of the pool item to the incomming queue
-        
+
         // don't show the topic as we would have to save it also just like the payload
         if (Diag::MQTT)
             DIAG(F("MQTT Message arrived: [%s]"), tm.cmd);
@@ -255,13 +257,13 @@ void mqttCallback(char *topic, byte *pld, unsigned int length)
 
             return;
         }
-        default: 
+        default:
         {
             return;
         }
         }
     }
-    default: 
+    default:
     {
         break;
     }
@@ -300,7 +302,7 @@ void MQTTInterface::setup(const FSH *id, MQTTBroker *b)
     //Create the MQTT environment and establish inital connection to the Broker
     broker = b;
 
-    DIAG(F("MQTT Connect to %S at %S/%d.%d.%d.%d:%d"), id, broker->domain, broker->ip[0], broker->ip[1], broker->ip[2], broker->ip[3], broker->port);
+    DIAG(F("[%d] MQTT Connect to %S at %S/%d.%d.%d.%d:%d"), freeMemory(), id, broker->domain, broker->ip[0], broker->ip[1], broker->ip[2], broker->ip[3], broker->port);
 
     // initalize MQ Broker
     mqttClient = new PubSubClient(broker->ip, broker->port, mqttCallback, ethClient);
@@ -308,7 +310,7 @@ void MQTTInterface::setup(const FSH *id, MQTTBroker *b)
     if (Diag::MQTT)
         DIAG(F("MQTT Client created ok..."));
     array_to_string(mac, CLIENTIDSIZE, clientID);
-    DIAG(F("MQTT Client ID : %s"), clientID);
+    DIAG(F("[%d] MQTT Client ID : %s"), freeMemory(), clientID);
     connect(); // inital connection as well as reconnects
 }
 
@@ -330,7 +332,7 @@ void MQTTInterface::connect()
     strcat(connectID, clientID);
 
     // Connect to the broker
-    DIAG(F("MQTT %s (re)connecting ..."), connectID);
+    DIAG(F("[%d] MQTT %s (re)connecting ..."), freeMemory(), connectID);
     while (!mqttClient->connected() && reconnectCount < MAXRECONNECT)
     {
         switch (broker->cType)
@@ -338,10 +340,10 @@ void MQTTInterface::connect()
         // no uid no pwd
         case 1:
         { // port(p), ip(i), domain(d),
-            DIAG(F("MQTT Broker connecting anonymous ..."));
+            DIAG(F("[%d] MQTT Broker connecting anonymous ..."), freeMemory());
             if (mqttClient->connect(connectID))
             {
-                DIAG(F("MQTT Broker connected ..."));
+                DIAG(F("[%d] MQTT Broker connected ..."),freeMemory());
                 auto sub = subscribe(clientID); // set up the main subscription on which we will recieve the intal mi message from a subscriber
                 if (Diag::MQTT)
                     DIAG(F("MQTT subscriptons %s..."), sub ? "ok" : "failed");
@@ -417,9 +419,8 @@ void MQTTInterface::publish(const char *topic, const char *payload)
  */
 bool MQTTInterface::setupNetwork()
 {
-
     // setup Ethernet connection first
-
+    DIAG(F("[%d] Starting network setup ... "), freeMemory());
     DCCTimer::getSimulatedMacAddress(mac);
 
 #ifdef IP_ADDRESS
@@ -431,18 +432,31 @@ bool MQTTInterface::setupNetwork()
         return false;
     }
 #endif
-    DIAG(F("Ethernet.begin OK."));
+    DIAG(F("[%d] Ethernet.begin OK"), freeMemory());
     if (Ethernet.hardwareStatus() == EthernetNoHardware)
     {
         DIAG(F("Ethernet shield not found"));
         return false;
     }
+
+    // For slower cards like the ENC courtesy @PaulS
+    // wait max 5 sec before bailing out on the connection
+
+    unsigned long startmilli = millis();
+    while ((millis() - startmilli) < 5500)
+    {
+        if (Ethernet.linkStatus() == LinkON)
+            break;
+        DIAG(F("Ethernet waiting for link (1sec) "));
+        delay(1000);
+    }
+
     if (Ethernet.linkStatus() == LinkOFF)
     {
         DIAG(F("Ethernet cable not connected"));
         return false;
     }
-
+    DIAG(F("[%d] Ethernet link is up"),freeMemory());
     IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
     DIAG(F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
     DIAG(F("Port:%d"), IP_PORT);
