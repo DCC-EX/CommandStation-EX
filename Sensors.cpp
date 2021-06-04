@@ -64,7 +64,14 @@ Depending on whether the physical sensor is acting as an "event-trigger" or a "d
 decide to ignore the <q ID> return and only react to <Q ID> triggers.
 
 **********************************************************************/
+#if __has_include ( "config.h")
+#include "config.h"
+#else
+#warning config.h not found.Using defaults from config.example.h
+#include "config.example.h"
+#endif
 
+#include "DIAG.h"
 #include "StringFormatter.h"
 #include "Sensors.h"
 #include "EEStore.h"
@@ -81,14 +88,11 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::checkAll(Print *stream){
-#ifdef S88_MEGA // if you use the S88 Bus, check the states
-    S88Mega *s88mega = S88Mega::getInstance();
-    if (S88Mega::getInstance() != NULL) {
+#ifdef S88_MEGA // if you use the S88 Bus, check the states    
 #ifndef S88_USE_TIMER //if you don't want to use the timer, do the loop manually
-        s88mega->loop();
+    S88Mega::getInstance()->loop();
 #endif
-        s88mega->S88_CheckChanges(stream);
-    }
+    S88Mega::getInstance()->S88_CheckChanges(stream);
 #endif
 
   if (firstSensor == NULL) return;
@@ -125,7 +129,7 @@ void Sensor::checkAll(Print *stream){
 
 void Sensor::printAll(Print *stream){
 #ifdef S88_MEGA
-    if (S88Mega::getInstance() != NULL) S88Mega::getInstance()->S88_Status();
+    S88Mega::getInstance()->S88_Status();
 #endif
 
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
