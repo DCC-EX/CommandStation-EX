@@ -6,7 +6,7 @@
 *	S88Mega.cpp and S88Mega.h are the source files for supporting the common S88 bus sensors.
 * 
 *	You can choose to use 
-		* the standard-loop, so you do need an extra timer / int and can use it for other things
+		* the standard-loop, so you do need an extra timer / int and can use it for other things but the loop may run with variying speed (inacurrate)
 		* the timer based solution. Just comment in the line
 			#define S88_USE_TIMER 
 		  in the config.h file.
@@ -14,16 +14,17 @@
 	the defines S88_PORTIN and S88_PORTOUT. 
 
 	Here are the connection details:
-	ParallelPortPin  Meaning  Arduino PINA 
-	2                Clock             26
-	3                Load              27
-	4                Reset             28
-	10               Bus0              22
-	11               Bus1              23
-	12               Bus2              24
-	13               Bus3              25
+	ParallelPortPin  Meaning  Arduino PORTA PORTC PORTL
+	2                Clock             26    33    45
+	3                Load              27    32    44
+	4                Reset             28    31    43
+	10               Bus0              22    37    49
+	11               Bus1              23    36    48
+	12               Bus2              24    35    47
+	13               Bus3              25    34    46
 	14               5V                5V -> 
 */
+
 //Define from config.h
 #ifdef S88_MEGA
 
@@ -48,12 +49,11 @@ ISR(TIMER5_COMPA_vect);
 
 // Port input bits 0 = Bus0, 1 =  Bus1, 2 = Bus2, 3 = Bus3
 // Port output bits 4 = Clock, 5 = Load, 6 = Reset, 7 = Contoll LED (LED ON = L, LED OFF = H)
-#define S88_PORTIN    PINL    //  (Data Input)
-#define S88_PORTOUT   PORTL   //  (Data Output)
-#define S88_PORTDIR   DDRL    //  (Data Direction)
+#define S88_PORTIN    PINA    //  (Data Input)
+#define S88_PORTOUT   PORTA   //  (Data Output)
+#define S88_PORTDIR   DDRA    //  (Data Direction)
 #define S88AdrBase    100     //  Addressbase Bus0 = 100 - ..., Bus1 = 200 - ..., Bus2 = 300 - ..., Bus3 = 400 - ...
-#define S88_CHAIN_MAX		64	// max number of sensors on a bus
-#define S88_CHAIN_MIN		8	// min number of sensors on a bus
+#define S88_CHAIN_MAX 16	  // max number of sensors on a bus
 
 #define S88_RESET             S88_Set_RM(B01000000)
 #define S88_LOAD              S88_Set_RM(B00100000)
@@ -64,12 +64,14 @@ ISR(TIMER5_COMPA_vect);
 #define S88_LED_OFF           portreg |= B10000000;
 #define S88_LED_TOGGLE        bitWrite (portreg, 7, !bitRead (portreg, 7))
 
+
 typedef struct
 {
 	byte bus[4];
 	byte buslen;
 } S88_RM;
 
+//The loop is doing one step and than continue with the next. Using enum instead of just defines
 enum S88NextLoopStep {
 	S88_SET_CLOCK,
 	S88_SET_CLEAR_CLOCK,
@@ -83,6 +85,7 @@ enum S88NextLoopStep {
 
 class S88Mega {
 public:
+	//Get the only instance. Created at the first call
 	static S88Mega* getInstance()
 	{
 		if (instance == NULL)
@@ -90,8 +93,7 @@ public:
 			instance = new S88Mega();			
 		}
 		return instance;
-	}
-
+	}	
 	void S88Mega::Timer5_Init(void);
 	void S88Mega::Timer5_Off(void);
 	void S88Mega::S88_Set_RM(byte value);
@@ -105,15 +107,13 @@ public:
 private:
 	static S88Mega* instance;
 	byte portreg;
-	byte RmBytes[S88_CHAIN_MAX];
-	unsigned int BUS[4];
+	byte RmBytes[S88_CHAIN_MAX];	
 	byte InIndex;
-	byte S88_Case;
 	S88_RM rm;
 	boolean merk;
 	byte ledcounter;
 	S88NextLoopStep eNextLoopStep = S88_SET_CLOCK;
-}
+};
 
 #endif // __S88_Mega_h
 

@@ -1,8 +1,17 @@
 //Define from config.h
+#if __has_include ( "config.h")
+#include "config.h"
+#else
+#warning config.h not found.Using defaults from config.example.h
+#include "config.example.h"
+#endif
+
 #ifdef S88_MEGA
 
 #include "S88Mega.h"
+#include "DIAG.h"
 
+S88Mega* S88Mega::instance = NULL;
 void S88Mega::S88_Init(byte bus0len, byte bus1len, byte bus2len, byte bus3len)
 {
 	byte i;
@@ -14,17 +23,15 @@ void S88Mega::S88_Init(byte bus0len, byte bus1len, byte bus2len, byte bus3len)
 	rm.bus[2] = bus2len;
 	rm.bus[3] = bus3len;
 	rm.buslen = 0;
-	BUS[0] = A0; BUS[1] = A1; BUS[2] = A2; BUS[3] = A3;
 	for (i = 0; i < 4; i++) {
 		if (rm.bus[i] > S88_CHAIN_MAX) rm.bus[i] = S88_CHAIN_MAX;
 		if ((rm.bus[i] > 0) && (rm.bus[i] < 8)) rm.bus[i] = 8;
-		if (rm.bus[i] > rm.buslen) rm.buslen = rm.bus[i];
-		pinMode(BUS[i], INPUT);
+		if (rm.bus[i] > rm.buslen) rm.buslen = rm.bus[i];		
 	}
 	for (i = 0; i < rm.buslen; i++) {
 		RmBytes[i] = 0x00;
 	}
-	S88_Case = S88_SET_LOAD;
+	eNextLoopStep = S88_SET_LOAD;
 	InIndex = 0;
 	S88_PORTDIR = B11110000;    // bit 0 - 3 = input , bit 4 - 7 = output
 	S88_PORTOUT = B10000000;    // LED aus, Reset aus, Load aus, Clock aus 
@@ -61,7 +68,7 @@ ISR(TIMER5_COMPA_vect)
 {
 	S88Mega* instance = S88Mega::getInstance();
 	if (instance != NULL) {
-		instance->cycle();
+		instance->loop();
 	}
 }
 #endif
@@ -108,11 +115,7 @@ void S88Mega::S88_Read(void)
 void S88Mega::S88_CheckChanges(Print* stream)
 {
 	boolean rd;
-	char mystr[8];
-	char numstr[5];
 	word addr;
-	mystr[0] = '<';
-	char* P_char;
 	for (byte i = 0; i < rm.buslen; i++)
 	{
 		for (byte x = 0; x < 4; x++)
@@ -124,18 +127,8 @@ void S88Mega::S88_CheckChanges(Print* stream)
 					addr = i + (S88AdrBase * x) + S88AdrBase;
 					bitClear(RmBytes[i], x + 4);
 					rd = bitRead(RmBytes[i], x);
-					if (stream != NULL)	StringFormatter::send(stream, F("<%c %d>"), rd ? 'Q' : 'q', addr);
-					if (rd) mystr[1] = 'Q'; else mystr[1] = 'q';
-					mystr[2] = 32;
-					mystr[3] = 0;
-					itoa(addr, numstr, DEC);
-					strcat(mystr, numstr);
-					strcat(mystr, ">");
-					P_char = &mystr[0];
-					while (*P_char)
-					{
-						sensor.write((uint8_t)*P_char);
-						P_char++;
+					if (stream != NULL) {
+						StringFormatter::send(stream, F("<%c %d>"), rd ? 'Q' : 'q', addr);
 					}
 				}
 			}
@@ -152,6 +145,7 @@ void S88Mega::S88_Status(void)
 		}
 	}
 }
+//overloading the ++ operator, so you can increment an enum
 inline S88NextLoopStep& operator++(S88NextLoopStep& currentValue, int)
 {
 	if (currentValue == S88_SET_AFTER_RESET) {
@@ -168,19 +162,19 @@ void S88Mega::loop() {
 	{
 	case S88_SET_CLOCK:
 		S88_CLOCK;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_CLEAR_CLOCK:
 		S88_NOSIGNAL;
 		S88_Read();
 		InIndex++;
 		if (InIndex >= rm.buslen)
 		{
-			S88_Case = S88_SET_LOAD;
+			eNextLoopStep = S88_SET_LOAD;
 			return;
 		}
-		S88_Case = S88_SET_CLOCK;
-		return;
+		eNextLoopStep = S88_SET_CLOCK;
+		break;
 	case S88_SET_LOAD:
 		ledcounter++;
 		if (ledcounter > 200)
@@ -190,36 +184,36 @@ void S88Mega::loop() {
 		}
 		InIndex = 0;
 		S88_LOAD;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_LOAD_CLOCK:
 		S88_LOAD_CLOCK;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_LOAD_NOCLOCK:
 		S88_LOAD;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_AFTERLOAD:
 		S88_NOSIGNAL;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_RESET:
 		InIndex = 0;
 		merk = true;
 		S88_Read();
 		InIndex++;
 		S88_RESET;
-		S88_Case++;
-		return;
+		eNextLoopStep++;
+		break;
 	case S88_SET_AFTER_RESET:
 		S88_NOSIGNAL;
-		S88_Case = S88_SET_CLOCK;
-		return;
+		eNextLoopStep = S88_SET_CLOCK;
+		break;
 	default:
 		S88_NOSIGNAL;
-		S88_Case = S88_SET_LOAD;
-		return;
+		eNextLoopStep = S88_SET_LOAD;
+		break;
 	}
 }
 
