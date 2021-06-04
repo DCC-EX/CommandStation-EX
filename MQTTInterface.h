@@ -37,7 +37,8 @@
 #include "DCCEXParser.h"
 #include "Queue.h"
 #include "ObjectPool.h"
-#include "MemoryFree.h"
+// #include "MemoryFree.h"
+#include "freeMemory.h"
 
 #define MAXPAYLOAD 64        // max length of a payload recieved
 #define MAXDOMAINLENGTH 32   // domain name length for the broker e.g. test.mosquitto.org 

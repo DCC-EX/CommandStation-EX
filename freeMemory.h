@@ -20,6 +20,8 @@
 
 #ifndef freeMemory_h
 #define freeMemory_h
+
 void updateMinimumFreeMemory(unsigned char extraBytes=0);
 int minimumFreeMemory();
+int freeMemory();
 #endif
