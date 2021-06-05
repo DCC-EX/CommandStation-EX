@@ -102,7 +102,8 @@ void setup()
   LCD(1,F("Ready")); 
 
 #ifdef S88_MEGA		  
-  (S88Mega::getInstance())->S88_Init(16, 16, 16, 0);
+  (S88Mega::getInstance())->S88_Init(S88_BUS0_LENGTH, S88_BUS1_LENGTH, 
+      S88_BUS2_LENGTH, S88_BUS3_LENGTH);
 #endif	
 }
 

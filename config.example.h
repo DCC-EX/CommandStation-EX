@@ -119,6 +119,11 @@ The configuration file for DCC-EX Command Station
 #define S88_MEGA
 // You can use a timer for reading the sensors (preferred) or you can use the standard-loop
 #define S88_USE_TIMER
+//Here you can define how many sensors are connected at each bus
+#define S88_BUS0_LENGTH 16
+#define S88_BUS1_LENGTH 16
+#define S88_BUS2_LENGTH 16
+#define S88_BUS3_LENGTH 0
 
 
 
