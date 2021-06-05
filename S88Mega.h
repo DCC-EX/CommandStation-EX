@@ -107,10 +107,11 @@ public:
 private:
 	static S88Mega* instance;
 	byte portreg;
+	//The lower 4 bytes are data of the bux 0-3, the upper 4 bytes remember if the value has changed
 	byte RmBytes[S88_CHAIN_MAX];	
+	//Index of the next sensor which will be processed
 	byte InIndex;
-	S88_RM rm;
-	boolean merk;
+	S88_RM rm;	
 	byte ledcounter;
 	S88NextLoopStep eNextLoopStep = S88_SET_CLOCK;
 };

@@ -28,18 +28,16 @@ void S88Mega::S88_Init(byte bus0len, byte bus1len, byte bus2len, byte bus3len)
 		if ((rm.bus[i] > 0) && (rm.bus[i] < 8)) rm.bus[i] = 8;
 		if (rm.bus[i] > rm.buslen) rm.buslen = rm.bus[i];		
 	}
-	for (i = 0; i < rm.buslen; i++) {
-		RmBytes[i] = 0x00;
-	}
+	memset(RmBytes, 0x00, rm.buslen);	
 	eNextLoopStep = S88_SET_LOAD;
 	InIndex = 0;
 	S88_PORTDIR = B11110000;    // bit 0 - 3 = input , bit 4 - 7 = output
 	S88_PORTOUT = B10000000;    // LED aus, Reset aus, Load aus, Clock aus 
 	DIAG(F("S88 Initalized"));	
 	for (i = 0; i < 4; i++) {
-		DIAG(F("%s%d%s%d"), "Bus length ", i, " = ", rm.bus[i]);
+		DIAG(F("Bus length %d = %d"), i, rm.bus[i]);
 	}
-	DIAG(F("%s%d"), "Bus length max = ", rm.buslen);
+	DIAG(F("Bus length max = %d"), rm.buslen);
 	Timer5_Init();
 }
 
@@ -199,8 +197,7 @@ void S88Mega::loop() {
 		eNextLoopStep++;
 		break;
 	case S88_SET_RESET:
-		InIndex = 0;
-		merk = true;
+		InIndex = 0;		
 		S88_Read();
 		InIndex++;
 		S88_RESET;

@@ -100,8 +100,8 @@ void setup()
   #endif
 
   LCD(1,F("Ready")); 
-#ifdef S88_MEGA		
-  DIAG(F("***************** CALL S88_Init"));
+
+#ifdef S88_MEGA		  
   (S88Mega::getInstance())->S88_Init(16, 16, 16, 0);
 #endif	
 }
