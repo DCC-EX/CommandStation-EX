@@ -501,9 +501,11 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
     case 's': // <s>
         StringFormatter::send(stream, F("<p%d>\n"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+#ifndef MQTT_ON  // the return can get really large depending on the #of items defined and the outputbuffer will overflow
         Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states
+#endif
         // TODO Send stats of  speed reminders table
         return;       
 
