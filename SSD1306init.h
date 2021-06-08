@@ -182,6 +182,7 @@ static const uint8_t MEM_TYPE SH1106_128x64init[] = {
   0x00,                                  // Set to command mode
   SSD1306_DISPLAYOFF,
   SSD1306_SETSTARTPAGE | 0X0,            // set page address
+  SSD1306_SETSTARTLINE | 0x0,            // set start line
   SSD1306_SETCONTRAST, 0x80,             // 128
   SSD1306_SEGREMAP | 0X1,                // set segment remap
   SSD1306_NORMALDISPLAY,                 // normal / reverse
