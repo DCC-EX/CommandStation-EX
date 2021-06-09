@@ -92,7 +92,7 @@ void protocolHandler(MQTTInterface *mqtt, csmsg_t &tm) {
 void mqttMCallback(MQTTInterface *mqtt, csmsg_t &tm)
 {
     auto clients = mqtt->getClients();
-    DIAG(F("MQTT m - Callback"));
+    // DIAG(F("MQTT m - Callback"));
     switch (tm.cmd[1])
         {
         case 'i': // Inital handshake message to create the tunnel
@@ -103,7 +103,7 @@ void mqttMCallback(MQTTInterface *mqtt, csmsg_t &tm)
             strlcpy(buffer, tmp, length);
             buffer[length - 4] = '\0';
 
-            DIAG(F("MQTT buffer %s - %s - %s - %d"), tm.cmd, tmp, buffer, length);
+            // DIAG(F("MQTT buffer %s - %s - %s - %d"), tm.cmd, tmp, buffer, length);
 
             auto distantid = strtol(buffer, NULL, 10);
 
@@ -151,7 +151,7 @@ void mqttMCallback(MQTTInterface *mqtt, csmsg_t &tm)
  */
 void mqttProtocolCallback(MQTTInterface *mqtt, csmsg_t &tm)
 {
-    DIAG(F("MQTT Protocol - Callback"));
+    // DIAG(F("MQTT Protocol - Callback"));
 }
 
 /**
@@ -160,7 +160,7 @@ void mqttProtocolCallback(MQTTInterface *mqtt, csmsg_t &tm)
 void mqttDCCEXCallback(MQTTInterface *mqtt, csmsg_t &tm)
 // void mqttDCCEXCallback(MQTTInterface *mqtt, char *topic, char *payload, unsigned int length)
 {
-    DIAG(F("MQTT DCCEX - Callback"));
+    // DIAG(F("MQTT DCCEX - Callback"));
     if (!tm.mqsocket)
     {
         DIAG(F("MQTT Can't identify sender; command send on wrong topic"));
