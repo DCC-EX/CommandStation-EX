@@ -68,6 +68,16 @@ EthernetInterface::EthernetInterface()
       DIAG(F("Ethernet shield not found"));
       return;
     }
+  
+    unsigned long startmilli = millis();
+    while ((millis() - startmilli) < 5500) // Loop to give time to check for cable connection
+    {
+        if (Ethernet.linkStatus() == LinkON)
+            break;
+        DIAG(F("Ethernet waiting for link (1sec) "));
+        delay(1000);
+    }
+
     if (Ethernet.linkStatus() == LinkOFF) {
       DIAG(F("Ethernet cable not connected"));
       return;
