@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.1.0"
+#define VERSION "3.1.3"
+// 3.1.3 Add a loop delay to give more time for sensing an Ethernet cable connection
 // 3.1.2 Eliminate wait after write when prog is joined or prog power is off
 // 3.1.1 SH1106 OLED Display Offset Fix
 // 3.0.16 Ignore CV1 bit 7 read rejected by decoder when identifying loco id.  
