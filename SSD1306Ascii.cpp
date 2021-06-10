@@ -74,8 +74,8 @@ void SSD1306AsciiWire::setCursor(uint8_t col, uint8_t row) {
     m_col = col + m_colOffset;
     I2CManager.write(m_i2cAddr, 4,
       0x00,    // Set to command mode
-      SSD1306_SETLOWCOLUMN | (col & 0XF), 
-      SSD1306_SETHIGHCOLUMN | (col >> 4),
+      SSD1306_SETLOWCOLUMN | (m_col & 0XF), 
+      SSD1306_SETHIGHCOLUMN | (m_col >> 4),
       SSD1306_SETSTARTPAGE | m_row);
   }
 }
