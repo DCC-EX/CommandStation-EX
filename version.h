@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "3.1.0"
+// 3.1.2 Eliminate wait after write when prog is joined or prog power is off
 // 3.1.1 SH1106 OLED Display Offset Fix
 // 3.0.16 Ignore CV1 bit 7 read rejected by decoder when identifying loco id.  
 // 3.0.15 only send function commands once, not 4 times
