@@ -22,13 +22,13 @@
 #define LiquidCrystal_I2C_h
 
 #include <Arduino.h>
+#include "LCDDisplay.h"
+#include "I2CManager.h"
 
 // commands
 #define LCD_CLEARDISPLAY 0x01
-#define LCD_RETURNHOME 0x02
 #define LCD_ENTRYMODESET 0x04
 #define LCD_DISPLAYCONTROL 0x08
-#define LCD_CURSORSHIFT 0x10
 #define LCD_FUNCTIONSET 0x20
 #define LCD_SETCGRAMADDR 0x40
 #define LCD_SETDDRAMADDR 0x80
@@ -41,46 +41,39 @@
 
 // flags for display on/off control
 #define LCD_DISPLAYON 0x04
-#define LCD_DISPLAYOFF 0x00
-#define LCD_CURSORON 0x02
 #define LCD_CURSOROFF 0x00
-#define LCD_BLINKON 0x01
 #define LCD_BLINKOFF 0x00
 
-// flags for display/cursor shift
-#define LCD_DISPLAYMOVE 0x08
-#define LCD_CURSORMOVE 0x00
-#define LCD_MOVERIGHT 0x04
-#define LCD_MOVELEFT 0x00
-
 // flags for function set
-#define LCD_8BITMODE 0x10
 #define LCD_4BITMODE 0x00
 #define LCD_2LINE 0x08
 #define LCD_1LINE 0x00
-#define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-// flags for backlight control
-#define LCD_BACKLIGHT 0x08
-#define LCD_NOBACKLIGHT 0x00
+// Bit mapping onto PCF8574 port
+#define BACKPACK_Rs_BIT 0
+#define BACKPACK_Rw_BIT 1
+#define BACKPACK_En_BIT 2
+#define BACKPACK_BACKLIGHT_BIT 3
+#define BACKPACK_DATA_BITS 4 // Bits 4-7
+// Equivalent mask bits
+#define LCD_BACKLIGHT (1 << BACKPACK_BACKLIGHT_BIT)  // Backlight enable
+#define En (1 << BACKPACK_En_BIT)  // Enable bit
+#define Rw (1 << BACKPACK_Rw_BIT)  // Read/Write bit
+#define Rs (1 << BACKPACK_Rs_BIT)  // Register select bit
 
-#define En 0b00000100  // Enable bit
-#define Rw 0b00000010  // Read/Write bit
-#define Rs 0b00000001  // Register select bit
-
-class LiquidCrystal_I2C : public Print {
+class LiquidCrystal_I2C : public LCDDisplay {
 public:
   LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
-  void begin(uint8_t cols, uint8_t rows);
-  void clear();
-  void noDisplay();
+  void begin();
+  void clearNative();
+  void setRowNative(byte line);
+  size_t writeNative(uint8_t c);
+  
   void display();
   void noBacklight();
   void backlight();
   
-  void setCursor(uint8_t, uint8_t); 
-  virtual size_t write(uint8_t);
   void command(uint8_t);
   void init();
 
@@ -93,10 +86,9 @@ private:
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;
-  uint8_t _numlines;
-  uint8_t _cols;
-  uint8_t _rows;
   uint8_t _backlightval;
+
+  uint8_t outputBuffer[4];
 };
 
 #endif

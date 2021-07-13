@@ -19,6 +19,7 @@
 #ifndef LCDDisplay_h
 #define LCDDisplay_h
 #include <Arduino.h>
+#include "DisplayInterface.h"
 
 #if __has_include ( "config.h")
   #include "config.h"
@@ -29,17 +30,18 @@
 #define MAX_MSG_SIZE 16
 #endif
 
+// Set default scroll mode (overridable in config.h)
+#if !defined(SCROLLMODE) 
+#define SCROLLMODE 1
+#endif
+
 // This class is created in LCDisplay_Implementation.h
 
-class LCDDisplay : public Print {
+class LCDDisplay : public DisplayInterface {
  public:
   static const int MAX_LCD_ROWS = 8;
   static const int MAX_LCD_COLS = MAX_MSG_SIZE;
   static const long LCD_SCROLL_TIME = 3000;  // 3 seconds
-
-  static LCDDisplay* lcdDisplay;
-  LCDDisplay();
-  void interfake(int p1, int p2, int p3);
 
   // Internally handled functions
   static void loop();
@@ -47,25 +49,25 @@ class LCDDisplay : public Print {
   void setRow(byte line);
   void clear();
 
-  virtual size_t write(uint8_t b);
-  using Print::write;
+  size_t write(uint8_t b);
+
+protected:
+  uint8_t lcdRows;
+  uint8_t lcdCols;
 
  private:
   void moveToNextRow();
   void skipBlankRows();
 
-  // Relay functions to the live driver
-  void clearNative();
-  void displayNative();
-  void setRowNative(byte line);
-  void writeNative(char b);
+  // Relay functions to the live driver in the subclass
+  virtual void clearNative() = 0;
+  virtual void setRowNative(byte line) = 0;
+  virtual size_t writeNative(uint8_t b) = 0;
 
   unsigned long lastScrollTime = 0;
   int8_t hotRow = 0;
   int8_t hotCol = 0;
   int8_t topRow = 0;
-  uint8_t lcdRows;
-  uint8_t lcdCols;
   int8_t slot = 0;
   int8_t rowFirst = -1;
   int8_t rowNext = 0;
