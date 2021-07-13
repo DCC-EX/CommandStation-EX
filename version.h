@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.1.3"
+#define VERSION "3.1.4"
+// 3.1.4 Refactor OLED and LCD drivers and remove unused code
 // 3.1.3 Add a loop delay to give more time for sensing an Ethernet cable connection
 // 3.1.2 Eliminate wait after write when prog is joined or prog power is off
 // 3.1.1 SH1106 OLED Display Offset Fix
