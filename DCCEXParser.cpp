@@ -578,12 +578,10 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
     }
         return true;
 
-    case 3: // <Z ID PIN INVERT>
-        if (p[0] < 0)
-	  return false;
-	if (p[1] > 255 || p[1] < 0)
-	  return false;
-	if (!(p[2] == 0 || p[2] == 1))
+    case 3: // <Z ID PIN IFLAG>
+        if (p[0] < 0 ||
+	    p[1] > 255 || p[1] < 0 ||
+	    p[2] <   0 || p[2] > 7 )
 	  return false;
         if (!Output::create(p[0], p[1], p[2], 1))
           return false;
