@@ -100,14 +100,14 @@ void  Output::activate(int s){
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Output* Output::get(int n){
+Output* Output::get(uint16_t n){
   Output *tt;
   for(tt=firstOutput;tt!=NULL && tt->data.id!=n;tt=tt->nextOutput);
   return(tt);
 }
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Output::remove(int n){
+bool Output::remove(uint16_t n){
   Output *tt,*pp=NULL;
 
   for(tt=firstOutput;tt!=NULL && tt->data.id!=n;pp=tt,tt=tt->nextOutput);
@@ -160,7 +160,7 @@ void Output::store(){
 }
 ///////////////////////////////////////////////////////////////////////////////
 
-Output *Output::create(int id, int pin, int iFlag, int v){
+Output *Output::create(uint16_t id, uint8_t pin, uint8_t iFlag, uint8_t v){
   Output *tt;
 
   if(firstOutput==NULL){

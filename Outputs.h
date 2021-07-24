@@ -23,25 +23,27 @@
 
 struct OutputData {
   uint8_t oStatus;
-  uint8_t id;
+  uint16_t id;
   uint8_t pin; 
   uint8_t iFlag; 
 };
 
 class Output{
-  public:
+
+public:
   void activate(int s);
-  static Output* get(int);
-  static bool remove(int);
+  static Output* get(uint16_t);
+  static bool remove(uint16_t);
   static void load();
   static void store();
-  static Output *create(int, int, int, int=0);
+  static Output *create(uint16_t, uint8_t, uint8_t, uint8_t=0);
   static Output *firstOutput;
   struct OutputData data;
   Output *nextOutput;
   static void printAll(Print *);
-  private:
-  int num;  // Chris has no idea what this is all about!
+
+private:
+  int num;  // EEPROM pointer (Chris has no idea what this is all about!)
   
 }; // Output
   
