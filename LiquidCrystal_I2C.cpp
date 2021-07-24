@@ -47,7 +47,7 @@ LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols,
   lcdRows = lcd_rows;
   lcdCols = lcd_cols;
 
-  _backlightval &= ~LCD_BACKLIGHT;
+  _backlightval = 0;
 
   I2CManager.begin();
   I2CManager.setClock(100000L);    // PCF8574 is spec'd to 100kHz.
