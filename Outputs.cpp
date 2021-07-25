@@ -127,17 +127,46 @@ bool Output::remove(uint16_t n){
 ///////////////////////////////////////////////////////////////////////////////
 
 void Output::load(){
-  struct OutputData data;
+  struct BrokenOutputData bdata;
   Output *tt;
+  bool isBroken=1;
+
+  // This is a scary kluge. As we have two formats in EEPROM due to an
+  // earlier bug, we don't know which we encounter now. So we guess
+  // that if in all entries this byte has value of 7 or lower this is
+  // an iFlag and thus the broken format. Otherwise it would be a pin
+  // id. If someone uses only pins 0 to 7 of their arduino, they
+  // loose. This is (if you look at an arduino) however unlikely.
 
   for(int i=0;i<EEStore::eeStore->data.nOutputs;i++){
-    EEPROM.get(EEStore::pointer(),data);
-    tt=create(data.id,data.pin,data.iFlag);
-    tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):data.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
-    digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
-    pinMode(tt->data.pin,OUTPUT);
-    tt->num=EEStore::pointer();
-    EEStore::advance(sizeof(tt->data));
+    EEPROM.get(EEStore::pointer()+ i*sizeof(struct BrokenOutputData),bdata);
+    if (bdata.iFlag > 7) { // it's a pin and not an iFlag!
+      isBroken=0;
+      break;
+    }
+  }
+  if ( isBroken ) {
+    for(int i=0;i<EEStore::eeStore->data.nOutputs;i++){
+      EEPROM.get(EEStore::pointer(),bdata);
+      tt=create(bdata.id,bdata.pin,bdata.iFlag);
+      tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):bdata.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
+      digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
+      pinMode(tt->data.pin,OUTPUT);
+      tt->num=EEStore::pointer();
+      EEStore::advance(sizeof(struct OutputData));
+    }
+  } else {
+    struct OutputData data;
+
+    for(int i=0;i<EEStore::eeStore->data.nOutputs;i++){
+      EEPROM.get(EEStore::pointer(),data);
+      tt=create(data.id,data.pin,data.iFlag);
+      tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):data.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
+      digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
+      pinMode(tt->data.pin,OUTPUT);
+      tt->num=EEStore::pointer();
+      EEStore::advance(sizeof(struct OutputData));
+    }
   }
 }
 

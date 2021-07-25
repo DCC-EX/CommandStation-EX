@@ -28,6 +28,13 @@ struct OutputData {
   uint8_t iFlag; 
 };
 
+struct BrokenOutputData {
+  uint8_t oStatus;
+  uint8_t id;
+  uint8_t pin;
+  uint8_t iFlag;
+};
+
 class Output{
 
 public:
