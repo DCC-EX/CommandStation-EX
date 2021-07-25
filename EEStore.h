@@ -14,9 +14,9 @@ extern ExternalEEPROM EEPROM;
 
 struct EEStoreData{
   char id[sizeof(EESTORE_ID)];
-  int nTurnouts;
-  int nSensors;  
-  int nOutputs;
+  uint16_t nTurnouts;
+  uint16_t nSensors;
+  uint16_t nOutputs;
 };
 
 struct EEStore{
