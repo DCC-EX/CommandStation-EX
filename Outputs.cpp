@@ -153,7 +153,7 @@ void Output::load(){
       digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
       pinMode(tt->data.pin,OUTPUT);
       tt->num=EEStore::pointer();
-      EEStore::advance(sizeof(struct OutputData));
+      EEStore::advance(sizeof(struct BrokenOutputData));
     }
   } else {
     struct OutputData data;
