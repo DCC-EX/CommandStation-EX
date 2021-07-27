@@ -184,7 +184,7 @@ void Sensor::load(){
   struct SensorData data;
   Sensor *tt;
 
-  for(int i=0;i<EEStore::eeStore->data.nSensors;i++){
+  for(uint16_t i=0;i<EEStore::eeStore->data.nSensors;i++){
     EEPROM.get(EEStore::pointer(),data);
     tt=create(data.snum,data.pin,data.pullUp);
     EEStore::advance(sizeof(tt->data));
