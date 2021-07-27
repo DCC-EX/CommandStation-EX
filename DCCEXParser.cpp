@@ -580,7 +580,7 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
 
     case 3: // <Z ID PIN IFLAG>
         if (p[0] < 0 ||
-	    p[1] > 255 || p[1] <= 7 ||
+	    p[1] > 255 || p[1] <= 1 || // Pins 0 and 1 are Serial to USB
 	    p[2] <   0 || p[2] > 7 )
 	  return false;
         if (!Output::create(p[0], p[1], p[2], 1))
