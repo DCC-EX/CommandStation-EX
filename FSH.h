@@ -29,6 +29,7 @@
  *  __FlashStringHelper     Use FSH instead.
  *  PROGMEM                 use FLASH instead
  *  pgm_read_byte_near      use GETFLASH instead.
+ *  pgm_read_word_near      use GETFLASHW instead.
  *  
  */
 #include <Arduino.h>
@@ -39,10 +40,14 @@
 #define F(str) (str)
 typedef char FSH; 
 #define GETFLASH(addr) (*(const unsigned char *)(addr))
+#define GETFLASHW(addr) (*(const unsigned short *)(addr))
 #define FLASH
+#define strlen_P strlen
+#define strcpy_P strcpy
 #else 
 typedef __FlashStringHelper FSH;
 #define GETFLASH(addr) pgm_read_byte_near(addr)
+#define GETFLASHW(addr) pgm_read_word_near(addr)
 #define FLASH PROGMEM
 #endif
 #endif
