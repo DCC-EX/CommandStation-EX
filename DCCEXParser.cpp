@@ -32,6 +32,16 @@
 #include "DIAG.h"
 #include <avr/wdt.h>
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Figure out if we have enough memory for advanced features
+//
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+// nope
+#else
+#define HAS_ENOUGH_MEMORY
+#endif
+
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
 const int16_t HASH_KEYWORD_PROG = -29718;
@@ -40,8 +50,6 @@ const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
 const int16_t HASH_KEYWORD_RAM = 25982;
 const int16_t HASH_KEYWORD_CMD = 9962;
-const int16_t HASH_KEYWORD_WIT = 31594;
-const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ACK = 3113;
 const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
@@ -49,13 +57,17 @@ const int16_t HASH_KEYWORD_SLOW = -17209;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
 const int16_t HASH_KEYWORD_EEPROM = -7168;
 const int16_t HASH_KEYWORD_LIMIT = 27413;
-const int16_t HASH_KEYWORD_ETHERNET = -30767;    
 const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
-const int16_t HASH_KEYWORD_LCN = 15137;   
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
+#ifdef HAS_ENOUGH_MEMORY
+const int16_t HASH_KEYWORD_WIFI = -5583;
+const int16_t HASH_KEYWORD_ETHERNET = -30767;
+const int16_t HASH_KEYWORD_WIT = 31594;
+const int16_t HASH_KEYWORD_LCN = 15137;
+#endif
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -253,6 +265,7 @@ void DCCEXParser::parse(const FSH * cmd) {
 }
 
 // See documentation on DCC class for info on this section
+
 void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 {
     (void)EEPROM; // tell compiler not to warn this is unused
@@ -764,21 +777,23 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::CMD = onOff;
         return true;
 
+#ifdef HAS_ENOUGH_MEMORY
     case HASH_KEYWORD_WIFI: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
         return true;
 
-   case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
+    case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
         Diag::ETHERNET = onOff;
         return true;
 
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
         Diag::WITHROTTLE = onOff;
         return true;
-  
+
     case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
         Diag::LCN = onOff;
         return true;
+#endif
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);

@@ -64,8 +64,10 @@ enum   CALLBACK_STATE : byte {
 
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-#ifdef ARDUINO_AVR_UNO
+#if defined(ARDUINO_AVR_UNO)
 const byte MAX_LOCOS = 20;
+#elif defined(ARDUINO_AVR_NANO)
+const byte MAX_LOCOS = 30;
 #else
 const byte MAX_LOCOS = 50;
 #endif
