@@ -46,10 +46,8 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  if (MotorDriver::usePWM)
-    DIAG(F("Signal pin config: high accuracy waveform"));
-  else
-    DIAG(F("Signal pin config: normal accuracy waveform"));
+  DIAG(F("Signal pin config: %S accuracy waveform"),
+	 MotorDriver::usePWM ? F("high") : F("normal") );
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -126,6 +124,8 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
+  // Trackname for diag messages later
+  const FSH*trackname = isMainTrack ? F("MAIN") : F("PROG");
   switch (powerMode) {
     case POWERMODE::OFF:
       sampleDelay = POWER_SAMPLE_OFF_WAIT;
@@ -143,9 +143,9 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
 	      }
 	      // Write this after the fact as we want to turn on as fast as possible
 	      // because we don't know which output actually triggered the fault pin
-	      DIAG(F("*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***"), isMainTrack ? F("MAIN") : F("PROG"));
+	      DIAG(F("COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S"), trackname);
 	  } else {
-	      DIAG(F("*** %S FAULT PIN ACTIVE - OVERLOAD ***"), isMainTrack ? F("MAIN") : F("PROG"));
+	    DIAG(F("%S FAULT PIN ACTIVE - OVERLOAD"), trackname);
 	      if (lastCurrent < tripValue) {
 		  lastCurrent = tripValue; // exaggerate
 	      }
@@ -163,7 +163,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
         unsigned int maxmA=motorDriver->raw2mA(tripValue);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
-        DIAG(F("*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
+        DIAG(F("%S TRACK POWER OVERLOAD current=%d max=%d offtime=%d"), trackname, mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
 	    power_sample_overload_wait = 10000;
 	else
@@ -175,7 +175,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
       setPowerMode(POWERMODE::ON);
       sampleDelay = POWER_SAMPLE_ON_WAIT;
       // Debug code....
-      DIAG(F("*** %S TRACK POWER RESET delay=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), sampleDelay);
+      DIAG(F("%S TRACK POWER RESET delay=%d"), trackname, sampleDelay);
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
