@@ -138,15 +138,18 @@ void Output::load(){
   // id. If someone uses only pins 0 to 7 of their arduino, they
   // loose. This is (if you look at an arduino) however unlikely.
 
-  for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
+  uint16_t i=EEStore::eeStore->data.nOutputs;
+  while(i--){
     EEPROM.get(EEStore::pointer()+ i*sizeof(struct BrokenOutputData),bdata);
     if (bdata.iFlag > 7) { // it's a pin and not an iFlag!
       isBroken=0;
       break;
     }
   }
+
+  i=EEStore::eeStore->data.nOutputs;
   if ( isBroken ) {
-    for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
+    while(i--){
       EEPROM.get(EEStore::pointer(),bdata);
       tt=create(bdata.id,bdata.pin,bdata.iFlag);
       tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):bdata.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
@@ -158,7 +161,7 @@ void Output::load(){
   } else {
     struct OutputData data;
 
-    for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
+    while(i--){
       EEPROM.get(EEStore::pointer(),data);
       tt=create(data.id,data.pin,data.iFlag);
       tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):data.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag

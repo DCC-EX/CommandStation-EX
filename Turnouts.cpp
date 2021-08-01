@@ -103,7 +103,8 @@ void Turnout::load(){
   struct TurnoutData data;
   Turnout *tt;
 
-  for(uint16_t i=0;i<EEStore::eeStore->data.nTurnouts;i++){
+  uint16_t i=EEStore::eeStore->data.nTurnouts;
+  while(i--){
     EEPROM.get(EEStore::pointer(),data);
     if (data.tStatus & STATUS_PWM) tt=create(data.id,data.tStatus & STATUS_PWMPIN, data.inactiveAngle,data.moveAngle);
     else tt=create(data.id,data.address,data.subAddress);
