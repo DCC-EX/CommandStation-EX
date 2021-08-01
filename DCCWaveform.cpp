@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
- #pragma GCC optimize ("-O3")
+
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
@@ -58,6 +58,8 @@ void DCCWaveform::loop(bool ackManagerActive) {
   progTrack.checkPowerOverload(ackManagerActive);
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
@@ -79,7 +81,7 @@ void DCCWaveform::interruptHandler() {
   else if (progTrack.ackPending) progTrack.checkAck();
 
 }
-
+#pragma GCC push_options
 
 // An instance of this class handles the DCC transmissions for one track. (main or prog)
 // Interrupts are marshalled via the statics.
@@ -197,6 +199,8 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_LOW_0   -> */ LOW,
    /* WAVE_PENDING (should not happen) -> */ LOW};
         
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
@@ -252,7 +256,7 @@ void DCCWaveform::interrupt2() {
     }
   }  
 }
-
+#pragma GCC pop_options
 
 
 // Wait until there is no packet pending, then make this pending
@@ -306,6 +310,8 @@ byte DCCWaveform::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
@@ -355,3 +361,4 @@ void DCCWaveform::checkAck() {
     }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
+#pragma GCC pop_options
