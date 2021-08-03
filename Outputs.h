@@ -20,37 +20,43 @@
 #define Outputs_h
 
 #include <Arduino.h>
+#include "IODevice.h"
 
 struct OutputData {
-  uint8_t oStatus;
+  union {
+    uint8_t oStatus;      // (Bit 0=Invert, Bit 1=Set state to default, Bit 2=default state, Bit 7=active)
+    struct {
+      unsigned int flags : 7; // Bit 0=Invert, Bit 1=Set state to default, Bit 2=default state
+      unsigned int : 1;
+    };
+    struct {
+      unsigned int invert : 1;
+      unsigned int setDefault : 1;
+      unsigned int defaultValue : 1;
+      unsigned int: 4;
+      unsigned int active : 1;
+    };
+  };
   uint16_t id;
-  uint8_t pin; 
-  uint8_t iFlag; 
+  VPIN pin; 
 };
 
-struct BrokenOutputData {
-  uint8_t oStatus;
-  uint8_t id;
-  uint8_t pin;
-  uint8_t iFlag;
-};
 
 class Output{
-
 public:
-  void activate(int s);
+  void activate(uint16_t s);
+  bool isActive();
   static Output* get(uint16_t);
   static bool remove(uint16_t);
   static void load();
   static void store();
-  static Output *create(uint16_t, uint8_t, uint8_t, uint8_t=0);
+  static Output *create(uint16_t, VPIN, int, int=0);
   static Output *firstOutput;
   struct OutputData data;
   Output *nextOutput;
   static void printAll(Print *);
-
 private:
-  int num;  // EEPROM pointer (Chris has no idea what this is all about!)
+  uint16_t num;  // EEPROM address of oStatus in OutputData struct, or zero if not stored.
   
 }; // Output
   

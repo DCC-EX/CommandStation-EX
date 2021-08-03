@@ -66,9 +66,9 @@ class LiquidCrystal_I2C : public LCDDisplay {
 public:
   LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
   void begin();
-  void clearNative();
-  void setRowNative(byte line);
-  size_t writeNative(uint8_t c);
+  void clearNative() override;
+  void setRowNative(byte line) override;
+  size_t writeNative(uint8_t c) override;
   
   void display();
   void noBacklight();
@@ -88,7 +88,9 @@ private:
   uint8_t _displaymode;
   uint8_t _backlightval;
 
+  I2CRB requestBlock;
   uint8_t outputBuffer[4];
+  bool isBusy() { return requestBlock.isBusy(); }
 };
 
 #endif

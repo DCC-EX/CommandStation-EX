@@ -24,6 +24,7 @@
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "FSH.h"
+#include "IODevice.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -51,6 +52,9 @@ byte DCC::globalSpeedsteps=128;
 void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
   shieldName=(FSH *)motorShieldName;
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+
+  // Initialise HAL layer before reading EEprom.
+  IODevice::begin();
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
