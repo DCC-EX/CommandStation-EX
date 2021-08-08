@@ -357,11 +357,11 @@ void RMFT2::loop2() {
   switch ((OPCODE)opcode) {
     
     case OPCODE_THROW:
-         Turnout::activate(operand, true);
+         Turnout::activate(operand, false);
          break;
           
     case OPCODE_CLOSE:
-         Turnout::activate(operand, false);
+         Turnout::activate(operand, true);
          break; 
     
     case OPCODE_REV:
