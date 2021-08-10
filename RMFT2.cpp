@@ -570,7 +570,11 @@ void RMFT2::loop2() {
        case OPCODE_SERVO: // OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),
         IODevice::writeAnalogue(operand,GET_OPERAND(1),GET_OPERAND(2));          
         break;
-          
+
+       case OPCODE_PRINT:
+            printMessage(operand);
+            break;
+               
        case OPCODE_ROUTE:
        case OPCODE_AUTOMATION:
        case OPCODE_SEQUENCE:
@@ -632,8 +636,8 @@ void RMFT2::kill(const FSH * reason, int operand) {
      return;
    }
   } 
- void RMFT2::turnoutEvent(VPIN id, bool thrown) {
-    byte huntFor=thrown? OPCODE_ONTHROW : OPCODE_ONCLOSE;
+ void RMFT2::turnoutEvent(VPIN id, bool state) {
+    byte huntFor=state ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
     // caution hides class progCounter;
     for (int progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
@@ -643,4 +647,9 @@ void RMFT2::kill(const FSH * reason, int operand) {
      new RMFT2(progCounter);  // new task starts at this instruction
      return;
    }
-  }
+ }
+ 
+ void RMFT2::printMessage2(const FSH * msg) {
+        DIAG(F("EXRAIL(%d) %S"),loco,msg);
+   }
+ 

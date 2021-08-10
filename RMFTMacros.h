@@ -33,12 +33,148 @@
 // but since the C preprocessor is such a wimp, we have to pass over the myAutomation.h 2 times with
 // different macros. 
  
-
+// PRINT(msg) is implemented in a separate pass to create a getMessageText(id) function  
 #define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
 #define NOP 0,0
 
 // CAUTION: The macros below are triple passed over myAutomation.h
-// Adding a macro here must have equivalent macros or no-ops  in pass 2 and 3
+
+// Pass 1 Macros convert descriptions to a flash string constant in withrottle format.
+// Most macros are simply ignored in this pass.
+#define ROUTE(id, description)    "]\\[R" #id "}|{" description "}|{2"
+#define AUTOMATION(id, description)  "]\\[A" #id "}|{" description "}|{4"
+#define EXRAIL  const FLASH char  RMFT2::RouteDescription[]=
+#define ENDEXRAIL  "";
+ 
+#define ALIAS(name,value)  
+#define AFTER(sensor_id)
+#define AMBER(signal_id)
+#define AT(sensor_id)
+#define CALL(route) 
+#define CLOSE(id) 
+#define DELAY(mindelay)
+#define DELAYMINS(mindelay)
+#define DELAYRANDOM(mindelay,maxdelay) 
+#define DONE
+#define ENDIF  
+#define ENDTASK
+#define ESTOP 
+#define FOFF(func)
+#define FOLLOW(route) 
+#define FON(func) 
+#define FREE(blockid) 
+#define FWD(speed) 
+#define GREEN(signal_id)
+#define IF(sensor_id) 
+#define IFNOT(sensor_id)
+#define IFRANDOM(percent) 
+#define IFRESERVE(block) 
+#define INVERT_DIRECTION 
+#define JOIN 
+#define LATCH(sensor_id) 
+#define ONCLOSE(turnout_id)
+#define ONTHROW(turnout_id) 
+#define PAUSE
+#define PRINT(msg) 
+#define POM(cv,value)
+#define READ_LOCO 
+#define RED(signal_id) 
+#define RESERVE(blockid) 
+#define RESET(sensor_id) 
+#define RESUME 
+#define RETURN 
+#define REV(speed) 
+#define START(route) 
+#define SERVO(id,position,profile) 
+#define SETLOCO(loco) 
+#define SET(sensor_id) 
+#define SEQUENCE(id) 
+#define SPEED(speed) 
+#define STOP 
+#undef SIGNAL
+#define SIGNAL(redpin,amberpin,greenpin) 
+#define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) 
+#define PIN_TURNOUT(pin) 
+#define THROW(id)  
+#define TURNOUT(id,addr,subaddr) 
+#define UNJOIN 
+#define UNLATCH(sensor_id) 
+
+#include "myAutomation.h"
+
+// setup for pass 2... Create getMessageText function
+#undef ROUTE
+#undef AUTOMATION  
+#define ROUTE(id, description)
+#define AUTOMATION(id, description)  
+
+#undef EXRAIL 
+#undef PRINT
+#undef ENDEXRAIL  
+const int PrintMacroTracker1=__COUNTER__;
+#define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
+#define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,PrintMacroTracker1); return ; }}
+#define PRINT(msg)  case (__COUNTER__ - PrintMacroTracker1) : printMessage2(F(msg));break;
+#include "myAutomation.h"
+ 
+#undef ALIAS
+#undef AFTER
+#undef AMBER
+#undef AT
+#undef AUTOMATION 
+#undef CALL
+#undef CLOSE
+#undef DELAY
+#undef DELAYMINS
+#undef DELAYRANDOM
+#undef DONE
+#undef ENDIF
+#undef ENDEXRAIL
+#undef ENDTASK
+#undef ESTOP
+#undef EXRAIL
+#undef FOFF
+#undef FOLLOW
+#undef FON
+#undef FREE
+#undef FWD
+#undef GREEN
+#undef IF
+#undef IFNOT
+#undef IFRANDOM
+#undef IFRESERVE
+#undef INVERT_DIRECTION
+#undef JOIN
+#undef LATCH
+#undef ONCLOSE
+#undef ONTHROW
+#undef PAUSE
+#undef POM
+#undef PRINT
+#undef READ_LOCO
+#undef RED
+#undef RESERVE
+#undef RESET
+#undef RESUME
+#undef RETURN
+#undef REV
+#undef ROUTE 
+#undef START
+#undef SEQUENCE 
+#undef SERVO
+#undef SETLOCO
+#undef SET
+#undef SPEED
+#undef STOP
+#undef SIGNAL
+#undef SERVO_TURNOUT
+#undef PIN_TURNOUT
+#undef THROW
+#undef TURNOUT
+#undef UNJOIN
+#undef UNLATCH
+
+// Define macros or route code creation 
 #define ALIAS(name,value) const int name=value;
 #define EXRAIL const  FLASH  byte RMFT2::RouteCode[] = {
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
@@ -88,136 +224,20 @@
 #define SET(sensor_id) OPCODE_SET,V(sensor_id),
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define STOP OPCODE_SPEED,V(0), 
-#undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
 #define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) OPCODE_SERVOTURNOUT,V(pin),OPCODE_PAD,V(actibeAngle),OPCODE
 #define PIN_TURNOUT(pin) OPCODE_PINTURNOUT,V(pin), 
+#define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - PrintMacroTracker2),
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,NOP,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 
-// PASS1 Build RouteCode
+// PASS2 Build RouteCode
+const int PrintMacroTracker2=__COUNTER__;
 #include "myAutomation.h"
 
-#undef ALIAS
-#undef EXRAIL
-#undef AUTOMATION 
-#undef ROUTE 
-#undef SEQUENCE 
-#undef ENDTASK
-#undef DONE
-#undef ENDEXRAIL
- 
-#undef AFTER
-#undef AMBER
-#undef AT
-#undef CALL
-#undef CLOSE
-#undef DELAY
-#undef DELAYMINS
-#undef DELAYRANDOM
-#undef ENDIF
-#undef ESTOP
-#undef FOFF
-#undef FOLLOW
-#undef FON
-#undef FREE
-#undef FWD
-#undef GREEN
-#undef IF
-#undef IFNOT
-#undef IFRANDOM
-#undef IFRESERVE
-#undef INVERT_DIRECTION
-#undef JOIN
-#undef LATCH
-#undef ONCLOSE
-#undef ONTHROW
-#undef PAUSE
-#undef POM
-#undef READ_LOCO
-#undef RED
-#undef RESERVE
-#undef RESET
-#undef RESUME
-#undef RETURN
-#undef REV
-#undef START
-#undef SERVO
-#undef SETLOCO
-#undef SET
-#undef SPEED
-#undef STOP
-#undef SIGNAL
-#undef SERVO_TURNOUT
-#undef PIN_TURNOUT
-#undef THROW
-#undef TURNOUT
-#undef UNJOIN
-#undef UNLATCH
 //==================
-
-// Pass2 Macros convert descriptions to a flash string constant in withrottle format.
-// Most macros are simply ignored in this pass.
-#define ALIAS(name,value)  
-#define EXRAIL  const FLASH char  RMFT2::RouteDescription[]=
-#define AUTOMATION(id, description)  "]\\[A" #id "}|{" description "}|{4"
-#define ROUTE(id, description)    "]\\[R" #id "}|{" description "}|{2"
-#define SEQUENCE(id) 
-#define ENDTASK
-#define DONE
-#define ENDEXRAIL  "";
- 
-#define AFTER(sensor_id)
-#define AMBER(signal_id)
-#define AT(sensor_id)
-#define CALL(route) 
-#define CLOSE(id) 
-#define DELAY(mindelay)
-#define DELAYMINS(mindelay)
-#define DELAYRANDOM(mindelay,maxdelay) 
-#define ENDIF  
-#define ESTOP 
-#define FOFF(func)
-#define FOLLOW(route) 
-#define FON(func) 
-#define FREE(blockid) 
-#define FWD(speed) 
-#define GREEN(signal_id)
-#define IF(sensor_id) 
-#define IFNOT(sensor_id)
-#define IFRANDOM(percent) 
-#define IFRESERVE(block) 
-#define INVERT_DIRECTION 
-#define JOIN 
-#define LATCH(sensor_id) 
-#define ONCLOSE(turnout_id)
-#define ONTHROW(turnout_id) 
-#define PAUSE 
-#define POM(cv,value)
-#define READ_LOCO 
-#define RED(signal_id) 
-#define RESERVE(blockid) 
-#define RESET(sensor_id) 
-#define RESUME 
-#define RETURN 
-#define REV(speed) 
-#define START(route) 
-#define SERVO(id,position,profile) 
-#define SETLOCO(loco) 
-#define SET(sensor_id) 
-#define SPEED(speed) 
-#define STOP 
-#define SIGNAL(redpin,amberpin,greenpin) 
-#define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) 
-#define PIN_TURNOUT(pin) 
-#define THROW(id)  
-#define TURNOUT(id,addr,subaddr) 
-#define UNJOIN 
-#define UNLATCH(sensor_id) 
-
-#include "myAutomation.h"
  
 
 #endif

@@ -41,7 +41,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,OPCODE_POM,
              OPCODE_START,OPCODE_SETLOCO,
              OPCODE_PAUSE, OPCODE_RESUME,
-             OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,  
+             OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
+             OPCODE_PRINT,  
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,OPCODE_ENDTASK,OPCODE_ENDEXRAIL
              };
 
@@ -89,6 +90,8 @@ private:
     bool doManual();
     void loop2();
     void kill(const FSH * reason=NULL,int operand=0);          
+    void printMessage(uint16_t id);  // Built by RMFTMacros.h
+    void printMessage2(const FSH * msg);
     
    static bool diag;
    static const  FLASH  byte RouteCode[];
