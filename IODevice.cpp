@@ -261,7 +261,7 @@ bool IODevice::owns(VPIN id) {
 // } 
 
 // Read value from virtual pin.
-bool IODevice::read(VPIN vpin) {
+int IODevice::read(VPIN vpin) {
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
     if (dev->owns(vpin)) 
       return dev->_read(vpin);
@@ -302,7 +302,7 @@ bool IODevice::hasCallback(VPIN vpin) {
   (void)vpin;  // Avoid compiler warnings
   return false; 
 }
-bool IODevice::read(VPIN vpin) { 
+int IODevice::read(VPIN vpin) { 
   pinMode(vpin, INPUT_PULLUP);
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
 }

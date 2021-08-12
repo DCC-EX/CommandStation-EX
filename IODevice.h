@@ -102,7 +102,7 @@ public:
   static bool hasCallback(VPIN vpin);
 
   // read invokes the IODevice instance's _read method.
-  static bool read(VPIN vpin);
+  static int read(VPIN vpin);
 
   // loop invokes the IODevice instance's _loop method.
   static void loop();
