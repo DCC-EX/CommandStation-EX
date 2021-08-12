@@ -139,7 +139,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
                  StringFormatter::send(stream, F("<* EXRAIL STATUS"));
                  RMFT2 * task=loopTask;
                  while(task) {
-                   StringFormatter::send(stream,F("\nPC=%d,DT=%d,LOCO=%d%c,SPEED=%d%c"),
+                   StringFormatter::send(stream,F("\nPC=%d,DT=%l,LOCO=%d%c,SPEED=%d%c"),
                          task->progCounter,task->delayTime,task->loco,
                          task->invert?'I':' ',
                          task->speedo, 
