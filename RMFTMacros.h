@@ -36,6 +36,8 @@
 // PRINT(msg) is implemented in a separate pass to create a getMessageText(id) function  
 #define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
 #define NOP 0,0
+// remove normal code LCD macro (will be restored later)
+#undef LCD
 
 // CAUTION: The macros below are triple passed over myAutomation.h
 
@@ -72,6 +74,7 @@
 #define INVERT_DIRECTION 
 #define JOIN 
 #define LATCH(sensor_id) 
+#define LCD(row,msg) 
 #define ONCLOSE(turnout_id)
 #define ONTHROW(turnout_id) 
 #define PAUSE
@@ -111,10 +114,12 @@
 #undef EXRAIL 
 #undef PRINT
 #undef ENDEXRAIL  
-const int PrintMacroTracker1=__COUNTER__;
+#undef LCD
+const int StringMacroTracker1=__COUNTER__;
 #define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
-#define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,PrintMacroTracker1); return ; }}
-#define PRINT(msg)  case (__COUNTER__ - PrintMacroTracker1) : printMessage2(F(msg));break;
+#define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1); return ; }}
+#define PRINT(msg)  case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
+#define LCD(id,msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
 #include "myAutomation.h"
  
 #undef ALIAS
@@ -146,6 +151,7 @@ const int PrintMacroTracker1=__COUNTER__;
 #undef INVERT_DIRECTION
 #undef JOIN
 #undef LATCH
+#undef LCD
 #undef ONCLOSE
 #undef ONTHROW
 #undef PAUSE
@@ -207,10 +213,12 @@ const int PrintMacroTracker1=__COUNTER__;
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,NOP,
 #define JOIN OPCODE_JOIN,NOP,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
+#define LCD(id,msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,NOP,
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
+#define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define READ_LOCO OPCODE_READ_LOCO1,NOP,OPCODE_READ_LOCO2,NOP,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
@@ -227,17 +235,17 @@ const int PrintMacroTracker1=__COUNTER__;
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
 #define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) OPCODE_SERVOTURNOUT,V(pin),OPCODE_PAD,V(actibeAngle),OPCODE
 #define PIN_TURNOUT(pin) OPCODE_PINTURNOUT,V(pin), 
-#define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - PrintMacroTracker2),
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,NOP,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 
 // PASS2 Build RouteCode
-const int PrintMacroTracker2=__COUNTER__;
+const int StringMacroTracker2=__COUNTER__;
 #include "myAutomation.h"
 
-//==================
- 
+// Restore normal code LCD macro
+#undef LCD
+#define LCD   StringFormatter::lcd
 
 #endif
