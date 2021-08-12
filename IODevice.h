@@ -24,7 +24,7 @@
 //#define DIAG_IO Y
 
 // Define symbol DIAG_LOOPTIMES to enable CS loop execution time to be reported
-#define DIAG_LOOPTIMES
+//#define DIAG_LOOPTIMES
 
 // Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
 // The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
