@@ -105,7 +105,7 @@ void  Output::activate(uint16_t s){
 
   // Update EEPROM if output has been stored.    
   if(EEStore::eeStore->data.nOutputs > 0 && num > 0)
-    EEPROM.put(num, data.flags);
+    EEPROM.put(num, data.oStatus);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -149,7 +149,9 @@ void Output::load(){
   for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
     EEPROM.get(EEStore::pointer(),data);
     // Create new object, set current state to default or to saved state from eeprom.
-    tt=create(data.id, data.pin, data.flags, data.setDefault ? data.defaultValue : data.active);
+    tt=create(data.id, data.pin, data.flags);
+    uint8_t state = data.setDefault ? data.defaultValue : data.active;
+    tt->activate(state);
 
     if (tt) tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
     EEStore::advance(sizeof(tt->data));
@@ -177,6 +179,8 @@ void Output::store(){
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to create an Output object
+//   The obscurely named parameter 'v' is 0 if called from the load() function
+//   and 1 if called from the <Z> command processing.
 
 Output *Output::create(uint16_t id, VPIN pin, int iFlag, int v){
   Output *tt;
