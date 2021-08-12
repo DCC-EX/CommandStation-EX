@@ -196,6 +196,10 @@ void PCA9685::updatePosition(uint8_t pin) {
   struct ServoData *s = _servoData[pin];
   if (!s) return;
   if (s->numSteps == 0) return; // No animation in progress
+  if (s->stepNumber == 0 && s->fromPosition == s->toPosition) {
+    // No movement required, so go straight to final step
+    s->stepNumber = s->numSteps;
+  }
   if (s->stepNumber < s->numSteps) {
     // Animation in progress, reposition servo
     s->stepNumber++;
