@@ -129,7 +129,7 @@ void PCA9685::_write(VPIN vpin, int value) {
     s->numSteps = profile==Fast ? 10 : 
                   profile==Medium ? 20 : 
                   profile==Slow ? 40 : 
-                  profile==Bounce ? sizeof(_bounceProfile) : 
+                  profile==Bounce ? sizeof(_bounceProfile)-1 : 
                   1;
     s->state = value;
     s->stepNumber = 0;
@@ -163,7 +163,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
   s->numSteps = profile==Fast ? 10 : 
                 profile==Medium ? 20 : 
                 profile==Slow ? 40 : 
-                profile==Bounce ? sizeof(_bounceProfile) : 
+                profile==Bounce ? sizeof(_bounceProfile)-1 : 
                 1;
   s->stepNumber = 0;
   s->toPosition = min(value, 4095);

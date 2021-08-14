@@ -42,7 +42,7 @@
 // and PCA9685.
 void IODevice::begin() {
   // Initialise the IO subsystem
-  ArduinoPins::create(2, NUM_DIGITAL_PINS-3);  // Reserve pins for direct access
+  ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
   // Predefine two PCA9685 modules 0x40-0x41
   // Allocates 32 pins 100-131
   PCA9685::create(100, 16, 0x40);
