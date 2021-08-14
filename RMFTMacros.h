@@ -96,8 +96,8 @@
 #define STOP 
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) 
-#define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) 
-#define PIN_TURNOUT(pin) 
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle) 
+#define PIN_TURNOUT(id,pin) 
 #define THROW(id)  
 #define TURNOUT(id,addr,subaddr) 
 #define UNJOIN 
@@ -233,8 +233,8 @@ const int StringMacroTracker1=__COUNTER__;
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define STOP OPCODE_SPEED,V(0), 
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
-#define SERVO_TURNOUT(pin,activeAngle,inactiveAngle) OPCODE_SERVOTURNOUT,V(pin),OPCODE_PAD,V(actibeAngle),OPCODE
-#define PIN_TURNOUT(pin) OPCODE_PINTURNOUT,V(pin), 
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),
+#define PIN_TURNOUT(id,pin) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,NOP,

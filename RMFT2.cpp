@@ -57,7 +57,7 @@ byte RMFT2::flags[MAX_FLAGS];
   DCCEXParser::setRMFTFilter(RMFT2::ComandFilter);
   for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
   int progCounter;
-  // first pass startup, define any turnouts or servos and count size.
+  // first pass startup, define any turnouts or servos, set signals red and count size.
   for (progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
@@ -81,16 +81,18 @@ byte RMFT2::flags[MAX_FLAGS];
      }
 
      if (opcode==OPCODE_SERVOTURNOUT) {
-      VPIN id=GET_OPERAND(0);
-      int activeAngle=GET_OPERAND(1);
-      int inactiveAngle=GET_OPERAND(2);
-      Turnout::createServo(id,id,activeAngle,inactiveAngle);
+      int16_t id=GET_OPERAND(0);
+      VPIN pin=GET_OPERAND(1);
+      int activeAngle=GET_OPERAND(2);
+      int inactiveAngle=GET_OPERAND(3);
+      Turnout::createServo(id,pin,activeAngle,inactiveAngle);
       continue;
      }
 
      if (opcode==OPCODE_PINTURNOUT) {
-      VPIN id=GET_OPERAND(0);
-      Turnout::createVpin(id,id);
+      int16_t id=GET_OPERAND(0);
+      VPIN pin=GET_OPERAND(1);
+      Turnout::createVpin(id,pin);
       continue;
      }
      // other opcodes are not needed on this pass
@@ -100,7 +102,7 @@ byte RMFT2::flags[MAX_FLAGS];
   new RMFT2(0); // add the startup route
 }
 
-// This filter intercepst <> commands to do the following:
+// This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics 
 // - Reject/modify JMRI commands that would interfere with RMFT processing 
 void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
@@ -114,10 +116,6 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
            opcode=0;
         }
         break;
-
-      case 't': // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>          
-          // TODO - Monitor throttle commands and reject any that are in current automation
-          break;
           
      case '/':  // New EXRAIL command
           reject=!parseSlash(stream,paramCount,p);
