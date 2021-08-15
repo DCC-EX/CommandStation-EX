@@ -35,6 +35,7 @@ const int16_t HASH_KEYWORD_LATCH=1618;
 const int16_t HASH_KEYWORD_UNLATCH=1353;
 const int16_t HASH_KEYWORD_PAUSE=-4142;
 const int16_t HASH_KEYWORD_RESUME=27609;
+const int16_t HASH_KEYWORD_KILL=5218;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
@@ -44,7 +45,7 @@ const int16_t HASH_KEYWORD_RESUME=27609;
 int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prograck
 bool RMFT2::diag=false;      // <D EXRAIL ON>  
 RMFT2 * RMFT2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
-RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE. 
+RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
  // when pausingTask is set, that is the ONLY task that gets any service,
  // and all others will have their locos stopped, then resumed after the pausing task resumes.
 byte RMFT2::flags[MAX_FLAGS];
@@ -138,8 +139,8 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
                  StringFormatter::send(stream, F("<* EXRAIL STATUS"));
                  RMFT2 * task=loopTask;
                  while(task) {
-                   StringFormatter::send(stream,F("\nPC=%d,DT=%l,LOCO=%d%c,SPEED=%d%c"),
-                         task->progCounter,task->delayTime,task->loco,
+                   StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d%c,SPEED=%d%c"),
+                         (int)(task->taskId),task->progCounter,task->loco,
                          task->invert?'I':' ',
                          task->speedo, 
                          task->forward?'F':'R'
@@ -150,7 +151,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
                  // Now stream the flags 
                  for (int id=0;id<MAX_FLAGS; id++) {
                    byte flag=flags[id];
-                   if (flag) {
+                   if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above 
                      StringFormatter::send(stream,F("\nflags[%d} "),id);
                      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
                      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
@@ -200,7 +201,21 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 
           if (paramCount!=2 || p[1]<0  || p[1]>=MAX_FLAGS) return false;
 
-          switch (p[0]) {     
+          switch (p[0]) {  
+               case HASH_KEYWORD_KILL: // Kill taskid
+                    {
+                    RMFT2 * task=loopTask;
+                    while(task) {
+                      if (task->taskId==p[1]) {
+                         delete task;
+                         return  true;
+                      }
+                      task=task->next;      
+                      if (task==loopTask) break;      
+                    }
+                 }
+                 return false;
+                    
             case HASH_KEYWORD_RESERVE:  // force reserve a section
                  setFlag(p[1],SECTION_FLAG);
                  return true;
@@ -234,6 +249,16 @@ void RMFT2::emitWithrottleRouteList(Print* stream) {
 
 RMFT2::RMFT2(int progCtr) {
   progCounter=progCtr;
+
+  // get an unused  task id from the flags table 
+  taskId=255; // in case of overflow
+  for (int f=0;f<MAX_FLAGS;f++) {
+    if (!getFlag(f,TASK_FLAG)) {
+      taskId=f;
+      setFlag(f, TASK_FLAG);
+      break;
+    }
+  }
   delayTime=0;
   loco=0;
   speedo=0;
@@ -254,6 +279,7 @@ RMFT2::RMFT2(int progCtr) {
 
 
 RMFT2::~RMFT2() {
+  setFlag(taskId,0,TASK_FLAG); // we are no longer using this id
   if (next==this) loopTask=NULL;
   else for (RMFT2* ring=next;;ring=ring->next) if (ring->next == this) {
            ring->next=next;
@@ -609,9 +635,10 @@ void RMFT2::setFlag(VPIN id,byte onMask, byte offMask) {
    byte f=flags[id];
    f &= ~offMask;
    f |= onMask;
+   flags[id]=f;
 }
 
-byte RMFT2::getFlag(VPIN id,byte mask) {
+bool RMFT2::getFlag(VPIN id,byte mask) {
    if (FLAGOVERFLOW(id)) return 0; // Outside range limit
    return flags[id]&mask;   
 }

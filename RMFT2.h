@@ -51,6 +51,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
   // Flag bits for status of hardware and TPL
   static const byte SECTION_FLAG = 0x01;
   static const byte LATCH_FLAG = 0x02;
+  static const byte TASK_FLAG = 0x04;
 
   static const byte  MAX_STACK_DEPTH=4;
  
@@ -73,7 +74,7 @@ private:
     static bool parseSlash(Print * stream, byte & paramCount, int p[]) ;
     static void streamFlags(Print* stream);
     static void setFlag(VPIN id,byte onMask, byte OffMask=0);
-    static byte getFlag(VPIN id,byte mask);   
+    static bool getFlag(VPIN id,byte mask);   
     static int locateRouteStart(int16_t _route);
     static int progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
@@ -85,9 +86,6 @@ private:
     bool readSensor(int16_t sensorId);
     bool skipIfBlock();
     bool readLoco();
-    void showManual();
-    void showProg(bool progOn);
-    bool doManual();
     void loop2();
     void kill(const FSH * reason=NULL,int operand=0);          
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
@@ -98,12 +96,14 @@ private:
    static const  FLASH char RouteDescription[];
    static byte flags[MAX_FLAGS];
  
- // Local variables - exist for each instance/task 
+  // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
     int progCounter;    // Byte offset of next route opcode in ROUTES table
     unsigned long delayStart; // Used by opcodes that must be recalled before completing
     unsigned long waitAfter; // Used by OPCODE_AFTER
     unsigned long  delayTime;
+    byte  taskId;
+    
     int loco;
     bool forward;
     bool invert;
