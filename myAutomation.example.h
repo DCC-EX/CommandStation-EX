@@ -26,10 +26,8 @@
 
 EXRAIL   // myAutomation must start with the EXRAIL instruction
   // This is the default starting route, AKA SEQUENCE(0)  
-  SETLOCO(3)   // set current loco id... 
-  START(1)  // send current loco off along route 1
-  SETLOCO(10)  // set current loco id... 
-  START(2)  // send current loco off along route 2
+  SENDLOCO(3,1) // send loco 3 off along route 1
+  SENDLOCO(10,2) // send loco 10 off along route 2
   DONE     // This just ends the startup thread, leaving 2 others running.
 
 /* SEQUENCE(1) is a simple shuttle between 2 sensors      

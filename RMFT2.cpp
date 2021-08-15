@@ -547,12 +547,18 @@ void RMFT2::loop2() {
        
        case OPCODE_START:
            {
-            // Create new task and transfer loco.....
-            // but cheat by swapping prog counters with new task 
-            int newPc=locateRouteStart(operand);
+            int newPc=locateRouteStart(GET_OPERAND(1));
             if (newPc<0) break; 
-            new RMFT2(progCounter+3); // give new task my prog counter
-            progCounter=newPc;  // and I'll carry on from new task position
+            new RMFT2(newPc); 
+           }
+           break;
+           
+      case OPCODE_SENDLOCO:  // cab, route
+           {
+            int newPc=locateRouteStart(GET_OPERAND(1));
+            if (newPc<0) break; 
+            RMFT2* newtask=new RMFT2(newPc); // create new task 
+            newtask->loco=operand; 
            }
            break;
            
