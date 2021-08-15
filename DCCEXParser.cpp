@@ -56,6 +56,7 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
+const int16_t HASH_KEYWORD_SERVO = 27709;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -799,6 +800,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         DCC::setGlobalSpeedsteps(128);
 	StringFormatter::send(stream, F("128 Speedsteps"));
         return true;
+
+    case HASH_KEYWORD_SERVO:
+        IODevice::writeAnalogue(p[1], p[2], 0);
+        break;
 
     default: // invalid/unknown
         break;
