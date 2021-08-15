@@ -286,11 +286,10 @@ int RMFT2::locateRouteStart(int16_t _route) {
 
 
 void RMFT2::driveLoco(byte speed) {
-     if (loco<0) return;  // Caution, allows broadcast! 
+     if (loco<=0) return;  // Prevent broadcast! 
      if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
      DCC::setThrottle(loco,speed, forward^invert);
      speedo=speed;
-     // TODO... if broadcast speed 0 then pause all other tasks. 
 }
 
 bool RMFT2::readSensor(int16_t sensorId) {
@@ -431,9 +430,7 @@ void RMFT2::loop2() {
          break;
 
     case OPCODE_POM:
-        if (loco!=0) {
-          DCC::writeCVByteMain(loco, operand, GET_OPERAND(1));
-        }        
+        if (loco) DCC::writeCVByteMain(loco, operand, GET_OPERAND(1));
         break;
 
     case OPCODE_RESUME:
@@ -487,11 +484,11 @@ void RMFT2::loop2() {
       break;
        
     case OPCODE_FON:      
-      DCC::setFn(loco,operand,true);
+      if (loco) DCC::setFn(loco,operand,true);
       break;
     
     case OPCODE_FOFF:
-      DCC::setFn(loco,operand,false);
+      if (loco) DCC::setFn(loco,operand,false);
       break;
 
     case OPCODE_FOLLOW:
