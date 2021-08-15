@@ -96,7 +96,7 @@
 #define STOP 
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) 
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle) 
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile) 
 #define PIN_TURNOUT(id,pin) 
 #define THROW(id)  
 #define TURNOUT(id,addr,subaddr) 
@@ -227,13 +227,13 @@ const int StringMacroTracker1=__COUNTER__;
 #define RETURN OPCODE_RETURN,NOP,
 #define REV(speed) OPCODE_REV,V(speed),
 #define START(route) OPCODE_START,V(route),
-#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),
+#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SET(sensor_id) OPCODE_SET,V(sensor_id),
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define STOP OPCODE_SPEED,V(0), 
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define PIN_TURNOUT(id,pin) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),

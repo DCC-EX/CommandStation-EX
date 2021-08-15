@@ -85,7 +85,8 @@ byte RMFT2::flags[MAX_FLAGS];
       VPIN pin=GET_OPERAND(1);
       int activeAngle=GET_OPERAND(2);
       int inactiveAngle=GET_OPERAND(3);
-      Turnout::createServo(id,pin,activeAngle,inactiveAngle);
+      int profile=GET_OPERAND(4);
+      Turnout::createServo(id,pin,activeAngle,inactiveAngle,profile);
       continue;
      }
 
