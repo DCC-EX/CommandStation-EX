@@ -88,16 +88,16 @@ protected:
     pinMode(_receivePin, INPUT);
     ArduinoPins::fastWriteDigital(_transmitPin, 0);
     _lastExecutionTime = micros();
-    DIAG(F("HCSR04 configured Vpin:%d TX:%d RX:%d"), _firstVpin, _transmitPin, _receivePin);
+    DIAG(F("HCSR04 configured on VPIN:%d TXpin:%d RXpin:%d threshold:%dcm"), _firstVpin, _transmitPin, _receivePin, _threshold);
   }
 
-  // TODO: Move this to the _loop function to execute periodically, and just return _value here.
+  // _read function - just return _value (calculated in _loop).
   int _read(VPIN vpin) override {
     (void)vpin;  // avoid compiler warning
     return _value;
   }
 
-  // loop function - read HC-SR04 once every 50 milliseconds.
+  // _loop function - read HC-SR04 once every 50 milliseconds.
   void _loop(unsigned long currentMicros) override {
     if (currentMicros - _lastExecutionTime > 50000) {
       _lastExecutionTime = currentMicros;
@@ -112,8 +112,8 @@ private:
   //  software, no interrupts are used and interrupts are not disabled.  The pulse duration
   //  is measured in a loop, using the micros() function.  Therefore, interrupts from other
   //  sources may affect the result.  To mitigate this, the time between successive loops is
-  //  tested and if it is excessive the current measurement is discarded (previous value is returned
-  //  instead).  Also, hysteresis is applied on reset: the output is set to 1 when the 
+  //  tested and if it is excessive the current measurement is aborted (previous value is
+  //  retained).  Also, hysteresis is applied on reset: the output is set to 1 when the 
   //  measured distance is less than the threshold, and is set to 0 if the measured distance is
   //  greater than the threshold plus 3cm.
   //
@@ -144,7 +144,7 @@ private:
     // Check if loop was unreasonably delayed by interrupts.
     // If so, abort the read as the measurement might
     // be reduced by the delay.
-    if (currentTime - lastTime > 25) return;
+    if (currentTime - lastTime >= factor) return;
 
     // Wait for receive pin to reset, and measure length of pulse
     startTime = currentTime = micros();
@@ -159,7 +159,7 @@ private:
         // Check if loop was unreasonably delayed by interrupts.
         // If so, abort calculation as the measurement might
         // have been increased by the delay.
-        if (currentTime - lastTime > 25) return;
+        if (currentTime - lastTime >= factor) return;
         // Pulse length longer than maxTime, reset value.
         _value = 0;
         return;
