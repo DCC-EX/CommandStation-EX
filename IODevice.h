@@ -49,9 +49,32 @@ typedef uint16_t VPIN;
 #define VPIN_MAX 32767  
 #define VPIN_NONE 65535
 
+/* 
+ * Callback support for state change notification from an IODevice subclass to a 
+ * handler, e.g. Sensor object handling.
+ */
 
-typedef void IONotifyStateChangeCallback(VPIN vpin, int value);
-
+class IONotifyCallback {
+public: 
+  typedef void IONotifyCallbackFunction(VPIN vpin, int value);
+  static void add(IONotifyCallbackFunction *function) {
+    IONotifyCallback *blk = new IONotifyCallback(function);
+    if (first) blk->next = first;
+    first = blk;
+  }
+  static void invokeAll(VPIN vpin, int value) {
+    for (IONotifyCallback *blk = first; blk != NULL; blk = blk->next)
+      blk->invoke(vpin, value);
+  }
+  static bool hasCallback() {
+    return first != NULL;
+  }
+private:
+  IONotifyCallback(IONotifyCallbackFunction *function) { invoke = function; };
+  IONotifyCallback *next = 0;
+  IONotifyCallbackFunction *invoke = 0;
+  static IONotifyCallback *first;
+};
 
 /*
  * IODevice class
@@ -82,7 +105,8 @@ public:
 
   // Static functions to find the device and invoke its member functions
 
-  // begin is invoked to create any standard IODevice subclass instances
+  // begin is invoked to create any standard IODevice subclass instances.
+  // Also, the _begin method of any existing instances is called from here.
   static void begin();
 
   // configure is used invoke an IODevice instance's _configure method
@@ -123,23 +147,6 @@ public:
   // once the GPIO port concerned has been read.
   void setGPIOInterruptPin(int16_t pinNumber);
 
-  // Method to add a notification.  it is the caller's responsibility to save the return value
-  // and invoke the event handler associate with it.  Example:
-  //
-  //    NotifyStateChangeCallback *nextEv = registerInputChangeNotification(myProc);
-  //
-  //    void processChange(VPIN pin, int value) {
-  //      // Do something
-  //      // Pass on to next event handler
-  //      if (nextEv) nextEv(pin, value);
-  //     }
-  //
-  // Note that this implementation is rudimentary and assumes a small number of callbacks (typically one).  If 
-  //  more than one callback is registered, then the calls to successive callback functions are
-  //  nested, and stack usage will be impacted.  If callbacks are extensively used, it is recommended that
-  //  a class or struct be implemented to hold the callback address, which can be chained to avoid
-  //  nested callbacks.
-  static IONotifyStateChangeCallback *registerInputChangeNotification(IONotifyStateChangeCallback *callback);
   
 protected:
   
@@ -207,16 +214,14 @@ protected:
   VPIN _firstVpin;
   int _nPins;
 
-  // Pin number of interrupt pin for GPIO extender devices.  The device will pull this
+  // Pin number of interrupt pin for GPIO extender devices.  The extender module will pull this
   //  pin low if an input changes state.
   int16_t _gpioInterruptPin = -1;
 
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice);
 
-  // Notification of change
-  static IONotifyStateChangeCallback *_notifyCallbackChain;
-
+  // Current state of device
   DeviceStateEnum _deviceState = DEVSTATE_DORMANT;
 
 private:
@@ -229,6 +234,7 @@ private:
   static IODevice *_firstDevice;
 
   static IODevice *_nextLoopDevice;
+  static bool _initPhase;
 };
 
 
@@ -240,6 +246,8 @@ private:
 class PCA9685 : public IODevice {
 public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
+  // Constructor
+  PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
   enum ProfileType {
     Instant = 0,  // Moves immediately between positions
     Fast = 1,     // Takes around 500ms end-to-end
@@ -249,8 +257,6 @@ public:
   };
 
 private:
-  // Constructor
-  PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
   // Device-specific initialisation
   void _begin() override;
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
@@ -301,11 +307,12 @@ private:
 class DCCAccessoryDecoder: public IODevice {
 public:
   static void create(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress);
-
-private:
   // Constructor
   DCCAccessoryDecoder(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress);
+
+private:
   // Device-specific write function.
+  void _begin() override;
   void _write(VPIN vpin, int value) override;
   void _display() override;
   int _packedAddress;
@@ -326,6 +333,9 @@ public:
   // Constructor
   ArduinoPins(VPIN firstVpin, int nPins);
 
+  static void fastWriteDigital(uint8_t pin, uint8_t value);
+  static bool fastReadDigital(uint8_t pin);
+
 private:
   // Device-specific pin configuration
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
@@ -335,8 +345,6 @@ private:
   int _read(VPIN vpin) override;
   void _display() override;
 
-  void fastWriteDigital(uint8_t pin, uint8_t value);
-  bool fastReadDigital(uint8_t pin);
 
   uint8_t *_pinPullups;
   uint8_t *_pinModes; // each bit is 1 for output, 0 for input

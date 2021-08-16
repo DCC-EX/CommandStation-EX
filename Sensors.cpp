@@ -91,7 +91,7 @@ void Sensor::checkAll(Print *stream){
 #ifdef USE_NOTIFY
   // Register the event handler ONCE!
   if (!inputChangeCallbackRegistered)
-    nextInputChangeCallback = IODevice::registerInputChangeNotification(inputChangeCallback);
+    IONotifyCallback::add(inputChangeCallback);
   inputChangeCallbackRegistered = true;
 #endif
 
@@ -192,8 +192,6 @@ void Sensor::inputChangeCallback(VPIN vpin, int state) {
   if (tt != NULL) { // Sensor found
     tt->inputState = (state != 0); 
   }
-  // Call next registered callback function
-  if (nextInputChangeCallback) nextInputChangeCallback(vpin, state);
 }
 #endif
 
@@ -345,6 +343,5 @@ unsigned long Sensor::lastReadCycle=0;
 Sensor *Sensor::firstPollSensor = NULL;
 Sensor *Sensor::lastSensor = NULL;
 bool Sensor::pollSignalPhase = false;
-IONotifyStateChangeCallback *Sensor::nextInputChangeCallback = 0;
 bool Sensor::inputChangeCallbackRegistered = false;
 #endif

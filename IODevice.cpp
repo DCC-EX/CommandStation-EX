@@ -56,6 +56,7 @@ void IODevice::begin() {
   for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
     dev->_begin();
   }
+  _initPhase = false;
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the
@@ -200,13 +201,6 @@ void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
   _gpioInterruptPin = pinNumber;
 }
 
-IONotifyStateChangeCallback *IODevice::registerInputChangeNotification(IONotifyStateChangeCallback *callback) {
-  IONotifyStateChangeCallback *previousHead = _notifyCallbackChain;
-  _notifyCallbackChain = callback;
-  return previousHead;
-}
-
-
 // Private helper function to add a device to the chain of devices.
 void IODevice::addDevice(IODevice *newDevice) {
   // Link new object to the start of chain.  Thereby,
@@ -214,8 +208,10 @@ void IODevice::addDevice(IODevice *newDevice) {
   newDevice->_nextDevice = _firstDevice;
   _firstDevice = newDevice;
 
-  // Initialise device
-  newDevice->_begin();
+  // If the IODevice::begin() method has already been called, initialise device here.  If not,
+  // the device's _begin() method will be called by IODevice::begin().
+  if (!_initPhase)
+    newDevice->_begin();
 }
 
 // Private helper function to locate a device by VPIN.  Returns NULL if not found
@@ -231,7 +227,17 @@ IODevice *IODevice::findDevice(VPIN vpin) {
 // Static data
 //------------------------------------------------------------------------------------------------------------------
 
-IONotifyStateChangeCallback *IODevice::_notifyCallbackChain = 0;
+// Chain of callback blocks (identifying registered callback functions for state changes)
+IONotifyCallback *IONotifyCallback::first = 0;
+
+// Start of chain of devices.
+IODevice *IODevice::_firstDevice = 0;
+
+// Reference to next device to be called on _loop() method.
+IODevice *IODevice::_nextLoopDevice = 0;
+
+// Flag which is reset when IODevice::begin has been called.
+bool IODevice::_initPhase = true;  
 
 
 //==================================================================================================================
@@ -276,11 +282,7 @@ bool IODevice::_isDeletable() {
   return false;
 }
 
-// Start of chain of devices.
-IODevice *IODevice::_firstDevice = 0;
 
-// Reference to next device to be called on _loop() method.
-IODevice *IODevice::_nextLoopDevice = 0;
 
 #else // !defined(IO_NO_HAL)
 
@@ -297,6 +299,9 @@ bool IODevice::configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
 void IODevice::write(VPIN vpin, int value) {
   digitalWrite(vpin, value);
   pinMode(vpin, OUTPUT);
+}
+void IODevice::writeAnalogue(VPIN vpin, int value, int profile) {
+  (void)vpin; (void)value; (void)profile; // Avoid compiler warnings
 }
 bool IODevice::hasCallback(VPIN vpin) { 
   (void)vpin;  // Avoid compiler warnings
@@ -317,10 +322,10 @@ void IODevice::remove(VPIN vpin) {
 void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
   (void) pinNumber; // Avoid compiler warning
 }
-IONotifyStateChangeCallback *IODevice::registerInputChangeNotification(IONotifyStateChangeCallback *callback) {
-  (void)callback;  // Avoid compiler warning
-  return NULL;
-}
+
+// Chain of callback blocks (identifying registered callback functions for state changes)
+// Not used in IO_NO_HAL but must be declared.
+IONotifyCallback *IONotifyCallback::first = 0;
 
 #endif // IO_NO_HAL
 
@@ -373,11 +378,7 @@ void ArduinoPins::_write(VPIN vpin, int value) {
   uint8_t mask = 1 << ((pin-_firstVpin) % 8);
   uint8_t index = (pin-_firstVpin) / 8;
   // First update the output state, then set into write mode if not already.
-  #if defined(USE_FAST_IO)
   fastWriteDigital(pin, value);
-  #else
-  digitalWrite(pin, value);
-  #endif
   if (!(_pinModes[index] & mask)) {
     // Currently in read mode, change to write mode
     _pinModes[index] |= mask;
@@ -400,11 +401,7 @@ int ArduinoPins::_read(VPIN vpin) {
     else
       pinMode(pin, INPUT);
   }
-  #if defined(USE_FAST_IO)
   int value = !fastReadDigital(pin); // Invert (5v=0, 0v=1)
-  #else
-  int value = !digitalRead(pin); // Invert (5v=0, 0v=1)
-  #endif
 
   #ifdef DIAG_IO
   //DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
@@ -418,9 +415,9 @@ void ArduinoPins::_display() {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if defined(USE_FAST_IO)
 
 void ArduinoPins::fastWriteDigital(uint8_t pin, uint8_t value) {
+#if defined(USE_FAST_IO)
   if (pin >= NUM_DIGITAL_PINS) return;
   uint8_t mask = digitalPinToBitMask(pin);
   uint8_t port = digitalPinToPort(pin);
@@ -431,16 +428,22 @@ void ArduinoPins::fastWriteDigital(uint8_t pin, uint8_t value) {
   else
     *outPortAdr &= ~mask;
   interrupts();
+#else
+  digitalWrite(pin, value);
+#endif
 }
 
 bool ArduinoPins::fastReadDigital(uint8_t pin) {
+#if defined(USE_FAST_IO)
   if (pin >= NUM_DIGITAL_PINS) return false;
   uint8_t mask = digitalPinToBitMask(pin);
   uint8_t port = digitalPinToPort(pin);
   volatile uint8_t *inPortAdr = portInputRegister(port);
   // read input
   bool result = (*inPortAdr & mask) != 0;  
+#else
+  bool result = digitalRead(pin);
+#endif
   return result;
 }
 
-#endif

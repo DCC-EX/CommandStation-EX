@@ -45,6 +45,10 @@ protected:
   int _read(VPIN vpin) override;
   void _display() override;
   void _loop(unsigned long currentMicros) override;
+  bool _hasCallback(VPIN vpin) {
+    (void)vpin;   // suppress compiler warning
+    return true;  // Enable callback if caller wants to use it.
+  }
 
   // Data fields
   uint8_t _I2CAddress; 
@@ -82,28 +86,28 @@ GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2
   _nPins = nPins;
   _I2CAddress = I2CAddress;
   _gpioInterruptPin = interruptPin;
-  _notifyCallbackChain = 0;
   // Add device to list of devices.
   addDevice(this);
+}
 
+template <class T>
+void GPIOBase<T>::_begin() {
   // Configure pin used for GPIO extender notification of change (if allocated)
   if (_gpioInterruptPin >= 0) 
     pinMode(_gpioInterruptPin, INPUT_PULLUP);
 
   I2CManager.begin();
   I2CManager.setClock(400000);
-  if (I2CManager.exists(I2CAddress)) {
+  if (I2CManager.exists(_I2CAddress)) {
     _display();
     _portMode = 0;  // default to input mode
     _portPullup = -1; // default to pullup enabled
-    _portInputState = 0; 
+    _portInputState = -1; 
   }
+  _setupDevice();
   _deviceState = DEVSTATE_NORMAL;
   _lastLoopEntry = micros();
 }
-
-template <class T>
-void GPIOBase<T>::_begin() {}
 
 // Configuration parameters for inputs: 
 //  params[0]: enable pullup
@@ -134,9 +138,7 @@ bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
 // Periodically read the input port
 template <class T>
 void GPIOBase<T>::_loop(unsigned long currentMicros) {
-  #ifdef DIAG_IO
   T lastPortStates = _portInputState;
-  #endif
   if (_deviceState == DEVSTATE_SCANNING && !requestBlock.isBusy()) {
     uint8_t status = requestBlock.status;
     if (status == I2C_STATUS_OK) {
@@ -146,7 +148,27 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
       DIAG(F("%S I2C:x%x Error:%d"), _deviceName, _I2CAddress, status);
     }
     _processCompletion(status);
+
+    // Scan for changes in input states and invoke callback (if present)
+    T differences = lastPortStates ^ _portInputState;
+    if (differences && IONotifyCallback::hasCallback()) {
+      // Scan for differences bit by bit
+      T mask = 1;
+      for (int pin=0; pin<_nPins; pin++) {
+        if (differences & mask) {
+          // Change detected.
+          IONotifyCallback::invokeAll(_firstVpin+pin, (_portInputState & mask) == 0);
+        }
+        mask <<= 1;
+      }
+    }
+
+    #ifdef DIAG_IO
+    if (differences)
+      DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
+    #endif
   }
+
   // Check if interrupt configured.  If so, and pin is not pulled down, finish.
   if (_gpioInterruptPin >= 0) {
     if (digitalRead(_gpioInterruptPin)) return;
@@ -162,12 +184,6 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
     _readGpioPort(false);  // Initiate non-blocking read
     _deviceState= DEVSTATE_SCANNING;
   }
-
-  #ifdef DIAG_IO
-  T differences = lastPortStates ^ _portInputState;
-  if (differences)
-    DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
-  #endif
 }
 
 template <class T>
