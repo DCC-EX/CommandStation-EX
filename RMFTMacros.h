@@ -228,7 +228,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define RESUME OPCODE_RESUME,NOP,
 #define RETURN OPCODE_RETURN,NOP,
 #define REV(speed) OPCODE_REV,V(speed),
-#define SENDLOCO(cab,route) OPCODE_START,V(cab),OPCODE_PAD,V(route),
+#define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define START(route) OPCODE_START,V(route),
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),

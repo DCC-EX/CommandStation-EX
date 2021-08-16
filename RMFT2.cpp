@@ -570,7 +570,7 @@ void RMFT2::loop2() {
        
        case OPCODE_START:
            {
-            int newPc=locateRouteStart(GET_OPERAND(1));
+            int newPc=locateRouteStart(operand);
             if (newPc<0) break; 
             new RMFT2(newPc); 
            }
