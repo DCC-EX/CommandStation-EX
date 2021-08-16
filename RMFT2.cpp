@@ -279,6 +279,7 @@ RMFT2::RMFT2(int progCtr) {
 
 
 RMFT2::~RMFT2() {
+  driveLoco(1); // ESTOP my loco if any 
   setFlag(taskId,0,TASK_FLAG); // we are no longer using this id
   if (next==this) loopTask=NULL;
   else for (RMFT2* ring=next;;ring=ring->next) if (ring->next == this) {
