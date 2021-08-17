@@ -263,6 +263,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                   if (myLocos[loco].throttle=='\0') { 
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
+                    mostRecentCab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
                     //Get known Fn states from DCC 
                     for(int fKey=0; fKey<=28; fKey++) { 
