@@ -271,9 +271,6 @@ void IODevice::DumpAll() {
   DIAG(F("NO HAL CONFIGURED!"));
 }
 bool IODevice::exists(VPIN vpin) { return (vpin > 2 && vpin < 49); }
-void IODevice::remove(VPIN vpin) {
-  (void)vpin;  // Avoid compiler warnings
-}
 void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
   (void) pinNumber; // Avoid compiler warning
 }
