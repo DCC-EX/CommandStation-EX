@@ -802,7 +802,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case HASH_KEYWORD_SERVO:
-        IODevice::writeAnalogue(p[1], p[2], 0);
+        IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
         break;
 
     default: // invalid/unknown
