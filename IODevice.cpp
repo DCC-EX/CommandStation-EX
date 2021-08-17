@@ -115,37 +115,6 @@ bool IODevice::hasCallback(VPIN vpin) {
   return dev->_hasCallback(vpin);
 }
 
-
-// Remove specified device if one exists.  This is necessary if devices are
-// created on-the-fly by Turnouts, Sensors or Outputs since they may have
-// been saved to EEPROM and recreated on start.
-void IODevice::remove(VPIN vpin) {
-  // Only works if the object is exclusive, i.e. only one VPIN.
-  IODevice *previousDev = 0;
-  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    if (dev->owns(vpin)) {
-      // Found object
-      if (dev->_isDeletable()) {
-        // First check it isn't next one to be processed by loop().
-        //   If so, skip to the following one.
-        if (dev == _nextLoopDevice) 
-          _nextLoopDevice = _nextLoopDevice->_nextDevice;
-        // Now unlink
-        if (!previousDev)
-          _firstDevice = dev->_nextDevice;
-        else
-          previousDev->_nextDevice = dev->_nextDevice;
-        delete dev;
-#ifdef DIAG_IO
-        DIAG(F("IODevice deleted Vpin:%d"), vpin);
-#endif
-        return;
-      }
-    }
-    previousDev = dev;
-  }
-}
-
 // Display (to diagnostics) details of the device.
 void IODevice::_display() {
   DIAG(F("Unknown device Vpins:%d-%d"), (int)_firstVpin, (int)_firstVpin+_nPins-1);
@@ -203,10 +172,18 @@ void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
 
 // Private helper function to add a device to the chain of devices.
 void IODevice::addDevice(IODevice *newDevice) {
-  // Link new object to the start of chain.  Thereby,
-  // a write or read will act on the first device found.
-  newDevice->_nextDevice = _firstDevice;
-  _firstDevice = newDevice;
+  // Link new object to the end of the chain.  Thereby, the first devices to be declared/created
+  // will be located faster by findDevice than those which are created later.
+  // Ideally declare/create the digital IO pins first, then servos, then more esoteric devices.
+  IODevice *lastDevice;
+  if (_firstDevice == 0)
+    _firstDevice = newDevice;
+  else {
+    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice)
+      lastDevice = dev;
+    lastDevice->_nextDevice = newDevice;
+  }
+  newDevice->_nextDevice = 0;
 
   // If the IODevice::begin() method has already been called, initialise device here.  If not,
   // the device's _begin() method will be called by IODevice::begin().
@@ -249,23 +226,6 @@ bool IODevice::owns(VPIN id) {
   return (id >= _firstVpin && id < _firstVpin + _nPins);
 }
 
-// Write to devices which are after the current one in the list; this 
-// function allows a device to have the same input and output VPIN number, and
-// a write to the VPIN from outside the device is passed to the device, but a 
-// call to writeDownstream will pass it to another device with the same
-// VPIN number if one exists.
-// void IODevice::writeDownstream(VPIN vpin, int value) {
-//   for (IODevice *dev = _nextDevice; dev != 0; dev = dev->_nextDevice) {
-//     if (dev->owns(vpin)) {
-//       dev->_write(vpin, value);
-//       return;
-//     }
-//   }
-// #ifdef DIAG_IO
-//   //DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
-// #endif  
-// } 
-
 // Read value from virtual pin.
 int IODevice::read(VPIN vpin) {
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
@@ -277,11 +237,6 @@ int IODevice::read(VPIN vpin) {
 #endif
   return false;
 }
-
-bool IODevice::_isDeletable() {
-  return false;
-}
-
 
 
 #else // !defined(IO_NO_HAL)

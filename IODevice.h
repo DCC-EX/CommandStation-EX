@@ -136,9 +136,6 @@ public:
   // exists checks whether there is a device owning the specified vpin
   static bool exists(VPIN vpin);
 
-  // remove deletes the device associated with the vpin, if it is deletable
-  static void remove(VPIN vpin);
-
   // Enable shared interrupt on specified pin for GPIO extender modules.  The extender module
   // should pull down this pin when requesting a scan.  The pin may be shared by multiple modules.
   // Without the shared interrupt, input states are scanned periodically to detect changes on 
@@ -207,9 +204,6 @@ protected:
   // Destructor
   virtual ~IODevice() {};
   
-  // isDeletable returns true if object is deletable (i.e. is not a base device driver).
-  virtual bool _isDeletable();
-
   // Common object fields.
   VPIN _firstVpin;
   int _nPins;
