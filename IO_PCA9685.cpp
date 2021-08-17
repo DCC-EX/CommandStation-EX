@@ -166,7 +166,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
                 profile==Bounce ? sizeof(_bounceProfile)-1 : 
                 1;
   s->stepNumber = 0;
-  s->toPosition = min(value, 4095);
+  s->toPosition = value;
   s->fromPosition = s->currentPosition;
 }
 
