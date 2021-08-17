@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#define EESTOREDEBUG 
+//#define EESTOREDEBUG 
 #include "defines.h"
 #include "Turnouts.h"
 #include "EEStore.h"
@@ -72,13 +72,11 @@ void Turnout::print(Print *stream){
       // VPIN Digital output
       StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), data.id, data.vpinData.vpin, state);
       break;
-#ifndef IO_NO_HAL
     case TURNOUT_SERVO:
       // Servo Turnout
       StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), data.id, data.servoData.vpin, 
         data.servoData.activePosition, data.servoData.inactivePosition, data.servoData.profile, state);
       break;
-#endif
     default:
       break;
   }
@@ -89,9 +87,6 @@ void Turnout::print(Print *stream){
 //   Returns false if turnout not found.
 
 bool Turnout::activate(int n, bool state){
-#ifdef EESTOREDEBUG
-  DIAG(F("Turnout::activate(%d,%d)"),n,state);
-#endif
   Turnout * tt=get(n);
   if (!tt) return false;
   tt->activate(state);
@@ -136,11 +131,11 @@ void Turnout::activate(bool state) {
         DCC::setAccessory((((data.dccAccessoryData.address-1) >> 2) + 1), 
           ((data.dccAccessoryData.address-1) & 3), state);
         break;
-#ifndef IO_NO_HAL
       case TURNOUT_SERVO:
+#ifndef IO_NO_HAL
         IODevice::write(data.servoData.vpin, state);
-        break;
 #endif
+        break;
       case TURNOUT_VPIN:
         IODevice::write(data.vpinData.vpin, state);
         break;
@@ -205,12 +200,10 @@ void Turnout::load(){
       case TURNOUT_LCN:
         // LCN turnouts are created when the remote device sends a message.
         break;
-#ifndef IO_NO_HAL
       case TURNOUT_SERVO:
         tt=createServo(data.id, data.servoData.vpin, 
           data.servoData.activePosition, data.servoData.inactivePosition, data.servoData.profile, lastKnownState);
         break;
-#endif
       case TURNOUT_VPIN:
         tt=createVpin(data.id, data.vpinData.vpin, lastKnownState);  // VPIN-based turnout
         break;
@@ -294,11 +287,11 @@ Turnout *Turnout::createVpin(int id, VPIN vpin, uint8_t state){
   return(tt);
 }
 
-#ifndef IO_NO_HAL
 ///////////////////////////////////////////////////////////////////////////////
 // Method for creating a Servo Turnout, e.g. connected to PCA9685 PWM device.
 
 Turnout *Turnout::createServo(int id, VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint8_t state){
+#ifndef IO_NO_HAL
   if (activePosition > 511 || inactivePosition > 511 || profile > 4) return NULL;
 
   Turnout *tt=create(id);
@@ -317,8 +310,11 @@ Turnout *Turnout::createServo(int id, VPIN vpin, uint16_t activePosition, uint16
     return NULL;
   }
   return(tt);
-}
+#else
+  (void)id; (void)vpin; (void)activePosition; (void)inactivePosition; (void)profile; (void)state;  // avoid compiler warnings
+  return NULL;
 #endif
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Support for <T id SERVO pin activepos inactive pos profile>
@@ -326,14 +322,12 @@ Turnout *Turnout::createServo(int id, VPIN vpin, uint16_t activePosition, uint16
 // and <T id VPIN pin>
 
 Turnout *Turnout::create(int id, int params, int16_t p[]) {
-#ifndef IO_NO_HAL
   if (p[0] == HASH_KEYWORD_SERVO) { // <T id SERVO n n n n>
     if (params == 5)
       return createServo(id, (VPIN)p[1], (uint16_t)p[2], (uint16_t)p[3], (uint8_t)p[4]);
     else  
       return NULL;
   } else 
-#endif
   if (p[0] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
     if (params==2)
       return createVpin(id, p[1]);
@@ -350,11 +344,9 @@ Turnout *Turnout::create(int id, int params, int16_t p[]) {
   } else if (params==2) { // <T id n n> for DCC or LCN
     return createDCC(id, p[0], p[1]);
   } 
-#ifndef IO_NO_HAL
   else if (params==3) { // legacy <T id n n n> for Servo
     return createServo(id, (VPIN)p[0], (uint16_t)p[1], (uint16_t)p[2]);
   }
-#endif
 
   return NULL;
 }

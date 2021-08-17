@@ -25,21 +25,25 @@
 IO_ExampleSerial::IO_ExampleSerial(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud) {
   _firstVpin = firstVpin;
   _nPins = nPins;
+  _pinValues = (uint16_t *)calloc(_nPins, sizeof(uint16_t));
+  _baud = baud;
   
   // Save reference to serial port driver
   _serial = serial;
-  _serial->begin(baud);
-  DIAG(F("ExampleSerial configured Vpins:%d-%d"), _firstVpin, _firstVpin+_nPins-1);
+
+  addDevice(this);
 }
 
 // Static create method for one module.
 void IO_ExampleSerial::create(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud) {
-  IO_ExampleSerial *dev = new IO_ExampleSerial(firstVpin, nPins, serial, baud);
-  addDevice(dev);
+  new IO_ExampleSerial(firstVpin, nPins, serial, baud);
 }
 
 // Device-specific initialisation
 void IO_ExampleSerial::_begin() {
+  _serial->begin(_baud);
+  DIAG(F("ExampleSerial configured Vpins:%d-%d"), _firstVpin, _firstVpin+_nPins-1);
+
   // Send a few # characters to the output
   for (uint8_t i=0; i<3; i++)
     _serial->write('#');
@@ -65,9 +69,8 @@ void IO_ExampleSerial::_write(VPIN vpin, int value) {
 // Device-specific read function.
 int IO_ExampleSerial::_read(VPIN vpin) {
 
-  // Return a value for the specified vpin.  For illustration, return 
-  // a value indicating whether the pin number is odd.
-  int result = (vpin & 1);
+  // Return a value for the specified vpin.
+  int result = _pinValues[vpin-_firstVpin];
 
   return result;
 }
@@ -80,35 +83,38 @@ void IO_ExampleSerial::_loop(unsigned long currentMicros) {
   if (_serial->available()) {
     // Input data available to read.  Read a character.
     char c = _serial->read();
-    switch (inputState) {
+    switch (_inputState) {
       case 0: // Waiting for start of command
         if (c == '#')  // Start of command received.
-          inputState = 1;
+          _inputState = 1;
         break;
       case 1: // Expecting command character
         if (c == 'N') { // 'Notify' character received
-          inputState = 2;
-          inputValue = inputIndex = 0;
+          _inputState = 2;
+          _inputValue = _inputIndex = 0;
         } else
-          inputState = 0; // Unexpected char, reset
+          _inputState = 0; // Unexpected char, reset
         break;
       case 2: // reading first parameter (index)
         if (isdigit(c))
-          inputIndex = inputIndex * 10 + (c-'0');
+          _inputIndex = _inputIndex * 10 + (c-'0');
         else if (c==',') 
-          inputState = 3;
+          _inputState = 3;
         else
-          inputState = 0; // Unexpected char, reset
+          _inputState = 0; // Unexpected char, reset
         break;
       case 3: // reading reading second parameter (value)
         if (isdigit(c)) 
-          inputValue = inputValue * 10 - (c-'0');
+          _inputValue = _inputValue * 10 - (c-'0');
         else if (c=='#') { // End of command
           // Complete command received, do something with it.
-          DIAG(F("ExampleSerial Received command, p1=%d, p2=%d"), inputIndex, inputValue);
-          inputState = 0; // Done, start again.
+          DIAG(F("ExampleSerial Received command, p1=%d, p2=%d"), _inputIndex, _inputValue);
+          if (_inputIndex < _nPins) { // Store value
+            _pinValues[_inputIndex] = _inputValue;
+          }
+          _inputState = 0; // Done, start again.
         } else
-          inputState = 0; // Unexpected char, reset
+          _inputState = 0; // Unexpected char, reset
         break;
     }
   }

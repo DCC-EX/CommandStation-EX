@@ -82,6 +82,10 @@ PCA9685::PCA9685(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
 
   // Initialise structure used for setting pulse rate
   requestBlock.setWriteParams(_I2CAddress, outputBuffer, sizeof(outputBuffer));
+}
+
+// Device-specific initialisation
+void PCA9685::_begin() {
   I2CManager.begin();
   I2CManager.setClock(1000000); // Nominally able to run up to 1MHz on I2C
           // In reality, other devices including the Arduino will limit 
@@ -98,10 +102,6 @@ PCA9685::PCA9685(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
     // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
     // plenty of other stuff to do before we will send a command.
   }
-}
-
-// Device-specific initialisation
-void PCA9685::_begin() {
 }
 
 // Device-specific write function, invoked from IODevice::write().
@@ -166,7 +166,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
                 profile==Bounce ? sizeof(_bounceProfile)-1 : 
                 1;
   s->stepNumber = 0;
-  s->toPosition = min(value, 4095);
+  s->toPosition = value;
   s->fromPosition = s->currentPosition;
 }
 

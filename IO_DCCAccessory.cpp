@@ -39,7 +39,12 @@ DCCAccessoryDecoder::DCCAccessoryDecoder(VPIN vpin, int nPins, int DCCAddress, i
    _firstVpin = vpin;
   _nPins = nPins;
   _packedAddress = (DCCAddress << 2) + DCCSubaddress;
+}
+
+void DCCAccessoryDecoder::_begin() {
   int endAddress = _packedAddress + _nPins - 1;
+  int DCCAddress = _packedAddress >> 2;
+  int DCCSubaddress = _packedAddress & 3;
   DIAG(F("DCC Accessory Decoder configured Vpins:%d-%d Linear Address:%d-%d (%d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
       _packedAddress, _packedAddress+_nPins-1,
      DCCAddress, DCCSubaddress, endAddress >> 2, endAddress % 4);

@@ -92,7 +92,6 @@ public:
 #ifdef USE_NOTIFY
   static bool pollSignalPhase;
   static void inputChangeCallback(VPIN vpin, int state);
-  static IONotifyStateChangeCallback *nextInputChangeCallback;
   static bool inputChangeCallbackRegistered;
 #endif
   
