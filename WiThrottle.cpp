@@ -160,7 +160,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #endif    
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
-                bool newstate=false;
+                byte newstate=2; // newstate can be 0,1 or 2. 2 is "invalid".
                 Turnout * tt=Turnout::get(id);
                 if (!tt) {
                   // If turnout does not exist, create it
@@ -170,12 +170,16 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
                   StringFormatter::send(stream, F("HmTurnout %d created\n"),id);
                 }
                 switch (cmd[3]) {
-                    case 'T': newstate=true; break;
-                    case 'C': newstate=false; break;
-                    case '2': newstate=!Turnout::isActive(id);                 
+		  // T and C according to RCN-213 where 0 is Stop, Red, Thrown, Diverging.
+		  case 'T': newstate=0; break;
+		  case 'C': newstate=1; break;
+		  case '2': newstate=!Turnout::isActive(id); break;
+		  default : /* newstate still invalid */ break;
                 }
-		            Turnout::activate(id,newstate);
-                StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
+		if (newstate != 2) {
+		  Turnout::activate(id,newstate);
+		  StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );
+		}
             }
             break;
        case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
