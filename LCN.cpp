@@ -50,7 +50,7 @@ void LCN::loop() {
       if (Diag::LCN) DIAG(F("LCN IN %d%c"),id,(char)ch);
       Turnout * tt = Turnout::get(id);
       if (!tt) tt=Turnout::createLCN(id);
-      tt->setActive(ch=='t');
+      Turnout::setClosedStateOnly(id,ch=='t');
       Turnout::turnoutlistHash++; // signals ED update of turnout data
       id = 0;
     }

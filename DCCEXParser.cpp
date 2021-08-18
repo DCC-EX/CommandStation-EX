@@ -672,14 +672,10 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("<O>\n"));
         return true;
 
-    case 2: // <T id 0|1>  activate turnout
-    {
-        Turnout *tt = Turnout::get(p[0]);
-        if (!tt)
-            return false;
-        tt->activate(p[1]);
-        StringFormatter::send(stream, F("<H %d %d>\n"), p[0], tt->data.active);
-    }
+    case 2: // <T id 0|1>  turnout 0=CLOSE,1=THROW
+        if (p[1]>1 || p[1]<0 ) return false;
+        if (!Turnout::setClosed(p[0],p[1]==0)) return false;
+        StringFormatter::send(stream, F("<H %d %d>\n"), p[0], p[1]);
         return true;
 
     default: // Anything else is handled by Turnout class.

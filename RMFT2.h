@@ -68,7 +68,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
     static void readLocoCallback(int cv);
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
-    static void turnoutEvent(VPIN id, bool thrown);  
+    static void turnoutEvent(VPIN id, bool closed);  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int p[]) ;

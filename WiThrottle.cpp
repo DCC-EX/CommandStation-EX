@@ -121,7 +121,8 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
       for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-          StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), tt->data.id, tt->data.id, Turnout::isActive(tt->data.id)?'4':'2');
+          int id=tt->getId();
+          StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), id, id, Turnout::isClosed(id)?'2':'4');
       }
       StringFormatter::send(stream,F("\n"));
       turnoutListHash = Turnout::turnoutlistHash; // keep a copy of hash for later comparison
@@ -160,7 +161,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #endif    
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
-                byte newstate=2; // newstate can be 0,1 or 2. 2 is "invalid".
                 Turnout * tt=Turnout::get(id);
                 if (!tt) {
                   // If turnout does not exist, create it
@@ -170,17 +170,22 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
                   StringFormatter::send(stream, F("HmTurnout %d created\n"),id);
                 }
                 switch (cmd[3]) {
-		  // T and C according to RCN-213 where 0 is Stop, Red, Thrown, Diverging.
-		  case 'T': newstate=0; break;
-		  case 'C': newstate=1; break;
-		  case '2': newstate=!Turnout::isActive(id); break;
-		  default : /* newstate still invalid */ break;
+            		  // T and C according to RCN-213 where 0 is Stop, Red, Thrown, Diverging.
+            		  case 'T': 
+            		     Turnout::setClosed(id,false);
+                     break;
+            		  case 'C': 
+                     Turnout::setClosed(id,true);
+                     break;
+            		  case '2': 
+            		     Turnout::setClosed(id,!Turnout::isClosed(id));
+                     break;
+            		  default :
+            		     Turnout::setClosed(id,true);
+                     break;
                 }
-		if (newstate != 2) {
-		  Turnout::activate(id,newstate);
-		  StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );
-		}
-            }
+		            StringFormatter::send(stream, F("PTA%c%d\n"),Turnout::isClosed(id)?'2':'4',id );
+		        }
             break;
        case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
             if (initSent) { 
@@ -194,7 +199,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
             if (cmd[1] == 'U') {
               StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
               StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-              StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
+              StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
               StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);

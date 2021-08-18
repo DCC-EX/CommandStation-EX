@@ -33,6 +33,7 @@
 #include "LCN.h"
 #include "IODevice.h"
 
+
 const byte STATUS_ACTIVE=0x80; // Flag as activated in tStatus field
 const byte STATUS_TYPE = 0x7f;  // Mask for turnout type in tStatus field
 
@@ -91,13 +92,13 @@ class Turnout {
 public:
   static Turnout *firstTurnout;
   static int turnoutlistHash;
-  TurnoutData data;
   Turnout *nextTurnout;
-  static bool activate(int n, bool state);
   static Turnout* get(int);
   static bool remove(int);
-  static bool isActive(int);
-  static void setActive(int n, bool state);
+  static bool isClosed(int);
+  static bool setClosed(int n, bool closed);  // return false if not found. 
+  static void setClosedStateOnly(int n, bool closed);
+  int getId();
   static void load();
   static void store();
   static Turnout *createServo(int id , VPIN vpin , uint16_t activeAngle, uint16_t inactiveAngle, uint8_t profile=1, uint8_t initialState=0);
@@ -106,9 +107,6 @@ public:
   static Turnout *createLCN(int id, uint8_t initialState=0);
   static Turnout *create(int id, int params, int16_t p[]);
   static Turnout *create(int id);
-  void activate(bool state);
-  void setActive(bool state);
-  bool isActive();
   static void printAll(Print *);
   void print(Print *stream);
 #ifdef EESTOREDEBUG
@@ -116,6 +114,12 @@ public:
 #endif
 private:
   int num;  // EEPROM address of tStatus in TurnoutData struct, or zero if not stored.
-}; // Turnout
+  TurnoutData data;
+   static bool activate(int n, bool  thrown);
+   static bool isActive(int);
+   bool isActive();
+   void activate(bool state);
+   void setActive(bool state);
+  }; // Turnout
   
 #endif

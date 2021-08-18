@@ -18,6 +18,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+// >>>>>> ATTENTION: This class requires major cleaning.
+// The public interface has been narrowed to avoid the ambuguity of "activated".
+
+
+ 
 //#define EESTOREDEBUG 
 #include "defines.h"
 #include "Turnouts.h"
@@ -39,6 +45,10 @@ enum unit8_t {
   TURNOUT_VPIN = 3,
   TURNOUT_LCN = 4,
 };
+
+
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to print all Turnout states to stream in form "<H id state>"
@@ -82,10 +92,25 @@ void Turnout::print(Print *stream){
   }
 }
 
+
+// Public interface to turnout throw/close
+bool Turnout::setClosed(int id, bool closed) {
+   // hides the internal activate argument to a single place
+   return activate(id, closed? false: true );  /// Needs cleaning up 
+}
+bool Turnout::isClosed(int id) {
+   // hides the internal activate argument to a single place
+   return !isActive(id);  /// Needs cleaning up 
+}
+int Turnout::getId() {
+  return data.id;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to activate/deactivate Turnout with ID 'n'.
 //   Returns false if turnout not found.
 
+ 
 bool Turnout::activate(int n, bool state){
   Turnout * tt=get(n);
   if (!tt) return false;
@@ -145,7 +170,7 @@ void Turnout::activate(bool state) {
       EEPROM.put(num, data.tStatus);
 
 #if defined(RMFT_ACTIVE)
-  RMFT2::turnoutEvent(data.id, state);
+  RMFT2::turnoutEvent(data.id, !state);
 #endif  
 
 }

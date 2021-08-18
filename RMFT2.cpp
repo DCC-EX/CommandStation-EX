@@ -382,11 +382,11 @@ void RMFT2::loop2() {
   switch ((OPCODE)opcode) {
     
     case OPCODE_THROW:
-         Turnout::activate(operand, false);
+         Turnout::setClosed(operand, false);
          break;
           
     case OPCODE_CLOSE:
-         Turnout::activate(operand, true);
+         Turnout::setClosed(operand, true);
          break; 
     
     case OPCODE_REV:
@@ -666,8 +666,8 @@ void RMFT2::kill(const FSH * reason, int operand) {
      return;
    }
   } 
- void RMFT2::turnoutEvent(VPIN id, bool state) {
-    byte huntFor=state ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
+ void RMFT2::turnoutEvent(VPIN id, bool closed) {
+    byte huntFor=closed ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
     // caution hides class progCounter;
     for (int progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
