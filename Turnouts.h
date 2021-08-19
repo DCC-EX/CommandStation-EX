@@ -204,7 +204,7 @@ public:
   static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true) {
 #ifndef IO_NO_HAL
     Turnout *tt = get(id);
-    if (!tt) { 
+    if (tt) { 
       // Object already exists, check if it is usable
       if (tt->isType(TURNOUT_SERVO)) {
         // Yes, so set parameters
@@ -237,6 +237,7 @@ public:
 #endif
   }
 
+  // ServoTurnout-specific code for throwing or closing a servo turnout.
   bool activate(bool close) override {
 #ifndef IO_NO_HAL
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
@@ -301,7 +302,7 @@ public:
   // Create function
   static Turnout *create(uint16_t id, uint16_t add, uint8_t subAdd) {
     Turnout *tt = get(id);
-    if (!tt) { 
+    if (tt) { 
       // Object already exists, check if it is usable
       if (tt->isType(TURNOUT_DCC)) {
         // Yes, so set parameters<T>
@@ -378,7 +379,7 @@ public:
   // Create function
   static Turnout *create(uint16_t id, VPIN vpin, bool closed=true) {
     Turnout *tt = get(id);
-    if (!tt) { 
+    if (tt) { 
       // Object already exists, check if it is usable
       if (tt->isType(TURNOUT_VPIN)) {
         // Yes, so set parameters
@@ -450,7 +451,7 @@ public:
   // Create function
   static Turnout *create(uint16_t id, bool closed=true) {
     Turnout *tt = get(id);
-    if (!tt) { 
+    if (tt) { 
       // Object already exists, check if it is usable
       if (tt->isType(TURNOUT_LCN)) {
         // Yes, so return this object

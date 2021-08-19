@@ -105,7 +105,7 @@ const int16_t HASH_KEYWORD_VPIN=-415;
 
   // Static activate function is invoked from close(), throw() etc. to perform the 
   //  common parts of the turnout operation.  Code which is specific to a turnout
-  //  type should be placed in the polymorphic virtual function activate(bool) which is
+  //  type should be placed in the virtual function activate(bool) which is
   //  called from here.
   bool Turnout::activate(uint16_t id, bool closeFlag) { 
   #ifdef EESTOREDEBUG
@@ -124,8 +124,7 @@ const int16_t HASH_KEYWORD_VPIN=-415;
       EEPROM.put(tt->_eepromAddress, tt->_turnoutData.closed);  
 
   #if defined(RMFT_ACTIVE)
-    // TODO: Check that the inversion is correct here!
-    RMFT2::turnoutEvent(id, !closeFlag);
+    RMFT2::turnoutEvent(id, closeFlag);
   #endif  
 
     return ok;
@@ -149,10 +148,10 @@ const int16_t HASH_KEYWORD_VPIN=-415;
 
   // Load one turnout from EEPROM
   Turnout *Turnout::loadTurnout () {
-    Turnout *tt;
+    Turnout *tt = 0;
     // Read turnout type from EEPROM
     struct TurnoutData turnoutData;
-    int eepromAddress = EEStore::pointer(); // Address of byte containing the _closed flag.
+    int eepromAddress = EEStore::pointer(); // Address of byte containing the closed flag.
     EEPROM.get(EEStore::pointer(), turnoutData);
     EEStore::advance(sizeof(turnoutData));
 
@@ -169,11 +168,14 @@ const int16_t HASH_KEYWORD_VPIN=-415;
         // VPIN turnout
         tt = VpinTurnout::load(&turnoutData);
         break;
+      default:
+        // If we find anything else, then we don't know what it is or how long it is, 
+        // so we can't go any further through the EEPROM!
+        return NULL;
     }
     if (!tt) {
       // Save EEPROM address in object.  Note that LCN turnouts always have eepromAddress of zero.
       tt->_eepromAddress = eepromAddress;
-      add(tt);
     }
 
 #ifdef EESTOREDEBUG

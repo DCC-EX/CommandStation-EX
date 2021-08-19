@@ -710,7 +710,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
       } else 
       if (p[1] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
         if (params==3) {
-          if (VpinTurnout::create(p[0], p[2])) return false;
+          if (!VpinTurnout::create(p[0], p[2])) return false;
         } else
           return false;
       } else
