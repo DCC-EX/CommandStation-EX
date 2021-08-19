@@ -56,7 +56,8 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
-const int16_t HASH_KEYWORD_SERVO = 27709;
+const int16_t HASH_KEYWORD_SERVO=27709;
+const int16_t HASH_KEYWORD_VPIN=-415;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -658,7 +659,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
     case 0: // <T>  list turnout definitions
     {
         bool gotOne = false;
-        for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
+        for (Turnout *tt = Turnout::first(); tt != NULL; tt = tt->next())
         {
             gotOne = true;
             tt->print(stream);
@@ -672,17 +673,62 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("<O>\n"));
         return true;
 
-    case 2: // <T id 0|1>  turnout 0=CLOSE,1=THROW
-        if (p[1]>1 || p[1]<0 ) return false;
-        if (!Turnout::setClosed(p[0],p[1]==0)) return false;
+    case 2: // <T id 0|1|T|C> 
+        switch (p[1]) {
+#ifdef TURNOUT_LEGACY_BEHAVIOUR
+          // turnout 1 or T=THROW, 0 or C=CLOSE
+          case 1: case 0x54:  // 1 or T
+            if (!Turnout::setClosed(p[0], false)) return false;
+            break;
+          case 0: case 0x43:  // 0 or C
+            if (!Turnout::setClosed(p[0], true)) return false;
+            break;
+#else
+          // turnout 0 or T=THROW,1 or C=CLOSE
+          case 0: case 0x54:  // 0 or T
+            if (!Turnout::setClosed(p[0], false)) return false;
+            break;
+          case 1: case 0x43:  // 1 or C
+            if (!Turnout::setClosed(p[0], true)) return false;
+            break;
+#endif
+          default:
+            return false;
+        }
+        // Send acknowledgement to caller, and to Serial.
         StringFormatter::send(stream, F("<H %d %d>\n"), p[0], p[1]);
+        if (stream != &Serial) StringFormatter::send(Serial, F("<H %d %d>\n"), p[0], p[1]);
         return true;
 
-    default: // Anything else is handled by Turnout class.
-        if (!Turnout::create(p[0], params-1, &p[1]))
+    default: // Anything else is some kind of create function.
+      if (p[1] == HASH_KEYWORD_SERVO) { // <T id SERVO n n n n>
+        if (params == 6) {
+          if (!ServoTurnout::create(p[0], (VPIN)p[2], (uint16_t)p[3], (uint16_t)p[4], (uint8_t)p[5]))
             return false;
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
+        } else  
+          return false;
+      } else 
+      if (p[1] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
+        if (params==3) {
+          if (VpinTurnout::create(p[0], p[2])) return false;
+        } else
+          return false;
+      } else
+      if (p[1]==HASH_KEYWORD_DCC) {
+        if (params==4 && p[2]>0 && p[2]<=512 && p[3]>=0 && p[3]<4) { // <T id DCC n n>
+          if (!DCCTurnout::create(p[0], p[2], p[3])) return false;
+        } else if (params==3 && p[2]>0 && p[2]<=512*4) { // <T id DCC nn>
+          if (!DCCTurnout::create(p[0], (p[2]-1)/4+1, (p[2]-1)%4)) return false;
+        } else
+          return false;
+      } else if (params==3) { // <T id n n> for DCC or LCN
+        if (!DCCTurnout::create(p[0], p[1], p[2])) return false;
+      } 
+      else if (params==3) { // legacy <T id n n n> for Servo
+        if (!ServoTurnout::create(p[0], (VPIN)p[1], (uint16_t)p[2], (uint16_t)p[3], 1)) return false;
+      }
+      StringFormatter::send(stream, F("<O>\n"));
+      return true;
     }
 }
 
@@ -797,7 +843,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	StringFormatter::send(stream, F("128 Speedsteps"));
         return true;
 
-    case HASH_KEYWORD_SERVO:
+    case HASH_KEYWORD_SERVO:  // <D SERVO vpin position [profile]>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
         break;
 
