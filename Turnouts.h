@@ -466,7 +466,8 @@ public:
   }
 
   bool activate(bool close) override {
-    LCN::send('T', _turnoutData.id, close);
+    // Assume that the LCN command still uses 1 for throw and 0 for close...
+    LCN::send('T', _turnoutData.id, !close);
     // The _turnoutData.closed flag should be updated by a message from the LCN master, later.
     return true;
   }

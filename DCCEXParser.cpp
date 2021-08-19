@@ -679,25 +679,29 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
           // turnout 1 or T=THROW, 0 or C=CLOSE
           case 1: case 0x54:  // 1 or T
             if (!Turnout::setClosed(p[0], false)) return false;
+            p[1] = 1;
             break;
           case 0: case 0x43:  // 0 or C
             if (!Turnout::setClosed(p[0], true)) return false;
+            p[1] = 0;
             break;
 #else
           // turnout 0 or T=THROW,1 or C=CLOSE
           case 0: case 0x54:  // 0 or T
             if (!Turnout::setClosed(p[0], false)) return false;
+            p[1] = 0;
             break;
           case 1: case 0x43:  // 1 or C
             if (!Turnout::setClosed(p[0], true)) return false;
+            p[1] = 1;
             break;
 #endif
           default:
             return false;
         }
-        // Send acknowledgement to caller, and to Serial.
-        StringFormatter::send(stream, F("<H %d %d>\n"), p[0], p[1]);
-        if (stream != &Serial) StringFormatter::send(Serial, F("<H %d %d>\n"), p[0], p[1]);
+        // Send acknowledgement to caller if the command was not received over Serial (acknowledgement
+        // messages on Serial are sent by the Turnout class).
+        if (stream != &Serial) StringFormatter::send(stream, F("<H %d %d>\n"), p[0], p[1]);
         return true;
 
     default: // Anything else is some kind of create function.

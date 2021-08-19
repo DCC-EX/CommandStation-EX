@@ -125,7 +125,12 @@ const int16_t HASH_KEYWORD_VPIN=-415;
 
   #if defined(RMFT_ACTIVE)
     RMFT2::turnoutEvent(id, closeFlag);
-  #endif  
+  #endif
+
+    // Send message to JMRI etc. over Serial USB.  This is done here
+    // to ensure that the message is sent when the turnout operation
+    // is not initiated by a Serial command.
+    StringFormatter::send(Serial, F("<H %d %d>\n"), id, closeFlag);
 
     return ok;
   }
