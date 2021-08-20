@@ -243,7 +243,9 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 // handing over the loco to the automation.
 // Routes are given "Set" buttons and do not cause the loco to be handed over. 
 void RMFT2::emitWithrottleRouteList(Print* stream) {
-   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL%S\n"),RouteDescription);
+   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
+   emitWithrottleDescriptions(stream);
+   StringFormatter::send(stream,F("\n"));
 }
 
 
@@ -682,4 +684,10 @@ void RMFT2::kill(const FSH * reason, int operand) {
  void RMFT2::printMessage2(const FSH * msg) {
         DIAG(F("EXRAIL(%d) %S"),loco,msg);
    }
+
+// This is called by emitRouteDescriptions to emit a withrottle description for a route or autoomation. 
+void RMFT2::emitRouteDescription(Print * stream, char type, int id, const FSH * description) {
+ StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
+              type,id,description, type=='R'?'2':'4');
+}
  

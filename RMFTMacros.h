@@ -19,6 +19,14 @@
 #ifndef RMFTMacros_H
 #define RMFTMacros_H
 
+// remove normal code LCD macro (will be restored later)
+#undef LCD
+
+
+// This file will include and build the EXRAIL script and associated helper tricks.
+// It does this by incliding myAutomation.h several times, each with a set of macros to 
+// extract the relevant parts.
+
 // The entire automation script is contained within a byte array RMFT2::RouteCode[]
 // made up of opcode and parameter pairs.
 // ech opcode is a 1 byte operation plus 2 byte operand. 
@@ -29,26 +37,25 @@
 // - multiple parameters aligned correctly
 // - a single macro requires multiple operations
 
-// Descriptive texts for routes and animations are created in a sepaerate array RMFT2::RouteDescription[]
-// but since the C preprocessor is such a wimp, we have to pass over the myAutomation.h 2 times with
-// different macros. 
+// Descriptive texts for routes and animations are created in a sepaerate function which
+// can be called to emit a list of routes/automatuions in a form suitable for Withrottle. 
  
-// PRINT(msg) is implemented in a separate pass to create a getMessageText(id) function  
-#define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
-#define NOP 0,0
-// remove normal code LCD macro (will be restored later)
-#undef LCD
+// PRINT(msg) and LCD(row,msg) is implemented in a separate pass to create 
+// a getMessageText(id) function.  
 
-// CAUTION: The macros below are triple passed over myAutomation.h
+// CAUTION: The macros below are multiple passed over myAutomation.h
 
-// Pass 1 Macros convert descriptions to a flash string constant in withrottle format.
+// Pass 1 Implements aliases and 
+// converts descriptions to  withrottle format emitter function
 // Most macros are simply ignored in this pass.
-#define ROUTE(id, description)    "]\\[R" #id "}|{" description "}|{2"
-#define AUTOMATION(id, description)  "]\\[A" #id "}|{" description "}|{4"
-#define EXRAIL  const FLASH char  RMFT2::RouteDescription[]=
-#define ENDEXRAIL  "";
+
+
+#define ALIAS(name,value) const int name=value; 
+#define EXRAIL  void  RMFT2::emitWithrottleDescriptions(Print * stream) {
+#define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
+#define AUTOMATION(id, description) emitRouteDescription(stream,'A',id,F(description));
+#define ENDEXRAIL  }
  
-#define ALIAS(name,value)  
 #define AFTER(sensor_id)
 #define AMBER(signal_id)
 #define AT(sensor_id)
@@ -107,6 +114,7 @@
 #include "myAutomation.h"
 
 // setup for pass 2... Create getMessageText function
+#undef ALIAS
 #undef ROUTE
 #undef AUTOMATION  
 #define ROUTE(id, description)
@@ -117,13 +125,14 @@
 #undef ENDEXRAIL  
 #undef LCD
 const int StringMacroTracker1=__COUNTER__;
+#define ALIAS(name,value) 
 #define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
 #define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1); return ; }}
 #define PRINT(msg)  case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
 #define LCD(id,msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
 #include "myAutomation.h"
- 
-#undef ALIAS
+
+// Setup for Pass 3: create main routes table 
 #undef AFTER
 #undef AMBER
 #undef AT
@@ -182,8 +191,11 @@ const int StringMacroTracker1=__COUNTER__;
 #undef UNJOIN
 #undef UNLATCH
 
-// Define macros or route code creation 
-#define ALIAS(name,value) const int name=value;
+// Define macros for route code creation 
+#define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
+#define NOP 0,0
+
+#define ALIAS(name,value) 
 #define EXRAIL const  FLASH  byte RMFT2::RouteCode[] = {
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 

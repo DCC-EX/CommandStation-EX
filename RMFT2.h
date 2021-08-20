@@ -78,7 +78,9 @@ private:
     static int locateRouteStart(int16_t _route);
     static int progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
-
+    static void emitRouteDescription(Print * stream, char type, int id, const FSH * description);
+    static void emitWithrottleDescriptions(Print * stream);
+    
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
@@ -90,10 +92,10 @@ private:
     void kill(const FSH * reason=NULL,int operand=0);          
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
     void printMessage2(const FSH * msg);
+
     
    static bool diag;
    static const  FLASH  byte RouteCode[];
-   static const  FLASH char RouteDescription[];
    static byte flags[MAX_FLAGS];
  
   // Local variables - exist for each instance/task 
