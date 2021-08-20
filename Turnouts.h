@@ -126,7 +126,9 @@ public:
   /* 
    * Virtual functions
    */
-  virtual void print(Print *stream) {}
+  virtual void print(Print *stream) {
+    (void)stream;  // avoid compiler warnings.
+  }
   virtual ~Turnout() {}   // Destructor
 
   /*
@@ -240,6 +242,8 @@ public:
     IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
     return tt;
 #else
+    (void)id; (void)vpin; (void)thrownPosition; (void)closedPosition;
+    (void)profile; (void)closed;          // avoid compiler warnings.
     return NULL;
 #endif
   }
@@ -250,6 +254,8 @@ public:
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
     _turnoutData.closed = close;
+#else
+    (void)close;  // avoid compiler warnings
 #endif
     return true;
   }
