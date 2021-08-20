@@ -109,6 +109,7 @@ public:
    * Static data
    */
   static int turnoutlistHash;
+  static bool useLegacyTurnoutBehaviour;
 
   /*
    * Public base class functions
@@ -171,6 +172,8 @@ public:
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
       tt->print(stream);
   }
+
+  static void printState(uint16_t id, Print *stream);
 };
 
 
@@ -259,7 +262,8 @@ public:
 
   void print(Print *stream) override {
     StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
-      _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, _turnoutData.closed);
+      _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour);
   }
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
@@ -338,7 +342,8 @@ public:
 
   void print(Print *stream) override {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
-      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), _turnoutData.closed); 
+      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
   }
 
   // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
@@ -413,8 +418,8 @@ public:
   }
 
   void print(Print *stream) override {
-    StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, 
-      _vpinTurnoutData.vpin, _turnoutData.closed); 
+    StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
   }
 
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
@@ -477,7 +482,8 @@ public:
   //static Turnout *load(struct TurnoutData *turnoutData) {
 
   void print(Print *stream) override {
-    StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, _turnoutData.closed); 
+    StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
+    _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
   }
 
 };

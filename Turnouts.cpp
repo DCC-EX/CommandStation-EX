@@ -20,6 +20,14 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef TURNOUTS_CPP
+#define TURNOUTS_CPP
+
+// Set the following definition to true for <T id 0> = throw and <T id 1> = close
+//  or to false for <T id 0> = close and <T id 1> = throw (the original way).
+#ifndef USE_LEGACY_TURNOUT_BEHAVIOUR
+#define USE_LEGACY_TURNOUT_BEHAVIOUR false
+#endif
 
 #include "defines.h"
 #include "EEStore.h"
@@ -29,12 +37,6 @@
 #ifdef EESTOREDEBUG
 #include "DIAG.h"
 #endif
-
-// Keywords used for turnout configuration.
-const int16_t HASH_KEYWORD_SERVO=27709;
-const int16_t HASH_KEYWORD_DCC=6436;
-const int16_t HASH_KEYWORD_VPIN=-415;
-
 
   /* 
    * Protected static data
@@ -46,6 +48,7 @@ const int16_t HASH_KEYWORD_VPIN=-415;
    * Public static data
    */
   int Turnout::turnoutlistHash = 0;
+  bool Turnout::useLegacyTurnoutBehaviour = USE_LEGACY_TURNOUT_BEHAVIOUR;
  
   /*
    * Protected static functions
@@ -130,8 +133,7 @@ const int16_t HASH_KEYWORD_VPIN=-415;
     // Send message to JMRI etc. over Serial USB.  This is done here
     // to ensure that the message is sent when the turnout operation
     // is not initiated by a Serial command.
-    StringFormatter::send(Serial, F("<H %d %d>\n"), id, closeFlag);
-
+    printState(id, &Serial);
     return ok;
   }
 
@@ -189,3 +191,12 @@ const int16_t HASH_KEYWORD_VPIN=-415;
     return tt;
   }
 
+  // Display, on the specified stream, the current state of the turnout (1 or 0).
+  void Turnout::printState(uint16_t id, Print *stream) {
+    Turnout *tt = get(id);
+    if (!tt) 
+      StringFormatter::send(stream, F("<H %d %d>\n"), 
+        id, tt->_turnoutData.closed ^ useLegacyTurnoutBehaviour);
+  }
+
+#endif
