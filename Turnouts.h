@@ -344,6 +344,10 @@ public:
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
       _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+    // Also report using classic DCC++ syntax for DCC accessory turnouts
+    StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
+      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
   }
 
   // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
