@@ -194,9 +194,7 @@
   // Display, on the specified stream, the current state of the turnout (1 or 0).
   void Turnout::printState(uint16_t id, Print *stream) {
     Turnout *tt = get(id);
-    if (!tt) 
-      StringFormatter::send(stream, F("<H %d %d>\n"), 
-        id, tt->_turnoutData.closed ^ useLegacyTurnoutBehaviour);
+    if (!tt) tt->printState(stream);
   }
 
 #endif

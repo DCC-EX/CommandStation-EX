@@ -119,6 +119,10 @@ public:
   inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }
+  inline void printState(Print *stream) { 
+    StringFormatter::send(stream, F("<H %d %d>\n"), 
+      _turnoutData.id, _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+  }
   /* 
    * Virtual functions
    */
@@ -170,7 +174,7 @@ public:
 
   static void printAll(Print *stream) {
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
-      tt->print(stream);
+      tt->printState(stream);
   }
 
   static void printState(uint16_t id, Print *stream);
