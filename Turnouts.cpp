@@ -121,19 +121,21 @@
     if (!tt) return false;
     bool ok = tt->activate(closeFlag);
 
-    // Write new closed/thrown state to EEPROM if required.  Note that eepromAddress
-    // is always zero for LCN turnouts.
-    if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress) 
-      EEPROM.put(tt->_eepromAddress, tt->_turnoutData.closed);  
+    if (ok) {
+      // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
+      // is always zero for LCN turnouts.
+      if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
+        EEPROM.put(tt->_eepromAddress, *((uint8_t *) &tt->_turnoutData));  
 
-  #if defined(RMFT_ACTIVE)
-    RMFT2::turnoutEvent(id, closeFlag);
-  #endif
+    #if defined(RMFT_ACTIVE)
+      RMFT2::turnoutEvent(id, closeFlag);
+    #endif
 
-    // Send message to JMRI etc. over Serial USB.  This is done here
-    // to ensure that the message is sent when the turnout operation
-    // is not initiated by a Serial command.
-    printState(id, &Serial);
+      // Send message to JMRI etc. over Serial USB.  This is done here
+      // to ensure that the message is sent when the turnout operation
+      // is not initiated by a Serial command.
+      printState(id, &Serial);
+    }
     return ok;
   }
 
@@ -180,7 +182,7 @@
         // so we can't go any further through the EEPROM!
         return NULL;
     }
-    if (!tt) {
+    if (tt) {
       // Save EEPROM address in object.  Note that LCN turnouts always have eepromAddress of zero.
       tt->_eepromAddress = eepromAddress;
     }

@@ -198,7 +198,6 @@ private:
     uint8_t profile;
   } _servoTurnoutData; // 6 bytes
 
-public:
   // Constructor
   ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true) :
     Turnout(id, TURNOUT_SERVO, closed) 
@@ -209,6 +208,7 @@ public:
     _servoTurnoutData.profile = profile;
   }
 
+public:
   // Create function
   static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true) {
 #ifndef IO_NO_HAL
@@ -229,7 +229,7 @@ public:
         // int params[] = {(int)thrownPosition, (int)closedPosition, profile, closed};
         // IODevice::configure(vpin, IODevice::CONFIGURE_SERVO, 4, params);
 
-        // Set position to saved position
+        // Set position directly to specified position - we don't know where it is moving from.
         IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
 
         return tt;
@@ -248,6 +248,26 @@ public:
 #endif
   }
 
+  // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData) {
+    ServoTurnoutData servoTurnoutData;
+    // Read class-specific data from EEPROM
+    EEPROM.get(EEStore::pointer(), servoTurnoutData);
+    EEStore::advance(sizeof(servoTurnoutData));
+    
+    // Create new object
+    Turnout *tt = ServoTurnout::create(turnoutData->id, servoTurnoutData.vpin, servoTurnoutData.thrownPosition,
+      servoTurnoutData.closedPosition, servoTurnoutData.profile, turnoutData->closed);
+    return tt;
+  }
+
+  void print(Print *stream) override {
+    StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
+      _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+  }
+
+protected:
   // ServoTurnout-specific code for throwing or closing a servo turnout.
   bool activate(bool close) override {
 #ifndef IO_NO_HAL
@@ -269,26 +289,6 @@ public:
     EEPROM.put(EEStore::pointer(), _servoTurnoutData);
     EEStore::advance(sizeof(_servoTurnoutData));
   }
-
-  void print(Print *stream) override {
-    StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
-      _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour);
-  }
-
-  // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  static Turnout *load(struct TurnoutData *turnoutData) {
-    ServoTurnoutData servoTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), servoTurnoutData);
-    EEStore::advance(sizeof(servoTurnoutData));
-    
-    // Create new object
-    ServoTurnout *tt = new ServoTurnout(turnoutData->id, servoTurnoutData.vpin, servoTurnoutData.thrownPosition,
-      servoTurnoutData.closedPosition, servoTurnoutData.profile, turnoutData->closed);
-
-    return tt;
-  }
 };
 
 /*************************************************************************************
@@ -305,7 +305,6 @@ private:
       // That's DCC accessory address 1-512 and subaddress 0-3.
   } _dccTurnoutData; // 2 bytes
 
-public:
   // Constructor
   DCCTurnout(uint16_t id, uint16_t address, uint8_t subAdd) :
     Turnout(id, TURNOUT_DCC, false)
@@ -313,6 +312,7 @@ public:
     _dccTurnoutData.address = ((address-1) << 2) + subAdd + 1;
   }
 
+public:
   // Create function
   static Turnout *create(uint16_t id, uint16_t add, uint8_t subAdd) {
     Turnout *tt = get(id);
@@ -333,9 +333,36 @@ public:
     return tt;
   }
 
+  // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData) {
+    DCCTurnoutData dccTurnoutData;
+    // Read class-specific data from EEPROM
+    EEPROM.get(EEStore::pointer(), dccTurnoutData);
+    EEStore::advance(sizeof(dccTurnoutData));
+    
+    // Create new object
+    DCCTurnout *tt = new DCCTurnout(turnoutData->id, (((dccTurnoutData.address-1) >> 2)+1), ((dccTurnoutData.address-1) & 3));
+
+    return tt;
+  }
+
+  void print(Print *stream) override {
+    StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
+      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+    // Also report using classic DCC++ syntax for DCC accessory turnouts
+    StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
+      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+  }
+
+protected:
   bool activate(bool close) override {
+    // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
+    // and Close writes a 0.  
+    // RCN-214 specifies that Throw is 0 and Close is 1.
     DCC::setAccessory((((_dccTurnoutData.address-1) >> 2) + 1), 
-      ((_dccTurnoutData.address-1) & 3), close);
+      ((_dccTurnoutData.address-1) & 3), close ^ useLegacyTurnoutBehaviour);
     _turnoutData.closed = close;
     return true;
   }
@@ -350,28 +377,6 @@ public:
     EEStore::advance(sizeof(_dccTurnoutData));
   }
 
-  void print(Print *stream) override {
-    StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
-      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
-    // Also report using classic DCC++ syntax for DCC accessory turnouts
-    StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
-      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
-  }
-
-  // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  static Turnout *load(struct TurnoutData *turnoutData) {
-    DCCTurnoutData dccTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), dccTurnoutData);
-    EEStore::advance(sizeof(dccTurnoutData));
-    
-    // Create new object
-    DCCTurnout *tt = new DCCTurnout(turnoutData->id, (((dccTurnoutData.address-1) >> 2)+1), ((dccTurnoutData.address-1) & 3));
-
-    return tt;
-  }
 };
 
 
@@ -387,7 +392,6 @@ private:
     VPIN vpin;
   } _vpinTurnoutData; // 2 bytes
 
-public:
   // Constructor
   VpinTurnout(uint16_t id, VPIN vpin, bool closed=true) :
     Turnout(id, TURNOUT_VPIN, closed)
@@ -395,6 +399,7 @@ public:
     _vpinTurnoutData.vpin = vpin;
   }
 
+public:
   // Create function
   static Turnout *create(uint16_t id, VPIN vpin, bool closed=true) {
     Turnout *tt = get(id);
@@ -415,6 +420,25 @@ public:
     return tt;
   }
 
+  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData) {
+    VpinTurnoutData vpinTurnoutData;
+    // Read class-specific data from EEPROM
+    EEPROM.get(EEStore::pointer(), vpinTurnoutData);
+    EEStore::advance(sizeof(vpinTurnoutData));
+    
+    // Create new object
+    VpinTurnout *tt = new VpinTurnout(turnoutData->id, vpinTurnoutData.vpin, turnoutData->closed);
+
+    return tt;
+  }
+
+  void print(Print *stream) override {
+    StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
+      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+  }
+
+protected:
   bool activate(bool close) override {
     IODevice::write(_vpinTurnoutData.vpin, close);
     _turnoutData.closed = close;
@@ -430,24 +454,6 @@ public:
     EEPROM.put(EEStore::pointer(), _vpinTurnoutData);
     EEStore::advance(sizeof(_vpinTurnoutData));
   }
-
-  void print(Print *stream) override {
-    StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
-  }
-
-  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  static Turnout *load(struct TurnoutData *turnoutData) {
-    VpinTurnoutData vpinTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), vpinTurnoutData);
-    EEStore::advance(sizeof(vpinTurnoutData));
-    
-    // Create new object
-    VpinTurnout *tt = new VpinTurnout(turnoutData->id, vpinTurnoutData.vpin, turnoutData->closed);
-
-    return tt;
-  }
 };
 
 
@@ -461,12 +467,12 @@ private:
   // struct LCNTurnoutData {
   // } _lcnTurnoutData; // 0 bytes
 
-public:
   // Constructor
   LCNTurnout(uint16_t id, bool closed=true) :
     Turnout(id, TURNOUT_LCN, closed)
   { }
 
+public:
   // Create function
   static Turnout *create(uint16_t id, bool closed=true) {
     Turnout *tt = get(id);
