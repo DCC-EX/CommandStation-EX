@@ -101,7 +101,7 @@ void setup()
       LCN::init(LCN_SERIAL);
   #endif
 
-  LCD(1,F("Ready")); 
+  LCD(3,F("Ready")); 
 }
 
 void loop()
@@ -140,6 +140,6 @@ void loop()
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
-    LCD(2,F("Free RAM=%5db"), ramLowWatermark);
+    LCD(3,F("Free RAM=%5db"), ramLowWatermark);
   }
 }
