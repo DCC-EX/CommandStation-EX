@@ -65,18 +65,18 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
     RMFT2(int progCounter);
     RMFT2(int route, uint16_t cab);
     ~RMFT2();
-    static void readLocoCallback(int cv);
+    static void readLocoCallback(int16_t cv);
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
     static void turnoutEvent(VPIN id, bool closed);  
 private: 
-    static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int p[]);
-    static bool parseSlash(Print * stream, byte & paramCount, int p[]) ;
+    static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
+    static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
     static void streamFlags(Print* stream);
     static void setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask);   
     static int locateRouteStart(int16_t _route);
-    static int progtrackLocoId;
+    static int16_t progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
     static void emitRouteDescription(Print * stream, char type, int id, const FSH * description);
     static void emitWithrottleDescriptions(Print * stream);

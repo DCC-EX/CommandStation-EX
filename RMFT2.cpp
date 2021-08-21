@@ -357,7 +357,7 @@ bool RMFT2::skipIfBlock() {
 
 
 
-/* static */ void RMFT2::readLocoCallback(int cv) {
+/* static */ void RMFT2::readLocoCallback(int16_t cv) {
      progtrackLocoId=cv;
 }
 
