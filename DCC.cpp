@@ -906,8 +906,8 @@ void DCC::callback(int value) {
     // check for automatic retry
     if (value == -1 && ackManagerRetry > 0) {
       ackRetrySum ++;
-      StringFormatter::lcd(0, F("%d %d %d %d %d %d"), ackManagerCv, ackManagerRetry, ackRetry, ackRetrySum, ackManagerProg, ackManagerProgStart);
-      ackManagerRetry -= 1;
+      StringFormatter::lcd(0, F("RETRY %d %d %d %d"), ackManagerCv, ackManagerRetry, ackRetry, ackRetrySum);
+      ackManagerRetry --;
       ackManagerProg = ackManagerProgStart;
       return;
     }
