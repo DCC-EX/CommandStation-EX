@@ -115,6 +115,10 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
+  static inline void setAckRetry(int retry) {
+    ackRetry = retry;
+    ackRetrySum = 0;  // reset running total
+  };
 
 private:
   struct LOCO
@@ -143,9 +147,13 @@ private:
 
   // ACK MANAGER
   static ackOp const *ackManagerProg;
+  static ackOp const *ackManagerProgStart;
   static byte ackManagerByte;
   static byte ackManagerBitNum;
   static int ackManagerCv;
+  static int ackManagerRetry;
+  static int ackRetry;
+  static int ackRetrySum;
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
