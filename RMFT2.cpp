@@ -489,15 +489,15 @@ void RMFT2::loop2() {
       break;
     
     case OPCODE_DELAY:
-      delayMe(operand*100);
+      delayMe(operand*100L);
       break;
    
     case OPCODE_DELAYMINS:
-      delayMe(operand*60*1000);
+      delayMe(operand*60L*1000L);
       break;
     
     case OPCODE_RANDWAIT:
-      delayMe((long)random(operand*100));
+      delayMe(random(operand)*100L);
       break;
     
     case OPCODE_RED:
