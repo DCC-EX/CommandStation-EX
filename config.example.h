@@ -129,4 +129,17 @@ The configuration file for DCC-EX Command Station
 #define SCROLLMODE 1
 
 /////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
+//
+// According to norm RCN-213 a DCC packet with an 1 is closed/straight
+// and one with a 0 is thrown/diverging. This is reversed to the
+// definition from DCC++ in the DCC++ protocol. To make the states
+// match with the norm, we need to reverse the bit in the DCC packet
+// on the rails, but we don't want to cause havoc on existent layouts,
+// so we define this only for new installations. For any new install
+// there is no reason to not define this.
+#define TURNOUTS_RCN_213
+
+/////////////////////////////////////////////////////////////////////////////////////
 

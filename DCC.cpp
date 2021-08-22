@@ -17,6 +17,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #include "config.example.h"
+#endif
+
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
@@ -246,8 +253,17 @@ void DCC::setAccessory(int address, byte number, bool activate) {
     return;
   byte b[2];
 
-  b[0] = address % 64 + 128;                                     // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
-  b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8; // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
+  // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
+  b[0] = address % 64 + 128;
+  // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
+  // if we follow RCN-213, activate has to be reversed because in DCC++/DCC-EX activate=1 is "thrown, diverging",
+  // but in RCN-213, 1 means "closed, straight" and 0 "thown, diverging"
+#ifdef TURNOUTS_RCN_213
+  activate = !activate;
+#else
+  #error fooo
+#endif
+  b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8;
 
   DCCWaveform::mainTrack.schedulePacket(b, 2, 4);      // Repeat the packet four times
 }

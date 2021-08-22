@@ -170,19 +170,18 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
                   StringFormatter::send(stream, F("HmTurnout %d created\n"),id);
                 }
                 switch (cmd[3]) {
-            		  // T and C according to RCN-213 where 0 is Stop, Red, Thrown, Diverging.
-            		  case 'T': 
-            		     Turnout::setClosed(id,false);
-                     break;
-            		  case 'C': 
-                     Turnout::setClosed(id,true);
-                     break;
-            		  case '2': 
-            		     Turnout::setClosed(id,!Turnout::isClosed(id));
-                     break;
-            		  default :
-            		     Turnout::setClosed(id,true);
-                     break;
+		case 'T':
+		  Turnout::setClosed(id,false);
+		  break;
+		case 'C':
+		  Turnout::setClosed(id,true);
+		  break;
+		case '2':
+		  Turnout::setClosed(id,!Turnout::isClosed(id));
+		  break;
+		default :
+		  Turnout::setClosed(id,true);
+		  break;
                 }
 		            StringFormatter::send(stream, F("PTA%c%d\n"),Turnout::isClosed(id)?'2':'4',id );
 		        }
