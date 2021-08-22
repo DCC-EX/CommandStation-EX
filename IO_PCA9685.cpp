@@ -181,12 +181,16 @@ void PCA9685::_loop(unsigned long currentMicros) {
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void PCA9685::updatePosition(uint8_t pin) {
   struct ServoData *s = _servoData[pin];
+  
   if (s == NULL) return; // No pin configuration/state data
+
   if (s->numSteps == 0) return; // No animation in progress
+
   if (s->stepNumber == 0 && s->fromPosition == s->toPosition) {
     // Go straight to end of sequence, output final position.
     s->stepNumber = s->numSteps-1;
   }
+
   if (s->stepNumber < s->numSteps) {
     // Animation in progress, reposition servo
     s->stepNumber++;

@@ -18,6 +18,9 @@
 
 */
 
+#ifndef DEFINES_H
+#define DEFINES_H
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // WIFI_ON: All prereqs for running with WIFI are met
@@ -54,4 +57,6 @@
 
 #if __has_include ( "myAutomation.h") && defined(BIG_RAM)
   #define RMFT_ACTIVE
+#endif
+
 #endif
