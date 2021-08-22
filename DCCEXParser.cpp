@@ -56,7 +56,10 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
-const int16_t HASH_KEYWORD_SERVO = 27709;
+const int16_t HASH_KEYWORD_SERVO=27709;
+const int16_t HASH_KEYWORD_VPIN=-415;
+const int16_t HASH_KEYWORD_C=67;
+const int16_t HASH_KEYWORD_T=84;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -658,7 +661,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
     case 0: // <T>  list turnout definitions
     {
         bool gotOne = false;
-        for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
+        for (Turnout *tt = Turnout::first(); tt != NULL; tt = tt->next())
         {
             gotOne = true;
             tt->print(stream);
@@ -672,17 +675,65 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("<O>\n"));
         return true;
 
-    case 2: // <T id 0|1>  turnout 0=CLOSE,1=THROW
-        if (p[1]>1 || p[1]<0 ) return false;
-        if (!Turnout::setClosed(p[0],p[1]==0)) return false;
-        StringFormatter::send(stream, F("<H %d %d>\n"), p[0], p[1]);
-        return true;
+    case 2: // <T id 0|1|T|C> 
+        {
+          bool state = false;
+          switch (p[1]) {
+            // By default turnout command uses 0=throw, 1=close,
+            // but legacy DCC++ behaviour is 1=throw, 0=close.
+            case 0:
+              state = Turnout::useLegacyTurnoutBehaviour;
+              break;
+            case 1: 
+              state = !Turnout::useLegacyTurnoutBehaviour;
+              break;
+            case HASH_KEYWORD_C:
+              state = true;
+              break;
+            case HASH_KEYWORD_T:
+              state= false;
+              break;
+            default:
+              return false;
+          }
+          if (!Turnout::setClosed(p[0], state)) return false;
 
-    default: // Anything else is handled by Turnout class.
-        if (!Turnout::create(p[0], params-1, &p[1]))
-            return false;
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
+          // Send acknowledgement to caller if the command was not received over Serial
+          // (acknowledgement messages on Serial are sent by the Turnout class).
+          if (stream != &Serial) Turnout::printState(p[0], stream);
+          return true;
+        }
+
+    default: // Anything else is some kind of turnout create function.
+      if (params == 6 && p[1] == HASH_KEYWORD_SERVO) { // <T id SERVO n n n n>
+        if (!ServoTurnout::create(p[0], (VPIN)p[2], (uint16_t)p[3], (uint16_t)p[4], (uint8_t)p[5]))
+          return false;
+      } else 
+      if (params == 3 && p[1] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
+        if (!VpinTurnout::create(p[0], p[2])) return false;
+      } else 
+      if (params >= 3 && p[1] == HASH_KEYWORD_DCC) {
+        if (params==4 && p[2]>0 && p[2]<=512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
+          if (!DCCTurnout::create(p[0], p[2], p[3])) return false;
+        } else if (params==3 && p[2]>0 && p[2]<=512*4) { // <T id DCC nn>, 1<=nn<=2048
+          if (!DCCTurnout::create(p[0], (p[2]-1)/4+1, (p[2]-1)%4)) return false;
+        } else
+          return false;
+      } else 
+      if (params==3) { // legacy <T id n n> for DCC accessory
+        if (p[1]>0 && p[1]<=512 && p[2]>=0 && p[2]<4) {
+          if (!DCCTurnout::create(p[0], p[1], p[2])) return false;
+        } else
+          return false;
+      } 
+      else 
+      if (params==4) { // legacy <T id n n n> for Servo
+        if (!ServoTurnout::create(p[0], (VPIN)p[1], (uint16_t)p[2], (uint16_t)p[3], 1)) return false;
+      } else
+        return false;
+
+      StringFormatter::send(stream, F("<O>\n"));
+      return true;
     }
 }
 
@@ -797,7 +848,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	StringFormatter::send(stream, F("128 Speedsteps"));
         return true;
 
-    case HASH_KEYWORD_SERVO:
+    case HASH_KEYWORD_SERVO:  // <D SERVO vpin position [profile]>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
         break;
 

@@ -274,7 +274,7 @@ private:
     uint8_t profile;  // Config parameter
     uint8_t stepNumber; // Index of current step (starting from 0)
     uint8_t numSteps;  // Number of steps in animation, or 0 if none in progress.
-    int8_t state;
+    uint8_t currentProfile; // profile being used for current animation.
   }; // 12 bytes per element, i.e. per pin in use
   
   struct ServoData *_servoData [16];

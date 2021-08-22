@@ -120,7 +120,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     // Send turnout list if changed since last sent (will replace list on client)
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
-      for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
+      for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
           int id=tt->getId();
           StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), id, id, Turnout::isClosed(id)?'2':'4');
       }
@@ -161,12 +161,11 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #endif    
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
-                Turnout * tt=Turnout::get(id);
-                if (!tt) {
+                if (!Turnout::exists(id)) {
                   // If turnout does not exist, create it
                   int addr = ((id - 1) / 4) + 1;
                   int subaddr = (id - 1) % 4;
-                  Turnout::createDCC(id,addr,subaddr);
+                  DCCTurnout::create(id,addr,subaddr);
                   StringFormatter::send(stream, F("HmTurnout %d created\n"),id);
                 }
                 switch (cmd[3]) {

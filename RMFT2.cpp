@@ -77,7 +77,7 @@ byte RMFT2::flags[MAX_FLAGS];
       VPIN id=GET_OPERAND(0);
       int addr=GET_OPERAND(1);
       byte subAddr=GET_OPERAND(2);
-      Turnout::createDCC(id,addr,subAddr);
+      DCCTurnout::create(id,addr,subAddr);
       continue;
      }
 
@@ -87,14 +87,14 @@ byte RMFT2::flags[MAX_FLAGS];
       int activeAngle=GET_OPERAND(2);
       int inactiveAngle=GET_OPERAND(3);
       int profile=GET_OPERAND(4);
-      Turnout::createServo(id,pin,activeAngle,inactiveAngle,profile);
+      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
       continue;
      }
 
      if (opcode==OPCODE_PINTURNOUT) {
       int16_t id=GET_OPERAND(0);
       VPIN pin=GET_OPERAND(1);
-      Turnout::createVpin(id,pin);
+      VpinTurnout::create(id,pin);
       continue;
      }
      // other opcodes are not needed on this pass

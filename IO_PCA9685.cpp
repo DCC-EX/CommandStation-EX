@@ -53,19 +53,20 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
 
   int8_t pin = vpin - _firstVpin;
   struct ServoData *s = _servoData[pin];
-  if (!s) { 
+  if (s == NULL) { 
     _servoData[pin] = (struct ServoData *)calloc(1, sizeof(struct ServoData));
     s = _servoData[pin];
     if (!s) return false; // Check for failed memory allocation
   }
 
   s->activePosition = params[0];
-  s->currentPosition = s->inactivePosition = params[1];
+  s->inactivePosition = params[1];
   s->profile = params[2];
-
-  // Position servo to initial state
-  s->state = -1; // Set unknown state, to force reposition
-  _write(vpin, params[3]);
+  int state = params[3];
+  if (state != -1) {
+    // Position servo to initial state
+    _writeAnalogue(vpin, state ? s->activePosition : s->inactivePosition, Instant);
+  } 
 
   return true;
 }
@@ -75,6 +76,8 @@ PCA9685::PCA9685(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
   _firstVpin = firstVpin;
   _nPins = min(nPins, 16);
   _I2CAddress = I2CAddress;
+  // To save RAM, space for servo configuration is not allocated unless a pin is used.
+  // Initialise the pointers to NULL.
   for (int i=0; i<_nPins; i++)
     _servoData[i] = NULL;
 
@@ -113,30 +116,12 @@ void PCA9685::_write(VPIN vpin, int value) {
   if (value) value = 1;
 
   struct ServoData *s = _servoData[pin];
-  if (!s) {
+  if (s == NULL) {
     // Pin not configured, just write default positions to servo controller
-    if (value) 
-      writeDevice(pin, _defaultActivePosition);
-    else 
-      writeDevice(pin, _defaultInactivePosition);
+    writeDevice(pin, value ? _defaultActivePosition : _defaultInactivePosition);
   } else {
     // Use configured parameters for advanced transitions
-    uint8_t profile = s->profile;
-    // If current position not known, go straight to selected position.
-    if (s->state == -1) profile = Instant;
-
-    // Animated profile.  Initiate the appropriate action.
-    s->numSteps = profile==Fast ? 10 : 
-                  profile==Medium ? 20 : 
-                  profile==Slow ? 40 : 
-                  profile==Bounce ? sizeof(_bounceProfile)-1 : 
-                  1;
-    s->state = value;
-    s->stepNumber = 0;
-
-    // Update new from/to positions to initiate or change animation.
-    s->fromPosition = s->currentPosition;
-    s->toPosition = s->state ? s->activePosition : s->inactivePosition;
+    _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile);
   }
 }
 
@@ -150,16 +135,18 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
   else if (value < 0) value = 0;
 
   struct ServoData *s = _servoData[pin];
-
-  if (!s) {
-    // Servo pin not configured, so configure now.
+  if (s == NULL) {
+    // Servo pin not configured, so configure now using defaults
     s = _servoData[pin] = (struct ServoData *) calloc(sizeof(struct ServoData), 1);
+    if (s == NULL) return;  // Check for memory allocation failure
     s->activePosition = _defaultActivePosition;
     s->inactivePosition = _defaultInactivePosition;
-    s->currentPosition = value; // Don't know where we're moving from.
+    s->currentPosition = value;
+    s->profile = Instant;
   }
-  s->profile = profile;
+
   // Animated profile.  Initiate the appropriate action.
+  s->currentProfile = profile;
   s->numSteps = profile==Fast ? 10 : 
                 profile==Medium ? 20 : 
                 profile==Slow ? 40 : 
@@ -175,7 +162,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
 bool PCA9685::_isActive(VPIN vpin) {
   int pin = vpin - _firstVpin;
   struct ServoData *s = _servoData[pin];
-  if (!s) 
+  if (s == NULL) 
     return false; // No structure means no animation!
   else
     return (s->numSteps != 0);
@@ -194,16 +181,16 @@ void PCA9685::_loop(unsigned long currentMicros) {
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void PCA9685::updatePosition(uint8_t pin) {
   struct ServoData *s = _servoData[pin];
-  if (!s) return;
+  if (s == NULL) return; // No pin configuration/state data
   if (s->numSteps == 0) return; // No animation in progress
   if (s->stepNumber == 0 && s->fromPosition == s->toPosition) {
-    // No movement required, so go straight to final step
-    s->stepNumber = s->numSteps;
+    // Go straight to end of sequence, output final position.
+    s->stepNumber = s->numSteps-1;
   }
   if (s->stepNumber < s->numSteps) {
     // Animation in progress, reposition servo
     s->stepNumber++;
-    if (s->profile == Bounce) {
+    if (s->currentProfile == Bounce) {
       // Retrieve step positions from array in flash
       byte profileValue = GETFLASH(&_bounceProfile[s->stepNumber]);
       s->currentPosition = map(profileValue, 0, 100, s->fromPosition, s->toPosition);
