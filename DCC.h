@@ -115,7 +115,7 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
-  static inline void setAckRetry(int retry) {
+  static inline void setAckRetry(byte retry) {
     ackRetry = retry;
     ackRetrySum = 0;  // reset running total
   };
@@ -151,9 +151,9 @@ private:
   static byte ackManagerByte;
   static byte ackManagerBitNum;
   static int ackManagerCv;
-  static int ackManagerRetry;
-  static int ackRetry;
-  static int ackRetrySum;
+  static byte ackManagerRetry;
+  static byte ackRetry;
+  static int16_t ackRetrySum;
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
