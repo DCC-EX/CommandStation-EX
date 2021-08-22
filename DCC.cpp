@@ -257,11 +257,9 @@ void DCC::setAccessory(int address, byte number, bool activate) {
   b[0] = address % 64 + 128;
   // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
   // if we follow RCN-213, activate has to be reversed because in DCC++/DCC-EX activate=1 is "thrown, diverging",
-  // but in RCN-213, 1 means "closed, straight" and 0 "thown, diverging"
+  // but in RCN-213, 1 means "closed, straight" and 0 "thrown, diverging"
 #ifdef TURNOUTS_RCN_213
   activate = !activate;
-#else
-  #error fooo
 #endif
   b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8;
 
