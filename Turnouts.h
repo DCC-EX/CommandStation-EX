@@ -93,7 +93,7 @@ protected:
    * Virtual functions
    */
 
-  virtual bool activate(bool close) = 0;  // Mandatory in subclass
+  virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
   virtual void save() {}
   
   /*
@@ -144,18 +144,14 @@ public:
     return !isClosed(id);
   }
 
-  static bool activate(uint16_t id, bool closeFlag);
+  static bool setClosed(uint16_t id, bool closeFlag);
 
   inline static bool setClosed(uint16_t id) {
-    return activate(id, true);
+    return setClosed(id, true);
   }
 
   inline static bool setThrown(uint16_t id) {
-    return activate(id, false);
-  }
-
-  inline static bool setClosed(uint16_t id, bool close) {
-    return activate(id, close);
+    return setClosed(id, false);
   }
 
   static bool setClosedStateOnly(uint16_t id, bool close) {
@@ -269,7 +265,7 @@ public:
 
 protected:
   // ServoTurnout-specific code for throwing or closing a servo turnout.
-  bool activate(bool close) override {
+  bool setClosedInternal(bool close) override {
 #ifndef IO_NO_HAL
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
@@ -357,7 +353,7 @@ public:
   }
 
 protected:
-  bool activate(bool close) override {
+  bool setClosedInternal(bool close) override {
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-214 specifies that Throw is 0 and Close is 1.
@@ -439,7 +435,7 @@ public:
   }
 
 protected:
-  bool activate(bool close) override {
+  bool setClosedInternal(bool close) override {
     IODevice::write(_vpinTurnoutData.vpin, close);
     _turnoutData.closed = close;
     return true;
@@ -490,7 +486,7 @@ public:
     return tt;
   }
 
-  bool activate(bool close) override {
+  bool setClosedInternal(bool close) override {
     // Assume that the LCN command still uses 1 for throw and 0 for close...
     LCN::send('T', _turnoutData.id, !close);
     // The _turnoutData.closed flag should be updated by a message from the LCN master, later.

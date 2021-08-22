@@ -106,11 +106,11 @@
       return false;
   }
 
-  // Static activate function is invoked from close(), throw() etc. to perform the 
+  // Static setClosed function is invoked from close(), throw() etc. to perform the 
   //  common parts of the turnout operation.  Code which is specific to a turnout
-  //  type should be placed in the virtual function activate(bool) which is
+  //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
-  bool Turnout::activate(uint16_t id, bool closeFlag) { 
+  bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
   #ifdef EESTOREDEBUG
     if (closeFlag) 
       DIAG(F("Turnout::close(%d)"), id);
@@ -119,7 +119,7 @@
   #endif
     Turnout *tt = Turnout::get(id);
     if (!tt) return false;
-    bool ok = tt->activate(closeFlag);
+    bool ok = tt->setClosedInternal(closeFlag);
 
     if (ok) {
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
