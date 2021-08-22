@@ -74,6 +74,11 @@
     turnoutlistHash++;
   }
   
+  void Turnout::printState(Print *stream) { 
+    StringFormatter::send(stream, F("<H %d %d>\n"), 
+      _turnoutData.id, _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+  }
+
   // Remove nominated turnout from turnout linked list and delete the object.
   bool Turnout::remove(uint16_t id) {
     Turnout *tt,*pp=NULL;
