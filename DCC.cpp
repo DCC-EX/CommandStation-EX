@@ -684,7 +684,7 @@ byte   DCC::ackManagerByte;
 byte   DCC::ackManagerStash;
 int    DCC::ackManagerWord;
 int    DCC::ackManagerRetry;
-int    DCC::ackRetry = 1;
+int    DCC::ackRetry = 2;
 int    DCC::ackRetrySum;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
