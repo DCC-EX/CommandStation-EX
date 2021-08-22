@@ -27,7 +27,7 @@
 
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE) 
-#define MAX_MSG_SIZE 16
+#define MAX_MSG_SIZE 20
 #endif
 
 // Set default scroll mode (overridable in config.h)
