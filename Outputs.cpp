@@ -84,28 +84,43 @@ the state of any outputs being monitored or controlled by a separate interface o
 #include "Outputs.h"
 #include "EEStore.h"
 #include "StringFormatter.h"
+#include "IODevice.h"
 
-// print all output states to stream
+///////////////////////////////////////////////////////////////////////////////
+// Static function to print all output states to stream in the form "<Y id state>"
+
 void Output::printAll(Print *stream){
   for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
-    StringFormatter::send(stream, F("<Y %d %d>\n"), tt->data.id, tt->data.oStatus);
+    StringFormatter::send(stream, F("<Y %d %d>\n"), tt->data.id, tt->data.active);
 } // Output::printAll
 
-void  Output::activate(int s){
-  data.oStatus=(s>0);                                               // if s>0, set status to active, else inactive
-  digitalWrite(data.pin,data.oStatus ^ bitRead(data.iFlag,0));      // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
-  if(num>0)
-    EEPROM.put(num,data.oStatus);
+///////////////////////////////////////////////////////////////////////////////
+// Object method to activate / deactivate the Output state.
+
+void  Output::activate(uint16_t s){
+  s = (s>0);  // Make 0 or 1
+  data.active = s;                     // if s>0, set status to active, else inactive
+  // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
+  IODevice::write(data.pin, s ^ data.invert);  
+
+  // Update EEPROM if output has been stored.    
+  if(EEStore::eeStore->data.nOutputs > 0 && num > 0)
+    EEPROM.put(num, data.oStatus);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Static function to locate Output object specified by ID 'n'.
+//   Return NULL if not found.
 
 Output* Output::get(uint16_t n){
   Output *tt;
   for(tt=firstOutput;tt!=NULL && tt->data.id!=n;tt=tt->nextOutput);
   return(tt);
 }
+
 ///////////////////////////////////////////////////////////////////////////////
+// Static function to delete Output object specified by ID 'n'.
+//   Return false if not found.
 
 bool Output::remove(uint16_t n){
   Output *tt,*pp=NULL;
@@ -125,55 +140,26 @@ bool Output::remove(uint16_t n){
   }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Static function to load configuration and state of all Outputs from EEPROM
 
 void Output::load(){
-  struct BrokenOutputData bdata;
+  struct OutputData data;
   Output *tt;
-  bool isBroken=1;
 
-  // This is a scary kluge. As we have two formats in EEPROM due to an
-  // earlier bug, we don't know which we encounter now. So we guess
-  // that if in all entries this byte has value of 7 or lower this is
-  // an iFlag and thus the broken format. Otherwise it would be a pin
-  // id. If someone uses only pins 0 to 7 of their arduino, they
-  // loose. This is (if you look at an arduino) however unlikely.
+  for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
+    EEPROM.get(EEStore::pointer(),data);
+    // Create new object, set current state to default or to saved state from eeprom.
+    tt=create(data.id, data.pin, data.flags);
+    uint8_t state = data.setDefault ? data.defaultValue : data.active;
+    tt->activate(state);
 
-  uint16_t i=EEStore::eeStore->data.nOutputs;
-  while(i--){
-    EEPROM.get(EEStore::pointer()+ i*sizeof(struct BrokenOutputData),bdata);
-    if (bdata.iFlag > 7) { // it's a pin and not an iFlag!
-      isBroken=0;
-      break;
-    }
-  }
-
-  i=EEStore::eeStore->data.nOutputs;
-  if ( isBroken ) {
-    while(i--){
-      EEPROM.get(EEStore::pointer(),bdata);
-      tt=create(bdata.id,bdata.pin,bdata.iFlag);
-      tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):bdata.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
-      digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
-      pinMode(tt->data.pin,OUTPUT);
-      tt->num=EEStore::pointer();
-      EEStore::advance(sizeof(struct BrokenOutputData));
-    }
-  } else {
-    struct OutputData data;
-
-    while(i--){
-      EEPROM.get(EEStore::pointer(),data);
-      tt=create(data.id,data.pin,data.iFlag);
-      tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):data.oStatus;      // restore status to EEPROM value is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
-      digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
-      pinMode(tt->data.pin,OUTPUT);
-      tt->num=EEStore::pointer();
-      EEStore::advance(sizeof(struct OutputData));
-    }
+    if (tt) tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
+    EEStore::advance(sizeof(tt->data));
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Static function to store configuration and state of all Outputs to EEPROM
 
 void Output::store(){
   Output *tt;
@@ -182,19 +168,25 @@ void Output::store(){
   EEStore::eeStore->data.nOutputs=0;
 
   while(tt!=NULL){
-    tt->num=EEStore::pointer();
     EEPROM.put(EEStore::pointer(),tt->data);
+    tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
     EEStore::advance(sizeof(tt->data));
     tt=tt->nextOutput;
     EEStore::eeStore->data.nOutputs++;
   }
 
 }
-///////////////////////////////////////////////////////////////////////////////
 
-Output *Output::create(uint16_t id, uint8_t pin, uint8_t iFlag, uint8_t v){
+///////////////////////////////////////////////////////////////////////////////
+// Static function to create an Output object
+//   The obscurely named parameter 'v' is 0 if called from the load() function
+//   and 1 if called from the <Z> command processing.
+
+Output *Output::create(uint16_t id, VPIN pin, int iFlag, int v){
   Output *tt;
 
+  if (pin > VPIN_MAX) return NULL;
+  
   if(firstOutput==NULL){
     firstOutput=(Output *)calloc(1,sizeof(Output));
     tt=firstOutput;
@@ -207,20 +199,21 @@ Output *Output::create(uint16_t id, uint8_t pin, uint8_t iFlag, uint8_t v){
   }
 
   if(tt==NULL) return tt;
-  
+  tt->num = 0; // make sure new object doesn't get written to EEPROM until store() command
   tt->data.id=id;
   tt->data.pin=pin;
-  tt->data.iFlag=iFlag;
-  tt->data.oStatus=0;
+  tt->data.flags=iFlag;
 
   if(v==1){
-    tt->data.oStatus=bitRead(tt->data.iFlag,1)?bitRead(tt->data.iFlag,2):0;      // sets status to 0 (INACTIVE) is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
-    digitalWrite(tt->data.pin,tt->data.oStatus ^ bitRead(tt->data.iFlag,0));
-    pinMode(tt->data.pin,OUTPUT);
+    // sets status to 0 (INACTIVE) is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
+    if (tt->data.setDefault) 
+      tt->data.active = tt->data.defaultValue;
+    else
+      tt->data.active = 0;
   }
+  IODevice::write(tt->data.pin, tt->data.active ^ tt->data.invert);
 
   return(tt);
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -44,7 +44,6 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "DCCEX.h"
 
 // Create a serial command parser for the USB connection, 
@@ -85,11 +84,20 @@ void setup()
   //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
   DCC::begin(MOTOR_SHIELD_TYPE);
+         
+  // Start RMFT (ignored if no automnation)
+  RMFT::begin();
+  
+  // Link to and call mySetup() function (if defined in the build in mySetup.cpp).
+  //  The contents will depend on the user's system hardware configuration.
+  //  The mySetup.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
+  extern __attribute__((weak)) void mySetup();
+  if (mySetup) {
+    mySetup();
+  }
 
-  #if defined(RMFT_ACTIVE) 
-      RMFT::begin();
-  #endif
-
+  // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.  
+  //  This can be used to create turnouts, outputs, sensors etc. throught the normal text commands.
   #if __has_include ( "mySetup.h")
         #define SETUP(cmd) serialParser.parse(F(cmd))  
         #include "mySetup.h"
@@ -123,15 +131,16 @@ void loop()
   EthernetInterface::loop();
 #endif
 
-#if defined(RMFT_ACTIVE) 
-  RMFT::loop();
-#endif
+  RMFT::loop();  // ignored if no automation
 
   #if defined(LCN_SERIAL) 
       LCN::loop();
   #endif
 
   LCDDisplay::loop();  // ignored if LCD not in use 
+
+  // Handle/update IO devices.
+  IODevice::loop();
   
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop 

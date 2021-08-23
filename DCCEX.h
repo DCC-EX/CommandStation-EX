@@ -37,10 +37,11 @@
 #include "LCD_Implementation.h"
 #include "LCN.h"
 #include "freeMemory.h"
+#include "IODevice.h"
+#include "Turnouts.h"
+#include "Sensors.h"
+#include "Outputs.h"
+#include "RMFT.h"
 
-#if __has_include ( "myAutomation.h")
-  #include "RMFT.h"
-  #define RMFT_ACTIVE
-#endif
     
 #endif
