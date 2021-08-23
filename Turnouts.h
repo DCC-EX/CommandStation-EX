@@ -186,8 +186,7 @@ private:
 
 public:
   // Create function
-  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
-  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = !useClassicTurnoutCommands);
+  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed=true);
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
@@ -223,7 +222,7 @@ public:
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
   void print(Print *stream) override;
-
+  // Flag whether DCC Accessory packets are to contain 1=close/0=throw(RCN-213) or 1=throw/0-close (DCC++ Classic)
   static const bool rcn213Compliant;
 
 protected:
@@ -250,8 +249,7 @@ private:
 
 public:
   // Create function
-  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
-  static Turnout *create(uint16_t id, VPIN vpin, bool closed=!useClassicTurnoutCommands);
+  static Turnout *create(uint16_t id, VPIN vpin, bool closed=true);
 
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
@@ -279,8 +277,7 @@ private:
 
 public:
   // Create function
-  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
-  static Turnout *create(uint16_t id, bool closed=!useClassicTurnoutCommands);
+  static Turnout *create(uint16_t id, bool closed=true);
 
 
   bool setClosedInternal(bool close) override;
