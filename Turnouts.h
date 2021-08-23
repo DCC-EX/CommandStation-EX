@@ -53,9 +53,14 @@ protected:
   // vice versa.  If the turnout has been saved, then this byte is rewritten
   // when changed in RAM.  The 'closed' flag must be located in the first byte.
   struct TurnoutData {
-    bool closed : 1;
-    bool _rfu: 2;
-    uint8_t turnoutType : 5;
+    union {
+      struct {
+        bool closed : 1;
+        bool _rfu: 2;
+        uint8_t turnoutType : 5;
+      };
+      uint8_t flags;
+    };
     uint16_t id;
   } _turnoutData;  // 3 bytes
 

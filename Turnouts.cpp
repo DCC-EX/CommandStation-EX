@@ -139,7 +139,7 @@
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
-        EEPROM.put(tt->_eepromAddress, *((uint8_t *) &tt->_turnoutData));  
+        EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);  
 
     #if defined(RMFT_ACTIVE)
       RMFT2::turnoutEvent(id, closeFlag);
@@ -174,7 +174,7 @@
     Turnout *tt = 0;
     // Read turnout type from EEPROM
     struct TurnoutData turnoutData;
-    int eepromAddress = EEStore::pointer(); // Address of byte containing the closed flag.
+    int eepromAddress = EEStore::pointer() + offsetof(struct TurnoutData, flags); // Address of byte containing the closed flag.
     EEPROM.get(EEStore::pointer(), turnoutData);
     EEStore::advance(sizeof(turnoutData));
 
@@ -198,7 +198,7 @@
     }
     if (tt) {
       // Save EEPROM address in object.  Note that LCN turnouts always have eepromAddress of zero.
-      tt->_eepromAddress = eepromAddress;
+      tt->_eepromAddress = eepromAddress + offsetof(struct TurnoutData, flags);
     }
 
 #ifdef EESTOREDEBUG
