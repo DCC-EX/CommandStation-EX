@@ -21,6 +21,13 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
+// defines.h relies on macros defined in config.h
+#if __has_include ( "config.h")
+  #include "config.h"
+#else
+  #include "config.example.h"
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // WIFI_ON: All prereqs for running with WIFI are met
