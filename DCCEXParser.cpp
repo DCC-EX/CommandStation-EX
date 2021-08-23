@@ -466,10 +466,10 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             {
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 DCCWaveform::progTrack.setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
+		            if (mode == POWERMODE::OFF)
+		              DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>\n"), opcode);
-		StringFormatter::lcd(2, F("p%c"), opcode);
+                LCD(2, F("p%c"), opcode);
                 return;
             }
             switch (p[0])
@@ -477,15 +477,15 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             case HASH_KEYWORD_MAIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 StringFormatter::send(stream, F("<p%c MAIN>\n"), opcode);
-	        StringFormatter::lcd(2, F("p%c MAIN"), opcode);
+	              LCD(2, F("p%c MAIN"), opcode);
                 return;
 
             case HASH_KEYWORD_PROG:
                 DCCWaveform::progTrack.setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
+		            if (mode == POWERMODE::OFF)
+		                DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>\n"), opcode);
-		StringFormatter::lcd(2, F("p%c PROG"), opcode);
+		            LCD(2, F("p%c PROG"), opcode);
                 return;
             case HASH_KEYWORD_JOIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
@@ -494,13 +494,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 {
                     DCC::setProgTrackSyncMain(true);
                     StringFormatter::send(stream, F("<p1 JOIN>\n"), opcode);
-		    StringFormatter::lcd(2, F("p1 JOIN"));
+		                LCD(2, F("p1 JOIN"));
                 }
                 else
-		{
+		            {
                     StringFormatter::send(stream, F("<p0>\n"));
-		    StringFormatter::lcd(2, F("p0"));
-	    	}
+		                LCD(2, F("p0"));
+	    	        }
                 return;
             }
             break;
@@ -809,17 +809,17 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
 	      DCCWaveform::progTrack.setAckLimit(p[2]);
-	      StringFormatter::lcd(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
+	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
 	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
-	      StringFormatter::lcd(0, F("Ack Min=%dus"), p[2]);  //   <D ACK MIN 1500>
+	      LCD(0, F("Ack Min=%dus"), p[2]);  //   <D ACK MIN 1500>
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
 	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
-	      StringFormatter::lcd(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
+	      LCD(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
 	    } else if (p[1] == HASH_KEYWORD_RETRY) {
 	      if (p[2] >255) p[2]=3;
               DCC::setAckRetry(p[2]);
-	      StringFormatter::lcd(0, F("Ack Retry=%d"), p[2]);  //   <D ACK RETRY 2>
+	      LCD(0, F("Ack Retry=%d"), p[2]);  //   <D ACK RETRY 2>
 	    }
 	} else {
 	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));

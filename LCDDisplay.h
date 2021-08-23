@@ -19,11 +19,8 @@
 #ifndef LCDDisplay_h
 #define LCDDisplay_h
 #include <Arduino.h>
+#include "defines.h"
 #include "DisplayInterface.h"
-
-#if __has_include ( "config.h")
-  #include "config.h"
-#endif
 
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE) 
