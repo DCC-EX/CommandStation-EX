@@ -64,8 +64,10 @@ enum   CALLBACK_STATE : byte {
 
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-#ifdef ARDUINO_AVR_UNO
+#if defined(ARDUINO_AVR_UNO)
 const byte MAX_LOCOS = 20;
+#elif defined(ARDUINO_AVR_NANO)
+const byte MAX_LOCOS = 30;
 #else
 const byte MAX_LOCOS = 50;
 #endif
@@ -113,6 +115,10 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
+  static inline void setAckRetry(byte retry) {
+    ackRetry = retry;
+    ackRetrySum = 0;  // reset running total
+  };
 
 private:
   struct LOCO
@@ -141,9 +147,13 @@ private:
 
   // ACK MANAGER
   static ackOp const *ackManagerProg;
+  static ackOp const *ackManagerProgStart;
   static byte ackManagerByte;
   static byte ackManagerBitNum;
   static int ackManagerCv;
+  static byte ackManagerRetry;
+  static byte ackRetry;
+  static int16_t ackRetrySum;
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
