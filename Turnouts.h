@@ -1,4 +1,6 @@
 /*
+ *  © 2021 Restructured Neil McKechnie
+ *  © 2013-2016 Gregg E. Berman
  *  © 2020, Chris Harlow. All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -16,46 +18,274 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef Turnouts_h
-#define Turnouts_h
 
-#include <Arduino.h>
-#include "DCC.h"
-#include "LCN.h"
+#ifndef TURNOUTS_H
+#define TURNOUTS_H
 
-const byte STATUS_ACTIVE=0x80; // Flag as activated
-const byte STATUS_PWM=0x40; // Flag as a PWM turnout
-const byte STATUS_PWMPIN=0x3F; // PWM  pin 0-63
-const int  LCN_TURNOUT_ADDRESS=-1;  // spoof dcc address -1 indicates a LCN turnout
-struct TurnoutData {
-   int id;
-   uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  
-   union {uint8_t subAddress; char moveAngle;}; //DCC  sub addrerss or PWM difference from inactiveAngle  
-   union {int address; int inactiveAngle;}; // DCC address or PWM servo angle 
+//#define EESTOREDEBUG 
+#include "Arduino.h"
+#include "IODevice.h"
+
+
+// Turnout type definitions
+enum {
+  TURNOUT_DCC = 1,
+  TURNOUT_SERVO = 2,
+  TURNOUT_VPIN = 3,
+  TURNOUT_LCN = 4,
 };
 
+/*************************************************************************************
+ * Turnout - Base class for turnouts.
+ * 
+ *************************************************************************************/
+
 class Turnout {
-  public:
-  static Turnout *firstTurnout;
-  static int turnoutlistHash;
-  TurnoutData data;
-  Turnout *nextTurnout;
-  static  bool activate(int n, bool state);
-  static Turnout* get(int);
-  static bool remove(int);
-  static bool isActive(int);
-  static void load();
-  static void store();
-  static Turnout *create(int id , int address , int subAddress);
-  static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle);
-  static Turnout *create(int id);
-  void activate(bool state);
-  static void printAll(Print *);
-#ifdef EESTOREDEBUG
-  void print(Turnout *tt);
-#endif
-private:
-  int num;  // EEPROM address of tStatus in TurnoutData struct, or zero if not stored.
-}; // Turnout
+protected:
+  /* 
+   * Object data
+   */
+
+  // The TurnoutData struct contains data common to all turnout types, that 
+  // is written to EEPROM when the turnout is saved.
+  // The first byte of this struct contains the 'closed' flag which is
+  // updated whenever the turnout changes from thrown to closed and
+  // vice versa.  If the turnout has been saved, then this byte is rewritten
+  // when changed in RAM.  The 'closed' flag must be located in the first byte.
+  struct TurnoutData {
+    bool closed : 1;
+    bool _rfu: 2;
+    uint8_t turnoutType : 5;
+    uint16_t id;
+  } _turnoutData;  // 3 bytes
+
+  // Address in eeprom of first byte of the _turnoutData struct (containing the closed flag).
+  // Set to zero if the object has not been saved in EEPROM, e.g. for newly created Turnouts, and 
+  // for all LCN turnouts.
+  uint16_t _eepromAddress = 0;
+
+  // Pointer to next turnout on linked list.
+  Turnout *_nextTurnout = 0;
+
+  /*
+   * Constructor
+   */
+  Turnout(uint16_t id, uint8_t turnoutType, bool closed) {
+    _turnoutData.id = id;
+    _turnoutData.turnoutType = turnoutType;
+    _turnoutData.closed = closed;
+    add(this);
+  }
+
+  /* 
+   * Static data
+   */ 
+
+  static Turnout *_firstTurnout;
+  static int _turnoutlistHash;
+
+  /* 
+   * Virtual functions
+   */
+
+  virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
+  virtual void save() {}
   
+  /*
+   * Static functions
+   */
+
+  static Turnout *get(uint16_t id);
+
+  static void add(Turnout *tt);
+  
+public:
+  /* 
+   * Static data
+   */
+  static int turnoutlistHash;
+  static bool useLegacyTurnoutBehaviour;
+
+  /*
+   * Public base class functions
+   */
+  inline bool isClosed() { return _turnoutData.closed; };
+  inline bool isThrown() { return !_turnoutData.closed; }
+  inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
+  inline uint16_t getId() { return _turnoutData.id; }
+  inline Turnout *next() { return _nextTurnout; }
+  void printState(Print *stream);
+  /* 
+   * Virtual functions
+   */
+  virtual void print(Print *stream) {
+    (void)stream;  // avoid compiler warnings.
+  }
+  virtual ~Turnout() {}   // Destructor
+
+  /*
+   * Public static functions
+   */
+  inline static bool exists(uint16_t id) { return get(id) != 0; }
+
+  static bool remove(uint16_t id);
+
+  static bool isClosed(uint16_t id);
+
+  inline static bool isThrown(uint16_t id) {
+    return !isClosed(id);
+  }
+
+  static bool setClosed(uint16_t id, bool closeFlag);
+
+  inline static bool setClosed(uint16_t id) {
+    return setClosed(id, true);
+  }
+
+  inline static bool setThrown(uint16_t id) {
+    return setClosed(id, false);
+  }
+
+  static bool setClosedStateOnly(uint16_t id, bool close);
+
+  inline static Turnout *first() { return _firstTurnout; }
+
+  // Load all turnout definitions.
+  static void load();
+  // Load one turnout definition
+  static Turnout *loadTurnout();
+  // Save all turnout definitions
+  static void store();
+
+  static void printAll(Print *stream) {
+    for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
+      tt->printState(stream);
+  }
+
+  static void printState(uint16_t id, Print *stream);
+};
+
+
+/*************************************************************************************
+ * ServoTurnout - Turnout controlled by servo device.
+ * 
+ *************************************************************************************/
+class ServoTurnout : public Turnout {
+private:
+  // ServoTurnoutData contains data specific to this subclass that is 
+  // written to EEPROM when the turnout is saved.
+  struct ServoTurnoutData {
+    VPIN vpin;
+    uint16_t closedPosition : 12;
+    uint16_t thrownPosition : 12;
+    uint8_t profile;
+  } _servoTurnoutData; // 6 bytes
+
+  // Constructor
+  ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+
+public:
+  // Create function
+  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+
+  // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData);
+  void print(Print *stream) override;
+
+protected:
+  // ServoTurnout-specific code for throwing or closing a servo turnout.
+  bool setClosedInternal(bool close) override;
+  void save() override;
+
+};
+
+/*************************************************************************************
+ * DCCTurnout - Turnout controlled by DCC Accessory Controller.
+ * 
+ *************************************************************************************/
+class DCCTurnout : public Turnout {
+private:
+  // DCCTurnoutData contains data specific to this subclass that is 
+  // written to EEPROM when the turnout is saved.
+  struct DCCTurnoutData {
+    // DCC address (Address in bits 15-2, subaddress in bits 1-0
+    uint16_t address; // CS currently supports linear address 1-2048
+      // That's DCC accessory address 1-512 and subaddress 0-3.
+  } _dccTurnoutData; // 2 bytes
+
+  // Constructor
+  DCCTurnout(uint16_t id, uint16_t address, uint8_t subAdd);
+
+public:
+  // Create function
+  static Turnout *create(uint16_t id, uint16_t add, uint8_t subAdd);
+  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData);
+  void print(Print *stream) override;
+
+protected:
+  bool setClosedInternal(bool close) override;
+  void save() override;
+
+};
+
+
+/*************************************************************************************
+ * VpinTurnout - Turnout controlled through a HAL vpin.
+ * 
+ *************************************************************************************/
+class VpinTurnout : public Turnout {
+private:
+  // VpinTurnoutData contains data specific to this subclass that is 
+  // written to EEPROM when the turnout is saved.
+  struct VpinTurnoutData {
+    VPIN vpin;
+  } _vpinTurnoutData; // 2 bytes
+
+  // Constructor
+  VpinTurnout(uint16_t id, VPIN vpin, bool closed=true);
+
+public:
+  // Create function
+  static Turnout *create(uint16_t id, VPIN vpin, bool closed=true);
+
+  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData);
+  void print(Print *stream) override;
+
+protected:
+  bool setClosedInternal(bool close) override;
+  void save() override;
+
+};
+
+
+/*************************************************************************************
+ * LCNTurnout - Turnout controlled by Loconet
+ * 
+ *************************************************************************************/
+class LCNTurnout : public Turnout {
+private:
+  // LCNTurnout has no specific data, and in any case is not written to EEPROM!
+  // struct LCNTurnoutData {
+  // } _lcnTurnoutData; // 0 bytes
+
+  // Constructor
+  LCNTurnout(uint16_t id, bool closed=true);
+
+public:
+  // Create function
+  static Turnout *create(uint16_t id, bool closed=true);
+
+
+  bool setClosedInternal(bool close) override;
+
+  // LCN turnouts not saved to EEPROM.
+  //void save() override {  }
+  //static Turnout *load(struct TurnoutData *turnoutData) {
+
+  void print(Print *stream) override;
+
+};
+
 #endif

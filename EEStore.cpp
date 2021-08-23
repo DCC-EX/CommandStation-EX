@@ -72,6 +72,7 @@ void EEStore::store(){
     Sensor::store();
     Output::store();
     EEPROM.put(0,eeStore->data);
+    DIAG(F("EEPROM used: %d bytes"), EEStore::pointer());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -119,7 +119,7 @@ void LiquidCrystal_I2C::clearNative() {
 
 void LiquidCrystal_I2C::setRowNative(byte row) {
   int row_offsets[] = {0x00, 0x40, 0x14, 0x54};
-  if (row > lcdRows) {
+  if (row >= lcdRows) {
     row = lcdRows - 1;  // we count rows starting w/0
   }
   command(LCD_SETDDRAMADDR | (row_offsets[row]));
@@ -196,7 +196,7 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   outputBuffer[len++] = highnib;
   outputBuffer[len++] = lownib|En;
   outputBuffer[len++] = lownib;
-  I2CManager.write(_Addr, outputBuffer, len);
+  I2CManager.write(_Addr, outputBuffer, len, &requestBlock);
 }
 
 // write 4 data bits to the HD44780 LCD controller.
@@ -205,15 +205,19 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   // Enable must be set/reset for at least 450ns.  This is well within the
   // I2C clock cycle time of 2.5us at 400kHz. Data is clocked in to the
   // HD44780 on the trailing edge of the Enable pin.
+  // Wait for previous request to complete before writing to outputbuffer.
+  requestBlock.wait();
   uint8_t len = 0;
   outputBuffer[len++] = _data|En;
   outputBuffer[len++] = _data;
-  I2CManager.write(_Addr, outputBuffer, len);
+  I2CManager.write(_Addr, outputBuffer, len, &requestBlock);
 }
 
 // write a byte to the PCF8574 I2C interface.  We don't need to set
 // the enable pin for this.
 void LiquidCrystal_I2C::expanderWrite(uint8_t value) {
+  // Wait for previous request to complete before writing to outputbuffer.
+  requestBlock.wait();
   outputBuffer[0] = value | _backlightval;
-  I2CManager.write(_Addr, outputBuffer, 1);
+  I2CManager.write(_Addr, outputBuffer, 1, &requestBlock);
 }
