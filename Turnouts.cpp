@@ -20,13 +20,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Set the following definition to true for <T id 0> = throw and <T id 1> = close
-//  or to false for <T id 0> = close and <T id 1> = throw (the original way).
-#ifndef USE_LEGACY_TURNOUT_BEHAVIOUR
-#define USE_LEGACY_TURNOUT_BEHAVIOUR false
-#endif
 
-#include "defines.h"
+#include "defines.h"  // includes config.h
 #include "EEStore.h"
 #include "StringFormatter.h"
 #include "RMFT2.h"
@@ -47,7 +42,12 @@
    * Public static data
    */
   int Turnout::turnoutlistHash = 0;
-  bool Turnout::useLegacyTurnoutBehaviour = USE_LEGACY_TURNOUT_BEHAVIOUR;
+
+  #if defined(USE_RCN_213_TURNOUT_COMMANDS)
+  const bool Turnout::useClassicTurnoutCommands = false;
+  #else
+  const bool Turnout::useClassicTurnoutCommands = true;
+  #endif
  
   /*
    * Protected static functions
@@ -74,9 +74,11 @@
     turnoutlistHash++;
   }
   
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
+  // if consistency with RCN-213 has been selected, it is 0 for thrown and 1 for closed.
   void Turnout::printState(Print *stream) { 
     StringFormatter::send(stream, F("<H %d %d>\n"), 
-      _turnoutData.id, _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+      _turnoutData.id, _turnoutData.closed ^ useClassicTurnoutCommands);
   }
 
   // Remove nominated turnout from turnout linked list and delete the object.
@@ -279,10 +281,12 @@
     return tt;
   }
 
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
+  // if consistency with RCN-213 has been selected, it is 0 for thrown and 1 for closed.
   void ServoTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
       _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+      _turnoutData.closed ^ useClassicTurnoutCommands);
   }
 
   // ServoTurnout-specific code for throwing or closing a servo turnout.
@@ -311,6 +315,12 @@
  * DCCTurnout - Turnout controlled by DCC Accessory Controller.
  * 
  *************************************************************************************/
+
+#if defined(DCC_TURNOUTS_RCN_213)
+  const bool DCCTurnout::rcn213Compliant = true;
+#else
+  const bool DCCTurnout::rcn213Compliant = false;
+#endif
 
   // DCCTurnoutData contains data specific to this subclass that is 
   // written to EEPROM when the turnout is saved.
@@ -363,19 +373,19 @@
   void DCCTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
-    // Also report using classic DCC++ syntax for DCC accessory turnouts
+      _turnoutData.closed ^ useClassicTurnoutCommands); 
+    // Also report using classic DCC++ syntax for DCC accessory turnouts, since JMRI expects this.
     StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+      _turnoutData.closed ^ useClassicTurnoutCommands); 
   }
 
   bool DCCTurnout::setClosedInternal(bool close) {
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
-    // RCN-214 specifies that Throw is 0 and Close is 1.
+    // RCN-213 specifies that Throw is 0 and Close is 1.
     DCC::setAccessory((((_dccTurnoutData.address-1) >> 2) + 1), 
-      ((_dccTurnoutData.address-1) & 3), close ^ useLegacyTurnoutBehaviour);
+      ((_dccTurnoutData.address-1) & 3), close ^ !rcn213Compliant);
     _turnoutData.closed = close;
     return true;
   }
@@ -439,7 +449,7 @@
 
   void VpinTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+      _turnoutData.closed ^ useClassicTurnoutCommands); 
   }
 
   bool VpinTurnout::setClosedInternal(bool close) {
@@ -503,6 +513,6 @@
 
   void LCNTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
-    _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+    _turnoutData.closed ^ useClassicTurnoutCommands); 
   }
 

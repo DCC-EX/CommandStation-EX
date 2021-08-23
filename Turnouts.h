@@ -104,8 +104,8 @@ public:
    * Static data
    */
   static int turnoutlistHash;
-  static bool useLegacyTurnoutBehaviour;
-
+  static const bool useClassicTurnoutCommands;
+  
   /*
    * Public base class functions
    */
@@ -182,11 +182,12 @@ private:
   } _servoTurnoutData; // 6 bytes
 
   // Constructor
-  ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+  ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed);
 
 public:
   // Create function
-  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
+  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = !useClassicTurnoutCommands);
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
@@ -223,6 +224,8 @@ public:
   static Turnout *load(struct TurnoutData *turnoutData);
   void print(Print *stream) override;
 
+  static const bool rcn213Compliant;
+
 protected:
   bool setClosedInternal(bool close) override;
   void save() override;
@@ -243,11 +246,12 @@ private:
   } _vpinTurnoutData; // 2 bytes
 
   // Constructor
-  VpinTurnout(uint16_t id, VPIN vpin, bool closed=true);
+ VpinTurnout(uint16_t id, VPIN vpin, bool closed);
 
 public:
   // Create function
-  static Turnout *create(uint16_t id, VPIN vpin, bool closed=true);
+  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
+  static Turnout *create(uint16_t id, VPIN vpin, bool closed=!useClassicTurnoutCommands);
 
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
@@ -270,12 +274,13 @@ private:
   // struct LCNTurnoutData {
   // } _lcnTurnoutData; // 0 bytes
 
-  // Constructor
-  LCNTurnout(uint16_t id, bool closed=true);
+  // Constructor 
+  LCNTurnout(uint16_t id, bool closed);
 
 public:
   // Create function
-  static Turnout *create(uint16_t id, bool closed=true);
+  // If the initial state isn't specified, use true for RCN-213 consistency and false for DCC++ classic compatibility.
+  static Turnout *create(uint16_t id, bool closed=!useClassicTurnoutCommands);
 
 
   bool setClosedInternal(bool close) override;

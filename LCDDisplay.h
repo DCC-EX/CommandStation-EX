@@ -21,9 +21,7 @@
 #include <Arduino.h>
 #include "DisplayInterface.h"
 
-#if __has_include ( "config.h")
-  #include "config.h"
-#endif
+#include "defines.h"  // includes config.h as well
 
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE) 
