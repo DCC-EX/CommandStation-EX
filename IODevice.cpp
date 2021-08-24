@@ -292,7 +292,7 @@ ArduinoPins::ArduinoPins(VPIN firstVpin, int nPins) {
   _pinPullups = (uint8_t *)calloc(2, arrayLen);
   _pinModes = (&_pinPullups[0]) + arrayLen;
   for (int i=0; i<arrayLen; i++) {
-    _pinPullups[i] = 0;
+    _pinPullups[i] = 0xff;  // default to pullup on, for inputs
     _pinModes[i] = 0;
   }
 }

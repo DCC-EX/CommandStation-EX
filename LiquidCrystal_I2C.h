@@ -90,7 +90,8 @@ private:
 
   I2CRB requestBlock;
   uint8_t outputBuffer[4];
-  bool isBusy() { return requestBlock.isBusy(); }
+  // I/O is synchronous, so if this is called we're not busy!
+  bool isBusy() { return false; } 
 };
 
 #endif

@@ -164,8 +164,6 @@ void I2CManagerClass::loop() {
 #if !defined(I2C_USE_INTERRUPTS)
   handleInterrupt();
 #endif
-  // If free, initiate next transaction
-  startTransaction();
   checkForTimeout();
 }
 

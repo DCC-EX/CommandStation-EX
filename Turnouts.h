@@ -53,9 +53,14 @@ protected:
   // vice versa.  If the turnout has been saved, then this byte is rewritten
   // when changed in RAM.  The 'closed' flag must be located in the first byte.
   struct TurnoutData {
-    bool closed : 1;
-    bool _rfu: 2;
-    uint8_t turnoutType : 5;
+    union {
+      struct {
+        bool closed : 1;
+        bool _rfu: 2;
+        uint8_t turnoutType : 5;
+      };
+      uint8_t flags;
+    };
     uint16_t id;
   } _turnoutData;  // 3 bytes
 
@@ -104,8 +109,8 @@ public:
    * Static data
    */
   static int turnoutlistHash;
-  static bool useLegacyTurnoutBehaviour;
-
+  static const bool useClassicTurnoutCommands;
+  
   /*
    * Public base class functions
    */
@@ -182,11 +187,11 @@ private:
   } _servoTurnoutData; // 6 bytes
 
   // Constructor
-  ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+  ServoTurnout(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed);
 
 public:
   // Create function
-  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed = true);
+  static Turnout *create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed=true);
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
@@ -222,6 +227,8 @@ public:
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
   static Turnout *load(struct TurnoutData *turnoutData);
   void print(Print *stream) override;
+  // Flag whether DCC Accessory packets are to contain 1=close/0=throw(RCN-213) or 1=throw/0-close (DCC++ Classic)
+  static const bool rcn213Compliant;
 
 protected:
   bool setClosedInternal(bool close) override;
@@ -243,7 +250,7 @@ private:
   } _vpinTurnoutData; // 2 bytes
 
   // Constructor
-  VpinTurnout(uint16_t id, VPIN vpin, bool closed=true);
+ VpinTurnout(uint16_t id, VPIN vpin, bool closed);
 
 public:
   // Create function
@@ -270,8 +277,8 @@ private:
   // struct LCNTurnoutData {
   // } _lcnTurnoutData; // 0 bytes
 
-  // Constructor
-  LCNTurnout(uint16_t id, bool closed=true);
+  // Constructor 
+  LCNTurnout(uint16_t id, bool closed);
 
 public:
   // Create function

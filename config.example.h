@@ -129,4 +129,16 @@ The configuration file for DCC-EX Command Station
 #define SCROLLMODE 1
 
 /////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
+//
+// According to norm RCN-213 a DCC packet with a 1 is closed/straight
+// and one with a 0 is thrown/diverging.  In DCC++ Classic, and in previous
+// versions of DCC++EX, a throw command was implemented in the packet as 
+// '1' and a close command as '0'. The #define below makes the states
+// match with the norm.  But we don't want to cause havoc on existent layouts,
+// so we define this only for new installations. If you don't want this,
+// don't add it to your config.h.
+#define DCC_TURNOUTS_RCN_213
 
+/////////////////////////////////////////////////////////////////////////////////////

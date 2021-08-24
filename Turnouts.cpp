@@ -20,13 +20,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Set the following definition to true for <T id 0> = throw and <T id 1> = close
-//  or to false for <T id 0> = close and <T id 1> = throw (the original way).
-#ifndef USE_LEGACY_TURNOUT_BEHAVIOUR
-#define USE_LEGACY_TURNOUT_BEHAVIOUR false
-#endif
 
-#include "defines.h"
+#include "defines.h"  // includes config.h
 #include "EEStore.h"
 #include "StringFormatter.h"
 #include "RMFT2.h"
@@ -47,7 +42,6 @@
    * Public static data
    */
   int Turnout::turnoutlistHash = 0;
-  bool Turnout::useLegacyTurnoutBehaviour = USE_LEGACY_TURNOUT_BEHAVIOUR;
  
   /*
    * Protected static functions
@@ -74,9 +68,10 @@
     turnoutlistHash++;
   }
   
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
   void Turnout::printState(Print *stream) { 
     StringFormatter::send(stream, F("<H %d %d>\n"), 
-      _turnoutData.id, _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+      _turnoutData.id, !_turnoutData.closed);
   }
 
   // Remove nominated turnout from turnout linked list and delete the object.
@@ -137,7 +132,7 @@
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
-        EEPROM.put(tt->_eepromAddress, *((uint8_t *) &tt->_turnoutData));  
+        EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);  
 
     #if defined(RMFT_ACTIVE)
       RMFT2::turnoutEvent(id, closeFlag);
@@ -172,7 +167,7 @@
     Turnout *tt = 0;
     // Read turnout type from EEPROM
     struct TurnoutData turnoutData;
-    int eepromAddress = EEStore::pointer(); // Address of byte containing the closed flag.
+    int eepromAddress = EEStore::pointer() + offsetof(struct TurnoutData, flags); // Address of byte containing the closed flag.
     EEPROM.get(EEStore::pointer(), turnoutData);
     EEStore::advance(sizeof(turnoutData));
 
@@ -196,7 +191,7 @@
     }
     if (tt) {
       // Save EEPROM address in object.  Note that LCN turnouts always have eepromAddress of zero.
-      tt->_eepromAddress = eepromAddress;
+      tt->_eepromAddress = eepromAddress + offsetof(struct TurnoutData, flags);
     }
 
 #ifdef EESTOREDEBUG
@@ -205,7 +200,7 @@
     return tt;
   }
 
-  // Display, on the specified stream, the current state of the turnout (1 or 0).
+  // Display, on the specified stream, the current state of the turnout (1=thrown or 0=closed).
   void Turnout::printState(uint16_t id, Print *stream) {
     Turnout *tt = get(id);
     if (!tt) tt->printState(stream);
@@ -279,10 +274,11 @@
     return tt;
   }
 
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed
   void ServoTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
       _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour);
+      !_turnoutData.closed);
   }
 
   // ServoTurnout-specific code for throwing or closing a servo turnout.
@@ -311,6 +307,12 @@
  * DCCTurnout - Turnout controlled by DCC Accessory Controller.
  * 
  *************************************************************************************/
+
+#if defined(DCC_TURNOUTS_RCN_213)
+  const bool DCCTurnout::rcn213Compliant = true;
+#else
+  const bool DCCTurnout::rcn213Compliant = false;
+#endif
 
   // DCCTurnoutData contains data specific to this subclass that is 
   // written to EEPROM when the turnout is saved.
@@ -363,19 +365,19 @@
   void DCCTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
-    // Also report using classic DCC++ syntax for DCC accessory turnouts
+      !_turnoutData.closed); 
+    // Also report using classic DCC++ syntax for DCC accessory turnouts, since JMRI expects this.
     StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+      !_turnoutData.closed); 
   }
 
   bool DCCTurnout::setClosedInternal(bool close) {
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
-    // RCN-214 specifies that Throw is 0 and Close is 1.
+    // RCN-213 specifies that Throw is 0 and Close is 1.
     DCC::setAccessory((((_dccTurnoutData.address-1) >> 2) + 1), 
-      ((_dccTurnoutData.address-1) & 3), close ^ useLegacyTurnoutBehaviour);
+      ((_dccTurnoutData.address-1) & 3), close ^ !rcn213Compliant);
     _turnoutData.closed = close;
     return true;
   }
@@ -437,9 +439,10 @@
     return tt;
   }
 
+  // Report 1 for thrown, 0 for closed.
   void VpinTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
-      _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+      !_turnoutData.closed); 
   }
 
   bool VpinTurnout::setClosedInternal(bool close) {
@@ -501,8 +504,9 @@
   //void save() override {  }
   //static Turnout *load(struct TurnoutData *turnoutData) {
 
+  // Report 1 for thrown, 0 for closed.
   void LCNTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
-    _turnoutData.closed ^ useLegacyTurnoutBehaviour); 
+    !_turnoutData.closed); 
   }
 

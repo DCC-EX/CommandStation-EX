@@ -700,22 +700,17 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         {
           bool state = false;
           switch (p[1]) {
-            // By default turnout command uses 0=throw, 1=close,
-            // but legacy DCC++ behaviour is 1=throw, 0=close.
+            // Turnout messages use 1=throw, 0=close.
             case 0:
-              state = Turnout::useLegacyTurnoutBehaviour;
-              break;
-            case 1: 
-              state = !Turnout::useLegacyTurnoutBehaviour;
-              break;
             case HASH_KEYWORD_C:
               state = true;
               break;
+            case 1:
             case HASH_KEYWORD_T:
               state= false;
               break;
             default:
-              return false;
+              return false;  // Invalid parameter
           }
           if (!Turnout::setClosed(p[0], state)) return false;
 
