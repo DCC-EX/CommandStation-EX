@@ -32,6 +32,16 @@
 #include "DIAG.h"
 #include <avr/wdt.h>
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Figure out if we have enough memory for advanced features
+//
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+// nope
+#else
+#define HAS_ENOUGH_MEMORY
+#endif
+
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
 const int16_t HASH_KEYWORD_PROG = -29718;
@@ -40,8 +50,6 @@ const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
 const int16_t HASH_KEYWORD_RAM = 25982;
 const int16_t HASH_KEYWORD_CMD = 9962;
-const int16_t HASH_KEYWORD_WIT = 31594;
-const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ACK = 3113;
 const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
@@ -49,17 +57,22 @@ const int16_t HASH_KEYWORD_SLOW = -17209;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
 const int16_t HASH_KEYWORD_EEPROM = -7168;
 const int16_t HASH_KEYWORD_LIMIT = 27413;
-const int16_t HASH_KEYWORD_ETHERNET = -30767;    
 const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
-const int16_t HASH_KEYWORD_LCN = 15137;   
 const int16_t HASH_KEYWORD_RESET = 26133;
+const int16_t HASH_KEYWORD_RETRY = 25704;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 const int16_t HASH_KEYWORD_SERVO=27709;
 const int16_t HASH_KEYWORD_VPIN=-415;
 const int16_t HASH_KEYWORD_C=67;
 const int16_t HASH_KEYWORD_T=84;
+const int16_t HASH_KEYWORD_LCN = 15137;
+#ifdef HAS_ENOUGH_MEMORY
+const int16_t HASH_KEYWORD_WIFI = -5583;
+const int16_t HASH_KEYWORD_ETHERNET = -30767;
+const int16_t HASH_KEYWORD_WIT = 31594;
+#endif
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -257,6 +270,7 @@ void DCCEXParser::parse(const FSH * cmd) {
 }
 
 // See documentation on DCC class for info on this section
+
 void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 {
     (void)EEPROM; // tell compiler not to warn this is unused
@@ -455,6 +469,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>\n"), opcode);
+		        LCD(2, F("p%c"), opcode);
                 return;
             }
             switch (p[0])
@@ -462,6 +477,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             case HASH_KEYWORD_MAIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 StringFormatter::send(stream, F("<p%c MAIN>\n"), opcode);
+	            LCD(2, F("p%c MAIN"), opcode);
                 return;
 
             case HASH_KEYWORD_PROG:
@@ -469,6 +485,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>\n"), opcode);
+		        LCD(2, F("p%c PROG"), opcode);
                 return;
             case HASH_KEYWORD_JOIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
@@ -477,9 +494,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 {
                     DCC::setProgTrackSyncMain(true);
                     StringFormatter::send(stream, F("<p1 JOIN>\n"), opcode);
+		            LCD(2, F("p1 JOIN"));
                 }
                 else
+		        {
                     StringFormatter::send(stream, F("<p0>\n"));
+		            LCD(2, F("p0"));
+	    	    }
                 return;
             }
             break;
@@ -779,17 +800,21 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("Free memory=%d\n"), minimumFreeMemory());
         break;
 
-    case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX] Value>
+    case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
 	      DCCWaveform::progTrack.setAckLimit(p[2]);
-	      StringFormatter::send(stream, F("Ack limit=%dmA\n"), p[2]);
+	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
 	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
-	      StringFormatter::send(stream, F("Ack min=%dus\n"), p[2]);
+	      LCD(0, F("Ack Min=%dus"), p[2]);  //   <D ACK MIN 1500>
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
 	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
-	      StringFormatter::send(stream, F("Ack max=%dus\n"), p[2]);
+	      LCD(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
+	    } else if (p[1] == HASH_KEYWORD_RETRY) {
+	      if (p[2] >255) p[2]=3;
+              DCC::setAckRetry(p[2]);
+	      LCD(0, F("Ack Retry=%d"), p[2]);  //   <D ACK RETRY 2>
 	    }
 	} else {
 	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));
@@ -801,21 +826,23 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::CMD = onOff;
         return true;
 
+#ifdef HAS_ENOUGH_MEMORY
     case HASH_KEYWORD_WIFI: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
         return true;
 
-   case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
+    case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
         Diag::ETHERNET = onOff;
         return true;
 
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
         Diag::WITHROTTLE = onOff;
         return true;
-  
+
     case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
         Diag::LCN = onOff;
         return true;
+#endif
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);

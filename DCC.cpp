@@ -683,9 +683,13 @@ int DCC::nextLoco = 0;
 
 //ACK MANAGER
 ackOp  const *  DCC::ackManagerProg;
+ackOp  const *  DCC::ackManagerProgStart;
 byte   DCC::ackManagerByte;
 byte   DCC::ackManagerStash;
 int    DCC::ackManagerWord;
+byte   DCC::ackManagerRetry;
+byte   DCC::ackRetry = 2;
+int16_t  DCC::ackRetrySum;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
@@ -718,6 +722,8 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
   ackManagerCv = cv;
   ackManagerProg = program;
+  ackManagerProgStart = program;
+  ackManagerRetry = ackRetry;
   ackManagerByte = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
@@ -901,6 +907,15 @@ void DCC::ackManagerLoop() {
 }
 
 void DCC::callback(int value) {
+    // check for automatic retry
+    if (value == -1 && ackManagerRetry > 0) {
+      ackRetrySum ++;
+      LCD(0, F("RETRY %d %d %d %d"), ackManagerCv, ackManagerRetry, ackRetry, ackRetrySum);
+      ackManagerRetry --;
+      ackManagerProg = ackManagerProgStart;
+      return;
+    }
+
     static unsigned long callbackStart;
     // We are about to leave programming mode
     // Rule 1: If we have written to a decoder we must maintain power for 100mS

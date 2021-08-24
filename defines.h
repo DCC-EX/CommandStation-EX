@@ -22,10 +22,13 @@
 #define DEFINES_H
 
 // defines.h relies on macros defined in config.h
-#if __has_include ( "config.h")
-  #include "config.h"
-#else
-  #include "config.example.h"
+// but it may have already been included (for cosmetic convenence) by the .ino
+#ifndef MOTOR_SHIELD_TYPE
+  #if __has_include ( "config.h")
+    #include "config.h"
+  #else
+    #include "config.example.h"
+  #endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

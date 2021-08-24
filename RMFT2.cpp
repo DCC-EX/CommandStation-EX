@@ -36,6 +36,7 @@ const int16_t HASH_KEYWORD_UNLATCH=1353;
 const int16_t HASH_KEYWORD_PAUSE=-4142;
 const int16_t HASH_KEYWORD_RESUME=27609;
 const int16_t HASH_KEYWORD_KILL=5218;
+const int16_t HASH_KEYWORD_ROUTES=-3702;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
@@ -192,7 +193,14 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
                     task->loco=cab;                    
                  }
               return true;
-                 
+
+            case HASH_KEYWORD_ROUTES: // </ ROUTES > JMRI withrottle support 
+                 if (paramCount>1) return false;
+                 StringFormatter::send(stream,F("</ROUTES "));
+                 emitWithrottleRouteList(stream);                                  
+                 StringFormatter::send(stream,F(">"));
+              return true;
+              
             default:
               break;
           }
