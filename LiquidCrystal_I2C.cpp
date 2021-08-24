@@ -59,6 +59,8 @@ LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols,
     backlight();
     lcdDisplay = this;
   }
+  // Initialise request block for comms.
+  requestBlock.setWriteParams(lcd_Addr, outputBuffer, sizeof(outputBuffer));
 }
 
 void LiquidCrystal_I2C::begin() {
@@ -190,13 +192,15 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   mode |= _backlightval;
   uint8_t highnib = (((value >> 4) & 0x0f) << BACKPACK_DATA_BITS) | mode;
   uint8_t lownib = ((value & 0x0f) << BACKPACK_DATA_BITS) | mode;
+  // Wait for previous request to complete before writing to outputbuffer.
+  requestBlock.wait();
   // Send both nibbles
   uint8_t len = 0;
   outputBuffer[len++] = highnib|En;
   outputBuffer[len++] = highnib;
   outputBuffer[len++] = lownib|En;
   outputBuffer[len++] = lownib;
-  I2CManager.write(_Addr, outputBuffer, len, &requestBlock);
+  I2CManager.write(_Addr, outputBuffer, len);
 }
 
 // write 4 data bits to the HD44780 LCD controller.
@@ -210,7 +214,7 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   uint8_t len = 0;
   outputBuffer[len++] = _data|En;
   outputBuffer[len++] = _data;
-  I2CManager.write(_Addr, outputBuffer, len, &requestBlock);
+  I2CManager.write(_Addr, outputBuffer, len);
 }
 
 // write a byte to the PCF8574 I2C interface.  We don't need to set
@@ -219,5 +223,5 @@ void LiquidCrystal_I2C::expanderWrite(uint8_t value) {
   // Wait for previous request to complete before writing to outputbuffer.
   requestBlock.wait();
   outputBuffer[0] = value | _backlightval;
-  I2CManager.write(_Addr, outputBuffer, 1, &requestBlock);
+  I2CManager.write(_Addr, outputBuffer, 1);
 }
