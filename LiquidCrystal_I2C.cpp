@@ -200,7 +200,7 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   outputBuffer[len++] = highnib;
   outputBuffer[len++] = lownib|En;
   outputBuffer[len++] = lownib;
-  I2CManager.write(_Addr, outputBuffer, len);
+  I2CManager.write(_Addr, outputBuffer, len);  // Write command synchronously
 }
 
 // write 4 data bits to the HD44780 LCD controller.
@@ -214,7 +214,7 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   uint8_t len = 0;
   outputBuffer[len++] = _data|En;
   outputBuffer[len++] = _data;
-  I2CManager.write(_Addr, outputBuffer, len);
+  I2CManager.write(_Addr, outputBuffer, len);  // Write command synchronously
 }
 
 // write a byte to the PCF8574 I2C interface.  We don't need to set
@@ -223,5 +223,5 @@ void LiquidCrystal_I2C::expanderWrite(uint8_t value) {
   // Wait for previous request to complete before writing to outputbuffer.
   requestBlock.wait();
   outputBuffer[0] = value | _backlightval;
-  I2CManager.write(_Addr, outputBuffer, 1);
+  I2CManager.write(_Addr, outputBuffer, 1);  // Write command synchronously
 }
