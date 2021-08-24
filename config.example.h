@@ -141,15 +141,4 @@ The configuration file for DCC-EX Command Station
 // don't add it to your config.h.
 #define DCC_TURNOUTS_RCN_213
 
-// In addition to the above, there is an option to allow the values in the <T> commands
-// sent and received from JMRI to be changed to be consistent with the definition in
-// RCN-213.  In DCC++ Classic and in previous versions of DCC++EX, a <T id 1> command
-// requested a 'throw' and <T id 0> requested a 'close'.  
-// The macro below, when present, allows this behaviour to be reversed so that a <T id 1>
-// requests the turnout to 'close' and <T id 0> requests it to 'throw'.
-// This should only be used if the command processor (JMRI) writing to the serial port
-// supports it, otherwise turnout operation commands received over the serial port
-// will be reversed.
-//#define USE_RCN_213_TURNOUT_COMMANDS
-
 /////////////////////////////////////////////////////////////////////////////////////

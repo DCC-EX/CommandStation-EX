@@ -42,12 +42,6 @@
    * Public static data
    */
   int Turnout::turnoutlistHash = 0;
-
-  #if defined(USE_RCN_213_TURNOUT_COMMANDS)
-  const bool Turnout::useClassicTurnoutCommands = false;
-  #else
-  const bool Turnout::useClassicTurnoutCommands = true;
-  #endif
  
   /*
    * Protected static functions
@@ -75,10 +69,9 @@
   }
   
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
-  // if consistency with RCN-213 has been selected, it is 0 for thrown and 1 for closed.
   void Turnout::printState(Print *stream) { 
     StringFormatter::send(stream, F("<H %d %d>\n"), 
-      _turnoutData.id, _turnoutData.closed ^ useClassicTurnoutCommands);
+      _turnoutData.id, !_turnoutData.closed);
   }
 
   // Remove nominated turnout from turnout linked list and delete the object.
@@ -207,7 +200,7 @@
     return tt;
   }
 
-  // Display, on the specified stream, the current state of the turnout (1 or 0).
+  // Display, on the specified stream, the current state of the turnout (1=thrown or 0=closed).
   void Turnout::printState(uint16_t id, Print *stream) {
     Turnout *tt = get(id);
     if (!tt) tt->printState(stream);
@@ -281,12 +274,11 @@
     return tt;
   }
 
-  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
-  // if consistency with RCN-213 has been selected, it is 0 for thrown and 1 for closed.
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed
   void ServoTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d SERVO %d %d %d %d %d>\n"), _turnoutData.id, _servoTurnoutData.vpin, 
       _servoTurnoutData.thrownPosition, _servoTurnoutData.closedPosition, _servoTurnoutData.profile, 
-      _turnoutData.closed ^ useClassicTurnoutCommands);
+      !_turnoutData.closed);
   }
 
   // ServoTurnout-specific code for throwing or closing a servo turnout.
@@ -373,11 +365,11 @@
   void DCCTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useClassicTurnoutCommands); 
+      !_turnoutData.closed); 
     // Also report using classic DCC++ syntax for DCC accessory turnouts, since JMRI expects this.
     StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
       (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      _turnoutData.closed ^ useClassicTurnoutCommands); 
+      !_turnoutData.closed); 
   }
 
   bool DCCTurnout::setClosedInternal(bool close) {
@@ -447,9 +439,10 @@
     return tt;
   }
 
+  // Report 1 for thrown, 0 for closed.
   void VpinTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
-      _turnoutData.closed ^ useClassicTurnoutCommands); 
+      !_turnoutData.closed); 
   }
 
   bool VpinTurnout::setClosedInternal(bool close) {
@@ -511,8 +504,9 @@
   //void save() override {  }
   //static Turnout *load(struct TurnoutData *turnoutData) {
 
+  // Report 1 for thrown, 0 for closed.
   void LCNTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
-    _turnoutData.closed ^ useClassicTurnoutCommands); 
+    !_turnoutData.closed); 
   }
 
