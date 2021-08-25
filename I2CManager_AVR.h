@@ -136,7 +136,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
       } else {  // Nothing left to send or receive
         TWDR = 0xff;  // Default condition = SDA released
         TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
-        status = I2C_STATUS_OK;
+        state = I2C_STATUS_OK;
       }
       break;
     case TWI_MRX_DATA_ACK:      // Data byte has been received and ACK transmitted
@@ -159,7 +159,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
         bytesToReceive--;
       }
       TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
-      status = I2C_STATUS_OK;
+      state = I2C_STATUS_OK;
       break;
     case TWI_START:             // START has been transmitted  
     case TWI_REP_START:         // Repeated START has been transmitted
@@ -175,7 +175,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     case TWI_MTX_DATA_NACK:     // Data byte has been transmitted and NACK received
       TWDR = 0xff;  // Default condition = SDA released
       TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
-      status = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
       break;
     case TWI_ARB_LOST:          // Arbitration lost
       // Restart transaction from start.
@@ -185,7 +185,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     default:
       TWDR = 0xff;  // Default condition = SDA released
       TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
-      status = I2C_STATUS_TRANSMIT_ERROR;
+      state = I2C_STATUS_TRANSMIT_ERROR;
   }
 }
 

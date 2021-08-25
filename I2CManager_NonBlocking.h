@@ -41,7 +41,7 @@
 void I2CManagerClass::_initialise()
 {
   queueHead = queueTail = NULL;
-  status = I2C_STATE_FREE;
+  state = I2C_STATE_FREE;
   I2C_init();
 }
 
@@ -60,8 +60,8 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
 void I2CManagerClass::startTransaction() { 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     I2CRB *t = queueHead;
-    if ((status == I2C_STATE_FREE) && (t != NULL)) {
-      status = I2C_STATE_ACTIVE;
+    if ((state == I2C_STATE_FREE) && (t != NULL)) {
+      state = I2C_STATE_ACTIVE;
       currentRequest = t;
       rxCount = txCount = 0;
       // Copy key fields to static data for speed.
@@ -135,7 +135,7 @@ void I2CManagerClass::checkForTimeout() {
   unsigned long currentMicros = micros();
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     I2CRB *t = queueHead;
-    if (t && timeout > 0) {
+    if (state==I2C_STATE_ACTIVE && t!=0 && timeout > 0) {
       // Check for timeout
       if (currentMicros - startTime > timeout) { 
         // Excessive time. Dequeue request
@@ -148,7 +148,7 @@ void I2CManagerClass::checkForTimeout() {
         // Try close and init, not entirely satisfactory but sort of works...
         I2C_close();  // Shutdown and restart twi interface
         I2C_init();
-        status = I2C_STATE_FREE;
+        state = I2C_STATE_FREE;
         
         // Initiate next queued request
         startTransaction();
@@ -178,7 +178,7 @@ void I2CManagerClass::handleInterrupt() {
   // Experimental -- perform the post processing with interrupts enabled.
   //interrupts();
 
-  if (status!=I2C_STATUS_PENDING) {
+  if (state!=I2C_STATE_ACTIVE && state != I2C_STATE_FREE) {
     // Remove completed request from head of queue
     I2CRB * t;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -187,10 +187,10 @@ void I2CManagerClass::handleInterrupt() {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = queueHead;
         t->nBytes = rxCount;
-        t->status = status;
+        t->status = state;
       }
       // I2C state machine is now free for next request
-      status = I2C_STATE_FREE;
+      state = I2C_STATE_FREE;
     }
     // Start next request (if any)
     I2CManager.startTransaction();
@@ -201,7 +201,7 @@ void I2CManagerClass::handleInterrupt() {
 I2CRB * volatile I2CManagerClass::queueHead = NULL;
 I2CRB * volatile I2CManagerClass::queueTail = NULL;
 I2CRB * volatile I2CManagerClass::currentRequest = NULL;
-volatile uint8_t I2CManagerClass::status = I2C_STATE_FREE;
+volatile uint8_t I2CManagerClass::state = I2C_STATE_FREE;
 volatile uint8_t I2CManagerClass::txCount;
 volatile uint8_t I2CManagerClass::rxCount;
 volatile uint8_t I2CManagerClass::operation;

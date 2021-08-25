@@ -111,7 +111,7 @@
  * 
  */
 
-//#define I2C_USE_WIRE
+#define I2C_USE_WIRE
 #ifndef I2C_NO_INTERRUPTS
 #define I2C_USE_INTERRUPTS
 #endif
@@ -235,7 +235,7 @@ private:
     // Mark volatile as they are updated by IRC and read/written elsewhere.
     static I2CRB * volatile queueHead;
     static I2CRB * volatile queueTail;
-    static volatile uint8_t status;
+    static volatile uint8_t state;
 
     static I2CRB * volatile currentRequest;
     static volatile uint8_t txCount;
