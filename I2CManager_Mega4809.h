@@ -105,14 +105,14 @@ void I2CManagerClass::I2C_handleInterrupt() {
     I2C_sendStart();   // Reinitiate request
   } else if (currentStatus & TWI_BUSERR_bm) {
     // Bus error
-    status = I2C_STATUS_BUS_ERROR;
+    state = I2C_STATUS_BUS_ERROR;
     TWI0.MSTATUS = currentStatus; // clear all flags
   } else if (currentStatus & TWI_WIF_bm) {
     // Master write completed
     if (currentStatus & TWI_RXACK_bm) {
       // Nacked, send stop.
       TWI0.MCTRLB = TWI_MCMD_STOP_gc;
-      status = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
     } else if (bytesToSend) {
       // Acked, so send next byte
       if (currentRequest->operation == OPERATION_SEND_P)
@@ -126,7 +126,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     } else {
       // No more data to send/receive. Initiate a STOP condition.
       TWI0.MCTRLB = TWI_MCMD_STOP_gc;
-      status = I2C_STATUS_OK;  // Done
+      state = I2C_STATUS_OK;  // Done
     }
   } else if (currentStatus & TWI_RIF_bm) {
     // Master read completed without errors
@@ -136,7 +136,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     } else { 
       // Buffer full, issue nack/stop
       TWI0.MCTRLB = TWI_ACKACT_bm | TWI_MCMD_STOP_gc;
-      status = I2C_STATUS_OK;
+      state = I2C_STATUS_OK;
     }
     if (bytesToReceive) {
       // More bytes to receive, issue ack and start another read
@@ -144,7 +144,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     } else {
       // Transaction finished, issue NACK and STOP.
       TWI0.MCTRLB = TWI_ACKACT_bm | TWI_MCMD_STOP_gc;
-      status = I2C_STATUS_OK;
+      state = I2C_STATUS_OK;
     }
   }
 }
