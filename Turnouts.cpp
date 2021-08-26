@@ -107,7 +107,7 @@
 
   bool Turnout::setClosedStateOnly(uint16_t id, bool close) {
     Turnout *tt = get(id);
-    if (tt) return false;
+    if (!tt) return false;
     tt->_turnoutData.closed = close;
     return true;
   }
