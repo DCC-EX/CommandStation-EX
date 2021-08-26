@@ -75,10 +75,8 @@ public:
   void backlight();
   
   void command(uint8_t);
-  void init();
 
 private:
-  void init_priv();
   void send(uint8_t, uint8_t);
   void write4bits(uint8_t);
   void expanderWrite(uint8_t);
@@ -88,10 +86,9 @@ private:
   uint8_t _displaymode;
   uint8_t _backlightval;
 
-  I2CRB requestBlock;
   uint8_t outputBuffer[4];
   // I/O is synchronous, so if this is called we're not busy!
-  bool isBusy() { return false; } 
+  bool isBusy() override { return false; } 
 };
 
 #endif
