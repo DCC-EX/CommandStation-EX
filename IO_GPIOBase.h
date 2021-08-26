@@ -174,7 +174,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
     if (digitalRead(_gpioInterruptPin)) return;
   } else
   // No interrupt pin.  Check if tick has elapsed.  If not, finish.
-  if (currentMicros - _lastLoopEntry < _portTickTime) return;
+  if (currentMicros - _lastLoopEntry < (unsigned long)_portTickTime) return;
 
   // TODO: Could suppress reads if there are no pins configured as inputs!
 

@@ -102,7 +102,7 @@ protected:
 
   // _loop function - read HC-SR04 once every 50 milliseconds.
   void _loop(unsigned long currentMicros) override {
-    if (currentMicros - _lastExecutionTime > 50000) {
+    if (currentMicros - _lastExecutionTime > 50000UL) {
       _lastExecutionTime = currentMicros;
 
       _value = read_HCSR04device();
