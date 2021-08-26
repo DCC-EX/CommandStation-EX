@@ -118,12 +118,15 @@
 
 // Status codes for I2CRB structures.
 enum : uint8_t {
+  // Codes used by Wire and by native drivers
   I2C_STATUS_OK=0,
   I2C_STATUS_TRUNCATED=1,
-  I2C_STATUS_DEVICE_NOT_PRESENT=2,
+  I2C_STATUS_NEGATIVE_ACKNOWLEDGE=2,
   I2C_STATUS_TRANSMIT_ERROR=3,
-  I2C_STATUS_NEGATIVE_ACKNOWLEDGE=4,
   I2C_STATUS_TIMEOUT=5,
+  // Code used by Wire only
+  I2C_STATUS_OTHER_TWI_ERROR=4, // catch-all error
+  // Codes used by native drivers only
   I2C_STATUS_ARBITRATION_LOST=6,
   I2C_STATUS_BUS_ERROR=7,
   I2C_STATUS_UNEXPECTED_ERROR=8,
@@ -151,14 +154,16 @@ typedef enum : uint8_t
 #define I2C_FREQ    400000L
 #endif
 
-// Struct defining a request context for an I2C operation.
-struct I2CRB {
+// Class defining a request context for an I2C operation.
+class I2CRB {
+public:
   volatile uint8_t status; // Completion status, or pending flag (updated from IRC)
   volatile uint8_t nBytes; // Number of bytes read (updated from IRC)
 
+  inline I2CRB() { status = I2C_STATUS_OK; };
   uint8_t wait();
   bool isBusy();
-  inline void init() { status = I2C_STATUS_OK; };
+
   void setReadParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen);
   void setRequestParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
   void setWriteParams(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen);
@@ -213,6 +218,10 @@ public:
   // Loop method
   void loop();
 
+  // Expand error codes into text.  Note that they are in flash so 
+  // need to be printed using FSH.
+  static const FSH *getErrorMessage(uint8_t status);
+
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
@@ -258,7 +267,9 @@ private:
     static void I2C_close();
     
   public:
-    void setTimeout(unsigned long value) { timeout = value;};
+    // setTimeout sets the timout value for I2C transactions.
+    // TODO: Get I2C timeout working before uncommenting the code below.
+    void setTimeout(unsigned long value) { (void)value; /* timeout = value; */ };
 
     // handleInterrupt needs to be public to be called from the ISR function!
     static void handleInterrupt();
