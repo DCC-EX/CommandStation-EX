@@ -440,6 +440,7 @@ void RMFT2::loop2() {
       if (readSensor(operand)) {
         // reset timer to half a second and keep waiting
         waitAfter=millis();
+        delayMe(50);
         return; 
       }
       if (millis()-waitAfter < 500 ) return;   
@@ -538,7 +539,7 @@ void RMFT2::loop2() {
         kill(F("CALL stack"), stackDepth);
         return;
       }
-      callStack[stackDepth++]=progCounter;
+      callStack[stackDepth++]=progCounter+3;
       progCounter=locateRouteStart(operand);
       if (progCounter<0) kill(F("CALL unknown"),operand); 
       return;
