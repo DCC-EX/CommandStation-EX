@@ -69,8 +69,10 @@ void IODevice::loop() {
   unsigned long currentMicros = micros();
   // Call every device's loop function in turn, one per entry.
   if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
-  _nextLoopDevice->_loop(currentMicros);
-  _nextLoopDevice = _nextLoopDevice->_nextDevice;
+  if (_nextLoopDevice) {
+    _nextLoopDevice->_loop(currentMicros);
+    _nextLoopDevice = _nextLoopDevice->_nextDevice;
+  }
   
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)

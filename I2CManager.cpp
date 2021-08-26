@@ -148,6 +148,25 @@ uint8_t I2CManagerClass::finishRB(I2CRB *rb, uint8_t status) {
 }
 
 /***************************************************************************
+ * Get a message corresponding to the error status
+ ***************************************************************************/
+const FSH *I2CManagerClass::getErrorMessage(uint8_t status) {
+  switch (status) {
+    case I2C_STATUS_OK: return F("OK");
+    case I2C_STATUS_TRUNCATED: return F("Transmission truncated");
+    case I2C_STATUS_NEGATIVE_ACKNOWLEDGE: return F("No response from device (address NAK)");
+    case I2C_STATUS_TRANSMIT_ERROR: return F("Transmit error (data NAK)");
+    case I2C_STATUS_OTHER_TWI_ERROR: return F("Other Wire/TWI error");
+    case I2C_STATUS_TIMEOUT: return F("Timeout");
+    case I2C_STATUS_ARBITRATION_LOST: return F("Arbitration lost");
+    case I2C_STATUS_BUS_ERROR: return F("I2C bus error");
+    case I2C_STATUS_UNEXPECTED_ERROR: return F("Unexpected error");
+    case I2C_STATUS_PENDING: return F("Request pending");
+    default: return F("Error code not recognised");
+  }
+}
+
+/***************************************************************************
  *  Declare singleton class instance.
  ***************************************************************************/
 I2CManagerClass I2CManager = I2CManagerClass();
@@ -158,12 +177,25 @@ I2CManagerClass I2CManager = I2CManagerClass();
 /////////////////////////////////////////////////////////////////////////////
 
 /***************************************************************************
- *  Block waiting for request block to complete, and return completion status
+ *  Block waiting for request block to complete, and return completion status.
+ *  Since such a loop could potentially last for ever if the RB status doesn't
+ *  change, we set a high limit (0.1sec, 100ms) on the wait time and, if it
+ *  hasn't changed by that time we assume it's not going to, and just return
+ *  a timeout status.  This means that CS will not lock up.
  ***************************************************************************/
 uint8_t I2CRB::wait() {
-  do
+  unsigned long waitStart = millis();
+  do {
     I2CManager.loop();
-  while (status==I2C_STATUS_PENDING);
+    // Rather than looping indefinitely, let's set a very high timeout (100ms).
+    if ((millis() - waitStart) > 100UL) { 
+      DIAG(F("I2C TIMEOUT I2C:x%x I2CRB:x%x"), i2cAddress, this);
+      status = I2C_STATUS_TIMEOUT;
+      // Note that, although the timeout is posted, the request may yet complete.
+      // TODO: Ideally we would like to cancel the request.
+      return status;
+    }
+  } while (status==I2C_STATUS_PENDING);
   return status;
 }
 

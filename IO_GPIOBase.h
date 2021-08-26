@@ -145,7 +145,8 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
       _deviceState = DEVSTATE_NORMAL;
     } else {
       _deviceState = DEVSTATE_FAILED;
-      DIAG(F("%S I2C:x%x Error:%d"), _deviceName, _I2CAddress, status);
+      DIAG(F("%S I2C:x%x Error:%d %S"), _deviceName, _I2CAddress, status, 
+        I2CManager.getErrorMessage(status));
     }
     _processCompletion(status);
 
@@ -174,7 +175,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
     if (digitalRead(_gpioInterruptPin)) return;
   } else
   // No interrupt pin.  Check if tick has elapsed.  If not, finish.
-  if (currentMicros - _lastLoopEntry < _portTickTime) return;
+  if (currentMicros - _lastLoopEntry < (unsigned long)_portTickTime) return;
 
   // TODO: Could suppress reads if there are no pins configured as inputs!
 

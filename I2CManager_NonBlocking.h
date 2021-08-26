@@ -59,10 +59,9 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
  ***************************************************************************/
 void I2CManagerClass::startTransaction() { 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    I2CRB *t = queueHead;
-    if ((state == I2C_STATE_FREE) && (t != NULL)) {
+    if ((state == I2C_STATE_FREE) && (queueHead != NULL)) {
       state = I2C_STATE_ACTIVE;
-      currentRequest = t;
+      currentRequest = queueHead;
       rxCount = txCount = 0;
       // Copy key fields to static data for speed.
       operation = currentRequest->operation;
@@ -85,9 +84,9 @@ void I2CManagerClass::queueRequest(I2CRB *req) {
       queueHead = queueTail = req;  // Only item on queue
     else
       queueTail = queueTail->nextRequest = req; // Add to end
+    startTransaction();
   }
 
-  startTransaction();
 }
 
 /***************************************************************************
@@ -135,7 +134,7 @@ void I2CManagerClass::checkForTimeout() {
   unsigned long currentMicros = micros();
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     I2CRB *t = queueHead;
-    if (state==I2C_STATE_ACTIVE && t!=0 && timeout > 0) {
+    if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && timeout > 0) {
       // Check for timeout
       if (currentMicros - startTime > timeout) { 
         // Excessive time. Dequeue request
@@ -150,7 +149,7 @@ void I2CManagerClass::checkForTimeout() {
         I2C_init();
         state = I2C_STATE_FREE;
         
-        // Initiate next queued request
+        // Initiate next queued request if any.
         startTransaction();
       }
     }
@@ -173,27 +172,29 @@ void I2CManagerClass::loop() {
  ***************************************************************************/
 void I2CManagerClass::handleInterrupt() {
 
+  // Update hardware state machine
   I2C_handleInterrupt();
 
-  // Experimental -- perform the post processing with interrupts enabled.
-  //interrupts();
-
-  if (state!=I2C_STATE_ACTIVE && state != I2C_STATE_FREE) {
+  // Check if current request has completed.  If there's a current request
+  // and state isn't active then state contains the completion status of the request.
+  if (state != I2C_STATE_ACTIVE && currentRequest != NULL) {
     // Remove completed request from head of queue
-    I2CRB * t;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      t = queueHead;
-      if (t != NULL) {
+      I2CRB * t = queueHead;
+      if (t == queueHead) {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = queueHead;
         t->nBytes = rxCount;
         t->status = state;
+        
+        // I2C state machine is now free for next request
+        currentRequest = NULL;
+        state = I2C_STATE_FREE;
+
+        // Start next request (if any)
+        I2CManager.startTransaction();
       }
-      // I2C state machine is now free for next request
-      state = I2C_STATE_FREE;
     }
-    // Start next request (if any)
-    I2CManager.startTransaction();
   }
 }
 
