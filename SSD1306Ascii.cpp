@@ -99,9 +99,6 @@ SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
   lcdRows = height / 8;
   lcdCols = width / 6;
 
-  // Initialise request block for I2C
-  requestBlock.init();
-
   I2CManager.begin();
   I2CManager.setClock(400000L);  // Set max supported I2C speed
   for (byte address = 0x3c; address <= 0x3d; address++) {
