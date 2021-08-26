@@ -111,7 +111,7 @@
  * 
  */
 
-#define I2C_USE_WIRE
+//#define I2C_USE_WIRE
 #ifndef I2C_NO_INTERRUPTS
 #define I2C_USE_INTERRUPTS
 #endif
