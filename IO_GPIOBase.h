@@ -145,7 +145,8 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
       _deviceState = DEVSTATE_NORMAL;
     } else {
       _deviceState = DEVSTATE_FAILED;
-      DIAG(F("%S I2C:x%x Error:%d"), _deviceName, _I2CAddress, status);
+      DIAG(F("%S I2C:x%x Error:%d %S"), _deviceName, _I2CAddress, status, 
+        I2CManager.getErrorMessage(status));
     }
     _processCompletion(status);
 
