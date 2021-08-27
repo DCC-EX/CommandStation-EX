@@ -36,18 +36,18 @@
    * Protected static data
    */ 
 
-  Turnout *Turnout::_firstTurnout = 0;
+  /* static */ Turnout *Turnout::_firstTurnout = 0;
 
   /* 
    * Public static data
    */
-  int Turnout::turnoutlistHash = 0;
+  /* static */ int Turnout::turnoutlistHash = 0;
  
   /*
    * Protected static functions
    */
 
-  Turnout *Turnout::get(uint16_t id) {
+  /* static */ Turnout *Turnout::get(uint16_t id) {
     // Find turnout object from list.
     for (Turnout *tt = _firstTurnout; tt != NULL; tt = tt->_nextTurnout)
       if (tt->_turnoutData.id == id) return tt;
@@ -55,7 +55,7 @@
   }
 
   // Add new turnout to end of chain
-  void Turnout::add(Turnout *tt) {
+  /* static */ void Turnout::add(Turnout *tt) {
     if (!_firstTurnout) 
       _firstTurnout = tt;
     else {
@@ -75,7 +75,7 @@
   }
 
   // Remove nominated turnout from turnout linked list and delete the object.
-  bool Turnout::remove(uint16_t id) {
+  /* static */ bool Turnout::remove(uint16_t id) {
     Turnout *tt,*pp=NULL;
 
     for(tt=_firstTurnout; tt!=NULL && tt->_turnoutData.id!=id; pp=tt, tt=tt->_nextTurnout) {}
@@ -97,7 +97,7 @@
    * Public static functions
    */
 
-  bool Turnout::isClosed(uint16_t id) {
+  /* static */ bool Turnout::isClosed(uint16_t id) {
     Turnout *tt = get(id);
     if (tt) 
       return tt->isClosed();
@@ -105,10 +105,21 @@
       return false;
   }
 
-  bool Turnout::setClosedStateOnly(uint16_t id, bool close) {
+  /* static */ bool Turnout::setClosedStateOnly(uint16_t id, bool closeFlag) {
     Turnout *tt = get(id);
     if (!tt) return false;
-    tt->_turnoutData.closed = close;
+    tt->_turnoutData.closed = closeFlag;
+
+    // I know it says setClosedStateOnly, but we need to tell others
+    //  that the state has changed too.
+    #if defined(RMFT_ACTIVE)
+      RMFT2::turnoutEvent(id, closeFlag);
+    #endif
+
+      // Send message to JMRI etc. over Serial USB.  This is done here
+      // to ensure that the message is sent when the turnout operation
+      // is not initiated by a Serial command.
+      printState(id, &Serial);
     return true;
   }
 
@@ -117,7 +128,7 @@
   //  common parts of the turnout operation.  Code which is specific to a turnout
   //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
-  bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
+  /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
   #ifdef EESTOREDEBUG
     if (closeFlag) 
       DIAG(F("Turnout::close(%d)"), id);
@@ -147,14 +158,14 @@
   }
 
   // Load all turnout objects
-  void Turnout::load() {
+  /* static */ void Turnout::load() {
     for (uint16_t i=0; i<EEStore::eeStore->data.nTurnouts; i++) {
       Turnout::loadTurnout();
     }
   }
 
   // Save all turnout objects
-  void Turnout::store() {
+  /* static */ void Turnout::store() {
     EEStore::eeStore->data.nTurnouts=0;
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout) {
       tt->save();
@@ -163,7 +174,7 @@
   }
 
   // Load one turnout from EEPROM
-  Turnout *Turnout::loadTurnout () {
+  /* static */ Turnout *Turnout::loadTurnout () {
     Turnout *tt = 0;
     // Read turnout type from EEPROM
     struct TurnoutData turnoutData;
@@ -201,7 +212,7 @@
   }
 
   // Display, on the specified stream, the current state of the turnout (1=thrown or 0=closed).
-  void Turnout::printState(uint16_t id, Print *stream) {
+  /* static */ void Turnout::printState(uint16_t id, Print *stream) {
     Turnout *tt = get(id);
     if (!tt) tt->printState(stream);
   }
@@ -223,7 +234,7 @@
   }
 
   // Create function
-  Turnout *ServoTurnout::create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed) {
+  /* static */ Turnout *ServoTurnout::create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed) {
 #ifndef IO_NO_HAL
     Turnout *tt = get(id);
     if (tt) { 
@@ -330,7 +341,7 @@
   }
 
   // Create function
-  Turnout *DCCTurnout::create(uint16_t id, uint16_t add, uint8_t subAdd) {
+  /* static */ Turnout *DCCTurnout::create(uint16_t id, uint16_t add, uint8_t subAdd) {
     Turnout *tt = get(id);
     if (tt) { 
       // Object already exists, check if it is usable
@@ -350,7 +361,7 @@
   }
 
   // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  Turnout *DCCTurnout::load(struct TurnoutData *turnoutData) {
+  /* static */ Turnout *DCCTurnout::load(struct TurnoutData *turnoutData) {
     DCCTurnoutData dccTurnoutData;
     // Read class-specific data from EEPROM
     EEPROM.get(EEStore::pointer(), dccTurnoutData);
@@ -407,7 +418,7 @@
   }
 
   // Create function
-  Turnout *VpinTurnout::create(uint16_t id, VPIN vpin, bool closed) {
+  /* static */ Turnout *VpinTurnout::create(uint16_t id, VPIN vpin, bool closed) {
     Turnout *tt = get(id);
     if (tt) { 
       // Object already exists, check if it is usable
@@ -427,7 +438,7 @@
   }
 
   // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  Turnout *VpinTurnout::load(struct TurnoutData *turnoutData) {
+  /* static */ Turnout *VpinTurnout::load(struct TurnoutData *turnoutData) {
     VpinTurnoutData vpinTurnoutData;
     // Read class-specific data from EEPROM
     EEPROM.get(EEStore::pointer(), vpinTurnoutData);
@@ -477,7 +488,7 @@
   { }
 
   // Create function
-  Turnout *LCNTurnout::create(uint16_t id, bool closed) {
+  /* static */ Turnout *LCNTurnout::create(uint16_t id, bool closed) {
     Turnout *tt = get(id);
     if (tt) { 
       // Object already exists, check if it is usable
