@@ -112,6 +112,18 @@ public:
   // configure is used invoke an IODevice instance's _configure method
   static bool configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]);
 
+  // User-friendly function for configuring an input pin.
+  inline static bool configureInput(VPIN vpin, bool pullupEnable) {
+    int params[] = {pullupEnable};
+    return IODevice::configure(vpin, CONFIGURE_INPUT, 1, params);
+  }
+
+  // User-friendly function for configuring a servo pin.
+  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint8_t initialState=0) {
+    int params[] = {(int)activePosition, (int)inactivePosition, profile, initialState};
+    return IODevice::configure(vpin, CONFIGURE_SERVO, 4, params);
+  }
+
   // write invokes the IODevice instance's _write method.
   static void write(VPIN vpin, int value);
 
@@ -161,15 +173,10 @@ protected:
     (void)vpin; (void)value;
   };
 
-  // Method to write an analogue value (optionally implemented within device class)
+  // Method to write an 'analogue' value (optionally implemented within device class)
   virtual  void _writeAnalogue(VPIN vpin, int value, int profile) {
     (void)vpin; (void)value; (void) profile;
   };
-
-  // Method called from within a filter device to trigger its output (which may
-  // have the same VPIN id as the input to the filter).  It works through the 
-  // later devices in the chain only.
-  void writeDownstream(VPIN vpin, int value);
 
   // Function called to check whether callback notification is supported by this pin.
   //  Defaults to no, if not overridden by the device.
