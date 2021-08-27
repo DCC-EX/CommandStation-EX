@@ -68,6 +68,7 @@
 #define ENDIF  
 #define ENDTASK
 #define ESTOP 
+#define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 
 #define FON(func) 
@@ -178,6 +179,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef START
 #undef SEQUENCE 
 #undef SERVO
+#undef FADE
 #undef SENDLOCO
 #undef SETLOCO
 #undef SET
@@ -214,6 +216,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,V(mindelay/100L),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define ENDIF  OPCODE_ENDIF,NOP,
 #define ESTOP OPCODE_SPEED,V(1), 
+#define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
 #define FON(func) OPCODE_FON,V(func),
@@ -242,7 +245,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define REV(speed) OPCODE_REV,V(speed),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define START(route) OPCODE_START,V(route),
-#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::ProfileType::profile),
+#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::ProfileType::profile),OPCODE_PAD,V(0),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SET(sensor_id) OPCODE_SET,V(sensor_id),
 #define SPEED(speed) OPCODE_SPEED,V(speed),

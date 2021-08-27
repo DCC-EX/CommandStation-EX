@@ -607,8 +607,8 @@ void RMFT2::loop2() {
        break;
 
           
-       case OPCODE_SERVO: // OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),
-        IODevice::writeAnalogue(operand,GET_OPERAND(1),GET_OPERAND(2));          
+       case OPCODE_SERVO: // OPCODE_SERVO,V(vpin),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),OPCODE_PAD,V(duration)
+        IODevice::writeAnalogue(operand,GET_OPERAND(1),GET_OPERAND(2),GET_OPERAND(3));          
         break;
 
        case OPCODE_PRINT:
