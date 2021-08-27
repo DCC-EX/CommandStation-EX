@@ -42,6 +42,7 @@
 #include "DIAG.h"
 #include "FSH.h"
 #include "I2CManager.h"
+#include "inttypes.h"
 
 typedef uint16_t VPIN;
 // Limit VPIN number to max 32767.  Above this number, printing often gives negative values.
@@ -128,7 +129,7 @@ public:
   static void write(VPIN vpin, int value);
 
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
-  static void writeAnalogue(VPIN vpin, int value, int profile);
+  static void writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration=0);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
@@ -174,8 +175,8 @@ protected:
   };
 
   // Method to write an 'analogue' value (optionally implemented within device class)
-  virtual  void _writeAnalogue(VPIN vpin, int value, int profile) {
-    (void)vpin; (void)value; (void) profile;
+  virtual  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+    (void)vpin; (void)value; (void) profile; (void)duration;
   };
 
   // Function called to check whether callback notification is supported by this pin.
@@ -249,12 +250,14 @@ public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
   // Constructor
   PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
-  enum ProfileType {
-    Instant = 0,  // Moves immediately between positions
+  enum ProfileType : uint8_t {
+    Instant = 0,  // Moves immediately between positions (if duration not specified)
+    UseDuration = 0, // Use specified duration
     Fast = 1,     // Takes around 500ms end-to-end
     Medium = 2,   // 1 second end-to-end
     Slow = 3,     // 2 seconds end-to-end
-    Bounce = 4    // For semaphores/turnouts with a bit of bounce!!
+    Bounce = 4,   // For semaphores/turnouts with a bit of bounce!!
+    NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
 
 private:
@@ -263,7 +266,7 @@ private:
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
   // Device-specific write functions.
   void _write(VPIN vpin, int value) override;
-  void _writeAnalogue(VPIN vpin, int value, int profile) override;
+  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override;
   bool _isBusy(VPIN vpin) override;
   void _loop(unsigned long currentMicros) override;
   void updatePosition(uint8_t pin);
@@ -279,10 +282,10 @@ private:
     uint16_t fromPosition : 12;
     uint16_t toPosition : 12; 
     uint8_t profile;  // Config parameter
-    uint8_t stepNumber; // Index of current step (starting from 0)
-    uint8_t numSteps;  // Number of steps in animation, or 0 if none in progress.
+    uint16_t stepNumber; // Index of current step (starting from 0)
+    uint16_t numSteps;  // Number of steps in animation, or 0 if none in progress.
     uint8_t currentProfile; // profile being used for current animation.
-  }; // 12 bytes per element, i.e. per pin in use
+  }; // 14 bytes per element, i.e. per pin in use
   
   struct ServoData *_servoData [16];
 

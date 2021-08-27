@@ -65,7 +65,7 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
   int state = params[3];
   if (state != -1) {
     // Position servo to initial state
-    _writeAnalogue(vpin, state ? s->activePosition : s->inactivePosition, Instant);
+    _writeAnalogue(vpin, state ? s->activePosition : s->inactivePosition, 0, 0);
   } 
 
   return true;
@@ -96,7 +96,6 @@ void PCA9685::_begin() {
 
   // Initialise I/O module here.
   if (I2CManager.exists(_I2CAddress)) {
-    DIAG(F("PCA9685 I2C:%x configured Vpins:%d-%d"), _I2CAddress, _firstVpin, _firstVpin+_nPins-1);
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
     writeRegister(_I2CAddress, PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
@@ -104,10 +103,14 @@ void PCA9685::_begin() {
     // In theory, we should wait 500us before sending any other commands to each device, to allow
     // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
     // plenty of other stuff to do before we will send a command.
+  #if defined(DIAG_IO)
+    _display();
+  #endif
   }
 }
 
-// Device-specific write function, invoked from IODevice::write().
+// Device-specific write function, invoked from IODevice::write().  
+// For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
   #ifdef DIAG_IO
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
@@ -121,14 +124,24 @@ void PCA9685::_write(VPIN vpin, int value) {
     writeDevice(pin, value ? _defaultActivePosition : _defaultInactivePosition);
   } else {
     // Use configured parameters for advanced transitions
-    _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile);
+    _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, 0);
   }
 }
 
 // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
-void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
+// Profile is as follows:
+//  Bit 7:     0=Set PWM to 0% to power off servo motor when finished
+//             1=Keep PWM pulses on (better when using PWM to drive an LED)
+//  Bits 6-0:  0           Use specified duration (defaults to 0 deciseconds)
+//             1 (Fast)    Move servo in 0.5 seconds
+//             2 (Medium)  Move servo in 1.0 seconds
+//             3 (Slow)    Move servo in 2.0 seconds
+//             4 (Bounce)  Servo 'bounces' at extremes.
+//            
+void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d"), vpin, value, profile);
+  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"), 
+    vpin, value, profile, duration);
   #endif
   int pin = vpin - _firstVpin;
   if (value > 4095) value = 4095;
@@ -142,30 +155,32 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, int profile) {
     s->activePosition = _defaultActivePosition;
     s->inactivePosition = _defaultInactivePosition;
     s->currentPosition = value;
-    s->profile = Instant;
+    s->profile = Instant;  // Use instant profile (but not this time)
   }
 
   // Animated profile.  Initiate the appropriate action.
   s->currentProfile = profile;
-  s->numSteps = profile==Fast ? 10 : 
-                profile==Medium ? 20 : 
-                profile==Slow ? 40 : 
-                profile==Bounce ? sizeof(_bounceProfile)-1 : 
-                1;
+  uint8_t profileValue = profile & ~NoPowerOff;  // Mask off 'don't-power-off' bit.
+  s->numSteps = profileValue==Instant ? 1 :
+                profileValue==Fast ? 10 :   // 0.5 seconds
+                profileValue==Medium ? 20 : // 1.0 seconds
+                profileValue==Slow ? 40 :   // 2.0 seconds
+                profileValue==Bounce ? sizeof(_bounceProfile)-1 : // ~ 1.5 seconds
+                duration * 2; // Convert from deciseconds (100ms) to refresh cycles (50ms)
   s->stepNumber = 0;
   s->toPosition = value;
   s->fromPosition = s->currentPosition;
 }
 
-// _isActive returns true if the device is currently in executing an animation, 
+// _isBusy returns true if the device is currently in executing an animation, 
 //  changing the output over a period of time.
-bool PCA9685::_isActive(VPIN vpin) {
+bool PCA9685::_isBusy(VPIN vpin) {
   int pin = vpin - _firstVpin;
   struct ServoData *s = _servoData[pin];
   if (s == NULL) 
     return false; // No structure means no animation!
   else
-    return (s->numSteps != 0);
+    return (s->stepNumber < s->numSteps);
 }
 
 void PCA9685::_loop(unsigned long currentMicros) {
@@ -194,7 +209,7 @@ void PCA9685::updatePosition(uint8_t pin) {
   if (s->stepNumber < s->numSteps) {
     // Animation in progress, reposition servo
     s->stepNumber++;
-    if (s->currentProfile == Bounce) {
+    if ((s->currentProfile & ~NoPowerOff) == Bounce) {
       // Retrieve step positions from array in flash
       byte profileValue = GETFLASH(&_bounceProfile[s->stepNumber]);
       s->currentPosition = map(profileValue, 0, 100, s->fromPosition, s->toPosition);
@@ -208,10 +223,12 @@ void PCA9685::updatePosition(uint8_t pin) {
     // We've finished animation, wait a little to allow servo to catch up
     s->stepNumber++;
   } else if (s->stepNumber == s->numSteps + _catchupSteps 
-            && s->currentPosition != 4095 && s->currentPosition != 0) {
+            && s->currentPosition != 0) {
 #ifdef IO_SWITCH_OFF_SERVO
-    // Wait has finished, so switch off PWM to prevent annoying servo buzz
-    writeDevice(pin, 0);
+    if ((s->currentProfile & NoPowerOff) == 0) {
+      // Wait has finished, so switch off PWM to prevent annoying servo buzz
+      writeDevice(pin, 0);
+    }
 #endif
     s->numSteps = 0;  // Done now.
   }
@@ -236,7 +253,7 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:x%x Vpins:%d-%d"), _I2CAddress, (int)_firstVpin, 
+  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d"), _I2CAddress, (int)_firstVpin, 
     (int)_firstVpin+_nPins-1);
 }
 

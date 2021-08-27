@@ -144,11 +144,12 @@ void IODevice::write(VPIN vpin, int value) {
 }
 
 // Write analogue value to virtual pin(s).  If multiple devices are allocated the same pin
-//  then only the first one found will be used.
-void IODevice::writeAnalogue(VPIN vpin, int value, int profile) {
+//  then only the first one found will be used.  Duration is the time that the 
+//  operation is to be performed over (e.g. as an animation) in deciseconds (0-3276 sec)
+void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
   IODevice *dev = findDevice(vpin);
   if (dev) {
-    dev->_writeAnalogue(vpin, value, profile);
+    dev->_writeAnalogue(vpin, value, profile, duration);
     return;
   }
 #ifdef DIAG_IO
@@ -246,24 +247,13 @@ int IODevice::read(VPIN vpin) {
 // Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
 
 void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
-  (void)vpin; (void)paramCount; (void)params; // Avoid compiler warnings
-  if (configType == CONFIGURE_INPUT || configType == CONFIGURE_OUTPUT) 
-    return true;
-  else
-    return false;
-}
+bool IODevice::configure(VPIN, ConfigTypeEnum, int, int []) { return true; }
 void IODevice::write(VPIN vpin, int value) {
   digitalWrite(vpin, value);
   pinMode(vpin, OUTPUT);
 }
-void IODevice::writeAnalogue(VPIN vpin, int value, int profile) {
-  (void)vpin; (void)value; (void)profile; // Avoid compiler warnings
-}
-bool IODevice::hasCallback(VPIN vpin) { 
-  (void)vpin;  // Avoid compiler warnings
-  return false; 
-}
+void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
+bool IODevice::hasCallback(VPIN) { return false; }
 int IODevice::read(VPIN vpin) { 
   pinMode(vpin, INPUT_PULLUP);
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
@@ -272,10 +262,8 @@ void IODevice::loop() {}
 void IODevice::DumpAll() {
   DIAG(F("NO HAL CONFIGURED!"));
 }
-bool IODevice::exists(VPIN vpin) { return (vpin > 2 && vpin < 49); }
-void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
-  (void) pinNumber; // Avoid compiler warning
-}
+bool IODevice::exists(VPIN vpin) { return (vpin > 2 && vpin < NUM_DIGITAL_PINS); }
+void IODevice::setGPIOInterruptPin(int16_t) {}
 
 // Chain of callback blocks (identifying registered callback functions for state changes)
 // Not used in IO_NO_HAL but must be declared.
