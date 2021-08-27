@@ -239,6 +239,9 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
+  #ifdef DIAG_IO
+  DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, number, activate);
+  #endif
   // use masks to detect wrong values and do nothing
   if(address != (address & 511))
     return;

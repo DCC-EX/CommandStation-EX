@@ -27,6 +27,7 @@
 #include "freeMemory.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
+#include "defines.h"
 
 #include "EEStore.h"
 #include "DIAG.h"
@@ -364,8 +365,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
           || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
           ) break; 
-          // TODO: Trigger configurable range of addresses on local VPins.
+          // Honour the configuration option (config.h) which allows the <a> command to be reversed
+#ifdef DCC_ACCESSORY_RCN_213
+          DCC::setAccessory(address, subaddress,p[activep]==0);
+#else
           DCC::setAccessory(address, subaddress,p[activep]==1);
+#endif
         }
         return;
      
