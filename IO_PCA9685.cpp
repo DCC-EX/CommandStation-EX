@@ -161,8 +161,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
   // Animated profile.  Initiate the appropriate action.
   s->currentProfile = profile;
   uint8_t profileValue = profile & ~NoPowerOff;  // Mask off 'don't-power-off' bit.
-  s->numSteps = profileValue==Instant ? 1 :
-                profileValue==Fast ? 10 :   // 0.5 seconds
+  s->numSteps = profileValue==Fast ? 10 :   // 0.5 seconds
                 profileValue==Medium ? 20 : // 1.0 seconds
                 profileValue==Slow ? 40 :   // 2.0 seconds
                 profileValue==Bounce ? sizeof(_bounceProfile)-1 : // ~ 1.5 seconds
