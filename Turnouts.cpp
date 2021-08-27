@@ -129,7 +129,7 @@
   //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
   /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
-  #ifdef EESTOREDEBUG
+  #if defined(DIAG_IO)
     if (closeFlag) 
       DIAG(F("Turnout::close(%d)"), id);
     else
