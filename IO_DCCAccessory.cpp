@@ -20,25 +20,30 @@
 #include "DCC.h"
 #include "IODevice.h"
 #include "DIAG.h"
+#include "defines.h"
 
 // Note: For DCC Accessory Decoders, a particular output can be specified by 
 // a linear address, or by an address/subaddress pair, where the subaddress is
 // in the range 0 to 3 and specifies an output within a group of 4.
 // NMRA and DCC++EX accepts addresses in the range 0-511.  Linear addresses
 // are not specified by the NMRA and so different manufacturers may calculate them
-// in different ways.  DCC+EX uses a range of 1-2044 which excludes decoder address 0.
-// Therefore, I've avoided using linear addresses here because of the ambiguities 
-// involved.  Instead I've used the term 'packedAddress'.
+// in different ways.  DCC++EX uses a range of 1-2044 which excludes decoder address 0.
+// Linear address 1 corresponds to address 1 subaddress 0.
+
+#define LINEARADDRESS(addr, subaddr) (((addr-1) << 2)  + subaddr + 1)
+#define ADDRESS(linearaddr) (((linearaddr-1) >> 2) + 1)
+#define SUBADDRESS(linearaddr) ((linearaddr-1) % 4)
 
 void DCCAccessoryDecoder::create(VPIN vpin, int nPins, int DCCAddress, int DCCSubaddress) {
   new DCCAccessoryDecoder(vpin, nPins, DCCAddress, DCCSubaddress);
 }
 
-// Constructor
+// Constructors
 DCCAccessoryDecoder::DCCAccessoryDecoder(VPIN vpin, int nPins, int DCCAddress, int DCCSubaddress) {
    _firstVpin = vpin;
   _nPins = nPins;
-  _packedAddress = (DCCAddress << 2) + DCCSubaddress;
+  _packedAddress = LINEARADDRESS(DCCAddress, DCCSubaddress);
+  addDevice(this);
 }
 
 void DCCAccessoryDecoder::_begin() {
@@ -47,19 +52,22 @@ void DCCAccessoryDecoder::_begin() {
 #endif
 }
 
-// Device-specific write function.
+// Device-specific write function.  State 1=closed, 0=thrown.  Adjust for RCN-213 compliance
 void DCCAccessoryDecoder::_write(VPIN id, int state) {
   int packedAddress = _packedAddress + id - _firstVpin;
   #ifdef DIAG_IO
   DIAG(F("DCC Write Linear Address:%d State:%d"), packedAddress, state);
   #endif
-  DCC::setAccessory(packedAddress >> 2, packedAddress % 4, state);
+#if !defined(DCC_ACCESSORY_RCN_213)
+  state = !state;
+#endif
+  DCC::setAccessory(ADDRESS(packedAddress), SUBADDRESS(packedAddress), state);
 }
 
 void DCCAccessoryDecoder::_display() {
   int endAddress = _packedAddress + _nPins - 1;
   DIAG(F("DCCAccessoryDecoder Configured on Vpins:%d-%d Linear Address:%d-%d (%d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
       _packedAddress, _packedAddress+_nPins-1,
-      _packedAddress >> 2, _packedAddress % 4, endAddress >> 2, endAddress % 4);
+      ADDRESS(_packedAddress), SUBADDRESS(_packedAddress), ADDRESS(endAddress), SUBADDRESS(endAddress));
 }
 
