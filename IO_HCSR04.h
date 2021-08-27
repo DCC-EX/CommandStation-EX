@@ -90,8 +90,9 @@ protected:
     pinMode(_receivePin, INPUT);
     ArduinoPins::fastWriteDigital(_transmitPin, 0);
     _lastExecutionTime = micros();
-    DIAG(F("HCSR04 configured on VPIN:%d TXpin:%d RXpin:%d On:%dcm Off:%dcm"),
-      _firstVpin, _transmitPin, _receivePin, _onThreshold, _offThreshold);
+#if defined(DIAG_IO)
+    _display();
+#endif
   }
 
   // _read function - just return _value (calculated in _loop).
@@ -107,6 +108,11 @@ protected:
 
       _value = read_HCSR04device();
     }
+  }
+
+  void _display() override {
+    DIAG(F("HCSR04 Configured on Vpin:%d TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"),
+      _firstVpin, _transmitPin, _receivePin, _onThreshold, _offThreshold);
   }
 
 private:

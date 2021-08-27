@@ -99,7 +99,9 @@ void GPIOBase<T>::_begin() {
   I2CManager.begin();
   I2CManager.setClock(400000);
   if (I2CManager.exists(_I2CAddress)) {
+#if defined(DIAG_IO)
     _display();
+#endif
     _portMode = 0;  // default to input mode
     _portPullup = -1; // default to pullup enabled
     _portInputState = -1; 

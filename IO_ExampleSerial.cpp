@@ -42,7 +42,9 @@ void IO_ExampleSerial::create(VPIN firstVpin, int nPins, HardwareSerial *serial,
 // Device-specific initialisation
 void IO_ExampleSerial::_begin() {
   _serial->begin(_baud);
-  DIAG(F("ExampleSerial configured Vpins:%d-%d"), _firstVpin, _firstVpin+_nPins-1);
+#if defined(DIAG_IO)
+  _display();
+#endif
 
   // Send a few # characters to the output
   for (uint8_t i=0; i<3; i++)
@@ -121,7 +123,7 @@ void IO_ExampleSerial::_loop(unsigned long currentMicros) {
 }
 
 void IO_ExampleSerial::_display() {
-  DIAG(F("IO_ExampleSerial VPins:%d-%d"), (int)_firstVpin, 
+  DIAG(F("IO_ExampleSerial Configured on VPins:%d-%d"), (int)_firstVpin, 
     (int)_firstVpin+_nPins-1);
 }
 

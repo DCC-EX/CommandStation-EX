@@ -42,12 +42,9 @@ DCCAccessoryDecoder::DCCAccessoryDecoder(VPIN vpin, int nPins, int DCCAddress, i
 }
 
 void DCCAccessoryDecoder::_begin() {
-  int endAddress = _packedAddress + _nPins - 1;
-  int DCCAddress = _packedAddress >> 2;
-  int DCCSubaddress = _packedAddress & 3;
-  DIAG(F("DCC Accessory Decoder configured Vpins:%d-%d Linear Address:%d-%d (%d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
-      _packedAddress, _packedAddress+_nPins-1,
-     DCCAddress, DCCSubaddress, endAddress >> 2, endAddress % 4);
+#if defined(DIAG_IO)
+  _display();
+#endif
 }
 
 // Device-specific write function.
@@ -61,7 +58,7 @@ void DCCAccessoryDecoder::_write(VPIN id, int state) {
 
 void DCCAccessoryDecoder::_display() {
   int endAddress = _packedAddress + _nPins - 1;
-  DIAG(F("DCC Accessory Vpins:%d-%d Linear Address:%d-%d (%d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
+  DIAG(F("DCCAccessoryDecoder Configured on Vpins:%d-%d Linear Address:%d-%d (%d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
       _packedAddress, _packedAddress+_nPins-1,
       _packedAddress >> 2, _packedAddress % 4, endAddress >> 2, endAddress % 4);
 }
