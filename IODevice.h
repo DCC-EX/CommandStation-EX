@@ -130,9 +130,9 @@ public:
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
   static void writeAnalogue(VPIN vpin, int value, int profile);
 
-  // isActive returns true if the device is currently in an animation of some sort, e.g. is changing
+  // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
-  static bool isActive(VPIN vpin);
+  static bool isBusy(VPIN vpin);
 
   // check whether the pin supports notification.  If so, then regular _read calls are not required.
   static bool hasCallback(VPIN vpin);
@@ -193,9 +193,9 @@ protected:
     return 0;
   };
 
-  // _isActive returns true if the device is currently in an animation of some sort, e.g. is changing
+  // _isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.  Returns false unless overridden in sub class.
-  virtual bool _isActive(VPIN vpin) {
+  virtual bool _isBusy(VPIN vpin) {
       (void)vpin;
       return false;
   }
@@ -264,7 +264,7 @@ private:
   // Device-specific write functions.
   void _write(VPIN vpin, int value) override;
   void _writeAnalogue(VPIN vpin, int value, int profile) override;
-  bool _isActive(VPIN vpin) override;
+  bool _isBusy(VPIN vpin) override;
   void _loop(unsigned long currentMicros) override;
   void updatePosition(uint8_t pin);
   void writeDevice(uint8_t pin, int value);

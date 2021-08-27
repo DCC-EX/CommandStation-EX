@@ -156,12 +156,12 @@ void IODevice::writeAnalogue(VPIN vpin, int value, int profile) {
 #endif
 }
 
-// isActive returns true if the device is currently in an animation of some sort, e.g. is changing
+// isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
 //  the output over a period of time.
-bool IODevice::isActive(VPIN vpin) {
+bool IODevice::isBusy(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
   if (dev) 
-    return dev->_isActive(vpin);
+    return dev->_isBusy(vpin);
   else
     return false;
 }
