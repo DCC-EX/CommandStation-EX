@@ -51,7 +51,7 @@
 
 
 #define ALIAS(name,value) const int name=value; 
-#define EXRAIL  void  RMFT2::emitWithrottleDescriptions(Print * stream) {
+#define EXRAIL  void  RMFT2::emitWithrottleDescriptions(Print * stream) {(void)stream;
 #define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
 #define AUTOMATION(id, description) emitRouteDescription(stream,'A',id,F(description));
 #define ENDEXRAIL  }
