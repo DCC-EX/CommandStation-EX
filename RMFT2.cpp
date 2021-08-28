@@ -610,6 +610,13 @@ void RMFT2::loop2() {
        case OPCODE_SERVO: // OPCODE_SERVO,V(vpin),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),OPCODE_PAD,V(duration)
         IODevice::writeAnalogue(operand,GET_OPERAND(1),GET_OPERAND(2),GET_OPERAND(3));          
         break;
+       
+       case OPCODE_WAITFOR: // OPCODE_SERVO,V(pin)
+            if (IODevice::isBusy(operand)) {
+              delayMe(100);
+              return;
+            }
+            break;
 
        case OPCODE_PRINT:
             printMessage(operand);

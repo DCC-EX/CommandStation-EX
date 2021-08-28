@@ -78,7 +78,7 @@
 #define IF(sensor_id) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent) 
-#define IFRESERVE(block) 
+#define IFRESERVE(block)
 #define INVERT_DIRECTION 
 #define JOIN 
 #define LATCH(sensor_id) 
@@ -91,15 +91,16 @@
 #define READ_LOCO 
 #define RED(signal_id) 
 #define RESERVE(blockid) 
-#define RESET(sensor_id) 
+#define RESET(pin) 
 #define RESUME 
 #define RETURN 
 #define REV(speed) 
 #define START(route) 
 #define SENDLOCO(cab,route) 
 #define SERVO(id,position,profile) 
+#define SERVO2(id,position,duration) 
 #define SETLOCO(loco) 
-#define SET(sensor_id) 
+#define SET(pin) 
 #define SEQUENCE(id) 
 #define SPEED(speed) 
 #define STOP 
@@ -111,6 +112,7 @@
 #define TURNOUT(id,addr,subaddr) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
+#define WAITFOR(pin)
 
 #include "myAutomation.h"
 
@@ -179,6 +181,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef START
 #undef SEQUENCE 
 #undef SERVO
+#undef SERVO2
 #undef FADE
 #undef SENDLOCO
 #undef SETLOCO
@@ -192,6 +195,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef TURNOUT
 #undef UNJOIN
 #undef UNLATCH
+#undef WAITFOR
 
 // Define macros for route code creation 
 #define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
@@ -239,15 +243,16 @@ const int StringMacroTracker1=__COUNTER__;
 #define READ_LOCO OPCODE_READ_LOCO1,NOP,OPCODE_READ_LOCO2,NOP,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
-#define RESET(sensor_id) OPCODE_RESET,V(sensor_id),
+#define RESET(pin) OPCODE_RESET,V(pin),
 #define RESUME OPCODE_RESUME,NOP,
 #define RETURN OPCODE_RETURN,NOP,
 #define REV(speed) OPCODE_REV,V(speed),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define START(route) OPCODE_START,V(route),
-#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::ProfileType::profile),OPCODE_PAD,V(0),
+#define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
+#define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
-#define SET(sensor_id) OPCODE_SET,V(sensor_id),
+#define SET(pin) OPCODE_SET,V(pin),
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define STOP OPCODE_SPEED,V(0), 
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
@@ -257,6 +262,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,NOP,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
+#define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 
 // PASS2 Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

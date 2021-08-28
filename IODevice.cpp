@@ -253,6 +253,7 @@ void IODevice::write(VPIN vpin, int value) {
   pinMode(vpin, OUTPUT);
 }
 void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
+bool IODevice::isBusy(VPIN) { return false; }
 bool IODevice::hasCallback(VPIN) { return false; }
 int IODevice::read(VPIN vpin) { 
   pinMode(vpin, INPUT_PULLUP);
