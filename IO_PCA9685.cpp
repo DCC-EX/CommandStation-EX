@@ -165,7 +165,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
                 profileValue==Medium ? 20 : // 1.0 seconds
                 profileValue==Slow ? 40 :   // 2.0 seconds
                 profileValue==Bounce ? sizeof(_bounceProfile)-1 : // ~ 1.5 seconds
-                duration * 2; // Convert from deciseconds (100ms) to refresh cycles (50ms)
+                duration * 2 + 1; // Convert from deciseconds (100ms) to refresh cycles (50ms)
   s->stepNumber = 0;
   s->toPosition = value;
   s->fromPosition = s->currentPosition;
