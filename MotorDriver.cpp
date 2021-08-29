@@ -89,8 +89,11 @@ void MotorDriver::setPower(bool on) {
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
-    setBrake(true);
-    setBrake(false);
+    // Yes, this is an ugly special case
+    if (brakePin == 4 && invertBrake) {
+      setBrake(true);
+      setBrake(false);
+    }
     setHIGH(fastPowerPin);
   }
   else setLOW(fastPowerPin);
