@@ -678,9 +678,10 @@ void RMFT2::kill(const FSH * reason, int operand) {
      if (redpin!=id)continue;
      byte amberpin=GET_OPERAND(2);
      byte greenpin=GET_OPERAND(3);
-     IODevice::write(redpin,red);
+     // If amberpin is zero, synthesise amber from red+green
+     IODevice::write(redpin,red || (amber && (amberpin==0)));
      if (amberpin) IODevice::write(amberpin,amber);
-     if (greenpin) IODevice::write(amberpin,green);
+     if (greenpin) IODevice::write(amberpin,green || (amber && (amberpin==0)));
      return;
    }
   } 
