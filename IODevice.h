@@ -120,9 +120,9 @@ public:
   }
 
   // User-friendly function for configuring a servo pin.
-  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint8_t initialState=0) {
-    int params[] = {(int)activePosition, (int)inactivePosition, profile, initialState};
-    return IODevice::configure(vpin, CONFIGURE_SERVO, 4, params);
+  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint16_t duration, uint8_t initialState=0) {
+    int params[] = {(int)activePosition, (int)inactivePosition, profile, (int)duration, initialState};
+    return IODevice::configure(vpin, CONFIGURE_SERVO, 5, params);
   }
 
   // write invokes the IODevice instance's _write method.
@@ -285,12 +285,10 @@ private:
     uint16_t stepNumber; // Index of current step (starting from 0)
     uint16_t numSteps;  // Number of steps in animation, or 0 if none in progress.
     uint8_t currentProfile; // profile being used for current animation.
+    uint16_t duration; // time (tenths of a second) for animation to complete.
   }; // 14 bytes per element, i.e. per pin in use
   
   struct ServoData *_servoData [16];
-
-  static const uint16_t _defaultActivePosition = 410;
-  static const uint16_t _defaultInactivePosition = 205;
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
   static const byte FLASH _bounceProfile[30];

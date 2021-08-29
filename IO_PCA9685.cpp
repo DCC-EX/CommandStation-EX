@@ -45,10 +45,10 @@ void PCA9685::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
 // Configure a port on the PCA9685.
 bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
   if (configType != CONFIGURE_SERVO) return false;
-  if (paramCount != 4) return false;
+  if (paramCount != 5) return false;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 Configure VPIN:%d Apos:%d Ipos:%d Profile:%d state:%d"), 
-    vpin, params[0], params[1], params[2], params[3]);
+  DIAG(F("PCA9685 Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
+    vpin, params[0], params[1], params[2], params[3], params[4]);
   #endif
 
   int8_t pin = vpin - _firstVpin;
@@ -62,12 +62,13 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
   s->activePosition = params[0];
   s->inactivePosition = params[1];
   s->profile = params[2];
-  int state = params[3];
+  s->duration = params[3];
+  int state = params[4];
+
   if (state != -1) {
     // Position servo to initial state
     _writeAnalogue(vpin, state ? s->activePosition : s->inactivePosition, 0, 0);
   } 
-
   return true;
 }
 
@@ -119,13 +120,10 @@ void PCA9685::_write(VPIN vpin, int value) {
   if (value) value = 1;
 
   struct ServoData *s = _servoData[pin];
-  if (s == NULL) {
-    // Pin not configured, just write default positions to servo controller
-    writeDevice(pin, value ? _defaultActivePosition : _defaultInactivePosition);
-  } else {
-    // Use configured parameters for advanced transitions
-    _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, 0);
-  }
+  if (s != NULL) {
+    // Use configured parameters
+    _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
+  } // else { /* ignorethe request */ }
 }
 
 // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
@@ -152,8 +150,8 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
     // Servo pin not configured, so configure now using defaults
     s = _servoData[pin] = (struct ServoData *) calloc(sizeof(struct ServoData), 1);
     if (s == NULL) return;  // Check for memory allocation failure
-    s->activePosition = _defaultActivePosition;
-    s->inactivePosition = _defaultInactivePosition;
+    s->activePosition = 0;
+    s->inactivePosition = 0;
     s->currentPosition = value;
     s->profile = Instant;  // Use instant profile (but not this time)
   }

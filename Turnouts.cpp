@@ -249,9 +249,10 @@
         // Don't touch the _closed parameter, retain the original value.
 
         // We don't really need to do the following, since a call to IODevice::_writeAnalogue 
-        //  will provide all the data that is required!
-        // int params[] = {(int)thrownPosition, (int)closedPosition, profile, closed};
-        // IODevice::configure(vpin, IODevice::CONFIGURE_SERVO, 4, params);
+        //  will provide all the data that is required!  However, if someone has configured 
+        //  a Turnout, we should ensure that the SET() RESET() and other commands that use write() 
+        //  behave consistently with the turnout commands.
+        IODevice::configureServo(vpin, thrownPosition, closedPosition, profile, 0, closed);
 
         // Set position directly to specified position - we don't know where it is moving from.
         IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
