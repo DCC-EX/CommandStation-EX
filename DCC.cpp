@@ -359,6 +359,7 @@ const ackOp FLASH VERIFY_BYTE_PROG[] = {
       BASELINE,
       VB,WACK,     // validate byte 
       ITCB,       // if ok callback value
+      RCOUNT,        // increment ackRetry counter	
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
       // this is because there tend to be more zeros in cv values than ones.  
@@ -693,6 +694,7 @@ int    DCC::ackManagerWord;
 byte   DCC::ackManagerRetry;
 byte   DCC::ackRetry = 2;
 int16_t  DCC::ackRetrySum;
+int16_t  DCC::ackRetryPSum;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
@@ -844,7 +846,11 @@ void DCC::ackManagerLoop() {
       case FAIL:  // callback(-1)
            callback(-1);
            return;
-           
+
+      case RCOUNT:  // ackRetry counter
+           ackRetrySum++;
+           break;
+
       case STARTMERGE:
            ackManagerBitNum=7;
            ackManagerByte=0;     
