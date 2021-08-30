@@ -107,6 +107,7 @@ class DCCWaveform {
     inline void setMaxAckPulseDuration(unsigned int i) {
 	maxAckPulseDuration = i;
     }
+    MotorDriver*  motorDriver;
 
   private:
     
@@ -121,7 +122,7 @@ class DCCWaveform {
     void checkAck();
     
     bool isMainTrack;
-    MotorDriver*  motorDriver;
+//    MotorDriver*  motorDriver;
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte transmitLength;

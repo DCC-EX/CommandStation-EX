@@ -57,7 +57,14 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   EEStore::init();
 
   DCCWaveform::begin(mainDriver,progDriver); 
+#ifdef DCdistrict
+  DCCWaveform::mainTrack.motorDriver->setBrake(255);
+#else
+  DCCWaveform::mainTrack.motorDriver->setBrake(0);
+#endif
+  DCCWaveform::progTrack.motorDriver->setBrake(0);
 }
+
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {
   joinRelay=joinRelayPin;
@@ -68,6 +75,21 @@ void DCC::setJoinRelayPin(byte joinRelayPin) {
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+#ifdef DCdistrict
+  if (cab == DCdistrict) {
+    uint8_t brake;
+    if (tSpeed <= 1)
+      brake = 255;
+    else if (tSpeed >= 126)
+      brake = 0;
+    else
+      brake = 2 * (127-tSpeed);
+    DCCWaveform::mainTrack.motorDriver->setSignal(tDirection);
+    DCCWaveform::mainTrack.motorDriver->setBrake(brake);
+  }
+#else
+  #error fooar
+#endif
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128; 
   setThrottle2(cab, speedCode);
   // retain speed for loco reminders

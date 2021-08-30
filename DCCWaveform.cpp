@@ -65,7 +65,9 @@ void DCCWaveform::interruptHandler() {
   byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   
   // Set the signal state for both tracks
+#ifndef DCdistrict
   mainTrack.motorDriver->setSignal(sigMain);
+#endif
   progTrack.motorDriver->setSignal(sigProg);
   
   // Move on in the state engine
