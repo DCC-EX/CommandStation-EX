@@ -23,6 +23,14 @@ The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 
+// TO GET THE DC district feature put this in your config.h:
+//
+//#define BRAKE_MOTOR_SHIELD F("BRAKE_MOTOR_SHIELD"),			\
+//    new MotorDriver(3, 12, UNUSED_PIN,           9, A0, 2.99, 2000, UNUSED_PIN), \
+//    new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+//#define MOTOR_SHIELD_TYPE BRAKE_MOTOR_SHIELD
+//#define DCdistrict 2
+
 /////////////////////////////////////////////////////////////////////////////////////
 //  NOTE: Before connecting these boards and selecting one in this software
 //        check the quick install guides!!! Some of these boards require a voltage
