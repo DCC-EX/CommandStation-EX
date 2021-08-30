@@ -41,6 +41,7 @@ enum ackOp : byte
   ITCB7,            // If True callback(byte &0x7F)
   NAKFAIL,          // if false callback(-1)
   FAIL,             // callback(-1)
+  RCOUNT,           // increment ackRetry counter
   STARTMERGE,       // Clear bit and byte settings ready for merge pass
   MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
   SETBIT,           // sets bit number to next prog byte
@@ -115,9 +116,11 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
-  static inline void setAckRetry(byte retry) {
+  static inline int16_t setAckRetry(byte retry) {
     ackRetry = retry;
+    ackRetryPSum = ackRetrySum;
     ackRetrySum = 0;  // reset running total
+    return ackRetryPSum;
   };
 
 private:
@@ -154,6 +157,7 @@ private:
   static byte ackManagerRetry;
   static byte ackRetry;
   static int16_t ackRetrySum;
+  static int16_t ackRetryPSum;
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;
