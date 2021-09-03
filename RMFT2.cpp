@@ -275,6 +275,7 @@ RMFT2::RMFT2(int progCtr) {
   forward=true;
   invert=false;
   stackDepth=0;
+  onTurnoutId=0; // Not handling an ONTHROW/ONCLOSE
    
   // chain into ring of RMFTs
   if (loopTask==NULL) {
@@ -685,15 +686,28 @@ void RMFT2::kill(const FSH * reason, int operand) {
      return;
    }
   } 
- void RMFT2::turnoutEvent(VPIN id, bool closed) {
+ void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
+    
+    // Check we dont already have a task running this turnout
+    RMFT2 * task=loopTask;                 
+    while(task) {
+      if (task->onTurnoutId==turnoutId) {
+        DIAG(F("Recursive ONTHROW/ONCLOSE for Turnout %d"),turnoutId);
+        return;
+        }
+      task=task->next;      
+      if (task==loopTask) break;      
+      }
+    // Hunt for an ONTHROW/ONCLOSE for this turnout   
     byte huntFor=closed ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
     // caution hides class progCounter;
     for (int progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) return;
      if (opcode!=huntFor) continue;
-     if (id!=GET_OPERAND(0)) continue;
-     new RMFT2(progCounter);  // new task starts at this instruction
+     if (turnoutId!=(int16_t)GET_OPERAND(0)) continue;
+     task=new RMFT2(progCounter);  // new task starts at this instruction
+     task->onTurnoutId=turnoutId; // flag for recursion detector
      return;
    }
  }

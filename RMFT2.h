@@ -68,7 +68,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
     static void readLocoCallback(int16_t cv);
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
-    static void turnoutEvent(VPIN id, bool closed);  
+    static void turnoutEvent(int16_t id, bool closed);  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -106,10 +106,11 @@ private:
     unsigned long  delayTime;
     byte  taskId;
     
-    int loco;
+    int16_t loco;
     bool forward;
     bool invert;
     int speedo;
+    int16_t onTurnoutId;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };
