@@ -330,11 +330,16 @@ void RMFT2::driveLoco(byte speed) {
      speedo=speed;
 }
 
-bool RMFT2::readSensor(int16_t sensorId) {
-  VPIN vpin=abs(sensorId);
+bool RMFT2::readSensor(uint16_t sensorId) {
+  // Exrail operands are unsigned but we need the signed version as inserted by the macros.  
+  int16_t sId=(int16_t) sensorId;
+
+  VPIN vpin=abs(sId);
   if (getFlag(vpin,LATCH_FLAG)) return true; // latched on
-  bool s= IODevice::read(vpin) ^ (sensorId<0);
-  if (s && diag) DIAG(F("EXRAIL Sensor %d hit"),sensorId);
+
+  // negative sensorIds invert the logic (e.g. for a break-beam sensor which goes OFF when detecting)
+  bool s= IODevice::read(vpin) ^ (sId<0);
+  if (s && diag) DIAG(F("EXRAIL Sensor %d hit"),sId);
   return s;
 }
 

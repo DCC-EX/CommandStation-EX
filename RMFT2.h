@@ -85,7 +85,7 @@ private:
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
     void driveLoco(byte speedo);
-    bool readSensor(int16_t sensorId);
+    bool readSensor(uint16_t sensorId);
     bool skipIfBlock();
     bool readLoco();
     void loop2();
@@ -106,10 +106,10 @@ private:
     unsigned long  delayTime;
     byte  taskId;
     
-    int16_t loco;
+    uint16_t loco;
     bool forward;
     bool invert;
-    int speedo;
+    byte speedo;
     int16_t onTurnoutId;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
