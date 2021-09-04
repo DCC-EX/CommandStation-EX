@@ -107,6 +107,27 @@ class DCCWaveform {
     inline void setMaxAckPulseDuration(unsigned int i) {
 	maxAckPulseDuration = i;
     }
+#ifdef DCdistrict
+  inline void pwmSpeed(uint8_t tSpeed) {
+    // DCC Speed with 0,1 stop and speed steps 2 to 127
+    uint8_t brake;
+    if (!motorDriver)
+      return;
+    if (tSpeed <= 1)
+      brake = 255;
+    else if (tSpeed >= 127)
+      brake = 0;
+    else
+      brake = 2 * (128-tSpeed);
+    motorDriver->setBrake(brake);
+  }
+  inline void pwmSpeed(uint8_t tSpeed, bool tDirection) {
+    if (!motorDriver)
+      return;
+    pwmSpeed(tSpeed);
+    motorDriver->setSignal(tDirection);
+  }
+#endif
 
   private:
     

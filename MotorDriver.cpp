@@ -31,6 +31,7 @@ bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
+  brakePWM=false;
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
@@ -53,7 +54,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     brakePin=invertBrake ? 0-brake_pin : brake_pin;
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     pinMode(brakePin, OUTPUT);
-    setBrake(false);
+//    setBrake(0); moved out to DCC::begin
   }
   else brakePin=UNUSED_PIN;
   
@@ -89,8 +90,11 @@ void MotorDriver::setPower(bool on) {
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
-    setBrake(true);
-    setBrake(false);
+    // Yes, this is an ugly special case
+    if (brakePin == 4 && invertBrake) {
+      setBrake(255);
+      setBrake(0);
+    }
     setHIGH(fastPowerPin);
   }
   else setLOW(fastPowerPin);
@@ -104,10 +108,29 @@ void MotorDriver::setPower(bool on) {
 // (HIGH == release brake) and setBrake does
 // compensate for that.
 //
-void MotorDriver::setBrake(bool on) {
+void MotorDriver::setBrake(uint8_t intensity) {
   if (brakePin == UNUSED_PIN) return;
-  if (on ^ invertBrake) setHIGH(fastBrakePin);
-  else setLOW(fastBrakePin);
+  DIAG(F("Brake pin=%d val=%d"),brakePin,intensity);
+  if (invertBrake)
+    intensity = 255 - intensity;
+  if (intensity == 255) {
+    if (brakePWM) {
+      digitalWrite(brakePin, HIGH);
+      brakePWM = false;
+    } else
+      setHIGH(fastBrakePin);
+    return;
+  }
+  if (intensity == 0) {
+    if (brakePWM) {
+      digitalWrite(brakePin, LOW);
+      brakePWM = false;
+    } else
+      setLOW(fastBrakePin);
+    return;
+  }
+  brakePWM = true;
+  analogWrite(brakePin, intensity);
 }
 
 void MotorDriver::setSignal( bool high) {
