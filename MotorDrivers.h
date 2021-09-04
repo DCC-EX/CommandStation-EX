@@ -48,6 +48,11 @@
                               new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
                               new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
+// TO GET THE DC district feature use this shield definition
+#define STD_DCC_DC_SHIELD F("STD_DCC_DC_SHIELD"),			\
+    new MotorDriver(3, 12, UNUSED_PIN,           9, A0, 2.99, 2000, UNUSED_PIN), \
+    new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \
                             new MotorDriver( 9, 7, UNUSED_PIN,         -4, A0, 18, 3000, 12), \

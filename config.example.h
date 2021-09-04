@@ -23,13 +23,9 @@ The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 
-// TO GET THE DC district feature put this in your config.h:
-//
-//#define BRAKE_MOTOR_SHIELD F("BRAKE_MOTOR_SHIELD"),			\
-//    new MotorDriver(3, 12, UNUSED_PIN,           9, A0, 2.99, 2000, UNUSED_PIN), \
-//    new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
-//#define MOTOR_SHIELD_TYPE BRAKE_MOTOR_SHIELD
-//#define DCdistrict 2
+// SPECIAL CONFIG WITH MAIN AS DC (PWM) track reacting on cab #2.
+// 
+#define DCdistrict 2
 
 /////////////////////////////////////////////////////////////////////////////////////
 //  NOTE: Before connecting these boards and selecting one in this software
@@ -46,10 +42,11 @@ The configuration file for DCC-EX Command Station
 //  FIREBOX_MK1           : The Firebox MK1                    
 //  FIREBOX_MK1S          : The Firebox MK1S
 //  IBT_2_WITH_ARDUINO    : Arduino Motor Shield for PROG and IBT-2 for MAIN
+//  STD_DCC_DC_SHIELD     : as STANDARD but with brake so MAIN can be run as DC (PWM)
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+#define MOTOR_SHIELD_TYPE STD_DCC_DC_SHIELD
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
