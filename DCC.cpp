@@ -58,11 +58,11 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
 
   DCCWaveform::begin(mainDriver,progDriver); 
 #ifdef DCdistrict
-  DCCWaveform::mainTrack.motorDriver->setBrake(255);
+  DCCWaveform::mainTrack.pwmSpeed(0);
 #else
-  DCCWaveform::mainTrack.motorDriver->setBrake(0);
+  DCCWaveform::mainTrack.pwmSpeed(255);
 #endif
-  DCCWaveform::progTrack.motorDriver->setBrake(0);
+  DCCWaveform::progTrack.pwmSpeed(255);
 }
 
 
@@ -77,15 +77,7 @@ void DCC::setJoinRelayPin(byte joinRelayPin) {
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
 #ifdef DCdistrict
   if (cab == DCdistrict) {
-    uint8_t brake;
-    if (tSpeed <= 1)
-      brake = 255;
-    else if (tSpeed >= 126)
-      brake = 0;
-    else
-      brake = 2 * (127-tSpeed);
-    DCCWaveform::mainTrack.motorDriver->setSignal(tDirection);
-    DCCWaveform::mainTrack.motorDriver->setBrake(brake);
+    DCCWaveform::mainTrack.pwmSpeed(tSpeed, tDirection);
   }
 #else
   #error fooar
