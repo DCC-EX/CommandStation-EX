@@ -357,9 +357,9 @@ const ackOp FLASH WRITE_BYTE_PROG[] = {
       
 const ackOp FLASH VERIFY_BYTE_PROG[] = {
       BASELINE,
+      BIV,         // ackManagerByte initial value
       VB,WACK,     // validate byte 
-      ITCB,       // if ok callback value
-      RCOUNT,        // increment ackRetry counter	
+      ITCB,       // if ok callback value	
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
       // this is because there tend to be more zeros in cv values than ones.  
@@ -377,7 +377,7 @@ const ackOp FLASH VERIFY_BYTE_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
-      VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
+      VB, WACK, ITCBV,  // verify merged byte and return it if acked ok - with retry report
       FAIL };
       
       
@@ -689,6 +689,7 @@ int DCC::nextLoco = 0;
 ackOp  const *  DCC::ackManagerProg;
 ackOp  const *  DCC::ackManagerProgStart;
 byte   DCC::ackManagerByte;
+byte   DCC::ackManagerByteVerify;
 byte   DCC::ackManagerStash;
 int    DCC::ackManagerWord;
 byte   DCC::ackManagerRetry;
@@ -730,6 +731,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
   ackManagerProgStart = program;
   ackManagerRetry = ackRetry;
   ackManagerByte = byteValueOrBitnum;
+  ackManagerByteVerify = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
 }
@@ -828,7 +830,18 @@ void DCC::ackManagerLoop() {
             return;
           }
         break;
-
+		    
+      case ITCBV:   // If True callback(byte) - Verify
+          if (ackReceived) {
+            if (ackManagerByte == ackManagerByteVerify) {
+               ackRetrySum ++;
+               LCD(1, F("v %d %d Sum=%d"), ackManagerCv, ackManagerByte, ackRetrySum);
+            }
+            callback(ackManagerByte);
+            return;
+          }
+        break;
+		    
       case ITCB7:   // If True callback(byte & 0x7F)
           if (ackReceived) {
             callback(ackManagerByte & 0x7F);
@@ -847,8 +860,8 @@ void DCC::ackManagerLoop() {
            callback(-1);
            return;
 
-      case RCOUNT:  // ackRetry counter
-           ackRetrySum++;
+      case BIV:     // ackManagerByte initial value
+           ackManagerByte = ackManagerByteVerify;
            break;
 
       case STARTMERGE:
@@ -919,7 +932,7 @@ void DCC::callback(int value) {
     // check for automatic retry
     if (value == -1 && ackManagerRetry > 0) {
       ackRetrySum ++;
-      LCD(0, F("RETRY %d %d %d %d"), ackManagerCv, ackManagerRetry, ackRetry, ackRetrySum);
+      LCD(0, F("Retry %d %d Sum=%d"), ackManagerCv, ackManagerRetry, ackRetrySum);
       ackManagerRetry --;
       ackManagerProg = ackManagerProgStart;
       return;
