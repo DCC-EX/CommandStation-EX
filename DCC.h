@@ -38,10 +38,11 @@ enum ackOp : byte
   ITC1,             // If True Callback(1)  (if prevous WACK got an ACK)
   ITC0,             // If True callback(0);
   ITCB,             // If True callback(byte)
+  ITCBV,            // If True callback(byte) - end of Verify Byte
   ITCB7,            // If True callback(byte &0x7F)
   NAKFAIL,          // if false callback(-1)
   FAIL,             // callback(-1)
-  RCOUNT,           // increment ackRetry counter
+  BIV,              // Set ackManagerByte to initial value for Verify retry
   STARTMERGE,       // Clear bit and byte settings ready for merge pass
   MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
   SETBIT,           // sets bit number to next prog byte
@@ -152,6 +153,7 @@ private:
   static ackOp const *ackManagerProg;
   static ackOp const *ackManagerProgStart;
   static byte ackManagerByte;
+  static byte ackManagerByteVerify;
   static byte ackManagerBitNum;
   static int ackManagerCv;
   static byte ackManagerRetry;
