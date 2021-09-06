@@ -113,6 +113,8 @@
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
 #define WAITFOR(pin)
+#define XFOFF(cab,func)
+#define XFON(cab,func)
 
 #include "myAutomation.h"
 
@@ -196,6 +198,8 @@ const int StringMacroTracker1=__COUNTER__;
 #undef UNJOIN
 #undef UNLATCH
 #undef WAITFOR
+#undef XFOFF
+#undef XFON
 
 // Define macros for route code creation 
 #define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
@@ -263,6 +267,8 @@ const int StringMacroTracker1=__COUNTER__;
 #define UNJOIN OPCODE_UNJOIN,NOP,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
+#define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
+#define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 
 // PASS2 Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

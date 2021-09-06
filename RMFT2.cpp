@@ -530,11 +530,19 @@ void RMFT2::loop2() {
     case OPCODE_FON:      
       if (loco) DCC::setFn(loco,operand,true);
       break;
-    
+     
     case OPCODE_FOFF:
       if (loco) DCC::setFn(loco,operand,false);
       break;
-
+    
+    case OPCODE_XFON:      
+      DCC::setFn(operand,GET_OPERAND(1),true);
+      break;
+   
+    case OPCODE_XFOFF:      
+      DCC::setFn(operand,GET_OPERAND(1),false);
+      break;
+   
     case OPCODE_FOLLOW:
       progCounter=locateRouteStart(operand);
       if (progCounter<0) kill(F("FOLLOW unknown"), operand); 
@@ -631,7 +639,7 @@ void RMFT2::loop2() {
        case OPCODE_ROUTE:
        case OPCODE_AUTOMATION:
        case OPCODE_SEQUENCE:
-          DIAG(F("EXRAIL begin(%d)"),operand);
+          if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
           break;
 
        case OPCODE_PAD: // Just a padding for previous opcode needing >1 operad byte.
