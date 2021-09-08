@@ -83,6 +83,7 @@
 #define JOIN 
 #define LATCH(sensor_id) 
 #define LCD(row,msg) 
+#define LCN(msg) 
 #define ONCLOSE(turnout_id)
 #define ONTHROW(turnout_id) 
 #define PAUSE
@@ -97,6 +98,9 @@
 #define REV(speed) 
 #define START(route) 
 #define SENDLOCO(cab,route) 
+#define SERIAL1(msg) 
+#define SERIAL2(msg) 
+#define SERIAL3(msg) 
 #define SERVO(id,position,profile) 
 #define SERVO2(id,position,duration) 
 #define SETLOCO(loco) 
@@ -127,6 +131,10 @@
 
 #undef EXRAIL 
 #undef PRINT
+#undef LCN
+#undef SERIAL1
+#undef SERIAL2
+#undef SERIAL3
 #undef ENDEXRAIL  
 #undef LCD
 const int StringMacroTracker1=__COUNTER__;
@@ -134,6 +142,10 @@ const int StringMacroTracker1=__COUNTER__;
 #define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
 #define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1); return ; }}
 #define PRINT(msg)  case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
+#define LCN(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
+#define SERIAL1(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial1,F(msg));break;
+#define SERIAL2(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(L&Serial2,F(msg));break;
+#define SERIAL3(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial3,F(msg));break;
 #define LCD(id,msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
 #include "myAutomation.h"
 
@@ -167,6 +179,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef JOIN
 #undef LATCH
 #undef LCD
+#undef LCN
 #undef ONCLOSE
 #undef ONTHROW
 #undef PAUSE
@@ -186,6 +199,9 @@ const int StringMacroTracker1=__COUNTER__;
 #undef SERVO2
 #undef FADE
 #undef SENDLOCO
+#undef SERIAL1
+#undef SERIAL2
+#undef SERIAL3
 #undef SETLOCO
 #undef SET
 #undef SPEED
@@ -238,7 +254,8 @@ const int StringMacroTracker1=__COUNTER__;
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,NOP,
 #define JOIN OPCODE_JOIN,NOP,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
-#define LCD(id,msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
+#define LCD(id,msg) PRINT(msg)
+#define LCN(msg) PRINT(msg)
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,NOP,
@@ -252,6 +269,9 @@ const int StringMacroTracker1=__COUNTER__;
 #define RETURN OPCODE_RETURN,NOP,
 #define REV(speed) OPCODE_REV,V(speed),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
+#define SERIAL1(msg) PRINT(msg)
+#define SERIAL2(msg) PRINT(msg)
+#define SERIAL3(msg) PRINT(msg)
 #define START(route) OPCODE_START,V(route),
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
