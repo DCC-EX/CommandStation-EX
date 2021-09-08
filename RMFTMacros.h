@@ -98,6 +98,7 @@
 #define REV(speed) 
 #define START(route) 
 #define SENDLOCO(cab,route) 
+#define SERIAL(msg) 
 #define SERIAL1(msg) 
 #define SERIAL2(msg) 
 #define SERIAL3(msg) 
@@ -132,6 +133,7 @@
 #undef EXRAIL 
 #undef PRINT
 #undef LCN
+#undef SERIAL
 #undef SERIAL1
 #undef SERIAL2
 #undef SERIAL3
@@ -141,12 +143,13 @@ const int StringMacroTracker1=__COUNTER__;
 #define ALIAS(name,value) 
 #define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
 #define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1); return ; }}
-#define PRINT(msg)  case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
-#define LCN(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
+#define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
+#define LCN(msg)      case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
+#define SERIAL(msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial,F(msg));break;
 #define SERIAL1(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial1,F(msg));break;
 #define SERIAL2(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(L&Serial2,F(msg));break;
 #define SERIAL3(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial3,F(msg));break;
-#define LCD(id,msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
+#define LCD(id,msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
 #include "myAutomation.h"
 
 // Setup for Pass 3: create main routes table 
@@ -199,6 +202,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef SERVO2
 #undef FADE
 #undef SENDLOCO
+#undef SERIAL
 #undef SERIAL1
 #undef SERIAL2
 #undef SERIAL3
@@ -269,6 +273,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define RETURN OPCODE_RETURN,NOP,
 #define REV(speed) OPCODE_REV,V(speed),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
+#define SERIAL(msg) PRINT(msg)
 #define SERIAL1(msg) PRINT(msg)
 #define SERIAL2(msg) PRINT(msg)
 #define SERIAL3(msg) PRINT(msg)
