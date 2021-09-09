@@ -19,8 +19,9 @@
 #ifndef RMFTMacros_H
 #define RMFTMacros_H
 
-// remove normal code LCD macro (will be restored later)
+// remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
+#undef SERIAL
 
 
 // This file will include and build the EXRAIL script and associated helper tricks.
@@ -299,8 +300,9 @@ const int StringMacroTracker1=__COUNTER__;
 const int StringMacroTracker2=__COUNTER__;
 #include "myAutomation.h"
 
-// Restore normal code LCD macro
+// Restore normal code LCD & SERIAL  macro
 #undef LCD
 #define LCD   StringFormatter::lcd
-
+#undef SERIAL
+#define SERIAL  0x0
 #endif
