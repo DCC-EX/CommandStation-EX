@@ -141,6 +141,9 @@ public:
   // read invokes the IODevice instance's _read method.
   static int read(VPIN vpin);
 
+  // read invokes the IODevice instance's _readAnalogue method.
+  static int readAnalogue(VPIN vpin);
+
   // loop invokes the IODevice instance's _loop method.
   static void loop();
 
@@ -188,8 +191,14 @@ protected:
     return false; 
   }
 
-  // Method to read pin state (optionally implemented within device class)
+  // Method to read digital pin state (optionally implemented within device class)
   virtual int _read(VPIN vpin) { 
+    (void)vpin; 
+    return 0;
+  };
+
+  // Method to read analogue pin state (optionally implemented within device class)
+  virtual int _readAnalogue(VPIN vpin) { 
     (void)vpin; 
     return 0;
   };
@@ -343,8 +352,9 @@ private:
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
   // Device-specific write function.
   void _write(VPIN vpin, int value) override;
-  // Device-specific read function.
+  // Device-specific read functions.
   int _read(VPIN vpin) override;
+  int _readAnalogue(VPIN vpin) override;
   void _display() override;
 
 
