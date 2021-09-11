@@ -757,7 +757,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
-	  if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
+          if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
       	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
           callbackState=READY;

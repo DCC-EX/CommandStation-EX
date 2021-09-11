@@ -34,7 +34,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_IF,OPCODE_IFNOT,OPCODE_ENDIF,OPCODE_IFRANDOM,OPCODE_IFRESERVE,
              OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_RANDWAIT,
-             OPCODE_FON,OPCODE_FOFF,
+             OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,
              OPCODE_SERVO,OPCODE_SIGNAL,OPCODE_TURNOUT,OPCODE_WAITFOR,
              OPCODE_PAD,OPCODE_FOLLOW,OPCODE_CALL,OPCODE_RETURN,
@@ -68,7 +68,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
     static void readLocoCallback(int16_t cv);
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
-    static void turnoutEvent(VPIN id, bool closed);  
+    static void turnoutEvent(int16_t id, bool closed);  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -85,7 +85,7 @@ private:
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
     void driveLoco(byte speedo);
-    bool readSensor(int16_t sensorId);
+    bool readSensor(uint16_t sensorId);
     bool skipIfBlock();
     bool readLoco();
     void loop2();
@@ -106,10 +106,11 @@ private:
     unsigned long  delayTime;
     byte  taskId;
     
-    int loco;
+    uint16_t loco;
     bool forward;
     bool invert;
-    int speedo;
+    byte speedo;
+    int16_t onTurnoutId;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };

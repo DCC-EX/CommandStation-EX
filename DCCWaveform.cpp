@@ -114,7 +114,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
-  sentResetsSincePacket=0;
+  sentResetsSincePacket=0; 
 }
 
 
