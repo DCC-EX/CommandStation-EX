@@ -820,8 +820,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	      LCD(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
 	    } else if (p[1] == HASH_KEYWORD_RETRY) {
 	      if (p[2] >255) p[2]=3;
-              DCC::setAckRetry(p[2]);
-	      LCD(0, F("Ack Retry=%d"), p[2]);  //   <D ACK RETRY 2>
+	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCC::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
 	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));
