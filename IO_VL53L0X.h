@@ -94,7 +94,7 @@ private:
   uint16_t _signal;
   uint16_t _onThreshold;
   uint16_t _offThreshold;
-  uint8_t _xshutPin;
+  VPIN _xshutPin;
   bool _value;
   bool _initialising = true;
   uint8_t _entryCount = 0;
@@ -105,6 +105,7 @@ private:
     VL53L0X_REG_SYSRANGE_START=0x00,
     VL53L0X_REG_RESULT_INTERRUPT_STATUS=0x13,
     VL53L0X_REG_RESULT_RANGE_STATUS=0x14,
+    VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV=0x89,
     VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS=0x8A,
   };
   const uint8_t VL53L0X_I2C_DEFAULT_ADDRESS=0x29;
@@ -157,6 +158,9 @@ protected:
         case 3:
           if (I2CManager.exists(_i2cAddress)) {
             _display();
+            // Set 2.8V mode
+            write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
+              read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
           }
           _initialising = false;
           _entryCount = 0;
@@ -211,7 +215,7 @@ protected:
     }
   }
   // For digital read, return the same value for all pins.
-  int _read(VPIN vpin) override {
+  int _read(VPIN) override {
     return _value;
   }
   void _display() override {

@@ -17,31 +17,37 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * The HC-SR04 module has an ultrasonic transmitter (40kHz) and a receiver.
- * It is operated through two signal pins.  When the transmit pin is set to 1 for 
- * 10us, on the falling edge the transmitter sends a short transmission of 
+ * It is operated through two signal pins.  When the transmit pin is set to 1
+ * for 10us, on the falling edge the transmitter sends a short transmission of
  * 8 pulses (like a sonar 'ping').  This is reflected off objects and received
  * by the receiver.  A pulse is sent on the receive pin whose length is equal
  * to the delay between the transmission of the pulse and the detection of
  * its echo.  The distance of the reflecting object is calculated by halving
  * the time (to allow for the out and back distance), then multiplying by the
  * speed of sound (assumed to be constant).
- * 
+ *
  * This driver polls the HC-SR04 by sending the trigger pulse and then measuring
- * the length of the received pulse.  If the calculated distance is less than the
- * threshold, the output changes to 1.  If it is greater than the threshold plus
- * a hysteresis margin, the output changes to 0.
- * 
- * The measurement would be more reliable if interrupts were disabled while the
- * pulse is being timed.  However, this would affect other functions in the CS
- * so the measurement is being performed with interrupts enabled.  Also, we could
- * use an interrupt pin in the Arduino for the timing, but the same consideration 
- * applies.
- * 
- * Note: The timing accuracy required by this means that the pins have to be 
- * direct Arduino pins; GPIO pins on an IO Extender cannot provide the required
- * accuracy.
+ * the length of the received pulse.  If the calculated distance is less than
+ * the threshold, the output state returned by a read() call changes to 1.  If
+ * the distance is greater than the threshold plus a hysteresis margin, the
+ * output changes to 0. The device also supports readAnalogue(), which returns
+ * the measured distance in cm, or 32767 if the distance exceeds the
+ * offThreshold.
+ *
+ * It might be thought that the measurement would be more reliable if interrupts
+ * were disabled while the pulse is being timed.  However, this would affect
+ * other functions in the CS so the measurement is being performed with
+ * interrupts enabled.  Also, we could use an interrupt pin in the Arduino for
+ * the timing, but the same consideration applies.  In any case, the DCC
+ * interrupt occurs once every 58us, so any IRC code is much faster than that.
+ * And 58us corresponds to 1cm in the calculation, so the effect of
+ * interrupts is negligible.
+ *
+ * Note: The timing accuracy required for measuring the pulse length means that
+ * the pins have to be direct Arduino pins; GPIO pins on an IO Extender cannot
+ * provide the required accuracy.
  */
 
 #ifndef IO_HCSR04_H
@@ -58,6 +64,8 @@ private:
   // Thresholds for setting active state in cm.
   uint8_t _onThreshold;  // cm
   uint8_t _offThreshold; // cm
+  // Last measured distance in cm.
+  uint16_t _distance;
   // Active=1/inactive=0 state 
   uint8_t _value = 0;
   // Time of last loop execution
@@ -101,12 +109,17 @@ protected:
     return _value;
   }
 
+  int _readAnalogue(VPIN vpin) override {
+    (void)vpin; // avoid compiler warning
+    return _distance;
+  }
+
   // _loop function - read HC-SR04 once every 50 milliseconds.
   void _loop(unsigned long currentMicros) override {
     if (currentMicros - _lastExecutionTime > 50000UL) {
       _lastExecutionTime = currentMicros;
 
-      _value = read_HCSR04device();
+      read_HCSR04device();
     }
   }
 
@@ -127,12 +140,13 @@ private:
   //  measured distance is less than the onThreshold, and is set to 0 if the measured distance is
   //  greater than the offThreshold.
   //
-  uint8_t read_HCSR04device() {
+  void read_HCSR04device() {
     // uint16 enough to time up to 65ms
     uint16_t startTime, waitTime, currentTime, maxTime;  
 
     // If receive pin is still set on from previous call, abort the read.
-    if (ArduinoPins::fastReadDigital(_receivePin)) return _value;
+    if (ArduinoPins::fastReadDigital(_receivePin))
+      return;
 
     // Send 10us pulse to trigger transmitter
     ArduinoPins::fastWriteDigital(_transmitPin, 1);
@@ -148,7 +162,7 @@ private:
       waitTime = currentTime - startTime;
       if (waitTime > maxTime) {
         // Timeout waiting for pulse start, abort the read
-        return _value;
+        return;
       }
     }
 
@@ -162,16 +176,16 @@ private:
       //  and finish without waiting for end of pulse.
       if (waitTime > maxTime) {
         // Pulse length longer than maxTime, reset value.
-        return 0;
+        _value = 0;
+        _distance = 32767;
+        return;
       }
     } 
     // Check if pulse length is below threshold, if so set value.
     //DIAG(F("HCSR04: Pulse Len=%l Distance=%d"), waitTime, distance);
-    uint16_t distance = waitTime / factor; // in centimetres
-    if (distance < _onThreshold) 
-      return 1;
-
-    return _value;
+    _distance = waitTime / factor; // in centimetres
+    if (_distance < _onThreshold) 
+      _value = 1;
   }
 
 };

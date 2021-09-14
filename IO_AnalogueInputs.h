@@ -42,11 +42,17 @@
  * 
  * The ADS111x is set up as follows:
  *    Single-shot scan
- *    Data rate 128 samples/sec (7.8ms/sample)
+ *    Data rate 128 samples/sec (7.8ms/sample, but scanned every 10ms)
  *    Comparator off
  *    Gain FSR=6.144V
  * The gain means that the maximum input voltage of 5V (when Vss=5V) gives a reading 
  * of 32767*(5.0/6.144) = 26666.
+ * 
+ * A device is configured by the following:
+ *   ADS111x::create(firstVpin, nPins, i2cAddress);
+ * for example
+ *   ADS111x::create(300, 1, 0x48);  // single-input ADS1113
+ *   ADS111x::create(300, 4, 0x48);  // four-input ADS1115
  * 
  * Note: The device is simple and does not need initial configuration, so it should recover from
  * temporary loss of communications or power.
