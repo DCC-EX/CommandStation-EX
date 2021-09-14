@@ -13,6 +13,7 @@
 #include "Turnouts.h"
 #include "Sensors.h"
 #include "IO_HCSR04.h"
+#include "IO_VL53L0X.h"
 
 
 // The #if directive prevent compile errors for Uno and Nano by excluding the 
@@ -88,6 +89,27 @@
 
 //HCSR04 sonarModule1(2000, 30, 31, 20, 25);
 //HCSR04 sonarModule2(2001, 30, 32, 20, 25);
+
+// The following directive defines a single VL53L0X Time-of-Flight sensor.
+// The parameters are:
+//   VPIN=5000
+//   Number of VPINs=1
+//   I2C address=0x29 (default for this chip)
+//   Minimum trigger range=200mm (VPIN goes to 1 when <20cm)
+//   Maximum trigger range=250mm (VPIN goes to 0 when >25cm)
+
+//VL53L0X tofModule1(5000, 1, 0x29, 200, 250); 
+
+// For multiple VL53L0X modules, add another parameter which is a VPIN connected to the
+// module's XSHUT pin.  This allows the modules to be configured, at start,
+// with distinct I2C addresses.  In this case, the address 0x29 is only used during
+// initialisation to configure each device with the desired unique I2C address.
+// The examples below have one module's XSHUT pin connected to Arduino pin 34, 
+// and the other's connected to the second pin on the first MCP23017 module (VPIN 165).
+// The first module is given I2C address 0x30 and the second is 0x31.
+
+//VL53L0X tofModule1(5000, 1, 0x30, 200, 250, 34); 
+//VL53L0X tofModule2(5001, 1, 0x31, 200, 250, 165); 
 
 
 // The function mySetup() is invoked from CS if it exists within the build.
