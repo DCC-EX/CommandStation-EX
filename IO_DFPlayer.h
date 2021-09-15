@@ -131,13 +131,13 @@ protected:
       case 0: 
         if (value > 0) {
           // Play global track
-          if (value > 2999) value = 2999;
+          if (value > 2999) return;
           #ifdef DIAG_IO
           DIAG(F("DFPlayer: Play %d"), value);
           #endif
           sendPacket(0x03, value);
           _playing = true;
-        } else {
+        } else if (value == 0){
           #ifdef DIAG_IO
           DIAG(F("DFPlayer: Stop"));
           #endif
