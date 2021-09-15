@@ -59,8 +59,8 @@ class HCSR04 : public IODevice {
 
 private:
   // pins must be arduino GPIO pins, not extender pins or HAL pins.
-  int _transmitPin = -1;
-  int _receivePin = -1;
+  int _trigPin = -1;
+  int _echoPin = -1;
   // Thresholds for setting active state in cm.
   uint8_t _onThreshold;  // cm
   uint8_t _offThreshold; // cm
@@ -76,27 +76,27 @@ private:
 
 public:
   // Constructor perfroms static initialisation of the device object
-  HCSR04 (VPIN vpin, int transmitPin, int receivePin, uint16_t onThreshold, uint16_t offThreshold) {
+  HCSR04 (VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
     _firstVpin = vpin;
     _nPins = 1;
-    _transmitPin = transmitPin;
-    _receivePin = receivePin;
+    _trigPin = trigPin;
+    _echoPin = echoPin;
     _onThreshold = onThreshold;
     _offThreshold = offThreshold;
     addDevice(this);
   }
 
   // Static create function provides alternative way to create object
-  static void create(VPIN vpin, int transmitPin, int receivePin, uint16_t onThreshold, uint16_t offThreshold) {
-    new HCSR04(vpin, transmitPin, receivePin, onThreshold, offThreshold);
+  static void create(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
+    new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold);
   }
 
 protected:
   // _begin function called to perform dynamic initialisation of the device
   void _begin() override {
-    pinMode(_transmitPin, OUTPUT);
-    pinMode(_receivePin, INPUT);
-    ArduinoPins::fastWriteDigital(_transmitPin, 0);
+    pinMode(_trigPin, OUTPUT);
+    pinMode(_echoPin, INPUT);
+    ArduinoPins::fastWriteDigital(_trigPin, 0);
     _lastExecutionTime = micros();
 #if defined(DIAG_IO)
     _display();
@@ -120,12 +120,14 @@ protected:
       _lastExecutionTime = currentMicros;
 
       read_HCSR04device();
+      // Delay next loop entry until 50ms have elapsed.
+      //delayUntil(currentMicros + 50000UL);
     }
   }
 
   void _display() override {
     DIAG(F("HCSR04 Configured on Vpin:%d TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"),
-      _firstVpin, _transmitPin, _receivePin, _onThreshold, _offThreshold);
+      _firstVpin, _trigPin, _echoPin, _onThreshold, _offThreshold);
   }
 
 private:
@@ -145,18 +147,18 @@ private:
     uint16_t startTime, waitTime, currentTime, maxTime;  
 
     // If receive pin is still set on from previous call, abort the read.
-    if (ArduinoPins::fastReadDigital(_receivePin))
+    if (ArduinoPins::fastReadDigital(_echoPin))
       return;
 
     // Send 10us pulse to trigger transmitter
-    ArduinoPins::fastWriteDigital(_transmitPin, 1);
+    ArduinoPins::fastWriteDigital(_trigPin, 1);
     delayMicroseconds(10);
-    ArduinoPins::fastWriteDigital(_transmitPin, 0);
+    ArduinoPins::fastWriteDigital(_trigPin, 0);
 
     // Wait for receive pin to be set
     startTime = currentTime = micros();
     maxTime = factor * _offThreshold * 2;
-    while (!ArduinoPins::fastReadDigital(_receivePin)) {
+    while (!ArduinoPins::fastReadDigital(_echoPin)) {
       // lastTime = currentTime;
       currentTime = micros();
       waitTime = currentTime - startTime;
@@ -169,7 +171,7 @@ private:
     // Wait for receive pin to reset, and measure length of pulse
     startTime = currentTime = micros();
     maxTime = factor * _offThreshold;
-    while (ArduinoPins::fastReadDigital(_receivePin)) {
+    while (ArduinoPins::fastReadDigital(_echoPin)) {
       currentTime = micros();
       waitTime = currentTime - startTime;
       // If pulse is too long then set return value to zero,
