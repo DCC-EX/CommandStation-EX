@@ -90,6 +90,7 @@
 #define PAUSE
 #define PRINT(msg) 
 #define POM(cv,value)
+#define POWEROFF
 #define READ_LOCO 
 #define RED(signal_id) 
 #define RESERVE(blockid) 
@@ -188,6 +189,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef ONTHROW
 #undef PAUSE
 #undef POM
+#undef POWEROFF
 #undef PRINT
 #undef READ_LOCO
 #undef RED
@@ -265,6 +267,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,NOP,
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
+#define POWEROFF OPCODE_POWEROFF,NOP,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define READ_LOCO OPCODE_READ_LOCO1,NOP,OPCODE_READ_LOCO2,NOP,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
