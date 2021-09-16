@@ -126,7 +126,7 @@ protected:
   // If value is zero, it stops playing.
   // WriteAnalogue on second pin sets the output volume.
   void _writeAnalogue(VPIN vpin, int value, uint8_t, uint16_t) override { 
-    uint8_t pin = _firstVpin - vpin;
+    uint8_t pin = vpin - _firstVpin;
     switch (pin) {
       case 0: 
         if (value > 0) {
@@ -159,13 +159,12 @@ protected:
     }
   }
 
-  bool _isBusy(VPIN vpin) override {
-    (void)vpin;  // avoid compiler warning.
+  bool _isBusy(VPIN) override {
     return _playing;
   }
 
   void _display() override {
-    DIAG(F("DFPlayer Configured on Vpins:%d-%d"));
+    DIAG(F("DFPlayer Configured on Vpins:%d-%d"), _firstVpin, _firstVpin+_nPins-1);
   }
   
 private:
