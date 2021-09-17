@@ -257,7 +257,7 @@ int IODevice::readAnalogue(VPIN vpin) {
       return dev->_readAnalogue(vpin);
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
+  //DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
 #endif
   return false;
 }
