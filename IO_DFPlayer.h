@@ -27,17 +27,19 @@
  * The driver is configured as follows:
  * 
  *       DFPlayer::create(firstVpin, nPins, Serialn);
+ * 
  * Where firstVpin is the first vpin reserved for reading the device,
  *       nPins is the number of pins to be allocated (max 5)
- *   and Serialn is the name of the Serial port connected to the DFPlayer (e.g. Serial2).
- * 
+ *   and Serialn is the name of the Serial port connected to the DFPlayer (e.g. Serial1).
  * 
  * Example:
  *   In mySetup function within mySetup.cpp:
- *      DFPlayer::create(3500, 5, Serial2);
- *   Writing a value 0-2999 to the first pin will select a numbered file from the SD card;
- *   Writing a value 0-30 to the second pin will set the volume of the output;
- *   Writing a digital value to the first pin will play or stop the file;
+ *       DFPlayer::create(3500, 5, Serial1);
+ * 
+ * Writing an analogue value 0-2999 to the first pin will select a numbered file from the SD card;
+ * Writing an analogue value 0-30 to the second pin will set the volume of the output;
+ * Writing a digital value to the first pin will play or stop the file;
+ * Reading a digital value from any pin will return true(1) if the player is playing, false(0) otherwise.
  * 
  * From EX-RAIL, the following commands may be used:
  *   SET(3500)      -- starts playing the first file on the SD card
@@ -45,6 +47,9 @@
  *   etc.
  *   RESET(3500)    -- stops all playing on the player
  *   WAITFOR(3500)  -- wait for the file currently being played by the player to complete
+ *   SERVO(3500,23,0)  -- plays file 23 at current volume
+ *   SERVO(3500,23,30)  -- plays file 23 at volume 30 (maximum)
+ *   SERVO(3501,20,0)   -- Sets the volume to 20
  * 
  * NB The DFPlayer's serial lines are not 5V safe, so connecting the Arduino TX directly 
  * to the DFPlayer's RX terminal will cause lots of noise over the speaker, or worse.
@@ -123,39 +128,44 @@ protected:
   }
 
   // WriteAnalogue on first pin uses the nominated value as a file number to start playing, if file number > 0.
-  // If value is zero, it stops playing.
+  // Volume may be specified as second parameter to writeAnalogue.
+  // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
-  void _writeAnalogue(VPIN vpin, int value, uint8_t, uint16_t) override { 
+  void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
     uint8_t pin = vpin - _firstVpin;
-    switch (pin) {
-      case 0: 
-        if (value > 0) {
-          // Play global track
-          if (value > 2999) return;
-          #ifdef DIAG_IO
-          DIAG(F("DFPlayer: Play %d"), value);
-          #endif
-          sendPacket(0x03, value);
-          _playing = true;
-        } else if (value == 0){
-          #ifdef DIAG_IO
-          DIAG(F("DFPlayer: Stop"));
-          #endif
-          sendPacket(0x16);
-          _playing = false;
-        }
-        break;
-      case 1:
-        // Set volume (0-30)
-        if (value > 30) value = 30;
-        else if (value < 0) value = 0;
+ 
+    // Validate parameter.
+    volume = min(30,volume);
+
+    if (pin == 0) {
+      // Play track 
+      if (value > 0) {
         #ifdef DIAG_IO
-        DIAG(F("DFPlayer: Volume %d"), value);
+        DIAG(F("DFPlayer: Play %d"), value);
         #endif
-        sendPacket(0x06, value);
-        break;
-      default:
-        break;
+        sendPacket(0x03, value); // Play track
+        _playing = true;
+        if (volume > 0) {
+          #ifdef DIAG_IO
+          DIAG(F("DFPlayer: Volume %d"), volume);
+          #endif
+          sendPacket(0x06, volume);  // Set volume
+        }
+      } else {
+        #ifdef DIAG_IO
+        DIAG(F("DFPlayer: Stop"));
+        #endif
+        sendPacket(0x16); // Stop play
+        _playing = false;
+      }
+    } else if (pin == 1) {
+      // Set volume (0-30)
+      if (value > 30) value = 30;
+      else if (value < 0) value = 0;
+      #ifdef DIAG_IO
+      DIAG(F("DFPlayer: Volume %d"), value);
+      #endif
+      sendPacket(0x06, value);      
     }
   }
 
