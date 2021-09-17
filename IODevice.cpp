@@ -53,7 +53,9 @@ void IODevice::begin() {
   MCP23017::create(180, 16, 0x21);
 
   // Call the begin() methods of each configured device in turn
+  unsigned long currentMicros = micros();
   for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
+    dev->_nextEntryTime = currentMicros;
     dev->_begin();
   }
   _initPhase = false;
@@ -69,8 +71,14 @@ void IODevice::loop() {
   unsigned long currentMicros = micros();
   // Call every device's loop function in turn, one per entry.
   if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
-  if (_nextLoopDevice) {
+  // Check if device exists, and is due to run
+  if (_nextLoopDevice /* && ((long)(currentMicros-_nextLoopDevice->_nextEntryTime) >= 0) */ ) {
+    // Move _nextEntryTime on, so that we can guarantee that the device will continue to
+    // be serviced if it doesn't update _nextEntryTime.
+    _nextLoopDevice->_nextEntryTime = currentMicros; 
+    // Invoke device's _loop function
     _nextLoopDevice->_loop(currentMicros);
+    // Move to next device.
     _nextLoopDevice = _nextLoopDevice->_nextDevice;
   }
   
@@ -157,12 +165,13 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
 #endif
 }
 
-// isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
-//  the output over a period of time.
+// isBusy, when called for a device pin is always a digital output or analogue output,
+//  returns input feedback state of the pin, i.e. whether the pin is busy performing
+//  an animation or fade over a period of time.
 bool IODevice::isBusy(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
   if (dev) 
-    return dev->_isBusy(vpin);
+    return dev->_read(vpin);
   else
     return false;
 }
@@ -248,7 +257,7 @@ int IODevice::readAnalogue(VPIN vpin) {
       return dev->_readAnalogue(vpin);
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
 #endif
   return false;
 }

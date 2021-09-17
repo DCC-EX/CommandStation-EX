@@ -65,7 +65,7 @@ private:
 public:
   DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) {
     _firstVpin = firstVpin;
-    _nPins = min(nPins, 3);
+    _nPins = nPins;
     _serial = &serial;
     addDevice(this);
   }
@@ -159,7 +159,8 @@ protected:
     }
   }
 
-  bool _isBusy(VPIN) override {
+  // A read on any pin indicates whether the player is still playing.
+  int _read(VPIN) override {
     return _playing;
   }
 
