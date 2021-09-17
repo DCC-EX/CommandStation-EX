@@ -129,7 +129,7 @@ public:
   static void write(VPIN vpin, int value);
 
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
-  static void writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration=0);
+  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
@@ -178,7 +178,7 @@ protected:
   };
 
   // Method to write an 'analogue' value (optionally implemented within device class)
-  virtual  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+  virtual void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     (void)vpin; (void)value; (void) profile; (void)duration;
   };
 
@@ -203,13 +203,6 @@ protected:
     return 0;
   };
 
-  // _isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
-  //  the output over a period of time.  Returns false unless overridden in sub class.
-  virtual bool _isBusy(VPIN vpin) {
-      (void)vpin;
-      return false;
-  }
-
   // Method to perform updates on an ongoing basis (optionally implemented within device class)
   virtual void _loop(unsigned long currentMicros) {
     (void)currentMicros; // Suppress compiler warning.
@@ -220,6 +213,11 @@ protected:
 
   // Destructor
   virtual ~IODevice() {};
+
+  // Non-virtual function
+  void delayUntil(unsigned long futureMicrosCount) {
+    _nextEntryTime = futureMicrosCount;
+  }
   
   // Common object fields.
   VPIN _firstVpin;
@@ -242,6 +240,7 @@ private:
   static IODevice *findDevice(VPIN vpin);
 
   IODevice *_nextDevice = 0;
+  unsigned long _nextEntryTime;
   static IODevice *_firstDevice;
 
   static IODevice *_nextLoopDevice;
@@ -276,7 +275,7 @@ private:
   // Device-specific write functions.
   void _write(VPIN vpin, int value) override;
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override;
-  bool _isBusy(VPIN vpin) override;
+  int _read(VPIN vpin) override; // returns the busy status of the device
   void _loop(unsigned long currentMicros) override;
   void updatePosition(uint8_t pin);
   void writeDevice(uint8_t pin, int value);
