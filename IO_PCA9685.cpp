@@ -169,9 +169,9 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
   s->fromPosition = s->currentPosition;
 }
 
-// _isBusy returns true if the device is currently in executing an animation, 
+// _read returns true if the device is currently in executing an animation, 
 //  changing the output over a period of time.
-bool PCA9685::_isBusy(VPIN vpin) {
+int PCA9685::_read(VPIN vpin) {
   int pin = vpin - _firstVpin;
   struct ServoData *s = _servoData[pin];
   if (s == NULL) 
