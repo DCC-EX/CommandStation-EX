@@ -176,13 +176,13 @@ int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-    (void) type; // avoid compiler warning if diag not used above. 
-    uint8_t port = digitalPinToPort(pin);
+    (void) type; // avoid compiler warning if diag not used above.
+    PORTTYPE port = digitalPinToPort(pin);
     if (input)
       result.inout = portInputRegister(port);
     else
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
+    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }

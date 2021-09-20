@@ -44,7 +44,7 @@
 
 #include "DCCTimer.h"
 const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;
+const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME);
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -53,11 +53,11 @@ INTERRUPT_CALLBACK interruptHandler=0;
   
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts(); 
+    noInterrupts();
     ADC0.CTRLC = (ADC0.CTRLC & 0b00110000) | 0b01000011;  // speed up analogRead sample time   
     TCB0.CTRLB = TCB_CNTMODE_INT_gc & ~TCB_CCMPEN_bm; // timer compare mode with output disabled
     TCB0.CTRLA = TCB_CLKSEL_CLKDIV2_gc; //   8 MHz ~ 0.125 us      
-    TCB0.CCMP =  CLOCK_CYCLES -1;  // 1 tick less for timer reset
+    TCB0.CCMP =  (CLOCK_CYCLES>>1) -1;  // 1 tick less for timer reset
     TCB0.INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
     TCB0.INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
     TCB0.CNT = 0;
@@ -146,6 +146,24 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 }
 #endif
 
+#elif defined(ARDUINO_ARCH_ESP8266)
+// ESP8266 !!!!!!!!!!!!!!!!!!!!!
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  interruptHandler=callback;
+  noInterrupts();
+  timer1_attachInterrupt(interruptHandler);
+  timer1_write(CLOCK_CYCLES);
+  timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
+  interrupts();
+}
+bool DCCTimer::isPWMPin(byte pin) {
+  return false;
+}
+void DCCTimer::setPWM(byte pin, bool high) {
+}
+
+
+
 #else 
   // Arduino nano, uno, mega etc
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -159,10 +177,10 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts();          
+    noInterrupts();
     ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time 
     TCCR1A = 0;
-    ICR1 = CLOCK_CYCLES;
+    ICR1 = CLOCK_CYCLES>>1;
     TCNT1 = 0;   
     TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
     TIMSK1 = _BV(TOIE1); // Enable Software interrupt

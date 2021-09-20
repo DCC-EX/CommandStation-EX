@@ -30,7 +30,7 @@
 
 #include "EEStore.h"
 #include "DIAG.h"
-#include <avr/wdt.h>
+//#include <avr/wdt.h>
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command

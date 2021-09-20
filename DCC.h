@@ -40,7 +40,7 @@ enum ackOp : byte
   ITCB,             // If True callback(byte)
   ITCB7,            // If True callback(byte &0x7F)
   NAKFAIL,          // if false callback(-1)
-  FAIL,             // callback(-1)
+  CALLFAIL,         // callback(-1)
   STARTMERGE,       // Clear bit and byte settings ready for merge pass
   MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
   SETBIT,           // sets bit number to next prog byte
@@ -191,6 +191,8 @@ private:
 #define ARDUINO_TYPE "TEENSY40"
 #elif defined(ARDUINO_TEENSY41)
 #define ARDUINO_TYPE "TEENSY41"
+#elif defined(ARDUINO_ARCH_ESP8266)
+#define ARDUINO_TYPE "ESP8266"
 #else
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
 #endif

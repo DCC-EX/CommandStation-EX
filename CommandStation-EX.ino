@@ -111,7 +111,6 @@ void loop()
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)
   DCC::loop();
-
   // Responsibility 2: handle any incoming commands on USB connection
   serialParser.loop(Serial);
 

@@ -26,13 +26,15 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
-#if defined(__IMXRT1062__)
+#if defined(__IMXRT1062__) || defined (ARDUINO_ARCH_ESP8266)
+typedef uint32_t PORTTYPE;
 struct FASTPIN {
   volatile uint32_t *inout;
   uint32_t maskHIGH;  
   uint32_t maskLOW;  
 };
 #else
+typedef uint8_t PORTTYPE;
 struct FASTPIN {
   volatile uint8_t *inout;
   uint8_t maskHIGH;  
