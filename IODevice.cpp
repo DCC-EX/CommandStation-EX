@@ -53,9 +53,7 @@ void IODevice::begin() {
   MCP23017::create(180, 16, 0x21);
 
   // Call the begin() methods of each configured device in turn
-  unsigned long currentMicros = micros();
   for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
-    dev->_nextEntryTime = currentMicros;
     dev->_begin();
   }
   _initPhase = false;
@@ -69,18 +67,24 @@ void IODevice::begin() {
 // doesn't need to invoke it.
 void IODevice::loop() {
   unsigned long currentMicros = micros();
-  // Call every device's loop function in turn, one per entry.
-  if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
-  // Check if device exists, and is due to run
-  if (_nextLoopDevice /* && ((long)(currentMicros-_nextLoopDevice->_nextEntryTime) >= 0) */ ) {
-    // Move _nextEntryTime on, so that we can guarantee that the device will continue to
-    // be serviced if it doesn't update _nextEntryTime.
-    _nextLoopDevice->_nextEntryTime = currentMicros; 
-    // Invoke device's _loop function
-    _nextLoopDevice->_loop(currentMicros);
-    // Move to next device.
-    _nextLoopDevice = _nextLoopDevice->_nextDevice;
-  }
+  
+  IODevice *lastLoopDevice = _nextLoopDevice;  // So we know when to stop...
+  // Loop through devices until we find one ready to be serviced.
+  do {
+    if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
+    if (_nextLoopDevice) {
+      if (_nextLoopDevice->_deviceState != DEVSTATE_FAILED 
+            && ((long)(currentMicros - _nextLoopDevice->_nextEntryTime)) >= 0) {
+        // Found one ready to run, so invoke its _loop method.
+        _nextLoopDevice->_nextEntryTime = currentMicros;
+        _nextLoopDevice->_loop(currentMicros);
+        _nextLoopDevice = _nextLoopDevice->_nextDevice;
+        break;
+      }
+      // Not this one, move to next one
+      _nextLoopDevice = _nextLoopDevice->_nextDevice;
+    }
+  } while (_nextLoopDevice != lastLoopDevice); // Stop looking when we've done all.
   
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)
@@ -127,7 +131,8 @@ bool IODevice::hasCallback(VPIN vpin) {
 
 // Display (to diagnostics) details of the device.
 void IODevice::_display() {
-  DIAG(F("Unknown device Vpins:%d-%d"), (int)_firstVpin, (int)_firstVpin+_nPins-1);
+  DIAG(F("Unknown device Vpins:%d-%d %S"), 
+    (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState==DEVSTATE_FAILED ? F("OFFLINE") : F(""));
 }
 
 // Find device associated with nominated Vpin and pass configuration values on to it.
@@ -151,13 +156,18 @@ void IODevice::write(VPIN vpin, int value) {
 #endif
 }
 
-// Write analogue value to virtual pin(s).  If multiple devices are allocated the same pin
-//  then only the first one found will be used.  Duration is the time that the 
-//  operation is to be performed over (e.g. as an animation) in deciseconds (0-3276 sec)
-void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+// Write analogue value to virtual pin(s).  If multiple devices are allocated
+// the same pin then only the first one found will be used.
+//
+// The significance of param1 and param2 may vary from device to device.
+// For servo controllers, param1 is the profile of the transition and param2
+// the duration, i.e. the time that the operation is to be animated over
+// in deciseconds (0-3276 sec)
+//
+void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
   IODevice *dev = findDevice(vpin);
   if (dev) {
-    dev->_writeAnalogue(vpin, value, profile, duration);
+    dev->_writeAnalogue(vpin, value, param1, param2);
     return;
   }
 #ifdef DIAG_IO
@@ -257,7 +267,7 @@ int IODevice::readAnalogue(VPIN vpin) {
       return dev->_readAnalogue(vpin);
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
 #endif
   return false;
 }

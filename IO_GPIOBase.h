@@ -59,7 +59,6 @@ protected:
   T _portPullup;
   // Interval between refreshes of each input port
   static const int _portTickTime = 4000;
-  unsigned long _lastLoopEntry = 0;
 
   // Virtual functions for interfacing with I2C GPIO Device
   virtual void _writeGpioPort() = 0;
@@ -105,10 +104,12 @@ void GPIOBase<T>::_begin() {
     _portMode = 0;  // default to input mode
     _portPullup = -1; // default to pullup enabled
     _portInputState = -1; 
+    _setupDevice();
+    _deviceState = DEVSTATE_NORMAL;
+  } else {
+    DIAG(F("%S I2C:x%x Device not detected"), _deviceName, _I2CAddress);
+    _deviceState = DEVSTATE_FAILED;
   }
-  _setupDevice();
-  _deviceState = DEVSTATE_NORMAL;
-  _lastLoopEntry = micros();
 }
 
 // Configuration parameters for inputs: 
@@ -172,27 +173,25 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
     #endif
   }
 
-  // Check if interrupt configured.  If so, and pin is not pulled down, finish.
-  if (_gpioInterruptPin >= 0) {
-    if (digitalRead(_gpioInterruptPin)) return;
-  } else
-  // No interrupt pin.  Check if tick has elapsed.  If not, finish.
-  if (currentMicros - _lastLoopEntry < (unsigned long)_portTickTime) return;
+  // Check if interrupt configured.  If not, or if it is active (pulled down), then
+  //  initiate a scan.
+  if (_gpioInterruptPin < 0 || !digitalRead(_gpioInterruptPin)) {
+    // TODO: Could suppress reads if there are no pins configured as inputs!
 
-  // TODO: Could suppress reads if there are no pins configured as inputs!
-
-  // Read input
-  _lastLoopEntry = currentMicros;
-  if (_deviceState == DEVSTATE_NORMAL) {
-    _readGpioPort(false);  // Initiate non-blocking read
-    _deviceState= DEVSTATE_SCANNING;
+    // Read input
+    if (_deviceState == DEVSTATE_NORMAL) {
+      _readGpioPort(false);  // Initiate non-blocking read
+      _deviceState= DEVSTATE_SCANNING;
+    }
   }
+  // Delay next entry until tick elapsed.
+  delayUntil(currentMicros + _portTickTime);
 }
 
 template <class T>
 void GPIOBase<T>::_display() {
-  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d"), _deviceName, _I2CAddress, 
-    _firstVpin, _firstVpin+_nPins-1);
+  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d %S"), _deviceName, _I2CAddress, 
+    _firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
 template <class T>

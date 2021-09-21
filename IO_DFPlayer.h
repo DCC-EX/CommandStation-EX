@@ -66,6 +66,7 @@ private:
   HardwareSerial *_serial;
   bool _playing = false;
   uint8_t _inputIndex = 0;
+  unsigned long _commandSendTime; // Allows timeout processing
 
 public:
   DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) {
@@ -81,21 +82,32 @@ public:
 protected:
   void _begin() override {
     _serial->begin(9600);
-    _display();
+    _deviceState = DEVSTATE_INITIALISING;
+
+    // Send a query to the device to see if it responds
+    sendPacket(0x42); 
+    _commandSendTime = micros();
   }
 
-  void _loop(unsigned long) override {
+  void _loop(unsigned long currentMicros) override {
     // Check for incoming data on _serial, and update busy flag accordingly.
     // Expected message is in the form "7F FF 06 3D xx xx xx xx xx EF"
     while (_serial->available()) {
       int c = _serial->read();
-//      DIAG(F("Received: %x"), c);
       if (c == 0x7E) 
         _inputIndex = 1;
-      else if ((c==0xFF && _inputIndex==1) || (c==0x06 && _inputIndex==2) 
-            || (c==0x3D && _inputIndex==3) || (_inputIndex >=4 && _inputIndex <= 8))
+      else if ((c==0xFF && _inputIndex==1)
+            || (c==0x3D && _inputIndex==3) 
+            || (_inputIndex >=4 && _inputIndex <= 8))
         _inputIndex++;
-      else if (c==0xEF && _inputIndex==9) {
+      else if (c==0x06 && _inputIndex==2) { 
+        // Valid command prefix, so consider the device online.
+        _deviceState = DEVSTATE_NORMAL;
+        #ifdef DIAG_IO
+        _display();
+        #endif
+        _inputIndex++;
+      } else if (c==0xEF && _inputIndex==9) {
         // End of play
         #ifdef DIAG_IO
         DIAG(F("DFPlayer: Finished"));
@@ -104,6 +116,12 @@ protected:
         _inputIndex = 0;
       }
     }
+    // Check if the initial prompt to device has timed out.  Allow 1 second
+    if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 1000000UL) {
+      DIAG(F("DFPlayer device not responding on serial port"));
+      _deviceState = DEVSTATE_FAILED;
+    }
+    delayUntil(currentMicros + 10000); // Only enter every 10ms
   }
 
   // Write with value 1 starts playing a song.  The relative pin number is the file number.
@@ -175,7 +193,8 @@ protected:
   }
 
   void _display() override {
-    DIAG(F("DFPlayer Configured on Vpins:%d-%d"), _firstVpin, _firstVpin+_nPins-1);
+    DIAG(F("DFPlayer Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
+      (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
 private:

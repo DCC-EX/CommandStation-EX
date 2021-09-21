@@ -107,12 +107,14 @@ void PCA9685::_begin() {
   #if defined(DIAG_IO)
     _display();
   #endif
-  }
+  } else
+    _deviceState = DEVSTATE_FAILED;
 }
 
 // Device-specific write function, invoked from IODevice::write().  
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
+  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
   #endif
@@ -137,6 +139,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             4 (Bounce)  Servo 'bounces' at extremes.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
   DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"), 
     vpin, value, profile, duration);
@@ -172,6 +175,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
 // _read returns true if the device is currently in executing an animation, 
 //  changing the output over a period of time.
 int PCA9685::_read(VPIN vpin) {
+  if (_deviceState == DEVSTATE_FAILED) return 0;
   int pin = vpin - _firstVpin;
   struct ServoData *s = _servoData[pin];
   if (s == NULL) 
@@ -181,12 +185,10 @@ int PCA9685::_read(VPIN vpin) {
 }
 
 void PCA9685::_loop(unsigned long currentMicros) {
-  if (currentMicros - _lastRefreshTime >= refreshInterval * 1000) {
-    for (int pin=0; pin<_nPins; pin++) {
-      updatePosition(pin);
-    }
-    _lastRefreshTime = currentMicros;
+  for (int pin=0; pin<_nPins; pin++) {
+    updatePosition(pin);
   }
+  delayUntil(currentMicros + refreshInterval * 1000UL);
 }
 
 // Private function to reposition servo
@@ -238,20 +240,25 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
   DIAG(F("PCA9685 I2C:x%x WriteDevice Pin:%d Value:%d"), _I2CAddress, pin, value);
   #endif
   // Wait for previous request to complete
-  requestBlock.wait();
-  // Set up new request.
-  outputBuffer[0] = PCA9685_FIRST_SERVO + 4 * pin;
-  outputBuffer[1] = 0;
-  outputBuffer[2] = (value == 4095 ? 0x10 : 0);  // 4095=full on
-  outputBuffer[3] = value & 0xff;
-  outputBuffer[4] = value >> 8;
-  I2CManager.queueRequest(&requestBlock);
+  uint8_t status = requestBlock.wait();
+  if (status != I2C_STATUS_OK) {
+    _deviceState = DEVSTATE_FAILED;
+    DIAG(F("PCA9685 I2C:x%x failed %S"), _I2CAddress, I2CManager.getErrorMessage(status));
+  } else {
+    // Set up new request.
+    outputBuffer[0] = PCA9685_FIRST_SERVO + 4 * pin;
+    outputBuffer[1] = 0;
+    outputBuffer[2] = (value == 4095 ? 0x10 : 0);  // 4095=full on
+    outputBuffer[3] = value & 0xff;
+    outputBuffer[4] = value >> 8;
+    I2CManager.queueRequest(&requestBlock);
+  }
 }
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d"), _I2CAddress, (int)_firstVpin, 
-    (int)_firstVpin+_nPins-1);
+  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
+    (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
 // Internal helper function for this device

@@ -78,48 +78,52 @@ private:
 #endif
     } else {
       DIAG(F("ADS111x device not found, I2C:%x"), _i2cAddress);
+      _deviceState = DEVSTATE_FAILED;
     }
   }
   void _loop(unsigned long currentMicros) override {
 
-    if (currentMicros - _lastMicros >= scanInterval) {
-      // Check that previous non-blocking write has completed, if not then wait
-      uint8_t status = _i2crb.wait();
-      if (status == I2C_STATUS_OK) {
-        // If _currentPin is in the valid range, continue reading the pin values
-        if (_currentPin < _nPins) {
-          _outBuffer[0] = 0x00;  // Conversion register address
-          uint8_t status = I2CManager.read(_i2cAddress, _inBuffer, 2, _outBuffer, 1); // Read register
-          if (status == I2C_STATUS_OK) {
-            _value[_currentPin] = ((uint16_t)_inBuffer[0] << 8) + (uint16_t)_inBuffer[1];
-            #ifdef IO_ANALOGUE_SLOW
-            DIAG(F("ADS111x pin:%d value:%d"), _currentPin, _value[_currentPin]);
-            #endif
-          }
+    // Check that previous non-blocking write has completed, if not then wait
+    uint8_t status = _i2crb.wait();
+    if (status == I2C_STATUS_OK) {
+      // If _currentPin is in the valid range, continue reading the pin values
+      if (_currentPin < _nPins) {
+        _outBuffer[0] = 0x00;  // Conversion register address
+        uint8_t status = I2CManager.read(_i2cAddress, _inBuffer, 2, _outBuffer, 1); // Read register
+        if (status == I2C_STATUS_OK) {
+          _value[_currentPin] = ((uint16_t)_inBuffer[0] << 8) + (uint16_t)_inBuffer[1];
+          #ifdef IO_ANALOGUE_SLOW
+          DIAG(F("ADS111x pin:%d value:%d"), _currentPin, _value[_currentPin]);
+          #endif
         }
-        if (status != I2C_STATUS_OK) 
-          DIAG(F("ADS111x I2C:x%d Error:%d"), _i2cAddress, status);
       }
-      // Move to next pin
-      if (++_currentPin >= _nPins) _currentPin = 0;
-      
-      // Configure ADC and multiplexer for next scan.  See ADS111x datasheet for details
-      // of configuration register settings.
-      _outBuffer[0] = 0x01; // Config register address
-      _outBuffer[1] = 0xC0 + (_currentPin << 4); // Trigger single-shot, channel n
-      _outBuffer[2] = 0xA3;           // 250 samples/sec, comparator off
-      // Write command, without waiting for completion.
-      I2CManager.write(_i2cAddress, _outBuffer, 3, &_i2crb);
-
-      _lastMicros = currentMicros;
     }
+    if (status != I2C_STATUS_OK) {
+      DIAG(F("ADS111x I2C:x%d Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
+      _deviceState = DEVSTATE_FAILED;
+    }
+    // Move to next pin
+    if (++_currentPin >= _nPins) _currentPin = 0;
+    
+    // Configure ADC and multiplexer for next scan.  See ADS111x datasheet for details
+    // of configuration register settings.
+    _outBuffer[0] = 0x01; // Config register address
+    _outBuffer[1] = 0xC0 + (_currentPin << 4); // Trigger single-shot, channel n
+    _outBuffer[2] = 0xA3;           // 250 samples/sec, comparator off
+    // Write command, without waiting for completion.
+    I2CManager.write(_i2cAddress, _outBuffer, 3, &_i2crb);
+
+    delayUntil(currentMicros + scanInterval);
   }
+
   int _readAnalogue(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     return _value[pin];
   }
+  
   void _display() override {
-    DIAG(F("ADS111x I2C:x%x Configured on Vpins:%d-%d"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1);
+    DIAG(F("ADS111x I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
+      _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
   // ADC conversion rate is 250SPS, or 4ms per conversion.  Set the period between updates to 10ms. 
@@ -134,7 +138,6 @@ private:
   uint8_t _outBuffer[3];
   uint8_t _inBuffer[2];
   uint8_t _currentPin;  // ADC pin currently being scanned
-  unsigned long _lastMicros = 0;
   I2CRB _i2crb;
 };
 
