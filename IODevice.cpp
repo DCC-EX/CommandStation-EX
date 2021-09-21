@@ -89,24 +89,32 @@ void IODevice::loop() {
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)
   static unsigned long lastMicros = 0;
-  static unsigned long maxElapsed = 0;
+  // Measure time since loop() method started.
+  unsigned long halElapsed = micros() - currentMicros;
+  // Measure time between loop() method entries.
+  unsigned long elapsed = currentMicros - lastMicros;
+  static unsigned long maxElapsed = 0, maxHalElapsed = 0;
   static unsigned long lastOutputTime = 0;
+  static unsigned long halTotal = 0, total = 0;
   static unsigned long count = 0;
   const unsigned long interval = (unsigned long)5 * 1000 * 1000; // 5 seconds in microsec
-  unsigned long elapsed = currentMicros - lastMicros;
+
   // Ignore long loop counts while message is still outputting
   if (currentMicros - lastOutputTime > 3000UL) {
     if (elapsed > maxElapsed) maxElapsed = elapsed;
+    if (halElapsed > maxHalElapsed) maxHalElapsed = halElapsed;
+    halTotal += halElapsed;
+    total += elapsed;
+    count++;
   }
-  count++;
   if (currentMicros - lastOutputTime > interval) {
     if (lastOutputTime > 0) 
-      LCD(1,F("Loop=%lus,%lus max"), interval/count, maxElapsed);
-    maxElapsed = 0;
-    count = 0;
+      DIAG(F("Loop Total:%lus (%lus max) HAL:%lus (%lus max)"), 
+        total/count, maxElapsed, halTotal/count, maxHalElapsed);
+    maxElapsed = maxHalElapsed = total = halTotal = count = 0;
     lastOutputTime = currentMicros;
   }
-  lastMicros = micros();
+  lastMicros = currentMicros;
 #endif
 }
 

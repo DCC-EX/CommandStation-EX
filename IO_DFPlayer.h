@@ -69,12 +69,14 @@ private:
   unsigned long _commandSendTime; // Allows timeout processing
 
 public:
-  DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) {
-    _firstVpin = firstVpin;
-    _nPins = nPins;
-    _serial = &serial;
+  // Constructor
+  DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) :
+    IODevice(firstVpin, nPins),
+    _serial(&serial) 
+  {
     addDevice(this);
   }
+
   static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
     new DFPlayer(firstVpin, nPins, serial);
   }
@@ -101,20 +103,25 @@ protected:
             || (_inputIndex >=4 && _inputIndex <= 8))
         _inputIndex++;
       else if (c==0x06 && _inputIndex==2) { 
-        // Valid command prefix, so consider the device online.
-        _deviceState = DEVSTATE_NORMAL;
-        #ifdef DIAG_IO
-        _display();
-        #endif
+        // Valid message prefix, so consider the device online
+        if (_deviceState==DEVSTATE_INITIALISING) {
+          _deviceState = DEVSTATE_NORMAL;
+          #ifdef DIAG_IO
+          _display();
+          #endif
+        }
         _inputIndex++;
       } else if (c==0xEF && _inputIndex==9) {
         // End of play
-        #ifdef DIAG_IO
-        DIAG(F("DFPlayer: Finished"));
-        #endif
-        _playing = false;
+        if (_playing) {
+          #ifdef DIAG_IO
+          DIAG(F("DFPlayer: Finished"));
+          #endif
+          _playing = false;
+        }
         _inputIndex = 0;
-      }
+      } else 
+        _inputIndex = 0;  // Unrecognised character sequence, start again!
     }
     // Check if the initial prompt to device has timed out.  Allow 1 second
     if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 1000000UL) {
