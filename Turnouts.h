@@ -213,9 +213,11 @@ private:
   // DCCTurnoutData contains data specific to this subclass that is 
   // written to EEPROM when the turnout is saved.
   struct DCCTurnoutData {
-    // DCC address (Address in bits 15-2, subaddress in bits 1-0
-    uint16_t address; // CS currently supports linear address 1-2048
-      // That's DCC accessory address 1-512 and subaddress 0-3.
+    // DCC address (Address in bits 15-2, subaddress in bits 1-0)
+    struct {
+      uint16_t address : 14;
+      uint8_t subAddress : 2;
+    };
   } _dccTurnoutData; // 2 bytes
 
   // Constructor

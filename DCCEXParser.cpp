@@ -736,15 +736,17 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         if (!VpinTurnout::create(p[0], p[2])) return false;
       } else 
       if (params >= 3 && p[1] == HASH_KEYWORD_DCC) {
-        if (params==4 && p[2]>0 && p[2]<=512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
+        // <T id DCC addr subadd>   0<=addr<=511, 0<=subadd<=3 (like <a> command).<T>
+        if (params==4 && p[2]>=0 && p[2]<512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
           if (!DCCTurnout::create(p[0], p[2], p[3])) return false;
         } else if (params==3 && p[2]>0 && p[2]<=512*4) { // <T id DCC nn>, 1<=nn<=2048
+          // Linearaddress 1 maps onto decoder address 1/0 (not 0/0!).
           if (!DCCTurnout::create(p[0], (p[2]-1)/4+1, (p[2]-1)%4)) return false;
         } else
           return false;
       } else 
-      if (params==3) { // legacy <T id n n> for DCC accessory
-        if (p[1]>0 && p[1]<=512 && p[2]>=0 && p[2]<4) {
+      if (params==3) { // legacy <T id addr subadd> for DCC accessory
+        if (p[1]>=0 && p[1]<512 && p[2]>=0 && p[2]<4) {
           if (!DCCTurnout::create(p[0], p[1], p[2])) return false;
         } else
           return false;
