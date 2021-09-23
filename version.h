@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "3.1.7draft"
+#define VERSION "3.1.7 draft"
 // 3.1.7 Major functional and non-functional changes.
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
