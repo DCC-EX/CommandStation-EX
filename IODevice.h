@@ -189,15 +189,6 @@ protected:
     (void)vpin; (void)value; (void) param1; (void)param2;
   };
 
-  // Function called to check whether callback notification is supported by this pin.
-  //  Defaults to no, if not overridden by the device.
-  //  The same value should be returned by all pins on the device, so only one need
-  //  be checked.
-  virtual bool _hasCallback(VPIN vpin) { 
-    (void) vpin;
-    return false; 
-  }
-
   // Method to read digital pin state (optionally implemented within device class)
   virtual int _read(VPIN vpin) { 
     (void)vpin; 
@@ -229,6 +220,9 @@ protected:
   // Common object fields.
   VPIN _firstVpin;
   int _nPins;
+
+  // Flag whether the device supports callbacks.
+  bool _hasCallback = false;
 
   // Pin number of interrupt pin for GPIO extender devices.  The extender module will pull this
   //  pin low if an input changes state.

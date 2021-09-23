@@ -45,10 +45,6 @@ protected:
   int _read(VPIN vpin) override;
   void _display() override;
   void _loop(unsigned long currentMicros) override;
-  bool _hasCallback(VPIN vpin) {
-    (void)vpin;   // suppress compiler warning
-    return true;  // Enable callback if caller wants to use it.
-  }
 
   // Data fields
   uint8_t _I2CAddress; 
@@ -79,12 +75,13 @@ protected:
 
 // Constructor
 template <class T>
-GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin) {
+GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin) :
+  IODevice(firstVpin, nPins)
+{
   _deviceName = deviceName;
-  _firstVpin = firstVpin;
-  _nPins = nPins;
   _I2CAddress = I2CAddress;
   _gpioInterruptPin = interruptPin;
+  _hasCallback = true;
   // Add device to list of devices.
   addDevice(this);
 }

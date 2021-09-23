@@ -45,14 +45,6 @@ struct SensorData {
 class Sensor{
   // The sensor list is a linked list where each sensor's 'nextSensor' field points to the next.
   //   The pointer is null in the last on the list.
-  //   To partition the sensor into those sensors which require polling through cyclic calls
-  //   to 'IODevice::read(vpin)', and those which support callback on change, 'firstSensor' 
-  //   points to the start of the overall list, and 'lastSensor' points to the end of the list
-  //   (the last sensor object). This structure allows sensors to be added to the start or the
-  //   end of the list easily.  So if an input pin supports change notification, it is placed at the 
-  //   end of the list.  If not, it is placed at the beginning.  And the pointer 'firstPollSensor' 
-  //   is set to the first of the sensor objects that requires scanning.  Thus, we can iterate
-  //   through the whole list, or just through the part that requires scanning.
 
 public:
   SensorData data;
@@ -74,6 +66,7 @@ public:
   // Constructor
   Sensor(); 
   Sensor *nextSensor;
+
   void setState(int state);
   static void load();
   static void store();
@@ -88,9 +81,9 @@ public:
   static const unsigned int minReadCount = 1; // number of additional scans before acting on change
                                         // E.g. 1 means that a change is ignored for one scan and actioned on the next.
                                         // Max value is 63
+  bool pollingRequired = true;
 
 #ifdef USE_NOTIFY
-  static bool pollSignalPhase;
   static void inputChangeCallback(VPIN vpin, int state);
   static bool inputChangeCallbackRegistered;
 #endif

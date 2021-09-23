@@ -134,7 +134,7 @@ bool IODevice::exists(VPIN vpin) {
 bool IODevice::hasCallback(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
   if (!dev) return false;
-  return dev->_hasCallback(vpin);
+  return dev->_hasCallback;
 }
 
 // Display (to diagnostics) details of the device.
@@ -221,10 +221,12 @@ void IODevice::addDevice(IODevice *newDevice) {
     newDevice->_begin();
 }
 
-// Private helper function to locate a device by VPIN.  Returns NULL if not found
+// Private helper function to locate a device by VPIN.  Returns NULL if not found.
+//  This is performance-critical, so minimises the calculation and function calls necessary.
 IODevice *IODevice::findDevice(VPIN vpin) { 
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    if (dev->owns(vpin)) 
+    VPIN firstVpin = dev->_firstVpin;
+    if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
       return dev;
   }
   return NULL;
