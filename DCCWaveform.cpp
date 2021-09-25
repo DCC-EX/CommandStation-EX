@@ -53,31 +53,26 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::loop(bool ackManagerActive) {
+void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
 }
 
-void DCCWaveform::interruptHandler() {
+void IRAM_ATTR DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
-  
   // Set the signal state for both tracks
   mainTrack.motorDriver->setSignal(sigMain);
   progTrack.motorDriver->setSignal(sigProg);
-  
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
-
-
   // WAVE_PENDING means we dont yet know what the next bit is
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
   else if (progTrack.ackPending) progTrack.checkAck();
-
 }
 
 
@@ -197,7 +192,7 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_LOW_0   -> */ LOW,
    /* WAVE_PENDING (should not happen) -> */ LOW};
         
-void DCCWaveform::interrupt2() {
+void ICACHE_RAM_ATTR DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
@@ -207,7 +202,7 @@ void DCCWaveform::interrupt2() {
     remainingPreambles--;
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+// might break ESP8266    updateMinimumFreeMemory(22); 
     return;
   }
 
@@ -306,7 +301,7 @@ byte DCCWaveform::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
-void DCCWaveform::checkAck() {
+void ICACHE_RAM_ATTR DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;

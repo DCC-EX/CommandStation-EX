@@ -41,7 +41,14 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+//#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+
+#define ESP_MOTOR_SHIELD F("ESP"),					\
+ new MotorDriver(D3, D5, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN),\
+ new MotorDriver(D2, D6, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN)
+
+#define MOTOR_SHIELD_TYPE ESP_MOTOR_SHIELD
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
@@ -53,7 +60,7 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
+//#define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

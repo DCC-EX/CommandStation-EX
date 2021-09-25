@@ -64,9 +64,7 @@ static inline int freeMemory() {
 }
 // Return low memory value.
 int minimumFreeMemory() {
-  noInterrupts(); // Disable interrupts
   int retval = minimum_free_memory;
-  interrupts(); // interrupts
   return retval;
 }
 #else
@@ -118,7 +116,7 @@ int minimumFreeMemory() {
 // So even if all of the heap is freed, the reported minimum free 
 // memory will not increase.
 //
-void updateMinimumFreeMemory(unsigned char extraBytes) {
+void ICACHE_RAM_ATTR updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
   if (spare < 0) spare = 0;
   if (spare < minimum_free_memory) minimum_free_memory = spare;

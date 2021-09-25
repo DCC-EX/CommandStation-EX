@@ -150,16 +150,24 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 // ESP8266 !!!!!!!!!!!!!!!!!!!!!
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
+  timer1_disable();
+//  ETS_FRC_TIMER1_INTR_ATTACH(NULL, NULL);
+//  ETS_FRC_TIMER1_NMI_INTR_ATTACH(interruptHandler);
+  timer1_attachInterrupt(interruptHandler);
+  timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
+  timer1_write(CLOCK_CYCLES);
+/*
   noInterrupts();
   timer1_attachInterrupt(interruptHandler);
   timer1_write(CLOCK_CYCLES);
   timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
   interrupts();
+*/
 }
-bool DCCTimer::isPWMPin(byte pin) {
+IRAM_ATTR bool DCCTimer::isPWMPin(byte pin) {
   return false;
 }
-void DCCTimer::setPWM(byte pin, bool high) {
+void ICACHE_RAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
 }
 
 

@@ -42,12 +42,27 @@ struct FASTPIN {
 };
 #endif
 
+#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
+#define isLOW(fastpin)    (!isHIGH(fastpin))
+
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
-    virtual void setSignal( bool high);
+    virtual void setSignal( bool high) {
+       if (high) {
+        setHIGH(fastSignalPin);
+        if (dualSignal) setLOW(fastSignalPin2);
+     }
+     else {
+        setLOW(fastSignalPin);
+        if (dualSignal) setHIGH(fastSignalPin2);
+     }
+     };
+
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);

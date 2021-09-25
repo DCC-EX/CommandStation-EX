@@ -21,11 +21,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 
-#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
-#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
-#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
-#define isLOW(fastpin)    (!isHIGH(fastpin))
-
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
@@ -109,8 +104,8 @@ void MotorDriver::setBrake(bool on) {
   if (on ^ invertBrake) setHIGH(fastBrakePin);
   else setLOW(fastBrakePin);
 }
-
-void MotorDriver::setSignal( bool high) {
+/*
+IRAM_ATTR void MotorDriver::setSignal( bool high) {
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -125,7 +120,7 @@ void MotorDriver::setSignal( bool high) {
      }
    }
 }
-
+*/
 #if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
 volatile unsigned int overflow_count=0;
 #endif

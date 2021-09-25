@@ -31,6 +31,7 @@
 #include "DCCEXParser.h"
 #include "version.h"
 #include "WifiInterface.h"
+#include "WifiESP.h"
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif

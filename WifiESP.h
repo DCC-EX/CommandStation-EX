@@ -16,16 +16,19 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef WifiESP_h
 #define WifiESP_h
+
+#include "FSH.h"
 
 class WifiESP
 {
 
 public:
-  static bool setup(const FSH *wifiESSID,
-		    const FSH *wifiPassword,
-		    const FSH *hostname,
+  static bool setup(const char *wifiESSID,
+		    const char *wifiPassword,
+		    const char *hostname,
 		    const int port,
 		    const byte channel);
   static void loop();

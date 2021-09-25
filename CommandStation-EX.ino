@@ -59,6 +59,7 @@ void setup()
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
@@ -74,7 +75,7 @@ void setup()
 #if WIFI_ON
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
 #endif // WIFI_ON
-
+  WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, 2560, 1);
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
@@ -118,6 +119,7 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif
+  WifiESP::loop();
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
@@ -134,11 +136,12 @@ void loop()
   
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop 
-
+/*
   int freeNow = minimumFreeMemory();
   if (freeNow < ramLowWatermark)
   {
     ramLowWatermark = freeNow;
     LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
+  */
 }
