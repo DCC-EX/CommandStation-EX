@@ -124,7 +124,18 @@ void WifiESP::loop() {
 
   // Do something with outboundRing
   // call sendData
-  
+  int clientId=outboundRing->read();
+  if (clientId>=0) {
+    int count=outboundRing->count();
+    DIAG(F("Wifi reply client=%d, count=:%d"), clientId,count);
+    {
+      char buffer[count];
+      for(uint8_t i=0;i<count;i++)
+	buffer[i] = (char)outboundRing->read();
+      sendData(clientId, buffer, count);
+    }
+  }
+
   static unsigned long last = 0;
   if (millis() - last > 60000) {
     last = millis();
