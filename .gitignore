@@ -7,5 +7,5 @@ Release/*
 .pio/
 .vscode/
 config.h
-.vscode/extensions.json
+.vscode/*
 mySetup.h
