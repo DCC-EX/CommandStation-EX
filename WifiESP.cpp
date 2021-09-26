@@ -46,20 +46,22 @@ static void handleData(void* arg, AsyncClient* client, void *data, size_t len) {
     byte cmd[len+1];
     memcpy(cmd,data,len);
     cmd[len]=0;
+    outboundRing->mark(clientId);
     CommandDistributor::parse(clientId,cmd,outboundRing);
+    outboundRing->commit();
   }
+}
+
+bool sendData(uint8_t clientId, char* data, int count) {
+  AsyncClient *client = clients[clientId];
+
   // reply to client
-  int c;
-  if (client->space() >= (c=outboundRing->count()) && client->canSend()) {
-    char cmd[c+1];
-    int i;
-    for (i=0;i<c;i++) {
-      cmd[i]=outboundRing->read();
-    }
-    cmd[i]=0;
-    client->add(cmd, strlen(cmd));
+  if (client->space() >= count && client->canSend()) {
+    client->add(data, count);
     client->send();
+    return true;
   }
+  return false;
 }
 
 static void handleDisconnect(void* arg, AsyncClient* client) {
@@ -117,7 +119,12 @@ bool WifiESP::setup(const char *wifiESSID,
 
   return true;
 }
+
 void WifiESP::loop() {
+
+  // Do something with outboundRing
+  // call sendData
+  
   static unsigned long last = 0;
   if (millis() - last > 60000) {
     last = millis();
