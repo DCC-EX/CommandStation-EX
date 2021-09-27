@@ -53,9 +53,22 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
+#define SLOW_ANALOG_READ
+#ifdef SLOW_ANALOG_READ
+// Flag to hold if we need to run ack checking in loop
+static bool ackflag = 0;
+#endif
+
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
+#ifdef SLOW_ANALOG_READ
+  if (ackflag) {
+    progTrack.checkAck();
+    // reset flag AFTER check is done
+    ackflag = 0;
+  }
+#endif
 }
 
 void IRAM_ATTR DCCWaveform::interruptHandler() {
@@ -70,9 +83,17 @@ void IRAM_ATTR DCCWaveform::interruptHandler() {
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
   // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
-  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
-  else if (progTrack.ackPending) progTrack.checkAck();
+  if (mainTrack.state==WAVE_PENDING)
+    mainTrack.interrupt2();
+  if (progTrack.state==WAVE_PENDING)
+    progTrack.interrupt2();
+#ifdef SLOW_ANALOG_READ
+  else if (progTrack.ackPending && ackflag == 0) // We need AND we are not already checking
+    ackflag = 1;
+#else
+  else if (progTrack.ackPending)
+    progTrack.checkAck();
+#endif
 }
 
 
@@ -308,7 +329,7 @@ void ICACHE_RAM_ATTR DCCWaveform::checkAck() {
         ackPending = false;
         return; 
     }
-      
+
     int current=motorDriver->getCurrentRaw();
     numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;
