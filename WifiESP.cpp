@@ -163,8 +163,15 @@ void WifiESP::loop() {
     DIAG(F("Wifi reply client=%d, count=%d"), clientId,count);
     {
       char buffer[count+1];
-      for(uint8_t i=0;i<count;i++)
-	buffer[i] = (char)outboundRing->read();
+      for(uint8_t i=0;i<count;i++) {
+	int c = outboundRing->read();
+	if (c >= 0)
+	  buffer[i] = (char)c;
+	else {
+	  DIAG(F("Ringread fail at %d"),i);
+	  break;
+	}
+      }
       buffer[count]=0;
       DIAG(F("SEND:%s COUNT:%d"),buffer,count);
       sendData(clientId, buffer, count);
