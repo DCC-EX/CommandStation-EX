@@ -37,7 +37,7 @@ static void handleError(void* arg, AsyncClient* client, int8_t error) {
 }
 
 static void handleData(void* arg, AsyncClient* client, void *data, size_t len) {
-  DIAG(F("data received from client %s"), client->remoteIP().toString().c_str());
+  //DIAG(F("data received from client %s"), client->remoteIP().toString().c_str());
   uint8_t clientId;
   for (clientId=0; clientId<clients.size(); clientId++){
     if (clients[clientId] == client) break;
@@ -160,10 +160,10 @@ void WifiESP::loop() {
   int clientId=outboundRing->read();
   if (clientId>=0) {
     int count=outboundRing->count();
-    DIAG(F("Wifi reply client=%d, count=%d"), clientId,count);
+    //DIAG(F("Wifi reply client=%d, count=%d"), clientId,count);
     {
       char buffer[count+1];
-      for(uint8_t i=0;i<count;i++) {
+      for(int i=0;i<count;i++) {
 	int c = outboundRing->read();
 	if (c >= 0)
 	  buffer[i] = (char)c;
@@ -173,8 +173,11 @@ void WifiESP::loop() {
 	}
       }
       buffer[count]=0;
-      DIAG(F("SEND:%s COUNT:%d"),buffer,count);
-      sendData(clientId, buffer, count);
+      //DIAG(F("SEND:%s COUNT:%d"),buffer,count);
+      while (! sendData(clientId, buffer, count)) {
+	DIAG(F("senData fail"));
+	yield();
+      }
     }
   }
 
