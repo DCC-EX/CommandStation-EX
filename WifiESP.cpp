@@ -54,13 +54,27 @@ static void handleData(void* arg, AsyncClient* client, void *data, size_t len) {
 
 bool sendData(uint8_t clientId, char* data, int count) {
   AsyncClient *client = clients[clientId];
+  size_t willsend = 0;
 
   // reply to client
-  if (client->space() >= count && client->canSend()) {
-    client->add(data, count);
-    client->send();
+  if (client->canSend()) {
+    while (count > 0) {
+      willsend = client->add(data, count); // add checks for space()
+      if (willsend < count) {
+	DIAG(F("Willsend %d of count %d"), willsend, count);
+      }
+      if (client->send()) {
+	count = count - willsend;
+	data = data + willsend;
+      } else {
+	DIAG(F("Could not send promised %d"), count);
+	return false;
+      }
+    }
+    // Did send all bytes we wanted
     return true;
   }
+  DIAG(F("Aborting: Busy or space=0"));
   return false;
 }
 
@@ -86,6 +100,25 @@ static void handleNewClient(void* arg, AsyncClient* client) {
   client->onTimeout(&handleTimeOut, NULL);
 
 }
+
+/*  Things one _might_ want to do:
+   Disable soft watchdog: ESP.wdtDisable()
+   Enable  soft watchdog: ESP.wdtEnable(X) ignores the value of X and enables it for fixed 
+                          time at least in version 3.0.2 of the esp8266 package.
+
+Internet says:
+
+I manage to complety disable the hardware watchdog on ESP8266 in order to run the benchmark CoreMark. 
+
+void hw_wdt_disable(){
+  *((volatile uint32_t*) 0x60000900) &= ~(1); // Hardware WDT OFF
+}
+
+void hw_wdt_enable(){
+  *((volatile uint32_t*) 0x60000900) |= 1; // Hardware WDT ON
+}
+
+*/
 
 bool WifiESP::setup(const char *wifiESSID,
                     const char *wifiPassword,
@@ -127,11 +160,13 @@ void WifiESP::loop() {
   int clientId=outboundRing->read();
   if (clientId>=0) {
     int count=outboundRing->count();
-    DIAG(F("Wifi reply client=%d, count=:%d"), clientId,count);
+    DIAG(F("Wifi reply client=%d, count=%d"), clientId,count);
     {
-      char buffer[count];
+      char buffer[count+1];
       for(uint8_t i=0;i<count;i++)
 	buffer[i] = (char)outboundRing->read();
+      buffer[count]=0;
+      DIAG(F("SEND:%s COUNT:%d"),buffer,count);
       sendData(clientId, buffer, count);
     }
   }
