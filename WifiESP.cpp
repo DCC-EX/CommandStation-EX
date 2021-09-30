@@ -52,18 +52,22 @@ static void handleData(void* arg, AsyncClient* client, void *data, size_t len) {
   }
 }
 
-bool sendData(uint8_t clientId, char* data, int count) {
-  AsyncClient *client = clients[clientId];
+//static AsyncClient *debugclient = NULL;
+
+bool sendData(AsyncClient *client, char* data, size_t count) {
   size_t willsend = 0;
 
   // reply to client
   if (client->canSend()) {
     while (count > 0) {
-      willsend = client->add(data, count); // add checks for space()
+      if (client->connected())
+	willsend = client->add(data, count); // add checks for space()
+      else
+	willsend = 0;
       if (willsend < count) {
 	DIAG(F("Willsend %d of count %d"), willsend, count);
       }
-      if (client->send()) {
+      if (client->connected() && client->send()) {
 	count = count - willsend;
 	data = data + willsend;
       } else {
@@ -78,12 +82,23 @@ bool sendData(uint8_t clientId, char* data, int count) {
   return false;
 }
 
+static void deleteClient(AsyncClient* client) {
+  uint8_t clientId;
+  for (clientId=0; clientId<clients.size(); clientId++){
+    if (clients[clientId] == client) break;
+  }
+  if (clientId < clients.size()) {
+    clients[clientId] = NULL;
+  }
+}
 static void handleDisconnect(void* arg, AsyncClient* client) {
   DIAG(F("client %s disconnected"), client->remoteIP().toString().c_str());
+  deleteClient(client);
 }
 
 static void handleTimeOut(void* arg, AsyncClient* client, uint32_t time) {
   DIAG(F("client ACK timeout ip: %s"), client->remoteIP().toString().c_str());
+  deleteClient(client);
 }
 
 
@@ -154,11 +169,27 @@ bool WifiESP::setup(const char *wifiESSID,
 }
 
 void WifiESP::loop() {
-
+  AsyncClient *client = NULL;
   // Do something with outboundRing
   // call sendData
-  int clientId=outboundRing->read();
-  if (clientId>=0) {
+  int clientId=outboundRing->peek();
+  if (clientId >= 0) {
+    if (clientId > clients.size()) {
+      // something is wrong with the ringbuffer position
+      outboundRing->info();
+      client = NULL;
+    } else {
+      client = clients[clientId];
+    }
+//    if (client != debugclient) {
+//      DIAG(F("new client pointer = %x from id %d"), client, clientId);
+//      debugclient = client;
+//    }
+  } else {
+    client = NULL;
+  }
+  if (clientId>=0 && client && client->connected() && client->canSend()) {
+    outboundRing->read();
     int count=outboundRing->count();
     //DIAG(F("Wifi reply client=%d, count=%d"), clientId,count);
     {
@@ -174,9 +205,11 @@ void WifiESP::loop() {
       }
       buffer[count]=0;
       //DIAG(F("SEND:%s COUNT:%d"),buffer,count);
-      while (! sendData(clientId, buffer, count)) {
+      uint8_t tries = 3;
+      while (! sendData(client, buffer, count)) {
 	DIAG(F("senData fail"));
 	yield();
+	if (tries == 0) break;
       }
     }
   }

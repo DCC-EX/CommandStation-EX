@@ -28,14 +28,17 @@ class RingStream : public Print {
   
     virtual size_t write(uint8_t b);
     using Print::write;
-    int read();
+    inline int read() { return read(1); };
+    inline int peek() { return read(0); };
     int count();
     int freeSpace();
     void mark(uint8_t b);
     bool commit();
     uint8_t peekTargetMark();
-    
+    void info();
+
  private:
+   int read(byte advance);
    int _len;
    int _pos_write;
    int _pos_read;

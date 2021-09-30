@@ -45,10 +45,11 @@ size_t RingStream::write(uint8_t b) {
   return 1;
 }
 
-int RingStream::read() {
-  if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty  
+int RingStream::read(byte advance) {
+  if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty
+  if (_pos_read == _mark) return -1;
   byte b=_buffer[_pos_read];
-  _pos_read++;
+  _pos_read += advance;
   if (_pos_read==_len) _pos_read=0;
   _overflow=false;
   return b;
@@ -68,6 +69,7 @@ int RingStream::freeSpace() {
 
 // mark start of message with client id (0...9)
 void RingStream::mark(uint8_t b) {
+    //DIAG(F("Mark1 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
     _mark=_pos_write;
     write(b); // client id
     write((uint8_t)0);  // count MSB placemarker
@@ -81,7 +83,12 @@ uint8_t RingStream::peekTargetMark() {
   return _buffer[_mark];
 }
 
+void RingStream::info() {
+  DIAG(F("Info len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
+}
+
 bool RingStream::commit() {
+  //DIAG(F("Commit1 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
   if (_overflow) {
         DIAG(F("RingStream(%d) commit(%d) OVERFLOW"),_len, _count);
         // just throw it away 
@@ -101,5 +108,7 @@ bool RingStream::commit() {
   _mark++;
   if (_mark==_len) _mark=0;
   _buffer[_mark]=lowByte(_count);
+  _mark=_len+1;
+  //DIAG(F("Commit2 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
   return true; // commit worked
 }
