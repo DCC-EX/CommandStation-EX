@@ -20,6 +20,7 @@
  #pragma GCC optimize ("-O3")
 #include <Arduino.h>
 
+#include "defines.h"
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
@@ -53,7 +54,6 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-#define SLOW_ANALOG_READ
 #ifdef SLOW_ANALOG_READ
 // Flag to hold if we need to run ack checking in loop
 static bool ackflag = 0;
@@ -213,7 +213,7 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_LOW_0   -> */ LOW,
    /* WAVE_PENDING (should not happen) -> */ LOW};
         
-void ICACHE_RAM_ATTR DCCWaveform::interrupt2() {
+void IRAM_ATTR DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
@@ -223,7 +223,9 @@ void ICACHE_RAM_ATTR DCCWaveform::interrupt2() {
     remainingPreambles--;
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-// might break ESP8266    updateMinimumFreeMemory(22); 
+#ifndef ESP_FAMILY
+    updateMinimumFreeMemory(22);
+#endif
     return;
   }
 
@@ -322,7 +324,7 @@ byte DCCWaveform::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
-void ICACHE_RAM_ATTR DCCWaveform::checkAck() {
+void IRAM_ATTR DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;

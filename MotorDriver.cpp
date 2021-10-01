@@ -104,8 +104,8 @@ void MotorDriver::setBrake(bool on) {
   if (on ^ invertBrake) setHIGH(fastBrakePin);
   else setLOW(fastBrakePin);
 }
-/*
-IRAM_ATTR void MotorDriver::setSignal( bool high) {
+
+void IRAM_ATTR MotorDriver::setSignal( bool high) {
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -120,7 +120,7 @@ IRAM_ATTR void MotorDriver::setSignal( bool high) {
      }
    }
 }
-*/
+
 #if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
 volatile unsigned int overflow_count=0;
 #endif
@@ -179,5 +179,5 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
+    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }

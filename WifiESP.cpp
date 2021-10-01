@@ -17,6 +17,8 @@
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "defines.h"
+#ifdef ESP_FAMILY
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <vector>
@@ -92,7 +94,7 @@ static void deleteClient(AsyncClient* client) {
   }
 }
 static void handleDisconnect(void* arg, AsyncClient* client) {
-  DIAG(F("client %s disconnected"), client->remoteIP().toString().c_str());
+  DIAG(F("Client disconnected"));
   deleteClient(client);
 }
 
@@ -103,11 +105,11 @@ static void handleTimeOut(void* arg, AsyncClient* client, uint32_t time) {
 
 
 static void handleNewClient(void* arg, AsyncClient* client) {
-  DIAG(F("New client has been connected to server, ip: %s"), client->remoteIP().toString().c_str());
+  DIAG(F("New client %s"), client->remoteIP().toString().c_str());
 
   // add to list
   clients.push_back(client);
-        
+
   // register events
   client->onData(&handleData, NULL);
   client->onError(&handleError, NULL);
@@ -118,7 +120,7 @@ static void handleNewClient(void* arg, AsyncClient* client) {
 
 /*  Things one _might_ want to do:
    Disable soft watchdog: ESP.wdtDisable()
-   Enable  soft watchdog: ESP.wdtEnable(X) ignores the value of X and enables it for fixed 
+   Enable  soft watchdog: ESP.wdtEnable(X) ignores the value of X and enables it for fixed
                           time at least in version 3.0.2 of the esp8266 package.
 
 Internet says:
@@ -140,30 +142,29 @@ bool WifiESP::setup(const char *wifiESSID,
                     const char *hostname,
                     int port,
                     const byte channel) {
-  DIAG(F("START"));
-  // connects to access point
+  // We are server and should not sleep
   wifi_set_sleep_type(NONE_SLEEP_T);
+  // connects to access point
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  DIAG(F("BEGIN"));
   WiFi.begin(wifiESSID, wifiPassword);
-  DIAG(F("STATUS"));
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print('.');
     delay(500);
   }
-
-  DIAG(F("SERVER"));
+  if (WiFi.status() == WL_CONNECTED)
+    DIAG(F("Wifi IP %s"),WiFi.localIP().toString().c_str());
+  else {
+    DIAG(F("Wifi fail"));
+    // no idea to go on
+    return false;
+  }
 
   server = new AsyncServer(port); // start listening on tcp port
 
-  DIAG(F("CLIENT"));
   server->onClient(&handleNewClient, server);
-  DIAG(F("SBEGIN"));
-  
   server->begin();
-
-  DIAG(F("ENDSETUP"));
+  DIAG(F("Server up port %d"),port);
 
   return true;
 }
@@ -213,11 +214,13 @@ void WifiESP::loop() {
       }
     }
   }
-
+#ifdef ESP_DEBUG
   static unsigned long last = 0;
   if (millis() - last > 60000) {
     last = millis();
     DIAG(F("+"));
   }
+#endif
   ESP.wdtFeed();
 }
+#endif //ESP_FAMILY

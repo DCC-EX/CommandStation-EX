@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
@@ -30,7 +31,9 @@
 
 #include "EEStore.h"
 #include "DIAG.h"
-//#include <avr/wdt.h>
+#ifndef ESP_FAMILY
+#include <avr/wdt.h>
+#endif
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command

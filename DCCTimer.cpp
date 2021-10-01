@@ -147,27 +147,26 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 #endif
 
 #elif defined(ARDUINO_ARCH_ESP8266)
-// ESP8266 !!!!!!!!!!!!!!!!!!!!!
+
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   timer1_disable();
-//  ETS_FRC_TIMER1_INTR_ATTACH(NULL, NULL);
-//  ETS_FRC_TIMER1_NMI_INTR_ATTACH(interruptHandler);
+
+  // There seem to be differnt ways to attach interrupt handler
+  //    ETS_FRC_TIMER1_INTR_ATTACH(NULL, NULL);
+  //    ETS_FRC_TIMER1_NMI_INTR_ATTACH(interruptHandler);
+  // Let us choose the one from the API
   timer1_attachInterrupt(interruptHandler);
+
+  // not exactly sure of order:
   timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
   timer1_write(CLOCK_CYCLES);
-/*
-  noInterrupts();
-  timer1_attachInterrupt(interruptHandler);
-  timer1_write(CLOCK_CYCLES);
-  timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
-  interrupts();
-*/
 }
-IRAM_ATTR bool DCCTimer::isPWMPin(byte pin) {
+// We do not support to use PWM to make the Waveform on ESP
+bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
   return false;
 }
-void ICACHE_RAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
+void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
 }
 
 

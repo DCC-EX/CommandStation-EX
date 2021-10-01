@@ -28,7 +28,7 @@ extern "C" char* sbrk(int);
 extern char *__brkval;
 extern char *__malloc_heap_start;
 #elif defined(ARDUINO_ARCH_ESP8266)
-// fine as well
+// supported but nothing needed here
 #else
 #error Unsupported board type
 #endif
@@ -116,9 +116,8 @@ int minimumFreeMemory() {
 // So even if all of the heap is freed, the reported minimum free 
 // memory will not increase.
 //
-void ICACHE_RAM_ATTR updateMinimumFreeMemory(unsigned char extraBytes) {
+void updateMinimumFreeMemory(unsigned char extraBytes) {
   int spare = freeMemory()-extraBytes;
   if (spare < 0) spare = 0;
   if (spare < minimum_free_memory) minimum_free_memory = spare;
 }
-

@@ -52,17 +52,20 @@ class MotorDriver {
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
-    virtual void setSignal( bool high) {
-       if (high) {
+    void setSignal( bool high);/* {
+      if (usePWM) {
+	DCCTimer::setPWM(signalPin,high);
+      }
+      
+      if (high) {
         setHIGH(fastSignalPin);
         if (dualSignal) setLOW(fastSignalPin2);
-     }
-     else {
+      }
+      else {
         setLOW(fastSignalPin);
         if (dualSignal) setHIGH(fastSignalPin2);
-     }
-     };
-
+      }
+      };*/
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);
