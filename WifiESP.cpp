@@ -22,6 +22,7 @@
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <vector>
+#include <string>
 
 #include "WifiESP.h"
 #include "DIAG.h"
@@ -137,25 +138,62 @@ void hw_wdt_enable(){
 
 */
 
-bool WifiESP::setup(const char *wifiESSID,
-                    const char *wifiPassword,
+bool WifiESP::setup(const char *SSid,
+                    const char *password,
                     const char *hostname,
                     int port,
                     const byte channel) {
+  bool havePassword = true;
+  bool haveSSID = true;
+  bool wifiUp = false;
+
   // We are server and should not sleep
   wifi_set_sleep_type(NONE_SLEEP_T);
   // connects to access point
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);
-  WiFi.begin(wifiESSID, wifiPassword);
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(500);
+
+  const char *yourNetwork = "Your network ";
+  if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
+    haveSSID = false;
+  if (strncmp(yourNetwork, password, 13) == 0 || strncmp("", password, 13) == 0)
+    havePassword = false;
+  
+  if (haveSSID && havePassword) {
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(SSid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.print('.');
+      delay(500);
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
+      wifiUp = true;
+    }
   }
-  if (WiFi.status() == WL_CONNECTED)
-    DIAG(F("Wifi IP %s"),WiFi.localIP().toString().c_str());
-  else {
-    DIAG(F("Wifi fail"));
+  if (!haveSSID) {
+    // prepare all strings
+    String strSSID("DCC_");
+    String strPass("PASS_");
+    String strMac = WiFi.macAddress();
+    strMac.remove(0,9);
+    strMac.replace(":","");
+    strMac.replace(":","");
+    strSSID.concat(strMac);
+    strPass.concat(strMac);
+
+    WiFi.mode(WIFI_AP);
+    if (WiFi.softAP(strSSID.c_str(),
+		    havePassword ? password : strPass.c_str(),
+		    channel, false, 8)) {
+      DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
+      DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
+      wifiUp = true;
+    }
+  }
+
+
+  if (!wifiUp) {
+    DIAG(F("Wifi all fail"));
     // no idea to go on
     return false;
   }
