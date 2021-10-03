@@ -114,11 +114,11 @@ The configuration file for DCC-EX Command Station
 // DEFINE LCD SCREEN USAGE BY THE BASE STATION
 //
 // Note: This feature requires an I2C enabled LCD screen using a Hitachi HD44780
-//       controller and a PCF8574 based I2C 'backpack'.
+//       controller and a commonly available PCF8574 based I2C 'backpack'.
 // To enable, uncomment one of the #define lines below
 
-// define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
-// #define LCD_DRIVER  0x3F,16,2
+// define LCD_DRIVER for I2C address 0x27, 16 cols, 2 rows
+// #define LCD_DRIVER  0x27,16,2
 
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
