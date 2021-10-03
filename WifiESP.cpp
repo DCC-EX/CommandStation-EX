@@ -36,10 +36,12 @@ static AsyncServer *server;
 static RingStream *outboundRing = new RingStream(2048);
 
 static void handleError(void* arg, AsyncClient* client, int8_t error) {
+  (void)arg;
   DIAG(F("connection error %s from client %s"), client->errorToString(error), client->remoteIP().toString().c_str());
 }
 
 static void handleData(void* arg, AsyncClient* client, void *data, size_t len) {
+  (void)arg;
   //DIAG(F("data received from client %s"), client->remoteIP().toString().c_str());
   uint8_t clientId;
   for (clientId=0; clientId<clients.size(); clientId++){
@@ -95,17 +97,21 @@ static void deleteClient(AsyncClient* client) {
   }
 }
 static void handleDisconnect(void* arg, AsyncClient* client) {
+  (void)arg;
   DIAG(F("Client disconnected"));
   deleteClient(client);
 }
 
 static void handleTimeOut(void* arg, AsyncClient* client, uint32_t time) {
+  (void)arg;
+  (void)time;
   DIAG(F("client ACK timeout ip: %s"), client->remoteIP().toString().c_str());
   deleteClient(client);
 }
 
 
 static void handleNewClient(void* arg, AsyncClient* client) {
+  (void)arg;
   DIAG(F("New client %s"), client->remoteIP().toString().c_str());
 
   // add to list
@@ -213,7 +219,7 @@ void WifiESP::loop() {
   // call sendData
   int clientId=outboundRing->peek();
   if (clientId >= 0) {
-    if (clientId > clients.size()) {
+    if ((unsigned int)clientId > clients.size()) {
       // something is wrong with the ringbuffer position
       outboundRing->info();
       client = NULL;
