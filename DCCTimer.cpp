@@ -169,7 +169,26 @@ bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
 void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
 }
 
+#elif defined(ARDUINO_ARCH_ESP32)
+// https://www.visualmicro.com/page/Timer-Interrupts-Explained.aspx
 
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  interruptHandler = callback;
+  hw_timer_t *timer = NULL;
+  timer = timerBegin(0, 2, true); // prescaler can be 2 to 65536 so choose 2
+  timerAttachInterrupt(timer, interruptHandler, true);
+  timerAlarmWrite(timer, CLOCK_CYCLES / 2, true); // divide by prescaler
+  timerAlarmEnable(timer);
+}
+
+// We do not support to use PWM to make the Waveform on ESP
+bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
+  return false;
+}
+void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
+}
 
 #else 
   // Arduino nano, uno, mega etc

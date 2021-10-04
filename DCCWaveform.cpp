@@ -66,7 +66,9 @@ void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
   if (ackflag) {
     progTrack.checkAck();
     // reset flag AFTER check is done
+    portENTER_CRITICAL(&timerMux);
     ackflag = 0;
+    portEXIT_CRITICAL(&timerMux);
   }
 #endif
 }
@@ -88,8 +90,11 @@ void IRAM_ATTR DCCWaveform::interruptHandler() {
   if (progTrack.state==WAVE_PENDING)
     progTrack.interrupt2();
 #ifdef SLOW_ANALOG_READ
-  else if (progTrack.ackPending && ackflag == 0) // We need AND we are not already checking
+  else if (progTrack.ackPending && ackflag == 0) { // We need AND we are not already checking
+    portENTER_CRITICAL(&timerMux);
     ackflag = 1;
+    portEXIT_CRITICAL(&timerMux);
+  }
 #else
   else if (progTrack.ackPending)
     progTrack.checkAck();

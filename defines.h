@@ -28,6 +28,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //
+#if defined (ARDUINO_ARCH_ESP32)
+#define ESP_FAMILY
+#define SLOW_ANALOG_READ
+#else
+#define portENTER_CRITICAL(A) do {} while (0)
+#define portEXIT_CRITICAL(A) do {} while (0)
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
