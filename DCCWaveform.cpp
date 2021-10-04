@@ -56,7 +56,7 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 
 #ifdef SLOW_ANALOG_READ
 // Flag to hold if we need to run ack checking in loop
-static bool ackflag = 0;
+volatile bool ackflag = 0;
 #endif
 
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
