@@ -179,7 +179,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   hw_timer_t *timer = NULL;
   timer = timerBegin(0, 2, true); // prescaler can be 2 to 65536 so choose 2
   timerAttachInterrupt(timer, interruptHandler, true);
-  timerAlarmWrite(timer, CLOCK_CYCLES / 2, true); // divide by prescaler
+  timerAlarmWrite(timer, CLOCK_CYCLES / 6, true); // divide by prescaler*3 (Clockbase is 80Mhz and not F_CPU 240Mhz)
   timerAlarmEnable(timer);
 }
 
