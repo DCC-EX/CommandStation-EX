@@ -43,11 +43,15 @@ The configuration file for DCC-EX Command Station
 //
 //#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
 
-#define ESP_MOTOR_SHIELD F("ESP"),					\
+#define ESP8266_MOTOR_SHIELD F("ESP8266"),					\
  new MotorDriver(D3, D5, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN),\
  new MotorDriver(D2, D6, UNUSED_PIN, UNUSED_PIN, A0        , 2.99, 2000, UNUSED_PIN)
 
-#define MOTOR_SHIELD_TYPE ESP_MOTOR_SHIELD
+#define ESP32_MOTOR_SHIELD F("ESP32"), \
+ new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 36, 2.99, 2000, UNUSED_PIN),\
+ new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 37, 2.99, 2000, UNUSED_PIN)
+
+#define MOTOR_SHIELD_TYPE ESP8266_MOTOR_SHIELD
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
