@@ -255,7 +255,8 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
         transmitRepeats--;
       }
       else if (packetPending) {
-        // Copy pending packet to transmit packet
+	portENTER_CRITICAL(&timerMux);
+	// Copy pending packet to transmit packet
         // a fixed length memcpy is faster than a variable length loop for these small lengths
         // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
         memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
@@ -264,6 +265,7 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
         transmitRepeats = pendingRepeats;
         packetPending = false;
         sentResetsSincePacket=0;
+	portEXIT_CRITICAL(&timerMux);
       }
       else {
         // Fortunately reset and idle packets are the same length
@@ -282,7 +284,7 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
   while (packetPending);
-
+  portENTER_CRITICAL(&timerMux);
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
@@ -294,6 +296,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingRepeats = repeats;
   packetPending = true;
   sentResetsSincePacket=0;
+  portEXIT_CRITICAL(&timerMux);
 }
 
 // Operations applicable to PROG track ONLY.
@@ -330,7 +333,7 @@ byte DCCWaveform::getAck() {
 }
 
 void IRAM_ATTR DCCWaveform::checkAck() {
-    // This function operates in interrupt() time so must be fast and can't DIAG 
+    // This function operates in interrupt() time (not on ESP) so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;

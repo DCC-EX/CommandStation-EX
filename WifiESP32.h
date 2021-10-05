@@ -17,8 +17,9 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WifiESP_h
-#define WifiESP_h
+#if defined(ARDUINO_ARCH_ESP32)
+#ifndef WifiESP32_h
+#define WifiESP32_h
 
 #include "FSH.h"
 
@@ -34,4 +35,5 @@ public:
   static void loop();
 private:
 };
-#endif
+#endif //WifiESP8266_h
+#endif //ESP8266

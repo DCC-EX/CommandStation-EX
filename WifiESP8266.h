@@ -1,7 +1,6 @@
 /*
- *  (c) 2021 Mike S. All rights reserved.
- *  (c) 2021 Fred Decker.  All rights reserved.
- *  
+ *  © 2021, Harald Barth.
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -18,24 +17,23 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DCCTimer_h
-#define DCCTimer_h
-#include "Arduino.h"
+#if defined(ARDUINO_ARCH_ESP8266)
+#ifndef WifiESP8266_h
+#define WifiESP8266_h
 
-typedef void (*INTERRUPT_CALLBACK)();
+#include "FSH.h"
 
-class DCCTimer {
-  public:
-  static void begin(INTERRUPT_CALLBACK interrupt);
-  static void getSimulatedMacAddress(byte mac[6]);
-  static bool isPWMPin(byte pin);
-  static void setPWM(byte pin, bool high);
-#if (defined(TEENSYDUINO) && !defined(__IMXRT1062__))
-  static void read_mac(byte mac[6]);
-  static void read(uint8_t word, uint8_t *mac, uint8_t offset);
-#endif
-  private:
+class WifiESP
+{
+
+public:
+  static bool setup(const char *wifiESSID,
+		    const char *wifiPassword,
+		    const char *hostname,
+		    const int port,
+		    const byte channel);
+  static void loop();
+private:
 };
-
-extern portMUX_TYPE timerMux;
-#endif
+#endif //WifiESP8266_h
+#endif //ESP8266

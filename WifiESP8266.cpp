@@ -18,13 +18,13 @@
 */
 
 #include "defines.h"
-#ifdef ESP_FAMILY
+#if defined(ARDUINO_ARCH_ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <vector>
 #include <string>
 
-#include "WifiESP.h"
+#include "WifiESP8266.h"
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"

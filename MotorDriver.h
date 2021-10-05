@@ -18,6 +18,7 @@
  */
 #ifndef MotorDriver_h
 #define MotorDriver_h
+#include "defines.h"
 #include "FSH.h"
 
 // Virtualised Motor shield 1-track hardware Interface
@@ -26,7 +27,7 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
-#if defined(__IMXRT1062__) || defined (ARDUINO_ARCH_ESP8266)
+#if defined(__IMXRT1062__) || defined(ESP_FAMILY)
 typedef uint32_t PORTTYPE;
 struct FASTPIN {
   volatile uint32_t *inout;

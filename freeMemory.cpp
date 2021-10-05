@@ -1,5 +1,5 @@
 /*
- *  © 2020, Harald Barth
+ *  © 2020,2021 Harald Barth
  *  © 2021, Neil McKechnie
  *  
  *  This file is part of Asbelos DCC-EX
@@ -27,7 +27,7 @@ extern "C" char* sbrk(int);
 #elif defined(__AVR__)
 extern char *__brkval;
 extern char *__malloc_heap_start;
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
 // supported but nothing needed here
 #else
 #error Unsupported board type
@@ -36,7 +36,7 @@ extern char *__malloc_heap_start;
 
 static volatile int minimum_free_memory = __INT_MAX__;
 
-#if !defined(__IMXRT1062__) && !defined(ARDUINO_ARCH_ESP8266)
+#if !defined(__IMXRT1062__) && !defined(ARDUINO_ARCH_ESP8266) && !defined(ARDUINO_ARCH_ESP32)
 static inline int freeMemory() {
   char top;
 #if defined(__arm__)
@@ -57,8 +57,8 @@ int minimumFreeMemory() {
   return retval;
 }
 
-#elif defined(ARDUINO_ARCH_ESP8266)
-// ESP8266
+#elif defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
+// ESP8266 and ESP32
 static inline int freeMemory() {
   return ESP.getFreeHeap();
 }
