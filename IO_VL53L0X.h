@@ -28,11 +28,12 @@
  * The operation shown here doesn't include any calibration, so is probably not as accurate
  * as using the full driver, but it's probably accurate enough for the purpose.
  * 
- * The device driver allocates up to 3 vpins to the device.  A digital read on any of the pins
+ * The device driver allocates up to 3 vpins to the device.  A digital read on the first pin
  * will return a value that indicates whether the object is within the threshold range (1)
  * or not (0).  An analogue read on the first pin returns the last measured distance (in mm), 
  * the second pin returns the signal strength, and the third pin returns detected 
- * ambient light level.
+ * ambient light level.  By default the device takes around 60ms to complete a ranging 
+ * operation, so we do a 100ms cycle (10 samples per second).
  * 
  * The VL53L0X is initially set to respond to I2C address 0x29.  If you only have one module,
  * you can use this address.  However, the address can be modified by software.  If
@@ -100,9 +101,22 @@ private:
   uint16_t _offThreshold;
   VPIN _xshutPin;
   bool _value;
-  bool _initialising = true;
-  uint8_t _entryCount = 0;
-  bool _scanInProgress = false;
+  uint8_t _nextState = 0;
+  I2CRB _rb;
+  uint8_t _inBuffer[12];
+  uint8_t _outBuffer[2];
+  // State machine states.
+  enum : uint8_t {
+    STATE_INIT = 0,
+    STATE_CONFIGUREADDRESS = 1,
+    STATE_SKIP = 2,
+    STATE_CONFIGUREDEVICE = 3,
+    STATE_INITIATESCAN = 4,
+    STATE_CHECKSTATUS = 5,
+    STATE_GETRESULTS = 6,
+    STATE_DECODERESULTS = 7,
+  };
+
   // Register addresses
   enum : uint8_t {
     VL53L0X_REG_SYSRANGE_START=0x00,
@@ -130,89 +144,107 @@ public:
 
 protected:
   void _begin() override {
-    _initialising = true;
-    // Check if device is already responding on the nominated address.
-    if (I2CManager.exists(_i2cAddress)) {
-      // Yes, it's already on this address, so skip the address initialisation.
-      _entryCount = 3;
-    } else {
-      _entryCount = 0;
+    if (_xshutPin == VPIN_NONE) {
+      // Check if device is already responding on the nominated address.
+      if (I2CManager.exists(_i2cAddress)) {
+        // Yes, it's already on this address, so skip the address initialisation.
+        _nextState = STATE_CONFIGUREDEVICE;
+      } else {
+        _nextState = STATE_INIT;
+      }
     }
   }
 
   void _loop(unsigned long currentMicros) override {
-    if (_initialising) {
-      switch (_entryCount++) {
-        case 0:
-          // On first entry to loop, reset this module by pulling XSHUT low.  All modules
-          // will be reset in turn.
-          if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
-          break;
-        case 1:
-          // On second entry, set XSHUT pin high to allow the module to restart.
-          // On the module, there is a diode in series with the XSHUT pin to 
-          // protect the low-voltage pin against +5V.
-          if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
-          // Allow the module time to restart
-          delay(10);
-          // Then write the desired I2C address to the device, while this is the only
-          //  module responding to the default address.
-          I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _i2cAddress);
-          break;
-        case 3:
-          // After two more loops, check if device has been configured.
-          if (I2CManager.exists(_i2cAddress)) {
-            #ifdef DIAG_IO
-            _display();
-            #endif
-            // Set 2.8V mode
-            write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
-              read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
-          } else {
-            DIAG(F("VL53L0X I2C:x%x device not responding"), _i2cAddress);
-            _deviceState = DEVSTATE_FAILED;
-          }
-          _initialising = false;
-          _entryCount = 0;
-          break;
-        default:
-          break;
-      }
-    } else {
-
-      if (!_scanInProgress) {
+    uint8_t status;
+    switch (_nextState) {
+      case STATE_INIT:
+        // On first entry to loop, reset this module by pulling XSHUT low.  All modules
+        // will be reset in turn.
+        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
+        _nextState = STATE_CONFIGUREADDRESS;
+        break;
+      case STATE_CONFIGUREADDRESS:
+        // On second entry, set XSHUT pin high to allow the module to restart.
+        // On the module, there is a diode in series with the XSHUT pin to 
+        // protect the low-voltage pin against +5V.
+        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
+        // Allow the module time to restart
+        delay(10);
+        // Then write the desired I2C address to the device, while this is the only
+        //  module responding to the default address.
+        I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _i2cAddress);
+        _nextState = STATE_SKIP;
+        break;
+      case STATE_SKIP:
+        // Do nothing on the third entry.
+        _nextState = STATE_CONFIGUREDEVICE;
+        break;
+      case STATE_CONFIGUREDEVICE:
+        // On next entry, check if device address has been set.
+        if (I2CManager.exists(_i2cAddress)) {
+          #ifdef DIAG_IO
+          _display();
+          #endif
+          // Set 2.8V mode
+          write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
+            read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
+        } else {
+          DIAG(F("VL53L0X I2C:x%x device not responding"), _i2cAddress);
+          _deviceState = DEVSTATE_FAILED;
+        }
+        _nextState = STATE_INITIATESCAN;
+        break;
+      case STATE_INITIATESCAN:
         // Not scanning, so initiate a scan
-        uint8_t status = write_reg(VL53L0X_REG_SYSRANGE_START, 0x01);
+        _outBuffer[0] = VL53L0X_REG_SYSRANGE_START;
+        _outBuffer[1] = 0x01;
+        I2CManager.write(_i2cAddress, _outBuffer, 2, &_rb);
+        _nextState = STATE_CHECKSTATUS;
+        break;
+      case STATE_CHECKSTATUS:
+        status = _rb.status;
+        if (status == I2C_STATUS_PENDING) return; // try next time
         if (status != I2C_STATUS_OK) {
           DIAG(F("VL53L0X I2C:x%x Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
           _deviceState = DEVSTATE_FAILED;
           _value = false;
         } else
-          _scanInProgress = true;
-
-      } else {
-        // Scan in progress, so check for completion.
-        uint8_t status = read_reg(VL53L0X_REG_RESULT_RANGE_STATUS);
-        if (status & 1) {
-          // Completed.  Retrieve data
-          uint8_t inBuffer[12];
-          read_registers(VL53L0X_REG_RESULT_RANGE_STATUS, inBuffer, 12);
-          uint8_t deviceRangeStatus = ((inBuffer[0] & 0x78) >> 3);
+          _nextState = 2;
+        delayUntil(currentMicros + 95000); // wait for 95 ms before checking.
+        _nextState = STATE_GETRESULTS;
+        break;
+      case STATE_GETRESULTS:
+        // Ranging completed.  Request results
+        _outBuffer[0] = VL53L0X_REG_RESULT_RANGE_STATUS;
+        I2CManager.read(_i2cAddress, _inBuffer, 12, _outBuffer, 1, &_rb);
+        _nextState = 3;
+        delayUntil(currentMicros + 5000); // Allow 5ms to get data
+        _nextState = STATE_DECODERESULTS;
+        break;
+      case STATE_DECODERESULTS:
+        // If I2C write still busy, return.
+        status = _rb.status;
+        if (status == I2C_STATUS_PENDING) return; // try again next time
+        if (status == I2C_STATUS_OK) {
+          if (!(_inBuffer[0] & 1)) return; // device still busy
+          uint8_t deviceRangeStatus = ((_inBuffer[0] & 0x78) >> 3);
           if (deviceRangeStatus == 0x0b) {
             // Range status OK, so use data
-            _ambient = makeuint16(inBuffer[7], inBuffer[6]);
-            _signal = makeuint16(inBuffer[9], inBuffer[8]);
-            _distance = makeuint16(inBuffer[11], inBuffer[10]);
+            _ambient = makeuint16(_inBuffer[7], _inBuffer[6]);
+            _signal = makeuint16(_inBuffer[9], _inBuffer[8]);
+            _distance = makeuint16(_inBuffer[11], _inBuffer[10]);
             if (_distance <= _onThreshold) 
               _value = true;
             else if (_distance > _offThreshold) 
               _value = false;
           }
-          _scanInProgress = false;
         }
-      }
-      // Next entry in 10 milliseconds.
-      delayUntil(currentMicros + 10000UL);
+        // Completed. Restart scan on next loop entry.
+        _nextState = STATE_INITIATESCAN;
+        break;
+      default:
+        break;
     }
   }
 
@@ -231,9 +263,12 @@ protected:
     }
   }
 
-  // For digital read, return the same value for all pins.
-  int _read(VPIN) override {
-    return _value;
+  // For digital read, return zero for all but first pin.
+  int _read(VPIN vpin) override {
+    if (vpin == _firstVpin)
+      return _value;
+    else
+      return 0;
   }
 
   void _display() override {
@@ -255,13 +290,9 @@ private:
     return I2CManager.write(_i2cAddress, outBuffer, 2);
   }
   uint8_t read_reg(uint8_t reg) {
-    // read byte from register register
-    uint8_t inBuffer[1];
-    I2CManager.read(_i2cAddress, inBuffer, 1, &reg, 1);
-    return inBuffer[0];
-  }
-  void read_registers(uint8_t reg, uint8_t buffer[], uint8_t size) {
-    I2CManager.read(_i2cAddress, buffer, size, &reg, 1);
+    // read byte from register and return value
+    I2CManager.read(_i2cAddress, _inBuffer, 1, &reg, 1);
+    return _inBuffer[0];
   }
 };
 

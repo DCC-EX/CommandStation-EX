@@ -63,7 +63,9 @@ public:
     _firstVpin = firstVpin;
     _nPins = min(nPins,4);
     _i2cAddress = i2cAddress;
-    _currentPin = _nPins; // Suppress read on first loop entry.
+    _currentPin = 0;
+    for (int8_t i=0; i<_nPins; i++)
+      _value[i] = -1;
     addDevice(this);
   }
   static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
@@ -73,6 +75,7 @@ private:
   void _begin() {
     // Initialise ADS device
     if (I2CManager.exists(_i2cAddress)) {
+      _nextState = STATE_STARTSCAN;
 #ifdef DIAG_IO
       _display();
 #endif
@@ -84,36 +87,48 @@ private:
   void _loop(unsigned long currentMicros) override {
 
     // Check that previous non-blocking write has completed, if not then wait
-    uint8_t status = _i2crb.wait();
+    uint8_t status = _i2crb.status;
+    if (status == I2C_STATUS_PENDING) return;  // Busy, so don't do anything.
     if (status == I2C_STATUS_OK) {
-      // If _currentPin is in the valid range, continue reading the pin values
-      if (_currentPin < _nPins) {
-        _outBuffer[0] = 0x00;  // Conversion register address
-        uint8_t status = I2CManager.read(_i2cAddress, _inBuffer, 2, _outBuffer, 1); // Read register
-        if (status == I2C_STATUS_OK) {
+      switch (_nextState) {
+        case STATE_STARTSCAN:
+          // Configure ADC and multiplexer for next scan.  See ADS111x datasheet for details
+          // of configuration register settings.
+          _outBuffer[0] = 0x01; // Config register address
+          _outBuffer[1] = 0xC0 + (_currentPin << 4); // Trigger single-shot, channel n
+          _outBuffer[2] = 0xA3;           // 250 samples/sec, comparator off
+          // Write command, without waiting for completion.
+          I2CManager.write(_i2cAddress, _outBuffer, 3, &_i2crb);
+
+          delayUntil(currentMicros + scanInterval);
+          _nextState = STATE_STARTREAD;
+          break;
+
+        case STATE_STARTREAD:
+          // Reading the pin value
+          _outBuffer[0] = 0x00;  // Conversion register address
+          I2CManager.read(_i2cAddress, _inBuffer, 2, _outBuffer, 1, &_i2crb); // Read register
+          _nextState = STATE_GETVALUE;
+          break;
+
+        case STATE_GETVALUE:
           _value[_currentPin] = ((uint16_t)_inBuffer[0] << 8) + (uint16_t)_inBuffer[1];
           #ifdef IO_ANALOGUE_SLOW
           DIAG(F("ADS111x pin:%d value:%d"), _currentPin, _value[_currentPin]);
           #endif
-        }
+
+          // Move to next pin
+          if (++_currentPin >= _nPins) _currentPin = 0;
+          _nextState = STATE_STARTSCAN;
+          break;
+        
+        default:
+          break;
       }
-    }
-    if (status != I2C_STATUS_OK) {
+    } else { // error status
       DIAG(F("ADS111x I2C:x%d Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     }
-    // Move to next pin
-    if (++_currentPin >= _nPins) _currentPin = 0;
-    
-    // Configure ADC and multiplexer for next scan.  See ADS111x datasheet for details
-    // of configuration register settings.
-    _outBuffer[0] = 0x01; // Config register address
-    _outBuffer[1] = 0xC0 + (_currentPin << 4); // Trigger single-shot, channel n
-    _outBuffer[2] = 0xA3;           // 250 samples/sec, comparator off
-    // Write command, without waiting for completion.
-    I2CManager.write(_i2cAddress, _outBuffer, 3, &_i2crb);
-
-    delayUntil(currentMicros + scanInterval);
   }
 
   int _readAnalogue(VPIN vpin) override {
@@ -133,12 +148,18 @@ private:
   #else
   const unsigned long scanInterval = 1000000UL;  // Period between successive ADC scans in microseconds.
   #endif
+  enum : uint8_t {
+    STATE_STARTSCAN,
+    STATE_STARTREAD, 
+    STATE_GETVALUE,
+  };
   uint16_t _value[4];
   uint8_t _i2cAddress;
   uint8_t _outBuffer[3];
   uint8_t _inBuffer[2];
   uint8_t _currentPin;  // ADC pin currently being scanned
   I2CRB _i2crb;
+  uint8_t _nextState;
 };
 
 #endif // io_analogueinputs_h
