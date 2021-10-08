@@ -71,6 +71,8 @@ const int16_t HASH_KEYWORD_T=84;
 const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_HAL = 10853;
 const int16_t HASH_KEYWORD_SHOW = -21309;
+const int16_t HASH_KEYWORD_ANIN = -10424;
+const int16_t HASH_KEYWORD_ANOUT = -26399;
 #ifdef HAS_ENOUGH_MEMORY
 const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;
@@ -879,7 +881,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case HASH_KEYWORD_SERVO:  // <D SERVO vpin position [profile]>
+    case HASH_KEYWORD_ANOUT:  // <D ANOUT vpin position [profile]>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
+        break;
+
+    case HASH_KEYWORD_ANIN:   // <D ANIN vpin>  Display analogue input value
+        DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
         break;
 
 #if !defined(IO_MINIMAL_HAL)
