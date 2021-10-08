@@ -179,7 +179,7 @@ I2CManagerClass I2CManager = I2CManagerClass();
 /***************************************************************************
  *  Block waiting for request block to complete, and return completion status.
  *  Since such a loop could potentially last for ever if the RB status doesn't
- *  change, we set a high limit (0.1sec, 100ms) on the wait time and, if it
+ *  change, we set a high limit (1sec, 1000ms) on the wait time and, if it
  *  hasn't changed by that time we assume it's not going to, and just return
  *  a timeout status.  This means that CS will not lock up.
  ***************************************************************************/
@@ -187,8 +187,8 @@ uint8_t I2CRB::wait() {
   unsigned long waitStart = millis();
   do {
     I2CManager.loop();
-    // Rather than looping indefinitely, let's set a very high timeout (100ms).
-    if ((millis() - waitStart) > 100UL) { 
+    // Rather than looping indefinitely, let's set a very high timeout (1s).
+    if ((millis() - waitStart) > 1000UL) { 
       DIAG(F("I2C TIMEOUT I2C:x%x I2CRB:x%x"), i2cAddress, this);
       status = I2C_STATUS_TIMEOUT;
       // Note that, although the timeout is posted, the request may yet complete.
