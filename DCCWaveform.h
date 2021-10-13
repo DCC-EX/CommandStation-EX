@@ -23,7 +23,7 @@
 #include "MotorDriver.h"
 
 // Wait times for power management. Unit: milliseconds
-const int  POWER_SAMPLE_ON_WAIT = 100;
+const int  POWER_SAMPLE_ON_WAIT = 50;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 

@@ -156,10 +156,14 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
 	else
 	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
       } else {
-        setPowerMode(POWERMODE::OVERLOAD);
         unsigned int mA=motorDriver->raw2mA(lastCurrent);
         unsigned int maxmA=motorDriver->raw2mA(tripValue);
-	power_good_counter=0;
+	if (power_good_counter > 0) {
+	  power_good_counter = 0;
+	  DIAG(F("*** %S TRACK POWER WARNING current=%d max=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA);
+	  break;
+	}
+        setPowerMode(POWERMODE::OVERLOAD);
         sampleDelay = power_sample_overload_wait;
         DIAG(F("*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
