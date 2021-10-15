@@ -84,6 +84,17 @@ bool MotorDriver::isPWMCapable() {
     return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
 }
 
+bool MotorDriver::pinUsed(byte pin) {
+  // order by how likely to hit
+  if (pin == powerPin)   return true;
+  if (pin == signalPin)  return true;
+  if (pin == currentPin) return true;
+  if (pin == faultPin)   return true;
+  if (pin == brakePin)   return true;
+  if (pin == signalPin2) return true;
+  return false;
+}
+
 
 void MotorDriver::setPower(bool on) {
   if (on) {

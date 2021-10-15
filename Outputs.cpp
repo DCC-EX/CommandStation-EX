@@ -84,6 +84,7 @@ the state of any outputs being monitored or controlled by a separate interface o
 #include "Outputs.h"
 #include "EEStore.h"
 #include "StringFormatter.h"
+#include "DCCWaveform.h"
 
 // print all output states to stream
 void Output::printAll(Print *stream){
@@ -191,6 +192,11 @@ void Output::store(){
 
 Output *Output::create(uint16_t id, uint8_t pin, uint8_t iFlag, uint8_t v){
   Output *tt;
+
+  if (DCCWaveform::mainTrack.pinUsed(pin) ||
+      DCCWaveform::progTrack.pinUsed(pin)) {
+    return NULL;
+  }
 
   if(firstOutput==NULL){
     firstOutput=(Output *)calloc(1,sizeof(Output));

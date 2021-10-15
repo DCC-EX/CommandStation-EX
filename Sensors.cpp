@@ -68,6 +68,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 #include "StringFormatter.h"
 #include "Sensors.h"
 #include "EEStore.h"
+#include "DCCWaveform.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,6 +126,11 @@ void Sensor::printAll(Print *stream){
 
 Sensor *Sensor::create(int snum, int pin, int pullUp){
   Sensor *tt;
+
+  if (DCCWaveform::mainTrack.pinUsed(pin) ||
+      DCCWaveform::progTrack.pinUsed(pin)) {
+    return NULL;
+  }
 
   if(firstSensor==NULL){
     firstSensor=(Sensor *)calloc(1,sizeof(Sensor));

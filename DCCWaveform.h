@@ -107,6 +107,9 @@ class DCCWaveform {
     inline void setMaxAckPulseDuration(unsigned int i) {
 	maxAckPulseDuration = i;
     }
+    inline bool pinUsed(byte pin) {
+      return motorDriver->pinUsed(pin);
+    }
 
   private:
     

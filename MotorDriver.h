@@ -53,6 +53,7 @@ class MotorDriver {
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
     }
+    bool pinUsed(byte pin);
     bool isPWMCapable();
     bool canMeasureCurrent();
     static bool usePWM;
