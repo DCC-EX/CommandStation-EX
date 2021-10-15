@@ -120,7 +120,7 @@ public:
   }
 
   // User-friendly function for configuring a servo pin.
-  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint16_t duration, uint8_t initialState=0) {
+  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile=0, uint16_t duration=0, uint8_t initialState=0) {
     int params[] = {(int)activePosition, (int)inactivePosition, profile, (int)duration, initialState};
     return IODevice::configure(vpin, CONFIGURE_SERVO, 5, params);
   }
@@ -203,7 +203,7 @@ protected:
 
   // Method to perform updates on an ongoing basis (optionally implemented within device class)
   virtual void _loop(unsigned long currentMicros) {
-    (void)currentMicros; // Suppress compiler warning.
+    delayUntil(currentMicros + 0x7fffffff); // Largest time in the future!  Effectively disable _loop calls.
   };
 
   // Method for displaying info on DIAG output (optionally implemented within device class)

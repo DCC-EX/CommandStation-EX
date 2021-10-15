@@ -53,6 +53,7 @@ protected:
   T _portOutputState;
   T _portMode;
   T _portPullup;
+  T _portInUse;
   // Interval between refreshes of each input port
   static const int _portTickTime = 4000;
 
@@ -100,7 +101,8 @@ void GPIOBase<T>::_begin() {
 #endif
     _portMode = 0;  // default to input mode
     _portPullup = -1; // default to pullup enabled
-    _portInputState = -1; 
+    _portInputState = -1;
+    _portInUse = 0;
     _setupDevice();
     _deviceState = DEVSTATE_NORMAL;
   } else {
@@ -126,11 +128,15 @@ bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     _portPullup |= mask;
   else
     _portPullup &= ~mask;
+  // Mark that port has been accessed
+  _portInUse |= mask;
+  // Set input mode
+  _portMode &= ~mask;
 
   // Call subclass's virtual function to write to device
+  _writePortModes();
   _writePullups();
-  // Re-read port following change
-  _readGpioPort();
+  // Port change will be notified on next loop entry.
 
   return true;
 }
@@ -149,6 +155,8 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
         I2CManager.getErrorMessage(status));
     }
     _processCompletion(status);
+  // Set unused pin and write mode pin value to 1
+    _portInputState |= ~_portInUse | _portMode;
 
     // Scan for changes in input states and invoke callback (if present)
     T differences = lastPortStates ^ _portInputState;
@@ -199,8 +207,9 @@ void GPIOBase<T>::_write(VPIN vpin, int value) {
   DIAG(F("%S I2C:x%x Write Pin:%d Val:%d"), _deviceName, _I2CAddress, pin, value);
   #endif
 
-  // Set port mode output
+  // Set port mode output if currently not output mode
   if (!(_portMode & mask)) {
+    _portInUse |= mask;
     _portMode |= mask;
     _writePortModes();
   }
@@ -220,12 +229,16 @@ int GPIOBase<T>::_read(VPIN vpin) {
   int pin = vpin - _firstVpin;
   T mask = 1 << pin;
 
-  // Set port mode to input
-  if (_portMode & mask) {
+  // Set port mode to input if currently output or first use
+  if ((_portMode | ~_portInUse) & mask) {
     _portMode &= ~mask;
+    _portInUse |= mask;
+    _writePullups();
     _writePortModes();
     // Port won't have been read yet, so read it now.
     _readGpioPort();
+  // Set unused pin and write mode pin value to 1
+    _portInputState |= ~_portInUse | _portMode;
     #ifdef DIAG_IO
     DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
     #endif
