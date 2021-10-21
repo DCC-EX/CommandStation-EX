@@ -327,12 +327,14 @@ IONotifyCallback *IONotifyCallback::first = 0;
 ArduinoPins::ArduinoPins(VPIN firstVpin, int nPins) {
   _firstVpin = firstVpin;
   _nPins = nPins;
-  uint8_t arrayLen = (_nPins+7)/8;
-  _pinPullups = (uint8_t *)calloc(2, arrayLen);
+  int arrayLen = (_nPins+7)/8;
+  _pinPullups = (uint8_t *)calloc(3, arrayLen);
   _pinModes = (&_pinPullups[0]) + arrayLen;
+  _pinInUse = (&_pinPullups[0]) + 2*arrayLen;
   for (int i=0; i<arrayLen; i++) {
     _pinPullups[i] = 0xff;  // default to pullup on, for inputs
     _pinModes[i] = 0;
+    _pinInUse[i] = 0;
   }
 }
 
@@ -357,6 +359,7 @@ bool ArduinoPins::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     _pinPullups[index] &= ~mask;
     pinMode(pin, INPUT);
   }
+  _pinInUse[index] |= mask;
   return true;
 }
 
@@ -375,6 +378,7 @@ void ArduinoPins::_write(VPIN vpin, int value) {
     _pinModes[index] |= mask;
     // Since mode changes should be infrequent, use standard pinMode function
     pinMode(pin, OUTPUT);
+    _pinInUse[index] |= mask;
   }
 }
 
@@ -383,14 +387,15 @@ int ArduinoPins::_read(VPIN vpin) {
   int pin = vpin;
   uint8_t mask = 1 << ((pin-_firstVpin) % 8);
   uint8_t index = (pin-_firstVpin) / 8;
-  if (_pinModes[index] & mask) {
-    // Currently in write mode, change to read mode
+  if ((_pinModes[index] | ~_pinInUse[index]) & mask) {
+    // Currently in write mode or not initialised, change to read mode
     _pinModes[index] &= ~mask;
     // Since mode changes should be infrequent, use standard pinMode function
     if (_pinPullups[index] & mask) 
       pinMode(pin, INPUT_PULLUP);
     else
       pinMode(pin, INPUT);
+    _pinInUse[index] |= mask;
   }
   int value = !fastReadDigital(pin); // Invert (5v=0, 0v=1)
 
@@ -414,6 +419,7 @@ int ArduinoPins::_readAnalogue(VPIN vpin) {
     else
       pinMode(pin, INPUT);
   }
+
   // Since AnalogRead is also called from interrupt code, disable interrupts 
   // while we're using it.  There's only one ADC shared by all analogue inputs 
   // on the Arduino, so we don't want interruptions.
