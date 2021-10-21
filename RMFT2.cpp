@@ -44,6 +44,7 @@ const int16_t HASH_KEYWORD_ROUTES=-3702;
 // The thrrads exist in a ring, each time through loop() the next thread in the ring is serviced.
 
 // Statics 
+const int16_t LOCO_ID_WAITING=-99; // waiting for loco id from prog track
 int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prograck
 bool RMFT2::diag=false;      // <D EXRAIL ON>  
 RMFT2 * RMFT2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
@@ -595,14 +596,20 @@ void RMFT2::loop2() {
        break;
        
     case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
+       progtrackLocoId=LOCO_ID_WAITING;  // Nothing found yet
        DCC::getLocoId(readLocoCallback);
        break;
       
       case OPCODE_READ_LOCO2:
-       if (progtrackLocoId<0) {
+       if (progtrackLocoId==LOCO_ID_WAITING) {
         delayMe(100);
         return; // still waiting for callback
        }
+       if (progtrackLocoId<0) {
+        kill(F("No Loco Found"),progtrackLocoId);
+        return; // still waiting for callback
+       }
+       
        loco=progtrackLocoId;
        speedo=0;
        forward=true;
