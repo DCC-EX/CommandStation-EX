@@ -47,9 +47,15 @@ The configuration file for DCC-EX Command Station
  new MotorDriver(D3, D5, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN),\
  new MotorDriver(D2, D6, UNUSED_PIN, UNUSED_PIN, A0        , 2.99, 2000, UNUSED_PIN)
 
+// ADC1 CH4 = GPIO32
+// ADC1 CH5 = GPIO33
+// Adjust pin usage according to info in
+// https://randomnerdtutorials.com/esp32-adc-analog-read-arduino-ide/
+// https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
+// Adjust conversion factor according to your voltage divider
 #define ESP32_MOTOR_SHIELD F("ESP32"), \
- new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 36, 2.99, 2000, UNUSED_PIN),\
- new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 37, 2.99, 2000, UNUSED_PIN)
+ new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 32, 2.99, 2000, UNUSED_PIN),\
+ new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 33, 2.99, 2000, UNUSED_PIN)
 
 #define MOTOR_SHIELD_TYPE ESP32_MOTOR_SHIELD
 
