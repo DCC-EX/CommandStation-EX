@@ -51,7 +51,7 @@ The configuration file for DCC-EX Command Station
  new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 36, 2.99, 2000, UNUSED_PIN),\
  new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 37, 2.99, 2000, UNUSED_PIN)
 
-#define MOTOR_SHIELD_TYPE ESP8266_MOTOR_SHIELD
+#define MOTOR_SHIELD_TYPE ESP32_MOTOR_SHIELD
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
