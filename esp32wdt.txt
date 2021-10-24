@@ -1,0 +1,67 @@
+The ESP-IDF has interrupt watchdogs and task watchdogs. Normally on
+each core there is a very low prio idle task (IDLE0, ILDE1) that feeds
+the watchdog (an internal timer) and if that timer expires a
+reboot/reset happens. This thought to enure that even the lowest prio
+tasks get run ever.
+
+Now enter the Arduino IDE generated task loop(). When there are two cores,
+loop() is run on core1. If loop runs continiously, IDLE1 is never run and
+triggers the watchdog. It is said that this can be previented by one
+of the following:
+
+1. Call delay(X) with big enough X
+2. Call yield()
+
+While the delay() method works, big enough X to run idle seem to be in
+the ms range and there are definitely applications that can not accept
+a several ms long pause in loop().
+
+The yield() method does not work because it only seems not to yield to
+a low prio task like IDLE1 in all circumstances.
+
+Then the makers of the Arduino IDE did get the brilliant idea to
+disable that IDLE1 calls the watchdog. Then loop() can spin on core1
+and other tasks (like wifi or interrupts or whatever) can run on core0
+and are watched by the IDLE0 watchdog. All swell and well. Almost.
+
+Enter: SINGLE CORE ESP32
+
+As the IDLE0 watchdog is not disabled it will fire when loop() runs on
+core0. The next idea is to feed the watchdog from loop() just
+alongside the yield. There is a function called esp_task_wdt_feed(),
+so can that be used to feed the watchdog? Yes and no. While it
+will feed the watchdog, there is as well as check in the ESP-IDF
+that the watchdog is fed from ALL tasks that should feed it. So
+if the setup is that IDLE0 should feed the watchdog, we can not
+get away by calling esp_task_wdt_feed() from loop(). BUMMER!
+
+But there seems to be a way around this. The watchdog is implemented
+by low level timers/counters and these are accessible. So we can feed
+the dog behind the back of the ESP-IDF:
+
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
+void feedTheDog(){
+  // feed dog 0
+  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+  TIMERG0.wdt_feed=1;                       // feed dog
+  TIMERG0.wdt_wprotect=0;                   // write protect
+  // feed dog 1
+  TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+  TIMERG1.wdt_feed=1;                       // feed dog
+  TIMERG1.wdt_wprotect=0;                   // write protect
+}
+
+As I do not have a single core ESP32 I tested this by enabling the
+IDLE1 watchdog (which normally is disabled) and checking that I
+do get watchdog resets. Then I call feedTheDog() from loop()
+and the resets disappear. So I guess the feeding operation is
+successful. For a single core ESP32 of course only dog0 has
+to be fed.
+
+Feed dog directly behind back of the ESP-IDF routines:
+https://forum.arduino.cc/t/esp32-a-better-way-than-vtaskdelay-to-get-around-watchdog-crash/596889/13
+Disable/Endable WDT code:
+https://github.com/espressif/arduino-esp32/commit/b8f8502f
+Get/set taskid on cores:
+https://techtutorialsx.com/2017/05/09/esp32-get-task-execution-core/
