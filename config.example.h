@@ -70,7 +70,9 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-//#define ENABLE_WIFI true
+// Currently ESP32 single core only works with WIFI ON because of Watchdog code
+// and if you have an ESP32 you probably want WIFI anyway.
+#define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
