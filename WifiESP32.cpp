@@ -24,6 +24,45 @@
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
+/*
+#include "soc/rtc_wdt.h"
+#include "esp_task_wdt.h"
+*/
+
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
+void feedTheDog0(){
+  // feed dog 0
+  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+  TIMERG0.wdt_feed=1;                       // feed dog
+  TIMERG0.wdt_wprotect=0;                   // write protect
+  // feed dog 1
+  //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+  //TIMERG1.wdt_feed=1;                       // feed dog
+  //TIMERG1.wdt_wprotect=0;                   // write protect
+}
+
+/*
+void enableCoreWDT(byte core){
+  TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
+  if(idle == NULL){
+    DIAG(F("Get idle rask on core %d failed"),core);
+  } else {
+    if(esp_task_wdt_add(idle) != ESP_OK){
+      DIAG(F("Failed to add Core %d IDLE task to WDT"),core);
+    } else {
+      DIAG(F("Added Core %d IDLE task to WDT"),core);
+    }
+  }
+}
+
+void disableCoreWDT(byte core){
+    TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
+    if(idle == NULL || esp_task_wdt_delete(idle) != ESP_OK){
+      DIAG(F("Failed to remove Core %d IDLE task from WDT"),core);
+    }
+}
+*/
 
 static std::vector<WiFiClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
@@ -37,6 +76,10 @@ bool WifiESP::setup(const char *SSid,
   bool havePassword = true;
   bool haveSSID = true;
   bool wifiUp = false;
+
+  // tests
+  //  enableCoreWDT(1);
+  //  disableCoreWDT(0);
 
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
@@ -158,5 +201,14 @@ void WifiESP::loop() {
       }
     }
   } //connected
+  yield();
+  // when loop() is running on core0 we must
+  // feed the core0 wdt ourselves as yield()
+  // is not necessarily yielding to a low
+  // prio task. On core1 this is not a problem
+  // as there the wdt is disabled by the
+  // arduio IDE startup routines.
+  if (xPortGetCoreID() == 0)
+    feedTheDog0();
 }
 #endif //ESP32
