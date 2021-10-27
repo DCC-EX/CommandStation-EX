@@ -20,6 +20,10 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include <driver/adc.h>
+#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
+#endif
 
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
@@ -55,7 +59,13 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
     pinMode(currentPin, INPUT);
+#if defined(ARDUINO_ARCH_ESP32)
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
+    senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
+#else
     senseOffset=analogRead(currentPin); // value of sensor at zero current
+#endif
   }
 
   faultPin=fault_pin;
@@ -150,6 +160,8 @@ int MotorDriver::getCurrentRaw() {
   current = analogRead(currentPin)-senseOffset;
   overflow_count = 0;
   SREG = sreg_backup;    /* restore interrupt state */
+#elif defined(ARDUINO_ARCH_ESP32)
+  current = adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
 #else
   current = analogRead(currentPin)-senseOffset;
 #endif
