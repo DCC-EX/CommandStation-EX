@@ -58,12 +58,13 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
-    pinMode(currentPin, INPUT);
 #if defined(ARDUINO_ARCH_ESP32)
+    pinMode(currentPin, ANALOG);
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
     senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
 #else
+    pinMode(currentPin, INPUT);
     senseOffset=analogRead(currentPin); // value of sensor at zero current
 #endif
   }
