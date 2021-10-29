@@ -82,5 +82,9 @@
 #define IBT_2_WITH_ARDUINO F("IBT_2_WITH_ARDUINO_SHIELD"),                                              \
                          new MotorDriver(4, 5, 6, UNUSED_PIN, A5, 41.54, 5000, UNUSED_PIN), \
                          new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+// YFROBOT Motor Shield (V3.1)
+#define YFROBOT_MOTOR_SHIELD F("YFROBOT_MOTOR_SHIELD"), \
+    new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
+    new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
 #endif
