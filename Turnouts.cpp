@@ -119,7 +119,7 @@
       // Send message to JMRI etc. over Serial USB.  This is done here
       // to ensure that the message is sent when the turnout operation
       // is not initiated by a Serial command.
-      printState(id, &Serial);
+      tt->printState(&Serial);
     return true;
   }
 
@@ -140,6 +140,8 @@
     bool ok = tt->setClosedInternal(closeFlag);
 
     if (ok) {
+      turnoutlistHash++;  // let withrottle know something changed
+    
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
@@ -152,7 +154,7 @@
       // Send message to JMRI etc. over Serial USB.  This is done here
       // to ensure that the message is sent when the turnout operation
       // is not initiated by a Serial command.
-      printState(id, &Serial);
+      tt->printState(&Serial);
     }
     return ok;
   }
@@ -214,7 +216,7 @@
   // Display, on the specified stream, the current state of the turnout (1=thrown or 0=closed).
   /* static */ void Turnout::printState(uint16_t id, Print *stream) {
     Turnout *tt = get(id);
-    if (!tt) tt->printState(stream);
+    if (tt) tt->printState(stream);
   }
 
 

@@ -275,6 +275,7 @@ RMFT2::RMFT2(int progCtr) {
   forward=true;
   invert=false;
   stackDepth=0;
+  onTurnoutId=0; // Not handling an ONTHROW/ONCLOSE
    
   // chain into ring of RMFTs
   if (loopTask==NULL) {
@@ -329,11 +330,16 @@ void RMFT2::driveLoco(byte speed) {
      speedo=speed;
 }
 
-bool RMFT2::readSensor(int16_t sensorId) {
-  VPIN vpin=abs(sensorId);
+bool RMFT2::readSensor(uint16_t sensorId) {
+  // Exrail operands are unsigned but we need the signed version as inserted by the macros.  
+  int16_t sId=(int16_t) sensorId;
+
+  VPIN vpin=abs(sId);
   if (getFlag(vpin,LATCH_FLAG)) return true; // latched on
-  bool s= IODevice::read(vpin) ^ (sensorId<0);
-  if (s && diag) DIAG(F("EXRAIL Sensor %d hit"),sensorId);
+
+  // negative sensorIds invert the logic (e.g. for a break-beam sensor which goes OFF when detecting)
+  bool s= IODevice::read(vpin) ^ (sId<0);
+  if (s && diag) DIAG(F("EXRAIL Sensor %d hit"),sId);
   return s;
 }
 
@@ -524,11 +530,19 @@ void RMFT2::loop2() {
     case OPCODE_FON:      
       if (loco) DCC::setFn(loco,operand,true);
       break;
-    
+     
     case OPCODE_FOFF:
       if (loco) DCC::setFn(loco,operand,false);
       break;
-
+    
+    case OPCODE_XFON:      
+      DCC::setFn(operand,GET_OPERAND(1),true);
+      break;
+   
+    case OPCODE_XFOFF:      
+      DCC::setFn(operand,GET_OPERAND(1),false);
+      break;
+   
     case OPCODE_FOLLOW:
       progCounter=locateRouteStart(operand);
       if (progCounter<0) kill(F("FOLLOW unknown"), operand); 
@@ -625,7 +639,7 @@ void RMFT2::loop2() {
        case OPCODE_ROUTE:
        case OPCODE_AUTOMATION:
        case OPCODE_SEQUENCE:
-          DIAG(F("EXRAIL begin(%d)"),operand);
+          if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
           break;
 
        case OPCODE_PAD: // Just a padding for previous opcode needing >1 operad byte.
@@ -674,26 +688,39 @@ void RMFT2::kill(const FSH * reason, int operand) {
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) return;
      if (opcode!=OPCODE_SIGNAL) continue;
-     byte redpin=GET_OPERAND(1);
+     byte redpin=GET_OPERAND(0);
      if (redpin!=id)continue;
-     byte amberpin=GET_OPERAND(2);
-     byte greenpin=GET_OPERAND(3);
+     byte amberpin=GET_OPERAND(1);
+     byte greenpin=GET_OPERAND(2);
      // If amberpin is zero, synthesise amber from red+green
      IODevice::write(redpin,red || (amber && (amberpin==0)));
      if (amberpin) IODevice::write(amberpin,amber);
-     if (greenpin) IODevice::write(amberpin,green || (amber && (amberpin==0)));
+     if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
      return;
    }
   } 
- void RMFT2::turnoutEvent(VPIN id, bool closed) {
+ void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
+    
+    // Check we dont already have a task running this turnout
+    RMFT2 * task=loopTask;                 
+    while(task) {
+      if (task->onTurnoutId==turnoutId) {
+        DIAG(F("Recursive ONTHROW/ONCLOSE for Turnout %d"),turnoutId);
+        return;
+        }
+      task=task->next;      
+      if (task==loopTask) break;      
+      }
+    // Hunt for an ONTHROW/ONCLOSE for this turnout   
     byte huntFor=closed ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
     // caution hides class progCounter;
     for (int progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) return;
      if (opcode!=huntFor) continue;
-     if (id!=GET_OPERAND(0)) continue;
-     new RMFT2(progCounter);  // new task starts at this instruction
+     if (turnoutId!=(int16_t)GET_OPERAND(0)) continue;
+     task=new RMFT2(progCounter);  // new task starts at this instruction
+     task->onTurnoutId=turnoutId; // flag for recursion detector
      return;
    }
  }
