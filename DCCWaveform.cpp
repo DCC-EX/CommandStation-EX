@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
- #pragma GCC optimize ("-O3")
+#pragma GCC optimize ("-O3")
 #include <Arduino.h>
 
 #include "defines.h"

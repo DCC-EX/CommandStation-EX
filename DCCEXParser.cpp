@@ -17,10 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "DCC.h" // includes "Motordriver.h" and <Arduino.h>
 #include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
-#include "DCC.h"
 #include "DCCWaveform.h"
 #include "Turnouts.h"
 #include "Outputs.h"
