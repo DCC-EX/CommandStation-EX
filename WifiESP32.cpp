@@ -99,6 +99,8 @@ bool WifiESP::setup(const char *SSid,
     if (WiFi.status() == WL_CONNECTED) {
       DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
       wifiUp = true;
+    } else {
+      DIAG(F("Could not connect to Wifi SSID %s"),SSid);
     }
   }
   if (!haveSSID) {
@@ -120,12 +122,14 @@ bool WifiESP::setup(const char *SSid,
       DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
       wifiUp = true;
       APmode = true;
+    } else {
+      DIAG(F("Could not set up AP with Wifi SSID %s"),strSSID.c_str());
     }
   }
 
 
   if (!wifiUp) {
-    DIAG(F("Wifi all fail"));
+    DIAG(F("Wifi setup all fail (STA and AP mode)"));
     // no idea to go on
     return false;
   }
