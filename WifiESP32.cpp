@@ -67,6 +67,7 @@ void disableCoreWDT(byte core){
 static std::vector<WiFiClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(2048);
+static bool APmode = false;
 
 bool WifiESP::setup(const char *SSid,
                     const char *password,
@@ -118,6 +119,7 @@ bool WifiESP::setup(const char *SSid,
       DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
       wifiUp = true;
+      APmode = true;
     }
   }
 
@@ -138,7 +140,8 @@ bool WifiESP::setup(const char *SSid,
 void WifiESP::loop() {
   int clientId; //tmp loop var
 
-  if (WiFi.status() == WL_CONNECTED /* || what for AP? */) {
+  // really no good way to check for LISTEN especially in AP mode?
+  if (APmode || WiFi.status() == WL_CONNECTED) {
     if (server->hasClient()) {
       // loop over all clients and remove inactive
       for (clientId=0; clientId<clients.size(); clientId++){
