@@ -137,7 +137,7 @@ uint8_t DCC::getThrottleSpeed(int cab) {
 
 bool DCC::getThrottleDirection(int cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return false ;
+  if (reg<0) return true;
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
