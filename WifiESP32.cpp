@@ -77,6 +77,7 @@ bool WifiESP::setup(const char *SSid,
   bool havePassword = true;
   bool haveSSID = true;
   bool wifiUp = false;
+  uint8_t tries = 40;
 
   // tests
   //  enableCoreWDT(1);
@@ -92,8 +93,9 @@ bool WifiESP::setup(const char *SSid,
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.begin(SSid, password);
-    while (WiFi.status() != WL_CONNECTED) {
+    while (WiFi.status() != WL_CONNECTED && tries) {
       Serial.print('.');
+      tries--;
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
