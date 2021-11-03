@@ -60,8 +60,6 @@ volatile bool ackflag = 0;
 #endif
 
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
-  mainTrack.checkPowerOverload(false);
-  progTrack.checkPowerOverload(ackManagerActive);
 #ifdef SLOW_ANALOG_READ
   if (ackflag) {
     progTrack.checkAck();
@@ -69,8 +67,13 @@ void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
     portENTER_CRITICAL(&timerMux);
     ackflag = 0;
     portEXIT_CRITICAL(&timerMux);
+  } else {
+    progTrack.checkPowerOverload(ackManagerActive);
   }
+#else
+  progTrack.checkPowerOverload(ackManagerActive);
 #endif
+  mainTrack.checkPowerOverload(false);
 }
 
 void IRAM_ATTR DCCWaveform::interruptHandler() {

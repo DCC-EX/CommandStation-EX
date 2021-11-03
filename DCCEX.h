@@ -44,9 +44,10 @@
 #include "LCN.h"
 #include "freeMemory.h"
 
-#if __has_include ( "myAutomation.h")
-  #include "RMFT.h"
-  #define RMFT_ACTIVE
-#endif
+// not yet in this branch
+//#if __has_include ( "myAutomation.h")
+//  #include "RMFT.h"
+//  #define RMFT_ACTIVE
+//#endif
     
 #endif
