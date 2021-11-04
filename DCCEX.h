@@ -42,5 +42,10 @@
   #include "RMFT.h"
   #define RMFT_ACTIVE
 #endif
-    
+
+#ifdef S88_MEGA		
+#include "S88Mega.h"
+#endif	
+
+
 #endif
