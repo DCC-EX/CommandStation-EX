@@ -31,7 +31,7 @@ RingStream::RingStream( const uint16_t len)
   _mark=0;
   _count=0; 
 #if defined(ARDUINO_ARCH_ESP32)
-  portMUX_TYPE _bufMux = portMUX_INITIALIZER_UNLOCKED;
+  _bufMux = portMUX_INITIALIZER_UNLOCKED;
 #endif
 }
 
