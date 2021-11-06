@@ -124,7 +124,8 @@ void loop()
 #if WIFI_ON
 #ifndef ESP_FAMILY
   WifiInterface::loop();
-#else
+#endif
+#if defined(ARDUINO_ARCH_ESP8266) // on ESP32 own task
   WifiESP::loop();
 #endif
 #endif //WIFI_ON

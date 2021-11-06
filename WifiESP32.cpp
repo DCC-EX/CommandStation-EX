@@ -69,6 +69,12 @@ static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(2048);
 static bool APmode = false;
 
+void wifiLoop(void *){
+  for(;;){
+    WifiESP::loop();
+  }
+}
+
 bool WifiESP::setup(const char *SSid,
                     const char *password,
                     const char *hostname,
@@ -139,6 +145,13 @@ bool WifiESP::setup(const char *SSid,
   server->begin();
   DIAG(F("Server up port %d"),port);
 
+  xTaskCreatePinnedToCore(wifiLoop, /* Task function. */
+			  "wifiLoop",/* name of task.  */
+			  10000,     /* Stack size of task */
+			  NULL,      /* parameter of the task */
+			  1,         /* priority of the task */
+			  NULL,      /* Task handle to keep track of created task */
+			  0);        /* pin task to core 0 */
   return true;
   return false;
 }
