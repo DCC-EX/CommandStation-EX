@@ -38,7 +38,7 @@
 #include "LCN.h"
 #include "freeMemory.h"
 
-#if __has_include ( "myAutomation.h")
+#if __has_include ("myAutomation.h") && __has_include ("RMFT.h")
   #include "RMFT.h"
   #define RMFT_ACTIVE
 #endif

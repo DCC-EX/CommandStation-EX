@@ -82,6 +82,7 @@ class DCCWaveform {
     }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
+    volatile bool reminderWindowOpen;
     volatile byte sentResetsSincePacket;
     volatile bool autoPowerOff=false;
     void setAckBaseline();  //prog track only
