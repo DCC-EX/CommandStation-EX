@@ -143,17 +143,25 @@ bool WifiESP::setup(const char *SSid,
   }
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
-  DIAG(F("Server up port %d"),port);
+  // server started here
 
-  xTaskCreatePinnedToCore(wifiLoop, /* Task function. */
-			  "wifiLoop",/* name of task.  */
-			  10000,     /* Stack size of task */
-			  NULL,      /* parameter of the task */
-			  1,         /* priority of the task */
-			  NULL,      /* Task handle to keep track of created task */
-			  0);        /* pin task to core 0 */
+  //start loop task
+  if (pdPASS != xTaskCreatePinnedToCore(
+	wifiLoop, /* Task function. */
+	"wifiLoop",/* name of task.  */
+	10000,     /* Stack size of task */
+	NULL,      /* parameter of the task */
+	1,         /* priority of the task */
+	NULL,      /* Task handle to keep track of created task */
+	0)) {      /* pin task to core 0 */
+    DIAG(F("Could not create wifiLoop task"));
+    return false;
+  }
+
+  // report server started after wifiLoop creation
+  // when everything looks good
+  DIAG(F("Server up port %d"),port);
   return true;
-  return false;
 }
 
 void WifiESP::loop() {
