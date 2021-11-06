@@ -18,6 +18,7 @@
  */
 
 #include "RingStream.h"
+#include "defines.h"
 #include "DIAG.h"
 
 RingStream::RingStream( const uint16_t len)
