@@ -94,6 +94,7 @@ const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
+  reminderWindowOpen = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
@@ -222,6 +223,10 @@ void DCCWaveform::interrupt2() {
     //end of Byte
     bits_sent = 0;
     bytes_sent++;
+    // if this is the byte before last byte, open reminder window
+    if (bytes_sent == transmitLength  && transmitRepeats == 0 && !packetPending) {
+      reminderWindowOpen = true;
+    }
     // if this is the last byte, prepere for next packet
     if (bytes_sent >= transmitLength) {
       // end of transmission buffer... repeat or switch to next message
@@ -270,6 +275,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
+  reminderWindowOpen = false;
   sentResetsSincePacket=0;
 }
 

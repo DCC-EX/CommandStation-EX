@@ -567,7 +567,7 @@ void DCC::loop()  {
 
 void DCC::issueReminders() {
   // if the main track transmitter still has a pending packet, skip this time around.
-  if ( DCCWaveform::mainTrack.packetPending) return;
+  if (!DCCWaveform::mainTrack.reminderWindowOpen) return;
 
   // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
   for (int reg=0;reg<MAX_LOCOS;reg++) {
