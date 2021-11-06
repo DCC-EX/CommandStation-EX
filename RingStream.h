@@ -46,6 +46,9 @@ class RingStream : public Print {
    int _mark;
    int _count;
    byte * _buffer;
+#if defined(ARDUINO_ARCH_ESP32)
+   portMUX_TYPE _bufMux;
+#endif
 };
 
 #endif

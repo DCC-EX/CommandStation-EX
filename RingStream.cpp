@@ -30,28 +30,36 @@ RingStream::RingStream( const uint16_t len)
   _overflow=false;
   _mark=0;
   _count=0; 
+#if defined(ARDUINO_ARCH_ESP32)
+  portMUX_TYPE _bufMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
 }
 
 size_t RingStream::write(uint8_t b) {
   if (_overflow) return 0;
+  portENTER_CRITICAL(&_bufMux);
   _buffer[_pos_write] = b;
   ++_pos_write;
   if (_pos_write==_len) _pos_write=0;
   if (_pos_write==_pos_read) {
     _overflow=true; 
+    portEXIT_CRITICAL(&_bufMux);
     return 0;
   }
   _count++;
+  portEXIT_CRITICAL(&_bufMux);
   return 1;
 }
 
 int RingStream::read(byte advance) {
   if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty
   if (_pos_read == _mark) return -1;
+  portENTER_CRITICAL(&_bufMux);
   byte b=_buffer[_pos_read];
   _pos_read += advance;
   if (_pos_read==_len) _pos_read=0;
   _overflow=false;
+  portEXIT_CRITICAL(&_bufMux);
   return b;
 }
 
@@ -70,11 +78,13 @@ int RingStream::freeSpace() {
 // mark start of message with client id (0...9)
 void RingStream::mark(uint8_t b) {
     //DIAG(F("Mark1 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
+    portENTER_CRITICAL(&_bufMux);
     _mark=_pos_write;
     write(b); // client id
     write((uint8_t)0);  // count MSB placemarker
     write((uint8_t)0);  // count LSB placemarker
     _count=0;
+    portEXIT_CRITICAL(&_bufMux);
 }
 
 // peekTargetMark is used by the parser stash routines to know which client
@@ -89,16 +99,19 @@ void RingStream::info() {
 
 bool RingStream::commit() {
   //DIAG(F("Commit1 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
+  portENTER_CRITICAL(&_bufMux);
   if (_overflow) {
         DIAG(F("RingStream(%d) commit(%d) OVERFLOW"),_len, _count);
         // just throw it away 
         _pos_write=_mark;
         _overflow=false;
-        return false; // commit failed
+	portEXIT_CRITICAL(&_bufMux);
+	return false; // commit failed
   }
   if (_count==0) {
     // ignore empty response 
     _pos_write=_mark;
+    portEXIT_CRITICAL(&_bufMux);
     return true; // true=commit ok
   }
   // Go back to the _mark and inject the count 1 byte later
@@ -110,5 +123,6 @@ bool RingStream::commit() {
   _buffer[_mark]=lowByte(_count);
   _mark=_len+1;
   //DIAG(F("Commit2 len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
+  portEXIT_CRITICAL(&_bufMux);
   return true; // commit worked
 }
