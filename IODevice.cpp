@@ -160,7 +160,7 @@ void IODevice::write(VPIN vpin, int value) {
     return;
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
 #endif
 }
 
@@ -179,7 +179,7 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t para
     return;
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::writeAnalogue(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::writeAnalogue(): Vpin ID %d not found!"), (int)vpin);
 #endif
 }
 
@@ -265,7 +265,7 @@ int IODevice::read(VPIN vpin) {
       return dev->_read(vpin);
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
 #endif
   return false;
 }
@@ -288,7 +288,17 @@ int IODevice::readAnalogue(VPIN vpin) {
 // Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
 
 void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN, ConfigTypeEnum, int, int []) { return true; }
+bool IODevice::configure(VPIN pin, ConfigTypeEnum, int, int p[]) {
+  #ifdef DIAG_IO
+  DIAG(F("Arduino _configurePullup Pin:%d Val:%d"), pin, p[0]);
+  #endif
+  if (p[0]) {
+    pinMode(pin, INPUT_PULLUP);
+  } else {
+    pinMode(pin, INPUT);
+  }
+  return true;
+}
 void IODevice::write(VPIN vpin, int value) {
   digitalWrite(vpin, value);
   pinMode(vpin, OUTPUT);
@@ -297,7 +307,6 @@ void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
 bool IODevice::isBusy(VPIN) { return false; }
 bool IODevice::hasCallback(VPIN) { return false; }
 int IODevice::read(VPIN vpin) { 
-  pinMode(vpin, INPUT_PULLUP);
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
 }
 int IODevice::readAnalogue(VPIN vpin) {
@@ -434,7 +443,7 @@ int ArduinoPins::_readAnalogue(VPIN vpin) {
   interrupts();
 
   #ifdef DIAG_IO
-  //DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
+  DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
   #endif
   return value;
 }
