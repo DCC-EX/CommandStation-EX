@@ -66,6 +66,14 @@ byte RMFT2::flags[MAX_FLAGS];
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
 
+     switch (opcode) {
+     case OPCODE_AT:
+     case OPCODE_AFTER:
+     case OPCODE_IF:
+     case OPCODE_IFNOT:
+       IODevice::configureInput((VPIN)GET_OPERAND(0),true);
+     }
+
      if (opcode==OPCODE_SIGNAL) {
       VPIN red=GET_OPERAND(0);
       VPIN amber=GET_OPERAND(1);
