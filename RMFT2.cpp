@@ -71,7 +71,9 @@ byte RMFT2::flags[MAX_FLAGS];
      case OPCODE_AFTER:
      case OPCODE_IF:
      case OPCODE_IFNOT:
-       IODevice::configureInput((VPIN)GET_OPERAND(0),true);
+       int16_t pin = (int16_t)GET_OPERAND(0);
+       if (pin<0) pin = -pin;
+       IODevice::configureInput((VPIN)pin,true);
      }
 
      if (opcode==OPCODE_SIGNAL) {
