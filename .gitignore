@@ -9,3 +9,9 @@ Release/*
 config.h
 .vscode/extensions.json
 mySetup.h
+mySetup.cpp
+myAutomation.h
+myFilter.cpp
+myAutomation.h
+myFilter.cpp
+myLayout.h

@@ -24,6 +24,7 @@
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "FSH.h"
+#include "IODevice.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -51,6 +52,9 @@ byte DCC::globalSpeedsteps=128;
 void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
   shieldName=(FSH *)motorShieldName;
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+
+  // Initialise HAL layer before reading EEprom.
+  IODevice::begin();
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
@@ -235,6 +239,9 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
 }
 
 void DCC::setAccessory(int address, byte number, bool activate) {
+  #ifdef DIAG_IO
+  DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, number, activate);
+  #endif
   // use masks to detect wrong values and do nothing
   if(address != (address & 511))
     return;
@@ -350,8 +357,9 @@ const ackOp FLASH WRITE_BYTE_PROG[] = {
       
 const ackOp FLASH VERIFY_BYTE_PROG[] = {
       BASELINE,
+      BIV,         // ackManagerByte initial value
       VB,WACK,     // validate byte 
-      ITCB,       // if ok callback value
+      ITCB,       // if ok callback value	
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
       // this is because there tend to be more zeros in cv values than ones.  
@@ -369,7 +377,7 @@ const ackOp FLASH VERIFY_BYTE_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
-      VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
+      VB, WACK, ITCBV,  // verify merged byte and return it if acked ok - with retry report
       FAIL };
       
       
@@ -679,9 +687,15 @@ int DCC::nextLoco = 0;
 
 //ACK MANAGER
 ackOp  const *  DCC::ackManagerProg;
+ackOp  const *  DCC::ackManagerProgStart;
 byte   DCC::ackManagerByte;
+byte   DCC::ackManagerByteVerify;
 byte   DCC::ackManagerStash;
 int    DCC::ackManagerWord;
+byte   DCC::ackManagerRetry;
+byte   DCC::ackRetry = 2;
+int16_t  DCC::ackRetrySum;
+int16_t  DCC::ackRetryPSum;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
@@ -714,7 +728,10 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 
   ackManagerCv = cv;
   ackManagerProg = program;
+  ackManagerProgStart = program;
+  ackManagerRetry = ackRetry;
   ackManagerByte = byteValueOrBitnum;
+  ackManagerByteVerify = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
 }
@@ -740,6 +757,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+          if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
       	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
           callbackState=READY;
@@ -813,7 +831,18 @@ void DCC::ackManagerLoop() {
             return;
           }
         break;
-
+		    
+      case ITCBV:   // If True callback(byte) - Verify
+          if (ackReceived) {
+            if (ackManagerByte == ackManagerByteVerify) {
+               ackRetrySum ++;
+               LCD(1, F("v %d %d Sum=%d"), ackManagerCv, ackManagerByte, ackRetrySum);
+            }
+            callback(ackManagerByte);
+            return;
+          }
+        break;
+		    
       case ITCB7:   // If True callback(byte & 0x7F)
           if (ackReceived) {
             callback(ackManagerByte & 0x7F);
@@ -831,7 +860,11 @@ void DCC::ackManagerLoop() {
       case FAIL:  // callback(-1)
            callback(-1);
            return;
-           
+
+      case BIV:     // ackManagerByte initial value
+           ackManagerByte = ackManagerByteVerify;
+           break;
+
       case STARTMERGE:
            ackManagerBitNum=7;
            ackManagerByte=0;     
@@ -897,6 +930,15 @@ void DCC::ackManagerLoop() {
 }
 
 void DCC::callback(int value) {
+    // check for automatic retry
+    if (value == -1 && ackManagerRetry > 0) {
+      ackRetrySum ++;
+      LCD(0, F("Retry %d %d Sum=%d"), ackManagerCv, ackManagerRetry, ackRetrySum);
+      ackManagerRetry --;
+      ackManagerProg = ackManagerProgStart;
+      return;
+    }
+
     static unsigned long callbackStart;
     // We are about to leave programming mode
     // Rule 1: If we have written to a decoder we must maintain power for 100mS
