@@ -3,9 +3,8 @@
 
 #include "StringFormatter.h"
 
-
-#define VERSION "3.1.7 draft"
-// 3.1.7 Major functional and non-functional changes.
+#define VERSION "3.2.0"
+// 3.2.0 Major functional and non-functional changes.
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
 //         Support for PCA9685 PWM (servo) control modules.
@@ -23,6 +22,7 @@
 //       from <a> command and <T> command.
 //       Increased use of display for showing loco decoder programming information.
 //       ...
+// 3.1.7 Bugfix: Unknown locos should have speed forward 
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
 // 3.1.5 Fix LCD corruption on power-up
 // 3.1.4 Refactor OLED and LCD drivers and remove unused code
