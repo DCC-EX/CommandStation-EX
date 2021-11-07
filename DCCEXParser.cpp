@@ -27,10 +27,21 @@
 #include "freeMemory.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
+#include "defines.h"
 
 #include "EEStore.h"
 #include "DIAG.h"
 #include <avr/wdt.h>
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Figure out if we have enough memory for advanced features
+//
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
+// nope
+#else
+#define HAS_ENOUGH_MEMORY
+#endif
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
@@ -40,8 +51,6 @@ const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
 const int16_t HASH_KEYWORD_RAM = 25982;
 const int16_t HASH_KEYWORD_CMD = 9962;
-const int16_t HASH_KEYWORD_WIT = 31594;
-const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ACK = 3113;
 const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
@@ -49,13 +58,26 @@ const int16_t HASH_KEYWORD_SLOW = -17209;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
 const int16_t HASH_KEYWORD_EEPROM = -7168;
 const int16_t HASH_KEYWORD_LIMIT = 27413;
-const int16_t HASH_KEYWORD_ETHERNET = -30767;    
 const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
-const int16_t HASH_KEYWORD_LCN = 15137;   
 const int16_t HASH_KEYWORD_RESET = 26133;
+const int16_t HASH_KEYWORD_RETRY = 25704;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
+const int16_t HASH_KEYWORD_SERVO=27709;
+const int16_t HASH_KEYWORD_VPIN=-415;
+const int16_t HASH_KEYWORD_C=67;
+const int16_t HASH_KEYWORD_T=84;
+const int16_t HASH_KEYWORD_LCN = 15137;
+const int16_t HASH_KEYWORD_HAL = 10853;
+const int16_t HASH_KEYWORD_SHOW = -21309;
+const int16_t HASH_KEYWORD_ANIN = -10424;
+const int16_t HASH_KEYWORD_ANOUT = -26399;
+#ifdef HAS_ENOUGH_MEMORY
+const int16_t HASH_KEYWORD_WIFI = -5583;
+const int16_t HASH_KEYWORD_ETHERNET = -30767;
+const int16_t HASH_KEYWORD_WIT = 31594;
+#endif
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -253,6 +275,7 @@ void DCCEXParser::parse(const FSH * cmd) {
 }
 
 // See documentation on DCC class for info on this section
+
 void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 {
     (void)EEPROM; // tell compiler not to warn this is unused
@@ -344,8 +367,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
           || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
           ) break; 
-            
+          // Honour the configuration option (config.h) which allows the <a> command to be reversed
+#ifdef DCC_ACCESSORY_RCN_213
+          DCC::setAccessory(address, subaddress,p[activep]==0);
+#else
           DCC::setAccessory(address, subaddress,p[activep]==1);
+#endif
         }
         return;
      
@@ -451,6 +478,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>\n"), opcode);
+		        LCD(2, F("p%c"), opcode);
                 return;
             }
             switch (p[0])
@@ -458,6 +486,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             case HASH_KEYWORD_MAIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 StringFormatter::send(stream, F("<p%c MAIN>\n"), opcode);
+	            LCD(2, F("p%c MAIN"), opcode);
                 return;
 
             case HASH_KEYWORD_PROG:
@@ -465,6 +494,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>\n"), opcode);
+		        LCD(2, F("p%c PROG"), opcode);
                 return;
             case HASH_KEYWORD_JOIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
@@ -473,9 +503,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 {
                     DCC::setProgTrackSyncMain(true);
                     StringFormatter::send(stream, F("<p1 JOIN>\n"), opcode);
+		            LCD(2, F("p1 JOIN"));
                 }
                 else
+		        {
                     StringFormatter::send(stream, F("<p0>\n"));
+		            LCD(2, F("p0"));
+	    	    }
                 return;
             }
             break;
@@ -579,10 +613,8 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case 3: // <Z ID PIN IFLAG>
-        if (p[0] < 0 ||
-	    p[1] > 255 || p[1] <= 1 || // Pins 0 and 1 are Serial to USB
-	    p[2] <   0 || p[2] > 7 )
-	  return false;
+        if (p[0] < 0 || p[2] < 0 || p[2] > 7 )
+	        return false;
         if (!Output::create(p[0], p[1], p[2], 1))
           return false;
         StringFormatter::send(stream, F("<O>\n"));
@@ -600,7 +632,7 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
         for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
         {
             gotone = true;
-            StringFormatter::send(stream, F("<Y %d %d %d %d>\n"), tt->data.id, tt->data.pin, tt->data.iFlag, tt->data.oStatus);
+            StringFormatter::send(stream, F("<Y %d %d %d %d>\n"), tt->data.id, tt->data.pin, tt->data.flags, tt->data.active);
         }
         return gotone;
     }
@@ -659,11 +691,10 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
     case 0: // <T>  list turnout definitions
     {
         bool gotOne = false;
-        for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
+        for (Turnout *tt = Turnout::first(); tt != NULL; tt = tt->next())
         {
             gotOne = true;
-            StringFormatter::send(stream, F("<H %d %d %d %d>\n"), tt->data.id, tt->data.address, 
-                tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
+            tt->print(stream);
         }
         return gotOne; // will <X> if none found
     }
@@ -674,24 +705,62 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("<O>\n"));
         return true;
 
-    case 2: // <T id 0|1>  activate turnout
-    {
-        Turnout *tt = Turnout::get(p[0]);
-        if (!tt)
-            return false;
-        tt->activate(p[1]);
-        StringFormatter::send(stream, F("<H %d %d>\n"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
-    }
-        return true;
+    case 2: // <T id 0|1|T|C> 
+        {
+          bool state = false;
+          switch (p[1]) {
+            // Turnout messages use 1=throw, 0=close.
+            case 0:
+            case HASH_KEYWORD_C:
+              state = true;
+              break;
+            case 1:
+            case HASH_KEYWORD_T:
+              state= false;
+              break;
+            default:
+              return false;  // Invalid parameter
+          }
+          if (!Turnout::setClosed(p[0], state)) return false;
 
-    case 3: // <T id addr subaddr>  define turnout
-        if (!Turnout::create(p[0], p[1], p[2]))
-            return false;
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
+          // Send acknowledgement to caller if the command was not received over Serial
+          // (acknowledgement messages on Serial are sent by the Turnout class).
+          if (stream != &Serial) Turnout::printState(p[0], stream);
+          return true;
+        }
 
-    default:
-        return false; // will <x>
+    default: // Anything else is some kind of turnout create function.
+      if (params == 6 && p[1] == HASH_KEYWORD_SERVO) { // <T id SERVO n n n n>
+        if (!ServoTurnout::create(p[0], (VPIN)p[2], (uint16_t)p[3], (uint16_t)p[4], (uint8_t)p[5]))
+          return false;
+      } else 
+      if (params == 3 && p[1] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
+        if (!VpinTurnout::create(p[0], p[2])) return false;
+      } else 
+      if (params >= 3 && p[1] == HASH_KEYWORD_DCC) {
+        // <T id DCC addr subadd>   0<=addr<=511, 0<=subadd<=3 (like <a> command).<T>
+        if (params==4 && p[2]>=0 && p[2]<512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
+          if (!DCCTurnout::create(p[0], p[2], p[3])) return false;
+        } else if (params==3 && p[2]>0 && p[2]<=512*4) { // <T id DCC nn>, 1<=nn<=2048
+          // Linearaddress 1 maps onto decoder address 1/0 (not 0/0!).
+          if (!DCCTurnout::create(p[0], (p[2]-1)/4+1, (p[2]-1)%4)) return false;
+        } else
+          return false;
+      } else 
+      if (params==3) { // legacy <T id addr subadd> for DCC accessory
+        if (p[1]>=0 && p[1]<512 && p[2]>=0 && p[2]<4) {
+          if (!DCCTurnout::create(p[0], p[1], p[2])) return false;
+        } else
+          return false;
+      } 
+      else 
+      if (params==4) { // legacy <T id n n n> for Servo
+        if (!ServoTurnout::create(p[0], (VPIN)p[1], (uint16_t)p[2], (uint16_t)p[3], 1)) return false;
+      } else
+        return false;
+
+      StringFormatter::send(stream, F("<O>\n"));
+      return true;
     }
 }
 
@@ -713,13 +782,13 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case 0: // <S> list sensor definitions
-	if (Sensor::firstSensor == NULL)
-	    return false;
-        for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
-        {
-            StringFormatter::send(stream, F("<Q %d %d %d>\n"), tt->data.snum, tt->data.pin, tt->data.pullUp);
-        }
-        return true;
+      if (Sensor::firstSensor == NULL)
+        return false;
+      for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
+      {
+          StringFormatter::send(stream, F("<Q %d %d %d>\n"), tt->data.snum, tt->data.pin, tt->data.pullUp);
+      }
+      return true;
 
     default: // invalid number of arguments
         break;
@@ -742,17 +811,20 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("Free memory=%d\n"), minimumFreeMemory());
         break;
 
-    case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX] Value>
+    case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
 	      DCCWaveform::progTrack.setAckLimit(p[2]);
-	      StringFormatter::send(stream, F("Ack limit=%dmA\n"), p[2]);
+	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
 	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
-	      StringFormatter::send(stream, F("Ack min=%dus\n"), p[2]);
+	      LCD(0, F("Ack Min=%dus"), p[2]);  //   <D ACK MIN 1500>
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
 	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
-	      StringFormatter::send(stream, F("Ack max=%dus\n"), p[2]);
+	      LCD(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
+	    } else if (p[1] == HASH_KEYWORD_RETRY) {
+	      if (p[2] >255) p[2]=3;
+	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCC::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
 	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));
@@ -764,21 +836,23 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::CMD = onOff;
         return true;
 
+#ifdef HAS_ENOUGH_MEMORY
     case HASH_KEYWORD_WIFI: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
         return true;
 
-   case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
+    case HASH_KEYWORD_ETHERNET: // <D ETHERNET ON/OFF>
         Diag::ETHERNET = onOff;
         return true;
 
     case HASH_KEYWORD_WIT: // <D WIT ON/OFF>
         Diag::WITHROTTLE = onOff;
         return true;
-  
+
     case HASH_KEYWORD_LCN: // <D LCN ON/OFF>
         Diag::LCN = onOff;
         return true;
+#endif
 
     case HASH_KEYWORD_PROGBOOST:
         DCC::setProgTrackBoost(true);
@@ -805,6 +879,22 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         DCC::setGlobalSpeedsteps(128);
 	StringFormatter::send(stream, F("128 Speedsteps"));
         return true;
+
+    case HASH_KEYWORD_SERVO:  // <D SERVO vpin position [profile]>
+    case HASH_KEYWORD_ANOUT:  // <D ANOUT vpin position [profile]>
+        IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
+        break;
+
+    case HASH_KEYWORD_ANIN:   // <D ANIN vpin>  Display analogue input value
+        DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
+        break;
+
+#if !defined(IO_MINIMAL_HAL)
+    case HASH_KEYWORD_HAL: 
+        if (p[1] == HASH_KEYWORD_SHOW) 
+          IODevice::DumpAll();
+        break;
+#endif
 
     default: // invalid/unknown
         break;

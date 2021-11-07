@@ -40,6 +40,7 @@
  *  WiThrottle.h sets the max locos per client at 10, this is ok to increase but requires just an extra 3 bytes per loco per client.      
 */
 #include <Arduino.h>
+#include "defines.h"
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
@@ -48,12 +49,13 @@
 #include "DIAG.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
+#include "RMFT2.h"
+
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
-bool WiThrottle::annotateLeftRight=false;
 
 WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
@@ -83,6 +85,8 @@ WiThrottle::WiThrottle( int wificlientid) {
    initSent=false; // prevent sending heartbeats before connection completed
    heartBeatEnable=false; // until client turns it on
    turnoutListHash = -1;  // make sure turnout list is sent once
+   exRailSent=false;
+   mostRecentCab=0;                
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
 
@@ -116,11 +120,20 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     // Send turnout list if changed since last sent (will replace list on client)
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
-      for(Turnout *tt=Turnout::firstTurnout;tt!=NULL;tt=tt->nextTurnout){
-          StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), tt->data.id, tt->data.id, Turnout::isActive(tt->data.id)?'4':'2');
+      for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
+          int id=tt->getId();
+          StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), id, id, Turnout::isClosed(id)?'2':'4');
       }
       StringFormatter::send(stream,F("\n"));
       turnoutListHash = Turnout::turnoutlistHash; // keep a copy of hash for later comparison
+    }
+
+    else if (!exRailSent) {
+      // Send ExRail routes list if not already sent (but not at same time as turnouts above)
+      exRailSent=true;
+#ifdef RMFT_ACTIVE
+      RMFT2::emitWithrottleRouteList(stream);
+#endif    
     }
   }
 
@@ -138,25 +151,40 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
             }
+#if defined(RMFT_ACTIVE)
+            else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
+              // exrail routes are RA2Rn , Animations are RA2An 
+              int route=getInt(cmd+5);
+              uint16_t cab=cmd[4]=='A' ? mostRecentCab : 0; 
+              RMFT2::createNewTask(route, cab);
+            }
+#endif    
             else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
                 int id=getInt(cmd+4); 
-                bool newstate=false;
-                Turnout * tt=Turnout::get(id);
-                if (!tt) {
+                if (!Turnout::exists(id)) {
                   // If turnout does not exist, create it
                   int addr = ((id - 1) / 4) + 1;
                   int subaddr = (id - 1) % 4;
-                  Turnout::create(id,addr,subaddr);
+                  DCCTurnout::create(id,addr,subaddr);
                   StringFormatter::send(stream, F("HmTurnout %d created\n"),id);
                 }
                 switch (cmd[3]) {
-                    case 'T': newstate=true; break;
-                    case 'C': newstate=false; break;
-                    case '2': newstate=!Turnout::isActive(id);                 
+            		  // T and C according to RCN-213 where 0 is Stop, Red, Thrown, Diverging.
+            		  case 'T': 
+            		     Turnout::setClosed(id,false);
+                     break;
+            		  case 'C': 
+                     Turnout::setClosed(id,true);
+                     break;
+            		  case '2': 
+            		     Turnout::setClosed(id,!Turnout::isClosed(id));
+                     break;
+            		  default :
+            		     Turnout::setClosed(id,true);
+                     break;
                 }
-		            Turnout::activate(id,newstate);
-                StringFormatter::send(stream, F("PTA%c%d\n"),newstate?'4':'2',id );   
-            }
+		            StringFormatter::send(stream, F("PTA%c%d\n"),Turnout::isClosed(id)?'2':'4',id );
+		        }
             break;
        case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
             if (initSent) { 
@@ -170,8 +198,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
             if (cmd[1] == 'U') {
               StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
               StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-              if (annotateLeftRight) StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Left}|{2]\\[Right}|{4\n"));
-              else                   StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[Closed}|{2]\\[Thrown}|{4\n"));
+              StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
               StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
@@ -244,6 +271,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                   if (myLocos[loco].throttle=='\0') { 
                     myLocos[loco].throttle=throttleChar;
                     myLocos[loco].cab=locoid;
+                    mostRecentCab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
                     //Get known Fn states from DCC 
                     for(int fKey=0; fKey<=28; fKey++) { 
@@ -278,6 +306,7 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
              { 
               int witSpeed=getInt(aval+1);
               LOOPLOCOS(throttleChar, cab) {
+                mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, WiTToDCCSpeed(witSpeed), DCC::getThrottleDirection(myLocos[loco].cab));
                 StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, witSpeed);
                 }
@@ -311,7 +340,8 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
             case 'R':
             { 
               bool forward=aval[1]!='0';
-              LOOPLOCOS(throttleChar, cab) {              
+              LOOPLOCOS(throttleChar, cab) {
+                mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab), forward);
                 StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, forward);
               }
@@ -327,6 +357,7 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
             case 'I': // Idle, set speed to 0
             case 'Q': // Quit, set speed to 0
               LOOPLOCOS(throttleChar, cab) {
+                mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, 0, DCC::getThrottleDirection(myLocos[loco].cab));
                 StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, 0);
               }

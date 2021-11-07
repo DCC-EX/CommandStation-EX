@@ -74,6 +74,10 @@ void LCDDisplay::loop() {
 LCDDisplay *LCDDisplay::loop2(bool force) {
   if (!lcdDisplay) return NULL;
 
+  // If output device is busy, don't do anything on this loop
+  //  This avoids blocking while waiting for the device to complete.
+  if (isBusy()) return NULL;  
+
   unsigned long currentMillis = millis();
 
   if (!force) {
