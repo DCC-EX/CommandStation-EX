@@ -65,7 +65,7 @@
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
 
-#if __has_include ( "myAutomation.h") && defined(BIG_RAM)
+#if __has_include ( "myAutomation.h") && (defined(BIG_RAM) || defined(DISABLE_EEPROM))
   #define RMFT_ACTIVE
 #endif
 

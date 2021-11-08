@@ -56,7 +56,9 @@ const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
 const int16_t HASH_KEYWORD_SLOW = -17209;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
+#ifndef DISABLE_EEPROM
 const int16_t HASH_KEYWORD_EEPROM = -7168;
+#endif
 const int16_t HASH_KEYWORD_LIMIT = 27413;
 const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
@@ -278,7 +280,9 @@ void DCCEXParser::parse(const FSH * cmd) {
 
 void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 {
+#ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
+#endif
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
     int16_t p[MAX_COMMAND_PARAMS];
@@ -540,6 +544,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         // TODO Send stats of  speed reminders table
         return;       
 
+#ifndef DISABLE_EEPROM
     case 'E': // STORE EPROM <E>
         EEStore::store();
         StringFormatter::send(stream, F("<e %d %d %d>\n"), EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
@@ -549,7 +554,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         EEStore::clear();
         StringFormatter::send(stream, F("<O>\n"));
         return;
-
+#endif
     case ' ': // < >
         StringFormatter::send(stream, F("\n"));
         return;
@@ -864,11 +869,13 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           delay(50);            // wait for the prescaller time to expire          
           break; // and <X> if we didnt restart 
         }
-        
+
+#ifndef DISABLE_EEPROM
     case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>
 	if (params >= 2)
 	    EEStore::dump(p[1]);
 	return true;
+#endif
 
     case HASH_KEYWORD_SPEED28:
         DCC::setGlobalSpeedsteps(28);

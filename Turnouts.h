@@ -155,13 +155,14 @@ public:
 
   inline static Turnout *first() { return _firstTurnout; }
 
+#ifndef DISABLE_EEPROM
   // Load all turnout definitions.
   static void load();
   // Load one turnout definition
   static Turnout *loadTurnout();
   // Save all turnout definitions
   static void store();
-
+#endif
   static void printAll(Print *stream) {
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
       tt->printState(stream);

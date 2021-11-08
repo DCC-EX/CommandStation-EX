@@ -82,7 +82,9 @@ the state of any outputs being monitored or controlled by a separate interface o
 **********************************************************************/
 
 #include "Outputs.h"
+#ifndef DISABLE_EEPROM
 #include "EEStore.h"
+#endif
 #include "StringFormatter.h"
 #include "IODevice.h"
 
@@ -102,10 +104,11 @@ void  Output::activate(uint16_t s){
   data.active = s;                     // if s>0, set status to active, else inactive
   // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
   IODevice::write(data.pin, s ^ data.invert);  
-
+#ifndef DISABLE_EEPROM
   // Update EEPROM if output has been stored.    
   if(EEStore::eeStore->data.nOutputs > 0 && num > 0)
     EEPROM.put(num, data.oStatus);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -141,7 +144,7 @@ bool Output::remove(uint16_t n){
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to load configuration and state of all Outputs from EEPROM
-
+#ifndef DISABLE_EEPROM
 void Output::load(){
   struct OutputData data;
   Output *tt;
@@ -176,6 +179,7 @@ void Output::store(){
   }
 
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to create an Output object
