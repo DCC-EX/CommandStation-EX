@@ -19,6 +19,7 @@
 #include <Arduino.h>
 #include "RMFT2.h"
 #include "DCC.h"
+#include "DCCWaveform.h"
 #include "DIAG.h"
 #include "WiThrottle.h"
 #include "DCCEXParser.h"
@@ -43,6 +44,7 @@ const int16_t HASH_KEYWORD_ROUTES=-3702;
 // The thrrads exist in a ring, each time through loop() the next thread in the ring is serviced.
 
 // Statics 
+const int16_t LOCO_ID_WAITING=-99; // waiting for loco id from prog track
 int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prograck
 bool RMFT2::diag=false;      // <D EXRAIL ON>  
 RMFT2 * RMFT2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
@@ -63,6 +65,16 @@ byte RMFT2::flags[MAX_FLAGS];
   for (progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
+
+     switch (opcode) {
+     case OPCODE_AT:
+     case OPCODE_AFTER:
+     case OPCODE_IF:
+     case OPCODE_IFNOT:
+       int16_t pin = (int16_t)GET_OPERAND(0);
+       if (pin<0) pin = -pin;
+       IODevice::configureInput((VPIN)pin,true);
+     }
 
      if (opcode==OPCODE_SIGNAL) {
       VPIN red=GET_OPERAND(0);
@@ -326,6 +338,10 @@ int RMFT2::locateRouteStart(int16_t _route) {
 void RMFT2::driveLoco(byte speed) {
      if (loco<=0) return;  // Prevent broadcast! 
      if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
+     if (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::OFF) {
+        DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON); 
+        Serial.println(F("<p1>")); // tell JMRI
+     }
      DCC::setThrottle(loco,speed, forward^invert);
      speedo=speed;
 }
@@ -477,6 +493,13 @@ void RMFT2::loop2() {
         if (loco) DCC::writeCVByteMain(loco, operand, GET_OPERAND(1));
         break;
 
+    case OPCODE_POWEROFF:
+        DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
+        DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+        DCC::setProgTrackSyncMain(false);       
+        Serial.println(F("<p0>")); // Tell JMRI
+        break;
+
     case OPCODE_RESUME:
          pausingTask=NULL;
          driveLoco(speedo);
@@ -572,7 +595,10 @@ void RMFT2::loop2() {
       return;
       
     case OPCODE_JOIN:
+       DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON); 
+       DCCWaveform::progTrack.setPowerMode(POWERMODE::ON); 
        DCC::setProgTrackSyncMain(true);
+       Serial.println(F("<p1 JOIN>")); // Tell JMRI
        break;
 
     case OPCODE_UNJOIN:
@@ -580,14 +606,20 @@ void RMFT2::loop2() {
        break;
        
     case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
+       progtrackLocoId=LOCO_ID_WAITING;  // Nothing found yet
        DCC::getLocoId(readLocoCallback);
        break;
       
       case OPCODE_READ_LOCO2:
-       if (progtrackLocoId<0) {
+       if (progtrackLocoId==LOCO_ID_WAITING) {
         delayMe(100);
         return; // still waiting for callback
        }
+       if (progtrackLocoId<0) {
+        kill(F("No Loco Found"),progtrackLocoId);
+        return; // still waiting for callback
+       }
+       
        loco=progtrackLocoId;
        speedo=0;
        forward=true;

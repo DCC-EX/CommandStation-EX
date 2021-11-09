@@ -45,10 +45,6 @@ protected:
   int _read(VPIN vpin) override;
   void _display() override;
   void _loop(unsigned long currentMicros) override;
-  bool _hasCallback(VPIN vpin) {
-    (void)vpin;   // suppress compiler warning
-    return true;  // Enable callback if caller wants to use it.
-  }
 
   // Data fields
   uint8_t _I2CAddress; 
@@ -57,9 +53,9 @@ protected:
   T _portOutputState;
   T _portMode;
   T _portPullup;
+  T _portInUse;
   // Interval between refreshes of each input port
   static const int _portTickTime = 4000;
-  unsigned long _lastLoopEntry = 0;
 
   // Virtual functions for interfacing with I2C GPIO Device
   virtual void _writeGpioPort() = 0;
@@ -80,12 +76,13 @@ protected:
 
 // Constructor
 template <class T>
-GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin) {
+GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin) :
+  IODevice(firstVpin, nPins)
+{
   _deviceName = deviceName;
-  _firstVpin = firstVpin;
-  _nPins = nPins;
   _I2CAddress = I2CAddress;
   _gpioInterruptPin = interruptPin;
+  _hasCallback = true;
   // Add device to list of devices.
   addDevice(this);
 }
@@ -104,11 +101,14 @@ void GPIOBase<T>::_begin() {
 #endif
     _portMode = 0;  // default to input mode
     _portPullup = -1; // default to pullup enabled
-    _portInputState = -1; 
+    _portInputState = -1;
+    _portInUse = 0;
+    _setupDevice();
+    _deviceState = DEVSTATE_NORMAL;
+  } else {
+    DIAG(F("%S I2C:x%x Device not detected"), _deviceName, _I2CAddress);
+    _deviceState = DEVSTATE_FAILED;
   }
-  _setupDevice();
-  _deviceState = DEVSTATE_NORMAL;
-  _lastLoopEntry = micros();
 }
 
 // Configuration parameters for inputs: 
@@ -128,11 +128,15 @@ bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     _portPullup |= mask;
   else
     _portPullup &= ~mask;
+  // Mark that port has been accessed
+  _portInUse |= mask;
+  // Set input mode
+  _portMode &= ~mask;
 
   // Call subclass's virtual function to write to device
+  _writePortModes();
   _writePullups();
-  // Re-read port following change
-  _readGpioPort();
+  // Port change will be notified on next loop entry.
 
   return true;
 }
@@ -151,6 +155,8 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
         I2CManager.getErrorMessage(status));
     }
     _processCompletion(status);
+  // Set unused pin and write mode pin value to 1
+    _portInputState |= ~_portInUse | _portMode;
 
     // Scan for changes in input states and invoke callback (if present)
     T differences = lastPortStates ^ _portInputState;
@@ -172,27 +178,25 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
     #endif
   }
 
-  // Check if interrupt configured.  If so, and pin is not pulled down, finish.
-  if (_gpioInterruptPin >= 0) {
-    if (digitalRead(_gpioInterruptPin)) return;
-  } else
-  // No interrupt pin.  Check if tick has elapsed.  If not, finish.
-  if (currentMicros - _lastLoopEntry < (unsigned long)_portTickTime) return;
+  // Check if interrupt configured.  If not, or if it is active (pulled down), then
+  //  initiate a scan.
+  if (_gpioInterruptPin < 0 || !digitalRead(_gpioInterruptPin)) {
+    // TODO: Could suppress reads if there are no pins configured as inputs!
 
-  // TODO: Could suppress reads if there are no pins configured as inputs!
-
-  // Read input
-  _lastLoopEntry = currentMicros;
-  if (_deviceState == DEVSTATE_NORMAL) {
-    _readGpioPort(false);  // Initiate non-blocking read
-    _deviceState= DEVSTATE_SCANNING;
+    // Read input
+    if (_deviceState == DEVSTATE_NORMAL) {
+      _readGpioPort(false);  // Initiate non-blocking read
+      _deviceState= DEVSTATE_SCANNING;
+    }
   }
+  // Delay next entry until tick elapsed.
+  delayUntil(currentMicros + _portTickTime);
 }
 
 template <class T>
 void GPIOBase<T>::_display() {
-  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d"), _deviceName, _I2CAddress, 
-    _firstVpin, _firstVpin+_nPins-1);
+  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d %S"), _deviceName, _I2CAddress, 
+    _firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
 template <class T>
@@ -203,8 +207,9 @@ void GPIOBase<T>::_write(VPIN vpin, int value) {
   DIAG(F("%S I2C:x%x Write Pin:%d Val:%d"), _deviceName, _I2CAddress, pin, value);
   #endif
 
-  // Set port mode output
+  // Set port mode output if currently not output mode
   if (!(_portMode & mask)) {
+    _portInUse |= mask;
     _portMode |= mask;
     _writePortModes();
   }
@@ -224,12 +229,16 @@ int GPIOBase<T>::_read(VPIN vpin) {
   int pin = vpin - _firstVpin;
   T mask = 1 << pin;
 
-  // Set port mode to input
-  if (_portMode & mask) {
+  // Set port mode to input if currently output or first use
+  if ((_portMode | ~_portInUse) & mask) {
     _portMode &= ~mask;
+    _portInUse |= mask;
+    _writePullups();
     _writePortModes();
     // Port won't have been read yet, so read it now.
     _readGpioPort();
+  // Set unused pin and write mode pin value to 1
+    _portInputState |= ~_portInUse | _portMode;
     #ifdef DIAG_IO
     DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
     #endif

@@ -340,7 +340,8 @@
   DCCTurnout::DCCTurnout(uint16_t id, uint16_t address, uint8_t subAdd) :
     Turnout(id, TURNOUT_DCC, false)
   {
-    _dccTurnoutData.address = ((address-1) << 2) + subAdd + 1;
+    _dccTurnoutData.address = address;
+    _dccTurnoutData.subAddress = subAdd;
   }
 
   // Create function
@@ -351,7 +352,8 @@
       if (tt->isType(TURNOUT_DCC)) {
         // Yes, so set parameters<T>
         DCCTurnout *dt = (DCCTurnout *)tt;
-        dt->_dccTurnoutData.address = ((add-1) << 2) + subAdd + 1;
+        dt->_dccTurnoutData.address = add;
+        dt->_dccTurnoutData.subAddress = subAdd;
         // Don't touch the _closed parameter, retain the original value.
         return tt;
       } else {
@@ -371,27 +373,24 @@
     EEStore::advance(sizeof(dccTurnoutData));
     
     // Create new object
-    DCCTurnout *tt = new DCCTurnout(turnoutData->id, (((dccTurnoutData.address-1) >> 2)+1), ((dccTurnoutData.address-1) & 3));
+    DCCTurnout *tt = new DCCTurnout(turnoutData->id, dccTurnoutData.address, dccTurnoutData.subAddress);
 
     return tt;
   }
 
   void DCCTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
-      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      !_turnoutData.closed); 
+      _dccTurnoutData.address, _dccTurnoutData.subAddress, !_turnoutData.closed); 
     // Also report using classic DCC++ syntax for DCC accessory turnouts, since JMRI expects this.
     StringFormatter::send(stream, F("<H %d %d %d %d>\n"), _turnoutData.id, 
-      (((_dccTurnoutData.address-1) >> 2)+1), ((_dccTurnoutData.address-1) & 3), 
-      !_turnoutData.closed); 
+      _dccTurnoutData.address, _dccTurnoutData.subAddress, !_turnoutData.closed); 
   }
 
   bool DCCTurnout::setClosedInternal(bool close) {
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
-    DCC::setAccessory((((_dccTurnoutData.address-1) >> 2) + 1), 
-      ((_dccTurnoutData.address-1) & 3), close ^ !rcn213Compliant);
+    DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close ^ !rcn213Compliant);
     _turnoutData.closed = close;
     return true;
   }

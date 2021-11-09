@@ -103,12 +103,6 @@ void Sensor::checkAll(Print *stream){
       // Required time elapsed since last read cycle started,
       // so initiate new scan through the sensor list
       readingSensor = firstSensor;
-#ifdef USE_NOTIFY
-      if (firstSensor == firstPollSensor) 
-        pollSignalPhase = true;
-      else
-        pollSignalPhase = false;
-#endif
       lastReadCycle = thisTime;
     }
   }
@@ -117,12 +111,6 @@ void Sensor::checkAll(Print *stream){
   bool pause = false;
   while (readingSensor != NULL && !pause) {
 
-#ifdef USE_NOTIFY
-    // Check if we have reached the start of the polled portion of the sensor list.
-    if (readingSensor == firstPollSensor)
-      pollSignalPhase = true;
-#endif
-
     // Where the sensor is attached to a pin, read pin status.  For sources such as LCN,
     // which don't have an input pin to read, the LCN class calls setState() to update inputState when
     // a message is received.  The IODevice::read() call returns 1 for active pins (0v) and 0 for inactive (5v).
@@ -130,10 +118,8 @@ void Sensor::checkAll(Print *stream){
     // routine when an input signal change is detected, and this updates the inputState directly,
     // so these inputs don't need to be polled here.
     VPIN pin = readingSensor->data.pin;
-#ifdef USE_NOTIFY
-    if (pollSignalPhase)
-#endif
-      if (pin!=VPIN_NONE) readingSensor->inputState = IODevice::read(pin);
+    if (readingSensor->pollingRequired && pin != VPIN_NONE)
+      readingSensor->inputState = IODevice::read(pin);
 
     // Check if changed since last time, and process changes.
     if (readingSensor->inputState == readingSensor->active) {
@@ -156,22 +142,12 @@ void Sensor::checkAll(Print *stream){
     // Move to next sensor in list.
     readingSensor = readingSensor->nextSensor;
 
-    // Currently process max of 16 sensors per entry for polled sensors, and
-    //  16 per entry for sensors notified by callback.
-    // Performance measurements taken during development indicate that, with 64 sensors configured
-    // on 8x 8-pin PCF8574 GPIO expanders, all inputs can be read within 1.4ms (400Mhz I2C bus speed), and a
-    // full cycle of scanning 64 sensors for changes takes between 1.9 and 3.2 milliseconds.
+    // Currently process max of 16 sensors per entry.
+    // Performance measurements taken during development indicate that, with 128 sensors configured
+    // on 8x 16-pin MCP23017 GPIO expanders with polling (no change notification), all inputs can be read from the devices
+    // within 1.4ms (400Mhz I2C bus speed), and a full cycle of checking 128 sensors for changes takes under a millisecond.
     sensorCount++;
-#ifdef USE_NOTIFY
-    if (pollSignalPhase) {
-#endif
-      if (sensorCount >= 16) pause = true;
-#ifdef USE_NOTIFY
-    } else 
-    {
-      if (sensorCount >= 16) pause = true;
-    }
-#endif
+    if (sensorCount >= 16) pause = true;
   }
 
 } // Sensor::checkAll
@@ -223,23 +199,18 @@ Sensor *Sensor::create(int snum, VPIN pin, int pullUp){
   tt = (Sensor *)calloc(1,sizeof(Sensor));
   if (!tt) return tt;     // memory allocation failure
 
-#ifdef USE_NOTIFY
-  if (pin == VPIN_NONE || IODevice::hasCallback(pin)) {
-    // Callback available, or no pin to read, so link sensor on to the start of the list
-    tt->nextSensor = firstSensor;
-    firstSensor = tt;
-    if (lastSensor == NULL) lastSensor = tt;  // This is only item in list.
-  } else {
-    // No callback, so add to end of list so it's polled.
-    if (lastSensor != NULL) lastSensor->nextSensor = tt;
-    lastSensor = tt;
-    if (!firstSensor) firstSensor = tt;
-    if (!firstPollSensor) firstPollSensor = tt;
-  }
-#else
+  if (pin == VPIN_NONE) 
+    tt->pollingRequired = false;
+  #ifdef USE_NOTIFY
+  else if (IODevice::hasCallback(pin)) 
+    tt->pollingRequired = false;
+  #endif
+  else 
+    tt->pollingRequired = true;
+
+  // Add to the start of the list
   tt->nextSensor = firstSensor;
   firstSensor = tt;
-#endif
 
   tt->data.snum = snum;
   tt->data.pin = pin;
@@ -248,9 +219,8 @@ Sensor *Sensor::create(int snum, VPIN pin, int pullUp){
   tt->inputState = 0;
   tt->latchDelay = minReadCount;
 
-  int params[] = {pullUp};
   if (pin != VPIN_NONE) 
-    IODevice::configure(pin, IODevice::CONFIGURE_INPUT, 1, params);   
+    IODevice::configureInput(pin, pullUp);   
     // Generally, internal pull-up resistors are not, on their own, sufficient 
     // for external infrared sensors --- each sensor must have its own 1K external pull-up resistor
 
@@ -343,6 +313,5 @@ unsigned long Sensor::lastReadCycle=0;
 #ifdef USE_NOTIFY
 Sensor *Sensor::firstPollSensor = NULL;
 Sensor *Sensor::lastSensor = NULL;
-bool Sensor::pollSignalPhase = false;
 bool Sensor::inputChangeCallbackRegistered = false;
 #endif

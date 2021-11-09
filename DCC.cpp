@@ -155,7 +155,7 @@ uint8_t DCC::getThrottleSpeed(int cab) {
 
 bool DCC::getThrottleDirection(int cab) {
   int reg=lookupSpeedTable(cab);
-  if (reg<0) return false ;
+  if (reg<0) return true;
   return (speedTable[reg].speedCode & 0x80) !=0;
 }
 
@@ -371,8 +371,9 @@ const ackOp FLASH WRITE_BYTE_PROG[] = {
       
 const ackOp FLASH VERIFY_BYTE_PROG[] = {
       BASELINE,
+      BIV,         // ackManagerByte initial value
       VB,WACK,     // validate byte 
-      ITCB,       // if ok callback value
+      ITCB,       // if ok callback value	
       STARTMERGE,    //clear bit and byte values ready for merge pass
       // each bit is validated against 0 and the result inverted in MERGE
       // this is because there tend to be more zeros in cv values than ones.  
@@ -390,7 +391,7 @@ const ackOp FLASH VERIFY_BYTE_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       V0, WACK, MERGE,
-      VB, WACK, ITCB,  // verify merged byte and return it if acked ok 
+      VB, WACK, ITCBV,  // verify merged byte and return it if acked ok - with retry report
       FAIL };
       
       
@@ -702,11 +703,13 @@ int DCC::nextLoco = 0;
 ackOp  const *  DCC::ackManagerProg;
 ackOp  const *  DCC::ackManagerProgStart;
 byte   DCC::ackManagerByte;
+byte   DCC::ackManagerByteVerify;
 byte   DCC::ackManagerStash;
 int    DCC::ackManagerWord;
 byte   DCC::ackManagerRetry;
 byte   DCC::ackRetry = 2;
 int16_t  DCC::ackRetrySum;
+int16_t  DCC::ackRetryPSum;
 int    DCC::ackManagerCv;
 byte   DCC::ackManagerBitNum;
 bool   DCC::ackReceived;
@@ -742,6 +745,7 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
   ackManagerProgStart = program;
   ackManagerRetry = ackRetry;
   ackManagerByte = byteValueOrBitnum;
+  ackManagerByteVerify = byteValueOrBitnum;
   ackManagerBitNum=byteValueOrBitnum;
   ackManagerCallback = callback;
 }
@@ -767,6 +771,7 @@ void DCC::ackManagerLoop() {
     // (typically waiting for a reset counter or ACK waiting, or when all finished.)
     switch (opcode) {
       case BASELINE:
+          if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
       	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
           callbackState=READY;
@@ -840,7 +845,18 @@ void DCC::ackManagerLoop() {
             return;
           }
         break;
-
+		    
+      case ITCBV:   // If True callback(byte) - Verify
+          if (ackReceived) {
+            if (ackManagerByte == ackManagerByteVerify) {
+               ackRetrySum ++;
+               LCD(1, F("v %d %d Sum=%d"), ackManagerCv, ackManagerByte, ackRetrySum);
+            }
+            callback(ackManagerByte);
+            return;
+          }
+        break;
+		    
       case ITCB7:   // If True callback(byte & 0x7F)
           if (ackReceived) {
             callback(ackManagerByte & 0x7F);
@@ -858,7 +874,11 @@ void DCC::ackManagerLoop() {
       case FAIL:  // callback(-1)
            callback(-1);
            return;
-           
+
+      case BIV:     // ackManagerByte initial value
+           ackManagerByte = ackManagerByteVerify;
+           break;
+
       case STARTMERGE:
            ackManagerBitNum=7;
            ackManagerByte=0;     
@@ -927,7 +947,7 @@ void DCC::callback(int value) {
     // check for automatic retry
     if (value == -1 && ackManagerRetry > 0) {
       ackRetrySum ++;
-      LCD(0, F("RETRY %d %d %d %d"), ackManagerCv, ackManagerRetry, ackRetry, ackRetrySum);
+      LCD(0, F("Retry %d %d Sum=%d"), ackManagerCv, ackManagerRetry, ackRetrySum);
       ackManagerRetry --;
       ackManagerProg = ackManagerProgStart;
       return;

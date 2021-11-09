@@ -42,14 +42,18 @@ private:
     I2CManager.write(_I2CAddress, 2, REG_GPIO, _portOutputState);
   }
   void _writePullups() override {
-    I2CManager.write(_I2CAddress, 2, REG_GPPU, _portPullup);  
+    // Set pullups only for in-use pins.  This prevents pullup being set for a pin that
+    //  is intended for use as an output but hasn't been written to yet.
+    I2CManager.write(_I2CAddress, 2, REG_GPPU, _portPullup & _portInUse);  
   }
   void _writePortModes() override {
-    // Each bit is 1 for an input, 0 for an output, i.e. inverted.
-    I2CManager.write(_I2CAddress, 2, REG_IODIR, ~_portMode);
-    // Enable interrupt-on-change for pins that are inputs (_portMode=0)
+    // Write 0 to IODIR for in-use pins that are outputs, 1 for others.
+    uint8_t temp = ~(_portMode & _portInUse);
+    I2CManager.write(_I2CAddress, 2, REG_IODIR, temp);
+    // Enable interrupt-on-change for in-use pins that are inputs (_portMode=0)
+    temp = ~_portMode & _portInUse;
     I2CManager.write(_I2CAddress, 2, REG_INTCON, 0x00);
-    I2CManager.write(_I2CAddress, 2, REG_GPINTEN, ~_portMode);
+    I2CManager.write(_I2CAddress, 2, REG_GPINTEN, temp);
   }
   void _readGpioPort(bool immediate) override {
     if (immediate) {

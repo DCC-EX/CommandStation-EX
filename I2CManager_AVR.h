@@ -62,7 +62,18 @@
  *  Set I2C clock speed register.
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(unsigned long i2cClockSpeed) {
-  TWBR = ((F_CPU / i2cClockSpeed) - 16) / 2;
+  unsigned long temp = ((F_CPU / i2cClockSpeed) - 16) / 2;
+  for (uint8_t preScaler = 0; preScaler<=3; preScaler++) {
+    if (temp <= 255) {
+      TWBR = temp;
+      TWSR = (TWSR & 0xfc) | preScaler;
+      return;
+    } else 
+      temp /= 4;
+  }
+  // Set slowest speed ~= 500 bits/sec
+  TWBR = 255;
+  TWSR |= 0x03;
 }
 
 /***************************************************************************

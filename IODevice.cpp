@@ -67,34 +67,54 @@ void IODevice::begin() {
 // doesn't need to invoke it.
 void IODevice::loop() {
   unsigned long currentMicros = micros();
-  // Call every device's loop function in turn, one per entry.
-  if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
-  if (_nextLoopDevice) {
-    _nextLoopDevice->_loop(currentMicros);
-    _nextLoopDevice = _nextLoopDevice->_nextDevice;
-  }
+  
+  IODevice *lastLoopDevice = _nextLoopDevice;  // So we know when to stop...
+  // Loop through devices until we find one ready to be serviced.
+  do {
+    if (!_nextLoopDevice) _nextLoopDevice = _firstDevice;
+    if (_nextLoopDevice) {
+      if (_nextLoopDevice->_deviceState != DEVSTATE_FAILED 
+            && ((long)(currentMicros - _nextLoopDevice->_nextEntryTime)) >= 0) {
+        // Found one ready to run, so invoke its _loop method.
+        _nextLoopDevice->_nextEntryTime = currentMicros;
+        _nextLoopDevice->_loop(currentMicros);
+        _nextLoopDevice = _nextLoopDevice->_nextDevice;
+        break;
+      }
+      // Not this one, move to next one
+      _nextLoopDevice = _nextLoopDevice->_nextDevice;
+    }
+  } while (_nextLoopDevice != lastLoopDevice); // Stop looking when we've done all.
   
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)
   static unsigned long lastMicros = 0;
-  static unsigned long maxElapsed = 0;
+  // Measure time since loop() method started.
+  unsigned long halElapsed = micros() - currentMicros;
+  // Measure time between loop() method entries.
+  unsigned long elapsed = currentMicros - lastMicros;
+  static unsigned long maxElapsed = 0, maxHalElapsed = 0;
   static unsigned long lastOutputTime = 0;
+  static unsigned long halTotal = 0, total = 0;
   static unsigned long count = 0;
   const unsigned long interval = (unsigned long)5 * 1000 * 1000; // 5 seconds in microsec
-  unsigned long elapsed = currentMicros - lastMicros;
+
   // Ignore long loop counts while message is still outputting
   if (currentMicros - lastOutputTime > 3000UL) {
     if (elapsed > maxElapsed) maxElapsed = elapsed;
+    if (halElapsed > maxHalElapsed) maxHalElapsed = halElapsed;
+    halTotal += halElapsed;
+    total += elapsed;
+    count++;
   }
-  count++;
   if (currentMicros - lastOutputTime > interval) {
     if (lastOutputTime > 0) 
-      LCD(1,F("Loop=%lus,%lus max"), interval/count, maxElapsed);
-    maxElapsed = 0;
-    count = 0;
+      DIAG(F("Loop Total:%lus (%lus max) HAL:%lus (%lus max)"), 
+        total/count, maxElapsed, halTotal/count, maxHalElapsed);
+    maxElapsed = maxHalElapsed = total = halTotal = count = 0;
     lastOutputTime = currentMicros;
   }
-  lastMicros = micros();
+  lastMicros = currentMicros;
 #endif
 }
 
@@ -114,12 +134,13 @@ bool IODevice::exists(VPIN vpin) {
 bool IODevice::hasCallback(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
   if (!dev) return false;
-  return dev->_hasCallback(vpin);
+  return dev->_hasCallback;
 }
 
 // Display (to diagnostics) details of the device.
 void IODevice::_display() {
-  DIAG(F("Unknown device Vpins:%d-%d"), (int)_firstVpin, (int)_firstVpin+_nPins-1);
+  DIAG(F("Unknown device Vpins:%d-%d %S"), 
+    (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState==DEVSTATE_FAILED ? F("OFFLINE") : F(""));
 }
 
 // Find device associated with nominated Vpin and pass configuration values on to it.
@@ -139,30 +160,36 @@ void IODevice::write(VPIN vpin, int value) {
     return;
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
 #endif
 }
 
-// Write analogue value to virtual pin(s).  If multiple devices are allocated the same pin
-//  then only the first one found will be used.  Duration is the time that the 
-//  operation is to be performed over (e.g. as an animation) in deciseconds (0-3276 sec)
-void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+// Write analogue value to virtual pin(s).  If multiple devices are allocated
+// the same pin then only the first one found will be used.
+//
+// The significance of param1 and param2 may vary from device to device.
+// For servo controllers, param1 is the profile of the transition and param2
+// the duration, i.e. the time that the operation is to be animated over
+// in deciseconds (0-3276 sec)
+//
+void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
   IODevice *dev = findDevice(vpin);
   if (dev) {
-    dev->_writeAnalogue(vpin, value, profile, duration);
+    dev->_writeAnalogue(vpin, value, param1, param2);
     return;
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::writeAnalogue(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::writeAnalogue(): Vpin ID %d not found!"), (int)vpin);
 #endif
 }
 
-// isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
-//  the output over a period of time.
+// isBusy, when called for a device pin is always a digital output or analogue output,
+//  returns input feedback state of the pin, i.e. whether the pin is busy performing
+//  an animation or fade over a period of time.
 bool IODevice::isBusy(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
   if (dev) 
-    return dev->_isBusy(vpin);
+    return dev->_read(vpin);
   else
     return false;
 }
@@ -194,10 +221,12 @@ void IODevice::addDevice(IODevice *newDevice) {
     newDevice->_begin();
 }
 
-// Private helper function to locate a device by VPIN.  Returns NULL if not found
+// Private helper function to locate a device by VPIN.  Returns NULL if not found.
+//  This is performance-critical, so minimises the calculation and function calls necessary.
 IODevice *IODevice::findDevice(VPIN vpin) { 
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    if (dev->owns(vpin)) 
+    VPIN firstVpin = dev->_firstVpin;
+    if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
       return dev;
   }
   return NULL;
@@ -236,7 +265,19 @@ int IODevice::read(VPIN vpin) {
       return dev->_read(vpin);
   }
 #ifdef DIAG_IO
-  //DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
+#endif
+  return false;
+}
+
+// Read analogue value from virtual pin.
+int IODevice::readAnalogue(VPIN vpin) {
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) 
+      return dev->_readAnalogue(vpin);
+  }
+#ifdef DIAG_IO
+  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
 #endif
   return false;
 }
@@ -247,7 +288,17 @@ int IODevice::read(VPIN vpin) {
 // Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
 
 void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN, ConfigTypeEnum, int, int []) { return true; }
+bool IODevice::configure(VPIN pin, ConfigTypeEnum, int, int p[]) {
+  #ifdef DIAG_IO
+  DIAG(F("Arduino _configurePullup Pin:%d Val:%d"), pin, p[0]);
+  #endif
+  if (p[0]) {
+    pinMode(pin, INPUT_PULLUP);
+  } else {
+    pinMode(pin, INPUT);
+  }
+  return true;
+}
 void IODevice::write(VPIN vpin, int value) {
   digitalWrite(vpin, value);
   pinMode(vpin, OUTPUT);
@@ -256,8 +307,14 @@ void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
 bool IODevice::isBusy(VPIN) { return false; }
 bool IODevice::hasCallback(VPIN) { return false; }
 int IODevice::read(VPIN vpin) { 
-  pinMode(vpin, INPUT_PULLUP);
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
+}
+int IODevice::readAnalogue(VPIN vpin) {
+  pinMode(vpin, INPUT);
+  noInterrupts();
+  int value = analogRead(vpin);
+  interrupts();
+  return value;
 }
 void IODevice::loop() {}
 void IODevice::DumpAll() {
@@ -279,12 +336,14 @@ IONotifyCallback *IONotifyCallback::first = 0;
 ArduinoPins::ArduinoPins(VPIN firstVpin, int nPins) {
   _firstVpin = firstVpin;
   _nPins = nPins;
-  uint8_t arrayLen = (_nPins+7)/8;
-  _pinPullups = (uint8_t *)calloc(2, arrayLen);
+  int arrayLen = (_nPins+7)/8;
+  _pinPullups = (uint8_t *)calloc(3, arrayLen);
   _pinModes = (&_pinPullups[0]) + arrayLen;
+  _pinInUse = (&_pinPullups[0]) + 2*arrayLen;
   for (int i=0; i<arrayLen; i++) {
     _pinPullups[i] = 0xff;  // default to pullup on, for inputs
     _pinModes[i] = 0;
+    _pinInUse[i] = 0;
   }
 }
 
@@ -309,6 +368,7 @@ bool ArduinoPins::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     _pinPullups[index] &= ~mask;
     pinMode(pin, INPUT);
   }
+  _pinInUse[index] |= mask;
   return true;
 }
 
@@ -327,11 +387,35 @@ void ArduinoPins::_write(VPIN vpin, int value) {
     _pinModes[index] |= mask;
     // Since mode changes should be infrequent, use standard pinMode function
     pinMode(pin, OUTPUT);
+    _pinInUse[index] |= mask;
   }
 }
 
-// Device-specific read function.
+// Device-specific read function (digital input).
 int ArduinoPins::_read(VPIN vpin) {
+  int pin = vpin;
+  uint8_t mask = 1 << ((pin-_firstVpin) % 8);
+  uint8_t index = (pin-_firstVpin) / 8;
+  if ((_pinModes[index] | ~_pinInUse[index]) & mask) {
+    // Currently in write mode or not initialised, change to read mode
+    _pinModes[index] &= ~mask;
+    // Since mode changes should be infrequent, use standard pinMode function
+    if (_pinPullups[index] & mask) 
+      pinMode(pin, INPUT_PULLUP);
+    else
+      pinMode(pin, INPUT);
+    _pinInUse[index] |= mask;
+  }
+  int value = !fastReadDigital(pin); // Invert (5v=0, 0v=1)
+
+  #ifdef DIAG_IO
+  //DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
+  #endif
+  return value;
+}
+
+// Device-specific readAnalogue function (analogue input)
+int ArduinoPins::_readAnalogue(VPIN vpin) {
   int pin = vpin;
   uint8_t mask = 1 << ((pin-_firstVpin) % 8);
   uint8_t index = (pin-_firstVpin) / 8;
@@ -344,10 +428,22 @@ int ArduinoPins::_read(VPIN vpin) {
     else
       pinMode(pin, INPUT);
   }
-  int value = !fastReadDigital(pin); // Invert (5v=0, 0v=1)
+
+  // Since AnalogRead is also called from interrupt code, disable interrupts 
+  // while we're using it.  There's only one ADC shared by all analogue inputs 
+  // on the Arduino, so we don't want interruptions.
+  //******************************************************************************
+  // NOTE: If the HAL is running on a computer without the DCC signal generator,
+  // then interrupts needn't be disabled.  Also, the DCC signal generator puts
+  // the ADC into fast mode, so if it isn't present, analogueRead calls will be much
+  // slower!!
+  //******************************************************************************
+  noInterrupts();
+  int value = analogRead(pin);
+  interrupts();
 
   #ifdef DIAG_IO
-  //DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
+  DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
   #endif
   return value;
 }

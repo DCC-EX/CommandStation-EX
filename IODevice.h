@@ -120,7 +120,7 @@ public:
   }
 
   // User-friendly function for configuring a servo pin.
-  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile, uint16_t duration, uint8_t initialState=0) {
+  inline static bool configureServo(VPIN vpin, uint16_t activePosition, uint16_t inactivePosition, uint8_t profile=0, uint16_t duration=0, uint8_t initialState=0) {
     int params[] = {(int)activePosition, (int)inactivePosition, profile, (int)duration, initialState};
     return IODevice::configure(vpin, CONFIGURE_SERVO, 5, params);
   }
@@ -129,7 +129,7 @@ public:
   static void write(VPIN vpin, int value);
 
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
-  static void writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration=0);
+  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
@@ -140,6 +140,9 @@ public:
 
   // read invokes the IODevice instance's _read method.
   static int read(VPIN vpin);
+
+  // read invokes the IODevice instance's _readAnalogue method.
+  static int readAnalogue(VPIN vpin);
 
   // loop invokes the IODevice instance's _loop method.
   static void loop();
@@ -160,7 +163,14 @@ public:
   
 protected:
   
-  // Method to perform initialisation of the device (optionally implemented within device class)
+  // Constructor
+  IODevice(VPIN firstVpin=0, int nPins=0) {
+    _firstVpin = firstVpin;
+    _nPins = nPins;
+    _nextEntryTime = 0;
+  }
+
+ // Method to perform initialisation of the device (optionally implemented within device class)
   virtual void _begin() {}
 
   // Method to configure device (optionally implemented within device class)
@@ -175,35 +185,25 @@ protected:
   };
 
   // Method to write an 'analogue' value (optionally implemented within device class)
-  virtual  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-    (void)vpin; (void)value; (void) profile; (void)duration;
+  virtual void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
+    (void)vpin; (void)value; (void) param1; (void)param2;
   };
 
-  // Function called to check whether callback notification is supported by this pin.
-  //  Defaults to no, if not overridden by the device.
-  //  The same value should be returned by all pins on the device, so only one need
-  //  be checked.
-  virtual bool _hasCallback(VPIN vpin) { 
-    (void) vpin;
-    return false; 
-  }
-
-  // Method to read pin state (optionally implemented within device class)
+  // Method to read digital pin state (optionally implemented within device class)
   virtual int _read(VPIN vpin) { 
     (void)vpin; 
     return 0;
   };
 
-  // _isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
-  //  the output over a period of time.  Returns false unless overridden in sub class.
-  virtual bool _isBusy(VPIN vpin) {
-      (void)vpin;
-      return false;
-  }
+  // Method to read analogue pin state (optionally implemented within device class)
+  virtual int _readAnalogue(VPIN vpin) { 
+    (void)vpin; 
+    return 0;
+  };
 
   // Method to perform updates on an ongoing basis (optionally implemented within device class)
   virtual void _loop(unsigned long currentMicros) {
-    (void)currentMicros; // Suppress compiler warning.
+    delayUntil(currentMicros + 0x7fffffff); // Largest time in the future!  Effectively disable _loop calls.
   };
 
   // Method for displaying info on DIAG output (optionally implemented within device class)
@@ -211,10 +211,18 @@ protected:
 
   // Destructor
   virtual ~IODevice() {};
+
+  // Non-virtual function
+  void delayUntil(unsigned long futureMicrosCount) {
+    _nextEntryTime = futureMicrosCount;
+  }
   
   // Common object fields.
   VPIN _firstVpin;
   int _nPins;
+
+  // Flag whether the device supports callbacks.
+  bool _hasCallback = false;
 
   // Pin number of interrupt pin for GPIO extender devices.  The extender module will pull this
   //  pin low if an input changes state.
@@ -233,6 +241,7 @@ private:
   static IODevice *findDevice(VPIN vpin);
 
   IODevice *_nextDevice = 0;
+  unsigned long _nextEntryTime;
   static IODevice *_firstDevice;
 
   static IODevice *_nextLoopDevice;
@@ -267,7 +276,7 @@ private:
   // Device-specific write functions.
   void _write(VPIN vpin, int value) override;
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override;
-  bool _isBusy(VPIN vpin) override;
+  int _read(VPIN vpin) override; // returns the digital state or busy status of the device
   void _loop(unsigned long currentMicros) override;
   void updatePosition(uint8_t pin);
   void writeDevice(uint8_t pin, int value);
@@ -294,7 +303,6 @@ private:
   static const byte FLASH _bounceProfile[30];
 
   const unsigned int refreshInterval = 50; // refresh every 50ms
-  unsigned long _lastRefreshTime; // last seen value of micros() count
 
   // structures for setting up non-blocking writes to servo controller
   I2CRB requestBlock;
@@ -343,13 +351,15 @@ private:
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
   // Device-specific write function.
   void _write(VPIN vpin, int value) override;
-  // Device-specific read function.
+  // Device-specific read functions.
   int _read(VPIN vpin) override;
+  int _readAnalogue(VPIN vpin) override;
   void _display() override;
 
 
   uint8_t *_pinPullups;
   uint8_t *_pinModes; // each bit is 1 for output, 0 for input
+  uint8_t *_pinInUse; 
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
