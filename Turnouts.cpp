@@ -42,6 +42,8 @@
    * Public static data
    */
   /* static */ int Turnout::turnoutlistHash = 0;
+
+  /* static */ unsigned long Turnout::_lastLoopEntry = 0;
  
   /*
    * Protected static functions
@@ -66,6 +68,48 @@
       ptr->_nextTurnout = tt;
     }
     turnoutlistHash++;
+  }
+
+  /* static */ void Turnout::loop() {
+    // Here, we check whether the turnout state needs updating.
+    // For Servo and VPIN turnouts, we need to check the isBusy() status of the device
+    // and when it goes to 0 we can send out a turnout notification.
+    // We allow a small delay before we start checking isBusy(), to allow the
+    // operation time to start.
+    unsigned long currentMillis = millis();
+    // Check for updates once every 100ms.
+    if (currentMillis - _lastLoopEntry > 100) { 
+      _lastLoopEntry = currentMillis;
+
+      Turnout *tt = _firstTurnout;
+      for ( ; tt != 0; tt=tt->_nextTurnout) {
+        if (tt->_delayResponse > 1) {
+          tt->_delayResponse--;
+        } else if (tt->_delayResponse == 1) {
+          // Pointer has been triggered and grace time has elapsed, so check if completed
+          if (!tt->isPending()) {
+            tt->sendResponse();
+          }
+        }
+      }
+    }
+  }
+
+  // Function called when the turnout has changed.  
+  void Turnout::sendResponse() {
+    turnoutlistHash++;  // let withrottle know something changed
+  
+#if defined(RMFT_ACTIVE)
+    RMFT2::turnoutEvent(_turnoutData.id, _turnoutData.closed);
+#endif
+
+    // Send message to JMRI etc. over Serial USB.  This is done here
+    // to ensure that the message is sent when the turnout operation
+    // is not initiated by a Serial command.
+    printState(&Serial);
+
+    // Clear flag pending operation
+    _delayResponse = 0;
   }
   
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
@@ -139,24 +183,22 @@
     if (!tt) return false;
     bool ok = tt->setClosedInternal(closeFlag);
 
+    // Check return value to see if this type of turnout is immediate
+    //  or if we need to check for completion.
     if (ok) {
-      turnoutlistHash++;  // let withrottle know something changed
-    
-      // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
-      // is always zero for LCN turnouts.
-      if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
-        EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);  
-
-    #if defined(RMFT_ACTIVE)
-      RMFT2::turnoutEvent(id, closeFlag);
-    #endif
-
-      // Send message to JMRI etc. over Serial USB.  This is done here
-      // to ensure that the message is sent when the turnout operation
-      // is not initiated by a Serial command.
-      tt->printState(&Serial);
+      tt->sendResponse();
+    } else {
+      // Set flag indicating that the operation is pending and needs to be checked for completion
+      // starting in 4 loop counts (starts checking at 1).
+      tt->_delayResponse = 5;
     }
-    return ok;
+
+    // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
+    // is always zero for LCN turnouts.
+    if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
+      EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);  
+
+    return true;
   }
 
   // Load all turnout objects
@@ -301,10 +343,16 @@
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
     _turnoutData.closed = close;
+    return false;  // Don't send update messages yet.
 #else
     (void)close;  // avoid compiler warnings
-#endif
     return true;
+#endif
+  }
+
+  // Determine if the turnout is moving into its new state.
+  bool ServoTurnout::isPending() {
+    return IODevice::isBusy(_servoTurnoutData.vpin);
   }
 
   void ServoTurnout::save() {
@@ -458,10 +506,20 @@
       !_turnoutData.closed); 
   }
 
+  // setClosedInternal is called from the base class's setClosed() method.  It returns true if the 
+  // operation is considered to be completed, and false if it is started but not completed.
+  // For VPINs which are attached to servos, we ought to return false so that the confirmation
+  // message to JMRI is deferred until the servo movement is completed.  However, if we do this
+  // it will also affect VPINs that are GPIO pins; when it polls the pin it will put the pin into
+  // input mode, which is not desirable.  Hence, we return true here so that no polling takes place.
   bool VpinTurnout::setClosedInternal(bool close) {
     IODevice::write(_vpinTurnoutData.vpin, close);
     _turnoutData.closed = close;
     return true;
+  }
+
+  bool VpinTurnout::isPending() {
+    return IODevice::isBusy(_vpinTurnoutData.vpin);
   }
 
   void VpinTurnout::save() {

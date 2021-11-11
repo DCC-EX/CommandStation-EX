@@ -72,6 +72,9 @@ protected:
   // Pointer to next turnout on linked list.
   Turnout *_nextTurnout = 0;
 
+  // Delay counter for responses.  If non-zero, there is a pending response to be sent.
+  uint8_t _delayResponse = 0;
+
   /*
    * Constructor
    */
@@ -88,6 +91,7 @@ protected:
 
   static Turnout *_firstTurnout;
   static int _turnoutlistHash;
+  static unsigned long _lastLoopEntry;
 
   /* 
    * Virtual functions
@@ -95,7 +99,8 @@ protected:
 
   virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
   virtual void save() {}
-  
+  virtual bool isPending() { return false; };
+ 
   /*
    * Static functions
    */
@@ -103,7 +108,12 @@ protected:
   static Turnout *get(uint16_t id);
 
   static void add(Turnout *tt);
-  
+
+  /* 
+   * Other functions
+   */
+  void sendResponse();
+
 public:
   /* 
    * Static data
@@ -155,6 +165,8 @@ public:
 
   inline static Turnout *first() { return _firstTurnout; }
 
+  static void loop();
+  
   // Load all turnout definitions.
   static void load();
   // Load one turnout definition
@@ -201,6 +213,7 @@ protected:
   // ServoTurnout-specific code for throwing or closing a servo turnout.
   bool setClosedInternal(bool close) override;
   void save() override;
+  bool isPending() override;
 
 };
 
@@ -265,6 +278,7 @@ public:
 protected:
   bool setClosedInternal(bool close) override;
   void save() override;
+  bool isPending() override;
 
 };
 

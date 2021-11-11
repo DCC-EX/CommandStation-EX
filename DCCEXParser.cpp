@@ -129,6 +129,7 @@ void DCCEXParser::loop(Stream &stream)
         }
     }
     Sensor::checkAll(&stream); // Update and print changes
+    Turnout::loop();   // Check for outstanding turnout responses
 }
 
 int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
