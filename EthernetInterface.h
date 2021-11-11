@@ -23,7 +23,7 @@
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
 
-#include "defines.h")
+#include "defines.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
