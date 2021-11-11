@@ -178,8 +178,14 @@ void EthernetInterface::loop()
     int socketOut=outboundRing->read();
     if (socketOut>=0) {
       int count=outboundRing->count();
+      uint16_t index = 0;
       if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
-      for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
+      while (count > 0) {
+        index = 0;
+        for(;count>0 && index < MAX_ETH_BUFFER;count--)  buffer[index++] = outboundRing->read();
+        clients[socketOut].write(buffer, index);
+      }
+      //for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
       clients[socketOut].flush(); //maybe 
     }
 }
