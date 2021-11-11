@@ -9,16 +9,17 @@
 // To prevent this, temporarily rename it to mySetup.txt or similar.
 //
 
+// Only the #include directives relating to the devices in use need be included here.
 #include "IODevice.h"
 #include "Turnouts.h"
 #include "Sensors.h"
 #include "IO_HCSR04.h"
 #include "IO_VL53L0X.h"
-
-
-// The #if directive prevent compile errors for Uno and Nano by excluding the 
-//  HAL directives from the build.
-#if !defined(IO_NO_HAL)
+#include "DFPlayer.h"
+#include "IO_Network.h"
+#include "Net_RF24"
+#include "Net_ENC28J60"
+#include "Net_Ethernet"
 
 
 // Examples of statically defined HAL directives (alternative to the create() call).
@@ -82,49 +83,6 @@
 
 
 //=======================================================================
-// The following directive defines an HCSR04 ultrasonic ranging module.
-//=======================================================================
-// The parameters are: 
-//   Vpin=2000 (only one VPIN per directive)
-//   Number of VPINs=1
-//   Arduino pin connected to TRIG=30
-//   Arduino pin connected to ECHO=31
-//   Minimum trigger range=20cm (VPIN goes to 1 when <20cm)
-//   Maximum trigger range=25cm (VPIN goes to 0 when >25cm)
-// Note: Multiple devices can be configured by using a different ECHO pin
-// for each one.  The TRIG pin can be shared between multiple devices.
-// Be aware that the 'ping' of one device may be received by another
-// device and position them accordingly!
-
-//HCSR04 sonarModule1(2000, 30, 31, 20, 25);
-//HCSR04 sonarModule2(2001, 30, 32, 20, 25);
-
-
-//=======================================================================
-// The following directive defines a single VL53L0X Time-of-Flight range sensor.
-//=======================================================================
-// The parameters are:
-//   VPIN=5000
-//   Number of VPINs=1
-//   I2C address=0x29 (default for this chip)
-//   Minimum trigger range=200mm (VPIN goes to 1 when <20cm)
-//   Maximum trigger range=250mm (VPIN goes to 0 when >25cm)
-
-//VL53L0X tofModule1(5000, 1, 0x29, 200, 250); 
-
-// For multiple VL53L0X modules, add another parameter which is a VPIN connected to the
-// module's XSHUT pin.  This allows the modules to be configured, at start,
-// with distinct I2C addresses.  In this case, the address 0x29 is only used during
-// initialisation to configure each device in turn with the desired unique I2C address.
-// The examples below have the modules' XSHUT pins connected to the first two pins of 
-// the first MCP23017 module (164 and 165), but Arduino pins may be used instead.
-// The first module here is given I2C address 0x30 and the second is 0x31.
-
-//VL53L0X tofModule1(5000, 1, 0x30, 200, 250, 164); 
-//VL53L0X tofModule2(5001, 1, 0x31, 200, 250, 165); 
-
-
-//=======================================================================
 // The function mySetup() is invoked from CS if it exists within the build.
 // It is called just before mysetup.h is executed, so things set up within here can be
 // referenced by commands in mySetup.h.
@@ -180,6 +138,50 @@ void mySetup() {
 
 
   //=======================================================================
+  // The following directive defines an HCSR04 ultrasonic ranging module.
+  //=======================================================================
+  // The parameters are: 
+  //   Vpin=2000 (only one VPIN per directive)
+  //   Number of VPINs=1
+  //   Arduino pin connected to TRIG=30
+  //   Arduino pin connected to ECHO=31
+  //   Minimum trigger range=20cm (VPIN goes to 1 when <20cm)
+  //   Maximum trigger range=25cm (VPIN goes to 0 when >25cm)
+  // Note: Multiple devices can be configured by using a different ECHO pin
+  // for each one.  The TRIG pin can be shared between multiple devices.
+  // Be aware that the 'ping' of one device may be received by another
+  // device and position them accordingly!
+
+  //HCSR04 sonarModule1(2000, 30, 31, 20, 25);
+  //HCSR04 sonarModule2(2001, 30, 32, 20, 25);
+
+
+  //=======================================================================
+  // VL53L0X Time-of-Flight range sensor.
+  //=======================================================================
+  // The following directive defines a single VL53L0X Time-of-Flight range sensor.
+  // The parameters are:
+  //   VPIN=5000
+  //   Number of VPINs=1
+  //   I2C address=0x29 (default for this chip)
+  //   Minimum trigger range=200mm (VPIN goes to 1 when <20cm)
+  //   Maximum trigger range=250mm (VPIN goes to 0 when >25cm)
+
+  //VL53L0X::create(5000, 1, 0x29, 200, 250); 
+
+  // For multiple VL53L0X modules, add another parameter which is a VPIN connected to the
+  // module's XSHUT pin.  This allows the modules to be configured, at start,
+  // with distinct I2C addresses.  In this case, the address 0x29 is only used during
+  // initialisation to configure each device in turn with the desired unique I2C address.
+  // The examples below have the modules' XSHUT pins connected to the first two pins of 
+  // the first MCP23017 module (164 and 165), but Arduino pins may be used instead.
+  // The first module here is given I2C address 0x30 and the second is 0x31.
+
+  //VL53L0X::create(5000, 1, 0x30, 200, 250, 164); 
+  //VL53L0X::create(5001, 1, 0x31, 200, 250, 165); 
+
+
+  //=======================================================================
   // Play mp3 files from a Micro-SD card, using a DFPlayer MP3 Module.
   //=======================================================================
   // Parameters: 
@@ -209,6 +211,93 @@ void mySetup() {
   // DFPlayer::create(10000, 10, Serial1);
 
 
-}
+  //=======================================================================
+  // Remote (networked) VPIN Configuration
+  //=======================================================================
+  // Define remote pins to be used.  The range of remote pins is like a common data area shared
+  // between all nodes.
+  // For outputs, a write to a remote VPIN causes a message to be sent to another node, which then performs
+  // the write operation on the device VPIN that is local to that node.
+  // For inputs, the state of remote input VPIN is read on the node where it is connected, and then
+  // sent to other nodes in the system where the state is saved and processed.  Updates are sent on change, and
+  // also periodically if no changes.
+  //
+  // Currently, analogue inputs are not enabled for remote access.
+  //
+  // Each definition is a triple of remote node, remote pin, type, indexed by relative pin.
+  // Each pin may be an input whose value is to be read before being transmitted (RPIN_IN),
+  // an output which is to be triggered when written to (RPIN_OUT) or both (RPIN_INPUT),
+  // such as a servo or DFPlayer device pin.  Unused pins (e.g. spares to reserve contiguous
+  // pin sequences) should be defined sd VPIN_NONE with 0 as the type.
+  // Where possible, align the input and inout pins on an offset which is a multiple of 8
+  // from the start of the remote pins, as in the example below.
+  //
+  // There is a limit of 224 in the number of pin states per node that are sent
+  // over the network (to keep the number of sent messages to 1 x 32 bytes).  This restriction
+  // may be lifted in future.
+  // 
+  // In the example below with two nodes 30 and 31, 
+  //    a turnout object set to operate pin 4004 will operate the servo connected to 
+  //    VPIN 100 on node 30;
+  //    a sensor object monitoring pin 4024 will trigger if pin D24 on node
+  //    31 activates;
+  //    an output object associated with pin 4002 will, when set on, activate
+  //    pin 166 (MCP23017 pin 3) on node 30.
+  //
+  // All nodes on the same network should use the same REMOTEPINS setup, and the
+  // node number of each node should be set to a different number.
+  // 
+  // REMOTEPINS rpins[] = {
+  //   {30,164,RPIN_IN} ,       //4000  Node 30, first MCP23017 pin, input
+  //   {30,165,RPIN_IN},        //4001  Node 30, second MCP23017 pin, input
+  //   {30,166,RPIN_OUT},       //4002  Node 30, third MCP23017 pin, output
+  //   {30,166,RPIN_OUT},       //4003  Node 30, fourth MCP23017 pin, output
+  //   {30,100,RPIN_INOUT},     //4004  Node 30, first PCA9685 servo pin
+  //   {30,101,RPIN_INOUT},     //4005  Node 30, second PCA9685 servo pin
+  //   {30,102,RPIN_INOUT},     //4006  Node 30, third PCA9685 servo pin
+  //   {30,103,RPIN_INOUT},     //4007  Node 30, fourth PCA9685 servo pin
+  //   {30,24,RPIN_IN},         //4008  Node 30, Arduino pin D24
+  //   {30,25,RPIN_IN},         //4009  Node 30, Arduino pin D25
+  //   {30,26,RPIN_IN},         //4010  Node 30, Arduino pin D26
+  //   {30,27,RPIN_IN},         //4011  Node 30, Arduino pin D27
+  //   {30,VPIN_NONE,0},        //4012  Node 30, spare
+  //   {30,VPIN_NONE,0},        //4013  Node 30, spare
+  //   {30,VPIN_NONE,0},        //4014  Node 30, spare
+  //   {30,VPIN_NONE,0},        //4015  Node 30, spare
+  //
+  //   {31,164,RPIN_IN} ,       //4016  Node 31, first MCP23017 pin, input
+  //   {31,165,RPIN_IN},        //4017  Node 31, second MCP23017 pin, input
+  //   {31,166,RPIN_OUT},       //4018  Node 31, third MCP23017 pin, output
+  //   {31,166,RPIN_OUT},       //4019  Node 31, fourth MCP23017 pin, output
+  //   {31,100,RPIN_INOUT},     //4020  Node 31, first PCA9685 servo pin
+  //   {31,101,RPIN_INOUT},     //4021  Node 31, second PCA9685 servo pin
+  //   {31,102,RPIN_INOUT},     //4022  Node 31, third PCA9685 servo pin
+  //   {31,103,RPIN_INOUT},     //4023  Node 31, fourth PCA9685 servo pin
+  //   {31,24,RPIN_IN},         //4024  Node 31, Arduino pin D24
+  //   {31,25,RPIN_IN},         //4025  Node 31, Arduino pin D25
+  //   {31,26,RPIN_IN},         //4026  Node 31, Arduino pin D26
+  //   {31,27,RPIN_IN},         //4027  Node 31, Arduino pin D27
+  //   {31,VPIN_NONE,0},        //4028  Node 31, spare
+  //   {31,VPIN_NONE,0},        //4029  Node 31, spare
+  //   {31,VPIN_NONE,0},        //4030  Node 31, spare
+  //   {31,VPIN_NONE,0}         //4031  Node 31, spare
+  // };
 
-#endif
+  // Network using RF24 wireless module, with CE on pin 48 and CS on pin 49 and node=30
+
+  // Net_RF24 *rf24Driver = new Net_RF24(48, 49);
+  // Network<Net_RF24>::create(4000, NUMREMOTEPINS(rpins), 30, rpins, rf24Driver);
+
+  // Network using ENC28J60 ethernet module, with CS on pin 49 and node=30
+
+  // Net_ENC28J60 *encDriver = new Net_ENC28J60(49);
+  // Network<Net_ENC28J60>::create(4000, NUMREMOTEPINS(rpins), 30, rpins, encDriver);
+  
+  // Network using Arduino Ethernet library, with CS on default pin (10) and node=30
+  // This would be the option selected if you already use ethernet for DCC++EX 
+  // commands.
+
+  // Net_Ethernet *etherDriver = new Net_Ethernet();
+  // Network<Net_Ethernet>::create(4000, NUMREMOTEPINS(rpins), 30, rpins, etherDriver);
+
+}
