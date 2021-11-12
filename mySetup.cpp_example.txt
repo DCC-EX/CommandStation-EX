@@ -10,8 +10,6 @@
 //
 
 #include "IODevice.h"
-#include "Turnouts.h"
-#include "Sensors.h"
 #include "IO_HCSR04.h"
 #include "IO_VL53L0X.h"
 
@@ -137,46 +135,6 @@ void mySetup() {
   // create() function are identical to the parameter lists for the declarations.
 
   //MCP23017::create(196, 16, 0x22);
-
-
-  //=======================================================================
-  // Creating a Turnout
-  //=======================================================================
-  // Parameters: same as <T> command for Servo turnouts
-  // ID and VPIN are 100, sonar moves between positions 102 and 490 with slow profile.
-  // Profile may be Instant, Fast, Medium, Slow or Bounce.
-
-  //ServoTurnout::create(100, 100, 490, 102, PCA9685::Slow);
-
-
-  //=======================================================================
-  // DCC Accessory turnout
-  //=======================================================================
-  // Parameters: same as <T> command for DCC Accessory turnouts
-  //  ID=3000
-  //  Decoder address=23
-  //  Decoder subaddress = 1
-
-  //DCCTurnout::create(3000, 23, 1);
-
-
-  //=======================================================================
-  // Creating a Sensor
-  //=======================================================================
-  // Parameters: As for the <S> command,
-  //  id = 164,
-  //  Vpin = 164 (configured above as pin 0 of an MCP23017)
-  //  Pullup enable = 1 (enabled)
-
-  //Sensor::create(164, 164, 1);
-
-
-  //=======================================================================
-  // Way of creating lots of identical sensors in a range
-  //=======================================================================
-
-  //for (int i=165; i<180; i++) 
-  //  Sensor::create(i, i, 1);
 
 
   //=======================================================================

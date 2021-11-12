@@ -28,6 +28,9 @@
 #define USE_FAST_IO
 #endif
 
+// Link to mySetup function.  If not defined, the function reference will be NULL.
+extern __attribute__((weak)) void mySetup();
+
 //==================================================================================================================
 // Static methods
 //------------------------------------------------------------------------------------------------------------------
@@ -57,6 +60,13 @@ void IODevice::begin() {
     dev->_begin();
   }
   _initPhase = false;
+
+  // Call user's mySetup() function (if defined in the build in mySetup.cpp).
+  //  The contents will depend on the user's system hardware configuration.
+  //  The mySetup.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
+  if (mySetup) {
+    mySetup();
+  }
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the
@@ -148,6 +158,33 @@ void IODevice::_display() {
 bool IODevice::configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
   IODevice *dev = findDevice(vpin);
   if (dev) return dev->_configure(vpin, configType, paramCount, params);
+#ifdef DIAG_IO
+  DIAG(F("IODevice::configure(): Vpin ID %d not found!"), (int)vpin);
+#endif
+  return false;
+}
+
+// Read value from virtual pin.
+int IODevice::read(VPIN vpin) {
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) 
+      return dev->_read(vpin);
+  }
+#ifdef DIAG_IO
+  DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
+#endif
+  return false;
+}
+
+// Read analogue value from virtual pin.
+int IODevice::readAnalogue(VPIN vpin) {
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) 
+      return dev->_readAnalogue(vpin);
+  }
+#ifdef DIAG_IO
+  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
+#endif
   return false;
 }
 
@@ -256,30 +293,6 @@ bool IODevice::_initPhase = true;
 // Method to check whether the id corresponds to this device
 bool IODevice::owns(VPIN id) {
   return (id >= _firstVpin && id < _firstVpin + _nPins);
-}
-
-// Read value from virtual pin.
-int IODevice::read(VPIN vpin) {
-  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    if (dev->owns(vpin)) 
-      return dev->_read(vpin);
-  }
-#ifdef DIAG_IO
-  DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
-#endif
-  return false;
-}
-
-// Read analogue value from virtual pin.
-int IODevice::readAnalogue(VPIN vpin) {
-  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
-    if (dev->owns(vpin)) 
-      return dev->_readAnalogue(vpin);
-  }
-#ifdef DIAG_IO
-  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
-#endif
-  return false;
 }
 
 
