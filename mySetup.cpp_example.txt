@@ -11,8 +11,6 @@
 
 // Only the #include directives relating to the devices in use need be included here.
 #include "IODevice.h"
-#include "Turnouts.h"
-#include "Sensors.h"
 #include "IO_HCSR04.h"
 #include "IO_VL53L0X.h"
 #include "DFPlayer.h"
@@ -95,90 +93,6 @@ void mySetup() {
   // create() function are identical to the parameter lists for the declarations.
 
   //MCP23017::create(196, 16, 0x22);
-
-
-  //=======================================================================
-  // Creating a Turnout
-  //=======================================================================
-  // Parameters: same as <T> command for Servo turnouts
-  // ID and VPIN are 100, sonar moves between positions 102 and 490 with slow profile.
-  // Profile may be Instant, Fast, Medium, Slow or Bounce.
-
-  //ServoTurnout::create(100, 100, 490, 102, PCA9685::Slow);
-
-
-  //=======================================================================
-  // DCC Accessory turnout
-  //=======================================================================
-  // Parameters: same as <T> command for DCC Accessory turnouts
-  //  ID=3000
-  //  Decoder address=23
-  //  Decoder subaddress = 1
-
-  //DCCTurnout::create(3000, 23, 1);
-
-
-  //=======================================================================
-  // Creating a Sensor
-  //=======================================================================
-  // Parameters: As for the <S> command,
-  //  id = 164,
-  //  Vpin = 164 (configured above as pin 0 of an MCP23017)
-  //  Pullup enable = 1 (enabled)
-
-  //Sensor::create(164, 164, 1);
-
-
-  //=======================================================================
-  // Way of creating lots of identical sensors in a range
-  //=======================================================================
-
-  //for (int i=165; i<180; i++) 
-  //  Sensor::create(i, i, 1);
-
-
-  //=======================================================================
-  // The following directive defines an HCSR04 ultrasonic ranging module.
-  //=======================================================================
-  // The parameters are: 
-  //   Vpin=2000 (only one VPIN per directive)
-  //   Number of VPINs=1
-  //   Arduino pin connected to TRIG=30
-  //   Arduino pin connected to ECHO=31
-  //   Minimum trigger range=20cm (VPIN goes to 1 when <20cm)
-  //   Maximum trigger range=25cm (VPIN goes to 0 when >25cm)
-  // Note: Multiple devices can be configured by using a different ECHO pin
-  // for each one.  The TRIG pin can be shared between multiple devices.
-  // Be aware that the 'ping' of one device may be received by another
-  // device and position them accordingly!
-
-  //HCSR04 sonarModule1(2000, 30, 31, 20, 25);
-  //HCSR04 sonarModule2(2001, 30, 32, 20, 25);
-
-
-  //=======================================================================
-  // VL53L0X Time-of-Flight range sensor.
-  //=======================================================================
-  // The following directive defines a single VL53L0X Time-of-Flight range sensor.
-  // The parameters are:
-  //   VPIN=5000
-  //   Number of VPINs=1
-  //   I2C address=0x29 (default for this chip)
-  //   Minimum trigger range=200mm (VPIN goes to 1 when <20cm)
-  //   Maximum trigger range=250mm (VPIN goes to 0 when >25cm)
-
-  //VL53L0X::create(5000, 1, 0x29, 200, 250); 
-
-  // For multiple VL53L0X modules, add another parameter which is a VPIN connected to the
-  // module's XSHUT pin.  This allows the modules to be configured, at start,
-  // with distinct I2C addresses.  In this case, the address 0x29 is only used during
-  // initialisation to configure each device in turn with the desired unique I2C address.
-  // The examples below have the modules' XSHUT pins connected to the first two pins of 
-  // the first MCP23017 module (164 and 165), but Arduino pins may be used instead.
-  // The first module here is given I2C address 0x30 and the second is 0x31.
-
-  //VL53L0X::create(5000, 1, 0x30, 200, 250, 164); 
-  //VL53L0X::create(5001, 1, 0x31, 200, 250, 165); 
 
 
   //=======================================================================

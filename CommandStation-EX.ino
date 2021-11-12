@@ -88,16 +88,9 @@ void setup()
   // Start RMFT (ignored if no automnation)
   RMFT::begin();
   
-  // Link to and call mySetup() function (if defined in the build in mySetup.cpp).
-  //  The contents will depend on the user's system hardware configuration.
-  //  The mySetup.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
-  extern __attribute__((weak)) void mySetup();
-  if (mySetup) {
-    mySetup();
-  }
 
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.  
-  //  This can be used to create turnouts, outputs, sensors etc. throught the normal text commands.
+  //  This can be used to create turnouts, outputs, sensors etc. through the normal text commands.
   #if __has_include ( "mySetup.h")
         #define SETUP(cmd) serialParser.parse(F(cmd))  
         #include "mySetup.h"
