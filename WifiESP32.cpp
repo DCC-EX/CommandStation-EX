@@ -17,6 +17,7 @@
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <vector>
 #include "defines.h"
 #if defined(ARDUINO_ARCH_ESP32)
 #include <WiFi.h>
@@ -231,7 +232,7 @@ void WifiESP::loop() {
       }
     }
   } //connected
-  yield();
+
   // when loop() is running on core0 we must
   // feed the core0 wdt ourselves as yield()
   // is not necessarily yielding to a low
@@ -240,5 +241,6 @@ void WifiESP::loop() {
   // arduio IDE startup routines.
   if (xPortGetCoreID() == 0)
     feedTheDog0();
+  yield();
 }
 #endif //ESP32

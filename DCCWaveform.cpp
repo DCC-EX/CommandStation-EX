@@ -25,6 +25,7 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
+#include "DCCRMT.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -37,6 +38,9 @@ volatile uint8_t DCCWaveform::numAckSamples=0;
 uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
+
+  RMTPin *p = new RMTPin(21, 0, PREAMBLE_BITS_MAIN);
+
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
   progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
@@ -47,11 +51,14 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
+  /*
   if (MotorDriver::usePWM)
     DIAG(F("Signal pin config: high accuracy waveform"));
   else
     DIAG(F("Signal pin config: normal accuracy waveform"));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
+  */
+  DIAG(F("No waveform"));
 }
 
 #ifdef SLOW_ANALOG_READ
