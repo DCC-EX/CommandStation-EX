@@ -34,6 +34,8 @@ int  DCCWaveform::progTripValue=0;
 volatile uint8_t DCCWaveform::numAckGaps=0;
 volatile uint8_t DCCWaveform::numAckSamples=0;
 uint8_t DCCWaveform::trailingEdgeCounter=0;
+static unsigned long lastLCDCurrentDisplay=0;
+#define LCD_SAMPLE_PERIOD 2000 // milliseconds
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
@@ -119,8 +121,9 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 
 
 void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
-  if (millis() - lastSampleTaken  < sampleDelay) return;
-  lastSampleTaken = millis();
+  unsigned long now = millis();
+  if (now - lastSampleTaken  < sampleDelay) return;
+  lastSampleTaken = now;
   int tripValue= motorDriver->getRawCurrentTripValue();
   if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
@@ -180,6 +183,10 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
+  }
+  if (isMainTrack && now - lastLCDCurrentDisplay > LCD_SAMPLE_PERIOD) {
+    lastLCDCurrentDisplay=now;
+    LCD(2,F("I= %dmA"), mainTrack.getCurrentmA());
   }
 }
 // For each state of the wave  nextState=stateTransform[currentState] 

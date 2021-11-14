@@ -50,12 +50,13 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
 
   // Issue the LCD as a diag first
-  send(diagSerial,F("<* LCD%d:"),row);
-  va_start(args, input);
-  send2(diagSerial,input,args);
-  send(diagSerial,F(" *>\n"));
-  
-  if (!LCDDisplay::lcdDisplay) return;
+  if (!LCDDisplay::lcdDisplay) {
+    send(diagSerial,F("<* LCD%d:"),row);
+    va_start(args, input);
+    send2(diagSerial,input,args);
+    send(diagSerial,F(" *>\n"));
+    return;
+  }
   LCDDisplay::lcdDisplay->setRow(row);    
   va_start(args, input);
   send2(LCDDisplay::lcdDisplay,input,args);
