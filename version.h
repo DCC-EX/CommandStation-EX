@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "3.1.6"
+#define VERSION "3.1.90"
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
 // 3.1.5 Fix LCD corruption on power-up
 // 3.1.4 Refactor OLED and LCD drivers and remove unused code
