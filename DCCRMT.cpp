@@ -20,8 +20,9 @@
 #include "defines.h"
 #include "DIAG.h"
 #include "DCCRMT.h"
-#include "soc/periph_defs.h"
-#include "driver/periph_ctrl.h"
+
+//#include "soc/periph_defs.h"
+//#include "driver/periph_ctrl.h"
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
@@ -41,6 +42,13 @@ void setDCCBit0(rmt_item32_t* item) {
   item->duration1 = DCC_0_HALFPERIOD;
 }
 
+void setDCCBit0Last(rmt_item32_t* item) {
+  item->level0    = 1;
+  item->duration0 = DCC_0_HALFPERIOD + DCC_0_HALFPERIOD/10;
+  item->level1    = 0;
+  item->duration1 = DCC_0_HALFPERIOD;
+}
+
 void setEOT(rmt_item32_t* item) {
   item->val = 0;
 }
@@ -56,9 +64,9 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<plen; n++)
-    setDCCBit1(preamble + n);  // preamble bits
-  setDCCBit0(preamble + plen); // start of packet 0 bit
-  setEOT(preamble + plen + 1); // EOT marker
+    setDCCBit1(preamble + n);      // preamble bits
+  setDCCBit0Last(preamble + plen); // start of packet 0 bit
+  setEOT(preamble + plen + 1);     // EOT marker
 
   // idle
   idleLen = 29;
@@ -70,7 +78,7 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   for (byte n=18; n<26; n++) // 18 to 25
     setDCCBit1(idle + n);
   setDCCBit1(idle + 26);     // end bit
-  setDCCBit0(idle + 27);     // finish always with 0
+  setDCCBit0Last(idle + 27); // finish always with 0
   setEOT(idle + 28);         // EOT marker
 
   rmt_config_t config;
@@ -83,8 +91,11 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   config.mem_block_num = 1;       // With MAX_PACKET_SIZE = 5 and number of bits needed
                                   // MAX_PACKET_SIZE+1 * 8 + MAX_PACKET_SIZE = 54 one
                                   // mem block of 64 RMT items (=DCC bits) should be enough
-  periph_module_disable(PERIPH_RMT_MODULE);
-  periph_module_enable(PERIPH_RMT_MODULE);
+
+  // this was not our problem https://esp32.com/viewtopic.php?t=5252
+  //periph_module_disable(PERIPH_RMT_MODULE);
+  //periph_module_enable(PERIPH_RMT_MODULE);
+
   ESP_ERROR_CHECK(rmt_config(&config));
   // NOTE: ESP_INTR_FLAG_IRAM is *NOT* included in this bitmask
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, ESP_INTR_FLAG_LOWMED|ESP_INTR_FLAG_SHARED));
