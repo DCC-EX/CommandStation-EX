@@ -51,14 +51,11 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  /*
   if (MotorDriver::usePWM)
     DIAG(F("Signal pin config: high accuracy waveform"));
   else
     DIAG(F("Signal pin config: normal accuracy waveform"));
   DCCTimer::begin(DCCWaveform::interruptHandler);     
-  */
-  DIAG(F("No waveform"));
 }
 
 #ifdef SLOW_ANALOG_READ

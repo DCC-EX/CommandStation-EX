@@ -29,12 +29,12 @@
 class RMTPin {
  public:
   RMTPin(byte pin, byte ch, byte plen);
-  void IRAM_ATTR RMTinterrupt(rmt_channel_t, void *t);
+  void IRAM_ATTR RMTinterrupt(rmt_channel_t);
 
   static RMTPin mainRMTPin;
   static RMTPin progRMTPin;
   
-  // private:
+ private:
     
   rmt_channel_t channel;
   // 3 types of data to send, preamble and then idle or data

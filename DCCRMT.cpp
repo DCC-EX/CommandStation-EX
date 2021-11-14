@@ -41,34 +41,37 @@ void setDCCBit0(rmt_item32_t* item) {
   item->duration1 = DCC_0_HALFPERIOD;
 }
 
+void setEOT(rmt_item32_t* item) {
+  item->val = 0;
+}
+
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  BaseType_t wtf = pdFALSE;
   RMTPin *tt = (RMTPin *)t;
-  //DIAG(F("interrupt %d"), tt->idleLen);
-  tt->RMTinterrupt(channel,t);
-  rmt_tx_start(channel,true);
-  portYIELD_FROM_ISR(wtf);
+  tt->RMTinterrupt(channel);
 }
 
 RMTPin::RMTPin(byte pin, byte ch, byte plen) {
 
   // preamble
-  preambleLen = plen+1;
+  preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<plen; n++)
-    setDCCBit1(preamble + n);
-  setDCCBit0(preamble + plen);
+    setDCCBit1(preamble + n);  // preamble bits
+  setDCCBit0(preamble + plen); // start of packet 0 bit
+  setEOT(preamble + plen + 1); // EOT marker
 
   // idle
-  idleLen = 28;
+  idleLen = 29;
   idle = (rmt_item32_t*)malloc(idleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<8; n++)   // 0 to 7
     setDCCBit1(idle + n);
   for (byte n=8; n<18; n++)  // 8, 9 to 16, 17
-    setDCCBit0(idle + n);  for (byte n=18; n<26; n++) // 18 to 25
+    setDCCBit0(idle + n);
+  for (byte n=18; n<26; n++) // 18 to 25
     setDCCBit1(idle + n);
-  setDCCBit1(idle + 26); // end bit
-  setDCCBit0(idle + 27); // finish always with 0
+  setDCCBit1(idle + 26);     // end bit
+  setDCCBit0(idle + 27);     // finish always with 0
+  setEOT(idle + 28);         // EOT marker
 
   rmt_config_t config;
   // Configure the RMT channel for TX
@@ -101,38 +104,23 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   // send one bit to kickstart the signal, remaining data will come from the
   // packet queue. We intentionally do not wait for the RMT TX complete here.
   rmt_write_items(channel, preamble, preambleLen, false);
-  //RMTinterrupt(channel, this);
-
+  preambleNext = false;
+  dataNext = false;
 }
 
-void IRAM_ATTR RMTPin::RMTinterrupt(rmt_channel_t channel, void* t) {
-  //DIAG(F("QP"));
-  /*
-  //RMT.int_clr.ch0_tx_end = 1;
-  for(uint32_t i = 0; i < preambleLen; i++)
-    RMTMEM.chan[channel].data32[i].val = preamble[i].val;
-  RMT.conf_ch[channel].conf1.mem_rd_rst = 1;
-  RMT.conf_ch[channel].conf1.mem_owner = RMT_MEM_OWNER_TX;
-  RMT.conf_ch[channel].conf1.tx_start = 1;
-  */
-  rmt_fill_tx_items(channel, preamble, preambleLen, 0);
-  //rmt_tx_start(channel,true);
-  return;
-  /*
-  RMTPin *obj = (RMTPin *)t;
-  if (obj->preambleNext) {
-    rmt_fill_tx_items(channel, obj->preamble, obj->preambleLen, 0);
-    //obj->preambleNext = false;
+void IRAM_ATTR RMTPin::RMTinterrupt(rmt_channel_t channel) {
+
+  if (preambleNext) {
+    rmt_fill_tx_items(channel, preamble, preambleLen, 0);
+    preambleNext = false;
   } else {
-    if (obj->dataNext) {
-      rmt_fill_tx_items(channel, obj->packetBits, obj->packetLen, 0);
+    if (dataNext) {
+      rmt_fill_tx_items(channel, packetBits, packetLen, 0);
     } else {
       // here we should not get as now we need to send idle packet
-      rmt_fill_tx_items(channel, obj->idle, obj->idleLen, 0);
+      rmt_fill_tx_items(channel, idle, idleLen, 0);
     }
-    obj->preambleNext = true;
+    preambleNext = true;
   }
   rmt_tx_start(channel,true);
-  DIAG(F("START"));
-  */  
 }
