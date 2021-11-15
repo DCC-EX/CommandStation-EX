@@ -36,6 +36,7 @@ volatile uint8_t DCCWaveform::numAckSamples=0;
 uint8_t DCCWaveform::trailingEdgeCounter=0;
 static unsigned long lastLCDCurrentDisplay=0;
 #define LCD_SAMPLE_PERIOD 2000 // milliseconds
+static uint16_t lastLCDCurrent=0xFFFF;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
@@ -186,7 +187,11 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   }
   if (isMainTrack && now - lastLCDCurrentDisplay > LCD_SAMPLE_PERIOD) {
     lastLCDCurrentDisplay=now;
-    LCD(2,F("I= %dmA"), mainTrack.getCurrentmA());
+    uint16_t c=mainTrack.getCurrentmA();
+    if (c != lastLCDCurrent) {
+      lastLCDCurrent=c;
+      LCD(2,F("I=%dmA"), c);
+    }
   }
 }
 // For each state of the wave  nextState=stateTransform[currentState] 
