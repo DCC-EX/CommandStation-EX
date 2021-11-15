@@ -28,8 +28,9 @@
 #define USE_FAST_IO
 #endif
 
-// Link to mySetup function.  If not defined, the function reference will be NULL.
-extern __attribute__((weak)) void mySetup();
+// Link to halSetup function.  If not defined, the function reference will be NULL.
+extern __attribute__((weak)) void halSetup();
+extern __attribute__((weak)) void mySetup();  // Deprecated function name, output warning if it's declared
 
 //==================================================================================================================
 // Static methods
@@ -61,12 +62,15 @@ void IODevice::begin() {
   }
   _initPhase = false;
 
-  // Call user's mySetup() function (if defined in the build in mySetup.cpp).
+  // Check for presence of deprecated mySetup() function, and output warning.
+  if (mySetup)
+    DIAG(F("WARNING: mySetup() function should be renamed to halSetup()"));
+
+  // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
-  //  The mySetup.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
-  if (mySetup) {
-    mySetup();
-  }
+  //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
+  if (halSetup)
+    halSetup();
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the

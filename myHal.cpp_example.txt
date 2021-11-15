@@ -1,10 +1,10 @@
-//  Sample mySetup.cpp file.
+//  Sample myHal.cpp file.
 //
-// To use this file, copy it to mySetup.cpp and uncomment the directives and/or
+// To use this file, copy it to myHal.cpp and uncomment the directives and/or
 // edit them to satisfy your requirements.  
 
 // Note that if the file has a .cpp extension it WILL be compiled into the build
-// and the mySetup() function WILL be invoked.
+// and the halSetup() function WILL be invoked.
 //
 // To prevent this, temporarily rename it to mySetup.txt or similar.
 //
@@ -128,7 +128,7 @@
 // referenced by commands in mySetup.h.
 //=======================================================================
 
-void mySetup() {
+void halSetup() {
 
   // Alternative way of creating a module driver, which has to be within the mySetup() function
   // The other devices can also be created in this way.  The parameter lists for the
