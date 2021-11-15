@@ -25,7 +25,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
-#include "DCCRMT.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -39,7 +38,7 @@ uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 
-  RMTPin *p = new RMTPin(21, 0, PREAMBLE_BITS_MAIN);
+  mainTrack.rmtPin = new RMTPin(21, 0, PREAMBLE_BITS_MAIN);
 
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
@@ -64,6 +63,13 @@ volatile bool ackflag = 0;
 #endif
 
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
+
+  if (mainTrack.packetPendingRMT) {
+    mainTrack.rmtPin->fillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
+    mainTrack.packetPendingRMT=false;
+    // sentResetsSincePacket = 0 // later when progtrack
+  }
+
 #ifdef SLOW_ANALOG_READ
   if (ackflag) {
     progTrack.checkAck();
@@ -122,6 +128,7 @@ const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
+  packetPendingRMT = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
@@ -290,7 +297,7 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
-  while (packetPending);
+  while (packetPending||packetPendingRMT);
   portENTER_CRITICAL(&timerMux);
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
@@ -302,6 +309,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
+  packetPendingRMT = true;
   sentResetsSincePacket=0;
   portEXIT_CRITICAL(&timerMux);
 }

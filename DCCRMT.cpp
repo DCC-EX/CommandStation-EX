@@ -55,7 +55,7 @@ void setEOT(rmt_item32_t* item) {
 
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   RMTPin *tt = (RMTPin *)t;
-  tt->RMTinterrupt(channel);
+  tt->RMTinterrupt();
 }
 
 RMTPin::RMTPin(byte pin, byte ch, byte plen) {
@@ -65,7 +65,7 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<plen; n++)
     setDCCBit1(preamble + n);      // preamble bits
-  setDCCBit0Last(preamble + plen); // start of packet 0 bit
+  setDCCBit0(preamble + plen); // start of packet 0 bit
   setEOT(preamble + plen + 1);     // EOT marker
 
   // idle
@@ -81,6 +81,10 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   setDCCBit0Last(idle + 27); // finish always with 0
   setEOT(idle + 28);         // EOT marker
 
+  // data: max packet size today is 5 + checksum
+  dataLen = (5+1)*9+2; // Each byte has one bit extra and one 0 bit and one EOF marker
+  data = (rmt_item32_t*)malloc(dataLen*sizeof(rmt_item32_t));
+  
   rmt_config_t config;
   // Configure the RMT channel for TX
   bzero(&config, sizeof(rmt_config_t));
@@ -88,9 +92,10 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   config.channel = channel = (rmt_channel_t)ch;
   config.clk_div = 1;             // use 80Mhz clock directly
   config.gpio_num = (gpio_num_t)pin;
-  config.mem_block_num = 1;       // With MAX_PACKET_SIZE = 5 and number of bits needed
-                                  // MAX_PACKET_SIZE+1 * 8 + MAX_PACKET_SIZE = 54 one
-                                  // mem block of 64 RMT items (=DCC bits) should be enough
+  config.mem_block_num = 2; // With longest DCC packet 11 inc checksum (future expansion)
+                            // number of bits needed is 22preamble + start +
+                            // 11*9 + extrazero + EOT = 124
+                            // 2 mem block of 64 RMT items should be enough
 
   // this was not our problem https://esp32.com/viewtopic.php?t=5252
   //periph_module_disable(PERIPH_RMT_MODULE);
@@ -114,24 +119,54 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
 
   // send one bit to kickstart the signal, remaining data will come from the
   // packet queue. We intentionally do not wait for the RMT TX complete here.
-  rmt_write_items(channel, preamble, preambleLen, false);
-  preambleNext = false;
-  dataNext = false;
+  //rmt_write_items(channel, preamble, preambleLen, false);
+  RMTprefill();
+  preambleNext = true;
+  dataReady = false;
+  RMTinterrupt();
 }
 
-void IRAM_ATTR RMTPin::RMTinterrupt(rmt_channel_t channel) {
+void RMTPin::RMTprefill() {
+  rmt_fill_tx_items(channel, preamble, preambleLen, 0);
+  rmt_fill_tx_items(channel, idle, idleLen, preambleLen-1);
+}
 
-  if (preambleNext) {
-    rmt_fill_tx_items(channel, preamble, preambleLen, 0);
-    preambleNext = false;
-  } else {
-    if (dataNext) {
-      rmt_fill_tx_items(channel, packetBits, packetLen, 0);
-    } else {
-      // here we should not get as now we need to send idle packet
-      rmt_fill_tx_items(channel, idle, idleLen, 0);
+const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
+
+bool RMTPin::fillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
+  if (dataReady == true || dataRepeat > 0) // we have still old work to do
+    return false;
+  byte bitcounter = 0;
+  for(byte n=0; n<byteCount; n++) {
+    for(byte bit=0; bit<8; bit++) {
+      if (buffer[n] & transmitMask[bit])
+	setDCCBit1(data + bitcounter++);
+      else
+	setDCCBit0(data + bitcounter++);
     }
-    preambleNext = true;
+    setDCCBit0(data + bitcounter++); // zero at end of each byte
   }
+  setDCCBit1(data + bitcounter-1);     // overwrite previous zero bit with one bit
+  setDCCBit0Last(data + bitcounter++); // extra 0 bit after end bit
+  setEOT(data + bitcounter++);         // EOT marker
+  dataLen = bitcounter;
+  dataReady = true;
+  dataRepeat = repeatCount;
+  return true;
+}
+
+void IRAM_ATTR RMTPin::RMTinterrupt() {
   rmt_tx_start(channel,true);
+  /*  byte foo[3];
+  foo[0] = 0xF0;
+  foo[1] = 0x0F;
+  foo[2] = 0xAA;
+  fillData(foo, 3);*/
+  if (dataReady) {
+    rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
+    dataReady = false;
+  }
+  if (dataRepeat > 0)
+    dataRepeat--;
+  return;
 }

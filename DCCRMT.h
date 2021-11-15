@@ -29,8 +29,10 @@
 class RMTPin {
  public:
   RMTPin(byte pin, byte ch, byte plen);
-  void IRAM_ATTR RMTinterrupt(rmt_channel_t);
-
+  void IRAM_ATTR RMTinterrupt();
+  void RMTprefill();
+  bool fillData(const byte buffer[], byte byteCount, byte repeatCount);
+  
   static RMTPin mainRMTPin;
   static RMTPin progRMTPin;
   
@@ -43,9 +45,10 @@ class RMTPin {
   byte idleLen;
   rmt_item32_t *preamble;
   byte preambleLen;
-  rmt_item32_t packetBits[64];
-  byte packetLen;
+  rmt_item32_t *data;
+  byte dataLen;
   // flags 
   volatile bool preambleNext = true;  // alternate between preamble and content
-  volatile bool dataNext = false;     // do we have real data available or send idle
+  volatile bool dataReady = false;    // do we have real data available or send idle
+  volatile byte dataRepeat = 0;
 };
