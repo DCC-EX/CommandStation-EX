@@ -65,7 +65,7 @@ volatile bool ackflag = 0;
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
 
   if (mainTrack.packetPendingRMT) {
-    mainTrack.rmtPin->fillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
+    mainTrack.rmtPin->RMTfillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
     mainTrack.packetPendingRMT=false;
     // sentResetsSincePacket = 0 // later when progtrack
   }

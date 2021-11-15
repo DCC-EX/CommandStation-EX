@@ -21,9 +21,6 @@
 #include "DIAG.h"
 #include "DCCRMT.h"
 
-//#include "soc/periph_defs.h"
-//#include "driver/periph_ctrl.h"
-
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
 #endif
@@ -82,8 +79,8 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   setEOT(idle + 28);         // EOT marker
 
   // data: max packet size today is 5 + checksum
-  dataLen = (5+1)*9+2; // Each byte has one bit extra and one 0 bit and one EOF marker
-  data = (rmt_item32_t*)malloc(dataLen*sizeof(rmt_item32_t));
+  maxDataLen = (5+1)*9+2; // Each byte has one bit extra and one 0 bit and one EOF marker
+  data = (rmt_item32_t*)malloc(maxDataLen*sizeof(rmt_item32_t));
   
   rmt_config_t config;
   // Configure the RMT channel for TX
@@ -97,10 +94,6 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
                             // 11*9 + extrazero + EOT = 124
                             // 2 mem block of 64 RMT items should be enough
 
-  // this was not our problem https://esp32.com/viewtopic.php?t=5252
-  //periph_module_disable(PERIPH_RMT_MODULE);
-  //periph_module_enable(PERIPH_RMT_MODULE);
-
   ESP_ERROR_CHECK(rmt_config(&config));
   // NOTE: ESP_INTR_FLAG_IRAM is *NOT* included in this bitmask
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, ESP_INTR_FLAG_LOWMED|ESP_INTR_FLAG_SHARED));
@@ -110,11 +103,6 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   rmt_register_tx_end_callback(interrupt, this);
   rmt_set_tx_intr_en(channel, true);
 
-  // rmt_set_source_clk() // not needed as APB only supported currently
-  
-
-  //rmt_register_tx_end_callback()
-    
   DIAG(F("Starting channel %d signal generator"), config.channel);
 
   // send one bit to kickstart the signal, remaining data will come from the
@@ -133,9 +121,13 @@ void RMTPin::RMTprefill() {
 
 const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
-bool RMTPin::fillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
+bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
   if (dataReady == true || dataRepeat > 0) // we have still old work to do
     return false;
+  if (byteCount*9+2 > maxDataLen)      // this would overun our allocated memory for data
+    return false;                      // something very broken, can not convert packet
+
+  // convert bytes to RMT stream of "bits"
   byte bitcounter = 0;
   for(byte n=0; n<byteCount; n++) {
     for(byte bit=0; bit<8; bit++) {
@@ -156,17 +148,12 @@ bool RMTPin::fillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
 }
 
 void IRAM_ATTR RMTPin::RMTinterrupt() {
-  rmt_tx_start(channel,true);
-  /*  byte foo[3];
-  foo[0] = 0xF0;
-  foo[1] = 0x0F;
-  foo[2] = 0xAA;
-  fillData(foo, 3);*/
-  if (dataReady) {
+  rmt_tx_start(channel,true); // preamble is always loaded, stat right away
+  if (dataReady) {            // if we have new data, fill while preamble is running
     rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
     dataReady = false;
   }
-  if (dataRepeat > 0)
+  if (dataRepeat > 0)         // if a repeat count was specified, work on that
     dataRepeat--;
   return;
 }

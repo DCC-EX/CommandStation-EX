@@ -31,7 +31,7 @@ class RMTPin {
   RMTPin(byte pin, byte ch, byte plen);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
-  bool fillData(const byte buffer[], byte byteCount, byte repeatCount);
+  bool RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
   
   static RMTPin mainRMTPin;
   static RMTPin progRMTPin;
@@ -47,6 +47,7 @@ class RMTPin {
   byte preambleLen;
   rmt_item32_t *data;
   byte dataLen;
+  byte maxDataLen;
   // flags 
   volatile bool preambleNext = true;  // alternate between preamble and content
   volatile bool dataReady = false;    // do we have real data available or send idle
