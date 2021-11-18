@@ -60,14 +60,14 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
 
 class LookList {
   public: 
-   LookList(int16_t size);
-   void add(int16_t lookup, int32_t result);
-   int32_t find(int16_t value);
-   private:
+    LookList(int16_t size);
+    void add(int16_t lookup, int16_t result);
+    int16_t find(int16_t value);
+  private:
      int16_t m_size;
      int16_t m_loaded;
      int16_t * m_lookupArray;
-     int32_t * m_resultArray;     
+     int16_t * m_resultArray;     
 };
 
  class RMFT2 {

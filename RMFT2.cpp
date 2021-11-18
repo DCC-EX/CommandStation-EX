@@ -28,7 +28,7 @@
    F8. Park/unpark
   */
 /* EXRAILPlus planned TRANSPARENT additions
-   T1. RAM based fast lookup for sequences ON* event catchers and signals.
+   [DONE]T1. RAM based fast lookup for sequences ON* event catchers and signals.
    T2. Extend to >64k
   */
 
@@ -74,7 +74,7 @@ LookList *  RMFT2::sequenceLookup=NULL;
 LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
-         
+
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
 #define SKIPOP progCounter+=3
@@ -85,16 +85,18 @@ LookList *  RMFT2::onCloseLookup=NULL;
      m_loaded=0;
      if (size) {
        m_lookupArray=new int16_t[size];
-       m_resultArray=new int32_t[size];
+       m_resultArray=new int16_t[size];
      }    
    } 
-   void LookList::add(int16_t lookup, int32_t result) {
+   
+   void LookList::add(int16_t lookup, int16_t result) {
      if (m_loaded==m_size) return; // and forget
      m_lookupArray[m_loaded]=lookup;
      m_resultArray[m_loaded]=result;
      m_loaded++;     
    }
-   int32_t LookList::find(int16_t value) {
+   
+   int16_t LookList::find(int16_t value) {
      for (int16_t i=0;i<m_size;i++) {
        if (m_lookupArray[i]==value) return m_resultArray[i];
      }
@@ -107,7 +109,7 @@ LookList *  RMFT2::onCloseLookup=NULL;
   int progCounter;
   
   // counters to create lookup arrays 
-  int sequenceCount=1; // to allow for seq 0 at start 
+  int sequenceCount=0; // to allow for seq 0 at start 
   int onThrowCount=0;
   int onCloseCount=0;
   int signalCount=0;
@@ -219,7 +221,6 @@ LookList *  RMFT2::onCloseLookup=NULL;
       break; 
      }     
   } 
-  sequenceLookup->add(0,0);  // add default start sequence 
   SKIPOP; // include ENDROUTES opcode
   
   DIAG(F("EXRAIL %db, fl=%d seq=%d, sig=%d, onT=%d, onC=%d"),
@@ -491,9 +492,7 @@ void RMFT2::loop() {
   
   // Round Robin call to a RMFT task each time 
      if (loopTask==NULL) return; 
-     
      loopTask=loopTask->next;
- 
      if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }    
 
