@@ -58,6 +58,18 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
    static const short MAX_FLAGS=256;
   #define FLAGOVERFLOW(x) x>=MAX_FLAGS
 
+class LookList {
+  public: 
+   LookList(int16_t size);
+   void add(int16_t lookup, int32_t result);
+   int32_t find(int16_t value);
+   private:
+     int16_t m_size;
+     int16_t m_loaded;
+     int16_t * m_lookupArray;
+     int32_t * m_resultArray;     
+};
+
  class RMFT2 {
    public:
     static void begin();
@@ -75,7 +87,6 @@ private:
     static void streamFlags(Print* stream);
     static void setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask);   
-    static int locateRouteStart(int16_t _route);
     static int16_t progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
     static void emitRouteDescription(Print * stream, char type, int id, const FSH * description);
@@ -97,7 +108,11 @@ private:
    static bool diag;
    static const  FLASH  byte RouteCode[];
    static byte flags[MAX_FLAGS];
- 
+   static LookList * sequenceLookup;
+   static LookList * signalLookup;
+   static LookList * onThrowLookup;
+   static LookList * onCloseLookup;
+
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
     int progCounter;    // Byte offset of next route opcode in ROUTES table

@@ -16,6 +16,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+/* EXRAILPlus planned FEATURE additions
+   F1. DCC accessory packet opcodes (short and long form)
+   F2. ONAccessory catchers 
+   F3. Turnout descriptions for Withrottle
+   F4. Oled announcements (depends on HAL)
+   F5. Withrottle roster info
+   F6. Multi-occupancy semaphore
+   F7. Self starting sequences
+   F8. Park/unpark
+  */
+/* EXRAILPlus planned TRANSPARENT additions
+   T1. RAM based fast lookup for sequences ON* event catchers and signals.
+   T2. Extend to >64k
+  */
+
+
 #include <Arduino.h>
 #include "RMFT2.h"
 #include "DCC.h"
@@ -53,67 +70,162 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
  // and all others will have their locos stopped, then resumed after the pausing task resumes.
 byte RMFT2::flags[MAX_FLAGS];
 
+LookList *  RMFT2::sequenceLookup=NULL;
+LookList *  RMFT2::signalLookup=NULL;
+LookList *  RMFT2::onThrowLookup=NULL;
+LookList *  RMFT2::onCloseLookup=NULL;
+         
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
 #define SKIPOP progCounter+=3
+
+
+   LookList::LookList(int16_t size) {
+     m_size=size;
+     m_loaded=0;
+     if (size) {
+       m_lookupArray=new int16_t[size];
+       m_resultArray=new int32_t[size];
+     }    
+   } 
+   void LookList::add(int16_t lookup, int32_t result) {
+     if (m_loaded==m_size) return; // and forget
+     m_lookupArray[m_loaded]=lookup;
+     m_resultArray[m_loaded]=result;
+     m_loaded++;     
+   }
+   int32_t LookList::find(int16_t value) {
+     for (int16_t i=0;i<m_size;i++) {
+       if (m_lookupArray[i]==value) return m_resultArray[i];
+     }
+     return -1; 
+   }
 
 /* static */ void RMFT2::begin() { 
   DCCEXParser::setRMFTFilter(RMFT2::ComandFilter);
   for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
   int progCounter;
-  // first pass startup, define any turnouts or servos, set signals red and count size.
+  
+  // counters to create lookup arrays 
+  int sequenceCount=1; // to allow for seq 0 at start 
+  int onThrowCount=0;
+  int onCloseCount=0;
+  int signalCount=0;
+
+  // first pass count sizes for fast lookup arrays
+  for (progCounter=0;; SKIPOP) {
+     byte opcode=GET_OPCODE;
+     if (opcode==OPCODE_ENDEXRAIL) break;
+     switch (opcode) {
+     case OPCODE_SIGNAL: 
+        signalCount++; 
+        break;
+      
+     case OPCODE_ROUTE: 
+     case OPCODE_AUTOMATION:
+     case OPCODE_SEQUENCE:
+        sequenceCount++;
+        break;
+     
+     case OPCODE_ONTHROW: 
+        onThrowCount++;
+        break;
+     
+     case OPCODE_ONCLOSE: 
+        onCloseCount++;
+        break;
+
+     default: // Ignore  
+      break;  
+     }     
+  } 
+  
+  // create lookups
+  sequenceLookup=new LookList(sequenceCount);
+  signalLookup=new LookList(signalCount);
+  onThrowLookup=new LookList(onThrowCount);
+  onCloseLookup=new LookList(onCloseCount);
+         
+  // Second pass startup, define any turnouts or servos, set signals red
+  // add signals, sequences onRoutines to the lookups 
   for (progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
-
+     VPIN operand=GET_OPERAND(0);
+     
      switch (opcode) {
      case OPCODE_AT:
      case OPCODE_AFTER:
      case OPCODE_IF:
-     case OPCODE_IFNOT:
-       int16_t pin = (int16_t)GET_OPERAND(0);
+     case OPCODE_IFNOT: {
+       int16_t pin = (int16_t)operand;
        if (pin<0) pin = -pin;
        IODevice::configureInput((VPIN)pin,true);
+       break;
      }
+     
 
-     if (opcode==OPCODE_SIGNAL) {
-      VPIN red=GET_OPERAND(0);
+     case OPCODE_SIGNAL: {
+      VPIN red=operand;
       VPIN amber=GET_OPERAND(1);
       VPIN green=GET_OPERAND(2);
       IODevice::write(red,true);
       if (amber) IODevice::write(amber,false);
       IODevice::write(green,false);
-      continue;
+      signalLookup->add(red,progCounter); 
+      break;
      }
      
-     if (opcode==OPCODE_TURNOUT) {
-      VPIN id=GET_OPERAND(0);
+     case OPCODE_TURNOUT: {
+      VPIN id=operand;
       int addr=GET_OPERAND(1);
       byte subAddr=GET_OPERAND(2);
       DCCTurnout::create(id,addr,subAddr);
-      continue;
+      break;
      }
 
-     if (opcode==OPCODE_SERVOTURNOUT) {
-      int16_t id=GET_OPERAND(0);
+     case OPCODE_SERVOTURNOUT: {
+      VPIN id=operand;
       VPIN pin=GET_OPERAND(1);
       int activeAngle=GET_OPERAND(2);
       int inactiveAngle=GET_OPERAND(3);
       int profile=GET_OPERAND(4);
       ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
-      continue;
+      break;
      }
 
-     if (opcode==OPCODE_PINTURNOUT) {
-      int16_t id=GET_OPERAND(0);
+     case OPCODE_PINTURNOUT: {
+      VPIN id=operand;
       VPIN pin=GET_OPERAND(1);
       VpinTurnout::create(id,pin);
-      continue;
+      break;
      }
-     // other opcodes are not needed on this pass
+
+     case OPCODE_ROUTE: 
+     case OPCODE_AUTOMATION:
+     case OPCODE_SEQUENCE:
+          sequenceLookup->add(operand,progCounter);
+          break;
+     
+     case OPCODE_ONTHROW: 
+        onThrowLookup->add(operand,progCounter);
+        break;
+     
+     case OPCODE_ONCLOSE: 
+        onCloseLookup->add(operand,progCounter);
+        break;
+
+     default: // Ignore   
+      break; 
+     }     
   } 
+  sequenceLookup->add(0,0);  // add default start sequence 
   SKIPOP; // include ENDROUTES opcode
-  DIAG(F("EXRAIL %db, MAX_FLAGS=%d"), progCounter,MAX_FLAGS);
+  
+  DIAG(F("EXRAIL %db, fl=%d seq=%d, sig=%d, onT=%d, onC=%d"),
+        progCounter,MAX_FLAGS,
+        sequenceCount, signalCount, onThrowCount, onCloseCount);
+        
   new RMFT2(0); // add the startup route
 }
 
@@ -199,7 +311,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
                  {
                   int route=(paramCount==2) ? p[1] : p[2];
                   uint16_t cab=(paramCount==2)? 0 : p[1];
-                  int pc=locateRouteStart(route);                 
+                  int pc=sequenceLookup->find(route);                 
                   if (pc<0) return false;
                     RMFT2* task=new RMFT2(pc);
                     task->loco=cab;                    
@@ -313,27 +425,11 @@ RMFT2::~RMFT2() {
 }
 
 void RMFT2::createNewTask(int route, uint16_t cab) {
-      int pc=locateRouteStart(route);
+      int pc=sequenceLookup->find(route);
       if (pc<0) return;
       RMFT2* task=new RMFT2(pc);
       task->loco=cab;
 }
-
-   
-int RMFT2::locateRouteStart(int16_t _route) {
-  if (_route==0) return 0; // Route 0 is always start of ROUTES for default startup 
-  for (int progCounter=0;;SKIPOP) {
-    byte opcode=GET_OPCODE;
-    if (opcode==OPCODE_ENDEXRAIL) {
-      DIAG(F("RMFT2 sequence %d not found"), _route);
-      return -1;
-    }
-    if ((opcode==OPCODE_ROUTE || opcode==OPCODE_AUTOMATION || opcode==OPCODE_SEQUENCE) 
-       &&  _route==(int)GET_OPERAND(0)) return progCounter;
-  }
-  return -1;
-}
-
 
 void RMFT2::driveLoco(byte speed) {
      if (loco<=0) return;  // Prevent broadcast! 
@@ -567,7 +663,7 @@ void RMFT2::loop2() {
       break;
    
     case OPCODE_FOLLOW:
-      progCounter=locateRouteStart(operand);
+      progCounter=sequenceLookup->find(operand);
       if (progCounter<0) kill(F("FOLLOW unknown"), operand); 
       return;
   
@@ -577,7 +673,7 @@ void RMFT2::loop2() {
         return;
       }
       callStack[stackDepth++]=progCounter+3;
-      progCounter=locateRouteStart(operand);
+      progCounter=sequenceLookup->find(operand);
       if (progCounter<0) kill(F("CALL unknown"),operand); 
       return;
 
@@ -628,7 +724,7 @@ void RMFT2::loop2() {
        
        case OPCODE_START:
            {
-            int newPc=locateRouteStart(operand);
+            int newPc=sequenceLookup->find(operand);
             if (newPc<0) break; 
             new RMFT2(newPc); 
            }
@@ -636,7 +732,7 @@ void RMFT2::loop2() {
            
       case OPCODE_SENDLOCO:  // cab, route
            {
-            int newPc=locateRouteStart(GET_OPERAND(1));
+            int newPc=sequenceLookup->find(GET_OPERAND(1));
             if (newPc<0) break; 
             RMFT2* newtask=new RMFT2(newPc); // create new task 
             newtask->loco=operand; 
@@ -716,22 +812,23 @@ void RMFT2::kill(const FSH * reason, int operand) {
 
 /* static */ void RMFT2::doSignal(VPIN id,bool red, bool amber, bool green) { 
   // CAUTION: hides class member progCounter
-  for (int progCounter=0;; SKIPOP){
-     byte opcode=GET_OPCODE;
-     if (opcode==OPCODE_ENDEXRAIL) return;
-     if (opcode!=OPCODE_SIGNAL) continue;
-     byte redpin=GET_OPERAND(0);
-     if (redpin!=id)continue;
-     byte amberpin=GET_OPERAND(1);
-     byte greenpin=GET_OPERAND(2);
-     // If amberpin is zero, synthesise amber from red+green
-     IODevice::write(redpin,red || (amber && (amberpin==0)));
-     if (amberpin) IODevice::write(amberpin,amber);
-     if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
-     return;
-   }
-  } 
+  int progCounter=signalLookup->find(id);
+  if (progCounter<0) return; 
+  VPIN redpin=GET_OPERAND(0);
+  if (redpin!=id) return; // something wrong in lookup
+  VPIN amberpin=GET_OPERAND(1);
+  VPIN greenpin=GET_OPERAND(2);
+  // If amberpin is zero, synthesise amber from red+green
+  IODevice::write(redpin,red || (amber && (amberpin==0)));
+  if (amberpin) IODevice::write(amberpin,amber);
+  if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
+  }
+
  void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
+    // Hunt for an ONTHROW/ONCLOSE for this turnout 
+    // caution hides class progCounter;
+    int progCounter= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);
+    if (progCounter<0) return;
     
     // Check we dont already have a task running this turnout
     RMFT2 * task=loopTask;                 
@@ -743,18 +840,9 @@ void RMFT2::kill(const FSH * reason, int operand) {
       task=task->next;      
       if (task==loopTask) break;      
       }
-    // Hunt for an ONTHROW/ONCLOSE for this turnout   
-    byte huntFor=closed ?  OPCODE_ONCLOSE : OPCODE_ONTHROW ;
-    // caution hides class progCounter;
-    for (int progCounter=0;; SKIPOP){
-     byte opcode=GET_OPCODE;
-     if (opcode==OPCODE_ENDEXRAIL) return;
-     if (opcode!=huntFor) continue;
-     if (turnoutId!=(int16_t)GET_OPERAND(0)) continue;
-     task=new RMFT2(progCounter);  // new task starts at this instruction
+    
      task->onTurnoutId=turnoutId; // flag for recursion detector
-     return;
-   }
+     task=new RMFT2(progCounter);  // new task starts at this instruction
  }
  
  void RMFT2::printMessage2(const FSH * msg) {
