@@ -23,8 +23,10 @@
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"
 
-#define DCC_1_HALFPERIOD 4640 // 1 / 80000000 * 4640 = 58us
-#define DCC_0_HALFPERIOD 8000
+// make calculations easy and set up for microseconds
+#define RMT_CLOCK_DIVIDER 80
+#define DCC_1_HALFPERIOD 58  //4640 // 1 / 80000000 * 4640 = 58us
+#define DCC_0_HALFPERIOD 100 //8000
 
 class RMTPin {
  public:

@@ -87,7 +87,7 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   bzero(&config, sizeof(rmt_config_t));
   config.rmt_mode = RMT_MODE_TX;
   config.channel = channel = (rmt_channel_t)ch;
-  config.clk_div = 1;             // use 80Mhz clock directly
+  config.clk_div = RMT_CLOCK_DIVIDER;
   config.gpio_num = (gpio_num_t)pin;
   config.mem_block_num = 2; // With longest DCC packet 11 inc checksum (future expansion)
                             // number of bits needed is 22preamble + start +
