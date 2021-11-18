@@ -100,6 +100,7 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
 
   DIAG(F("Register interrupt on core %d"), xPortGetCoreID());
 
+  ESP_ERROR_CHECK(rmt_set_tx_loop_mode(channel, true));
   rmt_register_tx_end_callback(interrupt, this);
   rmt_set_tx_intr_en(channel, true);
 
@@ -148,7 +149,8 @@ bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1
 }
 
 void IRAM_ATTR RMTPin::RMTinterrupt() {
-  rmt_tx_start(channel,true); // preamble is always loaded, stat right away
+  //no rmt_tx_start(channel,true) as we run in loop mode
+  //preamble is always loaded at beginning of buffer
   if (dataReady) {            // if we have new data, fill while preamble is running
     rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
     dataReady = false;
