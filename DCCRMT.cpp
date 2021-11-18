@@ -17,9 +17,13 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "defines.h"
 #include "DIAG.h"
 #include "DCCRMT.h"
+#include "DCCWaveform.h" // for MAX_PACKET_SIZE
+
+#define DATA_LEN(X) ((X)*9+1) // Each byte has one bit extra and we have one EOF marker
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
@@ -39,11 +43,12 @@ void setDCCBit0(rmt_item32_t* item) {
   item->duration1 = DCC_0_HALFPERIOD;
 }
 
-void setDCCBit0Last(rmt_item32_t* item) {
+// special long zero to trigger scope
+void setDCCBit0Long(rmt_item32_t* item) {
   item->level0    = 1;
   item->duration0 = DCC_0_HALFPERIOD + DCC_0_HALFPERIOD/10;
   item->level1    = 0;
-  item->duration1 = DCC_0_HALFPERIOD;
+  item->duration1 = DCC_0_HALFPERIOD + DCC_0_HALFPERIOD/10;
 }
 
 void setEOT(rmt_item32_t* item) {
@@ -62,11 +67,15 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<plen; n++)
     setDCCBit1(preamble + n);      // preamble bits
-  setDCCBit0(preamble + plen); // start of packet 0 bit
+#ifdef SCOPE
+  setDCCBit0Long(preamble + plen); // start of packet 0 bit long version
+#else
+  setDCCBit0(preamble + plen);     // start of packet 0 bit normal version
+#endif
   setEOT(preamble + plen + 1);     // EOT marker
 
   // idle
-  idleLen = 29;
+  idleLen = 28;
   idle = (rmt_item32_t*)malloc(idleLen*sizeof(rmt_item32_t));
   for (byte n=0; n<8; n++)   // 0 to 7
     setDCCBit1(idle + n);
@@ -75,11 +84,10 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   for (byte n=18; n<26; n++) // 18 to 25
     setDCCBit1(idle + n);
   setDCCBit1(idle + 26);     // end bit
-  setDCCBit0Last(idle + 27); // finish always with 0
-  setEOT(idle + 28);         // EOT marker
+  setEOT(idle + 27);         // EOT marker
 
   // data: max packet size today is 5 + checksum
-  maxDataLen = (5+1)*9+2; // Each byte has one bit extra and one 0 bit and one EOF marker
+  maxDataLen = DATA_LEN(MAX_PACKET_SIZE);
   data = (rmt_item32_t*)malloc(maxDataLen*sizeof(rmt_item32_t));
   
   rmt_config_t config;
@@ -125,7 +133,7 @@ const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
   if (dataReady == true || dataRepeat > 0) // we have still old work to do
     return false;
-  if (byteCount*9+2 > maxDataLen)      // this would overun our allocated memory for data
+  if (DATA_LEN(byteCount) > maxDataLen)      // this would overun our allocated memory for data
     return false;                      // something very broken, can not convert packet
 
   // convert bytes to RMT stream of "bits"
@@ -140,7 +148,6 @@ bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1
     setDCCBit0(data + bitcounter++); // zero at end of each byte
   }
   setDCCBit1(data + bitcounter-1);     // overwrite previous zero bit with one bit
-  setDCCBit0Last(data + bitcounter++); // extra 0 bit after end bit
   setEOT(data + bitcounter++);         // EOT marker
   dataLen = bitcounter;
   dataReady = true;
