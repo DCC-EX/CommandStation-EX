@@ -60,6 +60,7 @@
 #define AFTER(sensor_id)
 #define AMBER(signal_id)
 #define AT(sensor_id)
+#define AUTOSTART
 #define CALL(route) 
 #define CLOSE(id) 
 #define DELAY(mindelay)
@@ -158,7 +159,8 @@ const int StringMacroTracker1=__COUNTER__;
 #undef AFTER
 #undef AMBER
 #undef AT
-#undef AUTOMATION 
+#undef AUTOMATION
+#undef AUTOSTART 
 #undef CALL
 #undef CLOSE
 #undef DELAY
@@ -240,6 +242,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
+#define AUTOSTART OPCODE_AUTOSTART,NOP,
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define DELAY(ms) OPCODE_DELAY,V(ms/100L),

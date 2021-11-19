@@ -217,6 +217,11 @@ LookList *  RMFT2::onCloseLookup=NULL;
         onCloseLookup->add(operand,progCounter);
         break;
 
+     case OPCODE_AUTOSTART:
+         // automatically create a task from here at startup. 
+         new RMFT2(progCounter);
+         break;
+
      default: // Ignore   
       break; 
      }     
@@ -769,6 +774,7 @@ void RMFT2::loop2() {
           if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
           break;
 
+       case OPCODE_AUTOSTART: // Handled only during begin process
        case OPCODE_PAD: // Just a padding for previous opcode needing >1 operad byte.
        case OPCODE_SIGNAL: // Signal definition ignore at run time
        case OPCODE_TURNOUT: // Turnout definition ignored at runtime
