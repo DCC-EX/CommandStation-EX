@@ -31,7 +31,7 @@ class WiThrottle {
     static void loop(RingStream * stream);
     void parse(RingStream * stream, byte * cmd);
     static WiThrottle* getThrottle( int wifiClient); 
-    static bool annotateLeftRight;
+    
   private: 
     WiThrottle( int wifiClientId);
     ~WiThrottle();
@@ -53,6 +53,8 @@ class WiThrottle {
       bool heartBeatEnable;
       unsigned long heartBeat;
       bool initSent; // valid connection established
+      bool exRailSent; // valid connection established
+      uint16_t mostRecentCab;
       int turnoutListHash;  // used to check for changes to turnout list
       bool lastPowerState;  // last power state sent to this client
       int DCCToWiTSpeed(int DCCSpeed);

@@ -66,19 +66,17 @@ class LiquidCrystal_I2C : public LCDDisplay {
 public:
   LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
   void begin();
-  void clearNative();
-  void setRowNative(byte line);
-  size_t writeNative(uint8_t c);
+  void clearNative() override;
+  void setRowNative(byte line) override;
+  size_t writeNative(uint8_t c) override;
   
   void display();
   void noBacklight();
   void backlight();
   
   void command(uint8_t);
-  void init();
 
 private:
-  void init_priv();
   void send(uint8_t, uint8_t);
   void write4bits(uint8_t);
   void expanderWrite(uint8_t);
@@ -89,6 +87,8 @@ private:
   uint8_t _backlightval;
 
   uint8_t outputBuffer[4];
+  // I/O is synchronous, so if this is called we're not busy!
+  bool isBusy() override { return false; } 
 };
 
 #endif

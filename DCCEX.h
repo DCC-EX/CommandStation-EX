@@ -43,6 +43,11 @@
 #include "LCD_Implementation.h"
 #include "LCN.h"
 #include "freeMemory.h"
+#include "IODevice.h"
+#include "Turnouts.h"
+#include "Sensors.h"
+#include "Outputs.h"
+#include "RMFT.h"
 
 // not yet in this branch
 //#if __has_include ( "myAutomation.h")

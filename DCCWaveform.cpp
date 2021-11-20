@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma GCC optimize ("-O3")
+
 #include <Arduino.h>
 
 #include "defines.h"
@@ -50,10 +50,8 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
   MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  if (MotorDriver::usePWM)
-    DIAG(F("Signal pin config: high accuracy waveform"));
-  else
-    DIAG(F("Signal pin config: normal accuracy waveform"));
+  DIAG(F("Signal pin config: %S accuracy waveform"),
+	 MotorDriver::usePWM ? F("high") : F("normal") );
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -86,6 +84,8 @@ void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void IRAM_ATTR DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
@@ -113,7 +113,7 @@ void IRAM_ATTR DCCWaveform::interruptHandler() {
     progTrack.checkAck();
 #endif
 }
-
+#pragma GCC push_options
 
 // An instance of this class handles the DCC transmissions for one track. (main or prog)
 // Interrupts are marshalled via the statics.
@@ -149,6 +149,7 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
   motorDriver->setPower( ison);
+  sentResetsSincePacket=0; 
 }
 
 
@@ -159,6 +160,8 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
     tripValue=progTripValue;
   
+  // Trackname for diag messages later
+  const FSH*trackname = isMainTrack ? F("MAIN") : F("PROG");
   switch (powerMode) {
     case POWERMODE::OFF:
       sampleDelay = POWER_SAMPLE_OFF_WAIT;
@@ -176,9 +179,9 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
 	      }
 	      // Write this after the fact as we want to turn on as fast as possible
 	      // because we don't know which output actually triggered the fault pin
-	      DIAG(F("*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***"), isMainTrack ? F("MAIN") : F("PROG"));
+	      DIAG(F("COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S"), trackname);
 	  } else {
-	      DIAG(F("*** %S FAULT PIN ACTIVE - OVERLOAD ***"), isMainTrack ? F("MAIN") : F("PROG"));
+	    DIAG(F("%S FAULT PIN ACTIVE - OVERLOAD"), trackname);
 	      if (lastCurrent < tripValue) {
 		  lastCurrent = tripValue; // exaggerate
 	      }
@@ -196,7 +199,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
         unsigned int maxmA=motorDriver->raw2mA(tripValue);
 	power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
-        DIAG(F("*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
+        DIAG(F("%S TRACK POWER OVERLOAD current=%d max=%d offtime=%d"), trackname, mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
 	    power_sample_overload_wait = 10000;
 	else
@@ -208,7 +211,7 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
       setPowerMode(POWERMODE::ON);
       sampleDelay = POWER_SAMPLE_ON_WAIT;
       // Debug code....
-      DIAG(F("*** %S TRACK POWER RESET delay=%d ***"), isMainTrack ? F("MAIN") : F("PROG"), sampleDelay);
+      DIAG(F("%S TRACK POWER RESET delay=%d"), trackname, sampleDelay);
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
@@ -232,6 +235,8 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_LOW_0   -> */ LOW,
    /* WAVE_PENDING (should not happen) -> */ LOW};
         
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void IRAM_ATTR DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
@@ -291,7 +296,7 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
     }
   }  
 }
-
+#pragma GCC pop_options
 
 
 // Wait until there is no packet pending, then make this pending
@@ -347,8 +352,10 @@ byte DCCWaveform::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void IRAM_ATTR DCCWaveform::checkAck() {
-    // This function operates in interrupt() time (not on ESP) so must be fast and can't DIAG 
+    // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
@@ -396,3 +403,4 @@ void IRAM_ATTR DCCWaveform::checkAck() {
     }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
+#pragma GCC pop_options

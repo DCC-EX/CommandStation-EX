@@ -38,9 +38,11 @@ enum ackOp : byte
   ITC1,             // If True Callback(1)  (if prevous WACK got an ACK)
   ITC0,             // If True callback(0);
   ITCB,             // If True callback(byte)
+  ITCBV,            // If True callback(byte) - end of Verify Byte
   ITCB7,            // If True callback(byte &0x7F)
   NAKFAIL,          // if false callback(-1)
   CALLFAIL,         // callback(-1)
+  BIV,              // Set ackManagerByte to initial value for Verify retry
   STARTMERGE,       // Clear bit and byte settings ready for merge pass
   MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
   SETBIT,           // sets bit number to next prog byte
@@ -64,8 +66,10 @@ enum   CALLBACK_STATE : byte {
 
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-#ifdef ARDUINO_AVR_UNO
+#if defined(ARDUINO_AVR_UNO)
 const byte MAX_LOCOS = 20;
+#elif defined(ARDUINO_AVR_NANO)
+const byte MAX_LOCOS = 30;
 #else
 const byte MAX_LOCOS = 50;
 #endif
@@ -113,6 +117,12 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
+  static inline int16_t setAckRetry(byte retry) {
+    ackRetry = retry;
+    ackRetryPSum = ackRetrySum;
+    ackRetrySum = 0;  // reset running total
+    return ackRetryPSum;
+  };
 
 private:
   struct LOCO
@@ -141,9 +151,15 @@ private:
 
   // ACK MANAGER
   static ackOp const *ackManagerProg;
+  static ackOp const *ackManagerProgStart;
   static byte ackManagerByte;
+  static byte ackManagerByteVerify;
   static byte ackManagerBitNum;
   static int ackManagerCv;
+  static byte ackManagerRetry;
+  static byte ackRetry;
+  static int16_t ackRetrySum;
+  static int16_t ackRetryPSum;
   static int ackManagerWord;
   static byte ackManagerStash;
   static bool ackReceived;

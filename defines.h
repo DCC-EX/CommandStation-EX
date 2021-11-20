@@ -18,6 +18,19 @@
 
 */
 
+#ifndef DEFINES_H
+#define DEFINES_H
+
+// defines.h relies on macros defined in config.h
+// but it may have already been included (for cosmetic convenence) by the .ino
+#ifndef MOTOR_SHIELD_TYPE
+  #if __has_include ( "config.h")
+    #include "config.h"
+  #else
+    #include "config.example.h"
+  #endif
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 #if defined(ARDUINO_ARCH_ESP8266)
@@ -42,7 +55,11 @@
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
-#if ENABLE_WIFI && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO) || defined(ESP_FAMILY))
+#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO) || defined(ESP_FAMILY))
+ #define BIG_RAM
+#endif 
+
+#if ENABLE_WIFI && defined(BIG_RAM)
 #define WIFI_ON true
 #ifndef WIFI_CHANNEL
 #define WIFI_CHANNEL 1
@@ -51,7 +68,7 @@
 #define WIFI_ON false
 #endif
 
-#if ENABLE_ETHERNET && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO)) 
+#if ENABLE_ETHERNET && defined(BIG_RAM)
 #define ETHERNET_ON true
 #else
 #define ETHERNET_ON false
@@ -67,3 +84,9 @@
 // Currently only devices which can communicate at 115200 are supported.
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
+
+#if __has_include ( "myAutomation.h") && defined(BIG_RAM)
+  #define RMFT_ACTIVE
+#endif
+
+#endif

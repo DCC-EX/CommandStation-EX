@@ -137,18 +137,38 @@ The configuration file for DCC-EX Command Station
 //
 // DEFINE LCD SCREEN USAGE BY THE BASE STATION
 //
-// Note: This feature requires an I2C enabled LCD screen using a PCF8574 based chipset.
-//       or one using a Hitachi  HD44780.
-//       OR an I2C Oled screen.
-// To enable, uncomment one of the lines below
+// Note: This feature requires an I2C enabled LCD screen using a Hitachi HD44780
+//       controller and a commonly available PCF8574 based I2C 'backpack'.
+// To enable, uncomment one of the #define lines below
 
-// define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
-// #define LCD_DRIVER  0x3F,16,2
+// define LCD_DRIVER for I2C address 0x27, 16 cols, 2 rows
+// #define LCD_DRIVER  0x27,16,2
 
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
-// Also 132x64 I2C SH1106 devices.
+// Also 132x64 I2C SH1106 devices
 // #define OLED_DRIVER 128,32
 
-/////////////////////////////////////////////////////////////////////////////////////
+// Define scroll mode as 0, 1 or 2
+#define SCROLLMODE 1
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
+//
+// According to norm RCN-213 a DCC packet with a 1 is closed/straight
+// and one with a 0 is thrown/diverging.  In DCC++ Classic, and in previous
+// versions of DCC++EX, a turnout throw command was implemented in the packet as 
+// '1' and a close command as '0'. The #define below makes the states
+// match with the norm.  But we don't want to cause havoc on existent layouts,
+// so we define this only for new installations. If you don't want this,
+// don't add it to your config.h.
+//#define DCC_TURNOUTS_RCN_213
+
+// The following #define likewise inverts the behaviour of the <a> command 
+// for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a 
+// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
+// (throw turnout).
+//#define DCC_ACCESSORY_RCN_213
+
+/////////////////////////////////////////////////////////////////////////////////////
