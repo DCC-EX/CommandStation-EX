@@ -22,6 +22,12 @@
 
 #include "IO_GPIOBase.h"
 
+#if defined(ARDUINO_ARCH_ESP32) // min seems to be missing from that package
+#ifndef min
+#define min(a,b) ((a)<(b)?(a):(b))
+#endif
+#endif
+
 class MCP23008 : public GPIOBase<uint8_t> {
 public:
   static void create(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1) {
