@@ -75,7 +75,7 @@ private:
     if (immediate) {
       uint8_t buffer[1];
       I2CManager.read(_I2CAddress, buffer, 1);
-      _portInputState = ((uint16_t)buffer) & 0xff;
+      _portInputState = buffer[0];
     } else {
       requestBlock.wait(); // Wait for preceding operation to complete
       // Issue new request to read GPIO register
@@ -86,7 +86,7 @@ private:
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
     if (status == I2C_STATUS_OK) 
-      _portInputState = ((uint16_t)inputBuffer[0]) & 0xff;
+      _portInputState = inputBuffer[0];
     else  
       _portInputState = 0xff; 
   }
