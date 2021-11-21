@@ -26,6 +26,9 @@
 #include "FSH.h"
 #include "IODevice.h"
 
+#include "MotorDriver.h"
+extern MotorDriverContainer mDC;
+
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
 // It has no visibility of the hardware, timers, interrupts
@@ -49,9 +52,8 @@ FSH* DCC::shieldName=NULL;
 byte DCC::joinRelay=UNUSED_PIN;
 byte DCC::globalSpeedsteps=128;
 
-void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
-  shieldName=(FSH *)motorShieldName;
-  StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+void DCC::begin() {
+  StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), mDC.getMotorShieldName(), F(GITHUB_SHA));
 
   // Initialise HAL layer before reading EEprom.
   IODevice::begin();
@@ -60,7 +62,7 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mainDriver,progDriver); 
+  DCCWaveform::begin(mDC.mainTrack(),mDC.progTrack()); 
 }
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {

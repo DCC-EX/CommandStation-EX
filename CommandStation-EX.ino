@@ -85,11 +85,7 @@ void setup()
 #endif // ETHERNET_ON
 
   // Responsibility 3: Start the DCC engine.
-  // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
-  // Standard supported devices have pre-configured macros but custome hardware installations require
-  //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
-  // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
-  DCC::begin(MOTOR_SHIELD_TYPE);
+  DCC::begin();
          
   // Start RMFT (ignored if no automnation)
   RMFT::begin();

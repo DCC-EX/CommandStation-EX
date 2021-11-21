@@ -77,7 +77,7 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver);
+  static void begin();
   static void setJoinRelayPin(byte joinRelayPin);
   static void loop();
 

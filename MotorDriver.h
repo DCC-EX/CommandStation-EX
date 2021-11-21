@@ -106,4 +106,25 @@ class MotorDriver {
     }
 #endif
 };
+
+class MotorDriverContainer {
+public:
+  MotorDriverContainer(const FSH * motorShieldName,
+		       MotorDriver *m0=NULL,
+		       MotorDriver *m1=NULL,
+		       MotorDriver *m2=NULL,
+		       MotorDriver *m3=NULL,
+		       MotorDriver *m4=NULL,
+		       MotorDriver *m5=NULL,
+		       MotorDriver *m6=NULL,
+		       MotorDriver *m7=NULL);
+  //  void SetCapability(byte n, byte cap, char [] name);
+  inline FSH *getMotorShieldName() { return shieldName; };
+  inline MotorDriver *mainTrack() { return mD[0]; }; //start fixed
+  inline MotorDriver *progTrack() { return mD[1]; };
+
+private:
+  MotorDriver *mD[8];
+  FSH *shieldName;
+};
 #endif

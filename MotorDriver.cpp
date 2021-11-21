@@ -17,6 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <Arduino.h>
+#include "config.h"
+#include "defines.h"
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
@@ -194,3 +196,25 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     result.maskLOW = ~result.maskHIGH;
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
+
+MotorDriverContainer::MotorDriverContainer(const FSH * motorShieldName,
+					   MotorDriver *m0,
+					   MotorDriver *m1,
+					   MotorDriver *m2,
+					   MotorDriver *m3,
+					   MotorDriver *m4,
+					   MotorDriver *m5,
+					   MotorDriver *m6,
+					   MotorDriver *m7) {
+  mD[0]=m0;
+  mD[1]=m1;
+  mD[2]=m2;
+  mD[3]=m3;
+  mD[4]=m4;
+  mD[5]=m5;
+  mD[6]=m6;
+  mD[7]=m7;
+  shieldName = (FSH *)motorShieldName;
+}
+
+MotorDriverContainer mDC(MOTOR_SHIELD_TYPE);

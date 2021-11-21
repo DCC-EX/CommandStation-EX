@@ -92,8 +92,10 @@ void IRAM_ATTR DCCWaveform::interruptHandler() {
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   // Set the signal state for both tracks
-  mainTrack.motorDriver->setSignal(sigMain);
-  progTrack.motorDriver->setSignal(sigProg);
+  if (mainTrack.motorDriver)
+    mainTrack.motorDriver->setSignal(sigMain);
+  if (progTrack.motorDriver)
+    progTrack.motorDriver->setSignal(sigProg);
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
@@ -148,12 +150,14 @@ POWERMODE DCCWaveform::getPowerMode() {
 void DCCWaveform::setPowerMode(POWERMODE mode) {
   powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
-  motorDriver->setPower( ison);
+  if (motorDriver)
+    motorDriver->setPower( ison);
   sentResetsSincePacket=0; 
 }
 
 
 void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
+  if (!motorDriver) return;
   if (millis() - lastSampleTaken  < sampleDelay) return;
   lastSampleTaken = millis();
   int tripValue= motorDriver->getRawCurrentTripValue();
@@ -323,6 +327,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 // (yes I know I could have subclassed the main track but...) 
 
 void DCCWaveform::setAckBaseline() {
+      if (!motorDriver) return;
       if (isMainTrack) return;
       int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
@@ -345,6 +350,7 @@ void DCCWaveform::setAckPending() {
 }
 
 byte DCCWaveform::getAck() {
+      if (!motorDriver) return 0;
       if (ackPending) return (2);  // still waiting
       if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
 			  ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration, numAckSamples, numAckGaps);
@@ -355,6 +361,7 @@ byte DCCWaveform::getAck() {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void IRAM_ATTR DCCWaveform::checkAck() {
+    if (!motorDriver) return;
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
