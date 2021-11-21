@@ -302,7 +302,7 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
-  while (packetPending||packetPendingRMT);
+  while (packetPending);
   portENTER_CRITICAL(&timerMux);
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
