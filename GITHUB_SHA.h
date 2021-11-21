@@ -1,1 +1,1 @@
-#define GITHUB_SHA "ESP32-2021120-11:30"
+#define GITHUB_SHA "ESP32-motordriver-2021121-22:55"
