@@ -57,11 +57,11 @@ void setEOT(rmt_item32_t* item) {
 }
 
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  RMTPin *tt = (RMTPin *)t;
+  RMTChannel *tt = (RMTChannel *)t;
   tt->RMTinterrupt();
 }
 
-RMTPin::RMTPin(byte pin, byte ch, byte plen) {
+RMTChannel::RMTChannel(byte pin, byte ch, byte plen) {
 
   // preamble
   preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
@@ -124,14 +124,14 @@ RMTPin::RMTPin(byte pin, byte ch, byte plen) {
   RMTinterrupt();
 }
 
-void RMTPin::RMTprefill() {
+void RMTChannel::RMTprefill() {
   rmt_fill_tx_items(channel, preamble, preambleLen, 0);
   rmt_fill_tx_items(channel, idle, idleLen, preambleLen-1);
 }
 
 const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
-bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
+bool RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1) {
   if (dataReady == true || dataRepeat > 0) // we have still old work to do
     return false;
   if (DATA_LEN(byteCount) > maxDataLen)      // this would overun our allocated memory for data
@@ -156,7 +156,7 @@ bool RMTPin::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=1
   return true;
 }
 
-void IRAM_ATTR RMTPin::RMTinterrupt() {
+void IRAM_ATTR RMTChannel::RMTinterrupt() {
   //no rmt_tx_start(channel,true) as we run in loop mode
   //preamble is always loaded at beginning of buffer
   if (dataReady) {            // if we have new data, fill while preamble is running

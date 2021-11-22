@@ -38,7 +38,7 @@ uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 
-  mainTrack.rmtPin = new RMTPin(21, 0, PREAMBLE_BITS_MAIN);
+  mainTrack.rmtPin = new RMTChannel(21, 0, PREAMBLE_BITS_MAIN);
 
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;

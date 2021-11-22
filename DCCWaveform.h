@@ -124,7 +124,7 @@ class DCCWaveform {
     
     bool isMainTrack;
     MotorDriver*  motorDriver;
-    RMTPin* rmtPin;
+    RMTChannel* rmtPin;
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte transmitLength;

@@ -29,15 +29,15 @@
 #define DCC_1_HALFPERIOD 58  //4640 // 1 / 80000000 * 4640 = 58us
 #define DCC_0_HALFPERIOD 100 //8000
 
-class RMTPin {
+class RMTChannel {
  public:
-  RMTPin(byte pin, byte ch, byte plen);
+  RMTChannel(byte pin, byte ch, byte plen);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
   bool RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
   
-  static RMTPin mainRMTPin;
-  static RMTPin progRMTPin;
+  static RMTChannel mainRMTChannel;
+  static RMTChannel progRMTChannel;
   
  private:
     
