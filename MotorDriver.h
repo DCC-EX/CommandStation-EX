@@ -52,25 +52,12 @@ class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
-    virtual void setPower( bool on);
-    void setSignal( bool high);/* {
-      if (usePWM) {
-	DCCTimer::setPWM(signalPin,high);
-      }
-      
-      if (high) {
-        setHIGH(fastSignalPin);
-        if (dualSignal) setLOW(fastSignalPin2);
-      }
-      else {
-        setLOW(fastSignalPin);
-        if (dualSignal) setHIGH(fastSignalPin2);
-      }
-      };*/
-    virtual void setBrake( bool on);
-    virtual int  getCurrentRaw();
-    virtual unsigned int raw2mA( int raw);
-    virtual int mA2raw( unsigned int mA);
+    void setPower( bool on);
+    void setSignal( bool high);
+    void setBrake( bool on);
+    int  getCurrentRaw();
+    unsigned int raw2mA( int raw);
+    int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
     }
