@@ -19,6 +19,7 @@
 
 #pragma once
 #include <Arduino.h>
+#if defined(ARDUINO_ARCH_ESP32)
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"
@@ -55,3 +56,4 @@ class RMTPin {
   volatile bool dataReady = false;    // do we have real data available or send idle
   volatile byte dataRepeat = 0;
 };
+#endif //ESP32

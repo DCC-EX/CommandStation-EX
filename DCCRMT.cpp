@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "defines.h"
+#if defined(ARDUINO_ARCH_ESP32)
 #include "DIAG.h"
 #include "DCCRMT.h"
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE
@@ -166,3 +167,4 @@ void IRAM_ATTR RMTPin::RMTinterrupt() {
     dataRepeat--;
   return;
 }
+#endif //ESP32
