@@ -24,11 +24,11 @@
    F4. Oled announcements (depends on HAL)
    F5. Withrottle roster info
    F6. Multi-occupancy semaphore
-   F7. Self starting sequences
+   F7. [DONE see AUTOSTART] Self starting sequences
    F8. Park/unpark
   */
 /* EXRAILPlus planned TRANSPARENT additions
-   [DONE]T1. RAM based fast lookup for sequences ON* event catchers and signals.
+   T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
    T2. Extend to >64k
   */
 
@@ -666,6 +666,15 @@ void RMFT2::loop2() {
       DCC::setFn(operand,GET_OPERAND(1),false);
       break;
    
+    case OPCODE_DCCACTIVATE: {
+      // operand is address<<3 | subaddr<<1 | active 
+      int16_t addr=operand>>3;
+      int16_t subaddr=(operand>>1) & 0x03;
+      bool active=operand & 0x01;
+      DCC::setAccessory(addr,subaddr,active);
+      break;
+    }
+
     case OPCODE_FOLLOW:
       progCounter=sequenceLookup->find(operand);
       if (progCounter<0) kill(F("FOLLOW unknown"), operand); 

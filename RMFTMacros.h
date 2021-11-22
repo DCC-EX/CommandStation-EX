@@ -16,6 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef RMFTMacros_H
 #define RMFTMacros_H
 
@@ -25,7 +26,7 @@
 
 
 // This file will include and build the EXRAIL script and associated helper tricks.
-// It does this by incliding myAutomation.h several times, each with a set of macros to 
+// It does this by including myAutomation.h several times, each with a set of macros to 
 // extract the relevant parts.
 
 // The entire automation script is contained within a byte array RMFT2::RouteCode[]
@@ -58,6 +59,10 @@
 #define ENDEXRAIL  }
  
 #define AFTER(sensor_id)
+#define ACTIVATE(addr,subaddr)
+#define DEACTIVATE(addr,subaddr)
+#define ACTIVATEL(addr)
+#define DEACTIVATEL(addr)
 #define AMBER(signal_id)
 #define AT(sensor_id)
 #define AUTOSTART
@@ -157,6 +162,10 @@ const int StringMacroTracker1=__COUNTER__;
 
 // Setup for Pass 3: create main routes table 
 #undef AFTER
+#undef ACTIVATE
+#undef DEACTIVATE
+#undef ACTIVATEL
+#undef DEACTIVATEL
 #undef AMBER
 #undef AT
 #undef AUTOMATION
@@ -226,29 +235,35 @@ const int StringMacroTracker1=__COUNTER__;
 #undef XFOFF
 #undef XFON
 
+// Define internal helper macros.
+// Everything we generate here has to be compile-time evaluated to 
+// a constant.  
+#define V(val) (byte)(((int16_t)(val))&0x00FF),(byte)(((int16_t)(val)>>8)&0x00FF)
 // Define macros for route code creation 
-#define V(val) ((int16_t)(val))&0x00FF,((int16_t)(val)>>8)&0x00FF
-#define NOP 0,0
-
 #define ALIAS(name,value) 
 #define EXRAIL const  FLASH  byte RMFT2::RouteCode[] = {
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
-#define ENDTASK OPCODE_ENDTASK,NOP,
-#define DONE OPCODE_ENDTASK,NOP,
-#define ENDEXRAIL OPCODE_ENDTASK,NOP,OPCODE_ENDEXRAIL,NOP };
- 
+#define ENDTASK OPCODE_ENDTASK,0,0,
+#define DONE OPCODE_ENDTASK,0,0,
+#define ENDEXRAIL OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
+
+#define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
+#define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
+#define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3 | 1),
+#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
+
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
-#define AUTOSTART OPCODE_AUTOSTART,NOP,
+#define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define DELAY(ms) OPCODE_DELAY,V(ms/100L),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,V(mindelay/100L),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
-#define ENDIF  OPCODE_ENDIF,NOP,
+#define ENDIF  OPCODE_ENDIF,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
@@ -261,23 +276,23 @@ const int StringMacroTracker1=__COUNTER__;
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
-#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,NOP,
-#define JOIN OPCODE_JOIN,NOP,
+#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define JOIN OPCODE_JOIN,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
-#define PAUSE OPCODE_PAUSE,NOP,
+#define PAUSE OPCODE_PAUSE,0,0,
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
-#define POWEROFF OPCODE_POWEROFF,NOP,
+#define POWEROFF OPCODE_POWEROFF,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
-#define READ_LOCO OPCODE_READ_LOCO1,NOP,OPCODE_READ_LOCO2,NOP,
+#define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
 #define RESET(pin) OPCODE_RESET,V(pin),
-#define RESUME OPCODE_RESUME,NOP,
-#define RETURN OPCODE_RETURN,NOP,
+#define RESUME OPCODE_RESUME,0,0,
+#define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SERIAL(msg) PRINT(msg)
@@ -296,7 +311,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define PIN_TURNOUT(id,pin) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
-#define UNJOIN OPCODE_UNJOIN,NOP,
+#define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
