@@ -16,12 +16,20 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef MotorDriver_h
 #define MotorDriver_h
 #include "defines.h"
 #include "FSH.h"
 
-// Virtualised Motor shield 1-track hardware Interface
+#if defined(ARDUINO_ARCH_ESP32)
+#include <queue>
+#include "DCCRMT.h"
+#endif
+
+// Number of preamble bits (moved here so MotorDriver and Waveform know)
+const int   PREAMBLE_BITS_MAIN = 16;
+const int   PREAMBLE_BITS_PROG = 22;
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
 #define UNUSED_PIN 127 // inside int8_t
@@ -48,10 +56,13 @@ struct FASTPIN {
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
+enum driverType { TIMERINTERRUPT, RMT_MAIN, RMT_PROG, DC_ENA, DC_BRAKE };
+		  
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
-                byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+                byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin,
+		driverType t=TIMERINTERRUPT);
     void setPower( bool on);
     void setSignal( bool high);
     void setBrake( bool on);
@@ -68,6 +79,12 @@ class MotorDriver {
     inline byte getFaultPin() {
 	return faultPin;
     }
+#if defined(ARDUINO_ARCH_ESP32)
+    void loop();
+    inline driverType type() { return dtype; };
+    bool schedulePacket(dccPacket packet);
+#endif
+
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
@@ -92,6 +109,11 @@ class MotorDriver {
       if (doit) __enable_irq();
     }
 #endif
+#if defined(ARDUINO_ARCH_ESP32)
+  RMTChannel* rmtChannel;
+  std::queue<dccPacket> outQueue;
+  driverType dtype;
+#endif
 };
 
 class MotorDriverContainer {
@@ -105,10 +127,15 @@ public:
 		       MotorDriver *m5=NULL,
 		       MotorDriver *m6=NULL,
 		       MotorDriver *m7=NULL);
+  inline void add(byte n, MotorDriver *m) {
+    if (n>8) return;
+    mD[n] = m;
+  };
   //  void SetCapability(byte n, byte cap, char [] name);
   inline FSH *getMotorShieldName() { return shieldName; };
   inline MotorDriver *mainTrack() { return mD[0]; }; //start fixed
   inline MotorDriver *progTrack() { return mD[1]; };
+  void loop();
 
 private:
   MotorDriver *mD[8];

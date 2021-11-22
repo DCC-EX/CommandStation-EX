@@ -31,22 +31,33 @@ bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin,
+			 driverType dt) {
+  dtype = dt;
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
-  
-  signalPin=signal_pin;
-  getFastPin(F("SIG"),signalPin,fastSignalPin);
-  pinMode(signalPin, OUTPUT);
-  
-  signalPin2=signal_pin2;
-  if (signalPin2!=UNUSED_PIN) {
-    dualSignal=true;
-    getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
-    pinMode(signalPin2, OUTPUT);
+
+  if (dtype == RMT_MAIN) {
+    signalPin=signal_pin;
+#if defined(ARDUINO_ARCH_ESP32)
+    rmtChannel = new RMTChannel(signalPin, 0, PREAMBLE_BITS_MAIN);
+#endif
+    dualSignal=false;
+  } else if (dtype == TIMERINTERRUPT) {
+    signalPin=signal_pin;
+    getFastPin(F("SIG"),signalPin,fastSignalPin);
+    pinMode(signalPin, OUTPUT);
+
+    signalPin2=signal_pin2;
+    if (signalPin2!=UNUSED_PIN) {
+      dualSignal=true;
+      getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
+      pinMode(signalPin2, OUTPUT);
+    }  else {
+      dualSignal=false;
+    }
   }
-  else dualSignal=false; 
   
   brakePin=brake_pin;
   if (brake_pin!=UNUSED_PIN){
@@ -197,6 +208,21 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
 
+bool MotorDriver::schedulePacket(dccPacket packet) {
+  if(!rmtChannel) return true; // fake success if functionality is not there
+
+  outQueue.push(packet);
+  if (outQueue.size() > 10) {
+    DIAG(F("Warning: outQueue > 10"));
+  }
+  return true;
+}
+
+void MotorDriver::loop() {
+  if (rmtChannel  && !outQueue.empty() && rmtChannel->RMTfillData(outQueue.front()))
+    outQueue.pop();
+}
+
 MotorDriverContainer::MotorDriverContainer(const FSH * motorShieldName,
 					   MotorDriver *m0,
 					   MotorDriver *m1,
@@ -215,6 +241,17 @@ MotorDriverContainer::MotorDriverContainer(const FSH * motorShieldName,
   mD[6]=m6;
   mD[7]=m7;
   shieldName = (FSH *)motorShieldName;
+}
+
+void MotorDriverContainer::loop() {
+  static byte i = 0;
+
+  // loops over MotorDrivers which have loop tasks
+  if (mD[i])
+    if (mD[i]->type() == RMT_MAIN || mD[i]->type() == RMT_PROG)
+      mD[i]->loop();
+  i++;
+  if(i > 7) i=0;
 }
 
 MotorDriverContainer mDC(MOTOR_SHIELD_TYPE);

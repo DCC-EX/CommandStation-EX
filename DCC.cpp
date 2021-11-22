@@ -20,6 +20,7 @@
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "DCCTrack.h"
 #include "EEStore.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
@@ -62,7 +63,13 @@ void DCC::begin() {
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mDC.mainTrack(),mDC.progTrack()); 
+  DCCWaveform::begin(mDC.mainTrack(),mDC.progTrack());
+  DCCTrack::mainTrack.addDriver(mDC.mainTrack());
+  DCCTrack::progTrack.addDriver(mDC.progTrack());
+
+  MotorDriver *md;
+  mDC.add(2, md = new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
+  DCCTrack::mainTrack.addDriver(md);
 }
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {
@@ -118,7 +125,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
 
   }
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  DCCTrack::mainTrack.schedulePacket(b, nB, 0);
 }
 
 void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
@@ -132,7 +139,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  DCCTrack::mainTrack.schedulePacket(b, nB, 0);
 }
 
 uint8_t DCC::getThrottleSpeed(int cab) {
@@ -167,7 +174,7 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
-    DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+    DCCTrack::mainTrack.schedulePacket(b, nB, 3);
     return;
   }
   
@@ -254,7 +261,7 @@ void DCC::setAccessory(int address, byte number, bool activate) {
   b[0] = address % 64 + 128;                                     // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
   b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8; // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
 
-  DCCWaveform::mainTrack.schedulePacket(b, 2, 4);      // Repeat the packet four times
+  DCCTrack::mainTrack.schedulePacket(b, 2, 3);      // Repeat the packet four times (3 2 1 0)
 }
 
 //
@@ -272,7 +279,7 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = bValue;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCTrack::mainTrack.schedulePacket(b, nB, 3);
 }
 
 //
@@ -293,7 +300,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = WRITE_BIT | (bValue ? BIT_ON : BIT_OFF) | bNum;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCTrack::mainTrack.schedulePacket(b, nB, 3);
 }
 
 void DCC::setProgTrackSyncMain(bool on) {
@@ -571,6 +578,7 @@ byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   DCCWaveform::loop(ackManagerProg!=NULL); // power overload checks
+  mDC.loop();
   ackManagerLoop();    // maintain prog track ack manager
   issueReminders();
 }
@@ -771,7 +779,7 @@ void DCC::ackManagerLoop() {
               if (Diag::ACK) DIAG(F("W%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
+              DCCTrack::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
              callbackState=AFTER_WRITE;
          }
@@ -782,7 +790,7 @@ void DCC::ackManagerLoop() {
 	      if (checkResets( RESET_MIN)) return;
               if (Diag::ACK) DIAG(F("WB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
+              DCCTrack::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
               DCCWaveform::progTrack.setAckPending(); 
               callbackState=AFTER_WRITE;
             }
@@ -793,7 +801,7 @@ void DCC::ackManagerLoop() {
 	  if (checkResets( RESET_MIN)) return; 
           if (Diag::ACK) DIAG(F("VB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
+          DCCTrack::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
           DCCWaveform::progTrack.setAckPending(); 
         }
         break;
@@ -805,7 +813,7 @@ void DCC::ackManagerLoop() {
           if (Diag::ACK) DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
+          DCCTrack::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
           DCCWaveform::progTrack.setAckPending(); 
         }
         break;

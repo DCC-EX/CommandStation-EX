@@ -20,6 +20,7 @@
 #pragma once
 #include <Arduino.h>
 #if defined(ARDUINO_ARCH_ESP32)
+#include "DCCPacket.h"
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"
@@ -34,7 +35,8 @@ class RMTChannel {
   RMTChannel(byte pin, byte ch, byte plen);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
-  bool RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
+  bool RMTfillData(dccPacket packet);
+  //bool RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
   
   static RMTChannel mainRMTChannel;
   static RMTChannel progRMTChannel;

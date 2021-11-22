@@ -22,6 +22,7 @@
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCCWaveform.h"
+#include "DCCTrack.h"
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
@@ -413,7 +414,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             packet[i]=(byte)p[i+1];
             if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)"), i, packet[i], packet[i]);
           }
-          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
+          (opcode=='M'?DCCTrack::mainTrack:DCCTrack::progTrack).schedulePacket(packet,params,3);  
         }
         return;
         

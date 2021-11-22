@@ -69,6 +69,10 @@ protected:
 
   I2CRB requestBlock;
   FSH *_deviceName;
+#if defined(ARDUINO_ARCH_ESP32)
+  // workaround: Has somehow no min function for all types
+  static inline T min(T a, int b) { return a < b ? a : b; };
+#endif
 };
 
 // Because class GPIOBase is a template, the implementation (below) must be contained within the same

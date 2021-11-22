@@ -28,10 +28,8 @@ const int  POWER_SAMPLE_ON_WAIT = 100;
 const int  POWER_SAMPLE_OFF_WAIT = 1000;
 const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
-// Number of preamble bits.
-const int   PREAMBLE_BITS_MAIN = 16;
-const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
+//const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
+#include "DCCPacket.h"
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
 // to the transform array.
@@ -81,6 +79,9 @@ class DCCWaveform {
       }
       return tripmA;        
     }
+    inline void schedulePacket(dccPacket packet) {
+      schedulePacket(packet.data, packet.length, packet.repeat);
+    };
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile bool packetPendingRMT;
@@ -124,7 +125,6 @@ class DCCWaveform {
     
     bool isMainTrack;
     MotorDriver*  motorDriver;
-    RMTChannel* rmtPin;
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte transmitLength;

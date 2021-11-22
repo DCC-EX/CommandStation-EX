@@ -22,12 +22,16 @@
 
 #include "defines.h"
 #include "DCCWaveform.h"
+#include "DCCTrack.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
+
+DCCTrack DCCTrack::mainTrack(&DCCWaveform::mainTrack);
+DCCTrack DCCTrack::progTrack(&DCCWaveform::progTrack);
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
@@ -37,8 +41,6 @@ volatile uint8_t DCCWaveform::numAckSamples=0;
 uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
-
-  mainTrack.rmtPin = new RMTChannel(21, 0, PREAMBLE_BITS_MAIN);
 
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
@@ -62,11 +64,11 @@ volatile bool ackflag = 0;
 
 void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
 
-  if (mainTrack.packetPendingRMT) {
-    mainTrack.rmtPin->RMTfillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
-    mainTrack.packetPendingRMT=false;
+  //if (mainTrack.packetPendingRMT) {
+  //  mainTrack.rmtPin->RMTfillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
+  //  mainTrack.packetPendingRMT=false;
     // sentResetsSincePacket = 0 // later when progtrack
-  }
+  //}
 
 #ifdef SLOW_ANALOG_READ
   if (ackflag) {
@@ -305,17 +307,17 @@ void IRAM_ATTR DCCWaveform::interrupt2() {
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
+  if (byteCount > MAX_PACKET_SIZE+1) return; // has chksum
   while (packetPending);
   portENTER_CRITICAL(&timerMux);
-  byte checksum = 0;
+  //byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
-    checksum ^= buffer[b];
+    //checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];
   }
   // buffer is MAX_PACKET_SIZE but pendingPacket is one bigger
-  pendingPacket[byteCount] = checksum;
-  pendingLength = byteCount + 1;
+  //pendingPacket[byteCount] = checksum;
+  pendingLength = byteCount /*+ 1*/;
   pendingRepeats = repeats;
   packetPending = true;
   packetPendingRMT = true;
