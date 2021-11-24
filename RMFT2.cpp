@@ -658,6 +658,14 @@ void RMFT2::loop2() {
       if (loco) DCC::setFn(loco,operand,false);
       break;
     
+    case OPCODE_DRIVE:
+      {
+        if (readSensor(operand)) break;
+        byte analogSpeed=IODevice::readAnalogue(GET_OPERAND(1)) *127 / 1024;
+        if (speedo!=analogSpeed) driveLoco(analogSpeed);
+        return; 
+      }    
+
     case OPCODE_XFON:      
       DCC::setFn(operand,GET_OPERAND(1),true);
       break;
