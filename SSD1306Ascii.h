@@ -32,21 +32,6 @@
 //#define NOLOWERCASE
 
 //------------------------------------------------------------------------------
-// Device initialization structure.
-
-struct DevType {
-  /* Pointer to initialization command bytes. */
-  const uint8_t* initcmds;
-  /* Number of initialization bytes */
-  const uint8_t initSize;
-  /* Width of the display in pixels */
-  const uint8_t lcdWidth;
-  /** Height of the display in pixels. */
-  const uint8_t lcdHeight;
-  /* Column offset RAM to display.  Used to pick start column of SH1106. */
-  const uint8_t colOffset;
-};
-
 // Constructor
 class SSD1306AsciiWire : public LCDDisplay {
  public:
@@ -55,24 +40,16 @@ class SSD1306AsciiWire : public LCDDisplay {
   SSD1306AsciiWire(int width, int height);
 
   // Initialize the display controller.
-  void begin(const DevType* dev, uint8_t i2cAddr);
+  void begin(uint8_t i2cAddr);
 
   // Clear the display and set the cursor to (0, 0).
   void clearNative() override;
 
   // Set cursor to start of specified text line
   void setRowNative(byte line) override;
-
-  // Initialize the display controller.
-  void init(const DevType* dev);
   
   // Write one character to OLED
   size_t writeNative(uint8_t c) override;
-
-  // Display characteristics / initialisation
-  static const DevType FLASH Adafruit128x32;
-  static const DevType FLASH Adafruit128x64;
-  static const DevType FLASH SH1106_132x64;
 
   bool isBusy() override { return requestBlock.isBusy(); }
 
