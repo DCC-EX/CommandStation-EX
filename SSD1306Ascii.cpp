@@ -137,7 +137,7 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
   m_i2cAddr = i2cAddr;
   m_col = 0;
   m_row = 0;
-  const uint8_t* table = (const uint8_t*)GETFLASHW(&dev->initcmds);
+  const uint8_t* table = (const uint8_t*)GETFLASHP(&dev->initcmds);
   uint8_t size = GETFLASH(&dev->initSize);
   m_displayWidth = GETFLASH(&dev->lcdWidth);
   m_displayHeight = GETFLASH(&dev->lcdHeight);

@@ -41,6 +41,7 @@
 typedef char FSH; 
 #define GETFLASH(addr) (*(const unsigned char *)(addr))
 #define GETFLASHW(addr) (*(const unsigned short *)(addr))
+#define GETFLASHP(addr) (*(void * const *)(addr))
 #define FLASH
 #define strlen_P strlen
 #define strcpy_P strcpy
@@ -48,6 +49,7 @@ typedef char FSH;
 typedef __FlashStringHelper FSH;
 #define GETFLASH(addr) pgm_read_byte_near(addr)
 #define GETFLASHW(addr) pgm_read_word_near(addr)
+#define GETFLASHP(addr) pgm_read_ptr_near(addr)
 #define FLASH PROGMEM
 #endif
 #endif
