@@ -960,8 +960,17 @@ void DCCEXParser::callback_R(int16_t result)
 
 void DCCEXParser::callback_Rloco(int16_t result)
 {
+  if (result <= 0)
+    StringFormatter::send(getAsyncReplyStream(), F("<r ERROR>\n"));
+  else if (result & LONG_ADDR_MARKER ) {        //long addr
+    result = result & ~LONG_ADDR_MARKER;
+    if (result > HIGHEST_SHORT_ADDR)  //real long
+      StringFormatter::send(getAsyncReplyStream(), F("<r %d>\n"), result);
+    else
+      StringFormatter::send(getAsyncReplyStream(), F("<r LONG %d UNSUPPORTED>\n"), result);
+  } else // short addr
     StringFormatter::send(getAsyncReplyStream(), F("<r %d>\n"), result);
-    commitAsyncReplyStream();
+  commitAsyncReplyStream();
 }
 
 void DCCEXParser::callback_Wloco(int16_t result)

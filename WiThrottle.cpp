@@ -409,7 +409,7 @@ void WiThrottle::checkHeartbeat() {
 }
 
 char WiThrottle::LorS(int cab) {
-    return (cab<127)?'S':'L';
+    return (cab<=HIGHEST_SHORT_ADDR)?'S':'L';
 }
 
 // Drive Away feature. Callback handling
@@ -421,9 +421,20 @@ char         WiThrottle::stashThrottleChar;
 
 void WiThrottle::getLocoCallback(int16_t locoid) {
   stashStream->mark(stashClient);
-  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+
+  char addrchar;
+  if (locoid & LONG_ADDR_MARKER) { // long addr
+    locoid = locoid & ~LONG_ADDR_MARKER;
+    addrchar = 'L';
+  } else
+    addrchar = 'S';
+
+  if (locoid<=0)
+    StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+  else if (addrchar == 'L' && locoid <= HIGHEST_SHORT_ADDR )
+    StringFormatter::send(stashStream,F("HMLong addr <= 127 not supported\n"));
   else {
-    char addcmd[20]={'M',stashThrottleChar,'+',LorS(locoid) };
+    char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
     itoa(locoid,addcmd+4,10);
     stashInstance->multithrottle(stashStream, (byte *)addcmd);
     DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
