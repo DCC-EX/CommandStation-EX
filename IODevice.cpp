@@ -28,8 +28,9 @@
 #define USE_FAST_IO
 #endif
 
-// Link to mySetup function.  If not defined, the function reference will be NULL.
-extern __attribute__((weak)) void mySetup();
+// Link to halSetup function.  If not defined, the function reference will be NULL.
+extern __attribute__((weak)) void halSetup();
+extern __attribute__((weak)) void mySetup();  // Deprecated function name, output warning if it's declared
 
 //==================================================================================================================
 // Static methods
@@ -61,12 +62,15 @@ void IODevice::begin() {
   }
   _initPhase = false;
 
-  // Call user's mySetup() function (if defined in the build in mySetup.cpp).
+  // Check for presence of deprecated mySetup() function, and output warning.
+  if (mySetup)
+    DIAG(F("WARNING: mySetup() function should be renamed to halSetup()"));
+
+  // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
-  //  The mySetup.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
-  if (mySetup) {
-    mySetup();
-  }
+  //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
+  if (halSetup)
+    halSetup();
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the
@@ -301,18 +305,16 @@ bool IODevice::owns(VPIN id) {
 // Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
 
 void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN pin, ConfigTypeEnum, int, int p[]) {
+bool IODevice::configure(VPIN pin, ConfigTypeEnum configType, int nParams, int p[]) {
+  if (configType!=CONFIGURE_INPUT || nParams!=1 || pin >= NUM_DIGITAL_PINS) return false;
   #ifdef DIAG_IO
   DIAG(F("Arduino _configurePullup Pin:%d Val:%d"), pin, p[0]);
   #endif
-  if (p[0]) {
-    pinMode(pin, INPUT_PULLUP);
-  } else {
-    pinMode(pin, INPUT);
-  }
+  pinMode(pin, p[0] ? INPUT_PULLUP : INPUT);
   return true;
 }
 void IODevice::write(VPIN vpin, int value) {
+  if (vpin >= NUM_DIGITAL_PINS) return;
   digitalWrite(vpin, value);
   pinMode(vpin, OUTPUT);
 }
@@ -320,6 +322,7 @@ void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
 bool IODevice::isBusy(VPIN) { return false; }
 bool IODevice::hasCallback(VPIN) { return false; }
 int IODevice::read(VPIN vpin) { 
+  if (vpin >= NUM_DIGITAL_PINS) return 0;
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
 }
 int IODevice::readAnalogue(VPIN vpin) {

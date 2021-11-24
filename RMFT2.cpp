@@ -720,10 +720,10 @@ void RMFT2::kill(const FSH * reason, int operand) {
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) return;
      if (opcode!=OPCODE_SIGNAL) continue;
-     byte redpin=GET_OPERAND(0);
+     VPIN redpin=GET_OPERAND(0);
      if (redpin!=id)continue;
-     byte amberpin=GET_OPERAND(1);
-     byte greenpin=GET_OPERAND(2);
+     VPIN amberpin=GET_OPERAND(1);
+     VPIN greenpin=GET_OPERAND(2);
      // If amberpin is zero, synthesise amber from red+green
      IODevice::write(redpin,red || (amber && (amberpin==0)));
      if (amberpin) IODevice::write(amberpin,amber);

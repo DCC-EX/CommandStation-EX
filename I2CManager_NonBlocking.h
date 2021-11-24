@@ -129,6 +129,10 @@ uint8_t I2CManagerClass::read(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t r
 /***************************************************************************
  * checkForTimeout() function, called from isBusy() and wait() to cancel
  * requests that are taking too long to complete.
+ * This function doesn't fully work as intended so is not currently called.
+ * Instead we check for an I2C hang-up and report an error from
+ * I2CRB::wait(), but we aren't able to recover from the hang-up.  Such faults
+ * may be caused by an I2C wire short for example.
  ***************************************************************************/
 void I2CManagerClass::checkForTimeout() {
   unsigned long currentMicros = micros();
@@ -163,7 +167,10 @@ void I2CManagerClass::loop() {
 #if !defined(I2C_USE_INTERRUPTS)
   handleInterrupt();
 #endif
-  checkForTimeout();
+  // Timeout is now reported in I2CRB::wait(), not here.
+  // I've left the code, commented out, as a reminder to look at this again
+  // in the future.
+  //checkForTimeout();
 }
 
 /***************************************************************************
@@ -174,6 +181,9 @@ void I2CManagerClass::handleInterrupt() {
 
   // Update hardware state machine
   I2C_handleInterrupt();
+
+  // Enable interrupts to minimise effect on other interrupt code
+  interrupts();
 
   // Check if current request has completed.  If there's a current request
   // and state isn't active then state contains the completion status of the request.

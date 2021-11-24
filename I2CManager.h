@@ -107,11 +107,16 @@
  *  the loop() function is called, and may be adequate under some circumstances.  
  *  The advantage of NOT using interrupts is that the impact of I2C upon the DCC waveform (when accurate timing mode isn't in use)
  *  becomes almost zero.
- *  This mechanism is under evaluation and should not be relied upon as yet.
  * 
  */
 
+// Uncomment following line to enable Wire library instead of native I2C drivers
 //#define I2C_USE_WIRE
+
+// Uncomment following line to disable the use of interrupts by the native I2C drivers.
+//#define I2C_NO_INTERRUPTS
+
+// Default to use interrupts within the native I2C drivers.
 #ifndef I2C_NO_INTERRUPTS
 #define I2C_USE_INTERRUPTS
 #endif
