@@ -63,7 +63,7 @@
 #define DEACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
 #define DEACTIVATEL(addr)
-#define DRIVE(analogpin,stopper)
+#define DRIVE(analogpin)
 #define AMBER(signal_id)
 #define AT(sensor_id)
 #define AUTOSTART
@@ -263,7 +263,7 @@ const int StringMacroTracker1=__COUNTER__;
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3 | 1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
-#define DRIVE(analogpin,stopper) OPCODE_DRIVE,V(stopper),OPCODE_PAD,V(analogpin),
+#define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),

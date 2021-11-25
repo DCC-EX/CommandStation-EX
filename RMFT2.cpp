@@ -683,11 +683,9 @@ void RMFT2::loop2() {
     
     case OPCODE_DRIVE:
       {
-        // IMCOMPLETE TODO PENDING HAL changes for analog read etc
-        if (readSensor(operand)) break;
         byte analogSpeed=IODevice::readAnalogue(GET_OPERAND(1)) *127 / 1024;
         if (speedo!=analogSpeed) driveLoco(analogSpeed);
-        return; 
+        break; 
       }    
 
     case OPCODE_XFON:      
