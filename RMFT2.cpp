@@ -18,14 +18,15 @@
  */
 
 /* EXRAILPlus planned FEATURE additions
-   F1. DCC accessory packet opcodes (short and long form)
-   F2. ONAccessory catchers 
+   F1. [DONE] DCC accessory packet opcodes (short and long form)
+   F2. [DONE] ONAccessory catchers 
    F3. Turnout descriptions for Withrottle
    F4. Oled announcements (depends on HAL)
    F5. Withrottle roster info
    F6. Multi-occupancy semaphore
    F7. [DONE see AUTOSTART] Self starting sequences
    F8. Park/unpark
+   F9. Analog drive 
   */
 /* EXRAILPlus planned TRANSPARENT additions
    T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
@@ -74,6 +75,8 @@ LookList *  RMFT2::sequenceLookup=NULL;
 LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
+LookList *  RMFT2::onActivateLookup=NULL;
+LookList *  RMFT2::onDeactivateLookup=NULL;
 
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
@@ -112,6 +115,8 @@ LookList *  RMFT2::onCloseLookup=NULL;
   int sequenceCount=0; // to allow for seq 0 at start 
   int onThrowCount=0;
   int onCloseCount=0;
+  int onActivateCount=0;
+  int onDeactivateCount=0;
   int signalCount=0;
 
   // first pass count sizes for fast lookup arrays
@@ -137,6 +142,14 @@ LookList *  RMFT2::onCloseLookup=NULL;
         onCloseCount++;
         break;
 
+     case OPCODE_ONACTIVATE: 
+        onActivateCount++;
+        break;
+
+     case OPCODE_ONDEACTIVATE: 
+        onDeactivateCount++;
+        break;
+
      default: // Ignore  
       break;  
      }     
@@ -147,6 +160,8 @@ LookList *  RMFT2::onCloseLookup=NULL;
   signalLookup=new LookList(signalCount);
   onThrowLookup=new LookList(onThrowCount);
   onCloseLookup=new LookList(onCloseCount);
+  onActivateLookup=new LookList(onActivateCount);
+  onDeactivateLookup=new LookList(onDeactivateCount);
          
   // Second pass startup, define any turnouts or servos, set signals red
   // add signals, sequences onRoutines to the lookups 
@@ -215,6 +230,14 @@ LookList *  RMFT2::onCloseLookup=NULL;
      
      case OPCODE_ONCLOSE: 
         onCloseLookup->add(operand,progCounter);
+        break;
+
+     case OPCODE_ONACTIVATE: 
+        onActivateLookup->add(operand,progCounter);
+        break;
+
+     case OPCODE_ONDEACTIVATE: 
+        onDeactivateLookup->add(operand,progCounter);
         break;
 
      case OPCODE_AUTOSTART:
@@ -660,6 +683,7 @@ void RMFT2::loop2() {
     
     case OPCODE_DRIVE:
       {
+        // IMCOMPLETE TODO PENDING HAL changes for analog read etc
         if (readSensor(operand)) break;
         byte analogSpeed=IODevice::readAnalogue(GET_OPERAND(1)) *127 / 1024;
         if (speedo!=analogSpeed) driveLoco(analogSpeed);
@@ -798,7 +822,9 @@ void RMFT2::loop2() {
        case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
        case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
        case OPCODE_ONCLOSE: // Turnout event catcers ignored here
-       case OPCODE_ONTHROW: // Turnout definition ignored at runtime
+       case OPCODE_ONTHROW: 
+       case OPCODE_ONACTIVATE: // Activate event catcers ignored here
+       case OPCODE_ONDEACTIVATE:  
        break;
     
     default:
@@ -848,9 +874,8 @@ void RMFT2::kill(const FSH * reason, int operand) {
 
  void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
     // Hunt for an ONTHROW/ONCLOSE for this turnout 
-    // caution hides class progCounter;
-    int progCounter= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);
-    if (progCounter<0) return;
+    int pc= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);
+    if (pc<0) return;
     
     // Check we dont already have a task running this turnout
     RMFT2 * task=loopTask;                 
@@ -864,7 +889,27 @@ void RMFT2::kill(const FSH * reason, int operand) {
       }
     
      task->onTurnoutId=turnoutId; // flag for recursion detector
-     task=new RMFT2(progCounter);  // new task starts at this instruction
+     task=new RMFT2(pc);  // new task starts at this instruction
+ }
+
+ void RMFT2::activateEvent(int16_t addr, bool activate) {
+    // Hunt for an ONACTIVATE/ONDEACTIVATE for this accessory 
+    int pc= (activate?onActivateLookup:onDeactivateLookup)->find(addr);
+    if (pc<0) return;
+    
+    // Check we dont already have a task running this address
+    RMFT2 * task=loopTask;                 
+    while(task) {
+      if (task->onActivateAddr==addr) {
+        DIAG(F("Recursive ON(DE)ACTIVATE for  %d"),addr);
+        return;
+        }
+      task=task->next;      
+      if (task==loopTask) break;      
+      }
+    
+     task->onActivateAddr=addr; // flag for recursion detector
+     task=new RMFT2(pc);  // new task starts at this instruction
  }
  
  void RMFT2::printMessage2(const FSH * msg) {

@@ -43,6 +43,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_PAUSE, OPCODE_RESUME,OPCODE_POWEROFF,
              OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,
+             OPCODE_ONACTIVATE,OPCODE_ONDEACTIVATE,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,OPCODE_ENDTASK,OPCODE_ENDEXRAIL
              };
 
@@ -81,6 +82,7 @@ class LookList {
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
     static void turnoutEvent(int16_t id, bool closed);  
+    static void activateEvent(int16_t addr, bool active);  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -112,6 +114,8 @@ private:
    static LookList * signalLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
+   static LookList * onActivateLookup;
+   static LookList * onDeactivateLookup;
 
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
@@ -126,6 +130,7 @@ private:
     bool invert;
     byte speedo;
     int16_t onTurnoutId;
+    int16_t onActivateAddr;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };

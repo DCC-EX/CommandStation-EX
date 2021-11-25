@@ -94,6 +94,10 @@
 #define LCN(msg) 
 #define ONCLOSE(turnout_id)
 #define ONTHROW(turnout_id) 
+#define ONACTIVATE(addr,subaddr)
+#define ONDEACTIVATE(addr,subaddr)
+#define ONACTIVATEL(linear)
+#define ONDEACTIVATEL(linear) 
 #define PAUSE
 #define PRINT(msg) 
 #define POM(cv,value)
@@ -198,6 +202,10 @@ const int StringMacroTracker1=__COUNTER__;
 #undef LATCH
 #undef LCD
 #undef LCN
+#undef ONACTIVATE
+#undef ONDEACTIVATE
+#undef ONACTIVATEL
+#undef ONDEACTIVATEL 
 #undef ONCLOSE
 #undef ONTHROW
 #undef PAUSE
@@ -283,6 +291,10 @@ const int StringMacroTracker1=__COUNTER__;
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
+#define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
+#define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
+#define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
+#define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,0,0,
