@@ -958,18 +958,20 @@ void DCCEXParser::callback_R(int16_t result)
     commitAsyncReplyStream();
 }
 
-void DCCEXParser::callback_Rloco(int16_t result)
-{
-  if (result <= 0)
-    StringFormatter::send(getAsyncReplyStream(), F("<r ERROR>\n"));
-  else if (result & LONG_ADDR_MARKER ) {        //long addr
-    result = result & ~LONG_ADDR_MARKER;
-    if (result > HIGHEST_SHORT_ADDR)  //real long
-      StringFormatter::send(getAsyncReplyStream(), F("<r %d>\n"), result);
+void DCCEXParser::callback_Rloco(int16_t result) {
+  const FSH * detail;
+  if (result<=0) {
+    detail=F("<r ERROR %d>\n");
+  } else {
+    bool longAddr=result & LONG_ADDR_MARKER;        //long addr
+    if (longAddr)
+      result = result^LONG_ADDR_MARKER;
+    if (longAddr && result <= HIGHEST_SHORT_ADDR)
+      detail=F("<r LONG %d UNSUPPORTED>\n");
     else
-      StringFormatter::send(getAsyncReplyStream(), F("<r LONG %d UNSUPPORTED>\n"), result);
-  } else // short addr
-    StringFormatter::send(getAsyncReplyStream(), F("<r %d>\n"), result);
+      detail=F("<r %d>\n");
+  }
+  StringFormatter::send(getAsyncReplyStream(), detail, result);
   commitAsyncReplyStream();
 }
 
