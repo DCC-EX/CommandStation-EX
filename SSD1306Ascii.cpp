@@ -89,28 +89,93 @@ const uint8_t FLASH SSD1306AsciiWire::blankPixels[30] =
   {0x40,        // First byte specifies data mode
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
 
+
+//==============================================================================
+// this section is based on https://github.com/adafruit/Adafruit_SSD1306
+
+/** Initialization commands for a 128x32 or 128x64 SSD1306 oled display. */
+const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
+    // Init sequence for Adafruit 128x32/64 OLED module
+    0x00,                              // Set to command mode
+    SSD1306_DISPLAYOFF,
+    SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80 
+    SSD1306_SETMULTIPLEX, 0x3F,        // ratio 64 (initially)
+    SSD1306_SETDISPLAYOFFSET, 0x0,     // no offset
+    SSD1306_SETSTARTLINE | 0x0,        // line #0
+    SSD1306_CHARGEPUMP, 0x14,          // internal vcc
+    SSD1306_MEMORYMODE, 0x02,          // page mode
+    SSD1306_SEGREMAP | 0x1,            // column 127 mapped to SEG0
+    SSD1306_COMSCANDEC,                // column scan direction reversed
+    SSD1306_SETCOMPINS, 0X12,          // set COM pins
+    SSD1306_SETCONTRAST, 0x7F,         // contrast level 127
+    SSD1306_SETPRECHARGE, 0xF1,        // pre-charge period (1, 15)
+    SSD1306_SETVCOMDETECT, 0x40,       // vcomh regulator level
+    SSD1306_DISPLAYALLON_RESUME,
+    SSD1306_NORMALDISPLAY,
+    SSD1306_DISPLAYON
+};
+
+//------------------------------------------------------------------------------
+// This section is based on https://github.com/stanleyhuangyc/MultiLCD
+
+/** Initialization commands for a 128x64 SH1106 oled display. */
+const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
+  0x00,                                  // Set to command mode
+  SSD1306_DISPLAYOFF,
+  SSD1306_SETDISPLAYCLOCKDIV, 0X80,      // set osc division
+  SSD1306_SETMULTIPLEX, 0x3F,            // ratio 64
+  SSD1306_SETDISPLAYOFFSET, 0X00,        // set display offset
+  SSD1306_SETSTARTPAGE | 0X0,            // set page address
+  SSD1306_SETSTARTLINE | 0x0,            // set start line
+  SH1106_SET_PUMP_MODE, SH1106_PUMP_ON,  // set charge pump enable
+  SSD1306_SEGREMAP | 0X1,                // set segment remap
+  SSD1306_COMSCANDEC,                    // Com scan direction
+  SSD1306_SETCOMPINS, 0X12,              // set COM pins
+  SSD1306_SETCONTRAST, 0x80,             // 128
+  SSD1306_SETPRECHARGE, 0X1F,            // set pre-charge period
+  SSD1306_SETVCOMDETECT,  0x40,          // set vcomh
+  SH1106_SET_PUMP_VOLTAGE | 0X2,         // 8.0 volts
+  SSD1306_NORMALDISPLAY,                 // normal / reverse
+  SSD1306_DISPLAYON
+};
+
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
  
 // Constructor
 SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
+  m_displayWidth = width;
+  m_displayHeight = height;
   // Set size in characters in base class
   lcdRows = height / 8;
   lcdCols = width / 6;
+  m_col = 0;
+  m_row = 0;
+  m_colOffset = 0;
 
   I2CManager.begin();
   I2CManager.setClock(400000L);  // Set max supported I2C speed
   for (byte address = 0x3c; address <= 0x3d; address++) {
     if (I2CManager.exists(address)) {
+      m_i2cAddr = address;
+      if (m_displayWidth==132 && m_displayHeight==64) {
+        // SH1106 display.  This uses 128x64 centered within a 132x64 OLED.
+        m_colOffset = 2;
+        I2CManager.write_P(address, SH1106_132x64init, sizeof(SH1106_132x64init));
+      } else if (m_displayWidth==128 && (m_displayHeight==64 || m_displayHeight==32)) {
+        // SSD1306 128x64 or 128x32
+        I2CManager.write_P(address, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
+        if (m_displayHeight == 32) 
+          I2CManager.write(address, 5, 0, // Set command mode
+            SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
+            SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
+      } else {
+        DIAG(F("OLED configuration option not recognised"));
+        return;
+      }
       // Device found
       DIAG(F("%dx%d OLED display configured on I2C:x%x"), width, height, address);
-      if (width == 132)
-        begin(&SH1106_132x64, address);
-      else if (height == 32)
-        begin(&Adafruit128x32, address);
-      else
-        begin(&Adafruit128x64, address);
       // Set singleton address
       lcdDisplay = this;
       clear();
@@ -130,23 +195,6 @@ void SSD1306AsciiWire::clearNative() {
       I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write a number of blank columns
     }
   }
-}
-
-// Initialise device
-void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
-  m_i2cAddr = i2cAddr;
-  m_col = 0;
-  m_row = 0;
-  const uint8_t* table = (const uint8_t*)GETFLASHW(&dev->initcmds);
-  uint8_t size = GETFLASH(&dev->initSize);
-  m_displayWidth = GETFLASH(&dev->lcdWidth);
-  m_displayHeight = GETFLASH(&dev->lcdHeight);
-  m_colOffset = GETFLASH(&dev->colOffset);
-  I2CManager.write_P(m_i2cAddr, table, size);
-  if (m_displayHeight == 32) 
-    I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
-      SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
-      SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
 }
 
 //------------------------------------------------------------------------------
@@ -208,82 +256,6 @@ size_t SSD1306AsciiWire::writeNative(uint8_t ch) {
   m_col += fontWidth + letterSpacing;
   return 1;
 }
-
-//==============================================================================
-// this section is based on https://github.com/adafruit/Adafruit_SSD1306
-
-/** Initialization commands for a 128x32 or 128x64 SSD1306 oled display. */
-const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
-    // Init sequence for Adafruit 128x32/64 OLED module
-    0x00,                              // Set to command mode
-    SSD1306_DISPLAYOFF,
-    SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80 
-    SSD1306_SETMULTIPLEX, 0x3F,        // ratio 64 (initially)
-    SSD1306_SETDISPLAYOFFSET, 0x0,     // no offset
-    SSD1306_SETSTARTLINE | 0x0,        // line #0
-    SSD1306_CHARGEPUMP, 0x14,          // internal vcc
-    SSD1306_MEMORYMODE, 0x02,          // page mode
-    SSD1306_SEGREMAP | 0x1,            // column 127 mapped to SEG0
-    SSD1306_COMSCANDEC,                // column scan direction reversed
-    SSD1306_SETCOMPINS, 0X12,          // set COM pins
-    SSD1306_SETCONTRAST, 0x7F,         // contrast level 127
-    SSD1306_SETPRECHARGE, 0xF1,        // pre-charge period (1, 15)
-    SSD1306_SETVCOMDETECT, 0x40,       // vcomh regulator level
-    SSD1306_DISPLAYALLON_RESUME,
-    SSD1306_NORMALDISPLAY,
-    SSD1306_DISPLAYON
-};
-
-/** Initialize a 128x32 SSD1306 oled display. */
-const DevType FLASH SSD1306AsciiWire::Adafruit128x32 = {
-  Adafruit128xXXinit,
-  sizeof(Adafruit128xXXinit),
-  128,
-  32,
-  0
-};
-
-/** Initialize a 128x64 oled display. */
-const DevType FLASH SSD1306AsciiWire::Adafruit128x64 = {
-  Adafruit128xXXinit,
-  sizeof(Adafruit128xXXinit),
-  128,
-  64,
-  0
-};
-//------------------------------------------------------------------------------
-// This section is based on https://github.com/stanleyhuangyc/MultiLCD
-
-/** Initialization commands for a 128x64 SH1106 oled display. */
-const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
-  0x00,                                  // Set to command mode
-  SSD1306_DISPLAYOFF,
-  SSD1306_SETDISPLAYCLOCKDIV, 0X80,      // set osc division
-  SSD1306_SETMULTIPLEX, 0x3F,            // ratio 64
-  SSD1306_SETDISPLAYOFFSET, 0X00,        // set display offset
-  SSD1306_SETSTARTPAGE | 0X0,            // set page address
-  SSD1306_SETSTARTLINE | 0x0,            // set start line
-  SH1106_SET_PUMP_MODE, SH1106_PUMP_ON,  // set charge pump enable
-  SSD1306_SEGREMAP | 0X1,                // set segment remap
-  SSD1306_COMSCANDEC,                    // Com scan direction
-  SSD1306_SETCOMPINS, 0X12,              // set COM pins
-  SSD1306_SETCONTRAST, 0x80,             // 128
-  SSD1306_SETPRECHARGE, 0X1F,            // set pre-charge period
-  SSD1306_SETVCOMDETECT,  0x40,          // set vcomh
-  SH1106_SET_PUMP_VOLTAGE | 0X2,         // 8.0 volts
-  SSD1306_NORMALDISPLAY,                 // normal / reverse
-  SSD1306_DISPLAYON
-};
-
-/** Initialize a 132x64 oled SH1106 display. */
-const DevType FLASH SSD1306AsciiWire::SH1106_132x64 =  {
-  SH1106_132x64init,
-  sizeof(SH1106_132x64init),
-  128,
-  64,
-  2    // SH1106 is a 132x64 controller but most OLEDs are only attached
-       // to columns 2-129.
-};
 
 
 //------------------------------------------------------------------------------
