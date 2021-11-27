@@ -122,7 +122,13 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       StringFormatter::send(stream,F("PTL"));
       for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
           int id=tt->getId();
-          StringFormatter::send(stream,F("]\\[%d}|{%d}|{%c"), id, id, Turnout::isClosed(id)?'2':'4');
+          StringFormatter::send(stream,F("]\\[%d}|{"), id);
+          #ifdef RMFT_ACTIVE
+             RMFT2::emitTurnoutDescription(stream,id);
+          #else   
+            StringFormatter::send(stream,F("%d"), id);
+          #endif  
+          StringFormatter::send(stream,F("}|{%c"), Turnout::isClosed(id)?'2':'4');
       }
       StringFormatter::send(stream,F("\n"));
       turnoutListHash = Turnout::turnoutlistHash; // keep a copy of hash for later comparison

@@ -82,7 +82,9 @@ class LookList {
     static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
     static void turnoutEvent(int16_t id, bool closed);  
-    static void activateEvent(int16_t addr, bool active);  
+    static void activateEvent(int16_t addr, bool active);
+    static void emitTurnoutDescription(Print* stream,int16_t id);
+  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -105,7 +107,7 @@ private:
     void kill(const FSH * reason=NULL,int operand=0);          
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
     void printMessage2(const FSH * msg);
-
+    
     
    static bool diag;
    static const  FLASH  byte RouteCode[];

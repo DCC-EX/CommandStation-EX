@@ -47,234 +47,103 @@
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
-// Pass 1 Implements aliases and 
-// converts descriptions to  withrottle format emitter function
-// Most macros are simply ignored in this pass.
-
-
-#define ALIAS(name,value) const int name=value; 
-#define EXRAIL  void  RMFT2::emitWithrottleDescriptions(Print * stream) {(void)stream;
-#define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
-#define AUTOMATION(id, description) emitRouteDescription(stream,'A',id,F(description));
-#define ENDEXRAIL  }
- 
-#define AFTER(sensor_id)
-#define ACTIVATE(addr,subaddr)
-#define DEACTIVATE(addr,subaddr)
-#define ACTIVATEL(addr)
-#define DEACTIVATEL(addr)
-#define DRIVE(analogpin)
-#define AMBER(signal_id)
-#define AT(sensor_id)
-#define AUTOSTART
-#define CALL(route) 
-#define CLOSE(id) 
-#define DELAY(mindelay)
-#define DELAYMINS(mindelay)
-#define DELAYRANDOM(mindelay,maxdelay) 
-#define DONE
-#define ENDIF  
-#define ENDTASK
-#define ESTOP 
-#define FADE(pin,value,ms)
-#define FOFF(func)
-#define FOLLOW(route) 
-#define FON(func) 
-#define FREE(blockid) 
-#define FWD(speed) 
-#define GREEN(signal_id)
-#define IF(sensor_id) 
-#define IFNOT(sensor_id)
-#define IFRANDOM(percent) 
-#define IFRESERVE(block)
-#define INVERT_DIRECTION 
-#define JOIN 
-#define LATCH(sensor_id) 
-#define LCD(row,msg) 
-#define LCN(msg) 
-#define ONCLOSE(turnout_id)
-#define ONTHROW(turnout_id) 
-#define ONACTIVATE(addr,subaddr)
-#define ONDEACTIVATE(addr,subaddr)
-#define ONACTIVATEL(linear)
-#define ONDEACTIVATEL(linear) 
-#define PAUSE
-#define PRINT(msg) 
-#define POM(cv,value)
-#define POWEROFF
-#define READ_LOCO 
-#define RED(signal_id) 
-#define RESERVE(blockid) 
-#define RESET(pin) 
-#define RESUME 
-#define RETURN 
-#define REV(speed) 
-#define START(route) 
-#define SENDLOCO(cab,route) 
-#define SERIAL(msg) 
-#define SERIAL1(msg) 
-#define SERIAL2(msg) 
-#define SERIAL3(msg) 
-#define SERVO(id,position,profile) 
-#define SERVO2(id,position,duration) 
-#define SETLOCO(loco) 
-#define SET(pin) 
-#define SEQUENCE(id) 
-#define SPEED(speed) 
-#define STOP 
-#undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) 
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile) 
-#define PIN_TURNOUT(id,pin) 
-#define THROW(id)  
-#define TURNOUT(id,addr,subaddr) 
-#define UNJOIN 
-#define UNLATCH(sensor_id) 
-#define WAITFOR(pin)
-#define XFOFF(cab,func)
-#define XFON(cab,func)
-
-#include "myAutomation.h"
-
-// setup for pass 2... Create getMessageText function
+// Pass 1 Implements aliases 
+#include "RMFT2MacroReset.h"
 #undef ALIAS
-#undef ROUTE
-#undef AUTOMATION  
-#define ROUTE(id, description)
-#define AUTOMATION(id, description)  
-
-#undef EXRAIL 
-#undef PRINT
-#undef LCN
-#undef SERIAL
-#undef SERIAL1
-#undef SERIAL2
-#undef SERIAL3
-#undef ENDEXRAIL  
-#undef LCD
-const int StringMacroTracker1=__COUNTER__;
-#define ALIAS(name,value) 
-#define EXRAIL void  RMFT2::printMessage(uint16_t id) { switch(id) {
-#define ENDEXRAIL  default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1); return ; }}
-#define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
-#define LCN(msg)      case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
-#define SERIAL(msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial,F(msg));break;
-#define SERIAL1(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial1,F(msg));break;
-#define SERIAL2(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial2,F(msg));break;
-#define SERIAL3(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial3,F(msg));break;
-#define LCD(id,msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
+#define ALIAS(name,value) const int name=value; 
 #include "myAutomation.h"
 
-// Setup for Pass 3: create main routes table 
-#undef AFTER
-#undef ACTIVATE
-#undef DEACTIVATE
-#undef DRIVE
-#undef ACTIVATEL
-#undef DEACTIVATEL
-#undef AMBER
-#undef AT
+// Pass 2 convert descriptions to  withrottle format emitter function
+#include "RMFT2MacroReset.h"
+#undef ROUTE
+#define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
 #undef AUTOMATION
-#undef AUTOSTART 
-#undef CALL
-#undef CLOSE
-#undef DELAY
-#undef DELAYMINS
-#undef DELAYRANDOM
-#undef DONE
-#undef ENDIF
-#undef ENDEXRAIL
-#undef ENDTASK
-#undef ESTOP
-#undef EXRAIL
-#undef FOFF
-#undef FOLLOW
-#undef FON
-#undef FREE
-#undef FWD
-#undef GREEN
-#undef IF
-#undef IFNOT
-#undef IFRANDOM
-#undef IFRESERVE
-#undef INVERT_DIRECTION
-#undef JOIN
-#undef LATCH
-#undef LCD
-#undef LCN
-#undef ONACTIVATE
-#undef ONDEACTIVATE
-#undef ONACTIVATEL
-#undef ONDEACTIVATEL 
-#undef ONCLOSE
-#undef ONTHROW
-#undef PAUSE
-#undef POM
-#undef POWEROFF
+#define AUTOMATION(id, description) emitRouteDescription(stream,'A',id,F(description));
+void  RMFT2::emitWithrottleDescriptions(Print * stream) {
+   (void)stream;
+    #include "myAutomation.h"
+}
+
+// Pass 3... Create Text sending functions
+#include "RMFT2MacroReset.h"
+const int StringMacroTracker1=__COUNTER__;
 #undef PRINT
-#undef READ_LOCO
-#undef RED
-#undef RESERVE
-#undef RESET
-#undef RESUME
-#undef RETURN
-#undef REV
-#undef ROUTE 
-#undef START
-#undef SEQUENCE 
-#undef SERVO
-#undef SERVO2
-#undef FADE
-#undef SENDLOCO
+#define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
+#undef LCN
+#define LCN(msg)      case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
 #undef SERIAL
+#define SERIAL(msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial,F(msg));break;
 #undef SERIAL1
+#define SERIAL1(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial1,F(msg));break;
 #undef SERIAL2
+#define SERIAL2(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial2,F(msg));break;
 #undef SERIAL3
-#undef SETLOCO
-#undef SET
-#undef SPEED
-#undef STOP
-#undef SIGNAL
-#undef SERVO_TURNOUT
-#undef PIN_TURNOUT
-#undef THROW
+#define SERIAL3(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial3,F(msg));break;
+#undef LCD
+#define LCD(id,msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
+
+void  RMFT2::printMessage(uint16_t id) { 
+  switch(id) {
+    #include "myAutomation.h"
+    default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1);
+      break ; 
+  }
+}
+
+
+// Pass 4: Turnout descriptions (optional)
+#include "RMFT2MacroReset.h"
 #undef TURNOUT
-#undef UNJOIN
-#undef UNLATCH
-#undef WAITFOR
-#undef XFOFF
-#undef XFON
+#define TURNOUT(id,addr,subaddr,description...) case id: desc=F("" description); break;
+#undef PIN_TURNOUT
+#define PIN_TURNOUT(id,pin,description...) case id: desc=F("" description); break;
+#undef SERVO_TURNOUT
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) case id: desc=F("" description); break;
+
+void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
+     const FSH * desc=F("");
+     switch (turnoutid) {
+        #include "myAutomation.h"
+     default:
+     break;
+     }
+     if (GETFLASH(desc)=='\0') desc=F("%d");
+     StringFormatter::send(stream,desc,turnoutid);    
+}
+
+// Pass 5: create main routes table
+// Only undef the macros, not dummy them.  
+#define  RMFT2_UNDEF_ONLY
+#include "RMFT2MacroReset.h"
 
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
 // a constant.  
 #define V(val) (byte)(((int16_t)(val))&0x00FF),(byte)(((int16_t)(val)>>8)&0x00FF)
 // Define macros for route code creation 
-#define ALIAS(name,value) 
-#define EXRAIL const  FLASH  byte RMFT2::RouteCode[] = {
-#define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
-#define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
-#define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
-#define ENDTASK OPCODE_ENDTASK,0,0,
-#define DONE OPCODE_ENDTASK,0,0,
-#define ENDEXRAIL OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
-#define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3 | 1),
-#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
-#define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
+#define ALIAS(name,value) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
+#define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
+#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
 #define DELAY(ms) OPCODE_DELAY,V(ms/100L),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,V(mindelay/100L),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#define DONE OPCODE_ENDTASK,0,0,
+#define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
+#define ENDEXRAIL 
 #define ENDIF  OPCODE_ENDIF,0,0,
+#define ENDTASK OPCODE_ENDTASK,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
+#define EXRAIL 
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
@@ -292,12 +161,13 @@ const int StringMacroTracker1=__COUNTER__;
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
-#define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
-#define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
+#define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
+#define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,0,0,
+#define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
@@ -308,32 +178,35 @@ const int StringMacroTracker1=__COUNTER__;
 #define RESUME OPCODE_RESUME,0,0,
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
+#define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
+#define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
 #define SERIAL1(msg) PRINT(msg)
 #define SERIAL2(msg) PRINT(msg)
 #define SERIAL3(msg) PRINT(msg)
-#define START(route) OPCODE_START,V(route),
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
-#define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define SET(pin) OPCODE_SET,V(pin),
-#define SPEED(speed) OPCODE_SPEED,V(speed),
-#define STOP OPCODE_SPEED,V(0), 
+#define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
-#define PIN_TURNOUT(id,pin) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
+#define SPEED(speed) OPCODE_SPEED,V(speed),
+#define START(route) OPCODE_START,V(route),
+#define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
-#define TURNOUT(id,addr,subaddr) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
+#define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 
-// PASS2 Build RouteCode
+// Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
-#include "myAutomation.h"
+const  FLASH  byte RMFT2::RouteCode[] = {
+    #include "myAutomation.h"
+    OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 
 // Restore normal code LCD & SERIAL  macro
 #undef LCD
