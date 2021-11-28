@@ -254,4 +254,13 @@ void MotorDriverContainer::loop() {
   if(i > 7) i=0;
 }
 
-MotorDriverContainer mDC(MOTOR_SHIELD_TYPE);
+std::vector<MotorDriver*> MotorDriverContainer::getDriverType(driverType t) {
+  std::vector<MotorDriver*> v;
+  for(byte i=0; i<8; i++) {
+    if (mD[i] && mD[i]->type() == t)
+      v.push_back(mD[i]);
+  }
+  return v;
+}
+
+MotorDriverContainer MotorDriverContainer::mDC(MOTOR_SHIELD_TYPE);

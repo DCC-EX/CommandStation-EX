@@ -28,7 +28,6 @@
 #include "IODevice.h"
 
 #include "MotorDriver.h"
-extern MotorDriverContainer mDC;
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -54,7 +53,8 @@ byte DCC::joinRelay=UNUSED_PIN;
 byte DCC::globalSpeedsteps=128;
 
 void DCC::begin() {
-  StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), mDC.getMotorShieldName(), F(GITHUB_SHA));
+  StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE),
+			MotorDriverContainer::mDC.getMotorShieldName(), F(GITHUB_SHA));
 
   // Initialise HAL layer before reading EEprom.
   IODevice::begin();
@@ -63,13 +63,17 @@ void DCC::begin() {
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mDC.mainTrack(),mDC.progTrack());
-  DCCTrack::mainTrack.addDriver(mDC.mainTrack());
-  DCCTrack::progTrack.addDriver(mDC.progTrack());
+  DCCWaveform::begin(MotorDriverContainer::mDC.mainTrack(),MotorDriverContainer::mDC.progTrack());
+  DCCTrack::mainTrack.addDriver(MotorDriverContainer::mDC.mainTrack());
+  DCCTrack::progTrack.addDriver(MotorDriverContainer::mDC.progTrack());
 
   MotorDriver *md;
-  mDC.add(2, md = new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
+  MotorDriverContainer::mDC.add(2, md = new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
   DCCTrack::mainTrack.addDriver(md);
+  /*
+  std::vector<MotorDriver*>  v = MotorDriverContainer::mDC.getDriverType(RMT_MAIN);
+  for (const auto& d: v) DCCTrack::mainTrack.addDriver(d);
+  */
 }
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {
@@ -578,7 +582,7 @@ byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   DCCWaveform::loop(ackManagerProg!=NULL); // power overload checks
-  mDC.loop();
+  MotorDriverContainer::mDC.loop();
   ackManagerLoop();    // maintain prog track ack manager
   issueReminders();
 }
