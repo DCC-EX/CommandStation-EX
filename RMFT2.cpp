@@ -20,13 +20,17 @@
 /* EXRAILPlus planned FEATURE additions
    F1. [DONE] DCC accessory packet opcodes (short and long form)
    F2. [DONE] ONAccessory catchers 
-   F3. Turnout descriptions for Withrottle
+   F3. [DONE] Turnout descriptions for Withrottle
    F4. Oled announcements (depends on HAL)
    F5. Withrottle roster info
    F6. Multi-occupancy semaphore
    F7. [DONE see AUTOSTART] Self starting sequences
    F8. Park/unpark
-   F9. Analog drive 
+   F9.  [DONE] Analog drive
+   F10. [DONE] Alias anywhere
+   F11. [DONE]EXRAIL/ENDEXRAIL unnecessary
+   F12. [DONE] Allow guarded code (as effect of ALIAS anywhere)
+   F13. [DONE] IFANALOG function  
   */
 /* EXRAILPlus planned TRANSPARENT additions
    T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
@@ -495,6 +499,7 @@ bool RMFT2::skipIfBlock() {
            kill(F("missing ENDIF"), nest);
            return false;  
       case OPCODE_IF:
+      case OPCODE_IFANALOG:
       case OPCODE_IFNOT:
       case OPCODE_IFRANDOM:
       case OPCODE_IFRESERVE:
@@ -633,6 +638,10 @@ void RMFT2::loop2() {
       if (!readSensor(operand)) if (!skipIfBlock()) return;
       break;
     
+    case OPCODE_IFANALOG: // do next operand if sensor>= value
+      if (IODevice::readAnalogue(operand)<(int)(GET_OPERAND(1))) if (!skipIfBlock()) return;
+      break;
+    
     case OPCODE_IFNOT: // do next operand if sensor not set
       if (readSensor(operand)) if (!skipIfBlock()) return;
       break;
@@ -683,7 +692,7 @@ void RMFT2::loop2() {
     
     case OPCODE_DRIVE:
       {
-        byte analogSpeed=IODevice::readAnalogue(GET_OPERAND(1)) *127 / 1024;
+        byte analogSpeed=IODevice::readAnalogue(operand) *127 / 1024;
         if (speedo!=analogSpeed) driveLoco(analogSpeed);
         break; 
       }    

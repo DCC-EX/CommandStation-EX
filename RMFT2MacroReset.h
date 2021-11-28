@@ -52,6 +52,7 @@
 #undef FWD 
 #undef GREEN
 #undef IF 
+#undef IFANALOG 
 #undef IFNOT
 #undef IFRANDOM 
 #undef IFRESERVE
@@ -133,6 +134,7 @@
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define IF(sensor_id) 
+#define IFANALOG(sensor_id,value) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent) 
 #define IFRESERVE(block)
