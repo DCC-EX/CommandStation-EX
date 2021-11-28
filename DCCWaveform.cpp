@@ -49,19 +49,27 @@ uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
 
-  mainTrack.motorDriver=mainDriver;
-  progTrack.motorDriver=progDriver;
-  progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
-  mainTrack.setPowerMode(POWERMODE::OFF);      
-  progTrack.setPowerMode(POWERMODE::OFF);
-  // Fault pin config for odd motor boards (example pololu)
-  MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
-				 && (mainDriver->getFaultPin() != UNUSED_PIN));
-  // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
-  MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
-  DIAG(F("Signal pin config: %S accuracy waveform"),
+  if(mainDriver) {
+    mainTrack.motorDriver=mainDriver;
+    mainTrack.setPowerMode(POWERMODE::OFF);
+  }
+  if(progDriver) {
+    progTrack.motorDriver=progDriver;
+    progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
+    progTrack.setPowerMode(POWERMODE::OFF);
+  }
+  if(mainDriver && progDriver) {
+    // Fault pin config for odd motor boards (example pololu)
+    MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+				   && (mainDriver->getFaultPin() != UNUSED_PIN));
+    // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
+    MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
+  }
+  if(mainDriver || progDriver) {
+    DIAG(F("Signal pin config: %S accuracy waveform"),
 	 MotorDriver::usePWM ? F("high") : F("normal") );
-  DCCTimer::begin(DCCWaveform::interruptHandler);     
+  }
+  DCCTimer::begin(DCCWaveform::interruptHandler);
 }
 
 #ifdef SLOW_ANALOG_READ

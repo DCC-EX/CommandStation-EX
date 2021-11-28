@@ -29,7 +29,7 @@ void DCCTrack::schedulePacket(dccPacket packet) {
       //DIAG(F("DCCTrack::schedulePacket RMT l=%d d=%x"),packet.length, packet.data[0]);
       driver->schedulePacket(packet);
     }
-    if (driver->type() == TIMERINTERRUPT && waveform && once) {
+    if (driver->type() & (TIMER_MAIN | TIMER_PROG) && waveform && once) {
       //DIAG(F("DCCTrack::schedulePacket WAVE l=%d d=%x"),packet.length, packet.data[0]);
       waveform->schedulePacket(packet);
       once=false;
