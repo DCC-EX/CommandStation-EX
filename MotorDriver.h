@@ -19,6 +19,7 @@
 
 #ifndef MotorDriver_h
 #define MotorDriver_h
+#include <vector>
 #include "defines.h"
 #include "FSH.h"
 
@@ -127,6 +128,7 @@ public:
 		       MotorDriver *m5=NULL,
 		       MotorDriver *m6=NULL,
 		       MotorDriver *m7=NULL);
+  static MotorDriverContainer mDC;
   inline void add(byte n, MotorDriver *m) {
     if (n>8) return;
     mD[n] = m;
@@ -136,6 +138,7 @@ public:
   inline MotorDriver *mainTrack() { return mD[0]; }; //start fixed
   inline MotorDriver *progTrack() { return mD[1]; };
   void loop();
+  std::vector<MotorDriver*>  getDriverType(driverType t);
 
 private:
   MotorDriver *mD[8];

@@ -27,9 +27,16 @@
 #include "DIAG.h"
 #include "freeMemory.h"
 
+// The two Waveforms which defines what happens when the
+// interrupt driven DCC signal is generated. This is tied
+// to the timer interrupts of the hardware.
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
+
+// The two different DCC _kinds_ of signals we want to be able
+// to genrate at the same time. When timer interupts are used,
+// these need the respective waveform
 DCCTrack DCCTrack::mainTrack(&DCCWaveform::mainTrack);
 DCCTrack DCCTrack::progTrack(&DCCWaveform::progTrack);
 
