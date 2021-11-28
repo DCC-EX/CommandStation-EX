@@ -56,24 +56,26 @@ void DCC::begin() {
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE),
 			MotorDriverContainer::mDC.getMotorShieldName(), F(GITHUB_SHA));
 
+  /*
+NOT YES, PIN CONFLICTS  
   // Initialise HAL layer before reading EEprom.
   IODevice::begin();
+  */
+  //MotorDriverContainer::mDC.add(new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
+  MotorDriverContainer::mDC.diag();
   DCCWaveform::begin(MotorDriverContainer::mDC.mainTrack(),MotorDriverContainer::mDC.progTrack());
-  DCCTrack::mainTrack.addDriver(MotorDriverContainer::mDC.mainTrack());
-  DCCTrack::progTrack.addDriver(MotorDriverContainer::mDC.progTrack());
 
-  MotorDriver *md;
-  MotorDriverContainer::mDC.add(2, md = new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
-  DCCTrack::mainTrack.addDriver(md);
-  /*
-  std::vector<MotorDriver*>  v = MotorDriverContainer::mDC.getDriverType(RMT_MAIN);
+  // Add main and prog drivers to the main and prog packet sources (dcc-tracks).
+  std::vector<MotorDriver*>  v;
+  v = MotorDriverContainer::mDC.getDriverType(RMT_MAIN|TIMER_MAIN);
   for (const auto& d: v) DCCTrack::mainTrack.addDriver(d);
-  */
+  v = MotorDriverContainer::mDC.getDriverType(RMT_PROG|TIMER_PROG);
+  for (const auto& d: v) DCCTrack::progTrack.addDriver(d);
 }
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {

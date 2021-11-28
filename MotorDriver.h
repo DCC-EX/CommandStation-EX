@@ -22,6 +22,7 @@
 #include <vector>
 #include "defines.h"
 #include "FSH.h"
+#include "DIAG.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <queue>
@@ -57,13 +58,20 @@ struct FASTPIN {
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
-enum driverType { TIMERINTERRUPT, RMT_MAIN, RMT_PROG, DC_ENA, DC_BRAKE };
+typedef byte driverType;
+const driverType TYPE_UNKNOWN=0;
+const driverType TIMER_MAIN=1;
+const driverType TIMER_PROG=2;
+const driverType RMT_MAIN=4;
+const driverType RMT_PROG=16;
+const driverType DC_ENA=32;
+const driverType DC_BRAKE=64;
 		  
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin,
-		driverType t=TIMERINTERRUPT);
+		driverType t=TYPE_UNKNOWN);
     void setPower( bool on);
     void setSignal( bool high);
     void setBrake( bool on);
@@ -83,6 +91,7 @@ class MotorDriver {
 #if defined(ARDUINO_ARCH_ESP32)
     void loop();
     inline driverType type() { return dtype; };
+    inline void setType(driverType t) { dtype = t; };
     bool schedulePacket(dccPacket packet);
 #endif
 
@@ -129,19 +138,35 @@ public:
 		       MotorDriver *m6=NULL,
 		       MotorDriver *m7=NULL);
   static MotorDriverContainer mDC;
-  inline void add(byte n, MotorDriver *m) {
-    if (n>8) return;
-    mD[n] = m;
+  inline void add(MotorDriver *m) {
+    mD.push_back(m);
+    DIAG(F("Container: mDType=%d count=%d"),m->type(), mD.size());
   };
   //  void SetCapability(byte n, byte cap, char [] name);
   inline FSH *getMotorShieldName() { return shieldName; };
-  inline MotorDriver *mainTrack() { return mD[0]; }; //start fixed
-  inline MotorDriver *progTrack() { return mD[1]; };
+  inline void diag() {
+    if (mD.empty()) {
+      DIAG(F("Container empty"));
+      return;
+    }
+    for(const auto& d: mD)
+      DIAG(F("Container: mDType=%d count=%d"),d->type(), mD.size());
+  };
+  inline MotorDriver *mainTrack() {
+    std::vector<MotorDriver *> v = getDriverType(TIMER_MAIN);
+    if(v.empty()) return NULL;
+    return v.front();
+  };
+  inline MotorDriver *progTrack() {
+    std::vector<MotorDriver *> v = getDriverType(TIMER_PROG);
+    if(v.empty()) return NULL;
+    return v.front();
+  };
   void loop();
   std::vector<MotorDriver*>  getDriverType(driverType t);
 
 private:
-  MotorDriver *mD[8];
+  std::vector<MotorDriver *>mD;
   FSH *shieldName;
 };
 #endif

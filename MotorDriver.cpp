@@ -44,7 +44,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     rmtChannel = new RMTChannel(signalPin, 0, PREAMBLE_BITS_MAIN);
 #endif
     dualSignal=false;
-  } else if (dtype == TIMERINTERRUPT) {
+  } else if (dtype & (TIMER_MAIN | TIMER_PROG)) {
     signalPin=signal_pin;
     getFastPin(F("SIG"),signalPin,fastSignalPin);
     pinMode(signalPin, OUTPUT);
@@ -212,8 +212,9 @@ bool MotorDriver::schedulePacket(dccPacket packet) {
   if(!rmtChannel) return true; // fake success if functionality is not there
 
   outQueue.push(packet);
-  if (outQueue.size() > 10) {
-    DIAG(F("Warning: outQueue > 10"));
+  uint16_t size = outQueue.size();
+  if (size > 10) {
+    DIAG(F("Warning: outQueue %d > 10"),size);
   }
   return true;
 }
@@ -232,33 +233,41 @@ MotorDriverContainer::MotorDriverContainer(const FSH * motorShieldName,
 					   MotorDriver *m5,
 					   MotorDriver *m6,
 					   MotorDriver *m7) {
-  mD[0]=m0;
-  mD[1]=m1;
-  mD[2]=m2;
-  mD[3]=m3;
-  mD[4]=m4;
-  mD[5]=m5;
-  mD[6]=m6;
-  mD[7]=m7;
+  // THIS AUTOMATIC DOES NOT WORK YET. TIMER_MAIN AND TIMER_PROG required in CONSTRUCTOR
+  // AND CAN NOT BE ADDED LATER
+  if (m0) {
+    if (m0->type() == TYPE_UNKNOWN)
+      m0->setType(TIMER_MAIN);
+    mD.push_back(m0);
+  }
+  if (m1) {
+    if (m1->type() == TYPE_UNKNOWN)
+      m1->setType(TIMER_PROG);
+    mD.push_back(m1);
+  }
+  if (m2) mD.push_back(m2);
+  if (m3) mD.push_back(m3);
+  if (m4) mD.push_back(m4);
+  if (m5) mD.push_back(m5);
+  if (m6) mD.push_back(m6);
+  if (m7) mD.push_back(m7);
   shieldName = (FSH *)motorShieldName;
 }
 
 void MotorDriverContainer::loop() {
-  static byte i = 0;
-
   // loops over MotorDrivers which have loop tasks
-  if (mD[i])
-    if (mD[i]->type() == RMT_MAIN || mD[i]->type() == RMT_PROG)
-      mD[i]->loop();
-  i++;
-  if(i > 7) i=0;
+  if (mD.empty())
+    return;
+  for(const auto& d: mD)
+    if (d->type() & (RMT_MAIN | RMT_PROG))
+      d->loop();
 }
 
 std::vector<MotorDriver*> MotorDriverContainer::getDriverType(driverType t) {
   std::vector<MotorDriver*> v;
-  for(byte i=0; i<8; i++) {
-    if (mD[i] && mD[i]->type() == t)
-      v.push_back(mD[i]);
+  for(const auto& d: mD){
+    if (d->type() & t)
+      v.push_back(d);
   }
   return v;
 }
