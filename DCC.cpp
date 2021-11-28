@@ -56,13 +56,12 @@ void DCC::begin() {
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE),
 			MotorDriverContainer::mDC.getMotorShieldName(), F(GITHUB_SHA));
 
-  /*
-NOT YES, PIN CONFLICTS  
+  //  BE AWARE, USES I2C PINS, MAY LEAD TO PIN CONFLICTS  
   // Initialise HAL layer before reading EEprom.
   IODevice::begin();
-  */
-  //MotorDriverContainer::mDC.add(new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
 
+  //example how to use add:
+  //MotorDriverContainer::mDC.add(new MotorDriver(16, 21, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN));
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();

@@ -23,6 +23,7 @@
 #include "DIAG.h"
 #include "DCCRMT.h"
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE
+#include "soc/gpio_sig_map.h"
 
 #define DATA_LEN(X) ((X)*9+1) // Each byte has one bit extra and we have one EOF marker
 
@@ -104,6 +105,14 @@ RMTChannel::RMTChannel(byte pin, byte ch, byte plen) {
                             // 2 mem block of 64 RMT items should be enough
 
   ESP_ERROR_CHECK(rmt_config(&config));
+  /*
+  // test: config another gpio pin
+  gpio_num_t gpioNum = (gpio_num_t)(pin-1);
+  PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
+  gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
+  gpio_matrix_out(gpioNum, RMT_SIG_OUT0_IDX, 0, 0);
+  */
+  
   // NOTE: ESP_INTR_FLAG_IRAM is *NOT* included in this bitmask
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, ESP_INTR_FLAG_LOWMED|ESP_INTR_FLAG_SHARED));
 

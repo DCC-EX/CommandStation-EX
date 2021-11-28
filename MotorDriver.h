@@ -140,7 +140,6 @@ public:
   static MotorDriverContainer mDC;
   inline void add(MotorDriver *m) {
     mD.push_back(m);
-    DIAG(F("Container: mDType=%d count=%d"),m->type(), mD.size());
   };
   //  void SetCapability(byte n, byte cap, char [] name);
   inline FSH *getMotorShieldName() { return shieldName; };
@@ -150,7 +149,7 @@ public:
       return;
     }
     for(const auto& d: mD)
-      DIAG(F("Container: mDType=%d count=%d"),d->type(), mD.size());
+      DIAG(F("Container: mDType=%d"),d->type());
   };
   inline MotorDriver *mainTrack() {
     std::vector<MotorDriver *> v = getDriverType(TIMER_MAIN);

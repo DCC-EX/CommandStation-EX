@@ -10,8 +10,8 @@ class DCCTrack {
   DCCTrack(DCCWaveform *w);
   void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
   void schedulePacket(dccPacket packet);
-  inline void addDriver(MotorDriver *m) { mD.push_back(m);
-    DIAG(F("Track: mDType=%d count=%d"),m->type(), mD.size());
+  inline void addDriver(MotorDriver *m) {
+    mD.push_back(m);
   };
   static DCCTrack mainTrack;
   static DCCTrack progTrack;
