@@ -45,9 +45,12 @@ The configuration file for DCC-EX Command Station
 
 // https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/
 // 4 high at boot
-#define ESP8266_MOTOR_SHIELD F("ESP8266"),					\
- new MotorDriver(D3, D5, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN),\
- new MotorDriver(D2, D6, UNUSED_PIN, UNUSED_PIN, A0        , 2.99, 2000, UNUSED_PIN)
+// BUG: WE STILL NEED AT LEAST ONE TIMER_* motor shield defined, otherwise the packet scheduling does not work
+// BUG: WE DO NOT HAVE ANY RMT_PROG CAPABILITY yet.
+#define ESP32_MOTOR_SHIELD F("ESP32"),				\
+    NULL /*new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 36, 2.00, 2000, UNUSED_PIN, TIMER_MAIN)*/,  \
+    new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 39, 2.00, 2000, UNUSED_PIN, TIMER_PROG), \
+    new MotorDriver(16, 23, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN)
 
 // ESP32 ADC1 only supported GPIO pins 32 to 39, for example
 // ADC1 CH4 = GPIO32, ADC1 CH5 = GPIO33, ADC1 CH0 = GPIO36
