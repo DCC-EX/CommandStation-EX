@@ -19,7 +19,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "defines.h"
 #ifndef DISABLE_EEPROM
 #include "EEStore.h"
 
