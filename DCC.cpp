@@ -88,7 +88,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
   uint8_t nB = 0;
   // DIAG(F("setSpeedInternal %d %x"),cab,speedCode);
   
-  if (cab > 127)
+  if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
 
@@ -128,7 +128,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   byte b[4];
   byte nB = 0;
 
-  if (cab > 127)
+  if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
   if (byte1!=0) b[nB++] = byte1;
@@ -157,7 +157,7 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
     //non reminding advanced binary bit set 
     byte b[5];
     byte nB = 0;
-    if (cab > 127)
+    if (cab > HIGHEST_SHORT_ADDR)
       b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
     b[nB++] = lowByte(cab);
     if (functionNumber <= 127) {
@@ -266,7 +266,7 @@ void DCC::setAccessory(int address, byte number, bool activate) {
 void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   byte b[5];
   byte nB = 0;
-  if (cab > 127)
+  if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
 
   b[nB++] = lowByte(cab);
@@ -287,7 +287,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   bValue = bValue % 2;
   bNum = bNum % 8;
 
-  if (cab > 127)
+  if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
 
   b[nB++] = lowByte(cab);
@@ -552,7 +552,7 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
     callback(-1);
     return;
   }
-  if (id<=127)
+  if (id<=HIGHEST_SHORT_ADDR)
       ackManagerSetup(id, SHORT_LOCO_ID_PROG, callback);
   else
       ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
@@ -910,7 +910,7 @@ void DCC::ackManagerLoop() {
           
      case COMBINELOCOID: 
           // ackManagerStash is  cv17, ackManagerByte is CV 18
-          callback( ackManagerByte + ((ackManagerStash - 192) << 8));
+          callback( LONG_ADDR_MARKER | ( ackManagerByte + ((ackManagerStash - 192) << 8)));
           return;            
 
      case ITSKIP:

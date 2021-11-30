@@ -139,6 +139,17 @@ The configuration file for DCC-EX Command Station
 // #define DISABLE_EEPROM
 
 /////////////////////////////////////////////////////////////////////////////////////
+// REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
+// is 127 and the first long address is 128. There are manufacturers which have
+// another view. Lenz CS for example have considered addresses long from 100. If
+// you want to change to that mode, do 
+//#define HIGHEST_SHORT_ADDR 99
+// If you want to run all your locos addressed long format, you could even do a 
+//#define HIGHEST_SHORT_ADDR 0
+// We do not support to use the same address, for example 100(long) and 100(short)
+// at the same time, there must be a border.
+
+/////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
 //
