@@ -20,7 +20,9 @@
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#ifndef DISABLE_EEPROM
 #include "EEStore.h"
+#endif
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "FSH.h"
@@ -56,9 +58,11 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   // Initialise HAL layer before reading EEprom.
   IODevice::begin();
 
+#ifndef DISABLE_EEPROM
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
+#endif
 
   DCCWaveform::begin(mainDriver,progDriver); 
 }

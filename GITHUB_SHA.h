@@ -1,1 +1,1 @@
-#define GITHUB_SHA "d4ee215"
+#define GITHUB_SHA "disable-eeprom-20211130-19:44"
