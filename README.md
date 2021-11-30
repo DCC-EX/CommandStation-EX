@@ -17,7 +17,7 @@ Both CommandStation-EX and BaseStation-Classic support much of the NMRA Digital 
 * Control of all cab functions F0-F28 and F29-F68
 * Main Track: Write configuration variable bytes and set/clear specific configuration variable (CV) bits (aka Programming on Main or POM)
 * Programming Track: Same as the main track with the addition of reading configuration variable bytes
-* And manu more custom features. see [What's new in CommandStation-EX?](#whats-new-in-commandstation-ex)
+* And many more custom features. see [What's new in CommandStation-EX?](#whats-new-in-commandstation-ex)
 
 
 # What’s in this Repository?
