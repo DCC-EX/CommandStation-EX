@@ -335,9 +335,11 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
         DCC::setThrottle(cab, tspeed, direction);
         if (params == 4)
-            StringFormatter::send(stream, F("<T %d %d %d>\n"), p[0], p[2], p[3]);
+            StringFormatter::send(stream, F("<T %d %d %d>\n"), p[1], p[2], p[3]);
+        else if (params == 3)
+            StringFormatter::send(stream, F("<T %d %d %d>\n"), p[0], p[1], p[2]);
         else
-            StringFormatter::send(stream, F("<O>\n"));
+            StringFormatter::send(stream, F("<X>\n"));
         return;
     }
     case 'f': // FUNCTION <f CAB BYTE1 [BYTE2]>
