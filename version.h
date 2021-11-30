@@ -21,6 +21,8 @@
 //       Configuration options to globally flip polarity of DCC Accessory states when driven
 //       from <a> command and <T> command.
 //       Increased use of display for showing loco decoder programming information.
+//       Can disable EEPROM code
+//       Can define border between long and short addresses
 //       ...
 // 3.1.7 Bugfix: Unknown locos should have speed forward 
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
