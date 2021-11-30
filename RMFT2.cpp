@@ -30,7 +30,7 @@
    F10. [DONE] Alias anywhere
    F11. [DONE]EXRAIL/ENDEXRAIL unnecessary
    F12. [DONE] Allow guarded code (as effect of ALIAS anywhere)
-   F13. [DONE] IFANALOG function  
+   F13. [DONE] IFGTE/IFLT function  
   */
 /* EXRAILPlus planned TRANSPARENT additions
    T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
@@ -499,7 +499,8 @@ bool RMFT2::skipIfBlock() {
            kill(F("missing ENDIF"), nest);
            return false;  
       case OPCODE_IF:
-      case OPCODE_IFANALOG:
+      case OPCODE_IFGTE:
+      case OPCODE_IFLT:
       case OPCODE_IFNOT:
       case OPCODE_IFRANDOM:
       case OPCODE_IFRESERVE:
@@ -638,8 +639,12 @@ void RMFT2::loop2() {
       if (!readSensor(operand)) if (!skipIfBlock()) return;
       break;
     
-    case OPCODE_IFANALOG: // do next operand if sensor>= value
+    case OPCODE_IFGTE: // do next operand if sensor>= value
       if (IODevice::readAnalogue(operand)<(int)(GET_OPERAND(1))) if (!skipIfBlock()) return;
+      break;
+
+    case OPCODE_IFLT: // do next operand if sensor< value
+      if (IODevice::readAnalogue(operand)>=(int)(GET_OPERAND(1))) if (!skipIfBlock()) return;
       break;
     
     case OPCODE_IFNOT: // do next operand if sensor not set
