@@ -129,6 +129,16 @@ The configuration file for DCC-EX Command Station
 #define SCROLLMODE 1
 
 /////////////////////////////////////////////////////////////////////////////////////
+// DISABLE EEPROM
+//
+// If you do not need the EEPROM at all, you can disable all the code that saves
+// data in the EEPROM. You might want to do that if you are in a Arduino UNO
+// and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
+// to do that. Of course, then none of the EEPROM related commands works.
+//
+// #define DISABLE_EEPROM
+
+/////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
 //

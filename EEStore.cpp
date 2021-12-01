@@ -18,6 +18,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#include "defines.h"
+#ifndef DISABLE_EEPROM
 #include "EEStore.h"
 
 #include "DIAG.h"
@@ -103,3 +106,4 @@ void EEStore::dump(int num) {
 
 EEStore *EEStore::eeStore = NULL;
 int EEStore::eeAddress = 0;
+#endif
