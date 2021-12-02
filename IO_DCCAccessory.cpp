@@ -47,11 +47,15 @@ void DCCAccessoryDecoder::_begin() {
 // Device-specific write function.  State 1=closed, 0=thrown.  Adjust for RCN-213 compliance
 void DCCAccessoryDecoder::_write(VPIN id, int state) {
   int packedAddress = _packedAddress + id - _firstVpin;
-  #ifdef DIAG_IO
-  DIAG(F("DCC Write Linear Address:%d State:%d"), packedAddress, state);
-  #endif
-#if !defined(DCC_ACCESSORY_RCN_213)
+#if defined(HAL_ACCESSORY_COMMAND_REVERSE)
   state = !state;
+#ifdef DIAG_IO
+  DIAG(F("DCC Write Linear Address:%d State:%d (inverted)"), packedAddress, state);
+#endif
+#else
+#ifdef DIAG_IO
+  DIAG(F("DCC Write Linear Address:%d State:%d"), packedAddress, state);
+#endif
 #endif
   DCC::setAccessory(ADDRESS(packedAddress), SUBADDRESS(packedAddress), state);
 }

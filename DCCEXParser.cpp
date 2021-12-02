@@ -372,7 +372,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
           ) break; 
           // Honour the configuration option (config.h) which allows the <a> command to be reversed
-#ifdef DCC_ACCESSORY_RCN_213
+#ifdef DCC_ACCESSORY_COMMAND_REVERSE
           DCC::setAccessory(address, subaddress,p[activep]==0);
 #else
           DCC::setAccessory(address, subaddress,p[activep]==1);
