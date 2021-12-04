@@ -32,7 +32,13 @@
 
 class RMTChannel {
  public:
-  RMTChannel(byte pin, byte ch, byte plen);
+  inline RMTChannel(byte pin, bool isMain) {
+    if (isMain)
+      RMTChannel(pin, 0, PREAMBLE_BITS_MAIN, 1);
+    else
+      RMTChannel(pin, 2, PREAMBLE_BITS_PROG, 0);
+  };
+  RMTChannel(byte pin, byte ch, byte plen, bool isProg);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
   bool RMTfillData(dccPacket packet);

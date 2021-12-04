@@ -41,7 +41,7 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   if (dtype == RMT_MAIN) {
     signalPin=signal_pin;
 #if defined(ARDUINO_ARCH_ESP32)
-    rmtChannel = new RMTChannel(signalPin, 0, PREAMBLE_BITS_MAIN);
+    rmtChannel = new RMTChannel(signalPin, true); // true: isMain
 #endif
     dualSignal=false;
   } else if (dtype & (TIMER_MAIN | TIMER_PROG)) {

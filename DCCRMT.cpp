@@ -62,7 +62,7 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   tt->RMTinterrupt();
 }
 
-RMTChannel::RMTChannel(byte pin, byte ch, byte plen) {
+RMTChannel::RMTChannel(byte pin, byte ch, byte plen, bool isMain) {
 
   // preamble
   preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
@@ -79,12 +79,17 @@ RMTChannel::RMTChannel(byte pin, byte ch, byte plen) {
   // idle
   idleLen = 28;
   idle = (rmt_item32_t*)malloc(idleLen*sizeof(rmt_item32_t));
-  for (byte n=0; n<8; n++)   // 0 to 7
-    setDCCBit1(idle + n);
-  for (byte n=8; n<18; n++)  // 8, 9 to 16, 17
-    setDCCBit0(idle + n);
-  for (byte n=18; n<26; n++) // 18 to 25
-    setDCCBit1(idle + n);
+  if (isMain) {
+    for (byte n=0; n<8; n++)   // 0 to 7
+      setDCCBit1(idle + n);
+    for (byte n=8; n<18; n++)  // 8, 9 to 16, 17
+      setDCCBit0(idle + n);
+    for (byte n=18; n<26; n++) // 18 to 25
+      setDCCBit1(idle + n);
+  } else {
+    for (byte n=0; n<26; n++)  // all zero
+      setDCCBit0(idle + n);
+  }
   setDCCBit1(idle + 26);     // end bit
   setEOT(idle + 27);         // EOT marker
 

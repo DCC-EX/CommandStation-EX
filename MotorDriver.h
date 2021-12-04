@@ -29,10 +29,6 @@
 #include "DCCRMT.h"
 #endif
 
-// Number of preamble bits (moved here so MotorDriver and Waveform know)
-const int   PREAMBLE_BITS_MAIN = 16;
-const int   PREAMBLE_BITS_PROG = 22;
-
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
 #define UNUSED_PIN 127 // inside int8_t
 #endif
