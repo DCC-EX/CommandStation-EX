@@ -23,6 +23,16 @@
 #include "MotorDrivers.h"
 #include "FSH.h"
 
+#include "defines.h"
+#ifndef HIGHEST_SHORT_ADDR
+#define HIGHEST_SHORT_ADDR 127
+#else
+#if HIGHEST_SHORT_ADDR > 127
+#error short addr greater than 127 does not make sense
+#endif
+#endif
+const uint16_t LONG_ADDR_MARKER = 0x4000;
+
 typedef void (*ACK_CALLBACK)(int16_t result);
 
 enum ackOp : byte

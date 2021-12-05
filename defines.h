@@ -39,19 +39,29 @@
 #if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO))
  #define BIG_RAM
 #endif 
-#if ENABLE_WIFI && defined(BIG_RAM)
-#define WIFI_ON true
-#ifndef WIFI_CHANNEL
-#define WIFI_CHANNEL 1
-#endif
+#if ENABLE_WIFI
+  #if defined(BIG_RAM)
+    #define WIFI_ON true
+    #ifndef WIFI_CHANNEL
+      #define WIFI_CHANNEL 1
+    #endif
+  #else
+    #warning You have defined that you want WIFI but your hardware has not enough memory to do that, so WIFI DISABLED
+    #define WIFI_ON false
+  #endif
 #else
-#define WIFI_ON false
+  #define WIFI_ON false
 #endif
 
-#if ENABLE_ETHERNET && defined(BIG_RAM)
-#define ETHERNET_ON true
+#if ENABLE_ETHERNET
+  #if defined(BIG_RAM)
+    #define ETHERNET_ON true
+  #else
+    #warning You have defined that you want ETHERNET but your hardware has not enough memory to do that, so ETHERNET DISABLED
+    #define ETHERNET_ON false
+  #endif
 #else
-#define ETHERNET_ON false
+  #define ETHERNET_ON false
 #endif
 
 #if WIFI_ON && ETHERNET_ON
@@ -65,8 +75,12 @@
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
 
-#if __has_include ( "myAutomation.h") && defined(BIG_RAM)
-  #define RMFT_ACTIVE
+#if __has_include ( "myAutomation.h")
+  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
+    #define RMFT_ACTIVE
+  #else
+    #warning You have myAutomation.h but your hardware has not enough memory to do that, so EX-RAIL DISABLED
+  #endif
 #endif
 
 #endif

@@ -51,6 +51,8 @@
 #include "version.h"
 #include "RMFT2.h"
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
@@ -409,7 +411,7 @@ void WiThrottle::checkHeartbeat() {
 }
 
 char WiThrottle::LorS(int cab) {
-    return (cab<127)?'S':'L';
+    return (cab<=HIGHEST_SHORT_ADDR)?'S':'L';
 }
 
 // Drive Away feature. Callback handling
@@ -421,13 +423,26 @@ char         WiThrottle::stashThrottleChar;
 
 void WiThrottle::getLocoCallback(int16_t locoid) {
   stashStream->mark(stashClient);
-  if (locoid<0) StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+
+  if (locoid<=0)
+    StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
   else {
-    char addcmd[20]={'M',stashThrottleChar,'+',LorS(locoid) };
-    itoa(locoid,addcmd+4,10);
-    stashInstance->multithrottle(stashStream, (byte *)addcmd);
-    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-    DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+    // short or long
+    char addrchar;
+    if (locoid & LONG_ADDR_MARKER) { // long addr
+      locoid = locoid ^ LONG_ADDR_MARKER;
+      addrchar = 'L';
+    } else
+      addrchar = 'S';
+    if (addrchar == 'L' && locoid <= HIGHEST_SHORT_ADDR )
+      StringFormatter::send(stashStream,F("HMLong addr <= " STR(HIGHEST_SHORT_ADDR) " not supported\n"));
+    else {
+      char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
+      itoa(locoid,addcmd+4,10);
+      stashInstance->multithrottle(stashStream, (byte *)addcmd);
+      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+      DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+    }
   }
   stashStream->commit();
 }

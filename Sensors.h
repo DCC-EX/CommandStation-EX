@@ -68,8 +68,10 @@ public:
   Sensor *nextSensor;
 
   void setState(int state);
+#ifndef DISABLE_EEPROM
   static void load();
   static void store();
+#endif
   static Sensor *create(int id, VPIN vpin, int pullUp);
   static Sensor* get(int id);  
   static bool remove(int id);  
