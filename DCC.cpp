@@ -27,6 +27,7 @@
 #include "version.h"
 #include "FSH.h"
 #include "IODevice.h"
+#include "CommandDistributor.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -185,6 +186,7 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
       speedTable[reg].functions &= ~funcmask;
   }
   updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  CommandDistributor::broadcastLoco(reg);
   return;
 }
 
@@ -218,6 +220,7 @@ int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
       funcstate = (speedTable[reg].functions & funcmask)? 1 : 0;
   }
   updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  CommandDistributor::broadcastLoco(reg);
   return funcstate;
 }
 
@@ -667,6 +670,7 @@ int DCC::lookupSpeedTable(int locoId) {
         speedTable[reg].speedCode=128;  // default direction forward
         speedTable[reg].groupFlags=0;
         speedTable[reg].functions=0;
+        CommandDistributor::broadcastLoco(reg);
   }
   return reg;
 }
@@ -677,13 +681,17 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
      // broadcast stop/estop but dont change direction
      for (int reg = 0; reg < MAX_LOCOS; reg++) {
        speedTable[reg].speedCode = (speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
+       CommandDistributor::broadcastLoco(reg);
      }
      return; 
   }
   
   // determine speed reg for this loco
   int reg=lookupSpeedTable(loco);       
-  if (reg>=0) speedTable[reg].speedCode = speedCode;
+  if (reg>=0) {
+    speedTable[reg].speedCode = speedCode;
+    CommandDistributor::broadcastLoco(reg);
+  }
 }
 
 DCC::LOCO DCC::speedTable[MAX_LOCOS];

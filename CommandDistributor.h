@@ -25,7 +25,7 @@ class CommandDistributor {
 
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
-  static void broadcastLoco(int16_t cab, int16_t slot, byte speed, uint32_t functions);
+  static void broadcastLoco(byte slot);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastPower();

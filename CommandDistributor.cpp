@@ -24,6 +24,7 @@
 #include "DIAG.h"
 #include "defines.h"
 #include "DCCWaveform.h"
+#include "DCC.h"
 
 const byte NO_CLIENT=255; 
 
@@ -93,8 +94,10 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   broadcast();
   }  
  
- void  CommandDistributor::broadcastLoco(int16_t cab, int16_t slot, byte speed, uint32_t functions) {
-  StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %x>\n"), cab,slot,speed,functions);    
+ void  CommandDistributor::broadcastLoco(byte slot) {
+   DCC::LOCO * sp=&DCC::speedTable[slot];
+  StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %l>\n"),
+     sp->loco,slot,sp->speedCode,sp->functions);    
   broadcast();
 }
  

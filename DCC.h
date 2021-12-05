@@ -134,7 +134,6 @@ public:
     return ackRetryPSum;
   };
 
-private:
   struct LOCO
   {
     int loco;
@@ -142,6 +141,9 @@ private:
     byte groupFlags;
     unsigned long functions;
   };
+ static LOCO speedTable[MAX_LOCOS];
+ 
+private:
   static byte joinRelay;
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
@@ -152,7 +154,6 @@ private:
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
-  static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
   static int lookupSpeedTable(int locoId);
