@@ -46,7 +46,7 @@
       #define WIFI_CHANNEL 1
     #endif
   #else
-    #warning You have defined that you want WIFI but your hardware has not enough memory to do that, so WIFI DISABLED
+    #define WIFI_WARNING
     #define WIFI_ON false
   #endif
 #else
@@ -57,7 +57,7 @@
   #if defined(BIG_RAM)
     #define ETHERNET_ON true
   #else
-    #warning You have defined that you want ETHERNET but your hardware has not enough memory to do that, so ETHERNET DISABLED
+    #define ETHERNET_WARNING
     #define ETHERNET_ON false
   #endif
 #else

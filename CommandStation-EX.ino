@@ -45,7 +45,12 @@
  */
 
 #include "DCCEX.h"
-
+#ifdef WIFI_WARNING
+#warning You have defined that you want WiFi but your hardware has not enough memory to do that, so WiFi DISABLED
+#endif   
+#ifdef ETHERNET_WARNING
+#warning You have defined that you want Ethernet but your hardware has not enough memory to do that, so Ethernet DISABLED
+#endif   
 
 void setup()
 {
