@@ -29,6 +29,7 @@
 #include "DCC.h"
 #include "DIAG.h"
 #include "DCCEXParser.h"
+#include "SerialManager.h"
 #include "version.h"
 #include "WifiInterface.h"
 #if ETHERNET_ON == true

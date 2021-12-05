@@ -24,6 +24,7 @@
 #include "defines.h"  // includes config.h
 #include "EEStore.h"
 #include "StringFormatter.h"
+#include "CommandDistributor.h"
 #include "RMFT2.h"
 #include "Turnouts.h"
 #include "DCC.h"
@@ -68,11 +69,7 @@
     turnoutlistHash++;
   }
   
-  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
-  void Turnout::printState(Print *stream) { 
-    StringFormatter::send(stream, F("<H %d %d>\n"), 
-      _turnoutData.id, !_turnoutData.closed);
-  }
+  
 
   // Remove nominated turnout from turnout linked list and delete the object.
   /* static */ bool Turnout::remove(uint16_t id) {
@@ -116,10 +113,7 @@
       RMFT2::turnoutEvent(id, closeFlag);
     #endif
 
-      // Send message to JMRI etc. over Serial USB.  This is done here
-      // to ensure that the message is sent when the turnout operation
-      // is not initiated by a Serial command.
-      tt->printState(&Serial);
+    CommandDistributor::broadcastTurnout(id, closeFlag);
     return true;
   }
 
@@ -151,10 +145,8 @@
       RMFT2::turnoutEvent(id, closeFlag);
     #endif
 
-      // Send message to JMRI etc. over Serial USB.  This is done here
-      // to ensure that the message is sent when the turnout operation
-      // is not initiated by a Serial command.
-      tt->printState(&Serial);
+      // Send message to JMRI etc.
+      CommandDistributor::broadcastTurnout(id, closeFlag);
     }
     return ok;
   }
@@ -211,12 +203,6 @@
     printAll(&Serial);
 #endif
     return tt;
-  }
-
-  // Display, on the specified stream, the current state of the turnout (1=thrown or 0=closed).
-  /* static */ void Turnout::printState(uint16_t id, Print *stream) {
-    Turnout *tt = get(id);
-    if (tt) tt->printState(stream);
   }
 
 

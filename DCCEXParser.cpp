@@ -28,7 +28,7 @@
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "defines.h"
-
+#include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
 #include <avr/wdt.h>
@@ -73,15 +73,12 @@ const int16_t HASH_KEYWORD_HAL = 10853;
 const int16_t HASH_KEYWORD_SHOW = -21309;
 const int16_t HASH_KEYWORD_ANIN = -10424;
 const int16_t HASH_KEYWORD_ANOUT = -26399;
-#ifdef HAS_ENOUGH_MEMORY
 const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;
 const int16_t HASH_KEYWORD_WIT = 31594;
-#endif
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
-
 Print *DCCEXParser::stashStream = NULL;
 RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
@@ -92,44 +89,6 @@ byte DCCEXParser::stashTarget=0;
 // calls the corresponding DCC api.
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes.
 
-DCCEXParser::DCCEXParser() {}
-void DCCEXParser::flush()
-{
-    if (Diag::CMD)
-        DIAG(F("Buffer flush"));
-    bufferLength = 0;
-    inCommandPayload = false;
-}
-
-void DCCEXParser::loop(Stream &stream)
-{
-    while (stream.available())
-    {
-        if (bufferLength == MAX_BUFFER)
-        {
-            flush();
-        }
-        char ch = stream.read();
-        if (ch == '<')
-        {
-            inCommandPayload = true;
-            bufferLength = 0;
-            buffer[0] = '\0';
-        }
-        else if (ch == '>')
-        {
-            buffer[bufferLength] = '\0';
-            parse(&stream, buffer, NULL); // Parse this (No ringStream for serial)
-            inCommandPayload = false;
-            break;
-        }
-        else if (inCommandPayload)
-        {
-            buffer[bufferLength++] = ch;
-        }
-    }
-    Sensor::checkAll(&stream); // Update and print changes
-}
 
 int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
 {
@@ -463,59 +422,65 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         }
         break;
 
-    case '1': // POWERON <1   [MAIN|PROG]>
-    case '0': // POWEROFF <0 [MAIN | PROG] >
-        if (params > 1)
-            break;
-        {
-            POWERMODE mode = opcode == '1' ? POWERMODE::ON : POWERMODE::OFF;
-            DCC::setProgTrackSyncMain(false); // Only <1 JOIN> will set this on, all others set it off
-            if (params == 0 ||
-		(MotorDriver::commonFaultPin && p[0] != HASH_KEYWORD_JOIN)) // commonFaultPin prevents individual track handling
-            {
-                DCCWaveform::mainTrack.setPowerMode(mode);
-                DCCWaveform::progTrack.setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
-                StringFormatter::send(stream, F("<p%c>\n"), opcode);
-		        LCD(2, F("p%c"), opcode);
-                return;
-            }
-            switch (p[0])
-            {
-            case HASH_KEYWORD_MAIN:
-                DCCWaveform::mainTrack.setPowerMode(mode);
-                StringFormatter::send(stream, F("<p%c MAIN>\n"), opcode);
-	            LCD(2, F("p%c MAIN"), opcode);
-                return;
-
-            case HASH_KEYWORD_PROG:
-                DCCWaveform::progTrack.setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
-                StringFormatter::send(stream, F("<p%c PROG>\n"), opcode);
-		        LCD(2, F("p%c PROG"), opcode);
-                return;
-            case HASH_KEYWORD_JOIN:
-                DCCWaveform::mainTrack.setPowerMode(mode);
-                DCCWaveform::progTrack.setPowerMode(mode);
-                if (mode == POWERMODE::ON)
-                {
-                    DCC::setProgTrackSyncMain(true);
-                    StringFormatter::send(stream, F("<p1 JOIN>\n"), opcode);
-		            LCD(2, F("p1 JOIN"));
-                }
-                else
-		        {
-                    StringFormatter::send(stream, F("<p0>\n"));
-		            LCD(2, F("p0"));
-	    	    }
-                return;
-            }
-            break;
+    case '1': // POWERON <1   [MAIN|PROG|JOIN]>
+        { 
+        bool main=false;
+        bool prog=false;
+        bool join=false;     
+        if (params > 1) break;
+        if (params==0) { // <1>
+            main=true; 
+            prog=true; 
         }
-        return;
+        else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
+            main=true; 
+            prog=true;
+            join=!MotorDriver::commonFaultPin; 
+        }
+        else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+            main=true; 
+        } 
+        else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
+            prog=true; 
+        }
+        else break; // will reply <X>
 
+        if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
+        if (prog) DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+        DCC::setProgTrackSyncMain(join); 
+             
+        CommandDistributor::broadcastPower();        
+        return;
+        }
+        
+    case '0': // POWEROFF <0 [MAIN | PROG] >
+        { 
+        bool main=false;
+        bool prog=false;
+        if (params > 1) break;
+        if (params==0) { // <0>
+            main=true; 
+            prog=true; 
+        }
+        else if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
+            main=true; 
+        } 
+        else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
+            prog=true; 
+        }
+        else break; // will reply <X>
+
+        if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
+        if (prog) {
+            DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off        
+            DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+        }
+        DCC::setProgTrackSyncMain(false); 
+             
+        CommandDistributor::broadcastPower();
+        return;
+        }
+        
     case '!': // ESTOP ALL  <!>
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1. 
         return;
@@ -723,9 +688,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
           }
           if (!Turnout::setClosed(p[0], state)) return false;
 
-          // Send acknowledgement to caller if the command was not received over Serial
-          // (acknowledgement messages on Serial are sent by the Turnout class).
-          if (stream != &Serial) Turnout::printState(p[0], stream);
+
           return true;
         }
 

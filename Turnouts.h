@@ -25,7 +25,7 @@
 //#define EESTOREDEBUG 
 #include "Arduino.h"
 #include "IODevice.h"
-
+#include "StringFormatter.h"
 
 // Turnout type definitions
 enum {
@@ -164,10 +164,10 @@ public:
 
   static void printAll(Print *stream) {
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
-      tt->printState(stream);
+      StringFormatter::send(stream, F("<H %c %c>\n"),tt->getId(), tt->isThrown());
   }
 
-  static void printState(uint16_t id, Print *stream);
+
 };
 
 

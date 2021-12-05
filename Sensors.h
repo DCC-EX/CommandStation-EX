@@ -73,7 +73,7 @@ public:
   static Sensor *create(int id, VPIN vpin, int pullUp);
   static Sensor* get(int id);  
   static bool remove(int id);  
-  static void checkAll(Print *stream);
+  static void checkAll();
   static void printAll(Print *stream);
   static unsigned long lastReadCycle; // value of micros at start of last read cycle
   static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microsecs.

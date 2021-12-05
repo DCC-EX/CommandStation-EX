@@ -152,7 +152,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         if (ch=='E' || ch=='l') { // ERROR or "link is not valid"
           if (clientPendingCIPSEND>=0) {
             // A CIPSEND was errored... just toss it away
-            purgeCurrentCIPSEND();  
+            purgeCurrentCIPSEND(); 
           }
           loopState=SKIPTOEND; 
           break; 
@@ -231,6 +231,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         if (ch=='C') {
          // got "x C" before CLOSE or CONNECTED, or CONNECT FAILED
          if (runningClientId==clientPendingCIPSEND) purgeCurrentCIPSEND();
+         else CommandDistributor::forget(runningClientId);
         }
         loopState=SKIPTOEND;   
         break;
@@ -245,6 +246,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
 void WifiInboundHandler::purgeCurrentCIPSEND() {
          // A CIPSEND was sent but errored... or the client closed just toss it away
+         CommandDistributor::forget(clientPendingCIPSEND); 
          DIAG(F("Wifi: DROPPING CIPSEND=%d,%d"),clientPendingCIPSEND,currentReplySize);
          for (int i=0;i<=currentReplySize;i++) outboundRing->read();
          pendingCipsend=false;  

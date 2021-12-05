@@ -27,11 +27,9 @@ typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
 
 struct DCCEXParser
 {
-   DCCEXParser();
-   void loop(Stream & stream);
-   void parse(Print * stream,  byte * command,  RingStream * ringStream);
-   void parse(const FSH * cmd);
-   void flush();
+   
+   static void parse(Print * stream,  byte * command,  RingStream * ringStream);
+   static void parse(const FSH * cmd);
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
@@ -40,17 +38,14 @@ struct DCCEXParser
    private:
   
     static const int16_t MAX_BUFFER=50;  // longest command sent in
-     byte  bufferLength=0;
-     bool  inCommandPayload=false;
-     byte  buffer[MAX_BUFFER+2]; 
-    int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command);
-    int16_t splitHexValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command);
+    static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command);
+    static int16_t splitHexValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command);
      
-     bool parseT(Print * stream, int16_t params, int16_t p[]);
-     bool parseZ(Print * stream, int16_t params, int16_t p[]);
-     bool parseS(Print * stream,  int16_t params, int16_t p[]);
-     bool parsef(Print * stream,  int16_t params, int16_t p[]);
-     bool parseD(Print * stream,  int16_t params, int16_t p[]);
+    static bool parseT(Print * stream, int16_t params, int16_t p[]);
+     static bool parseZ(Print * stream, int16_t params, int16_t p[]);
+     static bool parseS(Print * stream,  int16_t params, int16_t p[]);
+     static bool parsef(Print * stream,  int16_t params, int16_t p[]);
+     static bool parseD(Print * stream,  int16_t params, int16_t p[]);
 
      static Print * getAsyncReplyStream();
      static void commitAsyncReplyStream();
@@ -61,7 +56,7 @@ struct DCCEXParser
     static RingStream * stashRingStream;
     
     static int16_t stashP[MAX_COMMAND_PARAMS];
-    bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream);
+    static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream);
     static void callback_W(int16_t result);
     static void callback_B(int16_t result);        
     static void callback_R(int16_t result);
