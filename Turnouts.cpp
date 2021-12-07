@@ -136,8 +136,7 @@
     bool ok = tt->setClosedInternal(closeFlag);
 
     if (ok) {
-      turnoutlistHash++;  // let withrottle know something changed
-
+      
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.

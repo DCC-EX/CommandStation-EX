@@ -69,12 +69,7 @@ void CommandDistributor::broadcast() {
      for (byte clientId=0; clientId<sizeof(clients); clientId++) {
         if (clients[clientId]==NONE_TYPE) continue;
         ring->mark(clientId);
-        
-        if (clients[clientId]==COMMAND_TYPE) broadcastBufferWriter->printBuffer(ring);    
-        else if (clients[clientId]==WITHROTTLE_TYPE) {
-          // TODO... withrottle broadcasts?
-        }
-        
+        broadcastBufferWriter->printBuffer(ring);    
         ring->commit();
       }
       if (ringClient!=NO_CLIENT) ring->mark(ringClient);
@@ -90,7 +85,10 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
-  StringFormatter::send(broadcastBufferWriter,F("<H %d %d>\n"),id, !isClosed);
+  // The string below contains serial and Withrottle protocols which should
+  // be safe for both types. 
+  StringFormatter::send(broadcastBufferWriter,
+  F("<H %d %d>\nPTA%c%d\n"),id, !isClosed, isClosed?'2':'4', id);
   broadcast();
   }  
  

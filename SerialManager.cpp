@@ -44,14 +44,14 @@ void SerialManager::init() {
 }
 
 void SerialManager::broadcast(RingStream * ring) {
-    for (SerialManager * s;s;s=s->next) s->broadcast2(ring);
+    for (SerialManager * s=first;s;s=s->next) s->broadcast2(ring);
 }
 void SerialManager::broadcast2(RingStream * ring) {
     ring->printBuffer(serial);
 }
 
 void SerialManager::loop() {
-    for (SerialManager * s;s;s=s->next) s->loop2();
+    for (SerialManager * s=first;s;s=s->next) s->loop2();
 }
 
 void SerialManager::loop2() {
