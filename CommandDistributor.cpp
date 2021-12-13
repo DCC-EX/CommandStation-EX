@@ -104,12 +104,14 @@ void  CommandDistributor::broadcastPower() {
   bool main=DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON;      
   bool prog=DCCWaveform::progTrack.getPowerMode()==POWERMODE::ON;
   bool join=DCCWaveform::progTrackSyncMain;
-  if (main && prog && join) reason=F("p1 JOIN");
-  else if (main && prog) reason=F("p1");
-  else if (main) reason=F("p1 MAIN");
-  else if (prog) reason=F("p1 PROG");
-  StringFormatter::send(broadcastBufferWriter,F("<%S>\n"),reason);
-  LCD(2,reason);    
+  if (main && prog && join) reason=F("1 JOIN");
+  else if (main && prog) reason=F("1");
+  else if (main) reason=F("1 MAIN");
+  else if (prog) reason=F("1 PROG");
+  else reason=F("0");
+  StringFormatter::send(broadcastBufferWriter,
+                        F("<p%S>\nPPA%c\n"),reason, main?'1':'0');
+  LCD(2,F("Power %S"),reason);    
   broadcast();
 }
 
