@@ -179,15 +179,17 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
 
   // Take care of functions:
   // Set state of function
+  unsigned long previous=speedTable[reg].functions;
   unsigned long funcmask = (1UL<<functionNumber);
-  if (on) {
+  if (on) { 
       speedTable[reg].functions |= funcmask;
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  CommandDistributor::broadcastLoco(reg);
-  return;
+  if (speedTable[reg].functions != previous) {
+    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+    CommandDistributor::broadcastLoco(reg);
+  }
 }
 
 // Change function according to how button was pressed,
