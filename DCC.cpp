@@ -248,7 +248,7 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
   flags |= groupMask; 
 }
 
-uint16_t DCC::getFunctionMap(int cab) {
+uint32_t DCC::getFunctionMap(int cab) {
   if (cab<=0) return 0;  // unknown pretend all functions off
   int reg = lookupSpeedTable(cab);
   return (reg<0)?0:speedTable[reg].functions;  
