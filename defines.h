@@ -79,7 +79,7 @@
   #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
     #define RMFT_ACTIVE
   #else
-    #warning You have myAutomation.h but your hardware has not enough memory to do that, so EX-RAIL DISABLED
+    #define EXRAIL_WARNING
   #endif
 #endif
 

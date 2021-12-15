@@ -51,6 +51,9 @@
 #ifdef ETHERNET_WARNING
 #warning You have defined that you want Ethernet but your hardware has not enough memory to do that, so Ethernet DISABLED
 #endif   
+#ifdef EXRAIL_WARNING
+#warning You have myAutomation.h but your hardware has not enough memory to do that, so EX-RAIL DISABLED
+#endif
 
 void setup()
 {
