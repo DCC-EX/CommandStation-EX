@@ -16,16 +16,108 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include <Arduino.h>
 #include "CommandDistributor.h"
+#include "SerialManager.h"
 #include "WiThrottle.h"
+#include "DIAG.h"
+#include "defines.h"
+#include "DCCWaveform.h"
+#include "DCC.h"
 
-DCCEXParser * CommandDistributor::parser=0; 
+const byte NO_CLIENT=255; 
 
-void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * streamer) {
- if (buffer[0] == '<')  {
-    if (!parser) parser = new DCCEXParser();
-    parser->parse(streamer, buffer, streamer); 
-  }
-  else WiThrottle::getThrottle(clientId)->parse(streamer, buffer);
+RingStream *  CommandDistributor::ring=0;
+byte CommandDistributor::ringClient=NO_CLIENT;
+CommandDistributor::clientType  CommandDistributor::clients[8]={
+  NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
+RingStream * CommandDistributor::broadcastBufferWriter=new RingStream(100);  
+
+void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
+  ring=stream;
+  ringClient=stream->peekTargetMark();
+  if (buffer[0] == '<')  {
+    clients[clientId]=COMMAND_TYPE;
+     DCCEXParser::parse(stream, buffer, ring);
+    }
+  else {
+    clients[clientId]=WITHROTTLE_TYPE;
+    WiThrottle::getThrottle(clientId)->parse(ring, buffer);
+  }  
+  ringClient=NO_CLIENT;   
 }
+
+void CommandDistributor::forget(byte clientId) {
+  clients[clientId]=NONE_TYPE;    
+}
+
+  
+void CommandDistributor::broadcast() {
+  broadcastBufferWriter->write((byte)'\0'); 
+
+  /* Boadcast to Serials */ 
+  SerialManager::broadcast(broadcastBufferWriter);    
+
+#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  // If we are broadcasting from a wifi/eth process we need to complete its output
+  // before merging broadcasts in the ring, then reinstate it in case
+  // the process continues to output to its client.  
+  if (ringClient!=NO_CLIENT) ring->commit();
+
+  /* loop through ring clients */
+     for (byte clientId=0; clientId<sizeof(clients); clientId++) {
+        if (clients[clientId]==NONE_TYPE) continue;
+        ring->mark(clientId);
+        broadcastBufferWriter->printBuffer(ring);    
+        ring->commit();
+      }
+      if (ringClient!=NO_CLIENT) ring->mark(ringClient);
+ 
+#endif
+ broadcastBufferWriter->flush();
+}
+
+void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
+  StringFormatter::send(broadcastBufferWriter,F("<%c %d>\n"), on?'Q':'q', id);
+  broadcast();
+  }  
+
+void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
+  // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
+  // The string below contains serial and Withrottle protocols which should
+  // be safe for both types. 
+  StringFormatter::send(broadcastBufferWriter,F("<H %d %d>\n"),id, !isClosed);
+#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  StringFormatter::send(broadcastBufferWriter,F("PTA%c%d\n"), isClosed?'2':'4', id);
+#endif 
+  broadcast();
+  }  
+ 
+ void  CommandDistributor::broadcastLoco(byte slot) {
+   DCC::LOCO * sp=&DCC::speedTable[slot];
+  StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %l>\n"),
+     sp->loco,slot,sp->speedCode,sp->functions);    
+  broadcast();
+#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  WiThrottle::markForBroadcast(sp->loco);
+#endif 
+}
+ 
+void  CommandDistributor::broadcastPower() {
+  const FSH * reason;
+  bool main=DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON;      
+  bool prog=DCCWaveform::progTrack.getPowerMode()==POWERMODE::ON;
+  bool join=DCCWaveform::progTrackSyncMain;
+  if (main && prog && join) reason=F("1 JOIN");
+  else if (main && prog) reason=F("1");
+  else if (main) reason=F("1 MAIN");
+  else if (prog) reason=F("1 PROG");
+  else reason=F("0");
+  StringFormatter::send(broadcastBufferWriter,
+                        F("<p%S>\nPPA%c\n"),reason, main?'1':'0');
+  LCD(2,F("Power %S"),reason);    
+  broadcast();
+}
+
+

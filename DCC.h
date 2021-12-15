@@ -101,6 +101,7 @@ public:
   static void setFn(int cab, int16_t functionNumber, bool on);
   static int changeFn(int cab, int16_t functionNumber, bool pressed);
   static int  getFn(int cab, int16_t functionNumber);
+  static uint16_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);
@@ -134,7 +135,6 @@ public:
     return ackRetryPSum;
   };
 
-private:
   struct LOCO
   {
     int loco;
@@ -142,6 +142,9 @@ private:
     byte groupFlags;
     unsigned long functions;
   };
+ static LOCO speedTable[MAX_LOCOS];
+ 
+private:
   static byte joinRelay;
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
@@ -152,7 +155,6 @@ private:
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
-  static LOCO speedTable[MAX_LOCOS];
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
   static int lookupSpeedTable(int locoId);

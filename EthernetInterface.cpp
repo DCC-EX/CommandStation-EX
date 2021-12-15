@@ -170,6 +170,7 @@ void EthernetInterface::loop()
    for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
      if (clients[socket] && !clients[socket].connected()) {
       clients[socket].stop();
+      CommandDistributor::forget(socket);          
       if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
      }
     }

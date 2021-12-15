@@ -75,13 +75,13 @@ bool WifiInterface::setup(long serial_link_speed,
   (void) channel;
 #endif  
   
-#if NUM_SERIAL > 0
+#if NUM_SERIAL > 0 && !defined(SERIAL1_COMMANDS)
   Serial1.begin(serial_link_speed);
   wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port, channel);
 #endif
 
 // Other serials are tried, depending on hardware.
-#if NUM_SERIAL > 1
+#if NUM_SERIAL > 1 && !defined(SERIAL2_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
     Serial2.begin(serial_link_speed);
@@ -89,7 +89,7 @@ bool WifiInterface::setup(long serial_link_speed,
   }
 #endif
   
-#if NUM_SERIAL > 2
+#if NUM_SERIAL > 2 && !defined(SERIAL3_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
     Serial3.begin(serial_link_speed);

@@ -46,6 +46,7 @@
 #include "WiThrottle.h"
 #include "DCCEXParser.h"
 #include "Turnouts.h"
+#include "CommandDistributor.h"
 
 
 // Command parsing keywords
@@ -469,7 +470,7 @@ void RMFT2::driveLoco(byte speed) {
      if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
      if (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::OFF) {
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON); 
-        Serial.println(F("<p1>")); // tell JMRI
+        CommandDistributor::broadcastPower();
      }
      DCC::setThrottle(loco,speed, forward^invert);
      speedo=speed;
@@ -626,7 +627,7 @@ void RMFT2::loop2() {
         DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
         DCC::setProgTrackSyncMain(false);       
-        Serial.println(F("<p0>")); // Tell JMRI
+        CommandDistributor::broadcastPower();
         break;
 
     case OPCODE_RESUME:
@@ -751,7 +752,7 @@ void RMFT2::loop2() {
        DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON); 
        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON); 
        DCC::setProgTrackSyncMain(true);
-       Serial.println(F("<p1 JOIN>")); // Tell JMRI
+       CommandDistributor::broadcastPower();
        break;
 
     case OPCODE_UNJOIN:

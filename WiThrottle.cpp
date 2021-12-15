@@ -388,21 +388,14 @@ int WiThrottle::WiTToDCCSpeed(int WiTSpeed) {
 }
 
 void WiThrottle::loop(RingStream * stream) {
-  // for each WiThrottle, check the heartbeat
+  // for each WiThrottle, check the heartbeat and broadcast needed
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
-     wt->checkHeartbeat();
+     wt->checkHeartbeat(stream);
 
-   // TODO... any broadcasts to be done 
-   (void)stream; 
-   /* MUST follow this model in  this loop. 
-    *   stream->mark();
-    *   send 1 digit client id, and any data 
-    *   stream->commit() 
-     */
 
 }
 
-void WiThrottle::checkHeartbeat() {
+void WiThrottle::checkHeartbeat(RingStream * stream) {
   // if eStop time passed... eStop any locos still assigned to this client and then drop the connection
   if(heartBeatEnable && (millis()-heartBeat > ESTOP_SECONDS*1000)) {
   if (Diag::WITHROTTLE)  DIAG(F("%l WiThrottle(%d) eStop(%ds) timeout, drop connection"), millis(), clientid, ESTOP_SECONDS);
@@ -413,8 +406,53 @@ void WiThrottle::checkHeartbeat() {
       }
     }
     delete this;
+    return;
    }
+   
+   // send any speed/direction/function changes for this loco 
+    LOOPLOCOS('*', -1) { 
+      if (myLocos[loco].throttle!='\0' && myLocos[loco].broadcastPending) {
+        stream->mark(clientid);
+        myLocos[loco].broadcastPending=false;
+        int cab=myLocos[loco].cab;
+        char lors=LorS(cab);
+        char throttle=myLocos[loco].throttle;
+        StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"),
+           throttle, lors , cab, DCCToWiTSpeed(DCC::getThrottleSpeed(cab)));
+        StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), 
+          throttle, lors , cab, DCC::getThrottleDirection(cab));
+
+        // compare the DCC functionmap with the local copy and send changes  
+        uint16_t dccFunctionMap=DCC::getFunctionMap(cab);
+        uint16_t myFunctionMap=myLocos[loco].functionMap;
+        myLocos[loco].functionMap=dccFunctionMap;
+
+        // loop the maps sending any bit changed
+        // Loop is terminated as soon as no changes are left
+        for (byte fn=0;dccFunctionMap!=myFunctionMap;fn++) {
+             if ((dccFunctionMap&1) != (myFunctionMap&1)) {
+               StringFormatter::send(stream,F("M%cA%c%d<;>F%c%d\n"),
+                throttle, lors , cab, (dccFunctionMap&1)?'1':'0',fn);
+             } 
+             // shift just checked bit off end of both maps
+             dccFunctionMap>>=1;
+             myFunctionMap>>=1;
+          } 
+        stream->commit();     
+      }
+    }
 }
+
+void WiThrottle::markForBroadcast(int cab) {
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
+      wt->markForBroadcast2(cab);
+}
+void WiThrottle::markForBroadcast2(int cab) {
+  LOOPLOCOS('*', cab) { 
+      myLocos[loco].broadcastPending=true;
+  }
+}
+
 
 char WiThrottle::LorS(int cab) {
     return (cab<=HIGHEST_SHORT_ADDR)?'S':'L';

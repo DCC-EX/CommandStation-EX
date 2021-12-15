@@ -103,3 +103,12 @@ bool RingStream::commit() {
   _buffer[_mark]=lowByte(_count);
   return true; // commit worked
 }
+void RingStream::flush() {
+  _pos_write=0;
+  _pos_read=0;
+  _buffer[0]=0;
+}
+void RingStream::printBuffer(Print * stream) {
+  _buffer[_pos_write]='\0';
+  stream->print((char *)_buffer);
+}

@@ -24,9 +24,21 @@
 class CommandDistributor {
 
 public :
-  static void parse(byte clientId,byte* buffer, RingStream * streamer);
+  static void parse(byte clientId,byte* buffer, RingStream * ring);
+  static void broadcastLoco(byte slot);
+  static void broadcastSensor(int16_t id, bool value);
+  static void broadcastTurnout(int16_t id, bool isClosed);
+  static void broadcastPower();
+  static void forget(byte clientId);
 private:
-   static DCCEXParser * parser;
+  static void broadcast();
+  static RingStream * ring;
+  static RingStream * broadcastBufferWriter;
+  static byte ringClient;
+   
+   // each bit in broadcastlist = 1<<clientid
+   enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
+   static clientType clients[8];
 };
 
 #endif

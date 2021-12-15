@@ -176,6 +176,18 @@ The configuration file for DCC-EX Command Station
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
 // DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
 // (throw turnout).
-//#define DCC_ACCESSORY_COMMAND_REVERSE
+//#define DCC_ACCESSORY_RCN_213
+//
+// HANDLING MULTIPLE SERIAL THROTTLES
+// The command station always operates with the default Serial port.
+// Diagnostics are only emitted on the default serial port and not broadcast.
+// Other serial throttles may be added to the Serial1, Serial2, Serial3 ports
+// which may or may not exist on your CPU. (Mega has all 3)
+// To monitor a throttle on one or more serial ports, uncomment the defines below.
+// NOTE: do not define here the WiFi shield serial port or your wifi will not work.
+//
+//#define SERIAL1_COMMAND  
+//#define SERIAL2_COMMAND  
+//#define SERIAL3_COMMAND  
 
 /////////////////////////////////////////////////////////////////////////////////////
