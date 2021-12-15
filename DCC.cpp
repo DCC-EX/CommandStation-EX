@@ -247,6 +247,12 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
   flags |= groupMask; 
 }
 
+uint16_t DCC::getFunctionMap(int cab) {
+  if (cab<=0) return 0;  // unknown pretend all functions off
+  int reg = lookupSpeedTable(cab);
+  return (reg<0)?0:speedTable[reg].functions;  
+}
+
 void DCC::setAccessory(int address, byte number, bool activate) {
   #ifdef DIAG_IO
   DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, number, activate);

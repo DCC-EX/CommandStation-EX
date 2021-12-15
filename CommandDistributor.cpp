@@ -87,8 +87,10 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed; 
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types. 
-  StringFormatter::send(broadcastBufferWriter,
-  F("<H %d %d>\nPTA%c%d\n"),id, !isClosed, isClosed?'2':'4', id);
+  StringFormatter::send(broadcastBufferWriter,F("<H %d %d>\n"),id, !isClosed);
+#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  StringFormatter::send(broadcastBufferWriter,F("PTA%c%d\n"), isClosed?'2':'4', id);
+#endif 
   broadcast();
   }  
  
@@ -97,6 +99,9 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %l>\n"),
      sp->loco,slot,sp->speedCode,sp->functions);    
   broadcast();
+#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  WiThrottle::markForBroadcast(sp->loco);
+#endif 
 }
  
 void  CommandDistributor::broadcastPower() {

@@ -298,10 +298,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             break; // invalid direction code
 
         DCC::setThrottle(cab, tspeed, direction);
-        if (params == 4)
+        if (params == 4) // send obsolete format T response
             StringFormatter::send(stream, F("<T %d %d %d>\n"), p[0], p[2], p[3]);
-        else
-            StringFormatter::send(stream, F("<O>\n"));
+        // speed change will be broadcast anyway in new <l > format
         return;
     }
     case 'f': // FUNCTION <f CAB BYTE1 [BYTE2]>

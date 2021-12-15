@@ -101,6 +101,7 @@ public:
   static void setFn(int cab, int16_t functionNumber, bool on);
   static int changeFn(int cab, int16_t functionNumber, bool pressed);
   static int  getFn(int cab, int16_t functionNumber);
+  static uint16_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);
