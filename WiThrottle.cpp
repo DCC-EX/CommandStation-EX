@@ -272,16 +272,17 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                 for (int loco=0;loco<MAX_MY_LOCO;loco++) {
                   if (myLocos[loco].throttle=='\0') { 
                     myLocos[loco].throttle=throttleChar;
-                    myLocos[loco].cab=locoid;
+                    myLocos[loco].cab=locoid; 
+                    myLocos[loco].functionMap=DCC::getFunctionMap(locoid); 
+                    myLocos[loco].broadcastPending=true; // means speed/dir will be sent later
                     mostRecentCab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
-                    //Get known Fn states from DCC 
+              
                     for(int fKey=0; fKey<=28; fKey++) { 
                       int fstate=DCC::getFn(locoid,fKey);
                         if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
                     }
-                    StringFormatter::send(stream, F("M%cA%c%d<;>V%d\n"), throttleChar, cmd[3], locoid, DCCToWiTSpeed(DCC::getThrottleSpeed(locoid)));
-                    StringFormatter::send(stream, F("M%cA%c%d<;>R%d\n"), throttleChar, cmd[3], locoid, DCC::getThrottleDirection(locoid));
+                    //speed and direction will be published at next broadcast cycle
                     StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
                     return;
                   }
@@ -303,6 +304,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
 //    DIAG(F("Loco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
+     (void) stream;
      switch (aval[0]) {
            case 'V':  // Vspeed
              { 
@@ -310,33 +312,25 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
               LOOPLOCOS(throttleChar, cab) {
                 mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, WiTToDCCSpeed(witSpeed), DCC::getThrottleDirection(myLocos[loco].cab));
-                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, witSpeed);
+                // SetThrottle will cause speed change broadcast
                 }
              } 
             break;
            case 'F': //F onOff function
               {
-		            bool funcstate;
-                bool pressed=aval[1]=='1';
+		            bool pressed=aval[1]=='1';
                 int fKey = getInt(aval+2);
                 LOOPLOCOS(throttleChar, cab) {
-		              funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
-		              if(funcstate==0 || funcstate==1)
-			              StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
-						          myLocos[loco].cab, funcstate, fKey);
-		              }
+		              DCC::changeFn(myLocos[loco].cab, fKey, pressed);
                 }
                 break;  
+              }
             case 'q':
-                if (aval[1]=='V') {   //qV
+                if (aval[1]=='V' || aval[1]=='R' ) {   //qV or qR
+                  // just flag the loco for broadcast and it will happen.
                   LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCCToWiTSpeed(DCC::getThrottleSpeed(myLocos[loco].cab)));
-                  }              
-                }
-                else if (aval[1]=='R') { // qR
-                  LOOPLOCOS(throttleChar, cab) {              
-                    StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, DCC::getThrottleDirection(myLocos[loco].cab));
-                  }             
+                    myLocos[loco].broadcastPending=true;
+                  }                           
                 }     
             break;    
             case 'R':
@@ -345,15 +339,15 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
               LOOPLOCOS(throttleChar, cab) {
                 mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab), forward);
-                StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, forward);
-              }
+                // setThrottle will cause a broadcast so notification will be sent
+                }
             }        
             break;      
             case 'X':
               //Emergency Stop  (speed code 1)
               LOOPLOCOS(throttleChar, cab) {
                 DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab));
-                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, -1);
+                // setThrottle will cause a broadcast so notification will be sent
               }
               break;
             case 'I': // Idle, set speed to 0
@@ -361,7 +355,7 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
               LOOPLOCOS(throttleChar, cab) {
                 mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, 0, DCC::getThrottleDirection(myLocos[loco].cab));
-                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, 0);
+                // setThrottle will cause a broadcast so notification will be sent
               }
               break;
             }               
@@ -403,10 +397,15 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
     return;
    }
    
-   // send any speed/direction/function changes for this loco 
+   // send any outstanding speed/direction/function changes for this clients locos
+   // Changes may have been caused by this client, or another non-Withrottle or Exrail
+    bool streamHasBeenMarked=false; 
     LOOPLOCOS('*', -1) { 
       if (myLocos[loco].throttle!='\0' && myLocos[loco].broadcastPending) {
-        stream->mark(clientid);
+        if (!streamHasBeenMarked) {
+          stream->mark(clientid);
+          streamHasBeenMarked=true;
+        }
         myLocos[loco].broadcastPending=false;
         int cab=myLocos[loco].cab;
         char lors=LorS(cab);
@@ -417,8 +416,8 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
           throttle, lors , cab, DCC::getThrottleDirection(cab));
 
         // compare the DCC functionmap with the local copy and send changes  
-        uint16_t dccFunctionMap=DCC::getFunctionMap(cab);
-        uint16_t myFunctionMap=myLocos[loco].functionMap;
+        uint32_t dccFunctionMap=DCC::getFunctionMap(cab);
+        uint32_t myFunctionMap=myLocos[loco].functionMap;
         myLocos[loco].functionMap=dccFunctionMap;
 
         // loop the maps sending any bit changed
@@ -432,9 +431,9 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
              dccFunctionMap>>=1;
              myFunctionMap>>=1;
           } 
-        stream->commit();     
       }
     }
+    if (streamHasBeenMarked)   stream->commit();     
 }
 
 void WiThrottle::markForBroadcast(int cab) {

@@ -200,6 +200,7 @@ int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
   if (cab<=0 || functionNumber>28) return funcstate;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return funcstate;  
+  uint32_t oldFunctionMap=speedTable[reg].functions;
 
   // Take care of functions:
   // Imitate how many command stations do it: Button press is
@@ -222,7 +223,7 @@ int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
       funcstate = (speedTable[reg].functions & funcmask)? 1 : 0;
   }
   updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  CommandDistributor::broadcastLoco(reg);
+  if (oldFunctionMap!=speedTable[reg].functions) CommandDistributor::broadcastLoco(reg);
   return funcstate;
 }
 
@@ -247,7 +248,7 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
   flags |= groupMask; 
 }
 
-uint16_t DCC::getFunctionMap(int cab) {
+uint32_t DCC::getFunctionMap(int cab) {
   if (cab<=0) return 0;  // unknown pretend all functions off
   int reg = lookupSpeedTable(cab);
   return (reg<0)?0:speedTable[reg].functions;  
@@ -696,7 +697,7 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
   
   // determine speed reg for this loco
   int reg=lookupSpeedTable(loco);       
-  if (reg>=0) {
+  if (reg>=0 && speedTable[reg].speedCode!=speedCode) {
     speedTable[reg].speedCode = speedCode;
     CommandDistributor::broadcastLoco(reg);
   }
