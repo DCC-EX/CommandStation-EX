@@ -48,8 +48,10 @@ public:
   bool isActive();
   static Output* get(uint16_t);
   static bool remove(uint16_t);
+#ifndef DISABLE_EEPROM
   static void load();
   static void store();
+#endif
   static Output *create(uint16_t, VPIN, int, int=0);
   static Output *firstOutput;
   struct OutputData data;

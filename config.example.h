@@ -129,6 +129,27 @@ The configuration file for DCC-EX Command Station
 #define SCROLLMODE 1
 
 /////////////////////////////////////////////////////////////////////////////////////
+// DISABLE EEPROM
+//
+// If you do not need the EEPROM at all, you can disable all the code that saves
+// data in the EEPROM. You might want to do that if you are in a Arduino UNO
+// and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
+// to do that. Of course, then none of the EEPROM related commands works.
+//
+// #define DISABLE_EEPROM
+
+/////////////////////////////////////////////////////////////////////////////////////
+// REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
+// is 127 and the first long address is 128. There are manufacturers which have
+// another view. Lenz CS for example have considered addresses long from 100. If
+// you want to change to that mode, do 
+//#define HIGHEST_SHORT_ADDR 99
+// If you want to run all your locos addressed long format, you could even do a 
+//#define HIGHEST_SHORT_ADDR 0
+// We do not support to use the same address, for example 100(long) and 100(short)
+// at the same time, there must be a border.
+
+/////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
 //
@@ -141,10 +162,20 @@ The configuration file for DCC-EX Command Station
 // don't add it to your config.h.
 //#define DCC_TURNOUTS_RCN_213
 
-// The following #define likewise inverts the behaviour of the <a> command 
-// for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a 
+// By default, the driver which defines a DCC accessory decoder
+// does send out the same state change on the DCC packet as it
+// receives. This means a VPIN state=1 sends D=1 (close turnout
+// or signal green) in the DCC packet. This can be reversed if
+// necessary.
+//#define HAL_ACCESSORY_COMMAND_REVERSE
+
+// If you have issues with that the direction of the accessory commands is
+// reversed (for example when converting from another CS to DCC-EX) then
+// you can use this to revese the sense of all accessory commmands sent
+// over DCC++. This #define likewise inverts the behaviour of the <a> command
+// for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
 // DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
 // (throw turnout).
-//#define DCC_ACCESSORY_RCN_213
+//#define DCC_ACCESSORY_COMMAND_REVERSE
 
 /////////////////////////////////////////////////////////////////////////////////////
