@@ -43,6 +43,6 @@
 #include "Sensors.h"
 #include "Outputs.h"
 #include "RMFT.h"
-
+#include "CommandDistributor.h"
     
 #endif
