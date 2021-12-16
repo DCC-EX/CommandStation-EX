@@ -310,6 +310,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
     // Note cab=-1 for all cabs in the consist called throttleChar.  
 //    DIAG(F("Loco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
+     (void) stream;
      switch (aval[0]) {
            case 'V':  // Vspeed
              { 
@@ -317,23 +318,21 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
               LOOPLOCOS(throttleChar, cab) {
                 mostRecentCab=myLocos[loco].cab;
                 DCC::setThrottle(myLocos[loco].cab, WiTToDCCSpeed(witSpeed), DCC::getThrottleDirection(myLocos[loco].cab));
-                StringFormatter::send(stream,F("M%cA%c%d<;>V%d\n"), throttleChar, LorS(myLocos[loco].cab), myLocos[loco].cab, witSpeed);
+                // SetThrottle will cause speed change broadcast
                 }
              } 
             break;
-           case 'F': //F onOff function
-              {
-		            bool funcstate;
+           case 'F': // Function key pressed/released
+              {  
                 bool pressed=aval[1]=='1';
                 int fKey = getInt(aval+2);
+                if (fKey!=2 && !pressed) break; // ignore releases except key 2 
                 LOOPLOCOS(throttleChar, cab) {
-		              funcstate = DCC::changeFn(myLocos[loco].cab, fKey, pressed);
-		              if(funcstate==0 || funcstate==1)
-			              StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"), throttleChar, LorS(myLocos[loco].cab), 
-						          myLocos[loco].cab, funcstate, fKey);
-		              }
+                  if (fKey==2) DCC::setFn(myLocos[loco].cab,fKey, pressed);
+                  else  DCC::changeFn(myLocos[loco].cab, fKey);
                 }
                 break;  
+              }
             case 'q':
                 if (aval[1]=='V' || aval[1]=='R' ) {   //qV or qR
                   // just flag the loco for broadcast and it will happen.

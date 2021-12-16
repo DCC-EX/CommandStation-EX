@@ -99,7 +99,7 @@ public:
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction(int cab, byte fByte, byte eByte);
   static void setFn(int cab, int16_t functionNumber, bool on);
-  static int changeFn(int cab, int16_t functionNumber, bool pressed);
+  static void changeFn(int cab, int16_t functionNumber);
   static int  getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
