@@ -165,7 +165,7 @@ public:
 #endif
   static void printAll(Print *stream) {
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
-      StringFormatter::send(stream, F("<H %c %c>\n"),tt->getId(), tt->isThrown());
+      StringFormatter::send(stream, F("<H %d %d>\n"),tt->getId(), tt->isThrown());
   }
 
 

@@ -50,6 +50,7 @@
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "RMFT2.h"
+#include "CommandDistributor.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -113,12 +114,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d)<-[%e]"),millis(),clientid,cmd);
 
   if (initSent) {
-    // Send power state if different than last sent
-    bool currentPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-    if (lastPowerState != currentPowerState) {
-      StringFormatter::send(stream,F("PPA%x\n"),currentPowerState);
-      lastPowerState = currentPowerState;  
-    }
     // Send turnout list if changed since last sent (will replace list on client)
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
@@ -148,10 +143,9 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
        case 'P':  
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
-	      if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling
-		DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
-              StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-              lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
+	             if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling
+		              DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+            CommandDistributor::broadcastPower();
             }
 #if defined(RMFT_ACTIVE)
             else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
@@ -202,7 +196,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
               StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
               StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-              lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
               StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
               initSent = true;
             }
