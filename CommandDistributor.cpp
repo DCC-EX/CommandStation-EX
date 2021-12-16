@@ -105,18 +105,20 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 }
  
 void  CommandDistributor::broadcastPower() {
-  const FSH * reason;
   bool main=DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON;      
   bool prog=DCCWaveform::progTrack.getPowerMode()==POWERMODE::ON;
   bool join=DCCWaveform::progTrackSyncMain;
-  if (main && prog && join) reason=F("1 JOIN");
-  else if (main && prog) reason=F("1");
-  else if (main) reason=F("1 MAIN");
-  else if (prog) reason=F("1 PROG");
-  else reason=F("0");
+  const FSH * reason=F("");
+  char state='1';
+  if (main && prog && join) reason=F(" JOIN");
+  else if (main && prog);
+  else if (main) reason=F(" MAIN");
+  else if (prog) reason=F(" PROG");
+  else state='0';
+  
   StringFormatter::send(broadcastBufferWriter,
-                        F("<p%S>\nPPA%c\n"),reason, main?'1':'0');
-  LCD(2,F("Power %S"),reason);    
+                        F("<p%c%S>\nPPA%c\n"),state,reason, main?'1':'0');
+  LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);    
   broadcast();
 }
 

@@ -107,6 +107,7 @@ void setup()
   #endif
 
   LCD(3,F("Ready")); 
+  CommandDistributor::broadcastPower();
 }
 
 void loop()
