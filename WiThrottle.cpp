@@ -51,9 +51,6 @@
 #include "version.h"
 #include "RMFT2.h"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
 
@@ -480,7 +477,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
     } else
       addrchar = 'S';
     if (addrchar == 'L' && locoid <= HIGHEST_SHORT_ADDR )
-      StringFormatter::send(stashStream,F("HMLong addr <= " STR(HIGHEST_SHORT_ADDR) " not supported\n"));
+      StringFormatter::send(stashStream,F("HMLong addr %d <= %d not supported\n"), locoid,HIGHEST_SHORT_ADDR);
     else {
       char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
       itoa(locoid,addcmd+4,10);
