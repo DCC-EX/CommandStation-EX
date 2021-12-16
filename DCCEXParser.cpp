@@ -92,7 +92,7 @@ byte DCCEXParser::stashTarget=0;
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes.
 
 
-int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
+int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd, bool usehex)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -130,10 +130,15 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
         case 3: // building a parameter
             if (hot >= '0' && hot <= '9')
             {
-                runningValue = 10 * runningValue + (hot - '0');
+                runningValue = (usehex?16:10) * runningValue + (hot - '0');
                 break;
             }
             if (hot >= 'a' && hot <= 'z') hot=hot-'a'+'A'; // uppercase a..z
+            if (usehex && hot>='A' && hot<='F') {
+                // treat A..F as hex not keyword
+                runningValue = 16 * runningValue + (hot - 'A' + 10);
+                break;
+            }
             if (hot >= 'A' && hot <= 'Z')
             {
                 // Since JMRI got modified to send keywords in some rare cases, we need this
@@ -145,66 +150,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
             parameterCount++;
             state = 1;
             continue;
-        }
-        remainingCmd++;
-    }
-    return parameterCount;
-}
-
-int16_t DCCEXParser::splitHexValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd)
-{
-    byte state = 1;
-    byte parameterCount = 0;
-    int16_t runningValue = 0;
-    const byte *remainingCmd = cmd + 1; // skips the opcode
-    
-    // clear all parameters in case not enough found
-    for (int16_t i = 0; i < MAX_COMMAND_PARAMS; i++)
-        result[i] = 0;
-
-    while (parameterCount < MAX_COMMAND_PARAMS)
-    {
-        byte hot = *remainingCmd;
-
-        switch (state)
-        {
-
-        case 1: // skipping spaces before a param
-            if (hot == ' ')
-                break;
-            if (hot == '\0' || hot == '>')
-                return parameterCount;
-            state = 2;
-            continue;
-
-        case 2: // checking first hex digit
-            runningValue = 0;
-            state = 3;
-            continue;
-
-        case 3: // building a parameter
-            if (hot >= '0' && hot <= '9')
-            {
-                runningValue = 16 * runningValue + (hot - '0');
-                break;
-            }
-            if (hot >= 'A' && hot <= 'F')
-            {
-                runningValue = 16 * runningValue + 10 + (hot - 'A');
-                break;
-            }
-            if (hot >= 'a' && hot <= 'f')
-            {
-                runningValue = 16 * runningValue + 10 + (hot - 'a');
-                break;
-            }
-            if (hot==' ' || hot=='>' || hot=='\0') { 
-               result[parameterCount] = runningValue;
-               parameterCount++;
-               state = 1;
-               continue;
-            }
-            return -1; // invalid hex digit
         }
         remainingCmd++;
     }
@@ -248,9 +193,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
-    byte params = splitValues(p, com);
     byte opcode = com[0];
-
+    byte params = splitValues(p, com, opcode=='M' || opcode=='P');
+    
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
     if (filterRMFTCallback && opcode!='\0')
@@ -364,8 +309,8 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
     case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
-        // Re-parse the command using a hex-only splitter
-        params=splitHexValues(p,com)-1; // drop REG
+        // NOTE: this command was parsed in HEX instead of decimal
+        params--; // drop REG
         if (params<1) break;  
         {
           byte packet[params];
