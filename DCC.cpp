@@ -192,39 +192,15 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
   }
 }
 
-// Change function according to how button was pressed,
-// typically in WiThrottle.
-// Returns new state or -1 if nothing was changed.
-int DCC::changeFn( int cab, int16_t functionNumber, bool pressed) {
-  int funcstate = -1;
-  if (cab<=0 || functionNumber>28) return funcstate;
+// Flip function state
+void DCC::changeFn( int cab, int16_t functionNumber) {
+  if (cab<=0 || functionNumber>28) return;
   int reg = lookupSpeedTable(cab);
-  if (reg<0) return funcstate;  
-  uint32_t oldFunctionMap=speedTable[reg].functions;
-
-  // Take care of functions:
-  // Imitate how many command stations do it: Button press is
-  // toggle but for F2 where it is momentary
+  if (reg<0) return;  
   unsigned long funcmask = (1UL<<functionNumber);
-  if (functionNumber == 2) {
-      // turn on F2 on press and off again at release of button
-      if (pressed) {
-	  speedTable[reg].functions |= funcmask;
-	  funcstate = 1;
-      } else {
-	  speedTable[reg].functions &= ~funcmask;
-	  funcstate = 0;
-      }
-  } else {
-      // toggle function on press, ignore release
-      if (pressed) {
-        speedTable[reg].functions ^= funcmask;
-      }
-      funcstate = (speedTable[reg].functions & funcmask)? 1 : 0;
-  }
-  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  if (oldFunctionMap!=speedTable[reg].functions) CommandDistributor::broadcastLoco(reg);
-  return funcstate;
+  speedTable[reg].functions ^= funcmask;
+	updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  CommandDistributor::broadcastLoco(reg);
 }
 
 int DCC::getFn( int cab, int16_t functionNumber) {

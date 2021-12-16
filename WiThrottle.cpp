@@ -316,12 +316,14 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
                 }
              } 
             break;
-           case 'F': //F onOff function
-              {
-		            bool pressed=aval[1]=='1';
+           case 'F': // Function key pressed/released
+              {  
+                bool pressed=aval[1]=='1';
                 int fKey = getInt(aval+2);
+                if (fKey!=2 && !pressed) break; // ignore releases except key 2 
                 LOOPLOCOS(throttleChar, cab) {
-		              DCC::changeFn(myLocos[loco].cab, fKey, pressed);
+                  if (fKey==2) DCC::setFn(myLocos[loco].cab,fKey, pressed);
+                  else  DCC::changeFn(myLocos[loco].cab, fKey);
                 }
                 break;  
               }
