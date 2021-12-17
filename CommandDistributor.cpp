@@ -26,6 +26,8 @@
 #include "DCCWaveform.h"
 #include "DCC.h"
 
+#if defined(BIG_MEMORY) | defined(WIFI_ON) | defined(ETHERNET_ON)
+// This section of CommandDistributor is simply not relevant on a uno or similar
 const byte NO_CLIENT=255; 
 
 RingStream *  CommandDistributor::ring=0;
@@ -77,6 +79,13 @@ void CommandDistributor::broadcast() {
 #endif
  broadcastBufferWriter->flush();
 }
+#else
+  // For a UNO/NANO we can broadcast direct to just one Serial instead of the ring
+  // Redirect ring output ditrect to Serial 
+  #define broadcastBufferWriter &Serial
+  // and ignore the internal broadcast call. 
+  void CommandDistributor::broadcast() {}
+#endif
 
 void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
   StringFormatter::send(broadcastBufferWriter,F("<%c %d>\n"), on?'Q':'q', id);
