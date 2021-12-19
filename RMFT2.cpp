@@ -604,6 +604,7 @@ void RMFT2::loop2() {
 
     case OPCODE_UNJOIN:
        DCC::setProgTrackSyncMain(false);
+       CommandDistributor::broadcastPower();
        break;
        
     case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
