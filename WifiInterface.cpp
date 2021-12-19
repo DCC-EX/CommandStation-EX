@@ -326,25 +326,25 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 // The sequence "!!!" returns the Arduino to the normal loop mode
 
  
-void WifiInterface::ATCommand(const byte * command) {
+void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
   command++;
   if (*command=='\0') { // User gave <+> command  
-     DIAG(F("ES AT command passthrough mode, use ! to exit"));
-     while(Serial.available()) Serial.read(); // Drain serial input first 
+      stream->print(F("\nES AT command passthrough mode, use ! to exit\n"));
+     while(stream->available()) stream->read(); // Drain serial input first 
      bool startOfLine=true;
      while(true) {
-      while (wifiStream->available()) Serial.write(wifiStream->read());
-      if (Serial.available()) {
-        int cx=Serial.read();
+      while (wifiStream->available()) stream->write(wifiStream->read());
+      if (stream->available()) {
+        int cx=stream->read();
         // A newline followed by !!! is an exit
         if (cx=='\n' || cx=='\r') startOfLine=true; 
         else if (startOfLine && cx=='!')  break;
         else startOfLine=false; 
-        Serial.write(cx);
+        stream->write(cx);
         wifiStream->write(cx);  
        }
      }
-     DIAG(F("Passthrough Ended"));
+     stream->print(F("Passthrough Ended"));
      return; 
   }
   

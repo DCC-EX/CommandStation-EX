@@ -37,7 +37,7 @@ public:
                           const int port,
                           const byte channel);
   static void loop();
-  static void ATCommand(const byte *command);
+  static void ATCommand(HardwareSerial * stream,const byte *command);
   
 private:
   static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
