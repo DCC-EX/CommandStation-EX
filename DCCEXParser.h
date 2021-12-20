@@ -23,7 +23,7 @@
 #include "RingStream.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
-typedef void (*AT_COMMAND_CALLBACK)(const byte * command);
+typedef void (*AT_COMMAND_CALLBACK)(Print * stream,const byte * command);
 
 struct DCCEXParser
 {
