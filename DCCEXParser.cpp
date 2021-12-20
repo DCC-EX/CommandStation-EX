@@ -495,7 +495,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         if (atCommandCallback && !ringStream) {
           DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
           DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-          atCommandCallback(stream,com);
+          atCommandCallback((HardwareSerial *)stream,com);
           return;
         }
         break;
