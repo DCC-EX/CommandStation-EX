@@ -248,7 +248,7 @@ void WifiInboundHandler::purgeCurrentCIPSEND() {
          // A CIPSEND was sent but errored... or the client closed just toss it away
          CommandDistributor::forget(clientPendingCIPSEND); 
          DIAG(F("Wifi: DROPPING CIPSEND=%d,%d"),clientPendingCIPSEND,currentReplySize);
-         for (int i=0;i<=currentReplySize;i++) outboundRing->read();
+         for (int i=0;i<currentReplySize;i++) outboundRing->read();
          pendingCipsend=false;  
          clientPendingCIPSEND=-1;
 }
