@@ -31,7 +31,7 @@ public :
   static void broadcastPower();
   static void forget(byte clientId);
 private:
-  static void broadcast();
+  static void broadcast(bool includeWithrottleClients);
   static RingStream * ring;
   static RingStream * broadcastBufferWriter;
   static byte ringClient;

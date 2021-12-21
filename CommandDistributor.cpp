@@ -55,7 +55,7 @@ void CommandDistributor::forget(byte clientId) {
 }
 
   
-void CommandDistributor::broadcast() {
+void CommandDistributor::broadcast(bool includeWithrottleClients) {
   broadcastBufferWriter->write((byte)'\0'); 
 
   /* Boadcast to Serials */ 
@@ -70,6 +70,7 @@ void CommandDistributor::broadcast() {
   /* loop through ring clients */
      for (byte clientId=0; clientId<sizeof(clients); clientId++) {
         if (clients[clientId]==NONE_TYPE) continue;
+        if ( clients[clientId]==WITHROTTLE_TYPE && !includeWithrottleClients) continue;
         ring->mark(clientId);
         broadcastBufferWriter->printBuffer(ring);    
         ring->commit();
@@ -84,12 +85,14 @@ void CommandDistributor::broadcast() {
   // Redirect ring output ditrect to Serial 
   #define broadcastBufferWriter &Serial
   // and ignore the internal broadcast call. 
-  void CommandDistributor::broadcast() {}
+  void CommandDistributor::broadcast(bool includeWithrottleClients) {
+    (void)includeWithrottleClients;
+  }
 #endif
 
 void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
   StringFormatter::send(broadcastBufferWriter,F("<%c %d>\n"), on?'Q':'q', id);
-  broadcast();
+  broadcast(false);
   }  
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
@@ -100,14 +103,14 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 #if defined(WIFI_ON) | defined(ETHERNET_ON)
   StringFormatter::send(broadcastBufferWriter,F("PTA%c%d\n"), isClosed?'2':'4', id);
 #endif 
-  broadcast();
+  broadcast(true);
   }  
  
  void  CommandDistributor::broadcastLoco(byte slot) {
    DCC::LOCO * sp=&DCC::speedTable[slot];
   StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %l>\n"),
      sp->loco,slot,sp->speedCode,sp->functions);    
-  broadcast();
+  broadcast(false);
 #if defined(WIFI_ON) | defined(ETHERNET_ON)
   WiThrottle::markForBroadcast(sp->loco);
 #endif 
@@ -128,7 +131,7 @@ void  CommandDistributor::broadcastPower() {
   StringFormatter::send(broadcastBufferWriter,
                         F("<p%c%S>\nPPA%c\n"),state,reason, main?'1':'0');
   LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);    
-  broadcast();
+  broadcast(true);
 }
 
 
