@@ -665,8 +665,12 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
   if (loco==0) {
      // broadcast stop/estop but dont change direction
      for (int reg = 0; reg < MAX_LOCOS; reg++) {
-       speedTable[reg].speedCode = (speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
-       CommandDistributor::broadcastLoco(reg);
+       if (speedTable[reg].loco==0) continue;
+       byte newspeed=(speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
+       if (speedTable[reg].speedCode != newspeed) {
+         speedTable[reg].speedCode = newspeed;
+         CommandDistributor::broadcastLoco(reg);
+       }
      }
      return; 
   }
