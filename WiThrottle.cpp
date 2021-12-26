@@ -133,6 +133,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       exRailSent=true;
 #ifdef RMFT_ACTIVE
       RMFT2::emitWithrottleRouteList(stream);
+      RMFT2::emitWithrottleRoster(stream);
 #endif    
     }
   }

@@ -111,7 +111,38 @@ void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
      StringFormatter::send(stream,desc,turnoutid);    
 }
 
-// Pass 5: create main routes table
+// Pass 5: Roster names (count)
+#include "RMFT2MacroReset.h"
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) +1
+
+const byte RMFT2::rosterNameCount=0
+        #include "myAutomation.h"
+     ;
+
+// Pass 6: Roster names emitter
+#include "RMFT2MacroReset.h"
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,format,F(name),cabid,cabid<128?'S':'L');
+void RMFT2::emitWithrottleRoster(Print * stream) {
+        static const FSH * format=F("]\\[%S}|{%d}|{%c");
+        StringFormatter::send(stream,F("RL%d"), rosterNameCount);
+        #include "myAutomation.h"
+        stream->write('\n');        
+}
+
+// Pass 7: functions getter
+#include "RMFT2MacroReset.h"
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
+const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
+   switch(cabid) {
+      #include "myAutomation.h"
+      default: return NULL;
+   }        
+}
+
+// Last Pass : create main routes table
 // Only undef the macros, not dummy them.  
 #define  RMFT2_UNDEF_ONLY
 #include "RMFT2MacroReset.h"
@@ -180,6 +211,7 @@ void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
 #define RESUME OPCODE_RESUME,0,0,
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
+#define ROSTER(cabid,name,funcmap...)
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 

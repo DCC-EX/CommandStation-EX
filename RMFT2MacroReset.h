@@ -79,7 +79,8 @@
 #undef RESET 
 #undef RESUME 
 #undef RETURN 
-#undef REV 
+#undef REV
+#undef ROSTER 
 #undef ROUTE
 #undef SENDLOCO 
 #undef SEQUENCE 
@@ -164,6 +165,7 @@
 #define RETURN 
 #define REV(speed) 
 #define ROUTE(id, description)
+#define ROSTER(cab,name,funcmap...)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 
 #define SERIAL(msg) 
