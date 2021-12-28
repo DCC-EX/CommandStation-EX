@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 
+#include "defines.h"
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
@@ -36,6 +37,9 @@ volatile uint8_t DCCWaveform::numAckSamples=0;
 uint8_t DCCWaveform::trailingEdgeCounter=0;
 
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
+
+  mainTrack.rmtPin = new RMTPin(21, 0, PREAMBLE_BITS_MAIN);
+
   mainTrack.motorDriver=mainDriver;
   progTrack.motorDriver=progDriver;
   progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
@@ -51,33 +55,63 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::loop(bool ackManagerActive) {
-  mainTrack.checkPowerOverload(false);
+#ifdef SLOW_ANALOG_READ
+// Flag to hold if we need to run ack checking in loop
+volatile bool ackflag = 0;
+#endif
+
+void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
+
+  if (mainTrack.packetPendingRMT) {
+    mainTrack.rmtPin->RMTfillData(mainTrack.pendingPacket, mainTrack.pendingLength, mainTrack.pendingRepeats);
+    mainTrack.packetPendingRMT=false;
+    // sentResetsSincePacket = 0 // later when progtrack
+  }
+
+#ifdef SLOW_ANALOG_READ
+  if (ackflag) {
+    progTrack.checkAck();
+    // reset flag AFTER check is done
+    portENTER_CRITICAL(&timerMux);
+    ackflag = 0;
+    portEXIT_CRITICAL(&timerMux);
+  } else {
+    progTrack.checkPowerOverload(ackManagerActive);
+  }
+#else
   progTrack.checkPowerOverload(ackManagerActive);
+#endif
+  mainTrack.checkPowerOverload(false);
 }
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::interruptHandler() {
+void IRAM_ATTR DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
-  
   // Set the signal state for both tracks
   mainTrack.motorDriver->setSignal(sigMain);
   progTrack.motorDriver->setSignal(sigProg);
-  
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
-
-
   // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
-  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
-  else if (progTrack.ackPending) progTrack.checkAck();
-
+  if (mainTrack.state==WAVE_PENDING)
+    mainTrack.interrupt2();
+  if (progTrack.state==WAVE_PENDING)
+    progTrack.interrupt2();
+#ifdef SLOW_ANALOG_READ
+  else if (progTrack.ackPending && ackflag == 0) { // We need AND we are not already checking
+    portENTER_CRITICAL(&timerMux);
+    ackflag = 1;
+    portEXIT_CRITICAL(&timerMux);
+  }
+#else
+  else if (progTrack.ackPending)
+    progTrack.checkAck();
+#endif
 }
 #pragma GCC push_options
 
@@ -94,6 +128,7 @@ const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
+  packetPendingRMT = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
@@ -202,7 +237,7 @@ const bool DCCWaveform::signalTransform[]={
         
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::interrupt2() {
+void IRAM_ATTR DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
@@ -212,7 +247,9 @@ void DCCWaveform::interrupt2() {
     remainingPreambles--;
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+#ifndef ESP_FAMILY
+    updateMinimumFreeMemory(22);
+#endif
     return;
   }
 
@@ -237,7 +274,8 @@ void DCCWaveform::interrupt2() {
         transmitRepeats--;
       }
       else if (packetPending) {
-        // Copy pending packet to transmit packet
+	portENTER_CRITICAL(&timerMux);
+	// Copy pending packet to transmit packet
         // a fixed length memcpy is faster than a variable length loop for these small lengths
         // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
         memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
@@ -246,6 +284,7 @@ void DCCWaveform::interrupt2() {
         transmitRepeats = pendingRepeats;
         packetPending = false;
         sentResetsSincePacket=0;
+	portEXIT_CRITICAL(&timerMux);
       }
       else {
         // Fortunately reset and idle packets are the same length
@@ -264,7 +303,7 @@ void DCCWaveform::interrupt2() {
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
   while (packetPending);
-
+  portENTER_CRITICAL(&timerMux);
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
@@ -275,7 +314,9 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
+  packetPendingRMT = true;
   sentResetsSincePacket=0;
+  portEXIT_CRITICAL(&timerMux);
 }
 
 // Operations applicable to PROG track ONLY.
@@ -313,14 +354,14 @@ byte DCCWaveform::getAck() {
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::checkAck() {
+void IRAM_ATTR DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
         return; 
     }
-      
+
     int current=motorDriver->getCurrentRaw();
     numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;

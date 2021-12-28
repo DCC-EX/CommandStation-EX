@@ -31,7 +31,13 @@
 #include "DCCEXParser.h"
 #include "SerialManager.h"
 #include "version.h"
+#if defined(ARDUINO_ARCH_ESP8266)
+#include "WifiESP8266.h"
+#elif defined(ARDUINO_ARCH_ESP32)
+#include "WifiESP32.h"
+#else
 #include "WifiInterface.h"
+#endif
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif
@@ -44,5 +50,11 @@
 #include "Outputs.h"
 #include "RMFT.h"
 #include "CommandDistributor.h"
+
+// not yet in this branch
+//#if __has_include ( "myAutomation.h")
+//  #include "RMFT.h"
+//  #define RMFT_ACTIVE
+//#endif
     
 #endif

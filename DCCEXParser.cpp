@@ -17,9 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "DCC.h" // includes "Motordriver.h" and <Arduino.h>
+#include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
-#include "DCC.h"
 #include "DCCWaveform.h"
 #include "Turnouts.h"
 #include "Outputs.h"
@@ -31,7 +32,9 @@
 #include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
+#ifndef ESP_FAMILY
 #include <avr/wdt.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -829,8 +832,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
     case HASH_KEYWORD_RESET:
         {
-          wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-          delay(50);            // wait for the prescaller time to expire          
+#ifndef ESP_FAMILY
+          wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms
+          delay(50);              // wait for the prescaler time to expire
+#else
+	  /* XXX do right thing to reboot */
+#endif
           break; // and <X> if we didnt restart 
         }
 

@@ -1,1 +1,1 @@
-#define GITHUB_SHA "0f728c1"
+#define GITHUB_SHA "ESP32-20211228-06:50"

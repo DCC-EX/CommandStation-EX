@@ -37,4 +37,14 @@ class DCCTimer {
   private:
 };
 
+#if defined(ARDUINO_ARCH_ESP32)
+extern portMUX_TYPE timerMux;
 #endif
+
+#if !(defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_ESP8266))
+#ifndef IRAM_ATTR
+#define IRAM_ATTR
+#endif
+#endif
+
+#endif //DCCTimer.h

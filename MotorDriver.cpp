@@ -20,11 +20,10 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-
-#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
-#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
-#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
-#define isLOW(fastpin)    (!isHIGH(fastpin))
+#if defined(ARDUINO_ARCH_ESP32)
+#include <driver/adc.h>
+#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
+#endif
 
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
@@ -59,8 +58,15 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
+#if defined(ARDUINO_ARCH_ESP32)
+    pinMode(currentPin, ANALOG);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
+    senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
+#else
     pinMode(currentPin, INPUT);
     senseOffset=analogRead(currentPin); // value of sensor at zero current
+#endif
   }
 
   faultPin=fault_pin;
@@ -110,7 +116,7 @@ void MotorDriver::setBrake(bool on) {
   else setLOW(fastBrakePin);
 }
 
-void MotorDriver::setSignal( bool high) {
+void IRAM_ATTR MotorDriver::setSignal( bool high) {
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -155,6 +161,8 @@ int MotorDriver::getCurrentRaw() {
   current = analogRead(currentPin)-senseOffset;
   overflow_count = 0;
   SREG = sreg_backup;    /* restore interrupt state */
+#elif defined(ARDUINO_ARCH_ESP32)
+  current = adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
 #else
   current = analogRead(currentPin)-senseOffset;
 #endif
@@ -176,8 +184,8 @@ int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-    (void) type; // avoid compiler warning if diag not used above. 
-    uint8_t port = digitalPinToPort(pin);
+    (void) type; // avoid compiler warning if diag not used above.
+    PORTTYPE port = digitalPinToPort(pin);
     if (input)
       result.inout = portInputRegister(port);
     else

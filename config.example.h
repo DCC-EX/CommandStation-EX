@@ -41,7 +41,29 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+//#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+
+// https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/
+// 4 high at boot
+#define ESP8266_MOTOR_SHIELD F("ESP8266"),					\
+ new MotorDriver(D3, D5, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN),\
+ new MotorDriver(D2, D6, UNUSED_PIN, UNUSED_PIN, A0        , 2.99, 2000, UNUSED_PIN)
+
+// ESP32 ADC1 only supported GPIO pins 32 to 39, for example
+// ADC1 CH4 = GPIO32, ADC1 CH5 = GPIO33, ADC1 CH0 = GPIO36
+//
+// Adjust pin usage according to info in
+// https://randomnerdtutorials.com/esp32-adc-analog-read-arduino-ide/
+// https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
+//
+// Adjust conversion factor according to your voltage divider.
+//
+#define ESP32_MOTOR_SHIELD F("ESP32"), \
+ new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 32, 2.00, 2000, UNUSED_PIN),\
+ new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 33, 2.00, 2000, UNUSED_PIN)
+
+#define MOTOR_SHIELD_TYPE ESP32_MOTOR_SHIELD
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
@@ -53,6 +75,8 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
+// Currently ESP32 single core only works with WIFI ON because of Watchdog code
+// and if you have an ESP32 you probably want WIFI anyway.
 #define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////

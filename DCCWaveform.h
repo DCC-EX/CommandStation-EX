@@ -20,6 +20,7 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 
+#include "DCCRMT.h"
 #include "MotorDriver.h"
 
 // Wait times for power management. Unit: milliseconds
@@ -82,6 +83,7 @@ class DCCWaveform {
     }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
+    volatile bool packetPendingRMT;
     volatile byte sentResetsSincePacket;
     volatile bool autoPowerOff=false;
     void setAckBaseline();  //prog track only
@@ -122,6 +124,7 @@ class DCCWaveform {
     
     bool isMainTrack;
     MotorDriver*  motorDriver;
+    RMTPin* rmtPin;
     // Transmission controller
     byte transmitPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte transmitLength;

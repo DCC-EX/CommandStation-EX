@@ -44,7 +44,7 @@
 
 #include "DCCTimer.h"
 const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;
+const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME);
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -53,11 +53,11 @@ INTERRUPT_CALLBACK interruptHandler=0;
   
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts(); 
+    noInterrupts();
     ADC0.CTRLC = (ADC0.CTRLC & 0b00110000) | 0b01000011;  // speed up analogRead sample time   
     TCB0.CTRLB = TCB_CNTMODE_INT_gc & ~TCB_CCMPEN_bm; // timer compare mode with output disabled
     TCB0.CTRLA = TCB_CLKSEL_CLKDIV2_gc; //   8 MHz ~ 0.125 us      
-    TCB0.CCMP =  CLOCK_CYCLES -1;  // 1 tick less for timer reset
+    TCB0.CCMP =  (CLOCK_CYCLES>>1) -1;  // 1 tick less for timer reset
     TCB0.INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
     TCB0.INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
     TCB0.CNT = 0;
@@ -146,6 +146,50 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 }
 #endif
 
+#elif defined(ARDUINO_ARCH_ESP8266)
+
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  interruptHandler=callback;
+  timer1_disable();
+
+  // There seem to be differnt ways to attach interrupt handler
+  //    ETS_FRC_TIMER1_INTR_ATTACH(NULL, NULL);
+  //    ETS_FRC_TIMER1_NMI_INTR_ATTACH(interruptHandler);
+  // Let us choose the one from the API
+  timer1_attachInterrupt(interruptHandler);
+
+  // not exactly sure of order:
+  timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
+  timer1_write(CLOCK_CYCLES);
+}
+// We do not support to use PWM to make the Waveform on ESP
+bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
+  return false;
+}
+void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
+}
+
+#elif defined(ARDUINO_ARCH_ESP32)
+// https://www.visualmicro.com/page/Timer-Interrupts-Explained.aspx
+
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  interruptHandler = callback;
+  hw_timer_t *timer = NULL;
+  timer = timerBegin(0, 2, true); // prescaler can be 2 to 65536 so choose 2
+  timerAttachInterrupt(timer, interruptHandler, true);
+  timerAlarmWrite(timer, CLOCK_CYCLES / 6, true); // divide by prescaler*3 (Clockbase is 80Mhz and not F_CPU 240Mhz)
+  timerAlarmEnable(timer);
+}
+
+// We do not support to use PWM to make the Waveform on ESP
+bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
+  return false;
+}
+void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
+}
+
 #else 
   // Arduino nano, uno, mega etc
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -159,10 +203,10 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
 
   void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts();          
+    noInterrupts();
     ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time 
     TCCR1A = 0;
-    ICR1 = CLOCK_CYCLES;
+    ICR1 = CLOCK_CYCLES>>1;
     TCNT1 = 0;   
     TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
     TIMSK1 = _BV(TOIE1); // Enable Software interrupt

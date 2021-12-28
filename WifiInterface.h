@@ -19,6 +19,8 @@
  */
 #ifndef WifiInterface_h
 #define WifiInterface_h
+#include "defines.h"
+#ifndef ESP_FAMILY
 #include "FSH.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
@@ -50,4 +52,5 @@ private:
   static bool checkForOK(const unsigned int timeout, const FSH *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;
 };
-#endif
+#endif //ESP_FAMILY
+#endif 

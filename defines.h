@@ -1,5 +1,5 @@
 /*
-    © 2020, Harald Barth.
+    © 2020,2021 Harald Barth.
 
     This file is part of CommandStation-EX
 
@@ -33,12 +33,32 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //
+#if defined(ARDUINO_ARCH_ESP8266)
+#define ESP_FAMILY
+//#define ESP_DEBUG
+#define SLOW_ANALOG_READ
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+//
+#if defined(ARDUINO_ARCH_ESP32)
+#define ESP_FAMILY
+#define SLOW_ANALOG_READ
+#else
+#define portENTER_CRITICAL(A) do {} while (0)
+#define portEXIT_CRITICAL(A) do {} while (0)
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
-#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO))
+#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO) || defined(ESP_FAMILY))
  #define BIG_RAM
 #endif 
+/* Broadcast-Ash
 #if ENABLE_WIFI
   #if defined(BIG_RAM)
     #define WIFI_ON true
@@ -49,6 +69,13 @@
     #define WIFI_WARNING
     #define WIFI_ON false
   #endif
+*/
+#if ENABLE_WIFI && defined(BIG_RAM)
+#define WIFI_ON true
+#ifndef WIFI_CHANNEL
+#define WIFI_CHANNEL 1
+#endif
+
 #else
   #define WIFI_ON false
 #endif
