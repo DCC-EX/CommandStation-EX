@@ -123,9 +123,9 @@ const byte RMFT2::rosterNameCount=0
 // Pass 6: Roster names emitter
 #include "RMFT2MacroReset.h"
 #undef ROSTER
-#define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,format,F(name),cabid,cabid<128?'S':'L');
+#define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
 void RMFT2::emitWithrottleRoster(Print * stream) {
-        static const FSH * format=F("]\\[%S}|{%d}|{%c");
+        static const char format[] PROGMEM ="]\\[%S}|{%d}|{%c";
         StringFormatter::send(stream,F("RL%d"), rosterNameCount);
         #include "myAutomation.h"
         stream->write('\n');        
