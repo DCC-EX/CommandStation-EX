@@ -133,7 +133,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       exRailSent=true;
 #ifdef RMFT_ACTIVE
       RMFT2::emitWithrottleRouteList(stream);
-      RMFT2::emitWithrottleRoster(stream);
 #endif    
     }
   }
@@ -201,6 +200,9 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
               StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
+#ifdef RMFT_ACTIVE
+              RMFT2::emitWithrottleRoster(stream);
+#endif        
               initSent = true;
             }
             break;           
@@ -274,10 +276,54 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
                     myLocos[loco].broadcastPending=true; // means speed/dir will be sent later
                     mostRecentCab=locoid;
                     StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
-              
-                    for(int fKey=0; fKey<=28; fKey++) { 
+                    int fkeys=29;
+                    myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
+                     
+#ifdef RMFT_ACTIVE
+                    const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
+                    if (!functionNames) {
+                      // no roster, use presets as above 
+                    }
+                    else if (GETFLASH(functionNames)=='\0') {
+                      // "" = Roster but no functions given
+                      fkeys=0;
+                    }  
+                    else {
+                      // we have function names... 
+                      // scan names list emitting names, counting functions and 
+                      // flagging non-toggling things like horn.
+                      myLocos[loco].functionToggles =0;
+                      StringFormatter::send(stream, F("M%cL%c%d<;>]\\["), throttleChar,cmd[3],locoid);   
+                      fkeys=0;
+                      bool firstchar=true;
+                      for (int fx=0;;fx++) {
+                        char c=GETFLASH(functionNames+fx);
+                        if (c=='\0') {
+                          fkeys++;
+                          break;
+                        }
+                        if (c=='/') {
+                          fkeys++;
+                          StringFormatter::send(stream,F("]\\["));
+                          firstchar=true;
+                        }
+                        else if (firstchar && c=='*') {
+                          myLocos[loco].functionToggles |= 1UL<<fkeys;
+                          firstchar=false;
+                        } 
+                        else {
+                          firstchar=false;
+                          stream->write(c);
+                        }
+                      }
+                    StringFormatter::send(stream,F("\n"));
+                    }
+                                        
+#endif
+                                        
+                    for(int fKey=0; fKey<fkeys; fKey++) { 
                       int fstate=DCC::getFn(locoid,fKey);
-                        if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
+                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
                     }
                     //speed and direction will be published at next broadcast cycle
                     StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
@@ -317,10 +363,10 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
               {  
                 bool pressed=aval[1]=='1';
                 int fKey = getInt(aval+2);
-                if (fKey!=2 && !pressed) break; // ignore releases except key 2 
                 LOOPLOCOS(throttleChar, cab) {
-                  if (fKey==2) DCC::setFn(myLocos[loco].cab,fKey, pressed);
-                  else  DCC::changeFn(myLocos[loco].cab, fKey);
+                  bool unsetOnRelease = myLocos[loco].functionToggles & (1L<<fKey);
+                  if (unsetOnRelease) DCC::setFn(myLocos[loco].cab,fKey, pressed);
+                  else if (pressed)  DCC::changeFn(myLocos[loco].cab, fKey);
                 }
                 break;  
               }
