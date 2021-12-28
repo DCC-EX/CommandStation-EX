@@ -85,8 +85,7 @@ const int StringMacroTracker1=__COUNTER__;
 void  RMFT2::printMessage(uint16_t id) { 
   switch(id) {
     #include "myAutomation.h"
-    default: DIAG(F("printMessage error %d %d"),id,StringMacroTracker1);
-      break ; 
+    default: break ; 
   }
 }
 
@@ -104,8 +103,7 @@ void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
      const FSH * desc=F("");
      switch (turnoutid) {
         #include "myAutomation.h"
-     default:
-     break;
+     default: break;
      }
      if (GETFLASH(desc)=='\0') desc=F("%d");
      StringFormatter::send(stream,desc,turnoutid);    
@@ -125,7 +123,7 @@ const byte RMFT2::rosterNameCount=0
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
 void RMFT2::emitWithrottleRoster(Print * stream) {
-        static const char format[] PROGMEM ="]\\[%S}|{%d}|{%c";
+        static const char format[] FLASH ="]\\[%S}|{%d}|{%c";
         StringFormatter::send(stream,F("RL%d"), rosterNameCount);
         #include "myAutomation.h"
         stream->write('\n');        
