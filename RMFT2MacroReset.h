@@ -52,11 +52,13 @@
 #undef FWD 
 #undef GREEN
 #undef IF 
+#undef IFCLOSED
 #undef IFGTE
 #undef IFLT
 #undef IFNOT
 #undef IFRANDOM 
 #undef IFRESERVE
+#undef IFTHROWN
 #undef INVERT_DIRECTION 
 #undef JOIN 
 #undef LATCH 
@@ -136,10 +138,12 @@
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define IF(sensor_id) 
+#define IFCLOSED(turnout_id) 
 #define IFGTE(sensor_id,value) 
 #define IFLT(sensor_id,value) 
 #define IFNOT(sensor_id)
-#define IFRANDOM(percent) 
+#define IFRANDOM(percent)
+#define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
 #define INVERT_DIRECTION 
 #define JOIN 

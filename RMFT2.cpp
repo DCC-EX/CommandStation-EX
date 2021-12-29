@@ -500,11 +500,13 @@ bool RMFT2::skipIfBlock() {
            kill(F("missing ENDIF"), nest);
            return false;  
       case OPCODE_IF:
+      case OPCODE_IFCLOSED:
       case OPCODE_IFGTE:
       case OPCODE_IFLT:
       case OPCODE_IFNOT:
       case OPCODE_IFRANDOM:
       case OPCODE_IFRESERVE:
+      case OPCODE_IFTHROWN:
            nest++;
            break;
       case OPCODE_ENDIF:
@@ -660,7 +662,15 @@ void RMFT2::loop2() {
       if (!getFlag(operand,SECTION_FLAG)) setFlag(operand,SECTION_FLAG);
       else if (!skipIfBlock()) return;
       break;
+
+    case OPCODE_IFTHROWN:
+      if (Turnout::isClosed(operand)) if (!skipIfBlock()) return;
+      break; 
       
+    case OPCODE_IFCLOSED:
+      if (!Turnout::isClosed(operand)) if (!skipIfBlock()) return;
+      break; 
+
     case OPCODE_ENDIF:
       break;
     
