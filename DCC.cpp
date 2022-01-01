@@ -659,7 +659,6 @@ int DCC::lookupSpeedTable(int locoId) {
         speedTable[reg].speedCode=128;  // default direction forward
         speedTable[reg].groupFlags=0;
         speedTable[reg].functions=0;
-        CommandDistributor::broadcastLoco(reg);
   }
   return reg;
 }
