@@ -39,6 +39,7 @@
 #undef DELAYRANDOM 
 #undef DONE
 #undef DRIVE
+#undef ELSE
 #undef ENDEXRAIL 
 #undef ENDIF  
 #undef ENDTASK
@@ -125,6 +126,7 @@
 #define DELAYRANDOM(mindelay,maxdelay) 
 #define DONE
 #define DRIVE(analogpin)
+#define ELSE
 #define ENDEXRAIL 
 #define ENDIF  
 #define ENDTASK

@@ -168,6 +168,7 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 #define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,V(mindelay/100L),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
+#define ELSE OPCODE_ELSE,0,0,
 #define ENDEXRAIL 
 #define ENDIF  OPCODE_ENDIF,0,0,
 #define ENDTASK OPCODE_ENDTASK,0,0,

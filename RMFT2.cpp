@@ -489,6 +489,7 @@ bool RMFT2::readSensor(uint16_t sensorId) {
   return s;
 }
 
+// This skips to the end of an if block, or to the ELSE within it.
 bool RMFT2::skipIfBlock() {
   // returns false if killed
   short nest = 1;
@@ -512,10 +513,14 @@ bool RMFT2::skipIfBlock() {
       case OPCODE_ENDIF:
            nest--;
            break;
+      case OPCODE_ELSE:
+           // if nest==1 then this is the ELSE for the IF we are skipping
+           if (nest==1) nest=0; // cause loop exit and return after ELSE
+           break;
       default:
       break;
     }
-  }
+  } 
   return true; 
 }
 
@@ -640,6 +645,10 @@ void RMFT2::loop2() {
     
     case OPCODE_IF: // do next operand if sensor set
       if (!readSensor(operand)) if (!skipIfBlock()) return;
+      break;
+   
+    case OPCODE_ELSE: // skip to matching ENDIF 
+      if (!skipIfBlock()) return;
       break;
     
     case OPCODE_IFGTE: // do next operand if sensor>= value
