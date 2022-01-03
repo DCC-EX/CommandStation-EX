@@ -77,7 +77,6 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
 byte RMFT2::flags[MAX_FLAGS];
 
 LookList *  RMFT2::sequenceLookup=NULL;
-LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
@@ -122,17 +121,12 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
   int onCloseCount=0;
   int onActivateCount=0;
   int onDeactivateCount=0;
-  int signalCount=0;
 
   // first pass count sizes for fast lookup arrays
   for (progCounter=0;; SKIPOP) {
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
-     switch (opcode) {
-     case OPCODE_SIGNAL: 
-        signalCount++; 
-        break;
-      
+     switch (opcode) {   
      case OPCODE_ROUTE: 
      case OPCODE_AUTOMATION:
      case OPCODE_SEQUENCE:
@@ -162,14 +156,23 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
   
   // create lookups
   sequenceLookup=new LookList(sequenceCount);
-  signalLookup=new LookList(signalCount);
   onThrowLookup=new LookList(onThrowCount);
   onCloseLookup=new LookList(onCloseCount);
   onActivateLookup=new LookList(onActivateCount);
   onDeactivateLookup=new LookList(onDeactivateCount);
          
   // Second pass startup, define any turnouts or servos, set signals red
-  // add signals, sequences onRoutines to the lookups 
+  // add sequences onRoutines to the lookups 
+  for (int sigpos=0;;sigpos+=3) {
+    VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+    if (redpin==0) break;  // end of signal list
+      VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
+      VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
+      IODevice::write(redpin,true);
+      if (amberpin) IODevice::write(amberpin,false);
+      IODevice::write(greenpin,false);
+    }
+  
   for (progCounter=0;; SKIPOP){
      byte opcode=GET_OPCODE;
      if (opcode==OPCODE_ENDEXRAIL) break;
@@ -184,18 +187,6 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
        if (pin<0) pin = -pin;
        IODevice::configureInput((VPIN)pin,true);
        break;
-     }
-     
-
-     case OPCODE_SIGNAL: {
-      VPIN red=operand;
-      VPIN amber=GET_OPERAND(1);
-      VPIN green=GET_OPERAND(2);
-      IODevice::write(red,true);
-      if (amber) IODevice::write(amber,false);
-      IODevice::write(green,false);
-      signalLookup->add(red,progCounter); 
-      break;
      }
      
      case OPCODE_TURNOUT: {
@@ -256,9 +247,9 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
   } 
   SKIPOP; // include ENDROUTES opcode
   
-  DIAG(F("EXRAIL %db, fl=%d seq=%d, sig=%d, onT=%d, onC=%d"),
+  DIAG(F("EXRAIL %db, fl=%d seq=%d, onT=%d, onC=%d"),
         progCounter,MAX_FLAGS,
-        sequenceCount, signalCount, onThrowCount, onCloseCount);
+        sequenceCount, onThrowCount, onCloseCount);
         
   new RMFT2(0); // add the startup route
 }
@@ -871,7 +862,6 @@ void RMFT2::loop2() {
 
        case OPCODE_AUTOSTART: // Handled only during begin process
        case OPCODE_PAD: // Just a padding for previous opcode needing >1 operad byte.
-       case OPCODE_SIGNAL: // Signal definition ignore at run time
        case OPCODE_TURNOUT: // Turnout definition ignored at runtime
        case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
        case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
@@ -913,19 +903,27 @@ void RMFT2::kill(const FSH * reason, int operand) {
 }
 
 /* static */ void RMFT2::doSignal(VPIN id,bool red, bool amber, bool green) { 
-  // CAUTION: hides class member progCounter
-  int progCounter=signalLookup->find(id);
-  if (progCounter<0) return; 
-  VPIN redpin=GET_OPERAND(0);
-  if (redpin!=id) return; // something wrong in lookup
-  VPIN amberpin=GET_OPERAND(1);
-  VPIN greenpin=GET_OPERAND(2);
-  // If amberpin is zero, synthesise amber from red+green
-  IODevice::write(redpin,red || (amber && (amberpin==0)));
-  if (amberpin) IODevice::write(amberpin,amber);
-  if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
+  //if (diag) DIAG(F(" dosignal %d"),id);
+      for (int sigpos=0;;sigpos+=3) {
+    VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+    //if (diag) DIAG(F("red=%d"),redpin);
+    if (redpin==0) {
+      DIAG(F("EXRAIL Signal %d not defined"), id);
+      return;  // signal not found
+    }
+    if (redpin==id) {
+      VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
+      VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
+      //if (diag) DIAG(F("signal %d %d %d"),redpin,amberpin,greenpin);
+      // If amberpin is zero, synthesise amber from red+green
+      IODevice::write(redpin,red || (amber && (amberpin==0)));
+      if (amberpin) IODevice::write(amberpin,amber);
+      if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
+      return;
+    }
   }
-
+}
+  
  void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
     // Hunt for an ONTHROW/ONCLOSE for this turnout 
     int pc= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);

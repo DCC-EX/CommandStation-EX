@@ -22,7 +22,7 @@
 #include "IODevice.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
-// Each instruction is normally 2 bytes long with an operation code followed by a parameter.
+// Each instruction is normally 3 bytes long with an operation code followed by a parameter.
 // In cases where more than one parameter is required, the first parameter is followed by one  
 // or more OPCODE_PAD instructions with the subsequent parameters. This wastes a byte but makes 
 // searching easier as a parameter can never be confused with an opcode. 
@@ -53,9 +53,11 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
 
  
   // Flag bits for status of hardware and TPL
-  static const byte SECTION_FLAG = 0x01;
-  static const byte LATCH_FLAG = 0x02;
-  static const byte TASK_FLAG = 0x04;
+  static const byte SECTION_FLAG = 0x80;
+  static const byte LATCH_FLAG = 0x40;
+  static const byte TASK_FLAG = 0x20;
+  static const byte SPARE_FLAG = 0x10;
+  static const byte COUNTER_MASK= 0x0F;
 
   static const byte  MAX_STACK_DEPTH=4;
  
@@ -95,7 +97,7 @@ private:
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
     static void streamFlags(Print* stream);
     static void setFlag(VPIN id,byte onMask, byte OffMask=0);
-    static bool getFlag(VPIN id,byte mask);   
+    static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
     static void emitRouteDescription(Print * stream, char type, int id, const FSH * description);
@@ -116,9 +118,9 @@ private:
     
    static bool diag;
    static const  FLASH  byte RouteCode[];
+   static const  FLASH  int16_t SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static LookList * sequenceLookup;
-   static LookList * signalLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;

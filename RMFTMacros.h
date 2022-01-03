@@ -140,11 +140,18 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
    }        
 }
 
+// Pass 8 Signal definitions
+#include "RMFT2MacroReset.h"
+#undef SIGNAL
+#define SIGNAL(redpin,amberpin,greenpin) redpin,amberpin,greenpin, 
+const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
+    #include "myAutomation.h"
+    0,0,0 };
+
 // Last Pass : create main routes table
 // Only undef the macros, not dummy them.  
 #define  RMFT2_UNDEF_ONLY
 #include "RMFT2MacroReset.h"
-
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
 // a constant.  
@@ -227,7 +234,7 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define SET(pin) OPCODE_SET,V(pin),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
-#define SIGNAL(redpin,amberpin,greenpin) OPCODE_SIGNAL,V(redpin),OPCODE_PAD,V(amberpin),OPCODE_PAD,V(greenpin), 
+#define SIGNAL(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define START(route) OPCODE_START,V(route),
 #define STOP OPCODE_SPEED,V(0), 
