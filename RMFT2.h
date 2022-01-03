@@ -31,6 +31,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,OPCODE_AUTOSTART,
+             OPCODE_ATTIMEOUT1,OPCODE_ATTIMEOUT2,OPCODE_IFTIMEOUT,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_IF,OPCODE_IFNOT,OPCODE_ENDIF,OPCODE_IFRANDOM,OPCODE_IFRESERVE,
              OPCODE_IFCLOSED, OPCODE_IFTHROWN,OPCODE_ELSE,
@@ -127,8 +128,12 @@ private:
     RMFT2 *next;   // loop chain 
     int progCounter;    // Byte offset of next route opcode in ROUTES table
     unsigned long delayStart; // Used by opcodes that must be recalled before completing
-    unsigned long waitAfter; // Used by OPCODE_AFTER
     unsigned long  delayTime;
+    union {
+      unsigned long waitAfter; // Used by OPCODE_AFTER
+      unsigned long timeoutStart; // Used by OPCODE_ATTIMEOUT
+    };
+    bool timeoutFlag;
     byte  taskId;
     
     uint16_t loco;

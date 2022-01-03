@@ -432,6 +432,7 @@ RMFT2::RMFT2(int progCtr) {
   speedo=0;
   forward=true;
   invert=false;
+  timeoutFlag=false;
   stackDepth=0;
   onTurnoutId=0; // Not handling an ONTHROW/ONCLOSE
    
@@ -508,6 +509,7 @@ bool RMFT2::skipIfBlock() {
       case OPCODE_IFRANDOM:
       case OPCODE_IFRESERVE:
       case OPCODE_IFTHROWN:
+      case OPCODE_IFTIMEOUT:
            nest++;
            break;
       case OPCODE_ENDIF:
@@ -591,10 +593,29 @@ void RMFT2::loop2() {
       break;
     
     case OPCODE_AT:
+      timeoutFlag=false;
       if (readSensor(operand)) break;
       delayMe(50);
       return;
     
+    case OPCODE_ATTIMEOUT1:   // ATTIMEOUT(vpin,timeout) part 1
+      timeoutStart=millis();
+      timeoutFlag=false;
+      break;
+
+   case OPCODE_ATTIMEOUT2:
+      if (readSensor(operand)) break; // success without timeout
+      if (millis()-timeoutStart > 100*GET_OPERAND(1)) {
+        timeoutFlag=true;
+        break; // and drop through
+      }
+      delayMe(50);
+      return;
+
+    case OPCODE_IFTIMEOUT: // do next operand if timeout flag set
+      if (!timeoutFlag) if (!skipIfBlock()) return;
+      break;
+       
     case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
       if (readSensor(operand)) {
         // reset timer to half a second and keep waiting
@@ -646,7 +667,7 @@ void RMFT2::loop2() {
     case OPCODE_IF: // do next operand if sensor set
       if (!readSensor(operand)) if (!skipIfBlock()) return;
       break;
-   
+
     case OPCODE_ELSE: // skip to matching ENDIF 
       if (!skipIfBlock()) return;
       break;

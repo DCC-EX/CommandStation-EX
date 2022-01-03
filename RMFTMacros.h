@@ -157,6 +157,7 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 #define ALIAS(name,value) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define CALL(route) OPCODE_CALL,V(route),
@@ -189,6 +190,7 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
+#define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),

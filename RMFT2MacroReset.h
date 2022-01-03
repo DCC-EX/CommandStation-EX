@@ -28,6 +28,7 @@
 #undef ALIAS
 #undef AMBER
 #undef AT
+#undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
 #undef CALL 
@@ -60,6 +61,7 @@
 #undef IFRANDOM 
 #undef IFRESERVE
 #undef IFTHROWN
+#undef IFTIMEOUT
 #undef INVERT_DIRECTION 
 #undef JOIN 
 #undef LATCH 
@@ -115,6 +117,7 @@
 #define ALIAS(name,value)
 #define AMBER(signal_id)
 #define AT(sensor_id)
+#define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id, description) 
 #define AUTOSTART
 #define CALL(route) 
@@ -147,6 +150,7 @@
 #define IFRANDOM(percent)
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
+#define IFTIMEOUT
 #define INVERT_DIRECTION 
 #define JOIN 
 #define LATCH(sensor_id) 
