@@ -695,6 +695,10 @@ void RMFT2::loop2() {
     case OPCODE_ENDIF:
       break;
     
+    case OPCODE_DELAYMS:
+      delayMe(operand);
+      break;
+    
     case OPCODE_DELAY:
       delayMe(operand*100L);
       break;
