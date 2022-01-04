@@ -124,6 +124,7 @@ const byte RMFT2::rosterNameCount=0
 #define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
 void RMFT2::emitWithrottleRoster(Print * stream) {
         static const char format[] FLASH ="]\\[%S}|{%d}|{%c";
+        (void)format;
         StringFormatter::send(stream,F("RL%d"), rosterNameCount);
         #include "myAutomation.h"
         stream->write('\n');        
