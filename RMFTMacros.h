@@ -174,7 +174,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
