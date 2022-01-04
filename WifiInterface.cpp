@@ -277,9 +277,15 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=0\r\n")); // turn off tcp server (to clean connections before CIPMUX=1)
   checkForOK(1000, true); // ignore result in case it already was off
-   
+
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
   if (!checkForOK(1000, true)) return WIFI_DISCONNECTED;
+
+  if(!oldCmd) {                                                                    // no idea to test this on old firmware
+    StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S\",\"withrottle\",%d\r\n"),
+			  hostname, port);                                         // mDNS responder
+    checkForOK(1000, true);                                                        // dont care if not supported
+  }
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(1000, true)) return WIFI_DISCONNECTED;
