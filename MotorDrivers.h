@@ -87,4 +87,15 @@
     new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
     new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
+// Makeblock ORION UNO like sized board with integrated motor driver
+// This is like an Uno with H-bridge and RJ12 contacts instead of pin rows.
+// No current sense. Barrel connector max 12V, Vmotor max 15V. 1.1A polyfuse as output protection.
+// Main is marked M1 and near RJ12 #5
+// Prog is marked M2 and near RJ12 #4
+// For details see
+// http://docs.makeblock.com/diy-platform/en/electronic-modules/main-control-boards/makeblock-orion.html
+#define ORION_UNO_INTEGRATED_SHIELD F("ORION_UNO_INTEGRATED_SHIELD"),		      \
+    new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 1.0, 1100, UNUSED_PIN), \
+    new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 1.0, 1100, UNUSED_PIN)
+
 #endif
