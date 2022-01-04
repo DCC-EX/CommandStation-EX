@@ -124,6 +124,7 @@ const byte RMFT2::rosterNameCount=0
 #define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
 void RMFT2::emitWithrottleRoster(Print * stream) {
         static const char format[] FLASH ="]\\[%S}|{%d}|{%c";
+        (void)format;
         StringFormatter::send(stream,F("RL%d"), rosterNameCount);
         #include "myAutomation.h"
         stream->write('\n');        
@@ -171,9 +172,9 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
-#define DELAY(ms) OPCODE_DELAY,V(ms/100L),
+#define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAY,V(mindelay/100L),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay),OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
