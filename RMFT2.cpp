@@ -932,9 +932,9 @@ void RMFT2::kill(const FSH * reason, int operand) {
     // Hunt for an ONTHROW/ONCLOSE for this turnout 
     int pc= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);
     if (pc<0) return;
-    
+
     // Check we dont already have a task running this turnout
-    RMFT2 * task=loopTask;                 
+    RMFT2 * task=loopTask;                
     while(task) {
       if (task->onTurnoutId==turnoutId) {
         DIAG(F("Recursive ONTHROW/ONCLOSE for Turnout %d"),turnoutId);
@@ -944,8 +944,8 @@ void RMFT2::kill(const FSH * reason, int operand) {
       if (task==loopTask) break;      
       }
     
-     task->onTurnoutId=turnoutId; // flag for recursion detector
      task=new RMFT2(pc);  // new task starts at this instruction
+     task->onTurnoutId=turnoutId; // flag for recursion detector
  }
 
  void RMFT2::activateEvent(int16_t addr, bool activate) {
