@@ -11,6 +11,10 @@
 // To prevent this, temporarily rename the file to myHal.txt or similar.
 //
 
+// The #if directive prevent compile errors for Uno and Nano by excluding the 
+//  HAL directives from the build.
+#if !defined(IO_NO_HAL)
+
 // Include devices you need.
 #include "IODevice.h"
 #include "IO_HCSR04.h"    // Ultrasonic range sensor
