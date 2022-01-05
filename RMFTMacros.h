@@ -160,7 +160,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 // Define macros for route code creation 
 
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
-#define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3 | 1),
+#define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1 | 1),
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
 #define ALIAS(name,value) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
@@ -171,7 +171,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
-#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<3),
+#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
