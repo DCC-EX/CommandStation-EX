@@ -372,66 +372,66 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         break;
 
     case '1': // POWERON <1   [MAIN|PROG|JOIN]>
-        { 
+        {
         bool main=false;
         bool prog=false;
-        bool join=false;     
+        bool join=false;
         if (params > 1) break;
         if (params==0) { // <1>
-            main=true; 
-            prog=true; 
+            main=true;
+            prog=true;
         }
         else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
-            main=true; 
+            main=true;
             prog=true;
-            join=!MotorDriver::commonFaultPin; 
+            join=!MotorDriver::commonFaultPin;
         }
         else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
-            main=true; 
-        } 
+            main=true;
+        }
         else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
-            prog=true; 
+            prog=true;
         }
         else break; // will reply <X>
 
         if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         if (prog) DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCC::setProgTrackSyncMain(join); 
-             
-        CommandDistributor::broadcastPower();        
+        DCC::setProgTrackSyncMain(join);
+
+        CommandDistributor::broadcastPower();
         return;
         }
-        
+
     case '0': // POWEROFF <0 [MAIN | PROG] >
-        { 
+        {
         bool main=false;
         bool prog=false;
         if (params > 1) break;
         if (params==0) { // <0>
-            main=true; 
-            prog=true; 
+            main=true;
+            prog=true;
         }
         else if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
-            main=true; 
-        } 
+            main=true;
+        }
         else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
-            prog=true; 
+            prog=true;
         }
         else break; // will reply <X>
 
         if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         if (prog) {
-            DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off        
+            DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
             DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
         }
-        DCC::setProgTrackSyncMain(false); 
-             
+        DCC::setProgTrackSyncMain(false);
+
         CommandDistributor::broadcastPower();
         return;
         }
-        
+
     case '!': // ESTOP ALL  <!>
-        DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1. 
+        DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
         return;
 
     case 'c': // SEND METER RESPONSES <c>

@@ -1,6 +1,6 @@
 /*
  *  © 2020,Gregor Baues,  Chris Harlow. All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ private:
   static RingStream * ring;
   static RingStream * broadcastBufferWriter;
   static byte ringClient;
-   
+
    // each bit in broadcastlist = 1<<clientid
    enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
    static clientType clients[8];

@@ -335,10 +335,10 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
   command++;
   if (*command=='\0') { // User gave <+> command  
-      stream->print(F("\nES AT command passthrough mode, use ! to exit\n"));
-     while(stream->available()) stream->read(); // Drain serial input first 
-     bool startOfLine=true;
-     while(true) {
+    stream->print(F("\nES AT command passthrough mode, use ! to exit\n"));
+    while(stream->available()) stream->read(); // Drain serial input first 
+    bool startOfLine=true;
+    while(true) {
       while (wifiStream->available()) stream->write(wifiStream->read());
       if (stream->available()) {
         int cx=stream->read();
@@ -348,19 +348,19 @@ void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
         else startOfLine=false; 
         stream->write(cx);
         wifiStream->write(cx);  
-       }
-     }
-     stream->print(F("Passthrough Ended"));
-     return; 
+      }
+    }
+    stream->print(F("Passthrough Ended"));
+    return; 
   }
   
   if (*command=='X') {
-     connected = true;
-     DIAG(F("++++++ Wifi Connction forced on ++++++++"));
+    connected = true;
+    DIAG(F("++++++ Wifi Connction forced on ++++++++"));
   }
   else {
-        StringFormatter::  send(wifiStream, F("AT+%s\r\n"), command);
-        checkForOK(10000,  true);
+    StringFormatter::  send(wifiStream, F("AT+%s\r\n"), command);
+    checkForOK(10000,  true);
   }
 }
 
