@@ -18,7 +18,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
- /
+ */
 #ifndef ARDUINO_AVR_UNO_WIFI_REV2
 // This code is NOT compiled on a unoWifiRev2 processor which uses a different architecture 
 #include "WifiInterface.h"        /* config.h included there */
