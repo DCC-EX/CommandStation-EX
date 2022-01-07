@@ -1,5 +1,8 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2020-2021 Harald Barth
+ *  © 2020-2021 Chris Harlow
+ *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
  *

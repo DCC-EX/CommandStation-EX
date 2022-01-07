@@ -1,4 +1,6 @@
 /*
+ *  © 2021 Harald Barth
+ *  © 2021 Fred Decker
  *  (c) 2021 Fred Decker.  All rights reserved.
  *  (c) 2020 Chris Harlow. All rights reserved.
  *

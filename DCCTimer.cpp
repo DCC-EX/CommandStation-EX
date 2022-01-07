@@ -1,5 +1,10 @@
 /*
- *  © 2021, Chris Harlow & David Cutting. All rights reserved.
+ *  © 2021 Mike S
+ *  © 2021 Harald Barth
+ *  © 2021 Fred Decker
+ *  © 2021 Chris Harlow
+ *  © 2021 David Cutting
+ *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
  *

@@ -1,6 +1,7 @@
 /*
- *  © 2020, Harald Barth
- *  © 2021, Neil McKechnie
+ *  © 2021 Neil McKechnie
+ *  © 2021 Mike S
+ *  © 2020 Harald Barth
  *  
  *  This file is part of Asbelos DCC-EX
  *

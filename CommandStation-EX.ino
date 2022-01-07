@@ -25,8 +25,10 @@
 
 
 /*
- *  © 2020,2021 Chris Harlow, Harald Barth, David Cutting,
- *  Fred Decker, Gregor Baues, Anthony W - Dayton  All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
+ *  Fred Decker, Gregor Baues, Anthony W - Dayton
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *

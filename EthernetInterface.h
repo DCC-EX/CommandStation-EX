@@ -1,5 +1,10 @@
 /*
- *  © 2020,Gregor Baues,  Chris Harlow. All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2021 Mike S
+ *  © 2021 Fred Decker
+ *  © 2020-2021 Chris Harlow
+ *  © 2020 Gregor Baues
+ *  All rights reserved.
  *  
  *  This file is part of DCC-EX/CommandStation-EX
  *

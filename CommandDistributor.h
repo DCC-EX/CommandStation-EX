@@ -1,5 +1,8 @@
 /*
- *  © 2020,Gregor Baues,  Chris Harlow. All rights reserved.
+ *  © 2022 Harald Barth
+ *  © 2020-2021 Chris Harlow
+ *  © 2020 Gregor Baues
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *

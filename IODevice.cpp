@@ -1,5 +1,7 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2021 Harald Barth
+ *  All rights reserved.
  *  
  *  This file is part of DCC++EX API
  *

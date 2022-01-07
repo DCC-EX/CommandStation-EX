@@ -1,5 +1,8 @@
 /*
- *  COPYRIGHT (c) 2020 Fred Decker
+ *  © 2021 Neil McKechnie
+ *  © 2020-2021 Harald Barth
+ *  © 2020-2021 Fred Decker
+ *  © 2020-2021 Chris Harlow
  *  
  *  This file is part of CommandStation-EX
  *

@@ -1,5 +1,7 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2020-2022 Chris Harlow
+ *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *

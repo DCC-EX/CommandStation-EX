@@ -1,7 +1,8 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020-2021 Chris Harlow
  *  © 2020, Harald Barth.
- *  
+ *  All rights reserved.
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify

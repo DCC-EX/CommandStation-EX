@@ -1,5 +1,8 @@
 /*
- *  (c) 2021 Fred Decker.  All rights reserved.
+ *  © 2021 Neil McKechnie
+ *  © 2021 Harald Barth
+ *  © 2021 Fred Decker
+ *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
  *

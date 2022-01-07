@@ -1,10 +1,13 @@
 /*
- *  © 2021 Restructured Neil McKechnie
+ *  © 2021 Neil McKechnie
+ *  © 2021 M Steve Todd
+ *  © 2021 Fred Decker
+ *  © 2020-2021 Harald Barth
+ *  © 2020-2021 Chris Harlow
  *  © 2013-2016 Gregg E. Berman
- *  © 2020, Chris Harlow. All rights reserved.
- *  © 2020, Harald Barth.
+ *  All rights reserved.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
