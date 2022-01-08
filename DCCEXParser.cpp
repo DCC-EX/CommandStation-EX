@@ -383,23 +383,24 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         bool prog=false;
         bool join=false;
         if (params > 1) break;
-        if (params==0) { // <1>
+        if (params==0 || MotorDriver::commonFaultPin) { // <1> or tracks can not be handled individually
             main=true;
             prog=true;
         }
-        else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
+	if (params==1) {
+	  if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
             main=true;
             prog=true;
-            join=!MotorDriver::commonFaultPin;
-        }
-        else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+            join=true;
+	  }
+	  else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
             main=true;
-        }
-        else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
+	  }
+	  else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
             prog=true;
-        }
-        else break; // will reply <X>
-
+	  }
+	  else break; // will reply <X>
+	}
         if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         if (prog) DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
         DCC::setProgTrackSyncMain(join);
@@ -413,17 +414,19 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         bool main=false;
         bool prog=false;
         if (params > 1) break;
-        if (params==0) { // <0>
-            main=true;
-            prog=true;
+        if (params==0 || MotorDriver::commonFaultPin) { // <0> or tracks can not be handled individually
+	  main=true;
+	  prog=true;
         }
-        else if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
-            main=true;
-        }
-        else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
-            prog=true;
-        }
-        else break; // will reply <X>
+	if (params==1) {
+	  if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
+	    main=true;
+	  }
+	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
+	    prog=true;
+	  }
+	  else break; // will reply <X>
+	}
 
         if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
         if (prog) {

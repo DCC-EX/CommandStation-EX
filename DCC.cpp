@@ -733,6 +733,8 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
         DCCWaveform::progTrack.autoPowerOff=true;  // power off afterwards
         if (Diag::ACK) DIAG(F("Auto Prog power on"));
         DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+	if (MotorDriver::commonFaultPin)
+	  DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
         DCCWaveform::progTrack.sentResetsSincePacket = 0;
     }
 
@@ -992,6 +994,8 @@ void DCC::callback(int value) {
            if (DCCWaveform::progTrack.autoPowerOff) {
               if (Diag::ACK) DIAG(F("Auto Prog power off"));
               DCCWaveform::progTrack.doAutoPowerOff();
+	      if (MotorDriver::commonFaultPin)
+		DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
            }
           // Restore <1 JOIN> to state before BASELINE
           if (ackManagerRejoin) {
