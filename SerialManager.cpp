@@ -22,26 +22,29 @@
  #include "DCCEXParser.h"
   SerialManager * SerialManager::first=NULL;
 
-  SerialManager::SerialManager(HardwareSerial * myserial) {
+  SerialManager::SerialManager(Stream * myserial) {
     serial=myserial;
     next=first;
     first=this;
     bufferLength=0;
-    myserial->begin(115200);
     inCommandPayload=false; 
   } 
 
 void SerialManager::init() {
 #ifdef SERIAL3_COMMANDS
+    Serial3.begin(115200);
     new SerialManager(&Serial3);
 #endif
 #ifdef SERIAL2_COMMANDS
+    Serial2.begin(115200);
     new SerialManager(&Serial2);
 #endif
 #ifdef SERIAL1_COMMANDS
+    Serial1.begin(115200);
     new SerialManager(&Serial1);
 #endif
-   new SerialManager(&Serial);
+    Serial.begin(115200);
+    new SerialManager(&Serial);
 }
 
 void SerialManager::broadcast(RingStream * ring) {

@@ -37,10 +37,10 @@ public:
   
 private:  
   static SerialManager * first;
-  SerialManager(HardwareSerial * myserial);
+  SerialManager(Stream * myserial);
   void loop2();
   void broadcast2(RingStream * ring);
-  HardwareSerial * serial;
+  Stream * serial;
   SerialManager * next;
   byte bufferLength;
   byte buffer[COMMAND_BUFFER_SIZE]; 
