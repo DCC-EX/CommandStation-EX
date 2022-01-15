@@ -100,4 +100,11 @@
     new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 1.0, 1100, UNUSED_PIN), \
     new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 1.0, 1100, UNUSED_PIN)
 
+// This is an example how to setup a motor shield definition for a motor shield connected
+// to an NANO EVERY board. You have to make the connectons from the shield to the board
+// as in this example or adjust the values yourself.
+#define NANOEVERY_EXAMPLE F("NANOEVERY_EXAMPLE"), \
+ new MotorDriver(5,  6, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN),\
+ new MotorDriver(9, 10, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+
 #endif
