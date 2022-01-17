@@ -741,10 +741,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
 	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Min=%dus"), p[2]);  //   <D ACK MIN 1500>
+	      LCD(0, F("Ack Min=%uus"), p[2]);  //   <D ACK MIN 1500>
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
 	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Max=%dus"), p[2]);  //   <D ACK MAX 9000>
+	      LCD(0, F("Ack Max=%uus"), p[2]);  //   <D ACK MAX 9000>
 	    } else if (p[1] == HASH_KEYWORD_RETRY) {
 	      if (p[2] >255) p[2]=3;
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCC::setAckRetry(p[2]));  //   <D ACK RETRY 2>
