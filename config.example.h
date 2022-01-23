@@ -189,8 +189,8 @@ The configuration file for DCC-EX Command Station
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
 //
-//#define SERIAL1_COMMAND  
-//#define SERIAL2_COMMAND  
-//#define SERIAL3_COMMAND  
+//#define SERIAL1_COMMANDS
+//#define SERIAL2_COMMANDS
+//#define SERIAL3_COMMANDS
 
 /////////////////////////////////////////////////////////////////////////////////////
