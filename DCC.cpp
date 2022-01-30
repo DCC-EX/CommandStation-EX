@@ -33,7 +33,7 @@
 #include "version.h"
 #include "FSH.h"
 #include "IODevice.h"
-#include "RMFT2.h"
+#include "EXRAIL2.h"
 #include "CommandDistributor.h"
 
 // This module is responsible for converting API calls into
@@ -252,7 +252,7 @@ void DCC::setAccessory(int address, byte number, bool activate) {
   b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8; // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
 
   DCCWaveform::mainTrack.schedulePacket(b, 2, 4);      // Repeat the packet four times
-#if defined(RMFT_ACTIVE)
+#if defined(EXRAIL_ACTIVE)
   RMFT2::activateEvent(address<<2|number,activate);
 #endif
 }

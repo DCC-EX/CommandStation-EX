@@ -30,7 +30,7 @@
 #endif
 #include "StringFormatter.h"
 #include "CommandDistributor.h"
-#include "RMFT2.h"
+#include "EXRAIL2.h"
 #include "Turnouts.h"
 #include "DCC.h"
 #include "LCN.h"

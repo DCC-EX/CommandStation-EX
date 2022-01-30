@@ -19,8 +19,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RMFTMacros_H
-#define RMFTMacros_H
+#ifndef EXRAILMacros_H
+#define EXRAILMacros_H
 
 // remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
@@ -50,13 +50,13 @@
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
 // Pass 1 Implements aliases 
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef ALIAS
 #define ALIAS(name,value) const int name=value; 
 #include "myAutomation.h"
 
 // Pass 2 convert descriptions to  withrottle format emitter function
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
 #undef AUTOMATION
@@ -67,7 +67,7 @@ void  RMFT2::emitWithrottleDescriptions(Print * stream) {
 }
 
 // Pass 3... Create Text sending functions
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 const int StringMacroTracker1=__COUNTER__;
 #undef PRINT
 #define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
@@ -93,7 +93,7 @@ void  RMFT2::printMessage(uint16_t id) {
 
 
 // Pass 4: Turnout descriptions (optional)
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef TURNOUT
 #define TURNOUT(id,addr,subaddr,description...) case id: desc=F("" description); break;
 #undef PIN_TURNOUT
@@ -112,7 +112,7 @@ void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
 }
 
 // Pass 5: Roster names (count)
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) +1
 
@@ -121,7 +121,7 @@ const byte RMFT2::rosterNameCount=0
      ;
 
 // Pass 6: Roster names emitter
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
 void RMFT2::emitWithrottleRoster(Print * stream) {
@@ -133,7 +133,7 @@ void RMFT2::emitWithrottleRoster(Print * stream) {
 }
 
 // Pass 7: functions getter
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
 const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
@@ -144,7 +144,7 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 }
 
 // Pass 8 Signal definitions
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) redpin,amberpin,greenpin, 
 const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
@@ -154,7 +154,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 // Last Pass : create main routes table
 // Only undef the macros, not dummy them.  
 #define  RMFT2_UNDEF_ONLY
-#include "RMFT2MacroReset.h"
+#include "EXRAIL2MacroReset.h"
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
 // a constant.  

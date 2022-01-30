@@ -53,7 +53,7 @@
 #include "DIAG.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
-#include "RMFT2.h"
+#include "EXRAIL2.h"
 #include "CommandDistributor.h"
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
@@ -121,7 +121,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
           int id=tt->getId();
           StringFormatter::send(stream,F("]\\[%d}|{"), id);
-#ifdef RMFT_ACTIVE
+#ifdef EXRAIL_ACTIVE
 	  RMFT2::emitTurnoutDescription(stream,id);
 #else   
 	  StringFormatter::send(stream,F("%d"), id);
@@ -133,7 +133,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     }
 
     else if (!exRailSent) {
-      // Send ExRail routes list if not already sent (but not at same time as turnouts above)
+      // Send EX-RAIL routes list if not already sent (but not at same time as turnouts above)
       exRailSent=true;
 #ifdef RMFT_ACTIVE
       RMFT2::emitWithrottleRouteList(stream);
@@ -156,7 +156,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	  DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
 	CommandDistributor::broadcastPower();
       }
-#if defined(RMFT_ACTIVE)
+#if defined(EXRAIL_ACTIVE)
       else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
 	// exrail routes are RA2Rn , Animations are RA2An 
 	int route=getInt(cmd+5);
@@ -287,7 +287,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 	int fkeys=29;
 	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
         
-#ifdef RMFT_ACTIVE
+#ifdef EXRAIL_ACTIVE
 	const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
 	if (!functionNames) {
 	  // no roster, use presets as above 

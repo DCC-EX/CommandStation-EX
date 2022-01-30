@@ -91,7 +91,7 @@ void setup()
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
   DCC::begin(MOTOR_SHIELD_TYPE);
 
-  // Start RMFT (ignored if no automnation)
+  // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();
 
 

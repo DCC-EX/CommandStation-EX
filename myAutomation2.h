@@ -1,6 +1,6 @@
 
 /* This is an automation example file.
- *  The presence of a file calle "myAutomation.h" brings EX-RAIL code into
+ *  The presence of a file called "myAutomation.h" brings EX-RAIL code into
  *  the command station.
  *  The auotomation may have multiple concurrent tasks. 
  *  A task may drive one loco through a ROUTE or may simply 
