@@ -18,8 +18,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef RMFT2_H
-#define RMFT2_H
+#ifndef EXRAIL2_H
+#define EXRAIL2_H
 #include "FSH.h"
 #include "IODevice.h"
    

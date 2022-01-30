@@ -1,8 +1,8 @@
-#ifndef RMFT_H
-#define RMFT_H
+#ifndef EXRAIL
+#define EXRAIL
 
-#if defined(RMFT_ACTIVE)
- #include "RMFT2.h"
+#if defined(EXRAIL_ACTIVE)
+ #include "EXRAIL2.h"
 
   class RMFT {
     public:
@@ -10,7 +10,7 @@
       static void inline loop() {RMFT2::loop();}
   };
 
-  #include "RMFTMacros.h"
+  #include "EXRAILMacros.h"
   
 #else 
   // Dummy RMFT 

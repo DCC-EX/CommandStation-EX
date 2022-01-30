@@ -81,7 +81,7 @@
 
 #if __has_include ( "myAutomation.h")
   #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
-    #define RMFT_ACTIVE
+    #define EXRAIL_ACTIVE
   #else
     #define EXRAIL_WARNING
   #endif
