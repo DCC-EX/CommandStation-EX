@@ -1,5 +1,5 @@
-#ifndef EXRAIL
-#define EXRAIL
+#ifndef EXRAIL_H
+#define EXRAIL_H
 
 #if defined(EXRAIL_ACTIVE)
  #include "EXRAIL2.h"
