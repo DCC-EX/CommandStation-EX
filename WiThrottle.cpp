@@ -135,7 +135,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     else if (!exRailSent) {
       // Send EX-RAIL routes list if not already sent (but not at same time as turnouts above)
       exRailSent=true;
-#ifdef RMFT_ACTIVE
+#ifdef EXRAIL_ACTIVE
       RMFT2::emitWithrottleRouteList(stream);
 #endif
       // allow heartbeat to slow down once all metadata sent     
@@ -205,7 +205,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
 	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
 	StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
-#ifdef RMFT_ACTIVE
+#ifdef EXRAIL_ACTIVE
 	RMFT2::emitWithrottleRoster(stream);
 #endif        
 	// set heartbeat to 1 second because we need to sync the metadata
