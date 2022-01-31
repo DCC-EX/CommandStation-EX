@@ -152,16 +152,16 @@ int MotorDriver::getCurrentRaw() {
   bool irq = disableInterrupts();
   current = analogRead(currentPin)-senseOffset;
   enableInterrupts(irq);
-#elif defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
+#else // Uno, Mega and all the TEENSY3* but not TEENSY4*
   unsigned char sreg_backup;
   sreg_backup = SREG;   /* save interrupt enable/disable state */
   cli();
   current = analogRead(currentPin)-senseOffset;
+#if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
   overflow_count = 0;
-  SREG = sreg_backup;    /* restore interrupt state */
-#else
-  current = analogRead(currentPin)-senseOffset;
 #endif
+  if (sreg_backup & 128) sei(); /* restore interrupt state */
+#endif // outer #
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);

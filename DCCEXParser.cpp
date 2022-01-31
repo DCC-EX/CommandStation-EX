@@ -886,7 +886,7 @@ void DCCEXParser::callback_R(int16_t result)
 void DCCEXParser::callback_Rloco(int16_t result) {
   const FSH * detail;
   if (result<=0) {
-    detail=F("<r ERROR %d>\n");
+    detail=F("<r %d>\n");
   } else {
     bool longAddr=result & LONG_ADDR_MARKER;        //long addr
     if (longAddr)
