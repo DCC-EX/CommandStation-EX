@@ -114,7 +114,7 @@
 
     // I know it says setClosedStateOnly, but we need to tell others
     //  that the state has changed too.
-    #if defined(RMFT_ACTIVE)
+    #if defined(EXRAIL_ACTIVE)
       RMFT2::turnoutEvent(id, closeFlag);
     #endif
 
@@ -147,7 +147,7 @@
         EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);
 #endif
 
-    #if defined(RMFT_ACTIVE)
+    #if defined(EXRAIL_ACTIVE)
       RMFT2::turnoutEvent(id, closeFlag);
     #endif
 
