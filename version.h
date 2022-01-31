@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "3.2.0 rc12"
+#define VERSION "3.2.0 rc13"
 // 3.2.0 Major functional and non-functional changes.
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
