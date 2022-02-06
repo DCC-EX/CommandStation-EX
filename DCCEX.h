@@ -33,6 +33,9 @@
 #include "SerialManager.h"
 #include "version.h"
 #include "WifiInterface.h"
+#ifdef ESP_FAMILY
+#include "WifiESP.h"
+#endif
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif

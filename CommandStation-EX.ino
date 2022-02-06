@@ -63,7 +63,12 @@ void setup()
 
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
+
   SerialManager::init();
+//  Serial.begin(115200);    // check this -- removed when resolve conflicts
+#ifdef ESP_DEBUG
+  Serial.setDebugOutput(true);
+#endif
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
@@ -77,9 +82,12 @@ void setup()
   // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
   // Start Ethernet if it exists
 #if WIFI_ON
+#ifndef ESP_FAMILY
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
+#else
+  WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL);
+#endif
 #endif // WIFI_ON
-
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
@@ -119,14 +127,17 @@ void loop()
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)
   DCC::loop();
-
   // Responsibility 2: handle any incoming commands on USB connection
   SerialManager::loop();
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #if WIFI_ON
+#ifndef ESP_FAMILY
   WifiInterface::loop();
+#else
+  WifiESP::loop();
 #endif
+#endif //WIFI_ON
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
@@ -145,8 +156,10 @@ void loop()
   Sensor::checkAll(); // Update and print changes
 
   // Report any decrease in memory (will automatically trigger on first call)
-  static int ramLowWatermark = __INT_MAX__; // replaced on first loop
-
+  static int ramLowWatermark = __INT_MAX__; // replaced on first loop 
+#ifdef ESP_FAMILY
+  updateMinimumFreeMemory(128);
+#endif
   int freeNow = minimumFreeMemory();
   if (freeNow < ramLowWatermark) {
     ramLowWatermark = freeNow;

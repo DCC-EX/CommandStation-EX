@@ -29,13 +29,15 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
-#if defined(__IMXRT1062__)
+#if defined(__IMXRT1062__) || defined (ARDUINO_ARCH_ESP8266)
+typedef uint32_t PORTTYPE;
 struct FASTPIN {
   volatile uint32_t *inout;
   uint32_t maskHIGH;  
   uint32_t maskLOW;  
 };
 #else
+typedef uint8_t PORTTYPE;
 struct FASTPIN {
   volatile uint8_t *inout;
   uint8_t maskHIGH;  
@@ -43,12 +45,30 @@ struct FASTPIN {
 };
 #endif
 
+#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
+#define isLOW(fastpin)    (!isHIGH(fastpin))
+
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( bool on);
-    virtual void setSignal( bool high);
+    void setSignal( bool high);/* {
+      if (usePWM) {
+	DCCTimer::setPWM(signalPin,high);
+      }
+      
+      if (high) {
+        setHIGH(fastSignalPin);
+        if (dualSignal) setLOW(fastSignalPin2);
+      }
+      else {
+        setLOW(fastSignalPin);
+        if (dualSignal) setHIGH(fastSignalPin2);
+      }
+      };*/
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);

@@ -37,10 +37,18 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //
+#if defined (ARDUINO_ARCH_ESP8266)
+#define ESP_FAMILY
+//#define ESP_DEBUG
+#define SLOW_ANALOG_READ
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+//
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
-#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO)) || defined(ARDUINO_AVR_NANO_EVERY)
+#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO)  || defined(TEENSYDUINO)) || defined(ARDUINO_AVR_NANO_EVERY) || defined (ESP_FAMILY))
  #define BIG_RAM
 #endif 
 #if ENABLE_WIFI
@@ -53,8 +61,6 @@
     #define WIFI_WARNING
     #define WIFI_ON false
   #endif
-#else
-  #define WIFI_ON false
 #endif
 
 #if ENABLE_ETHERNET

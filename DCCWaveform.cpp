@@ -24,6 +24,7 @@
 
 #include <Arduino.h>
 
+#include "defines.h"
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
@@ -55,33 +56,48 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
-void DCCWaveform::loop(bool ackManagerActive) {
+#ifdef SLOW_ANALOG_READ
+// Flag to hold if we need to run ack checking in loop
+static bool ackflag = 0;
+#endif
+
+void IRAM_ATTR DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
   progTrack.checkPowerOverload(ackManagerActive);
+#ifdef SLOW_ANALOG_READ
+  if (ackflag) {
+    progTrack.checkAck();
+    // reset flag AFTER check is done
+    ackflag = 0;
+  }
+#endif
 }
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::interruptHandler() {
+void IRAM_ATTR DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
-  
   // Set the signal state for both tracks
   mainTrack.motorDriver->setSignal(sigMain);
   progTrack.motorDriver->setSignal(sigProg);
-  
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
-
-
   // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
-  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
-  else if (progTrack.ackPending) progTrack.checkAck();
-
+  if (mainTrack.state==WAVE_PENDING)
+    mainTrack.interrupt2();
+  if (progTrack.state==WAVE_PENDING)
+    progTrack.interrupt2();
+#ifdef SLOW_ANALOG_READ
+  else if (progTrack.ackPending && ackflag == 0) // We need AND we are not already checking
+    ackflag = 1;
+#else
+  else if (progTrack.ackPending)
+    progTrack.checkAck();
+#endif
 }
 #pragma GCC push_options
 
@@ -206,7 +222,7 @@ const bool DCCWaveform::signalTransform[]={
         
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::interrupt2() {
+void IRAM_ATTR DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
@@ -216,7 +232,9 @@ void DCCWaveform::interrupt2() {
     remainingPreambles--;
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+#ifndef ESP_FAMILY
+    updateMinimumFreeMemory(22);
+#endif
     return;
   }
 
@@ -317,14 +335,14 @@ byte DCCWaveform::getAck() {
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::checkAck() {
+void IRAM_ATTR DCCWaveform::checkAck() {
     // This function operates in interrupt() time so must be fast and can't DIAG 
     if (sentResetsSincePacket > 6) {  //ACK timeout
         ackCheckDuration=millis()-ackCheckStart;
         ackPending = false;
         return; 
     }
-      
+
     int current=motorDriver->getCurrentRaw();
     numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;

@@ -28,6 +28,8 @@ extern "C" char* sbrk(int);
 #elif defined(__AVR__)
 extern char *__brkval;
 extern char *__malloc_heap_start;
+#elif defined(ARDUINO_ARCH_ESP8266)
+// supported but nothing needed here
 #else
 #error Unsupported board type
 #endif
@@ -35,7 +37,7 @@ extern char *__malloc_heap_start;
 
 static volatile int minimum_free_memory = __INT_MAX__;
 
-#if !defined(__IMXRT1062__)
+#if !defined(__IMXRT1062__) && !defined(ARDUINO_ARCH_ESP8266)
 static inline int freeMemory() {
   char top;
 #if defined(__arm__)
@@ -56,7 +58,18 @@ int minimumFreeMemory() {
   return retval;
 }
 
+#elif defined(ARDUINO_ARCH_ESP8266)
+// ESP8266
+static inline int freeMemory() {
+  return ESP.getFreeHeap();
+}
+// Return low memory value.
+int minimumFreeMemory() {
+  int retval = minimum_free_memory;
+  return retval;
+}
 #else
+// All types of TEENSYs
 #if defined(ARDUINO_TEENSY40)
   static const unsigned DTCM_START = 0x20000000UL;
   static const unsigned OCRAM_START = 0x20200000UL;
@@ -109,4 +122,3 @@ void updateMinimumFreeMemory(unsigned char extraBytes) {
   if (spare < 0) spare = 0;
   if (spare < minimum_free_memory) minimum_free_memory = spare;
 }
-

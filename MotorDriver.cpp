@@ -25,11 +25,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 
-#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
-#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
-#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
-#define isLOW(fastpin)    (!isHIGH(fastpin))
-
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
@@ -114,7 +109,7 @@ void MotorDriver::setBrake(bool on) {
   else setLOW(fastBrakePin);
 }
 
-void MotorDriver::setSignal( bool high) {
+void IRAM_ATTR MotorDriver::setSignal( bool high) {
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -180,8 +175,8 @@ int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-    (void) type; // avoid compiler warning if diag not used above. 
-    uint8_t port = digitalPinToPort(pin);
+    (void) type; // avoid compiler warning if diag not used above.
+    PORTTYPE port = digitalPinToPort(pin);
     if (input)
       result.inout = portInputRegister(port);
     else

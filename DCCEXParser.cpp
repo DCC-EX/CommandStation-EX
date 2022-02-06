@@ -23,6 +23,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
@@ -37,7 +38,9 @@
 #include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
+#ifndef ESP_FAMILY
 #include <avr/wdt.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
