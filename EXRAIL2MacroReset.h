@@ -97,6 +97,7 @@
 #undef SERVO 
 #undef SERVO2 
 #undef SERVO_TURNOUT 
+#undef SERVO_SIGNAL
 #undef SET
 #undef SETLOCO 
 #undef SIGNAL 
@@ -185,6 +186,7 @@
 #define SERIAL3(msg) 
 #define SERVO(id,position,profile) 
 #define SERVO2(id,position,duration) 
+#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
 #define SET(pin) 
 #define SETLOCO(loco) 

@@ -93,7 +93,9 @@ class LookList {
     static void emitTurnoutDescription(Print* stream,int16_t id);
     static const byte rosterNameCount;
     static void emitWithrottleRoster(Print * stream);
-    static const FSH * getRosterFunctions(int16_t cabid);  
+    static const FSH * getRosterFunctions(int16_t cabid);
+    static const int16_t SERVO_SIGNAL_FLAG=0x4000;
+  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
