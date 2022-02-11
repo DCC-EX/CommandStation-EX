@@ -1,11 +1,9 @@
-Version 4.0 Release Notes
-*************************
-
 The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.13.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
 [CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
+
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v0.0.0-Prod/CommandStation-EX.tar.gz)
 
 **Known Issues**
@@ -282,4 +280,5 @@ For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a de
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
 [CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
+
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.tar.gz)
