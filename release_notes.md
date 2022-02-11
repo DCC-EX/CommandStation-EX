@@ -1,4 +1,4 @@
-The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.13.
+The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.0 rc13.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
@@ -254,7 +254,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 - Roger Beschizza - Dorset, UK (Roger Beschizza)
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
 - Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
-- Colin Grabham - Central NSW, Austrailia (Kebbin)
+- Colin Grabham - Central NSW, Australia (Kebbin)
 
 **WebThrotle-EX**
 
