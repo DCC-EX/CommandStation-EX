@@ -22,12 +22,12 @@
                 ],
                 "SupportedMotoShields": [
                     {
-                        "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "DisplayName": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
-                        "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "DisplayName": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -46,11 +46,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -94,11 +94,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -117,11 +117,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -140,11 +140,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -163,11 +163,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -186,11 +186,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -209,11 +209,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -232,11 +232,11 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     }
                 ],
                 "ExtraLibraries": [
@@ -263,19 +263,19 @@
                 "SupportedMotoShields": [
                     {
                         "Name": "Arduino Motor Shield",
-                        "ShieldType": 0
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
                     },
                     {
                         "Name": "Pololu MC33926 Motor Shield",
-                        "ShieldType": 1
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
                     },
                     {
                         "Name": "FireBox MK1",
-                        "ShieldType": 3
+                        "Declaration": "FIREBOX_MK1"
                     },
                     {
                         "Name": "FireBox MK1S",
-                        "ShieldType": 4
+                        "Declaration": "FIREBOX_MK1S"
                     }
                 ],
                 "ExtraLibraries": [
