@@ -29,14 +29,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 **New ‘Discovered Servers’ on WiFi Throttles**
 
-- WiThrottles now detect and display both DCC++EX Command Station name and JMRI WiThrottle Server Profile name in the WiFi Throttle Apps.
-
-- Sample Engine Driver App Discovered Servers
-      “DCC++EX”                {Direct connect to the Command Station}
-      “My JMRI Railroad”       {JMRI connected via WiThrottle Server}
-
-- Our New multicast Dynamic Network Server (mDNS) enhancement allows us to display the available WiFi server connections to a DCC++EX Command Station. Choosing one allows your WiThrottle App to connect to and load Server Rosters and function keys to your throttle from Either the DCC++EX Command Station Server Roster, Or from JMRI Engine Roster list.
-
+- Our New multicast Dynamic Network Server (mDNS) enhancement allows us to display the available WiFi server connections to a DCC++EX Command Station. Selecting it allows your WiThrottle App to connect to and load Server Rosters and function keys to your throttle from the new DCC++EX Command Station Server Roster.
 
 **New DCC++EX 4.0.0 with EX-RAIL Extended Railroad Automation Instruction Language**  
 
@@ -51,10 +44,10 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 **New JMRI 4.99.2 and above specific DCC++EX 4.0 features**
 
-- Enhanced JMRI DCC++ Tools Base Station pane for building and maintaining Sensor, Turnout and Output devices which can be manually entered into JMRI, or can automatically be populated from the DCC++EX Command Stations mySetup.h file into JMRI.
+- Enhanced JMRI DCC++ Configure Base Station pane for building and maintaining Sensor, Turnout and Output devices, or these can automatically be populated from the DCC++EX Command Stations mySetup.h file into JMRI.
 
-- JMRI may now have multiple serial connected DCC++EX Command Stations, and display and track separate "Send DCC++ Command" and "DCC++ Trafic" Monitors for each Command Station at the same time. This allows multiple simultaneous Command Stations running on one Instance of JMRI software.
-For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a desktop programming track and a second Mega DCC++EX EX-RAIL Command Station for Operations {DCC++Ops} on the layout with an additional `<JOINED>` programming spur or siding track for acquiring an engine and ‘Drive Away’ onto the mainline (see the DriveAway feature for more information).
+- JMRI now supports multiple serial connected DCC++EX Command Stations, to display and track separate "Send DCC++ Command" and "DCC++ Trafic" Monitors for each Command Station at the same time.
+  For example: Use an Uno DCC++EX DecoderPro Programming Station {DCC++Prg} on a desktop programming track and a second Mega DCC++EX EX-RAIL Command Station for Operations {DCC++Ops} on the layout with an additional `<JOINED>` programming spur or siding track for acquiring an engine and ‘Drive Away’ onto the mainline (see the DriveAway feature for more information).
 
 
 **DCC++EX 4.0.0 additional product enhancements**
@@ -65,7 +58,7 @@ For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a de
 - New EX-RAIL ’/’ slash command allows JMRI to directly communicate with EX-RAIL scripts
 - Turnout class revised to expand turnout capabilities and allow turnout names/descriptors to display in WiThrottle Apps.
 - Build turnouts through either or both mySetup.h and myAutomation.h files and have them automatically passed to and populate JMRI Turnout Tables
-- Turnout names display in Engine Driver & WiThrottles
+- Turnout user names display in Engine Driver & WiThrottles
 - Output class now allows ID > 255. 
 - Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and `<T>` command.
 - Increased use of display for showing loco decoder programming information. 
