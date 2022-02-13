@@ -49,6 +49,7 @@
 #include "WiThrottle.h"
 #include "DCCEXParser.h"
 #include "Turnouts.h"
+#include "Sensors.h"   // Sensor feedback an rocrail senden
 #include "CommandDistributor.h"
 
 
@@ -624,10 +625,12 @@ void RMFT2::loop2() {
     
   case OPCODE_LATCH:
     setFlag(operand,LATCH_FLAG);
+    Sensor::call(operand, 1); // sesor aktiv senden
     break;
     
   case OPCODE_UNLATCH:
     setFlag(operand,0,LATCH_FLAG);
+    Sensor::call(operand, 0); // sensor inaktiv senden
     break;
 
   case OPCODE_SET:

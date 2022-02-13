@@ -190,6 +190,26 @@ void Sensor::printAll(Print *stream){
 } // Sensor::printAll
 
 ///////////////////////////////////////////////////////////////////////////////
+//
+// Static Function to call Sensor object.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+Sensor *Sensor::call(int snum, int pullUp){
+  Sensor *tt;
+  if (pullUp == 0)
+    CommandDistributor::broadcastSensor(readingSensor->data.snum=snum,readingSensor->active);
+  else
+    CommandDistributor::broadcastSensor(readingSensor->data.snum=snum,readingSensor->latchDelay = minReadCount );
+    // minReadCount could be better defind to always inactive??
+  
+  return tt ;
+  
+
+  
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Static Function to create/find Sensor object.
 
 Sensor *Sensor::create(int snum, VPIN pin, int pullUp){

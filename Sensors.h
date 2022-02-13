@@ -76,6 +76,7 @@ public:
   static void store();
 #endif
   static Sensor *create(int id, VPIN vpin, int pullUp);
+  static Sensor *call(int id, int pullUp); // broadcast sensor to rocrail
   static Sensor* get(int id);  
   static bool remove(int id);  
   static void checkAll();
