@@ -32,6 +32,7 @@
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
+#undef BROADCAST
 #undef CALL 
 #undef CLOSE 
 #undef DEACTIVATE
@@ -121,6 +122,7 @@
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id, description) 
 #define AUTOSTART
+#define BROADCAST(msg)
 #define CALL(route) 
 #define CLOSE(id) 
 #define DEACTIVATE(addr,subaddr)
