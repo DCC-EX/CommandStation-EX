@@ -1,4 +1,4 @@
-The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.13.
+The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.0 rc13.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
@@ -21,7 +21,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
   - MP3 sound playback via DFPlayer module. 
   - HC-SR04 Ultrasonic range sensor module. 
   - VL53L0X Laser range sensor module (Time-Of-Flight). 
-   and a new `<D HAL SHOW>` command to list the HAL devices attached to the command station
+  - A new `<D HAL SHOW>` command to list the HAL devices attached to the command station
  
 **New Command Station Broadcast throttle logic**
 
@@ -29,65 +29,68 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 **New ‘Discovered Servers’ on WiFi Throttles**
 
-- WiThrottles now detect and display both DCC++EX Command Station name and JMRI WiThrottle Server Profile name in the WiFi Throttle Apps.
+- WiThrottles now detect and display both DCC++EX Command Station name and JMRI WiThrottle Server Profile name as 'Discovered Servers' in the WiFi Throttle Apps.
 
-- Sample Engine Driver App Discovered Servers
-      “DCC++EX”                {Direct connect to the Command Station}
-      “My JMRI Railroad”       {JMRI connected via WiThrottle Server}
+- Sample Engine Driver App 'Discovered Servers'
+    - “DCC++EX”                {Direct connect to the Command Station}
+    - “My JMRI Railroad”       {JMRI connected via WiThrottle Server}
 
-- Our New multicast Dynamic Network Server (mDNS) enhancement allows us to display the available WiFi server connections to a DCC++EX Command Station. Choosing one allows your WiThrottle App to connect to and load Server Rosters and function keys to your throttle from Either the DCC++EX Command Station Server Roster, Or from JMRI Engine Roster list.
+- Our New multicast Dynamic Network Server (mDNS) enhancement allows us to display the available WiFi 'Discovered Servers' connections to a DCC++EX Command Station. 
+- Choosing one allows your WiThrottle App to connect to and load 'Server Rosters' and function keys to your throttle from Either the DCC++EX Command Station Server Roster, Or from JMRI Engine Roster list.
 
 
 **New DCC++EX 4.0.0 with EX-RAIL Extended Railroad Automation Instruction Language**  
 
-- Awesome, cleverly powerful yet simple user friendly scripting language for user built Automation & Routing scripts. You can control Engines, Sensors, Turnouts, Signals, Outputs and Accessories that are uploaded into the DCC++EX Command Station.
+- Awesome, cleverly powerful yet simple user friendly scripting language for user built Automation & Routing scripts. 
+- You can control Engines, Sensors, Turnouts, Signals, Outputs and Accessories that entered into your new myAutomation.h file then uploaded into the DCC++EX Command Station.
 
 - EX-RAIL scripts are automatically displayed as Automation {Handoff} and Route {Set} buttons on supported WiFi Throttle Apps.
 
 **New EX-RAIL ‘Roster’ Feature**
 
 - List and store user defined engine roster & function keys inside the command station and automatically load them in WiFi Throttle Apps.
-- When choosing “DCC++EX” from discovered servers an Engine Driver or WiThrottle is directly connected to the Command Station. The EX-RAIL ’ROSTER’ command allows all the engine numbers, names and function keys you’ve listed in your myAutomation.h file to automatically upload the Command Station's ‘Server Roster’ into your Engine Driver and WiThrottle Apps.  
+- When choosing “DCC++EX” from discovered servers an Engine Driver or WiThrottle is directly connected to the Command Station. 
+- The EX-RAIL ’ROSTER’ command allows all the engine numbers, names and function keys you’ve listed in your myAutomation.h file to automatically upload the Command Station's ‘Server Roster’ into your Engine Driver and WiThrottle Apps.  
 
 **New JMRI 4.99.2 and above specific DCC++EX 4.0 features**
 
 - Enhanced JMRI DCC++ Tools Base Station pane for building and maintaining Sensor, Turnout and Output devices which can be manually entered into JMRI, or can automatically be populated from the DCC++EX Command Stations mySetup.h file into JMRI.
 
 - JMRI may now have multiple serial connected DCC++EX Command Stations, and display and track separate "Send DCC++ Command" and "DCC++ Trafic" Monitors for each Command Station at the same time. This allows multiple simultaneous Command Stations running on one Instance of JMRI software.
-For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a desktop programming track and a second Mega DCC++EX EX-RAIL Command Station for Operations {DCC++Ops} on the layout with an additional `<JOINED>` programming spur or siding track for acquiring an engine and ‘Drive Away’ onto the mainline (see the DriveAway feature for more information).
+- For example:  Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a desktop programming track and a second Mega DCC++EX EX-RAIL Command Station for Operations {DCC++Ops} on the layout with an additional `<JOINED>` programming spur or siding track for acquiring an engine and ‘Drive Away’ onto the mainline (see the DriveAway feature for more information).
 
 
 **DCC++EX 4.0.0 additional product enhancements**
 
 - Additional Motor Shields and Motor Board {boosters) supported
 - Additional Accessory boards supported for GPIO expansion, Sensors, Servos & Signals
-- Additional diagnostic commands like ‘D ACK RETRY’ and ‘D EXRAIL ON’ events and ‘D HAL SHOW’ devices and ‘D SERVO’ positions and the ‘D RESET’ the command station while maintaining the serial connection with JMRI
-- New EX-RAIL ’/’ slash command allows JMRI to directly communicate with EX-RAIL scripts
+- Additional diagnostic commands like ‘D ACK RETRY’ and ‘D EXRAIL ON’ events and ‘D HAL SHOW’ devices and ‘D SERVO’ positions and ‘D RESET’ the command station while maintaining the serial connection with JMRI
+- New EX-RAIL ’/’ slash command allows JMRI to directly communicate with many EX-RAIL scripts
 - Turnout class revised to expand turnout capabilities and allow turnout names/descriptors to display in WiThrottle Apps.
 - Build turnouts through either or both mySetup.h and myAutomation.h files and have them automatically passed to and populate JMRI Turnout Tables
 - Turnout names display in Engine Driver & WiThrottles
+- Turnout and accessory states (thrown/closed = 0/1 or 1/0) can be set to match RCN-213
 - Output class now allows ID > 255. 
 - Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and `<T>` command.
 - Increased use of display for showing loco decoder programming information. 
 - Can disable EEPROM memory code to allow room for DCC++EX 4.0 to fit on a Uno Command Station
 - Can define border between long and short addresses 
-- Turnout and accessory states (thrown/closed = 0/1 or 1/0) can be set to match RCN-213
 - Native non-blocking I2C drivers for AVR and Nano architectures (fallback to blocking Wire library for other platforms). 
 - EEPROM layout change - deletes EEPROM contents on first start following upgrade. 
 
 
-**Bug Fixes**
+**4.0.0 Bug Fixes**
 
-- One-off error in CIPSEND drop
 - Compiles on Nano Every
 - Diagnostic display of ack pulses >32ku
 - Current read from wrong ADC during interrupt
 - AT(+) Command Pass Through 
 - CiDAP WiFi Drop out and the WiThrottle F-key looping error corrected
+- One-off error in CIPSEND drop
 - Common Fault Pin Error
 - Uno Memory Utilization optimized
 
-#### Summary of key features and/or bug fixes by Point Release
+#### Summary of Release 3.1.0 key features and/or bug fixes by Point Release
 
 **Summary of the key new features added to CommandStation-EX V3.0.16**
 
@@ -231,7 +234,7 @@ For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a de
 - Neil McKechnie - Worcestershire, UK (NeilMck)
 - Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
 - Dave Cutting - Logan, Utah, USA (Dave Cutting/ David Cutting)
-- M Steve Todd -  
+- M Steve Todd - Oregon, USA (MSteveTodd) 
 - Scott Catalano - Pennsylvania
 - Gregor Baues - Île-de-France, France (grbba)
 
@@ -251,6 +254,7 @@ For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a de
 - Roger Beschizza - Dorset, UK (Roger Beschizza)
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
 - Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
+- Colin Grabham - Central NSW, Australia (Kebbin)
 
 **WebThrotle-EX**
 
@@ -262,6 +266,7 @@ For example: Use an Uno DCC++EX DecodePro Programming Station {DCC++Prg} on a de
 
 - Larry Dribin - Release Management
 - Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
+- Herb Morton - Kingwood Texas, USA (Ash++)
 - Keith Ledbetter
 - Brad Van der Elst
 - Andrew Pye
