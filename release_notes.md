@@ -31,11 +31,11 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 - Our New multicast Dynamic Network Server (mDNS) enhancement allows us to display the available WiFi server connections to a DCC++EX Command Station. Selecting it allows your WiThrottle App to connect to and load Server Rosters and function keys to your throttle from the new DCC++EX Command Station Server Roster.
 
-**New DCC++EX 4.0.0 with EX-RAIL Extended Railroad Automation Instruction Language**  
+**New DCC++EX 4.0.0 with EX-RAIL Extended Railroad Automation Instruction Language**
 
+- Use to control your entire layout or as a separate accessory/animation controller
 - Awesome, cleverly powerful yet simple user friendly scripting language for user built Automation & Routing scripts. 
 - You can control Engines, Sensors, Turnouts, Signals, Outputs and Accessories that entered into your new myAutomation.h file then uploaded into the DCC++EX Command Station.
-
 - EX-RAIL scripts are automatically displayed as Automation {Handoff} and Route {Set} buttons on supported WiFi Throttle Apps.
 
 **New EX-RAIL ‘Roster’ Feature**
