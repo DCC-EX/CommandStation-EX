@@ -125,7 +125,7 @@ The configuration file for DCC-EX Command Station
 
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
-// Also 132x64 I2C SH1106 devices
+// Use 132,64 for a SH1106-based I2C device with a 128x64 display.
 // #define OLED_DRIVER 128,32
 
 // Define scroll mode as 0, 1 or 2
