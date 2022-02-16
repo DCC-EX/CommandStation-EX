@@ -4,6 +4,8 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 [CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
 
+
+
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v0.0.0-Prod/CommandStation-EX.tar.gz)
 
 **Known Issues**
@@ -67,7 +69,6 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 - Can define border between long and short addresses 
 - Native non-blocking I2C drivers for AVR and Nano architectures (fallback to blocking Wire library for other platforms). 
 - EEPROM layout change - deletes EEPROM contents on first start following upgrade. 
-
 
 **4.0.0 Bug Fixes**
 
@@ -275,5 +276,6 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
 [CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
+
 
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.tar.gz)
