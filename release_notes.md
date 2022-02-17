@@ -58,6 +58,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 - Additional Motor Shields and Motor Board {boosters) supported
 - Additional Accessory boards supported for GPIO expansion, Sensors, Servos & Signals
 - Additional diagnostic commands like ‘D ACK RETRY’ and ‘D EXRAIL ON’ events, ‘D HAL SHOW’ devices and ‘D SERVO’ positions, and ‘D RESET’ the command station while maintaining the serial connection with JMRI
+- Automatic retry on failed ACK detection to give decoders another chance
 - New EX-RAIL ’/’ slash command allows JMRI to directly communicate with many EX-RAIL scripts
 - Turnout class revised to expand turnout capabilities and allow turnout names/descriptors to display in WiThrottle Apps.
 - Build turnouts through either or both mySetup.h and myAutomation.h files, and have them automatically passed to, and populate, JMRI Turnout Tables
