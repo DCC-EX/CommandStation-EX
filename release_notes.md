@@ -1,4 +1,4 @@
-The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design & Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.0 rc13.
+The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production Release.  Release v4.0.0 is a Major release that adds significant new product design, plus Automation features and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v3.2.0 to v3.2.0 rc13.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
@@ -10,12 +10,12 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 **Known Issues**
 
-- **Wi-Fi** - Requires sending <AT> commands from a serial monitor if you want to switch between AP mode and STA station mode after initial setup
-- **Pololu Motor Shield** - is supported with this release, but the user may have to adjust timings to enable programming mode due to limitation in its current sensing circuitry
+- **Wi-Fi** - Requires sending `<AT>` commands from a serial monitor if you want to switch between AP mode and STA station mode after initial setup
+- **Pololu Motor Shield** - is supported with this release, but the user may have to adjust timings to enable programming mode due to limitations in its current sensing circuitry
 
 **All New Major DCC++EX 4.0.0 features**
 
-- **New HAL Hardware Abstract Layer API** that automatically detects and greatly simplifies interfacing to many predefined accessory boards for servos, signals & sensors and added I/O (digital and analog inputs and outputs, servos etc). 
+- **New HAL Hardware Abstraction Layer API** that automatically detects and greatly simplifies interfacing to many predefined accessory boards for servos, signals & sensors and added I/O (digital and analog inputs and outputs, servos etc). 
 - HAL Support for;
   - MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules. 
   - PCA9685 PWM (servo & signal) control modules. 
@@ -37,33 +37,33 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 
 - Use to control your entire layout or as a separate accessory/animation controller
 - Awesome, cleverly powerful yet simple user friendly scripting language for user built Automation & Routing scripts. 
-- You can control Engines, Sensors, Turnouts, Signals, Outputs and Accessories that entered into your new myAutomation.h file then uploaded into the DCC++EX Command Station.
+- You can control Engines, Sensors, Turnouts, Signals, Outputs and Accessories that are entered into your new myAutomation.h file, then uploaded into the DCC++EX Command Station.
 - EX-RAIL scripts are automatically displayed as Automation {Handoff} and Route {Set} buttons on supported WiFi Throttle Apps.
 
 **New EX-RAIL ‘Roster’ Feature**
 
-- List and store user defined engine roster & function keys inside the command station and automatically load them in WiFi Throttle Apps.
+- List and store user defined engine roster & function keys inside the command station, and automatically load them in WiFi Throttle Apps.
 - When choosing “DCC++EX” from discovered servers an Engine Driver or WiThrottle is directly connected to the Command Station. 
 - The EX-RAIL ’ROSTER’ command allows all the engine numbers, names and function keys you’ve listed in your myAutomation.h file to automatically upload the Command Station's ‘Server Roster’ into your Engine Driver and WiThrottle Apps.  
 
 **New JMRI 4.99.2 and above specific DCC++EX 4.0 features**
 
-- Enhanced JMRI DCC++ Configure Base Station pane for building and maintaining Sensor, Turnout and Output devices, or these can automatically be populated from the DCC++EX Command Stations mySetup.h file into JMRI.
+- Enhanced JMRI DCC++ Configure Base Station pane for building and maintaining Sensor, Turnout and Output devices, or these can automatically be populated from the DCC++EX Command Station's mySetup.h file into JMRI.
 
-- JMRI now supports multiple serial connected DCC++EX Command Stations, to display and track separate "Send DCC++ Command" and "DCC++ Trafic" Monitors for each Command Station at the same time.
+- JMRI now supports multiple serial connected DCC++EX Command Stations, to display and track separate "Send DCC++ Command" and "DCC++ Traffic" Monitors for each Command Station at the same time.
   For example: Use an Uno DCC++EX DecoderPro Programming Station {DCC++Prg} on a desktop programming track and a second Mega DCC++EX EX-RAIL Command Station for Operations {DCC++Ops} on the layout with an additional `<JOINED>` programming spur or siding track for acquiring an engine and ‘Drive Away’ onto the mainline (see the DriveAway feature for more information).
 
 **DCC++EX 4.0.0 additional product enhancements**
 
 - Additional Motor Shields and Motor Board {boosters) supported
 - Additional Accessory boards supported for GPIO expansion, Sensors, Servos & Signals
-- Additional diagnostic commands like ‘D ACK RETRY’ and ‘D EXRAIL ON’ events and ‘D HAL SHOW’ devices and ‘D SERVO’ positions and ‘D RESET’ the command station while maintaining the serial connection with JMRI
+- Additional diagnostic commands like ‘D ACK RETRY’ and ‘D EXRAIL ON’ events, ‘D HAL SHOW’ devices and ‘D SERVO’ positions, and ‘D RESET’ the command station while maintaining the serial connection with JMRI
 - New EX-RAIL ’/’ slash command allows JMRI to directly communicate with many EX-RAIL scripts
 - Turnout class revised to expand turnout capabilities and allow turnout names/descriptors to display in WiThrottle Apps.
-- Build turnouts through either or both mySetup.h and myAutomation.h files and have them automatically passed to and populate JMRI Turnout Tables
+- Build turnouts through either or both mySetup.h and myAutomation.h files, and have them automatically passed to, and populate, JMRI Turnout Tables
 - Turnout user names display in Engine Driver & WiThrottles
 - Output class now allows ID > 255. 
-- Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and `<T>` command.
+- Configuration options to globally flip polarity of DCC Accessory states when driven from `<a>` command and `<T>` command.
 - Increased use of display for showing loco decoder programming information. 
 - Can disable EEPROM memory code to allow room for DCC++EX 4.0 to fit on a Uno Command Station
 - Can define border between long and short addresses 
@@ -73,7 +73,7 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.0.0 as a Production R
 **4.0.0 Bug Fixes**
 
 - Compiles on Nano Every
-- Diagnostic display of ack pulses >32ku
+- Diagnostic display of ack pulses >32ms
 - Current read from wrong ADC during interrupt
 - AT(+) Command Pass Through 
 - CiDAP WiFi Drop out and the WiThrottle F-key looping error corrected
