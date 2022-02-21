@@ -1,7 +1,7 @@
 /* This is an automation example file.
  *  The presence of a file called "myAutomation.h" brings EX-RAIL code into
  *  the command station.
- *  The auotomation may have multiple concurrent tasks. 
+ *  The automation may have multiple concurrent tasks.
  *  A task may 
  *  - Act as a ROUTE setup macro for a user to drive over 
  *  - drive a loco through an AUTOMATION 
@@ -10,10 +10,10 @@
  *  At startup, a single task is created to execute the first 
  *  instruction after E$XRAIL. 
  *  This task may simply follow a route, or may START  
- *  further tasks (thats is.. send a loco out along a route).
+ *  further tasks (that is.. send a loco out along a route).
  *  
  *  Where the loco id is not known at compile time, a new task 
- *  can be creatd with the command:
+ *  can be created with the command:
  *  </ START [cab] route> 
  *  
  *  A ROUTE, AUTOMATION or SEQUENCE are internally identical in ExRail terms  
