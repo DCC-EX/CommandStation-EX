@@ -37,6 +37,7 @@
 #include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
+#include "TrackManager.h"
 #include <avr/wdt.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -482,6 +483,11 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         if (parseD(stream, params, p))
             return;
         return;
+
+    case 'J': // < >
+        if (TrackManager::parseJ(stream, params, p))
+            return;
+        break;
 
     case '#': // NUMBER OF LOCOSLOTS <#>
         StringFormatter::send(stream, F("<# %d>\n"), MAX_LOCOS);
