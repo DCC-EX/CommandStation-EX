@@ -156,28 +156,28 @@ bool MotorDriver::canMeasureCurrent() {
 int MotorDriver::getCurrentRaw() {
   if (currentPin==UNUSED_PIN) return 0; 
   int current;
-#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
-  bool irq = disableInterrupts();
+  // This function should NOT be called in an interruot so we 
+  // dont need to fart about saving and restoring CPU specific 
+  // interrupt registers. 
+  noInterrupts();
   current = analogRead(currentPin)-senseOffset;
-  enableInterrupts(irq);
-#else // Uno, Mega and all the TEENSY3* but not TEENSY4* 
-  unsigned char sreg_backup;
-  sreg_backup = SREG;   /* save interrupt enable/disable state */
-  cli();
-  current = analogRead(currentPin)-senseOffset;
-#if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
-  overflow_count = 0;
-#endif
-  if (sreg_backup & 128) sei();  /* restore interrupt state */
-#endif // outer #
+  interrupts();
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
       return (current == 0 ? -1 : -current);
   return current;
-  // IMPORTANT:  This function can be called in Interrupt() time within the 56uS timer
+   
+}
+
+int MotorDriver::getCurrentRawInInterrupt() {
+  
+  // IMPORTANT:  This function must be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so DCCTimer has set the sample time to be much faster.  
-}
+
+  if (currentPin==UNUSED_PIN) return 0; 
+  return analogRead(currentPin)-senseOffset;
+}  
 
 unsigned int MotorDriver::raw2mA( int raw) {
   return (unsigned int)(raw * senseFactor);

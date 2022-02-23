@@ -55,6 +55,7 @@ class MotorDriver {
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
+    virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
     inline int getRawCurrentTripValue() {
