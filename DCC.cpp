@@ -772,7 +772,7 @@ void DCC::ackManagerLoop() {
           if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
       	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
           DCCWaveform::progTrack.setAckBaseline();
-          callbackState=READY;
+          callbackState=AFTER_READ;
           break;
       case W0:    // write 0 bit
       case W1:    // write 1 bit
@@ -958,6 +958,7 @@ void DCC::callback(int value) {
 
     switch (callbackState) {
        case AFTER_WRITE:  // first attempt to callback after a write operation
+	    // If no poweroff and no rejoin planned, continue without delay.	    
 	    if (!ackManagerRejoin && !DCCWaveform::progTrack.autoPowerOff) {
                callbackState=READY;
                break;
@@ -966,20 +967,24 @@ void DCC::callback(int value) {
             callbackState=WAITING_100;
             if (Diag::ACK) DIAG(F("Stable 100mS"));
             break;
-
-       case WAITING_100:  // waiting for 100mS
+       case AFTER_READ:
+         // If we are going to power off anyway, it doesnt matter
+         // but if we will keep the power on, we must off it for 30mS
+         // If we do not plan do rejoin, we don't need to power off either
+         if (DCCWaveform::progTrack.autoPowerOff || !ackManagerRejoin) {
+	   callbackState=READY;
+	 } else {
+	   DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+	   callbackStart=millis();
+	   callbackState=WAITING_30;
+	   if (Diag::ACK) DIAG(F("OFF 30mS"));
+	 }
+	 break;
+       case WAITING_100:  // waiting for 100mS for decoder write to settle
             if (millis()-callbackStart < 100) break;
             // stable after power maintained for 100mS
-
-            // If we are going to power off anyway, it doesnt matter
-            // but if we will keep the power on, we must off it for 30mS
-            if (DCCWaveform::progTrack.autoPowerOff) callbackState=READY;
-            else { // Need to cycle power off and on
-                DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-                callbackStart=millis();
-                callbackState=WAITING_30;
-                if (Diag::ACK) DIAG(F("OFF 30mS"));
-            }
+	    // still may need to do the 30mS delay
+            callbackState=AFTER_READ;
             break;
 
         case WAITING_30:  // waiting for 30mS with power off

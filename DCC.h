@@ -73,6 +73,7 @@ enum ackOp : byte
 
 enum   CALLBACK_STATE : byte {
   AFTER_WRITE,  // Start callback sequence after something was written to the decoder  
+  AFTER_READ,   // Start callback sequence after something was read from the decoder
   WAITING_100,        // Waiting for 100mS of stable power 
   WAITING_30,         // waiting to 30ms of power off gap. 
   READY,              // Ready to complete callback  
