@@ -82,7 +82,7 @@ void TrackManager::setPROGSignal( bool on) {
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
-    // TODO  LOOPMODE(cab,setDC(speedbyte));
+    LOOPMODE(cab,setDCSignal(speedbyte));
 }
 
 bool TrackManager::setTrackMode(byte trackToSet, int16_t modeOrAddr) {

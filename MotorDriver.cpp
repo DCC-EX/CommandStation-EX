@@ -169,6 +169,11 @@ int MotorDriver::getCurrentRaw() {
    
 }
 
+void MotorDriver::setDCSignal(byte speedcode) {
+  // spedcxode is a dcc speed /direction
+  // TODO jiggle the DC speed pin PWMs 
+  
+}
 int MotorDriver::getCurrentRawInInterrupt() {
   
   // IMPORTANT:  This function must be called in Interrupt() time within the 56uS timer

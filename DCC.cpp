@@ -35,6 +35,7 @@
 #include "IODevice.h"
 #include "EXRAIL2.h"
 #include "CommandDistributor.h"
+#include "TrackManager.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -78,6 +79,7 @@ void DCC::begin(const FSH * motorShieldName) {
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
   setThrottle2(cab, speedCode);
+  TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
   // retain speed for loco reminders
   updateLocoReminder(cab, speedCode );
 }

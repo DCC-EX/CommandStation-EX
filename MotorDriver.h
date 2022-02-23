@@ -54,6 +54,7 @@ class MotorDriver {
     virtual POWERMODE getPower() { return powerMode;}
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
+    virtual void setDCSignal(byte speedByte);
     virtual int  getCurrentRaw();
     virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
