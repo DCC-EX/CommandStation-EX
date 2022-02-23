@@ -402,9 +402,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 	  }
 	  else break; // will reply <X>
 	}
-        if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-        if (prog) DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCC::setProgTrackSyncMain(join);
+        if (main) TrackManager::setMainPower(POWERMODE::ON);
+        if (prog) TrackManager::setProgPower(POWERMODE::ON);
+        DCCWaveform::setJoin(join);
 
         CommandDistributor::broadcastPower();
         return;
@@ -429,12 +429,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 	  else break; // will reply <X>
 	}
 
-        if (main) DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
+        if (main) TrackManager::setMainPower(POWERMODE::OFF);
         if (prog) {
-            DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
-            DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+            DCCWaveform::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+            TrackManager::setProgPower(POWERMODE::OFF);
         }
-        DCC::setProgTrackSyncMain(false);
+        DCCWaveform::setJoin(false);
 
         CommandDistributor::broadcastPower();
         return;
@@ -445,18 +445,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'c': // SEND METER RESPONSES <c>
-        //                               <c MeterName value C/V unit min max res warn>
-        StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), DCCWaveform::mainTrack.getCurrentmA(), 
-            DCCWaveform::mainTrack.getMaxmA(), DCCWaveform::mainTrack.getTripmA());
-        StringFormatter::send(stream, F("<a %d>\n"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
-        return;
+        // No longer supported because of multiple tracks                               <c MeterName value C/V unit min max res warn>
+        break;
 
     case 'Q': // SENSORS <Q>
         Sensor::printAll(stream);
         return;
 
     case 's': // <s>
-        StringFormatter::send(stream, F("<p%d>\n"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
         Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
@@ -508,8 +504,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback && !ringStream) {
-          DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
-          DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
+          TrackManager::setPower(POWERMODE::OFF);
           atCommandCallback((HardwareSerial *)stream,com);
           return;
         }
@@ -743,17 +738,17 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
-	      DCCWaveform::progTrack.setAckLimit(p[2]);
+	      DCCACK::setAckLimit(p[2]);
 	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
-	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
+	      DCCACK::setMinAckPulseDuration(p[2]);
 	      LCD(0, F("Ack Min=%uus"), p[2]);  //   <D ACK MIN 1500>
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
-	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
+	      DCCACK::setMaxAckPulseDuration(p[2]);
 	      LCD(0, F("Ack Max=%uus"), p[2]);  //   <D ACK MAX 9000>
 	    } else if (p[1] == HASH_KEYWORD_RETRY) {
 	      if (p[2] >255) p[2]=3;
-	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCC::setAckRetry(p[2]));  //   <D ACK RETRY 2>
+	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
 	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));
@@ -784,7 +779,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 #endif
 
     case HASH_KEYWORD_PROGBOOST:
-        DCC::setProgTrackBoost(true);
+       DCCWaveform::progTrackBoosted=true;
 	      return true;
 
     case HASH_KEYWORD_RESET:

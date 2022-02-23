@@ -36,47 +36,8 @@
 #error short addr greater than 127 does not make sense
 #endif
 #endif
+#include "DCCACK.h"
 const uint16_t LONG_ADDR_MARKER = 0x4000;
-
-typedef void (*ACK_CALLBACK)(int16_t result);
-
-enum ackOp : byte
-{           // Program opcodes for the ack Manager
-  BASELINE, // ensure enough resets sent before starting and obtain baseline current
-  W0,
-  W1,               // issue write bit (0..1) packet
-  WB,               // issue write byte packet
-  VB,               // Issue validate Byte packet
-  V0,               // Issue validate bit=0 packet
-  V1,               // issue validate bit=1 packlet
-  WACK,             // wait for ack (or absence of ack)
-  ITC1,             // If True Callback(1)  (if prevous WACK got an ACK)
-  ITC0,             // If True callback(0);
-  ITCB,             // If True callback(byte)
-  ITCBV,            // If True callback(byte) - end of Verify Byte
-  ITCB7,            // If True callback(byte &0x7F)
-  NAKFAIL,          // if false callback(-1)
-  FAIL,             // callback(-1)
-  BIV,              // Set ackManagerByte to initial value for Verify retry
-  STARTMERGE,       // Clear bit and byte settings ready for merge pass
-  MERGE,            // Merge previous wack response with byte value and decrement bit number (use for readimng CV bytes)
-  SETBIT,           // sets bit number to next prog byte
-  SETCV,            // sets cv number to next prog byte
-  SETBYTE,          // sets current byte to next prog byte
-  SETBYTEH,         // sets current byte to word high byte
-  SETBYTEL,         // sets current byte to word low byte
-  STASHLOCOID,      // keeps current byte value for later
-  COMBINELOCOID,    // combines current value with stashed value and returns it
-  ITSKIP,           // skip to SKIPTARGET if ack true
-  SKIPTARGET = 0xFF // jump to target
-};
-
-enum   CALLBACK_STATE : byte {
-  AFTER_WRITE,  // Start callback sequence after something was written to the decoder  
-  WAITING_100,        // Waiting for 100mS of stable power 
-  WAITING_30,         // waiting to 30ms of power off gap. 
-  READY,              // Ready to complete callback  
-  }; 
 
 
 // Allocations with memory implications..!
@@ -92,8 +53,7 @@ const byte MAX_LOCOS = 50;
 class DCC
 {
 public:
-  static void begin(const FSH * motorShieldName, MotorDriver *mainDriver, MotorDriver *progDriver);
-  static void setJoinRelayPin(byte joinRelayPin);
+  static void begin(const FSH * motorShieldName);
   static void loop();
 
   // Public DCC API functions
@@ -110,9 +70,7 @@ public:
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int aAdd, byte aNum, bool activate);
   static bool writeTextPacket(byte *b, int nBytes);
-  static void setProgTrackSyncMain(bool on); // when true, prog track becomes driveable
-  static void setProgTrackBoost(bool on);    // when true, special prog track current limit does not apply
-
+  
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
   static void readCV(int16_t cv, ACK_CALLBACK callback);
   static void readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback); // -1 for error
@@ -133,13 +91,7 @@ public:
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
-  static inline int16_t setAckRetry(byte retry) {
-    ackRetry = retry;
-    ackRetryPSum = ackRetrySum;
-    ackRetrySum = 0;  // reset running total
-    return ackRetryPSum;
-  };
-
+  
   struct LOCO
   {
     int loco;
@@ -148,9 +100,9 @@ public:
     unsigned long functions;
   };
  static LOCO speedTable[MAX_LOCOS];
- 
+ static byte cv1(byte opcode, int cv);
+ static byte cv2(int cv);
 private:
-  static byte joinRelay;
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);
@@ -160,34 +112,11 @@ private:
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
-  static byte cv1(byte opcode, int cv);
-  static byte cv2(int cv);
+  
   static int lookupSpeedTable(int locoId);
   static void issueReminders();
   static void callback(int value);
 
-  // ACK MANAGER
-  static ackOp const *ackManagerProg;
-  static ackOp const *ackManagerProgStart;
-  static byte ackManagerByte;
-  static byte ackManagerByteVerify;
-  static byte ackManagerBitNum;
-  static int ackManagerCv;
-  static byte ackManagerRetry;
-  static byte ackRetry;
-  static int16_t ackRetrySum;
-  static int16_t ackRetryPSum;
-  static int ackManagerWord;
-  static byte ackManagerStash;
-  static bool ackReceived;
-  static bool ackManagerRejoin;
-  static ACK_CALLBACK ackManagerCallback;
-  static CALLBACK_STATE callbackState;
-  static void ackManagerSetup(int cv, byte bitNumOrbyteValue, ackOp const program[], ACK_CALLBACK callback);
-  static void ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback);
-  static void ackManagerLoop();
-  static bool checkResets( uint8_t numResets);
-  static const int PROG_REPEATS = 8; // repeats of programming commands (some decoders need at least 8 to be reliable)
   
   // NMRA codes #
   static const byte SET_SPEED = 0x3f;

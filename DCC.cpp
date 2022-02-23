@@ -56,10 +56,9 @@ const byte FN_GROUP_4=0x08;
 const byte FN_GROUP_5=0x10;
 
 FSH* DCC::shieldName=NULL;
-byte DCC::joinRelay=UNUSED_PIN;
 byte DCC::globalSpeedsteps=128;
 
-void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+void DCC::begin(const FSH * motorShieldName) {
   shieldName=(FSH *)motorShieldName;
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
@@ -72,16 +71,9 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   EEStore::init();
 #endif
 
-  DCCWaveform::begin(mainDriver,progDriver);
+  DCCWaveform::begin();
 }
 
-void DCC::setJoinRelayPin(byte joinRelayPin) {
-  joinRelay=joinRelayPin;
-  if (joinRelay!=UNUSED_PIN) {
-    pinMode(joinRelay,OUTPUT);
-    digitalWrite(joinRelay,LOW);  // LOW is relay disengaged
-  }
-}
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
@@ -296,14 +288,6 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
-void DCC::setProgTrackSyncMain(bool on) {
-  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,on?HIGH:LOW);
-  DCCWaveform::progTrackSyncMain=on;
-}
-void DCC::setProgTrackBoost(bool on) {
-  DCCWaveform::progTrackBoosted=on;
-}
-
 FSH* DCC::getMotorShieldName() {
   return shieldName;
 }
@@ -514,35 +498,35 @@ const ackOp FLASH LONG_LOCO_ID_PROG[] = {
 };
 
 void  DCC::writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback)  {
-  ackManagerSetup(cv, byteValue,  WRITE_BYTE_PROG, callback);
+  DCCACK::Setup(cv, byteValue,  WRITE_BYTE_PROG, callback);
 }
 
 void DCC::writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
-  else ackManagerSetup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback);
+  else DCCACK::Setup(cv, bitNum, bitValue?WRITE_BIT1_PROG:WRITE_BIT0_PROG, callback);
 }
 
 void  DCC::verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback)  {
-  ackManagerSetup(cv, byteValue,  VERIFY_BYTE_PROG, callback);
+  DCCACK::Setup(cv, byteValue,  VERIFY_BYTE_PROG, callback);
 }
 
 void DCC::verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
-  else ackManagerSetup(cv, bitNum, bitValue?VERIFY_BIT1_PROG:VERIFY_BIT0_PROG, callback);
+  else DCCACK::Setup(cv, bitNum, bitValue?VERIFY_BIT1_PROG:VERIFY_BIT0_PROG, callback);
 }
 
 
 void DCC::readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback)  {
   if (bitNum >= 8) callback(-1);
-  else ackManagerSetup(cv, bitNum,READ_BIT_PROG, callback);
+  else DCCACK::Setup(cv, bitNum,READ_BIT_PROG, callback);
 }
 
 void DCC::readCV(int16_t cv, ACK_CALLBACK callback)  {
-  ackManagerSetup(cv, 0,READ_CV_PROG, callback);
+  DCCACK::Setup(cv, 0,READ_CV_PROG, callback);
 }
 
 void DCC::getLocoId(ACK_CALLBACK callback) {
-  ackManagerSetup(0,0, LOCO_ID_PROG, callback);
+  DCCACK::Setup(0,0, LOCO_ID_PROG, callback);
 }
 
 void DCC::setLocoId(int id,ACK_CALLBACK callback) {
@@ -551,9 +535,9 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
     return;
   }
   if (id<=HIGHEST_SHORT_ADDR)
-      ackManagerSetup(id, SHORT_LOCO_ID_PROG, callback);
+      DCCACK::Setup(id, SHORT_LOCO_ID_PROG, callback);
   else
-      ackManagerSetup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
+      DCCACK::Setup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
@@ -570,8 +554,8 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
 byte DCC::loopStatus=0;
 
 void DCC::loop()  {
-  DCCWaveform::loop(ackManagerProg!=NULL); // power overload checks
-  ackManagerLoop();    // maintain prog track ack manager
+  DCCWaveform::loop(); // power overload checks
+  DCCACK::loop();    // maintain prog track ack manager
   issueReminders();
 }
 
@@ -695,319 +679,6 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
 DCC::LOCO DCC::speedTable[MAX_LOCOS];
 int DCC::nextLoco = 0;
 
-//ACK MANAGER
-ackOp  const *  DCC::ackManagerProg;
-ackOp  const *  DCC::ackManagerProgStart;
-byte   DCC::ackManagerByte;
-byte   DCC::ackManagerByteVerify;
-byte   DCC::ackManagerStash;
-int    DCC::ackManagerWord;
-byte   DCC::ackManagerRetry;
-byte   DCC::ackRetry = 2;
-int16_t  DCC::ackRetrySum;
-int16_t  DCC::ackRetryPSum;
-int    DCC::ackManagerCv;
-byte   DCC::ackManagerBitNum;
-bool   DCC::ackReceived;
-bool   DCC::ackManagerRejoin;
-
-CALLBACK_STATE DCC::callbackState=READY;
-
-ACK_CALLBACK DCC::ackManagerCallback;
-
-void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
-  if (!DCCWaveform::progTrack.canMeasureCurrent()) {
-    callback(-2);
-    return;
-  }
-
-  ackManagerRejoin=DCCWaveform::progTrackSyncMain;
-  if (ackManagerRejoin ) {
-        // Change from JOIN must zero resets packet.
-        setProgTrackSyncMain(false);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-      }
-
-   DCCWaveform::progTrack.autoPowerOff=false;
-   if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
-        DCCWaveform::progTrack.autoPowerOff=true;  // power off afterwards
-        if (Diag::ACK) DIAG(F("Auto Prog power on"));
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-	if (MotorDriver::commonFaultPin)
-	  DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-    }
-
-  ackManagerCv = cv;
-  ackManagerProg = program;
-  ackManagerProgStart = program;
-  ackManagerRetry = ackRetry;
-  ackManagerByte = byteValueOrBitnum;
-  ackManagerByteVerify = byteValueOrBitnum;
-  ackManagerBitNum=byteValueOrBitnum;
-  ackManagerCallback = callback;
-}
-
-void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
-  ackManagerWord=wordval;
-  ackManagerSetup(0, 0, program, callback);
-  }
-
-const byte RESET_MIN=8;  // tuning of reset counter before sending message
-
-// checkRessets return true if the caller should yield back to loop and try later.
-bool DCC::checkResets(uint8_t numResets) {
-  return DCCWaveform::progTrack.sentResetsSincePacket < numResets;
-}
-
-void DCC::ackManagerLoop() {
-  while (ackManagerProg) {
-    byte opcode=GETFLASH(ackManagerProg);
-
-    // breaks from this switch will step to next prog entry
-    // returns from this switch will stay on same entry
-    // (typically waiting for a reset counter or ACK waiting, or when all finished.)
-    switch (opcode) {
-      case BASELINE:
-          if (DCCWaveform::progTrack.getPowerMode()==POWERMODE::OVERLOAD) return;
-      	  if (checkResets(DCCWaveform::progTrack.autoPowerOff || ackManagerRejoin  ? 20 : 3)) return;
-          DCCWaveform::progTrack.setAckBaseline();
-          callbackState=READY;
-          break;
-      case W0:    // write 0 bit
-      case W1:    // write 1 bit
-            {
-	      if (checkResets(RESET_MIN)) return;
-              if (Diag::ACK) DIAG(F("W%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum);
-              byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
-              byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending();
-             callbackState=AFTER_WRITE;
-         }
-            break;
-
-      case WB:   // write byte
-            {
-	      if (checkResets( RESET_MIN)) return;
-              if (Diag::ACK) DIAG(F("WB cv=%d value=%d"),ackManagerCv,ackManagerByte);
-              byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending();
-              callbackState=AFTER_WRITE;
-            }
-            break;
-
-      case   VB:     // Issue validate Byte packet
-        {
-	  if (checkResets( RESET_MIN)) return;
-          if (Diag::ACK) DIAG(F("VB cv=%d value=%d"),ackManagerCv,ackManagerByte);
-          byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending();
-        }
-        break;
-
-      case V0:
-      case V1:      // Issue validate bit=0 or bit=1  packet
-        {
-	  if (checkResets(RESET_MIN)) return;
-          if (Diag::ACK) DIAG(F("V%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum);
-          byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
-          byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending();
-        }
-        break;
-
-      case WACK:   // wait for ack (or absence of ack)
-         {
-          byte ackState=2; // keep polling
-
-          ackState=DCCWaveform::progTrack.getAck();
-          if (ackState==2) return; // keep polling
-          ackReceived=ackState==1;
-          break;  // we have a genuine ACK result
-         }
-     case ITC0:
-     case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
-        if (ackReceived) {
-            callback(opcode==ITC0?0:1);
-            return;
-          }
-        break;
-
-      case ITCB:   // If True callback(byte)
-          if (ackReceived) {
-            callback(ackManagerByte);
-            return;
-          }
-        break;
-		
-      case ITCBV:   // If True callback(byte) - Verify
-          if (ackReceived) {
-            if (ackManagerByte == ackManagerByteVerify) {
-               ackRetrySum ++;
-               LCD(1, F("v %d %d Sum=%d"), ackManagerCv, ackManagerByte, ackRetrySum);
-            }
-            callback(ackManagerByte);
-            return;
-          }
-        break;
-		
-      case ITCB7:   // If True callback(byte & 0x7F)
-          if (ackReceived) {
-            callback(ackManagerByte & 0x7F);
-            return;
-          }
-        break;
-
-      case NAKFAIL:   // If nack callback(-1)
-          if (!ackReceived) {
-            callback(-1);
-            return;
-          }
-        break;
-
-      case FAIL:  // callback(-1)
-           callback(-1);
-           return;
-
-      case BIV:     // ackManagerByte initial value
-           ackManagerByte = ackManagerByteVerify;
-           break;
-
-      case STARTMERGE:
-           ackManagerBitNum=7;
-           ackManagerByte=0;
-          break;
-
-      case MERGE:  // Merge previous Validate zero wack response with byte value and update bit number (use for reading CV bytes)
-          ackManagerByte <<= 1;
-          // ackReceived means bit is zero.
-          if (!ackReceived) ackManagerByte |= 1;
-          ackManagerBitNum--;
-          break;
-
-      case SETBIT:
-          ackManagerProg++;
-          ackManagerBitNum=GETFLASH(ackManagerProg);
-          break;
-
-     case SETCV:
-          ackManagerProg++;
-          ackManagerCv=GETFLASH(ackManagerProg);
-          break;
-
-     case SETBYTE:
-          ackManagerProg++;
-          ackManagerByte=GETFLASH(ackManagerProg);
-          break;
-
-    case SETBYTEH:
-          ackManagerByte=highByte(ackManagerWord);
-          break;
-
-    case SETBYTEL:
-          ackManagerByte=lowByte(ackManagerWord);
-          break;
-
-     case STASHLOCOID:
-          ackManagerStash=ackManagerByte;  // stash value from CV17
-          break;
-
-     case COMBINELOCOID:
-          // ackManagerStash is  cv17, ackManagerByte is CV 18
-          callback( LONG_ADDR_MARKER | ( ackManagerByte + ((ackManagerStash - 192) << 8)));
-          return;
-
-     case ITSKIP:
-          if (!ackReceived) break;
-          // SKIP opcodes until SKIPTARGET found
-          while (opcode!=SKIPTARGET) {
-            ackManagerProg++;
-            opcode=GETFLASH(ackManagerProg);
-          }
-          break;
-     case SKIPTARGET:
-          break;
-     default:
-          DIAG(F("!! ackOp %d FAULT!!"),opcode);
-          callback( -1);
-          return;
-
-      }  // end of switch
-    ackManagerProg++;
-  }
-}
-
-void DCC::callback(int value) {
-    // check for automatic retry
-    if (value == -1 && ackManagerRetry > 0) {
-      ackRetrySum ++;
-      LCD(0, F("Retry %d %d Sum=%d"), ackManagerCv, ackManagerRetry, ackRetrySum);
-      ackManagerRetry --;
-      ackManagerProg = ackManagerProgStart;
-      return;
-    }
-
-    static unsigned long callbackStart;
-    // We are about to leave programming mode
-    // Rule 1: If we have written to a decoder we must maintain power for 100mS
-    // Rule 2: If we are re-joining the main track we must power off for 30mS
-
-    switch (callbackState) {
-       case AFTER_WRITE:  // first attempt to callback after a write operation
-	    if (!ackManagerRejoin && !DCCWaveform::progTrack.autoPowerOff) {
-               callbackState=READY;
-               break;
-            }                              // lines 906-910 added. avoid wait after write. use 1 PROG
-            callbackStart=millis();
-            callbackState=WAITING_100;
-            if (Diag::ACK) DIAG(F("Stable 100mS"));
-            break;
-
-       case WAITING_100:  // waiting for 100mS
-            if (millis()-callbackStart < 100) break;
-            // stable after power maintained for 100mS
-
-            // If we are going to power off anyway, it doesnt matter
-            // but if we will keep the power on, we must off it for 30mS
-            if (DCCWaveform::progTrack.autoPowerOff) callbackState=READY;
-            else { // Need to cycle power off and on
-                DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-                callbackStart=millis();
-                callbackState=WAITING_30;
-                if (Diag::ACK) DIAG(F("OFF 30mS"));
-            }
-            break;
-
-        case WAITING_30:  // waiting for 30mS with power off
-            if (millis()-callbackStart < 30) break;
-            //power has been off for 30mS
-            DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-            callbackState=READY;
-            break;
-
-       case READY:  // ready after read, or write after power delay and off period.
-            // power off if we powered it on
-           if (DCCWaveform::progTrack.autoPowerOff) {
-              if (Diag::ACK) DIAG(F("Auto Prog power off"));
-              DCCWaveform::progTrack.doAutoPowerOff();
-	      if (MotorDriver::commonFaultPin)
-		DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
-           }
-          // Restore <1 JOIN> to state before BASELINE
-          if (ackManagerRejoin) {
-              setProgTrackSyncMain(true);
-              if (Diag::ACK) DIAG(F("Auto JOIN"));
-          }
-
-          ackManagerProg=NULL;  // no more steps to execute
-          if (Diag::ACK) DIAG(F("Callback(%d)"),value);
-          (ackManagerCallback)( value);
-    }
-}
 
 void DCC::displayCabList(Print * stream) {
 

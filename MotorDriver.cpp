@@ -82,6 +82,12 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   else  
     DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurrentTripValue(relative to offset)=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
+
+  // prepare values for current detection
+  sampleDelay = 0;
+  lastSampleTaken = millis();
+  progTripValue = mA2raw(TRIP_CURRENT_PROG); 
+
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -89,7 +95,8 @@ bool MotorDriver::isPWMCapable() {
 }
 
 
-void MotorDriver::setPower(bool on) {
+void MotorDriver::setPower(POWERMODE mode) {
+  bool on=mode==POWERMODE::ON;
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
@@ -98,6 +105,7 @@ void MotorDriver::setPower(bool on) {
     setHIGH(fastPowerPin);
   }
   else setLOW(fastPowerPin);
+  powerMode=mode; 
 }
 
 // setBrake applies brake if on == true. So to get
@@ -189,4 +197,66 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
+}
+
+void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
+  if (millis() - lastSampleTaken  < sampleDelay) return;
+  lastSampleTaken = millis();
+  int tripValue= useProgLimit?progTripValue:getRawCurrentTripValue();
+  
+  // Trackname for diag messages later
+  switch (powerMode) {
+    case POWERMODE::OFF:
+      sampleDelay = POWER_SAMPLE_OFF_WAIT;
+      break;
+    case POWERMODE::ON:
+      // Check current
+      lastCurrent=getCurrentRaw();
+      if (lastCurrent < 0) {
+	  // We have a fault pin condition to take care of
+	  lastCurrent = -lastCurrent;
+	  setPower(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
+	  if (commonFaultPin) {
+	      if (lastCurrent <= tripValue) {
+		      setPower(POWERMODE::ON); // maybe other track
+	      }
+	      // Write this after the fact as we want to turn on as fast as possible
+	      // because we don't know which output actually triggered the fault pin
+	      DIAG(F("COMMON FAULT PIN ACTIVE - TOGGLED POWER on %d"), trackno);
+	  } else {
+	    DIAG(F("TRACK %d FAULT PIN ACTIVE - OVERLOAD"), trackno);
+	      if (lastCurrent < tripValue) {
+		  lastCurrent = tripValue; // exaggerate
+	      }
+	  }
+      }
+      if (lastCurrent < tripValue) {
+        sampleDelay = POWER_SAMPLE_ON_WAIT;
+	if(power_good_counter<100)
+	  power_good_counter++;
+	else
+	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
+      } else {
+        setPower(POWERMODE::OVERLOAD);
+        unsigned int mA=raw2mA(lastCurrent);
+        unsigned int maxmA=raw2mA(tripValue);
+	      power_good_counter=0;
+        sampleDelay = power_sample_overload_wait;
+        DIAG(F("TRACK %d POWER OVERLOAD current=%d max=%d offtime=%d"), trackno, mA, maxmA, sampleDelay);
+	if (power_sample_overload_wait >= 10000)
+	    power_sample_overload_wait = 10000;
+	else
+	    power_sample_overload_wait *= 2;
+      }
+      break;
+    case POWERMODE::OVERLOAD:
+      // Try setting it back on after the OVERLOAD_WAIT
+      setPower(POWERMODE::ON);
+      sampleDelay = POWER_SAMPLE_ON_WAIT;
+      // Debug code....
+      DIAG(F("TRACK %d POWER RESET delay=%d"), trackno, sampleDelay);
+      break;
+    default:
+      sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
+  }
 }

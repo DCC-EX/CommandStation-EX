@@ -89,7 +89,7 @@ void setup()
   // Standard supported devices have pre-configured macros but custome hardware installations require
   //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
-  DCC::begin(MOTOR_SHIELD_TYPE);
+  TrackManager::Setup(MOTOR_SHIELD_TYPE);
 
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();

@@ -45,5 +45,5 @@
 #include "Outputs.h"
 #include "EXRAIL.h"
 #include "CommandDistributor.h"
-    
+#include "TrackManager.h"    
 #endif

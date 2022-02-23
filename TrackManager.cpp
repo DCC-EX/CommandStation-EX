@@ -19,6 +19,7 @@
  */
 #include "TrackManager.h"
 #include "FSH.h"
+#include "DCCWaveform.h"
 #include "MotorDriver.h"
 #include "DIAG.h"
 // Virtualised Motor shield multi-track hardware Interface
@@ -35,6 +36,8 @@ const int16_t HASH_KEYWORD_DC = 9192;  // TODO
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackMode[MAX_TRACKS];
+ POWERMODE TrackManager::mainPowerGuess=POWERMODE::OFF;
+
                
 void TrackManager::Setup(const FSH * shieldname,
         MotorDriver * track0, MotorDriver * track1, MotorDriver * track2,
@@ -50,15 +53,19 @@ void TrackManager::Setup(const FSH * shieldname,
     track[6]=track6;
     track[7]=track7;
 
-    trackMode[0]=TRACK_MODE_MAIN;
-    trackMode[1]=TRACK_MODE_PROG;
-    trackMode[2]=TRACK_MODE_OFF;
-    trackMode[3]=TRACK_MODE_OFF;
-    trackMode[4]=TRACK_MODE_OFF;
-    trackMode[5]=TRACK_MODE_OFF;
-    trackMode[6]=TRACK_MODE_OFF;
-    trackMode[7]=TRACK_MODE_OFF;
-
+    setTrackMode(0,TRACK_MODE_MAIN);
+    setTrackMode(1,TRACK_MODE_PROG);
+    setTrackMode(2,TRACK_MODE_OFF);
+    setTrackMode(3,TRACK_MODE_OFF);
+    setTrackMode(4,TRACK_MODE_OFF);
+    setTrackMode(5,TRACK_MODE_OFF);
+    setTrackMode(6,TRACK_MODE_OFF);
+    setTrackMode(7,TRACK_MODE_OFF);
+      // TODO Fault pin config for odd motor boards (example pololu)
+  // MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+  //				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  DIAG(F("Signal pin config: %S accuracy waveform"),
+	 MotorDriver::usePWM ? F("high") : F("normal") );
 }
     
 void TrackManager::setDCCSignal( bool on) {
@@ -80,11 +87,16 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 
 bool TrackManager::setTrackMode(byte trackToSet, int16_t modeOrAddr) {
     if (trackToSet>=8 || track[trackToSet]==NULL) return false;
+    if (modeOrAddr==TRACK_MODE_PROG) {
+        // only allow 1 track to be prog
+        for (byte t=0;t<8;t++)
+            if (trackMode[t]==TRACK_MODE_PROG) trackMode[t]=TRACK_MODE_OFF;
+    }
     trackMode[trackToSet]=modeOrAddr;
     // re-evaluate HighAccuracy mode
     bool canDo=true;
     for (byte t=0;t<8;t++)
-        if (trackMode[t]==TRACK_MODE_MAIN ||trackMode[t]==TRACK_MODE_PROG )
+        if (trackMode[t]==TRACK_MODE_MAIN ||trackMode[t]==TRACK_MODE_PROG)
             canDo &= track[t]->isPWMCapable();
     MotorDriver::usePWM=canDo;
     return true; 
@@ -92,7 +104,6 @@ bool TrackManager::setTrackMode(byte trackToSet, int16_t modeOrAddr) {
 
 bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 {
-    int16_t mode;
     
     if (params==0) { // <J>  List track assignments
         for (byte t=0;t<8;t++) {
@@ -134,4 +145,39 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     return false;
 }
 
+byte TrackManager::nextCycleTrack=MAX_TRACKS;
 
+void TrackManager::loop(bool dontLimitProg) {
+    nextCycleTrack++;
+    if (nextCycleTrack>=MAX_TRACKS) nextCycleTrack=0;
+    if (track[nextCycleTrack]==NULL) return;
+    MotorDriver * motorDriver=track[nextCycleTrack];
+    bool useProgLimit=dontLimitProg? false: trackMode[nextCycleTrack]==TRACK_MODE_PROG;
+    motorDriver->checkPowerOverload(useProgLimit, nextCycleTrack);   
+}
+
+MotorDriver * TrackManager::getProgDriver() {
+    for (byte t=0;t<8;t++)
+        if (trackMode[t]==TRACK_MODE_PROG) return track[t];
+    return NULL;
+}        
+void TrackManager::setPower2(bool setProg,POWERMODE mode) {
+    if (setProg) {
+         LOOPMODE(TRACK_MODE_PROG,setPower(mode))
+    }
+    else {
+        mainPowerGuess=mode; 
+        for (byte t=0;t<8;t++)
+        if (track[t] 
+             && trackMode[t]!=TRACK_MODE_OFF
+             && trackMode[t]!=TRACK_MODE_PROG 
+             ) track[t]->setPower(mode);
+    }
+}
+  POWERMODE TrackManager::getProgPower() {
+        for (byte t=0;t<8;t++)
+            if (trackMode[t]==TRACK_MODE_PROG) 
+                return track[t]->getPower();
+        return POWERMODE::OFF;   
+  }
+   

@@ -41,16 +41,27 @@ class TrackManager {
     static void setCutout( bool on);
     static void setPROGSignal( bool on);
     static void setDCSignal(int16_t cab, byte speedbyte);
+    static MotorDriver * getProgDriver();
+    static void setPower2(bool progTrack,POWERMODE mode);
+    static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
+    static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
+    static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
+
     static const int16_t TRACK_MODE_MAIN=32760;
     static const int16_t TRACK_MODE_PROG=32761;
     static const int16_t TRACK_MODE_OFF=0;
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, int16_t DCaddrOrMode);
     static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
-
-
+    static void loop(bool dontLimitProg);
+    static POWERMODE getMainPower() {return mainPowerGuess;}
+    static POWERMODE getProgPower();
+    
     
   private:
+    static byte nextCycleTrack;
+    static POWERMODE mainPowerGuess;
+
     static MotorDriver* track[MAX_TRACKS];
     static int16_t trackMode[MAX_TRACKS];  // dc address or TRACK_MODE_DCC, TRACK_MODE_PROG, TRACK_MODE_OFF
 };

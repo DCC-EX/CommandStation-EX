@@ -28,6 +28,7 @@
 #include "defines.h"
 #include "DCCWaveform.h"
 #include "DCC.h"
+#include "TrackManager.h"
 
 #if defined(BIG_MEMORY) | defined(WIFI_ON) | defined(ETHERNET_ON)
 // This section of CommandDistributor is simply not relevant on a uno or similar
@@ -119,9 +120,9 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 }
 
 void  CommandDistributor::broadcastPower() {
-  bool main=DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON;
-  bool prog=DCCWaveform::progTrack.getPowerMode()==POWERMODE::ON;
-  bool join=DCCWaveform::progTrackSyncMain;
+  bool main=TrackManager::getMainPower()==POWERMODE::ON;
+  bool prog=TrackManager::getProgPower()==POWERMODE::ON;
+  bool join=DCCWaveform::isJoined();
   const FSH * reason=F("");
   char state='1';
   if (main && prog && join) reason=F(" JOIN");

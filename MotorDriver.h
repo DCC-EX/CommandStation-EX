@@ -43,11 +43,15 @@ struct FASTPIN {
 };
 #endif
 
+enum class POWERMODE : byte { OFF, ON, OVERLOAD };
+
 class MotorDriver {
   public:
+    
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
-    virtual void setPower( bool on);
+    virtual void setPower( POWERMODE mode);
+    virtual POWERMODE getPower() { return powerMode;}
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
     virtual int  getCurrentRaw();
@@ -63,6 +67,7 @@ class MotorDriver {
     inline byte getFaultPin() {
 	return faultPin;
     }
+    void checkPowerOverload(bool useProgLimit, byte trackno);
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
@@ -76,6 +81,26 @@ class MotorDriver {
     int senseOffset;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
+    // current sampling
+    POWERMODE powerMode;
+    unsigned long lastSampleTaken;
+    unsigned int sampleDelay;
+    int progTripValue;
+    int  lastCurrent;
+    int maxmA;
+    int tripmA;
+
+    // Wait times for power management. Unit: milliseconds
+    static const int  POWER_SAMPLE_ON_WAIT = 100;
+    static const int  POWER_SAMPLE_OFF_WAIT = 1000;
+    static const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+    
+    // Trip current for programming track, 250mA. Change only if you really
+    // need to be non-NMRA-compliant because of decoders that are not either.
+    static const int TRIP_CURRENT_PROG=250;
+    unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+    unsigned int power_good_counter = 0;
+
 #if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
     static bool disableInterrupts() {
       uint32_t primask;

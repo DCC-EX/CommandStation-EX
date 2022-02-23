@@ -55,6 +55,7 @@
 #include "version.h"
 #include "EXRAIL2.h"
 #include "CommandDistributor.h"
+#include "TrackManager.h"
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))
@@ -151,9 +152,12 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       break;
     case 'P':  
       if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
-	DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+	TrackManager::setMainPower(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+/* TODO 
 	if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling
 	  DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+*/
+
 	CommandDistributor::broadcastPower();
       }
 #if defined(EXRAIL_ACTIVE)
@@ -204,7 +208,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
 	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
 	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
-	StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+	StringFormatter::send(stream,F("PPA%x\n"),TrackManager::getMainPower()==POWERMODE::ON);
 #ifdef EXRAIL_ACTIVE
 	RMFT2::emitWithrottleRoster(stream);
 #endif        
@@ -530,8 +534,8 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
       char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
       itoa(locoid,addcmd+4,10);
       stashInstance->multithrottle(stashStream, (byte *)addcmd);
-      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-      DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
+      TrackManager::setMainPower(POWERMODE::ON);
+      DCCWaveform::setJoin(true);  // <1 JOIN> so we can drive loco away
     }
   }
   stashStream->commit();

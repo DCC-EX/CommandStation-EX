@@ -50,7 +50,7 @@
 #include "DCCEXParser.h"
 #include "Turnouts.h"
 #include "CommandDistributor.h"
-
+#include "TrackManager.h"
 
 // Command parsing keywords
 const int16_t HASH_KEYWORD_EXRAIL=15435;    
@@ -465,10 +465,14 @@ void RMFT2::createNewTask(int route, uint16_t cab) {
 void RMFT2::driveLoco(byte speed) {
   if (loco<=0) return;  // Prevent broadcast!
   if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
-  if (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::OFF) {
-    DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
+ /* TODO.....
+ power on appropriate track if DC or main if dcc
+  if (TrackManager::getMainPowerMode()==POWERMODE::OFF) {
+    TrackManager::setMainPower(POWERMODE::ON);
     CommandDistributor::broadcastPower();
   }
+  **********/
+
   DCC::setThrottle(loco,speed, forward^invert);
   speedo=speed;
 }
@@ -648,9 +652,8 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_POWEROFF:
-    DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
-    DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
-    DCC::setProgTrackSyncMain(false);
+    TrackManager::setPower(POWERMODE::OFF);
+    DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
     
@@ -789,14 +792,13 @@ void RMFT2::loop2() {
     return;
     
   case OPCODE_JOIN:
-    DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-    DCC::setProgTrackSyncMain(true);
+    TrackManager::setPower(POWERMODE::ON);
+    DCCWaveform::setJoin(true);
     CommandDistributor::broadcastPower();
     break;
     
   case OPCODE_UNJOIN:
-    DCC::setProgTrackSyncMain(false);
+    DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
     
