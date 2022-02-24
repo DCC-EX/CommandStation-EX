@@ -31,8 +31,8 @@
 
 const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
-const int16_t HASH_KEYWORD_OFF = 9191; // TODO 
-const int16_t HASH_KEYWORD_DC = 9192;  // TODO
+const int16_t HASH_KEYWORD_OFF = 22479;  
+const int16_t HASH_KEYWORD_DC = 2183;  
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackMode[MAX_TRACKS];
