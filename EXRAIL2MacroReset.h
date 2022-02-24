@@ -98,6 +98,8 @@
 #undef SERVO2 
 #undef SERVO_TURNOUT 
 #undef SET
+#undef SET_TRACK_DC
+#undef SET_TRACK_DCC
 #undef SETLOCO 
 #undef SIGNAL 
 #undef SPEED 
@@ -187,6 +189,8 @@
 #define SERVO2(id,position,duration) 
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
 #define SET(pin) 
+#define SET_TRACK_DC(trackid)
+#define SET_TRACK_DCC(trackid)
 #define SETLOCO(loco) 
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SPEED(speed) 

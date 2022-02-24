@@ -656,7 +656,13 @@ void RMFT2::loop2() {
     DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
-    
+
+  case OPCODE_SET_TRACK:
+      // operand is track id and +128= Use my loco for DC 
+      TrackManager::setTrackMode(operand & 0x0F,
+          operand>=128 ? loco : TrackManager::TRACK_MODE_MAIN);
+      break; 
+
   case OPCODE_RESUME:
     pausingTask=NULL;
     driveLoco(speedo);
