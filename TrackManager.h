@@ -59,6 +59,8 @@ class TrackManager {
     
     
   private:
+    static void addTrack(byte t, MotorDriver* driver);
+    static byte lastTrack;
     static byte nextCycleTrack;
     static POWERMODE mainPowerGuess;
 
