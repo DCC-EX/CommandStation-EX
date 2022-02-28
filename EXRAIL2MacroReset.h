@@ -80,6 +80,7 @@
 #undef PRINT
 #undef POM
 #undef POWEROFF
+#undef POWERON
 #undef READ_LOCO 
 #undef RED 
 #undef RESERVE 
@@ -170,6 +171,7 @@
 #define PRINT(msg) 
 #define POM(cv,value)
 #define POWEROFF
+#define POWERON
 #define READ_LOCO 
 #define RED(signal_id) 
 #define RESERVE(blockid) 

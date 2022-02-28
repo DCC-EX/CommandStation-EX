@@ -789,9 +789,10 @@ void RMFT2::loop2() {
     return;
     
   case OPCODE_JOIN:
+  case OPCODE_POWERON:
     DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
     DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-    DCC::setProgTrackSyncMain(true);
+    DCC::setProgTrackSyncMain(opcode==OPCODE_JOIN);
     CommandDistributor::broadcastPower();
     break;
     
