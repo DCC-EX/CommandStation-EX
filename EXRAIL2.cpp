@@ -803,6 +803,12 @@ void RMFT2::loop2() {
     CommandDistributor::broadcastPower();
     break;
     
+  case OPCODE_POWERON:
+    TrackManager::setMainPower(POWERMODE::ON);
+    DCCWaveform::setJoin(false);
+    CommandDistributor::broadcastPower();
+    break;
+    
   case OPCODE_UNJOIN:
     DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();

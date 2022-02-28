@@ -216,6 +216,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,
+#define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),

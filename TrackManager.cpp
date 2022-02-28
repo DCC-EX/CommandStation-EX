@@ -20,6 +20,7 @@
 #include "TrackManager.h"
 #include "FSH.h"
 #include "DCCWaveform.h"
+#include "DCC.h"
 #include "MotorDriver.h"
 #include "DIAG.h"
 // Virtualised Motor shield multi-track hardware Interface
@@ -65,6 +66,7 @@ void TrackManager::Setup(const FSH * shieldname,
   //				 && (mainDriver->getFaultPin() != UNUSED_PIN));
   DIAG(F("Signal pin config: %S accuracy waveform"),
 	 MotorDriver::usePWM ? F("high") : F("normal") );
+  DCC::begin(shieldname);   
 }
 
 void TrackManager::addTrack(byte t, MotorDriver* driver) {
