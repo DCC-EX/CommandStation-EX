@@ -138,9 +138,6 @@ void MotorDriver::setSignal( bool high) {
    }
 }
 
-#if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
-volatile unsigned int overflow_count=0;
-#endif
 
 bool MotorDriver::canMeasureCurrent() {
   return currentPin!=UNUSED_PIN;

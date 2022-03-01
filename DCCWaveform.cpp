@@ -29,7 +29,7 @@
 #include "DCCTimer.h"
 #include "DCCACK.h"
 #include "DIAG.h"
-#include "freeMemory.h"
+
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -140,7 +140,7 @@ void DCCWaveform::interrupt2() {
     remainingPreambles--;
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+    DCCTimer::updateMinimumFreeMemoryISR(22); 
     return;
   }
 

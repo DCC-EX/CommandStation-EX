@@ -30,7 +30,6 @@
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
-#include "freeMemory.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "defines.h"
@@ -38,6 +37,7 @@
 #include "EEStore.h"
 #include "DIAG.h"
 #include "TrackManager.h"
+#include "DCCTimer.h"
 #include <avr/wdt.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -732,7 +732,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case HASH_KEYWORD_RAM: // <D RAM>
-        StringFormatter::send(stream, F("Free memory=%d\n"), minimumFreeMemory());
+        StringFormatter::send(stream, F("Free memory=%d\n"), DCCTimer::getMinimumFreeMemory());
         break;
 
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>

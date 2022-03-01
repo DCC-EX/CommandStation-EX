@@ -147,7 +147,7 @@ void loop()
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 
-  int freeNow = minimumFreeMemory();
+  int freeNow = DCCTimer::getMinimumFreeMemory();
   if (freeNow < ramLowWatermark) {
     ramLowWatermark = freeNow;
     LCD(3,F("Free RAM=%5db"), ramLowWatermark);

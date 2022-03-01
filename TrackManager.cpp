@@ -46,8 +46,7 @@ byte TrackManager::lastTrack=0;
 void TrackManager::Setup(const FSH * shieldname,
         MotorDriver * track0, MotorDriver * track1, MotorDriver * track2,
         MotorDriver * track3, MotorDriver * track4,  MotorDriver * track5,
-        MotorDriver * track6, MotorDriver * track7 ) { 
-    (void) shieldname; // TODO        
+        MotorDriver * track6, MotorDriver * track7 ) {       
     addTrack(0,track0);
     addTrack(1,track1);
     addTrack(2,track2);

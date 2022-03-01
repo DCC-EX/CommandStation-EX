@@ -2,9 +2,11 @@
  *  © 2021 Mike S
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
+ *  © 2021 Chris Harlow
+ *  © 2021 David Cutting
  *  All rights reserved.
  *  
- *  This file is part of CommandStation-EX
+ *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,9 +22,6 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* There are several different implementations of this class which the compiler will select 
-   according to the hardware.
-   */
 
 /* This timer class is used to manage the single timer required to handle the DCC waveform.
  *  All timer access comes through this class so that it can be compiled for 
@@ -48,42 +47,58 @@
  *  
  */
 
-#ifndef DCCTimer_h
-#define DCCTimer_h
-#include "Arduino.h"
+// ATTENTION: this file only compiles on a UnoWifiRev3 or NanoEvery
+// Please refer to DCCTimer.h for general comments about how this class works
+// This is to avoid repetition and duplication.
+#ifdef ARDUINO_ARCH_MEGAAVR
 
-typedef void (*INTERRUPT_CALLBACK)();
+#include "DCCTimer.h"
 
-class DCCTimer {
-  public:
-  static void begin(INTERRUPT_CALLBACK interrupt);
-  static void getSimulatedMacAddress(byte mac[6]);
-  static bool isPWMPin(byte pin);
-  static void setPWM(byte pin, bool high);
+INTERRUPT_CALLBACK interruptHandler=0;
+extern char *__brkval;
+extern char *__malloc_heap_start;
 
-// Update low ram level.  Allow for extra bytes to be specified
-// by estimation or inspection, that may be used by other 
-// called subroutines.  Must be called with interrupts disabled.
-// 
-// Although __brkval may go up and down as heap memory is allocated
-// and freed, this function records only the worst case encountered.
-// So even if all of the heap is freed, the reported minimum free 
-// memory will not increase.
-//
-static void inline updateMinimumFreeMemoryISR(unsigned char extraBytes=0) {
-  int spare = freeMemory()-extraBytes;
-  if (spare < 0) spare = 0;
-  if (spare < minimum_free_memory) minimum_free_memory = spare;
+  
+  void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+    interruptHandler=callback;
+    noInterrupts(); 
+    ADC0.CTRLC = (ADC0.CTRLC & 0b00110000) | 0b01000011;  // speed up analogRead sample time   
+    TCB0.CTRLB = TCB_CNTMODE_INT_gc & ~TCB_CCMPEN_bm; // timer compare mode with output disabled
+    TCB0.CTRLA = TCB_CLKSEL_CLKDIV2_gc; //   8 MHz ~ 0.125 us      
+    TCB0.CCMP =  CLOCK_CYCLES -1;  // 1 tick less for timer reset
+    TCB0.INTFLAGS = TCB_CAPT_bm; // clear interrupt request flag
+    TCB0.INTCTRL = TCB_CAPT_bm;  // Enable the interrupt
+    TCB0.CNT = 0;
+    TCB0.CTRLA |= TCB_ENABLE_bm;  // start
+    interrupts();
+  }
+
+  // ISR called by timer interrupt every 58uS
+  ISR(TCB0_INT_vect){
+    TCB0.INTFLAGS = TCB_CAPT_bm;
+    interruptHandler();
+  }
+
+  bool DCCTimer::isPWMPin(byte pin) {
+       (void) pin; 
+       return false;  // TODO what are the relevant pins? 
+  }
+
+ void DCCTimer::setPWM(byte pin, bool high) {
+    (void) pin;
+    (void) high;
+    // TODO what are the relevant pins?
+ }
+
+  void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+    memcpy(mac,(void *) &SIGROW.SERNUM0,6);  // serial number
+    mac[0] &= 0xFE;
+    mac[0] |= 0x02;
+  }
+
+int DCCTimer::freeMemory() {
+  char top;
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 }
-
-  static int  getMinimumFreeMemory();
-
-private:
-  static int freeMemory();
-  static volatile int minimum_free_memory;
-  static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-  static const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;
-
-};
 
 #endif
