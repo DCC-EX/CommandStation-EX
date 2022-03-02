@@ -103,16 +103,5 @@ class MotorDriver {
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 
-#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
-    static bool disableInterrupts() {
-      uint32_t primask;
-      __asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
-      __disable_irq();
-      return (primask == 0) ? true : false;
-    }
-    static void enableInterrupts(bool doit) {
-      if (doit) __enable_irq();
-    }
-#endif
 };
 #endif

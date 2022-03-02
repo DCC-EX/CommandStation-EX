@@ -42,12 +42,10 @@ const uint16_t LONG_ADDR_MARKER = 0x4000;
 
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-#if defined(ARDUINO_AVR_UNO)
-const byte MAX_LOCOS = 20;
-#elif defined(ARDUINO_AVR_NANO)
-const byte MAX_LOCOS = 30;
-#else
+#if defined(HAS_ENOUGH_MEMORY)
 const byte MAX_LOCOS = 50;
+#else
+const byte MAX_LOCOS = 30;
 #endif
 
 class DCC
@@ -130,32 +128,5 @@ private:
   static const byte BIT_ON = 0x08;
   static const byte BIT_OFF = 0x00;
 };
-
-#ifdef ARDUINO_AVR_MEGA // is using Mega 1280, define as Mega 2560 (pinouts and functionality are identical)
-#define ARDUINO_AVR_MEGA2560
-#endif
-
-#if defined(ARDUINO_AVR_UNO)
-#define ARDUINO_TYPE "UNO"
-#elif defined(ARDUINO_AVR_NANO)
-#define ARDUINO_TYPE "NANO"
-#elif defined(ARDUINO_AVR_MEGA2560)
-#define ARDUINO_TYPE "MEGA"
-#elif defined(ARDUINO_ARCH_MEGAAVR)
-#define ARDUINO_TYPE "MEGAAVR"
-#elif defined(ARDUINO_TEENSY32)
-#define ARDUINO_TYPE "TEENSY32"
-#elif defined(ARDUINO_TEENSY35)
-#define ARDUINO_TYPE "TEENSY35"
-#elif defined(ARDUINO_TEENSY36)
-#define ARDUINO_TYPE "TEENSY36"
-#elif defined(ARDUINO_TEENSY40)
-#define ARDUINO_TYPE "TEENSY40"
-#elif defined(ARDUINO_TEENSY41)
-#define ARDUINO_TYPE "TEENSY41"
-#else
-#error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
-#endif
-
 
 #endif

@@ -56,6 +56,7 @@
 #include "EXRAIL2.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
+#include "DCCTimer.h"
 
 #define LOOPLOCOS(THROTTLECHAR, CAB)  for (int loco=0;loco<MAX_MY_LOCO;loco++) \
       if ((myLocos[loco].throttle==THROTTLECHAR || '*'==THROTTLECHAR) && (CAB<0 || myLocos[loco].cab==CAB))

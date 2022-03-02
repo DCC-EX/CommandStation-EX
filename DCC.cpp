@@ -36,6 +36,7 @@
 #include "EXRAIL2.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
+#include "DCCTimer.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.

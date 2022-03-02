@@ -86,4 +86,35 @@ private:
 
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Create a cpu type we can share and 
+// gigure out if we have enough memory for advanced features
+// so define HAS_ENOUGH_MEMORY until proved otherwise.
+#define HAS_ENOUGH_MEMORY
+
+#if defined(ARDUINO_AVR_UNO)
+#define ARDUINO_TYPE "UNO"
+#undef HAS_ENOUGH_MEMORY
+#elif defined(ARDUINO_AVR_NANO)
+#define ARDUINO_TYPE "NANO"
+#undef HAS_ENOUGH_MEMORY
+#elif defined(ARDUINO_AVR_MEGA)
+#define ARDUINO_TYPE "MEGA"
+#elif defined(ARDUINO_AVR_MEGA2560)
+#define ARDUINO_TYPE "MEGA"
+#elif defined(ARDUINO_ARCH_MEGAAVR)
+#define ARDUINO_TYPE "MEGAAVR"
+#elif defined(ARDUINO_TEENSY32)
+#define ARDUINO_TYPE "TEENSY32"
+#elif defined(ARDUINO_TEENSY35)
+#define ARDUINO_TYPE "TEENSY35"
+#elif defined(ARDUINO_TEENSY36)
+#define ARDUINO_TYPE "TEENSY36"
+#elif defined(ARDUINO_TEENSY40)
+#define ARDUINO_TYPE "TEENSY40"
+#elif defined(ARDUINO_TEENSY41)
+#define ARDUINO_TYPE "TEENSY41"
+#else
+#error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
+#endif
 #endif

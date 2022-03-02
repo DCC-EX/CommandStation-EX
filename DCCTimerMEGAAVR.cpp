@@ -96,6 +96,19 @@ extern char *__malloc_heap_start;
     mac[0] |= 0x02;
   }
 
+volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
+
+// Return low memory value... 
+int DCCTimer::getMinimumFreeMemory() {
+  noInterrupts(); // Disable interrupts to get volatile value 
+  int retval = minimum_free_memory;
+  interrupts();
+  return retval;
+}
+
+extern char *__brkval;
+extern char *__malloc_heap_start;
+
 int DCCTimer::freeMemory() {
   char top;
   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
