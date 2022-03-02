@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.0.0"
+#define VERSION "4.0.1"
+// 4.0.1 EXRAIL BROADCAST("msg") 
+//       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
 //.......JMRI feature enhancement. Provides for multiple additional DCC++EX wifi 
