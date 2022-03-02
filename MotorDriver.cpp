@@ -167,10 +167,17 @@ int MotorDriver::getCurrentRaw() {
 }
 
 void MotorDriver::setDCSignal(byte speedcode) {
-  // spedcxode is a dcc speed /direction
-  // TODO jiggle the DC speed pin PWMs 
-  
+  // spedcoode is a dcc speed /direction
+  byte tSpeed=speedcode & 0x7F;
+    // DCC Speed with 0,1 stop and speed steps 2 to 127
+  byte brake;
+  if (tSpeed <= 1) brake = 255;
+  else if (tSpeed >= 127) brake = 0;
+  else  brake = 2 * (128-tSpeed);
+  analogWrite(brakePin,brake);
+  setSignal(speedcode & 0x80);  
 }
+
 int MotorDriver::getCurrentRawInInterrupt() {
   
   // IMPORTANT:  This function must be called in Interrupt() time within the 56uS timer
