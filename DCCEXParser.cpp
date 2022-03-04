@@ -38,7 +38,9 @@
 #include "DIAG.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
+#ifdef HAS_AVR_WDT
 #include <avr/wdt.h>
+#endif
 
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
@@ -775,8 +777,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
     case HASH_KEYWORD_RESET:
         {
+#ifdef HAS_AVR_WDT
           wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-          delay(50);            // wait for the prescaller time to expire          
+          delay(50);            // wait for the prescaller time to expire
+#else
+	  ESP.restart();
+#endif
           break; // and <X> if we didnt restart 
         }
 
