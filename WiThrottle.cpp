@@ -514,26 +514,32 @@ char         WiThrottle::stashThrottleChar;
 void WiThrottle::getLocoCallback(int16_t locoid) {
   stashStream->mark(stashClient);
   
-  if (locoid<=0)
+  if (locoid<=0) {
     StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
-  else {
-    // short or long
-    char addrchar;
-    if (locoid & LONG_ADDR_MARKER) { // long addr
-      locoid = locoid ^ LONG_ADDR_MARKER;
-      addrchar = 'L';
-    } else
-      addrchar = 'S';
-    if (addrchar == 'L' && locoid <= HIGHEST_SHORT_ADDR )
-      StringFormatter::send(stashStream,F("HMLong addr %d <= %d not supported\n"), locoid,HIGHEST_SHORT_ADDR);
-    else {
-      char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
-      itoa(locoid,addcmd+4,10);
-      stashInstance->multithrottle(stashStream, (byte *)addcmd);
-      DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-      DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
-  //    CommandDistributor::broadcastPower();
-    }
+    stashStream->commit();                  // done here, commit and return
+    return;
   }
+
+  // short or long
+  char addrchar;
+  if (locoid & LONG_ADDR_MARKER) {          // maker bit indicates long addr
+    locoid = locoid ^ LONG_ADDR_MARKER;     // remove marker bit to get real long addr
+    if (locoid <= HIGHEST_SHORT_ADDR ) {    // out of range for long addr
+      StringFormatter::send(stashStream,F("HMLong addr %d <= %d unsupported\n"), locoid, HIGHEST_SHORT_ADDR);
+      stashStream->commit();                // done here, commit and return
+      return;
+    }
+    addrchar = 'L';
+  } else {
+    addrchar = 'S';
+  }
+  
+  char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
+  itoa(locoid,addcmd+4,10);
+  stashInstance->multithrottle(stashStream, (byte *)addcmd);
+  DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+  DCC::setProgTrackSyncMain(true);          // <1 JOIN> so we can drive loco away
   stashStream->commit();
+  CommandDistributor::broadcastPower();
+
 }
