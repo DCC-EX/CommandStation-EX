@@ -29,7 +29,7 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
-#if defined(__IMXRT1062__)
+#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
 struct FASTPIN {
   volatile uint32_t *inout;
   uint32_t maskHIGH;  

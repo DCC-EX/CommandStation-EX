@@ -22,7 +22,7 @@
 #ifndef ARDUINO_AVR_UNO_WIFI_REV2
 // This code is NOT compiled on a unoWifiRev2 processor which uses a different architecture 
 #include "WifiInterface.h"        /* config.h included there */
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 #include "DIAG.h"
 #include "StringFormatter.h"
 

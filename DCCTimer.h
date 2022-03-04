@@ -91,6 +91,7 @@ private:
 // gigure out if we have enough memory for advanced features
 // so define HAS_ENOUGH_MEMORY until proved otherwise.
 #define HAS_ENOUGH_MEMORY
+#define HAS_AVR_WDT
 
 #if defined(ARDUINO_AVR_UNO)
 #define ARDUINO_TYPE "UNO"
@@ -114,7 +115,13 @@ private:
 #define ARDUINO_TYPE "TEENSY40"
 #elif defined(ARDUINO_TEENSY41)
 #define ARDUINO_TYPE "TEENSY41"
+#elif defined(ARDUINO_ARCH_ESP8266)
+#define ARDUINO_TYPE "ESP8266"
+#undef HAS_AVR_WDT
+#elif defined(ARDUINO_ARCH_ESP32)
+#define ARDUINO_TYPE "ESP32"
+#undef HAS_AVR_WDT
 #else
-#error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH AN ARDUINO UNO, NANO 328, OR ARDUINO MEGA 1280/2560
+#error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN DCCTimer.h
 #endif
 #endif

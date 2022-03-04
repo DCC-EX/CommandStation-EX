@@ -23,7 +23,7 @@
 #include "FSH.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 
 enum wifiSerialState { WIFI_NOAT, WIFI_DISCONNECTED, WIFI_CONNECTED };
 
