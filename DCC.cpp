@@ -300,14 +300,14 @@ const ackOp FLASH WRITE_BIT0_PROG[] = {
      W0,WACK,
      V0, WACK,  // validate bit is 0
      ITC1,      // if acked, callback(1)
-     FAIL  // callback (-1)
+     CALLFAIL  // callback (-1)
 };
 const ackOp FLASH WRITE_BIT1_PROG[] = {
      BASELINE,
      W1,WACK,
      V1, WACK,  // validate bit is 1
      ITC1,      // if acked, callback(1)
-     FAIL  // callback (-1)
+     CALLFAIL  // callback (-1)
 };
 
 const ackOp FLASH VERIFY_BIT0_PROG[] = {
@@ -316,7 +316,7 @@ const ackOp FLASH VERIFY_BIT0_PROG[] = {
      ITC0,      // if acked, callback(0)
      V1, WACK,  // validate bit is 1
      ITC1,
-     FAIL  // callback (-1)
+     CALLFAIL  // callback (-1)
 };
 const ackOp FLASH VERIFY_BIT1_PROG[] = {
      BASELINE,
@@ -324,7 +324,7 @@ const ackOp FLASH VERIFY_BIT1_PROG[] = {
      ITC1,      // if acked, callback(1)
      V0, WACK,
      ITC0,
-     FAIL  // callback (-1)
+     CALLFAIL  // callback (-1)
 };
 
 const ackOp FLASH READ_BIT_PROG[] = {
@@ -333,7 +333,7 @@ const ackOp FLASH READ_BIT_PROG[] = {
      ITC1,      // if acked, callback(1)
      V0, WACK,  // validate bit is zero
      ITC0,      // if acked callback 0
-     FAIL       // bit not readable
+     CALLFAIL       // bit not readable
      };
 
 const ackOp FLASH WRITE_BYTE_PROG[] = {
@@ -341,7 +341,7 @@ const ackOp FLASH WRITE_BYTE_PROG[] = {
       WB,WACK,ITC1,    // Write and callback(1) if ACK
       // handle decoders that dont ack a write
       VB,WACK,ITC1,    // validate byte and callback(1) if correct
-      FAIL        // callback (-1)
+      CALLFAIL        // callback (-1)
       };
 
 const ackOp FLASH VERIFY_BYTE_PROG[] = {
@@ -367,7 +367,7 @@ const ackOp FLASH VERIFY_BYTE_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, ITCBV,  // verify merged byte and return it if acked ok - with retry report
-      FAIL };
+      CALLFAIL };
 
 
 const ackOp FLASH READ_CV_PROG[] = {
@@ -390,7 +390,7 @@ const ackOp FLASH READ_CV_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and return it if acked ok
-      FAIL };          // verification failed
+      CALLFAIL };          // verification failed
 
 
 const ackOp FLASH LOCO_ID_PROG[] = {
@@ -456,7 +456,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and callback
-      FAIL
+      CALLFAIL
       };
 
 const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
@@ -473,7 +473,7 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       SETBYTEL,   // low byte of word
       WB,WACK,    // some decoders don't ACK writes
       VB,WACK,ITCB,
-      FAIL
+      CALLFAIL
 };
 
 const ackOp FLASH LONG_LOCO_ID_PROG[] = {
@@ -497,7 +497,7 @@ const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       SETBYTEL,   // low byte of word
       WB,WACK,
       VB,WACK,ITC1,   // callback(1) means Ok
-      FAIL
+      CALLFAIL
 };
 
 void  DCC::writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback)  {

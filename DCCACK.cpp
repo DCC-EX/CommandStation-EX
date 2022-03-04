@@ -260,7 +260,7 @@ void DCCACK::loop() {
           }
         break;
 
-      case FAIL:  // callback(-1)
+      case CALLFAIL:  // callback(-1)
            callback(-1);
            return;
 
