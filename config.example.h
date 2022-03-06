@@ -29,7 +29,7 @@ The configuration file for DCC-EX Command Station
 /////////////////////////////////////////////////////////////////////////////////////
 //  NOTE: Before connecting these boards and selecting one in this software
 //        check the quick install guides!!! Some of these boards require a voltage
-//        generating resitor on the current sense pin of the device. Failure to select
+//        generating resistor on the current sense pin of the device. Failure to select
 //        the correct resistor could damage the sense pin on your Arduino or destroy
 //        the device.
 //
@@ -85,7 +85,7 @@ The configuration file for DCC-EX Command Station
 // WIFI_PASSWORD is the network password for your home network or if
 // you want to change the password from default AP mode password
 // to the AP password you want. 
-// Your password may not conain ``"'' (double quote, ASCII 0x22).
+// Your password may not contain ``"'' (double quote, ASCII 0x22).
 #define WIFI_PASSWORD "Your network passwd"
 //
 // WIFI_HOSTNAME: You probably don't need to change this
@@ -137,7 +137,7 @@ The configuration file for DCC-EX Command Station
 // If you do not need the EEPROM at all, you can disable all the code that saves
 // data in the EEPROM. You might want to do that if you are in a Arduino UNO
 // and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
-// to do that. Of course, then none of the EEPROM related commands works.
+// to do that. Of course, then none of the EEPROM related commands work.
 //
 // #define DISABLE_EEPROM
 
@@ -174,7 +174,7 @@ The configuration file for DCC-EX Command Station
 
 // If you have issues with that the direction of the accessory commands is
 // reversed (for example when converting from another CS to DCC-EX) then
-// you can use this to revese the sense of all accessory commmands sent
+// you can use this to reverse the sense of all accessory commmands sent
 // over DCC++. This #define likewise inverts the behaviour of the <a> command
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
 // DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
