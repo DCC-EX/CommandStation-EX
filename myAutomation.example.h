@@ -7,8 +7,7 @@
  *  - drive a loco through an AUTOMATION 
  *  - automate some cosmetic part of the layout without any loco.
  *  
- *  At startup, a single task is created to execute the first 
- *  instruction after E$XRAIL. 
+ *  At startup, a single task is created to execute the startup sequence.
  *  This task may simply follow a route, or may START  
  *  further tasks (that is.. send a loco out along a route).
  *  
@@ -24,11 +23,10 @@
  *  
  */
 
-EXRAIL   // myAutomation must start with the EXRAIL instruction
-  // This is the default starting route, AKA SEQUENCE(0)  
-  SENDLOCO(3,1) // send loco 3 off along route 1
-  SENDLOCO(10,2) // send loco 10 off along route 2
-  DONE     // This just ends the startup thread, leaving 2 others running.
+// This is the startup sequence, AKA SEQUENCE(0)
+SENDLOCO(3,1) // send loco 3 off along route 1
+SENDLOCO(10,2) // send loco 10 off along route 2
+DONE     // This just ends the startup thread, leaving 2 others running.
 
 /* SEQUENCE(1) is a simple shuttle between 2 sensors      
  *  S20 and S21 are sensors on arduino pins 20 and 21 
@@ -78,7 +76,3 @@ EXRAIL   // myAutomation must start with the EXRAIL instruction
    AT(33) STOP
    DELAY(20000)  // wait 20 seconds 
    FOLLOW(2)   // follow sequence 2... ie repeat the process
-   
-   ENDEXRAIL    // marks the end of the EXRAIL program. 
-    
-   
