@@ -67,11 +67,11 @@ const int16_t HASH_KEYWORD_ROUTES=-3702;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
-// The thrrads exist in a ring, each time through loop() the next thread in the ring is serviced.
+// The threads exist in a ring, each time through loop() the next thread in the ring is serviced.
 
 // Statics 
 const int16_t LOCO_ID_WAITING=-99; // waiting for loco id from prog track
-int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prograck
+int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prog track
 bool RMFT2::diag=false;      // <D EXRAIL ON>  
 RMFT2 * RMFT2::loopTask=NULL; // loopTask contains the address of ONE of the tasks in a ring.
 RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
@@ -808,6 +808,12 @@ void RMFT2::loop2() {
     DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
+  
+  case OPCODE_POWERON:
+    DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
+    DCC::setProgTrackSyncMain(false);
+    CommandDistributor::broadcastPower();
+    break;
     
   case OPCODE_UNJOIN:
     DCCWaveform::setJoin(false);
@@ -884,13 +890,13 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_AUTOSTART: // Handled only during begin process
-  case OPCODE_PAD: // Just a padding for previous opcode needing >1 operad byte.
+  case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
   case OPCODE_TURNOUT: // Turnout definition ignored at runtime
   case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
-  case OPCODE_ONCLOSE: // Turnout event catcers ignored here
+  case OPCODE_ONCLOSE: // Turnout event catchers ignored here
   case OPCODE_ONTHROW:
-  case OPCODE_ONACTIVATE: // Activate event catcers ignored here
+  case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
     break;
     

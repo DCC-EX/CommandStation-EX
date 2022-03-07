@@ -136,3 +136,8 @@ void  CommandDistributor::broadcastPower() {
   LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);
   broadcast(true);
 }
+
+void CommandDistributor::broadcastText(const FSH * msg) {
+  StringFormatter::send(broadcastBufferWriter,F("%S"),msg);
+  broadcast(false); 
+}

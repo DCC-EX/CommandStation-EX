@@ -42,8 +42,9 @@
 #include "Turnouts.h"
 #include "Sensors.h"
 #include "Outputs.h"
-#include "EXRAIL.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"    
+#include "EXRAIL.h"
+    
 #endif

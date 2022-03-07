@@ -69,6 +69,8 @@ void  RMFT2::emitWithrottleDescriptions(Print * stream) {
 // Pass 3... Create Text sending functions
 #include "EXRAIL2MacroReset.h"
 const int StringMacroTracker1=__COUNTER__;
+#undef BROADCAST
+#define BROADCAST(msg) case (__COUNTER__ - StringMacroTracker1) : CommandDistributor::broadcastText(F(msg));break;
 #undef PRINT
 #define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
 #undef LCN
@@ -170,6 +172,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
+#define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
