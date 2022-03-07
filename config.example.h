@@ -129,6 +129,9 @@ The configuration file for DCC-EX Command Station
 // #define OLED_DRIVER 128,32
 
 // Define scroll mode as 0, 1 or 2
+//  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
+//  *  #define SCROLLMODE 1 is by page (alternate between pages),
+//  *  #define SCROLLMODE 2 is by row (move up 1 row at a time).
 #define SCROLLMODE 1
 
 /////////////////////////////////////////////////////////////////////////////////////
