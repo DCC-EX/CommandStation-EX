@@ -808,12 +808,6 @@ void RMFT2::loop2() {
     DCCWaveform::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
-  
-  case OPCODE_POWERON:
-    DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-    DCC::setProgTrackSyncMain(false);
-    CommandDistributor::broadcastPower();
-    break;
     
   case OPCODE_UNJOIN:
     DCCWaveform::setJoin(false);

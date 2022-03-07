@@ -542,8 +542,8 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
   itoa(locoid,addcmd+4,10);
   stashInstance->multithrottle(stashStream, (byte *)addcmd);
-  DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-  DCC::setProgTrackSyncMain(true);          // <1 JOIN> so we can drive loco away
+  TrackManager::setMainPower(POWERMODE::ON);
+  DCCWaveform::setJoin(true);          // <1 JOIN> so we can drive loco away
   stashStream->commit();
   CommandDistributor::broadcastPower();
 
