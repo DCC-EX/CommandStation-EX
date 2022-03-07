@@ -32,6 +32,7 @@ public :
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastPower();
+  static void broadcastText(const FSH * msg);
   static void forget(byte clientId);
 private:
   static void broadcast(bool includeWithrottleClients);

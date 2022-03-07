@@ -32,6 +32,7 @@
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
+#undef BROADCAST
 #undef CALL 
 #undef CLOSE 
 #undef DEACTIVATE
@@ -79,6 +80,7 @@
 #undef PRINT
 #undef POM
 #undef POWEROFF
+#undef POWERON
 #undef READ_LOCO 
 #undef RED 
 #undef RESERVE 
@@ -121,6 +123,7 @@
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id, description) 
 #define AUTOSTART
+#define BROADCAST(msg)
 #define CALL(route) 
 #define CLOSE(id) 
 #define DEACTIVATE(addr,subaddr)
@@ -168,6 +171,7 @@
 #define PRINT(msg) 
 #define POM(cv,value)
 #define POWEROFF
+#define POWERON
 #define READ_LOCO 
 #define RED(signal_id) 
 #define RESERVE(blockid) 
