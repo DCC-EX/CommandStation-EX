@@ -69,7 +69,7 @@ in config.h.
 * Automatic slot (register) management 
 * Automation (coming soon)
 
-NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means to you, click [HERE](notes/rewrite.md).
+NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means, you can read [HERE](https://dcc-ex.com/about/rewrite.html).
 
 # More information
 You can learn more at the [DCC++ EX website](https://dcc-ex.com/)
