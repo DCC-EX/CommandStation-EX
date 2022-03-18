@@ -1,0 +1,270 @@
+[
+    {
+        "Name": "BaseStationClassic",
+        "Git": "DCC-EX/BaseStation-Classic",
+        "Libraries": [
+            {
+                "Name": "Ethernet",
+                "Repo": "arduino-libraries/Ethernet",
+                "Location": "libraries/Ethernet",
+                "LibraryDownloadAvailable": true
+            }
+        ],
+        "SupportedBoards": [
+            {
+                "Name": "Uno",
+                "FQBN": "arduino:avr:uno",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Mega",
+                "FQBN": "arduino:avr:mega",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            }
+        ],
+        "DisplayName": "Base Station Classic",
+        "InputFileLocation": "DCCpp",
+        "AllowAdvanced": false,
+        "ConfigFile": "DCCpp/Config.h"
+    },
+    {
+        "Name": "CommandStation-EX",
+        "Git": "DCC-EX/CommandStation-EX",
+        "Libraries": [
+            {
+                "Name": "Ethernet",
+                "Repo": "arduino-libraries/Ethernet",
+                "Location": "libraries/Ethernet",
+                "LibraryDownloadAvailable": true
+            },
+            {
+                "Name": "DIO2",
+                "Repo": "",
+                "Location": "libraries/DIO2",
+                "LibraryDownloadAvailable": true
+            }
+        ],
+        "SupportedBoards": [
+            {
+                "Name": "Uno",
+                "FQBN": "arduino:avr:uno",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Mega",
+                "FQBN": "arduino:avr:mega",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Mega Wifi",
+                "FQBN": "arduino:avr:mega",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Nano",
+                "FQBN": "arduino:avr:nano",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Nano Every",
+                "FQBN": "arduino:megaavr:nanoevery",
+                "Platforms": [
+                    {
+                        "Architecture": "megaavr",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Teensy 3.x",
+                "FQBN": "teensy:avr:teensy31",
+                "Platforms": [
+                    {
+                        "Architecture": "teensy",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "Teensy 4.x",
+                "FQBN": "teensy:avr:teensy41",
+                "Platforms": [
+                    {
+                        "Architecture": "teensy",
+                        "Package": "arduino"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    }
+                ],
+                "ExtraLibraries": []
+            },
+            {
+                "Name": "SAMD21",
+                "FQBN": "SparkFun:samd",
+                "Platforms": [
+                    {
+                        "Architecture": "avr",
+                        "Package": "arduino"
+                    },
+                    {
+                        "Architecture": "samd",
+                        "Package": "arduino"
+                    },
+                    {
+                        "Architecture": "samd",
+                        "Package": "SparkFun"
+                    }
+                ],
+                "SupportedMotoShields": [
+                    {
+                        "Name": "Arduino Motor Shield",
+                        "Declaration": "STANDARD_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "Pololu MC33926 Motor Shield",
+                        "Declaration": "POLOLU_MOTOR_SHIELD"
+                    },
+                    {
+                        "Name": "FireBox MK1",
+                        "Declaration": "FIREBOX_MK1"
+                    },
+                    {
+                        "Name": "FireBox MK1S",
+                        "Declaration": "FIREBOX_MK1S"
+                    }
+                ],
+                "ExtraLibraries": []
+            }
+        ],
+        "DisplayName": "CommandStation EX",
+        "InputFileLocation": "",
+        "AllowAdvanced": true,
+        "ConfigFile": "config.h"
+    }
+]
