@@ -2,7 +2,7 @@
  *  © 2022 Chris Harlow
  *  All rights reserved.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of DCC++EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -150,7 +150,7 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]==HASH_KEYWORD_OFF) // <= id OFF>
         return setTrackMode(p[0],TRACK_MODE_OFF);
     
-    if (params==3  && p[1]==HASH_KEYWORD_DC) // <= id DC cab>
+    if (params==3  && p[1]==HASH_KEYWORD_DC && p[2]>0) // <= id DC cab>
         return setTrackMode(p[0],p[2]);
 
     return false;
