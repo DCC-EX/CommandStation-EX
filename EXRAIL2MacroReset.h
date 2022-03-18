@@ -29,6 +29,8 @@
 #undef ALIAS
 #undef AMBER
 #undef AT
+#undef ATGTE
+#undef ATLT
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
@@ -99,11 +101,13 @@
 #undef SERVO 
 #undef SERVO2 
 #undef SERVO_TURNOUT 
+#undef SERVO_SIGNAL
 #undef SET
 #undef SET_TRACK_DC
 #undef SET_TRACK_DCC
 #undef SETLOCO 
 #undef SIGNAL 
+#undef SIGNALH 
 #undef SPEED 
 #undef START 
 #undef STOP 
@@ -122,6 +126,8 @@
 #define ALIAS(name,value)
 #define AMBER(signal_id)
 #define AT(sensor_id)
+#define ATGTE(sensor_id,value) 
+#define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id, description) 
 #define AUTOSTART
@@ -191,12 +197,14 @@
 #define SERIAL3(msg) 
 #define SERVO(id,position,profile) 
 #define SERVO2(id,position,duration) 
+#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
 #define SET(pin) 
 #define SET_TRACK_DC(trackid)
 #define SET_TRACK_DCC(trackid)
 #define SETLOCO(loco) 
 #define SIGNAL(redpin,amberpin,greenpin) 
+#define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
 #define START(route) 
 #define STOP 

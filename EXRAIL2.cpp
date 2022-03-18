@@ -598,6 +598,18 @@ void RMFT2::loop2() {
     delayMe(50);
     return;
     
+  case OPCODE_ATGTE: // wait for analog sensor>= value
+    timeoutFlag=false;
+    if (IODevice::readAnalogue(operand) >= (int)(GET_OPERAND(1))) break;
+    delayMe(50);
+    return;
+    
+  case OPCODE_ATLT: // wait for analog sensor < value
+    timeoutFlag=false;
+    if (IODevice::readAnalogue(operand) < (int)(GET_OPERAND(1))) break;
+    delayMe(50);
+    return;
+      
   case OPCODE_ATTIMEOUT1:   // ATTIMEOUT(vpin,timeout) part 1
     timeoutStart=millis();
     timeoutFlag=false;
@@ -927,23 +939,48 @@ void RMFT2::kill(const FSH * reason, int operand) {
 
 /* static */ void RMFT2::doSignal(VPIN id,bool red, bool amber, bool green) {
   //if (diag) DIAG(F(" dosignal %d"),id);
-  for (int sigpos=0;;sigpos+=3) {
-    VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+  for (int sigpos=0;;sigpos+=4) {
     //if (diag) DIAG(F("red=%d"),redpin);
-    if (redpin==0) {
+    VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+    if (sigid==0) { // end of signal list 
       DIAG(F("EXRAIL Signal %d not defined"), id);
       return;  // signal not found
     }
-    if (redpin==id) {
-      VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
-      VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
-      //if (diag) DIAG(F("signal %d %d %d"),redpin,amberpin,greenpin);
-      // If amberpin is zero, synthesise amber from red+green
-      IODevice::write(redpin,red || (amber && (amberpin==0)));
-      if (amberpin) IODevice::write(amberpin,amber);
-      if (greenpin) IODevice::write(greenpin,green || (amber && (amberpin==0)));
-      return;
+    // sigid is the signal id used in RED/AMBER/GREEN macro
+    // for a LED signal it will be same as redpin
+    // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
+
+    if ((sigid & ~SERVO_SIGNAL_FLAG & ~ACTIVE_HIGH_SIGNAL_FLAG)!= id) continue; // keep looking
+
+    // Correct signal definition found, get the rag values
+    VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
+    VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
+    VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+3);
+    //if (diag) DIAG(F("signal %d %d %d"),redpin,amberpin,greenpin);
+      
+    if (sigid & SERVO_SIGNAL_FLAG) {
+      // A servo signal, the pin numbers are actually servo positions
+      // Note, setting a signal to a zero position has no effect.
+      int16_t servopos= red? redpin: (green? greenpin : amberpin);
+      if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
+      return;  
     }
+      
+    // LED or similar 3 pin signal
+    // If amberpin is zero, synthesise amber from red+green
+    if (amber && (amberpin==0)) {
+      red=true;
+      green=true;
+    }
+
+    // Manage invert (HIGH on) pins
+    bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
+    
+    // set the three pins 
+    if (redpin) IODevice::write(redpin,red^aHigh);
+    if (amberpin) IODevice::write(amberpin,amber^aHigh);
+    if (greenpin) IODevice::write(greenpin,green^aHigh);
+    return;
   }
 }
 

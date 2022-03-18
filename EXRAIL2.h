@@ -33,6 +33,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,OPCODE_AUTOSTART,
+             OPCODE_ATGTE,OPCODE_ATLT,
              OPCODE_ATTIMEOUT1,OPCODE_ATTIMEOUT2,OPCODE_IFTIMEOUT,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_IF,OPCODE_IFNOT,OPCODE_ENDIF,OPCODE_IFRANDOM,OPCODE_IFRESERVE,
@@ -93,7 +94,10 @@ class LookList {
     static void emitTurnoutDescription(Print* stream,int16_t id);
     static const byte rosterNameCount;
     static void emitWithrottleRoster(Print * stream);
-    static const FSH * getRosterFunctions(int16_t cabid);  
+    static const FSH * getRosterFunctions(int16_t cabid);
+    static const int16_t SERVO_SIGNAL_FLAG=0x4000;
+    static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
+  
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;

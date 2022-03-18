@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.0.1"
+
+#define VERSION "4.0.2"
+// 4.0.2 EXRAIL additions:
+//       Servo signals (SERVO_SIGNAL) 
+//       High-On signal pins (SIGNALH)
+//       Wait for analog value (ATGTE, ATLT)  
 // 4.0.1 EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
