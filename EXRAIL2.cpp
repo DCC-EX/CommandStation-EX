@@ -594,6 +594,18 @@ void RMFT2::loop2() {
     delayMe(50);
     return;
     
+  case OPCODE_ATGTE: // wait for analog sensor>= value
+    timeoutFlag=false;
+    if (IODevice::readAnalogue(operand) >= (int)(GET_OPERAND(1))) break;
+    delayMe(50);
+    return;
+    
+  case OPCODE_ATLT: // wait for analog sensor < value
+    timeoutFlag=false;
+    if (IODevice::readAnalogue(operand) < (int)(GET_OPERAND(1))) break;
+    delayMe(50);
+    return;
+      
   case OPCODE_ATTIMEOUT1:   // ATTIMEOUT(vpin,timeout) part 1
     timeoutStart=millis();
     timeoutFlag=false;
@@ -928,9 +940,9 @@ void RMFT2::kill(const FSH * reason, int operand) {
     }
     // sigid is the signal id used in RED/AMBER/GREEN macro
     // for a LED signal it will be same as redpin
-    // but for a servo signal it will also have SERVER_SIGNAL_FLAG set. 
+    // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
 
-    if ((sigid & ~SERVO_SIGNAL_FLAG)!= id) continue; // keep looking
+    if ((sigid & ~SERVO_SIGNAL_FLAG & ~ACTIVE_HIGH_SIGNAL_FLAG)!= id) continue; // keep looking
 
     // Correct signal definition found, get the rag values
     VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
@@ -953,10 +965,13 @@ void RMFT2::kill(const FSH * reason, int operand) {
       green=true;
     }
 
+    // Manage invert (HIGH on) pins
+    bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
+    
     // set the three pins 
-    if (redpin) IODevice::write(redpin,red);
-    if (amberpin) IODevice::write(amberpin,amber);
-    if (greenpin) IODevice::write(greenpin,green);
+    if (redpin) IODevice::write(redpin,red^aHigh);
+    if (amberpin) IODevice::write(amberpin,amber^aHigh);
+    if (greenpin) IODevice::write(greenpin,green^aHigh);
     return;
   }
 }

@@ -149,6 +149,8 @@ const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
 #include "EXRAIL2MacroReset.h"
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) redpin,redpin,amberpin,greenpin, 
+#undef SIGNALH
+#define SIGNALH(redpin,amberpin,greenpin) redpin | RMFT2::ACTIVE_HIGH_SIGNAL_FLAG,redpin,amberpin,greenpin, 
 #undef SERVO_SIGNAL
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
 const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
@@ -171,6 +173,8 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ALIAS(name,value) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
+#define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
+#define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
@@ -245,6 +249,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define SET(pin) OPCODE_SET,V(pin),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SIGNAL(redpin,amberpin,greenpin) 
+#define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define START(route) OPCODE_START,V(route),
 #define STOP OPCODE_SPEED,V(0), 

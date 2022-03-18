@@ -29,6 +29,8 @@
 #undef ALIAS
 #undef AMBER
 #undef AT
+#undef ATGTE
+#undef ATLT
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
@@ -103,6 +105,7 @@
 #undef SET
 #undef SETLOCO 
 #undef SIGNAL 
+#undef SIGNALH 
 #undef SPEED 
 #undef START 
 #undef STOP 
@@ -121,6 +124,8 @@
 #define ALIAS(name,value)
 #define AMBER(signal_id)
 #define AT(sensor_id)
+#define ATGTE(sensor_id,value) 
+#define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id, description) 
 #define AUTOSTART
@@ -195,6 +200,7 @@
 #define SET(pin) 
 #define SETLOCO(loco) 
 #define SIGNAL(redpin,amberpin,greenpin) 
+#define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
 #define START(route) 
 #define STOP 
