@@ -473,7 +473,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             return;
         return;
 
-    case 'J': // < >
+    case '=': // <= Track manager control  >
         if (TrackManager::parseJ(stream, params, p))
             return;
         break;

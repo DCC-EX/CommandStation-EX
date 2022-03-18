@@ -35,6 +35,7 @@ const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_OFF = 22479;  
 const int16_t HASH_KEYWORD_DC = 2183;  
+const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackMode[MAX_TRACKS];
@@ -113,10 +114,10 @@ bool TrackManager::setTrackMode(byte trackToSet, int16_t modeOrAddr) {
 bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 {
     
-    if (params==0) { // <J>  List track assignments
+    if (params==0) { // <=>  List track assignments
         FOR_EACH_TRACK(t)
             if (track[t]!=NULL) {
-                StringFormatter::send(stream,F("<j %d "),t);
+                StringFormatter::send(stream,F("<= %c "),'A'+t);
                 switch(trackMode[t]) {
                     case TRACK_MODE_MAIN:
                         StringFormatter::send(stream,F("MAIN"));
@@ -135,20 +136,22 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
         return true;
     }
     
-    if (params>1 && (p[1]<0 || p[1]>=MAX_TRACKS)) 
+    p[0]-=HASH_KEYWORD_A;  // convert A... to 0.... 
+
+    if (params>1 && (p[0]<0 || p[0]>=MAX_TRACKS)) 
         return false;
     
-    if (params==2  && p[1]==HASH_KEYWORD_MAIN) // <J id MAIN>
-        return setTrackMode(p[1],TRACK_MODE_MAIN);
+    if (params==2  && p[1]==HASH_KEYWORD_MAIN) // <= id MAIN>
+        return setTrackMode(p[0],TRACK_MODE_MAIN);
     
-    if (params==2  && p[1]==HASH_KEYWORD_PROG) // <J id PROG>
-        return setTrackMode(p[1],TRACK_MODE_PROG);
+    if (params==2  && p[1]==HASH_KEYWORD_PROG) // <= id PROG>
+        return setTrackMode(p[0],TRACK_MODE_PROG);
     
-    if (params==2  && p[1]==HASH_KEYWORD_OFF) // <J id OFF>
-        return setTrackMode(p[1],TRACK_MODE_OFF);
+    if (params==2  && p[1]==HASH_KEYWORD_OFF) // <= id OFF>
+        return setTrackMode(p[0],TRACK_MODE_OFF);
     
-    if (params==3  && p[1]==HASH_KEYWORD_DC) // <J id DC cab>
-        return setTrackMode(p[1],p[2]);
+    if (params==3  && p[1]==HASH_KEYWORD_DC) // <= id DC cab>
+        return setTrackMode(p[0],p[2]);
 
     return false;
 }
