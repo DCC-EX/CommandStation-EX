@@ -122,7 +122,7 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 void  CommandDistributor::broadcastPower() {
   bool main=TrackManager::getMainPower()==POWERMODE::ON;
   bool prog=TrackManager::getProgPower()==POWERMODE::ON;
-  bool join=DCCWaveform::isJoined();
+  bool join=TrackManager::isJoined();
   const FSH * reason=F("");
   char state='1';
   if (main && prog && join) reason=F(" JOIN");

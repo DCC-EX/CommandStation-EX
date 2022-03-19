@@ -33,18 +33,13 @@ const int   PREAMBLE_BITS_MAIN = 16;
 const int   PREAMBLE_BITS_PROG = 22;
 const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
 
+
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
 // to the transform array.
 enum  WAVE_STATE : byte {WAVE_START=0,WAVE_MID_1=1,WAVE_HIGH_0=2,WAVE_MID_0=3,WAVE_LOW_0=4,WAVE_PENDING=5};
 
-
 // NOTE: static functions are used for the overall controller, then
 // one instance is created for each track.
-
-
-
-const byte idlePacket[] = {0xFF, 0x00, 0xFF};
-const byte resetPacket[] = {0x00, 0x00, 0x00};
 
 class DCCWaveform {
   public:
@@ -53,26 +48,12 @@ class DCCWaveform {
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
-
-    void beginTrack();
-    static void setJoin(bool join);
-    static bool isJoined() { return progTrackSyncMain;}
     void clearRepeats() {pendingRepeats=0;}
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
-    static bool progTrackBoosted;   // true when prog track is not current limited
     volatile byte sentResetsSincePacket;
-    static void setJoinRelayPin(byte joinRelayPin);
-    static int16_t joinRelay;
     
   private:
-    static bool progTrackSyncMain;  // true when prog track is a siding switched to main
-    
-// For each state of the wave  nextState=stateTransform[currentState] 
-   static const WAVE_STATE stateTransform[6];
-
-// For each state of the wave, signal pin is HIGH or LOW   
-   static const bool signalTransform[6];
   
     static void interruptHandler();
     void interrupt2();

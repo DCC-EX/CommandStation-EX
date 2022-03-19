@@ -77,10 +77,10 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
     return;
   }
 
-  ackManagerRejoin=DCCWaveform::isJoined();
+  ackManagerRejoin=TrackManager::isJoined();
   if (ackManagerRejoin ) {
         // Change from JOIN must zero resets packet.
-        DCCWaveform::setJoin(false); 
+        TrackManager::setJoin(false); 
         DCCWaveform::progTrack.sentResetsSincePacket = 0;
       }
 
@@ -403,7 +403,7 @@ void DCCACK::callback(int value) {
            }
           // Restore <1 JOIN> to state before BASELINE
           if (ackManagerRejoin) {
-              DCCWaveform::setJoin(true);
+              TrackManager::setJoin(true);
               if (Diag::ACK) DIAG(F("Auto JOIN"));
           }
 

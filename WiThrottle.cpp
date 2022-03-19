@@ -543,7 +543,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   itoa(locoid,addcmd+4,10);
   stashInstance->multithrottle(stashStream, (byte *)addcmd);
   TrackManager::setMainPower(POWERMODE::ON);
-  DCCWaveform::setJoin(true);          // <1 JOIN> so we can drive loco away
+  TrackManager::setJoin(true);          // <1 JOIN> so we can drive loco away
   stashStream->commit();
   CommandDistributor::broadcastPower();
 

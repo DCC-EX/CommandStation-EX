@@ -53,10 +53,16 @@ class TrackManager {
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, int16_t DCaddrOrMode);
     static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
-    static void loop(bool dontLimitProg);
+    static void loop();
     static POWERMODE getMainPower() {return mainPowerGuess;}
     static POWERMODE getProgPower();
-    
+    static void setJoin(bool join);
+    static bool isJoined() { return progTrackSyncMain;}
+    static void setJoinRelayPin(byte joinRelayPin);
+    static int16_t joinRelay;
+    static bool progTrackSyncMain;  // true when prog track is a siding switched to main
+     static bool progTrackBoosted;   // true when prog track is not current limited
+   
     
   private:
     static void addTrack(byte t, MotorDriver* driver);

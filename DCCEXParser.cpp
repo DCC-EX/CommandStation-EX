@@ -397,7 +397,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 	}
         if (main) TrackManager::setMainPower(POWERMODE::ON);
         if (prog) TrackManager::setProgPower(POWERMODE::ON);
-        DCCWaveform::setJoin(join);
+        TrackManager::setJoin(join);
 
         CommandDistributor::broadcastPower();
         return;
@@ -424,10 +424,10 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
         if (main) TrackManager::setMainPower(POWERMODE::OFF);
         if (prog) {
-            DCCWaveform::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+            TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
             TrackManager::setProgPower(POWERMODE::OFF);
         }
-        DCCWaveform::setJoin(false);
+        TrackManager::setJoin(false);
 
         CommandDistributor::broadcastPower();
         return;
@@ -772,8 +772,8 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 #endif
 
     case HASH_KEYWORD_PROGBOOST:
-       DCCWaveform::progTrackBoosted=true;
-	      return true;
+        TrackManager::progTrackBoosted=true;
+	    return true;
 
     case HASH_KEYWORD_RESET:
         {

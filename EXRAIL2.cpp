@@ -665,7 +665,7 @@ void RMFT2::loop2() {
     
   case OPCODE_POWEROFF:
     TrackManager::setPower(POWERMODE::OFF);
-    DCCWaveform::setJoin(false);
+    TrackManager::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
 
@@ -811,18 +811,18 @@ void RMFT2::loop2() {
     
   case OPCODE_JOIN:
     TrackManager::setPower(POWERMODE::ON);
-    DCCWaveform::setJoin(true);
+    TrackManager::setJoin(true);
     CommandDistributor::broadcastPower();
     break;
     
   case OPCODE_POWERON:
     TrackManager::setMainPower(POWERMODE::ON);
-    DCCWaveform::setJoin(false);
+    TrackManager::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
     
   case OPCODE_UNJOIN:
-    DCCWaveform::setJoin(false);
+    TrackManager::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
     

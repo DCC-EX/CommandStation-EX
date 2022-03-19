@@ -21,7 +21,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#ifndef ARDUINO_ARCH_ESP32
+  // This code is replaced entirely on an ESP32
 #include <Arduino.h>
 
 #include "DCCWaveform.h"
@@ -34,19 +35,38 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
-bool DCCWaveform::progTrackSyncMain=false; 
-bool DCCWaveform::progTrackBoosted=false; 
-int16_t DCCWaveform::joinRelay=UNUSED_PIN;
+
+// This bitmask has 9 entries as each byte is trasmitted as a zero + 8 bits.
+const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
+
+const byte idlePacket[] = {0xFF, 0x00, 0xFF};
+const byte resetPacket[] = {0x00, 0x00, 0x00};
+
+
+// For each state of the wave  nextState=stateTransform[currentState] 
+const WAVE_STATE stateTransform[]={
+   /* WAVE_START   -> */ WAVE_PENDING,
+   /* WAVE_MID_1   -> */ WAVE_START,
+   /* WAVE_HIGH_0  -> */ WAVE_MID_0,
+   /* WAVE_MID_0   -> */ WAVE_LOW_0,
+   /* WAVE_LOW_0   -> */ WAVE_START,
+   /* WAVE_PENDING (should not happen) -> */ WAVE_PENDING};
+
+// For each state of the wave, signal pin is HIGH or LOW   
+const bool signalTransform[]={
+   /* WAVE_START   -> */ HIGH,
+   /* WAVE_MID_1   -> */ LOW,
+   /* WAVE_HIGH_0  -> */ HIGH,
+   /* WAVE_MID_0   -> */ LOW,
+   /* WAVE_LOW_0   -> */ LOW,
+   /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::begin() {
-
-  TrackManager::setPower(POWERMODE::OFF);      
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
 void DCCWaveform::loop() {
-  DCCACK::loop(); 
-  TrackManager::loop(DCCACK::isActive() || progTrackSyncMain || progTrackBoosted );
+ // empty placemarker in case ESP32 needs something here 
 }
 
 #pragma GCC push_options
@@ -55,7 +75,7 @@ void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
-  byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
+  byte sigProg=TrackManager::progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   
   // Set the signal state for both tracks
   TrackManager::setDCCSignal(sigMain);
@@ -73,27 +93,12 @@ void DCCWaveform::interruptHandler() {
 
 }
 #pragma GCC push_options
-void DCCWaveform::setJoinRelayPin(byte joinRelayPin) {
-  joinRelay=joinRelayPin;
-  if (joinRelay!=UNUSED_PIN) {
-    pinMode(joinRelay,OUTPUT);
-    digitalWrite(joinRelay,LOW);  // LOW is relay disengaged
-  }
-}
-
-void DCCWaveform::setJoin(bool joined) {
-  progTrackSyncMain=joined;
-  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,joined?HIGH:LOW);
-}
 
 // An instance of this class handles the DCC transmissions for one track. (main or prog)
 // Interrupts are marshalled via the statics.
 // A track has a current transmit buffer, and a pending buffer.
 // When the current buffer is exhausted, either the pending buffer (if there is one waiting) or an idle buffer.
 
-
-// This bitmask has 9 entries as each byte is trasmitted as a zero + 8 bits.
-const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
@@ -110,25 +115,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 
 
-// For each state of the wave  nextState=stateTransform[currentState] 
-const WAVE_STATE DCCWaveform::stateTransform[]={
-   /* WAVE_START   -> */ WAVE_PENDING,
-   /* WAVE_MID_1   -> */ WAVE_START,
-   /* WAVE_HIGH_0  -> */ WAVE_MID_0,
-   /* WAVE_MID_0   -> */ WAVE_LOW_0,
-   /* WAVE_LOW_0   -> */ WAVE_START,
-   /* WAVE_PENDING (should not happen) -> */ WAVE_PENDING};
-
-// For each state of the wave, signal pin is HIGH or LOW   
-const bool DCCWaveform::signalTransform[]={
-   /* WAVE_START   -> */ HIGH,
-   /* WAVE_MID_1   -> */ LOW,
-   /* WAVE_HIGH_0  -> */ HIGH,
-   /* WAVE_MID_0   -> */ LOW,
-   /* WAVE_LOW_0   -> */ LOW,
-   /* WAVE_PENDING (should not happen) -> */ LOW};
         
-#pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
@@ -185,8 +172,6 @@ void DCCWaveform::interrupt2() {
     }
   }  
 }
-#pragma GCC pop_options
-
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
@@ -205,7 +190,4 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   packetPending = true;
   sentResetsSincePacket=0;
 }
-
-#pragma GCC push_options
-#pragma GCC optimize ("-O3")
-#pragma GCC pop_options
+#endif

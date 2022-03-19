@@ -41,6 +41,10 @@ MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackMode[MAX_TRACKS];
 POWERMODE TrackManager::mainPowerGuess=POWERMODE::OFF;
 byte TrackManager::lastTrack=0;
+bool TrackManager::progTrackSyncMain=false; 
+bool TrackManager::progTrackBoosted=false; 
+int16_t TrackManager::joinRelay=UNUSED_PIN;
+
 
 // The setup call is done this way so that the tracks can be in a list 
 // from the config... the tracks default to NULL in the declaration                 
@@ -158,7 +162,10 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
 
-void TrackManager::loop(bool dontLimitProg) {
+void TrackManager::loop() {
+    DCCWaveform::loop(); 
+    DCCACK::loop(); 
+    bool dontLimitProg=DCCACK::isActive() || progTrackSyncMain || progTrackBoosted;
     nextCycleTrack++;
     if (nextCycleTrack>lastTrack) nextCycleTrack=0;
     if (track[nextCycleTrack]==NULL) return;
@@ -193,3 +200,15 @@ POWERMODE TrackManager::getProgPower() {
     return POWERMODE::OFF;   
   }
    
+void TrackManager::setJoinRelayPin(byte joinRelayPin) {
+  joinRelay=joinRelayPin;
+  if (joinRelay!=UNUSED_PIN) {
+    pinMode(joinRelay,OUTPUT);
+    digitalWrite(joinRelay,LOW);  // LOW is relay disengaged
+  }
+}
+
+void TrackManager::setJoin(bool joined) {
+  progTrackSyncMain=joined;
+  if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,joined?HIGH:LOW);
+}

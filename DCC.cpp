@@ -557,8 +557,7 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
 byte DCC::loopStatus=0;
 
 void DCC::loop()  {
-  DCCWaveform::loop(); // power overload checks
-  DCCACK::loop();    // maintain prog track ack manager
+  TrackManager::loop(); // power overload checks
   issueReminders();
 }
 
