@@ -670,9 +670,13 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_SET_TRACK:
-      // operand is track id and +128= Use my loco for DC 
-      TrackManager::setTrackMode(operand & 0x0F,
-          operand>=128 ? loco : TrackManager::TRACK_MODE_MAIN);
+      // operand is trackmode<<8 | track id
+      // If DC/DCX use  my loco for DC address 
+      {
+        TRACK_MODE mode = (TRACK_MODE)(operand>>8);
+        int16_t cab=(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ? loco : 0;
+        TrackManager::setTrackMode(operand & 0x0F, mode, cab);
+      }
       break; 
 
   case OPCODE_RESUME:

@@ -23,6 +23,18 @@
 #include "MotorDriver.h"
 // Virtualised Motor shield multi-track hardware Interface
 
+enum TRACK_MODE : byte {TRACK_MODE_MAIN, TRACK_MODE_PROG, TRACK_MODE_OFF,
+                        TRACK_MODE_DC, TRACK_MODE_DCX};
+
+// These constants help EXRAIL macros say SET_TRACK(2,mode) OR SET_TRACK(C,mode) etc.
+const byte TRACK_NUMBER_0=0, TRACK_NUMBER_A=0;    
+const byte TRACK_NUMBER_1=1, TRACK_NUMBER_B=1;    
+const byte TRACK_NUMBER_2=2, TRACK_NUMBER_C=2;    
+const byte TRACK_NUMBER_3=3, TRACK_NUMBER_D=3;    
+const byte TRACK_NUMBER_4=4, TRACK_NUMBER_E=4;    
+const byte TRACK_NUMBER_5=5, TRACK_NUMBER_F=5;    
+const byte TRACK_NUMBER_6=6, TRACK_NUMBER_G=6;    
+const byte TRACK_NUMBER_7=7, TRACK_NUMBER_H=7;    
 
 class TrackManager {
   public:
@@ -47,11 +59,8 @@ class TrackManager {
     static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
     static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
 
-    static const int16_t TRACK_MODE_MAIN=32760;
-    static const int16_t TRACK_MODE_PROG=32761;
-    static const int16_t TRACK_MODE_OFF=0;
     static const int16_t MAX_TRACKS=8;
-    static bool setTrackMode(byte track, int16_t DCaddrOrMode);
+    static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
     static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
     static POWERMODE getMainPower() {return mainPowerGuess;}
@@ -71,7 +80,8 @@ class TrackManager {
     static POWERMODE mainPowerGuess;
 
     static MotorDriver* track[MAX_TRACKS];
-    static int16_t trackMode[MAX_TRACKS];  // dc address or TRACK_MODE_DCC, TRACK_MODE_PROG, TRACK_MODE_OFF
-};
+    static TRACK_MODE trackMode[MAX_TRACKS]; 
+    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
+    };
 
 #endif

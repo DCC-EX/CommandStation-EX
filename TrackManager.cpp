@@ -35,10 +35,13 @@ const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_OFF = 22479;  
 const int16_t HASH_KEYWORD_DC = 2183;  
+const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity 
 const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
-int16_t TrackManager::trackMode[MAX_TRACKS];
+TRACK_MODE TrackManager::trackMode[MAX_TRACKS];
+int16_t TrackManager::trackDCAddr[MAX_TRACKS];
+
 POWERMODE TrackManager::mainPowerGuess=POWERMODE::OFF;
 byte TrackManager::lastTrack=0;
 bool TrackManager::progTrackSyncMain=false; 
@@ -61,7 +64,7 @@ void TrackManager::Setup(const FSH * shieldname,
     addTrack(6,track6);
     addTrack(7,track7);
     
-    // Default the first 2 tracks (which mat be null) and perform HA waveform check.
+    // Default the first 2 tracks (which may be null) and perform HA waveform check.
     setTrackMode(0,TRACK_MODE_MAIN);
     setTrackMode(1,TRACK_MODE_PROG);
   
@@ -93,17 +96,24 @@ void TrackManager::setPROGSignal( bool on) {
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
-    APPLY_BY_MODE(cab,setDCSignal(speedbyte));
-}
+    FOR_EACH_TRACK(t) {
+        if (trackDCAddr[t]!=cab) continue;
+        if (trackMode[t]==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
+        else if (trackMode[t]==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
+    }
+}    
 
-bool TrackManager::setTrackMode(byte trackToSet, int16_t modeOrAddr) {
+
+bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
-    if (modeOrAddr==TRACK_MODE_PROG) {
+    if (mode==TRACK_MODE_PROG) {
         // only allow 1 track to be prog
         FOR_EACH_TRACK(t)
             if (trackMode[t]==TRACK_MODE_PROG) trackMode[t]=TRACK_MODE_OFF;
     }
-    trackMode[trackToSet]=modeOrAddr;
+    trackMode[trackToSet]=mode;
+    trackDCAddr[trackToSet]=dcAddr;
+    
     
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
@@ -132,8 +142,14 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
                     case TRACK_MODE_OFF:
                         StringFormatter::send(stream,F("OFF"));
                         break;
+                    case TRACK_MODE_DC:
+                        StringFormatter::send(stream,F("DC %d"),trackDCAddr[t]);
+                        break;
+                    case TRACK_MODE_DCX:
+                        StringFormatter::send(stream,F("DCX %d"),trackDCAddr[t]);
+                        break;
                     default:
-                        StringFormatter::send(stream,F("DC %d"),trackMode[t]);
+                        break; // unknown, dont care    
                     }
                 StringFormatter::send(stream,F(">\n"));
                 }
@@ -155,7 +171,10 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
         return setTrackMode(p[0],TRACK_MODE_OFF);
     
     if (params==3  && p[1]==HASH_KEYWORD_DC && p[2]>0) // <= id DC cab>
-        return setTrackMode(p[0],p[2]);
+        return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
+    
+    if (params==3  && p[1]==HASH_KEYWORD_DCX && p[2]>0) // <= id DCX cab>
+        return setTrackMode(p[0],TRACK_MODE_DCX,p[2]);
 
     return false;
 }

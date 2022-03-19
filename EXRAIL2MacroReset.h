@@ -103,8 +103,7 @@
 #undef SERVO_TURNOUT 
 #undef SERVO_SIGNAL
 #undef SET
-#undef SET_TRACK_DC
-#undef SET_TRACK_DCC
+#undef SET_TRACK
 #undef SETLOCO 
 #undef SIGNAL 
 #undef SIGNALH 
@@ -200,8 +199,7 @@
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
 #define SET(pin) 
-#define SET_TRACK_DC(trackid)
-#define SET_TRACK_DCC(trackid)
+#define SET_TRACK(track,mode)
 #define SETLOCO(loco) 
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
