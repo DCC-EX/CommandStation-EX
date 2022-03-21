@@ -145,7 +145,7 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
                 runningValue = 16 * runningValue + (hot - 'A' + 10);
                 break;
             }
-            if (hot >= 'A' && hot <= 'Z')
+            if (hot=='_' || (hot >= 'A' && hot <= 'Z'))
             {
                 // Since JMRI got modified to send keywords in some rare cases, we need this
                 // Super Kluge to turn keywords into a hash value that can be recognised later
