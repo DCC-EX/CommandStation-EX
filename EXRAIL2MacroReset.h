@@ -122,7 +122,7 @@
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
 #define AFTER(sensor_id)
-#define ALIAS(name,value)
+#define ALIAS(name,value...)
 #define AMBER(signal_id)
 #define AT(sensor_id)
 #define ATGTE(sensor_id,value) 
