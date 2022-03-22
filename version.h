@@ -13,14 +13,19 @@
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)
 //       Wait for analog value (ATGTE, ATLT)  
-//       TrafficManager DCC & DC Districts Archetecture 
+//       TrafficManager DCC & DC up to 8 Districts Architecture 
 // 4.0.1 EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
-//       JMRI feature enhancement. Provides for multiple additional DCC++EX wifi 
-//       connections as accessory controllers or CS for a programming track when 
-//       motor shield is added
+//       'Discoverd Server' multicast Dynamic Network Server (mDNS) displays WiFi connections to a DCC++EX Command Station
+//       New EX-RAIL "Extended Railroad Automation Instruction Language" automation capability.
+//         EX-Rail Function commands for creatng Automation, Route & SequenceScripts
+//         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial  monitors
+//         EX-RAIL “ROSTER” Engines Id & Function key layout on Engine Driver or WiThrottle
+//       New JMRI feature enhancements; 
+//         Populates New Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
+//         Provides for multiple additional DCC++EX wifi connections connections as accessory controllers or CS for a programming track when Motor Shields is add
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
 //         Support for PCA9685 PWM (servo) control modules.
@@ -28,24 +33,22 @@
 //         Support for MP3 sound playback via DFPlayer module.
 //         Support for HC-SR04 Ultrasonic range sensor module.
 //         Support for VL53L0X Laser range sensor module (Time-Of-Flight).
-//       Added <D HAL SHOW> diagnostic command to show configured devices
-//       Native non-blocking I2C drivers for AVR and Nano architectures (fallback
-//       to blocking Wire library for other platforms).
+//         Added <D HAL SHOW> diagnostic command to show configured devices
+//       Native non-blocking I2C drivers for AVR and Nano architectures (fallback to blocking Wire library for other platforms).
+//       New Processor Support added
+//         Compiles on Nano Every
+//       Can disable EEPROM code
 //       EEPROM layout change - deletes EEPROM contents on first start following upgrade.
-//       New EX-RAIL automation capability.
 //       Turnout class revised to expand turnout capabilities, new commands added.
 //       Output class now allows ID > 255.
-//       Configuration options to globally flip polarity of DCC Accessory states when driven
-//       from <a> command and <T> command.
+//       Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and <T> command.
 //       Increased use of display for showing loco decoder programming information.
-//       Can disable EEPROM code
 //       Can define border between long and short addresses
 //       Turnout and accessory states (thrown/closed = 0/1 or 1/0) can be set to match RCN-213
 //       Bugfix: one-off error in CIPSEND drop
-//       Compiles on Nano Every
 //       Bugfix: disgnostic display of ack pulses >32kus
 //       Bugfix: Current read from wrong ADC during interrupt
-// 3.2.0 General Release Includes all of 3.1.1 thru 3.1.7 enhancements
+// 3.2.0 Development Release Includes all of 3.1.1 thru 3.1.7 enhancements
 // 3.1.7 Bugfix: Unknown locos should have speed forward 
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
 // 3.1.5 Fix LCD corruption on power-up
