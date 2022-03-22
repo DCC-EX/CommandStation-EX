@@ -6,16 +6,21 @@
 
 #define VERSION "4.0.2"
 // 4.0.2 EXRAIL additions:
+//       Automatic ALIAS(name) 
+//       DCCEXPArser.cpp now accepts Underscore in Alias Names
+//       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
+//       New DC track function and DCX reverse polarity function
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)
 //       Wait for analog value (ATGTE, ATLT)  
+//       TrafficManager DCC & DC Districts Archetecture 
 // 4.0.1 EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
-//.......JMRI feature enhancement. Provides for multiple additional DCC++EX wifi 
-//.........connections as accessory controllers or CS for a programming track when 
-//.........motor shield is added
+//       JMRI feature enhancement. Provides for multiple additional DCC++EX wifi 
+//       connections as accessory controllers or CS for a programming track when 
+//       motor shield is added
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
 //         Support for PCA9685 PWM (servo) control modules.
@@ -23,7 +28,7 @@
 //         Support for MP3 sound playback via DFPlayer module.
 //         Support for HC-SR04 Ultrasonic range sensor module.
 //         Support for VL53L0X Laser range sensor module (Time-Of-Flight).
-//.........Added <D HAL SHOW> diagnostic command to show configured devices
+//       Added <D HAL SHOW> diagnostic command to show configured devices
 //       Native non-blocking I2C drivers for AVR and Nano architectures (fallback
 //       to blocking Wire library for other platforms).
 //       EEPROM layout change - deletes EEPROM contents on first start following upgrade.
@@ -39,8 +44,8 @@
 //       Bugfix: one-off error in CIPSEND drop
 //       Compiles on Nano Every
 //       Bugfix: disgnostic display of ack pulses >32kus
-//.......Bugfix: Current read from wrong ADC during interrupt
-//       ...
+//       Bugfix: Current read from wrong ADC during interrupt
+// 3.2.0 General Release Includes all of 3.1.1 thru 3.1.7 enhancements
 // 3.1.7 Bugfix: Unknown locos should have speed forward 
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
 // 3.1.5 Fix LCD corruption on power-up
