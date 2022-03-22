@@ -20,12 +20,14 @@
 //       Engine Driver "DriveAway" feature enhancement
 //       'Discoverd Server' multicast Dynamic Network Server (mDNS) displays WiFi connections to a DCC++EX Command Station
 //       New EX-RAIL "Extended Railroad Automation Instruction Language" automation capability.
-//         EX-Rail Function commands for creatng Automation, Route & SequenceScripts
-//         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial  monitors
+//         EX-Rail Function commands for creating Automation, Route & Sequence Scripts
 //         EX-RAIL “ROSTER” Engines Id & Function key layout on Engine Driver or WiThrottle
+//         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial monitors
 //       New JMRI feature enhancements; 
 //         Populates New Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
+//         Turnout class revised to expand turnout capabilities, new commands added.
 //         Provides for multiple additional DCC++EX wifi connections connections as accessory controllers or CS for a programming track when Motor Shields is add
+//         Supports multiple Command Station connections and individual tracking of Send DCC++ Command panes and DCC++ Traffic Monitor panes
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
 //         Support for PCA9685 PWM (servo) control modules.
@@ -36,10 +38,9 @@
 //         Added <D HAL SHOW> diagnostic command to show configured devices
 //       Native non-blocking I2C drivers for AVR and Nano architectures (fallback to blocking Wire library for other platforms).
 //       New Processor Support added
-//         Compiles on Nano Every
+//         Compiles on Nano Every and Teensy
 //       Can disable EEPROM code
 //       EEPROM layout change - deletes EEPROM contents on first start following upgrade.
-//       Turnout class revised to expand turnout capabilities, new commands added.
 //       Output class now allows ID > 255.
 //       Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and <T> command.
 //       Increased use of display for showing loco decoder programming information.
