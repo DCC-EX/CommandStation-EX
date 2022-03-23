@@ -84,6 +84,9 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
+// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+  IODevice::begin();
+
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
   // Standard supported devices have pre-configured macros but custome hardware installations require

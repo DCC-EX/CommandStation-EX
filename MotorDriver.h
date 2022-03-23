@@ -22,6 +22,7 @@
 #ifndef MotorDriver_h
 #define MotorDriver_h
 #include "FSH.h"
+#include "IODevice.h"
 
 // Virtualised Motor shield 1-track hardware Interface
 
@@ -48,7 +49,7 @@ enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 class MotorDriver {
   public:
     
-    MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
+    MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( POWERMODE mode);
     virtual POWERMODE getPower() { return powerMode;}
@@ -75,8 +76,9 @@ class MotorDriver {
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
 	getFastPin(type, pin, 0, result);
     }
-    byte powerPin, signalPin, signalPin2, currentPin, faultPin, brakePin;
-    FASTPIN fastPowerPin,fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
+    VPIN powerPin;
+    byte signalPin, signalPin2, currentPin, faultPin, brakePin;
+    FASTPIN fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
     bool dualSignal;       // true to use signalPin2
     bool invertBrake;       // brake pin passed as negative means pin is inverted
     float senseFactor;

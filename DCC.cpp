@@ -64,9 +64,6 @@ void DCC::begin(const FSH * motorShieldName) {
   shieldName=(FSH *)motorShieldName;
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
-  // Initialise HAL layer before reading EEprom.
-  IODevice::begin();
-
 #ifndef DISABLE_EEPROM
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused

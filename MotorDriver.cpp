@@ -33,11 +33,10 @@
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
-MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
+MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
-  getFastPin(F("POWER"),powerPin,fastPowerPin);
-  pinMode(powerPin, OUTPUT);
+  IODevice::write(powerPin,LOW);// set to OUTPUT and off 
   
   signalPin=signal_pin;
   getFastPin(F("SIG"),signalPin,fastSignalPin);
@@ -102,9 +101,9 @@ void MotorDriver::setPower(POWERMODE mode) {
     // on the Pololu board if brake is wired to ^D2.
     setBrake(true);
     setBrake(false);
-    setHIGH(fastPowerPin);
+    IODevice::write(powerPin,HIGH);
   }
-  else setLOW(fastPowerPin);
+  else IODevice::write(powerPin,LOW);
   powerMode=mode; 
 }
 
@@ -160,7 +159,7 @@ int MotorDriver::getCurrentRaw() {
   current = analogRead(currentPin)-senseOffset;
   interrupts();
   if (current<0) current=0-current;
-  if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && isHIGH(fastPowerPin))
+  if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
       return (current == 0 ? -1 : -current);
   return current;
    
