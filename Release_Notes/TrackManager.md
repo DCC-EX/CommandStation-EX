@@ -1,5 +1,6 @@
 # DCC++EX Track Manager
 
+Chris Harlow 2022/03/23
 
 **If you are only interested in a standard setup using just a DCC track and PROG track, then you DO NOT need to read the rest of this document.**
 
@@ -45,10 +46,13 @@ In an all-DCC environment it is unlikely that you will need to do anything other
 
 Bear in mind that a track may actually be only connected to DCC accessories such as signals and turnouts... your layout, your choice. 
 
+Note that when setting a track to PROG or OFF, its power is switched off automatically. (The PROG track manages power on an as-needed basis under normal circumstances.
+When setting a track to MAIN (or DC, DCX see later) the power is applied according to the most recent `<1>` or `<0>` command as being the most compatible with previous versions.
+
 ## using the Track Manager (DC)
 
 TM allows any or all of your tracks to be individually selected as a DC track which responds to throttle commands on any given loco address. So for example if track A is set to DC address 55, then any throttle commands to loco 55 will be transmitted as DC onto track A and thus a DC loco can be driven along that track. almost exactly as if it was DCC.
-Your throttle (JMRI, EX-Webthrottle, Wkithrottle, Engine Driver etc etc) do not know or care that this is a DC loco so nothing needs to change.
+Your throttle (JMRI, EX-Webthrottle, Withrottle, Engine Driver etc etc) do not know or care that this is a DC loco so nothing needs to change.
 
 For a simple Command Station setup to run just two DC tracks instead of DCC, you only need to assign DC addresses to tracks A and B. If you want DCC on track A and DC on track B, you just need to set track B to a suitable DC address.
 
@@ -105,7 +109,7 @@ IF you have no more than 3 tracks and you can arrange for the signal pins to be 
 Configuring the software to provide more tracks is a simple extension of the existing method of customising the #define of MOTOR_SHIELD_TYPE in config.h
 Since there can be no standard setup of your wiring and hardware choices, it will be necessary to create your custom built MOTOR_SHIELD_TYPE in the manner described in MotorDrivers.h and simply continue to add more `new MotorDriver(` definitions to the list, providing all the pin numbers and electronic limits for each track. (or even shorten the list to 1)
 
-## Using EXRAIL to control TM
+## Using EXRAIL to control Track Manager
 EXRAIL has a single additional command that can be used to automate TM.
 
 - `SET_TRACK(t,mode)`

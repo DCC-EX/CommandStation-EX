@@ -79,7 +79,10 @@ void TrackManager::Setup(const FSH * shieldname,
 void TrackManager::addTrack(byte t, MotorDriver* driver) {
      track[t]=driver;
      trackMode[t]=TRACK_MODE_OFF;
-     if (driver) lastTrack=t; 
+     if (driver) {
+         lastTrack=t;
+         track[t]->setPower(POWERMODE::OFF);
+     } 
 }    
 
 void TrackManager::setDCCSignal( bool on) {
@@ -109,11 +112,13 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode==TRACK_MODE_PROG) {
         // only allow 1 track to be prog
         FOR_EACH_TRACK(t)
-            if (trackMode[t]==TRACK_MODE_PROG) trackMode[t]=TRACK_MODE_OFF;
+            if (trackMode[t]==TRACK_MODE_PROG) {
+                track[t]->setPower(POWERMODE::OFF);
+                trackMode[t]=TRACK_MODE_OFF;
+            }
     }
     trackMode[trackToSet]=mode;
     trackDCAddr[trackToSet]=dcAddr;
-    
     
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
@@ -122,6 +127,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         if (trackMode[t]==TRACK_MODE_MAIN ||trackMode[t]==TRACK_MODE_PROG)
             canDo &= track[t]->isPWMCapable();
     MotorDriver::usePWM=canDo;
+
+    // Normal running tracks are set to the global power state 
+    track[trackToSet]->setPower(
+        (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ?
+        mainPowerGuess : POWERMODE::OFF);
+    
     return true; 
 }
 
