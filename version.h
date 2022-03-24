@@ -6,6 +6,9 @@
 
 #define VERSION "4.0.2"
 // 4.0.2 EXRAIL additions:
+//       VIRTUAL_TURNOUT
+//       </KILL ALL> command to stop all tasks. 
+//       FORGET forgets the current loco in DCC reminder tables.
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)
 //       Wait for analog value (ATGTE, ATLT)  

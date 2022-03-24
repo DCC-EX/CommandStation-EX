@@ -114,6 +114,7 @@
 #undef TURNOUT 
 #undef UNJOIN
 #undef UNLATCH 
+#undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #undef XFOFF
 #undef XFON
@@ -210,6 +211,7 @@
 #define TURNOUT(id,addr,subaddr,description...) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
+#define VIRTUAL_TURNOUT(id,description...) 
 #define WAITFOR(pin)
 #define XFOFF(cab,func)
 #define XFON(cab,func)
