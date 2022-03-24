@@ -63,6 +63,7 @@ const int16_t HASH_KEYWORD_UNLATCH=1353;
 const int16_t HASH_KEYWORD_PAUSE=-4142;
 const int16_t HASH_KEYWORD_RESUME=27609;
 const int16_t HASH_KEYWORD_KILL=5218;
+const int16_t HASH_KEYWORD_ALL=3457;
 const int16_t HASH_KEYWORD_ROUTES=-3702;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -362,8 +363,13 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   if (paramCount!=2 || p[1]<0  || p[1]>=MAX_FLAGS) return false;
   
   switch (p[0]) {
-  case HASH_KEYWORD_KILL: // Kill taskid
+  case HASH_KEYWORD_KILL: // Kill taskid|ALL
     {
+      if (p[1]==HASH_KEYWORD_ALL) {
+        while (loopTask) delete loopTask;
+        return true; 
+      }
+
       RMFT2 * task=loopTask;
       while(task) {
 	if (task->taskId==p[1]) {
