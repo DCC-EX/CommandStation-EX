@@ -24,29 +24,19 @@
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
-//       'Discovered Server' multicast Dynamic Network Server (mDNS) displays available WiFi connections to a DCC++EX Command Station
-//       New EX-RAIL "Extended Railroad Automation Instruction Language" automation capability.
-//         EX-Rail Function commands for creating Automation, Route & Sequence Scripts
-//         EX-RAIL “ROSTER” Engines Id & Function key layout on Engine Driver or WiThrottle
-//         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial monitors
-//       New JMRI feature enhancements; 
-//         Reads DCC++EX EEPROM & automatically uploades any Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
-//         Turnout class revised to expand turnout capabilities, new commands added.
-//         Provides for multiple additional DCC++EX WiFi connections as accessory controllers or CS for a programming track when Motor Shields are added
-//         Supports Multiple Command Station connections and individual tracking of Send DCC++ Command panes and DCC++ Traffic Monitor panes
-//       New HAL added for I/O (digital and analogue inputs and outputs, servos etc)
-//         Automatically detects & connects to supported devices included in your config.h file
-//         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
-//         Support for PCA9685 PWM (servo) control modules.
-//         Support for analogue inputs on Arduino pins and on ADS111x I2C modules.
-//         Support for MP3 sound playback via DFPlayer module.
-//         Support for HC-SR04 Ultrasonic range sensor module.
-//         Support for VL53L0X Laser range sensor module (Time-Of-Flight).
-//         Added <D HAL SHOW> diagnostic command to show configured devices
-//       New Processor Support added
-//         Compiles on Nano Every and Teensy
-//       Native non-blocking I2C drivers for AVR and Nano architectures (fallback to blocking Wire library for other platforms).
-//       Can disable EEPROM code
+//       JMRI feature enhancement. Provides for multiple additional DCC++EX wifi 
+//           connections as accessory controllers or CS for a programming track when 
+//           motor shield is added
+//       New HAL added for I/O (digital and analogue inputs and outputs, servos etc).
+//       Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
+//       Support for PCA9685 PWM (servo) control modules.
+//       Support for analogue inputs on Arduino pins and on ADS111x I2C modules.
+//       Support for MP3 sound playback via DFPlayer module.
+//       Support for HC-SR04 Ultrasonic range sensor module.
+//       Support for VL53L0X Laser range sensor module (Time-Of-Flight).
+//       Added <D HAL SHOW> diagnostic command to show configured devices
+//       Native non-blocking I2C drivers for AVR and Nano architectures (fallback
+//       to blocking Wire library for other platforms).
 //       EEPROM layout change - deletes EEPROM contents on first start following upgrade.
 //       Output class now allows ID > 255.
 //       Configuration options to globally flip polarity of DCC Accessory states when driven from <a> command and <T> command.
