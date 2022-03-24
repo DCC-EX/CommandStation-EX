@@ -570,6 +570,13 @@ void RMFT2::loop2() {
     driveLoco(operand);
     break;
     
+  case OPCODE_FORGET:
+    if (loco!=0) {
+      DCC::forgetLoco(loco);
+      loco=0; 
+    } 
+    break;
+
   case OPCODE_INVERT_DIRECTION:
     invert= !invert;
     driveLoco(speedo);

@@ -54,6 +54,7 @@
 #undef FOFF
 #undef FOLLOW 
 #undef FON 
+#undef FORGET
 #undef FREE 
 #undef FWD 
 #undef GREEN
@@ -148,7 +149,8 @@
 #define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 
-#define FON(func) 
+#define FON(func)
+#define FORGET
 #define FREE(blockid) 
 #define FWD(speed) 
 #define GREEN(signal_id)
