@@ -102,6 +102,8 @@ void  RMFT2::printMessage(uint16_t id) {
 #define PIN_TURNOUT(id,pin,description...) case id: desc=F("" description); break;
 #undef SERVO_TURNOUT
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) case id: desc=F("" description); break;
+#undef VIRTUAL_TURNOUT
+#define VIRTUAL_TURNOUT(id,description...) case id: desc=F("" description); break;
 
 void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
      const FSH * desc=F("");
@@ -198,6 +200,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
 #define FON(func) OPCODE_FON,V(func),
+#define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -258,6 +261,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
+#define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),

@@ -9,13 +9,17 @@
 //       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
 //       New DC track function and DCX reverse polarity function
 //       TrackManager DCC & DC up to 8 Districts Architecture 
-// 4.0.2 EXRAIL additions:
 //       Automatic ALIAS(name) 
-//       DCCEXPArser.cpp now accepts Underscore in Alias Names
+//       Command Parser now accepts Underscore in Alias Names
+// 4.0.2 EXRAIL additions:
+//       VIRTUAL_TURNOUT
+//       </KILL ALL> command to stop all tasks. 
+//       FORGET forgets the current loco in DCC reminder tables.
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)
 //       Wait for analog value (ATGTE, ATLT)  
-// 4.0.1 EXRAIL BROADCAST("msg") 
+// 4.0.1 Small EXRAIL updates
+//       EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement

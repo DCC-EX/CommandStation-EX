@@ -54,6 +54,7 @@
 #undef FOFF
 #undef FOLLOW 
 #undef FON 
+#undef FORGET
 #undef FREE 
 #undef FWD 
 #undef GREEN
@@ -114,6 +115,7 @@
 #undef TURNOUT 
 #undef UNJOIN
 #undef UNLATCH 
+#undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #undef XFOFF
 #undef XFON
@@ -149,7 +151,8 @@
 #define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 
-#define FON(func) 
+#define FON(func)
+#define FORGET
 #define FREE(blockid) 
 #define FWD(speed) 
 #define GREEN(signal_id)
@@ -210,6 +213,7 @@
 #define TURNOUT(id,addr,subaddr,description...) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
+#define VIRTUAL_TURNOUT(id,description...) 
 #define WAITFOR(pin)
 #define XFOFF(cab,func)
 #define XFON(cab,func)
