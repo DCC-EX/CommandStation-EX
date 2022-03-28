@@ -4,16 +4,17 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.0.2"
+#define VERSION "4.0.3"
+// 4.0.3 Tarck Manager additions:
+//       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
+//       New DC track function and DCX reverse polarity function
+//       TrackManager DCC & DC up to 8 Districts Architecture 
 // 4.0.2 EXRAIL additions:
 //       Automatic ALIAS(name) 
 //       DCCEXPArser.cpp now accepts Underscore in Alias Names
-//       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
-//       New DC track function and DCX reverse polarity function
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)
 //       Wait for analog value (ATGTE, ATLT)  
-//       TrafficManager DCC & DC up to 8 Districts Architecture 
 // 4.0.1 EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
