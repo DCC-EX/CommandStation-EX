@@ -1,0 +1,2 @@
+- name: Sponsor Labels
+  uses: JasonEtco/is-sponsor-label-action@v1.2.0
