@@ -109,6 +109,14 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
+
+    // DC tracks require a motorDriver that can set brake!
+    if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
+         && !track[trackToSet]->canBrake()) {
+             DIAG(F("No brake:no DC"));
+             return false; 
+         }
+
     if (mode==TRACK_MODE_PROG) {
         // only allow 1 track to be prog
         FOR_EACH_TRACK(t)
@@ -120,6 +128,29 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     trackMode[trackToSet]=mode;
     trackDCAddr[trackToSet]=dcAddr;
     
+    // When a track is switched, we must clear any side effects of its previous 
+    // state, otherwise trains run away or just dont move.  
+    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
+        // DC tracks need to be given speed of the throttle for that cab address
+        // otherwise will not match other tracks on same cab.
+        // This also needs to allow for inverted DCX
+
+        int16_t speed1=DCC::getThrottleSpeed(dcAddr);
+        byte speedByte;
+        if (speed1<0) speedByte=0;
+        else {
+            speedByte=speed1;
+            bool direction=DCC::getThrottleDirection(dcAddr);
+            if (mode==TRACK_MODE_DCX) direction=!direction;  
+            if (direction) speedByte|=0x80;
+        }
+        track[trackToSet]->setDCSignal(speedByte); 
+    }
+    else {
+        // DCC tracks need to have the brake set off or they will not work.
+        track[trackToSet]->setBrake(false); 
+    }
+    
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
     bool canDo=true;
@@ -128,6 +159,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
             canDo &= track[t]->isPWMCapable();
     MotorDriver::usePWM=canDo;
 
+    
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(
         (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ?

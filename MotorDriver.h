@@ -60,6 +60,9 @@ class MotorDriver {
     virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
+    inline bool canBrake() {
+      return brakePin!=UNUSED_PIN;
+    }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
     }
