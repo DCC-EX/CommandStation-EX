@@ -19,13 +19,15 @@ In the default scenario of a single DCC track and a PROG track, the TM behaves a
 
 The TM is able to handle up to 8 separate track domains. Each domain requires a hardware driver to supply track voltage. A typical motor driver shield supplies two tracks, which is what we have used in the past as main and prog.
 
-Unlike the previous version where the shield channel A was always the DCC main and channel B was always the DCC prog track, TM allows :
+Unlike the previous version of DCC++EX, where the shield channel A was always the DCC main and channel B was always the DCC prog track, TM allows :
 - None, any or all the tracks can be DCC Main.
 - None or ONE track may be DCC prog at any given time.
 - Any track may be powered on or off independently of the others.
 - Any track may be disconnected from the DCC signal and used as a DC track with a given loco address. (See DC discussion later)
 
-With such flexibility comes responsibility... the scope for making mistakes is right there!
+With such flexibility comes responsibility... the potential for making mistakes means taking extra care with your configuration!
+
+**NOTE** TM does NOT use "zero stretching" to control your DC motor. Instead, it uses true Pulse Width Modulation (PWM) to efficiently run your loco using the same method a decoder uses to control a DCC loco's motor. DC locos can even run better on TM than they can on a normal analog throttle, especially at low speed, since it is always applying the full track voltage, albeit in pulses of varying duration. 
 
 ## Using the Track Manager (DCC)
 TM names the tracks A to H. In a default setup, you will normally have tracks A and B where A will default to be the DCC main signal and B will be the DCC prog.
@@ -134,4 +136,4 @@ The TM code is primarily in TrackManager.cpp which is responsible for coordinati
 
 Each individual track is handled by an instance of MotorDriver created from the MOTOPR_SHIELD_TYPE definition in config.h 
 
-Many functions formerly in the DCCWaveform code have been moved to TrackManager or MotorDriver, notably the power control and checking. This makes the code easier to follow. 
+Many functions formerly in the DCCWaveform code have been moved to TrackManager or MotorDriver, notably the power control and checking. This makes the code easier to follow.
