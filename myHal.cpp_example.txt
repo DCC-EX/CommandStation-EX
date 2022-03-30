@@ -16,10 +16,13 @@
 #if !defined(IO_NO_HAL)
 
 // Include devices you need.
-#include "IODevice.h"
+#include "IODevice.h"     // Always recommended to include this
+
+// Optional includes, comment out if not in use
 #include "IO_HCSR04.h"    // Ultrasonic range sensor
 #include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 #include "IO_DFPlayer.h"  // MP3 sound player
+#include "IO_PCA9555.h"   // PCA/TCA9555
 
 
 //==========================================================================
@@ -58,6 +61,33 @@ void halSetup() {
   // may be connected to the same Arduino pin.
 
   //MCP23017::create(196, 16, 0x22, 40);
+
+
+  //=======================================================================
+  // The following directive defines an PCA9555 / TCA95555 16-port I2C GPIO Extender module.
+  //=======================================================================
+  // The parameters are: 
+  //   First Vpin=196
+  //   Number of VPINs=16 (numbered 196-211)
+  //   I2C address of module=0x22
+
+  //PCA9555::create(196, 16, 0x22);
+
+  // Alternative form, which allows the INT pin of the module to request a scan
+  // by pulling Arduino pin 22 to ground. Means that the I2C isn't being polled
+  // all the time, only when a change takes place. Multiple modules' INT pins
+  // may be connected to the same Arduino pin.
+
+  //PCA9555::create(196, 16, 0x22, 22);
+  
+
+  //=======================================================================
+  // The following directive defines an MCP23008 8-port I2C GPIO Extender module.
+  //=======================================================================
+  // The parameters are: 
+  //   First Vpin=300
+  //   Number of VPINs=8 (numbered 300-307)
+  //   I2C address of module=0x22
 
 
   //=======================================================================
