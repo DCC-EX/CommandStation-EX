@@ -69,6 +69,7 @@
 #undef IFTIMEOUT
 #undef INVERT_DIRECTION 
 #undef JOIN 
+#undef KILLALL
 #undef LATCH 
 #undef LCD 
 #undef LCN 
@@ -166,6 +167,7 @@
 #define IFTIMEOUT
 #define INVERT_DIRECTION 
 #define JOIN 
+#define KILLALL
 #define LATCH(sensor_id) 
 #define LCD(row,msg) 
 #define LCN(msg) 

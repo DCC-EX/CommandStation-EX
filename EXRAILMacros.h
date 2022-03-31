@@ -215,6 +215,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
+#define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
