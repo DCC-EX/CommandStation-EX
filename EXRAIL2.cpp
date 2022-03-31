@@ -360,7 +360,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 
   // check KILL ALL here, otherwise the next validation confuses ALL with a flag  
   if (p[0]==HASH_KEYWORD_KILL && p[1]==HASH_KEYWORD_ALL) {
-    while (loopTask) delete loopTask; // destructor changes loopTask
+    while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
     return true;   
   }
 
@@ -373,7 +373,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
       RMFT2 * task=loopTask;
       while(task) {
 	      if (task->taskId==p[1]) {
-	        delete task;
+	        task->kill(F("KILL"));
 	        return  true;
 	      }
 	      task=task->next;
@@ -825,7 +825,11 @@ void RMFT2::loop2() {
   case OPCODE_ENDEXRAIL:
     kill();
     return;
-    
+
+  case OPCODE_KILLALL:
+    while(loopTask) loopTask->kill(F("KILLALL"));
+    return;
+
   case OPCODE_JOIN:
     TrackManager::setPower(POWERMODE::ON);
     TrackManager::setJoin(true);

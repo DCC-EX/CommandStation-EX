@@ -69,6 +69,7 @@
 #undef IFTIMEOUT
 #undef INVERT_DIRECTION 
 #undef JOIN 
+#undef KILLALL
 #undef LATCH 
 #undef LCD 
 #undef LCN 
@@ -78,6 +79,7 @@
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
 #undef ONTHROW 
+#undef PARSE
 #undef PAUSE
 #undef PIN_TURNOUT 
 #undef PRINT
@@ -167,6 +169,7 @@
 #define IFTIMEOUT
 #define INVERT_DIRECTION 
 #define JOIN 
+#define KILLALL
 #define LATCH(sensor_id) 
 #define LCD(row,msg) 
 #define LCN(msg) 
@@ -179,6 +182,7 @@
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
+#define PARSE(msg)
 #define POM(cv,value)
 #define POWEROFF
 #define POWERON

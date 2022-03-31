@@ -12,8 +12,9 @@
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
 // 4.0.2 EXRAIL additions:
+//       PARSE <> commands
 //       VIRTUAL_TURNOUT
-//       </KILL ALL> command to stop all tasks. 
+//       </KILL ALL> and KILLALL command to stop all tasks. 
 //       FORGET forgets the current loco in DCC reminder tables.
 //       Servo signals (SERVO_SIGNAL) 
 //       High-On signal pins (SIGNALH)

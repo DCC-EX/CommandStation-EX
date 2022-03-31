@@ -71,6 +71,8 @@ void  RMFT2::emitWithrottleDescriptions(Print * stream) {
 const int StringMacroTracker1=__COUNTER__;
 #undef BROADCAST
 #define BROADCAST(msg) case (__COUNTER__ - StringMacroTracker1) : CommandDistributor::broadcastText(F(msg));break;
+#undef PARSE
+#define PARSE(msg) case (__COUNTER__ - StringMacroTracker1) : DCCEXParser::parse(F(msg));break;
 #undef PRINT
 #define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
 #undef LCN
@@ -215,6 +217,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
+#define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
@@ -230,6 +233,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
+#define PARSE(msg) PRINT(msg)
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
