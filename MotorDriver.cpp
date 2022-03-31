@@ -97,10 +97,6 @@ bool MotorDriver::isPWMCapable() {
 void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
-    // toggle brake before turning power on - resets overcurrent error
-    // on the Pololu board if brake is wired to ^D2.
-    setBrake(true);
-    setBrake(false);
     IODevice::write(powerPin,HIGH);
   }
   else IODevice::write(powerPin,LOW);

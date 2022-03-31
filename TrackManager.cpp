@@ -134,17 +134,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         // DC tracks need to be given speed of the throttle for that cab address
         // otherwise will not match other tracks on same cab.
         // This also needs to allow for inverted DCX
-
-        int16_t speed1=DCC::getThrottleSpeed(dcAddr);
-        byte speedByte;
-        if (speed1<0) speedByte=0;
-        else {
-            speedByte=speed1;
-            bool direction=DCC::getThrottleDirection(dcAddr);
-            if (mode==TRACK_MODE_DCX) direction=!direction;  
-            if (direction) speedByte|=0x80;
-        }
-        track[trackToSet]->setDCSignal(speedByte); 
+        applyDCSpeed(trackToSet);
+ 
     }
     else {
         // DCC tracks need to have the brake set off or they will not work.
@@ -166,6 +157,20 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         mainPowerGuess : POWERMODE::OFF);
     
     return true; 
+}
+
+void TrackManager::applyDCSpeed(byte t) {
+    
+        int16_t speed1=DCC::getThrottleSpeed(trackDCAddr[t]);
+        byte speedByte;
+        if (speed1<0) speedByte=0;
+        else {
+            speedByte=speed1;
+            bool direction=DCC::getThrottleDirection(trackDCAddr[t]);
+            if (trackMode[t]==TRACK_MODE_DCX) direction=!direction;  
+            if (direction) speedByte|=0x80;
+        }
+        track[t]->setDCSignal(speedByte);
 }
 
 bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
@@ -240,18 +245,38 @@ MotorDriver * TrackManager::getProgDriver() {
     FOR_EACH_TRACK(t)
         if (trackMode[t]==TRACK_MODE_PROG) return track[t];
     return NULL;
-}        
+} 
+
 void TrackManager::setPower2(bool setProg,POWERMODE mode) {
-    if (setProg) {
-         APPLY_BY_MODE(TRACK_MODE_PROG,setPower(mode))
-    }
-    else {
-        mainPowerGuess=mode; 
-        FOR_EACH_TRACK(t)
-        if (track[t] 
-             && trackMode[t]!=TRACK_MODE_OFF
-             && trackMode[t]!=TRACK_MODE_PROG 
-             ) track[t]->setPower(mode);
+    if (!setProg) mainPowerGuess=mode; 
+    FOR_EACH_TRACK(t) {
+        MotorDriver * driver=track[t]; 
+        if (!driver) continue; 
+        switch (trackMode[t]) {
+            case TRACK_MODE_MAIN:
+                if (setProg) break; 
+                // toggle brake before turning power on - resets overcurrent error
+                // on the Pololu board if brake is wired to ^D2.   
+                driver->setBrake(true);
+                driver->setBrake(false); // DCC runs with brake off
+                driver->setPower(mode);  
+                break; 
+            case TRACK_MODE_DC:
+            case TRACK_MODE_DCX:
+                if (setProg) break; 
+                driver->setBrake(true); // DC starts with brake on
+                applyDCSpeed(t);        // speed match DCC throttles
+                driver->setPower(mode);
+                break;  
+            case TRACK_MODE_PROG:
+                if (!setProg) break; 
+                driver->setBrake(true);
+                driver->setBrake(false);
+                driver->setPower(mode);
+                break;  
+            case TRACK_MODE_OFF:
+                break;
+        }
     }
 }
   

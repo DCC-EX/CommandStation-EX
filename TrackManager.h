@@ -78,6 +78,7 @@ class TrackManager {
     static byte lastTrack;
     static byte nextCycleTrack;
     static POWERMODE mainPowerGuess;
+    static void applyDCSpeed(byte t);
 
     static MotorDriver* track[MAX_TRACKS];
     static TRACK_MODE trackMode[MAX_TRACKS]; 
