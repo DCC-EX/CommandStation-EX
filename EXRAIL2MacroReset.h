@@ -79,6 +79,7 @@
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
 #undef ONTHROW 
+#undef PARSE
 #undef PAUSE
 #undef PIN_TURNOUT 
 #undef PRINT
@@ -180,6 +181,7 @@
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
+#define PARSE(msg)
 #define POM(cv,value)
 #define POWEROFF
 #define POWERON
