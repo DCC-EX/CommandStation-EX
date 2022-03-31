@@ -56,7 +56,7 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
     brakePin=invertBrake ? 0-brake_pin : brake_pin;
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     pinMode(brakePin, OUTPUT);
-    setBrake(false);
+    setBrake(true);  // start with brake on in case we hace DC stuff going on
   }
   else brakePin=UNUSED_PIN;
   
