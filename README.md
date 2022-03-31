@@ -22,7 +22,7 @@ Both CommandStation-EX and BaseStation-Classic support much of the NMRA Digital 
 
 # What’s in this Repository?
 
-This repository, CommandStation-EX, contains a complete DCC++ EX Commmand Station sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.  All sketch files are in the folder named CommandStation-EX and its subforlders. 
+This repository, CommandStation-EX, contains a complete DCC++ EX Commmand Station sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.
 
 To utilize this sketch, you can use the following: 
 
@@ -69,7 +69,7 @@ in config.h.
 * Automatic slot (register) management 
 * Automation (coming soon)
 
-NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means to you, click [HERE](notes/rewrite.md).
+NOTE: DCC-EX is a major rewrite to the code. We started over and rebuilt it from the ground up! For what that means, you can read [HERE](https://dcc-ex.com/about/rewrite.html).
 
 # More information
 You can learn more at the [DCC++ EX website](https://dcc-ex.com/)
