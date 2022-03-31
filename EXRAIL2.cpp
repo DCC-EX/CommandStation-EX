@@ -357,27 +357,27 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   default:
     break;
   }
-  
+
+  // check KILL ALL here, otherwise the next validation confuses ALL with a flag  
+  if (p[0]==HASH_KEYWORD_KILL && p[1]==HASH_KEYWORD_ALL) {
+    while (loopTask) delete loopTask; // destructor changes loopTask
+    return true;   
+  }
+
   // all other / commands take 1 parameter 0 to MAX_FLAGS-1
-  
   if (paramCount!=2 || p[1]<0  || p[1]>=MAX_FLAGS) return false;
   
   switch (p[0]) {
   case HASH_KEYWORD_KILL: // Kill taskid|ALL
     {
-      if (p[1]==HASH_KEYWORD_ALL) {
-        while (loopTask) delete loopTask;
-        return true; 
-      }
-
       RMFT2 * task=loopTask;
       while(task) {
-	if (task->taskId==p[1]) {
-	  delete task;
-	  return  true;
-	}
-	task=task->next;
-	if (task==loopTask) break;
+	      if (task->taskId==p[1]) {
+	        delete task;
+	        return  true;
+	      }
+	      task=task->next;
+	      if (task==loopTask) break;
       }
     }
     return false;
