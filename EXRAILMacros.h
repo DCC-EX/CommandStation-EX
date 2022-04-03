@@ -49,24 +49,38 @@
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
+#define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
 #define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
 #include "myAutomation.h"
 
-// Pass 2 convert descriptions to  withrottle format emitter function
+// Pass 2 create throttle route list 
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
-#define ROUTE(id, description) emitRouteDescription(stream,'R',id,F(description));
+#define ROUTE(id, description) id,
 #undef AUTOMATION
-#define AUTOMATION(id, description) emitRouteDescription(stream,'A',id,F(description));
-void  RMFT2::emitWithrottleDescriptions(Print * stream) {
-   (void)stream;
+#define AUTOMATION(id, description) -id,
+const int16_t FLASH RMFT2::routeIdList[]= {
     #include "myAutomation.h"
+    0}; 
+
+// Pass 3 Create route descriptions:
+#undef ROUTE
+#define ROUTE(id, description) case id: return F(description);
+#undef AUTOMATION
+#define AUTOMATION(id, description) case id: return F(description);
+const FSH * RMFT2::getRouteDescription(int16_t id) {
+   switch(id) {
+    #include "myAutomation.h"
+    default: break;
+   }
+   return NULL;
 }
 
-// Pass 3... Create Text sending functions
+// Pass 4... Create Text sending functions
 #include "EXRAIL2MacroReset.h"
 const int StringMacroTracker1=__COUNTER__;
 #undef BROADCAST
@@ -96,58 +110,63 @@ void  RMFT2::printMessage(uint16_t id) {
 }
 
 
-// Pass 4: Turnout descriptions (optional)
+// Pass 5: Turnout descriptions (optional)
 #include "EXRAIL2MacroReset.h"
 #undef TURNOUT
-#define TURNOUT(id,addr,subaddr,description...) case id: desc=F("" description); break;
+#define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
 #undef PIN_TURNOUT
-#define PIN_TURNOUT(id,pin,description...) case id: desc=F("" description); break;
+#define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
 #undef SERVO_TURNOUT
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) case id: desc=F("" description); break;
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) O_DESC(id,description)
 #undef VIRTUAL_TURNOUT
-#define VIRTUAL_TURNOUT(id,description...) case id: desc=F("" description); break;
+#define VIRTUAL_TURNOUT(id,description...) O_DESC(id,description)
 
-void RMFT2::emitTurnoutDescription(Print* stream,int16_t turnoutid) {
-     const FSH * desc=F("");
+const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
      switch (turnoutid) {
         #include "myAutomation.h"
-     default: break;
+     default:break;
      }
-     if (GETFLASH(desc)=='\0') desc=F("%d");
-     StringFormatter::send(stream,desc,turnoutid);    
+     return NULL;
 }
 
-// Pass 5: Roster names (count)
+// Pass 6: Roster IDs (count)
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) +1
-
 const byte RMFT2::rosterNameCount=0
-        #include "myAutomation.h"
-     ;
-
-// Pass 6: Roster names emitter
+   #include "myAutomation.h"
+   ;
+   
+// Pass 6: Roster IDs 
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
-#define ROSTER(cabid,name,funcmap...) StringFormatter::send(stream,(FSH *)format,F(name),cabid,cabid<128?'S':'L');
-void RMFT2::emitWithrottleRoster(Print * stream) {
-        static const char format[] FLASH ="]\\[%S}|{%d}|{%c";
-        (void)format;
-        StringFormatter::send(stream,F("RL%d"), rosterNameCount);
-        #include "myAutomation.h"
-        stream->write('\n');        
-}
+#define ROSTER(cabid,name,funcmap...) cabid,
+const int16_t FLASH  RMFT2::rosterIdList[]={
+   #include "myAutomation.h"
+   0};
 
-// Pass 7: functions getter
+// Pass 7: Roster names getter
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
-#define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
-const FSH *  RMFT2::getRosterFunctions(int16_t cabid) {
-   switch(cabid) {
+#define ROSTER(cabid,name,funcmap...) case cabid: return F(name);
+const FSH * RMFT2::getRosterName(int16_t id) {
+   switch(id) {
       #include "myAutomation.h"
-      default: return NULL;
-   }        
-}
+   default: return NULL;
+   }
+   return NULL;   
+} 
+
+// Pass to get roster functions 
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) O_DESC(cabid,funcmap)
+const FSH * RMFT2::getRosterFunctions(int16_t id) {
+   switch(id) {
+      #include "myAutomation.h"
+   default: break; 
+   }   
+   return NULL;
+} 
 
 // Pass 8 Signal definitions
 #include "EXRAIL2MacroReset.h"

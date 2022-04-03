@@ -87,17 +87,21 @@ class LookList {
     RMFT2(int route, uint16_t cab);
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
-    static void emitWithrottleRouteList(Print* stream); 
     static void createNewTask(int route, uint16_t cab);
     static void turnoutEvent(int16_t id, bool closed);  
     static void activateEvent(int16_t addr, bool active);
-    static void emitTurnoutDescription(Print* stream,int16_t id);
-    static const byte rosterNameCount;
-    static void emitWithrottleRoster(Print * stream);
-    static const FSH * getRosterFunctions(int16_t cabid);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
-  
+ 
+ // Throttle Info Access functions built by exrail macros 
+  static const byte rosterNameCount;
+  static const int16_t FLASH routeIdList[];
+  static const int16_t FLASH rosterIdList[];
+  static const FSH *  getRouteDescription(int16_t id);
+  static const FSH *  getTurnoutDescription(int16_t id);
+  static const FSH *  getRosterName(int16_t id);
+  static const FSH *  getRosterFunctions(int16_t id);
+    
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -106,8 +110,6 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
-    static void emitRouteDescription(Print * stream, char type, int id, const FSH * description);
-    static void emitWithrottleDescriptions(Print * stream);
     
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
@@ -132,6 +134,7 @@ private:
    static LookList * onActivateLookup;
    static LookList * onDeactivateLookup;
 
+    
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
     int progCounter;    // Byte offset of next route opcode in ROUTES table

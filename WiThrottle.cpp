@@ -120,13 +120,15 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       StringFormatter::send(stream,F("PTL"));
       for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
           int id=tt->getId();
-          StringFormatter::send(stream,F("]\\[%d}|{"), id);
-#ifdef EXRAIL_ACTIVE
-	  RMFT2::emitTurnoutDescription(stream,id);
-#else   
-	  StringFormatter::send(stream,F("%d"), id);
-#endif  
-          StringFormatter::send(stream,F("}|{%c"), Turnout::isClosed(id)?'2':'4');
+          const FSH * tdesc=NULL;
+          #ifdef EXRAIL_ACTIVE
+          tdesc=RMFT2::getTurnoutDescription(id);
+          #endif
+          char tchar=Turnout::isClosed(id)?'2':'4';
+          if (tdesc==NULL) // turnout with no description
+              StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);
+	        else if (GETFLASH(tdesc)!='*') // ignore hidden turnouts
+              StringFormatter::send(stream,F("]\\[%d}|{%S}|{%c"), id,tdesc,tchar);
       }
       StringFormatter::send(stream,F("\n"));
       turnoutListHash = Turnout::turnoutlistHash; // keep a copy of hash for later comparison
@@ -136,7 +138,17 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       // Send EX-RAIL routes list if not already sent (but not at same time as turnouts above)
       exRailSent=true;
 #ifdef EXRAIL_ACTIVE
-      RMFT2::emitWithrottleRouteList(stream);
+   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
+   for (int ix=0;;ix+=2) {
+       int16_t id=GETFLASHW(RMFT2::routeIdList+ix);
+       if (id==0) break;
+       bool isRoute=id<0; 
+       if (isRoute) id=-id;
+       const FSH * desc=RMFT2::getRouteDescription(id);
+       StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
+			              isRoute?'R':'A',id,desc, isRoute?'2':'4');
+   }
+   StringFormatter::send(stream,F("\n"));
 #endif
       // allow heartbeat to slow down once all metadata sent     
       StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
@@ -205,9 +217,19 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
 	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
 	StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
+  
+  // Send the roster 
 #ifdef EXRAIL_ACTIVE
-	RMFT2::emitWithrottleRoster(stream);
-#endif        
+  StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
+  for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
+      int16_t cabid=GETFLASHW(RMFT2::rosterIdList+r);
+      StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
+      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
+  }
+  stream->write('\n'); // end roster        
+#endif
+
+       
 	// set heartbeat to 1 second because we need to sync the metadata
 	StringFormatter::send(stream,F("*1\n"));
 	initSent = true;

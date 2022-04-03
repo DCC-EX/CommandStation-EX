@@ -40,7 +40,6 @@
    T2. Extend to >64k
   */
 
-
 #include <Arduino.h>
 #include "EXRAIL2.h"
 #include "DCC.h"
@@ -347,13 +346,6 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     }
     return true;
     
-  case HASH_KEYWORD_ROUTES: // </ ROUTES > JMRI withrottle support
-    if (paramCount>1) return false;
-    StringFormatter::send(stream,F("</ROUTES "));
-    emitWithrottleRouteList(stream);
-    StringFormatter::send(stream,F(">"));
-    return true;
-    
   default:
     break;
   }
@@ -408,11 +400,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 // Automations are given a state to set the button to "handoff" which implies
 // handing over the loco to the automation.
 // Routes are given "Set" buttons and do not cause the loco to be handed over.
-void RMFT2::emitWithrottleRouteList(Print* stream) {
-   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
-   emitWithrottleDescriptions(stream);
-   StringFormatter::send(stream,F("\n"));
-}
+
 
 
 RMFT2::RMFT2(int progCtr) {
@@ -1037,8 +1025,4 @@ void RMFT2::printMessage2(const FSH * msg) {
   DIAG(F("EXRAIL(%d) %S"),loco,msg);
 }
 
-// This is called by emitRouteDescriptions to emit a withrottle description for a route or autoomation.
-void RMFT2::emitRouteDescription(Print * stream, char type, int id, const FSH * description) {
-  StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
-			type,id,description, type=='R'?'2':'4');
-}
+
