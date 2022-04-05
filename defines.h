@@ -77,14 +77,15 @@
 // This defines the speed at which the Arduino will communicate with the ESP8266 module.
 // Currently only devices which can communicate at 115200 are supported.
 //
-#define WIFI_SERIAL_LINK_SPEED 115200
+#define WIFI_SERIAL_LINK_SPEED 9600
 
-#if __has_include ( "myAutomation.h")
-  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
-    #define EXRAIL_ACTIVE
-  #else
-    #define EXRAIL_WARNING
-  #endif
-#endif
+// TODO: PMA - figure out why enabling this causes the CS to crashe immediately after starting the motor driver
+//#if __has_include ( "myAutomation.h")
+//  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
+//    #define EXRAIL_ACTIVE
+//  #else
+//    #define EXRAIL_WARNING
+//  #endif
+//#endif
 
 #endif
