@@ -37,8 +37,33 @@ INTERRUPT_CALLBACK interruptHandler=0;
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
 
+  // PMA - SAMC used on Firebox has 2 ADCs, so choose which to set up based on pin being used
+  // TODO: this code will need to be fixed - ADCpin is not in scope... as this is stolen from 
+  // the abandoned rf24 branch
+  #if defined(ARDUINO_ARCH_SAMC)
+  Adc* ADC;
+  if ( (g_APinDescription[ADCpin].ulPeripheralAttribute & PER_ATTR_ADC_MASK) == PER_ATTR_ADC_STD ) {
+      ADC = ADC0;
+  } else {
+    ADC = ADC1;
+  }
+  #endif
 
+  // PMA - Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
+  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and enables 12-bit
+  ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
 
+  ADC->CTRLB.reg &= 0b1111100011111111;          // mask PRESCALER bits
+  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |  // divide Clock by 64
+                    ADC_CTRLB_RESSEL_12BIT;      // Result on 12 bits
+
+  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
+                     ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
+  ADC->SAMPCTRL.reg = 0x00;                      // sampling Time Length = 0
+
+  ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
+  while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
 
   }
 
