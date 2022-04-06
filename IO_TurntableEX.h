@@ -73,7 +73,7 @@ private:
     DIAG(F("TurntableEX WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"),
       vpin, value, profile, duration);
 #endif
-    I2CManager.write(_I2CAddress, value);
+    I2CManager.write(_I2CAddress, 1, value);
   }
 
   void _display() {
