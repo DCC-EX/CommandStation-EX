@@ -50,8 +50,8 @@
 // PMA - senseFactor for 3.3v systems is 1.95 as calculated when using 10-bit A/D samples,
 // and for 12-bit samples it's more like 0.488, but we probably need to tweak both these
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 0.488, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 0.488, 2000, UNUSED_PIN)
+                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 2000, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 2000, UNUSED_PIN)
 #else
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
