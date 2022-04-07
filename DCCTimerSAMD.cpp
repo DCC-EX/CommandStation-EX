@@ -56,7 +56,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 
   ADC->CTRLB.reg &= 0b1111100011111111;          // mask PRESCALER bits
   ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |  // divide Clock by 64
-                    ADC_CTRLB_RESSEL_12BIT;      // Result on 12 bits
+                    ADC_CTRLB_RESSEL_10BIT;      // Result on 10 bits default, 12 bits possible
 
   ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
                      ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
