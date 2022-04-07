@@ -65,7 +65,26 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
   while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
 
-  }
+  // PMA - actual timer setup goo
+  // Setup clock sources first
+  REG_GCLK_GENDIV =   GCLK_GENDIV_DIV(1) |            // Divide 48MHz by 1
+                      GCLK_GENDIV_ID(4);              // Apply to GCLK4
+  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
+                
+  REG_GCLK_GENCTRL =  GCLK_GENCTRL_GENEN |            // Enable GCLK
+                      GCLK_GENCTRL_SRC_DFLL48M |      // Set the 48MHz clock source
+                      GCLK_GENCTRL_ID(4);             // Select GCLK4
+  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
+            
+  REG_GCLK_CLKCTRL =  GCLK_CLKCTRL_CLKEN |            // Enable generic clock
+                      4 << GCLK_CLKCTRL_GEN_Pos |     // Apply to GCLK4
+                      GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
+  while (GCLK->STATUS.bit.SYNCBUSY);
+  
+
+  
+  
+}
 
 bool DCCTimer::isPWMPin(byte pin) {
        //SAMD: digitalPinHasPWM, todo
