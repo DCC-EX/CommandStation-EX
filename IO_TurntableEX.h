@@ -69,11 +69,15 @@ private:
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     if (_deviceState == DEVSTATE_FAILED) return;
+    uint8_t stepsMSB = value >> 8;
+    uint8_t stepsLSB = value & 0xFF;
 #ifdef DIAG_IO
     DIAG(F("TurntableEX WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"),
       vpin, value, profile, duration);
+    DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d profile:%d"),
+      _I2CAddress, stepsMSB, stepsLSB, profile);
 #endif
-    I2CManager.write(_I2CAddress, 1, value);
+    I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, profile);
   }
 
   void _display() {
