@@ -196,7 +196,7 @@ int16_t LookList::find(int16_t value) {
       VPIN id=operand;
       int addr=GET_OPERAND(1);
       byte subAddr=GET_OPERAND(2);
-      DCCTurnout::create(id,addr,subAddr);
+      setTurnoutHiddenState(DCCTurnout::create(id,addr,subAddr));
       break;
     }
 
@@ -206,14 +206,14 @@ int16_t LookList::find(int16_t value) {
       int activeAngle=GET_OPERAND(2);
       int inactiveAngle=GET_OPERAND(3);
       int profile=GET_OPERAND(4);
-      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
+      setTurnoutHiddenState(ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile));
       break;
     }
 
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=GET_OPERAND(1);
-      VpinTurnout::create(id,pin);
+      setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
       
@@ -257,6 +257,10 @@ int16_t LookList::find(int16_t value) {
   new RMFT2(0); // add the startup route
 }
 
+void RMFT2::setTurnoutHiddenState(Turnout * t) {
+  t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+}
+    
 // This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics
 // - Reject/modify JMRI commands that would interfere with RMFT processing

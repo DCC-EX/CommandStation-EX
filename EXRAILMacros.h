@@ -49,7 +49,11 @@
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
+
+// helper macro for turnout descriptions, creates NULL for missing description
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+// helper macro for turnout description as HIDDEN 
+#define HIDDEN "\0x01"
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"

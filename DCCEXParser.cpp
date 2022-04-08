@@ -37,6 +37,7 @@
 #include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 #include <avr/wdt.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -74,8 +75,10 @@ const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 const int16_t HASH_KEYWORD_SERVO=27709;
 const int16_t HASH_KEYWORD_VPIN=-415;
-const int16_t HASH_KEYWORD_C=67;
-const int16_t HASH_KEYWORD_T=84;
+const int16_t HASH_KEYWORD_A='A';
+const int16_t HASH_KEYWORD_C='C';
+const int16_t HASH_KEYWORD_R='R';
+const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_HAL = 10853;
 const int16_t HASH_KEYWORD_SHOW = -21309;
@@ -509,6 +512,57 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         }
         break;
 
+    case 'J' : // throttle info access
+        {
+            if ((params<1) | (params>2)) break; // <J>
+            int16_t id=(params==2)?p[1]:0;
+            switch(p[0]) {
+                case HASH_KEYWORD_A: // <JA> returns automations/routes
+                    StringFormatter::send(stream, F("<jA"));
+#ifdef EXRAIL_ACTIVE
+                    if (params==1) sendFlashList(stream,RMFT2::routeIdList);
+                    else StringFormatter::send(stream,F(" %d \"%S\""), 
+                                        id, RMFT2::getRouteDescription(id));
+#endif          
+                    StringFormatter::send(stream, F(">\n"));      
+                    return; 
+            case HASH_KEYWORD_R: // <JR> returns rosters 
+                StringFormatter::send(stream, F("<jR"));
+#ifdef EXRAIL_ACTIVE
+                if (params==1) sendFlashList(stream,RMFT2::rosterIdList);
+                else StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
+                    id, RMFT2::getRosterName(id), RMFT2::getRosterFunctions(id));
+#endif          
+                StringFormatter::send(stream, F(">\n"));      
+                return; 
+            case HASH_KEYWORD_T: // <JT> returns turnout list 
+                StringFormatter::send(stream, F("<jT"));
+                if (params==1) { // <JT>
+                    for ( Turnout * t=Turnout::first(); t; t=t->next()) { 
+                    if (t->isHidden()) continue;          
+                    StringFormatter::send(stream, F(" %c%d"),
+                        t->isThrown()?'-':' ',t->getId());
+                    }
+                }
+                else { // <JT id>
+                    Turnout * t=Turnout::get(id);
+                    if (t && !t->isHidden())
+                    StringFormatter::send(stream, F(" %d \"%S\""),
+                        id, 
+#ifdef EXRAIL_ACTIVE
+                        RMFT2::getTurnoutDescription(id)
+#else
+                        F("") 
+#endif  
+                      );      
+                }
+                StringFormatter::send(stream, F(">\n"));
+                return;
+            default: break;    
+            }  // switch(p[1])
+        break; // case J
+        }
+
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
@@ -519,6 +573,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     // Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
+}
+
+void DCCEXParser::sendFlashList(Print * stream,const int16_t flashList[]) {
+    for (int16_t i=0;;i+=2) {
+        int16_t value=GETFLASHW(flashList+i);
+        if (value==0) return;
+        StringFormatter::send(stream,F(" %d"),value);
+    } 
 }
 
 bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])

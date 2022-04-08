@@ -22,6 +22,7 @@
 #define EXRAIL2_H
 #include "FSH.h"
 #include "IODevice.h"
+#include "Turnouts.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
 // Each instruction is normally 3 bytes long with an operation code followed by a parameter.
@@ -110,7 +111,7 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(VPIN id,bool red, bool amber, bool green); 
-    
+    static void setTurnoutHiddenState(Turnout * t);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);

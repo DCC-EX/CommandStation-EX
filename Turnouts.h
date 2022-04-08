@@ -3,7 +3,7 @@
  *  © 2021 M Steve Todd
  *  © 2021 Fred Decker
  *  © 2020-2021 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2022 Chris Harlow
  *  © 2013-2016 Gregg E. Berman
  *  All rights reserved.
  *  
@@ -61,7 +61,8 @@ protected:
       struct {
         bool closed : 1;
         bool _rfu: 2;
-        uint8_t turnoutType : 5;
+        bool hidden: 1;
+        uint8_t turnoutType : 4;
       };
       uint8_t flags;
     };
@@ -83,6 +84,7 @@ protected:
     _turnoutData.id = id;
     _turnoutData.turnoutType = turnoutType;
     _turnoutData.closed = closed;
+    _turnoutData.hidden=false;
     add(this);
   }
 
@@ -104,11 +106,11 @@ protected:
    * Static functions
    */
 
-  static Turnout *get(uint16_t id);
 
   static void add(Turnout *tt);
   
 public:
+  static Turnout *get(uint16_t id);
   /* 
    * Static data
    */
@@ -120,6 +122,8 @@ public:
    */
   inline bool isClosed() { return _turnoutData.closed; };
   inline bool isThrown() { return !_turnoutData.closed; }
+  inline bool isHidden() { return _turnoutData.hidden; }
+  inline void setHidden(bool h) { _turnoutData.hidden=h; }
   inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }
@@ -169,7 +173,7 @@ public:
 #endif
   static void printAll(Print *stream) {
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
-      StringFormatter::send(stream, F("<H %d %d>\n"),tt->getId(), tt->isThrown());
+      if (!tt->isHidden()) StringFormatter::send(stream, F("<H %d %d>\n"),tt->getId(), tt->isThrown());
   }
 
 
