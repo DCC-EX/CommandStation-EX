@@ -260,7 +260,20 @@ int16_t LookList::find(int16_t value) {
 void RMFT2::setTurnoutHiddenState(Turnout * t) {
   t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
 }
-    
+
+char RMFT2::getRouteType(int16_t id) {
+  for (int16_t i=0;;i+=2) {
+    int16_t rid= GETFLASHW(routeIdList+i);
+    if (rid==id) return 'R';
+    if (rid==0) break;
+  }
+  for (int16_t i=0;;i+=2) {
+    int16_t rid= GETFLASHW(automationIdList+i);
+    if (rid==id) return 'A';
+    if (rid==0) break;
+  }
+  return 'X';
+}   
 // This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics
 // - Reject/modify JMRI commands that would interfere with RMFT processing

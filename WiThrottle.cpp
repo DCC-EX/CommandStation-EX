@@ -139,14 +139,15 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       exRailSent=true;
 #ifdef EXRAIL_ACTIVE
    StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
-   for (int ix=0;;ix+=2) {
-       int16_t id=GETFLASHW(RMFT2::routeIdList+ix);
-       if (id==0) break;
-       bool isRoute=id<0; 
-       if (isRoute) id=-id;
-       const FSH * desc=RMFT2::getRouteDescription(id);
-       StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
-			              isRoute?'R':'A',id,desc, isRoute?'2':'4');
+   for (byte pass=0;pass<2;pass++) {
+    
+    for (int ix=0;;ix+=2) {
+        int16_t id=GETFLASHW((pass?RMFT2::routeIdList:RMFT2::automationIdList)+ix);
+        if (id==0) break;
+        const FSH * desc=RMFT2::getRouteDescription(id);
+        StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
+                      pass?'A':'R',id,desc, pass?'4':'2');
+    }
    }
    StringFormatter::send(stream,F("\n"));
 #endif

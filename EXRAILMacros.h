@@ -65,9 +65,14 @@
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) id,
-#undef AUTOMATION
-#define AUTOMATION(id, description) -id,
 const int16_t FLASH RMFT2::routeIdList[]= {
+    #include "myAutomation.h"
+    0}; 
+// Pass 2a create throttle automation list 
+#include "EXRAIL2MacroReset.h"
+#undef AUTOMATION
+#define AUTOMATION(id, description) id,
+const int16_t FLASH RMFT2::automationIdList[]= {
     #include "myAutomation.h"
     0}; 
 

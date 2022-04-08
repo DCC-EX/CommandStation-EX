@@ -519,11 +519,23 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             switch(p[0]) {
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
                     StringFormatter::send(stream, F("<jA"));
+                    if (params==1) {// <JA>
 #ifdef EXRAIL_ACTIVE
-                    if (params==1) sendFlashList(stream,RMFT2::routeIdList);
-                    else StringFormatter::send(stream,F(" %d \"%S\""), 
-                                        id, RMFT2::getRouteDescription(id));
-#endif          
+                        sendFlashList(stream,RMFT2::automationIdList);
+                        sendFlashList(stream,RMFT2::routeIdList);
+#endif
+                    }
+                    else {  // <JA id>
+                        StringFormatter::send(stream,F(" %d %c \"%S\""), 
+                                        id, 
+#ifdef EXRAIL_ACTIVE
+                                        RMFT2::getRouteType(id), // A/R
+                                        RMFT2::getRouteDescription(id)
+#else  
+                                        'X',F("")
+#endif                                        
+                                        );
+                    }
                     StringFormatter::send(stream, F(">\n"));      
                     return; 
             case HASH_KEYWORD_R: // <JR> returns rosters 
@@ -540,15 +552,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 if (params==1) { // <JT>
                     for ( Turnout * t=Turnout::first(); t; t=t->next()) { 
                     if (t->isHidden()) continue;          
-                    StringFormatter::send(stream, F(" %c%d"),
-                        t->isThrown()?'-':' ',t->getId());
+                    StringFormatter::send(stream, F(" %d"),t->getId());
                     }
                 }
                 else { // <JT id>
                     Turnout * t=Turnout::get(id);
                     if (t && !t->isHidden())
-                    StringFormatter::send(stream, F(" %d \"%S\""),
-                        id, 
+                    StringFormatter::send(stream, F(" %d %c \"%S\""),
+                        id,t->isThrown()?'T':'C', 
 #ifdef EXRAIL_ACTIVE
                         RMFT2::getTurnoutDescription(id)
 #else
