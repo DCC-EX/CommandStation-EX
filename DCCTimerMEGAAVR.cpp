@@ -75,7 +75,7 @@ extern char *__malloc_heap_start;
 
   // ISR called by timer interrupt every 58uS
   ISR(TCB0_INT_vect){
-    TCB0.INTFLAGS = TCB_CAPT_bm;
+    TCB0.INTFLAGS = TCB_CAPT_bm; // Clear interrupt request flag
     interruptHandler();
   }
 

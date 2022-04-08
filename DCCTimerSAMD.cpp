@@ -36,18 +36,7 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
-
-  // PMA - SAMC used on Firebox has 2 ADCs, so choose which to set up based on pin being used
-  // TODO: this code will need to be fixed - ADCpin is not in scope... as this is stolen from 
-  // the abandoned rf24 branch
-  #if defined(ARDUINO_ARCH_SAMC)
-  Adc* ADC;
-  if ( (g_APinDescription[ADCpin].ulPeripheralAttribute & PER_ATTR_ADC_MASK) == PER_ATTR_ADC_STD ) {
-      ADC = ADC0;
-  } else {
-    ADC = ADC1;
-  }
-  #endif
+  noInterrupts();
 
   // PMA - Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
   // and we need sub-100uS. This code sets it to a read speed of around 21uS, and enables 12-bit
@@ -80,20 +69,47 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
                       4 << GCLK_CLKCTRL_GEN_Pos |     // Apply to GCLK4
                       GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
   while (GCLK->STATUS.bit.SYNCBUSY);
-  
 
-  
-  
+  // PMA - assume we're using TCC0
+  REG_GCLK_GENDIV =   GCLK_GENDIV_DIV(1) |            // Divide 48MHz by 1
+                      GCLK_GENDIV_ID(4);              // Apply to GCLK4
+  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
+                
+  REG_GCLK_GENCTRL =  GCLK_GENCTRL_GENEN |            // Enable GCLK
+                      GCLK_GENCTRL_SRC_DFLL48M |      // Set the 48MHz clock source
+                      GCLK_GENCTRL_ID(4);             // Select GCLK4
+  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
+
+  REG_GCLK_CLKCTRL =  GCLK_CLKCTRL_CLKEN |            // Enable generic clock
+                      4 << GCLK_CLKCTRL_GEN_Pos |     // Apply to GCLK4
+                      GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
+  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
+
+  TCC0->WAVE.reg = TCC_WAVE_WAVEGEN_NPWM;     // Select NPWM as waveform
+  while (TCC0->SYNCBUSY.bit.WAVE);            // Wait for sync
+  TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Interrupt on overflow
+  NVIC_EnableIRQ((IRQn_Type)TCC0_IRQn);       // Enable the interrupt
+  interrupts();
 }
 
+// PMA - IRQ handler copied from rf24 branch
+// TODO: test
+void TCC0_Handler() {
+    if(TCC0->INTFLAG.bit.OVF) {
+        TCC0->INTFLAG.bit.OVF = 1;
+        interruptHandler();
+    }
+}
+
+
 bool DCCTimer::isPWMPin(byte pin) {
-       //SAMD: digitalPinHasPWM, todo
+       //TODO: SAMD digitalPinHasPWM
       (void) pin;
        return false;  // TODO what are the relevant pins? 
   }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-    // TODO what are the relevant pins?
+    // TODO: what are the relevant pins?
     (void) pin;
     (void) high;
 }
