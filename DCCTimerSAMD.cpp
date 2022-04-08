@@ -88,6 +88,18 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   TCC0->WAVE.reg = TCC_WAVE_WAVEGEN_NPWM;     // Select NPWM as waveform
   while (TCC0->SYNCBUSY.bit.WAVE);            // Wait for sync
   TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Interrupt on overflow
+
+  // PMA - set the frequency
+  TCC0->CTRLA.reg |= TCC_CTRLA_PRESCALER(TCC_CTRLA_PRESCALER_DIV1_Val);
+  unsigned long cycles = F_CPU / 10000000 * 58;   // 58uS to cycles
+  unsigned long pwmPeriod = cycles / 2;
+  TCC0->PER.reg = pwmPeriod;
+  while (TCC0->SYNCBUSY.bit.PER);
+
+  // PMA - start it
+  TCC0->CTRLA.bit.ENABLE = 1;
+  while (TCC0->SYNCBUSY.bit.ENABLE);
+
   NVIC_EnableIRQ((IRQn_Type)TCC0_IRQn);       // Enable the interrupt
   interrupts();
 }
