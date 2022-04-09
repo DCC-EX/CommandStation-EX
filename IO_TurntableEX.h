@@ -1,31 +1,36 @@
 /*
-Standard license stuff goes here.
+ *  © 2021, Peter Cole. All rights reserved.
+ *
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /*
 * The IO_TurntableEX device driver is used to control a turntable via an Arduino Nano with a stepper motor over I2C.
 *
-* The Nano code lives in a separate repo and contains the stepper motor logic, as well as the configuration for
-* the various turntable positions.
+* The Nano code lives in a separate repo (https://github.com/DCC-EX/Turntable-EX) and contains the stepper motor logic.
 *
 * This device driver sends an integer/byte to the Nano to indicate the position to move to using an EX-RAIL SERVO
-* command, with the position in place of the PWM value. The profile value is effectively ignored.
+* command, with the position in place of the PWM value. The profile value is used to flag phase/polarity switching
+* or other activities as defined in Turntable-EX.
 *
 * For example, a ROUTE used for position one:
 *
 * ROUTE(600, "Layout connection")
 *   SERVO(600, 1, Instant)
 *   DONE
-*
-* All code below is "hacked up" from existing device drivers and based on SERVO using writeAnalogue and is the only
-* way I could get it to work. The "value" that is sent turns out to be the number of bytes sent, so the Nano code
-* simply counts the number of bytes as the position.
-*
-* I believe the correct mechanism here should be to send a byte containing the integer of the position, which the Nano
-* receives and responds to with another byte once the stepper has stopped moving.
-*
-* In addition, I think it would be handy to have a Vpin defined per position as a sensor input, which the Nano activates
-* once the move is complete. That would enable automation sequences via EX-RAIL with (AT) type commands.
 */
 
 #ifndef IO_TurntableEX_h
