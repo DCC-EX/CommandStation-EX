@@ -252,6 +252,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
+#define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),

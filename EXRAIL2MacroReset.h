@@ -76,6 +76,7 @@
 #undef LATCH 
 #undef LCD 
 #undef LCN 
+#undef MOVETT
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONDEACTIVATE
@@ -178,6 +179,7 @@
 #define LATCH(sensor_id) 
 #define LCD(row,msg) 
 #define LCN(msg) 
+#define MOVETT(id,steps,activity)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONDEACTIVATE(addr,subaddr)
