@@ -73,6 +73,7 @@ const int16_t HASH_KEYWORD_RETRY = 25704;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 const int16_t HASH_KEYWORD_SERVO=27709;
+const int16_t HASH_KEYWORD_TT=2688;
 const int16_t HASH_KEYWORD_VPIN=-415;
 const int16_t HASH_KEYWORD_C=67;
 const int16_t HASH_KEYWORD_T=84;
@@ -820,6 +821,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           IODevice::DumpAll();
         break;
 #endif
+
+    case HASH_KEYWORD_TT:     // <D TT vpin steps activity>
+    IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
+        break;
 
     default: // invalid/unknown
         break;
