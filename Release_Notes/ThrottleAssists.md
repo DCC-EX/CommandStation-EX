@@ -35,6 +35,7 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
  ```<JA 13>``` 
  returns e.g. ```<jA 13 R "description">``` for a route
  or  ```<jA 13 A "description">``` for an automation. 
+ or ```<jA 13 X>``` for id not found
 
  Whats the difference: 
    A Route is just a call to an EXRAIL ROUTE, traditionally to set some turnouts or signals but can be used to perform any kind of EXRAIL function... but its not expecting to know the loco.  
@@ -50,6 +51,22 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
    e.g. responding ```<jR 3 200 6336>```
    or <jR> for none. 
 
-   Each Roster entry had a name and descripotion  
+   Each Roster entry had a name and function map obtained by:
+   ```<JR 200>```  reply like ```<jR 200 "Thomas" "whistle/*bell/squeal/panic">
    
+   Refer to EXRAIL ROSTER command for function map format.
+
+
+   TODO:
+  ```<t cabid>```  Requests a deliberate update on the cab speed/functions in the same format as the cab broadcast.
+
+  COMMANDS TO AVOID
+
+  ```<f cab func1 func2>```     Use ```<F cab function 1/0>```
+  ```<t  slot cab speed dir>``` 
+  ```<T commands>``` other than ```<T id 0/1>```
+  ```<s>```
+  ```<c>```
+  
+
 
