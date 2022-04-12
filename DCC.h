@@ -98,7 +98,9 @@ public:
   };
  static LOCO speedTable[MAX_LOCOS];
  static int lookupSpeedTable(int locoId, bool autoCreate=true);
-  
+ static byte cv1(byte opcode, int cv);
+ static byte cv2(int cv);
+ 
 private:
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
@@ -109,8 +111,6 @@ private:
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
-  static byte cv1(byte opcode, int cv);
-  static byte cv2(int cv);
   static void issueReminders();
   static void callback(int value);
 
