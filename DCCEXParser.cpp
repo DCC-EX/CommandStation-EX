@@ -503,6 +503,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
 
+#if WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback && !ringStream) {
           DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
@@ -511,6 +512,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           return;
         }
         break;
+#endif 
 
     case 'J' : // throttle info access
         {
