@@ -647,7 +647,7 @@ byte DCC::cv2(int cv)  {
   return lowByte(cv);
 }
 
-int DCC::lookupSpeedTable(int locoId) {
+int DCC::lookupSpeedTable(int locoId, bool autoCreate) {
   // determine speed reg for this loco
   int firstEmpty = MAX_LOCOS;
   int reg;
@@ -655,6 +655,9 @@ int DCC::lookupSpeedTable(int locoId) {
     if (speedTable[reg].loco == locoId) break;
     if (speedTable[reg].loco == 0 && firstEmpty == MAX_LOCOS) firstEmpty = reg;
   }
+
+  // return -1 if not found and not auto creating
+  if (reg== MAX_LOCOS && !autoCreate) return -1; 
   if (reg == MAX_LOCOS) reg = firstEmpty;
   if (reg >= MAX_LOCOS) {
     DIAG(F("Too many locos"));

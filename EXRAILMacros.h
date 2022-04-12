@@ -86,7 +86,7 @@ const FSH * RMFT2::getRouteDescription(int16_t id) {
     #include "myAutomation.h"
     default: break;
    }
-   return NULL;
+   return F("");
 }
 
 // Pass 4... Create Text sending functions
@@ -161,20 +161,20 @@ const int16_t FLASH  RMFT2::rosterIdList[]={
 const FSH * RMFT2::getRosterName(int16_t id) {
    switch(id) {
       #include "myAutomation.h"
-   default: return NULL;
+   default: break;
    }
-   return NULL;   
+   return F("");   
 } 
 
 // Pass to get roster functions 
 #undef ROSTER
-#define ROSTER(cabid,name,funcmap...) O_DESC(cabid,funcmap)
+#define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
 const FSH * RMFT2::getRosterFunctions(int16_t id) {
    switch(id) {
       #include "myAutomation.h"
    default: break; 
    }   
-   return NULL;
+   return F("");
 } 
 
 // Pass 8 Signal definitions

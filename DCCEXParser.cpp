@@ -217,10 +217,23 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
+        if (params==1) {  // <t cab>  display state
+        
+        int16_t slot=DCC::lookupSpeedTable(p[0],false);
+        if (slot>=0) {
+            DCC::LOCO * sp=&DCC::speedTable[slot];
+            StringFormatter::send(stream,F("<l %d %d %d %l>\n"),
+			sp->loco,slot,sp->speedCode,sp->functions);
+            }
+        else // send dummy state speed 0 fwd no functions. 
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+        return; 
+        }
+        
         int16_t cab;
         int16_t tspeed;
         int16_t direction;
-
+        
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
             cab = p[1];
@@ -523,8 +536,8 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>
 #ifdef EXRAIL_ACTIVE
-                        sendFlashList(stream,RMFT2::automationIdList);
                         sendFlashList(stream,RMFT2::routeIdList);
+                        sendFlashList(stream,RMFT2::automationIdList);
 #endif
                     }
                     else {  // <JA id>
@@ -589,7 +602,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 }
 
 void DCCEXParser::sendFlashList(Print * stream,const int16_t flashList[]) {
-    for (int16_t i=0;;i+=2) {
+    for (int16_t i=0;;i++) {
         int16_t value=GETFLASHW(flashList+i);
         if (value==0) return;
         StringFormatter::send(stream,F(" %d"),value);
