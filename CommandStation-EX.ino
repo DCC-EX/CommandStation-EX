@@ -85,8 +85,8 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
-// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
-//  IODevice::begin();
+  // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+  IODevice::begin();
 
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
@@ -107,10 +107,10 @@ void setup()
     #undef SETUP
   #endif
 
-//  #if defined(LCN_SERIAL)
-//  LCN_SERIAL.begin(115200);
-//  LCN::init(LCN_SERIAL);
-//  #endif
+  #if defined(LCN_SERIAL)
+  LCN_SERIAL.begin(115200);
+  LCN::init(LCN_SERIAL);
+  #endif
   LCD(3, F("Ready"));
   CommandDistributor::broadcastPower();
 }
@@ -121,7 +121,7 @@ void loop()
 
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)
-//  DCC::loop();
+  DCC::loop();
 
   // Responsibility 2: handle any incoming commands on USB connection
   SerialManager::loop();
@@ -134,18 +134,18 @@ void loop()
   EthernetInterface::loop();
 #endif
 
-//  RMFT::loop();  // ignored if no automation
+  RMFT::loop();  // ignored if no automation
 
   #if defined(LCN_SERIAL)
   LCN::loop();
   #endif
 
-//  LCDDisplay::loop();  // ignored if LCD not in use
+  LCDDisplay::loop();  // ignored if LCD not in use
 
   // Handle/update IO devices.
-  //IODevice::loop();
+  IODevice::loop();
 
-  //Sensor::checkAll(); // Update and print changes
+  Sensor::checkAll(); // Update and print changes
 
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop

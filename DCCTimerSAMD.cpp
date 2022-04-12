@@ -70,55 +70,59 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
                       GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
   while (GCLK->STATUS.bit.SYNCBUSY);
 
-  // PMA - assume we're using TCC0
-  REG_GCLK_GENDIV =   GCLK_GENDIV_DIV(1) |            // Divide 48MHz by 1
-                      GCLK_GENDIV_ID(4);              // Apply to GCLK4
-  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
-                
-  REG_GCLK_GENCTRL =  GCLK_GENCTRL_GENEN |            // Enable GCLK
-                      GCLK_GENCTRL_SRC_DFLL48M |      // Set the 48MHz clock source
-                      GCLK_GENCTRL_ID(4);             // Select GCLK4
-  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
-
-  REG_GCLK_CLKCTRL =  GCLK_CLKCTRL_CLKEN |            // Enable generic clock
-                      4 << GCLK_CLKCTRL_GEN_Pos |     // Apply to GCLK4
-                      GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
-  while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
-
+  // PMA - assume we're using TCC0... as we're bit-bashing the DCC waveform output pins anyway
+  //       for "normal accuracy" DCC waveform generation. For high accuracy we're going to need
+  //       to a good deal more. The TCC waveform output pins are mux'd on the SAMD, and OP pins
+  //       for each TCC are only available on certain pins
   TCC0->WAVE.reg = TCC_WAVE_WAVEGEN_NPWM;     // Select NPWM as waveform
   while (TCC0->SYNCBUSY.bit.WAVE);            // Wait for sync
-  TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Interrupt on overflow
 
   // PMA - set the frequency
   TCC0->CTRLA.reg |= TCC_CTRLA_PRESCALER(TCC_CTRLA_PRESCALER_DIV1_Val);
-  unsigned long cycles = F_CPU / 10000000 * 58;   // 58uS to cycles
-  unsigned long pwmPeriod = cycles / 2;
-  TCC0->PER.reg = pwmPeriod;
+  TCC0->PER.reg = CLOCK_CYCLES * 2;
   while (TCC0->SYNCBUSY.bit.PER);
 
   // PMA - start it
   TCC0->CTRLA.bit.ENABLE = 1;
   while (TCC0->SYNCBUSY.bit.ENABLE);
 
+  // PMA - set interrupt condition, priority and enable
+  TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Only interrupt on overflow
+  NVIC_SetPriority((IRQn_Type)TCC0_IRQn, 0);  // Make this highest priority
   NVIC_EnableIRQ((IRQn_Type)TCC0_IRQn);       // Enable the interrupt
   interrupts();
 }
 
-// PMA - IRQ handler copied from rf24 branch
+// PMA - Timer IRQ handlers replace the dummy handlers (cortex_handlers)
+// copied from rf24 branch
 // TODO: test
 void TCC0_Handler() {
     if(TCC0->INTFLAG.bit.OVF) {
-        TCC0->INTFLAG.bit.OVF = 1;
+        TCC0->INTFLAG.bit.OVF = 1; // writing a 1 clears the flag
+        interruptHandler();
+    }
+}
+
+void TCC1_Handler() {
+    if(TCC1->INTFLAG.bit.OVF) {
+        TCC1->INTFLAG.bit.OVF = 1; // writing a 1 clears the flag
+        interruptHandler();
+    }
+}
+
+void TCC2_Handler() {
+    if(TCC2->INTFLAG.bit.OVF) {
+        TCC2->INTFLAG.bit.OVF = 1; // writing a 1 clears the flag
         interruptHandler();
     }
 }
 
 
 bool DCCTimer::isPWMPin(byte pin) {
-       //TODO: SAMD digitalPinHasPWM
-      (void) pin;
-       return false;  // TODO what are the relevant pins? 
-  }
+  //TODO: SAMD test this works!
+//  return digitalPinHasPWM(pin);
+  return false;
+}
 
 void DCCTimer::setPWM(byte pin, bool high) {
     // TODO: what are the relevant pins?
