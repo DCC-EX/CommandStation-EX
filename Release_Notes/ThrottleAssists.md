@@ -16,7 +16,7 @@ e.g.  response ```<jT 1 17 22 19>```
 e.g. response ```<jT 17 T "Coal yard exit">``` or ```<jT 17 C "Coal yard exit">```
 (T=thrown, C=closed)
 or ```<jT 17 C "">``` indicating turnout description not given. 
-or ```<jT 17 X>``` indicating turnout unknown. 
+or ```<jT 17 X>``` indicating turnout unknown (or possibly hidden.) 
 
 Note: It is still the throttles responsibility to monitor the status broadcasts.
  (TBD I'm thinking that the existing broadcast is messy and needs cleaning up)
@@ -57,16 +57,19 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
    Refer to EXRAIL ROSTER command for function map format.
 
 
-   TODO:
+  Obtaining throttle status.
   ```<t cabid>```  Requests a deliberate update on the cab speed/functions in the same format as the cab broadcast.
+     ```<l cabid slot speedbyte functionMap>```
+      Note that a slot of -1 indicates that the cab is not in the reminders table and this comand will not reserve a slot until such time as the cab is throttled.
+
 
   COMMANDS TO AVOID
 
   ```<f cab func1 func2>```     Use ```<F cab function 1/0>```
-  ```<t  slot cab speed dir>``` 
+  ```<t  slot cab speed dir>``` Just drop the slot number 
   ```<T commands>``` other than ```<T id 0/1>```
   ```<s>```
   ```<c>```
-  
+
 
 

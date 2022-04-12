@@ -262,12 +262,12 @@ void RMFT2::setTurnoutHiddenState(Turnout * t) {
 }
 
 char RMFT2::getRouteType(int16_t id) {
-  for (int16_t i=0;;i+=2) {
+  for (int16_t i=0;;i++) {
     int16_t rid= GETFLASHW(routeIdList+i);
     if (rid==id) return 'R';
     if (rid==0) break;
   }
-  for (int16_t i=0;;i+=2) {
+  for (int16_t i=0;;i++) {
     int16_t rid= GETFLASHW(automationIdList+i);
     if (rid==id) return 'A';
     if (rid==0) break;

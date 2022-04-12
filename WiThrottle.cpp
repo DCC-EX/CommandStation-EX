@@ -119,6 +119,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
       for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
+          if (tt->isHidden()) continue;
           int id=tt->getId();
           const FSH * tdesc=NULL;
           #ifdef EXRAIL_ACTIVE
@@ -127,7 +128,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
           char tchar=Turnout::isClosed(id)?'2':'4';
           if (tdesc==NULL) // turnout with no description
               StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);
-	        else if (GETFLASH(tdesc)!='*') // ignore hidden turnouts
+	        else 
               StringFormatter::send(stream,F("]\\[%d}|{%S}|{%c"), id,tdesc,tchar);
       }
       StringFormatter::send(stream,F("\n"));
@@ -140,9 +141,9 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #ifdef EXRAIL_ACTIVE
    StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
    for (byte pass=0;pass<2;pass++) {
-    
-    for (int ix=0;;ix+=2) {
-        int16_t id=GETFLASHW((pass?RMFT2::routeIdList:RMFT2::automationIdList)+ix);
+      // first pass automations, second pass routes.
+    for (int ix=0;;ix++) {
+        int16_t id=GETFLASHW((pass?RMFT2::automationIdList:RMFT2::routeIdList)+ix);
         if (id==0) break;
         const FSH * desc=RMFT2::getRouteDescription(id);
         StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
