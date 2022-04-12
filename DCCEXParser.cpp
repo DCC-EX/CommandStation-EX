@@ -38,6 +38,7 @@
 #include "DIAG.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
+#include "EXRAIL2.h"
 #ifdef HAS_AVR_WDT
 #include <avr/wdt.h>
 #endif
@@ -68,8 +69,10 @@ const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 const int16_t HASH_KEYWORD_SERVO=27709;
 const int16_t HASH_KEYWORD_VPIN=-415;
-const int16_t HASH_KEYWORD_C=67;
-const int16_t HASH_KEYWORD_T=84;
+const int16_t HASH_KEYWORD_A='A';
+const int16_t HASH_KEYWORD_C='C';
+const int16_t HASH_KEYWORD_R='R';
+const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_HAL = 10853;
 const int16_t HASH_KEYWORD_SHOW = -21309;
@@ -208,10 +211,23 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
+        if (params==1) {  // <t cab>  display state
+        
+        int16_t slot=DCC::lookupSpeedTable(p[0],false);
+        if (slot>=0) {
+            DCC::LOCO * sp=&DCC::speedTable[slot];
+            StringFormatter::send(stream,F("<l %d %d %d %l>\n"),
+			sp->loco,slot,sp->speedCode,sp->functions);
+            }
+        else // send dummy state speed 0 fwd no functions. 
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+        return; 
+        }
+        
         int16_t cab;
         int16_t tspeed;
         int16_t direction;
-
+        
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
             cab = p[1];
@@ -495,6 +511,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
 
+#if WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback && !ringStream) {
           TrackManager::setPower(POWERMODE::OFF);
@@ -502,6 +519,69 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           return;
         }
         break;
+#endif 
+
+    case 'J' : // throttle info access
+        {
+            if ((params<1) | (params>2)) break; // <J>
+            int16_t id=(params==2)?p[1]:0;
+            switch(p[0]) {
+                case HASH_KEYWORD_A: // <JA> returns automations/routes
+                    StringFormatter::send(stream, F("<jA"));
+                    if (params==1) {// <JA>
+#ifdef EXRAIL_ACTIVE
+                        sendFlashList(stream,RMFT2::routeIdList);
+                        sendFlashList(stream,RMFT2::automationIdList);
+#endif
+                    }
+                    else {  // <JA id>
+                        StringFormatter::send(stream,F(" %d %c \"%S\""), 
+                                        id, 
+#ifdef EXRAIL_ACTIVE
+                                        RMFT2::getRouteType(id), // A/R
+                                        RMFT2::getRouteDescription(id)
+#else  
+                                        'X',F("")
+#endif                                        
+                                        );
+                    }
+                    StringFormatter::send(stream, F(">\n"));      
+                    return; 
+            case HASH_KEYWORD_R: // <JR> returns rosters 
+                StringFormatter::send(stream, F("<jR"));
+#ifdef EXRAIL_ACTIVE
+                if (params==1) sendFlashList(stream,RMFT2::rosterIdList);
+                else StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
+                    id, RMFT2::getRosterName(id), RMFT2::getRosterFunctions(id));
+#endif          
+                StringFormatter::send(stream, F(">\n"));      
+                return; 
+            case HASH_KEYWORD_T: // <JT> returns turnout list 
+                StringFormatter::send(stream, F("<jT"));
+                if (params==1) { // <JT>
+                    for ( Turnout * t=Turnout::first(); t; t=t->next()) { 
+                        if (t->isHidden()) continue;          
+                        StringFormatter::send(stream, F(" %d"),t->getId());
+                    }
+                }
+                else { // <JT id>
+                    Turnout * t=Turnout::get(id);
+                    if (!t || t->isHidden()) StringFormatter::send(stream, F(" %d X"),id);
+                    else  StringFormatter::send(stream, F(" %d %c \"%S\""),
+                            id,t->isThrown()?'T':'C', 
+#ifdef EXRAIL_ACTIVE
+                            RMFT2::getTurnoutDescription(id)
+#else
+                            F("") 
+#endif  
+                        );      
+                }
+                StringFormatter::send(stream, F(">\n"));
+                return;
+            default: break;    
+            }  // switch(p[1])
+        break; // case J
+        }
 
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
@@ -513,6 +593,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     // Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
+}
+
+void DCCEXParser::sendFlashList(Print * stream,const int16_t flashList[]) {
+    for (int16_t i=0;;i++) {
+        int16_t value=GETFLASHW(flashList+i);
+        if (value==0) return;
+        StringFormatter::send(stream,F(" %d"),value);
+    } 
 }
 
 bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])

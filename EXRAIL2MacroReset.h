@@ -132,7 +132,7 @@
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
-#define AUTOMATION(id, description) 
+#define AUTOMATION(id,description) 
 #define AUTOSTART
 #define BROADCAST(msg)
 #define CALL(route) 
@@ -193,7 +193,7 @@
 #define RESUME 
 #define RETURN 
 #define REV(speed) 
-#define ROUTE(id, description)
+#define ROUTE(id,description)
 #define ROSTER(cab,name,funcmap...)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 

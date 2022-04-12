@@ -40,7 +40,6 @@
    T2. Extend to >64k
   */
 
-
 #include <Arduino.h>
 #include "EXRAIL2.h"
 #include "DCC.h"
@@ -197,7 +196,7 @@ int16_t LookList::find(int16_t value) {
       VPIN id=operand;
       int addr=GET_OPERAND(1);
       byte subAddr=GET_OPERAND(2);
-      DCCTurnout::create(id,addr,subAddr);
+      setTurnoutHiddenState(DCCTurnout::create(id,addr,subAddr));
       break;
     }
 
@@ -207,14 +206,14 @@ int16_t LookList::find(int16_t value) {
       int activeAngle=GET_OPERAND(2);
       int inactiveAngle=GET_OPERAND(3);
       int profile=GET_OPERAND(4);
-      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
+      setTurnoutHiddenState(ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile));
       break;
     }
 
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=GET_OPERAND(1);
-      VpinTurnout::create(id,pin);
+      setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
       
@@ -258,6 +257,23 @@ int16_t LookList::find(int16_t value) {
   new RMFT2(0); // add the startup route
 }
 
+void RMFT2::setTurnoutHiddenState(Turnout * t) {
+  t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+}
+
+char RMFT2::getRouteType(int16_t id) {
+  for (int16_t i=0;;i++) {
+    int16_t rid= GETFLASHW(routeIdList+i);
+    if (rid==id) return 'R';
+    if (rid==0) break;
+  }
+  for (int16_t i=0;;i++) {
+    int16_t rid= GETFLASHW(automationIdList+i);
+    if (rid==id) return 'A';
+    if (rid==0) break;
+  }
+  return 'X';
+}   
 // This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics
 // - Reject/modify JMRI commands that would interfere with RMFT processing
@@ -347,13 +363,6 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     }
     return true;
     
-  case HASH_KEYWORD_ROUTES: // </ ROUTES > JMRI withrottle support
-    if (paramCount>1) return false;
-    StringFormatter::send(stream,F("</ROUTES "));
-    emitWithrottleRouteList(stream);
-    StringFormatter::send(stream,F(">"));
-    return true;
-    
   default:
     break;
   }
@@ -408,11 +417,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 // Automations are given a state to set the button to "handoff" which implies
 // handing over the loco to the automation.
 // Routes are given "Set" buttons and do not cause the loco to be handed over.
-void RMFT2::emitWithrottleRouteList(Print* stream) {
-   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
-   emitWithrottleDescriptions(stream);
-   StringFormatter::send(stream,F("\n"));
-}
+
 
 
 RMFT2::RMFT2(int progCtr) {
@@ -1049,8 +1054,4 @@ void RMFT2::printMessage2(const FSH * msg) {
   DIAG(F("EXRAIL(%d) %S"),loco,msg);
 }
 
-// This is called by emitRouteDescriptions to emit a withrottle description for a route or autoomation.
-void RMFT2::emitRouteDescription(Print * stream, char type, int id, const FSH * description) {
-  StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
-			type,id,description, type=='R'?'2':'4');
-}
+
