@@ -160,6 +160,19 @@ void halSetup() {
   // DFPlayer::create(10000, 10, Serial1);
 
 
+  //=======================================================================
+  // The following directive defines a Turntable-EX turntable instance.
+  //=======================================================================
+  // The parameters are:
+  //   VPIN=600
+  //   Number of VPINs=1
+  //   I2C address=0x60
+  //
+  // Note that the I2C address is defined in the Turntable-EX code, and 0x60 is the default.
+
+  //TurntableEX::create(600, 1, 0x60);
+
+
 }
 
 #endif
