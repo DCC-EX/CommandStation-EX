@@ -6,7 +6,10 @@
 
 #define VERSION "4.0.2"
 // 4.0.2 EXRAIL additions:
-//       PARSE <> commands
+//       <t cab> command to obtain current throttle settings 
+//       JA, JR, JT commands to obtain route, roster and turnout descriptions
+//       HIDDEN turnouts
+//       PARSE <> commands in EXRAIL
 //       VIRTUAL_TURNOUT
 //       </KILL ALL> and KILLALL command to stop all tasks. 
 //       FORGET forgets the current loco in DCC reminder tables.
