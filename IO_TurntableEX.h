@@ -85,9 +85,14 @@ private:
   }
 
 // Read returns status as obtained in our loop.
+// Return false if our status value is invalid.
   int _read(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
-    return stepperStatus;
+    if (stepperStatus > 2) {
+      return false;
+    } else {
+      return stepperStatus;
+    }
   }
 
 // writeAnalogue to send the steps and activity to Turntable-EX.
