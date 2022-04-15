@@ -20,6 +20,7 @@
 #include "IO_HCSR04.h"    // Ultrasonic range sensor
 #include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 #include "IO_DFPlayer.h"  // MP3 sound player
+//#include "IO_TurntableEX.h"   // Turntable-EX turntable controller
 
 
 //==========================================================================
