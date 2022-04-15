@@ -58,6 +58,7 @@ public:
 private:
   uint8_t _I2CAddress;
   uint16_t numSteps;
+  uint8_t stepperStatus;
 
 // Initialisation of TurntableEX
   void _begin() {
@@ -73,15 +74,26 @@ private:
   }
 
 // Processing loop to obtain status of stepper
-// 0 = finished moving
+// 0 = finished moving and in correct position
 // 1 = still moving
+// 2 = finished moving, in incorrect position
   void _loop(unsigned long currentMicros) {
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
-    uint8_t stepperStatus = readBuffer[0];
+    stepperStatus = readBuffer[0];
     delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
   }
 
+// Read returns status as obtained in our loop.
+  int _read(VPIN vpin) {
+    if (_deviceState == DEVSTATE_FAILED) return 0;
+    return stepperStatus;
+  }
+
+// writeAnalogue to send the steps and activity to Turntable-EX.
+// Sends 3 bytes containing the MSB and LSB of the step count, and activity.
+// value contains the steps, bit shifted to MSB + LSB.
+// profile contains the activity.
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     if (_deviceState == DEVSTATE_FAILED) return;
     uint8_t stepsMSB = value >> 8;
@@ -95,6 +107,7 @@ private:
     I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, profile);
   }
 
+// Display Turnetable-EX device driver info.
   void _display() {
     DIAG(F("TurntableEX I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
