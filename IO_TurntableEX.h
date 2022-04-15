@@ -59,17 +59,27 @@ private:
   uint8_t _I2CAddress;
   uint16_t numSteps;
 
+// Initialisation of TurntableEX
   void _begin() {
     I2CManager.begin();
     I2CManager.setClock(1000000);
     if (I2CManager.exists(_I2CAddress)) {
-      // What here?
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
       _deviceState = DEVSTATE_FAILED;
     }
+  }
+
+// Processing loop to obtain status of stepper
+// 0 = finished moving
+// 1 = still moving
+  void _loop(unsigned long currentMicros) {
+    uint8_t readBuffer[1];
+    I2CManager.read(_I2CAddress, readBuffer, 1);
+    uint8_t stepperStatus = readBuffer[0];
+    delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
   }
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
