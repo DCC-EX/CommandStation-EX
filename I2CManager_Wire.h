@@ -94,22 +94,24 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
 /***************************************************************************
  *  Function to queue a request block and initiate operations.
  * 
- * For the Wire version, this executes synchronously, but the status is
- * returned in the I2CRB as for the asynchronous version.
+ * For the Wire version, this executes synchronously.
+ * The read/write/write_P functions return I2C_STATUS_OK always, and the 
+ * completion status of the operation is in the request block, as for
+ * the non-blocking version.
  ***************************************************************************/
 void I2CManagerClass::queueRequest(I2CRB *req) {
   switch (req->operation) {
     case OPERATION_READ:
-      req->status = read(req->i2cAddress, req->readBuffer, req->readLen, NULL, 0, req);
+      read(req->i2cAddress, req->readBuffer, req->readLen, NULL, 0, req);
       break;
     case OPERATION_SEND:
-      req->status = write(req->i2cAddress, req->writeBuffer, req->writeLen, req);
+      write(req->i2cAddress, req->writeBuffer, req->writeLen, req);
       break;
     case OPERATION_SEND_P:
-      req->status = write_P(req->i2cAddress, req->writeBuffer, req->writeLen, req);
+      write_P(req->i2cAddress, req->writeBuffer, req->writeLen, req);
       break;
     case OPERATION_REQUEST:
-      req->status = read(req->i2cAddress, req->readBuffer, req->readLen, req->writeBuffer, req->writeLen, req);
+      read(req->i2cAddress, req->readBuffer, req->readLen, req->writeBuffer, req->writeLen, req);
       break;
   }
 }
