@@ -51,6 +51,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,
              OPCODE_ONACTIVATE,OPCODE_ONDEACTIVATE,OPCODE_IFGTE,OPCODE_IFLT,
              OPCODE_ROSTER,OPCODE_KILLALL,
+             OPCODE_IFRED,OPCODE_IFAMBER,OPCODE_IFGREEN,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,OPCODE_ENDTASK,OPCODE_ENDEXRAIL
              };
 
@@ -58,10 +59,13 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
  
   // Flag bits for status of hardware and TPL
   static const byte SECTION_FLAG = 0x80;
-  static const byte LATCH_FLAG = 0x40;
-  static const byte TASK_FLAG = 0x20;
-  static const byte SPARE_FLAG = 0x10;
-  static const byte COUNTER_MASK= 0x0F;
+  static const byte LATCH_FLAG   = 0x40;
+  static const byte TASK_FLAG    = 0x20;
+  static const byte SPARE_FLAG   = 0x10;
+  static const byte SIGNAL_MASK  = 0x0C;
+  static const byte SIGNAL_RED   = 0x08;
+  static const byte SIGNAL_AMBER = 0x0C;
+  static const byte SIGNAL_GREEN = 0x04;
 
   static const byte  MAX_STACK_DEPTH=4;
  
@@ -112,7 +116,9 @@ private:
     static void setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void doSignal(VPIN id,bool red, bool amber, bool green); 
+    static void doSignal(VPIN id,char rag); 
+    static bool isSignal(VPIN id,char rag); 
+    static int16_t getSignalSlot(VPIN id);
     static void setTurnoutHiddenState(Turnout * t);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
