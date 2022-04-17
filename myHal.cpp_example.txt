@@ -164,9 +164,11 @@ void halSetup() {
   //=======================================================================
   // The following directive defines a Turntable-EX turntable instance.
   //=======================================================================
+  // TurntableEX::create(VPIN, Number of VPINs, I2C Address)
+  //
   // The parameters are:
   //   VPIN=600
-  //   Number of VPINs=1
+  //   Number of VPINs=1 (Note there is no reason to change this)
   //   I2C address=0x60
   //
   // Note that the I2C address is defined in the Turntable-EX code, and 0x60 is the default.
