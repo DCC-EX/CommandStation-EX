@@ -519,31 +519,21 @@ bool RMFT2::skipIfBlock() {
   while (nest > 0) {
     SKIPOP;
     byte opcode =  GET_OPCODE;
-    switch(opcode) {
-    case OPCODE_ENDEXRAIL:
-      kill(F("missing ENDIF"), nest);
-      return false;
-    case OPCODE_IF:
-    case OPCODE_IFCLOSED:
-    case OPCODE_IFGTE:
-    case OPCODE_IFLT:
-    case OPCODE_IFNOT:
-    case OPCODE_IFRANDOM:
-    case OPCODE_IFRESERVE:
-    case OPCODE_IFTHROWN:
-    case OPCODE_IFTIMEOUT:
-    case OPCODE_IFRED:
-    case OPCODE_IFAMBER:
-    case OPCODE_IFGREEN:
-      nest++;
-      break;
-    case OPCODE_ENDIF:
-      nest--;
-      break;
-    case OPCODE_ELSE:
-      // if nest==1 then this is the ELSE for the IF we are skipping
-      if (nest==1) nest=0; // cause loop exit and return after ELSE
-      break;
+    // all other IF type commands increase the nesting level
+    if (opcode>IF_TYPE_OPCODES) nest++;
+    else switch(opcode) {
+      case OPCODE_ENDEXRAIL:
+        kill(F("missing ENDIF"), nest);
+        return false;
+    
+      case OPCODE_ENDIF:
+        nest--;
+        break;
+    
+      case OPCODE_ELSE:
+        // if nest==1 then this is the ELSE for the IF we are skipping
+        if (nest==1) nest=0; // cause loop exit and return after ELSE
+        break;
     default:
       break;
     }
@@ -574,7 +564,7 @@ void RMFT2::loop2() {
 
   // skipIf will get set to indicate a failing IF condition 
   bool skipIf=false; 
-  
+
   // if (diag) DIAG(F("RMFT2 %d %d"),opcode,operand);
   // Attention: Returning from this switch leaves the program counter unchanged.
   //            This is used for unfinished waits for timers or sensors.
