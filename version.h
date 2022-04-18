@@ -6,6 +6,9 @@
 
 #define VERSION "4.0.2"
 // 4.0.2 EXRAIL additions:
+//       FIX negative route ids in WIthrottle problem. 
+//       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
+//       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
 //       <t cab> command to obtain current throttle settings 
 //       JA, JR, JT commands to obtain route, roster and turnout descriptions
 //       HIDDEN turnouts
