@@ -72,7 +72,7 @@ void I2CManagerClass::I2C_sendStart() {
   bytesToReceive = currentRequest->readLen;
 
   // If anything to send, initiate write.  Otherwise initiate read.
-  if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) & !bytesToSend))
+  if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
     TWI0.MADDR = (currentRequest->i2cAddress << 1) | 1;
   else
     TWI0.MADDR = (currentRequest->i2cAddress << 1) | 0;

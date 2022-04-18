@@ -12,7 +12,13 @@
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
 // 4.0.2 EXRAIL additions:
-//       PARSE <> commands
+//       FIX negative route ids in WIthrottle problem. 
+//       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
+//       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+//       <t cab> command to obtain current throttle settings 
+//       JA, JR, JT commands to obtain route, roster and turnout descriptions
+//       HIDDEN turnouts
+//       PARSE <> commands in EXRAIL
 //       VIRTUAL_TURNOUT
 //       </KILL ALL> and KILLALL command to stop all tasks. 
 //       FORGET forgets the current loco in DCC reminder tables.
