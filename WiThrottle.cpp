@@ -255,11 +255,14 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 
 int WiThrottle::getInt(byte * cmd) {
   int i=0;
+  bool negate=cmd[0]=='-';
+  if (negate) cmd++;
   while (cmd[0]>='0' && cmd[0]<='9') {
     i=i*10 + (cmd[0]-'0');
     cmd++;
   }
-  return i;    
+  if (negate) i=0-i;
+  return i ;    
 }
 
 int WiThrottle::getLocoId(byte * cmd) {
