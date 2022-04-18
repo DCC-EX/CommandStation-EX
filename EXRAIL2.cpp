@@ -66,7 +66,7 @@ const int16_t HASH_KEYWORD_ALL=3457;
 const int16_t HASH_KEYWORD_ROUTES=-3702;
 const int16_t HASH_KEYWORD_RED=26099;
 const int16_t HASH_KEYWORD_AMBER=18713;
-const int16_t HASH_KEYWORD_GREEN=31493;
+const int16_t HASH_KEYWORD_GREEN=-31493;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
