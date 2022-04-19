@@ -55,7 +55,7 @@ public:
       LED_Fast = 6,         // Set LED to a fast blink - new feature not implemented yet
       LED_Off = 7,          // Turn LED off - new feature not implemented yet
       Acc_On = 8,           // Turn accessory pin on - new feature not implemented yet
-      Acc_On = 9,           // Turn accessory pin off - new feature not implemented yet
+      Acc_Off = 9,           // Turn accessory pin off - new feature not implemented yet
     };
   }
 
