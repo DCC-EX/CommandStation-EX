@@ -12,6 +12,7 @@
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
 // 4.0.2 EXRAIL additions:
+//       myFilter automatic detection (no need to call setFilter)
 //       FIX negative route ids in WIthrottle problem. 
 //       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
 //       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands

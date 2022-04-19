@@ -88,7 +88,7 @@ Print *DCCEXParser::stashStream = NULL;
 RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
 
-// This is a JMRI command parser, one instance per incoming stream
+// This is a JMRI command parser.
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
 // calls the corresponding DCC api.
@@ -159,9 +159,12 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
     return parameterCount;
 }
 
-FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+extern __attribute__((weak)) FILTER_CALLBACK myFilter();
+FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
 FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
+
+// deprecated
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
