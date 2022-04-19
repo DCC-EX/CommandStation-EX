@@ -57,8 +57,7 @@ public:
 
 private:
   uint8_t _I2CAddress;
-  uint16_t numSteps;
-  uint8_t stepperStatus;
+  uint8_t _stepperStatus;
 
 // Initialisation of TurntableEX
   void _begin() {
@@ -80,18 +79,20 @@ private:
   void _loop(unsigned long currentMicros) {
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
-    stepperStatus = readBuffer[0];
-    delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
+    _stepperStatus = readBuffer[0];
+    // DIAG(F("Turntable-EX returned status: %d"), _stepperStatus);
+    delayUntil(currentMicros + 500000);  // Wait 500ms before checking again, turntables turn slowly
   }
 
 // Read returns status as obtained in our loop.
 // Return false if our status value is invalid.
   int _read(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
-    if (stepperStatus > 2) {
+    // DIAG(F("_read status: %d"), _stepperStatus);
+    if (_stepperStatus > 1) {
       return false;
     } else {
-      return stepperStatus;
+      return _stepperStatus;
     }
   }
 
@@ -109,6 +110,7 @@ private:
     DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d profile:%d"),
       _I2CAddress, stepsMSB, stepsLSB, profile);
 #endif
+    _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
     I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, profile);
   }
 
