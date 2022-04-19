@@ -45,6 +45,18 @@ class TurntableEX : public IODevice {
 public:
   static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
     new TurntableEX(firstVpin, nPins, I2CAddress);
+    enum ActivityNumber : uint8_t {
+      Turn = 0,             // Rotate turntable, maintain phase
+      Turn_PInvert = 1,     // Rotate turntable, invert phase
+      Home = 2,             // Initiate homing
+      Calibrate = 3,        // Initiate calibration sequence - new feature not implemented yet
+      LED_On = 4,           // Turn LED on - new feature not implemented yet
+      LED_Slow = 5,         // Set LED to a slow blink - new feature not implemented yet
+      LED_Fast = 6,         // Set LED to a fast blink - new feature not implemented yet
+      LED_Off = 7,          // Turn LED off - new feature not implemented yet
+      Acc_On = 8,           // Turn accessory pin on - new feature not implemented yet
+      Acc_On = 9,           // Turn accessory pin off - new feature not implemented yet
+    };
   }
 
   // Constructor
