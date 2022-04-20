@@ -159,7 +159,7 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
     return parameterCount;
 }
 
-extern __attribute__((weak)) FILTER_CALLBACK myFilter();
+extern __attribute__((weak))  void myFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
 FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
