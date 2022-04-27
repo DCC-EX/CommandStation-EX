@@ -6,6 +6,7 @@
 
 #define VERSION "4.0.2"
 // 4.0.2 EXRAIL additions:
+//       ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
 //       myFilter automatic detection (no need to call setFilter)
 //       FIX negative route ids in WIthrottle problem. 
 //       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
