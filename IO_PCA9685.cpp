@@ -114,7 +114,6 @@ void PCA9685::_begin() {
 // Device-specific write function, invoked from IODevice::write().  
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
-  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
   #endif
@@ -125,7 +124,10 @@ void PCA9685::_write(VPIN vpin, int value) {
   if (s != NULL) {
     // Use configured parameters
     _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
-  } // else { /* ignorethe request */ }
+  }  else {
+     /* simulate digital pin on PWM */
+      _writeAnalogue(vpin, value ? 4095 : 0, Instant, 0);     
+      }
 }
 
 // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
