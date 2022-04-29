@@ -450,7 +450,7 @@ RMFT2::RMFT2(int progCtr) {
   invert=false;
   timeoutFlag=false;
   stackDepth=0;
-  onTurnoutId=0; // Not handling an ONTHROW/ONCLOSE
+  onTurnoutId=-1; // Not handling an ONTHROW/ONCLOSE
 
   // chain into ring of RMFTs
   if (loopTask==NULL) {
