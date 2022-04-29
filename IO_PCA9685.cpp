@@ -126,7 +126,7 @@ void PCA9685::_write(VPIN vpin, int value) {
     _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
   }  else {
      /* simulate digital pin on PWM */
-      _writeAnalogue(vpin, value ? 4095 : 0, Instant, 0);     
+      _writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
       }
 }
 
@@ -158,7 +158,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
     s->activePosition = 4095;
     s->inactivePosition = 0;
     s->currentPosition = value;
-    s->profile = Instant;  // Use instant profile (but not this time)
+    s->profile = Instant | NoPowerOff;  // Use instant profile (but not this time)
   }
 
   // Animated profile.  Initiate the appropriate action.
