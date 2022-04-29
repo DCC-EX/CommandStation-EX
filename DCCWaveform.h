@@ -166,7 +166,7 @@ class DCCWaveform {
     unsigned long ackPulseStart; // micros
 
     unsigned int minAckPulseDuration = 2000; // micros
-    unsigned int maxAckPulseDuration = 20000; // micros
+    unsigned int maxAckPulseDuration = 20000; // micros to Accommodate Decoders; QSI =12500uS, and BLI Paragon2 & 3 =13500uS, and MTH =19500uS Decoders
 
     volatile static uint8_t numAckGaps;
     volatile static uint8_t numAckSamples;
