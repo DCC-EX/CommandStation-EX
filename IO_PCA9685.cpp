@@ -139,11 +139,11 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             4 (Bounce)  Servo 'bounces' at extremes.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"), 
-    vpin, value, profile, duration);
+  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+    vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
   #endif
+  if (_deviceState == DEVSTATE_FAILED) return;
   int pin = vpin - _firstVpin;
   if (value > 4095) value = 4095;
   else if (value < 0) value = 0;

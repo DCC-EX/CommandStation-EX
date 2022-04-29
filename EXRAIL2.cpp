@@ -169,14 +169,10 @@ int16_t LookList::find(int16_t value) {
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
-  for (int sigpos=0;;sigpos+=3) {
-    VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
-    if (redpin==0) break;  // end of signal list
-    VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
-    VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
-    IODevice::write(redpin,true);
-    if (amberpin) IODevice::write(amberpin,false);
-    IODevice::write(greenpin,false);
+  for (int sigpos=0;;sigpos+=4) {
+    VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+    if (sigid==0) break;  // end of signal list
+    doSignal(sigid & (~ SERVO_SIGNAL_FLAG) & (~ACTIVE_HIGH_SIGNAL_FLAG), SIGNAL_RED);
   }
 
   for (progCounter=0;; SKIPOP){
@@ -993,7 +989,7 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
   }  
 }
 /* static */ void RMFT2::doSignal(VPIN id,char rag) {
-  //if (diag) DIAG(F(" dosignal %d %x"),id,rag);
+  if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return; 
   
@@ -1006,12 +1002,13 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
   VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
   VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
   VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+3);
-  //if (diag) DIAG(F("signal %d %d %d"),redpin,amberpin,greenpin);
+  if (diag) DIAG(F("signal %d %d %d %d"),sigid,redpin,amberpin,greenpin);
 
   if (sigid & SERVO_SIGNAL_FLAG) {
     // A servo signal, the pin numbers are actually servo positions
     // Note, setting a signal to a zero position has no effect.
     int16_t servopos= rag==SIGNAL_RED? redpin: (rag==SIGNAL_GREEN? greenpin : amberpin);
+    if (diag) DIAG(F("sigA %d %d"),id,servopos);
     if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
     return;  
   }
