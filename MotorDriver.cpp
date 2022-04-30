@@ -98,6 +98,8 @@ void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
     IODevice::write(powerPin,HIGH);
+    if (resetsCounterP != NULL)
+      *resetsCounterP = 0;
   }
   else IODevice::write(powerPin,LOW);
   powerMode=mode; 

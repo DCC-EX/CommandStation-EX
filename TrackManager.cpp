@@ -124,6 +124,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
                 track[t]->setPower(POWERMODE::OFF);
                 trackMode[t]=TRACK_MODE_OFF;
             }
+    } else {
+      track[trackToSet]->setResetCounterPointer(NULL); // only the prog track has this pointer set
     }
     trackMode[trackToSet]=mode;
     trackDCAddr[trackToSet]=dcAddr;

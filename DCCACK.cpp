@@ -76,6 +76,7 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
     callback(-2); // our prog track cant measure current
     return;
   }
+  progDriver->setResetCounterPointer(&(DCCWaveform::progTrack.sentResetsSincePacket));
 
   ackManagerRejoin=TrackManager::isJoined();
   if (ackManagerRejoin ) {
