@@ -27,8 +27,8 @@
 #include "DCCWaveform.h"
 #include "TrackManager.h"
 
-unsigned int DCCACK::minAckPulseDuration = 4000; // micros
-unsigned int DCCACK::maxAckPulseDuration = 8500; // micros
+unsigned int DCCACK::minAckPulseDuration = 2000; // micros
+unsigned int DCCACK::maxAckPulseDuration = 20000; // micros
   
 MotorDriver *  DCCACK::progDriver=NULL;
 ackOp  const *  DCCACK::ackManagerProg;
@@ -57,7 +57,7 @@ uint8_t DCCACK::trailingEdgeCounter=0;
  volatile bool DCCACK::ackPending;
   bool   DCCACK::autoPowerOff;
    int  DCCACK::ackThreshold; 
-   int  DCCACK::ackLimitmA;
+   int  DCCACK::ackLimitmA = 50;
      int DCCACK::ackMaxCurrent;
       unsigned int DCCACK::ackCheckDuration; // millis       
     
