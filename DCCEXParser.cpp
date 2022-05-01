@@ -346,7 +346,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 break;
         if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
             DCC::setLocoId(p[0],callback_Wloco);
-        else // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+        else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+            DCC::writeCVByte(p[0], p[1], callback_W4);
+        else  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
         return;
 
@@ -945,7 +947,14 @@ void DCCEXParser::commitAsyncReplyStream() {
 void DCCEXParser::callback_W(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(),
-          F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
+          F("<r %d %d>\n"), stashP[0], result == 1 ? stashP[1] : -1);
+    commitAsyncReplyStream();
+}
+
+void DCCEXParser::callback_W4(int16_t result)
+{
+    StringFormatter::send(getAsyncReplyStream(),
+	  F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
     commitAsyncReplyStream();
 }
 
