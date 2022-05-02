@@ -48,7 +48,7 @@ class DCCWaveform {
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
-    void clearRepeats() {pendingRepeats=0;}
+    inline void clearRepeats() { transmitRepeats=0; }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
     volatile byte sentResetsSincePacket;
