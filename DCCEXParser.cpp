@@ -37,6 +37,7 @@
 #include "CommandDistributor.h"
 #include "EEStore.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 #include <avr/wdt.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -74,8 +75,10 @@ const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 const int16_t HASH_KEYWORD_SERVO=27709;
 const int16_t HASH_KEYWORD_VPIN=-415;
-const int16_t HASH_KEYWORD_C=67;
-const int16_t HASH_KEYWORD_T=84;
+const int16_t HASH_KEYWORD_A='A';
+const int16_t HASH_KEYWORD_C='C';
+const int16_t HASH_KEYWORD_R='R';
+const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_HAL = 10853;
 const int16_t HASH_KEYWORD_SHOW = -21309;
@@ -91,7 +94,7 @@ Print *DCCEXParser::stashStream = NULL;
 RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
 
-// This is a JMRI command parser, one instance per incoming stream
+// This is a JMRI command parser.
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
 // calls the corresponding DCC api.
@@ -145,7 +148,7 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
                 runningValue = 16 * runningValue + (hot - 'A' + 10);
                 break;
             }
-            if (hot >= 'A' && hot <= 'Z')
+            if (hot=='_' || (hot >= 'A' && hot <= 'Z'))
             {
                 // Since JMRI got modified to send keywords in some rare cases, we need this
                 // Super Kluge to turn keywords into a hash value that can be recognised later
@@ -162,9 +165,12 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
     return parameterCount;
 }
 
-FILTER_CALLBACK DCCEXParser::filterCallback = 0;
+extern __attribute__((weak))  void myFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
+FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
 FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
+
+// deprecated
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
@@ -214,10 +220,23 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
+        if (params==1) {  // <t cab>  display state
+        
+        int16_t slot=DCC::lookupSpeedTable(p[0],false);
+        if (slot>=0) {
+            DCC::LOCO * sp=&DCC::speedTable[slot];
+            StringFormatter::send(stream,F("<l %d %d %d %l>\n"),
+			sp->loco,slot,sp->speedCode,sp->functions);
+            }
+        else // send dummy state speed 0 fwd no functions. 
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+        return; 
+        }
+        
         int16_t cab;
         int16_t tspeed;
         int16_t direction;
-
+        
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
             cab = p[1];
@@ -333,7 +352,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 break;
         if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
             DCC::setLocoId(p[0],callback_Wloco);
-        else // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+        else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
+            DCC::writeCVByte(p[0], p[1], callback_W4);
+        else  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
         return;
 
@@ -361,6 +382,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'R': // READ CV ON PROG
+        if (params == 1)
+        { // <R CV> -- uses verify callback
+            if (!stashCallback(stream, p, ringStream))
+                break;
+            DCC::verifyCVByte(p[0], p[1], callback_Vbyte);
+            return;
+        }
         if (params == 3)
         { // <R CV CALLBACKNUM CALLBACKSUB>
             if (!stashCallback(stream, p, ringStream))
@@ -500,6 +528,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         DCC::setFn(p[0], p[1], p[2] == 1);
         return;
 
+#if WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback && !ringStream) {
           DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
@@ -508,6 +537,69 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
           return;
         }
         break;
+#endif 
+
+    case 'J' : // throttle info access
+        {
+            if ((params<1) | (params>2)) break; // <J>
+            int16_t id=(params==2)?p[1]:0;
+            switch(p[0]) {
+                case HASH_KEYWORD_A: // <JA> returns automations/routes
+                    StringFormatter::send(stream, F("<jA"));
+                    if (params==1) {// <JA>
+#ifdef EXRAIL_ACTIVE
+                        sendFlashList(stream,RMFT2::routeIdList);
+                        sendFlashList(stream,RMFT2::automationIdList);
+#endif
+                    }
+                    else {  // <JA id>
+                        StringFormatter::send(stream,F(" %d %c \"%S\""), 
+                                        id, 
+#ifdef EXRAIL_ACTIVE
+                                        RMFT2::getRouteType(id), // A/R
+                                        RMFT2::getRouteDescription(id)
+#else  
+                                        'X',F("")
+#endif                                        
+                                        );
+                    }
+                    StringFormatter::send(stream, F(">\n"));      
+                    return; 
+            case HASH_KEYWORD_R: // <JR> returns rosters 
+                StringFormatter::send(stream, F("<jR"));
+#ifdef EXRAIL_ACTIVE
+                if (params==1) sendFlashList(stream,RMFT2::rosterIdList);
+                else StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
+                    id, RMFT2::getRosterName(id), RMFT2::getRosterFunctions(id));
+#endif          
+                StringFormatter::send(stream, F(">\n"));      
+                return; 
+            case HASH_KEYWORD_T: // <JT> returns turnout list 
+                StringFormatter::send(stream, F("<jT"));
+                if (params==1) { // <JT>
+                    for ( Turnout * t=Turnout::first(); t; t=t->next()) { 
+                        if (t->isHidden()) continue;          
+                        StringFormatter::send(stream, F(" %d"),t->getId());
+                    }
+                }
+                else { // <JT id>
+                    Turnout * t=Turnout::get(id);
+                    if (!t || t->isHidden()) StringFormatter::send(stream, F(" %d X"),id);
+                    else  StringFormatter::send(stream, F(" %d %c \"%S\""),
+                            id,t->isThrown()?'T':'C', 
+#ifdef EXRAIL_ACTIVE
+                            RMFT2::getTurnoutDescription(id)
+#else
+                            F("") 
+#endif  
+                        );      
+                }
+                StringFormatter::send(stream, F(">\n"));
+                return;
+            default: break;    
+            }  // switch(p[1])
+        break; // case J
+        }
 
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
@@ -519,6 +611,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 
     // Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
+}
+
+void DCCEXParser::sendFlashList(Print * stream,const int16_t flashList[]) {
+    for (int16_t i=0;;i++) {
+        int16_t value=GETFLASHW(flashList+i);
+        if (value==0) return;
+        StringFormatter::send(stream,F(" %d"),value);
+    } 
 }
 
 bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
@@ -856,7 +956,14 @@ void DCCEXParser::commitAsyncReplyStream() {
 void DCCEXParser::callback_W(int16_t result)
 {
     StringFormatter::send(getAsyncReplyStream(),
-          F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
+          F("<r %d %d>\n"), stashP[0], result == 1 ? stashP[1] : -1);
+    commitAsyncReplyStream();
+}
+
+void DCCEXParser::callback_W4(int16_t result)
+{
+    StringFormatter::send(getAsyncReplyStream(),
+	  F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
     commitAsyncReplyStream();
 }
 

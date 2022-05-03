@@ -114,7 +114,6 @@ void PCA9685::_begin() {
 // Device-specific write function, invoked from IODevice::write().  
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
-  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
   #endif
@@ -125,7 +124,10 @@ void PCA9685::_write(VPIN vpin, int value) {
   if (s != NULL) {
     // Use configured parameters
     _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
-  } // else { /* ignorethe request */ }
+  }  else {
+     /* simulate digital pin on PWM */
+      _writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
+      }
 }
 
 // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
@@ -139,11 +141,11 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             4 (Bounce)  Servo 'bounces' at extremes.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-  if (_deviceState == DEVSTATE_FAILED) return;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d"), 
-    vpin, value, profile, duration);
+  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+    vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
   #endif
+  if (_deviceState == DEVSTATE_FAILED) return;
   int pin = vpin - _firstVpin;
   if (value > 4095) value = 4095;
   else if (value < 0) value = 0;
@@ -153,10 +155,10 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
     // Servo pin not configured, so configure now using defaults
     s = _servoData[pin] = (struct ServoData *) calloc(sizeof(struct ServoData), 1);
     if (s == NULL) return;  // Check for memory allocation failure
-    s->activePosition = 0;
+    s->activePosition = 4095;
     s->inactivePosition = 0;
     s->currentPosition = value;
-    s->profile = Instant;  // Use instant profile (but not this time)
+    s->profile = Instant | NoPowerOff;  // Use instant profile (but not this time)
   }
 
   // Animated profile.  Initiate the appropriate action.

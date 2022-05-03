@@ -3,8 +3,26 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.0.1"
-// 4.0.1 EXRAIL BROADCAST("msg") 
+
+#define VERSION "4.0.2"
+// 4.0.2 EXRAIL additions:
+//       ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
+//       myFilter automatic detection (no need to call setFilter)
+//       FIX negative route ids in WIthrottle problem. 
+//       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
+//       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+//       <t cab> command to obtain current throttle settings 
+//       JA, JR, JT commands to obtain route, roster and turnout descriptions
+//       HIDDEN turnouts
+//       PARSE <> commands in EXRAIL
+//       VIRTUAL_TURNOUT
+//       </KILL ALL> and KILLALL command to stop all tasks. 
+//       FORGET forgets the current loco in DCC reminder tables.
+//       Servo signals (SERVO_SIGNAL) 
+//       High-On signal pins (SIGNALH)
+//       Wait for analog value (ATGTE, ATLT)  
+// 4.0.1 Small EXRAIL updates
+//       EXRAIL BROADCAST("msg") 
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement

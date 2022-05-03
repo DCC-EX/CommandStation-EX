@@ -128,7 +128,6 @@ public:
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders
   static void displayCabList(Print *stream);
-
   static FSH *getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
@@ -148,7 +147,8 @@ public:
     unsigned long functions;
   };
  static LOCO speedTable[MAX_LOCOS];
- 
+ static int lookupSpeedTable(int locoId, bool autoCreate=true);
+  
 private:
   static byte joinRelay;
   static byte loopStatus;
@@ -162,7 +162,6 @@ private:
 
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
-  static int lookupSpeedTable(int locoId);
   static void issueReminders();
   static void callback(int value);
 

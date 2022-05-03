@@ -157,7 +157,7 @@ class DCCWaveform {
     volatile bool ackPending;
     volatile bool ackDetected;
     int  ackThreshold; 
-    int  ackLimitmA = 60;
+    int  ackLimitmA = 50;
     int ackMaxCurrent;
     unsigned long ackCheckStart; // millis
     unsigned int ackCheckDuration; // millis       
@@ -165,8 +165,8 @@ class DCCWaveform {
     unsigned int ackPulseDuration;  // micros
     unsigned long ackPulseStart; // micros
 
-    unsigned int minAckPulseDuration = 4000; // micros
-    unsigned int maxAckPulseDuration = 8500; // micros
+    unsigned int minAckPulseDuration = 2000; // micros
+    unsigned int maxAckPulseDuration = 20000; // micros
 
     volatile static uint8_t numAckGaps;
     volatile static uint8_t numAckSamples;
