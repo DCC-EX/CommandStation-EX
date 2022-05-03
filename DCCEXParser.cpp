@@ -380,7 +380,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         { // <R CV> -- uses verify callback
             if (!stashCallback(stream, p, ringStream))
                 break;
-            DCC::verifyCVByte(p[0], p[1], callback_Vbyte);
+            DCC::verifyCVByte(p[0], 0, callback_Vbyte);
             return;
         }
         if (params == 3)
