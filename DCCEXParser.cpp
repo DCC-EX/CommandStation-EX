@@ -376,6 +376,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'R': // READ CV ON PROG
+        if (params == 1)
+        { // <R CV> -- uses verify callback
+            if (!stashCallback(stream, p, ringStream))
+                break;
+            DCC::verifyCVByte(p[0], p[1], callback_Vbyte);
+            return;
+        }
         if (params == 3)
         { // <R CV CALLBACKNUM CALLBACKSUB>
             if (!stashCallback(stream, p, ringStream))
