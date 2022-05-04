@@ -75,7 +75,7 @@ void DCC::begin(const FSH * motorShieldName) {
 
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
+  byte speedCode = calculateSpeedByte(tSpeed,tDirection);
   setThrottle2(cab, speedCode);
   TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
   // retain speed for loco reminders
@@ -540,15 +540,24 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
       DCCACK::Setup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
 }
 
-void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
-  setThrottle2(cab,1); // ESTOP this loco if still on track
-  int reg=lookupSpeedTable(cab);
-  if (reg>=0) speedTable[reg].loco=0;
-  setThrottle2(cab,1); // ESTOP if this loco still on track
+void DCC::forgetLoco(int cab){ // removes any speed reminders for this loco
+  auto direction = getThrottleDirection(cab);
+  setThrottle2(cab, calculateSpeedByte(1, direction)); // ESTOP this loco if still on track
+  int reg = lookupSpeedTable(cab);
+  if (reg >= 0)
+    speedTable[reg].loco = 0;
+  setThrottle2(cab, calculateSpeedByte(1, direction)); // ESTOP if this loco still on track
 }
-void DCC::forgetAllLocos() {  // removes all speed reminders
-  setThrottle2(0,1); // ESTOP all locos still on track
-  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;
+
+void DCC::forgetAllLocos() { // removes all speed reminders
+  for (int i = 0; i < MAX_LOCOS; i++) {
+    auto &locoId = speedTable[i].loco;
+    if (locoId != 0) {
+      auto direction = getThrottleDirection(locoId);
+      setThrottle2(locoId, calculateSpeedByte(1, direction));
+      locoId = 0;
+    }
+  }
 }
 
 byte DCC::loopStatus=0;
@@ -620,6 +629,10 @@ bool DCC::issueReminder(int reg) {
 
 
 ///// Private helper functions below here /////////////////////
+
+inline byte DCC::calculateSpeedByte(uint8_t tSpeed, bool tDirection) {
+  return (tSpeed & 0x7F)  + tDirection * 128;
+}
 
 byte DCC::cv1(byte opcode, int cv)  {
   cv--;
