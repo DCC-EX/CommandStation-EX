@@ -70,7 +70,7 @@ void WifiInboundHandler::loop1()
 
       //If there is data in the ring
       if (clientPendingCIPSEND >= 0 ) {
-        if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_PENDING"));
+        if (Diag::WIFI) { ts.cipSendStart = millis(); DIAG( F("cipSendStatus = CIP_SEND_PENDING")); }
         //Get the length of the reply to send
         currentReplySize = outboundRing->count();
         //Set the pending CIPSEND flag
@@ -82,7 +82,7 @@ void WifiInboundHandler::loop1()
   if (cipSendStatus == CIP_SEND_PENDING) {
     if (Diag::WIFI) DIAG( F("WiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
     StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"),  clientPendingCIPSEND, currentReplySize);
-    if (Diag::WIFI) DIAG( F("pendingCipsend = CIP_SEND_SENT"));
+    if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_SENT [%lms]"),millis()-ts.cipSendStart);
     cipSendStatus = CIP_SEND_SENT;
     return;
   }
@@ -121,6 +121,7 @@ int WifiInboundHandler::antoi(char* str, int len) {
   return res;
 }
 
+
 // This loop processes the inbound bytes from an ES AT command processor
 WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
@@ -136,7 +137,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
   //The execption is the +IPD message.  Only the data up to the ':' character (end of length)
   //is put in this buffer.  The actual +IPD data is written directly into the inbound buffer
   while (!exitLoop)
-  {
+  {   
     //We exit this loop either if there is no data available, or we have a complete message to process
     while (wifiStream->available() && messageToProcess == RECV_MSG_NONE)
     {
@@ -167,6 +168,9 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
       //IPD message
       else if ((stringStartPos = strstr(recBuffer, "+IPD,")) != NULL && (stringEndPos = strstr(recBuffer, ":")) != NULL) {
+        
+        if (Diag::WIFI) { ts.ipdStart = millis(); DIAG( F("+IPD Message START")); }
+        
         //Advance the start string to the beginning of the length
         stringStartPos += strlen("+IPD,");
 
@@ -210,16 +214,16 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         if (strstr(recBuffer, "SEND FAIL") != NULL) {
           if (Diag::WIFI) DIAG(F("[SEND FAIL - detected"));
           if (cipSendStatus == CIP_SEND_DATA_SENT) {
-            if (Diag::WIFI) DIAG( F("pendingCipsend = CIP_SEND_NONE"));
+            if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_NONE [%lms]"),millis()-ts.cipSendStart);
             cipSendStatus = CIP_SEND_NONE;
           }
         }
 
         //Check for a SEND OK message
         else if (strstr(recBuffer, "SEND OK") != NULL) {
-          if (Diag::WIFI) DIAG(F("[SEND OK - detected"));
+          if (Diag::WIFI) DIAG(F("[SEND OK - detected [%lms]"),millis()-ts.cipSendStart);
           if (cipSendStatus == CIP_SEND_DATA_SENT) {
-            if (Diag::WIFI) DIAG( F("pendingCipsend = CIP_SEND_NONE"));
+            if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_NONE [%lms]"),millis()-ts.cipSendStart);
             cipSendStatus = CIP_SEND_NONE;
           }
         }
@@ -238,12 +242,16 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
           if (clientPendingCIPSEND >= 0) {
             if (Diag::WIFI) DIAG(F("['link is not valid' detected - purging CIPSEND]"));
             purgeCurrentCIPSEND();
+            //Clear out all data from esp8266 receive buffer
+            while (wifiStream->available()) {
+              wifiStream->read();
+            }
           }
         }
         break;
 
       case RECV_MSG_SND_DATA:
-        if (Diag::WIFI) DIAG(F("[XMIT %d]"), currentReplySize);
+        if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_DATA_SENT [XMIT START %d] [%lms]"),currentReplySize, millis()-ts.cipSendStart);
         for (i = 0; i < currentReplySize; i++)
         {
           //Read data from the outboundRing and write to to Wifi
@@ -254,7 +262,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
         //Set CIPSEND flag to -1
         clientPendingCIPSEND = -1;
-        if (Diag::WIFI) DIAG( F("pendingCipsend = CIP_SEND_DATA_SENT"));
+        if (Diag::WIFI) DIAG( F("cipSendStatus = CIP_SEND_DATA_SENT [XMIT END] [%lms]"),millis()-ts.cipSendStart);
         cipSendStatus = CIP_SEND_DATA_SENT;
         break;
 
@@ -262,7 +270,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
         //Mark the location with the client ID
         if (dataRemaining == dataLength) {
-          if (Diag::WIFI) DIAG(F("Wifi inbound data(%d:%d):"), runningClientId, dataLength);
+           if (Diag::WIFI) DIAG(F("Wifi inbound data(%d:%d) [%lms]:"), runningClientId, dataLength, millis()-ts.ipdStart);
           inboundRing->mark(runningClientId);
         }
 
@@ -296,7 +304,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
             // Commit inbound ring data
             if (dataRemaining == 0) {
-              if (Diag::WIFI) DIAG(F("COMMIT"));
+              if (Diag::WIFI) DIAG(F("COMMIT [%lms]:"),millis()-ts.ipdStart);
               if(inboundRing->commit() == false) {
                 outboundRing->flush();
                 inboundRing->flush();
@@ -352,7 +360,7 @@ void WifiInboundHandler::purgeCurrentCIPSEND() {
       wifiStream->write(c);
     }
   }
-
+  // Clear CIP send status
   cipSendStatus = CIP_SEND_NONE;
   clientPendingCIPSEND = -1;
 }

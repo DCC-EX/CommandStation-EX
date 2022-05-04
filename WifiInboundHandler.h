@@ -57,6 +57,11 @@ class WifiInboundHandler {
       CIP_SEND_DATA_SENT
     };
 
+    typedef struct _timeStamps {
+      long cipSendStart;
+      long ipdStart;
+    } timeStamps_t;
+
     WifiInboundHandler(Stream * ESStream);
     void loop1();
     INBOUND_STATE loop2();
@@ -82,5 +87,6 @@ class WifiInboundHandler {
     char recBuffer[INBOUND_CMD_BUFFER] = {'\0'};
     int recBufferPos = 0;
     int recBufferWatermark = 0;
+    timeStamps_t ts = {0}; 
 };
 #endif
