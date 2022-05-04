@@ -269,8 +269,8 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         while (wifiStream->available()) {
           //Read next character (data byte)
           ch = wifiStream->read();
-          if (Diag::WIFI) DIAG(F("[+IPD %d]"), dataRemaining);
           if (Diag::WIFI) StringFormatter::printEscape(ch);
+          if (Diag::WIFI) DIAG(F("[+IPD %d]"), dataRemaining);
           dataRemaining--;
 
           //Check if we would overflow the inbound ring
