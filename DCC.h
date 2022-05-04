@@ -160,6 +160,7 @@ private:
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
+  static byte calculateSpeedByte(uint8_t tSpeed, bool tDirection);
   static byte cv1(byte opcode, int cv);
   static byte cv2(int cv);
   static void issueReminders();
