@@ -61,8 +61,8 @@ protected:
       struct {
         bool closed : 1;
         bool _rfu: 2;
-        bool hidden: 1;
         uint8_t turnoutType : 4;
+        bool hidden: 1;
       };
       uint8_t flags;
     };
