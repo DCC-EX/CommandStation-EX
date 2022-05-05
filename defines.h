@@ -77,15 +77,21 @@
 // This defines the speed at which the Arduino will communicate with the ESP8266 module.
 // Currently only devices which can communicate at 115200 are supported.
 //
+// TODO: PMA remove! Need 9600bps for Sparkfun shield with old firmware!
+#if defined(ARDUINO_ARCH_SAMD)
 #define WIFI_SERIAL_LINK_SPEED 9600
+#else
+#define WIFI_SERIAL_LINK_SPEED 115200
+#endif
 
 // TODO: PMA - figure out why enabling this causes the CS to crashe immediately after starting the motor driver
-//#if __has_include ( "myAutomation.h")
-//  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
-//    #define EXRAIL_ACTIVE
-//  #else
-//    #define EXRAIL_WARNING
-//  #endif
-//#endif
+//             on the SAMD platform - going to try to rebase to current TrackManager in case it's not my bug :-)
+#if __has_include ( "myAutomation.h")
+  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
+    #define EXRAIL_ACTIVE
+  #else
+    #define EXRAIL_WARNING
+  #endif
+#endif
 
 #endif

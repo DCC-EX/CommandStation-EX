@@ -119,8 +119,9 @@ void TCC2_Handler() {
 
 
 bool DCCTimer::isPWMPin(byte pin) {
-  //TODO: SAMD test this works!
-//  return digitalPinHasPWM(pin);
+  //TODO: SAMD whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
+  //      there's no support yet for High Accuracy, so for now return false
+  //  return digitalPinHasPWM(pin);
   return false;
 }
 
