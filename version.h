@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.1.1rc1"
+#define VERSION "4.1.1 rc1"
 // 4.1.1 Bugfix: preserve turnout format
 // 4.1.0 ...
 //
