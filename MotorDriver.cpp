@@ -27,7 +27,11 @@
 
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
-       
+
+volatile byte fakePORTA;
+volatile byte fakePORTB;
+volatile byte fakePORTC;
+
 MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
@@ -36,7 +40,20 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   signalPin=signal_pin;
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
-  
+
+  if (fastSignalPin.inout == &PORTA) {
+    DIAG(F("Found PORTA pin %d"),signalPin);
+    fastSignalPin.inout = &fakePORTA;
+  }
+  if (fastSignalPin.inout == &PORTB) {
+    DIAG(F("Found PORTB pin %d"),signalPin);
+    fastSignalPin.inout = &fakePORTB;
+  }
+  if (fastSignalPin.inout == &PORTC) {
+    DIAG(F("Found PORTC pin %d"),signalPin);
+    fastSignalPin.inout = &fakePORTC;
+  }
+
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
     dualSignal=true;
@@ -50,6 +67,7 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
     invertBrake=brake_pin < 0;
     brakePin=invertBrake ? 0-brake_pin : brake_pin;
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
+    // if brake is used for railcom  cutout we need to do PORTX register trick here as well
     pinMode(brakePin, OUTPUT);
     setBrake(true);  // start with brake on in case we hace DC stuff going on
   }

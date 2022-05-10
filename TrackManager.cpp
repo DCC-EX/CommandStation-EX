@@ -85,18 +85,34 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
          track[t]->setPower(POWERMODE::OFF);
      } 
 }    
+extern byte fakePORTA;
+extern byte fakePORTB;
+extern byte fakePORTC;
 
 void TrackManager::setDCCSignal( bool on) {
-    APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
+  fakePORTA=PORTA;
+  fakePORTB=PORTB;
+  fakePORTC=PORTC;
+  APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
+  PORTA=fakePORTA;
+  PORTB=fakePORTB;
+  PORTC=fakePORTC;
 }
 
 void TrackManager::setCutout( bool on) {
     (void) on;
+    // TODO Cutout needs fake ports as well
     // TODO      APPLY_BY_MODE(TRACK_MODE_MAIN,setCutout(on));
 }
 
 void TrackManager::setPROGSignal( bool on) {
-    APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
+  fakePORTA=PORTA;
+  fakePORTB=PORTB;
+  fakePORTC=PORTC;
+  APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
+  PORTA=fakePORTA;
+  PORTB=fakePORTB;
+  PORTC=fakePORTC;
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
