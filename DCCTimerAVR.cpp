@@ -83,6 +83,10 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
  #endif       
  }
 
+void DCCTimer::clearPWM() {
+  TCCR1A= 0;
+}
+
   void DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     for (byte i=0; i<6; i++) {
       mac[i]=boot_signature_byte_get(0x0E + i);

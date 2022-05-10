@@ -23,6 +23,12 @@
 #define MotorDriver_h
 #include "FSH.h"
 #include "IODevice.h"
+#include "DCCTimer.h"
+
+#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
+#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
+#define isLOW(fastpin)    (!isHIGH(fastpin))
 
 // Virtualised Motor shield 1-track hardware Interface
 
@@ -53,7 +59,21 @@ class MotorDriver {
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( POWERMODE mode);
     virtual POWERMODE getPower() { return powerMode;}
-    virtual void setSignal( bool high);
+    __attribute__((always_inline)) inline void setSignal( bool high) {
+      if (usePWM) {
+	DCCTimer::setPWM(signalPin,high);
+      }
+      else {
+	if (high) {
+	  setHIGH(fastSignalPin);
+	  if (dualSignal) setLOW(fastSignalPin2);
+	}
+	else {
+	  setLOW(fastSignalPin);
+	  if (dualSignal) setHIGH(fastSignalPin2);
+	}
+      }
+    };
     virtual void setBrake( bool on);
     virtual void setDCSignal(byte speedByte);
     virtual int  getCurrentRaw();

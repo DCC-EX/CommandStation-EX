@@ -90,6 +90,10 @@ extern char *__malloc_heap_start;
     // TODO what are the relevant pins?
  }
 
+void DCCTimer::clearPWM() {
+    // Do nothing unless we implent HA
+}
+
   void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     memcpy(mac,(void *) &SIGROW.SERNUM0,6);  // serial number
     mac[0] &= 0xFE;

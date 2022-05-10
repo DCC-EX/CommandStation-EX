@@ -50,6 +50,10 @@ void DCCTimer::setPWM(byte pin, bool high) {
     (void) high;
 }
 
+void DCCTimer::clearPWM() {
+    // Do nothing unless we implent HA
+}
+
 #if defined(__IMXRT1062__)  //Teensy 4.0 and Teensy 4.1
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     uint32_t m1 = HW_OCOTP_MAC1;

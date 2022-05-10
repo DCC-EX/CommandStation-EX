@@ -22,6 +22,7 @@
 #include "DCCWaveform.h"
 #include "DCC.h"
 #include "MotorDriver.h"
+#include "DCCTimer.h"
 #include "DIAG.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
@@ -110,6 +111,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
+    //DIAG(F("Track=%c"),trackToSet+'A');
     // DC tracks require a motorDriver that can set brake!
     if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
          && !track[trackToSet]->canBrake()) {
@@ -120,7 +122,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode==TRACK_MODE_PROG) {
         // only allow 1 track to be prog
         FOR_EACH_TRACK(t)
-            if (trackMode[t]==TRACK_MODE_PROG) {
+            if (trackMode[t]==TRACK_MODE_PROG && t != trackToSet) {
                 track[t]->setPower(POWERMODE::OFF);
                 trackMode[t]=TRACK_MODE_OFF;
             }
@@ -150,6 +152,10 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     FOR_EACH_TRACK(t)
         if (trackMode[t]==TRACK_MODE_MAIN ||trackMode[t]==TRACK_MODE_PROG)
             canDo &= track[t]->isPWMCapable();
+    //DIAG(F("HAMode=%d"),canDo);
+    if (!canDo) {
+      DCCTimer::clearPWM();
+    }
     MotorDriver::usePWM=canDo;
 
     
@@ -157,7 +163,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     track[trackToSet]->setPower(
         (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ?
         mainPowerGuess : POWERMODE::OFF);
-    
+    //DIAG(F("TrackMode=%d"),mode);
     return true; 
 }
 

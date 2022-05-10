@@ -25,11 +25,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 
-#define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
-#define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
-#define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
-#define isLOW(fastpin)    (!isHIGH(fastpin))
-
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
        
@@ -118,23 +113,6 @@ void MotorDriver::setBrake(bool on) {
   if (on ^ invertBrake) setHIGH(fastBrakePin);
   else setLOW(fastBrakePin);
 }
-
-void MotorDriver::setSignal( bool high) {
-   if (usePWM) {
-    DCCTimer::setPWM(signalPin,high);
-   }
-   else {
-     if (high) {
-        setHIGH(fastSignalPin);
-        if (dualSignal) setLOW(fastSignalPin2);
-     }
-     else {
-        setLOW(fastSignalPin);
-        if (dualSignal) setHIGH(fastSignalPin2);
-     }
-   }
-}
-
 
 bool MotorDriver::canMeasureCurrent() {
   return currentPin!=UNUSED_PIN;

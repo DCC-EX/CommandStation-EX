@@ -60,7 +60,7 @@ class DCCTimer {
   static void getSimulatedMacAddress(byte mac[6]);
   static bool isPWMPin(byte pin);
   static void setPWM(byte pin, bool high);
-
+  static void clearPWM();
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
 // called subroutines.  Must be called with interrupts disabled.
