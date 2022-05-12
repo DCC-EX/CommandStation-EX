@@ -78,11 +78,11 @@ void TrackManager::Setup(const FSH * shieldname,
 }
 
 void TrackManager::addTrack(byte t, MotorDriver* driver) {
-     track[t]=driver;
      trackMode[t]=TRACK_MODE_OFF;
+     track[t]=driver;
      if (driver) {
-         lastTrack=t;
          track[t]->setPower(POWERMODE::OFF);
+         lastTrack=t;
      } 
 }    
 
