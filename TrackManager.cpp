@@ -149,9 +149,18 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
     bool canDo=true;
-    FOR_EACH_TRACK(t)
-        if (trackMode[t]==TRACK_MODE_MAIN ||trackMode[t]==TRACK_MODE_PROG)
-            canDo &= track[t]->isPWMCapable();
+    FOR_EACH_TRACK(t) {
+      // DC tracks must not have the DCC PWM switched on
+      // so we globally turn it off if one of the PWM
+      // capable tracks is now DC or DCX.
+      if (trackMode[t]==TRACK_MODE_DC || trackMode[t]==TRACK_MODE_DCX) {
+	if (track[t]->isPWMCapable()) {
+	  canDo=false;
+	  break;
+	}
+      } else if (trackMode[t]==TRACK_MODE_MAIN || trackMode[t]==TRACK_MODE_PROG)
+	canDo &= track[t]->isPWMCapable();
+    }
     //DIAG(F("HAMode=%d"),canDo);
     if (!canDo) {
       DCCTimer::clearPWM();
