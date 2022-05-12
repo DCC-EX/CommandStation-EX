@@ -41,15 +41,15 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
 
-  if (fastSignalPin.inout == &PORTA) {
+  if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
     fastSignalPin.inout = &fakePORTA;
   }
-  if (fastSignalPin.inout == &PORTB) {
+  if (HAVE_PORTB(fastSignalPin.inout == &PORTB)) {
     DIAG(F("Found PORTB pin %d"),signalPin);
     fastSignalPin.inout = &fakePORTB;
   }
-  if (fastSignalPin.inout == &PORTC) {
+  if (HAVE_PORTC(fastSignalPin.inout == &PORTC)) {
     DIAG(F("Found PORTC pin %d"),signalPin);
     fastSignalPin.inout = &fakePORTC;
   }

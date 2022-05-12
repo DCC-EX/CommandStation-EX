@@ -84,19 +84,21 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
          lastTrack=t;
          track[t]->setPower(POWERMODE::OFF);
      } 
-}    
+}
+
+// defined in Motordriver.cpp
 extern byte fakePORTA;
 extern byte fakePORTB;
 extern byte fakePORTC;
 
 void TrackManager::setDCCSignal( bool on) {
-  fakePORTA=PORTA;
-  fakePORTB=PORTB;
-  fakePORTC=PORTC;
+  HAVE_PORTA(fakePORTA=PORTA);
+  HAVE_PORTB(fakePORTB=PORTB);
+  HAVE_PORTC(fakePORTC=PORTC);
   APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
-  PORTA=fakePORTA;
-  PORTB=fakePORTB;
-  PORTC=fakePORTC;
+  HAVE_PORTA(PORTA=fakePORTA);
+  HAVE_PORTB(PORTB=fakePORTB);
+  HAVE_PORTC(PORTC=fakePORTC);
 }
 
 void TrackManager::setCutout( bool on) {
@@ -106,13 +108,13 @@ void TrackManager::setCutout( bool on) {
 }
 
 void TrackManager::setPROGSignal( bool on) {
-  fakePORTA=PORTA;
-  fakePORTB=PORTB;
-  fakePORTC=PORTC;
+  HAVE_PORTA(fakePORTA=PORTA);
+  HAVE_PORTB(fakePORTB=PORTB);
+  HAVE_PORTC(fakePORTC=PORTC);
   APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
-  PORTA=fakePORTA;
-  PORTB=fakePORTB;
-  PORTC=fakePORTC;
+  HAVE_PORTA(PORTA=fakePORTA);
+  HAVE_PORTB(PORTB=fakePORTB);
+  HAVE_PORTC(PORTC=fakePORTC);
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {

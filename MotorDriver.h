@@ -30,6 +30,31 @@
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
 
+#define TOKENPASTE(x, y) x ## y
+#define TOKENPASTE2(x, y) TOKENPASTE(x, y)
+
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+#define HAVE_PORTA(X) X
+#define HAVE_PORTB(X) X
+#define HAVE_PORTC(X) X
+#endif
+#if defined(ARDUINO_AVR_UNO)
+#define HAVE_PORTB(X) X
+#endif
+
+// if macros not defined as pass-through we define
+// them here as someting that is valid as a
+// statement and evaluates to false.
+#ifndef HAVE_PORTA
+#define HAVE_PORTA(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTB
+#define HAVE_PORTB(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTC
+#define HAVE_PORTC(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+
 // Virtualised Motor shield 1-track hardware Interface
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
