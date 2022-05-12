@@ -23,7 +23,7 @@
 #include "MotorDriver.h"
 // Virtualised Motor shield multi-track hardware Interface
 
-enum TRACK_MODE : byte {TRACK_MODE_MAIN, TRACK_MODE_PROG, TRACK_MODE_OFF,
+enum TRACK_MODE : byte {TRACK_MODE_OFF, TRACK_MODE_MAIN, TRACK_MODE_PROG,
                         TRACK_MODE_DC, TRACK_MODE_DCX};
 
 // These constants help EXRAIL macros say SET_TRACK(2,mode) OR SET_TRACK(C,mode) etc.
