@@ -56,7 +56,7 @@ const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
-const int16_t HASH_KEYWORD_RAILCOM = 29097; 
+const int16_t HASH_KEYWORD_RAILCOM = -29097;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;

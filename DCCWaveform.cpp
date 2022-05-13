@@ -83,8 +83,16 @@ void DCCWaveform::interruptHandler() {
   progTrack.state=stateTransform[progTrack.state];    
 
 
+  // WAVE_START is at start of bit where we need to find
+  // out if this is an railcom start or stop time
+  if (useRailcom) {
+    if (mainTrack.state==WAVE_START) mainTrack.railcom2();
+    if (progTrack.state==WAVE_START) progTrack.railcom2();
+  }
+
   // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
+  // so call interrupt2 to set it
+  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
   else if (progTrack.ackPending) progTrack.checkAck();
 
@@ -216,7 +224,29 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_MID_0   -> */ LOW,
    /* WAVE_LOW_0   -> */ LOW,
    /* WAVE_PENDING (should not happen) -> */ LOW};
-        
+
+void DCCWaveform::railcom2() {
+  volatile bool cutout;
+  if (remainingPreambles==(requiredPreambles-2)) {
+    cutout=true;
+    goto doit;
+  }
+  else if (remainingPreambles==(requiredPreambles-6)) {
+    cutout=false;
+    goto doit;
+  }
+  return; // neiter start or end of cutout, do nothing
+doit:
+  if (isMainTrack) {
+    if (progTrackSyncMain) // we are main track and synced so we take care of prog track as well
+      progTrack.motorDriver->setRailcomCutout(cutout);
+    mainTrack.motorDriver->setRailcomCutout(cutout);
+  } else {
+    if (!progTrackSyncMain) // we are prog track and not synced so we take care of ourselves
+      progTrack.motorDriver->setRailcomCutout(cutout);
+  }
+}
+
 void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
@@ -225,20 +255,12 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
-    
-    // Railcom cutout processing but not on prog if synced with main
-    if (useRailcom && (isMainTrack || !progTrackSyncMain)) do {
-        bool cutout;
-        if (remainingPreambles==(requiredPreambles-2)) cutout=true;
-        else if (remainingPreambles==(requiredPreambles-6)) cutout=false;    
-        else break;
-        motorDriver->setRailcomCutout(cutout);
-        if (progTrackSyncMain) progTrack.motorDriver->setRailcomCutout(cutout);   
-        } while(false);  // this is to allow break out of do {...} above 
-     
+
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    updateMinimumFreeMemory(22); 
+    // Don't need to do that more than once per packet
+    if (remainingPreambles == 3)
+      updateMinimumFreeMemory(22);
     return;
   }
 

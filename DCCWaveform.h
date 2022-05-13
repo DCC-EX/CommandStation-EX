@@ -122,6 +122,7 @@ class DCCWaveform {
   
     static void interruptHandler();
     void interrupt2();
+    void railcom2();
     void checkAck();
     
     bool isMainTrack;
