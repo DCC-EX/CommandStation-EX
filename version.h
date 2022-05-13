@@ -4,8 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.1.1 rc1"
+#define VERSION "4.1.1 rc2"
 // 4.1.1 Bugfix: preserve turnout format
+//       Bugfix: parse multiple commands in one buffer string correct
 // 4.1.0 ...
 //
 // 4.0.2 EXRAIL additions:
