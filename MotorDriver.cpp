@@ -115,7 +115,7 @@ void MotorDriver::setBrake(bool on) {
 }
 
 void MotorDriver::setRailcomCutout(bool on) {
-  DCCTimer::setPWM(brakePin,on);
+  DCCTimer::setPWM(brakePin,on ^ invertBrake);
 }
 
 void MotorDriver::setSignal( bool high) {
