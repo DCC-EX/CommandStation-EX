@@ -226,17 +226,15 @@ const bool DCCWaveform::signalTransform[]={
    /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::railcom2() {
-  volatile bool cutout;
+  bool cutout;
   if (remainingPreambles==(requiredPreambles-2)) {
     cutout=true;
-    goto doit;
-  }
-  else if (remainingPreambles==(requiredPreambles-6)) {
+  } else if (remainingPreambles==(requiredPreambles-6)) {
     cutout=false;
-    goto doit;
+  } else {
+    return; // neiter start or end of cutout, do nothing
   }
-  return; // neiter start or end of cutout, do nothing
-doit:
+
   if (isMainTrack) {
     if (progTrackSyncMain) // we are main track and synced so we take care of prog track as well
       progTrack.motorDriver->setRailcomCutout(cutout);
