@@ -1,4 +1,5 @@
  /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Chris Harlow
  *  © 2022 Harald Barth
  *  All rights reserved.
@@ -33,8 +34,13 @@ SerialManager::SerialManager(Stream * myserial) {
 
 void SerialManager::init() {
   while (!Serial && millis() < 5000); // wait max 5s for Serial to start
+#if defined(ARDUINO_ARCH_SAMD)
+  SerialUSB.begin(115200);
+  new SerialManager(&SerialUSB);
+#else
   Serial.begin(115200);
   new SerialManager(&Serial);
+#endif
 #ifdef SERIAL3_COMMANDS
   Serial3.begin(115200);
   new SerialManager(&Serial3);

@@ -1,4 +1,5 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
  *  (c) 2020 Chris Harlow. All rights reserved.
@@ -49,6 +50,13 @@
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
                               new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 2.99, 2000, UNUSED_PIN)
+
+// Setup for SAMD21 Sparkfun DEV board using Arduino standard Motor Shield R3 (MUST be R3 for 3v3 compatibility!!)
+// senseFactor for 3.3v systems is 1.95 as calculated when using 10-bit A/D samples,
+// and for 12-bit samples it's more like 0.488, but we probably need to tweak both these
+#define SAMD_STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                             \
+                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 2000, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 2000, UNUSED_PIN)
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \

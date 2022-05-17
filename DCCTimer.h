@@ -1,4 +1,5 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
@@ -120,6 +121,9 @@ private:
 #undef HAS_AVR_WDT
 #elif defined(ARDUINO_ARCH_ESP32)
 #define ARDUINO_TYPE "ESP32"
+#undef HAS_AVR_WDT
+#elif defined(ARDUINO_ARCH_SAMD)
+#define ARDUINO_TYPE "SAMD21"
 #undef HAS_AVR_WDT
 #else
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN DCCTimer.h

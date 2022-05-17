@@ -1,4 +1,5 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Herb Morton
@@ -881,7 +882,9 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
           delay(50);            // wait for the prescaller time to expire
 #else
+#if defined(ARDUINO_ARCH_ESP)
 	  ESP.restart();
+#endif
 #endif
           break; // and <X> if we didnt restart 
         }

@@ -26,7 +26,7 @@
 
 #include <Arduino.h>
 
-#if defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARCH_SAMC)
 #include <SparkFun_External_EEPROM.h>
 extern ExternalEEPROM EEPROM;
 #else

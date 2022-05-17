@@ -62,7 +62,11 @@ byte DCC::globalSpeedsteps=128;
 
 void DCC::begin(const FSH * motorShieldName) {
   shieldName=(FSH *)motorShieldName;
+#if defined(ARDUINO_ARCH_SAMD)
+  StringFormatter::send(SerialUSB,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+#else
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+#endif
 
 #ifndef DISABLE_EEPROM
   // Load stuff from EEprom
