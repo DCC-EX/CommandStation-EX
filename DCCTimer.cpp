@@ -227,6 +227,14 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
       TCNT4 = 0;  // this timer fires half cycle after Timer 1 (no idea why /4 !)     
       #endif
     
+      // turn on PWM for the pins here (instead of in setPWM())
+      // only needed if RailCom is inactive as otherwise RailCom
+      // takes care of that. Does not hurt tough
+      onoffPWM(TIMER1_A_PIN, true);
+      onoffPWM(TIMER1_B_PIN, true);
+#ifdef TIMER1_C_PIN
+      onoffPWM(TIMER1_C_PIN, true);
+#endif
     interrupts();
   }
 
@@ -253,19 +261,38 @@ void DCCTimer::read(uint8_t word, uint8_t *mac, uint8_t offset) {
               false;
   }
 
+void DCCTimer::onoffPWM(byte pin, bool on) {
+  if (pin==TIMER1_A_PIN) {
+    if (on)
+      TCCR1A |= _BV(COM1A1);
+    else
+      TCCR1A &= ~(_BV(COM1A1));
+  }
+  else if (pin==TIMER1_B_PIN) {
+    if (on)
+      TCCR1A |= _BV(COM1B1);
+    else
+      TCCR1A &= ~(_BV(COM1B1));
+  }
+#ifdef TIMER1_C_PIN
+  else if (pin==TIMER1_C_PIN) {
+    if (on)
+      TCCR1A |= _BV(COM1C1);
+    else
+      TCCR1A &= ~(_BV(COM1C1));
+  }
+#endif
+}
  void DCCTimer::setPWM(byte pin, bool high) {
     uint16_t val=high?1024:0;
     if (pin==TIMER1_A_PIN) {
-      TCCR1A |= _BV(COM1A1);
       OCR1A= val;
     }
     else if (pin==TIMER1_B_PIN) { 
-      TCCR1A |= _BV(COM1B1);
       OCR1B= val;
     }
  #ifdef TIMER1_C_PIN 
     else if (pin==TIMER1_C_PIN) { 
-      TCCR1A |= _BV(COM1C1);
       OCR1C= val;
     }
  #endif       
