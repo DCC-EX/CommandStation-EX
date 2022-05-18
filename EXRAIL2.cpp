@@ -320,12 +320,22 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     // Now stream the flags
     for (int id=0;id<MAX_FLAGS; id++) {
       byte flag=flags[id];
-      if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above
-	StringFormatter::send(stream,F("\nflags[%d} "),id);
-	if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
-	if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
+      if (flag & ~TASK_FLAG & ~SIGNAL_MASK) { // not interested in TASK_FLAG only. Already shown above
+	      StringFormatter::send(stream,F("\nflags[%d] "),id);
+	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
+	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }
     }
+    // do the signals
+    // flags[n] represents the state of the nth signal in the table  
+    for (int id=0;id<MAX_FLAGS; id++) {
+      byte flag=flags[id] & SIGNAL_MASK;
+      if (flag==0) break; // no more will be found
+      VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+4*id) & (~ SERVO_SIGNAL_FLAG) & (~ACTIVE_HIGH_SIGNAL_FLAG);
+      StringFormatter::send(stream,F("\nSignal[%d] %S"), sigid, 
+      (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER")); 
+    }
+    
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }

@@ -4,9 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.1.1 rc2"
+#define VERSION "4.1.1 rc3"
 // 4.1.1 Bugfix: preserve turnout format
 //       Bugfix: parse multiple commands in one buffer string correct
+//       Bugfix: </> command signal status in Exrail
 // 4.1.0 ...
 //
 // 4.0.2 EXRAIL additions:
