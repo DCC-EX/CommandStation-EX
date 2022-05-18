@@ -99,6 +99,12 @@ class MotorDriver {
 	}
       }
     };
+    inline void enableSignal(bool on) {
+      if (on)
+	pinMode(signalPin, OUTPUT);
+      else
+	pinMode(signalPin, INPUT);
+    };
     virtual void setBrake( bool on);
     virtual void setDCSignal(byte speedByte);
     virtual int  getCurrentRaw();

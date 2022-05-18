@@ -37,6 +37,7 @@ const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_OFF = 22479;  
 const int16_t HASH_KEYWORD_DC = 2183;  
 const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity 
+const int16_t HASH_KEYWORD_EXT = 8201; // External DCC signal
 const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
@@ -161,9 +162,14 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     }
     else {
         // DCC tracks need to have the brake set off or they will not work.
-        track[trackToSet]->setBrake(false); 
+        track[trackToSet]->setBrake(false);
     }
-    
+
+    // EXT is a special case where the signal pin is
+    // turned off. So unless that is set, the signal
+    // pin should be turned on
+    track[trackToSet]->enableSignal(mode != TRACK_MODE_EXT);
+
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
     bool canDo=true;
@@ -225,6 +231,9 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
                     case TRACK_MODE_OFF:
                         StringFormatter::send(stream,F("OFF"));
                         break;
+                    case TRACK_MODE_EXT:
+                        StringFormatter::send(stream,F("EXT"));
+                        break;
                     case TRACK_MODE_DC:
                         StringFormatter::send(stream,F("DC %d"),trackDCAddr[t]);
                         break;
@@ -252,7 +261,10 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     
     if (params==2  && p[1]==HASH_KEYWORD_OFF) // <= id OFF>
         return setTrackMode(p[0],TRACK_MODE_OFF);
-    
+
+    if (params==2  && p[1]==HASH_KEYWORD_EXT) // <= id EXT>
+        return setTrackMode(p[0],TRACK_MODE_EXT);
+
     if (params==3  && p[1]==HASH_KEYWORD_DC && p[2]>0) // <= id DC cab>
         return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
     
@@ -291,7 +303,8 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
             case TRACK_MODE_MAIN:
                 if (setProg) break; 
                 // toggle brake before turning power on - resets overcurrent error
-                // on the Pololu board if brake is wired to ^D2.   
+                // on the Pololu board if brake is wired to ^D2.
+		// XXX see if we can make this conditional
                 driver->setBrake(true);
                 driver->setBrake(false); // DCC runs with brake off
                 driver->setPower(mode);  
@@ -309,6 +322,11 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
                 driver->setBrake(false);
                 driver->setPower(mode);
                 break;  
+            case TRACK_MODE_EXT:
+	        driver->setBrake(true);
+	        driver->setBrake(false);
+		driver->setPower(mode);
+	        break;
             case TRACK_MODE_OFF:
                 break;
         }

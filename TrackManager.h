@@ -24,7 +24,7 @@
 // Virtualised Motor shield multi-track hardware Interface
 
 enum TRACK_MODE : byte {TRACK_MODE_OFF, TRACK_MODE_MAIN, TRACK_MODE_PROG,
-                        TRACK_MODE_DC, TRACK_MODE_DCX};
+                        TRACK_MODE_DC, TRACK_MODE_DCX, TRACK_MODE_EXT};
 
 // These constants help EXRAIL macros say SET_TRACK(2,mode) OR SET_TRACK(C,mode) etc.
 const byte TRACK_NUMBER_0=0, TRACK_NUMBER_A=0;    
