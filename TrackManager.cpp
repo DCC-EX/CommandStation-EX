@@ -119,11 +119,17 @@ void TrackManager::setPROGSignal( bool on) {
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
-    FOR_EACH_TRACK(t) {
-        if (trackDCAddr[t]!=cab) continue;
-        if (trackMode[t]==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
-        else if (trackMode[t]==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
-    }
+  HAVE_PORTA(fakePORTA=PORTA);
+  HAVE_PORTB(fakePORTB=PORTB);
+  HAVE_PORTC(fakePORTC=PORTC);
+  FOR_EACH_TRACK(t) {
+    if (trackDCAddr[t]!=cab) continue;
+    if (trackMode[t]==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
+    else if (trackMode[t]==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
+  }
+  HAVE_PORTA(PORTA=fakePORTA);
+  HAVE_PORTB(PORTB=fakePORTB);
+  HAVE_PORTC(PORTC=fakePORTC);
 }    
 
 
@@ -161,8 +167,9 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
  
     }
     else {
-        // DCC tracks need to have the brake set off or they will not work.
-        track[trackToSet]->setBrake(false);
+      // DCC tracks need to have set the PWM to zero or they will not work.
+      // 128 is speed=0 and dir=0
+      track[trackToSet]->setDCSignal(128);
     }
 
     // EXT is a special case where the signal pin is
