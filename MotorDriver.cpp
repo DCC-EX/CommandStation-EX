@@ -160,6 +160,8 @@ int MotorDriver::getCurrentRaw() {
 }
 
 void MotorDriver::setDCSignal(byte speedcode) {
+  if (brakePin == UNUSED_PIN)
+    return;
   // spedcoode is a dcc speed /direction
   byte tSpeed=speedcode & 0x7F;
     // DCC Speed with 0,1 stop and speed steps 2 to 127
