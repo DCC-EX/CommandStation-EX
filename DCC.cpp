@@ -229,23 +229,28 @@ uint32_t DCC::getFunctionMap(int cab) {
   return (reg<0)?0:speedTable[reg].functions;
 }
 
-void DCC::setAccessory(int address, byte number, bool activate) {
+void DCC::setAccessory(int address, byte port, bool gate) {
+  // An accessory has an address, 4 ports and 2 gates (coils) each. That's how
+  // the initial decoders were orgnized and that influenced how the DCC
+  // standard was made.
   #ifdef DIAG_IO
-  DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, number, activate);
+  DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, port, gate);
   #endif
   // use masks to detect wrong values and do nothing
   if(address != (address & 511))
     return;
-  if(number != (number & 3))
+  if(port != (port & 3))
     return;
   byte b[2];
 
-  b[0] = address % 64 + 128;                                     // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
-  b[1] = ((((address / 64) % 8) << 4) + (number % 4 << 1) + activate % 2) ^ 0xF8; // second byte is of the form 1AAACDDD, where C should be 1, and the least significant D represent activate/deactivate
+  // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
+  // second byte is of the form 1AAACPPG, where C should be 1, PP the ports and G the gate
+  b[0] = address % 64 + 128;
+  b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
 
-  DCCWaveform::mainTrack.schedulePacket(b, 2, 4);      // Repeat the packet four times
+  DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat the packet three times
 #if defined(EXRAIL_ACTIVE)
-  RMFT2::activateEvent(address<<2|number,activate);
+  RMFT2::activateEvent(address<<2|port,gate);
 #endif
 }
 
