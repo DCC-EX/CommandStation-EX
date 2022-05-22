@@ -272,20 +272,29 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
-    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE> or <a LINEARADDRESS ACTIVATE>
+    case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE [ONOFF]> or <a LINEARADDRESS ACTIVATE>
         { 
           int address;
           byte subaddress;
           byte activep;
+          byte onoff;
           if (params==2) { // <a LINEARADDRESS ACTIVATE>
               address=(p[0] - 1) / 4 + 1;
               subaddress=(p[0] - 1)  % 4;
-              activep=1;        
+              activep=1;
+              onoff=2; // send both
           }
           else if (params==3) { // <a ADDRESS SUBADDRESS ACTIVATE>
               address=p[0];
               subaddress=p[1];
-              activep=2;        
+              activep=2;
+              onoff=2; // send both
+          }
+          else if (params==4) { // <a ADDRESS SUBADDRESS ACTIVATE ONOFF>
+              address=p[0];
+              subaddress=p[1];
+              activep=2;
+              onoff=p[3];
           }
           else break; // invalid no of parameters
           
@@ -293,12 +302,13 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
              ((address & 0x01FF) != address)      // invalid address (limit 9 bits ) 
           || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
           || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
+          || ((onoff & 0x01) != onoff)            // invalid onoff    0|1
           ) break; 
           // Honour the configuration option (config.h) which allows the <a> command to be reversed
 #ifdef DCC_ACCESSORY_COMMAND_REVERSE
-          DCC::setAccessory(address, subaddress,p[activep]==0);
+          DCC::setAccessory(address, subaddress,p[activep]==0,onoff);
 #else
-          DCC::setAccessory(address, subaddress,p[activep]==1);
+          DCC::setAccessory(address, subaddress,p[activep]==1,onoff);
 #endif
         }
         return;
