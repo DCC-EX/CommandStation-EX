@@ -8,7 +8,7 @@
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *
- *  This file is part of Asbelos DCC API
+ *  This file is part of DCC-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -229,7 +229,12 @@ uint32_t DCC::getFunctionMap(int cab) {
   return (reg<0)?0:speedTable[reg].functions;
 }
 
-void DCC::setAccessory(int address, byte port, bool gate) {
+void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
+  // onoff is tristate:
+  // 0  => send off packet
+  // 1  => send on packet
+  // >1 => send both on and off packets.
+
   // An accessory has an address, 4 ports and 2 gates (coils) each. That's how
   // the initial decoders were orgnized and that influenced how the DCC
   // standard was made.
@@ -244,14 +249,19 @@ void DCC::setAccessory(int address, byte port, bool gate) {
   byte b[2];
 
   // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
-  // second byte is of the form 1AAACPPG, where C should be 1, PP the ports and G the gate
+  // second byte is of the form 1AAACPPG, where C is 1 for on, PP the ports 0 to 3 and G the gate (coil).
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
-
-  DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat the packet three times
+  if (onoff != 0) {
+    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat on packet three times
 #if defined(EXRAIL_ACTIVE)
-  RMFT2::activateEvent(address<<2|port,gate);
+    RMFT2::activateEvent(address<<2|port,gate);
 #endif
+  }
+  if (onoff != 1) {
+    b[1] &= ~0x08; // set C to 0
+    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
+  }
 }
 
 //

@@ -66,7 +66,7 @@ public:
   static int  getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
-  static void setAccessory(int aAdd, byte aNum, bool activate);
+  static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
   static bool writeTextPacket(byte *b, int nBytes);
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
