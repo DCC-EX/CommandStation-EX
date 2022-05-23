@@ -55,9 +55,9 @@ DONE
 TURNTABLE_EX(TTRoute1, Turntable, 600, 114, Turn, "Position 1")
 TURNTABLE_EX(TTRoute2, Turntable, 600, 227, Turn, "Position 2")
 TURNTABLE_EX(TTRoute3, Turntable, 600, 341, Turn, "Position 3")
-TURNTABLE_EX(TTRoute4, Turntable, 600, 2159, Turn_PInvert, "Position 4")
-TURNTABLE_EX(TTRoute5, Turntable, 600, 2273, Turn_PInvert, "Position 5")
-TURNTABLE_EX(TTRoute6, Turntable, 600, 2386, Turn_PInvert, "Position 6")
+TURNTABLE_EX(TTRoute4, Turntable, 600, 2159, Turn, "Position 4")
+TURNTABLE_EX(TTRoute5, Turntable, 600, 2273, Turn, "Position 5")
+TURNTABLE_EX(TTRoute6, Turntable, 600, 2386, Turn, "Position 6")
 TURNTABLE_EX(TTRoute7, Turntable, 600, 0, Home, "Home turntable")
 
 // Pre-defined aliases to ensure unique IDs are used.
