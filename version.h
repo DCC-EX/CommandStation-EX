@@ -11,6 +11,11 @@
 //       TrackManager DCC & DC up to 8 Districts Architecture 
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
+// 4.1.1 Bugfix: preserve turnout format
+//       Bugfix: parse multiple commands in one buffer string correct
+//       Bugfix: </> command signal status in Exrail
+// 4.1.0 ...
+//
 // 4.0.2 EXRAIL additions:
 //       ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
 //       myFilter automatic detection (no need to call setFilter)

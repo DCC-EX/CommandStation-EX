@@ -33,6 +33,7 @@ struct DCCEXParser
    
    static void parse(Print * stream,  byte * command,  RingStream * ringStream);
    static void parse(const FSH * cmd);
+   static void parseOne(Print * stream,  byte * command,  RingStream * ringStream);
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
