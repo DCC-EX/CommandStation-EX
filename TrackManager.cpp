@@ -168,8 +168,9 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     }
     else {
       // DCC tracks need to have set the PWM to zero or they will not work.
-      // 128 is speed=0 and dir=0
+      // 128 is speed=0 and dir=0 and then loosen brake.
       track[trackToSet]->setDCSignal(128);
+      track[trackToSet]->setBrake(false);
     }
 
     // EXT is a special case where the signal pin is
@@ -201,7 +202,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(
-        (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ?
+        (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX || mode==TRACK_MODE_EXT) ?
         mainPowerGuess : POWERMODE::OFF);
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
