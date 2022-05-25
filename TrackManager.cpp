@@ -119,11 +119,17 @@ void TrackManager::setPROGSignal( bool on) {
 }
 
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
+  HAVE_PORTA(fakePORTA=PORTA);
+  HAVE_PORTB(fakePORTB=PORTB);
+  HAVE_PORTC(fakePORTC=PORTC);
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab) continue;
     if (trackMode[t]==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
     else if (trackMode[t]==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
   }
+  HAVE_PORTA(PORTA=fakePORTA);
+  HAVE_PORTB(PORTB=fakePORTB);
+  HAVE_PORTC(PORTC=fakePORTC);
 }    
 
 
