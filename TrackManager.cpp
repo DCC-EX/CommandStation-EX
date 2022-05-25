@@ -139,8 +139,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     //DIAG(F("Track=%c"),trackToSet+'A');
     // DC tracks require a motorDriver that can set brake!
     if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
-         && !track[trackToSet]->canBrake()) {
-             DIAG(F("No brake:no DC"));
+         && !track[trackToSet]->brakeCanPWM()) {
+             DIAG(F("Brake pin can't PWM: No DC"));
              return false; 
          }
 
