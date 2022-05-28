@@ -107,6 +107,7 @@ class LookList {
     static void activateEvent(int16_t addr, bool active);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
+    static const int16_t SIGNAL_ID_MASK=0x0FFF;
  
  // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
