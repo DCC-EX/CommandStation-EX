@@ -102,6 +102,7 @@ public:
  static byte cv2(int cv);
  
 private:
+  static byte calculateSpeedByte(uint8_t tSpeed, bool tDirection);
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);
