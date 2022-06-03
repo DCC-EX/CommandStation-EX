@@ -79,8 +79,6 @@
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
 
-// TODO: PMA - figure out why enabling this causes the CS to crashe immediately after starting the motor driver
-//             on the SAMD platform - going to try to rebase to current TrackManager in case it's not my bug :-)
 #if __has_include ( "myAutomation.h")
   #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
     #define EXRAIL_ACTIVE
