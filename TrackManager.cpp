@@ -209,17 +209,10 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-    
-        int16_t speed1=DCC::getThrottleSpeed(trackDCAddr[t]);
-        byte speedByte;
-        if (speed1<0) speedByte=0;
-        else {
-            speedByte=speed1;
-            bool direction=DCC::getThrottleDirection(trackDCAddr[t]);
-            if (trackMode[t]==TRACK_MODE_DCX) direction=!direction;  
-            if (direction) speedByte|=0x80;
-        }
-        track[t]->setDCSignal(speedByte);
+  uint8_t speedByte=DCC::getThrottleSpeedByte(trackDCAddr[t]);
+  if (trackMode[t]==TRACK_MODE_DCX)
+    speedByte = (speedByte & 0xF7) | ~(speedByte & 0x80); // Reverse highest bit
+  track[t]->setDCSignal(speedByte);
 }
 
 bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])

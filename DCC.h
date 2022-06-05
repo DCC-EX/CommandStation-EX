@@ -56,7 +56,8 @@ public:
 
   // Public DCC API functions
   static void setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
-  static uint8_t getThrottleSpeed(int cab);
+  static int8_t getThrottleSpeed(int cab);
+  static uint8_t getThrottleSpeedByte(int cab);
   static bool getThrottleDirection(int cab);
   static void writeCVByteMain(int cab, int cv, byte bValue);
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);

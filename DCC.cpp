@@ -137,12 +137,25 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
-uint8_t DCC::getThrottleSpeed(int cab) {
+// returns speed steps 0 to 127 (1 == emergency stop)
+// or -1 on "loco not found"
+int8_t DCC::getThrottleSpeed(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0) return -1;
   return speedTable[reg].speedCode & 0x7F;
 }
 
+// returns speed code byte
+// or 128 (speed 0, dir forward) on "loco not found".
+uint8_t DCC::getThrottleSpeedByte(int cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0)
+    return 128;
+  return speedTable[reg].speedCode;
+}
+
+// returns direction on loco
+// or true/forward on "loco not found"
 bool DCC::getThrottleDirection(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0) return true;

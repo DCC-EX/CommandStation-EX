@@ -421,7 +421,10 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
       bool forward=aval[1]!='0';
       LOOPLOCOS(throttleChar, cab) {
 	mostRecentCab=myLocos[loco].cab;
-	DCC::setThrottle(myLocos[loco].cab, DCC::getThrottleSpeed(myLocos[loco].cab), forward);
+	int8_t speed = DCC::getThrottleSpeed(myLocos[loco].cab);
+	if (speed < 0) //can not find any speed for this cab
+	  speed = 0;
+	DCC::setThrottle(myLocos[loco].cab, speed, forward);
 	// setThrottle will cause a broadcast so notification will be sent
       }
     }        
