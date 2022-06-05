@@ -136,7 +136,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
-    //DIAG(F("Track=%c"),trackToSet+'A');
+    DIAG(F("Track=%c"),trackToSet+'A');
     // DC tracks require a motorDriver that can set brake!
     if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
          && !track[trackToSet]->brakeCanPWM()) {
@@ -197,6 +197,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (!canDo) {
       DCCTimer::clearPWM();
     }
+    if (MotorDriver::usePWM != canDo)
+      DIAG(F("HA mode changed from %d to %d"), MotorDriver::usePWM, canDo);
     MotorDriver::usePWM=canDo;
 
     
@@ -204,7 +206,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     track[trackToSet]->setPower(
         (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX || mode==TRACK_MODE_EXT) ?
         mainPowerGuess : POWERMODE::OFF);
-    //DIAG(F("TrackMode=%d"),mode);
+    DIAG(F("TrackMode=%d"),mode);
     return true; 
 }
 

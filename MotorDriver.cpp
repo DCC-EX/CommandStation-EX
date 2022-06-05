@@ -169,6 +169,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
+  DIAG(F("BrakePin=%d speedcode=%d"),brakePin,speedcode);
   analogWrite(brakePin,brake);
   setSignal(speedcode & 0x80);  
 }
