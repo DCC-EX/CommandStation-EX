@@ -104,7 +104,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 'b': stream->print(va_arg(args, int), BIN); break;
       case 'o': stream->print(va_arg(args, int), OCT); break;
       case 'x': stream->print(va_arg(args, int), HEX); break;
-      case 'f': stream->print(va_arg(args, double), 2); break;
+      //case 'f': stream->print(va_arg(args, double), 2); break;
       //format width prefix
       case '-': 
             formatLeft=true;
