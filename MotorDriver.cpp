@@ -198,6 +198,8 @@ void MotorDriver::setDCSignal(byte speedcode) {
       HAVE_PORTC(PORTC=fakePORTC);
       interrupts();
     }
+  } else {
+    setSignal(tDir);
   }
 }
 
