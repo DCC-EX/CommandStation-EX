@@ -87,11 +87,15 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
      } 
 }
 
+// The port registers that are shadowing
+// the real port registers. These are
 // defined in Motordriver.cpp
 extern byte fakePORTA;
 extern byte fakePORTB;
 extern byte fakePORTC;
 
+// setDCCSignal(), called from interrupt context
+// does assume ports are shadowed if they can be
 void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTA(fakePORTA=PORTA);
   HAVE_PORTB(fakePORTB=PORTB);
@@ -108,6 +112,8 @@ void TrackManager::setCutout( bool on) {
     // TODO      APPLY_BY_MODE(TRACK_MODE_MAIN,setCutout(on));
 }
 
+// setPROGSignal(), called from interrupt context
+// does assume ports are shadowed if they can be
 void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTA(fakePORTA=PORTA);
   HAVE_PORTB(fakePORTB=PORTB);
@@ -118,18 +124,15 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTC(PORTC=fakePORTC);
 }
 
+// setDCSignal(), called from normal context
+// MotorDriver::setDCSignal handles shadowed IO port changes.
+// with interrupts turned off around the critical section
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
-  HAVE_PORTA(fakePORTA=PORTA);
-  HAVE_PORTB(fakePORTB=PORTB);
-  HAVE_PORTC(fakePORTC=PORTC);
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab) continue;
     if (trackMode[t]==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
     else if (trackMode[t]==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
   }
-  HAVE_PORTA(PORTA=fakePORTA);
-  HAVE_PORTB(PORTB=fakePORTB);
-  HAVE_PORTC(PORTC=fakePORTC);
 }    
 
 
@@ -213,7 +216,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 void TrackManager::applyDCSpeed(byte t) {
   uint8_t speedByte=DCC::getThrottleSpeedByte(trackDCAddr[t]);
   if (trackMode[t]==TRACK_MODE_DCX)
-    speedByte = (speedByte & 0xF7) | ~(speedByte & 0x80); // Reverse highest bit
+    speedByte = speedByte ^ 128; // reverse direction bit
   track[t]->setDCSignal(speedByte);
 }
 
