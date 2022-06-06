@@ -183,23 +183,23 @@ void MotorDriver::setDCSignal(byte speedcode) {
     if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
       DIAG(F("setDCSignal: HAVEPORTA"));
       noInterrupts();
-      fakePORTA=PORTA;
+      HAVE_PORTA(fakePORTA=PORTA);
       setSignal(tDir);
-      PORTA=fakePORTA;
+      HAVE_PORTA(PORTA=fakePORTA);
       interrupts();
     } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
       DIAG(F("setDCSignal: HAVEPORTB"));
       noInterrupts();
-      fakePORTB=PORTB;
+      HAVE_PORTB(fakePORTB=PORTB);
       setSignal(tDir);
-      PORTB=fakePORTB;
+      HAVE_PORTB(PORTB=fakePORTB);
       interrupts();
     } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
       DIAG(F("setDCSignal: HAVEPORTC"));
       noInterrupts();
-      fakePORTC=PORTC;
+      HAVE_PORTC(fakePORTC=PORTC);
       setSignal(tDir);
-      PORTC=fakePORTC;
+      HAVE_PORTC(PORTC=fakePORTC);
       interrupts();
     }
   }
