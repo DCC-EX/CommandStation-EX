@@ -65,13 +65,15 @@
 struct FASTPIN {
   volatile uint32_t *inout;
   uint32_t maskHIGH;  
-  uint32_t maskLOW;  
+  uint32_t maskLOW;
+  volatile uint32_t *shadowinout;
 };
 #else
 struct FASTPIN {
   volatile uint8_t *inout;
   uint8_t maskHIGH;  
-  uint8_t maskLOW;  
+  uint8_t maskLOW;
+  volatile uint8_t *shadowinout;
 };
 #endif
 

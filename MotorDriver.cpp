@@ -41,16 +41,20 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
 
+  fastSignalPin.shadowinout = NULL;
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &fakePORTA;
   }
   if (HAVE_PORTB(fastSignalPin.inout == &PORTB)) {
     DIAG(F("Found PORTB pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &fakePORTB;
   }
   if (HAVE_PORTC(fastSignalPin.inout == &PORTC)) {
     DIAG(F("Found PORTC pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &fakePORTC;
   }
 
@@ -162,15 +166,39 @@ int MotorDriver::getCurrentRaw() {
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
     return;
-  // spedcoode is a dcc speed /direction
-  byte tSpeed=speedcode & 0x7F;
-    // DCC Speed with 0,1 stop and speed steps 2 to 127
+  // spedcoode is a dcc speed & direction
+  byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
+  byte tDir=speedcode & 0x80;
   byte brake;
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
   analogWrite(brakePin,brake);
-  setSignal(speedcode & 0x80);  
+  // as the port registers can be shadowed to get syncronized DCC signals
+  // we need to take care of that and we have to turn off interrupts during
+  // that time as otherwise setDCCSignal() which is called from interrupt
+  // contect can undo whatever we do here.
+  if (fastSignalPin.shadowinout != NULL) {
+    if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
+      noInterrupts();
+      fakePORTA=PORTA;
+      setSignal(tDir);
+      PORTA=fakePORTA;
+      interrupts();
+    } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
+      noInterrupts();
+      fakePORTB=PORTB;
+      setSignal(tDir);
+      PORTB=fakePORTB;
+      interrupts();
+    } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
+      noInterrupts();
+      fakePORTC=PORTC;
+      setSignal(tDir);
+      PORTC=fakePORTC;
+      interrupts();
+    }
+  }
 }
 
 int MotorDriver::getCurrentRawInInterrupt() {
