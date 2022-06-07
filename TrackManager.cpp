@@ -190,25 +190,27 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       // capable tracks is now DC or DCX.
       if (trackMode[t]==TRACK_MODE_DC || trackMode[t]==TRACK_MODE_DCX) {
 	if (track[t]->isPWMCapable()) {
-	  canDo=false;
-	  break;
+	  canDo=false;    // this track is capable but can not run PWM
+	  break;          // in this mode, so abort and prevent globally below
 	} else {
-	  track[t]->trackPWM=false;
+	  track[t]->trackPWM=false; // this track sure can not run with PWM
 	  DIAG(F("Track %c trackPWM 0 (not capable)"), t+'A');
 	}
       } else if (trackMode[t]==TRACK_MODE_MAIN || trackMode[t]==TRACK_MODE_PROG) {
-	track[t]->trackPWM = track[t]->isPWMCapable();
+	track[t]->trackPWM = track[t]->isPWMCapable(); // trackPWM is still a guess here
 	DIAG(F("Track %c trackPWM %d"), t+'A', track[t]->trackPWM);
 	canDo &= track[t]->trackPWM;
       }
     }
 
     if (!canDo) {
-      DCCTimer::clearPWM();
+      // if we discover that HA mode was globally impossible
+      // we must adjust the trackPWM capabilities
       FOR_EACH_TRACK(t) {
 	track[t]->trackPWM=false;
 	DIAG(F("Track %c trackPWM 0 (global override)"), t+'A');
       }
+      DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
     if (MotorDriver::usePWM != canDo)
       DIAG(F("HA mode changed from %d to %d"), MotorDriver::usePWM, canDo);

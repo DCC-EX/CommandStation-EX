@@ -2,6 +2,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
+ *  © 2022 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -87,7 +88,7 @@ class MotorDriver {
     virtual void setPower( POWERMODE mode);
     virtual POWERMODE getPower() { return powerMode;}
     __attribute__((always_inline)) inline void setSignal( bool high) {
-      if (usePWM) {
+      if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
       else {
