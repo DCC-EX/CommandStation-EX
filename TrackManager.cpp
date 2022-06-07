@@ -192,13 +192,23 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	if (track[t]->isPWMCapable()) {
 	  canDo=false;
 	  break;
+	} else {
+	  track[t]->trackPWM=false;
+	  DIAG(F("Track %c trackPWM 0 (not capable)"), t+'A');
 	}
-      } else if (trackMode[t]==TRACK_MODE_MAIN || trackMode[t]==TRACK_MODE_PROG)
-	canDo &= track[t]->isPWMCapable();
+      } else if (trackMode[t]==TRACK_MODE_MAIN || trackMode[t]==TRACK_MODE_PROG) {
+	track[t]->trackPWM = track[t]->isPWMCapable();
+	DIAG(F("Track %c trackPWM %d"), t+'A', track[t]->trackPWM);
+	canDo &= track[t]->trackPWM;
+      }
     }
-    //DIAG(F("HAMode=%d"),canDo);
+
     if (!canDo) {
       DCCTimer::clearPWM();
+      FOR_EACH_TRACK(t) {
+	track[t]->trackPWM=false;
+	DIAG(F("Track %c trackPWM 0 (global override)"), t+'A');
+      }
     }
     if (MotorDriver::usePWM != canDo)
       DIAG(F("HA mode changed from %d to %d"), MotorDriver::usePWM, canDo);

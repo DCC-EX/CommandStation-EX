@@ -121,7 +121,8 @@ class MotorDriver {
     }
     bool isPWMCapable();
     bool canMeasureCurrent();
-    static bool usePWM;
+    bool trackPWM;
+    static bool usePWM; // TODO: Remove
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
 	return faultPin;
