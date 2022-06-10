@@ -30,16 +30,29 @@
 #include "DCC.h"
 #include "TrackManager.h"
 
-#if defined(BIG_MEMORY) | defined(WIFI_ON) | defined(ETHERNET_ON)
-// This section of CommandDistributor is simply not relevant on a uno or similar
-const byte NO_CLIENT=255;
 
-RingStream *  CommandDistributor::ring=0;
-byte CommandDistributor::ringClient=NO_CLIENT;
-CommandDistributor::clientType  CommandDistributor::clients[8]={
-  NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
-RingStream * CommandDistributor::broadcastBufferWriter=new RingStream(100);
+#ifdef BIG_RAM 
+  // use a buffer to allow broadcast
+  #define BUFFER broadcastBufferWriter
+  #define FLUSH broadcastBufferWriter->flush();
+  #define SHOVE(type) broadcastToClients(type);
+  StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
+#else
+  // on a UNO/NANO write direct to Serial and ignore flush/shove 
+  #define BUFFER &Serial
+  #define FLUSH 
+  #define SHOVE(type) 
+#endif 
 
+#ifdef CD_HANDLE_RING
+  // wifi or ethernet ring streams with multiple client types
+  RingStream *  CommandDistributor::ring=0;
+  byte CommandDistributor::ringClient=NO_CLIENT;
+  CommandDistributor::clientType  CommandDistributor::clients[8]={
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
+
+// Parse is called by Withrottle or Ethernet interface to determine which
+// protocol the client is using and call the appropriate part of dcc++Ex
 void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
   ring=stream;
   ringClient=stream->peekTargetMark();
@@ -56,15 +69,15 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
 void CommandDistributor::forget(byte clientId) {
   clients[clientId]=NONE_TYPE;
 }
+#endif 
 
-
-void CommandDistributor::broadcast(bool includeWithrottleClients) {
-  broadcastBufferWriter->write((byte)'\0');
+// This will not be called on a uno 
+void CommandDistributor::broadcastToClients(clientType type) {
 
   /* Boadcast to Serials */
-  SerialManager::broadcast(broadcastBufferWriter);
+  if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
 
-#if defined(WIFI_ON) | defined(ETHERNET_ON)
+#ifdef CD_HANDLE_RING
   // If we are broadcasting from a wifi/eth process we need to complete its output
   // before merging broadcasts in the ring, then reinstate it in case
   // the process continues to output to its client.
@@ -72,49 +85,46 @@ void CommandDistributor::broadcast(bool includeWithrottleClients) {
 
   /* loop through ring clients */
   for (byte clientId=0; clientId<sizeof(clients); clientId++) {
-    if (clients[clientId]==NONE_TYPE) continue;
-    if ( clients[clientId]==WITHROTTLE_TYPE && !includeWithrottleClients) continue;
-    ring->mark(clientId);
-    broadcastBufferWriter->printBuffer(ring);
-    ring->commit();
+    if (clients[clientId]==type)  {
+      ring->mark(clientId);
+      ring->print(broadcastBufferWriter->getString());
+      ring->commit();
+    }
   }
   if (ringClient!=NO_CLIENT) ring->mark(ringClient);
 
 #endif
- broadcastBufferWriter->flush();
 }
-#else
-// For a UNO/NANO we can broadcast direct to just one Serial instead of the ring
-// Redirect ring output ditrect to Serial
-#define broadcastBufferWriter &Serial
-// and ignore the internal broadcast call.
-void CommandDistributor::broadcast(bool includeWithrottleClients) {
-  (void)includeWithrottleClients;
-}
-#endif
 
+// Public broadcast functions below 
 void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
-  StringFormatter::send(broadcastBufferWriter,F("<%c %d>\n"), on?'Q':'q', id);
-  broadcast(false);
+  FLUSH
+  StringFormatter::send(BUFFER,F("<%c %d>\n"), on?'Q':'q', id);
+  SHOVE(COMMAND_TYPE)
 }
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed;
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
-  StringFormatter::send(broadcastBufferWriter,F("<H %d %d>\n"),id, !isClosed);
-#if defined(WIFI_ON) | defined(ETHERNET_ON)
-  StringFormatter::send(broadcastBufferWriter,F("PTA%c%d\n"), isClosed?'2':'4', id);
+  FLUSH
+  StringFormatter::send(BUFFER,F("<H %d %d>\n"),id, !isClosed);
+  SHOVE(COMMAND_TYPE)
+
+#ifdef CD_HANDLE_RING 
+  FLUSH
+  StringFormatter::send(BUFFER,F("PTA%c%d\n"), isClosed?'2':'4', id);
+  SHOVE(WITHROTTLE_TYPE)
 #endif
-  broadcast(true);
 }
 
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];
-  StringFormatter::send(broadcastBufferWriter,F("<l %d %d %d %l>\n"),
+  FLUSH
+  StringFormatter::send(BUFFER,F("<l %d %d %d %l>\n"),
 			sp->loco,slot,sp->speedCode,sp->functions);
-  broadcast(false);
-#if defined(WIFI_ON) | defined(ETHERNET_ON)
+  SHOVE(COMMAND_TYPE)
+#ifdef CD_HANDLE_RING
   WiThrottle::markForBroadcast(sp->loco);
 #endif
 }
@@ -130,14 +140,24 @@ void  CommandDistributor::broadcastPower() {
   else if (main) reason=F(" MAIN");
   else if (prog) reason=F(" PROG");
   else state='0';
-
-  StringFormatter::send(broadcastBufferWriter,
-                        F("<p%c%S>\nPPA%c\n"),state,reason, main?'1':'0');
-  LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);
-  broadcast(true);
+  FLUSH
+  StringFormatter::send(BUFFER,F("<p %c%S>\n"),state,reason);
+  SHOVE(COMMAND_TYPE)
+#ifdef CD_HANDLE_RING
+  FLUSH
+  StringFormatter::send(BUFFER,F("PPA%c\n"), main?'1':'0');
+  SHOVE(WITHROTTLE_TYPE)
+#endif
+  LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);  
 }
 
 void CommandDistributor::broadcastText(const FSH * msg) {
-  StringFormatter::send(broadcastBufferWriter,F("%S"),msg);
-  broadcast(false); 
+  FLUSH
+  StringFormatter::send(BUFFER,F("%S"),msg);
+  SHOVE(COMMAND_TYPE) 
+#ifdef CD_HANDLE_RING
+  FLUSH
+  StringFormatter::send(BUFFER,F("Hm%S\n"), msg);
+  SHOVE(WITHROTTLE_TYPE)
+#endif
 }

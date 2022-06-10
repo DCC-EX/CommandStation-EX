@@ -21,6 +21,7 @@
 
 #include "SerialManager.h"
 #include "DCCEXParser.h"
+
 SerialManager * SerialManager::first=NULL;
 
 SerialManager::SerialManager(Stream * myserial) {
@@ -49,11 +50,11 @@ void SerialManager::init() {
 #endif
 }
 
-void SerialManager::broadcast(RingStream * ring) {
-    for (SerialManager * s=first;s;s=s->next) s->broadcast2(ring);
+void SerialManager::broadcast(char * stringBuffer) {
+    for (SerialManager * s=first;s;s=s->next) s->broadcast2(stringBuffer);
 }
-void SerialManager::broadcast2(RingStream * ring) {
-    ring->printBuffer(serial);
+void SerialManager::broadcast2(char * stringBuffer) {
+    serial->print(stringBuffer);
 }
 
 void SerialManager::loop() {
