@@ -2,6 +2,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
+ *  © 2022 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -87,7 +88,7 @@ class MotorDriver {
     virtual void setPower( POWERMODE mode);
     virtual POWERMODE getPower() { return powerMode;}
     __attribute__((always_inline)) inline void setSignal( bool high) {
-      if (usePWM) {
+      if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
       else {
@@ -121,7 +122,8 @@ class MotorDriver {
     }
     bool isPWMCapable();
     bool canMeasureCurrent();
-    static bool usePWM;
+    bool trackPWM;
+    static bool usePWM; // TODO: Remove
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
 	return faultPin;
