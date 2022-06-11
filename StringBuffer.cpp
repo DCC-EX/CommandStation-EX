@@ -1,8 +1,8 @@
- /*
- *  © 2021 Chris Harlow
+/*
+ *  © 2022 Chris Harlow
  *  All rights reserved.
  *  
- *  This file is part of DCC++EX
+ *  This file is part of DCC-EX CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,32 +18,28 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SerialManager_h
-#define SerialManager_h
+#include "StringBuffer.h"
+#include "DIAG.h"
 
-#include "Arduino.h"
-#include "defines.h"
-
-
-#ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 100
-#endif
-
-class SerialManager {
-public:
-  static void init();
-  static void loop();
-  static void broadcast(char * stringBuffer);
-  
-private:  
-  static SerialManager * first;
-  SerialManager(Stream * myserial);
-  void loop2();
-  void broadcast2(char * stringBuffer);
-  Stream * serial;
-  SerialManager * next;
-  byte bufferLength;
-  byte buffer[COMMAND_BUFFER_SIZE]; 
-  bool inCommandPayload;
+StringBuffer::StringBuffer() {
+    flush();
 };
-#endif
+
+char * StringBuffer::getString() { 
+   return _buffer;
+}
+
+void StringBuffer::flush() {
+    _pos_write=0;
+    _buffer[0]='\0';
+}
+
+size_t StringBuffer::write(uint8_t b) {
+  if (_pos_write>=buffer_max) return 0;
+  _buffer[_pos_write] = b;
+  ++_pos_write;
+  _buffer[_pos_write]='\0';
+  return 1;
+}
+
+

@@ -23,6 +23,13 @@
 #define CommandDistributor_h
 #include "DCCEXParser.h"
 #include "RingStream.h"
+#include "StringBuffer.h"
+#include "defines.h"
+
+#if WIFI_ON | ETHERNET_ON 
+  // Command Distributor must handle a RingStream of clients
+  #define CD_HANDLE_RING
+#endif 
 
 class CommandDistributor {
 
@@ -35,14 +42,15 @@ public :
   static void broadcastText(const FSH * msg);
   static void forget(byte clientId);
 private:
-  static void broadcast(bool includeWithrottleClients);
-  static RingStream * ring;
-  static RingStream * broadcastBufferWriter;
-  static byte ringClient;
-
-   // each bit in broadcastlist = 1<<clientid
-   enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
-   static clientType clients[8];
+  enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
+  static void broadcastToClients(clientType type);
+  static StringBuffer * broadcastBufferWriter;
+  #ifdef CD_HANDLE_RING
+    static RingStream * ring;
+    static const byte NO_CLIENT=255;
+    static byte ringClient;
+    static clientType clients[8];
+  #endif
 };
 
 #endif

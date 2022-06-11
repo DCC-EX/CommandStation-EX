@@ -88,15 +88,22 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
     pinMode(faultPin, INPUT);
   }
 
-  senseFactor=sense_factor;
+  // This conversion performed at compile time so the remainder of the code never needs
+  // float calculations or libraray code. 
+  senseFactorInternal=sense_factor * senseScale; 
   tripMilliamps=trip_milliamps;
-  rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  rawCurrentTripValue=mA2raw(trip_milliamps);
   
   if (currentPin==UNUSED_PIN) 
     DIAG(F("MotorDriver ** WARNING ** No current or short detection"));  
-  else  
+  else  {
     DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurrentTripValue(relative to offset)=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
+
+    // self testing diagnostic for the non-float converters... may be removed when happy
+    //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
+    //   senseFactorInternal, raw2mA(1000),mA2raw(1000));
+  }
 
   // prepare values for current detection
   sampleDelay = 0;
@@ -213,10 +220,10 @@ int MotorDriver::getCurrentRawInInterrupt() {
 }  
 
 unsigned int MotorDriver::raw2mA( int raw) {
-  return (unsigned int)(raw * senseFactor);
+  return (int32_t)raw * senseFactorInternal / senseScale;
 }
-int MotorDriver::mA2raw( unsigned int mA) {
-  return (int)(mA / senseFactor);
+unsigned int MotorDriver::mA2raw( unsigned int mA) {
+  return (int32_t)mA * senseScale / senseFactorInternal;
 }
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {

@@ -1,5 +1,5 @@
  /*
- *  © 2021 Chris Harlow
+ *  © 2022 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of DCC++EX
@@ -18,32 +18,21 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SerialManager_h
-#define SerialManager_h
+#ifndef StringBuffer_h
+#define StringBuffer_h
+#include <Arduino.h>
 
-#include "Arduino.h"
-#include "defines.h"
-
-
-#ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 100
-#endif
-
-class SerialManager {
-public:
-  static void init();
-  static void loop();
-  static void broadcast(char * stringBuffer);
-  
-private:  
-  static SerialManager * first;
-  SerialManager(Stream * myserial);
-  void loop2();
-  void broadcast2(char * stringBuffer);
-  Stream * serial;
-  SerialManager * next;
-  byte bufferLength;
-  byte buffer[COMMAND_BUFFER_SIZE]; 
-  bool inCommandPayload;
+class StringBuffer : public Print {
+  public:
+    StringBuffer(); 
+    // Override Print default
+    virtual size_t write(uint8_t b);
+    void flush();
+    char * getString();
+  private:
+    static const int  buffer_max=64; // enough for long text msgs to throttles  
+    int16_t _pos_write;
+    char _buffer[buffer_max+1];
 };
+
 #endif

@@ -4,8 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.0 rc1"
+#define VERSION "4.2.0 rc2"
 // 4.2.0 Track Manager additions:
+//       Broadcast improvements to separate <> and Withrottle responses
+//       Float eliminated saving >1.5kb PROGMEM and speed. 
 //       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
 //       New DC track function and DCX reverse polarity function
 //       TrackManager DCC & DC up to 8 Districts Architecture 

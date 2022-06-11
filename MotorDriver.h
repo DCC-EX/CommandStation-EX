@@ -113,9 +113,9 @@ class MotorDriver {
     virtual int  getCurrentRaw();
     virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
-    virtual int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
+    virtual unsigned int mA2raw( unsigned int mA);
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
@@ -142,7 +142,14 @@ class MotorDriver {
     FASTPIN fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
     bool dualSignal;       // true to use signalPin2
     bool invertBrake;       // brake pin passed as negative means pin is inverted
-    float senseFactor;
+    
+    // Raw to milliamp conversion factors avoiding float data types.
+    // Milliamps=rawADCreading * sensefactorInternal / senseScale
+    //
+    // senseScale is chosen as 256 to give enough scale for 2 decimal place 
+    // raw->mA conversion with an ultra fast optimised integer multiplication  
+    int senseFactorInternal;  // set to senseFactor * senseScale
+    static const int senseScale=256;
     int senseOffset;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
