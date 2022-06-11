@@ -235,9 +235,13 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
                 switch(trackMode[t]) {
                     case TRACK_MODE_MAIN:
                         StringFormatter::send(stream,F("MAIN"));
+			if (track[t]->trackPWM)
+			  StringFormatter::send(stream,F("+"));
                         break;
                     case TRACK_MODE_PROG:
                         StringFormatter::send(stream,F("PROG"));
+			if (track[t]->trackPWM)
+			  StringFormatter::send(stream,F("+"));
                         break;
                     case TRACK_MODE_OFF:
                         StringFormatter::send(stream,F("OFF"));
