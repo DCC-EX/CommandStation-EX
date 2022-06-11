@@ -1,8 +1,9 @@
 /*
  *  © 2022 Chris Harlow
+ *  © 2022 Harald Barth
  *  All rights reserved.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

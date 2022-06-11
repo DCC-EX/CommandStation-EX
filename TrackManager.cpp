@@ -1,5 +1,6 @@
 /*
  *  © 2022 Chris Harlow
+ *  © 2022 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of DCC++EX
