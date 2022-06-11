@@ -172,7 +172,7 @@ int16_t LookList::find(int16_t value) {
   for (int sigpos=0;;sigpos+=4) {
     VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
     if (sigid==0) break;  // end of signal list
-    doSignal(sigid & (~ SERVO_SIGNAL_FLAG) & (~ACTIVE_HIGH_SIGNAL_FLAG), SIGNAL_RED);
+    doSignal(sigid & SIGNAL_ID_MASK, SIGNAL_RED);
   }
 
   for (progCounter=0;; SKIPOP){
@@ -320,12 +320,23 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     // Now stream the flags
     for (int id=0;id<MAX_FLAGS; id++) {
       byte flag=flags[id];
-      if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above
-	StringFormatter::send(stream,F("\nflags[%d} "),id);
-	if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
-	if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
+      if (flag & ~TASK_FLAG & ~SIGNAL_MASK) { // not interested in TASK_FLAG only. Already shown above
+	      StringFormatter::send(stream,F("\nflags[%d] "),id);
+	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
+	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }
     }
+    // do the signals
+    // flags[n] represents the state of the nth signal in the table 
+    for (int sigslot=0;;sigslot++) {
+      VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+sigslot*4);
+      if (sigid==0) break; // end of signal list 
+      byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
+      StringFormatter::send(stream,F("\n%S[%d]"), 
+        (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
+        sigid & SIGNAL_ID_MASK); 
+    } 
+    
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }
@@ -996,7 +1007,7 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
       // for a LED signal it will be same as redpin
       // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
 
-      if ((sigid & ~SERVO_SIGNAL_FLAG & ~ACTIVE_HIGH_SIGNAL_FLAG)!= id) continue; // keep looking
+      if ((sigid & SIGNAL_ID_MASK)!= id) continue; // keep looking
       return sigpos/4; // relative slot in signals table
   }  
 }
