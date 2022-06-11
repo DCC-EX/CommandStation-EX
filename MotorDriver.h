@@ -113,9 +113,9 @@ class MotorDriver {
     virtual int  getCurrentRaw();
     virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
+    virtual unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
-    virtual unsigned int mA2raw( unsigned int mA);
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
