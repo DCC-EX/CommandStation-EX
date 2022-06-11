@@ -73,8 +73,6 @@ void TrackManager::Setup(const FSH * shieldname,
   // TODO Fault pin config for odd motor boards (example pololu)
   // MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
   //				 && (mainDriver->getFaultPin() != UNUSED_PIN));
-  DIAG(F("Signal pin config: %S accuracy waveform"),
-	 MotorDriver::usePWM ? F("high") : F("normal") );
   DCC::begin(shieldname);   
 }
 
@@ -211,10 +209,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
-    //if (MotorDriver::usePWM != canDo)
-    //  DIAG(F("HA mode changed from %d to %d"), MotorDriver::usePWM, canDo);
-    MotorDriver::usePWM=canDo;
-
     
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(

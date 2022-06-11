@@ -25,7 +25,6 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 
-bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
 
 volatile byte fakePORTA;
