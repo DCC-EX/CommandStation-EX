@@ -5,11 +5,15 @@
  ************************************************************************************************** 
  * To use this example file as the starting point for your layout, there are two options:
  * 
- * 1. If you don't have an existing myAutomation.h file, simply rename this file.
- * 2. If you have an existing myAutomation.h file, rename this file to "myTurntable.h", and then
- *    include it by adding the line below at the end of your existing myAutomation.h, on a line of its own:
+ * 1. If you don't have an existing "myAutomation.h" file, simply rename "myTurntable-EX.example.h" to
+ *    "myAutomation.h".
+ * 2. If you have an existing "myAutomation.h" file, rename "myTurntable-EX.example.h" to "myTurntable-EX.h",
+ *    and then include it by adding the line below at the end of your existing "myAutomation.h", on a
+ *    line of its own:
  * 
- *    #include "myTurntable.h"
+ *    #include "myTurntable-EX.h"
+ * 
+ * Note that there are further instructions in the documentation at https://dcc-ex.com/.
  *************************************************************************************************/
 
 /**************************************************************************************************
@@ -18,8 +22,8 @@
  * 
  * If you do not wish this to occur, simply comment the line out.
  * 
- * NOTE: If you are including this file at the end of an existing myAutomation.h file, you will likely
- * need to move this line to the beginning of your existing myAutomation.h file in order for it to
+ * NOTE: If you are including this file at the end of an existing "myAutomation.h" file, you will likely
+ * need to move this line to the beginning of your existing "myAutomation.h" file in order for it to
  * be effective.
  *************************************************************************************************/
 MOVETT(600, 114, Turn)
