@@ -86,13 +86,6 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
      } 
 }
 
-// The port registers that are shadowing
-// the real port registers. These are
-// defined in Motordriver.cpp
-extern byte fakePORTA;
-extern byte fakePORTB;
-extern byte fakePORTC;
-
 // setDCCSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setDCCSignal( bool on) {

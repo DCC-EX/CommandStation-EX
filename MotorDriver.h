@@ -63,20 +63,22 @@
 #endif
 
 #if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
-struct FASTPIN {
-  volatile uint32_t *inout;
-  uint32_t maskHIGH;  
-  uint32_t maskLOW;
-  volatile uint32_t *shadowinout;
-};
+typedef uint32_t portreg_t;
 #else
-struct FASTPIN {
-  volatile uint8_t *inout;
-  uint8_t maskHIGH;  
-  uint8_t maskLOW;
-  volatile uint8_t *shadowinout;
-};
+typedef uint8_t portreg_t;
 #endif
+struct FASTPIN {
+  volatile portreg_t *inout;
+  portreg_t maskHIGH;
+  portreg_t maskLOW;
+  volatile portreg_t *shadowinout;
+};
+// The port registers that are shadowing
+// the real port registers. These are
+// defined in Motordriver.cpp
+extern volatile portreg_t fakePORTA;
+extern volatile portreg_t fakePORTB;
+extern volatile portreg_t fakePORTC;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 

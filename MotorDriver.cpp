@@ -27,9 +27,9 @@
 
 bool MotorDriver::commonFaultPin=false;
 
-volatile byte fakePORTA;
-volatile byte fakePORTB;
-volatile byte fakePORTC;
+volatile portreg_t fakePORTA;
+volatile portreg_t fakePORTB;
+volatile portreg_t fakePORTC;
 
 MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
