@@ -89,13 +89,13 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
 // setDCCSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setDCCSignal( bool on) {
-  HAVE_PORTA(fakePORTA=PORTA);
-  HAVE_PORTB(fakePORTB=PORTB);
-  HAVE_PORTC(fakePORTC=PORTC);
+  HAVE_PORTA(shadowPORTA=PORTA);
+  HAVE_PORTB(shadowPORTB=PORTB);
+  HAVE_PORTC(shadowPORTC=PORTC);
   APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
-  HAVE_PORTA(PORTA=fakePORTA);
-  HAVE_PORTB(PORTB=fakePORTB);
-  HAVE_PORTC(PORTC=fakePORTC);
+  HAVE_PORTA(PORTA=shadowPORTA);
+  HAVE_PORTB(PORTB=shadowPORTB);
+  HAVE_PORTC(PORTC=shadowPORTC);
 }
 
 void TrackManager::setCutout( bool on) {
@@ -107,13 +107,13 @@ void TrackManager::setCutout( bool on) {
 // setPROGSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setPROGSignal( bool on) {
-  HAVE_PORTA(fakePORTA=PORTA);
-  HAVE_PORTB(fakePORTB=PORTB);
-  HAVE_PORTC(fakePORTC=PORTC);
+  HAVE_PORTA(shadowPORTA=PORTA);
+  HAVE_PORTB(shadowPORTB=PORTB);
+  HAVE_PORTC(shadowPORTC=PORTC);
   APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
-  HAVE_PORTA(PORTA=fakePORTA);
-  HAVE_PORTB(PORTB=fakePORTB);
-  HAVE_PORTC(PORTC=fakePORTC);
+  HAVE_PORTA(PORTA=shadowPORTA);
+  HAVE_PORTB(PORTB=shadowPORTB);
+  HAVE_PORTC(PORTC=shadowPORTC);
 }
 
 // setDCSignal(), called from normal context

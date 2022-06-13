@@ -76,9 +76,9 @@ struct FASTPIN {
 // The port registers that are shadowing
 // the real port registers. These are
 // defined in Motordriver.cpp
-extern volatile portreg_t fakePORTA;
-extern volatile portreg_t fakePORTB;
-extern volatile portreg_t fakePORTC;
+extern volatile portreg_t shadowPORTA;
+extern volatile portreg_t shadowPORTB;
+extern volatile portreg_t shadowPORTC;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 

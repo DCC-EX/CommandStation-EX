@@ -27,9 +27,9 @@
 
 bool MotorDriver::commonFaultPin=false;
 
-volatile portreg_t fakePORTA;
-volatile portreg_t fakePORTB;
-volatile portreg_t fakePORTC;
+volatile portreg_t shadowPORTA;
+volatile portreg_t shadowPORTB;
+volatile portreg_t shadowPORTC;
 
 MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
@@ -44,17 +44,17 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
-    fastSignalPin.inout = &fakePORTA;
+    fastSignalPin.inout = &shadowPORTA;
   }
   if (HAVE_PORTB(fastSignalPin.inout == &PORTB)) {
     DIAG(F("Found PORTB pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
-    fastSignalPin.inout = &fakePORTB;
+    fastSignalPin.inout = &shadowPORTB;
   }
   if (HAVE_PORTC(fastSignalPin.inout == &PORTC)) {
     DIAG(F("Found PORTC pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
-    fastSignalPin.inout = &fakePORTC;
+    fastSignalPin.inout = &shadowPORTC;
   }
 
   signalPin2=signal_pin2;
@@ -187,21 +187,21 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (fastSignalPin.shadowinout != NULL) {
     if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
       noInterrupts();
-      HAVE_PORTA(fakePORTA=PORTA);
+      HAVE_PORTA(shadowPORTA=PORTA);
       setSignal(tDir);
-      HAVE_PORTA(PORTA=fakePORTA);
+      HAVE_PORTA(PORTA=shadowPORTA);
       interrupts();
     } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
       noInterrupts();
-      HAVE_PORTB(fakePORTB=PORTB);
+      HAVE_PORTB(shadowPORTB=PORTB);
       setSignal(tDir);
-      HAVE_PORTB(PORTB=fakePORTB);
+      HAVE_PORTB(PORTB=shadowPORTB);
       interrupts();
     } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
       noInterrupts();
-      HAVE_PORTC(fakePORTC=PORTC);
+      HAVE_PORTC(shadowPORTC=PORTC);
       setSignal(tDir);
-      HAVE_PORTC(PORTC=fakePORTC);
+      HAVE_PORTC(PORTC=shadowPORTC);
       interrupts();
     }
   } else {
