@@ -60,7 +60,7 @@
 class ADS111x: public IODevice { 
 public:
   static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
-    if (checkNoOverlap(firstVpin,nPins)) new ADS111x(firstVpin, nPins, i2cAddress);
+    if (checkNoOverlap(firstVpin,nPins,i2cAddress)) new ADS111x(firstVpin, nPins, i2cAddress);
   }
 private:
   ADS111x(VPIN firstVpin, int nPins, uint8_t i2cAddress) {

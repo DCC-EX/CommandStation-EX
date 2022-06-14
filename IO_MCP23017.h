@@ -31,7 +31,7 @@
 class MCP23017 : public GPIOBase<uint16_t> {
 public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) {
-    if (checkNoOverlap(vpin, nPins)) new MCP23017(vpin, min(nPins,16), I2CAddress, interruptPin);
+    if (checkNoOverlap(vpin, nPins, I2CAddress)) new MCP23017(vpin, min(nPins,16), I2CAddress, interruptPin);
   }
 
 private:  

@@ -43,7 +43,7 @@
 class PCF8574 : public GPIOBase<uint8_t> {
 public:
   static void create(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1) {
-    if (checkNoOverlap(firstVpin, nPins)) new PCF8574(firstVpin, nPins, I2CAddress, interruptPin);
+    if (checkNoOverlap(firstVpin, nPins,I2CAddress)) new PCF8574(firstVpin, nPins, I2CAddress, interruptPin);
   }
 
 private:

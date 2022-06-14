@@ -39,7 +39,7 @@ static void writeRegister(byte address, byte reg, byte value);
 
 // Create device driver instance.
 void PCA9685::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
-  if (checkNoOverlap(firstVpin, nPins)) new PCA9685(firstVpin, nPins, I2CAddress);
+  if (checkNoOverlap(firstVpin, nPins,I2CAddress)) new PCA9685(firstVpin, nPins, I2CAddress);
 }
 
 // Configure a port on the PCA9685.
