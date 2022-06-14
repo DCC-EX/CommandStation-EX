@@ -26,8 +26,8 @@
 #define ADDRESS(packedaddr) ((packedaddr) >> 2)
 #define SUBADDRESS(packedaddr) ((packedaddr) % 4)
 
-void DCCAccessoryDecoder::create(VPIN vpin, int nPins, int DCCAddress, int DCCSubaddress) {
-  new DCCAccessoryDecoder(vpin, nPins, DCCAddress, DCCSubaddress);
+void DCCAccessoryDecoder::create(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress) {
+  if (checkNoOverlap(firstVpin,nPins)) new DCCAccessoryDecoder(firstVpin, nPins, DCCAddress, DCCSubaddress);
 }
 
 // Constructors

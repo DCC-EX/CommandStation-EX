@@ -274,6 +274,18 @@ IODevice *IODevice::findDevice(VPIN vpin) {
   }
   return NULL;
 }
+
+// Private helper function to check for vpin overlap. Run during setup only.
+// returns true if pins DONT overlap with existing device
+bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins) { 
+  for (VPIN testPin=firstPin; testPin< (firstPin+nPins); testPin++)
+  if (findDevice(testPin)) {
+    DIAG(F("WARNING HAL Pin %d overlap, re-definition of pins  %d to %d ignored."),
+            testPin, firstPin, firstPin+nPins);
+    return false; 
+  }
+  return true;
+}
   
 //==================================================================================================================
 // Static data

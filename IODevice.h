@@ -228,6 +228,9 @@ protected:
   //  pin low if an input changes state.
   int16_t _gpioInterruptPin = -1;
 
+  // Method to check if pins will overlap before creating new device. 
+  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1);
+
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice);
 
@@ -239,7 +242,7 @@ private:
   bool owns(VPIN vpin);
   // Method to find device handling Vpin
   static IODevice *findDevice(VPIN vpin);
-
+  
   IODevice *_nextDevice = 0;
   unsigned long _nextEntryTime;
   static IODevice *_firstDevice;

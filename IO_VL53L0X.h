@@ -139,7 +139,7 @@ public:
     addDevice(this);
   }
   static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
-    new VL53L0X(firstVpin, nPins, i2cAddress, onThreshold, offThreshold, xshutPin);
+     if (checkNoOverlap(firstVpin, nPins)) new VL53L0X(firstVpin, nPins, i2cAddress, onThreshold, offThreshold, xshutPin);
   }
 
 protected:

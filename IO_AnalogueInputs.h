@@ -69,7 +69,7 @@ public:
     addDevice(this);
   }
   static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
-    new ADS111x(firstVpin, nPins, i2cAddress);
+    if (checkNoOverlap(firstVpin,nPins)) new ADS111x(firstVpin, nPins, i2cAddress);
   }
 private:
   void _begin() {

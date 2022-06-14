@@ -36,7 +36,7 @@ IO_ExampleSerial::IO_ExampleSerial(VPIN firstVpin, int nPins, HardwareSerial *se
 
 // Static create method for one module.
 void IO_ExampleSerial::create(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud) {
-  new IO_ExampleSerial(firstVpin, nPins, serial, baud);
+  if (checkNoOverlap(firstVpin,nPins)) new IO_ExampleSerial(firstVpin, nPins, serial, baud);
 }
 
 // Device-specific initialisation

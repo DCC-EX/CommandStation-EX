@@ -78,7 +78,7 @@ public:
   }
 
   static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
-    new DFPlayer(firstVpin, nPins, serial);
+    if (checkNoOverlap(firstVpin,nPins)) new DFPlayer(firstVpin, nPins, serial);
   }
 
 protected:
