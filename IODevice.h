@@ -228,9 +228,6 @@ protected:
   // Pin number of interrupt pin for GPIO extender devices.  The extender module will pull this
   //  pin low if an input changes state.
   int16_t _gpioInterruptPin = -1;
-
-  // non-i2c hal drivers return false, i2c drivers override this in IO_GPIOBase
-  bool _matchI2CAddress(uint8_t i2cAddress);
     
   // Method to check if pins will overlap before creating new device. 
   static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);

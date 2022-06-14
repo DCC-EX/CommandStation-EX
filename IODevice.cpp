@@ -294,7 +294,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
     } 
   
     // Check for overlapping I2C address
-    if (dev->_matchI2CAddress(i2cAddress)) {
+    if (i2cAddress && dev->_I2CAddress==i2cAddress) {
       DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),i2cAddress);
       return false;
     } 
@@ -302,9 +302,6 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
   return true;  // no overlaps... OK to go on with constructor
 }
   
-bool IODevice::_matchI2CAddress(uint8_t i2cAddress)  {
-    return (i2cAddress && i2cAddress==_I2CAddress);
-  }
 
 //==================================================================================================================
 // Static data

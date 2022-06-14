@@ -76,7 +76,7 @@ public:
  
   // Static create function provides alternative way to create object
   static void create(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
-    if (checkNoOverlap(vpin) && checkNoOverlap(trigPin) && checkNoOverlap(echoPin))
+    if (checkNoOverlap(vpin))
         new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold);
   }
 
