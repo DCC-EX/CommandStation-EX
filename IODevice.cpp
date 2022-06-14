@@ -61,14 +61,11 @@ void IODevice::begin() {
   // Allocates 32 pins 100-131
   PCA9685::create(100, 16, 0x40);
   PCA9685::create(116, 16, 0x41);
-  PCA9685::create(132, 16, 0x41);  // should fail
-  PCA9685::create(118, 4, 0x42);  // should fail
   
   // Predefine two MCP23017 module 0x20/0x21
   // Allocates 32 pins 164-195
   MCP23017::create(164, 16, 0x20);
   MCP23017::create(180, 16, 0x21);
-MCP23017::create(196, 16, 0x40);  // should fail
 
   // Call the begin() methods of each configured device in turn
   for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
@@ -280,7 +277,9 @@ IODevice *IODevice::findDevice(VPIN vpin) {
 // Private helper function to check for vpin overlap. Run during setup only.
 // returns true if pins DONT overlap with existing device
 bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) {
+#ifdef DIAG_IO
   DIAG(F("Check no overlap %d %d 0x%x"), firstPin,nPins,i2cAddress);
+#endif
   VPIN lastPin=firstPin+nPins-1;
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
     
@@ -303,10 +302,8 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
   return true;  // no overlaps... OK to go on with constructor
 }
   
- bool IODevice::_matchI2CAddress(uint8_t i2cAddress) { 
-   // Overridden for I2c devices. 
-   (void) i2cAddress;
-   return false;
+bool IODevice::_matchI2CAddress(uint8_t i2cAddress)  {
+    return (i2cAddress && i2cAddress==_I2CAddress);
   }
 
 //==================================================================================================================

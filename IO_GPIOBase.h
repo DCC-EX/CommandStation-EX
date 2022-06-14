@@ -45,13 +45,9 @@ protected:
   int _read(VPIN vpin) override;
   void _display() override;
   void _loop(unsigned long currentMicros) override;
-  virtual bool _matchI2CAddress(uint8_t i2cAddress) override {
-    DIAG(F("MatchI2c %x %x"), i2cAddress, _I2CAddress);
-    return (i2cAddress && i2cAddress==_I2CAddress);
-  }
 
   // Data fields
-  uint8_t _I2CAddress;
+ 
   // Allocate enough space for all input pins
   T _portInputState; 
   T _portOutputState;

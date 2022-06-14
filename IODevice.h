@@ -168,6 +168,7 @@ protected:
     _firstVpin = firstVpin;
     _nPins = nPins;
     _nextEntryTime = 0;
+    _I2CAddress=0;
   }
 
  // Method to perform initialisation of the device (optionally implemented within device class)
@@ -220,7 +221,7 @@ protected:
   // Common object fields.
   VPIN _firstVpin;
   int _nPins;
-
+  uint8_t _I2CAddress;
   // Flag whether the device supports callbacks.
   bool _hasCallback = false;
 
@@ -229,7 +230,7 @@ protected:
   int16_t _gpioInterruptPin = -1;
 
   // non-i2c hal drivers return false, i2c drivers override this in IO_GPIOBase
-  virtual bool _matchI2CAddress(uint8_t i2cAddress);
+  bool _matchI2CAddress(uint8_t i2cAddress);
     
   // Method to check if pins will overlap before creating new device. 
   static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);
@@ -245,7 +246,6 @@ private:
   bool owns(VPIN vpin);
   // Method to find device handling Vpin
   static IODevice *findDevice(VPIN vpin);
-  uint8_t _I2CAddress;
   IODevice *_nextDevice = 0;
   unsigned long _nextEntryTime;
   static IODevice *_firstDevice;
@@ -287,10 +287,7 @@ private:
   void updatePosition(uint8_t pin);
   void writeDevice(uint8_t pin, int value);
   void _display() override;
-  virtual bool _matchI2CAddress(uint8_t i2caddress) override {
-    return i2caddress && i2caddress==_I2CAddress;
-  }
-  uint8_t _I2CAddress; // 0x40-0x43 possible
+  
 
   struct ServoData {
     uint16_t activePosition : 12; // Config parameter
