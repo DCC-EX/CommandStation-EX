@@ -36,10 +36,10 @@
 
 class IO_ExampleSerial : public IODevice {
 public:
-  IO_ExampleSerial(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud);
   static void create(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud);  
 
 protected:
+  IO_ExampleSerial(VPIN firstVpin, int nPins, HardwareSerial *serial, unsigned long baud);
   void _begin() override;
   void _loop(unsigned long currentMicros) override;
   void _write(VPIN vpin, int value) override;

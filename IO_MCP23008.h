@@ -28,6 +28,7 @@ public:
     if (checkNoOverlap(firstVpin, nPins)) new MCP23008(firstVpin, nPins, I2CAddress, interruptPin);
   }
 
+private:
   // Constructor
   MCP23008(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1)
     : GPIOBase<uint8_t>((FSH *)F("MCP23008"), firstVpin, min(nPins, 8), I2CAddress, interruptPin) {
@@ -37,7 +38,6 @@ public:
     outputBuffer[0] = REG_GPIO;
   }
   
-private:
   void _writeGpioPort() override {
     I2CManager.write(_I2CAddress, 2, REG_GPIO, _portOutputState);
   }

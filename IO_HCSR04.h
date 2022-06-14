@@ -73,6 +73,14 @@ private:
   const uint16_t factor = 58; // ms/cm
 
 public:
+ 
+  // Static create function provides alternative way to create object
+  static void create(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
+    if (checkNoOverlap(vpin) && checkNoOverlap(trigPin) && checkNoOverlap(echoPin))
+        new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold);
+  }
+
+protected:
   // Constructor perfroms static initialisation of the device object
   HCSR04 (VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
     _firstVpin = vpin;
@@ -83,15 +91,7 @@ public:
     _offThreshold = offThreshold;
     addDevice(this);
   }
-
-  // Static create function provides alternative way to create object
-  static void create(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold) {
-    if (checkNoOverlap(vpin) && checkNoOverlap(trigPin) && checkNoOverlap(echoPin))
-        new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold);
-  }
-
-protected:
-  // _begin function called to perform dynamic initialisation of the device
+ // _begin function called to perform dynamic initialisation of the device
   void _begin() override {
     pinMode(_trigPin, OUTPUT);
     pinMode(_echoPin, INPUT);

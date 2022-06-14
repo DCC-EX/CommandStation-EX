@@ -127,7 +127,13 @@ private:
   };
   const uint8_t VL53L0X_I2C_DEFAULT_ADDRESS=0x29;
 
-public:
+
+  public:
+  static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
+     if (checkNoOverlap(firstVpin, nPins)) new VL53L0X(firstVpin, nPins, i2cAddress, onThreshold, offThreshold, xshutPin);
+  }
+
+protected:
   VL53L0X(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
     _firstVpin = firstVpin;
     _nPins = min(nPins, 3);
@@ -138,11 +144,6 @@ public:
     _value = 0;
     addDevice(this);
   }
-  static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
-     if (checkNoOverlap(firstVpin, nPins)) new VL53L0X(firstVpin, nPins, i2cAddress, onThreshold, offThreshold, xshutPin);
-  }
-
-protected:
   void _begin() override {
     if (_xshutPin == VPIN_NONE) {
       // Check if device is already responding on the nominated address.

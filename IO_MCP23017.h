@@ -33,7 +33,8 @@ public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) {
     if (checkNoOverlap(vpin, nPins)) new MCP23017(vpin, min(nPins,16), I2CAddress, interruptPin);
   }
-  
+
+private:  
   // Constructor
   MCP23017(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) 
     : GPIOBase<uint16_t>((FSH *)F("MCP23017"), vpin, nPins, I2CAddress, interruptPin) 
@@ -42,8 +43,6 @@ public:
       outputBuffer, sizeof(outputBuffer));
     outputBuffer[0] = REG_GPIOA;
   }
-
-private:
   void _writeGpioPort() override {
     I2CManager.write(_I2CAddress, 3, REG_GPIOA, _portOutputState, _portOutputState>>8);
   }

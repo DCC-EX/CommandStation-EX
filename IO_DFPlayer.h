@@ -69,6 +69,12 @@ private:
   unsigned long _commandSendTime; // Allows timeout processing
 
 public:
+ 
+  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
+    if (checkNoOverlap(firstVpin,nPins)) new DFPlayer(firstVpin, nPins, serial);
+  }
+
+protected:
   // Constructor
   DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) :
     IODevice(firstVpin, nPins),
@@ -77,12 +83,7 @@ public:
     addDevice(this);
   }
 
-  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
-    if (checkNoOverlap(firstVpin,nPins)) new DFPlayer(firstVpin, nPins, serial);
-  }
-
-protected:
-  void _begin() override {
+ void _begin() override {
     _serial->begin(9600);
     _deviceState = DEVSTATE_INITIALISING;
 

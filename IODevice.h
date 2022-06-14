@@ -260,8 +260,6 @@ private:
 class PCA9685 : public IODevice {
 public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
-  // Constructor
-  PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
   enum ProfileType : uint8_t {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
     UseDuration = 0, // Use specified duration
@@ -273,6 +271,8 @@ public:
   };
 
 private:
+  // Constructor
+  PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
   // Device-specific initialisation
   void _begin() override;
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
@@ -320,10 +320,10 @@ private:
 class DCCAccessoryDecoder: public IODevice {
 public:
   static void create(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress);
-  // Constructor
-  DCCAccessoryDecoder(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress);
 
 private:
+  // Constructor
+  DCCAccessoryDecoder(VPIN firstVpin, int nPins, int DCCAddress, int DCCSubaddress);
   // Device-specific write function.
   void _begin() override;
   void _write(VPIN vpin, int value) override;
@@ -343,13 +343,13 @@ public:
     addDevice(new ArduinoPins(firstVpin, nPins));
   }
   
-  // Constructor
-  ArduinoPins(VPIN firstVpin, int nPins);
-
   static void fastWriteDigital(uint8_t pin, uint8_t value);
   static bool fastReadDigital(uint8_t pin);
 
 private:
+  // Constructor
+  ArduinoPins(VPIN firstVpin, int nPins);
+
   // Device-specific pin configuration
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
   // Device-specific write function.

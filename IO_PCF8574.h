@@ -46,13 +46,13 @@ public:
     if (checkNoOverlap(firstVpin, nPins)) new PCF8574(firstVpin, nPins, I2CAddress, interruptPin);
   }
 
+private:
   PCF8574(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1)
     : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, 8), I2CAddress, interruptPin) 
   {
     requestBlock.setReadParams(_I2CAddress, inputBuffer, 1);
   }
   
-private:
   // The pin state is '1' if the pin is an input or if it is an output set to 1.  Zero otherwise. 
   void _writeGpioPort() override {
     I2CManager.write(_I2CAddress, 1, _portOutputState | ~_portMode);
