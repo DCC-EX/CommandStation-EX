@@ -58,6 +58,7 @@
 #undef FREE 
 #undef FWD 
 #undef GREEN
+#undef HAL
 #undef IF 
 #undef IFAMBER
 #undef IFCLOSED
@@ -161,6 +162,7 @@
 #define FREE(blockid) 
 #define FWD(speed) 
 #define GREEN(signal_id)
+#define HAL(haltype,params...)
 #define IF(sensor_id) 
 #define IFAMBER(signal_id)
 #define IFCLOSED(turnout_id) 

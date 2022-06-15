@@ -32,6 +32,7 @@
 
 // Link to halSetup function.  If not defined, the function reference will be NULL.
 extern __attribute__((weak)) void halSetup();
+extern __attribute__((weak)) void exrailHalSetup();
 
 //==================================================================================================================
 // Static methods
@@ -54,6 +55,10 @@ void IODevice::begin() {
   // create something that conflicts with the users vpin definitions. 
   if (halSetup)
     halSetup();
+
+  // include any HAL devices defined in exrail. 
+  if (exrailHalSetup)
+    exrailHalSetup();
 
   // Initialise the IO subsystem defaults
   ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access

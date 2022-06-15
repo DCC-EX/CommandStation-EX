@@ -61,6 +61,14 @@
 #define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
 #include "myAutomation.h"
 
+// Pass 1h Implements HAL macro by creating exrailHalSetup function 
+#include "EXRAIL2MacroReset.h"
+#undef HAL
+#define HAL(haltype,params...)  haltype::create(params);
+void exrailHalSetup() {
+   #include "myAutomation.h"
+}
+
 // Pass 2 create throttle route list 
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
@@ -234,6 +242,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define FREE(blockid) OPCODE_FREE,V(blockid),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
+#define HAL(haltype,params...)
 #define IF(sensor_id) OPCODE_IF,V(sensor_id),
 #define IFAMBER(signal_id) OPCODE_IFAMBER,V(signal_id),
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
