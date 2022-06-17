@@ -79,9 +79,12 @@
 #undef LCN 
 #undef ONACTIVATE
 #undef ONACTIVATEL
+#undef ONAMBER
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
+#undef ONGREEN
+#undef ONRED
 #undef ONTHROW 
 #undef PARSE
 #undef PAUSE
@@ -183,9 +186,12 @@
 #define LCN(msg) 
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
+#define ONAMBER(signal_id) 
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
+#define ONGREEN(signal_id) 
+#define ONRED(signal_id) 
 #define ONTHROW(turnout_id) 
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 

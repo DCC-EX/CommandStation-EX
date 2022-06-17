@@ -53,6 +53,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,
              OPCODE_ENDTASK,OPCODE_ENDEXRAIL,
              OPCODE_SET_TRACK,
+             OPCODE_ONRED,OPCODE_ONAMBER,OPCODE_ONGREEN,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -63,7 +64,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_IFTIMEOUT,
              OPCODE_IF,OPCODE_IFNOT,
              OPCODE_IFRANDOM,OPCODE_IFRESERVE,
-             OPCODE_IFCLOSED, OPCODE_IFTHROWN
+             OPCODE_IFCLOSED,OPCODE_IFTHROWN
              };
 
 
@@ -132,6 +133,9 @@ private:
     static bool isSignal(VPIN id,char rag); 
     static int16_t getSignalSlot(VPIN id);
     static void setTurnoutHiddenState(Turnout * t);
+    static LookList* LookListLoader(OPCODE op1,
+                      OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
+    static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
@@ -144,7 +148,6 @@ private:
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
     void printMessage2(const FSH * msg);
     
-    
    static bool diag;
    static const  FLASH  byte RouteCode[];
    static const  FLASH  int16_t SignalDefinitions[];
@@ -154,7 +157,10 @@ private:
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;
    static LookList * onDeactivateLookup;
-
+   static LookList * onRedLookup;
+   static LookList * onAmberLookup;
+   static LookList * onGreenLookup;
+  
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
@@ -172,8 +178,7 @@ private:
     bool forward;
     bool invert;
     byte speedo;
-    int16_t onTurnoutId;
-    int16_t onActivateAddr;
+    int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };

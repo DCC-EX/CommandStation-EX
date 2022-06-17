@@ -87,6 +87,9 @@ LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
 LookList *  RMFT2::onDeactivateLookup=NULL;
+LookList *  RMFT2::onRedLookup=NULL;
+LookList *  RMFT2::onAmberLookup=NULL;
+LookList *  RMFT2::onGreenLookup=NULL;
 
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
@@ -116,56 +119,40 @@ int16_t LookList::find(int16_t value) {
   return -1;
 }
 
-/* static */ void RMFT2::begin() {
-  DCCEXParser::setRMFTFilter(RMFT2::ComandFilter);
-  for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
+LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   int progCounter;
-
-  // counters to create lookup arrays
-  int sequenceCount=0; // to allow for seq 0 at start
-  int onThrowCount=0;
-  int onCloseCount=0;
-  int onActivateCount=0;
-  int onDeactivateCount=0;
-
-  // first pass count sizes for fast lookup arrays
+  int16_t count=0;
+  // find size for list
   for (progCounter=0;; SKIPOP) {
     byte opcode=GET_OPCODE;
     if (opcode==OPCODE_ENDEXRAIL) break;
-    switch (opcode) {
-    case OPCODE_ROUTE:
-    case OPCODE_AUTOMATION:
-    case OPCODE_SEQUENCE:
-      sequenceCount++;
-      break;
-
-    case OPCODE_ONTHROW:
-      onThrowCount++;
-      break;
-      
-    case OPCODE_ONCLOSE:
-      onCloseCount++;
-      break;
-      
-    case OPCODE_ONACTIVATE:
-      onActivateCount++;
-      break;
-
-    case OPCODE_ONDEACTIVATE:
-      onDeactivateCount++;
-      break;
-
-    default: // Ignore
-      break;
-    }
+    if (opcode==op1 || opcode==op2 || opcode==op3) count++;
   }
+  // create list 
+  LookList* list=new LookList(count);
+  if (count==0) return list;
 
+  for (progCounter=0;; SKIPOP) {
+    byte opcode=GET_OPCODE;
+    if (opcode==OPCODE_ENDEXRAIL) break;
+    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(GET_OPERAND(0),progCounter);   
+  }
+  return list;
+}
+
+/* static */ void RMFT2::begin() {
+  DCCEXParser::setRMFTFilter(RMFT2::ComandFilter);
+  for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
+  
   // create lookups
-  sequenceLookup=new LookList(sequenceCount);
-  onThrowLookup=new LookList(onThrowCount);
-  onCloseLookup=new LookList(onCloseCount);
-  onActivateLookup=new LookList(onActivateCount);
-  onDeactivateLookup=new LookList(onDeactivateCount);
+  sequenceLookup=LookListLoader(OPCODE_ROUTE, OPCODE_AUTOMATION,OPCODE_SEQUENCE);
+  onThrowLookup=LookListLoader(OPCODE_ONTHROW);
+  onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
+  onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
+  onDeactivateLookup=LookListLoader(OPCODE_ONDEACTIVATE);
+  onRedLookup=LookListLoader(OPCODE_ONRED);
+  onAmberLookup=LookListLoader(OPCODE_ONAMBER);
+  onGreenLookup=LookListLoader(OPCODE_ONGREEN);
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -175,6 +162,7 @@ int16_t LookList::find(int16_t value) {
     doSignal(sigid & SIGNAL_ID_MASK, SIGNAL_RED);
   }
 
+  int progCounter;
   for (progCounter=0;; SKIPOP){
     byte opcode=GET_OPCODE;
     if (opcode==OPCODE_ENDEXRAIL) break;
@@ -215,32 +203,11 @@ int16_t LookList::find(int16_t value) {
       setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
-      
-    case OPCODE_ROUTE:
-    case OPCODE_AUTOMATION:
-    case OPCODE_SEQUENCE:
-      sequenceLookup->add(operand,progCounter);
-      break;
-      
-    case OPCODE_ONTHROW:
-      onThrowLookup->add(operand,progCounter);
-      break;
-      
-    case OPCODE_ONCLOSE:
-      onCloseLookup->add(operand,progCounter);
-      break;
-      
-    case OPCODE_ONACTIVATE:
-      onActivateLookup->add(operand,progCounter);
-      break;
-      
-    case OPCODE_ONDEACTIVATE:
-      onDeactivateLookup->add(operand,progCounter);
-      break;
-      
+        
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
-      new RMFT2(progCounter);
+      // but we will do one at 0 anyway by default.
+      if (progCounter>0) new RMFT2(progCounter);
       break;
       
     default: // Ignore
@@ -249,9 +216,7 @@ int16_t LookList::find(int16_t value) {
   }
   SKIPOP; // include ENDROUTES opcode
 
-  DIAG(F("EXRAIL %db, fl=%d seq=%d, onT=%d, onC=%d"),
-        progCounter,MAX_FLAGS,
-        sequenceCount, onThrowCount, onCloseCount);
+  DIAG(F("EXRAIL %db, fl=%d"),progCounter,MAX_FLAGS);
 
   new RMFT2(0); // add the startup route
 }
@@ -461,7 +426,7 @@ RMFT2::RMFT2(int progCtr) {
   invert=false;
   timeoutFlag=false;
   stackDepth=0;
-  onTurnoutId=-1; // Not handling an ONTHROW/ONCLOSE
+  onEventStartPosition=-1; // Not handling an ONxxx 
 
   // chain into ring of RMFTs
   if (loopTask==NULL) {
@@ -1013,6 +978,13 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
 }
 /* static */ void RMFT2::doSignal(VPIN id,char rag) {
   if (diag) DIAG(F(" doSignal %d %x"),id,rag);
+  
+  // Schedule any event handler for this signal change.
+  // Thjis will work even without a signal definition. 
+  if (rag==SIGNAL_RED) handleEvent(F("RED"),onRedLookup,id);
+  else if (rag==SIGNAL_GREEN) handleEvent(F("GREEN"), onGreenLookup,id);
+  else handleEvent(F("AMBER"), onAmberLookup,id);
+  
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return; 
   
@@ -1026,6 +998,7 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
   VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
   VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+3);
   if (diag) DIAG(F("signal %d %d %d %d"),sigid,redpin,amberpin,greenpin);
+
 
   if (sigid & SERVO_SIGNAL_FLAG) {
     // A servo signal, the pin numbers are actually servo positions
@@ -1059,46 +1032,36 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
 
 void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   // Hunt for an ONTHROW/ONCLOSE for this turnout
-  int pc= (closed?onCloseLookup:onThrowLookup)->find(turnoutId);
-  if (pc<0) return;
-  
-  // Check we dont already have a task running this turnout
-  RMFT2 * task=loopTask;
-  while(task) {
-    if (task->onTurnoutId==turnoutId) {
-      DIAG(F("Recursive ONTHROW/ONCLOSE for Turnout %d"),turnoutId);
-      return;
-    }
-    task=task->next;
-    if (task==loopTask) break;
-  }
-  
-  task=new RMFT2(pc);  // new task starts at this instruction
-  task->onTurnoutId=turnoutId; // flag for recursion detector
+  if (closed)  handleEvent(F("CLOSE"),onCloseLookup,turnoutId);
+  else handleEvent(F("THROW"),onThrowLookup,turnoutId);
 }
+
 
 void RMFT2::activateEvent(int16_t addr, bool activate) {
   // Hunt for an ONACTIVATE/ONDEACTIVATE for this accessory
-  int pc= (activate?onActivateLookup:onDeactivateLookup)->find(addr);
+  if (activate)  handleEvent(F("ACTIVATE"),onActivateLookup,addr);
+  else handleEvent(F("DEACTIVATE"),onDeactivateLookup,addr);
+}
+ 
+void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
+  int pc= handlers->find(id);
   if (pc<0) return;
   
-  // Check we dont already have a task running this address
+  // Check we dont already have a task running this handler
   RMFT2 * task=loopTask;
   while(task) {
-    if (task->onActivateAddr==addr) {
-      DIAG(F("Recursive ON(DE)ACTIVATE for  %d"),addr);
+    if (task->onEventStartPosition==pc) {
+      DIAG(F("Recursive ON%S(%d)"),reason, id);
       return;
     }
     task=task->next;
     if (task==loopTask) break;
   }
   
-  task->onActivateAddr=addr; // flag for recursion detector
   task=new RMFT2(pc);  // new task starts at this instruction
+  task->onEventStartPosition=pc; // flag for recursion detector
 }
 
 void RMFT2::printMessage2(const FSH * msg) {
   DIAG(F("EXRAIL(%d) %S"),loco,msg);
 }
-
-

@@ -263,9 +263,12 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define LCN(msg) PRINT(msg)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
+#define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
+#define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
+#define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
