@@ -37,6 +37,7 @@
 #undef BROADCAST
 #undef CALL 
 #undef CLOSE 
+#undef DCC_SIGNAL
 #undef DEACTIVATE
 #undef DEACTIVATEL
 #undef DELAY
@@ -124,6 +125,7 @@
 #undef TURNOUT 
 #undef UNJOIN
 #undef UNLATCH 
+#undef VIRTUAL_SIGNAL
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #undef XFOFF
@@ -144,6 +146,7 @@
 #define BROADCAST(msg)
 #define CALL(route) 
 #define CLOSE(id) 
+#define DCC_SIGNAL(id,add,subaddr)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
 #define DELAY(mindelay)
@@ -231,6 +234,7 @@
 #define TURNOUT(id,addr,subaddr,description...) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
+#define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) 
 #define WAITFOR(pin)
 #define XFOFF(cab,func)

@@ -170,6 +170,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     
     switch (opcode) {
     case OPCODE_AT:
+    case OPCODE_ATTIMEOUT2:
     case OPCODE_AFTER:
     case OPCODE_IF:
     case OPCODE_IFNOT: {
@@ -348,13 +349,14 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     return true;   
   }
 
-  // all other / commands take 1 parameter 0 to MAX_FLAGS-1
-  if (paramCount!=2 || p[1]<0  || p[1]>=MAX_FLAGS) return false;
+  // all other / commands take 1 parameter
+  if (paramCount!=2 ) return false;
   
   switch (p[0]) {
   case HASH_KEYWORD_KILL: // Kill taskid|ALL
     {
-      RMFT2 * task=loopTask;
+    if ( p[1]<0  || p[1]>=MAX_FLAGS) return false;
+    RMFT2 * task=loopTask;
       while(task) {
 	      if (task->taskId==p[1]) {
 	        task->kill(F("KILL"));
@@ -367,20 +369,16 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     return false;
     
   case HASH_KEYWORD_RESERVE:  // force reserve a section
-    setFlag(p[1],SECTION_FLAG);
-    return true;
+    return setFlag(p[1],SECTION_FLAG);
     
   case HASH_KEYWORD_FREE:  // force free a section
-    setFlag(p[1],0,SECTION_FLAG);
-    return true;
+    return setFlag(p[1],0,SECTION_FLAG);
     
   case HASH_KEYWORD_LATCH:
-    setFlag(p[1], LATCH_FLAG);
-    return true;
+    return setFlag(p[1], LATCH_FLAG);
     
   case HASH_KEYWORD_UNLATCH:
-    setFlag(p[1], 0, LATCH_FLAG);
-    return true;
+    return setFlag(p[1], 0, LATCH_FLAG);
  
   case HASH_KEYWORD_RED:
     doSignal(p[1],SIGNAL_RED);
@@ -926,6 +924,10 @@ void RMFT2::loop2() {
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
+  case OPCODE_ONRED:
+  case OPCODE_ONAMBER:
+  case OPCODE_ONGREEN:
+  
     break;
     
   default:
@@ -942,12 +944,13 @@ void RMFT2::delayMe(long delay) {
   delayStart=millis();
 }
 
-void RMFT2::setFlag(VPIN id,byte onMask, byte offMask) {
-   if (FLAGOVERFLOW(id)) return; // Outside range limit
+boolean RMFT2::setFlag(VPIN id,byte onMask, byte offMask) {
+   if (FLAGOVERFLOW(id)) return false; // Outside range limit
    byte f=flags[id];
    f &= ~offMask;
    f |= onMask;
    flags[id]=f;
+   return true;
 }
 
 bool RMFT2::getFlag(VPIN id,byte mask) {
@@ -961,9 +964,9 @@ void RMFT2::kill(const FSH * reason, int operand) {
   delete this;
 }
 
-int16_t RMFT2::getSignalSlot(VPIN id) {
+int16_t RMFT2::getSignalSlot(int16_t id) {
   for (int sigpos=0;;sigpos+=4) {
-      VPIN sigid=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
+      int16_t sigid=GETFLASHW(RMFT2::SignalDefinitions+sigpos);
       if (sigid==0) { // end of signal list 
         DIAG(F("EXRAIL Signal %d not defined"), id);
         return -1;
@@ -976,7 +979,7 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
       return sigpos/4; // relative slot in signals table
   }  
 }
-/* static */ void RMFT2::doSignal(VPIN id,char rag) {
+/* static */ void RMFT2::doSignal(int16_t id,char rag) {
   if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
@@ -997,10 +1000,11 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
   VPIN redpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+1);
   VPIN amberpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+2);
   VPIN greenpin=GETFLASHW(RMFT2::SignalDefinitions+sigpos+3);
-  if (diag) DIAG(F("signal %d %d %d %d"),sigid,redpin,amberpin,greenpin);
+  if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
 
+  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
 
-  if (sigid & SERVO_SIGNAL_FLAG) {
+  if (sigtype == SERVO_SIGNAL_FLAG) {
     // A servo signal, the pin numbers are actually servo positions
     // Note, setting a signal to a zero position has no effect.
     int16_t servopos= rag==SIGNAL_RED? redpin: (rag==SIGNAL_GREEN? greenpin : amberpin);
@@ -1009,7 +1013,14 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
     return;  
   }
 
-  // LED or similar 3 pin signal
+  
+  if (sigtype== DCC_SIGNAL_FLAG) {
+    // redpin,amberpin are the DCC addr,subaddr 
+    DCC::setAccessory(redpin,amberpin, rag!=SIGNAL_RED);
+    return; 
+  }
+
+  // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
   // If amberpin is zero, synthesise amber from red+green
   const byte SIMAMBER=0x00;
   if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
@@ -1021,10 +1032,9 @@ int16_t RMFT2::getSignalSlot(VPIN id) {
   if (redpin) IODevice::write(redpin,(rag==SIGNAL_RED || rag==SIMAMBER)^aHigh);
   if (amberpin) IODevice::write(amberpin,(rag==SIGNAL_AMBER)^aHigh);
   if (greenpin) IODevice::write(greenpin,(rag==SIGNAL_GREEN || rag==SIMAMBER)^aHigh);
-  return;  
 }
 
-/* static */ bool RMFT2::isSignal(VPIN id,char rag) {
+/* static */ bool RMFT2::isSignal(int16_t id,char rag) {
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return false; 
   return (flags[sigslot] & SIGNAL_MASK) == rag;

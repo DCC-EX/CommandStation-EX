@@ -193,6 +193,11 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define SIGNALH(redpin,amberpin,greenpin) redpin | RMFT2::ACTIVE_HIGH_SIGNAL_FLAG,redpin,amberpin,greenpin, 
 #undef SERVO_SIGNAL
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
+#undef DCC_SIGNAL
+#define DCC_SIGNAL(id,addr,subaddr) id | RMFT2::DCC_SIGNAL_FLAG,addr,subaddr,0,
+#undef VIRTUAL_SIGNAL
+#define VIRTUAL_SIGNAL(id) id,0,0,0,
+
 const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
     0,0,0,0 };
@@ -226,6 +231,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#define DCC_SIGNAL(id,add,subaddr)
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
@@ -308,6 +314,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
+#define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),

@@ -109,6 +109,7 @@ class LookList {
     static void activateEvent(int16_t addr, bool active);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
+    static const int16_t DCC_SIGNAL_FLAG=0x1000;
     static const int16_t SIGNAL_ID_MASK=0x0FFF;
  
  // Throttle Info Access functions built by exrail macros 
@@ -126,12 +127,12 @@ private:
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
     static void streamFlags(Print* stream);
-    static void setFlag(VPIN id,byte onMask, byte OffMask=0);
+    static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void doSignal(VPIN id,char rag); 
-    static bool isSignal(VPIN id,char rag); 
-    static int16_t getSignalSlot(VPIN id);
+    static void doSignal(int16_t id,char rag); 
+    static bool isSignal(int16_t id,char rag); 
+    static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
