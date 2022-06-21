@@ -34,7 +34,7 @@ def convert(timestr):
     times=timestr.split('.',1) # remove fractions of second
     timestamp_obj=datetime.datetime.strptime(times[0],'%H:%M:%S')
     timestamp_obj=timestamp_obj-timediff       # calculate offset
-    timestr='{0:%H:%M:%S}'.format(timestamp_obj)
+    timestr='{0:%M:%S}'.format(timestamp_obj)
     timestr='%s.%s' % (timestr, times[1][0:2]) # add fractions of second, 2 digits
     return timestr
 
