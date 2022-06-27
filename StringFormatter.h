@@ -20,6 +20,8 @@
 #define StringFormatter_h
 #include <Arduino.h>
 #include "FSH.h"
+#include "RingStream.h"
+ 
 #if defined(ARDUINO_ARCH_SAMD)
    // Some processors use a gcc compiler that renames va_list!!!
   #include <cstdarg>  
