@@ -56,6 +56,10 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     setBrake(false);
   }
   else brakePin=UNUSED_PIN;
+
+  // Initiate state of railcom cutout as off. This must be done
+  // independent of if railcom is used later or not.
+  setRailcomCutout(false);
   
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
