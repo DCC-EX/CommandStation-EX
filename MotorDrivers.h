@@ -65,6 +65,13 @@
 //                          new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, 12)
 // See Pololu dial_mc33926_shield_schematic.pdf and truth table on page 17 of the MC33926 data sheet.
 
+// Pololu Dual TB9051FTG Motor Shield
+// This is the shield without modifications which means
+// no HA waveform and no RailCom on an Arduino Mega 2560
+#define POLOLU_TB9051FTG F("POLOLU_TB9051FTG"),                            \
+   new MotorDriver(2, 7, UNUSED_PIN,  -9, A0, 10, 2500,  6), \
+   new MotorDriver(4, 8, UNUSED_PIN, -10, A1, 10, 2500, 12)
+
 // Firebox Mk1
 #define FIREBOX_MK1 F("FIREBOX_MK1"),                                                  \
                     new MotorDriver(3, 6, 7, UNUSED_PIN, A5, 9.766, 5500, UNUSED_PIN), \
