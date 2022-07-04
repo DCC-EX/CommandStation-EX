@@ -179,6 +179,8 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
+  if (invertBrake)
+    brake=255-brake;
   analogWrite(brakePin,brake);
   // as the port registers can be shadowed to get syncronized DCC signals
   // we need to take care of that and we have to turn off interrupts during
