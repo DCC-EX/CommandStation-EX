@@ -211,9 +211,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       break;
     case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
-      if (initSent) { 
-	StringFormatter::send(stream, F("*%d\n"),HEARTBEAT_SECONDS); // return timeout value
-      }
+      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : 1); // return timeout value
       break;
     case 'M': // multithrottle
       multithrottle(stream, cmd); 

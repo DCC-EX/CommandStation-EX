@@ -37,6 +37,7 @@ The configuration file for DCC-EX Command Station
 //
 //  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
 //  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
+//  POLOLU_TB9051FTG      : Pololu Dual TB9051FTG Motor Driver
 //  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
 //  FIREBOX_MK1           : The Firebox MK1                    
 //  FIREBOX_MK1S          : The Firebox MK1S
