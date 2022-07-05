@@ -885,6 +885,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 #if defined(ARDUINO_ARCH_ESP32)
 	  ESP.restart();
 #endif
+#if defined(ARDUINO_ARCH_SAMD)
+    // Disable all interrupts and reset uC
+    __disable_irq();
+    NVIC_SystemReset();
+    while(true);
+#endif
 #endif
           break; // and <X> if we didnt restart 
         }
