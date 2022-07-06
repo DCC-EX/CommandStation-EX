@@ -33,9 +33,15 @@ SerialManager::SerialManager(Stream * myserial) {
 } 
 
 void SerialManager::init() {
-  while (!Serial && millis() < 5000); // wait max 5s for Serial to start
+//  while (!Serial && millis() < 5000); // wait max 5s for Serial to start
+#if defined(ARDUINO_ARCH_SAMD)
+  SerialUSB.begin(115200);
+  while (!SerialUSB); // PMA - temporary for debuggering purpoises
+  new SerialManager(&SerialUSB);
+#else
   Serial.begin(115200);
   new SerialManager(&Serial);
+#endif
 #ifdef SERIAL3_COMMANDS
   Serial3.begin(115200);
   new SerialManager(&Serial3);

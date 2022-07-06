@@ -31,12 +31,12 @@
 #include "Sensors.h"
 #include "Turnouts.h"
 
-#if defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARCH_SAMC)
 ExternalEEPROM EEPROM;
 #endif
 
 void EEStore::init() {
-#if defined(ARDUINO_ARCH_SAMD)
+#if defined(ARDUINO_ARCH_SAMC)
   EEPROM.begin(0x50);  // Address for Microchip 24-series EEPROM with all three
                        // A pins grounded (0b1010000 = 0x50)
 #endif

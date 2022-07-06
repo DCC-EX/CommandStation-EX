@@ -71,6 +71,7 @@ void setup()
   SerialManager::init();
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
+  DIAG(F("Platform: %s"), F(ARDUINO_TYPE)); // PMA - temporary
 
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use
@@ -89,7 +90,7 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
-// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+  // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
 
   // Responsibility 3: Start the DCC engine.
@@ -106,17 +107,16 @@ void setup()
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.
   //  This can be used to create turnouts, outputs, sensors etc. through the normal text commands.
   #if __has_include ( "mySetup.h")
-  #define SETUP(cmd) DCCEXParser::parse(F(cmd))
-  #include "mySetup.h"
-  #undef SETUP
+    #define SETUP(cmd) DCCEXParser::parse(F(cmd))
+    #include "mySetup.h"
+    #undef SETUP
   #endif
 
   #if defined(LCN_SERIAL)
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
-
-  LCD(3,F("Ready"));
+  LCD(3, F("Ready"));
   CommandDistributor::broadcastPower();
 }
 

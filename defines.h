@@ -70,6 +70,9 @@
 #elif defined(ARDUINO_ARCH_ESP32)
 #define ARDUINO_TYPE "ESP32"
 #undef HAS_AVR_WDT
+#elif defined(ARDUINO_ARCH_SAMD)
+#define ARDUINO_TYPE "SAMD21"
+#undef HAS_AVR_WDT
 #else
 #define CPU_TYPE_ERROR
 #endif
