@@ -31,14 +31,14 @@
 #include "TrackManager.h"
 
 
-#ifdef BIG_RAM 
+#if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS)
   // use a buffer to allow broadcast
   #define BUFFER broadcastBufferWriter
   #define FLUSH broadcastBufferWriter->flush();
   #define SHOVE(type) broadcastToClients(type);
   StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
 #else
-  // on a UNO/NANO write direct to Serial and ignore flush/shove 
+  // on a single USB connection config, write direct to Serial and ignore flush/shove 
   #define BUFFER &Serial
   #define FLUSH 
   #define SHOVE(type) 

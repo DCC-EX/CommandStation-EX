@@ -47,6 +47,11 @@
  */
 
 #include "DCCEX.h"
+
+#ifdef CPU_TYPE_ERROR
+#error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
+#endif
+
 #ifdef WIFI_WARNING
 #warning You have defined that you want WiFi but your hardware has not enough memory to do that, so WiFi DISABLED
 #endif

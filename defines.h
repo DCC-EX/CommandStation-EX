@@ -36,15 +36,51 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+// Create a cpu type we can share and 
+// figure out if we have enough memory for advanced features
+// so define HAS_ENOUGH_MEMORY until proved otherwise.
+#define HAS_ENOUGH_MEMORY
+#define HAS_AVR_WDT
+
+#if defined(ARDUINO_AVR_UNO)
+#define ARDUINO_TYPE "UNO"
+#undef HAS_ENOUGH_MEMORY
+#elif defined(ARDUINO_AVR_NANO)
+#define ARDUINO_TYPE "NANO"
+#undef HAS_ENOUGH_MEMORY
+#elif defined(ARDUINO_AVR_MEGA)
+#define ARDUINO_TYPE "MEGA"
+#elif defined(ARDUINO_AVR_MEGA2560)
+#define ARDUINO_TYPE "MEGA"
+#elif defined(ARDUINO_ARCH_MEGAAVR)
+#define ARDUINO_TYPE "MEGAAVR"
+#elif defined(ARDUINO_TEENSY32)
+#define ARDUINO_TYPE "TEENSY32"
+#elif defined(ARDUINO_TEENSY35)
+#define ARDUINO_TYPE "TEENSY35"
+#elif defined(ARDUINO_TEENSY36)
+#define ARDUINO_TYPE "TEENSY36"
+#elif defined(ARDUINO_TEENSY40)
+#define ARDUINO_TYPE "TEENSY40"
+#elif defined(ARDUINO_TEENSY41)
+#define ARDUINO_TYPE "TEENSY41"
+#elif defined(ARDUINO_ARCH_ESP8266)
+#define ARDUINO_TYPE "ESP8266"
+#undef HAS_AVR_WDT
+#elif defined(ARDUINO_ARCH_ESP32)
+#define ARDUINO_TYPE "ESP32"
+#undef HAS_AVR_WDT
+#else
+#define CPU_TYPE_ERROR
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 //
 // WIFI_ON: All prereqs for running with WIFI are met
 // Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
 
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO) || defined(ARDUINO_AVR_NANO_EVERY) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
- #define BIG_RAM
-#endif 
 #if ENABLE_WIFI
-  #if defined(BIG_RAM)
+  #if defined(HAS_ENOUGH_MEMORY)
     #define WIFI_ON true
     #ifndef WIFI_CHANNEL
       #define WIFI_CHANNEL 1
@@ -58,7 +94,7 @@
 #endif
 
 #if ENABLE_ETHERNET
-  #if defined(BIG_RAM)
+  #if defined(HAS_ENOUGH_MEMORY)
     #define ETHERNET_ON true
   #else
     #define ETHERNET_WARNING
@@ -80,7 +116,7 @@
 #define WIFI_SERIAL_LINK_SPEED 115200
 
 #if __has_include ( "myAutomation.h")
-  #if defined(BIG_RAM) || defined(DISABLE_EEPROM)
+  #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM)
     #define EXRAIL_ACTIVE
   #else
     #define EXRAIL_WARNING
