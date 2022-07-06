@@ -308,16 +308,17 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
               address=p[0];
               subaddress=p[1];
               activep=2;
+	      if ((p[3] < 0) || (p[3] > 1))        // invalid onoff    0|1
+		break;
               onoff=p[3];
           }
           else break; // invalid no of parameters
           
           if (
-             ((address & 0x01FF) != address)      // invalid address (limit 9 bits ) 
-          || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits ) 
-          || ((p[activep]  & 0x01) != p[activep]) // invalid activate 0|1
-          || ((onoff & 0x01) != onoff)            // invalid onoff    0|1
-          ) break; 
+	      ((address & 0x01FF) != address)      // invalid address (limit 9 bits)
+           || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits)
+           || (p[activep] > 1) || (p[activep] < 0) // invalid activate 0|1
+	      ) break;
           // Honour the configuration option (config.h) which allows the <a> command to be reversed
 #ifdef DCC_ACCESSORY_COMMAND_REVERSE
           DCC::setAccessory(address, subaddress,p[activep]==0,onoff);
