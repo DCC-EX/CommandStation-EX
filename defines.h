@@ -54,6 +54,7 @@
 #define ARDUINO_TYPE "MEGA"
 #elif defined(ARDUINO_ARCH_MEGAAVR)
 #define ARDUINO_TYPE "MEGAAVR"
+#undef HAS_ENOUGH_MEMORY
 #elif defined(ARDUINO_TEENSY32)
 #define ARDUINO_TYPE "TEENSY32"
 #elif defined(ARDUINO_TEENSY35)
@@ -73,6 +74,13 @@
 #elif defined(ARDUINO_ARCH_SAMD)
 #define ARDUINO_TYPE "SAMD21"
 #undef HAS_AVR_WDT
+
+/* TODO when ready 
+#elif defined(ARDUINO_ARCH_RP2040)
+#define ARDUINO_TYPE "RP2040"
+#undef HAS_AVR_WDT
+*/
+
 #else
 #define CPU_TYPE_ERROR
 #endif
