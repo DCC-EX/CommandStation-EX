@@ -1,10 +1,10 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
- *  © 2022 Paul M. Antoine
  *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -23,7 +23,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// ATTENTION: this file only compiles on a TEENSY
+// ATTENTION: this file only compiles on a SAMD21 based board
 // Please refer to DCCTimer.h for general comments about how this class works
 // This is to avoid repetition and duplication.
 #ifdef ARDUINO_ARCH_SAMD
@@ -38,8 +38,9 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
 
-  // PMA - Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
-  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and enables 12-bit
+  // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
+  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and for now
+  // enables 10-bit mode, although 12-bit is possible
   ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
   while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
 
@@ -54,8 +55,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
   while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
 
-  // PMA - actual timer setup goo
-  // Setup clock sources first
+  // Timer setup - setup clock sources first
   REG_GCLK_GENDIV =   GCLK_GENDIV_DIV(1) |            // Divide 48MHz by 1
                       GCLK_GENDIV_ID(4);              // Apply to GCLK4
   while (GCLK->STATUS.bit.SYNCBUSY);                  // Wait for synchronization
@@ -70,32 +70,31 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
                       GCLK_CLKCTRL_ID_TCC0_TCC1;      // Feed GCLK to TCC0/1
   while (GCLK->STATUS.bit.SYNCBUSY);
 
-  // PMA - assume we're using TCC0... as we're bit-bashing the DCC waveform output pins anyway
-  //       for "normal accuracy" DCC waveform generation. For high accuracy we're going to need
-  //       to a good deal more. The TCC waveform output pins are mux'd on the SAMD, and OP pins
-  //       for each TCC are only available on certain pins
+  // Assume we're using TCC0... as we're bit-bashing the DCC waveform output pins anyway
+  // for "normal accuracy" DCC waveform generation. For high accuracy we're going to need
+  // to a good deal more. The TCC waveform output pins are mux'd on the SAMD, and output
+  // pins for each TCC are only available on certain pins
   TCC0->WAVE.reg = TCC_WAVE_WAVEGEN_NPWM;     // Select NPWM as waveform
   while (TCC0->SYNCBUSY.bit.WAVE);            // Wait for sync
 
-  // PMA - set the frequency
+  // Set the frequency
   TCC0->CTRLA.reg |= TCC_CTRLA_PRESCALER(TCC_CTRLA_PRESCALER_DIV1_Val);
   TCC0->PER.reg = CLOCK_CYCLES * 2;
   while (TCC0->SYNCBUSY.bit.PER);
 
-  // PMA - start it
+  // Start the timer
   TCC0->CTRLA.bit.ENABLE = 1;
   while (TCC0->SYNCBUSY.bit.ENABLE);
 
-  // PMA - set interrupt condition, priority and enable
+  // Set the interrupt condition, priority and enable it in the NVIC
   TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Only interrupt on overflow
   NVIC_SetPriority((IRQn_Type)TCC0_IRQn, 0);  // Make this highest priority
   NVIC_EnableIRQ((IRQn_Type)TCC0_IRQn);       // Enable the interrupt
   interrupts();
 }
 
-// PMA - Timer IRQ handlers replace the dummy handlers (cortex_handlers)
+// Timer IRQ handlers replace the dummy handlers (in cortex_handlers)
 // copied from rf24 branch
-// TODO: test
 void TCC0_Handler() {
     if(TCC0->INTFLAG.bit.OVF) {
         TCC0->INTFLAG.bit.OVF = 1; // writing a 1 clears the flag
@@ -126,9 +125,13 @@ bool DCCTimer::isPWMPin(byte pin) {
 }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-    // TODO: what are the relevant pins?
+    // TODO: High Accuracy mode is not supported as yet, and may never need to be
     (void) pin;
     (void) high;
+}
+
+void DCCTimer::clearPWM() {
+  return;
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {

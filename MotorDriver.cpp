@@ -1,4 +1,5 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
