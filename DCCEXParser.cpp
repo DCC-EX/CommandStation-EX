@@ -40,9 +40,7 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
-#ifdef HAS_AVR_WDT
-#include <avr/wdt.h>
-#endif
+
 
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
@@ -902,23 +900,9 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	    return true;
 
     case HASH_KEYWORD_RESET:
-        {
-#ifdef HAS_AVR_WDT
-          wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-          delay(50);            // wait for the prescaller time to expire
-#else
-#if defined(ARDUINO_ARCH_ESP32)
-	  ESP.restart();
-#endif
-#if defined(ARDUINO_ARCH_SAMD)
-    // Disable all interrupts and reset uC
-    __disable_irq();
-    NVIC_SystemReset();
-    while(true) {};
-#endif
-#endif
-          break; // and <X> if we didnt restart 
-        }
+        DCCTimer::reset();
+        break; // and <X> if we didnt restart 
+    
 
 #ifndef DISABLE_EEPROM
     case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>

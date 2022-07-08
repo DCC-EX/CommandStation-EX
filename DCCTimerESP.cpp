@@ -125,5 +125,9 @@ int DCCTimer::getMinimumFreeMemory() {
 int DCCTimer::freeMemory() {
   return ESP.getFreeHeap();
 }
+
+void DCCTimmer:: reset() {
+   ESP.restart();
+}
 #endif
 

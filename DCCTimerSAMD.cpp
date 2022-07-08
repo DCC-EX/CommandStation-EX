@@ -167,4 +167,10 @@ int DCCTimer::freeMemory() {
   return (int)(&top - reinterpret_cast<char *>(sbrk(0)));
 }
 
+void DCCTimer::reset() {
+   __disable_irq();
+    NVIC_SystemReset();
+    while(true) {};
+}
+
 #endif

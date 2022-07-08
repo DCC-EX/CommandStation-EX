@@ -123,4 +123,9 @@ static inline int freeMemory() {
 }
 
 #endif
+void DCCTimer::reset() {
+  // found at https://forum.pjrc.com/threads/59935-Reboot-Teensy-programmatically
+  SCB_AIRCR = 0x05FA0004;
+}
+
 #endif

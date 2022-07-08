@@ -41,7 +41,6 @@
 // figure out if we have enough memory for advanced features
 // so define HAS_ENOUGH_MEMORY until proved otherwise.
 #define HAS_ENOUGH_MEMORY
-#define HAS_AVR_WDT
 
 #if defined(ARDUINO_AVR_UNO)
 #define ARDUINO_TYPE "UNO"
@@ -68,13 +67,10 @@
 #define ARDUINO_TYPE "TEENSY41"
 #elif defined(ARDUINO_ARCH_ESP8266)
 #define ARDUINO_TYPE "ESP8266"
-#undef HAS_AVR_WDT
 #elif defined(ARDUINO_ARCH_ESP32)
 #define ARDUINO_TYPE "ESP32"
-#undef HAS_AVR_WDT
 #elif defined(ARDUINO_ARCH_SAMD)
 #define ARDUINO_TYPE "SAMD21"
-#undef HAS_AVR_WDT
 // SAMD support for I2C is awaiting development 
 #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
@@ -87,7 +83,6 @@
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
 #define ARDUINO_TYPE "RP2040"
-#undef HAS_AVR_WDT
 */
 
 #else

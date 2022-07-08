@@ -28,6 +28,7 @@
 #ifdef ARDUINO_ARCH_AVR
 
 #include <avr/boot.h> 
+#include <avr/wdt.h>
 #include "DCCTimer.h"
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -114,4 +115,9 @@ int DCCTimer::freeMemory() {
   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 }
 
+void DCCTimer::reset() {
+  wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
+  delay(50);            // wait for the prescaller time to expire
+
+}
 #endif

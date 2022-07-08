@@ -118,4 +118,11 @@ int DCCTimer::freeMemory() {
   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 }
 
+void DCCTimer::reset() {
+  CPU_CCP=0xD8;
+  WDT.CTRLA=0x4;
+  while(true){}
+}
+
+
 #endif

@@ -78,7 +78,8 @@ static void inline updateMinimumFreeMemoryISR(unsigned char extraBytes=0) {
 }
 
   static int  getMinimumFreeMemory();
-
+  static void reset();
+  
 private:
   static int freeMemory();
   static volatile int minimum_free_memory;
