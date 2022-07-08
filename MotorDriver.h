@@ -64,14 +64,11 @@
 #endif
 
 #if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD)
-struct FASTPIN {
-  volatile uint32_t *inout;
-  uint32_t maskHIGH;  
-  uint32_t maskLOW;  
-};
+typedef uint32_t portreg_t;
 #else
 typedef uint8_t portreg_t;
 #endif
+
 struct FASTPIN {
   volatile portreg_t *inout;
   portreg_t maskHIGH;
@@ -122,7 +119,11 @@ class MotorDriver {
     virtual unsigned int raw2mA( int raw);
     virtual unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
+#ifdef digitalPinToTimer
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
+#else
+      return (brakePin<14 && brakePin >1);
+#endif
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
