@@ -75,6 +75,14 @@
 #elif defined(ARDUINO_ARCH_SAMD)
 #define ARDUINO_TYPE "SAMD21"
 #undef HAS_AVR_WDT
+// SAMD support for I2C is awaiting development 
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+#ifndef I2C_NO_INTERRUPTS
+ #define I2C_NO_INTERRUPTS
+#endif
+
 
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)

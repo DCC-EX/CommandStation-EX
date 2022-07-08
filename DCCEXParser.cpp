@@ -914,7 +914,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     // Disable all interrupts and reset uC
     __disable_irq();
     NVIC_SystemReset();
-    while(true);
+    while(true) {};
 #endif
 #endif
           break; // and <X> if we didnt restart 
