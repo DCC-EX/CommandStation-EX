@@ -22,6 +22,7 @@
 
 #include "SerialManager.h"
 #include "DCCEXParser.h"
+#include "StringFormatter.h"
 
 SerialManager * SerialManager::first=NULL;
 
@@ -34,14 +35,10 @@ SerialManager::SerialManager(Stream * myserial) {
 } 
 
 void SerialManager::init() {
-#if defined(ARDUINO_ARCH_SAMD)
-  SerialUSB.begin(115200);
-  new SerialManager(&SerialUSB);
-#else
-  Serial.begin(115200);
-  while (!Serial && millis() < 5000); // wait max 5s for Serial to start
-  new SerialManager(&Serial);
-#endif
+  USB_SERIAL.begin(115200);
+  while (!USB_SERIAL && millis() < 5000); // wait max 5s for Serial to start
+  new SerialManager(&USB_SERIAL);
+  
 #ifdef SERIAL3_COMMANDS
   Serial3.begin(115200);
   new SerialManager(&Serial3);

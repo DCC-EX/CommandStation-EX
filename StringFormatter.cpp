@@ -18,15 +18,6 @@
  */
 #include "StringFormatter.h"
 #include <stdarg.h>
-
-#if defined(ARDUINO_ARCH_SAMD)
-   // Some processors use a gcc compiler that renames va_list!!!
-  #include <cstdarg>
-  Print * StringFormatter::diagSerial= &SerialUSB; 
-#else
-  Print * StringFormatter::diagSerial=&Serial;
-#endif
-
 #include "LCDDisplay.h"
 
 bool Diag::ACK=false;
@@ -38,22 +29,21 @@ bool Diag::LCN=false;
 
  
 void StringFormatter::diag( const FSH* input...) {
-  if (!diagSerial) return; 
-  diagSerial->print(F("<* "));   
+ USB_SERIAL.print(F("<* "));   
   va_list args;
   va_start(args, input);
-  send2(diagSerial,input,args);
-  diagSerial->print(F(" *>\n"));
+  send2(&USB_SERIAL,input,args);
+  USB_SERIAL.print(F(" *>\n"));
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
 
   // Issue the LCD as a diag first
-  send(diagSerial,F("<* LCD%d:"),row);
+  send(&USB_SERIAL,F("<* LCD%d:"),row);
   va_start(args, input);
-  send2(diagSerial,input,args);
-  send(diagSerial,F(" *>\n"));
+  send2(&USB_SERIAL,input,args);
+  send(&USB_SERIAL,F(" *>\n"));
   
   if (!LCDDisplay::lcdDisplay) return;
   LCDDisplay::lcdDisplay->setRow(row);    
@@ -164,7 +154,7 @@ void StringFormatter::printEscapes(Print * stream, const FSH * input) {
 }
 
 void StringFormatter::printEscape( char c) {
-  printEscape(diagSerial,c);
+  printEscape(&USB_SERIAL,c);
 }
 
 void StringFormatter::printEscape(Print * stream, char c) {

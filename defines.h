@@ -41,6 +41,7 @@
 // figure out if we have enough memory for advanced features
 // so define HAS_ENOUGH_MEMORY until proved otherwise.
 #define HAS_ENOUGH_MEMORY
+#define USB_SERIAL Serial
 
 #if defined(ARDUINO_AVR_UNO)
 #define ARDUINO_TYPE "UNO"
@@ -71,6 +72,8 @@
 #define ARDUINO_TYPE "ESP32"
 #elif defined(ARDUINO_ARCH_SAMD)
 #define ARDUINO_TYPE "SAMD21"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
 // SAMD support for I2C is awaiting development 
 #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM

@@ -381,7 +381,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor,
       int ch = wifiStream->read();
       if (echo) {
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
-        else StringFormatter::diagSerial->print((char)ch); 
+        else USB_SERIAL.print((char)ch); 
       }
       if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {

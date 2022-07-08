@@ -183,7 +183,7 @@ void DCCEXParser::parse(const FSH * cmd) {
       int size=strlen_P((char *)cmd)+1; 
       char buffer[size];
       strcpy_P(buffer,(char *)cmd);
-      parse(&Serial,(byte *)buffer,NULL);
+      parse(&USB_SERIAL,(byte *)buffer,NULL);
 }
 
 // See documentation on DCC class for info on this section
