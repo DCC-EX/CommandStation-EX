@@ -54,15 +54,30 @@
 // Parse is called by Withrottle or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex
 void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
+  if (Diag::WIFI && Diag::CMD)
+    DIAG(F("Parse C=%d T=%d B=%s"),clientId, clients[clientId], buffer);
   ring=stream;
   ringClient=stream->peekTargetMark();
-  if (buffer[0] == '<')  {
-    clients[clientId]=COMMAND_TYPE;
-    DCCEXParser::parse(stream, buffer, ring);
-  } else {
-    clients[clientId]=WITHROTTLE_TYPE;
-    WiThrottle::getThrottle(clientId)->parse(ring, buffer);
+
+  // First check if the client is not known
+  // yet and in that case determinine type
+  // NOTE: First character of transmission determines if this
+  // client is using the DCC++ protocol where all commands start
+  // with '<'
+  if (clients[clientId] == NONE_TYPE) {
+    if (buffer[0] == '<')
+      clients[clientId]=COMMAND_TYPE;
+    else
+      clients[clientId]=WITHROTTLE_TYPE;
   }
+
+  // When type is known, send the string
+  // to the right parser
+  if (clients[clientId] == COMMAND_TYPE)
+    DCCEXParser::parse(stream, buffer, ring);
+  else if (clients[clientId] == WITHROTTLE_TYPE)
+    WiThrottle::getThrottle(clientId)->parse(ring, buffer);
+
   ringClient=NO_CLIENT;
 }
 
