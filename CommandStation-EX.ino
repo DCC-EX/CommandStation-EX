@@ -71,7 +71,7 @@ void setup()
   SerialManager::init();
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
-  DIAG(F("Platform: %s"), F(ARDUINO_TYPE)); // PMA - temporary
+  DIAG(F("Platform: %S"), F(ARDUINO_TYPE)); // PMA - temporary
 
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use

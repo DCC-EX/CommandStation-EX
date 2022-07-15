@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.0 rc2"
+#define VERSION "4.2.0 rc3"
 // 4.2.0 Track Manager additions:
 //       Broadcast improvements to separate <> and Withrottle responses
 //       Float eliminated saving >1.5kb PROGMEM and speed. 
