@@ -92,7 +92,7 @@ void DCCWaveform::interruptHandler() {
   else DCCACK::checkAck(progTrack.sentResetsSincePacket);
 
 }
-#pragma GCC push_options
+#pragma GCC pop_options
 
 // An instance of this class handles the DCC transmissions for one track. (main or prog)
 // Interrupts are marshalled via the statics.
@@ -115,7 +115,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 
 
-        
+#pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
@@ -172,6 +172,7 @@ void DCCWaveform::interrupt2() {
     }
   }  
 }
+#pragma GCC pop_options
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {

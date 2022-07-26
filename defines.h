@@ -25,7 +25,6 @@
 
 #ifndef DEFINES_H
 #define DEFINES_H
-
 // defines.h relies on macros defined in config.h
 // but it may have already been included (for cosmetic convenence) by the .ino
 #ifndef MOTOR_SHIELD_TYPE
