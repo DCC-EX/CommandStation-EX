@@ -71,11 +71,12 @@ class DCCTimer {
 // So even if all of the heap is freed, the reported minimum free 
 // memory will not increase.
 //
-static void inline updateMinimumFreeMemoryISR(unsigned char extraBytes=0) {
-  int spare = freeMemory()-extraBytes;
-  if (spare < 0) spare = 0;
-  if (spare < minimum_free_memory) minimum_free_memory = spare;
-}
+  static void inline updateMinimumFreeMemoryISR(unsigned char extraBytes=0)
+    __attribute__((always_inline)) {
+    int spare = freeMemory()-extraBytes;
+    if (spare < 0) spare = 0;
+    if (spare < minimum_free_memory) minimum_free_memory = spare;
+  };
 
   static int  getMinimumFreeMemory();
   static void reset();
