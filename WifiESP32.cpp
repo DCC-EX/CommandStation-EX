@@ -17,9 +17,9 @@
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#if defined(ARDUINO_ARCH_ESP32)
 #include <vector>
 #include "defines.h"
-#if defined(ARDUINO_ARCH_ESP32)
 #include <WiFi.h>
 #include "WifiESP32.h"
 #include "DIAG.h"
