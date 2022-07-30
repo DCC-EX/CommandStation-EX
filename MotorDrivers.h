@@ -54,6 +54,10 @@
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 2000, UNUSED_PIN), \
                               new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 2000, UNUSED_PIN)
+#elif defined(ARDUINO_ARCH_ESP32)
+#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
+    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, UNUSED_PIN, 36/*A4*/, 2.00, 2000, UNUSED_PIN), \
+    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, UNUSED_PIN, 39/*A5*/, 2.00, 2000, UNUSED_PIN)
 #else
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
                               new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
