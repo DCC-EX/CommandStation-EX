@@ -192,3 +192,20 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   sentResetsSincePacket=0;
 }
 #endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "DCCWaveform.h"
+
+DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
+DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
+
+DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
+}
+
+void DCCWaveform::begin() {
+}
+void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
+}
+void DCCWaveform::loop() {
+}
+#endif

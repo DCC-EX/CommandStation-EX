@@ -101,6 +101,8 @@ bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
 }
 void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
 }
+void IRAM_ATTR DCCTimer::clearPWM() {
+}
 
 // Fake this as it should not be used
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
@@ -126,7 +128,7 @@ int DCCTimer::freeMemory() {
   return ESP.getFreeHeap();
 }
 
-void DCCTimmer:: reset() {
+void DCCTimer::reset() {
    ESP.restart();
 }
 #endif
