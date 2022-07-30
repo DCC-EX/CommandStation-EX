@@ -63,8 +63,8 @@ The configuration file for DCC-EX Command Station
 //
 #define ESP32_MOTOR_SHIELD F("ESP32"), \
     NULL /* new MotorDriver(16, 17, UNUSED_PIN, UNUSED_PIN, 32, 2.00, 2000, UNUSED_PIN) */ , \
-    new MotorDriver(18, 19, UNUSED_PIN, UNUSED_PIN, 39, 2.00, 2000, UNUSED_PIN, TIMER_PROG), \
-    new MotorDriver(16, 23, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.00, 2000, UNUSED_PIN, RMT_MAIN)
+    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, UNUSED_PIN, 39, 2.00, 2000, UNUSED_PIN, TIMER_PROG), \
+    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, UNUSED_PIN, 36, 2.00, 2000, UNUSED_PIN, RMT_MAIN)
 
 #define MOTOR_SHIELD_TYPE ESP32_MOTOR_SHIELD
 
