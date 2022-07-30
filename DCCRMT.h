@@ -32,16 +32,10 @@
 
 class RMTChannel {
  public:
-  inline RMTChannel(byte pin, bool isMain) {
-    if (isMain)
-      RMTChannel(pin, 0, PREAMBLE_BITS_MAIN, 1);
-    else
-      RMTChannel(pin, 2, PREAMBLE_BITS_PROG, 0);
-  };
-  RMTChannel(byte pin, byte ch, byte plen, bool isProg);
+  RMTChannel(byte pin, bool isMain);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
-  bool RMTfillData(dccPacket packet);
+  int RMTfillData(dccPacket packet);
   //bool RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
   
   static RMTChannel mainRMTChannel;

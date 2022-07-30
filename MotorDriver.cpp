@@ -38,11 +38,14 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
 
-  if (dtype == RMT_MAIN) {
+  if (dtype & (RMT_MAIN | RMT_PROG)) {
     signalPin=signal_pin;
+    /*
 #if defined(ARDUINO_ARCH_ESP32)
-    rmtChannel = new RMTChannel(signalPin, true); // true: isMain
+    //rmtChannel = new RMTChannel(signalPin, 0, PREAMBLE_BITS_MAIN, true); // true: isMain
+    rmtChannel = new RMTChannel(signalPin, dtype == RMT_MAIN); // true: isMain
 #endif
+    */
     dualSignal=false;
   } else if (dtype & (TIMER_MAIN | TIMER_PROG)) {
     signalPin=signal_pin;
@@ -209,7 +212,10 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 }
 
 bool MotorDriver::schedulePacket(dccPacket packet) {
-  if(!rmtChannel) return true; // fake success if functionality is not there
+  if(!rmtChannel) {
+    DIAG(F("no rmt Channel"));
+    return true; // fake success if functionality is not there
+  }
 
   outQueue.push(packet);
   uint16_t size = outQueue.size();
@@ -220,8 +226,16 @@ bool MotorDriver::schedulePacket(dccPacket packet) {
 }
 
 void MotorDriver::loop() {
-  if (rmtChannel  && !outQueue.empty() && rmtChannel->RMTfillData(outQueue.front()))
-    outQueue.pop();
+  int r;
+  if (rmtChannel  && !outQueue.empty()) {
+    r = rmtChannel->RMTfillData(outQueue.front());
+    if (r == 0) {
+      DIAG(F("r=OK"));
+      outQueue.pop();
+    }
+    else
+      DIAG(F("r=%d"), r);
+  }
 }
 
 MotorDriverContainer::MotorDriverContainer(const FSH * motorShieldName,

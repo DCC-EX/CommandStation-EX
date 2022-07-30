@@ -71,7 +71,13 @@ void DCC::begin() {
 
   // Add main and prog drivers to the main and prog packet sources (dcc-tracks).
   std::vector<MotorDriver*>  v;
-  v = MotorDriverContainer::mDC.getDriverType(RMT_MAIN|TIMER_MAIN);
+
+  v = MotorDriverContainer::mDC.getDriverType(RMT_MAIN);
+
+  v.front()->setChannel(new RMTChannel(v.front()->getSignalPin(), true));
+
+
+
   for (const auto& d: v) DCCTrack::mainTrack.addDriver(d);
   v = MotorDriverContainer::mDC.getDriverType(RMT_PROG|TIMER_PROG);
   for (const auto& d: v) DCCTrack::progTrack.addDriver(d);

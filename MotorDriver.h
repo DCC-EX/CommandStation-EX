@@ -83,12 +83,16 @@ class MotorDriver {
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
 	return faultPin;
-    }
+    };
+    inline byte getSignalPin() {
+      return signalPin;
+    };
 #if defined(ARDUINO_ARCH_ESP32)
     void loop();
     inline driverType type() { return dtype; };
     inline void setType(driverType t) { dtype = t; };
     bool schedulePacket(dccPacket packet);
+  inline void setChannel(RMTChannel * r) { rmtChannel = r; }; 
 #endif
 
   private:

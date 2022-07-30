@@ -62,8 +62,17 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   tt->RMTinterrupt();
 }
 
-RMTChannel::RMTChannel(byte pin, byte ch, byte plen, bool isMain) {
-
+RMTChannel::RMTChannel(byte pin, bool isMain) {
+  byte ch;
+  byte plen;
+  if (isMain) {
+    ch = 0;
+    plen = PREAMBLE_BITS_MAIN;
+  } else {
+    ch = 2;
+    plen = PREAMBLE_BITS_PROG;
+  }
+    
   // preamble
   preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
@@ -146,17 +155,19 @@ void RMTChannel::RMTprefill() {
 const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 //bool RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=0) {
-bool RMTChannel::RMTfillData(dccPacket packet) {
+int RMTChannel::RMTfillData(dccPacket packet) {
   // dataReady: Signals to then interrupt routine. It is set when
   // we have data in the channel buffer which can be copied out
   // to the HW. dataRepeat on the other hand signals back to
   // the caller of this function if the data has been sent enough
   // times (0 to 3 means 1 to 4 times in total).
-  if (dataReady == true || dataRepeat > 0) // we have still old work to do
-    return false;
+  if (dataReady == true)
+    return 1000;
+  if (dataRepeat > 0) // we have still old work to do
+    return dataRepeat;
   if (DATA_LEN(packet.length) > maxDataLen) {  // this would overun our allocated memory for data
     DIAG(F("Can not convert DCC bytes # %d to DCC bits %d, buffer too small"), packet.length, maxDataLen);
-    return false;                          // something very broken, can not convert packet
+    return -1;                          // something very broken, can not convert packet
   }
 
   byte *buffer = packet.data;
@@ -177,7 +188,7 @@ bool RMTChannel::RMTfillData(dccPacket packet) {
   dataLen = bitcounter;
   dataReady = true;
   dataRepeat = packet.repeat+1;         // repeatCount of 0 means send once
-  return true;
+  return 0;
 }
 
 void IRAM_ATTR RMTChannel::RMTinterrupt() {
