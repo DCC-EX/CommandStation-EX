@@ -154,8 +154,8 @@ void RMTChannel::RMTprefill() {
 
 const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
-//bool RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=0) {
-int RMTChannel::RMTfillData(dccPacket packet) {
+int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=0) {
+  //int RMTChannel::RMTfillData(dccPacket packet) {
   // dataReady: Signals to then interrupt routine. It is set when
   // we have data in the channel buffer which can be copied out
   // to the HW. dataRepeat on the other hand signals back to
@@ -165,16 +165,14 @@ int RMTChannel::RMTfillData(dccPacket packet) {
     return 1000;
   if (dataRepeat > 0) // we have still old work to do
     return dataRepeat;
-  if (DATA_LEN(packet.length) > maxDataLen) {  // this would overun our allocated memory for data
-    DIAG(F("Can not convert DCC bytes # %d to DCC bits %d, buffer too small"), packet.length, maxDataLen);
+  if (DATA_LEN(byteCount) > maxDataLen) {  // this would overun our allocated memory for data
+    DIAG(F("Can not convert DCC bytes # %d to DCC bits %d, buffer too small"), byteCount, maxDataLen);
     return -1;                          // something very broken, can not convert packet
   }
 
-  byte *buffer = packet.data;
-  
   // convert bytes to RMT stream of "bits"
   byte bitcounter = 0;
-  for(byte n=0; n<packet.length; n++) {
+  for(byte n=0; n<byteCount; n++) {
     for(byte bit=0; bit<8; bit++) {
       if (buffer[n] & transmitMask[bit])
 	setDCCBit1(data + bitcounter++);
@@ -187,7 +185,7 @@ int RMTChannel::RMTfillData(dccPacket packet) {
   setEOT(data + bitcounter++);         // EOT marker
   dataLen = bitcounter;
   dataReady = true;
-  dataRepeat = packet.repeat+1;         // repeatCount of 0 means send once
+  dataRepeat = repeatCount+1;         // repeatCount of 0 means send once
   return 0;
 }
 
