@@ -157,6 +157,10 @@ uint8_t RingStream::peekTargetMark() {
   return _buffer[_mark];
 }
 
+void RingStream::info() {
+  DIAG(F("Info len=%d count=%d pr=%d pw=%d m=%d"),_len, _count,_pos_read,_pos_write,_mark);
+}
+
 bool RingStream::commit() {
   _flashInsert=NULL; // prepared for first read
   if (_overflow) {

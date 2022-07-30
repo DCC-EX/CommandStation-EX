@@ -47,6 +47,7 @@ class RingStream : public Print {
     bool commit();
     uint8_t peekTargetMark();
     void flush();
+    void info();
  private:
    int read(byte advance);
    byte readRawByte(byte advance=1);
