@@ -43,7 +43,7 @@ void EEStore::init() {
   if (strncmp(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)) != 0) {  
     // if not, create blank eeStore structure (no
     // turnouts, no sensors) and save it back to EEPROM  
-    strncpy(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID));  
+    strncpy(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)+0);  
     eeStore->data.nTurnouts = 0;
     eeStore->data.nSensors = 0;
     eeStore->data.nOutputs = 0;
@@ -92,7 +92,7 @@ int EEStore::pointer() { return (eeAddress); }
 ///////////////////////////////////////////////////////////////////////////////
 
 void EEStore::dump(int num) {
-  byte b;
+  byte b = 0;
   DIAG(F("Addr  0x  char"));
   for (int n = 0; n < num; n++) {
     EEPROM.get(n, b);
