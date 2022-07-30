@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  © 2013-2016 Gregg E. Berman
  *  All rights reserved.

@@ -2,7 +2,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *  
