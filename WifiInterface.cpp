@@ -276,6 +276,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       checkForOK(2000, true);
     }
   }
+#endif //DONT_TOUCH_WIFI_CONF
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=0\r\n")); // turn off tcp server (to clean connections before CIPMUX=1)
   checkForOK(1000, true); // ignore result in case it already was off
@@ -291,7 +292,6 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
   if (!checkForOK(1000, true)) return WIFI_DISCONNECTED;
-#endif //DONT_TOUCH_WIFI_CONF
  
   StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // Display  ip addresses to the DIAG 
   if (!checkForOK(1000, F("IP,\"") , true, false)) return WIFI_DISCONNECTED;
