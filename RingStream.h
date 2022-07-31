@@ -48,6 +48,9 @@ class RingStream : public Print {
     void flush();
     void info();
     byte readRawByte();
+    inline byte peek() {
+      return _buffer[_pos_read];
+    };
  private:
    int _len;
    int _pos_write;
