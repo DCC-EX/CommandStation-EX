@@ -31,6 +31,7 @@
 #undef AT
 #undef ATGTE
 #undef ATLT
+#undef ATRE
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
@@ -66,6 +67,7 @@
 #undef IFLT
 #undef IFNOT
 #undef IFRANDOM 
+#undef IFRE
 #undef IFRED
 #undef IFRESERVE
 #undef IFTHROWN
@@ -132,8 +134,9 @@
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
 #define AT(sensor_id)
-#define ATGTE(sensor_id,value) 
-#define ATLT(sensor_id,value) 
+#define ATGTE(sensor_id,value)
+#define ATLT(sensor_id,value)
+#define ATRE(id, value)
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id,description) 
 #define AUTOSTART
@@ -169,6 +172,7 @@
 #define IFLT(sensor_id,value) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent)
+#define IFRE(id, value)
 #define IFRED(signal_id)
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)

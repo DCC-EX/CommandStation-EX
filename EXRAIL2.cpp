@@ -645,6 +645,12 @@ void RMFT2::loop2() {
     }
     delayMe(50);
     return;
+  
+  case OPCODE_ATRE:
+    timeoutFlag=false;
+    if (readSensor(operand)) break;
+    delayMe(50);
+    return;
     
   case OPCODE_IFTIMEOUT: // do next operand if timeout flag set
     skipIf=!timeoutFlag;
@@ -745,6 +751,10 @@ void RMFT2::loop2() {
     
   case OPCODE_IFCLOSED:
     skipIf=Turnout::isThrown(operand);
+    break;
+
+  case OPCODE_IFRE: // do next operand if position received
+    skipIf=!readSensor(operand);
     break;
     
   case OPCODE_ENDIF:
