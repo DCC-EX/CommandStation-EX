@@ -91,6 +91,9 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       { 
         const FSH*  flash= (const FSH*)va_arg(args, char*);
 
+#ifndef ARDUINO_ARCH_ESP32
+	// On ESP32 the reading flashstring from rinstream code
+	// crashes, so don't use the flashstream hack on ESP32
 #if WIFI_ON | ETHERNET_ON
         // RingStream has special logic to handle flash strings
         // but is not implemented unless wifi or ethernet are enabled.
@@ -98,6 +101,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
         if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM)
               ((RingStream *)stream)->printFlash(flash);
               else 
+#endif
 #endif
         stream->print(flash);
         break;
