@@ -91,6 +91,11 @@ bool WifiESP::setup(const char *SSid,
   //  enableCoreWDT(1);
   //  disableCoreWDT(0);
 
+  // clean start
+  WiFi.disconnect(true);
+  //WiFi.useStaticBuffers(true);
+  //WiFi.setTxPower(WIFI_POWER_8_5dBm);
+
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
     haveSSID = false;
