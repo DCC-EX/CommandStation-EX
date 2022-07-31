@@ -39,8 +39,7 @@ class RingStream : public Print {
    virtual int availableForWrite() override;
     using Print::write;
     size_t printFlash(const FSH * flashBuffer);
-    inline int read() { return read(1); };
-    inline int peek() { return read(0); };
+    int read();
     int count();
     int freeSpace();
     void mark(uint8_t b);
@@ -48,9 +47,8 @@ class RingStream : public Print {
     uint8_t peekTargetMark();
     void flush();
     void info();
+    byte readRawByte();
  private:
-   int read(byte advance);
-   byte readRawByte(byte advance=1);
    int _len;
    int _pos_write;
    int _pos_read;

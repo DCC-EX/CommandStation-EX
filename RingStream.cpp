@@ -95,22 +95,21 @@ _count=prevCount+plength;
 return plength;
 }
 
-int RingStream::read(byte advance) {
+int RingStream::read() {
   if (_flashInsert) {
     // we are reading out of a flash string 
     byte fb=GETFLASH(_flashInsert);
-    _flashInsert+=advance;
+    _flashInsert++;
     if (fb) return fb; // we have a byte from the flash
     // flash insert complete, clear and drop through to next buffer byte
     _flashInsert=NULL; 
   }
   if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty  
-  byte b=readRawByte(advance);
+  byte b=readRawByte();
   if (b!=FLASH_INSERT_MARKER) return b; 
   
   // Detected a flash insert 
   // read address bytes LSB first (size depends on CPU) 
-  if (advance == 0) readRawByte(); // read past it anyway
   uintptr_t iFlash=0; 
   for (byte f=0; f<sizeof(iFlash); f++) {
     uintptr_t bf=readRawByte();
@@ -120,12 +119,12 @@ int RingStream::read(byte advance) {
   }
   _flashInsert=reinterpret_cast<char * >( iFlash);
   // and try again... so will read the first byte of the insert. 
-  return read(advance);
+  return read();     
 }
 
-byte RingStream::readRawByte(byte advance) {
+byte RingStream::readRawByte() {
   byte b=_buffer[_pos_read];
-  _pos_read+=advance;
+  _pos_read++;
   if (_pos_read==_len) _pos_read=0;
   _overflow=false;
   return b;
