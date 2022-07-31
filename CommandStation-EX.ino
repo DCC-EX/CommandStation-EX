@@ -141,9 +141,6 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif //WIFI_ON
-#else
-  // ESP32 needs wifi on always
-  WifiESP::loop();
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
