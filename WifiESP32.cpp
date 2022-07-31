@@ -99,6 +99,7 @@ bool WifiESP::setup(const char *SSid,
 
   if (haveSSID && havePassword) {
     WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);
     WiFi.setAutoReconnect(true);
     WiFi.begin(SSid, password);
     while (WiFi.status() != WL_CONNECTED && tries) {
