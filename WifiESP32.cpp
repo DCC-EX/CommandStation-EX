@@ -21,6 +21,7 @@
 #include <vector>
 #include "defines.h"
 #include <WiFi.h>
+#include "esp_wifi.h"
 #include "WifiESP32.h"
 #include "DIAG.h"
 #include "RingStream.h"
@@ -110,6 +111,21 @@ bool WifiESP::setup(const char *SSid,
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
+      DIAG(F("Forcing one more Wifi restart"));
+      esp_wifi_start();
+      esp_wifi_connect();
+      tries=40;
+      while (WiFi.status() != WL_CONNECTED && tries) {
+	Serial.print('.');
+	tries--;
+	delay(500);
+      }
+      if (WiFi.status() == WL_CONNECTED) {
+	DIAG(F("Wifi STA IP 2nd try %s"),WiFi.localIP().toString().c_str());
+	wifiUp = true;
+      } else {
+	DIAG(F("Fail 2nd try"));
+      }
     }
   }
   if (!haveSSID) {
