@@ -48,7 +48,8 @@ class RingStream : public Print {
     void flush();
     void info();
     byte readRawByte();
-    inline byte peek() {
+    inline int peek() {
+      if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty
       return _buffer[_pos_read];
     };
  private:
