@@ -82,9 +82,14 @@ void setup()
   // Responsibility 2: Start all the communications before the DCC engine
   // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
   // Start Ethernet if it exists
+#ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
 #endif // WIFI_ON
+#else
+  // ESP32 needs wifi on always
+  WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL);
+#endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
   EthernetInterface::setup();
@@ -132,9 +137,14 @@ void loop()
   SerialManager::loop();
 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
+#ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
   WifiInterface::loop();
-#endif
+#endif //WIFI_ON
+#else
+  // ESP32 needs wifi on always
+  WifiESP::loop();
+#endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
