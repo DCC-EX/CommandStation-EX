@@ -74,8 +74,11 @@ private:
     _position = readBuffer[0];
   }
 
-  int _read(VPIN vpin) {
+  int _read(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
+#ifdef DIAG_IO
+    DIAG(F("Received position %d"), _position);
+#endif
     return _position;
   }
   
