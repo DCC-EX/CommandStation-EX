@@ -36,6 +36,11 @@ class RMTChannel {
   void RMTprefill();
   //int RMTfillData(dccPacket packet);
   int RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
+  inline bool busy() {
+    if (dataRepeat > 0) // we have still old work to do
+      return true;
+    return dataReady;
+  };
   
  private:
     
@@ -50,7 +55,6 @@ class RMTChannel {
   byte dataLen;
   byte maxDataLen;
   // flags 
-  volatile bool preambleNext = true;  // alternate between preamble and content
   volatile bool dataReady = false;    // do we have real data available or send idle
   volatile byte dataRepeat = 0;
 };

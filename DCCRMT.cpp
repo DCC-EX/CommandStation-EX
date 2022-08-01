@@ -57,9 +57,15 @@ void setEOT(rmt_item32_t* item) {
   item->val = 0;
 }
 
+// This is an array that contains the this pointers
+// to all uses channel objects. This is used to determine
+// which of the channels was triggering the ISR as there
+// is only ONE common ISR routine for all channels.
+RMTChannel *channelHandle[8] = { 0 };
+
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  RMTChannel *tt = (RMTChannel *)t;
-  tt->RMTinterrupt();
+  RMTChannel *tt = channelHandle[channel];
+  if (tt) tt->RMTinterrupt();
 }
 
 RMTChannel::RMTChannel(byte pin, bool isMain) {
@@ -133,18 +139,17 @@ RMTChannel::RMTChannel(byte pin, bool isMain) {
   DIAG(F("Register interrupt on core %d"), xPortGetCoreID());
 
   ESP_ERROR_CHECK(rmt_set_tx_loop_mode(channel, true));
-  rmt_register_tx_end_callback(interrupt, this);
+  channelHandle[channel] = this; // used by interrupt
+  rmt_register_tx_end_callback(interrupt, 0);
   rmt_set_tx_intr_en(channel, true);
 
-  DIAG(F("Starting channel %d signal generator"), config.channel);
+  DIAG(F("Starting channel %d signal generator for %s"), config.channel, isMainTrack ? "MAIN" : "PROG");
 
   // send one bit to kickstart the signal, remaining data will come from the
   // packet queue. We intentionally do not wait for the RMT TX complete here.
   //rmt_write_items(channel, preamble, preambleLen, false);
   RMTprefill();
-  preambleNext = true;
   dataReady = false;
-  RMTinterrupt();
 }
 
 void RMTChannel::RMTprefill() {
@@ -161,10 +166,10 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
   // to the HW. dataRepeat on the other hand signals back to
   // the caller of this function if the data has been sent enough
   // times (0 to 3 means 1 to 4 times in total).
-  if (dataReady == true)
-    return 1000;
   if (dataRepeat > 0) // we have still old work to do
     return dataRepeat;
+  if (dataReady == true) // the packet is not copied out yet
+    return 1000;
   if (DATA_LEN(byteCount) > maxDataLen) {  // this would overun our allocated memory for data
     DIAG(F("Can not convert DCC bytes # %d to DCC bits %d, buffer too small"), byteCount, maxDataLen);
     return -1;                          // something very broken, can not convert packet
