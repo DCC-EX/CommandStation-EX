@@ -31,8 +31,8 @@
 * Refer to the documentation for further information including the valid activities.
 */
 
-#ifndef IO_RotaryEncoder_h
-#define IO_RotaryEncoder_h
+#ifndef IO_ROTARYENCODER_H
+#define IO_ROTARYENCODER_H
 
 #include "IODevice.h"
 #include "I2CManager.h"
@@ -40,13 +40,22 @@
 
 class RotaryEncoder : public IODevice {
 public:
-  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress);
+  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+    new RotaryEncoder(firstVpin, nPins, I2CAddress);
+  }
   // Constructor
-  RotaryEncoder(VPIN firstVpin, int nPins, uint8_t I2CAddress);
+  RotaryEncoder(VPIN firstVpin, int nPins, uint8_t I2CAddress){
+    _firstVpin = firstVpin;
+    _nPins = nPins;
+    _I2CAddress = I2CAddress;
+    addDevice(this);
+  }
 
 private:
-  int8_t _position;
+  VPIN _firstVpin;
+  int _nPins;
   uint8_t _I2CAddress;
+  int8_t _position;
 
   // Device specific read function
   void _begin() {
@@ -65,16 +74,10 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
-#ifdef DIAG_IO
-    DIAG(F("Rotary Encoder returned position: %d"), _position);
-#endif
   }
 
   int _read(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
-#ifdef DIAG_IO
-    // DIAG(F("_read status: %d"), _stepperStatus);
-#endif
     return _position;
   }
   
