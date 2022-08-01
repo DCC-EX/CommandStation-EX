@@ -191,6 +191,9 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   packetPending = true;
   sentResetsSincePacket=0;
 }
+bool DCCWaveform::getPacketPending() {
+  return packetPending;
+}
 #endif
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -203,7 +206,6 @@ RMTChannel *DCCWaveform::rmtProgChannel = NULL;
 
 DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
   isMainTrack = isMain;
-  packetPending = false;
   requiredPreambles = preambleBits;
 }
 void DCCWaveform::begin() {
@@ -224,6 +226,34 @@ void DCCWaveform::begin() {
 }
 
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
+  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
+  
+  byte checksum = 0;
+  for (byte b = 0; b < byteCount; b++) {
+    checksum ^= buffer[b];
+    pendingPacket[b] = buffer[b];
+  }
+  // buffer is MAX_PACKET_SIZE but pendingPacket is one bigger
+  pendingPacket[byteCount] = checksum;
+  pendingLength = byteCount + 1;
+  pendingRepeats = repeats;
+  sentResetsSincePacket=0;
+  {
+    int ret;
+    do {
+      if(isMainTrack)
+	ret = rmtMainChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
+      else
+	ret = rmtProgChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
+    } while(ret > 0);
+  }
+}
+
+bool DCCWaveform::getPacketPending() {
+  if(isMainTrack)
+    return rmtMainChannel->busy();
+  else
+    return rmtProgChannel->busy();
 }
 void DCCWaveform::loop() {
 }

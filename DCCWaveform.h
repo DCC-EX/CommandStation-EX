@@ -54,11 +54,13 @@ class DCCWaveform {
     static DCCWaveform  progTrack;
     inline void clearRepeats() { transmitRepeats=0; }
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
-    volatile bool packetPending;
     volatile byte sentResetsSincePacket;
+    bool getPacketPending();
     
   private:
-  
+#ifndef ARDUINO_ARCH_ESP32
+    volatile bool packetPending;
+#endif
     static void interruptHandler();
     void interrupt2();
     
