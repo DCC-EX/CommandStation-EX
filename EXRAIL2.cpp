@@ -648,7 +648,7 @@ void RMFT2::loop2() {
   
   case OPCODE_ATRE:
     timeoutFlag=false;
-    if (readSensor(operand)) break;
+    if (IODevice::read(operand)) break;
     delayMe(50);
     return;
     
@@ -754,7 +754,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_IFRE: // do next operand if position received
-    skipIf=!readSensor(operand);
+    skipIf=!IODevice::read(operand);
     break;
     
   case OPCODE_ENDIF:

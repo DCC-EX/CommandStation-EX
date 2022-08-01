@@ -40,20 +40,18 @@
 
 class RotaryEncoder : public IODevice {
 public:
-  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
-    new RotaryEncoder(firstVpin, nPins, I2CAddress);
+  static void create(VPIN firstVpin, uint8_t I2CAddress) {
+    new RotaryEncoder(firstVpin, I2CAddress);
   }
   // Constructor
-  RotaryEncoder(VPIN firstVpin, int nPins, uint8_t I2CAddress){
+  RotaryEncoder(VPIN firstVpin, uint8_t I2CAddress){
     _firstVpin = firstVpin;
-    _nPins = nPins;
     _I2CAddress = I2CAddress;
     addDevice(this);
   }
 
 private:
   VPIN _firstVpin;
-  int _nPins;
   uint8_t _I2CAddress;
   int8_t _position;
 
@@ -82,8 +80,8 @@ private:
   }
   
   void _display() {
-    DIAG(F("Rotary Encoder I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
-      (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+    DIAG(F("Rotary Encoder I2C:x%x Configured on Vpin:%d %S"), _I2CAddress, (int)_firstVpin, 
+      (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
 };
