@@ -143,7 +143,7 @@ RMTChannel::RMTChannel(byte pin, bool isMain) {
   rmt_register_tx_end_callback(interrupt, 0);
   rmt_set_tx_intr_en(channel, true);
 
-  DIAG(F("Starting channel %d signal generator for %s"), config.channel, isMainTrack ? "MAIN" : "PROG");
+  DIAG(F("Starting channel %d signal generator for %s"), config.channel, isMain ? "MAIN" : "PROG");
 
   // send one bit to kickstart the signal, remaining data will come from the
   // packet queue. We intentionally do not wait for the RMT TX complete here.
