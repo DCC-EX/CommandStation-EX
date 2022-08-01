@@ -40,18 +40,20 @@
 
 class RotaryEncoder : public IODevice {
 public:
-  static void create(VPIN firstVpin, uint8_t I2CAddress) {
-    new RotaryEncoder(firstVpin, I2CAddress);
-  }
   // Constructor
-  RotaryEncoder(VPIN firstVpin, uint8_t I2CAddress){
+  RotaryEncoder(VPIN firstVpin, int nPins, uint8_t I2CAddress){
     _firstVpin = firstVpin;
+    _nPins = nPins;
     _I2CAddress = I2CAddress;
     addDevice(this);
+  }
+  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+    new RotaryEncoder(firstVpin, nPins, I2CAddress);
   }
 
 private:
   VPIN _firstVpin;
+  int _nPins;
   uint8_t _I2CAddress;
   int8_t _position;
 
@@ -71,7 +73,10 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
-    delayUntil(currentMicros + 100000);
+#ifdef DIAG_IO
+    DIAG(F("Rotary Encoder returned position: %d"), _position);
+#endif
+    delayUntil(currentMicros + 2000000); // Delay 2 seconds between reads while troubleshooting
   }
 
   int _read(VPIN vpin) {
@@ -84,8 +89,8 @@ private:
   }
   
   void _display() {
-    DIAG(F("Rotary Encoder I2C:x%x Configured on Vpin:%d %S"), _I2CAddress, (int)_firstVpin, 
-      (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+    DIAG(F("Rotary Encoder I2C:x%x Configured on Vpin:%d-%d %S"), _I2CAddress, (int)_firstVpin,
+      _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
 };

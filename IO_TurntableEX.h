@@ -74,6 +74,7 @@ void TurntableEX::_loop(unsigned long currentMicros) {
 // Read returns status as obtained in our loop.
 // Return false if our status value is invalid.
 int TurntableEX::_read(VPIN vpin) {
+  (void)vpin;
   if (_deviceState == DEVSTATE_FAILED) return 0;
   // DIAG(F("_read status: %d"), _stepperStatus);
   if (_stepperStatus > 1) {
@@ -99,6 +100,8 @@ int TurntableEX::_read(VPIN vpin) {
 // Acc_On = 8,           // Turn accessory pin on
 // Acc_Off = 9           // Turn accessory pin off
 void TurntableEX::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) {
+  (void)vpin;
+  (void)duration;
   if (_deviceState == DEVSTATE_FAILED) return;
   uint8_t stepsMSB = value >> 8;
   uint8_t stepsLSB = value & 0xFF;
