@@ -1,5 +1,5 @@
 /*
- *  © 2021, Harald Barth.
+ *  © 2021-2022, Harald Barth.
  *  
  *  This file is part of DCC-EX
  *
@@ -36,9 +36,6 @@ class RMTChannel {
   void RMTprefill();
   //int RMTfillData(dccPacket packet);
   int RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
-  
-  static RMTChannel mainRMTChannel;
-  static RMTChannel progRMTChannel;
   
  private:
     

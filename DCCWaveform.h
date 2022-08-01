@@ -25,6 +25,10 @@
 #define DCCWaveform_h
 
 #include "MotorDriver.h"
+#ifdef ARDUINO_ARCH_ESP32
+#include "DCCRMT.h"
+#include "TrackManager.h"
+#endif
 
 
 
@@ -71,6 +75,9 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte pendingLength;
     byte pendingRepeats;
-
+#ifdef ARDUINO_ARCH_ESP32
+  static RMTChannel *rmtMainChannel;
+  static RMTChannel *rmtProgChannel;
+#endif
 };
 #endif

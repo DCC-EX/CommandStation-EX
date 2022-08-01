@@ -1,5 +1,5 @@
 /*
- *  © 2021, Harald Barth.
+ *  © 2021-2022, Harald Barth.
  *  
  *  This file is part of DCC-EX
  *

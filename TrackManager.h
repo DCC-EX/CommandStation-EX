@@ -18,6 +18,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ARDUINO_ARCH_ESP32
+#include <vector>
+#endif
 #ifndef TrackManager_h
 #define TrackManager_h
 #include "FSH.h"
@@ -55,6 +58,9 @@ class TrackManager {
     static void setPROGSignal( bool on);
     static void setDCSignal(int16_t cab, byte speedbyte);
     static MotorDriver * getProgDriver();
+#ifdef ARDUINO_ARCH_ESP32
+  static std::vector<MotorDriver *>getMainDrivers();
+#endif
     static void setPower2(bool progTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
     static void setMainPower(POWERMODE mode) {setPower2(false,mode);}

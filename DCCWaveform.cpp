@@ -198,12 +198,31 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
+RMTChannel *DCCWaveform::rmtMainChannel = NULL;
+RMTChannel *DCCWaveform::rmtProgChannel = NULL;
 
 DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
+  isMainTrack = isMain;
+  packetPending = false;
+  requiredPreambles = preambleBits;
+}
+void DCCWaveform::begin() {
+  for(const auto& md: TrackManager::getMainDrivers()) {
+    if(rmtMainChannel) {
+      /* rmtMainChannel->addPin(md->getSignalPin); // add pin to existing main channel */
+    } else {
+      DIAG(F("new MAIN channel %d"), md->getSignalPin());
+      rmtMainChannel = new RMTChannel(md->getSignalPin(), true); /* create new main channel */
+    }
+  }
+  if (rmtProgChannel) {
+    /* exchange prog channel - not supported yet */
+  } else {
+    DIAG(F("new PROGchannel %d"), TrackManager::getProgDriver()->getSignalPin());
+    rmtProgChannel = new RMTChannel(TrackManager::getProgDriver()->getSignalPin(), false);
+  }
 }
 
-void DCCWaveform::begin() {
-}
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
 }
 void DCCWaveform::loop() {

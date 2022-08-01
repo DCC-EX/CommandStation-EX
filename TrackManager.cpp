@@ -303,6 +303,15 @@ MotorDriver * TrackManager::getProgDriver() {
     return NULL;
 } 
 
+#ifdef ARDUINO_ARCH_ESP32
+std::vector<MotorDriver *>TrackManager::getMainDrivers() {
+  std::vector<MotorDriver *>  v;
+  FOR_EACH_TRACK(t)
+    if (trackMode[t]==TRACK_MODE_MAIN) v.push_back(track[t]);
+  return v;
+}
+#endif
+
 void TrackManager::setPower2(bool setProg,POWERMODE mode) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
