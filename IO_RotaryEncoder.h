@@ -58,7 +58,6 @@ private:
   // Device specific read function
   void _begin() {
     I2CManager.begin();
-    I2CManager.setClock(1000000);
     if (I2CManager.exists(_I2CAddress)) {
 #ifdef DIAG_IO
       _display();
@@ -72,9 +71,11 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
+    delayUntil(currentMicros + 100000);
   }
 
-  int _read(VPIN vpin) override {
+  int _read(VPIN vpin) {
+    (void)vpin;
     if (_deviceState == DEVSTATE_FAILED) return 0;
 #ifdef DIAG_IO
     DIAG(F("Received position %d"), _position);
