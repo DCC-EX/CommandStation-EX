@@ -63,9 +63,9 @@ class DCCWaveform {
       uint32_t packetcount = isMainTrack ?
 	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
       uint32_t count = packetcount - resetPacketBase;
-      if ((count & 255) == 0) // no high bits set
-	return count;
-      return 255;
+      if (count > 255) // cap to 255
+	return 255;
+      return count;
     };
 #endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
