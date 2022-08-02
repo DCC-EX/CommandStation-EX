@@ -198,6 +198,7 @@ bool DCCWaveform::getPacketPending() {
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCWaveform.h"
+#include "DCCACK.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -255,7 +256,7 @@ bool DCCWaveform::getPacketPending() {
   else
     return rmtProgChannel->busy();
 }
-void DCCWaveform::loop() {
+void IRAM_ATTR DCCWaveform::loop() {
   DCCACK::checkAck(progTrack.getResets());
 }
 #endif

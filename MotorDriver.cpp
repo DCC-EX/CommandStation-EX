@@ -26,6 +26,24 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include <driver/adc.h>
+#include <soc/sens_reg.h>
+#include <soc/sens_struct.h>
+#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
+
+int IRAM_ATTR local_adc1_get_raw(int channel) {
+  uint16_t adc_value;
+  SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
+  while (SENS.sar_slave_addr1.meas_status != 0);
+  SENS.sar_meas_start1.meas1_start_sar = 0;
+  SENS.sar_meas_start1.meas1_start_sar = 1;
+  while (SENS.sar_meas_start1.meas1_done_sar == 0);
+  adc_value = SENS.sar_meas_start1.meas1_data_sar;
+  return adc_value;
+}
+
+#endif
 
 bool MotorDriver::commonFaultPin=false;
 
@@ -80,8 +98,16 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
+#ifdef ARDUINO_ARCH_ESP32
+    pinMode(currentPin, ANALOG);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
+    senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
+    DIAG(F("senseOffset c=%d"), senseOffset);
+#else
     pinMode(currentPin, INPUT);
     senseOffset=analogRead(currentPin); // value of sensor at zero current
+#endif
   }
 
   faultPin=fault_pin;
@@ -161,9 +187,13 @@ int MotorDriver::getCurrentRaw() {
   // This function should NOT be called in an interruot so we 
   // dont need to fart about saving and restoring CPU specific 
   // interrupt registers. 
+#ifdef ARDUINO_ARCH_ESP32
+  current = local_adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
+#else
   noInterrupts();
   current = analogRead(currentPin)-senseOffset;
   interrupts();
+#endif
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
       return (current == 0 ? -1 : -current);
@@ -218,9 +248,12 @@ int MotorDriver::getCurrentRawInInterrupt() {
   // IMPORTANT:  This function must be called in Interrupt() time within the 56uS timer
   //             The default analogRead takes ~100uS which is catastrphic
   //             so DCCTimer has set the sample time to be much faster.  
-
   if (currentPin==UNUSED_PIN) return 0; 
+#ifdef ARDUINO_ARCH_ESP32 //On ESP we do all in loop() instead of in interrupt
+  return getCurrentRaw();
+#else
   return analogRead(currentPin)-senseOffset;
+#endif
 }  
 
 unsigned int MotorDriver::raw2mA( int raw) {
