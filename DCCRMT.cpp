@@ -197,6 +197,7 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
 void IRAM_ATTR RMTChannel::RMTinterrupt() {
   //no rmt_tx_start(channel,true) as we run in loop mode
   //preamble is always loaded at beginning of buffer
+  packetCounter++;
   if (dataReady) {            // if we have new data, fill while preamble is running
     rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
     dataReady = false;

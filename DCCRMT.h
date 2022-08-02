@@ -41,6 +41,7 @@ class RMTChannel {
       return true;
     return dataReady;
   };
+  inline uint32_t packetCount() { return packetCounter; };
   
  private:
     
@@ -54,6 +55,7 @@ class RMTChannel {
   rmt_item32_t *data;
   byte dataLen;
   byte maxDataLen;
+  uint32_t packetCounter = 0;
   // flags 
   volatile bool dataReady = false;    // do we have real data available or send idle
   volatile byte dataRepeat = 0;
