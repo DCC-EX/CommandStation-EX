@@ -4,7 +4,11 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.0 rc3"
+#define VERSION "4.2.1 rc1"
+// 4.2.1 ESP32 alpha
+//       Ready for alpha test on ESP32. Track switching with <=> untested
+//       Send DCC signal on MAIN
+//       Detects ACK on PROG
 // 4.2.0 Track Manager additions:
 //       Broadcast improvements to separate <> and Withrottle responses
 //       Float eliminated saving >1.5kb PROGMEM and speed. 
