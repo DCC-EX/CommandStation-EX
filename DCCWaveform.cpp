@@ -256,5 +256,6 @@ bool DCCWaveform::getPacketPending() {
     return rmtProgChannel->busy();
 }
 void DCCWaveform::loop() {
+  DCCACK::checkAck(progTrack.getResets());
 }
 #endif
