@@ -81,7 +81,7 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
   if (ackManagerRejoin ) {
         // Change from JOIN must zero resets packet.
         TrackManager::setJoin(false); 
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
+        DCCWaveform::progTrack.clearResets();
       }
 
    autoPowerOff=false;
@@ -93,7 +93,7 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
     /* TODO !!! in MotorDriver surely!
     if (MotorDriver::commonFaultPin)
 	  DCCWaveform::mainTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
+        DCCWaveform::progTrack.clearResets();
    **/
       }
 
@@ -117,7 +117,7 @@ const byte RESET_MIN=8;  // tuning of reset counter before sending message
 
 // checkRessets return true if the caller should yield back to loop and try later.
 bool DCCACK::checkResets(uint8_t numResets) {
-  return DCCWaveform::progTrack.sentResetsSincePacket < numResets;
+  return DCCWaveform::progTrack.getResets() < numResets;
 }
 // Operations applicable to PROG track ONLY.
 // (yes I know I could have subclassed the main track but...) 

@@ -89,7 +89,7 @@ void DCCWaveform::interruptHandler() {
   // WAVE_PENDING means we dont yet know what the next bit is
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
-  else DCCACK::checkAck(progTrack.sentResetsSincePacket);
+  else DCCACK::checkAck(progTrack.getResets());
 
 }
 #pragma GCC pop_options
@@ -160,14 +160,14 @@ void DCCWaveform::interrupt2() {
         transmitLength = pendingLength;
         transmitRepeats = pendingRepeats;
         packetPending = false;
-        sentResetsSincePacket=0;
+        clearResets();
       }
       else {
         // Fortunately reset and idle packets are the same length
         memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
         transmitLength = sizeof(idlePacket);
         transmitRepeats = 0;
-        if (sentResetsSincePacket<250) sentResetsSincePacket++;
+        if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
       }
     }
   }  
@@ -189,7 +189,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
   packetPending = true;
-  sentResetsSincePacket=0;
+  clearResets();
 }
 bool DCCWaveform::getPacketPending() {
   return packetPending;
@@ -237,7 +237,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
-  sentResetsSincePacket=0;
+  clearResets();
   {
     int ret;
     do {
