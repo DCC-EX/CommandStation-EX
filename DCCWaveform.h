@@ -53,6 +53,21 @@ class DCCWaveform {
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
     inline void clearRepeats() { transmitRepeats=0; }
+#ifndef ARDUINO_ARCH_ESP32
+    inline void clearResets() { sentResetsSincePacket=0; }
+    inline byte getResets() { return sentResetsSincePacket; }
+#else
+    inline void clearResets() { resetPacketBase = isMainTrack ?
+	rmtMainChannel->packetCount() : rmtProgChannel->packetCount(); };
+    inline byte getResets() {
+      uint32_t packetcount = isMainTrack ?
+	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
+      uint32_t count = packetcount - resetPacketBase;
+      if ((count & 255) == 0) // no high bits set
+	return count;
+      return 255;
+    };
+#endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile byte sentResetsSincePacket;
     bool getPacketPending();
@@ -60,6 +75,8 @@ class DCCWaveform {
   private:
 #ifndef ARDUINO_ARCH_ESP32
     volatile bool packetPending;
+#else
+    volatile uint32_t resetPacketBase;
 #endif
     static void interruptHandler();
     void interrupt2();
