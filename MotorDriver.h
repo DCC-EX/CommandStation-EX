@@ -136,12 +136,12 @@ class MotorDriver {
     inline byte getFaultPin() {
 	return faultPin;
     }
-    inline void setResetCounterPointer(volatile byte *bp) {  // load resetPacketCounter pointer
-      resetsCounterP = bp;
+    inline void makeProgTrack(bool on) {  // let this output know it's a prog track.
+      isProgTrack = on;
     }
     void checkPowerOverload(bool useProgLimit, byte trackno);
   private:
-    volatile byte *resetsCounterP = NULL; // points to the resetPacketCounter if this is a prog track
+    bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
 	getFastPin(type, pin, 0, result);

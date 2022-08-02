@@ -140,14 +140,16 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
          }
 
     if (mode==TRACK_MODE_PROG) {
-        // only allow 1 track to be prog
-        FOR_EACH_TRACK(t)
-            if (trackMode[t]==TRACK_MODE_PROG && t != trackToSet) {
-                track[t]->setPower(POWERMODE::OFF);
-                trackMode[t]=TRACK_MODE_OFF;
-            }
+      // only allow 1 track to be prog
+      FOR_EACH_TRACK(t)
+	if (trackMode[t]==TRACK_MODE_PROG && t != trackToSet) {
+	  track[t]->setPower(POWERMODE::OFF);
+	  trackMode[t]=TRACK_MODE_OFF;
+	  track[t]->makeProgTrack(false);     // revoke prog track special handling
+	}
+      track[trackToSet]->makeProgTrack(true); // set for prog track special handling
     } else {
-      track[trackToSet]->setResetCounterPointer(NULL); // only the prog track has this pointer set
+      track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
     trackMode[trackToSet]=mode;
     trackDCAddr[trackToSet]=dcAddr;

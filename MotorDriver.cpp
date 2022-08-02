@@ -23,6 +23,7 @@
  */
 #include <Arduino.h>
 #include "MotorDriver.h"
+#include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
 
@@ -122,8 +123,8 @@ void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
     IODevice::write(powerPin,HIGH);
-    if (resetsCounterP != NULL)
-      *resetsCounterP = 0;
+    if (isProgTrack)
+      DCCWaveform::progTrack.clearResets();
   }
   else IODevice::write(powerPin,LOW);
   powerMode=mode; 
