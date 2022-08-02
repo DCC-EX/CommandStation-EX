@@ -198,12 +198,17 @@ void IRAM_ATTR RMTChannel::RMTinterrupt() {
   //no rmt_tx_start(channel,true) as we run in loop mode
   //preamble is always loaded at beginning of buffer
   packetCounter++;
+  if (!dataReady && dataRepeat == 0) { // we did run empty
+    rmt_fill_tx_items(channel, idle, idleLen, preambleLen-1);
+    return; // nothing to do about that
+  }
+
+  // take care of incoming data
   if (dataReady) {            // if we have new data, fill while preamble is running
     rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
     dataReady = false;
   }
   if (dataRepeat > 0)         // if a repeat count was specified, work on that
     dataRepeat--;
-  return;
 }
 #endif //ESP32
