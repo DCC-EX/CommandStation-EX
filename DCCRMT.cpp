@@ -17,9 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "defines.h"
 #if defined(ARDUINO_ARCH_ESP32)
+#include "defines.h"
 #include "DIAG.h"
 #include "DCCRMT.h"
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE

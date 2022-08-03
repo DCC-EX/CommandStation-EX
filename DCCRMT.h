@@ -17,9 +17,9 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if defined(ARDUINO_ARCH_ESP32)
 #pragma once
 #include <Arduino.h>
-#if defined(ARDUINO_ARCH_ESP32)
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"

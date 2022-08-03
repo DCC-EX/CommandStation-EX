@@ -23,7 +23,6 @@
   #include "config.example.h"
 #endif
 
-
 /*
  *  © 2021 Neil McKechnie
  *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
