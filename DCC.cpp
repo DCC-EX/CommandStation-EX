@@ -68,8 +68,9 @@ void DCC::begin(const FSH * motorShieldName) {
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 #endif
-
+#ifndef ARDUINO_ARCH_ESP32 /* On ESP32 started in TrackManager::setTrackMode() */
   DCCWaveform::begin();
+#endif
 }
 
 

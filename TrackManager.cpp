@@ -127,7 +127,6 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   }
 }    
 
-
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
@@ -139,6 +138,11 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
              return false; 
          }
 
+#ifdef ARDUINO_ARCH_ESP32
+    // remove pin from MUX matrix and turn it off
+    DIAG(F("Track=%c remove pin %d"),trackToSet+'A', track[trackToSet]->getSignalPin());
+    gpio_reset_pin((gpio_num_t)track[trackToSet]->getSignalPin());
+#endif
     if (mode==TRACK_MODE_PROG) {
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
@@ -175,6 +179,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     // pin should be turned on
     track[trackToSet]->enableSignal(mode != TRACK_MODE_EXT);
 
+#ifndef ARDUINO_ARCH_ESP32
     // re-evaluate HighAccuracy mode
     // We can only do this is all main and prog tracks agree
     bool canDo=true;
@@ -205,6 +210,9 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
+#else
+    DCCWaveform::begin();
+#endif
     
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(
