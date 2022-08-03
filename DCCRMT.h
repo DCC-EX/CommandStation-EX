@@ -32,6 +32,7 @@
 class RMTChannel {
  public:
   RMTChannel(byte pin, bool isMain);
+  bool addPin(byte pin);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
   //int RMTfillData(dccPacket packet);

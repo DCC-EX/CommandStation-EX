@@ -210,4 +210,15 @@ void IRAM_ATTR RMTChannel::RMTinterrupt() {
   if (dataRepeat > 0)         // if a repeat count was specified, work on that
     dataRepeat--;
 }
+
+bool RMTChannel::addPin(byte pin) {
+  gpio_num_t gpioNum = (gpio_num_t)(pin);
+  esp_err_t err;
+  PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
+  err = gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
+  if (err != ESP_OK) return false;
+  gpio_matrix_out(gpioNum, RMT_SIG_OUT0_IDX+channel, 0, 0);
+  if (err != ESP_OK) return false;
+  return true;
+}
 #endif //ESP32
