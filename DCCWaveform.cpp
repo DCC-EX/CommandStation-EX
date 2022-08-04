@@ -243,7 +243,8 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
-  clearResets();
+  // The resets will be zero not only now but as well repeats packets into the future
+  clearResets(repeats+1);
   {
     int ret;
     do {

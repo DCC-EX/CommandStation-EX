@@ -57,15 +57,20 @@ class DCCWaveform {
     inline void clearResets() { sentResetsSincePacket=0; }
     inline byte getResets() { return sentResetsSincePacket; }
 #else
-    inline void clearResets() { resetPacketBase = isMainTrack ?
-	rmtMainChannel->packetCount() : rmtProgChannel->packetCount(); };
+  // extrafudge is added when we know that the resets will first come extrafudge  packets in the future
+    inline void clearResets(byte extrafudge=0) {
+      resetPacketBase = isMainTrack ? rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
+      resetPacketBase += extrafudge;
+    };
     inline byte getResets() {
       uint32_t packetcount = isMainTrack ?
 	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
-      uint32_t count = packetcount - resetPacketBase;
-      if (count > 255) // cap to 255
+      uint32_t count = packetcount - resetPacketBase; // Beware of unsigned interger arithmetic.
+      if (count > UINT32_MAX/2)                       // we are in the extrafudge area
+	return 0;
+      if (count > 255)                                // cap to 255
 	return 255;
-      return count;
+      return count;                                   // all special cases handled above
     };
 #endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
