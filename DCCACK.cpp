@@ -113,7 +113,11 @@ void  DCCACK::Setup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
   Setup(0, 0, program, callback);
   }
 
+#ifdef ARDUINO_ARCH_ESP32
+const byte RESET_MIN=12; // Ugly fix until counting code is right
+#else
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
+#endif
 
 // checkRessets return true if the caller should yield back to loop and try later.
 bool DCCACK::checkResets(uint8_t numResets) {
