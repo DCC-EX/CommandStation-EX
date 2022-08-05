@@ -131,7 +131,7 @@ class MotorDriver {
     }
     bool isPWMCapable();
     bool canMeasureCurrent();
-    bool trackPWM; // this track uses PWM timer to generate the DCC waveform
+    bool trackPWM = false; // this track uses PWM timer to generate the DCC waveform
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
 	return faultPin;
