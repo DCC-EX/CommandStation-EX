@@ -354,7 +354,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
         // NOTE: this command was parsed in HEX instead of decimal
         params--; // drop REG
-        if (params<1) break;  
+        if (params<1) break;
+	if (params > MAX_PACKET_SIZE) break;
         {
           byte packet[params];
           for (int i=0;i<params;i++) {
