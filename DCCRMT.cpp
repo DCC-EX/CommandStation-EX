@@ -24,7 +24,9 @@
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE
 #include "soc/gpio_sig_map.h"
 
-#define DATA_LEN(X) ((X)*9+1) // Each byte has one bit extra and we have one EOF marker
+// Number of bits resulting out of X bytes of DCC payload data
+// Each byte has one bit extra and at the end we have one EOF marker
+#define DATA_LEN(X) ((X)*9+1)
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
@@ -108,7 +110,7 @@ RMTChannel::RMTChannel(byte pin, bool isMain) {
   setEOT(idle + 27);         // EOT marker
 
   // data: max packet size today is 5 + checksum
-  maxDataLen = DATA_LEN(MAX_PACKET_SIZE);
+  maxDataLen = DATA_LEN(MAX_PACKET_SIZE+1);  // plus checksum
   data = (rmt_item32_t*)malloc(maxDataLen*sizeof(rmt_item32_t));
   
   rmt_config_t config;
