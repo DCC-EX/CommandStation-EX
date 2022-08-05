@@ -146,6 +146,7 @@ bool WifiESP::setup(const char *SSid,
     strPass.concat(strMac);
 
     WiFi.mode(WIFI_AP);
+    WiFi.setSleep(false);
     if (WiFi.softAP(strSSID.c_str(),
 		    havePassword ? password : strPass.c_str(),
 		    channel, false, 8)) {
