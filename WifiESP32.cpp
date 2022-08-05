@@ -193,15 +193,17 @@ void WifiESP::loop() {
 
   // really no good way to check for LISTEN especially in AP mode?
   if (APmode || WiFi.status() == WL_CONNECTED) {
-    if (server->hasClient()) {
-      // loop over all clients and remove inactive
-      for (clientId=0; clientId<clients.size(); clientId++){
-	// check if client is there and alive
-	if(!clients[clientId].connected()) {
-	  clients[clientId].stop();
-	  clients.erase(clients.begin()+clientId);
-	}
+    // loop over all clients and remove inactive
+    for (clientId=0; clientId<clients.size(); clientId++){
+      // check if client is there and alive
+      if(!clients[clientId].connected()) {
+	DIAG(F("Remove client %d %s"), clientId, clients[clientId].remoteIP().toString().c_str());
+	CommandDistributor::forget(clientId);
+	clients[clientId].stop();
+	clients.erase(clients.begin()+clientId);
       }
+    }
+    if (server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
 	clients.push_back(client);
