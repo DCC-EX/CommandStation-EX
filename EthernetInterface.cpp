@@ -26,6 +26,7 @@
 #include "EthernetInterface.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
+#include "WiThrottle.h"
 #include "DCCTimer.h"
 
 EthernetInterface * EthernetInterface::singleton=NULL;
@@ -178,6 +179,8 @@ void EthernetInterface::loop()
       if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
      }
     }
+
+    WiThrottle::loop(outboundRing);
     
     // handle at most 1 outbound transmission 
     int socketOut=outboundRing->read();

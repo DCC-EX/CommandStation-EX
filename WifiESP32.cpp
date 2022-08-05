@@ -26,6 +26,7 @@
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
+#include "WiThrottle.h"
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -227,6 +228,8 @@ void WifiESP::loop() {
 	}
       }
     } // all clients
+
+    WiThrottle::loop(outboundRing);
 
     // something to write out?
     clientId=outboundRing->peek();
