@@ -268,6 +268,8 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     (void) type; // avoid compiler warning if diag not used above.
 #if defined(ARDUINO_ARCH_SAMD)
     PortGroup *port = digitalPinToPort(pin);
+#elif defined(ARDUINO_ARCH_STM32)
+    GPIO_TypeDef *port = digitalPinToPort(pin);
 #else
     uint8_t port = digitalPinToPort(pin);
 #endif
