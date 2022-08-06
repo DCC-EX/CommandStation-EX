@@ -236,6 +236,17 @@ void WifiESP::loop() {
     if (clientId >= 0) {
       if ((unsigned int)clientId > clients.size()) {
 	// something is wrong with the ringbuffer position
+	// or client has disconnected
+	outboundRing->info();
+	// try to recover by reading out to nowhere
+	int count=outboundRing->count();
+	for(int i=0;i<count;i++) {
+	  int c = outboundRing->read();
+	  if (c < 0) {
+	    DIAG(F("Ringread fail at %d"),i);
+	    break;
+	  }
+	}
 	outboundRing->info();
       } else {
 	// we have data to send in outboundRing
