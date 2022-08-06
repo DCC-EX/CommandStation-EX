@@ -219,7 +219,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       break;
     case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
-      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : HEARBEAT_SECONDS/2); // return timeout value
+      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : HEARTBEAT_SECONDS/2); // return timeout value
       break;
     case 'M': // multithrottle
       multithrottle(stream, cmd); 
@@ -242,7 +242,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 
        
 	// set heartbeat to 5 seconds because we need to sync the metadata (1 second is too short!)
-  StringFormatter::send(stream,F("*%d\n"), HEARBEAT_SECONDS/2);
+  StringFormatter::send(stream,F("*%d\n"), HEARTBEAT_SECONDS/2);
 	initSent = true;
       }
       break;           
@@ -417,9 +417,13 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
   case 'q':
     if (aval[1]=='V' || aval[1]=='R' ) {   //qV or qR
       // just flag the loco for broadcast and it will happen.
-      LOOPLOCOS(throttleChar, cab) {              
+      bool foundone = false;
+      LOOPLOCOS(throttleChar, cab) {
+	foundone = true;
 	myLocos[loco].broadcastPending=true;
-      }                           
+      }
+      if (!foundone)
+	StringFormatter::send(stream,F("HMCS loco list empty\n"));
     }     
     break;    
   case 'R':
