@@ -1,5 +1,7 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2022 Paul M Antoine
+ *  © 2021, Neil McKechnie
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -23,7 +25,46 @@
 #include <Arduino.h>
 #include "I2CManager.h"
 #if defined(I2C_USE_INTERRUPTS)
+// atomic.h isn't available on SAMD, and likely others too...
+#if defined(__AVR__)
 #include <util/atomic.h>
+#elif defined(__arm__)
+// Helper assembly language functions
+static __inline__ uint8_t my_iSeiRetVal(void)
+{
+    __asm__ __volatile__ ("cpsie i" ::);
+    return 1;
+}
+
+static __inline__ uint8_t my_iCliRetVal(void)
+{
+    __asm__ __volatile__ ("cpsid i" ::);
+    return 1;
+}
+
+static __inline__ void my_iRestore(const  uint32_t *__s)
+{
+    uint32_t res = *__s;
+    __asm__ __volatile__ ("MSR primask, %0" : : "r" (res) );
+}
+
+static __inline__ uint32_t my_iGetIReg( void )
+{
+        uint32_t reg;
+        __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );
+        return reg;
+}
+// Macros for atomic isolation
+#define MY_ATOMIC_RESTORESTATE uint32_t _sa_saved                           \
+    __attribute__((__cleanup__(my_iRestore))) = my_iGetIReg()
+
+#define ATOMIC()                                                         \
+for ( MY_ATOMIC_RESTORESTATE, _done =  my_iCliRetVal();                   \
+    _done; _done = 0 )
+
+#define ATOMIC_BLOCK(x) ATOMIC()
+#define ATOMIC_RESTORESTATE
+#endif
 #else
 #define ATOMIC_BLOCK(x) 
 #define ATOMIC_RESTORESTATE

@@ -120,13 +120,9 @@
 #define ARDUINO_TYPE "SAMD21"
 #undef USB_SERIAL
 #define USB_SERIAL SerialUSB
-// STM32 no EEPROM by default 
+// SAMD no EEPROM by default 
 #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
-#endif
-// SAMD support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
 #endif
 #elif defined(ARDUINO_ARCH_STM32)
 #define ARDUINO_TYPE "STM32"
