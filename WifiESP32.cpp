@@ -67,7 +67,25 @@ void disableCoreWDT(byte core){
 }
 */
 
-static std::vector<WiFiClient> clients; // a list to hold all clients
+class NetworkClient {
+public:
+  NetworkClient(WiFiClient c) {
+    wifi = c;
+  };
+  bool ok() {
+    return (inUse && wifi.connected());
+  };
+  bool recycle(WiFiClient c) {
+    if (inUse == true) return false;
+    wifi = c;
+    inUse = true;
+    return true;
+  };
+  WiFiClient wifi;
+  bool inUse = true;
+};
+
+static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(2048);
 static bool APmode = false;
@@ -197,29 +215,40 @@ void WifiESP::loop() {
     // loop over all clients and remove inactive
     for (clientId=0; clientId<clients.size(); clientId++){
       // check if client is there and alive
-      if(!clients[clientId].connected()) {
-	DIAG(F("Remove client %d %s"), clientId, clients[clientId].remoteIP().toString().c_str());
+      if(clients[clientId].inUse && !clients[clientId].wifi.connected()) {
+	DIAG(F("Remove client %d"), clientId);
 	CommandDistributor::forget(clientId);
-	clients[clientId].stop();
-	clients.erase(clients.begin()+clientId);
+	clients[clientId].wifi.stop();
+	clients[clientId].inUse = false;
+	//Do NOT clients.erase(clients.begin()+clientId) as
+	//that would mix up clientIds for later.
       }
     }
     if (server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
-	clients.push_back(client);
-	DIAG(F("New client %s"), client.remoteIP().toString().c_str());
+	for (clientId=0; clientId<clients.size(); clientId++){
+	  if (clients[clientId].recycle(client)) {
+	    DIAG(F("Recycle client %d %s"), clientId, client.remoteIP().toString().c_str());
+	    break;
+	  }
+	}
+	if (clientId>=clients.size()) {
+	  NetworkClient nc(client);
+	  clients.push_back(nc);
+	  DIAG(F("New client %d, %s"), clientId, client.remoteIP().toString().c_str());
+	}
       }
     }
     // loop over all connected clients
     for (clientId=0; clientId<clients.size(); clientId++){
-      if(clients[clientId].connected()) {
+      if(clients[clientId].ok()) {
 	int len;
-	if ((len = clients[clientId].available()) > 0) {
+	if ((len = clients[clientId].wifi.available()) > 0) {
 	  // read data from client
 	  byte cmd[len+1];
 	  for(int i=0; i<len; i++) {
-	    cmd[i]=clients[clientId].read();
+	    cmd[i]=clients[clientId].wifi.read();
 	  }
 	  cmd[len]=0;
 	  outboundRing->mark(clientId);
@@ -238,35 +267,41 @@ void WifiESP::loop() {
 	// something is wrong with the ringbuffer position
 	// or client has disconnected
 	outboundRing->info();
-	// try to recover by reading out to nowhere
-	int count=outboundRing->count();
-	for(int i=0;i<count;i++) {
-	  int c = outboundRing->read();
-	  if (c < 0) {
-	    DIAG(F("Ringread fail at %d"),i);
-	    break;
-	  }
-	}
-	outboundRing->info();
-      } else {
-	// we have data to send in outboundRing
-	if(clients[clientId].connected()) {
-	  outboundRing->read(); // read over peek()
+	if ((unsigned int)clientId < 8) {
+	  // try to recover by reading out to nowhere
 	  int count=outboundRing->count();
-	  {
-	    char buffer[count+1];
-	    for(int i=0;i<count;i++) {
-	      int c = outboundRing->read();
-	      if (c >= 0)
-		buffer[i] = (char)c;
-	      else {
-		DIAG(F("Ringread fail at %d"),i);
-		break;
-	      }
+	  for(int i=0;i<count;i++) {
+	    int c = outboundRing->read();
+	    if (c < 0) {
+	      DIAG(F("Ringread fail at %d"),i);
+	      break;
 	    }
-	    buffer[count]=0;
-	    clients[clientId].write(buffer,count);
 	  }
+	  outboundRing->info();
+	}
+	DIAG(F("Ring beyond rescue"));
+      } else {
+	// We have data to send in outboundRing
+	// and we have a valid clientId.
+	// First read it out to buffer
+	// and then look if it can be sent because
+	// we can not leave it in the ring for ever
+	outboundRing->read(); // read over peek()
+	int count=outboundRing->count();
+	{
+	  char buffer[count+1];
+	  for(int i=0;i<count;i++) {
+	    int c = outboundRing->read();
+	    if (c >= 0)
+	      buffer[i] = (char)c;
+	    else {
+	      DIAG(F("Ringread fail at %d"),i);
+	      break;
+	    }
+	  }
+	  buffer[count]=0;
+	  if(clients[clientId].ok())
+	    clients[clientId].wifi.write(buffer,count);
 	}
       }
     }
