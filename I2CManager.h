@@ -230,7 +230,11 @@ public:
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
+#if defined(__arm__)
+  uint32_t _clockSpeed = 32000000L;  // 3.2MHz max on SAMD and STM32
+#else
   uint32_t _clockSpeed = 400000L;  // 400kHz max on Arduino.
+#endif
 
   // Finish off request block by waiting for completion and posting status.
   uint8_t finishRB(I2CRB *rb, uint8_t status);
