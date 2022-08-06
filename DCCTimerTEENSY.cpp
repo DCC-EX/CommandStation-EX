@@ -88,8 +88,20 @@ void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   }
 #endif 
 
+volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
+
+// Return low memory value... 
+int DCCTimer::getMinimumFreeMemory() {
+  noInterrupts(); // Disable interrupts to get volatile value 
+  int retval = freeMemory();
+  interrupts();
+  return retval;
+}
+
+extern "C" char* sbrk(int incr);
+
 #if !defined(__IMXRT1062__)
-static inline int freeMemory() {
+int DCCTimer::freeMemory() {
   char top;
   return &top - reinterpret_cast<char*>(sbrk(0));
 }
@@ -110,7 +122,7 @@ static inline int freeMemory() {
 #endif
 #endif
 
-static inline int freeMemory() {
+int DCCTimer::freeMemory() {
   extern unsigned long _ebss;
   extern unsigned long _sdata;
   extern unsigned long _estack;

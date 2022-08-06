@@ -48,7 +48,7 @@ public:
 
 private:
   PCF8574(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1)
-    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, 8), I2CAddress, interruptPin) 
+    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, (uint8_t)8), I2CAddress, interruptPin) 
   {
     requestBlock.setReadParams(_I2CAddress, inputBuffer, 1);
   }

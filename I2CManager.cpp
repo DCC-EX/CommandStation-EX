@@ -1,5 +1,7 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2022 Paul M Antoine
+ *  © 2021, Neil McKechnie
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -30,6 +32,9 @@
 #elif defined(ARDUINO_ARCH_MEGAAVR) 
 #include "I2CManager_NonBlocking.h"
 #include "I2CManager_Mega4809.h"  // NanoEvery/UnoWifi
+#elif defined(ARDUINO_ARCH_SAMD)
+#include "I2CManager_NonBlocking.h"
+#include "I2CManager_SAMD.h"      // SAMD21 for now... SAMD51 as well later
 #else
 #define I2C_USE_WIRE
 #include "I2CManager_Wire.h"      // Other platforms

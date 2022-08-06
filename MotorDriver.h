@@ -43,6 +43,20 @@
 #if defined(ARDUINO_AVR_UNO)
 #define HAVE_PORTB(X) X
 #endif
+#if defined(ARDUINO_ARCH_SAMD)
+#define PORTA REG_PORT_OUT0
+#define HAVE_PORTA(X) X
+#define PORTB REG_PORT_OUT1
+#define HAVE_PORTB(X) X
+#endif
+#if defined(ARDUINO_ARCH_STM32)
+#define PORTA GPIOA->ODR
+#define HAVE_PORTA(X) X
+#define PORTB GPIOB->ODR
+#define HAVE_PORTB(X) X
+#define PORTC GPIOC->ODR
+#define HAVE_PORTC(X) X
+#endif
 
 // if macros not defined as pass-through we define
 // them here as someting that is valid as a
@@ -63,7 +77,7 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
-#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD)
+#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
 typedef uint32_t portreg_t;
 #else
 typedef uint8_t portreg_t;

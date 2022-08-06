@@ -47,6 +47,14 @@ typedef char FSH;
 #define FLASH
 #define strlen_P strlen
 #define strcpy_P strcpy
+#elif defined(ARDUINO_ARCH_STM32)
+typedef __FlashStringHelper FSH;
+#define GETFLASH(addr) pgm_read_byte_near(addr)
+#define GETFLASHW(addr) pgm_read_word_near(addr)
+#ifdef FLASH
+  #undef FLASH
+#endif
+#define FLASH PROGMEM
 #else 
 typedef __FlashStringHelper FSH;
 #define GETFLASH(addr) pgm_read_byte_near(addr)

@@ -40,6 +40,7 @@
 // figure out if we have enough memory for advanced features
 // so define HAS_ENOUGH_MEMORY until proved otherwise.
 #define HAS_ENOUGH_MEMORY
+#undef USB_SERIAL     // Teensy has this defined by default...
 #define USB_SERIAL Serial
 
 #if defined(ARDUINO_AVR_UNO)
@@ -55,16 +56,62 @@
 #elif defined(ARDUINO_ARCH_MEGAAVR)
 #define ARDUINO_TYPE "MEGAAVR"
 #undef HAS_ENOUGH_MEMORY
-#elif defined(ARDUINO_TEENSY32)
-#define ARDUINO_TYPE "TEENSY32"
+#elif defined(ARDUINO_TEENSY31)
+#define ARDUINO_TYPE "TEENSY3132"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// Teensy support for native I2C is awaiting development 
+#ifndef I2C_NO_INTERRUPTS
+ #define I2C_NO_INTERRUPTS
+#endif
 #elif defined(ARDUINO_TEENSY35)
 #define ARDUINO_TYPE "TEENSY35"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
+// Teensy support for I2C is awaiting development 
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// Teensy support for native I2C is awaiting development 
+#ifndef I2C_NO_INTERRUPTS
+ #define I2C_NO_INTERRUPTS
+#endif
 #elif defined(ARDUINO_TEENSY36)
 #define ARDUINO_TYPE "TEENSY36"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// Teensy support for native I2C is awaiting development 
+#ifndef I2C_NO_INTERRUPTS
+ #define I2C_NO_INTERRUPTS
+#endif
 #elif defined(ARDUINO_TEENSY40)
 #define ARDUINO_TYPE "TEENSY40"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// Teensy support for native I2C is awaiting development 
+#ifndef I2C_NO_INTERRUPTS
+ #define I2C_NO_INTERRUPTS
+#endif
 #elif defined(ARDUINO_TEENSY41)
 #define ARDUINO_TYPE "TEENSY41"
+#undef USB_SERIAL
+#define USB_SERIAL SerialUSB
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// Teensy support for native I2C is awaiting development 
+#ifndef I2C_NO_INTERRUPTS
+  #define I2C_NO_INTERRUPTS
+#endif
 #elif defined(ARDUINO_ARCH_ESP8266)
 #define ARDUINO_TYPE "ESP8266"
 #elif defined(ARDUINO_ARCH_ESP32)
@@ -73,10 +120,17 @@
 #define ARDUINO_TYPE "SAMD21"
 #undef USB_SERIAL
 #define USB_SERIAL SerialUSB
-// SAMD support for I2C is awaiting development 
+// SAMD no EEPROM by default 
 #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
 #endif
+#elif defined(ARDUINO_ARCH_STM32)
+#define ARDUINO_TYPE "STM32"
+// STM32 no EEPROM by default 
+#ifndef DISABLE_EEPROM
+  #define DISABLE_EEPROM
+#endif
+// STM32 support for native I2C is awaiting development 
 #ifndef I2C_NO_INTERRUPTS
  #define I2C_NO_INTERRUPTS
 #endif
