@@ -219,7 +219,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       break;
     case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
-      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : 1); // return timeout value
+      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : HEARBEAT_SECONDS/2); // return timeout value
       break;
     case 'M': // multithrottle
       multithrottle(stream, cmd); 
@@ -241,8 +241,8 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #endif
 
        
-	// set heartbeat to 1 second because we need to sync the metadata
-	StringFormatter::send(stream,F("*1\n"));
+	// set heartbeat to 5 seconds because we need to sync the metadata (1 second is too short!)
+  StringFormatter::send(stream,F("*%d\n"), HEARBEAT_SECONDS/2);
 	initSent = true;
       }
       break;           
