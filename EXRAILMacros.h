@@ -207,7 +207,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),
-#define ATRE(sensor_id, value) OPCODE_ATRE,V(sensor_id),OPCODE_PAD,V(value),
+// #define ATRE(sensor_id, value) OPCODE_ATRE,V(sensor_id),OPCODE_PAD,V(value),
 #define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,

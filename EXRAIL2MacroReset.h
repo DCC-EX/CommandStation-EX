@@ -31,7 +31,7 @@
 #undef AT
 #undef ATGTE
 #undef ATLT
-#undef ATRE
+// #undef ATRE
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
@@ -136,7 +136,7 @@
 #define AT(sensor_id)
 #define ATGTE(sensor_id,value)
 #define ATLT(sensor_id,value)
-#define ATRE(sensor_id, value)
+// #define ATRE(sensor_id, value)
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id,description) 
 #define AUTOSTART

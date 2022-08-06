@@ -646,11 +646,11 @@ void RMFT2::loop2() {
     delayMe(50);
     return;
   
-  case OPCODE_ATRE:
-    timeoutFlag=false;
-    if (IODevice::read(operand)) break;
-    delayMe(50);
-    return;
+  // case OPCODE_ATRE:
+  //   timeoutFlag=false;
+  //   if (IODevice::read(operand)) break;
+  //   delayMe(50);
+  //   return;
     
   case OPCODE_IFTIMEOUT: // do next operand if timeout flag set
     skipIf=!timeoutFlag;
@@ -734,7 +734,7 @@ void RMFT2::loop2() {
     break;
   
   case OPCODE_IFRE: // do next operand if position received
-    skipIf=!IODevice::read(operand);
+    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
     break;
     
   case OPCODE_IFRED: // do block if signal as expected

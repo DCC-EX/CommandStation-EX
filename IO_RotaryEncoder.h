@@ -79,7 +79,7 @@ private:
     delayUntil(currentMicros + 2000000); // Delay 2 seconds between reads while troubleshooting
   }
 
-  int _read(VPIN vpin) {
+  int _readAnalogue(VPIN vpin) {
     (void)vpin;
     if (_deviceState == DEVSTATE_FAILED) return 0;
 #ifdef DIAG_IO
