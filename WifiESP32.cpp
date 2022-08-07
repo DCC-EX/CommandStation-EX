@@ -76,7 +76,14 @@ public:
     return (inUse && wifi.connected());
   };
   bool recycle(WiFiClient c) {
+
     if (inUse == true) return false;
+
+    // return false here until we have
+    // implemented a LRU timer
+    // if (LRU too recent) return false;
+    return false;
+
     wifi = c;
     inUse = true;
     return true;
@@ -111,9 +118,9 @@ bool WifiESP::setup(const char *SSid,
   //  disableCoreWDT(0);
 
   // clean start
+  WiFi.mode(WIFI_STA);
   WiFi.disconnect(true);
-  //WiFi.useStaticBuffers(true);
-  //WiFi.setTxPower(WIFI_POWER_8_5dBm);
+  //WiFi.useStaticBuffers(true); // does not help either
 
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
