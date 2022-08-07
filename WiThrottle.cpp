@@ -63,6 +63,58 @@
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 
+static uint8_t xstrcmp(const char *s1, const char *s2) {
+  while(*s1 != '\0' && *s2 != '\0') {
+    if (*s1 != *s2) return 1;
+    s1++;
+    s2++;
+  }
+  if (*s1 == '\0' && *s2 == '\0')
+    return 0;
+  return 1;
+}
+
+void WiThrottle::findUniqThrottle(int id, char *u) {
+  WiThrottle *wtmyid = NULL;
+  WiThrottle *wtmyuniq = NULL;
+  u[16] = '\0';
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
+    //DIAG(F("looking at %d as %s"),wt->clientid, wt->uniq);
+    if (wtmyid == NULL && wt->clientid == id)
+      wtmyid = wt;
+    if (wtmyuniq == NULL && xstrcmp(u, wt->uniq) == 0)
+      wtmyuniq = wt;
+  }
+  if (wtmyid == NULL) {  // should not happen
+    DIAG(F("Did not find my own wiThrottle handle"));
+    return;
+  }
+  if (wtmyid == wtmyuniq) { // all well, just return;
+    return;
+  }
+  if (wtmyuniq == NULL) { // register uniq in the found id
+    strncpy(wtmyid->uniq, u, 16);
+    wtmyid->uniq[16] = '\0';
+    if (Diag::WITHROTTLE) DIAG(F("Client %d registered as %s"),wtmyid->clientid, wtmyid->uniq);
+    return;
+  }
+  // do the copy (all other options above)
+  for(int n=0; n < MAX_MY_LOCO; n++)
+    wtmyid->myLocos[n] = wtmyuniq->myLocos[n];
+  wtmyid->heartBeatEnable = wtmyuniq->heartBeatEnable;
+  wtmyid->heartBeat       = wtmyuniq->heartBeat;
+  wtmyid->initSent        = wtmyuniq->initSent;
+  wtmyid->exRailSent      = wtmyuniq->exRailSent;
+  wtmyid->mostRecentCab   = wtmyuniq->mostRecentCab;
+  wtmyid->turnoutListHash = wtmyuniq->turnoutListHash;
+  wtmyid->lastPowerState  = wtmyuniq->lastPowerState;
+  strncpy(wtmyid->uniq, u, 16);
+  wtmyid->uniq[16] = '\0';
+  if (Diag::WITHROTTLE)
+    DIAG(F("New client %d replaces old client %d as %s"), wtmyid->clientid, wtmyuniq->clientid, wtmyid->uniq);
+  forget(wtmyuniq->clientid); // do not use wtmyid after this
+}
+
 WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
      if (wt->clientid==wifiClient) return wt; 
@@ -105,6 +157,7 @@ WiThrottle::WiThrottle( int wificlientid) {
 }
 
 WiThrottle::~WiThrottle() {
+  if (Diag::WITHROTTLE) DIAG(F("Deleting WiThrottle client %d"),this->clientid);
   if (firstThrottle== this) {
     firstThrottle=this->nextThrottle;
     return;
@@ -226,6 +279,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       break;
     case 'H': // send initial connection info after receiving "HU" message
       if (cmd[1] == 'U') {
+	WiThrottle::findUniqThrottle(clientid, (char *)cmd+2);
 	StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
 	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
 	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
@@ -489,7 +543,8 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
       }
     }
-    delete this;
+    //haba no, not necessary the only throttle and it may come back
+    //delete this;
     return;
   }
    

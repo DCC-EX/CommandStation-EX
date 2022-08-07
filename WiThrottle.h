@@ -38,7 +38,8 @@ class WiThrottle {
     static WiThrottle* getThrottle( int wifiClient); 
     static void markForBroadcast(int cab);
     static void forget(byte clientId);
-      
+    static void findUniqThrottle(int id, char *u);
+
   private: 
     WiThrottle( int wifiClientId);
     ~WiThrottle();
@@ -55,6 +56,7 @@ class WiThrottle {
       bool areYouUsingThrottle(int cab);
       WiThrottle* nextThrottle;
       int clientid;
+      char uniq[17] = "";
        
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
@@ -64,6 +66,7 @@ class WiThrottle {
       uint16_t mostRecentCab;
       int turnoutListHash;  // used to check for changes to turnout list
       bool lastPowerState;  // last power state sent to this client
+
       int DCCToWiTSpeed(int DCCSpeed);
       int WiTToDCCSpeed(int WiTSpeed);
       void multithrottle(RingStream * stream, byte * cmd);
