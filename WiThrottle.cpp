@@ -115,6 +115,8 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d)<-[%e]"),millis(),clientid,cmd);
 
   if (initSent) {
+    if (cmd[0] == 'N' && cmd[1] == 'E' && cmd[2] == 'n') // EngineDriver do not support heartBeat !
+      heartBeatEnable = false;
     // Send turnout list if changed since last sent (will replace list on client)
     if (turnoutListHash != Turnout::turnoutlistHash) {
       StringFormatter::send(stream,F("PTL"));
@@ -153,6 +155,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
    StringFormatter::send(stream,F("\n"));
 #endif
       // allow heartbeat to slow down once all metadata sent     
+      if (heartBeatEnable)
       StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
     }
   }
@@ -233,7 +236,9 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 
        
 	// set heartbeat to 1 second because we need to sync the metadata
+        if (heartBeatEnable) {
 	StringFormatter::send(stream,F("*1\n"));
+        }
 	initSent = true;
       }
       break;           
