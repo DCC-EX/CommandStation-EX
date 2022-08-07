@@ -591,6 +591,7 @@ void DCC::issueReminders() {
   if ( DCCWaveform::mainTrack.getPacketPending()) return;
 
   // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
+    /*
   for (int reg=0;reg<MAX_LOCOS;reg++) {
        int slot=reg+nextLoco;
        if (slot>=MAX_LOCOS) slot-=MAX_LOCOS;
@@ -600,6 +601,17 @@ void DCC::issueReminders() {
           if (issueReminder(slot)) nextLoco=slot+1;
           return;
         }
+  }
+    */
+  for (int reg=nextLoco;reg<MAX_LOCOS+nextLoco;reg++) {
+    int slot=reg%MAX_LOCOS;
+    if (speedTable[slot].loco > 0) {
+      // have found the next loco to remind
+      // issueReminder will return true if this loco is completed (ie speed and functions)
+      if (issueReminder(slot))
+	nextLoco=(slot+1)%MAX_LOCOS;
+      return;
+    }
   }
 }
 
