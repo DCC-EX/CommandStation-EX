@@ -268,7 +268,7 @@ void WifiESP::loop() {
     WiThrottle::loop(outboundRing);
 
     // something to write out?
-    clientId=outboundRing->peek();
+    clientId=outboundRing->read();
     if (clientId >= 0) {
       if ((unsigned int)clientId > clients.size()) {
 	// something is wrong with the ringbuffer position
@@ -280,20 +280,20 @@ void WifiESP::loop() {
 	  for(int i=0;i<count;i++) {
 	    int c = outboundRing->read();
 	    if (c < 0) {
-	      DIAG(F("Ringread fail at %d"),i);
+	      DIAG(F("Ringread fail in discarding data for client %d at pos %d"),clientId, i);
 	      break;
 	    }
 	  }
 	  outboundRing->info();
+	} else {
+	  DIAG(F("No clientId where expected: Ring beyond rescue"));
 	}
-	DIAG(F("Ring beyond rescue"));
       } else {
 	// We have data to send in outboundRing
 	// and we have a valid clientId.
 	// First read it out to buffer
 	// and then look if it can be sent because
 	// we can not leave it in the ring for ever
-	outboundRing->read(); // read over peek()
 	int count=outboundRing->count();
 	{
 	  char buffer[count+1];
