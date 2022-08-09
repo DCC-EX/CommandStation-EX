@@ -51,7 +51,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   timer.pause();
   timer.setPrescaleFactor(1);
 //  timer.setOverflow(CLOCK_CYCLES * 2);
-  timer.setOverflow(DCC_SIGNAL_TIME * 2, MICROSEC_FORMAT);
+  timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
   timer.attachInterrupt(Timer1_Handler);
   timer.refresh();
   timer.resume();
