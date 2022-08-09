@@ -170,7 +170,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     else {
       // DCC tracks need to have set the PWM to zero or they will not work.
       // 128 is speed=0 and dir=0 and then loosen brake.
-      track[trackToSet]->setDCSignal(128);
+      track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);
     }
 

@@ -136,16 +136,27 @@ class MotorDriver {
     };
     inline byte getSignalPin() { return signalPin; };
     virtual void setDCSignal(byte speedByte);
+    inline void detachDCSignal() {
+#ifndef ARDUINO_ARCH_ESP32
+      setDCSignal(128);
+#else
+      ledcDetachPin(brakePin);
+#endif
+    };
     virtual int  getCurrentRaw();
     virtual int getCurrentRawInInterrupt();
     virtual unsigned int raw2mA( int raw);
     virtual unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
+#ifdef ARDUINO_ARCH_ESP32
+      return true;
+#else
 #ifdef digitalPinToTimer
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
 #else
       return (brakePin<14 && brakePin >1);
-#endif
+#endif //digitalPinToTimer
+#endif //ESP32
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
