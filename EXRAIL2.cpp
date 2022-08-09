@@ -727,14 +727,14 @@ void RMFT2::loop2() {
   case OPCODE_IFRANDOM: // do block on random percentage
     skipIf=(int16_t)random(100)>=operand;
     break;
-    
+
+  case OPCODE_IFRE: // do next operand if position received
+    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
+    break;
+
   case OPCODE_IFRESERVE: // do block if we successfully RERSERVE
     if (!getFlag(operand,SECTION_FLAG)) setFlag(operand,SECTION_FLAG);
     else skipIf=true;
-    break;
-  
-  case OPCODE_IFRE: // do next operand if position received
-    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
     break;
     
   case OPCODE_IFRED: // do block if signal as expected

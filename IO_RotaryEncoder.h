@@ -69,7 +69,7 @@ private:
     }
   }
 
-  void _loop(unsigned long currentMicros)  {
+  void _loop(unsigned long currentMicros) override {
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
@@ -79,7 +79,7 @@ private:
     delayUntil(currentMicros + 2000000); // Delay 2 seconds between reads while troubleshooting
   }
 
-  int _readAnalogue(VPIN vpin) {
+  int _readAnalogue(VPIN vpin) override {
     (void)vpin;
     if (_deviceState == DEVSTATE_FAILED) return 0;
 #ifdef DIAG_IO
@@ -88,7 +88,7 @@ private:
     return _position;
   }
   
-  void _display() {
+  void _display() override {
     DIAG(F("Rotary Encoder I2C:x%x Configured on Vpin:%d-%d %S"), _I2CAddress, (int)_firstVpin,
       _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
