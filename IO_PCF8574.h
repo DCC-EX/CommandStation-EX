@@ -1,4 +1,5 @@
 /*
+ *  © 2022 Paul M Antoine
  *  © 2021, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
