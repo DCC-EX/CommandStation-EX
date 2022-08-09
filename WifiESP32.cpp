@@ -270,45 +270,29 @@ void WifiESP::loop() {
     // something to write out?
     clientId=outboundRing->read();
     if (clientId >= 0) {
-      if ((unsigned int)clientId > clients.size()) {
-	// something is wrong with the ringbuffer position
-	// or client has disconnected
-	outboundRing->info();
-	if ((unsigned int)clientId < 8) {
-	  // try to recover by reading out to nowhere
-	  int count=outboundRing->count();
-	  for(int i=0;i<count;i++) {
-	    int c = outboundRing->read();
-	    if (c < 0) {
-	      DIAG(F("Ringread fail in discarding data for client %d at pos %d"),clientId, i);
-	      break;
-	    }
+      // We have data to send in outboundRing
+      // and we have a valid clientId.
+      // First read it out to buffer
+      // and then look if it can be sent because
+      // we can not leave it in the ring for ever
+      int count=outboundRing->count();
+      {
+	char buffer[count+1]; // one extra for '\0'
+	for(int i=0;i<count;i++) {
+	  int c = outboundRing->read();
+	  if (c >= 0) // Panic check, should never be false
+	    buffer[i] = (char)c;
+	  else {
+	    DIAG(F("Ringread fail at %d"),i);
+	    break;
 	  }
-	  outboundRing->info();
-	} else {
-	  DIAG(F("No clientId where expected: Ring beyond rescue"));
 	}
-      } else {
-	// We have data to send in outboundRing
-	// and we have a valid clientId.
-	// First read it out to buffer
-	// and then look if it can be sent because
-	// we can not leave it in the ring for ever
-	int count=outboundRing->count();
-	{
-	  char buffer[count+1];
-	  for(int i=0;i<count;i++) {
-	    int c = outboundRing->read();
-	    if (c >= 0)
-	      buffer[i] = (char)c;
-	    else {
-	      DIAG(F("Ringread fail at %d"),i);
-	      break;
-	    }
-	  }
-	  buffer[count]=0;
-	  if(clients[clientId].ok())
-	    clients[clientId].wifi.write(buffer,count);
+	// buffer filled, end with '\0' so we can use it as C string
+	buffer[count]='\0';
+	if((unsigned int)clientId <= clients.size() && clients[clientId].ok()) {
+	  clients[clientId].wifi.write(buffer,count);
+	} else {
+	  DIAG(F("Unsent(%d): %s"), clientId, buffer);
 	}
       }
     }
