@@ -87,6 +87,8 @@ INTERRUPT_CALLBACK interruptHandler=0;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  // This should not be called on ESP32 so disable it
+  return;
   interruptHandler = callback;
   hw_timer_t *timer = NULL;
   timer = timerBegin(0, 2, true); // prescaler can be 2 to 65536 so choose 2
