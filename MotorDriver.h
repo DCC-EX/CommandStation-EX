@@ -105,7 +105,14 @@ class MotorDriver {
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     virtual void setPower( POWERMODE mode);
     virtual POWERMODE getPower() { return powerMode;}
-    __attribute__((always_inline)) inline void setSignal( bool high) {
+    // as the port registers can be shadowed to get syncronized DCC signals
+    // we need to take care of that and we have to turn off interrupts if
+    // we setSignal() or setBrake() or setPower() during that time as
+    // otherwise the call from interrupt context can undo whatever we do
+    // from outside interrupt
+    virtual void setBrake( bool on, bool interruptContext=false);
+  __attribute__((always_inline)) inline void setSignal( bool high, bool interruptContext=false) {
+      if (!interruptContext) {noInterrupts();}
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
@@ -119,6 +126,7 @@ class MotorDriver {
 	  if (dualSignal) setHIGH(fastSignalPin2);
 	}
       }
+      if (!interruptContext) {interrupts();}
     };
     inline void enableSignal(bool on) {
       if (on)
@@ -127,7 +135,6 @@ class MotorDriver {
 	pinMode(signalPin, INPUT);
     };
     inline byte getSignalPin() { return signalPin; };
-    virtual void setBrake( bool on);
     virtual void setDCSignal(byte speedByte);
     virtual int  getCurrentRaw();
     virtual int getCurrentRawInInterrupt();

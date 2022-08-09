@@ -92,7 +92,7 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTA(shadowPORTA=PORTA);
   HAVE_PORTB(shadowPORTB=PORTB);
   HAVE_PORTC(shadowPORTC=PORTC);
-  APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
+  APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on, true));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
   HAVE_PORTC(PORTC=shadowPORTC);
@@ -110,7 +110,7 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTA(shadowPORTA=PORTA);
   HAVE_PORTB(shadowPORTB=PORTB);
   HAVE_PORTC(shadowPORTC=PORTC);
-  APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
+  APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on, true));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
   HAVE_PORTC(PORTC=shadowPORTC);

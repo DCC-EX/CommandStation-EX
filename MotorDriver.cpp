@@ -148,11 +148,17 @@ bool MotorDriver::isPWMCapable() {
 void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
+    noInterrupts();
     IODevice::write(powerPin,HIGH);
+    interrupts();
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
-  else IODevice::write(powerPin,LOW);
+  else {
+      noInterrupts();
+      IODevice::write(powerPin,LOW);
+      interrupts();
+  }
   powerMode=mode; 
 }
 
@@ -164,10 +170,14 @@ void MotorDriver::setPower(POWERMODE mode) {
 // (HIGH == release brake) and setBrake does
 // compensate for that.
 //
-void MotorDriver::setBrake(bool on) {
+void MotorDriver::setBrake(bool on, bool interruptContext) {
   if (brakePin == UNUSED_PIN) return;
-  if (on ^ invertBrake) setHIGH(fastBrakePin);
-  else setLOW(fastBrakePin);
+  if (!interruptContext) {noInterrupts();}
+  if (on ^ invertBrake)
+    setHIGH(fastBrakePin);
+  else
+    setLOW(fastBrakePin);
+  if (!interruptContext) {interrupts();}
 }
 
 bool MotorDriver::canMeasureCurrent() {
@@ -214,30 +224,18 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (invertBrake)
     brake=255-brake;
   analogWrite(brakePin,brake);
-  // as the port registers can be shadowed to get syncronized DCC signals
-  // we need to take care of that and we have to turn off interrupts during
-  // that time as otherwise setDCCSignal() which is called from interrupt
-  // contect can undo whatever we do here.
-  if (fastSignalPin.shadowinout != NULL) {
-    if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
-      noInterrupts();
-      HAVE_PORTA(shadowPORTA=PORTA);
-      setSignal(tDir);
-      HAVE_PORTA(PORTA=shadowPORTA);
-      interrupts();
-    } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
-      noInterrupts();
-      HAVE_PORTB(shadowPORTB=PORTB);
-      setSignal(tDir);
-      HAVE_PORTB(PORTB=shadowPORTB);
-      interrupts();
-    } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
-      noInterrupts();
-      HAVE_PORTC(shadowPORTC=PORTC);
-      setSignal(tDir);
-      HAVE_PORTC(PORTC=shadowPORTC);
-      interrupts();
-    }
+  if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
+    HAVE_PORTA(shadowPORTA=PORTA);
+    setSignal(tDir);
+    HAVE_PORTA(PORTA=shadowPORTA);
+  } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
+    HAVE_PORTB(shadowPORTB=PORTB);
+    setSignal(tDir);
+    HAVE_PORTB(PORTB=shadowPORTB);
+  } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
+    HAVE_PORTC(shadowPORTC=PORTC);
+    setSignal(tDir);
+    HAVE_PORTC(PORTC=shadowPORTC);
   } else {
     setSignal(tDir);
   }
