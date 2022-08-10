@@ -52,8 +52,8 @@ public:
   }
 
 private:
-  VPIN _firstVpin;
-  int _nPins;
+  // VPIN _firstVpin;
+  // int _nPins;
   uint8_t _I2CAddress;
   int8_t _position;
 
@@ -73,18 +73,14 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
-#ifdef DIAG_IO
     DIAG(F("Rotary Encoder returned position: %d"), _position);
-#endif
-    delayUntil(currentMicros + 2000000); // Delay 2 seconds between reads while troubleshooting
+    delayUntil(currentMicros + 2000000);
   }
 
   int _readAnalogue(VPIN vpin) override {
     (void)vpin;
     if (_deviceState == DEVSTATE_FAILED) return 0;
-#ifdef DIAG_IO
-    DIAG(F("Received position %d"), _position);
-#endif
+    // DIAG(F("Received position %d"), _position);
     return _position;
   }
   

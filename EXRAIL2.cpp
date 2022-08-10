@@ -729,6 +729,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_IFRE: // do next operand if position received
+    DIAG(F("EX-RAIL seeing: %d"), IODevice::readAnalogue(operand));
     skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
     break;
 
