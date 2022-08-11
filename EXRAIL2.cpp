@@ -728,10 +728,9 @@ void RMFT2::loop2() {
     skipIf=(int16_t)random(100)>=operand;
     break;
 
-  case OPCODE_IFRE: // do next operand if position received
-    DIAG(F("EX-RAIL seeing: %d"), IODevice::readAnalogue(operand));
-    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
-    break;
+  // case OPCODE_IFRE: // do next operand if position received
+  //   skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
+  //   break;
 
   case OPCODE_IFRESERVE: // do block if we successfully RERSERVE
     if (!getFlag(operand,SECTION_FLAG)) setFlag(operand,SECTION_FLAG);

@@ -73,8 +73,8 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
-    DIAG(F("Rotary Encoder returned position: %d"), _position);
-    delayUntil(currentMicros + 2000000);
+    // DIAG(F("Rotary Encoder returned position: %d"), _position);
+    delayUntil(currentMicros + 100000);
   }
 
   int _readAnalogue(VPIN vpin) override {

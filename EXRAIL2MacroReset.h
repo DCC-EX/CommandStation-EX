@@ -67,7 +67,7 @@
 #undef IFLT
 #undef IFNOT
 #undef IFRANDOM 
-#undef IFRE
+// #undef IFRE
 #undef IFRED
 #undef IFRESERVE
 #undef IFTHROWN
@@ -172,7 +172,7 @@
 #define IFLT(sensor_id,value) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent)
-#define IFRE(sensor_id, value)
+// #define IFRE(sensor_id, value)
 #define IFRED(signal_id)
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)

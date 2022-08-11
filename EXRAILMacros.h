@@ -243,7 +243,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
-#define IFRE(sensor_id, value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
+// #define IFRE(sensor_id, value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),

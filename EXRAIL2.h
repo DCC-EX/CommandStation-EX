@@ -64,7 +64,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_IF,OPCODE_IFNOT,
              OPCODE_IFRANDOM,OPCODE_IFRESERVE,
              OPCODE_IFCLOSED, OPCODE_IFTHROWN,
-             OPCODE_IFRE,
+            //  OPCODE_IFRE,
              };
 
 
