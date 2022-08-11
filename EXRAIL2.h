@@ -52,7 +52,6 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ROSTER,OPCODE_KILLALL,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,
              OPCODE_ENDTASK,OPCODE_ENDEXRAIL,
-            //  OPCODE_ATRE,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -64,7 +63,6 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_IF,OPCODE_IFNOT,
              OPCODE_IFRANDOM,OPCODE_IFRESERVE,
              OPCODE_IFCLOSED, OPCODE_IFTHROWN,
-            //  OPCODE_IFRE,
              };
 
 
