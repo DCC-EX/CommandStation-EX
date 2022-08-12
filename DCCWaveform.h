@@ -59,10 +59,12 @@ class DCCWaveform {
 #else
   // extrafudge is added when we know that the resets will first come extrafudge  packets in the future
     inline void clearResets(byte extrafudge=0) {
+      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return;
       resetPacketBase = isMainTrack ? rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
       resetPacketBase += extrafudge;
     };
     inline byte getResets() {
+      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return 0;
       uint32_t packetcount = isMainTrack ?
 	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
       uint32_t count = packetcount - resetPacketBase; // Beware of unsigned interger arithmetic.
