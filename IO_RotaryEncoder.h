@@ -25,10 +25,10 @@
 *
 * This device driver receives the rotary encoder position when the rotary encoder button is pushed, and these positions
 * can be tested in EX-RAIL with:
-* ATRE(vpin, position) - trigger for when the specified rotary encoder position is received
+* ONCHANGE(vpin) - flag when the rotary encoder position has changed from the previous position
 * IFRE(vpin, position) - test to see if specified rotary encoder position has been received
 *
-* Refer to the documentation for further information including the valid activities.
+* Refer to the documentation for further information including the valid activities and examples.
 */
 
 #ifndef IO_ROTARYENCODER_H
@@ -37,6 +37,7 @@
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 
 class RotaryEncoder : public IODevice {
 public:
@@ -56,8 +57,9 @@ private:
   // int _nPins;
   uint8_t _I2CAddress;
   int8_t _position;
+  int8_t _previousPosition;
 
-  // Device specific read function
+  // Initiate the device
   void _begin() {
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
@@ -77,10 +79,17 @@ private:
     delayUntil(currentMicros + 100000);
   }
 
+  // Device specific read function
   int _readAnalogue(VPIN vpin) override {
-    (void)vpin;
     if (_deviceState == DEVSTATE_FAILED) return 0;
     // DIAG(F("Received position %d"), _position);
+    // This here needs to have a change check, ie. position is a different value.
+  #if defined(EXRAIL_ACTIVE)
+      if (_position != _previousPosition) {
+        _previousPosition = _position;
+        RMFT2::changeEvent(vpin,1);
+      }
+  #endif
     return _position;
   }
   

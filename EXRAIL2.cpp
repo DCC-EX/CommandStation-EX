@@ -87,6 +87,7 @@ LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
 LookList *  RMFT2::onDeactivateLookup=NULL;
+LookList *  RMFT2::onChangeLookup=NULL;
 
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
@@ -127,6 +128,7 @@ int16_t LookList::find(int16_t value) {
   int onCloseCount=0;
   int onActivateCount=0;
   int onDeactivateCount=0;
+  int onChangeCount=0;
 
   // first pass count sizes for fast lookup arrays
   for (progCounter=0;; SKIPOP) {
@@ -154,6 +156,10 @@ int16_t LookList::find(int16_t value) {
     case OPCODE_ONDEACTIVATE:
       onDeactivateCount++;
       break;
+    
+    case OPCODE_ONCHANGE:
+      onChangeCount++;
+      break;
 
     default: // Ignore
       break;
@@ -166,6 +172,7 @@ int16_t LookList::find(int16_t value) {
   onCloseLookup=new LookList(onCloseCount);
   onActivateLookup=new LookList(onActivateCount);
   onDeactivateLookup=new LookList(onDeactivateCount);
+  onChangeLookup=new LookList(onChangeCount);
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -236,6 +243,10 @@ int16_t LookList::find(int16_t value) {
       
     case OPCODE_ONDEACTIVATE:
       onDeactivateLookup->add(operand,progCounter);
+      break;
+
+    case OPCODE_ONCHANGE:
+      onChangeLookup->add(operand,progCounter);
       break;
       
     case OPCODE_AUTOSTART:
@@ -717,6 +728,10 @@ void RMFT2::loop2() {
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
+
+  case OPCODE_IFRE: // do next operand if rotary encoder != position
+    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
+    break;
     
   case OPCODE_IFRANDOM: // do block on random percentage
     skipIf=(int16_t)random(100)>=operand;
@@ -938,6 +953,7 @@ void RMFT2::loop2() {
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
+  case OPCODE_ONCHANGE:   // Sensor change event catcher ignored
     break;
     
   default:
@@ -1071,6 +1087,26 @@ void RMFT2::activateEvent(int16_t addr, bool activate) {
   }
   
   task->onActivateAddr=addr; // flag for recursion detector
+  task=new RMFT2(pc);  // new task starts at this instruction
+}
+
+void RMFT2::changeEvent(int16_t vpin, bool change) {
+  // Hunt for an ONCHANGE for this sensor
+  int pc= (change?onChangeLookup:onChangeLookup)->find(vpin);
+  if (pc<0) return;
+  
+  // Check we dont already have a task running for this sensor
+  RMFT2 * task=loopTask;
+  while(task) {
+    if (task->onChangeVpin==vpin) {
+      DIAG(F("Recursive ONCHANGE for %d"),vpin);
+      return;
+    }
+    task=task->next;
+    if (task==loopTask) break;
+  }
+  
+  task->onChangeVpin=vpin; // flag for recursion detector
   task=new RMFT2(pc);  // new task starts at this instruction
 }
 
