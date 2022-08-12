@@ -82,7 +82,8 @@
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
-#undef ONTHROW 
+#undef ONTHROW
+#undef ONCHANGE
 #undef PARSE
 #undef PAUSE
 #undef PIN_TURNOUT 
@@ -186,6 +187,7 @@
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
 #define ONTHROW(turnout_id) 
+#define ONCHANGE(id,value)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 

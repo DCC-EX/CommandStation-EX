@@ -259,6 +259,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
+#define ONCHANGE(id,value) OPCODE_ONCHANGE,V(id),OPCODE_PAD,V(value),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
