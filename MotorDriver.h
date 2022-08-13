@@ -77,6 +77,16 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+class pinpair {
+public:
+  pinpair(byte p1, byte p2) {
+    pin = p1;
+    invpin = p2;
+  };
+  byte pin = UNUSED_PIN;
+  byte invpin = UNUSED_PIN;
+};
+
 #if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
 typedef uint32_t portreg_t;
 #else
@@ -134,7 +144,7 @@ class MotorDriver {
       else
 	pinMode(signalPin, INPUT);
     };
-    inline byte getSignalPin() { return signalPin; };
+    inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
     virtual void setDCSignal(byte speedByte);
     inline void detachDCSignal() {
 #if defined(__arm__)

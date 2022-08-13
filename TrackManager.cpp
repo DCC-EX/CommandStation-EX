@@ -140,8 +140,15 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
 #ifdef ARDUINO_ARCH_ESP32
     // remove pin from MUX matrix and turn it off
-    DIAG(F("Track=%c remove pin %d"),trackToSet+'A', track[trackToSet]->getSignalPin());
-    gpio_reset_pin((gpio_num_t)track[trackToSet]->getSignalPin());
+    pinpair p = track[trackToSet]->getSignalPin();
+    DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
+    gpio_reset_pin((gpio_num_t)p.pin);
+    pinMode(p.pin, OUTPUT); // gpio_reset_pin may reset to input
+    if (p.invpin != UNUSED_PIN) {
+      DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
+      gpio_reset_pin((gpio_num_t)p.invpin);
+      pinMode(p.invpin, OUTPUT); // gpio_reset_pin may reset to input
+    }
 #endif
     if (mode==TRACK_MODE_PROG) {
       // only allow 1 track to be prog

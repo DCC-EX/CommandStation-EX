@@ -23,6 +23,7 @@
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"
+#include "MotorDriver.h" // for class pinpair
 
 // make calculations easy and set up for microseconds
 #define RMT_CLOCK_DIVIDER 80
@@ -31,8 +32,9 @@
 
 class RMTChannel {
  public:
-  RMTChannel(byte pin, bool isMain);
-  bool addPin(byte pin);
+  RMTChannel(pinpair pins, bool isMain);
+  bool addPin(byte pin, bool inverted=0);
+  bool addPin(pinpair pins);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
   //int RMTfillData(dccPacket packet);
