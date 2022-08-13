@@ -250,19 +250,27 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   {
     int ret;
     do {
-      if(isMainTrack)
-	ret = rmtMainChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-      else
-	ret = rmtProgChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
+      if(isMainTrack) {
+	if (rmtMainChannel != NULL)
+	  ret = rmtMainChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
+      } else {
+	if (rmtProgChannel != NULL)
+	  ret = rmtProgChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
+      }
     } while(ret > 0);
   }
 }
 
 bool DCCWaveform::getPacketPending() {
-  if(isMainTrack)
+  if(isMainTrack) {
+    if (rmtMainChannel == NULL)
+      return true;
     return rmtMainChannel->busy();
-  else
+  } else {
+    if (rmtProgChannel == NULL)
+      return true;
     return rmtProgChannel->busy();
+  }
 }
 void IRAM_ATTR DCCWaveform::loop() {
   DCCACK::checkAck(progTrack.getResets());
