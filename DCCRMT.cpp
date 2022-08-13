@@ -138,14 +138,14 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   // NOTE: ESP_INTR_FLAG_IRAM is *NOT* included in this bitmask
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, ESP_INTR_FLAG_LOWMED|ESP_INTR_FLAG_SHARED));
 
-  DIAG(F("Register interrupt on core %d"), xPortGetCoreID());
+  // DIAG(F("Register interrupt on core %d"), xPortGetCoreID());
 
   ESP_ERROR_CHECK(rmt_set_tx_loop_mode(channel, true));
   channelHandle[channel] = this; // used by interrupt
   rmt_register_tx_end_callback(interrupt, 0);
   rmt_set_tx_intr_en(channel, true);
 
-  DIAG(F("Starting channel %d signal generator for %s"), config.channel, isMain ? "MAIN" : "PROG");
+  DIAG(F("Channel %d DCC signal for %s start"), config.channel, isMain ? "MAIN" : "PROG");
 
   // send one bit to kickstart the signal, remaining data will come from the
   // packet queue. We intentionally do not wait for the RMT TX complete here.
