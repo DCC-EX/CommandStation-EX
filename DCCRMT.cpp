@@ -69,7 +69,7 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   if (tt) tt->RMTinterrupt();
 }
 
-RMTChannel::RMTChannel(byte pin, bool isMain) {
+RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   byte ch;
   byte plen;
   if (isMain) {
@@ -119,13 +119,14 @@ RMTChannel::RMTChannel(byte pin, bool isMain) {
   config.rmt_mode = RMT_MODE_TX;
   config.channel = channel = (rmt_channel_t)ch;
   config.clk_div = RMT_CLOCK_DIVIDER;
-  config.gpio_num = (gpio_num_t)pin;
+  config.gpio_num = (gpio_num_t)pins.pin;
   config.mem_block_num = 2; // With longest DCC packet 11 inc checksum (future expansion)
                             // number of bits needed is 22preamble + start +
                             // 11*9 + extrazero + EOT = 124
                             // 2 mem block of 64 RMT items should be enough
 
   ESP_ERROR_CHECK(rmt_config(&config));
+  addPin(pins.invpin, true);
   /*
   // test: config another gpio pin
   gpio_num_t gpioNum = (gpio_num_t)(pin-1);
@@ -213,14 +214,19 @@ void IRAM_ATTR RMTChannel::RMTinterrupt() {
     dataRepeat--;
 }
 
-bool RMTChannel::addPin(byte pin) {
+bool RMTChannel::addPin(byte pin, bool inverted) {
+  if (pin == UNUSED_PIN)
+    return true;
   gpio_num_t gpioNum = (gpio_num_t)(pin);
   esp_err_t err;
   PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
   err = gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
   if (err != ESP_OK) return false;
-  gpio_matrix_out(gpioNum, RMT_SIG_OUT0_IDX+channel, 0, 0);
+  gpio_matrix_out(gpioNum, RMT_SIG_OUT0_IDX+channel, inverted, 0);
   if (err != ESP_OK) return false;
   return true;
+}
+bool RMTChannel::addPin(pinpair pins) {
+  return addPin(pins.pin) && addPin(pins.invpin, true);
 }
 #endif //ESP32

@@ -211,22 +211,24 @@ DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
 }
 void DCCWaveform::begin() {
   for(const auto& md: TrackManager::getMainDrivers()) {
+    pinpair p = md->getSignalPin();
     if(rmtMainChannel) {
-      DIAG(F("added pin %d to MAIN channel"), md->getSignalPin());
-      rmtMainChannel->addPin(md->getSignalPin()); // add pin to existing main channel
+      DIAG(F("added pins %d %d to MAIN channel"), p.pin, p.invpin);
+      rmtMainChannel->addPin(p); // add pin to existing main channel
     } else {
-      DIAG(F("new MAIN channel with pin %d"), md->getSignalPin());
-      rmtMainChannel = new RMTChannel(md->getSignalPin(), true); /* create new main channel */
+      DIAG(F("new MAIN channel with pins %d %d"), p.pin, p.invpin);
+      rmtMainChannel = new RMTChannel(p, true); /* create new main channel */
     }
   }
   MotorDriver *md = TrackManager::getProgDriver();
   if (md) {
+    pinpair p = md->getSignalPin();
     if (rmtProgChannel) {
-      DIAG(F("added pin %d to PROG channel"), md->getSignalPin());
-      rmtProgChannel->addPin(md->getSignalPin()); // add pin to existing prog channel
+      DIAG(F("added pins %d %d to PROG channel"), p.pin, p.invpin);
+      rmtProgChannel->addPin(p); // add pin to existing prog channel
     } else {
-      DIAG(F("new PROGchannel with pin %d"), TrackManager::getProgDriver()->getSignalPin());
-      rmtProgChannel = new RMTChannel(TrackManager::getProgDriver()->getSignalPin(), false);
+      DIAG(F("new PROGchannel with pins %d %d"), p.pin, p.invpin);
+      rmtProgChannel = new RMTChannel(p, false);
     }
   }
 }
