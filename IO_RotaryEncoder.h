@@ -87,6 +87,7 @@ private:
   #if defined(EXRAIL_ACTIVE)
       if (_position != _previousPosition) {
         _previousPosition = _position;
+        DIAG(F("Previous position is: %d"), _previousPosition);
         RMFT2::changeEvent(vpin,1);
       } else {
         RMFT2::changeEvent(vpin,0);
