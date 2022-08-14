@@ -91,16 +91,6 @@ private:
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     // DIAG(F("Received position %d"), _position);
-    // This here needs to have a change check, ie. position is a different value.
-  #if defined(EXRAIL_ACTIVE)
-      if (_position != _previousPosition) {
-        _previousPosition = _position;
-        DIAG(F("Previous position is: %d"), _previousPosition);
-        RMFT2::changeEvent(vpin,1);
-      } else {
-        RMFT2::changeEvent(vpin,0);
-      }
-  #endif
     return _position;
   }
   
