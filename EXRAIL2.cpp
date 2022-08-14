@@ -975,6 +975,7 @@ void RMFT2::loop2() {
   case OPCODE_ONAMBER:
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
+  case OPCODE_ONCHANGE:
   
     break;
     
@@ -1104,6 +1105,7 @@ void RMFT2::activateEvent(int16_t addr, bool activate) {
 void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
+  else handleEvent(F("NOCHANGE"),onChangeLookup,vpin);
 } 
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
