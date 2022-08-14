@@ -54,6 +54,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ENDTASK,OPCODE_ENDEXRAIL,
              OPCODE_SET_TRACK,
              OPCODE_ONRED,OPCODE_ONAMBER,OPCODE_ONGREEN,
+             OPCODE_ONCHANGE,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -64,7 +65,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_IFTIMEOUT,
              OPCODE_IF,OPCODE_IFNOT,
              OPCODE_IFRANDOM,OPCODE_IFRESERVE,
-             OPCODE_IFCLOSED,OPCODE_IFTHROWN
+             OPCODE_IFCLOSED,OPCODE_IFTHROWN,
+             OPCODE_IFRE,
              };
 
 enum thrunger: byte {
@@ -113,6 +115,7 @@ class LookList {
     static void createNewTask(int route, uint16_t cab);
     static void turnoutEvent(int16_t id, bool closed);  
     static void activateEvent(int16_t addr, bool active);
+    static void changeEvent(int16_t id, bool change);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
@@ -169,6 +172,8 @@ private:
    static LookList * onRedLookup;
    static LookList * onAmberLookup;
    static LookList * onGreenLookup;
+   static LookList * onChangeLookup;
+  
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

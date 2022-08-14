@@ -91,6 +91,7 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
 LookList *  RMFT2::onRedLookup=NULL;
 LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
+LookList *  RMFT2::onChangeLookup=NULL;
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -173,6 +174,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onRedLookup=LookListLoader(OPCODE_ONRED);
   onAmberLookup=LookListLoader(OPCODE_ONAMBER);
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
+  onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -745,6 +747,10 @@ void RMFT2::loop2() {
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
+  
+  case OPCODE_IFRE: // do next operand if rotary encoder != position
+    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
+    break;
     
   case OPCODE_IFRANDOM: // do block on random percentage
     skipIf=(uint8_t)micros() >= operand * 255/100;
@@ -968,6 +974,7 @@ void RMFT2::loop2() {
   case OPCODE_ONRED:
   case OPCODE_ONAMBER:
   case OPCODE_ONGREEN:
+  case OPCODE_ONCHANGE:
   
     break;
     
@@ -1088,13 +1095,18 @@ void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   else handleEvent(F("THROW"),onThrowLookup,turnoutId);
 }
 
-
 void RMFT2::activateEvent(int16_t addr, bool activate) {
   // Hunt for an ONACTIVATE/ONDEACTIVATE for this accessory
   if (activate)  handleEvent(F("ACTIVATE"),onActivateLookup,addr);
   else handleEvent(F("DEACTIVATE"),onDeactivateLookup,addr);
 }
- 
+
+void RMFT2::changeEvent(int16_t vpin, bool change) {
+  // Hunt for an ONCHANGE for this sensor
+  if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
+  else handleEvent(F("NOCHANGE"),onChangeLookup,vpin);
+} 
+
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);
   if (pc<0) return;
