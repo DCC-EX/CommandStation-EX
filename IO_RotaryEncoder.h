@@ -53,8 +53,6 @@ public:
   }
 
 private:
-  // VPIN _firstVpin;
-  // int _nPins;
   uint8_t _I2CAddress;
   int8_t _position;
   int8_t _previousPosition;
@@ -75,6 +73,16 @@ private:
     uint8_t readBuffer[1];
     I2CManager.read(_I2CAddress, readBuffer, 1);
     _position = readBuffer[0];
+    // This here needs to have a change check, ie. position is a different value.
+  #if defined(EXRAIL_ACTIVE)
+      if (_position != _previousPosition) {
+        _previousPosition = _position;
+        DIAG(F("Previous position is: %d"), _previousPosition);
+        RMFT2::changeEvent(_firstVpin,1);
+      } else {
+        RMFT2::changeEvent(_firstVpin,0);
+      }
+  #endif
     // DIAG(F("Rotary Encoder returned position: %d"), _position);
     delayUntil(currentMicros + 100000);
   }
@@ -83,16 +91,6 @@ private:
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     // DIAG(F("Received position %d"), _position);
-    // This here needs to have a change check, ie. position is a different value.
-  #if defined(EXRAIL_ACTIVE)
-      if (_position != _previousPosition) {
-        _previousPosition = _position;
-        DIAG(F("Previous position is: %d"), _previousPosition);
-        RMFT2::changeEvent(vpin,1);
-      } else {
-        RMFT2::changeEvent(vpin,0);
-      }
-  #endif
     return _position;
   }
   
