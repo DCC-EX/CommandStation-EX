@@ -541,6 +541,7 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
       if (myLocos[loco].throttle!='\0') {
         if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d"),millis(),myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
+	heartBeat=millis(); // We have just stopped everyting, we don't need to do that again at next loop.
       }
     }
     //haba no, not necessary the only throttle and it may come back
