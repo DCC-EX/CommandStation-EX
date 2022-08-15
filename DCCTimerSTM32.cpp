@@ -33,7 +33,7 @@
 #include "DCCTimer.h"
 
 // STM32 doesn't have Serial1 defined by default
-HardwareSerial Serial1(PA10, PA15);  // Rx=PA10, Tx=PA9
+HardwareSerial Serial1(PA10, PA15);  // Rx=PA10, Tx=PA15
 
 INTERRUPT_CALLBACK interruptHandler=0;
 // Let's use STM32's timer #1 until disabused of this notion
