@@ -97,17 +97,24 @@ void CommandDistributor::broadcastToClients(clientType type) {
   // If we are broadcasting from a wifi/eth process we need to complete its output
   // before merging broadcasts in the ring, then reinstate it in case
   // the process continues to output to its client.
-  if (ringClient!=NO_CLIENT) ring->commit();
-
+  if (ringClient!=NO_CLIENT) {
+    DIAG(F("CD precommit client %d"), ringClient);
+    ring->commit();
+  }
   /* loop through ring clients */
   for (byte clientId=0; clientId<sizeof(clients); clientId++) {
     if (clients[clientId]==type)  {
+      DIAG(F("CD mark client %d"), clientId);
       ring->mark(clientId);
       ring->print(broadcastBufferWriter->getString());
+      DIAG(F("CD commit client %d"), clientId);
       ring->commit();
     }
   }
-  if (ringClient!=NO_CLIENT) ring->mark(ringClient);
+  if (ringClient!=NO_CLIENT) {
+    DIAG(F("CD postmark client %d"), ringClient);
+    ring->mark(ringClient);
+  }
 
 #endif
 }

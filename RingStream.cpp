@@ -143,6 +143,7 @@ int RingStream::freeSpace() {
 
 // mark start of message with client id (0...9)
 void RingStream::mark(uint8_t b) {
+    DIAG(F("RS mark client %d at %d"), b, _pos_write);
     _mark=_pos_write;
     write(b); // client id
     write((uint8_t)0);  // count MSB placemarker
@@ -170,7 +171,8 @@ bool RingStream::commit() {
         return false; // commit failed
   }
   if (_count==0) {
-    // ignore empty response 
+    DIAG(F("RS commit count=0 rewind back to %d"), _mark);
+    // ignore empty response
     _pos_write=_mark;
     return true; // true=commit ok
   }
@@ -181,6 +183,11 @@ bool RingStream::commit() {
   _mark++;
   if (_mark==_len) _mark=0;
   _buffer[_mark]=lowByte(_count);
+  { char s[_count+2];
+    strncpy(s, (const char*)&(_buffer[_mark+1]), _count-2);
+    s[_count-1]=0;
+    DIAG(F("RS commit count=%d %s"), _count, s);
+  }
   return true; // commit worked
 }
 void RingStream::flush() {

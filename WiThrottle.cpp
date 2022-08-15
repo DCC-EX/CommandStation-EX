@@ -610,10 +610,12 @@ byte         WiThrottle::stashClient;
 char         WiThrottle::stashThrottleChar;
 
 void WiThrottle::getLocoCallback(int16_t locoid) {
+  DIAG(F("LocoCallback mark client %d"), stashClient);
   stashStream->mark(stashClient);
   
   if (locoid<=0) {
     StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
+    DIAG(F("LocoCallback commit (noloco)"));
     stashStream->commit();                  // done here, commit and return
     return;
   }
@@ -624,6 +626,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
     locoid = locoid ^ LONG_ADDR_MARKER;     // remove marker bit to get real long addr
     if (locoid <= HIGHEST_SHORT_ADDR ) {    // out of range for long addr
       StringFormatter::send(stashStream,F("HMLong addr %d <= %d unsupported\n"), locoid, HIGHEST_SHORT_ADDR);
+      DIAG(F("LocoCallback commit (error)"));
       stashStream->commit();                // done here, commit and return
       return;
     }
@@ -637,6 +640,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   stashInstance->multithrottle(stashStream, (byte *)addcmd);
   TrackManager::setMainPower(POWERMODE::ON);
   TrackManager::setJoin(true);          // <1 JOIN> so we can drive loco away
+  DIAG(F("LocoCallback commit success"));
   stashStream->commit();
   CommandDistributor::broadcastPower();
 
