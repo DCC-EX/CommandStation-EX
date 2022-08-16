@@ -47,8 +47,6 @@ private:
   static StringBuffer * broadcastBufferWriter;
   #ifdef CD_HANDLE_RING
     static RingStream * ring;
-  static const byte NO_CLIENT=255; //XXX remove later
-  //    static byte ringClient;
     static clientType clients[8];
   #endif
 };

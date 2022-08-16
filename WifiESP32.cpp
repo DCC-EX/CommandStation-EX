@@ -95,14 +95,15 @@ public:
 static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(2048);
-//static RingStream *eventRing = new RingStream(2048);
 static bool APmode = false;
 
+#ifdef WIFI_TASK_ON_CORE0
 void wifiLoop(void *){
   for(;;){
     WifiESP::loop();
   }
 }
+#endif
 
 bool WifiESP::setup(const char *SSid,
                     const char *password,
@@ -196,6 +197,7 @@ bool WifiESP::setup(const char *SSid,
   server->begin();
   // server started here
 
+#ifdef WIFI_TASK_ON_CORE0
   //start loop task
   if (pdPASS != xTaskCreatePinnedToCore(
 	wifiLoop, /* Task function. */
@@ -211,7 +213,10 @@ bool WifiESP::setup(const char *SSid,
 
   // report server started after wifiLoop creation
   // when everything looks good
-  DIAG(F("Server up port %d"),port);
+  DIAG(F("Server starting (core 0) port %d"),port);
+#else
+  DIAG(F("Server will be started on port %d"),port);
+#endif
   return true;
 }
 
@@ -261,7 +266,7 @@ void WifiESP::loop() {
 	  cmd[len]=0;
 	  outboundRing->mark(clientId);
 	  CommandDistributor::parse(clientId,cmd,outboundRing);
-	  if (outboundRing->peekTargetMark()!=255) //XXX fix 255 later
+	  if (outboundRing->peekTargetMark()!=RingStream::NO_CLIENT)
 	    outboundRing->commit();
 	}
       }

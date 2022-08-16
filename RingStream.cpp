@@ -143,7 +143,7 @@ int RingStream::freeSpace() {
 
 // mark start of message with client id (0...9)
 void RingStream::mark(uint8_t b) {
-  DIAG(F("RS mark client %d at %d core %d"), b, _pos_write, xPortGetCoreID());
+    //DIAG(F("RS mark client %d at %d core %d"), b, _pos_write, xPortGetCoreID());
     _ringClient = b;
     _mark=_pos_write;
     write(b); // client id
@@ -165,14 +165,14 @@ void RingStream::info() {
 bool RingStream::commit() {
   _flashInsert=NULL; // prepared for first read
   if (_overflow) {
-        DIAG(F("RingStream(%d) commit(%d) OVERFLOW"),_len, _count);
+        //DIAG(F("RingStream(%d) commit(%d) OVERFLOW"),_len, _count);
         // just throw it away 
         _pos_write=_mark;
         _overflow=false;
         return false; // commit failed
   }
   if (_count==0) {
-    DIAG(F("RS commit count=0 rewind back to %d core %d"), _mark, xPortGetCoreID());
+    //DIAG(F("RS commit count=0 rewind back to %d core %d"), _mark, xPortGetCoreID());
     // ignore empty response
     _pos_write=_mark;
     _ringClient = NO_CLIENT;         //XXX make else clause later
@@ -188,7 +188,7 @@ bool RingStream::commit() {
   { char s[_count+2];
     strncpy(s, (const char*)&(_buffer[_mark+1]), _count);
     s[_count]=0;
-    DIAG(F("RS commit count=%d core %d \"%s\""), _count, xPortGetCoreID(), s);
+    //DIAG(F("RS commit count=%d core %d \"%s\""), _count, xPortGetCoreID(), s);
   }
   _ringClient = NO_CLIENT;
   return true; // commit worked

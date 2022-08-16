@@ -52,6 +52,7 @@ class RingStream : public Print {
       if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty
       return _buffer[_pos_read];
     };
+    static const byte NO_CLIENT=255;
  private:
    int _len;
    int _pos_write;
@@ -61,7 +62,6 @@ class RingStream : public Print {
    int _count;
    byte * _buffer;
    char * _flashInsert;
-  static const byte NO_CLIENT=255; // must be same as in CommandDistributor
    byte _ringClient = NO_CLIENT;
 };
 

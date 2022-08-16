@@ -143,6 +143,10 @@ void loop()
 #if WIFI_ON
   WifiInterface::loop();
 #endif //WIFI_ON
+#else  //ARDUINO_ARCH_ESP32
+#ifndef WIFI_TASK_ON_CORE0
+  WifiESP::loop();
+#endif
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
