@@ -113,14 +113,14 @@ class MotorDriver {
     
     MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
-    virtual void setPower( POWERMODE mode);
-    virtual POWERMODE getPower() { return powerMode;}
+    void setPower( POWERMODE mode);
+    POWERMODE getPower() { return powerMode;}
     // as the port registers can be shadowed to get syncronized DCC signals
     // we need to take care of that and we have to turn off interrupts if
     // we setSignal() or setBrake() or setPower() during that time as
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
-    virtual void setBrake( bool on, bool interruptContext=false);
+    void setBrake( bool on, bool interruptContext=false);
   __attribute__((always_inline)) inline void setSignal( bool high, bool interruptContext=false) {
       if (!interruptContext) {noInterrupts();}
       if (trackPWM) {
@@ -145,7 +145,7 @@ class MotorDriver {
 	pinMode(signalPin, INPUT);
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
-    virtual void setDCSignal(byte speedByte);
+    void setDCSignal(byte speedByte);
     inline void detachDCSignal() {
 #if defined(__arm__)
       pinMode(brakePin, OUTPUT);
@@ -155,10 +155,10 @@ class MotorDriver {
       setDCSignal(128);
 #endif
     };
-    virtual int  getCurrentRaw();
-    virtual int getCurrentRawInInterrupt();
-    virtual unsigned int raw2mA( int raw);
-    virtual unsigned int mA2raw( unsigned int mA);
+    int  getCurrentRaw();
+    int getCurrentRawInInterrupt();
+    unsigned int raw2mA( int raw);
+    unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
 #if defined(ARDUINO_ARCH_ESP32) || defined(__arm__)
       // TODO: on ARM we can use digitalPinHasPWM, and may wish/need to
