@@ -143,7 +143,8 @@ int RingStream::freeSpace() {
 
 // mark start of message with client id (0...9)
 void RingStream::mark(uint8_t b) {
-    DIAG(F("RS mark client %d at %d"), b, _pos_write);
+  DIAG(F("RS mark client %d at %d core %d"), b, _pos_write, xPortGetCoreID());
+    _ringClient = b;
     _mark=_pos_write;
     write(b); // client id
     write((uint8_t)0);  // count MSB placemarker
@@ -154,7 +155,7 @@ void RingStream::mark(uint8_t b) {
 // peekTargetMark is used by the parser stash routines to know which client
 // to send a callback response to some time later. 
 uint8_t RingStream::peekTargetMark() {
-  return _buffer[_mark];
+  return _ringClient;
 }
 
 void RingStream::info() {
@@ -171,9 +172,10 @@ bool RingStream::commit() {
         return false; // commit failed
   }
   if (_count==0) {
-    DIAG(F("RS commit count=0 rewind back to %d"), _mark);
+    DIAG(F("RS commit count=0 rewind back to %d core %d"), _mark, xPortGetCoreID());
     // ignore empty response
     _pos_write=_mark;
+    _ringClient = NO_CLIENT;         //XXX make else clause later
     return true; // true=commit ok
   }
   // Go back to the _mark and inject the count 1 byte later
@@ -184,10 +186,11 @@ bool RingStream::commit() {
   if (_mark==_len) _mark=0;
   _buffer[_mark]=lowByte(_count);
   { char s[_count+2];
-    strncpy(s, (const char*)&(_buffer[_mark+1]), _count-2);
-    s[_count-1]=0;
-    DIAG(F("RS commit count=%d %s"), _count, s);
+    strncpy(s, (const char*)&(_buffer[_mark+1]), _count);
+    s[_count]=0;
+    DIAG(F("RS commit count=%d core %d \"%s\""), _count, xPortGetCoreID(), s);
   }
+  _ringClient = NO_CLIENT;
   return true; // commit worked
 }
 void RingStream::flush() {
@@ -195,6 +198,6 @@ void RingStream::flush() {
   _pos_read=0;
   _buffer[0]=0;
   _flashInsert=NULL; // prepared for first read
-  
+  _ringClient = NO_CLIENT;
 }
   

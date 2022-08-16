@@ -61,6 +61,8 @@ class RingStream : public Print {
    int _count;
    byte * _buffer;
    char * _flashInsert;
+  static const byte NO_CLIENT=255; // must be same as in CommandDistributor
+   byte _ringClient = NO_CLIENT;
 };
 
 #endif

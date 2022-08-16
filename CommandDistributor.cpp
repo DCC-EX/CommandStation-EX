@@ -47,7 +47,7 @@
 #ifdef CD_HANDLE_RING
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
-  byte CommandDistributor::ringClient=NO_CLIENT;
+//  byte CommandDistributor::ringClient=NO_CLIENT;
   CommandDistributor::clientType  CommandDistributor::clients[8]={
     NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
 
@@ -57,7 +57,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   if (Diag::WIFI && Diag::CMD)
     DIAG(F("Parse C=%d T=%d B=%s"),clientId, clients[clientId], buffer);
   ring=stream;
-  ringClient=stream->peekTargetMark();
+  //  ringClient=stream->peekTargetMark();
 
   // First check if the client is not known
   // yet and in that case determinine type
@@ -78,7 +78,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   else if (clients[clientId] == WITHROTTLE_TYPE)
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
 
-  ringClient=NO_CLIENT;
+  //  ringClient=NO_CLIENT;
 }
 
 void CommandDistributor::forget(byte clientId) {
@@ -90,6 +90,8 @@ void CommandDistributor::forget(byte clientId) {
 // This will not be called on a uno 
 void CommandDistributor::broadcastToClients(clientType type) {
 
+  byte rememberClient;
+
   /* Boadcast to Serials */
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
 
@@ -97,8 +99,9 @@ void CommandDistributor::broadcastToClients(clientType type) {
   // If we are broadcasting from a wifi/eth process we need to complete its output
   // before merging broadcasts in the ring, then reinstate it in case
   // the process continues to output to its client.
-  if (ringClient!=NO_CLIENT) {
-    DIAG(F("CD precommit client %d"), ringClient);
+  if (ring) {
+  if ((rememberClient = ring->peekTargetMark()) != NO_CLIENT) {
+    DIAG(F("CD precommit client %d"), rememberClient);
     ring->commit();
   }
   /* loop through ring clients */
@@ -111,11 +114,11 @@ void CommandDistributor::broadcastToClients(clientType type) {
       ring->commit();
     }
   }
-  if (ringClient!=NO_CLIENT) {
-    DIAG(F("CD postmark client %d"), ringClient);
-    ring->mark(ringClient);
+  if (ring->peekTargetMark()!=NO_CLIENT) {
+    DIAG(F("CD postmark client %d"), rememberClient);
+    ring->mark(rememberClient);
   }
-
+  }
 #endif
 }
 

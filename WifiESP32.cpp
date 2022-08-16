@@ -95,6 +95,7 @@ public:
 static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(2048);
+//static RingStream *eventRing = new RingStream(2048);
 static bool APmode = false;
 
 void wifiLoop(void *){
@@ -260,7 +261,8 @@ void WifiESP::loop() {
 	  cmd[len]=0;
 	  outboundRing->mark(clientId);
 	  CommandDistributor::parse(clientId,cmd,outboundRing);
-	  outboundRing->commit();
+	  if (outboundRing->peekTargetMark()!=255) //XXX fix 255 later
+	    outboundRing->commit();
 	}
       }
     } // all clients
