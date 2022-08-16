@@ -107,7 +107,7 @@ int RingStream::read() {
   if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty  
   byte b=readRawByte();
   if (b!=FLASH_INSERT_MARKER) return b; 
-  
+#ifndef ARDUINO_ARCH_ESP32
   // Detected a flash insert 
   // read address bytes LSB first (size depends on CPU) 
   uintptr_t iFlash=0; 
@@ -119,7 +119,11 @@ int RingStream::read() {
   }
   _flashInsert=reinterpret_cast<char * >( iFlash);
   // and try again... so will read the first byte of the insert. 
-  return read();     
+  return read();
+#else
+  DIAG(F("Detected flash insert marker at pos %d but there should not be one"),_pos_read);
+  return '\0';
+#endif
 }
 
 byte RingStream::readRawByte() {

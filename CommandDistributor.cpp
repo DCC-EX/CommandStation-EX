@@ -126,7 +126,9 @@ void CommandDistributor::broadcastToClients(clientType type) {
 	ring->commit();
       }
     }
-    if (ring->peekTargetMark() == RingStream::NO_CLIENT) {
+    // at this point ring is committed (NO_CLIENT) either from
+    // 4 or 13 lines above.
+    if (rememberClient != RingStream::NO_CLIENT) {
       //DIAG(F("CD postmark client %d"), rememberClient);
       ring->mark(rememberClient);
     }
