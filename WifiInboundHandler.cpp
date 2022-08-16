@@ -84,13 +84,7 @@ void WifiInboundHandler::loop1() {
          cmd[count]=0;
          if (Diag::WIFI) DIAG(F("%e"),cmd); 
          
-         outboundRing->mark(clientId);  // remember start of outbound data 
          CommandDistributor::parse(clientId,cmd,outboundRing);
-         // The commit call will either write the lenbgth bytes 
-         // OR rollback to the mark because the reply is empty or commend generated more than fits the buffer 
-         if (!outboundRing->commit()) {
-            DIAG(F("OUTBOUND FULL processing cmd:%s"),cmd);
-         }
          return;
       }
    }

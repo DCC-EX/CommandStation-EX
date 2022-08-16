@@ -163,9 +163,7 @@ void EthernetInterface::loop()
             buffer[count] = '\0'; // terminate the string properly
             if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
             // execute with data going directly back
-            outboundRing->mark(socket); 
             CommandDistributor::parse(socket,buffer,outboundRing);
-            outboundRing->commit();
             return; // limit the amount of processing that takes place within 1 loop() cycle. 
           }
         }

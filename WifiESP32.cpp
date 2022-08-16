@@ -264,10 +264,7 @@ void WifiESP::loop() {
 	    cmd[i]=clients[clientId].wifi.read();
 	  }
 	  cmd[len]=0;
-	  outboundRing->mark(clientId);
 	  CommandDistributor::parse(clientId,cmd,outboundRing);
-	  if (outboundRing->peekTargetMark()!=RingStream::NO_CLIENT)
-	    outboundRing->commit();
 	}
       }
     } // all clients

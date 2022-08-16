@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.1 rc1"
+#define VERSION "4.2.2 rc1"
 // 4.2.1 ESP32 alpha
 //       Ready for alpha test on ESP32. Track switching with <=> untested
 //       Send DCC signal on MAIN

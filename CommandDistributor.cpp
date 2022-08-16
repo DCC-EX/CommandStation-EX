@@ -69,13 +69,28 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
       clients[clientId]=WITHROTTLE_TYPE;
   }
 
+  // mark buffer that is sent to parser
+  ring->mark(clientId);
+
   // When type is known, send the string
   // to the right parser
-  if (clients[clientId] == COMMAND_TYPE)
+  if (clients[clientId] == COMMAND_TYPE) {
     DCCEXParser::parse(stream, buffer, ring);
-  else if (clients[clientId] == WITHROTTLE_TYPE)
+  } else if (clients[clientId] == WITHROTTLE_TYPE) {
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
+  }
 
+  if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {
+    // The commit call will either write the length bytes
+    // OR rollback to the mark because the reply is empty
+    // or the command generated more output than fits in
+    // the buffer
+    if (!ring->commit()) {
+      DIAG(F("OUTBOUND FULL processing cmd:%s"),buffer);
+    }
+  } else {
+    DIAG(F("CD parse: was alredy committed")); //XXX Could have been committed by broadcastClient?!
+  }
 }
 
 void CommandDistributor::forget(byte clientId) {
@@ -111,7 +126,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
 	ring->commit();
       }
     }
-    if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {
+    if (ring->peekTargetMark() == RingStream::NO_CLIENT) {
       //DIAG(F("CD postmark client %d"), rememberClient);
       ring->mark(rememberClient);
     }
