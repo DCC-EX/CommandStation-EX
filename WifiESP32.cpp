@@ -94,7 +94,7 @@ public:
 
 static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
-static RingStream *outboundRing = new RingStream(2048);
+static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
 
 #ifdef WIFI_TASK_ON_CORE0
