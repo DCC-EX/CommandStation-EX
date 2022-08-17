@@ -90,6 +90,9 @@ class TrackManager {
     static MotorDriver* track[MAX_TRACKS];
     static TRACK_MODE trackMode[MAX_TRACKS]; 
     static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
+#ifdef ARDUINO_ARCH_ESP32
+    static byte tempProgTrack; // holds the prog track number during join
+#endif
     };
 
 #endif

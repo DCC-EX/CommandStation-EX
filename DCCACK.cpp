@@ -67,22 +67,24 @@ CALLBACK_STATE DCCACK::callbackState=READY;
 ACK_CALLBACK DCCACK::ackManagerCallback;
 
 void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  ackManagerRejoin=TrackManager::isJoined();
+  if (ackManagerRejoin) {
+    // Change from JOIN must zero resets packet.
+    TrackManager::setJoin(false);
+    DCCWaveform::progTrack.clearResets();
+  }
+
   progDriver=TrackManager::getProgDriver();
   if (progDriver==NULL) {
-      callback(-3); // we dont have a prog track!
-      return;
-      }
+    TrackManager::setJoin(ackManagerRejoin);
+    callback(-3); // we dont have a prog track!
+    return;
+  }
   if (!progDriver->canMeasureCurrent()) {
+    TrackManager::setJoin(ackManagerRejoin);
     callback(-2); // our prog track cant measure current
     return;
   }
-
-  ackManagerRejoin=TrackManager::isJoined();
-  if (ackManagerRejoin ) {
-        // Change from JOIN must zero resets packet.
-        TrackManager::setJoin(false); 
-        DCCWaveform::progTrack.clearResets();
-      }
 
    autoPowerOff=false;
    if (progDriver->getPower() == POWERMODE::OFF) {

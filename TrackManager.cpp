@@ -50,6 +50,9 @@ byte TrackManager::lastTrack=0;
 bool TrackManager::progTrackSyncMain=false; 
 bool TrackManager::progTrackBoosted=false; 
 int16_t TrackManager::joinRelay=UNUSED_PIN;
+#ifdef ARDUINO_ARCH_ESP32
+byte TrackManager::tempProgTrack=MAX_TRACKS+1;
+#endif
 
 
 // The setup call is done this way so that the tracks can be in a list 
@@ -141,11 +144,11 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #ifdef ARDUINO_ARCH_ESP32
     // remove pin from MUX matrix and turn it off
     pinpair p = track[trackToSet]->getSignalPin();
-    // DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
+    //DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
     gpio_reset_pin((gpio_num_t)p.pin);
     pinMode(p.pin, OUTPUT); // gpio_reset_pin may reset to input
     if (p.invpin != UNUSED_PIN) {
-      DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
+      //DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
       gpio_reset_pin((gpio_num_t)p.invpin);
       pinMode(p.invpin, OUTPUT); // gpio_reset_pin may reset to input
     }
@@ -384,6 +387,22 @@ void TrackManager::setJoinRelayPin(byte joinRelayPin) {
 }
 
 void TrackManager::setJoin(bool joined) {
+#ifdef ARDUINO_ARCH_ESP32
+  if (joined) {
+    FOR_EACH_TRACK(t) {
+      if (trackMode[t]==TRACK_MODE_PROG) {
+	tempProgTrack = t;
+	setTrackMode(t, TRACK_MODE_MAIN);
+	break;
+      }
+    }
+  } else {
+    if (tempProgTrack != MAX_TRACKS+1) {
+      setTrackMode(tempProgTrack, TRACK_MODE_PROG);
+      tempProgTrack = MAX_TRACKS+1;
+    }
+  }
+#endif
   progTrackSyncMain=joined;
   if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,joined?HIGH:LOW);
 }
