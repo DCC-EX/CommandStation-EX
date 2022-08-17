@@ -303,9 +303,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	      }
 	      // Write this after the fact as we want to turn on as fast as possible
 	      // because we don't know which output actually triggered the fault pin
-	      DIAG(F("COMMON FAULT PIN ACTIVE - TOGGLED POWER on %d"), trackno);
+	      DIAG(F("COMMON FAULT PIN ACTIVE: POWERTOGGLE TRACK %c"), trackno + 'A');
 	  } else {
-	    DIAG(F("TRACK %d FAULT PIN ACTIVE - OVERLOAD"), trackno);
+	    DIAG(F("TRACK %c FAULT PIN ACTIVE - OVERLOAD"), trackno + 'A');
 	      if (lastCurrent < tripValue) {
 		  lastCurrent = tripValue; // exaggerate
 	      }
@@ -323,7 +323,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
         unsigned int maxmA=raw2mA(tripValue);
 	      power_good_counter=0;
         sampleDelay = power_sample_overload_wait;
-        DIAG(F("TRACK %d POWER OVERLOAD current=%d max=%d offtime=%d"), trackno, mA, maxmA, sampleDelay);
+        DIAG(F("TRACK %c POWER OVERLOAD %dmA (limit %dmA) shutdown for %dms"), trackno + 'A', mA, maxmA, sampleDelay);
 	if (power_sample_overload_wait >= 10000)
 	    power_sample_overload_wait = 10000;
 	else
@@ -335,7 +335,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       setPower(POWERMODE::ON);
       sampleDelay = POWER_SAMPLE_ON_WAIT;
       // Debug code....
-      DIAG(F("TRACK %d POWER RESET delay=%d"), trackno, sampleDelay);
+      DIAG(F("TRACK %c POWER RESTORE (check %dms)"), trackno + 'A', sampleDelay);
       break;
     default:
       sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
