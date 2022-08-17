@@ -37,22 +37,25 @@ HardwareSerial Serial1(PA10, PA15);  // Rx=PA10, Tx=PA15
 
 INTERRUPT_CALLBACK interruptHandler=0;
 // Let's use STM32's timer #1 until disabused of this notion
-HardwareTimer timer(TIM1);
+HardwareTimer timer(TIM11);
 
 // Timer IRQ handler
-void Timer1_Handler() {
+void Timer11_Handler() {
   interruptHandler();
 }
+
+
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
 
+  // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
   timer.pause();
   timer.setPrescaleFactor(1);
 //  timer.setOverflow(CLOCK_CYCLES * 2);
   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  timer.attachInterrupt(Timer1_Handler);
+  timer.attachInterrupt(Timer11_Handler);
   timer.refresh();
   timer.resume();
 
