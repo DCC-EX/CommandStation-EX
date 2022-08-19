@@ -32,15 +32,6 @@
 #endif 
 
 class CommandDistributor {
-
-public :
-  static void parse(byte clientId,byte* buffer, RingStream * ring);
-  static void broadcastLoco(byte slot);
-  static void broadcastSensor(int16_t id, bool value);
-  static void broadcastTurnout(int16_t id, bool isClosed);
-  static void broadcastPower();
-  static void broadcastText(const FSH * msg);
-  static void forget(byte clientId);
 private:
   enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
   static void broadcastToClients(clientType type);
@@ -49,6 +40,15 @@ private:
     static RingStream * ring;
     static clientType clients[8];
   #endif
+public :
+  static void parse(byte clientId,byte* buffer, RingStream * ring);
+  static void broadcastLoco(byte slot);
+  static void broadcastSensor(int16_t id, bool value);
+  static void broadcastTurnout(int16_t id, bool isClosed);
+  static void broadcastPower();
+  static void broadcastText(const FSH * msg);
+  template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
+  static void forget(byte clientId);
 };
 
 #endif

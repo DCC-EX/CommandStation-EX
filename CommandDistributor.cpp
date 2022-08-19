@@ -32,16 +32,19 @@
 
 
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS)
-  // use a buffer to allow broadcast
-  #define BUFFER broadcastBufferWriter
-  #define FLUSH broadcastBufferWriter->flush();
-  #define SHOVE(type) broadcastToClients(type);
-  StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
+// use a buffer to allow broadcast
+StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
+template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+  broadcastBufferWriter->flush();
+  StringFormatter::send(broadcastBufferWriter, msg...);
+  broadcastToClients(type);
+}
 #else
-  // on a single USB connection config, write direct to Serial and ignore flush/shove 
-  #define BUFFER &Serial
-  #define FLUSH 
-  #define SHOVE(type) 
+// on a single USB connection config, write direct to Serial and ignore flush/shove
+template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+  (void)type; //shut up compiler warning
+  StringFormatter::send(&Serial, msg...);
+}
 #endif 
 
 #ifdef CD_HANDLE_RING
@@ -103,8 +106,9 @@ void CommandDistributor::forget(byte clientId) {
 void CommandDistributor::broadcastToClients(clientType type) {
 
   byte rememberClient;
+  (void)rememberClient; // shut up compiler warning
 
-  /* Boadcast to Serials */
+  // Broadcast to Serials
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
 
 #ifdef CD_HANDLE_RING
@@ -116,7 +120,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
       //DIAG(F("CD precommit client %d"), rememberClient);
       ring->commit();
     }
-    /* loop through ring clients */
+    // loop through ring clients
     for (byte clientId=0; clientId<sizeof(clients); clientId++) {
       if (clients[clientId]==type)  {
 	//DIAG(F("CD mark client %d"), clientId);
@@ -138,32 +142,22 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 // Public broadcast functions below 
 void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
-  FLUSH
-  StringFormatter::send(BUFFER,F("<%c %d>\n"), on?'Q':'q', id);
-  SHOVE(COMMAND_TYPE)
+  broadcastReply(COMMAND_TYPE, F("<%c %d>\n"), on?'Q':'q', id);
 }
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed;
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
-  FLUSH
-  StringFormatter::send(BUFFER,F("<H %d %d>\n"),id, !isClosed);
-  SHOVE(COMMAND_TYPE)
-
-#ifdef CD_HANDLE_RING 
-  FLUSH
-  StringFormatter::send(BUFFER,F("PTA%c%d\n"), isClosed?'2':'4', id);
-  SHOVE(WITHROTTLE_TYPE)
+  broadcastReply(COMMAND_TYPE, F("<H %d %d>\n"),id, !isClosed);
+#ifdef CD_HANDLE_RING
+  broadcastReply(WITHROTTLE_TYPE, F("PTA%c%d\n"), isClosed?'2':'4', id);
 #endif
 }
 
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];
-  FLUSH
-  StringFormatter::send(BUFFER,F("<l %d %d %d %l>\n"),
-			sp->loco,slot,sp->speedCode,sp->functions);
-  SHOVE(COMMAND_TYPE)
+  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,sp->functions);
 #ifdef CD_HANDLE_RING
   WiThrottle::markForBroadcast(sp->loco);
 #endif
@@ -180,24 +174,16 @@ void  CommandDistributor::broadcastPower() {
   else if (main) reason=F(" MAIN");
   else if (prog) reason=F(" PROG");
   else state='0';
-  FLUSH
-  StringFormatter::send(BUFFER,F("<p %c%S>\n"),state,reason);
-  SHOVE(COMMAND_TYPE)
+  broadcastReply(COMMAND_TYPE, F("<p %c%S>\n"),state,reason);
 #ifdef CD_HANDLE_RING
-  FLUSH
-  StringFormatter::send(BUFFER,F("PPA%c\n"), main?'1':'0');
-  SHOVE(WITHROTTLE_TYPE)
+  broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1':'0');
 #endif
   LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);  
 }
 
 void CommandDistributor::broadcastText(const FSH * msg) {
-  FLUSH
-  StringFormatter::send(BUFFER,F("%S"),msg);
-  SHOVE(COMMAND_TYPE) 
+  broadcastReply(COMMAND_TYPE, F("<I %S>\n"),msg);
 #ifdef CD_HANDLE_RING
-  FLUSH
-  StringFormatter::send(BUFFER,F("Hm%S\n"), msg);
-  SHOVE(WITHROTTLE_TYPE)
+  broadcastReply(WITHROTTLE_TYPE, F("Hm%S\n"), msg);
 #endif
 }
