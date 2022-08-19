@@ -36,15 +36,15 @@
 HardwareSerial Serial1(PA10, PA15);  // Rx=PA10, Tx=PA15
 
 INTERRUPT_CALLBACK interruptHandler=0;
-// Let's use STM32's timer #1 until disabused of this notion
+// Let's use STM32's timer #11 until disabused of this notion
+// Timer #11 is used for "servo" library, but as DCC-EX is not using
+// this libary, we should be free and clear.
 HardwareTimer timer(TIM11);
 
 // Timer IRQ handler
 void Timer11_Handler() {
   interruptHandler();
 }
-
-
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
