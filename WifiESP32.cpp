@@ -294,6 +294,8 @@ void WifiESP::loop() {
 	// buffer filled, end with '\0' so we can use it as C string
 	buffer[count]='\0';
 	if((unsigned int)clientId <= clients.size() && clients[clientId].ok()) {
+	  if (Diag::CMD || Diag::WITHROTTLE)
+	    DIAG(F("SEND %d:%s"), clientId, buffer);
 	  clients[clientId].wifi.write(buffer,count);
 	} else {
 	  DIAG(F("Unsent(%d): %s"), clientId, buffer);
