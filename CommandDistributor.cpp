@@ -174,7 +174,7 @@ void  CommandDistributor::broadcastPower() {
   else if (main) reason=F(" MAIN");
   else if (prog) reason=F(" PROG");
   else state='0';
-  broadcastReply(COMMAND_TYPE, F("<p %c%S>\n"),state,reason);
+  broadcastReply(COMMAND_TYPE, F("<p%c%S>\n"),state,reason);
 #ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1':'0');
 #endif
