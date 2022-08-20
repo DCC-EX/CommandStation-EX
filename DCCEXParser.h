@@ -71,7 +71,7 @@ struct DCCEXParser
     static FILTER_CALLBACK  filterCallback;
     static FILTER_CALLBACK  filterRMFTCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
-    static void funcmap(int16_t cab, byte value, byte fstart, byte fstop);
+    static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
     static void sendFlashList(Print * stream,const int16_t flashList[]);
 
 };

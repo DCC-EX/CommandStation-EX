@@ -546,8 +546,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         if(params!=3) break; 
         if (Diag::CMD)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
-        DCC::setFn(p[0], p[1], p[2] == 1);
-        return;
+        if (DCC::setFn(p[0], p[1], p[2] == 1)) return;
+	break;
 
 #if WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
@@ -689,43 +689,39 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
 //===================================
 bool DCCEXParser::parsef(Print *stream, int16_t params, int16_t p[])
 {
-    // JMRI sends this info in DCC message format but it's not exactly
-    //      convenient for other processing
-    if (params == 2)
-    {
-        byte instructionField = p[1] & 0xE0;   // 1110 0000
-        if (instructionField == 0x80)          // 1000 0000 Function group 1
-        {
-	    // Shuffle bits from order F0 F4 F3 F2 F1 to F4 F3 F2 F1 F0 
-            byte normalized = (p[1] << 1 & 0x1e) | (p[1] >> 4 & 0x01);
-            funcmap(p[0], normalized, 0, 4);
-        }
-        else if (instructionField == 0xA0)     // 1010 0000 Function group 2
-        {
-	    if (p[1] & 0x10)                   // 0001 0000 Bit selects F5toF8 / F9toF12
-		funcmap(p[0], p[1], 5, 8);
-	    else
-		funcmap(p[0], p[1], 9, 12);
-        }
-    }
-    if (params == 3)
-    {
-        if (p[1] == 222)
-            funcmap(p[0], p[2], 13, 20);
-        else if (p[1] == 223)
-            funcmap(p[0], p[2], 21, 28);
-    }
-    (void)stream; // NO RESPONSE
-    return true;
+  // JMRI sends this info in DCC message format but it's not exactly
+  // convenient for other processing
+  if (params == 2) {
+    byte instructionField = p[1] & 0xE0;   // 1110 0000
+    if (instructionField == 0x80) {        // 1000 0000 Function group 1
+      // Shuffle bits from order F0 F4 F3 F2 F1 to F4 F3 F2 F1 F0
+      byte normalized = (p[1] << 1 & 0x1e) | (p[1] >> 4 & 0x01);
+      return (funcmap(p[0], normalized, 0, 4));
+    } else if (instructionField == 0xA0) { // 1010 0000 Function group 2
+      if (p[1] & 0x10)                     // 0001 0000 Bit selects F5toF8 / F9toF12
+	return (funcmap(p[0], p[1], 5, 8));
+      else
+	return (funcmap(p[0], p[1], 9, 12));
+    } 
+  }
+  if (params == 3) {
+    if (p[1] == 222) {
+      return (funcmap(p[0], p[2], 13, 20));
+    } else if (p[1] == 223) {
+      return (funcmap(p[0], p[2], 21, 28));
+    } 
+  }
+  (void)stream; // NO RESPONSE
+  return false;
 }
 
-void DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
+bool DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
 {
-    for (int16_t i = fstart; i <= fstop; i++)
-    {
-        DCC::setFn(cab, i, value & 1);
-        value >>= 1;
-    }
+  for (int16_t i = fstart; i <= fstop; i++) {
+    if (! DCC::setFn(cab, i, value & 1)) return false;
+    value >>= 1;
+  }
+  return true;
 }
 
 //===================================

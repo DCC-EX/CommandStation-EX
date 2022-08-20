@@ -163,8 +163,9 @@ bool DCC::getThrottleDirection(int cab) {
 }
 
 // Set function to value on or off
-void DCC::setFn( int cab, int16_t functionNumber, bool on) {
-  if (cab<=0 ) return;
+bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
+  if (cab<=0 ) return false;
+  if (functionNumber < 0) return false;
 
   if (functionNumber>28) {
     //non reminding advanced binary bit set
@@ -183,11 +184,11 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
-    return;
+    return true;
   }
 
   int reg = lookupSpeedTable(cab);
-  if (reg<0) return;
+  if (reg<0) return false;
 
   // Take care of functions:
   // Set state of function
@@ -202,6 +203,7 @@ void DCC::setFn( int cab, int16_t functionNumber, bool on) {
     updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }
+  return true;
 }
 
 // Flip function state
