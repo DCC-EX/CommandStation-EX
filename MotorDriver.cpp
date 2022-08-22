@@ -313,7 +313,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	  lastCurrent = -lastCurrent;
 	  setPower(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
 	  if (commonFaultPin) {
-	      if (lastCurrent <= tripValue) {
+	      if (lastCurrent < tripValue) {
 		      setPower(POWERMODE::ON); // maybe other track
 	      }
 	      // Write this after the fact as we want to turn on as fast as possible
