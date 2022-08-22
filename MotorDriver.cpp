@@ -26,10 +26,14 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#define ADC_INPUT_MAX_VALUE 1023 // 10 bit ADC
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include <driver/adc.h>
 #include <soc/sens_reg.h>
 #include <soc/sens_struct.h>
+#undef ADC_INPUT_MAX_VALUE
+#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
 #define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
 
 int IRAM_ATTR local_adc1_get_raw(int channel) {
@@ -103,7 +107,6 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
     senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
-    DIAG(F("senseOffset c=%d"), senseOffset);
 #else
     pinMode(currentPin, INPUT);
     senseOffset=analogRead(currentPin); // value of sensor at zero current
@@ -121,11 +124,23 @@ MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8
   senseFactorInternal=sense_factor * senseScale; 
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=mA2raw(trip_milliamps);
-  
+
+  if (rawCurrentTripValue + senseOffset > ADC_INPUT_MAX_VALUE) {
+    // This would mean that the values obtained from the ADC never
+    // can reach the trip value. So independent of the current, the
+    // short circuit protection would never trip. So we adjust the
+    // trip value so that it is tiggered when the ADC reports it's
+    // maximum value instead.
+
+    //    DIAG(F("Changing short detection value from %d to %d mA"),
+    // raw2mA(rawCurrentTripValue), raw2mA(ADC_INPUT_MAX_VALUE-senseOffset));
+    rawCurrentTripValue=ADC_INPUT_MAX_VALUE-senseOffset;
+  }
+
   if (currentPin==UNUSED_PIN) 
-    DIAG(F("MotorDriver ** WARNING ** No current or short detection"));  
+    DIAG(F("** WARNING ** No current or short detection"));
   else  {
-    DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurrentTripValue(relative to offset)=%d"),
+    DIAG(F("CurrentPin=A%d, Offset=%d, TripValue=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
 
     // self testing diagnostic for the non-float converters... may be removed when happy
