@@ -39,37 +39,52 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+// The MotorDriver definition is:
+//
 // MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin,
 //             float senseFactor, unsigned int tripMilliamps, byte faultPin);
 //
-// If the brakePin is negative that means the sense
+// power_pin:     Turns the board on/off. Often called ENABLE or PWM on the shield
+// signal_pin:    Where the DCC signal goes in. Often called DIR on the shield
+// signal_pin2:   Inverse of signal_pin. A few shields need this as well, can be replace by hardware inverter
+// brake_pin:     When tuned on, brake is set - output shortened (*)
+// current_pin:   Current sense voltage pin from shield to ADC
+// senseFactor:   Relation between volts on current_pin and actual output current
+// tripMilliamps: Short circuit trip limit in milliampere, max 32767 (32.767A)
+// faultPin:      Some shields have a pin to to report a fault condition to the uCPU. High when fault occurs
+//
+// (*) If the brake_pin is negative that means the sense
 // of the brake pin on the motor bridge is inverted
 // (HIGH == release brake)
-//
-// Arduino standard Motor Shield
-#if defined(ARDUINO_ARCH_SAMD)
-// PMA - Setup for SAMD21 Sparkfun DEV board
-// senseFactor for 3.3v systems is 1.95 as calculated when using 10-bit A/D samples,
-// and for 12-bit samples it's more like 0.488, but we probably need to tweak both these
-#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 2000, UNUSED_PIN)
-#elif defined(ARDUINO_ARCH_ESP32)
-#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 36/*A4*/, 0.57, 2000, UNUSED_PIN), \
-    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 39/*A5*/, 0.57, 2000, UNUSED_PIN)
-#else
-#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 2.99, 2000, UNUSED_PIN)
-#endif
 
-// Setup for SAMD21 Sparkfun DEV board using Arduino standard Motor Shield R3 (MUST be R3 for 3v3 compatibility!!)
-// senseFactor for 3.3v systems is 1.95 as calculated when using 10-bit A/D samples,
-// and for 12-bit samples it's more like 0.488, but we probably need to tweak both these
-#define SAMD_STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                             \
-                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 2000, UNUSED_PIN)
+// Arduino STANDARD Motor Shield, used on different architectures:
+
+#if defined(ARDUINO_ARCH_SAMD)
+// Setup for SAMD21 Sparkfun DEV board using Arduino standard Motor Shield R3 (MUST be R3
+// for 3v3 compatibility!!) senseFactor for 3.3v systems is 1.95 as calculated when using
+// 10-bit A/D samples, and for 12-bit samples it's more like 0.488, but we probably need
+// to tweak both these
+#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
+                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 1.95, 1500, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.95, 1500, UNUSED_PIN)
+#define SAMD_STANDARD_MOTOR_SHIELD STANDARD_MOTOR_SHIELD
+
+#elif defined(ARDUINO_ARCH_ESP32)
+// STANDARD shield on an ESPDUINO-32 (ESP32 in Uno form factor). The shield must be eiter the
+// 3.3V compatible R3 version or it has to be modified to not supply more than 3.3V to the
+// analog inputs. Here we use analog inputs A4 and A5 as A0 and A1 are wired in a way so that
+// they are not useable at the same time as WiFi (what a bummer). The numbers below are the
+// actual GPIO numbers. In comments the numbers the pins have on an Uno.
+#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
+    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 36/*A4*/, 0.70, 1500, UNUSED_PIN), \
+    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 39/*A5*/, 0.70, 1500, UNUSED_PIN)
+
+#else
+// STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
+#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
+                              new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 2.99, 1500, UNUSED_PIN)
+#endif
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \
@@ -87,9 +102,13 @@
 // See Pololu dial_mc33926_shield_schematic.pdf and truth table on page 17 of the MC33926 data sheet.
 
 // Pololu Dual TB9051FTG Motor Shield
-// This is the shield without modifications which means
-// no HA waveform and no RailCom on an Arduino Mega 2560
-#define POLOLU_TB9051FTG F("POLOLU_TB9051FTG"),                            \
+// This is the shield without modifications. Unfortunately the TB9051FTG driver chip on
+// the shield makes short delays when direction is switched. That means that the chip
+// can NOT provide a standard conformant DCC signal independent how hard we try. If your
+// Decoders tolerate that signal, use it by all mean but it is not recommended. Without
+// modifications it uses the following pins below which means no HA waveform and no
+// RailCom on an Arduino Mega 2560 but the DCC signal is broken anyway.
+#define POLOLU_TB9051FTG F("POLOLU_TB9051FTG"),              \
    new MotorDriver(2, 7, UNUSED_PIN,  -9, A0, 10, 2500,  6), \
    new MotorDriver(4, 8, UNUSED_PIN, -10, A1, 10, 2500, 12)
 
@@ -105,17 +124,17 @@
 
 // FunduMoto Motor Shield
 #define FUNDUMOTO_SHIELD F("FUNDUMOTO_SHIELD"),                                              \
-                         new MotorDriver(10, 12, UNUSED_PIN, 9, A0, 2.99, 2000, UNUSED_PIN), \
-                         new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+                         new MotorDriver(10, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
+                         new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 
 // IBT_2 Motor Board for Main and Arduino Motor Shield for Prog
 #define IBT_2_WITH_ARDUINO F("IBT_2_WITH_ARDUINO_SHIELD"),                                              \
                          new MotorDriver(4, 5, 6, UNUSED_PIN, A5, 41.54, 5000, UNUSED_PIN), \
-                         new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+                         new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 // YFROBOT Motor Shield (V3.1)
 #define YFROBOT_MOTOR_SHIELD F("YFROBOT_MOTOR_SHIELD"), \
-    new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
-    new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+    new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 1500, UNUSED_PIN), \
+    new MotorDriver(6, 7, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 
 // Makeblock ORION UNO like sized board with integrated motor driver
 // This is like an Uno with H-bridge and RJ12 contacts instead of pin rows.
@@ -132,7 +151,7 @@
 // to an NANO EVERY board. You have to make the connectons from the shield to the board
 // as in this example or adjust the values yourself.
 #define NANOEVERY_EXAMPLE F("NANOEVERY_EXAMPLE"), \
- new MotorDriver(5,  6, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN),\
- new MotorDriver(9, 10, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+ new MotorDriver(5,  6, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 1500, UNUSED_PIN),\
+ new MotorDriver(9, 10, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 
 #endif
