@@ -4,7 +4,12 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.2 rc1"
+#define VERSION "4.2.3 rc1"
+// 4.2.3 Bugfix direction when togging between MAIN and DC
+//       Bugfix return fail when F/f argument out of range
+//       More error checking for out of bounds motor driver current trip limit
+// 4.2.2 ESP32 beta
+//       JOIN/UMJOIN on ESP32
 // 4.2.1 ESP32 alpha
 //       Ready for alpha test on ESP32. Track switching with <=> untested
 //       Send DCC signal on MAIN

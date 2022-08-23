@@ -121,8 +121,7 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
-  __attribute__((always_inline)) inline void setSignal( bool high, bool interruptContext=false) {
-      if (!interruptContext) {noInterrupts();}
+  __attribute__((always_inline)) inline void setSignal( bool high) {
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
@@ -136,7 +135,6 @@ class MotorDriver {
 	  if (dualSignal) setHIGH(fastSignalPin2);
 	}
       }
-      if (!interruptContext) {interrupts();}
     };
     inline void enableSignal(bool on) {
       if (on)

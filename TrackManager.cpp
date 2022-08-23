@@ -95,7 +95,7 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTA(shadowPORTA=PORTA);
   HAVE_PORTB(shadowPORTB=PORTB);
   HAVE_PORTC(shadowPORTC=PORTC);
-  APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on, true));
+  APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
   HAVE_PORTC(PORTC=shadowPORTC);
@@ -113,7 +113,7 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTA(shadowPORTA=PORTA);
   HAVE_PORTB(shadowPORTB=PORTB);
   HAVE_PORTC(shadowPORTC=PORTC);
-  APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on, true));
+  APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
   HAVE_PORTC(PORTC=shadowPORTC);
@@ -169,17 +169,11 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     trackDCAddr[trackToSet]=dcAddr;
     
     // When a track is switched, we must clear any side effects of its previous 
-    // state, otherwise trains run away or just dont move.  
-    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
-        // DC tracks need to be given speed of the throttle for that cab address
-        // otherwise will not match other tracks on same cab.
-        // This also needs to allow for inverted DCX
-        applyDCSpeed(trackToSet);
- 
-    }
-    else {
+    // state, otherwise trains run away or just dont move.
+
+    // This can be done BEFORE the PWM-Timer evaluation (methinks)
+    if (!(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)) {
       // DCC tracks need to have set the PWM to zero or they will not work.
-      // 128 is speed=0 and dir=0 and then loosen brake.
       track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);
     }
@@ -221,9 +215,18 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
 #else
+    // For ESP32 we just reinitialize the DCC Waveform
     DCCWaveform::begin();
 #endif
-    
+
+    // This block must be AFTER the PWM-Timer modifications
+    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
+        // DC tracks need to be given speed of the throttle for that cab address
+        // otherwise will not match other tracks on same cab.
+        // This also needs to allow for inverted DCX
+        applyDCSpeed(trackToSet);
+    }
+
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(
         (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX || mode==TRACK_MODE_EXT) ?

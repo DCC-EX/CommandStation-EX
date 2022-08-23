@@ -239,20 +239,29 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (invertBrake)
     brake=255-brake;
   analogWrite(brakePin,brake);
+  //DIAG(F("DCSignal %d"), speedcode);
   if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
+    noInterrupts();
     HAVE_PORTA(shadowPORTA=PORTA);
     setSignal(tDir);
     HAVE_PORTA(PORTA=shadowPORTA);
+    interrupts();
   } else if (HAVE_PORTB(fastSignalPin.shadowinout == &PORTB)) {
+    noInterrupts();
     HAVE_PORTB(shadowPORTB=PORTB);
     setSignal(tDir);
     HAVE_PORTB(PORTB=shadowPORTB);
+    interrupts();
   } else if (HAVE_PORTC(fastSignalPin.shadowinout == &PORTC)) {
+    noInterrupts();
     HAVE_PORTC(shadowPORTC=PORTC);
     setSignal(tDir);
     HAVE_PORTC(PORTC=shadowPORTC);
+    interrupts();
   } else {
+    noInterrupts();
     setSignal(tDir);
+    interrupts();
   }
 }
 
