@@ -122,7 +122,10 @@ bool WifiESP::setup(const char *SSid,
   // clean start
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(true);
-  //WiFi.useStaticBuffers(true); // does not help either
+  // differnet settings that did not improve for haba
+  // WiFi.useStaticBuffers(true);
+  // WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  // WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SECURITY);
 
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
@@ -158,7 +161,8 @@ bool WifiESP::setup(const char *SSid,
 	DIAG(F("Wifi STA IP 2nd try %s"),WiFi.localIP().toString().c_str());
 	wifiUp = true;
       } else {
-	DIAG(F("Fail 2nd try"));
+	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
+	haveSSID=false;
       }
     }
   }
@@ -220,11 +224,22 @@ bool WifiESP::setup(const char *SSid,
   return true;
 }
 
+const char *wlerror[] = {
+			 "WL_IDLE_STATUS",
+			 "WL_NO_SSID_AVAIL",
+			 "WL_SCAN_COMPLETED",
+			 "WL_CONNECTED",
+			 "WL_CONNECT_FAILED",
+			 "WL_CONNECTION_LOST",
+			 "WL_DISCONNECTED"
+};
+
 void WifiESP::loop() {
   int clientId; //tmp loop var
 
   // really no good way to check for LISTEN especially in AP mode?
-  if (APmode || WiFi.status() == WL_CONNECTED) {
+  wl_status_t wlStatus;
+  if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
     // loop over all clients and remove inactive
     for (clientId=0; clientId<clients.size(); clientId++){
       // check if client is there and alive
@@ -302,7 +317,18 @@ void WifiESP::loop() {
 	}
       }
     }
-  } //connected
+  } else if (!APmode) { // in STA mode but not connected any more
+    // kick it again
+    DIAG(F("Wifi aborted with error %s. Kicking Wifi!"), wlStatus <= 6 ? wlerror[wlStatus] : "UNKNOWN");
+    esp_wifi_start();
+    esp_wifi_connect();
+    uint8_t tries=40;
+    while (WiFi.status() != WL_CONNECTED && tries) {
+      Serial.print('.');
+      tries--;
+      delay(500);
+    }
+  }
 
   // when loop() is running on core0 we must
   // feed the core0 wdt ourselves as yield()
