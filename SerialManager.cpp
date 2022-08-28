@@ -24,6 +24,18 @@
 #include "DCCEXParser.h"
 #include "StringFormatter.h"
 
+#ifdef ARDUINO_ARCH_ESP32
+#ifdef SERIAL_BT_COMMANDS
+#include <BluetoothSerial.h>
+//#include <BleSerial.h>
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error No Bluetooth library available
+#endif //ENABLED
+BluetoothSerial SerialBT;
+//BleSerial SerialBT;
+#endif //COMMANDS
+#endif //ESP32
+
 SerialManager * SerialManager::first=NULL;
 
 SerialManager::SerialManager(Stream * myserial) {
@@ -50,6 +62,17 @@ void SerialManager::init() {
 #ifdef SERIAL1_COMMANDS
   Serial1.begin(115200);
   new SerialManager(&Serial1);
+#endif
+#ifdef SERIAL_BT_COMMANDS
+  {
+    uint64_t chipid = ESP.getEfuseMac();
+    char idstr[16] = {0};
+    snprintf(idstr, 15, "DCCEX-%08X",
+	     __builtin_bswap32((uint32_t)(chipid>>16)));
+    SerialBT.begin(idstr);
+    new SerialManager(&SerialBT);
+    delay(1000);
+  }
 #endif
 }
 

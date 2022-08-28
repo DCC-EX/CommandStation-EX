@@ -115,6 +115,10 @@ bool WifiESP::setup(const char *SSid,
   bool wifiUp = false;
   uint8_t tries = 40;
 
+  //#ifdef SERIAL_BT_COMMANDS
+  //return false;
+  //#endif
+
   // tests
   //  enableCoreWDT(1);
   //  disableCoreWDT(0);
@@ -135,7 +139,11 @@ bool WifiESP::setup(const char *SSid,
 
   if (haveSSID && havePassword) {
     WiFi.mode(WIFI_STA);
+#ifdef SERIAL_BT_COMMANDS
+    WiFi.setSleep(true);
+#else
     WiFi.setSleep(false);
+#endif
     WiFi.setAutoReconnect(true);
     WiFi.begin(SSid, password);
     while (WiFi.status() != WL_CONNECTED && tries) {
@@ -178,7 +186,11 @@ bool WifiESP::setup(const char *SSid,
     strPass.concat(strMac);
 
     WiFi.mode(WIFI_AP);
+#ifdef SERIAL_BT_COMMANDS
+    WiFi.setSleep(true);
+#else
     WiFi.setSleep(false);
+#endif
     if (WiFi.softAP(strSSID.c_str(),
 		    havePassword ? password : strPass.c_str(),
 		    channel, false, 8)) {
@@ -319,14 +331,19 @@ void WifiESP::loop() {
     }
   } else if (!APmode) { // in STA mode but not connected any more
     // kick it again
-    DIAG(F("Wifi aborted with error %s. Kicking Wifi!"), wlStatus <= 6 ? wlerror[wlStatus] : "UNKNOWN");
-    esp_wifi_start();
-    esp_wifi_connect();
-    uint8_t tries=40;
-    while (WiFi.status() != WL_CONNECTED && tries) {
-      Serial.print('.');
-      tries--;
-      delay(500);
+    if (wlStatus <= 6) {
+      DIAG(F("Wifi aborted with error %s. Kicking Wifi!"), wlerror[wlStatus]);
+      esp_wifi_start();
+      esp_wifi_connect();
+      uint8_t tries=40;
+      while (WiFi.status() != WL_CONNECTED && tries) {
+	Serial.print('.');
+	tries--;
+	delay(500);
+      }
+    } else {
+      // all well, probably
+      //DIAG(F("Running BT"));
     }
   }
 
