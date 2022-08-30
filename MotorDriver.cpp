@@ -29,6 +29,7 @@
 #define ADC_INPUT_MAX_VALUE 1023 // 10 bit ADC
 
 #if defined(ARDUINO_ARCH_ESP32)
+#include "ESP32-fixes.h"
 #include <driver/adc.h>
 #include <soc/sens_reg.h>
 #include <soc/sens_struct.h>
@@ -229,6 +230,9 @@ int MotorDriver::getCurrentRaw() {
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
     return;
+#if defined(ARDUINO_ARCH_ESP32)
+  DCCEXanalogWriteFrequency(brakePin, 100); // set DC PWM frequency to 100Hz XXX May move to setup
+#endif
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
@@ -238,7 +242,11 @@ void MotorDriver::setDCSignal(byte speedcode) {
   else  brake = 2 * (128-tSpeed);
   if (invertBrake)
     brake=255-brake;
+#if defined(ARDUINO_ARCH_ESP32)
+  DCCEXanalogWrite(brakePin,brake);
+#else
   analogWrite(brakePin,brake);
+#endif
   //DIAG(F("DCSignal %d"), speedcode);
   if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
     noInterrupts();
