@@ -56,10 +56,17 @@ volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
 
-MotorDriver::MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
+MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
-  IODevice::write(powerPin,LOW);// set to OUTPUT and off 
+  invertPower=power_pin < 0;
+  if (invertPower) {
+    powerPin = 0-power_pin;
+    IODevice::write(powerPin,HIGH);// set to OUTPUT and off
+  } else {
+    powerPin = power_pin;
+    IODevice::write(powerPin,LOW);// set to OUTPUT and off
+  }
   
   signalPin=signal_pin;
   getFastPin(F("SIG"),signalPin,fastSignalPin);
@@ -165,14 +172,14 @@ void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
     noInterrupts();
-    IODevice::write(powerPin,HIGH);
+    IODevice::write(powerPin,invertPower ? LOW : HIGH);
     interrupts();
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
       noInterrupts();
-      IODevice::write(powerPin,LOW);
+      IODevice::write(powerPin,invertPower ? HIGH : LOW);
       interrupts();
   }
   powerMode=mode; 
@@ -232,6 +239,13 @@ void MotorDriver::setDCSignal(byte speedcode) {
     return;
 #if defined(ARDUINO_ARCH_ESP32)
   DCCEXanalogWriteFrequency(brakePin, 100); // set DC PWM frequency to 100Hz XXX May move to setup
+#endif
+#if defined(ARDUINO_AVR_UNO)
+  TCCR2B = TCCR2B & B11111000 | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
+#endif
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  TCCR2B = TCCR2B & B11111000 | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
+  TCCR4B = TCCR4B & B11111000 | B00000100; // same for timer 4 but maxcount and thus divisor differs
 #endif
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127

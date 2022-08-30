@@ -111,7 +111,7 @@ enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 class MotorDriver {
   public:
     
-    MotorDriver(VPIN power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
+    MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
     void setPower( POWERMODE mode);
     POWERMODE getPower() { return powerMode;}
@@ -194,6 +194,7 @@ class MotorDriver {
     FASTPIN fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
     bool dualSignal;       // true to use signalPin2
     bool invertBrake;       // brake pin passed as negative means pin is inverted
+    bool invertPower;       // power pin passed as negative means pin is inverted
     
     // Raw to milliamp conversion factors avoiding float data types.
     // Milliamps=rawADCreading * sensefactorInternal / senseScale
