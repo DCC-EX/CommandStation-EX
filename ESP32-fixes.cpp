@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #include "ESP32-fixes.h"
 
@@ -57,3 +58,4 @@ void DCCEXanalogWrite(uint8_t pin, int value) {
     ledcWrite(pin_to_channel[pin], value);
   }
 }
+#endif

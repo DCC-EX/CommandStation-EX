@@ -17,8 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ARDUINO_ARCH_ESP32
 #pragma once
 #include <Arduino.h>
 void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
 void DCCEXanalogWrite(uint8_t pin, int value);
+#endif
 
