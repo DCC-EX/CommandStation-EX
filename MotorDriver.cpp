@@ -241,11 +241,11 @@ void MotorDriver::setDCSignal(byte speedcode) {
   DCCEXanalogWriteFrequency(brakePin, 100); // set DC PWM frequency to 100Hz XXX May move to setup
 #endif
 #if defined(ARDUINO_AVR_UNO)
-  TCCR2B = TCCR2B & B11111000 | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
+  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
 #endif
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  TCCR2B = TCCR2B & B11111000 | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
-  TCCR4B = TCCR4B & B11111000 | B00000100; // same for timer 4 but maxcount and thus divisor differs
+  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
+  TCCR4B = (TCCR4B & B11111000) | B00000100; // same for timer 4 but maxcount and thus divisor differs
 #endif
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127

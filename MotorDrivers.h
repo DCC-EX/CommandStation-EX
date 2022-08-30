@@ -127,7 +127,7 @@
 
 // FunduMoto Motor Shield
 #define FUNDUMOTO_SHIELD F("FUNDUMOTO_SHIELD"),                                              \
-                         new MotorDriver(10, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
+                         new MotorDriver(10, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 1500, UNUSED_PIN), \
                          new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 
 // IBT_2 Motor Board for Main and Arduino Motor Shield for Prog
