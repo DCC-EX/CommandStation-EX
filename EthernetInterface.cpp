@@ -36,7 +36,15 @@ EthernetInterface * EthernetInterface::singleton=NULL;
 void EthernetInterface::setup()
 {
     singleton=new EthernetInterface();
-    if (!singleton->connected) singleton=NULL; 
+
+    DIAG(F("Ethernet begin OK."));
+     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      DIAG(F("Ethernet shield not found"));
+
+      singleton=NULL;
+
+      return;
+    }     
 };
 
 
@@ -60,38 +68,7 @@ EthernetInterface::EthernetInterface()
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
-    #endif
-    DIAG(F("begin OK."));
-     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      DIAG(F("Ethernet shield not found"));
-      return;
-    }
-  
-    unsigned long startmilli = millis();
-    while ((millis() - startmilli) < 5500) // Loop to give time to check for cable connection
-    {
-        if (Ethernet.linkStatus() == LinkON)
-            break;
-        DIAG(F("Ethernet waiting for link (1sec) "));
-        delay(1000);
-    }
-
-    if (Ethernet.linkStatus() == LinkOFF) {
-      DIAG(F("Ethernet cable not connected"));
-      return;
-    }
-    
-    connected=true;
-    
-    IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
-
-    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-    server->begin();
-  
-    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), IP_PORT);
-
-    outboundRing=new RingStream(OUTBOUND_RING_SIZE);     
+    #endif       
 }
 
 /**
@@ -99,8 +76,9 @@ EthernetInterface::EthernetInterface()
  * 
  */
 void EthernetInterface::loop()
-{
-    if (!singleton) return;
+{    
+    if(!singleton || ((!singleton->connected) && (!singleton->checkLink())))
+        return;
     
     switch (Ethernet.maintain())
     {
@@ -123,6 +101,28 @@ void EthernetInterface::loop()
 
    singleton->loop2();
 
+}
+
+bool EthernetInterface::checkLink()
+{    
+    if (Ethernet.linkStatus() != LinkON)
+        return false;
+
+    DIAG(F("Ethernet cable connected"));
+    
+    connected=true;
+    
+    IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
+
+    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+    server->begin();
+  
+    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+    LCD(5,F("Port:%d"), IP_PORT);
+
+    outboundRing=new RingStream(OUTBOUND_RING_SIZE);   
+
+    return true;
 }
 
  void EthernetInterface::loop2()
