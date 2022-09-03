@@ -32,8 +32,17 @@
 #include "DIAG.h" //PMA temp debug
 #include "DCCTimer.h"
 
-// STM32 doesn't have Serial1 defined by default
-HardwareSerial Serial1(PA10, PA15);  // Rx=PA10, Tx=PA15
+#define STM32F411RE   // PMA - ideally this ought to be derived from within the STM32 support somehow
+
+#if defined(STM32F411RE)
+// STM32F411RE doesn't have Serial1 defined by default
+HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
+#elif defined(STM32F446ZE)
+// STM32F446ZE doesn't have Serial1 defined by default
+HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F446ZE
+#else
+#warning Serial1 not defined
+#endif
 
 INTERRUPT_CALLBACK interruptHandler=0;
 // Let's use STM32's timer #11 until disabused of this notion
