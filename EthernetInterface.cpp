@@ -41,6 +41,7 @@ void EthernetInterface::setup()
      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found"));
 
+      delete singleton;
       singleton=NULL;
 
       return;
@@ -72,12 +73,23 @@ EthernetInterface::EthernetInterface()
 }
 
 /**
+ * @brief Cleanup any resources
+ * 
+ * @return none
+ */
+EthernetInterface::~EthernetInterface()
+{
+    delete server;
+    delete outboundRing;
+}
+
+/**
  * @brief Main loop for the EthernetInterface
  * 
  */
 void EthernetInterface::loop()
 {    
-    if(!singleton || ((!singleton->connected) && (!singleton->checkLink())))
+    if(!singleton || (!singleton->checkLink()))
         return;
     
     switch (Ethernet.maintain())
@@ -103,26 +115,58 @@ void EthernetInterface::loop()
 
 }
 
+/**
+ * @brief Checks ethernet link cable status and detects when it connects / disconnects
+ * 
+ * @return true when cable is connected, false otherwise
+ */
 bool EthernetInterface::checkLink()
 {    
-    if (Ethernet.linkStatus() != LinkON)
-        return false;
-
-    DIAG(F("Ethernet cable connected"));
+    if (Ethernet.linkStatus() == LinkON)
+    {
+        //if we are not connected yet, setup a new server
+        if(!connected)
+        {
+            DIAG(F("Ethernet cable connected"));
     
-    connected=true;
-    
-    IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
+            connected=true;
+            
+            IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
 
-    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-    server->begin();
-  
-    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), IP_PORT);
+            server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+            server->begin();
+        
+            LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+            LCD(5,F("Port:%d"), IP_PORT);
 
-    outboundRing=new RingStream(OUTBOUND_RING_SIZE);   
+            //
+            //only create a outboundRing it none exists, this may happen if the cable gets disconnected and connected again
+            if(!outboundRing)
+                outboundRing=new RingStream(OUTBOUND_RING_SIZE);   
+        }
 
-    return true;
+        return true;
+    }        
+    else if(connected)
+    {
+        DIAG(F("Ethernet cable disconnected"));
+        connected=false;
+
+        //clean up any client
+        for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
+        {
+            if(clients[socket].connected())
+                clients[socket].stop();
+        }            
+
+        /* tear down server */
+        delete server;
+        server = nullptr;
+
+        LCD(4,F("IP: None"));
+    }
+
+    return false;
 }
 
  void EthernetInterface::loop2()
