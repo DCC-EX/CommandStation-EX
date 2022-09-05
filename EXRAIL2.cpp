@@ -750,7 +750,7 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_RANDWAIT:
-    delayMe((micros()%operand) *100L);
+    delayMe(operand==0 ? 0 : (micros()%operand) *100L);
     break;
     
   case OPCODE_RED:

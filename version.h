@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.4 rc1"
+#define VERSION "4.2.4 rc2"
 // 4.2.4 ESP32 experimental BT support
 //       More DC configurations possible and lower frequency
 // 4.2.3 Bugfix direction when togging between MAIN and DC
