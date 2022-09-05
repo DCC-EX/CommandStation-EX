@@ -50,25 +50,23 @@
 
 class EthernetInterface {
 
- public:
-     
-     static void setup();       
-     static void loop();
-   
- private:
-     static EthernetInterface * singleton;
-     bool connected;
-     EthernetInterface();
-     ~EthernetInterface();
-     void loop2();
-
-     bool checkLink();
-
-    EthernetServer * server = nullptr;
-    EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
-    uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
-    RingStream * outboundRing = nullptr;
+public:
+  static void setup();
+  static void loop();
   
+private:
+  static EthernetInterface * singleton;
+  bool connected;
+  EthernetInterface();
+  ~EthernetInterface();
+  void loop2();
+  bool checkLink();
+
+  EthernetServer *server = nullptr;
+  EthernetClient clients[MAX_SOCK_NUM]; // accept up to MAX_SOCK_NUM client connections at the same time
+                                        // This depends on the chipset used on the Shield
+  uint8_t buffer[MAX_ETH_BUFFER+1];     // buffer used by TCP for the recv
+  RingStream * outboundRing = nullptr;
 };
 
 #endif

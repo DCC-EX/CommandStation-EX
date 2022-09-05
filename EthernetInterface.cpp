@@ -1,6 +1,7 @@
 /*
+ *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
@@ -35,17 +36,13 @@ EthernetInterface * EthernetInterface::singleton=NULL;
  */
 void EthernetInterface::setup()
 {
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    if (singleton!=NULL)
+      DIAG(F("Prog Error!"));
+  } else {
     singleton=new EthernetInterface();
-
-    DIAG(F("Ethernet begin OK."));
-     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      DIAG(F("Ethernet shield not found"));
-
-      delete singleton;
-      singleton=NULL;
-
-      return;
-    }     
+  }
+  DIAG(F("Ethernet shield %sfound"), singleton==NULL ? "not " : "");
 };
 
 
@@ -77,42 +74,35 @@ EthernetInterface::EthernetInterface()
  * 
  * @return none
  */
-EthernetInterface::~EthernetInterface()
-{
-    delete server;
-    delete outboundRing;
+EthernetInterface::~EthernetInterface() {
+  delete server;
+  delete outboundRing;
 }
 
 /**
  * @brief Main loop for the EthernetInterface
  * 
  */
-void EthernetInterface::loop()
-{    
-    if(!singleton || (!singleton->checkLink()))
-        return;
-    
-    switch (Ethernet.maintain())
-    {
-    case 1:
-        //renewed fail
-        DIAG(F("Ethernet Error: renewed fail"));
-        singleton=NULL;
-        return;
+void EthernetInterface::loop() {
+  if(!singleton || (!singleton->checkLink()))
+    return;
 
-    case 3:
-        //rebind fail
-        DIAG(F("Ethernet Error: rebind fail"));
-        singleton=NULL;
-        return;
-
-    default:
-        //nothing happened
-        break;
-    }
-
-   singleton->loop2();
-
+  switch (Ethernet.maintain()) {
+  case 1:
+    //renewed fail
+    DIAG(F("Ethernet Error: renewed fail"));
+    singleton=NULL;
+    return;
+  case 3:
+    //rebind fail
+    DIAG(F("Ethernet Error: rebind fail"));
+    singleton=NULL;
+    return;
+  default:
+    //nothing happened
+    break;
+  }
+  singleton->loop2();
 }
 
 /**
@@ -120,57 +110,40 @@ void EthernetInterface::loop()
  * 
  * @return true when cable is connected, false otherwise
  */
-bool EthernetInterface::checkLink()
-{    
-    if (Ethernet.linkStatus() == LinkON)
-    {
-        //if we are not connected yet, setup a new server
-        if(!connected)
-        {
-            DIAG(F("Ethernet cable connected"));
-    
-            connected=true;
-            
-            IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
-
-            server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-            server->begin();
-        
-            LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-            LCD(5,F("Port:%d"), IP_PORT);
-
-            //
-            //only create a outboundRing it none exists, this may happen if the cable gets disconnected and connected again
-            if(!outboundRing)
-                outboundRing=new RingStream(OUTBOUND_RING_SIZE);   
-        }
-
-        return true;
-    }        
-    else if(connected)
-    {
-        DIAG(F("Ethernet cable disconnected"));
-        connected=false;
-
-        //clean up any client
-        for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
-        {
-            if(clients[socket].connected())
-                clients[socket].stop();
-        }            
-
-        /* tear down server */
-        delete server;
-        server = nullptr;
-
-        LCD(4,F("IP: None"));
+bool EthernetInterface::checkLink() {
+  if (Ethernet.linkStatus() == LinkON) {
+    //if we are not connected yet, setup a new server
+    if(!connected) {
+      DIAG(F("Ethernet cable connected"));
+      connected=true;
+      IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
+      server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+      server->begin();
+      LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+      LCD(5,F("Port:%d"), IP_PORT);
+      // only create a outboundRing it none exists, this may happen if the cable
+      // gets disconnected and connected again
+      if(!outboundRing)
+	outboundRing=new RingStream(OUTBOUND_RING_SIZE);
     }
-
-    return false;
+    return true;
+  } else { // connected
+    DIAG(F("Ethernet cable disconnected"));
+    connected=false;
+    //clean up any client
+    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++) {
+      if(clients[socket].connected())
+	clients[socket].stop();
+    }
+    // tear down server
+    delete server;
+    server = nullptr;
+    LCD(4,F("IP: None"));
+  }
+  return false;
 }
 
- void EthernetInterface::loop2()
-{
+void EthernetInterface::loop2() {
     // get client from the server
     EthernetClient client = server->accept();
 
