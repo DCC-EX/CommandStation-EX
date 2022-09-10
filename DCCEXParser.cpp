@@ -481,6 +481,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;
         }
 
+    case '*': // Get current power status
+        CommandDistributor::broadcastPower();
+        return;
+
     case '!': // ESTOP ALL  <!>
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
         return;
