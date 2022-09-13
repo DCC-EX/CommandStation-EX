@@ -3,11 +3,11 @@
 
 #include "StringFormatter.h"
 
-
-#define VERSION "4.1.1 rc3"
+#define VERSION "4.1.1 rc4"
 // 4.1.1 Bugfix: preserve turnout format
 //       Bugfix: parse multiple commands in one buffer string correct
 //       Bugfix: </> command signal status in Exrail
+//       Bugfix: EX-RAIL read long loco addr
 // 4.1.0 ...
 //
 // 4.0.2 EXRAIL additions:
