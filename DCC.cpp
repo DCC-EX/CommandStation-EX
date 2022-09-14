@@ -498,8 +498,8 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       V0,WACK,NAKFAIL,
       SETCV, (ackOp)1,
       SETBYTEL,   // low byte of word
-      WB,WACK,    // some decoders don't ACK writes
-      VB,WACK,ITCB,
+      WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok
+      VB,WACK,ITC1,   // Some decoders do not ack and need verify
       CALLFAIL
 };
 
@@ -516,14 +516,18 @@ const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       V1,WACK,NAKFAIL,
       // Store high byte of address in cv 17
       SETCV, (ackOp)17,
-      SETBYTEH,   // high byte of word
-      WB,WACK,
-      VB,WACK,NAKFAIL,
+      SETBYTEH, // high byte of word
+      WB,WACK,      // do write
+      ITSKIP,       // if ACK, jump to SKIPTARGET
+        VB,WACK,    // try verify instead
+        ITSKIP,     // if ACK, jump to SKIPTARGET
+          CALLFAIL, // if still here, fail
+      SKIPTARGET,
       // store
       SETCV, (ackOp)18,
       SETBYTEL,   // low byte of word
-      WB,WACK,
-      VB,WACK,ITC1,   // callback(1) means Ok
+      WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok
+      VB,WACK,ITC1,   // Some decoders do not ack and need verify
       CALLFAIL
 };
 
