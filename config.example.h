@@ -196,5 +196,24 @@ The configuration file for DCC-EX Command Station
 //#define SERIAL1_COMMANDS
 //#define SERIAL2_COMMANDS
 //#define SERIAL3_COMMANDS
+//
+// BLUETOOTH SERIAL ON ESP32
+// On ESP32 you have the possibility to use the builtin BT serial to connect to
+// the CS.
+//
+// The CS shows up as a pairable BT Clasic device. Name is "DCCEX-hexnumber".
+// BT is as an additional serial port, debug messages are still sent over USB,
+// not BT serial.
+//
+// If you enable this there are some implications:
+// 1. WiFi will sleep more (as WiFi and BT share the radio. So WiFi performance
+//    may suffer
+// 2. The app will be bigger that 1.2MB, so the default partition scheme will not
+//    work any more. You need to choose a partition scheme with 2MB (or bigger).
+//    For example "NO OTA (2MB APP, 2MB SPIFFS)" in the Arduino IDE.
+// 3. There is no securuity (PIN) implemented. Everyone in radio range can pair
+//    with your CS.
+//
+//#define SERIAL_BT_COMMANDS
 
 /////////////////////////////////////////////////////////////////////////////////////

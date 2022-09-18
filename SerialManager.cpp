@@ -65,6 +65,7 @@ void SerialManager::init() {
 #endif
 #ifdef SERIAL_BT_COMMANDS
   {
+    //SerialBT.setPin("6666"); // choose other pin
     uint64_t chipid = ESP.getEfuseMac();
     char idstr[16] = {0};
     snprintf(idstr, 15, "DCCEX-%08X",
