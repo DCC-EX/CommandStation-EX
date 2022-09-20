@@ -3,7 +3,7 @@
 # This file needs to reside in the ".github/ISSUE_TEMPLATE/" folder.
 
 name: Support Request
-about: Request support or assistance
+description: Request support or assistance
 title: "[Support Request]: "
 labels:
   - Support Request
