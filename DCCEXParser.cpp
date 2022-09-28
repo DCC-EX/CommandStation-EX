@@ -497,12 +497,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 's': // <s>
-        StringFormatter::send(stream, F("<p%d>\n"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
-        StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-        Turnout::printAll(stream); //send all Turnout states
-        Output::printAll(stream);  //send all Output  states
-        Sensor::printAll(stream);  //send all Sensor  states
-        // TODO Send stats of  speed reminders table
+        parseLowerS(stream, params, p);
         return;       
 
 #ifndef DISABLE_EEPROM
@@ -831,6 +826,40 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
         break;
     }
     return false;
+}
+
+void DCCEXParser::parseLowerS(Print *stream, int16_t params, int16_t p[])
+{
+    auto version = [&stream]() {
+        StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+    };
+
+    if (params == 0) {
+        StringFormatter::send(stream, F("<p%d>\n"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
+        version();
+        Turnout::printAll(stream); //send all Turnout states
+        Output::printAll(stream);  //send all Output  states
+        Sensor::printAll(stream);  //send all Sensor  states
+        // TODO Send stats of  speed reminders table
+    } else if (params == 1) {
+        switch ((char)p[0]) {
+            case 'P': {
+                CommandDistributor::broadcastPower();
+            } break;
+            case 'V': {
+                version();
+            } break;
+            case 'T': {
+                Turnout::printAll(stream);
+            } break;
+            case 'O': {
+                Output::printAll(stream);
+            } break;
+            case 'S': {
+                Sensor::printAll(stream);
+            } break;
+        }
+    }
 }
 
 bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
