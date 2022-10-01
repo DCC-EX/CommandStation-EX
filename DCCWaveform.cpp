@@ -85,7 +85,7 @@ void DCCWaveform::interruptHandler() {
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
 
-
+  TrackManager::sampleCurrent();
   // WAVE_PENDING means we dont yet know what the next bit is
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();

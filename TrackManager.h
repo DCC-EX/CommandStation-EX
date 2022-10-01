@@ -27,8 +27,9 @@
 #include "MotorDriver.h"
 // Virtualised Motor shield multi-track hardware Interface
 
-enum TRACK_MODE : byte {TRACK_MODE_OFF, TRACK_MODE_MAIN, TRACK_MODE_PROG,
-                        TRACK_MODE_DC, TRACK_MODE_DCX, TRACK_MODE_EXT};
+// use powers of two so we can do logical and/or on the track modes in if clauses.
+enum TRACK_MODE : byte {TRACK_MODE_OFF = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
+                        TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
 
 // These constants help EXRAIL macros say SET_TRACK(2,mode) OR SET_TRACK(C,mode) etc.
 const byte TRACK_NUMBER_0=0, TRACK_NUMBER_A=0;    
@@ -75,10 +76,10 @@ class TrackManager {
     static void setJoin(bool join);
     static bool isJoined() { return progTrackSyncMain;}
     static void setJoinRelayPin(byte joinRelayPin);
+    static void sampleCurrent();
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
      static bool progTrackBoosted;   // true when prog track is not current limited
-   
     
   private:
     static void addTrack(byte t, MotorDriver* driver);

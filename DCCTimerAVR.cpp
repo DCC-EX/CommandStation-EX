@@ -44,8 +44,15 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
-    noInterrupts();          
-    ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time 
+    noInterrupts();
+    // ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time
+    // Set up ADC for free running mode
+    ADMUX=(1<<REFS0); //select AVCC as reference. We set MUX later
+    //ADCSRB = 0; //set free running mode
+    //ADCSRA = (1<<ADEN)|(1<< ADATE)|(1<<ADPS2)|(1<<ADPS0)|4;
+    ADCSRA = (1<<ADEN)|(1 << ADPS2);
+    //bitSet(ADCSRA, ADSC); //start the ADC
+
     TCCR1A = 0;
     ICR1 = CLOCK_CYCLES;
     TCNT1 = 0;   

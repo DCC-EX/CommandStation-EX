@@ -54,6 +54,40 @@ int16_t TrackManager::joinRelay=UNUSED_PIN;
 byte TrackManager::tempProgTrack=MAX_TRACKS+1;
 #endif
 
+/*
+ * sampleCurrent() runs from Interrupt
+ */
+void TrackManager::sampleCurrent() {
+  static byte tr = 0;
+  static bool waiting = false;
+  byte count = MAX_TRACKS-1;
+
+  if (waiting) {
+    if (! track[tr]->sampleCurrentFromHW()) {
+      return; // no result, continue to wait
+    }
+    // found value, advance at least one track
+    waiting = false;
+    tr++;
+    if (tr >= MAX_TRACKS) tr = 0;
+  }
+  if (!waiting) {
+    // look for a valid track to sample or until we are around
+    while (count) {
+      if (trackMode[tr] & ( TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_DCX|TRACK_MODE_EXT )) {
+	track[tr]->startCurrentFromHW();
+	waiting = true;
+	break;
+      }
+      tr++;
+      if (tr >= MAX_TRACKS) tr = 0;
+      count--;
+    }
+    if (count == 0) {
+      DIAG(F("WRONG"));
+    }
+  }
+}
 
 // The setup call is done this way so that the tracks can be in a list 
 // from the config... the tracks default to NULL in the declaration                 

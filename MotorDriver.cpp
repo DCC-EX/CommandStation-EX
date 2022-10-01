@@ -223,9 +223,13 @@ int MotorDriver::getCurrentRaw() {
 #ifdef ARDUINO_ARCH_ESP32
   current = local_adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
 #else
-  noInterrupts();
-  current = analogRead(currentPin)-senseOffset;
-  interrupts();
+  //  noInterrupts();
+  //current = analogRead(currentPin)-senseOffset;
+  current = sampleCurrent-senseOffset;
+  DIAG(F("%d %d"), current, sampleCurrentTimestamp);
+  if ((millis() - sampleCurrentTimestamp) > 3)
+    DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
+  //interrupts();
 #endif
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
@@ -233,6 +237,42 @@ int MotorDriver::getCurrentRaw() {
   return current;
    
 }
+/*
+ * This should only be called in interrupt context
+ * Copies current value from HW to cached value in
+ * Motordriver.
+ */
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
+bool MotorDriver::sampleCurrentFromHW() {
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  const byte mask = 7;
+#else
+  const byte mask = 31;
+#endif
+  byte low, high;
+  //if (!bit_is_set(ADCSRA, ADIF))
+  if (bit_is_set(ADCSRA, ADSC))
+    return false;
+  //  if ((ADMUX & mask) != (currentPin - A0))
+  //    return false;
+  low = ADCL; //must read low before high
+  high = ADCH;
+  bitSet(ADCSRA, ADIF);
+  sampleCurrent = (high << 8) | low;
+  sampleCurrentTimestamp = millis();
+  return true;
+}
+void MotorDriver::startCurrentFromHW() {
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  const byte mask = 7;
+#else
+  const byte mask = 31;
+#endif
+  ADMUX=(1<<REFS0)|((currentPin-A0) & mask); //select AVCC as reference and set MUX
+  bitSet(ADCSRA,ADSC); // start conversion
+}
+#pragma GCC pop_options
 
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
@@ -296,7 +336,8 @@ int MotorDriver::getCurrentRawInInterrupt() {
 #ifdef ARDUINO_ARCH_ESP32 //On ESP we do all in loop() instead of in interrupt
   return getCurrentRaw();
 #else
-  return analogRead(currentPin)-senseOffset;
+  //return analogRead(currentPin)-senseOffset;
+  return getCurrentRaw();
 #endif
 }  
 
