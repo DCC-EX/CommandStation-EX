@@ -59,7 +59,16 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
 
+  // Serial2 is defined by default, but also by default uses USART2's PA3 and PA2 pins
+  // USART2 is in fact used as the diag console via the debugger on STM32F411RE
+  // So let's switch Serial2 to using USART6
+  Serial2.setRx(PA12);
+  Serial2.setTx(PA11);
+
+  // Attempt to set up ADC for faster sampling
   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
+
+  // Set up timer using HAL interface
   timer.pause();
   timer.setPrescaleFactor(1);
 //  timer.setOverflow(CLOCK_CYCLES * 2);
