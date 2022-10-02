@@ -59,32 +59,39 @@ byte TrackManager::tempProgTrack=MAX_TRACKS+1;
  */
 void TrackManager::sampleCurrent() {
   static byte tr = 0;
+  byte trAtStart = tr;
   static bool waiting = false;
-  byte count = MAX_TRACKS-1;
 
   if (waiting) {
     if (! track[tr]->sampleCurrentFromHW()) {
       return; // no result, continue to wait
     }
     // found value, advance at least one track
+    // for scope debug track[1]->setBrake(0);
     waiting = false;
     tr++;
-    if (tr >= MAX_TRACKS) tr = 0;
+    if (tr > lastTrack) tr = 0;
+    if (lastTrack < 2 || trackMode[tr] & TRACK_MODE_PROG) {
+      return; // We could continue but for prog track we
+              // rather do it in next interrupt beacuse
+              // that gives us well defined sampling point.
+              // For other tracks we care less unless we
+              // have only few (max 2) tracks.
+    }
   }
   if (!waiting) {
     // look for a valid track to sample or until we are around
-    while (count) {
+    while (true) {
       if (trackMode[tr] & ( TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_DCX|TRACK_MODE_EXT )) {
 	track[tr]->startCurrentFromHW();
+	// for scope debug track[1]->setBrake(1);
 	waiting = true;
 	break;
       }
       tr++;
-      if (tr >= MAX_TRACKS) tr = 0;
-      count--;
-    }
-    if (count == 0) {
-      DIAG(F("WRONG"));
+      if (tr > lastTrack) tr = 0;
+      if (tr == trAtStart) // we are through and nothing found to do
+	return;
     }
   }
 }

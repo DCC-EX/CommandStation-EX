@@ -226,7 +226,7 @@ int MotorDriver::getCurrentRaw() {
   //  noInterrupts();
   //current = analogRead(currentPin)-senseOffset;
   current = sampleCurrent-senseOffset;
-  DIAG(F("%d %d"), current, sampleCurrentTimestamp);
+  //DIAG(F("%d %d"), current, sampleCurrentTimestamp);
   if ((millis() - sampleCurrentTimestamp) > 3)
     DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
   //interrupts();
