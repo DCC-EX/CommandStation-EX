@@ -1,6 +1,6 @@
 /*
  *  © 2021 Mike S
- *  © 2021 Harald Barth
+ *  © 2021-2022 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
@@ -48,10 +48,8 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     // ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time
     // Set up ADC for free running mode
     ADMUX=(1<<REFS0); //select AVCC as reference. We set MUX later
-    //ADCSRB = 0; //set free running mode
-    //ADCSRA = (1<<ADEN)|(1<< ADATE)|(1<<ADPS2)|(1<<ADPS0)|4;
-    ADCSRA = (1<<ADEN)|(1 << ADPS2);
-    //bitSet(ADCSRA, ADSC); //start the ADC
+    ADCSRA = (1<<ADEN)|(1 << ADPS2); // ADPS2 means divisor 32 and 16Mhz/32=500kHz.
+    //bitSet(ADCSRA, ADSC); //do not start the ADC yet. Done when we have set the MUX
 
     TCCR1A = 0;
     ICR1 = CLOCK_CYCLES;

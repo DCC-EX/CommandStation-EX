@@ -153,8 +153,12 @@ class MotorDriver {
       setDCSignal(128);
 #endif
     };
-    int  getCurrentRaw();
-    int getCurrentRawInInterrupt();
+    int getCurrentRaw() {
+      return getCurrentRaw(false);
+    }
+    int getCurrentRawInInterrupt() {
+      return getCurrentRaw(true);
+    };
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
@@ -183,9 +187,12 @@ class MotorDriver {
       isProgTrack = on;
     }
     void checkPowerOverload(bool useProgLimit, byte trackno);
+#ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
+#endif
   private:
+    int  getCurrentRaw(bool fromISR);
     bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
@@ -214,8 +221,10 @@ class MotorDriver {
     unsigned int sampleDelay;
     int progTripValue;
     int  lastCurrent;
-    unsigned long sampleCurrentTimestamp;
-    uint16_t sampleCurrent;
+#ifdef ANALOG_READ_INTERRUPT
+    volatile unsigned long sampleCurrentTimestamp;
+    volatile uint16_t sampleCurrent;
+#endif
     int maxmA;
     int tripmA;
 

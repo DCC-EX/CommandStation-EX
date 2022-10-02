@@ -213,30 +213,34 @@ bool MotorDriver::canMeasureCurrent() {
  * 
  * senseOffset handles the case where a shield returns values above or below 
  * a central value depending on direction.
+ *
+ * Bool fromISR should be adjusted dependent how function is called
  */
-int MotorDriver::getCurrentRaw() {
+int MotorDriver::getCurrentRaw(bool fromISR) {
+  (void)fromISR;
   if (currentPin==UNUSED_PIN) return 0; 
   int current;
-  // This function should NOT be called in an interruot so we 
-  // dont need to fart about saving and restoring CPU specific 
-  // interrupt registers. 
 #ifdef ARDUINO_ARCH_ESP32
   current = local_adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
 #else
-  //  noInterrupts();
-  //current = analogRead(currentPin)-senseOffset;
+#ifdef ANALOG_READ_INTERRUPT
   current = sampleCurrent-senseOffset;
-  //DIAG(F("%d %d"), current, sampleCurrentTimestamp);
   if ((millis() - sampleCurrentTimestamp) > 3)
     DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
-  //interrupts();
-#endif
+#else
+  if (!fromISR) noInterrupts();
+  current = analogRead(currentPin)-senseOffset;
+  if (!fromISR) interrupts();
+#endif //ANALOG_READ_INTERRUPT
+#endif //ARDUINO_ARCH_ESP32
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
       return (current == 0 ? -1 : -current);
   return current;
    
 }
+
+#ifdef ANALOG_READ_INTERRUPT
 /*
  * This should only be called in interrupt context
  * Copies current value from HW to cached value in
@@ -245,11 +249,6 @@ int MotorDriver::getCurrentRaw() {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 bool MotorDriver::sampleCurrentFromHW() {
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  const byte mask = 7;
-#else
-  const byte mask = 31;
-#endif
   byte low, high;
   //if (!bit_is_set(ADCSRA, ADIF))
   if (bit_is_set(ADCSRA, ADSC))
@@ -273,6 +272,7 @@ void MotorDriver::startCurrentFromHW() {
   bitSet(ADCSRA,ADSC); // start conversion
 }
 #pragma GCC pop_options
+#endif //ANALOG_READ_INTERRUPT
 
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
@@ -326,20 +326,6 @@ void MotorDriver::setDCSignal(byte speedcode) {
     interrupts();
   }
 }
-
-int MotorDriver::getCurrentRawInInterrupt() {
-  
-  // IMPORTANT:  This function must be called in Interrupt() time within the 56uS timer
-  //             The default analogRead takes ~100uS which is catastrphic
-  //             so DCCTimer has set the sample time to be much faster.  
-  if (currentPin==UNUSED_PIN) return 0; 
-#ifdef ARDUINO_ARCH_ESP32 //On ESP we do all in loop() instead of in interrupt
-  return getCurrentRaw();
-#else
-  //return analogRead(currentPin)-senseOffset;
-  return getCurrentRaw();
-#endif
-}  
 
 unsigned int MotorDriver::raw2mA( int raw) {
   return (int32_t)raw * senseFactorInternal / senseScale;

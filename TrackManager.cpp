@@ -54,6 +54,7 @@ int16_t TrackManager::joinRelay=UNUSED_PIN;
 byte TrackManager::tempProgTrack=MAX_TRACKS+1;
 #endif
 
+#ifdef ANALOG_READ_INTERRUPT
 /*
  * sampleCurrent() runs from Interrupt
  */
@@ -95,6 +96,7 @@ void TrackManager::sampleCurrent() {
     }
   }
 }
+#endif
 
 // The setup call is done this way so that the tracks can be in a list 
 // from the config... the tracks default to NULL in the declaration                 

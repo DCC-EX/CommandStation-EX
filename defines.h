@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *
  *  This file is part of CommandStation-EX
@@ -42,6 +42,11 @@
 #define HAS_ENOUGH_MEMORY
 #undef USB_SERIAL     // Teensy has this defined by default...
 #define USB_SERIAL Serial
+
+// All AVRs must read analog values from the DCC timer interrupt
+#ifdef ARDUINO_ARCH_AVR
+#define ANALOG_READ_INTERRUPT
+#endif
 
 #if defined(ARDUINO_AVR_UNO)
 #define ARDUINO_TYPE "UNO"
