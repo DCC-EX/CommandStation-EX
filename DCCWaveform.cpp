@@ -62,6 +62,7 @@ const bool signalTransform[]={
    /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::begin() {
+  Adc::begin();
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -82,7 +83,8 @@ void DCCWaveform::interruptHandler() {
   TrackManager::setPROGSignal(sigProg);
 
 #ifdef ANALOG_READ_INTERRUPT
-  TrackManager::sampleCurrent();
+  //TrackManager::sampleCurrent();
+  Adc::scan();
 #endif
 
   // Move on in the state engine

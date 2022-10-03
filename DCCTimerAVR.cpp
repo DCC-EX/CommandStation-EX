@@ -26,7 +26,6 @@
 // Please refer to DCCTimer.h for general comments about how this class works
 // This is to avoid repetition and duplication.
 #ifdef ARDUINO_ARCH_AVR
-
 #include <avr/boot.h> 
 #include <avr/wdt.h>
 #include "DCCTimer.h"
@@ -45,12 +44,6 @@ INTERRUPT_CALLBACK interruptHandler=0;
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     interruptHandler=callback;
     noInterrupts();
-    // ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time
-    // Set up ADC for free running mode
-    ADMUX=(1<<REFS0); //select AVCC as reference. We set MUX later
-    ADCSRA = (1<<ADEN)|(1 << ADPS2); // ADPS2 means divisor 32 and 16Mhz/32=500kHz.
-    //bitSet(ADCSRA, ADSC); //do not start the ADC yet. Done when we have set the MUX
-
     TCCR1A = 0;
     ICR1 = CLOCK_CYCLES;
     TCNT1 = 0;   
@@ -124,5 +117,99 @@ void DCCTimer::reset() {
   wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
   delay(50);            // wait for the prescaller time to expire
 
+}
+
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+#define NUM_ADC_INPUTS 7
+#else
+#define NUM_ADC_INPUTS 15
+#endif
+uint16_t Adc::usedpins = 0;
+int * Adc::analogvals = NULL;
+
+/*
+ * Register a new pin to be scanned
+ */
+void Adc::reg(uint8_t pin) {
+  uint8_t id = pin - A0;
+  if (id > NUM_ADC_INPUTS)
+    return;
+  if (analogvals == NULL)
+    analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+  usedpins |= (1<<id);
+}
+/*
+ * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ */
+int Adc::read(uint8_t pin) {
+  uint8_t id = pin - A0;
+  if ((usedpins & (1<<id) ) == 0)
+    return -1023;
+  // we do not need to check (analogvals == NULL)
+  // because usedpins would still be 0 in that case
+  return analogvals[id];
+}
+/*
+ * Scan function that is called from interrupt
+ */
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
+void Adc::scan() {
+  static byte id = 0;        // id and mask are the same thing but it is faster to 
+  static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
+  static bool waiting = false;
+
+  if (waiting) {
+    // look if we have a result
+    byte low, high;
+    if (bit_is_set(ADCSRA, ADSC))
+      return; // no result, continue to wait
+    // found value
+    low = ADCL; //must read low before high
+    high = ADCH;
+    bitSet(ADCSRA, ADIF);
+    analogvals[id] = (high << 8) | low;
+    // advance at least one track
+    // for scope debug TrackManager::track[1]->setBrake(0);
+    waiting = false;
+    id++;
+    mask = mask << 1;
+    if (id == NUM_ADC_INPUTS+1) {
+      id = 0;
+      mask = 1;
+    }
+  }
+  if (!waiting) {
+    if (usedpins == 0) // otherwise we would loop forever
+      return;
+    // look for a valid track to sample or until we are around
+    while (true) {
+      if (mask  & usedpins) {
+	// start new ADC aquire on id
+	ADMUX=(1<<REFS0)|id; //select AVCC as reference and set MUX
+	bitSet(ADCSRA,ADSC); // start conversion
+	// for scope debug TrackManager::track[1]->setBrake(1);
+	waiting = true;
+	return;
+      }
+      id++;
+      mask = mask << 1;
+      if (id == NUM_ADC_INPUTS+1) {
+	id = 0;
+	mask = 1;
+      }
+    }
+  }
+}
+#pragma GCC pop_options
+
+void Adc::begin() {
+  noInterrupts();
+  // ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time
+  // Set up ADC for free running mode
+  ADMUX=(1<<REFS0); //select AVCC as reference. We set MUX later
+  ADCSRA = (1<<ADEN)|(1 << ADPS2); // ADPS2 means divisor 32 and 16Mhz/32=500kHz.
+  //bitSet(ADCSRA, ADSC); //do not start the ADC yet. Done when we have set the MUX
+  interrupts();
 }
 #endif

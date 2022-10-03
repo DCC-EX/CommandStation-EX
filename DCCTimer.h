@@ -93,4 +93,15 @@ private:
 
 };
 
+class Adc {
+public:
+  static void reg(uint8_t pin);
+  static int read(uint8_t pin);
+private:
+  static void scan();
+  static void begin();
+  static uint16_t usedpins;
+  static int *analogvals;
+  friend class DCCWaveform;
+  };
 #endif

@@ -117,6 +117,9 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
 #else
     pinMode(currentPin, INPUT);
+    Adc::reg(currentPin);
+    // run analogRead as Adc::read() does not have any values before
+    // the waveform has been started.
     senseOffset=analogRead(currentPin); // value of sensor at zero current
 #endif
   }
@@ -209,7 +212,7 @@ bool MotorDriver::canMeasureCurrent() {
 /*
  * Return the current reading as pin reading 0 to 1023. If the fault
  * pin is activated return a negative current to show active fault pin.
- * As there is no -0, create a little and return -1 in that case.
+ * As there is no -0, cheat a little and return -1 in that case.
  * 
  * senseOffset handles the case where a shield returns values above or below 
  * a central value depending on direction.
@@ -224,9 +227,10 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   current = local_adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
 #else
 #ifdef ANALOG_READ_INTERRUPT
-  current = sampleCurrent-senseOffset;
-  if ((millis() - sampleCurrentTimestamp) > 3)
-    DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
+  current = Adc::read(currentPin)-senseOffset;
+  //current = sampleCurrent-senseOffset;
+  //if ((millis() - sampleCurrentTimestamp) > 3)
+  //  DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
 #else
   if (!fromISR) noInterrupts();
   current = analogRead(currentPin)-senseOffset;
