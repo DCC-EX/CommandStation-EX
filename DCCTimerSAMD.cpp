@@ -1,7 +1,7 @@
 /*
  *  © 2022 Paul M Antoine
  *  © 2021 Mike S
- *  © 2021 Harald Barth
+ *  © 2021-2022 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
@@ -155,13 +155,13 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
-int Adc::init(uint8_t pin) {
+int ADCee::init(uint8_t pin) {
   return analogRead(pin);
 }
 /*
- * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
-int Adc::read(uint8_t pin, bool fromISR) {
+int ADCee::read(uint8_t pin, bool fromISR) {
   int current;
   if (!fromISR) noInterrupts();
   current = analogRead(pin);
@@ -171,10 +171,10 @@ int Adc::read(uint8_t pin, bool fromISR) {
 /*
  * Scan function that is called from interrupt
  */
-void Adc::scan() {
+void ADCee::scan() {
 }
 
-void Adc::begin() {
+void ADCee::begin() {
   noInterrupts();
   // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
   // and we need sub-100uS. This code sets it to a read speed of around 21uS, and for now

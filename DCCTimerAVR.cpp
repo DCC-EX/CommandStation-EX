@@ -124,15 +124,15 @@ void DCCTimer::reset() {
 #else
 #define NUM_ADC_INPUTS 15
 #endif
-uint16_t Adc::usedpins = 0;
-int * Adc::analogvals = NULL;
+uint16_t ADCee::usedpins = 0;
+int * ADCee::analogvals = NULL;
 
 /*
  * Register a new pin to be scanned
  * Returns current reading of pin and
  * stores that as well
  */
-int Adc::init(uint8_t pin) {
+int ADCee::init(uint8_t pin) {
   uint8_t id = pin - A0;
   if (id > NUM_ADC_INPUTS)
     return -1023;
@@ -145,9 +145,9 @@ int Adc::init(uint8_t pin) {
   return value;
 }
 /*
- * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
-int Adc::read(uint8_t pin, bool fromISR) {
+int ADCee::read(uint8_t pin, bool fromISR) {
   (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
   if ((usedpins & (1<<id) ) == 0)
@@ -161,7 +161,7 @@ int Adc::read(uint8_t pin, bool fromISR) {
  */
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void Adc::scan() {
+void ADCee::scan() {
   static byte id = 0;        // id and mask are the same thing but it is faster to 
   static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
@@ -210,7 +210,7 @@ void Adc::scan() {
 }
 #pragma GCC pop_options
 
-void Adc::begin() {
+void ADCee::begin() {
   noInterrupts();
   // ADCSRA = (ADCSRA & 0b11111000) | 0b00000100;   // speed up analogRead sample time
   // Set up ADC for free running mode

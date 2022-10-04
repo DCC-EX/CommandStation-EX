@@ -62,7 +62,7 @@ const bool signalTransform[]={
    /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::begin() {
-  Adc::begin();
+  ADCee::begin();
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -82,8 +82,8 @@ void DCCWaveform::interruptHandler() {
   TrackManager::setDCCSignal(sigMain);
   TrackManager::setPROGSignal(sigProg);
 
-  // Refresh the values in the Adc object buffering the values of the ADC HW
-  Adc::scan();
+  // Refresh the values in the ADCee object buffering the values of the ADC HW
+  ADCee::scan();
 
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    

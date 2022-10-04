@@ -1,7 +1,7 @@
 /*
  *  © 2022 Paul M Antoine
  *  © 2021 Mike S
- *  © 2021 Harald Barth
+ *  © 2021-2022 Harald Barth
  *  © 2021 Fred Decker
  *  All rights reserved.
  *  
@@ -93,7 +93,7 @@ private:
 
 };
 
-class Adc {
+class ADCee {
 public:
   // On architectures that use the analog read during DCC waveform
   // with specially configured ADC, for example AVR, init must be

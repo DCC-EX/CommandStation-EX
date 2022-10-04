@@ -150,24 +150,24 @@ int DCCTimer::freeMemory() {
 void DCCTimer::reset() {
    ESP.restart();
 }
-int Adc::init(uint8_t pin) {
+int ADCee::init(uint8_t pin) {
   pinMode(pin, ANALOG);
   adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_DB_11);
   return local_adc1_get_raw(pinToADC1Channel(pin));
 }
 /*
- * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
-int Adc::read(uint8_t pin, bool fromISR) {
+int ADCee::read(uint8_t pin, bool fromISR) {
   return local_adc1_get_raw(pinToADC1Channel(pin));
 }
 /*
  * Scan function that is called from interrupt
  */
-void Adc::scan() {
+void ADCee::scan() {
 }
 
-void Adc::begin() {
+void ADCee::begin() {
   adc1_config_width(ADC_WIDTH_BIT_12);
 }
 
