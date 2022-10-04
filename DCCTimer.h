@@ -95,8 +95,12 @@ private:
 
 class Adc {
 public:
-  static void reg(uint8_t pin);
-  static int read(uint8_t pin);
+  // On architectures that use the analog read during DCC waveform
+  // with specially configured ADC, for example AVR, init must be
+  // called PRIOR to the start of the waveform. It returns the
+  // current value so that an offset can be initialized.
+  static int init(uint8_t pin);
+  static int read(uint8_t pin, bool fromISR);
 private:
   static void scan();
   static void begin();

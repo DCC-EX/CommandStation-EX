@@ -82,10 +82,8 @@ void DCCWaveform::interruptHandler() {
   TrackManager::setDCCSignal(sigMain);
   TrackManager::setPROGSignal(sigProg);
 
-#ifdef ANALOG_READ_INTERRUPT
-  //TrackManager::sampleCurrent();
+  // Refresh the values in the Adc object buffering the values of the ADC HW
   Adc::scan();
-#endif
 
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    

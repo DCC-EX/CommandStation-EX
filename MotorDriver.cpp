@@ -30,24 +30,6 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "ESP32-fixes.h"
-#include <driver/adc.h>
-#include <soc/sens_reg.h>
-#include <soc/sens_struct.h>
-#undef ADC_INPUT_MAX_VALUE
-#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
-#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
-
-int IRAM_ATTR local_adc1_get_raw(int channel) {
-  uint16_t adc_value;
-  SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
-  while (SENS.sar_slave_addr1.meas_status != 0);
-  SENS.sar_meas_start1.meas1_start_sar = 0;
-  SENS.sar_meas_start1.meas1_start_sar = 1;
-  while (SENS.sar_meas_start1.meas1_done_sar == 0);
-  adc_value = SENS.sar_meas_start1.meas1_data_sar;
-  return adc_value;
-}
-
 #endif
 
 bool MotorDriver::commonFaultPin=false;
@@ -110,18 +92,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   
   currentPin=current_pin;
   if (currentPin!=UNUSED_PIN) {
-#ifdef ARDUINO_ARCH_ESP32
-    pinMode(currentPin, ANALOG);
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(pinToADC1Channel(currentPin),ADC_ATTEN_DB_11);
-    senseOffset = adc1_get_raw(pinToADC1Channel(currentPin));
-#else
-    pinMode(currentPin, INPUT);
-    Adc::reg(currentPin);
-    // run analogRead as Adc::read() does not have any values before
-    // the waveform has been started.
-    senseOffset=analogRead(currentPin); // value of sensor at zero current
-#endif
+    senseOffset = Adc::init(currentPin);
   }
 
   faultPin=fault_pin;
@@ -223,20 +194,7 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   (void)fromISR;
   if (currentPin==UNUSED_PIN) return 0; 
   int current;
-#ifdef ARDUINO_ARCH_ESP32
-  current = local_adc1_get_raw(pinToADC1Channel(currentPin))-senseOffset;
-#else
-#ifdef ANALOG_READ_INTERRUPT
-  current = Adc::read(currentPin)-senseOffset;
-  //current = sampleCurrent-senseOffset;
-  //if ((millis() - sampleCurrentTimestamp) > 3)
-  //  DIAG(F("Current sample old %d"), millis() - sampleCurrentTimestamp);
-#else
-  if (!fromISR) noInterrupts();
-  current = analogRead(currentPin)-senseOffset;
-  if (!fromISR) interrupts();
-#endif //ANALOG_READ_INTERRUPT
-#endif //ARDUINO_ARCH_ESP32
+  current = Adc::read(currentPin, fromISR)-senseOffset;
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
       return (current == 0 ? -1 : -current);

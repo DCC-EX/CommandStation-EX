@@ -425,7 +425,7 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
         return; 
     }
       
-    int current=progDriver->getCurrentRawInInterrupt();
+    int current=progDriver->getCurrentRaw(true); // true means "from interrupt"
     numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)

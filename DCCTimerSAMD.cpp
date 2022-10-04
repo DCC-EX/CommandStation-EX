@@ -37,24 +37,6 @@ INTERRUPT_CALLBACK interruptHandler=0;
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
-
-  // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
-  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and for now
-  // enables 10-bit mode, although 12-bit is possible
-  ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
-  while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
-
-  ADC->CTRLB.reg &= 0b1111100011111111;          // mask PRESCALER bits
-  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |  // divide Clock by 64
-                    ADC_CTRLB_RESSEL_10BIT;      // Result on 10 bits default, 12 bits possible
-
-  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
-                     ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
-  ADC->SAMPCTRL.reg = 0x00;                      // sampling Time Length = 0
-
-  ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
-  while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
-
   // Timer setup - setup clock sources first
   REG_GCLK_GENDIV =   GCLK_GENDIV_DIV(1) |            // Divide 48MHz by 1
                       GCLK_GENDIV_ID(4);              // Apply to GCLK4
@@ -173,4 +155,43 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+int Adc::init(uint8_t pin) {
+  return analogRead(pin);
+}
+/*
+ * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ */
+int Adc::read(uint8_t pin, bool fromISR) {
+  int current;
+  if (!fromISR) noInterrupts();
+  current = analogRead(pin);
+  if (!fromISR) interrupts();
+  return current;
+}
+/*
+ * Scan function that is called from interrupt
+ */
+void Adc::scan() {
+}
+
+void Adc::begin() {
+  noInterrupts();
+  // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
+  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and for now
+  // enables 10-bit mode, although 12-bit is possible
+  ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
+
+  ADC->CTRLB.reg &= 0b1111100011111111;          // mask PRESCALER bits
+  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |  // divide Clock by 64
+                    ADC_CTRLB_RESSEL_10BIT;      // Result on 10 bits default, 12 bits possible
+
+  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
+                     ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
+  ADC->SAMPCTRL.reg = 0x00;                      // sampling Time Length = 0
+
+  ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
+  while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
+  interrupts();
+}
 #endif

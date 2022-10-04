@@ -129,19 +129,26 @@ int * Adc::analogvals = NULL;
 
 /*
  * Register a new pin to be scanned
+ * Returns current reading of pin and
+ * stores that as well
  */
-void Adc::reg(uint8_t pin) {
+int Adc::init(uint8_t pin) {
   uint8_t id = pin - A0;
   if (id > NUM_ADC_INPUTS)
-    return;
+    return -1023;
+  pinMode(pin, INPUT);
+  int value = analogRead(pin);
   if (analogvals == NULL)
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+  analogvals[id] = value;
   usedpins |= (1<<id);
+  return value;
 }
 /*
  * Read function Adc::read(pin) to get value instead of analogRead(pin)
  */
-int Adc::read(uint8_t pin) {
+int Adc::read(uint8_t pin, bool fromISR) {
+  (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
   if ((usedpins & (1<<id) ) == 0)
     return -1023;

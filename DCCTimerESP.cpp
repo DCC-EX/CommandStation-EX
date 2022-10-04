@@ -78,6 +78,23 @@ int DCCTimer::freeMemory() {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef ARDUINO_ARCH_ESP32
+#include <driver/adc.h>
+#include <soc/sens_reg.h>
+#include <soc/sens_struct.h>
+#undef ADC_INPUT_MAX_VALUE
+#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
+#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
+
+int IRAM_ATTR local_adc1_get_raw(int channel) {
+  uint16_t adc_value;
+  SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
+  while (SENS.sar_slave_addr1.meas_status != 0);
+  SENS.sar_meas_start1.meas1_start_sar = 0;
+  SENS.sar_meas_start1.meas1_start_sar = 1;
+  while (SENS.sar_meas_start1.meas1_done_sar == 0);
+  adc_value = SENS.sar_meas_start1.meas1_data_sar;
+  return adc_value;
+}
 
 #include "DCCTimer.h"
 INTERRUPT_CALLBACK interruptHandler=0;
@@ -133,5 +150,26 @@ int DCCTimer::freeMemory() {
 void DCCTimer::reset() {
    ESP.restart();
 }
-#endif
+int Adc::init(uint8_t pin) {
+  pinMode(pin, ANALOG);
+  adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_DB_11);
+  return local_adc1_get_raw(pinToADC1Channel(pin));
+}
+/*
+ * Read function Adc::read(pin) to get value instead of analogRead(pin)
+ */
+int Adc::read(uint8_t pin, bool fromISR) {
+  return local_adc1_get_raw(pinToADC1Channel(pin));
+}
+/*
+ * Scan function that is called from interrupt
+ */
+void Adc::scan() {
+}
+
+void Adc::begin() {
+  adc1_config_width(ADC_WIDTH_BIT_12);
+}
+
+#endif //ESP32
 

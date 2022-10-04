@@ -153,12 +153,7 @@ class MotorDriver {
       setDCSignal(128);
 #endif
     };
-    int getCurrentRaw() {
-      return getCurrentRaw(false);
-    }
-    int getCurrentRawInInterrupt() {
-      return getCurrentRaw(true);
-    };
+    int  getCurrentRaw(bool fromISR=false);
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
@@ -192,7 +187,6 @@ class MotorDriver {
     void startCurrentFromHW();
 #endif
   private:
-    int  getCurrentRaw(bool fromISR);
     bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
