@@ -118,10 +118,6 @@ class DCCWaveform {
     inline bool canMeasureCurrent() {
       return motorDriver->canMeasureCurrent();
     };
-//    inline void setReportCurrent(bool newStatus, Print *stream) {
-//      sendCurrentSample = newStatus;
-//      outStream = stream;
-//    };
     inline void setAckLimit(int mA) {
 	ackLimitmA = mA;
     }
