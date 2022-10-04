@@ -72,6 +72,22 @@ class DCCWaveform {
         return motorDriver->raw2mA(lastCurrent);
       return 0;
     }
+    inline void setRMSMode(byte newMode, Print* stream) { //0: OFF 1: Broadcast mA Reading >1: Internal calc buffer size
+      outStream = stream;
+      sendCurrentSample = newMode == 1;
+      accuSize = newMode;
+      if (newMode > 1)
+      {
+        accuFact = (float)(newMode - 1) / newMode; 
+        currAccu = 0; 
+      }
+    }
+    inline float getCurrentRMS() {
+      if (accuSize == 0)
+        return 0;
+      else
+        return sqrt(currAccu / accuSize);
+    }
     inline int getMaxmA() {
       if (maxmA == 0) { //only calculate this for first request, it doesn't change
         maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue()); //TODO: replace with actual max value or calc
@@ -101,6 +117,10 @@ class DCCWaveform {
     };
     inline bool canMeasureCurrent() {
       return motorDriver->canMeasureCurrent();
+    };
+    inline void setReportCurrent(bool newStatus, Print *stream) {
+      sendCurrentSample = newStatus;
+      outStream = stream;
     };
     inline void setAckLimit(int mA) {
 	ackLimitmA = mA;
@@ -153,6 +173,11 @@ class DCCWaveform {
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 
+    bool sendCurrentSample;
+    Print* outStream;
+    volatile double currAccu = 0;
+    byte accuSize = 0;
+    float accuFact = 0;
     // ACK management (Prog track only)  
     volatile bool ackPending;
     volatile bool ackDetected;
