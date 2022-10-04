@@ -1,6 +1,7 @@
 /*
+ *  © 2022 Paul M. Antoine
  *  © 2021 Neil McKechnie
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
  *  
@@ -188,14 +189,18 @@ The configuration file for DCC-EX Command Station
 // HANDLING MULTIPLE SERIAL THROTTLES
 // The command station always operates with the default Serial port.
 // Diagnostics are only emitted on the default serial port and not broadcast.
-// Other serial throttles may be added to the Serial1, Serial2, Serial3 ports
-// which may or may not exist on your CPU. (Mega has all 3)
+// Other serial throttles may be added to the Serial1, Serial2, Serial3, Serial4,
+// Serial5, and Serial6 ports which may or may not exist on your CPU. (Mega has 3,
+// SAMD/SAMC and STM32 have up to 6.)
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
 //
 //#define SERIAL1_COMMANDS
 //#define SERIAL2_COMMANDS
 //#define SERIAL3_COMMANDS
+//#define SERIAL4_COMMANDS
+//#define SERIAL5_COMMANDS
+//#define SERIAL6_COMMANDS
 //
 // BLUETOOTH SERIAL ON ESP32
 // On ESP32 you have the possibility to use the builtin BT serial to connect to

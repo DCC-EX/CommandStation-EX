@@ -37,6 +37,11 @@
 #if defined(STM32F411RE)
 // STM32F411RE doesn't have Serial1 defined by default
 HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
+// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+// via the debugger on the Nucleo-64 STM32F411RE. It is therefore unavailable
+// for other DCC-EX uses like WiFi, DFPlayer, etc.
+// Let's define Serial6 as an additional serial port (the only other option for the F411RE)
+HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
 #elif defined(STM32F446ZE)
 // STM32F446ZE doesn't have Serial1 defined by default
 HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F446ZE
@@ -58,12 +63,6 @@ void Timer11_Handler() {
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
-
-  // Serial2 is defined by default, but also by default uses USART2's PA3 and PA2 pins
-  // USART2 is in fact used as the diag console via the debugger on STM32F411RE
-  // So let's switch Serial2 to using USART6
-  Serial2.setRx(PA12);
-  Serial2.setTx(PA11);
 
   // Attempt to set up ADC for faster sampling
   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);

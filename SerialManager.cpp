@@ -51,6 +51,18 @@ void SerialManager::init() {
   while (!USB_SERIAL && millis() < 5000); // wait max 5s for Serial to start
   new SerialManager(&USB_SERIAL);
   
+#ifdef SERIAL6_COMMANDS
+  Serial6.begin(115200);
+  new SerialManager(&Serial6);
+#endif
+#ifdef SERIAL5_COMMANDS
+  Serial5.begin(115200);
+  new SerialManager(&Serial5);
+#endif
+#ifdef SERIAL4_COMMANDS
+  Serial4.begin(115200);
+  new SerialManager(&Serial4);
+#endif
 #ifdef SERIAL3_COMMANDS
   Serial3.begin(115200);
   new SerialManager(&Serial3);
