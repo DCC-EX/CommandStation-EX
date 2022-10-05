@@ -26,10 +26,12 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-#define ADC_INPUT_MAX_VALUE 1023 // 10 bit ADC
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "ESP32-fixes.h"
+#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC (should be moved to ADCee as well)
+#else
+#define ADC_INPUT_MAX_VALUE 1023 // 10 bit ADC
 #endif
 
 bool MotorDriver::commonFaultPin=false;
@@ -290,9 +292,11 @@ void MotorDriver::setDCSignal(byte speedcode) {
 }
 
 unsigned int MotorDriver::raw2mA( int raw) {
+  //DIAG(F("%d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);
   return (int32_t)raw * senseFactorInternal / senseScale;
 }
 unsigned int MotorDriver::mA2raw( unsigned int mA) {
+  //DIAG(F("%d = %d * %d / %d"), (int32_t)mA * senseScale / senseFactorInternal, mA, senseScale, senseFactorInternal);
   return (int32_t)mA * senseScale / senseFactorInternal;
 }
 
