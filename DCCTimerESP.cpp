@@ -152,8 +152,9 @@ void DCCTimer::reset() {
 }
 int ADCee::init(uint8_t pin) {
   pinMode(pin, ANALOG);
+  adc1_config_width(ADC_WIDTH_BIT_12);
   adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_DB_11);
-  return local_adc1_get_raw(pinToADC1Channel(pin));
+  return adc1_get_raw(pinToADC1Channel(pin));
 }
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
@@ -168,7 +169,6 @@ void ADCee::scan() {
 }
 
 void ADCee::begin() {
-  adc1_config_width(ADC_WIDTH_BIT_12);
 }
 
 #endif //ESP32
