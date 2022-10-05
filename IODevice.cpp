@@ -25,6 +25,7 @@
 #include "DIAG.h" 
 #include "FSH.h"
 #include "IO_MCP23017.h"
+#include "DCCTimer.h"
 
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
@@ -195,7 +196,17 @@ int IODevice::readAnalogue(VPIN vpin) {
 #ifdef DIAG_IO
   DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
 #endif
-  return false;
+  return -1023;
+}
+int IODevice::configureAnalogIn(VPIN vpin) {
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) 
+      return dev->_configureAnalogIn(vpin);
+  }
+#ifdef DIAG_IO
+  DIAG(F("IODevice::configureAnalogIn(): Vpin %d not found!"), (int)vpin);
+#endif
+  return -1023;
 }
 
 // Write value to virtual pin(s).  If multiple devices are allocated the same pin
@@ -361,11 +372,10 @@ int IODevice::read(VPIN vpin) {
   return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
 }
 int IODevice::readAnalogue(VPIN vpin) {
-  pinMode(vpin, INPUT);
-  noInterrupts();
-  int value = analogRead(vpin);
-  interrupts();
-  return value;
+  return ADCee::read(vpin);
+}
+int IODevice::configureAnalogIn(VPIN vpin) {
+  return ADCee::init(vpin);
 }
 void IODevice::loop() {}
 void IODevice::DumpAll() {
@@ -467,7 +477,18 @@ int ArduinoPins::_read(VPIN vpin) {
 
 // Device-specific readAnalogue function (analogue input)
 int ArduinoPins::_readAnalogue(VPIN vpin) {
-  int pin = vpin;
+  if (vpin > 255) return -1023;
+  uint8_t pin = vpin;
+  int value = ADCee::read(pin);
+
+  #ifdef DIAG_IO
+  DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
+  #endif
+  return value;
+}
+int ArduinoPins::_configureAnalogIn(VPIN vpin) {
+  if (vpin > 255) return -1023;
+  uint8_t pin = vpin;
   uint8_t mask = 1 << ((pin-_firstVpin) % 8);
   uint8_t index = (pin-_firstVpin) / 8;
   if (_pinModes[index] & mask) {
@@ -479,22 +500,9 @@ int ArduinoPins::_readAnalogue(VPIN vpin) {
     else
       pinMode(pin, INPUT);
   }
-
-  // Since AnalogRead is also called from interrupt code, disable interrupts 
-  // while we're using it.  There's only one ADC shared by all analogue inputs 
-  // on the Arduino, so we don't want interruptions.
-  //******************************************************************************
-  // NOTE: If the HAL is running on a computer without the DCC signal generator,
-  // then interrupts needn't be disabled.  Also, the DCC signal generator puts
-  // the ADC into fast mode, so if it isn't present, analogueRead calls will be much
-  // slower!!
-  //******************************************************************************
-  noInterrupts();
-  int value = analogRead(pin);
-  interrupts();
-
+  int value = ADCee::init(pin);
   #ifdef DIAG_IO
-  DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
+  DIAG(F("configureAnalogIn Pin:%d Value:%d"), pin, value);
   #endif
   return value;
 }

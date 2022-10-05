@@ -180,6 +180,15 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       break;
     }
 
+    case OPCODE_ATGTE:
+    case OPCODE_ATLT:
+    case OPCODE_IFGTE:
+    case OPCODE_IFLT:
+    case OPCODE_DRIVE: {
+      IODevice::configureAnalogIn((VPIN)operand);
+      break;
+    }
+
     case OPCODE_TURNOUT: {
       VPIN id=operand;
       int addr=GET_OPERAND(1);

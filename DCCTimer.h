@@ -100,7 +100,7 @@ public:
   // called PRIOR to the start of the waveform. It returns the
   // current value so that an offset can be initialized.
   static int init(uint8_t pin);
-  static int read(uint8_t pin, bool fromISR);
+  static int read(uint8_t pin, bool fromISR=false);
 private:
   static void scan();
   static void begin();
