@@ -24,11 +24,11 @@
 
 #include <Arduino.h>
 
-#include "StringFormatter.h"
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
+#include "CommandDistributor.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
@@ -135,17 +135,17 @@ void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
   switch (powerMode) {
     case POWERMODE::OFF:
       sampleDelay = POWER_SAMPLE_OFF_WAIT;
-      if (sendCurrentSample || (accuSize > 0))
-        StringFormatter::send(outStream, F("<a %d %d>\n"), isMainTrack ? 0 : 1, 0);
+      if (sendCurrentSample) // || (accuSize > 0))
+        CommandDistributor::broadcastCurrent(isMainTrack ? 0 : 1, 0);
       break;
     case POWERMODE::ON:
       // Check current
       lastCurrent=motorDriver->getCurrentRaw();
-      if (sendCurrentSample)
-        StringFormatter::send(outStream, F("<a %d %d>\n"), isMainTrack ? 0 : 1, getCurrentmA());
-      else
-        if (accuSize > 0)
-          currAccu = (currAccu * accuFact) + (sq((float)getCurrentmA()));
+      if (sendCurrentSample) // || (accuSize > 0))
+        CommandDistributor::broadcastCurrent(isMainTrack ? 0 : 1, getCurrentmA());
+//      else
+//        if (accuSize > 0)
+//          currAccu = (currAccu * accuFact) + (sq((float)getCurrentmA()));
       if (lastCurrent < 0) {
 	  // We have a fault pin condition to take care of
 	  lastCurrent = -lastCurrent;

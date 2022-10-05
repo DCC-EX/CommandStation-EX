@@ -25,6 +25,7 @@
 #define DCCWaveform_h
 
 #include "MotorDriver.h"
+#include "StringFormatter.h"
 
 // Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
@@ -57,7 +58,6 @@ class DCCWaveform {
     static void loop(bool ackManagerActive);
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
-
     void beginTrack();
     void setPowerMode(POWERMODE);
     POWERMODE getPowerMode();
@@ -72,22 +72,21 @@ class DCCWaveform {
         return motorDriver->raw2mA(lastCurrent);
       return 0;
     }
-    inline void setRMSMode(byte newMode, Print* stream) { //0: OFF 1: Broadcast mA Reading >1: Internal calc buffer size
-      outStream = stream;
-      sendCurrentSample = newMode == 1;
-      accuSize = newMode;
-      if (newMode > 1)
-      {
-        accuFact = (float)(newMode - 1) / newMode; 
-        currAccu = 0; 
-      }
+    inline void setRMSMode(byte newMode) { //0: OFF 1: Broadcast mA Reading >1: Internal calc buffer size
+      sendCurrentSample = (newMode == 0x01);
+//      accuSize = newMode;
+//      if (newMode > 1)
+//      {
+//        accuFact = (float)(newMode - 1) / newMode; 
+//        currAccu = 0; 
+//      }
     }
-    inline float getCurrentRMS() {
-      if (accuSize == 0)
-        return 0;
-      else
-        return sqrt(currAccu / accuSize);
-    }
+//    inline float getCurrentRMS() {
+//      if (accuSize == 0)
+//        return 0;
+//      else
+//        return sqrt(currAccu / accuSize);
+//    }
     inline int getMaxmA() {
       if (maxmA == 0) { //only calculate this for first request, it doesn't change
         maxmA = motorDriver->raw2mA(motorDriver->getRawCurrentTripValue()); //TODO: replace with actual max value or calc
@@ -169,11 +168,10 @@ class DCCWaveform {
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 
-    bool sendCurrentSample;
-    Print* outStream;
-    volatile double currAccu = 0;
-    byte accuSize = 0;
-    float accuFact = 0;
+    bool sendCurrentSample = false;
+//    volatile double currAccu = 0;
+//    byte accuSize = 0;
+//    float accuFact = 0;
     // ACK management (Prog track only)  
     volatile bool ackPending;
     volatile bool ackDetected;
