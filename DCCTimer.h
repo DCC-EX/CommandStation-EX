@@ -93,19 +93,36 @@ private:
 
 };
 
+// Class ADCee implements caching of the ADC value for platforms which
+// have a too slow ADC read to wait for. On these platforms the ADC is
+// scanned continiously in the background from an ISR. On such
+// architectures that use the analog read during DCC waveform with
+// specially configured ADC, for example AVR, init must be called
+// PRIOR to the start of the waveform. It returns the current value so
+// that an offset can be initialized.
 class ADCee {
 public:
-  // On architectures that use the analog read during DCC waveform
-  // with specially configured ADC, for example AVR, init must be
-  // called PRIOR to the start of the waveform. It returns the
-  // current value so that an offset can be initialized.
+  // init does add the pin to the list of scanned pins (if this
+  // platform's implementation scans pins) and returns the first
+  // read value. It is called before the regular scan is started.
   static int init(uint8_t pin);
+  // read does read the pin value from the scanned cache or directly
+  // if this is a platform that does not scan. fromISR is a hint if
+  // it was called from ISR because for some implementations that
+  // makes a difference.
   static int read(uint8_t pin, bool fromISR=false);
 private:
+  // On platforms that scan, it is called from waveform ISR
+  // only on a regular basis.
   static void scan();
+  // begin is called for any setup that must be done before
+  // scan can be called.
   static void begin();
+  // bit array of used pins (max 16)
   static uint16_t usedpins;
+  // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;
+  // friend so that we can call scan() and begin()
   friend class DCCWaveform;
   };
 #endif
