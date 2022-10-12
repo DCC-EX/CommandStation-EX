@@ -164,7 +164,7 @@ int ADCee::init(uint8_t pin) {
 
   if (id > NUM_ADC_INPUTS)
     return -1023;
-//  pinMode(pin, INPUT);
+  analogReadResolution(12);   // Consistent with settings in ADCee::begin below
   int value = analogRead(pin);
   if (analogvals == NULL)
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
