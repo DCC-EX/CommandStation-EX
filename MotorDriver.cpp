@@ -29,9 +29,6 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "ESP32-fixes.h"
-#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC (should be moved to ADCee as well)
-#else
-#define ADC_INPUT_MAX_VALUE 1023 // 10 bit ADC
 #endif
 
 bool MotorDriver::commonFaultPin=false;
@@ -109,7 +106,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=mA2raw(trip_milliamps);
 
-  if (rawCurrentTripValue + senseOffset > ADC_INPUT_MAX_VALUE) {
+  if (rawCurrentTripValue + senseOffset > ADCee::ADCmax()) {
     // This would mean that the values obtained from the ADC never
     // can reach the trip value. So independent of the current, the
     // short circuit protection would never trip. So we adjust the
@@ -117,8 +114,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     // maximum value instead.
 
     //    DIAG(F("Changing short detection value from %d to %d mA"),
-    // raw2mA(rawCurrentTripValue), raw2mA(ADC_INPUT_MAX_VALUE-senseOffset));
-    rawCurrentTripValue=ADC_INPUT_MAX_VALUE-senseOffset;
+    // raw2mA(rawCurrentTripValue), raw2mA(ADCee::ADCmax()-senseOffset));
+    rawCurrentTripValue=ADCee::ADCmax()-senseOffset;
   }
 
   if (currentPin==UNUSED_PIN) 

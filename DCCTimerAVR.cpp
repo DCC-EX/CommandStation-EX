@@ -144,6 +144,9 @@ int ADCee::init(uint8_t pin) {
   usedpins |= (1<<id);
   return value;
 }
+inline int16_t ADCee::ADCmax() {
+  return 1023;
+}
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */

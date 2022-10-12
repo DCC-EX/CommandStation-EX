@@ -111,6 +111,8 @@ public:
   // it was called from ISR because for some implementations that
   // makes a difference.
   static int read(uint8_t pin, bool fromISR=false);
+  // returns possible max value that the ADC can return
+  static int16_t ADCmax();
 private:
   // On platforms that scan, it is called from waveform ISR
   // only on a regular basis.

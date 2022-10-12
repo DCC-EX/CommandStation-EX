@@ -156,6 +156,9 @@ int ADCee::init(uint8_t pin) {
   adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_DB_11);
   return adc1_get_raw(pinToADC1Channel(pin));
 }
+int16_t ADCee::ADCmax() {
+  return 4095;
+}
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
