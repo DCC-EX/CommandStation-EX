@@ -1,5 +1,5 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021-2022 Harald Barth
  *  © 2021 Fred Decker
@@ -28,9 +28,8 @@
 // This is to avoid repetition and duplication.
 #ifdef ARDUINO_ARCH_SAMD
 
-#include "FSH.h" //PMA temp debug
-#include "DIAG.h" //PMA temp debug
 #include "DCCTimer.h"
+#include <wiring_private.h>
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -155,36 +154,100 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+#define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
+
+uint16_t ADCee::usedpins = 0;
+int * ADCee::analogvals = NULL;
+
 int ADCee::init(uint8_t pin) {
-  return analogRead(pin);
+  uint id = pin - A0;
+
+  if (id > NUM_ADC_INPUTS)
+    return -1023;
+  pinMode(pin, INPUT);
+  int value = analogRead(pin);
+  if (analogvals == NULL)
+    analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+  analogvals[id] = value;
+  usedpins |= (1<<id);
+  
+  return value;
 }
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  int current;
-  if (!fromISR) noInterrupts();
-  current = analogRead(pin);
-  if (!fromISR) interrupts();
-  return current;
+  uint8_t id = pin - A0;
+  if ((usedpins & (1<<id) ) == 0)
+    return -1023;
+  // we do not need to check (analogvals == NULL)
+  // because usedpins would still be 0 in that case
+  return analogvals[id];
 }
 /*
  * Scan function that is called from interrupt
  */
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void ADCee::scan() {
+  static uint id = 0;        // id and mask are the same thing but it is faster to 
+  static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
+  static bool waiting = false;
+
+  if (waiting) {
+    // look if we have a result
+    if (ADC->INTFLAG.bit.RESRDY == 0)
+      return; // no result, continue to wait
+    // found value
+    analogvals[id] = ADC->RESULT.reg;
+    // Clear the Data Ready flag
+    ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY;
+    // advance at least one track
+    // for scope debug TrackManager::track[1]->setBrake(0);
+    waiting = false;
+    id++;
+    mask = mask << 1;
+    if (id == NUM_ADC_INPUTS+1) {
+      id = 0;
+      mask = 1;
+    }
+  }
+  if (!waiting) {
+    if (usedpins == 0) // otherwise we would loop forever
+      return;
+    // look for a valid track to sample or until we are around
+    while (true) {
+      if (mask  & usedpins) {
+    	  // start new ADC aquire on id
+        ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[id].ulADCChannelNumber; // Selection for the positive ADC input
+        // Start conversion
+        ADC->SWTRIG.bit.START = 1;
+	      // for scope debug TrackManager::track[1]->setBrake(1);
+	      waiting = true;
+	      return;
+      }
+      id++;
+      mask = mask << 1;
+      if (id == NUM_ADC_INPUTS+1) {
+	      id = 0;
+	      mask = 1;
+      }
+    }
+  }
 }
+#pragma GCC pop_options
 
 void ADCee::begin() {
   noInterrupts();
   // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
-  // and we need sub-100uS. This code sets it to a read speed of around 21uS, and for now
-  // enables 10-bit mode, although 12-bit is possible
+  // and we need sub-58uS. This code sets it to a read speed of around 5-6uS, and enables
+  // 12-bit mode
   ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
   while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
 
-  ADC->CTRLB.reg &= 0b1111100011111111;          // mask PRESCALER bits
-  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |  // divide Clock by 64
-                    ADC_CTRLB_RESSEL_10BIT;      // Result on 10 bits default, 12 bits possible
+  ADC->CTRLB.reg &= 0b1111100011001111;          // mask PRESCALER and RESSEL bits
+  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV16 |  // divide Clock by 16
+                    ADC_CTRLB_RESSEL_12BIT;      // Result is 12 bits, 10 bits possible
 
   ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
                      ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
