@@ -164,12 +164,16 @@ int ADCee::init(uint8_t pin) {
 
   if (id > NUM_ADC_INPUTS)
     return -1023;
-  pinMode(pin, INPUT);
+//  pinMode(pin, INPUT);
   int value = analogRead(pin);
   if (analogvals == NULL)
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
   analogvals[id] = value;
   usedpins |= (1<<id);
+
+  // Permanently configure SAMD IO MUX for that pin
+  pinPeripheral(pin, PIO_ANALOG);
+  ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[pin].ulADCChannelNumber; // Selection for the positive ADC input
   
   return value;
 }
