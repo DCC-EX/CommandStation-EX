@@ -143,6 +143,9 @@ The configuration file for DCC-EX Command Station
 // and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
 // to do that. Of course, then none of the EEPROM related commands work.
 //
+// EEPROM does not work on ESP32. So on ESP32, EEPROM will always be disabled,
+// at least until it works.
+//
 // #define DISABLE_EEPROM
 
 /////////////////////////////////////////////////////////////////////////////////////
