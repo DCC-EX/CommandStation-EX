@@ -30,6 +30,8 @@
 
 #include "DCCTimer.h"
 #include <wiring_private.h>
+#include <DIAG.h>
+#include <FSH.h>
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -161,20 +163,46 @@ int * ADCee::analogvals = NULL;
 
 int ADCee::init(uint8_t pin) {
   uint id = pin - A0;
+  int value = 0;
 
   if (id > NUM_ADC_INPUTS)
     return -1023;
-  analogReadResolution(12);   // Consistent with settings in ADCee::begin below
-  int value = analogRead(pin);
+
+  // Dummy read using Arduino library
+  analogReadResolution(12);
+  value = analogRead(pin);
+
+  // Reconfigure ADC
+  ADC->CTRLA.bit.ENABLE = 0;                      // disable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
+
+  ADC->CTRLB.reg &= 0b1111100011001111;           // mask PRESCALER and RESSEL bits
+  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |   // divide Clock by 16
+                    ADC_CTRLB_RESSEL_12BIT;       // Result 12 bits, 10 bits possible
+  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // take 1 sample at a time
+                     ADC_AVGCTRL_ADJRES(0x00ul);  // adjusting result by 0
+  ADC->SAMPCTRL.reg = 0x00ul;                     // sampling Time Length = 0
+  ADC->CTRLA.bit.ENABLE = 1;                      // enable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
+
+  // Permanently configure SAMD IO MUX for that pin
+  pinPeripheral(pin, PIO_ANALOG);
+  ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[pin].ulADCChannelNumber; // Selection for the positive ADC input
+
+  // Start conversion
+  ADC->SWTRIG.bit.START = 1;
+
+  // Wait for the conversion to be ready
+  while (ADC->INTFLAG.bit.RESRDY == 0);   // Waiting for conversion to complete
+
+  // Read the value
+  value = ADC->RESULT.reg;
+
   if (analogvals == NULL)
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
   analogvals[id] = value;
   usedpins |= (1<<id);
 
-  // Permanently configure SAMD IO MUX for that pin
-  pinPeripheral(pin, PIO_ANALOG);
-  ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[pin].ulADCChannelNumber; // Selection for the positive ADC input
-  
   return value;
 }
 int16_t ADCee::ADCmax() {
@@ -207,8 +235,6 @@ void ADCee::scan() {
       return; // no result, continue to wait
     // found value
     analogvals[id] = ADC->RESULT.reg;
-    // Clear the Data Ready flag
-    ADC->INTFLAG.reg = ADC_INTFLAG_RESRDY;
     // advance at least one track
     // for scope debug TrackManager::track[1]->setBrake(0);
     waiting = false;
@@ -226,8 +252,8 @@ void ADCee::scan() {
     while (true) {
       if (mask  & usedpins) {
     	  // start new ADC aquire on id
-        ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[id].ulADCChannelNumber; // Selection for the positive ADC input
-        // Start conversion
+        ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[id + A0].ulADCChannelNumber; // Selection for the positive ADC input
+          // Start conversion
         ADC->SWTRIG.bit.START = 1;
 	      // for scope debug TrackManager::track[1]->setBrake(1);
 	      waiting = true;
@@ -249,19 +275,18 @@ void ADCee::begin() {
   // Set up ADC to do faster reads... default for Arduino Zero platform configs is 436uS,
   // and we need sub-58uS. This code sets it to a read speed of around 5-6uS, and enables
   // 12-bit mode
-  ADC->CTRLA.bit.ENABLE = 0;              // disable ADC
-  while( ADC->STATUS.bit.SYNCBUSY == 1 ); // wait for synchronization
+  // Reconfigure ADC
+  ADC->CTRLA.bit.ENABLE = 0;                      // disable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
 
-  ADC->CTRLB.reg &= 0b1111100011001111;          // mask PRESCALER and RESSEL bits
-  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV16 |  // divide Clock by 16
-                    ADC_CTRLB_RESSEL_12BIT;      // Result is 12 bits, 10 bits possible
-
-  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |   // take 1 sample at a time
-                     ADC_AVGCTRL_ADJRES(0x00ul); // adjusting result by 0
-  ADC->SAMPCTRL.reg = 0x00;                      // sampling Time Length = 0
-
-  ADC->CTRLA.bit.ENABLE = 1;                     // enable ADC
-  while(ADC->STATUS.bit.SYNCBUSY == 1);          // wait for synchronization
+  ADC->CTRLB.reg &= 0b1111100011001111;           // mask PRESCALER and RESSEL bits
+  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |   // divide Clock by 16
+                    ADC_CTRLB_RESSEL_12BIT;       // Result 12 bits, 10 bits possible
+  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // take 1 sample at a time
+                     ADC_AVGCTRL_ADJRES(0x00ul);  // adjusting result by 0
+  ADC->SAMPCTRL.reg = 0x00ul;                     // sampling Time Length = 0
+  ADC->CTRLA.bit.ENABLE = 1;                      // enable ADC
+  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
   interrupts();
 }
 #endif
