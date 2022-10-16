@@ -113,7 +113,8 @@ void I2CManagerClass::I2C_init()
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
   NVIC_EnableIRQ(SERCOM3_IRQn);
-  NVIC_SetPriority (SERCOM3_IRQn, 0);  /* set Priority */
+  NVIC_SetPriority (SERCOM3_IRQn, SERCOM_NVIC_PRIORITY);  // Match default SERCOM priorities
+//  NVIC_SetPriority (SERCOM3_IRQn, 0);  // Set highest priority
 
   // Enable all interrupts
   s->I2CM.INTENSET.reg = SERCOM_I2CM_INTENSET_MB | SERCOM_I2CM_INTENSET_SB | SERCOM_I2CM_INTENSET_ERROR;

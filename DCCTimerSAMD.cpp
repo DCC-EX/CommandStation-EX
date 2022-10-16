@@ -30,8 +30,6 @@
 
 #include "DCCTimer.h"
 #include <wiring_private.h>
-#include <DIAG.h>
-#include <FSH.h>
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
@@ -71,7 +69,9 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 
   // Set the interrupt condition, priority and enable it in the NVIC
   TCC0->INTENSET.reg = TCC_INTENSET_OVF;      // Only interrupt on overflow
-  NVIC_SetPriority((IRQn_Type)TCC0_IRQn, 0);  // Make this highest priority
+  int USBprio = NVIC_GetPriority((IRQn_Type) USB_IRQn);  // Fetch the USB priority
+  NVIC_SetPriority((IRQn_Type)TCC0_IRQn, USBprio);  // Match the USB priority
+//  NVIC_SetPriority((IRQn_Type)TCC0_IRQn, 0);  // Make this highest priority
   NVIC_EnableIRQ((IRQn_Type)TCC0_IRQn);       // Enable the interrupt
   interrupts();
 }
