@@ -77,28 +77,38 @@ static uint8_t xstrcmp(const char *s1, const char *s2) {
 void WiThrottle::findUniqThrottle(int id, char *u) {
   WiThrottle *wtmyid = NULL;
   WiThrottle *wtmyuniq = NULL;
-  u[16] = '\0';
+
+  // search 1, look for clientid match
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
-    //DIAG(F("looking at %d as %s"),wt->clientid, wt->uniq);
-    if (wtmyid == NULL && wt->clientid == id)
+    if (wt->clientid == id) {
       wtmyid = wt;
-    if (wtmyuniq == NULL && xstrcmp(u, wt->uniq) == 0)
-      wtmyuniq = wt;
+      if (xstrcmp(u, wt->uniq) == 0) // should be most common case
+	return;
+      break;
+    }
   }
+  // search 2, look for string match
+  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
+    if (xstrcmp(u, wt->uniq) == 0) {
+      wtmyuniq = wt;
+      break;
+    }
+  }
+
+  // analyse result of the two for loops:
   if (wtmyid == NULL) {  // should not happen
     DIAG(F("Did not find my own wiThrottle handle"));
     return;
   }
-  if (wtmyid == wtmyuniq) { // all well, just return;
-    return;
-  }
+  // wtmyuniq == wtmyid has already returned in for loop 1
   if (wtmyuniq == NULL) { // register uniq in the found id
     strncpy(wtmyid->uniq, u, 16);
     wtmyid->uniq[16] = '\0';
     if (Diag::WITHROTTLE) DIAG(F("Client %d registered as %s"),wtmyid->clientid, wtmyid->uniq);
     return;
   }
-  // do the copy (all other options above)
+  // if we get here wtmyid and wtmyuniq point on objects but differnet ones
+  // so we need to do the copy (all other options covered above)
   for(int n=0; n < MAX_MY_LOCO; n++)
     wtmyid->myLocos[n] = wtmyuniq->myLocos[n];
   wtmyid->heartBeatEnable = wtmyuniq->heartBeatEnable;
