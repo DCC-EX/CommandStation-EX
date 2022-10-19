@@ -161,7 +161,7 @@ protected:
     uint8_t pin = vpin - _firstVpin;
  
     // Validate parameter.
-    volume = min(30,volume);
+    volume = min((uint8_t)30,volume);
 
     if (pin == 0) {
       // Play track 

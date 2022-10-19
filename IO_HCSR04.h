@@ -138,7 +138,7 @@ private:
   //
   void read_HCSR04device() {
     // uint16 enough to time up to 65ms
-    uint16_t startTime, waitTime, currentTime, maxTime;  
+    uint16_t startTime, waitTime = 0, currentTime, maxTime;  
 
     // If receive pin is still set on from previous call, abort the read.
     if (ArduinoPins::fastReadDigital(_echoPin))
