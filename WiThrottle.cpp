@@ -63,15 +63,16 @@
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 
-static uint8_t xstrcmp(const char *s1, const char *s2) {
-  while(*s1 != '\0' && *s2 != '\0') {
-    if (*s1 != *s2) return 1;
-    s1++;
-    s2++;
-  }
-  if (*s1 == '\0' && *s2 == '\0')
+static uint8_t xstrncmp(const char *s1, const char *s2, uint8_t n) {
+  if (n == 0)
     return 0;
-  return 1;
+  do {
+    if (*s1 != *s2++)
+      return 1;
+    if (*s1++ == 0)
+      break;
+  } while (--n != 0);
+  return 0;
 }
 
 void WiThrottle::findUniqThrottle(int id, char *u) {
@@ -81,15 +82,15 @@ void WiThrottle::findUniqThrottle(int id, char *u) {
   // search 1, look for clientid match
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
     if (wt->clientid == id) {
-      wtmyid = wt;
-      if (xstrcmp(u, wt->uniq) == 0) // should be most common case
+      if (xstrncmp(u, wt->uniq, 16) == 0) // should be most common case
 	return;
+      wtmyid = wt;
       break;
     }
   }
   // search 2, look for string match
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
-    if (xstrcmp(u, wt->uniq) == 0) {
+    if (xstrncmp(u, wt->uniq, 16) == 0) {
       wtmyuniq = wt;
       break;
     }
