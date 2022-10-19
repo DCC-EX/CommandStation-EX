@@ -8,13 +8,14 @@ Release/*
 .vscode/
 config.h
 .vscode/*
-mySetup.h
+# mySetup.h
 mySetup.cpp
 myHal.cpp
-myAutomation.h
+# myAutomation.h
 myFilter.cpp
-myAutomation.h
-myFilter.cpp
-myLayout.h
+# myAutomation.h
+# myLayout.h
+my*.h
+!my*.example.h
 .vscode/extensions.json
 .vscode/extensions.json
