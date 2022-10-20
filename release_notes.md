@@ -252,7 +252,7 @@ See the version.h file for notes about which of the 4.1.1 features were added/ch
 
 - Fred Decker - Holly Springs, North Carolina, USA (FlightRisk)
 
-**CommandStation-EX Developers**
+**EX-CommandStation Developers**
 
 - Chris Harlow - Bournemouth, UK (UKBloke)
 - Harald Barth - Stockholm, Sweden (Haba)
@@ -267,7 +267,7 @@ See the version.h file for notes about which of the 4.1.1 features were added/ch
 
 - M Steve Todd
 
-**exInstaller Software**
+**EX-Installer Software**
 
 - Anthony W - Dayton, Ohio, USA (Dex, Dex++)
 
@@ -280,12 +280,22 @@ See the version.h file for notes about which of the 4.1.1 features were added/ch
 - Keith Ledbetter - Chicago, Illinois, USA (Keith Ledbetter)
 - Kevin Smith - Rochester Hills, Michigan USA (KC Smith)
 - Colin Grabham - Central NSW, Australia (Kebbin)
+- Peter Cole - Brisbane, QLD, Australia (peteGSX)
+- Peter Akers - Brisbane, QLD, Australia (flash62au)
 
-**WebThrotle-EX**
+**EX-WebThrottle**
 
 - Fred Decker - Holly Springs, NC (FlightRisk/FrightRisk)
 - Mani Kumar - Bangalor, India (Mani /Mani Kumar)
 - Matt H - Somewhere in Europe
+  
+**Hardware / Electronics**
+
+- Harald Barth - Stockholm, Sweden (Haba)
+- Paul Antoine, Western Australia
+- Neil McKechnie - Worcestershire, UK
+- Fred Decker - Holly Springs NC, USA
+- Herb Morton - Kingwood Texas, USA (Ash++)
 
 **Beta Testing / Release Management / Support**
 
