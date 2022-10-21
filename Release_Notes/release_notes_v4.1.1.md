@@ -1,4 +1,6 @@
-The DCC-EX Team is pleased to release CommandStation-EX-v4.1.1 as a Production Release.  Release v4.0.0 is a Minor release though it does add significant new automation features to EX-RAIL in addition to some small changes and bug fixes. The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code so as to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v4.0.1 to v4.1.1 rc13.
+The DCC-EX Team is pleased to release CommandStation-EX v4.1.1 as a Production Release for the general public.
+This release is a Minor release with many significant EX-RAIL enhancements and new automation features in addition to some bug fixes. 
+The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v4.0.1 to v4.1.1 rc13.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
@@ -8,28 +10,36 @@ The DCC-EX Team is pleased to release CommandStation-EX-v4.1.1 as a Production R
 
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v0.0.0-Prod/CommandStation-EX.tar.gz)
 
-**EX-RAIL New Features**
-
-  - ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX for more compatibility with non NMRA compliant decoders
+**New Command Station & EX-RAIL Features**
+  - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 2000uS for more compatibility with non NMRA compliant decoders
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
-  - Add </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-  - Add "if" signal detection with IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
-  - New <t cab> command to obtain current throttle settings 
-  - New JA, JR, JT commands to obtain route, roster and turnout descriptions
-  - Add ability for HIDDEN turnouts (hide a REAL turnout and create a VIRTUAL turnout to handle actions that happen BEFORE a turnout is thrown)
-  - Add VIRTUAL_TURNOUT definition
-  - New PARSE <> commands in EXRAIL allows sending of command station commands from EX-RAIL
-  - New </KILL ALL> and KILLALL command to stop all tasks 
-  - Add FORGET command. Forgets the current loco in DCC reminder tables saving memory and wasted packets sent to the track
-  - Add Servo signals (SERVO_SIGNAL) 
-  - Add High-On signal pins (SIGNALH) (Arduino normally handles active LOW signals. This allows for active HIGH)
-  - Add Wait for analog value (ATGTE, ATLT)... (At greater than or Equal and At less than a certain value)
-  
-**EX-RAIL Updates**
 
+  - New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor 
+    - </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+    - </KILL ALL> and KILLALL command to stop all tasks 
+    - <t cab> command to obtain current throttle settings
+
+  - New JA, JR, JT commands availabe for Throttle Developers to obtain Route, Roster and Turnout descriptions for communications
+
+  - New EX-RAIL Functions to use in Automation(n), ROUTE(N) & SEQUENCE(N) Scripts
+    - ATGTE & ATLT wait for analog value, (At Greater Than or Equal and At Less Than a certain value)
+    - FADE command now works for LEDs connected on PCA9685 Servo/Signal board Output vpins 
+    - FORGET Forgets the current loco in DCC reminder tables saving memory and wasted packets sent to the track
+    - "IF" signal detection with IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id) 
+    - PARSE <> commands in EXRAIL allows sending of DCC-EX commands from EX-RAIL
+    - SERVO_SIGNAL Servo signals assigned to a specific servo turnout 
+    - SIGNALH High-On signal pins (Arduino normally handles active LOW signals. This allows for active HIGH)
+    - HIDDEN turnouts (hide a REAL turnout and create a VIRTUAL turnout to handle actions that happen BEFORE a turnout is thrown)
+    - VIRTUAL_TURNOUT definition
+
+**EX-RAIL Updates**
   - EXRAIL BROADCAST("msg") sends any message to all throttles/JMRI via serial and WiFi
   - EXRAIL POWERON turns on power to both tracks from EX-RAIL (the equivalent of sending the <1> command)
 
+** Other Enhancements**
+  - UNO Progmem is optimize to allow for small EXRAIL Automation scipts to run within the limited space for testing purposes.
+  - PCA9685 Servo Signal board supports 'Nopoweroffleds', servo pins stay powered on after position reached, otherwise the new FADE would always turn off.
+  - Position servo can use spare servo pin as a GPIO pin. 
 
 **4.1.1 Bug Fixes**
 
