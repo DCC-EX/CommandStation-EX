@@ -15,9 +15,9 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
 
   - New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor 
-   - </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-   - </KILL ALL> and KILLALL command to stop all tasks 
-   - <t cab> command to obtain current throttle settings
+    - </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+    - </KILL ALL> and KILLALL command to stop all tasks 
+    - <t cab> command to obtain current throttle settings
 
   - New JA, JR, JT commands availabe for Throttle Developers to obtain Route, Roster and Turnout descriptions for communications
 
