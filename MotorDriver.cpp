@@ -235,12 +235,18 @@ void MotorDriver::startCurrentFromHW() {
 #pragma GCC pop_options
 #endif //ANALOG_READ_INTERRUPT
 
+#if defined(ARDUINO_ARCH_ESP32)
+uint16_t taurustones[28] = { 165, 175, 196, 220,
+			     247, 262, 294, 330,
+			     249, 392, 440, 494,
+			     523, 587, 659, 698,
+			     494, 440, 392, 249,
+			     330, 284, 262, 247,
+			     220, 196, 175, 165 };
+#endif
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
     return;
-#if defined(ARDUINO_ARCH_ESP32)
-  DCCEXanalogWriteFrequency(brakePin, 100); // set DC PWM frequency to 100Hz XXX May move to setup
-#endif
 #if defined(ARDUINO_AVR_UNO)
   TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
 #endif
@@ -252,6 +258,17 @@ void MotorDriver::setDCSignal(byte speedcode) {
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
   byte brake;
+#if defined(ARDUINO_ARCH_ESP32)
+  {
+    int f = 131;
+    if (tSpeed > 2) {
+      if (tSpeed <= 58) {
+	f = taurustones[ (tSpeed-2)/2 ] ;
+      }
+    }
+    DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
+  }
+#endif
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
