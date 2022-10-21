@@ -5,30 +5,55 @@
 
 #define VERSION "4.1.1"
 // 4.1.1 Bugfix: preserve turnout format
-//       Bugfix: parse multiple commands in one buffer string correct
+//       Bugfix: parse multiple commands in one buffer string correctly (ex: <s><Q>)
 //       Bugfix: </> command signal status in Exrail
 //       Bugfix: EX-RAIL read long loco addr
+//       Bugfix: Add space character after version string 4.1.1 for JMRI parsing.
+//       Improved display and loop time for signalsmake service start to be outside the DONT_TOUCH_WIFI_CONF area
+//       Improve WiFi startup by making service start to be outside the DONT_TOUCH_WIFI_CONF area
 // 4.1.0 ...
 //
 // 4.0.2 EXRAIL additions:
-//       ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
+//       Code: struct TurnoutData to enable EEPROM in v 4.0 format
+//       Code: Fix weak reference to myFilter
+//       Updated CV read command <R cv>. Equivalent to <V cv 0>.  Uses the verify callback.
+//       Allow WRITE CV on PROG <W CV VALUE)
+//       Change callback parameters are now optional on PROG
+//       Allow turnout ID of "0"
+//       Improved SIGNALs startup and diagnostics
+//       Change ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
 //       myFilter automatic detection (no need to call setFilter)
-//       FIX negative route ids in WIthrottle problem. 
-//       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
-//       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-//       <t cab> command to obtain current throttle settings 
-//       JA, JR, JT commands to obtain route, roster and turnout descriptions
-//       HIDDEN turnouts
-//       PARSE <> commands in EXRAIL
-//       VIRTUAL_TURNOUT
-//       </KILL ALL> and KILLALL command to stop all tasks. 
+//       FIX negative route ids in WIthrottle problem by allowing them 
+//       Add IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
+//       Add </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+//       Add <t cab> command to obtain current throttle settings 
+//       Add JA, JR, JT commands to obtain route, roster and turnout descriptions
+//       Add HIDDEN turnouts
+//       Add PARSE <> commands in EXRAIL
+//       Add VIRTUAL_TURNOUT
+//       Add </KILL ALL> and KILLALL command to stop all tasks
+//       Add Diagnostic messages when KILL is used
 //       FORGET forgets the current loco in DCC reminder tables.
-//       Servo signals (SERVO_SIGNAL) 
-//       High-On signal pins (SIGNALH)
-//       Wait for analog value (ATGTE, ATLT)  
+//       Add Servo signals (SERVO_SIGNAL) 
+//       Add High-On signal pins (SIGNALH)
+//       Add Wait for analog value (ATGTE, ATLT)
+//       Allow underscore in keywords ex: MY_KEYWORD
+//       Automatically assign a name with ALIAS(name) without having to define it first
+//       README.md: removed misleading "folder/subforlders" (#218)
+//       README.md: fix dead link to rewrite (#217) in notes/rewrite.md
+//       Incoming LCN turnout throw
+//       Broadcast jopin after DriveAway
+//       Corrections to I2C code:
+//         1) I2CManager_Mega4809.h: Correct bitwise 'and' to logical 'and' - no impact.
+//         2) I2CManager_Wire.h: Ensure that error codes from Wire subsystem are passed back to caller in queueRequest().
+//       Save memory on the Uno
 // 4.0.1 Small EXRAIL updates
 //       EXRAIL BROADCAST("msg") 
-//       EXRAIL POWERON
+//       EXRAIL POWERON (only turns on MAIN)
+//       Remove EXRAIL/ENDEXRAIL from myAutomation.example.h (#215)
+//       Use "startup sequence" to describe the initial instructions
+//       Add description of display scroll modes
+//       restructure GetLocoCallback() for better readability and put broadcastPower() at right place
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
 //       'Discovered Server' multicast Dynamic Network Server (mDNS) displays available WiFi connections to a DCC++EX Command Station
