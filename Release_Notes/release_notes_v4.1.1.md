@@ -15,22 +15,22 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
 
   - New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor 
-    </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-    </KILL ALL> and KILLALL command to stop all tasks 
-    <t cab> command to obtain current throttle settings
+   - </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
+   - </KILL ALL> and KILLALL command to stop all tasks 
+   - <t cab> command to obtain current throttle settings
 
   - New JA, JR, JT commands availabe for Throttle Developers to obtain Route, Roster and Turnout descriptions for communications
 
   - New EX-RAIL Functions to use in Automation(n), ROUTE(N) & SEQUENCE(N) Scripts
-     ATGTE & ATLT wait for analog value, (At Greater Than or Equal and At Less Than a certain value)
-     FADE command now works for LEDs connected on PCA9685 Servo/Signal board Output vpins 
-     FORGET Forgets the current loco in DCC reminder tables saving memory and wasted packets sent to the track
-     "IF" signal detection with IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id) 
-     PARSE <> commands in EXRAIL allows sending of DCC-EX commands from EX-RAIL
-     SERVO_SIGNAL Servo signals assigned to a specific servo turnout 
-     SIGNALH High-On signal pins (Arduino normally handles active LOW signals. This allows for active HIGH)
-     HIDDEN turnouts (hide a REAL turnout and create a VIRTUAL turnout to handle actions that happen BEFORE a turnout is thrown)
-     VIRTUAL_TURNOUT definition
+    - ATGTE & ATLT wait for analog value, (At Greater Than or Equal and At Less Than a certain value)
+    - FADE command now works for LEDs connected on PCA9685 Servo/Signal board Output vpins 
+    - FORGET Forgets the current loco in DCC reminder tables saving memory and wasted packets sent to the track
+    - "IF" signal detection with IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id) 
+    - PARSE <> commands in EXRAIL allows sending of DCC-EX commands from EX-RAIL
+    - SERVO_SIGNAL Servo signals assigned to a specific servo turnout 
+    - SIGNALH High-On signal pins (Arduino normally handles active LOW signals. This allows for active HIGH)
+    - HIDDEN turnouts (hide a REAL turnout and create a VIRTUAL turnout to handle actions that happen BEFORE a turnout is thrown)
+    - VIRTUAL_TURNOUT definition
 
 **EX-RAIL Updates**
   - EXRAIL BROADCAST("msg") sends any message to all throttles/JMRI via serial and WiFi
