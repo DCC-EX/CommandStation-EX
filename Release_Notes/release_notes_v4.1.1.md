@@ -15,11 +15,11 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
 
   -  New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor
-    -  </RED signal_id>   to turn a individual LED Signal On & Off
-    -  </AMBER signal_id> "
-    -  </GREEN signal_id> "
-    -  </KILL ALL> command to stop all tasks, and Diagnostic messages when KILL is used
-    -  <t cab> command to obtain current throttle setting
+     -  </RED signal_id>   to turn a individual LED Signal On & Off
+     -  </AMBER signal_id> "
+     -  </GREEN signal_id> "
+     -  </KILL ALL> command to stop all tasks, and Diagnostic messages when KILL is used
+     -  < t cab> command to obtain current throttle setting
 
    -  Allow WRITE CV on PROG <W CV VALUE>
    -  Updated CV read command <R cv>. Equivalent to <V cv 0>.  Uses the verify callback.
