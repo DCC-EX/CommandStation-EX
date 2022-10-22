@@ -4,11 +4,11 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
-[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.zip)
 
 
 
-[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v0.0.0-Prod/CommandStation-EX.tar.gz)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.tar.gz)
 
 **New Command Station & EX-RAIL Features**
   - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 2000uS for more compatibility with non NMRA compliant decoders
@@ -329,7 +329,7 @@ See the version.h file for notes about which of the 4.1.1 features were added/ch
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
-[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.zip)
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.zip)
 
 
-[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.0.0-Prod/CommandStation-EX.tar.gz)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.tar.gz)
