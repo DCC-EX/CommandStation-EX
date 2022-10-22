@@ -14,11 +14,18 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
   - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 2000uS for more compatibility with non NMRA compliant decoders
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
 
-  - New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor 
-    - </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-    - </KILL ALL> and KILLALL command to stop all tasks 
-    - <t cab> command to obtain current throttle settings
+  -  New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor
+     -  </RED signal_id>   to turn a individual LED Signal On & Off
+     -  </AMBER signal_id> "
+     -  </GREEN signal_id> "
+     -  </KILL ALL> command to stop all tasks, and Diagnostic messages when KILL is used
+     -  < t cab> command to obtain current throttle setting
 
+   -  Allow WRITE CV on PROG <W CV VALUE>
+   -  Updated CV read command <R cv>. Equivalent to <V cv 0>.  Uses the verify callback.
+   -  Allow WRITE CV on PROG <W CV VALUE)
+   -  Change callback parameters are now optional on PROG
+  
   - New JA, JR, JT commands availabe for Throttle Developers to obtain Route, Roster and Turnout descriptions for communications
 
   - New EX-RAIL Functions to use in Automation(n), ROUTE(N) & SEQUENCE(N) Scripts
@@ -26,6 +33,7 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
     - FADE command now works for LEDs connected on PCA9685 Servo/Signal board Output vpins 
     - FORGET Forgets the current loco in DCC reminder tables saving memory and wasted packets sent to the track
     - "IF" signal detection with IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id) 
+    - KILLALL command to stop all tasks, and Diagnostic messages when KILL is used
     - PARSE <> commands in EXRAIL allows sending of DCC-EX commands from EX-RAIL
     - SERVO_SIGNAL Servo signals assigned to a specific servo turnout 
     - SIGNALH High-On signal pins (Arduino normally handles active LOW signals. This allows for active HIGH)
