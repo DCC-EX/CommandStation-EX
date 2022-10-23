@@ -11,7 +11,7 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
 [CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.tar.gz)
 
 **New Command Station & EX-RAIL Features**
-  - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 2000uS for more compatibility with non NMRA compliant decoders
+  - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 20000uS for more compatibility with non NMRA compliant decoders
   - Automatically detect and run a myFilter add-on (no need to call setFilter)
 
   -  New Commands for the Arduino IDE Serial Monitor and JMRI DCC++ Traffic Monitor
