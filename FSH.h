@@ -1,5 +1,5 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
@@ -48,10 +48,10 @@ typedef char FSH;
 #define FLASH
 #define strlen_P strlen
 #define strcpy_P strcpy
-#elif defined(ARDUINO_ARCH_STM32)
+#elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
 typedef __FlashStringHelper FSH;
-#define GETFLASH(addr) pgm_read_byte_near(addr)
-#define GETFLASHW(addr) pgm_read_word_near(addr)
+#define GETFLASH(addr) pgm_read_byte(addr)
+#define GETFLASHW(addr) (*(const unsigned int8_t *)(addr)) | ((*(const unsigned int8_t *)(addr+1)) << 8)
 #ifdef FLASH
   #undef FLASH
 #endif
