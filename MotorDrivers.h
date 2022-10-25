@@ -158,4 +158,31 @@
  new MotorDriver(5,  6, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 1500, UNUSED_PIN),\
  new MotorDriver(9, 10, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 1500, UNUSED_PIN)
 
+// This is an example how to stack two standard motor shields. The upper shield
+// needs pins 3 8 9 11 12 13 A0 A1 disconnected from the lower shield and
+// jumpered instead like this:  2-3 6-8 7-9 4-13 5-11 10-12 A0-A4 A1-A5
+// Pin assigment table:
+// 2 Enable C  jumpered
+// 3 Enable A  direct
+// 4 Dir D     jumpered
+// 5 Enable D  jumpered
+// 6 Brake D   jumpered
+// 7 Brake C   jumpered
+// 8 Brake B   direct
+// 9 Brake A   direct
+// 10 Dir C    jumpered
+// 11 Enable B direct
+// 12 Dir A    direct
+// 13 Dir B    direct
+// A0 Sense A  direct
+// A1 Sense B  direct
+// A4 Sense C  jumpered
+// A5 Sense D  jumpered
+//
+#define STACKED_MOTOR_SHIELD F("STACKED_MOTOR_SHIELD"),\
+  new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
+  new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 2.99, 1500, UNUSED_PIN), \
+  new MotorDriver( 2, 10, UNUSED_PIN, 7, A3, 2.99, 1500, UNUSED_PIN), \
+  new MotorDriver(10,  4, UNUSED_PIN, 6, A4, 2.99, 1500, UNUSED_PIN)
+//
 #endif
