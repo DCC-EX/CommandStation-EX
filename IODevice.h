@@ -364,14 +364,14 @@ private:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
- * IODevice subclass for Turntable-EX.
+ * IODevice subclass for EX-Turntable.
  */
  
-class TurntableEX : public IODevice {
+class EXTurntable : public IODevice {
 public:
   static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress);
   // Constructor
-  TurntableEX(VPIN firstVpin, int nPins, uint8_t I2CAddress);
+  EXTurntable(VPIN firstVpin, int nPins, uint8_t I2CAddress);
   enum ActivityNumber : uint8_t {
     Turn = 0,             // Rotate turntable, maintain phase
     Turn_PInvert = 1,     // Rotate turntable, invert phase

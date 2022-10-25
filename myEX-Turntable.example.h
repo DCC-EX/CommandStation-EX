@@ -1,17 +1,17 @@
 /**************************************************************************************************
- * This is an example automation file to control Turntable-EX using recommended techniques.
+ * This is an example automation file to control EX-Turntable using recommended techniques.
  ************************************************************************************************** 
  * INSTRUCTIONS
  ************************************************************************************************** 
  * To use this example file as the starting point for your layout, there are two options:
  * 
- * 1. If you don't have an existing "myAutomation.h" file, simply rename "myTurntable-EX.example.h" to
+ * 1. If you don't have an existing "myAutomation.h" file, simply rename "myEX-Turntable.example.h" to
  *    "myAutomation.h".
- * 2. If you have an existing "myAutomation.h" file, rename "myTurntable-EX.example.h" to "myTurntable-EX.h",
+ * 2. If you have an existing "myAutomation.h" file, rename "myEX-Turntable.example.h" to "myEX-Turntable.h",
  *    and then include it by adding the line below at the end of your existing "myAutomation.h", on a
  *    line of its own:
  * 
- *    #include "myTurntable-EX.h"
+ *    #include "myEX-Turntable.h"
  * 
  * Note that there are further instructions in the documentation at https://dcc-ex.com/.
  *************************************************************************************************/
@@ -29,14 +29,14 @@
 MOVETT(600, 114, Turn)
 DONE
 
-// For Conductor level users who wish to just use Turntable-EX, you don't need to understand this
+// For Conductor level users who wish to just use EX-Turntable, you don't need to understand this
 // and can move to defining the turntable positions below. You must, however, ensure this remains
 // before any position definitions or you will get compile errors when uploading.
 //
-// Definition of the TURNTABLE_EX macro to correctly create the ROUTEs required for each position.
+// Definition of the EX_TURNTABLE macro to correctly create the ROUTEs required for each position.
 // This includes RESERVE()/FREE() to protect any automation activities.
 //
-#define TURNTABLE_EX(route_id, reserve_id, vpin, steps, activity, desc) \
+#define EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc) \
   ROUTE(route_id, desc) \
     RESERVE(reserve_id) \
     MOVETT(vpin, steps, activity) \
@@ -44,25 +44,25 @@ DONE
     FREE(reserve_id) \
     DONE
 
-/**************************************************************************************************
+/*************************************************************************Turntable-EX*************************
  * TURNTABLE POSITION DEFINITIONS
  *************************************************************************************************/
-// TURNTABLE_EX(route_id, reserve_id, vpin, steps, activity, desc)
+// EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc)
 //
 // route_id = A unique number for each defined route, the route is what appears in throttles
 // reserve_id = A unique reservation number (0 - 255) to ensure nothing interferes with automation
-// vpin = The Vpin defined for the Turntable-EX device driver, default is 600
+// vpin = The Vpin defined for the EX-Turntable device driver, default is 600
 // steps = The target step position
 // activity = The activity performed for this ROUTE (Note do not enclose in quotes "")
 // desc = Description that will appear in throttles (Must use quotes "")
 //
-TURNTABLE_EX(TTRoute1, Turntable, 600, 114, Turn, "Position 1")
-TURNTABLE_EX(TTRoute2, Turntable, 600, 227, Turn, "Position 2")
-TURNTABLE_EX(TTRoute3, Turntable, 600, 341, Turn, "Position 3")
-TURNTABLE_EX(TTRoute4, Turntable, 600, 2159, Turn, "Position 4")
-TURNTABLE_EX(TTRoute5, Turntable, 600, 2273, Turn, "Position 5")
-TURNTABLE_EX(TTRoute6, Turntable, 600, 2386, Turn, "Position 6")
-TURNTABLE_EX(TTRoute7, Turntable, 600, 0, Home, "Home turntable")
+EX_TURNTABLE(TTRoute1, Turntable, 600, 114, Turn, "Position 1")
+EX_TURNTABLE(TTRoute2, Turntable, 600, 227, Turn, "Position 2")
+EX_TURNTABLE(TTRoute3, Turntable, 600, 341, Turn, "Position 3")
+EX_TURNTABLE(TTRoute4, Turntable, 600, 2159, Turn, "Position 4")
+EX_TURNTABLE(TTRoute5, Turntable, 600, 2273, Turn, "Position 5")
+EX_TURNTABLE(TTRoute6, Turntable, 600, 2386, Turn, "Position 6")
+EX_TURNTABLE(TTRoute7, Turntable, 600, 0, Home, "Home turntable")
 
 // Pre-defined aliases to ensure unique IDs are used.
 // Turntable reserve ID, valid is 0 - 255

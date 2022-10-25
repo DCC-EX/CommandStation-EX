@@ -18,9 +18,9 @@
 */
 
 /*
-* The IO_TurntableEX device driver is used to control a turntable via an Arduino with a stepper motor over I2C.
+* The IO_EXTurntable device driver is used to control a turntable via an Arduino with a stepper motor over I2C.
 *
-* The Turntable-EX code lives in a separate repo (https://github.com/DCC-EX/Turntable-EX) and contains the stepper motor logic.
+* The EX-Turntable code lives in a separate repo (https://github.com/DCC-EX/EX-Turntable) and contains the stepper motor logic.
 *
 * This device driver sends a step position to Turntable-EX to indicate the step position to move to using either of these commands:
 * <D TT vpin steps activity> in the serial console
@@ -28,19 +28,19 @@
 * Refer to the documentation for further information including the valid activities.
 */
 
-#ifndef IO_TurntableEX_h
-#define IO_TurntableEX_h
+#ifndef IO_EXTurntable_h
+#define IO_EXTurntable_h
 
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 
-void TurntableEX::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
-  new TurntableEX(firstVpin, nPins, I2CAddress);
+void EXTurntable::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+  new EXTurntable(firstVpin, nPins, I2CAddress);
 }
 
 // Constructor
-TurntableEX::TurntableEX(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+EXTurntable::EXTurntable(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _I2CAddress = I2CAddress;
@@ -48,7 +48,7 @@ TurntableEX::TurntableEX(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
 }
 
 // Initialisation of TurntableEX
-void TurntableEX::_begin() {
+void EXTurntable::_begin() {
   I2CManager.begin();
   I2CManager.setClock(1000000);
   if (I2CManager.exists(_I2CAddress)) {
@@ -63,7 +63,7 @@ void TurntableEX::_begin() {
 // Processing loop to obtain status of stepper
 // 0 = finished moving and in correct position
 // 1 = still moving
-void TurntableEX::_loop(unsigned long currentMicros) {
+void EXTurntable::_loop(unsigned long currentMicros) {
   uint8_t readBuffer[1];
   I2CManager.read(_I2CAddress, readBuffer, 1);
   _stepperStatus = readBuffer[0];
@@ -73,7 +73,7 @@ void TurntableEX::_loop(unsigned long currentMicros) {
 
 // Read returns status as obtained in our loop.
 // Return false if our status value is invalid.
-int TurntableEX::_read(VPIN vpin) {
+int EXTurntable::_read(VPIN vpin) {
   if (_deviceState == DEVSTATE_FAILED) return 0;
   // DIAG(F("_read status: %d"), _stepperStatus);
   if (_stepperStatus > 1) {
@@ -98,12 +98,12 @@ int TurntableEX::_read(VPIN vpin) {
 // LED_Off = 7,          // Turn LED off
 // Acc_On = 8,           // Turn accessory pin on
 // Acc_Off = 9           // Turn accessory pin off
-void TurntableEX::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) {
+void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) {
   if (_deviceState == DEVSTATE_FAILED) return;
   uint8_t stepsMSB = value >> 8;
   uint8_t stepsLSB = value & 0xFF;
 #ifdef DIAG_IO
-  DIAG(F("TurntableEX WriteAnalogue Vpin:%d Value:%d Activity:%d Duration:%d"),
+  DIAG(F("EXTurntable WriteAnalogue Vpin:%d Value:%d Activity:%d Duration:%d"),
     vpin, value, activity, duration);
   DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
     _I2CAddress, stepsMSB, stepsLSB, activity);
@@ -113,8 +113,8 @@ void TurntableEX::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
 }
 
 // Display Turnetable-EX device driver info.
-void TurntableEX::_display() {
-  DIAG(F("TurntableEX I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
+void EXTurntable::_display() {
+  DIAG(F("EX-Turntable I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
