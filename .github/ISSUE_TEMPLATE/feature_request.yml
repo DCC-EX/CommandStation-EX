@@ -1,0 +1,37 @@
+# Feature Request GitHub issue form
+# 
+# This file needs to reside in the ".github/ISSUE_TEMPLATE/" folder.
+
+name: Feature Request
+description: Suggest a new feature
+title: "[Feature Request]: "
+labels:
+  - Enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to suggest a new feature for EX-CommandStation.
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem/idea statement
+      description: Please provide the problem you're trying to solve, or share the idea you have.
+      placeholder: A clear and concise description of the problem you're trying to solve, or the idea you have. For example, I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: Please provide any alternatives or workarounds you currently use.
+    validations:
+      required: true
+  
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context, screenshots, or files related to the feature request here.

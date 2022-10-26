@@ -1,0 +1,31 @@
+# Documentation update GitHub issue form
+# 
+# This file needs to reside in the ".github/ISSUE_TEMPLATE/" folder.
+
+name: Documentation Update
+description: Submit a request for documentation updates, or to report broken links or inaccuracies
+title: "[Documentation Update]: "
+labels:
+  - Needs Documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to submit a request for updates to our documentation.
+
+        This can be used for general documentation requests if information is missing or lacking, or to correct issues with our existing documentation such as broken links, or inaccurate information.
+  
+  - type: textarea
+    id: details
+    attributes:
+      label: Documentation details
+      description: Provide the details of what needs to be documented or corrected.
+    validations:
+      required: true
+  
+  - type: input
+    id: page
+    attributes:
+      label: Page with issues
+      description: If reporting broken links or inaccuracies, please provide the link to the page here.
+      placeholder: https://dcc-ex.com/index.html

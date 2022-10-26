@@ -1,0 +1,80 @@
+# Bug report GitHub issue form
+# 
+# This file needs to reside in the ".github/ISSUE_TEMPLATE/" folder.
+
+name: Bug Report
+description: Submit a bug report
+labels:
+  - Bug
+title: "Bug Report: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to submit a bug report to the DCC-EX team!
+
+        In order to help us to validate the bug and ascertain what's causing it, please provide as much information as possible in this form.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Please provide the version of EX-CommandStation in use.
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: Please provide a clear and concise description of what the symptoms of the bug are.
+      placeholder: |
+        When attempting to drive a locomotive on the main track, it runs forwards, backwards, spins around, jumps up and down, blows the horn, and then stops.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce the bug
+      description: Please provide the steps to reproduce the behaviour.
+      placeholder: |
+        1. Turn on the CommandStation and track power.
+        2. Connect Engine Driver to the CommandStation.
+        3. Select locomotive with address 123.
+        4. Throttle up to half speed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expectation
+    attributes:
+      label: Expected behaviour
+      description: Please provide a clear and concise description of what you expected to happen.
+      placeholder: |
+        The locomotive should accelerate smoothly to half speed in a forward direction.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, upload any screenshots here.
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware in use
+      description: Please provide details of hardware in use including microcontroller, motor shield, and any other relevant information.
+      placeholder: |
+        Elegoo Mega2560
+        Arduino R3 motor shield
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra-context
+    attributes:
+      label: Additional context
+      description: Please provide any other relevant information that could help us resolve this issue, for example a customised config.h file.

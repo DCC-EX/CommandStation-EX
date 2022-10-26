@@ -1,0 +1,39 @@
+# Support Request GitHub issue form
+# 
+# This file needs to reside in the ".github/ISSUE_TEMPLATE/" folder.
+
+name: Support Request
+description: Request support or assistance
+title: "[Support Request]: "
+labels:
+  - Support Request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to request support or assistance with EX-CommandStation.
+  
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Please provide the version of the software in use.
+    validations:
+      required: true
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue description
+      description: Please describe the issue being encountered as accurately and detailed as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware
+      description: If appropriate, please provide details of the hardware in use.
+      placeholder: |
+      Elegoo Mega2560
+      Arduino Motor Shield R3
