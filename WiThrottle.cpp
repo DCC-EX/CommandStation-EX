@@ -298,7 +298,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 #ifdef EXRAIL_ACTIVE
   StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
   for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
-      int16_t cabid=GETFLASHW(RMFT2::rosterIdList+r);
+      int16_t cabid=GETFLASHW(RMFT2::rosterIdList+r*2);
       StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
       RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
   }
