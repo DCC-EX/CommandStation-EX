@@ -1,14 +1,14 @@
-The DCC-EX Team is pleased to release CommandStation-EX v4.1.1 as a Production Release for the general public.
+The DCC-EX Team is pleased to release CommandStation-EX v4.1.2 as a Production Release for the general public.
 This release is a Minor release with many significant EX-RAIL enhancements and new automation features in addition to some bug fixes. 
-The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v4.0.1 to v4.1.1 rc13.
+The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v4.0.1 to v4.1.2.
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
-[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.zip)
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.2-Prod/CommandStation-EX.zip)
 
 
 
-[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.tar.gz)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.2-Prod/CommandStation-EX.tar.gz)
 
 **New Command Station & EX-RAIL Features**
   - ACK defaults are now set to LIMIT 50mA, MIN 2000uS, MAX 20000uS for more compatibility with non NMRA compliant decoders
@@ -47,7 +47,10 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
 ** Other Enhancements**
   - UNO Progmem is optimize to allow for small EXRAIL Automation scipts to run within the limited space for testing purposes.
   - PCA9685 Servo Signal board supports 'Nopoweroffleds', servo pins stay powered on after position reached, otherwise the new FADE would always turn off.
-  - Position servo can use spare servo pin as a GPIO pin. 
+  - Position servo can use spare servo pin as a GPIO pin.
+  
+**4.1.2 Bug Fixes**
+- Fixed Ethernet shield W5100 support since it does not report HW or link level like the W5200 and W5500 chips.
 
 **4.1.1 Bug Fixes**
 
@@ -57,7 +60,7 @@ The team continues improving the architecture of DCC++EX to make it more flexibl
 - Read long loco addresses in EX-RAIL
 - FIX negative route IDs in WIthrottle 
 
-See the version.h file for notes about which of the 4.1.1 features were added/changed by point release.
+See the version.h file for notes about which of the 4.1.2 features were added/changed by point release.
 
 **Known Issues**
 
@@ -337,7 +340,7 @@ See the version.h file for notes about which of the 4.1.1 features were added/ch
 
 **Downloads (zip and tar.gz) below. These are named without version number in the folder name to make the Arduino IDE happy.**
 
-[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.zip)
+[CommandStation-EX.zip](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.2-Prod/CommandStation-EX.zip)
 
 
-[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.1-Prod/CommandStation-EX.tar.gz)
+[CommandStation-EX.tar.gz](https://github.com/DCC-EX/CommandStation-EX/releases/download/v4.1.2-Prod/CommandStation-EX.tar.gz)
