@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.1.1"
+#define VERSION "4.1.2"
+// 4.2.1 Bugfix: Ethernet shield W5100 does not report HW or link level
 // 4.1.1 Bugfix: preserve turnout format
 //       Bugfix: parse multiple commands in one buffer string correctly (ex: <s><Q>)
 //       Bugfix: </> command signal status of EX-RAIL tasks or threads
