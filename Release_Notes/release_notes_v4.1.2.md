@@ -1,3 +1,6 @@
+Version 4.1.2 Release Notes
+*************************
+
 The DCC-EX Team is pleased to release CommandStation-EX v4.1.2 as a Production Release for the general public.
 This release is a Bugfix release which fixes support for Ethernet Shields based on the W5100 chip that broke with the release of v4.1.1. This chip does not report HW and link status the way the W5200 and W5500 do, so the check routine needed to be changed.
 The team continues improving the architecture of DCC++EX to make it more flexible and optimizing the code to get more performance from the Arduino (and other) microprocessors.  This release includes all of the Point Releases from v4.0.1 to v4.1.2.
