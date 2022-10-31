@@ -72,6 +72,7 @@
 #undef IFRESERVE
 #undef IFTHROWN
 #undef IFTIMEOUT
+#undef IFRE
 #undef INVERT_DIRECTION 
 #undef JOIN 
 #undef KILLALL
@@ -88,6 +89,7 @@
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
+#undef ONCHANGE
 #undef PARSE
 #undef PAUSE
 #undef PIN_TURNOUT 
@@ -182,6 +184,7 @@
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
 #define IFTIMEOUT
+#define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
 #define JOIN 
 #define KILLALL
@@ -198,6 +201,7 @@
 #define ONGREEN(signal_id) 
 #define ONRED(signal_id) 
 #define ONTHROW(turnout_id) 
+#define ONCHANGE(sensor_id)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
