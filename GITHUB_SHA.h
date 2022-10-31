@@ -1,1 +1,1 @@
-#define GITHUB_SHA "PORTX-HAL-cursense2-202210192255Z"
+#define GITHUB_SHA "devel-202210311845Z"
