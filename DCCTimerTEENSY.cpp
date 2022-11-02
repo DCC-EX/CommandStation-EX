@@ -141,4 +141,31 @@ void DCCTimer::reset() {
   SCB_AIRCR = 0x05FA0004;
 }
 
+int16_t ADCee::ADCmax() {
+  return 4095;
+}
+
+int ADCee::init(uint8_t pin) {
+  return analogRead(pin);
+}
+/*
+ * Read function ADCee::read(pin) to get value instead of analogRead(pin)
+ */
+int ADCee::read(uint8_t pin, bool fromISR) {
+  int current;
+  if (!fromISR) noInterrupts();
+  current = analogRead(pin);
+  if (!fromISR) interrupts();
+  return current;
+}
+/*
+ * Scan function that is called from interrupt
+ */
+void ADCee::scan() {
+}
+
+void ADCee::begin() {
+  noInterrupts();
+  interrupts();
+}
 #endif
