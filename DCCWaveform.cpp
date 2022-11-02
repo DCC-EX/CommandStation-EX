@@ -297,7 +297,11 @@ void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
       int baseline=motorDriver->getCurrentRaw();
       for (int i = 0; i < 32; i++)
+<<<<<<< Updated upstream
         baseline = max(baseline, motorDriver->getCurrentRaw());
+=======
+        baseline=max(baseline, motorDriver->getCurrentRaw());
+>>>>>>> Stashed changes
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -305,6 +309,32 @@ void DCCWaveform::setAckBaseline() {
                           minAckPulseDuration, maxAckPulseDuration);
 }
 
+/*
+void DCCWaveform::setAckBaseline() {
+      if (isMainTrack) return;
+      int baseline = motorDriver->getCurrentRaw();
+
+      int baselinemin = baseline;
+      int baselinemax = baseline;
+      int newSample = 0;
+      for (int i = 0; i < 32; i++)
+      {
+        newSample = motorDriver->getCurrentRaw();
+        baselinemax = max(baselinemax, newSample);
+        baselinemin = min(baselinemin, newSample);
+      }
+      baseline = baselinemax;
+      ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
+
+      if (Diag::ACK) DIAG(F("ACK min %d max %d"), baselinemin, baselinemax);
+
+      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
+        baseline,motorDriver->raw2mA(baseline),
+        ackThreshold,motorDriver->raw2mA(ackThreshold),
+                          minAckPulseDuration, maxAckPulseDuration);
+}
+*/
+ 
 void DCCWaveform::setAckPending() {
       if (isMainTrack) return; 
       ackMaxCurrent=0;

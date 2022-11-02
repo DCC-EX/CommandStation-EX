@@ -29,13 +29,12 @@
 
 #include "LCDDisplay.h"
 
-bool Diag::ACK=false;
+bool Diag::ACK=true;
 bool Diag::CMD=false;
 bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
-
  
 void StringFormatter::diag( const FSH* input...) {
   if (!diagSerial) return; 
