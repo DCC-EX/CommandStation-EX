@@ -296,6 +296,8 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
       int baseline=motorDriver->getCurrentRaw();
+      for (int i = 0; i < 32; i++)
+        baseline = max(baseline, motorDriver->getCurrentRaw());
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
 			  baseline,motorDriver->raw2mA(baseline),
