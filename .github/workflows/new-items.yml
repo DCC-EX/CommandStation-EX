@@ -42,26 +42,35 @@ jobs:
           gh api graphql -f query='
             query($org: String!, $number: Int!) {
               organization(login: $org){
-                projectNext(number: $number) {
+                projectV2(number: $number) {
                   id
                   fields(first:20) {
                     nodes {
-                      id
-                      name
-                      settings
+                      ... on ProjectV2Field {
+                        id
+                        name
+                      }
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
                     }
                   }
                 }
               }
             }' -f org=$ORG -F number=$PROJECT_NUMBER > project_data.json
 
-          echo 'PROJECT_ID='$(jq '.data.organization.projectNext.id' project_data.json) >> $GITHUB_ENV
-          echo 'STATUS_FIELD_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Status") | .id' project_data.json) >> $GITHUB_ENV
-          echo 'BACKLOG_OPTION_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Status") |.settings | fromjson.options[] | select(.name=="Backlog") |.id' project_data.json) >> $GITHUB_ENV
-          echo 'TO_DO_OPTION_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Status") |.settings | fromjson.options[] | select(.name=="To Do") |.id' project_data.json) >> $GITHUB_ENV
-          echo 'NEEDS_REVIEW_OPTION_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Status") |.settings | fromjson.options[] | select(.name=="Needs Review") |.id' project_data.json) >> $GITHUB_ENV
-          echo 'IN_PROGRESS_OPTION_ID='$(jq '.data.organization.projectNext.fields.nodes[] | select(.name== "Status") |.settings | fromjson.options[] | select(.name=="In Progress") |.id' project_data.json) >> $GITHUB_ENV
- 
+          echo 'PROJECT_ID='$(jq '.data.organization.projectV2.id' project_data.json) >> $GITHUB_ENV
+          echo 'STATUS_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") | .id' project_data.json) >> $GITHUB_ENV
+          echo 'BACKLOG_OPTION_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") |.options[] | select(.name=="Backlog") |.id' project_data.json) >> $GITHUB_ENV
+          echo 'TO_DO_OPTION_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") |.options[] | select(.name=="To Do") |.id' project_data.json) >> $GITHUB_ENV
+          echo 'NEEDS_REVIEW_OPTION_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") |.options[] | select(.name=="Needs Review") |.id' project_data.json) >> $GITHUB_ENV
+          echo 'IN_PROGRESS_OPTION_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Status") |.options[] | select(.name=="In Progress") |.id' project_data.json) >> $GITHUB_ENV
+
       - name: Add issue to project
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
@@ -70,12 +79,12 @@ jobs:
         run: |
           project_item_id="$( gh api graphql -f query='
             mutation($project:ID!, $item:ID!) {
-              addProjectNextItem(input: {projectId: $project, contentId: $item}) {
-                projectNextItem {
+              addProjectV2ItemById(input: {projectId: $project, contentId: $item}) {
+                item {
                   id
                 }
               }
-            }' -f project=$PROJECT_ID -f item=$ITEM_ID --jq '.data.addProjectNextItem.projectNextItem.id')"
+            }' -f project=$PROJECT_ID -f item=$ITEM_ID --jq '.data.addProjectV2ItemById.item.id')"
           echo 'PROJECT_ITEM_ID='$project_item_id >> $GITHUB_ENV
 
       - name: Add PR to project
@@ -86,12 +95,12 @@ jobs:
         run: |
           project_item_id="$( gh api graphql -f query='
             mutation($project:ID!, $item:ID!) {
-              addProjectNextItem(input: {projectId: $project, contentId: $item}) {
-                projectNextItem {
+              addProjectV2ItemById(input: {projectId: $project, contentId: $item}) {
+                item {
                   id
                 }
               }
-            }' -f project=$PROJECT_ID -f item=$ITEM_ID --jq '.data.addProjectNextItem.projectNextItem.id')"
+            }' -f project=$PROJECT_ID -f item=$ITEM_ID --jq '.data.addProjectV2ItemById.item.id')"
           echo 'PROJECT_ITEM_ID='$project_item_id >> $GITHUB_ENV
 
       - name: Set status - To Do
@@ -106,13 +115,15 @@ jobs:
               $status_field: ID!
               $status_value: String!
             ){
-              set_status: updateProjectNextItemField(input: {
+              set_status: updateProjectV2ItemFieldValue(input: {
                 projectId: $project
                 itemId: $item
                 fieldId: $status_field
-                value: $status_value
+                value: {
+                  singleSelectOptionId: $status_value
+                }
               }) {
-                projectNextItem {
+                projectV2Item {
                   id
                 }
               }
@@ -130,13 +141,15 @@ jobs:
               $status_field: ID!
               $status_value: String!
             ){
-              set_status: updateProjectNextItemField(input: {
+              set_status: updateProjectV2ItemFieldValue(input: {
                 projectId: $project
                 itemId: $item
                 fieldId: $status_field
-                value: $status_value
+                value: {
+                  singleSelectOptionId: $status_value
+                }
               }) {
-                projectNextItem {
+                projectV2Item {
                   id
                 }
               }
