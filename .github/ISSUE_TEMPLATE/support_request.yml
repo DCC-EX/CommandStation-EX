@@ -35,5 +35,5 @@ body:
       label: Hardware
       description: If appropriate, please provide details of the hardware in use.
       placeholder: |
-      Elegoo Mega2560
-      Arduino Motor Shield R3
+        Elegoo Mega2560
+        Arduino Motor Shield R3
