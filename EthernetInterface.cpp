@@ -36,11 +36,11 @@ EthernetInterface * EthernetInterface::singleton=NULL;
  */
 void EthernetInterface::setup()
 {
-  if (Ethernet.hardwareStatus() == EthernetNoHardware)
-    DIAG(F("Ethernet shield not detected or is a W5100"));
-  if (singleton!=NULL)
+  if (singleton!=NULL) {
     DIAG(F("Prog Error!"));
-  if (singleton=new EthernetInterface())
+    return;
+  }
+  if ((singleton=new EthernetInterface()))
     return;
   DIAG(F("Ethernet not initialized"));
 };
@@ -67,6 +67,16 @@ EthernetInterface::EthernetInterface()
         return;
     } 
     #endif       
+    if (Ethernet.hardwareStatus() == EthernetNoHardware)
+      DIAG(F("Ethernet shield not detected or is a W5100"));
+
+    unsigned long startmilli = millis();
+    while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
+      if (Ethernet.linkStatus() == LinkON)
+	break;
+      DIAG(F("Ethernet waiting for link (1sec) "));
+      delay(1000);
+    }
 }
 
 /**
