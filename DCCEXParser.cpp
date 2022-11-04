@@ -751,8 +751,13 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
             case HASH_KEYWORD_T:
               state= false;
               break;
-            default:
-              return false;  // Invalid parameter
+            default: // any other parameter prints the long status
+              Turnout *tt = Turnout::get(p[0]);
+              if (tt) {
+                tt->print(stream);
+                break;
+              }
+              return false;
           }
           if (!Turnout::setClosed(p[0], state)) return false;
 
