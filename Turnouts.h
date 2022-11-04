@@ -171,9 +171,14 @@ public:
   // Save all turnout definitions
   static void store();
 #endif
-  static void printAll(Print *stream) {
+  static bool printAll(Print *stream) {
+    bool gotOne=false;
     for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout)
-      if (!tt->isHidden()) StringFormatter::send(stream, F("<H %d %d>\n"),tt->getId(), tt->isThrown());
+      if (!tt->isHidden()) {
+	gotOne=true;
+	StringFormatter::send(stream, F("<H %d %d>\n"),tt->getId(), tt->isThrown());
+      }
+    return gotOne;
   }
 
 

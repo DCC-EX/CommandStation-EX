@@ -730,15 +730,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
     switch (params)
     {
     case 0: // <T>  list turnout definitions
-    {
-        bool gotOne = false;
-        for (Turnout *tt = Turnout::first(); tt != NULL; tt = tt->next())
-        {
-            gotOne = true;
-            tt->print(stream);
-        }
-        return gotOne; // will <X> if none found
-    }
+        return Turnout::printAll(stream); // will <X> if none found
 
     case 1: // <T id>  delete turnout
         if (!Turnout::remove(p[0]))
