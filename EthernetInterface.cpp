@@ -1,6 +1,7 @@
 /*
+ *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
@@ -36,8 +37,13 @@ EthernetInterface * EthernetInterface::singleton=NULL;
  */
 void EthernetInterface::setup()
 {
-    singleton=new EthernetInterface();
-    if (!singleton->connected) singleton=NULL; 
+  if (singleton!=NULL) {
+    DIAG(F("Prog Error!"));
+    return;
+  }
+  if ((singleton=new EthernetInterface()))
+    return;
+  DIAG(F("Ethernet not initialized"));
 };
 
 
@@ -62,37 +68,34 @@ EthernetInterface::EthernetInterface()
         return;
     } 
     #endif
-    DIAG(F("begin OK."));
-     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found"));
       return;
     }
   
     unsigned long startmilli = millis();
-    while ((millis() - startmilli) < 5500) // Loop to give time to check for cable connection
-    {
+    while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
         if (Ethernet.linkStatus() == LinkON)
             break;
         DIAG(F("Ethernet waiting for link (1sec) "));
         delay(1000);
     }
+    // now we either do have link of we have a W5100
+    // where we do not know if we have link. That's
+    // the reason to now run checkLink.
+    // CheckLinks sets up outboundRing if it does
+    // not exist yet as well.
+    checkLink();
+}
 
-    if (Ethernet.linkStatus() == LinkOFF) {
-      DIAG(F("Ethernet cable not connected"));
-      return;
-    }
-    
-    connected=true;
-    
-    IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
-
-    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-    server->begin();
-  
-    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), IP_PORT);
-
-    outboundRing=new RingStream(OUTBOUND_RING_SIZE);     
+/**
+ * @brief Cleanup any resources
+ * 
+ * @return none
+ */
+EthernetInterface::~EthernetInterface() {
+  delete server;
+  delete outboundRing;
 }
 
 /**
@@ -101,33 +104,66 @@ EthernetInterface::EthernetInterface()
  */
 void EthernetInterface::loop()
 {
-    if (!singleton) return;
+    if (!singleton || (!singleton->checkLink()))
+      return;
     
-    switch (Ethernet.maintain())
-    {
+    switch (Ethernet.maintain()) {
     case 1:
         //renewed fail
         DIAG(F("Ethernet Error: renewed fail"));
         singleton=NULL;
         return;
-
     case 3:
         //rebind fail
         DIAG(F("Ethernet Error: rebind fail"));
         singleton=NULL;
         return;
-
     default:
         //nothing happened
         break;
     }
-
    singleton->loop2();
-
 }
 
- void EthernetInterface::loop2()
-{
+/**
+ * @brief Checks ethernet link cable status and detects when it connects / disconnects
+ * 
+ * @return true when cable is connected, false otherwise
+ */
+bool EthernetInterface::checkLink() {
+  if (Ethernet.linkStatus() != LinkOFF) { // check for not linkOFF instead of linkON as the W5100 does return LinkUnknown
+    //if we are not connected yet, setup a new server
+    if(!connected) {
+      DIAG(F("Ethernet cable connected"));
+      connected=true;
+      IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
+      server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+      server->begin();
+      LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+      LCD(5,F("Port:%d"), IP_PORT);
+      // only create a outboundRing it none exists, this may happen if the cable
+      // gets disconnected and connected again
+      if(!outboundRing)
+	outboundRing=new RingStream(OUTBOUND_RING_SIZE);
+    }
+    return true;
+  } else { // connected
+    DIAG(F("Ethernet cable disconnected"));
+    connected=false;
+    //clean up any client
+    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++) {
+      if(clients[socket].connected())
+	clients[socket].stop();
+    }
+    // tear down server
+    delete server;
+    server = nullptr;
+    LCD(4,F("IP: None"));
+  }
+  return false;
+}
+
+void EthernetInterface::loop2() {
     // get client from the server
     EthernetClient client = server->accept();
 
