@@ -295,13 +295,10 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
 
 void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
+      pinMode(7, OUTPUT);
       int baseline=motorDriver->getCurrentRaw();
       for (int i = 0; i < 32; i++)
-<<<<<<< Updated upstream
         baseline = max(baseline, motorDriver->getCurrentRaw());
-=======
-        baseline=max(baseline, motorDriver->getCurrentRaw());
->>>>>>> Stashed changes
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
       if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
 			  baseline,motorDriver->raw2mA(baseline),
@@ -365,7 +362,9 @@ void DCCWaveform::checkAck() {
         return; 
     }
       
+    digitalWrite(7, !digitalRead(7));
     int current=motorDriver->getCurrentRaw();
+    digitalWrite(7, current > ackThreshold);
     numAckSamples++;
     if (current > ackMaxCurrent) ackMaxCurrent=current;
     // An ACK is a pulse lasting between minAckPulseDuration and maxAckPulseDuration uSecs (refer @haba)
