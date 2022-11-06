@@ -120,9 +120,9 @@ void DCCTimer::reset() {
 }
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-#define NUM_ADC_INPUTS 7
-#else
 #define NUM_ADC_INPUTS 15
+#else
+#define NUM_ADC_INPUTS 7
 #endif
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
