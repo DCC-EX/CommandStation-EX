@@ -163,6 +163,10 @@ bool EthernetInterface::checkLink() {
 }
 
 void EthernetInterface::loop2() {
+    if (!outboundRing) { // no idea to call loop2() if we can't handle outgoing data in it
+      if (Diag::ETHERNET) DIAG(F("No outboundRing"));
+      return;
+    }
     // get client from the server
     EthernetClient client = server->accept();
 
@@ -217,7 +221,9 @@ void EthernetInterface::loop2() {
     
     // handle at most 1 outbound transmission 
     int socketOut=outboundRing->read();
-    if (socketOut>=0) {
+    if (socketOut >= MAX_SOCK_NUM) {
+      DIAG(F("Ethernet outboundRing socket=%d error"), socketOut);
+    } else if (socketOut >= 0) {
       int count=outboundRing->count();
       if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
       for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
