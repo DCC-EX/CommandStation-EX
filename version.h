@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.4"
+#define VERSION "4.2.5"
+// 4.2.5 Make GETFLASHW code more universal
+//       FIX: Withrottle roster index
 //       Ethernet start improvement and link detection
 // 4.2.4 ESP32 experimental BT support
 //       More DC configurations possible and lower frequency

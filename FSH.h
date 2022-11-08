@@ -37,7 +37,9 @@
  *  
  */
 #include <Arduino.h>
+
 #if defined(ARDUINO_ARCH_MEGAAVR)
+
 #ifdef F
   #undef F
 #endif
@@ -48,18 +50,26 @@ typedef char FSH;
 #define FLASH
 #define strlen_P strlen
 #define strcpy_P strcpy
+
 #elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
+
 typedef __FlashStringHelper FSH;
 #define GETFLASH(addr) pgm_read_byte(addr)
-#define GETFLASHW(addr) (*(const unsigned int8_t *)(addr)) | ((*(const unsigned int8_t *)(addr+1)) << 8)
+// pgm_read_word is buggy if addr is odd but here
+// we do only read well aligned addrs, the others are
+// taken care about in the GET_OPERAND(n) macro in EXRAIL2.cpp.
+#define GETFLASHW(addr) pgm_read_word(addr)
 #ifdef FLASH
   #undef FLASH
 #endif
 #define FLASH PROGMEM
-#else 
+
+#else // AVR and AVR compat here
+
 typedef __FlashStringHelper FSH;
 #define GETFLASH(addr) pgm_read_byte_near(addr)
 #define GETFLASHW(addr) pgm_read_word_near(addr)
 #define FLASH PROGMEM
-#endif
-#endif
+
+#endif // flash stuff
+#endif // FSH

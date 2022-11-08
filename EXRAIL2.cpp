@@ -90,9 +90,13 @@ LookList *  RMFT2::onDeactivateLookup=NULL;
 LookList *  RMFT2::onRedLookup=NULL;
 LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
-
 #define GET_OPCODE GETFLASH(RMFT2::RouteCode+progCounter)
+#ifdef ARDUINO_ARCH_AVR
 #define GET_OPERAND(n) GETFLASHW(RMFT2::RouteCode+progCounter+1+(n*3))
+#else
+#define GET_OPERAND(n) GETOPW(RMFT2::RouteCode+progCounter+1+(n*3))
+#define GETOPW(A) (((uint32_t)A)%2 ? GETFLASH((const byte *)A) | (GETFLASH(1+(const byte *)A)<<8) : GETFLASHW(A))
+#endif
 #define SKIPOP progCounter+=3
 
 
