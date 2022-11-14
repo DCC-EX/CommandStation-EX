@@ -136,9 +136,11 @@ void loop()
   #if defined(LCN_SERIAL)
   LCN::loop();
   #endif
-
+  
+  #ifndef NO_LCD_USED
   LCDDisplay::loop();  // ignored if LCD not in use
-
+  #endif
+  
   // Handle/update IO devices.
   IODevice::loop();
 
