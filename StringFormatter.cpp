@@ -70,7 +70,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
   char* flash=(char*)format;
   for(int i=0; ; ++i) {
     char c=GETFLASH(flash+i);
-    if (c=='\0') return;
+    if (c=='\0') break; // to va_end()
     if(c!='%') { stream->print(c); continue; }
 
     bool formatContinues=false;
