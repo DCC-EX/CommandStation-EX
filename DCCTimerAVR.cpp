@@ -126,6 +126,7 @@ void DCCTimer::reset() {
 #endif
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
+bool ADCusesHighPort = false;
 
 /*
  * Register a new pin to be scanned
@@ -136,6 +137,8 @@ int ADCee::init(uint8_t pin) {
   uint8_t id = pin - A0;
   if (id > NUM_ADC_INPUTS)
     return -1023;
+  if (id > 7)
+    ADCusesHighPort = true;
   pinMode(pin, INPUT);
   int value = analogRead(pin);
   if (analogvals == NULL)
@@ -196,7 +199,15 @@ void ADCee::scan() {
     while (true) {
       if (mask  & usedpins) {
 	// start new ADC aquire on id
-	ADMUX=(1<<REFS0)|id; //select AVCC as reference and set MUX
+#if defined(ADCSRB) && defined(MUX5)
+	if (ADCusesHighPort) { // if we ever have started to use high pins)
+	  if (id > 7)          // if we use a high ADC pin
+	    bitSet(ADCSRB, MUX5); // set MUX5 bit
+	  else
+	    bitClear(ADCSRB, MUX5);
+	}
+#endif
+	ADMUX=(1<<REFS0)|(id & 0x07); //select AVCC as reference and set MUX
 	bitSet(ADCSRA,ADSC); // start conversion
 	// for scope debug TrackManager::track[1]->setBrake(1);
 	waiting = true;
