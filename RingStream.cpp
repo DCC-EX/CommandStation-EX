@@ -189,11 +189,12 @@ bool RingStream::commit() {
   _mark++;
   if (_mark==_len) _mark=0;
   _buffer[_mark]=lowByte(_count);
-  { char s[_count+2];
-    strncpy(s, (const char*)&(_buffer[_mark+1]), _count);
-    s[_count]=0;
-    //DIAG(F("RS commit count=%d core %d \"%s\""), _count, xPortGetCoreID(), s);
-  }
+  // Enable this for debugging only, it requires A LOT of RAM
+  //{ char s[_count+2];
+  //  strncpy(s, (const char*)&(_buffer[_mark+1]), _count);
+  //  s[_count]=0;
+  //  DIAG(F("RS commit count=%d core %d \"%s\""), _count, xPortGetCoreID(), s);
+  //}
   _ringClient = NO_CLIENT;
   return true; // commit worked
 }
