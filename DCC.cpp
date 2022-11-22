@@ -589,10 +589,7 @@ byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   TrackManager::loop(); // power overload checks
-  bitSet(DDRE, 4);
-  bitSet(PORTE, 4);
   issueReminders();
-  bitClear(PORTE, 4);
 }
 
 void DCC::issueReminders() {
