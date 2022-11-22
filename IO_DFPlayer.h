@@ -1,5 +1,5 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2022, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
  *
@@ -36,24 +36,31 @@
  *   In mySetup function within mySetup.cpp:
  *       DFPlayer::create(3500, 5, Serial1);
  * 
- * Writing an analogue value 0-2999 to the first pin will select a numbered file from the SD card;
- * Writing an analogue value 0-30 to the second pin will set the volume of the output;
- * Writing a digital value to the first pin will play or stop the file;
+ * Writing an analogue value 1-2999 to the first pin (3500) will play the numbered file from the SD card;
+ * Writing an analogue value 0 to the first pin (3500) will stop the file playing;
+ * Writing an analogue value 0-30 to the second pin (3501) will set the volume;
+ * Writing a digital value of 1 to a pin will play the file corresponding to that pin, e.g.
+   the first file will be played by setting pin 3500, the second by setting pin 3501 etc.;
+ * Writing a digital value of 0 to any pin will stop the player;
  * Reading a digital value from any pin will return true(1) if the player is playing, false(0) otherwise.
  * 
  * From EX-RAIL, the following commands may be used:
- *   SET(3500)      -- starts playing the first file on the SD card
- *   SET(3501)      -- starts playing the second file on the SD card
+ *   SET(3500)      -- starts playing the first file (file 1) on the SD card
+ *   SET(3501)      -- starts playing the second file (file 2) on the SD card
  *   etc.
  *   RESET(3500)    -- stops all playing on the player
  *   WAITFOR(3500)  -- wait for the file currently being played by the player to complete
- *   SERVO(3500,23,0)  -- plays file 23 at current volume
- *   SERVO(3500,23,30)  -- plays file 23 at volume 30 (maximum)
- *   SERVO(3501,20,0)   -- Sets the volume to 20
+ *   SERVO(3500,2,Instant)  -- plays file 2 at current volume
+ *   SERVO(3501,20,Instant)   -- Sets the volume to 20
  * 
  * NB The DFPlayer's serial lines are not 5V safe, so connecting the Arduino TX directly 
  * to the DFPlayer's RX terminal will cause lots of noise over the speaker, or worse.
  * A 1k resistor in series with the module's RX terminal will alleviate this.
+ * 
+ * Files on the SD card are numbered according to their order in the directory on the 
+ * card (as listed by the DIR command in Windows).  This may not match the order of the files 
+ * as displayed by Windows File Manager, which sorts the file names.  It is suggested that
+ * files be copied into an empty SDcard in the desired order, one at a time.
  */
 
 #ifndef IO_DFPlayer_h
@@ -68,6 +75,19 @@ private:
   uint8_t _inputIndex = 0;
   unsigned long _commandSendTime; // Allows timeout processing
 
+  // When two commands are sent in quick succession, the device sometimes 
+  // fails to execute one.  A delay is required between successive commands.
+  // This could be implemented by buffering commands and outputting them
+  // from the loop() function, but it would somewhat complicate the 
+  // driver.  A simpler solution is to output a number of NUL pad characters
+  // between successive command strings if there isn't sufficient elapsed time
+  // between them.  At 9600 baud, each pad character takes approximately
+  // 1ms to complete.  Experiments indicate that the minimum number of pads
+  // for reliable operation is 17.  This gives 17.7ms between the end of one
+  // command and the beginning of the next, or 28ms between successive commands
+  // being completed.  I've allowed 20 characters, which is almost 21ms.
+  const int numPadCharacters = 20;  // Number of pad characters between commands
+  
 public:
  
   static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
@@ -83,8 +103,10 @@ protected:
     addDevice(this);
   }
 
- void _begin() override {
-    _serial->begin(9600);
+  void _begin() override {
+    _serial->begin(9600, SERIAL_8N1); // 9600baud, no parity, 1 stop bit
+    // Flush any data in input queue
+    while (_serial->available()) _serial->read();
     _deviceState = DEVSTATE_INITIALISING;
 
     // Send a query to the device to see if it responds
@@ -94,10 +116,10 @@ protected:
 
   void _loop(unsigned long currentMicros) override {
     // Check for incoming data on _serial, and update busy flag accordingly.
-    // Expected message is in the form "7F FF 06 3D xx xx xx xx xx EF"
+    // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
     while (_serial->available()) {
       int c = _serial->read();
-      if (c == 0x7E) 
+      if (c == 0x7E && _inputIndex == 0) 
         _inputIndex = 1;
       else if ((c==0xFF && _inputIndex==1)
             || (c==0x3D && _inputIndex==3) 
@@ -124,8 +146,8 @@ protected:
       } else 
         _inputIndex = 0;  // Unrecognised character sequence, start again!
     }
-    // Check if the initial prompt to device has timed out.  Allow 1 second
-    if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 1000000UL) {
+    // Check if the initial prompt to device has timed out.  Allow 5 seconds
+    if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 5000000UL) {
       DIAG(F("DFPlayer device not responding on serial port"));
       _deviceState = DEVSTATE_FAILED;
     }
@@ -218,6 +240,7 @@ private:
 
   void sendPacket(uint8_t command, uint16_t arg = 0)
   {
+    unsigned long currentMillis = millis();
     uint8_t out[] = { 0x7E,
         0xFF,
         06,
@@ -231,7 +254,19 @@ private:
 
     setChecksum(out);
 
+    // Check how long since the last command was sent.
+    // Each character takes approx 1ms at 9600 baud
+    unsigned long minimumGap = numPadCharacters + sizeof(out);
+    if (currentMillis - _commandSendTime < minimumGap) {
+      // Output some pad characters to add an
+      // artificial delay between commands
+      for (int i=0; i<numPadCharacters; i++) 
+        _serial->write(0);
+    }
+
+    // Now output the command
     _serial->write(out, sizeof(out));
+    _commandSendTime = currentMillis;
   }
 
   uint16_t calcChecksum(uint8_t* packet)
