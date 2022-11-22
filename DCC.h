@@ -108,7 +108,8 @@ private:
   static void updateLocoReminder(int loco, byte speedCode);
   static void setFunctionInternal(int cab, byte fByte, byte eByte);
   static bool issueReminder(int reg);
-  static int nextLoco;
+  static int lastLocoReminder;
+  static int highestUsedReg;
   static FSH *shieldName;
   static byte globalSpeedsteps;
 
