@@ -595,30 +595,15 @@ void DCC::loop()  {
 void DCC::issueReminders() {
   // if the main track transmitter still has a pending packet, skip this time around.
   if ( DCCWaveform::mainTrack.getPacketPending()) return;
-
-  // This loop searches for a loco in the speed table starting at nextLoco and cycling back around
-    /*
-  for (int reg=0;reg<MAX_LOCOS;reg++) {
-       int slot=reg+nextLoco;
-       if (slot>=MAX_LOCOS) slot-=MAX_LOCOS;
-       if (speedTable[slot].loco > 0) {
-          // have found the next loco to remind
-          // issueReminder will return true if this loco is completed (ie speed and functions)
-          if (issueReminder(slot)) nextLoco=slot+1;
-          return;
-        }
-  }
-    */
-  for (int reg=nextLoco;reg<MAX_LOCOS+nextLoco;reg++) {
-    int slot=reg%MAX_LOCOS;
-    if (speedTable[slot].loco > 0) {
-      // have found the next loco to remind
-      // issueReminder will return true if this loco is completed (ie speed and functions)
-      if (issueReminder(slot))
-	nextLoco=(slot+1)%MAX_LOCOS;
-      return;
-    }
-  }
+  // Move to next loco slot.  If occupied, send a reminder.
+  int reg = lastLocoReminder+1;
+  if (reg > highestUsedReg) reg = 0;  // Go to start of table
+  if (speedTable[reg].loco > 0) {
+    // have found loco to remind
+    if (issueReminder(reg))
+      lastLocoReminder = reg;
+  } else
+    lastLocoReminder = reg;
 }
 
 bool DCC::issueReminder(int reg) {
@@ -698,6 +683,7 @@ int DCC::lookupSpeedTable(int locoId, bool autoCreate) {
         speedTable[reg].groupFlags=0;
         speedTable[reg].functions=0;
   }
+  if (reg > highestUsedReg) highestUsedReg = reg;
   return reg;
 }
 
@@ -705,7 +691,7 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
 
   if (loco==0) {
      // broadcast stop/estop but dont change direction
-     for (int reg = 0; reg < MAX_LOCOS; reg++) {
+     for (int reg = 0; reg < highestUsedReg; reg++) {
        if (speedTable[reg].loco==0) continue;
        byte newspeed=(speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
        if (speedTable[reg].speedCode != newspeed) {
@@ -725,13 +711,14 @@ void  DCC::updateLocoReminder(int loco, byte speedCode) {
 }
 
 DCC::LOCO DCC::speedTable[MAX_LOCOS];
-int DCC::nextLoco = 0;
+int DCC::lastLocoReminder = 0;
+int DCC::highestUsedReg = 0;
 
 
 void DCC::displayCabList(Print * stream) {
 
     int used=0;
-    for (int reg = 0; reg < MAX_LOCOS; reg++) {
+    for (int reg = 0; reg <= highestUsedReg; reg++) {
        if (speedTable[reg].loco>0) {
         used ++;
         StringFormatter::send(stream,F("cab=%d, speed=%d, dir=%c \n"),
