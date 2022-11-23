@@ -124,6 +124,8 @@ private:
   static uint16_t usedpins;
   // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;
+  // ids to scan (new way)
+  static byte *idarr;
   // friend so that we can call scan() and begin()
   friend class DCCWaveform;
   };
