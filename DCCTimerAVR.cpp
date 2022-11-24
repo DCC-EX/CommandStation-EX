@@ -127,7 +127,7 @@ void DCCTimer::reset() {
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
 byte *ADCee::idarr = NULL;
-bool ADCusesHighPort = false;
+static bool ADCusesHighPort = false;
 
 /*
  * Register a new pin to be scanned
@@ -145,17 +145,19 @@ int ADCee::init(uint8_t pin) {
   int value = analogRead(pin);
   if (analogvals == NULL) {
     analogvals = (int *)calloc(NUM_ADC_INPUTS, sizeof(int));
-    idarr = (byte *)calloc(NUM_ADC_INPUTS+1, sizeof(byte));
+    for (n=0 ; n < NUM_ADC_INPUTS; n++) // set unreasonable value at startup as marker
+      analogvals[n] = -32768;           // 16 bit int min value
+    idarr = (byte *)calloc(NUM_ADC_INPUTS+1, sizeof(byte));  // +1 for terminator value
     for (n=0 ; n <= NUM_ADC_INPUTS; n++)
-      idarr[n] = 255;
+      idarr[n] = 255;                   // set 255 as end of array marker
   }
+  analogvals[id] = value; // store before enable by idarr[n]
   for (n=0 ; n <= NUM_ADC_INPUTS; n++) {
     if (idarr[n] == 255) {
       idarr[n] = id;
       break;
     }
   }
-  analogvals[id] = value;
   return value;
 }
 int16_t ADCee::ADCmax() {
@@ -167,8 +169,6 @@ int16_t ADCee::ADCmax() {
 int ADCee::read(uint8_t pin, bool fromISR) {
   (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
-  if ((usedpins & (1<<id) ) == 0)
-    return -1023;
   // we do not need to check (analogvals == NULL)
   // because usedpins would still be 0 in that case
   return analogvals[id];
