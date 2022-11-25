@@ -88,7 +88,10 @@ void DCCTimer::clearPWM() {
 
   void DCCTimer::getSimulatedMacAddress(byte mac[6]) {
     for (byte i=0; i<6; i++) {
-      mac[i]=boot_signature_byte_get(0x0E + i);
+      // take the fist 3 and last 3 of the serial.
+      // the first 5 of 8 are at 0x0E to 0x013
+      // the last  3 of 8 are at 0x15 to 0x017
+      mac[i]=boot_signature_byte_get(0x0E + i + (i>2? 4 : 0));
     }
     mac[0] &= 0xFE;
     mac[0] |= 0x02;
