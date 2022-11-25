@@ -727,7 +727,7 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFRANDOM: // do block on random percentage
-    skipIf=(uint8_t)micros() >= operand;
+    skipIf= ((uint8_t)((uint16_t)micros()>>4)) >= operand;
     break;
     
   case OPCODE_IFRESERVE: // do block if we successfully RERSERVE
