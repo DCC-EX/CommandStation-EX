@@ -169,9 +169,13 @@ int16_t ADCee::ADCmax() {
 int ADCee::read(uint8_t pin, bool fromISR) {
   (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
+  int a;
   // we do not need to check (analogvals == NULL)
   // because usedpins would still be 0 in that case
-  return analogvals[id];
+  noInterrupts();
+  a = analogvals[id];
+  interrupts();
+  return a;
 }
 /*
  * Scan function that is called from interrupt
