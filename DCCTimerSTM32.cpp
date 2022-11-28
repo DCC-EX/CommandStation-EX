@@ -38,7 +38,7 @@ HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F
 // for other DCC-EX uses like WiFi, DFPlayer, etc.
 // Let's define Serial6 as an additional serial port (the only other option for the F411RE)
 HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
-#elif defined(ARDUINO_BLAH_F412ZG) || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F446ZE)
+#elif defined(ARDUINO_BLAH_F412ZG) || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
 #else
@@ -90,10 +90,9 @@ void DCCTimer::clearPWM() {
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-  volatile uint32_t *serno1 = (volatile uint32_t *)0x0080A00C;
-  volatile uint32_t *serno2 = (volatile uint32_t *)0x0080A040;
-//  volatile uint32_t *serno3 = (volatile uint32_t *)0x0080A044;
-//  volatile uint32_t *serno4 = (volatile uint32_t *)0x0080A048;
+  volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
+  volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
+  volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
 
   volatile uint32_t m1 = *serno1;
   volatile uint32_t m2 = *serno2;
