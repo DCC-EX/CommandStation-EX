@@ -377,11 +377,12 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor,
   char *locator = (char *)waitfor;
   DIAG(F("Wifi Check: [%E]"), waitfor);
   while ( millis() - startTime < timeout) {
-    while (wifiStream->available()) {
-      int ch = wifiStream->read();
+    int nextchar;
+    while (wifiStream->available() && (nextchar = wifiStream->read()) > -1) {
+      char ch = (char)nextchar;
       if (echo) {
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
-        else USB_SERIAL.print((char)ch); 
+        else USB_SERIAL.print(ch);
       }
       if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {
