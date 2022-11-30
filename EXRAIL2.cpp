@@ -965,7 +965,7 @@ void RMFT2::delayMe(long delay) {
   delayStart=millis();
 }
 
-boolean RMFT2::setFlag(VPIN id,byte onMask, byte offMask) {
+bool RMFT2::setFlag(VPIN id,byte onMask, byte offMask) {
    if (FLAGOVERFLOW(id)) return false; // Outside range limit
    byte f=flags[id];
    f &= ~offMask;
