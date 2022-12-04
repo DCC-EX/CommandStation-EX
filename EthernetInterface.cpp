@@ -60,14 +60,14 @@ EthernetInterface::EthernetInterface()
     connected=false;
    
     #ifdef IP_ADDRESS
-    if (Ethernet.begin(mac, IP_ADDRESS) == 0)
+    Ethernet.begin(mac, IP_ADDRESS);
     #else
     if (Ethernet.begin(mac) == 0)
-    #endif
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
+    #endif
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found or W5100"));
     }
@@ -135,7 +135,10 @@ bool EthernetInterface::checkLink() {
     if(!connected) {
       DIAG(F("Ethernet cable connected"));
       connected=true;
-      IPAddress ip = Ethernet.localIP(); // reassign the obtained ip address
+      #ifdef IP_ADDRESS
+      setLocalIP(IP_ADDRESS);               // for static IP, set it again
+      #endif
+      IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
       server->begin();
       LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
