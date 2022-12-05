@@ -378,7 +378,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
     }
     //use first empty "slot" on this client's list, will be added to DCC registration list
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
-      if (myLocos[loco].throttle=='\0') { 
+      if (myLocos[loco].throttle=='\0' || myLocos[loco].cab == locoid) {
 	myLocos[loco].throttle=throttleChar;
 	myLocos[loco].cab=locoid; 
 	myLocos[loco].functionMap=DCC::getFunctionMap(locoid); 

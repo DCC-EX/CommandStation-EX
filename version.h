@@ -6,6 +6,7 @@
 
 #define VERSION "4.2.7pre1"
 // 4.2.7 FIX: Static IP addr
+//       FIX: Reuse WiThrottle list entries
 // 4.2.6 FIX: Remove RAM thief
 //       FIX: ADC port 8-15 fix
 // 4.2.5 Make GETFLASHW code more universal
