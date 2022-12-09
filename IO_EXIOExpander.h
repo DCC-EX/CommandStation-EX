@@ -21,6 +21,15 @@
 * The IO_EX-IOExpander.h device driver integrates with one or more EX-IOExpander devices.
 * This device driver will configure the device and all I/O ports on startup, along with
 * interacting with the device for all input/output duties.
+*
+* To create EX-IOExpander devices, these are defined in myHal.cpp:
+*
+* #include "IO_EX-IOExpander.h"
+*
+* void halSetup() {
+*   // EXIOExpander::create(vpin, num_vpins, i2c_address, digital_pinmap, analogue_pinmap);
+*   EXIOExpander::create(800, 18, 0x90, DEFAULT_NANO_DIGITAL_PINMAP, DEFAULT_NANO_ANALOGUE_PINMAP);
+}
 */
 
 #ifndef IO_EX_IOEXPANDER_H
