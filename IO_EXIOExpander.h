@@ -110,6 +110,15 @@ private:
   uint8_t _i2cAddress;
   EXIODigitalPinMap _digitalPinMap;
   EXIOAnaloguePinMap _analoguePinMap;
+
+  enum {
+    REG_EXIOINIT = 0x00,    // Flag to initialise setup procedure
+    REG_EXIODPIN = 0x01,    // Flag we're sending digital pin assignments
+    REG_EXIOAPIN = 0x02,    // Flag we're sending analogue pin assignments
+    REG_EXIORDY = 0x03,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    REG_EXIODDIR = 0x04,    // Flag we're sending digital pin direction configuration
+    REG_EXIODPUP = 0x05,    // Flag we're sending digital pin pullup configuration
+  };
 };
 
 #endif
