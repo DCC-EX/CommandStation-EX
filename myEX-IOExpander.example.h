@@ -16,8 +16,7 @@
 #ifndef MYEX_IOEXPANDER_H
 #define MYEX_IOEXPANDER_H
 
-#define MY_CUSTOM_NANO F("MY_NANO_PINMAP"), \
-  new EXIODigitalPinMap(12,2,3,4,5,6,7,8,9,10,11,12,13) \
-  new EXIOAnaloguePinMap(4,A0,A1,A2,A3)
+#define MY_NANO_DIGITAL_PINMAP 2,3,4,5,6,7,8,9,10,11,12,13
+#define MY_NANO_ANALOGUE_PINMAP A0,A1,A2,A3
 
 #endif

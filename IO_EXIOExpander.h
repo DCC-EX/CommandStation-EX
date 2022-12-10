@@ -27,8 +27,8 @@
 * #include "IO_EX-IOExpander.h"
 *
 * void halSetup() {
-*   // EXIOExpander::create(vpin, num_vpins, i2c_address, digital_pinmap, analogue_pinmap);
-*   EXIOExpander::create(800, 18, 0x90, DEFAULT_NANO_DIGITAL_PINMAP, DEFAULT_NANO_ANALOGUE_PINMAP);
+*   // EXIOExpander::create(vpin, num_vpins, i2c_address);
+*   EXIOExpander::create(800, 18, 0x90);
 }
 */
 
@@ -46,56 +46,20 @@
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
- * EXIODigitalPinMap class for EX-IOExpander.
- */
-class EXIODigitalPinMap {
-  public:
-    EXIODigitalPinMap(uint8_t numDigitalPins, uint8_t...);
-    EXIODigitalPinMap() = default;
-
-  private:
-    EXIODigitalPinMap(uint8_t numDigitalPins, ...) {
-      _numDigitalPins = numDigitalPins;
-      uint8_t _digitalPinMap[_numDigitalPins];
-      va_list _pinList;
-      va_start(_pinList, _numDigitalPins);
-      for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
-        _digitalPinMap[pin] = va_arg(_pinList, int);
-      }
-      va_end(_pinList);
-    }
-
-    uint8_t _numDigitalPins;
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
- * EXIOAnaloguePinMap class for EX-IOExpander.
- */
-class EXIOAnaloguePinMap {
-  public:
-    EXIOAnaloguePinMap(uint8_t numAnaloguePins, ...);
-    EXIOAnaloguePinMap() = default;
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
  * IODevice subclass for EX-IOExpander.
  */
 class EXIOExpander : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, EXIODigitalPinMap digitalPinMap, EXIOAnaloguePinMap analoguePinMap) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress, digitalPinMap, analoguePinMap);
+  static void create(VPIN vpin, int nPins, uint8_t i2cAddress) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, EXIODigitalPinMap digitalPinMap, EXIOAnaloguePinMap analoguePinMap) {
+  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
-    _digitalPinMap = digitalPinMap;
-    _analoguePinMap = analoguePinMap;
     addDevice(this);
   }
 
@@ -117,8 +81,6 @@ private:
   }
 
   uint8_t _i2cAddress;
-  EXIODigitalPinMap _digitalPinMap;
-  EXIOAnaloguePinMap _analoguePinMap;
 
   enum {
     REG_EXIOINIT = 0x00,    // Flag to initialise setup procedure
