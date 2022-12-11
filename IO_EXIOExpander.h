@@ -37,7 +37,7 @@
 
 #include "IO_GPIOBase.h"
 #include "FSH.h"
-#include "EX-IOExpanderPinMaps.h"
+#include "EX-IOExpanderPins.h"
 
 // Include user defined pin maps in myEX-IOExpander if defined
 #if __has_include ("myEX-IOExpander.h")
@@ -50,16 +50,18 @@
  */
 class EXIOExpander : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
+  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, uint8_t numDigitalPins, uint8_t numAnaloguePins) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress, numDigitalPins, numAnaloguePins);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
+  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint8_t numDigitalPins, uint8_t numAnaloguePins) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
+    _numDigitalPins = numDigitalPins;
+    _numAnaloguePins = numAnaloguePins;
     addDevice(this);
   }
 
@@ -69,10 +71,32 @@ private:
 #ifdef DIAG_IO
       _display();
 #endif
+      _setupDevice();
     } else {
       DIAG(F("EX-IOExpander device not found, I2C:%x"), _i2cAddress);
       _deviceState = DEVSTATE_FAILED;
     }
+  }
+
+  void _setupDevice() {
+    // Send digital and analogue pin counts
+    I2CManager.write(_i2cAddress, 3, REG_EXIOINIT, _numDigitalPins, _numAnaloguePins);
+    // Enable digital ports
+    _digitalPinBytes = (_numDigitalPins + 7) / 8;
+    uint8_t enableDigitalPins[_digitalPinBytes];
+    for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
+      int pinByte = ((pin + 7) / 8);
+      bitSet(enableDigitalPins[pinByte], (pin - (pinByte * 8)));
+    }
+    I2CManager.write(_i2cAddress, _digitalPinBytes + 1, REG_EXIODPIN, enableDigitalPins);
+    // Enable analogue ports
+    _analoguePinBytes = (_numAnaloguePins + 7) / 8;
+    uint8_t enableAnaloguePins[_analoguePinBytes];
+    for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
+      int pinByte = ((pin + 7) / 8);
+      bitSet(enableAnaloguePins[pinByte], (pin - (pinByte * 8)));
+    }
+    I2CManager.write(_i2cAddress, _analoguePinBytes + 1, REG_EXIOAPIN, enableAnaloguePins);
   }
 
   void _display() override {
@@ -81,6 +105,10 @@ private:
   }
 
   uint8_t _i2cAddress;
+  uint8_t _numDigitalPins;
+  uint8_t _numAnaloguePins;
+  int _digitalPinBytes;
+  int _analoguePinBytes;
 
   enum {
     REG_EXIOINIT = 0x00,    // Flag to initialise setup procedure
