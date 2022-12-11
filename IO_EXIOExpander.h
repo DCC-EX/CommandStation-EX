@@ -84,19 +84,25 @@ private:
     // Enable digital ports
     _digitalPinBytes = (_numDigitalPins + 7) / 8;
     uint8_t enableDigitalPins[_digitalPinBytes];
-    for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
-      int pinByte = ((pin + 7) / 8);
-      bitSet(enableDigitalPins[pinByte], (pin - (pinByte * 8)));
+    for (uint8_t byte = 0; byte < _digitalPinBytes; byte++) {
+      enableDigitalPins[byte] = 0;
     }
-    I2CManager.write(_i2cAddress, _digitalPinBytes + 1, REG_EXIODPIN, enableDigitalPins);
+    for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
+      int pinByte = pin / 8;
+      bitSet(enableDigitalPins[pinByte], pin - pinByte * 8);
+    }
+    I2CManager.write(_i2cAddress, _digitalPinBytes + 1, REG_EXIODPIN, *enableDigitalPins);
     // Enable analogue ports
     _analoguePinBytes = (_numAnaloguePins + 7) / 8;
     uint8_t enableAnaloguePins[_analoguePinBytes];
-    for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
-      int pinByte = ((pin + 7) / 8);
-      bitSet(enableAnaloguePins[pinByte], (pin - (pinByte * 8)));
+    for (uint8_t byte = 0; byte < _analoguePinBytes; byte++) {
+      enableAnaloguePins[byte] = 0;
     }
-    I2CManager.write(_i2cAddress, _analoguePinBytes + 1, REG_EXIOAPIN, enableAnaloguePins);
+    for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
+      int pinByte = pin / 8;
+      bitSet(enableAnaloguePins[pinByte], pin - pinByte * 8);
+    }
+    I2CManager.write(_i2cAddress, _analoguePinBytes + 1, REG_EXIOAPIN, *enableAnaloguePins);
   }
 
   void _display() override {
@@ -111,12 +117,12 @@ private:
   int _analoguePinBytes;
 
   enum {
-    REG_EXIOINIT = 0x00,    // Flag to initialise setup procedure
-    REG_EXIODPIN = 0x01,    // Flag we're sending digital pin assignments
-    REG_EXIOAPIN = 0x02,    // Flag we're sending analogue pin assignments
-    REG_EXIORDY = 0x03,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
-    REG_EXIODDIR = 0x04,    // Flag we're sending digital pin direction configuration
-    REG_EXIODPUP = 0x05,    // Flag we're sending digital pin pullup configuration
+    REG_EXIOINIT = 0xE0,    // Flag to initialise setup procedure
+    REG_EXIODPIN = 0xE1,    // Flag we're sending digital pin assignments
+    REG_EXIOAPIN = 0xE2,    // Flag we're sending analogue pin assignments
+    REG_EXIORDY = 0xE3,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    REG_EXIODDIR = 0xE4,    // Flag we're sending digital pin direction configuration
+    REG_EXIODPUP = 0xE5,    // Flag we're sending digital pin pullup configuration
   };
 };
 
