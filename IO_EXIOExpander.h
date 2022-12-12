@@ -35,7 +35,9 @@
 #ifndef IO_EX_IOEXPANDER_H
 #define IO_EX_IOEXPANDER_H
 
-#include "IO_GPIOBase.h"
+#include "IODevice.h"
+#include "I2CManager.h"
+#include "DIAG.h"
 #include "FSH.h"
 #include "EX-IOExpanderPins.h"
 
@@ -82,27 +84,29 @@ private:
     // Send digital and analogue pin counts
     I2CManager.write(_i2cAddress, 3, REG_EXIOINIT, _numDigitalPins, _numAnaloguePins);
     // Enable digital ports
-    _digitalPinBytes = (_numDigitalPins + 7) / 8;
-    uint8_t enableDigitalPins[_digitalPinBytes];
-    for (uint8_t byte = 0; byte < _digitalPinBytes; byte++) {
-      enableDigitalPins[byte] = 0;
+    _digitalPinBytes = (_numDigitalPins + 7) / 8 + 1;
+    uint8_t _enableDigitalPins[_digitalPinBytes];
+    _enableDigitalPins[0] = REG_EXIODPIN;
+    for (uint8_t byte = 1; byte < _digitalPinBytes; byte++) {
+      _enableDigitalPins[byte] = 0;
     }
     for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
       int pinByte = pin / 8;
-      bitSet(enableDigitalPins[pinByte], pin - pinByte * 8);
+      bitSet(_enableDigitalPins[pinByte + 1], pin - pinByte * 8);
     }
-    I2CManager.write(_i2cAddress, _digitalPinBytes + 1, REG_EXIODPIN, *enableDigitalPins);
+    I2CManager.write(_i2cAddress, _enableDigitalPins, _digitalPinBytes, &_i2crb);
     // Enable analogue ports
-    _analoguePinBytes = (_numAnaloguePins + 7) / 8;
-    uint8_t enableAnaloguePins[_analoguePinBytes];
-    for (uint8_t byte = 0; byte < _analoguePinBytes; byte++) {
-      enableAnaloguePins[byte] = 0;
+    _analoguePinBytes = (_numAnaloguePins + 7) / 8 + 1;
+    uint8_t _enableAnaloguePins[_analoguePinBytes];
+    _enableAnaloguePins[0] = REG_EXIOAPIN;
+    for (uint8_t byte = 1; byte < _analoguePinBytes; byte++) {
+      _enableAnaloguePins[byte] = 0;
     }
     for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
       int pinByte = pin / 8;
-      bitSet(enableAnaloguePins[pinByte], pin - pinByte * 8);
+      bitSet(_enableAnaloguePins[pinByte + 1], pin - pinByte * 8);
     }
-    I2CManager.write(_i2cAddress, _analoguePinBytes + 1, REG_EXIOAPIN, *enableAnaloguePins);
+    I2CManager.write(_i2cAddress, _enableAnaloguePins, _analoguePinBytes, &_i2crb);
   }
 
   void _display() override {
@@ -115,6 +119,7 @@ private:
   uint8_t _numAnaloguePins;
   int _digitalPinBytes;
   int _analoguePinBytes;
+  I2CRB _i2crb;
 
   enum {
     REG_EXIOINIT = 0xE0,    // Flag to initialise setup procedure
