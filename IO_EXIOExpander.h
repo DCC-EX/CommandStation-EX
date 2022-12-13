@@ -27,8 +27,8 @@
 * #include "IO_EX-IOExpander.h"
 *
 * void halSetup() {
-*   // EXIOExpander::create(vpin, num_vpins, i2c_address);
-*   EXIOExpander::create(800, 18, 0x90);
+*   // EXIOExpander::create(vpin, num_vpins, i2c_address, digitalPinCount, analoguePinCount);
+*   EXIOExpander::create(800, 18, 0x90, 12, 6);
 }
 */
 
@@ -69,64 +69,56 @@ private:
 
   void _begin() {
     // Initialise EX-IOExander device
+    uint8_t _check = I2CManager.checkAddress(_i2cAddress);
+    DIAG(F("I2C status check: %d"), _check);
     if (I2CManager.exists(_i2cAddress)) {
+      _activity = EXIOINIT;
 #ifdef DIAG_IO
       _display();
 #endif
-      _setupDevice();
     } else {
-      DIAG(F("EX-IOExpander device not found, I2C:%x"), _i2cAddress);
+      DIAG(F("EX-IOExpander device not found, I2C:x%x"), _i2cAddress);
       _deviceState = DEVSTATE_FAILED;
     }
-  }
-
-  void _setupDevice() {
-    // Send digital and analogue pin counts
-    uint8_t _setupBuffer[3] = {EXIOINIT, _numDigitalPins, _numAnaloguePins};
-    // I2CManager.write(_i2cAddress, 3, EXIOINIT, _numDigitalPins, _numAnaloguePins);
-    I2CManager.write(_i2cAddress, _setupBuffer, 3, &_i2crb);
-    _activity = EXIODPIN;
   }
 
   void _loop(unsigned long currentMicros) override {
     if (_i2crb.status == I2C_STATUS_PENDING) return;
     if (_i2crb.status == I2C_STATUS_OK) {
       switch(_activity) {
+        case EXIOINIT:
+          // Send digital and analogue pin counts
+          _setupBuffer[0] = EXIOINIT;
+          _setupBuffer[1] = _numDigitalPins;
+          _setupBuffer[2] = _numAnaloguePins;
+          I2CManager.write(_i2cAddress, _setupBuffer, 3, &_i2crb);
+          _activity = EXIODPIN;
+          break;
         case EXIODPIN:
           // Enable digital ports
           _digitalPinBytes = (_numDigitalPins + 7) / 8 + 1;
-          // uint8_t _enableDigitalPins[_digitalPinBytes];
-          // _enableDigitalPins[0] = EXIODPIN;
           _digitalOutBuffer[0] = EXIODPIN;
           for (uint8_t byte = 1; byte < _digitalPinBytes; byte++) {
-            // _enableDigitalPins[byte] = 0;
             _digitalOutBuffer[byte] = 0;
           }
           for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
             int pinByte = pin / 8;
-            // bitSet(_enableDigitalPins[pinByte + 1], pin - pinByte * 8);
             bitSet(_digitalOutBuffer[pinByte + 1], pin - pinByte * 8);
           }
-          // I2CManager.write(_i2cAddress, _enableDigitalPins, _digitalPinBytes, &_i2crb);
           I2CManager.write(_i2cAddress, _digitalOutBuffer, _digitalPinBytes, &_i2crb);
           _activity = EXIOAPIN;
           break;
         case EXIOAPIN:
           // Enable analogue ports
           _analoguePinBytes = (_numAnaloguePins + 7) / 8 + 1;
-          // uint8_t _enableAnaloguePins[_analoguePinBytes];
-          // _enableAnaloguePins[0] = EXIOAPIN;
           _analogueOutBuffer[0] = EXIOAPIN;
           for (uint8_t byte = 1; byte < _analoguePinBytes; byte++) {
-            // _enableAnaloguePins[byte] = 0;
             _analogueOutBuffer[byte] = 0;
           }
           for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
             int pinByte = pin / 8;
-            // bitSet(_enableAnaloguePins[pinByte + 1], pin - pinByte * 8);
             bitSet(_analogueOutBuffer[pinByte + 1], pin - pinByte * 8);
           }
-          // I2CManager.write(_i2cAddress, _enableAnaloguePins, _analoguePinBytes, &_i2crb);
           I2CManager.write(_i2cAddress, _analogueOutBuffer, _analoguePinBytes, &_i2crb);
           _activity = EXIORDY;
           break;
@@ -146,6 +138,7 @@ private:
   uint8_t _numAnaloguePins;
   int _digitalPinBytes;
   int _analoguePinBytes;
+  uint8_t _setupBuffer[3];
   uint8_t _digitalOutBuffer[EXIO_NANO_DIGITAL_PINS + 1];
   uint8_t _digitalInBufer[EXIO_NANO_DIGITAL_PINS];
   uint8_t _analogueOutBuffer[EXIO_NANO_ANALOGUE_PINS + 1];
