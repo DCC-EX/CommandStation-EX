@@ -52,18 +52,22 @@
  */
 class EXIOExpander : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, uint8_t numDigitalPins, uint8_t numAnaloguePins) {
+  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, byte numDigitalPins, byte numAnaloguePins) {
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress, numDigitalPins, numAnaloguePins);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint8_t numDigitalPins, uint8_t numAnaloguePins) {
+  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, byte numDigitalPins, byte numAnaloguePins) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
+    _digitalOutBuffer = (byte *)calloc(_numDigitalPins + 1, 1);
+    _digitalInBuffer = (byte *)calloc(_numDigitalPins, 1);
+    _analogueOutBuffer = (byte *)calloc(_numAnaloguePins + 1, 1);
+    _analogueInBuffer = (byte *)calloc(_numAnaloguePins, 1);
     addDevice(this);
   }
 
@@ -139,10 +143,10 @@ private:
   int _digitalPinBytes;
   int _analoguePinBytes;
   uint8_t _setupBuffer[3];
-  uint8_t _digitalOutBuffer[EXIO_NANO_DIGITAL_PINS + 1];
-  uint8_t _digitalInBufer[EXIO_NANO_DIGITAL_PINS];
-  uint8_t _analogueOutBuffer[EXIO_NANO_ANALOGUE_PINS + 1];
-  uint8_t _analogueInBuffer[EXIO_NANO_ANALOGUE_PINS];
+  byte * _digitalOutBuffer = NULL;
+  byte * _digitalInBuffer = NULL;
+  byte * _analogueOutBuffer = NULL;
+  byte * _analogueInBuffer = NULL;
   uint8_t _activity;
   I2CRB _i2crb;
 
