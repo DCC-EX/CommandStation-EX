@@ -28,8 +28,16 @@
 *
 * void halSetup() {
 *   // EXIOExpander::create(vpin, num_vpins, i2c_address, digitalPinCount, analoguePinCount);
-*   EXIOExpander::create(800, 18, 0x90, 12, 6);
-}
+*   EXIOExpander::create(800, 18, 0x65, EXIO_NANO_DIGITAL_PINS, EXIO_NANO_ANALOGUE_PINS);
+* }
+* 
+* Note when defining the number of digital and analogue pins, there is no way to sanity check
+* this from the device driver, and it is up to the user to define the correct values here.
+* 
+* Vpins are allocated to digital pins first, and then analogue pins, so digital pins will
+* populate the first part of the specified vpin range, with the analogue pins populating the
+* last part of the vpin range.
+* Eg. for a default Nano, 800 - 811 are digital (D2 - D13), 812 to 817 are analogue (A0 - A3, A6/A7).
 */
 
 #ifndef IO_EX_IOEXPANDER_H
@@ -74,9 +82,8 @@ private:
   void _begin() {
     // Initialise EX-IOExander device
     uint8_t _check = I2CManager.checkAddress(_i2cAddress);
-    DIAG(F("I2C status check: %d"), _check);
     if (I2CManager.exists(_i2cAddress)) {
-      _activity = EXIOINIT;
+      _activity = EXIOINIT;   // First thing to do is configure EX-IOExpander device
 #ifdef DIAG_IO
       _display();
 #endif
@@ -87,43 +94,15 @@ private:
   }
 
   void _loop(unsigned long currentMicros) override {
-    if (_i2crb.status == I2C_STATUS_PENDING) return;
+    if (_i2crb.status == I2C_STATUS_PENDING) return;  // Do nothing if I2C isn't ready yet
     if (_i2crb.status == I2C_STATUS_OK) {
       switch(_activity) {
         case EXIOINIT:
-          // Send digital and analogue pin counts
+          // Send digital and analogue pin counts to configure EX-IOExpander
           _setupBuffer[0] = EXIOINIT;
           _setupBuffer[1] = _numDigitalPins;
           _setupBuffer[2] = _numAnaloguePins;
           I2CManager.write(_i2cAddress, _setupBuffer, 3, &_i2crb);
-          _activity = EXIODPIN;
-          break;
-        case EXIODPIN:
-          // Enable digital ports
-          _digitalPinBytes = (_numDigitalPins + 7) / 8 + 1;
-          _digitalOutBuffer[0] = EXIODPIN;
-          for (uint8_t byte = 1; byte < _digitalPinBytes; byte++) {
-            _digitalOutBuffer[byte] = 0;
-          }
-          for (uint8_t pin = 0; pin < _numDigitalPins; pin++) {
-            int pinByte = pin / 8;
-            bitSet(_digitalOutBuffer[pinByte + 1], pin - pinByte * 8);
-          }
-          I2CManager.write(_i2cAddress, _digitalOutBuffer, _digitalPinBytes, &_i2crb);
-          _activity = EXIOAPIN;
-          break;
-        case EXIOAPIN:
-          // Enable analogue ports
-          _analoguePinBytes = (_numAnaloguePins + 7) / 8 + 1;
-          _analogueOutBuffer[0] = EXIOAPIN;
-          for (uint8_t byte = 1; byte < _analoguePinBytes; byte++) {
-            _analogueOutBuffer[byte] = 0;
-          }
-          for (uint8_t pin = 0; pin < _numAnaloguePins; pin++) {
-            int pinByte = pin / 8;
-            bitSet(_analogueOutBuffer[pinByte + 1], pin - pinByte * 8);
-          }
-          I2CManager.write(_i2cAddress, _analogueOutBuffer, _analoguePinBytes, &_i2crb);
           _activity = EXIORDY;
           break;
         default:
@@ -152,11 +131,9 @@ private:
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
-    EXIODPIN = 0xE1,    // Flag we're sending digital pin assignments
-    EXIOAPIN = 0xE2,    // Flag we're sending analogue pin assignments
-    EXIORDY = 0xE3,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
-    EXIODDIR = 0xE4,    // Flag we're sending digital pin direction configuration
-    EXIODPUP = 0xE5,    // Flag we're sending digital pin pullup configuration
+    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    EXIODDIR = 0xE2,    // Flag we're sending digital pin direction configuration
+    EXIODPUP = 0xE3,    // Flag we're sending digital pin pullup configuration
   };
 };
 
