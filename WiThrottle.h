@@ -45,7 +45,8 @@ class WiThrottle {
     ~WiThrottle();
    
       static const int MAX_MY_LOCO=10;      // maximum number of locos assigned to a single client
-      static const int HEARTBEAT_SECONDS=10; // heartbeat at 4secs to provide messaging transport
+      static const int HEARTBEAT_SECONDS=10; // heartbeat at 10 secs to provide messaging transport
+      static const int HEARTBEAT_PRELOAD=2; // request fast callback when connecting multiple messages
       static const int ESTOP_SECONDS=20;     // eStop if no incoming messages for more than 8secs
       static WiThrottle* firstThrottle;
       static int getInt(byte * cmd);
@@ -61,10 +62,12 @@ class WiThrottle {
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
       unsigned long heartBeat;
-      bool initSent; // valid connection established
-      bool exRailSent; // valid connection established
+      bool introSent=false; 
+      bool turnoutsSent=false; 
+      bool rosterSent=false; 
+      bool routesSent=false; 
+      bool heartrateSent=false;
       uint16_t mostRecentCab;
-      int turnoutListHash;  // used to check for changes to turnout list
       bool lastPowerState;  // last power state sent to this client
 
       int DCCToWiTSpeed(int DCCSpeed);
@@ -74,6 +77,11 @@ class WiThrottle {
       void accessory(RingStream *, byte* cmd);
       void checkHeartbeat(RingStream * stream); 
       void markForBroadcast2(int cab);
+      void sendIntro(Print * stream);
+      void sendTurnouts(Print * stream);
+      void sendRoster(Print * stream);
+      void sendRoutes(Print * stream);
+      void sendFunctions(Print* stream, byte loco);
        // callback stuff to support prog track acquire
        static RingStream * stashStream;
        static WiThrottle * stashInstance;

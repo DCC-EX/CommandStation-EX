@@ -110,6 +110,9 @@
 #undef SERIAL1 
 #undef SERIAL2 
 #undef SERIAL3 
+#undef SERIAL4 
+#undef SERIAL5 
+#undef SERIAL6 
 #undef SERVO 
 #undef SERVO2 
 #undef SERVO_TURNOUT 
@@ -220,6 +223,9 @@
 #define SERIAL1(msg) 
 #define SERIAL2(msg) 
 #define SERIAL3(msg) 
+#define SERIAL4(msg) 
+#define SERIAL5(msg) 
+#define SERIAL6(msg) 
 #define SERVO(id,position,profile) 
 #define SERVO2(id,position,duration) 
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)

@@ -68,7 +68,9 @@ class WifiInboundHandler {
    Stream * wifiStream;
    
    static const int INBOUND_RING = 512;
-   static const int OUTBOUND_RING = 2048;
+   static const int OUTBOUND_RING = sizeof(void*)==2?2048:8192;
+ 
+   static const int CIPSENDgap=100; // millis() between retries of cipsend. 
  
    RingStream * inboundRing;
    RingStream * outboundRing;
@@ -79,5 +81,7 @@ class WifiInboundHandler {
   int clientPendingCIPSEND=-1;
   int currentReplySize;
   bool pendingCipsend;
+  uint32_t lastCIPSEND=0; // millis() of previous cipsend
+  
 };
 #endif

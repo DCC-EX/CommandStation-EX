@@ -4,7 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.7pre1"
+#define VERSION "4.2.8pre1"
+// 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
+//       Withrottle connect/disconnect improvements
+//       Report BOARD_TYPE if provided by compiler
 // 4.2.7 FIX: Static IP addr
 //       FIX: Reuse WiThrottle list entries
 // 4.2.6 FIX: Remove RAM thief

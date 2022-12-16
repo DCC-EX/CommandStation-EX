@@ -97,7 +97,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
 }
 
 void CommandDistributor::forget(byte clientId) {
-  // keep for later if (clients[clientId]==WITHROTTLE_TYPE) WiThrottle::forget(clientId);
+  if (clients[clientId]==WITHROTTLE_TYPE) WiThrottle::forget(clientId);
   clients[clientId]=NONE_TYPE;
 }
 #endif 
