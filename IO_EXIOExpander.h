@@ -48,6 +48,7 @@
 #include "DIAG.h"
 #include "FSH.h"
 #include "EX-IOExpanderPins.h"
+#include "IO_EXIOExpander_version.h"
 
 // Include user defined pin maps in myEX-IOExpander if defined
 #if __has_include ("myEX-IOExpander.h")
@@ -60,13 +61,13 @@
  */
 class EXIOExpander : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, byte numDigitalPins, byte numAnaloguePins) {
+  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, int numDigitalPins, int numAnaloguePins) {
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress, numDigitalPins, numAnaloguePins);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, byte numDigitalPins, byte numAnaloguePins) {
+  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, int numDigitalPins, int numAnaloguePins) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
@@ -74,8 +75,8 @@ private:
     _numAnaloguePins = numAnaloguePins;
     _digitalOutBuffer = (byte *)calloc(_numDigitalPins + 1, 1);
     _digitalInBuffer = (byte *)calloc(_numDigitalPins, 1);
-    _analogueOutBuffer = (byte *)calloc(_numAnaloguePins + 1, 1);
-    _analogueInBuffer = (byte *)calloc(_numAnaloguePins, 1);
+    _analogueValues = (uint16_t *)calloc(_numAnaloguePins, 1);
+    _currentAPin = _nPins - _numAnaloguePins;
     addDevice(this);
   }
 
@@ -84,6 +85,7 @@ private:
     uint8_t _check = I2CManager.checkAddress(_i2cAddress);
     if (I2CManager.exists(_i2cAddress)) {
       _activity = EXIOINIT;   // First thing to do is configure EX-IOExpander device
+      DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
 #ifdef DIAG_IO
       _display();
 #endif
@@ -105,10 +107,22 @@ private:
           I2CManager.write(_i2cAddress, _setupBuffer, 3, &_i2crb);
           _activity = EXIORDY;
           break;
+        case EXIORDY:
+          _analogueOutBuffer[0] = EXIORDAN;
+          _analogueOutBuffer[1] = _currentAPin - _numDigitalPins;
+          I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2, &_i2crb);
+          _analogueValues[_currentAPin] = (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
+          if (++_currentAPin >= _numDigitalPins + _numAnaloguePins) _currentAPin = _nPins - _numAnaloguePins;
         default:
           break;
       }
     }
+    // delayUntil(currentMicros + 2000000);  // Delay 2 seconds while bug fixing/developing
+  }
+
+  int _readAnalogue(VPIN vpin) override {
+    int pin = vpin - _firstVpin;
+    return _analogueValues[pin];
   }
 
   void _display() override {
@@ -124,8 +138,10 @@ private:
   uint8_t _setupBuffer[3];
   byte * _digitalOutBuffer = NULL;
   byte * _digitalInBuffer = NULL;
-  byte * _analogueOutBuffer = NULL;
-  byte * _analogueInBuffer = NULL;
+  byte _analogueInBuffer[2];
+  byte _analogueOutBuffer[2];
+  uint16_t * _analogueValues = NULL;
+  uint8_t _currentAPin;   // Current analogue pin to read
   uint8_t _activity;
   I2CRB _i2crb;
 
@@ -134,6 +150,8 @@ private:
     EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
     EXIODDIR = 0xE2,    // Flag we're sending digital pin direction configuration
     EXIODPUP = 0xE3,    // Flag we're sending digital pin pullup configuration
+    EXIOOP = 0xE4,      // Flag to say we're operating normally
+    EXIORDAN = 0xE5,    // Flag to read an analogue input
   };
 };
 
