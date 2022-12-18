@@ -125,6 +125,14 @@ private:
     return _analogueValues[pin];
   }
 
+  void _write(VPIN vpin, int value) override {
+    int pin = vpin - _firstVpin;
+    _digitalWriteBuffer[0] = EXIOWRD;
+    _digitalWriteBuffer[1] = pin;
+    _digitalWriteBuffer[2] = value;
+    I2CManager.write(_i2cAddress, _digitalWriteBuffer, 3, &_i2crb);
+  }
+
   void _display() override {
     DIAG(F("EX-IOExpander I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
@@ -140,6 +148,7 @@ private:
   byte * _digitalInBuffer = NULL;
   byte _analogueInBuffer[2];
   byte _analogueOutBuffer[2];
+  byte _digitalWriteBuffer[3];
   uint16_t * _analogueValues = NULL;
   uint8_t _currentAPin;   // Current analogue pin to read
   uint8_t _activity;
@@ -152,6 +161,7 @@ private:
     EXIODPUP = 0xE3,    // Flag we're sending digital pin pullup configuration
     EXIOOP = 0xE4,      // Flag to say we're operating normally
     EXIORDAN = 0xE5,    // Flag to read an analogue input
+    EXIOWRD = 0xE6,     // Flag for digital write
   };
 };
 
