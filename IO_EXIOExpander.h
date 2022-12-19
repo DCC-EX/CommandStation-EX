@@ -127,7 +127,6 @@ private:
     bool pullup = params[0];
     int pin = vpin - _firstVpin;
     uint8_t mask = 1 << ((pin-_firstVpin) % 8);
-    DIAG(F("Configure vpin|pin %d|%d as input, pullup %d"), vpin, pin, pullup);
     _digitalOutBuffer[0] = EXIODPUP;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = pullup;
