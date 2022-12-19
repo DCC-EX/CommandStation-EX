@@ -145,8 +145,8 @@ private:
     _digitalOutBuffer[0] = EXIORDD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = 0x00;  // Don't need to use this for reading
-    int _value = I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
-    return _value;
+    I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
+    return _digitalInBuffer[0];
   }
 
   void _write(VPIN vpin, int value) override {
