@@ -73,10 +73,11 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
-    _digitalOutBuffer = (byte *)calloc(_numDigitalPins + 1, 1);
-    _digitalInBuffer = (byte *)calloc(_numDigitalPins, 1);
+    // _digitalOutBuffer = (byte *)calloc(_numDigitalPins + 1, 1);
+    // _digitalInBuffer = (byte *)calloc(_numDigitalPins, 1);
     _analogueValues = (uint16_t *)calloc(_numAnaloguePins, 1);
     _currentAPin = _nPins - _numAnaloguePins;
+    int _dPinArrayLen = (_numDigitalPins + 7) / 8;
     addDevice(this);
   }
 
@@ -120,17 +121,40 @@ private:
     // delayUntil(currentMicros + 2000000);  // Delay 2 seconds while bug fixing/developing
   }
 
+  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
+    if (configType != CONFIGURE_INPUT) return false;
+    if (paramCount != 1) return false;
+    bool pullup = params[0];
+    int pin = vpin - _firstVpin;
+    uint8_t mask = 1 << ((pin-_firstVpin) % 8);
+    DIAG(F("Configure vpin|pin %d|%d as input, pullup %d"), vpin, pin, pullup);
+    _digitalOutBuffer[0] = EXIODPUP;
+    _digitalOutBuffer[1] = pin;
+    _digitalOutBuffer[2] = pullup;
+    I2CManager.write(_i2cAddress, _digitalOutBuffer, 3, &_i2crb);
+    return true;
+  }
+
   int _readAnalogue(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     return _analogueValues[pin];
   }
 
+  int _read(VPIN vpin) override {
+    int pin = vpin - _firstVpin;
+    _digitalOutBuffer[0] = EXIORDD;
+    _digitalOutBuffer[1] = pin;
+    _digitalOutBuffer[2] = 0x00;  // Don't need to use this for reading
+    int _value = I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
+    return _value;
+  }
+
   void _write(VPIN vpin, int value) override {
     int pin = vpin - _firstVpin;
-    _digitalWriteBuffer[0] = EXIOWRD;
-    _digitalWriteBuffer[1] = pin;
-    _digitalWriteBuffer[2] = value;
-    I2CManager.write(_i2cAddress, _digitalWriteBuffer, 3, &_i2crb);
+    _digitalOutBuffer[0] = EXIOWRD;
+    _digitalOutBuffer[1] = pin;
+    _digitalOutBuffer[2] = value;
+    I2CManager.write(_i2cAddress, _digitalOutBuffer, 3, &_i2crb);
   }
 
   void _display() override {
@@ -144,11 +168,12 @@ private:
   int _digitalPinBytes;
   int _analoguePinBytes;
   uint8_t _setupBuffer[3];
-  byte * _digitalOutBuffer = NULL;
-  byte * _digitalInBuffer = NULL;
+  // byte * _digitalOutBuffer = NULL;
+  // byte * _digitalInBuffer = NULL;
   byte _analogueInBuffer[2];
   byte _analogueOutBuffer[2];
-  byte _digitalWriteBuffer[3];
+  byte _digitalOutBuffer[3];
+  byte _digitalInBuffer[1];
   uint16_t * _analogueValues = NULL;
   uint8_t _currentAPin;   // Current analogue pin to read
   uint8_t _activity;
@@ -157,11 +182,11 @@ private:
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
     EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
-    EXIODDIR = 0xE2,    // Flag we're sending digital pin direction configuration
-    EXIODPUP = 0xE3,    // Flag we're sending digital pin pullup configuration
-    EXIOOP = 0xE4,      // Flag to say we're operating normally
-    EXIORDAN = 0xE5,    // Flag to read an analogue input
-    EXIOWRD = 0xE6,     // Flag for digital write
+    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
+    EXIOOP = 0xE3,      // Flag to say we're operating normally
+    EXIORDAN = 0xE4,    // Flag to read an analogue input
+    EXIOWRD = 0xE5,     // Flag for digital write
+    EXIORDD = 0xE6,     // Flag to read digital input
   };
 };
 
