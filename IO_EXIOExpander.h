@@ -73,9 +73,6 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
-    // _digitalOutBuffer = (byte *)calloc(_numDigitalPins + 1, 1);
-    // _digitalInBuffer = (byte *)calloc(_numDigitalPins, 1);
-    _analogueValues = (uint16_t *)calloc(_numAnaloguePins, 1);
     _currentAPin = _nPins - _numAnaloguePins;
     int _dPinArrayLen = (_numDigitalPins + 7) / 8;
     addDevice(this);
@@ -87,6 +84,15 @@ private:
     if (I2CManager.exists(_i2cAddress)) {
       _activity = EXIOINIT;   // First thing to do is configure EX-IOExpander device
       DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
+      _digitalOutBuffer[0] = EXIOINIT;
+      _digitalOutBuffer[1] = _numDigitalPins;
+      _digitalOutBuffer[2] = _numAnaloguePins;
+      I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
+      if (_digitalInBuffer[0] != EXIORDY) {
+        DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
+        _deviceState = DEVSTATE_FAILED;
+        return;
+      }
 #ifdef DIAG_IO
       _display();
 #endif
@@ -94,31 +100,6 @@ private:
       DIAG(F("EX-IOExpander device not found, I2C:x%x"), _i2cAddress);
       _deviceState = DEVSTATE_FAILED;
     }
-  }
-
-  void _loop(unsigned long currentMicros) override {
-    if (_i2crb.status == I2C_STATUS_PENDING) return;  // Do nothing if I2C isn't ready yet
-    if (_i2crb.status == I2C_STATUS_OK) {
-      switch(_activity) {
-        case EXIOINIT:
-          // Send digital and analogue pin counts to configure EX-IOExpander
-          _setupBuffer[0] = EXIOINIT;
-          _setupBuffer[1] = _numDigitalPins;
-          _setupBuffer[2] = _numAnaloguePins;
-          I2CManager.write(_i2cAddress, _setupBuffer, 3, &_i2crb);
-          _activity = EXIORDY;
-          break;
-        case EXIORDY:
-          _analogueOutBuffer[0] = EXIORDAN;
-          _analogueOutBuffer[1] = _currentAPin - _numDigitalPins;
-          I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2, &_i2crb);
-          _analogueValues[_currentAPin] = (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
-          if (++_currentAPin >= _numDigitalPins + _numAnaloguePins) _currentAPin = _nPins - _numAnaloguePins;
-        default:
-          break;
-      }
-    }
-    // delayUntil(currentMicros + 2000000);  // Delay 2 seconds while bug fixing/developing
   }
 
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
@@ -136,7 +117,10 @@ private:
 
   int _readAnalogue(VPIN vpin) override {
     int pin = vpin - _firstVpin;
-    return _analogueValues[pin];
+    _analogueOutBuffer[0] = EXIORDAN;
+    _analogueOutBuffer[1] = _currentAPin - _numDigitalPins;
+    I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2, &_i2crb);
+    return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
   }
 
   int _read(VPIN vpin) override {
@@ -166,14 +150,10 @@ private:
   uint8_t _numAnaloguePins;
   int _digitalPinBytes;
   int _analoguePinBytes;
-  uint8_t _setupBuffer[3];
-  // byte * _digitalOutBuffer = NULL;
-  // byte * _digitalInBuffer = NULL;
   byte _analogueInBuffer[2];
   byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   byte _digitalInBuffer[1];
-  uint16_t * _analogueValues = NULL;
   uint8_t _currentAPin;   // Current analogue pin to read
   uint8_t _activity;
   I2CRB _i2crb;
