@@ -73,7 +73,6 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
-    _currentAPin = _nPins - _numAnaloguePins;
     int _dPinArrayLen = (_numDigitalPins + 7) / 8;
     addDevice(this);
   }
@@ -83,7 +82,6 @@ private:
     uint8_t _check = I2CManager.checkAddress(_i2cAddress);
     if (I2CManager.exists(_i2cAddress)) {
       _activity = EXIOINIT;   // First thing to do is configure EX-IOExpander device
-      DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
       _digitalOutBuffer[2] = _numAnaloguePins;
@@ -118,7 +116,7 @@ private:
   int _readAnalogue(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIORDAN;
-    _analogueOutBuffer[1] = _currentAPin - _numDigitalPins;
+    _analogueOutBuffer[1] = pin;
     I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2, &_i2crb);
     return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
   }
@@ -143,6 +141,10 @@ private:
   void _display() override {
     DIAG(F("EX-IOExpander I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
+    DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
+    DIAG(F("EX-IOExpander x%x: Digital Vpins %d-%d, Analogue Vpins %d-%d"),
+              _i2cAddress, _firstVpin, _firstVpin + _numDigitalPins - 1, _firstVpin + _numDigitalPins,
+              _firstVpin + _nPins - 1);
   }
 
   uint8_t _i2cAddress;
@@ -154,7 +156,6 @@ private:
   byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   byte _digitalInBuffer[1];
-  uint8_t _currentAPin;   // Current analogue pin to read
   uint8_t _activity;
   I2CRB _i2crb;
 
