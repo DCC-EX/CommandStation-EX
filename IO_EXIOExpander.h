@@ -48,7 +48,6 @@
 #include "DIAG.h"
 #include "FSH.h"
 #include "EX-IOExpanderPins.h"
-#include "IO_EXIOExpander_version.h"
 
 // Include user defined pin maps in myEX-IOExpander if defined
 #if __has_include ("myEX-IOExpander.h")
@@ -141,7 +140,7 @@ private:
   void _display() override {
     DIAG(F("EX-IOExpander I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
-    DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
+    // DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
     DIAG(F("EX-IOExpander x%x: Digital Vpins %d-%d, Analogue Vpins %d-%d"),
               _i2cAddress, _firstVpin, _firstVpin + _numDigitalPins - 1, _firstVpin + _numDigitalPins,
               _firstVpin + _nPins - 1);
