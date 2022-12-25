@@ -16,8 +16,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef IO_LEWDUINO_h
- #define IO_LEWDUINO_h
+#ifndef IO_duinoNodes_h
+ #define IO_duinoNodes_h
 #include <Arduino.h>
 #include "defines.h"
 #include "IODevice.h"
@@ -30,10 +30,10 @@
 
 
 
-class IO_LEWDUINO : public IODevice {
+class IO_duinoNodes : public IODevice {
 
 public:
-  IO_LEWDUINO(VPIN firstVpin, int nPins, 
+  IO_duinoNodes(VPIN firstVpin, int nPins, 
                 byte clockPin, byte latchPin, byte dataPin, 
                 const byte* pinmap) :
     IODevice(firstVpin, nPins) {
@@ -122,7 +122,7 @@ void _loopOutput()  {
   }
 
   void _display() override {
-      DIAG(F("IO_LEWDUINO %SPUT Configured on VPins:%d-%d shift=%d"), 
+      DIAG(F("IO_duinoNodes %SPUT Configured on VPins:%d-%d shift=%d"), 
       _pinMap?F("IN"):F("OUT"),
       (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, _nShiftBytes*8);
@@ -145,7 +145,7 @@ public:
       // input arrives as board pin 0,7,6,5,1,2,3,4 
       static const byte pinmap[8]={0x80,0x01,0x02,0x04,0x40,0x20,0x10,0x08};
       if (IODevice::checkNoOverlap(firstVpin,nPins))
-        new IO_LEWDUINO( firstVpin,  nPins,  clockPin,  latchPin,   dataPin,pinmap);
+        new IO_duinoNodes( firstVpin,  nPins,  clockPin,  latchPin,   dataPin,pinmap);
   }
 
 };
@@ -157,7 +157,7 @@ public:
       // input arrives as board pin 0, 1, 2, 3, 4, 5, 6, 7
       static const byte pinmap[8]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80}; 
        if (IODevice::checkNoOverlap(firstVpin,nPins))
-        new IO_LEWDUINO( firstVpin,  nPins, clockPin, latchPin, dataPin,pinmap);
+        new IO_duinoNodes( firstVpin,  nPins, clockPin, latchPin, dataPin,pinmap);
   }
 };
 
@@ -166,7 +166,7 @@ public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
         if (IODevice::checkNoOverlap(firstVpin,nPins))
-         new IO_LEWDUINO( firstVpin,  nPins,  clockPin, latchPin,   dataPin,NULL);
+         new IO_duinoNodes( firstVpin,  nPins,  clockPin, latchPin,   dataPin,NULL);
   }
 
 };
