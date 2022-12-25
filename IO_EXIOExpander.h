@@ -84,12 +84,20 @@ private:
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
       _digitalOutBuffer[2] = _numAnaloguePins;
+      // Send config, if EXIORDY returned, we're good, otherwise go offline
       I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
       if (_digitalInBuffer[0] != EXIORDY) {
         DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
         _deviceState = DEVSTATE_FAILED;
         return;
       }
+      // Attempt to get version, if we don't get it, we don't care, don't go offline
+      // Using digital buffers in reverse to save RAM
+      _digitalInBuffer[0] = EXIOVER;
+      I2CManager.read(_i2cAddress, _digitalOutBuffer, 3, _digitalInBuffer, 1, &_i2crb);
+      _majorVer = _digitalOutBuffer[0];
+      _minorVer = _digitalOutBuffer[1];
+      _patchVer = _digitalOutBuffer[2];
 #ifdef DIAG_IO
       _display();
 #endif
@@ -138,12 +146,10 @@ private:
   }
 
   void _display() override {
-    DIAG(F("EX-IOExpander I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
-      _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
-    // DIAG(F("EX-IOExpander x%x using driver version %S"), _i2cAddress, EXIO_VERSION);
-    DIAG(F("EX-IOExpander x%x: Digital Vpins %d-%d, Analogue Vpins %d-%d"),
-              _i2cAddress, _firstVpin, _firstVpin + _numDigitalPins - 1, _firstVpin + _numDigitalPins,
-              _firstVpin + _nPins - 1);
+    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d: Digital Vpins %d-%d, Analogue Vpins %d-%d %S"),
+              _i2cAddress, _majorVer, _minorVer, _patchVer, _firstVpin, _firstVpin + _numDigitalPins - 1,
+              _firstVpin + _numDigitalPins, _firstVpin + _nPins - 1,
+              _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
   uint8_t _i2cAddress;
@@ -155,6 +161,9 @@ private:
   byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   byte _digitalInBuffer[1];
+  uint8_t _majorVer = 0;
+  uint8_t _minorVer = 0;
+  uint8_t _patchVer = 0;
   uint8_t _activity;
   I2CRB _i2crb;
 
@@ -162,7 +171,7 @@ private:
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
     EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
     EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
-    EXIOOP = 0xE3,      // Flag to say we're operating normally
+    EXIOVER = 0xE3,     // Flag to get version
     EXIORDAN = 0xE4,    // Flag to read an analogue input
     EXIOWRD = 0xE5,     // Flag for digital write
     EXIORDD = 0xE6,     // Flag to read digital input
