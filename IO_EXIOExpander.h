@@ -92,12 +92,12 @@ private:
         return;
       }
       // Attempt to get version, if we don't get it, we don't care, don't go offline
-      // Using digital buffers in reverse to save RAM
+      // Using digital in buffer in reverse to save RAM
       _digitalInBuffer[0] = EXIOVER;
-      I2CManager.read(_i2cAddress, _digitalOutBuffer, 3, _digitalInBuffer, 1, &_i2crb);
-      _majorVer = _digitalOutBuffer[0];
-      _minorVer = _digitalOutBuffer[1];
-      _patchVer = _digitalOutBuffer[2];
+      I2CManager.read(_i2cAddress, _versionBuffer, 3, _digitalInBuffer, 1, &_i2crb);
+      _majorVer = _versionBuffer[0];
+      _minorVer = _versionBuffer[1];
+      _patchVer = _versionBuffer[2];
 #ifdef DIAG_IO
       _display();
 #endif
@@ -146,9 +146,18 @@ private:
   }
 
   void _display() override {
-    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d: Digital Vpins %d-%d, Analogue Vpins %d-%d %S"),
-              _i2cAddress, _majorVer, _minorVer, _patchVer, _firstVpin, _firstVpin + _numDigitalPins - 1,
-              _firstVpin + _numDigitalPins, _firstVpin + _nPins - 1,
+    int _firstAnalogue, _lastAnalogue;
+    if (_numAnaloguePins == 0) {
+      _firstAnalogue = 0;
+      _lastAnalogue = 0;
+    } else {
+      _firstAnalogue = _firstVpin + _numDigitalPins;
+      _lastAnalogue = _firstVpin + _nPins - 1;
+    }
+    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d: %d Digital Vpins %d-%d, %d Analogue Vpins %d-%d %S"),
+              _i2cAddress, _majorVer, _minorVer, _patchVer,
+              _numDigitalPins, _firstVpin, _firstVpin + _numDigitalPins - 1,
+              _numAnaloguePins, _firstAnalogue, _lastAnalogue,
               _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
@@ -161,6 +170,7 @@ private:
   byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   byte _digitalInBuffer[1];
+  uint8_t _versionBuffer[3];
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
