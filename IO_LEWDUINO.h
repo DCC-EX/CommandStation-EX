@@ -16,13 +16,16 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef IO_DNIN8_h
- #define IO_DNIN8_h
+#ifndef IO_LEWDUINO_h
+ #define IO_LEWDUINO_h
 #include <Arduino.h>
+#include "defines.h"
+#include "IODevice.h"
+
 #define PIN_MASK(bit) (0x80>>(bit%8))
-#define GET_BIT(bit) (_pinValues[bit/8] & PIN_MASK(bit) )
-#define SET_BIT(bit) _pinValues[bit/8] |= PIN_MASK(bit)
-#define CLR_BIT(bit) _pinValues[bit/8] &= ~PIN_MASK(bit)
+#define GET_BIT(x) (_pinValues[(x)/8] & PIN_MASK((x)) )
+#define SET_BIT(x) _pinValues[(x)/8] |= PIN_MASK((x))
+#define CLR_BIT(x) _pinValues[(x)/8] &= ~PIN_MASK((x))
 #define DIAG_IO
 
 
@@ -50,7 +53,7 @@ public:
      _deviceState = DEVSTATE_NORMAL;
     pinMode(_latchPin,OUTPUT);
     pinMode(_clockPin,OUTPUT);
-    pinMode(_dataPin,INPUT_PULLUP);
+    pinMode(_dataPin,_pinMap?INPUT_PULLUP:OUTPUT);
     _display();
   }
 
@@ -67,22 +70,27 @@ void _loopInput(unsigned long currentMicros)  {
    
     //set latch to HIGH to freeze & store parallel data
    ArduinoPins::fastWriteDigital(_latchPin, HIGH);
-   delayMicroseconds(20);
+   delayMicroseconds(50);
    //set latch to LOW to enable the data to be transmitted serially
    ArduinoPins::fastWriteDigital(_latchPin, LOW);
+   delayMicroseconds(50);
 
   // stream in the bitmap useing mapping order provided at constructor   
-  for (int xmitBit=0;xmitBit<_nShiftBytes*8; xmitBit++) {
-      ArduinoPins::fastWriteDigital(_clockPin, LOW);
-      delayMicroseconds(4);
-      bool data = ArduinoPins::fastReadDigital(_dataPin);  
-      byte map=_pinMap[xmitBit%8];
-      //DIAG(F("DIN x=%d,d=%d m=%x"),xmitBit,data,map);
-      if (data) _pinValues[xmitBit/8] |= map;
-          else  _pinValues[xmitBit/8] &= ~map;
-      ArduinoPins::fastWriteDigital(_clockPin, HIGH);    
-  }
- // DIAG(F("DIN %x"),_pinValues[0]);
+  for (int xmitByte=0;xmitByte<_nShiftBytes; xmitByte++) {
+      byte newByte=0;
+      for (int xmitBit=0;xmitBit<8; xmitBit++) {
+        ArduinoPins::fastWriteDigital(_clockPin, LOW);
+        delayMicroseconds(20);
+        bool data = ArduinoPins::fastReadDigital(_dataPin);  
+        byte map=_pinMap[xmitBit];
+        if (data)  newByte |= map;
+            else   newByte &= ~map;
+        ArduinoPins::fastWriteDigital(_clockPin, HIGH); 
+        delayMicroseconds(20);   
+      }
+      _pinValues[xmitByte]=newByte;
+      DIAG(F("DIN %x=%x"),xmitByte, newByte);
+    }
   }
 
 void _loopOutput()  {
@@ -98,7 +106,9 @@ void _loopOutput()  {
   }
 
   int _read(VPIN vpin) override {
-    return GET_BIT(vpin - _firstVpin);
+    int pin=vpin - _firstVpin;
+    bool b=GET_BIT(pin);
+    return b?1:0;
   }
 
   void _write(VPIN vpin, int value) override {
@@ -112,14 +122,14 @@ void _loopOutput()  {
   }
 
   void _display() override {
-      DIAG(F("IO_LEWDUINO %SPUT Configured on VPins:%d-%d"), 
+      DIAG(F("IO_LEWDUINO %SPUT Configured on VPins:%d-%d shift=%d"), 
       _pinMap?F("IN"):F("OUT"),
       (int)_firstVpin, 
-      (int)_firstVpin+_nPins-1);
+      (int)_firstVpin+_nPins-1, _nShiftBytes*8);
   }
 
 private:
-  static const unsigned long POLL_MICROS=100000; // 10 / S
+  static const unsigned long POLL_MICROS=1000000; // 10 / S
   unsigned long _prevMicros; 
   int  _nShiftBytes=0; 
   VPIN _latchPin,_clockPin,_dataPin;
@@ -128,23 +138,26 @@ private:
   const byte* _pinMap;  // NULL in output mode 
 };
 
-class IO_DNIN8 {
+class IO_DNIN8  {
 public:
-  static void create(VPIN firstVpin, int nPins, byte latchPin, byte clockPin, byte dataPin ) 
+  static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
       // input arrives as board pin 0,7,6,5,1,2,3,4 
       static const byte pinmap[8]={0x80,0x01,0x02,0x04,0x40,0x20,0x10,0x08};
-      new IO_LEWDUINO( firstVpin,  nPins,  latchPin,  clockPin,  dataPin,pinmap);
+      if (IODevice::checkNoOverlap(firstVpin,nPins))
+        new IO_LEWDUINO( firstVpin,  nPins,  clockPin,  latchPin,   dataPin,pinmap);
   }
 
 };
 
-class IO_DNIN8K {
+class IO_DNIN8K  {
 public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
-      static const byte pinmap[8]={0x80,0x01,0x02,0x04,0x40,0x20,0x10,0x08}; // TODO 
-      new IO_LEWDUINO( firstVpin,  nPins, clockPin, latchPin, dataPin,pinmap);
+      // input arrives as board pin 0, 1, 2, 3, 4, 5, 6, 7
+      static const byte pinmap[8]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80}; 
+       if (IODevice::checkNoOverlap(firstVpin,nPins))
+        new IO_LEWDUINO( firstVpin,  nPins, clockPin, latchPin, dataPin,pinmap);
   }
 };
 
@@ -152,7 +165,8 @@ class IO_DNOUT8 {
 public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
-       new IO_LEWDUINO( firstVpin,  nPins,  clockPin, latchPin,   dataPin,NULL);
+        if (IODevice::checkNoOverlap(firstVpin,nPins))
+         new IO_LEWDUINO( firstVpin,  nPins,  clockPin, latchPin,   dataPin,NULL);
   }
 
 };
