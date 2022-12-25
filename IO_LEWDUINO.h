@@ -75,7 +75,7 @@ void _loopInput(unsigned long currentMicros)  {
    ArduinoPins::fastWriteDigital(_latchPin, LOW);
    delayMicroseconds(50);
 
-  // stream in the bitmap useing mapping order provided at constructor   
+  // stream in the bitmap using mapping order provided at constructor   
   for (int xmitByte=0;xmitByte<_nShiftBytes; xmitByte++) {
       byte newByte=0;
       for (int xmitBit=0;xmitBit<8; xmitBit++) {
@@ -89,7 +89,7 @@ void _loopInput(unsigned long currentMicros)  {
         delayMicroseconds(20);   
       }
       _pinValues[xmitByte]=newByte;
-      DIAG(F("DIN %x=%x"),xmitByte, newByte);
+      // DIAG(F("DIN %x=%x"),xmitByte, newByte);
     }
   }
 
@@ -129,7 +129,7 @@ void _loopOutput()  {
   }
 
 private:
-  static const unsigned long POLL_MICROS=1000000; // 10 / S
+  static const unsigned long POLL_MICROS=100000; // 10 / S
   unsigned long _prevMicros; 
   int  _nShiftBytes=0; 
   VPIN _latchPin,_clockPin,_dataPin;
@@ -161,7 +161,7 @@ public:
   }
 };
 
-class IO_DNOUT8 {
+class IO_DNOU8 {
 public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
