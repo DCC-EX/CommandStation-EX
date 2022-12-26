@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.8pre1"
+#define VERSION "4.2.9pre1"
+// 4.2.9 duinoNodes support
 // 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
 //       Withrottle connect/disconnect improvements
 //       Report BOARD_TYPE if provided by compiler

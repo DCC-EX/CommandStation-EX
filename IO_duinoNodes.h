@@ -1,7 +1,8 @@
 /*
  *  © 2022, Chris Harlow. All rights reserved.
+ *  Based on original by: Robin Simonds, Beagle Bay Inc
  *  
- *  This file is part of DCC++EX API
+ *  This file is part of DCC-EX API
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -101,7 +102,7 @@ void _loopOutput()  {
         ArduinoPins::fastWriteDigital(_clockPin,HIGH);
         ArduinoPins::fastWriteDigital(_clockPin,LOW);
     }  
-    digitalWrite(_latchPin, HIGH);
+    ArduinoPins::fastWriteDigital(_latchPin, HIGH);
   }
 
   int _read(VPIN vpin) override {
