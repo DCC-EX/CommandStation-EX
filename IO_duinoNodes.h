@@ -70,23 +70,22 @@ void _loopInput(unsigned long currentMicros)  {
    
     //set latch to HIGH to freeze & store parallel data
    ArduinoPins::fastWriteDigital(_latchPin, HIGH);
-   delayMicroseconds(50);
+   delayMicroseconds(1);
    //set latch to LOW to enable the data to be transmitted serially
    ArduinoPins::fastWriteDigital(_latchPin, LOW);
-   delayMicroseconds(50);
 
   // stream in the bitmap using mapping order provided at constructor   
   for (int xmitByte=0;xmitByte<_nShiftBytes; xmitByte++) {
       byte newByte=0;
       for (int xmitBit=0;xmitBit<8; xmitBit++) {
         ArduinoPins::fastWriteDigital(_clockPin, LOW);
-        delayMicroseconds(20);
+        delayMicroseconds(1);
         bool data = ArduinoPins::fastReadDigital(_dataPin);  
         byte map=_pinMap[xmitBit];
         if (data)  newByte |= map;
             else   newByte &= ~map;
         ArduinoPins::fastWriteDigital(_clockPin, HIGH); 
-        delayMicroseconds(20);   
+        delayMicroseconds(1);   
       }
       _pinValues[xmitByte]=newByte;
       // DIAG(F("DIN %x=%x"),xmitByte, newByte);
