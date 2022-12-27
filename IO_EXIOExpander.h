@@ -47,7 +47,6 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "FSH.h"
-#include "EX-IOExpanderPins.h"
 
 // Include user defined pin maps in myEX-IOExpander if defined
 #if __has_include ("myEX-IOExpander.h")
