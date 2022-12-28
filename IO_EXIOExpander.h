@@ -23,8 +23,7 @@
 * interacting with the device for all input/output duties.
 *
 * To create EX-IOExpander devices, these are defined in myHal.cpp:
-*
-* #include "IO_EXIOExpander.h"
+* (Note the device driver is included by default)
 *
 * void halSetup() {
 *   // EXIOExpander::create(vpin, num_vpins, i2c_address, digitalPinCount, analoguePinCount);
@@ -45,7 +44,6 @@
 #ifndef IO_EX_IOEXPANDER_H
 #define IO_EX_IOEXPANDER_H
 
-#include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "FSH.h"

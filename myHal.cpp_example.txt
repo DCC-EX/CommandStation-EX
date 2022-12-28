@@ -21,7 +21,6 @@
 #include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 #include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
-// #include "IO_EXIOExpander.h"   // EX-IOExpander device driver
 
 
 //==========================================================================
