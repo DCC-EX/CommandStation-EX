@@ -18,21 +18,23 @@
 */
 
 /*
-* The IO_EX-IOExpander.h device driver integrates with one or more EX-IOExpander devices.
-* This device driver will configure the device and all I/O ports on startup, along with
+* The IO_EXIOExpander.h device driver integrates with one or more EX-IOExpander devices.
+* This device driver will configure the device on startup, along with
 * interacting with the device for all input/output duties.
 *
 * To create EX-IOExpander devices, these are defined in myHal.cpp:
 *
-* #include "IO_EX-IOExpander.h"
+* #include "IO_EXIOExpander.h"
 *
 * void halSetup() {
 *   // EXIOExpander::create(vpin, num_vpins, i2c_address, digitalPinCount, analoguePinCount);
-*   EXIOExpander::create(800, 18, 0x65, EXIO_NANO_DIGITAL_PINS, EXIO_NANO_ANALOGUE_PINS);
+*   EXIOExpander::create(800, 18, 0x65, 12, 8);
 * }
 * 
 * Note when defining the number of digital and analogue pins, there is no way to sanity check
 * this from the device driver, and it is up to the user to define the correct values here.
+*
+* All pins available on the EX-IOExpander device must be accounted for.
 * 
 * Vpins are allocated to digital pins first, and then analogue pins, so digital pins will
 * populate the first part of the specified vpin range, with the analogue pins populating the
@@ -47,11 +49,6 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "FSH.h"
-
-// Include user defined pin maps in myEX-IOExpander if defined
-#if __has_include ("myEX-IOExpander.h")
-  #include "myEX-IOExpander.h"
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -79,7 +76,6 @@ private:
     // Initialise EX-IOExander device
     uint8_t _check = I2CManager.checkAddress(_i2cAddress);
     if (I2CManager.exists(_i2cAddress)) {
-      _activity = EXIOINIT;   // First thing to do is configure EX-IOExpander device
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
       _digitalOutBuffer[2] = _numAnaloguePins;
@@ -173,7 +169,6 @@ private:
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
-  uint8_t _activity;
   I2CRB _i2crb;
 
   enum {
