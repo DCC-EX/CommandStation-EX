@@ -194,6 +194,19 @@ void halSetup() {
   //EXIOExpander::create(820, 16, 0x66, 16, 0);
 
 
+  //=======================================================================
+  // The following directive defines a rotary encoder instance.
+  //=======================================================================
+  // The parameters are: 
+  //   firstVpin = First available Vpin to allocate
+  //   numPins= Number of Vpins to allocate, can be either 1 or 2
+  //   i2cAddress = Available I2C address (default 0x70)
+
+  //RotaryEncoder::create(firstVpin, numPins, i2cAddress);
+  //RotaryEncoder::create(700, 1, 0x70);
+  //RotaryEncoder::create(701, 2, 0x71);
+
+
 }
 
 #endif
