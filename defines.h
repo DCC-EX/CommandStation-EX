@@ -149,6 +149,12 @@
 #define CPU_TYPE_ERROR
 #endif
 
+// replace board type if provided by compiler
+#ifdef BOARD_NAME
+  #undef ARDUINO_TYPE
+  #define ARDUINO_TYPE BOARD_NAME
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // WIFI_ON: All prereqs for running with WIFI are met

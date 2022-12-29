@@ -182,7 +182,7 @@
 #define STACKED_MOTOR_SHIELD F("STACKED_MOTOR_SHIELD"),\
   new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 2.99, 1500, UNUSED_PIN), \
   new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 2.99, 1500, UNUSED_PIN), \
-  new MotorDriver( 2, 10, UNUSED_PIN, 7, A3, 2.99, 1500, UNUSED_PIN), \
-  new MotorDriver( 5,  4, UNUSED_PIN, 6, A4, 2.99, 1500, UNUSED_PIN)
+  new MotorDriver( 2, 10, UNUSED_PIN, 7, A4, 2.99, 1500, UNUSED_PIN), \
+  new MotorDriver( 5,  4, UNUSED_PIN, 6, A5, 2.99, 1500, UNUSED_PIN)
 //
 #endif

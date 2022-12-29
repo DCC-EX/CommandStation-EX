@@ -27,7 +27,7 @@ class RingStream : public Print {
 
   public:
     RingStream( const uint16_t len);
-    static const int THIS_IS_A_RINGSTREAM=77;
+    static const int THIS_IS_A_RINGSTREAM=777;
     virtual size_t write(uint8_t b);
 
     // This availableForWrite function is subverted from its original intention so that a caller 

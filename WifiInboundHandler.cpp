@@ -66,7 +66,7 @@ void WifiInboundHandler::loop1() {
      }
     
 
-    if (pendingCipsend) {
+    if (pendingCipsend && millis()-lastCIPSEND > CIPSENDgap) {
          if (Diag::WIFI) DIAG( F("WiFi: [[CIPSEND=%d,%d]]"), clientPendingCIPSEND, currentReplySize);
          StringFormatter::send(wifiStream, F("AT+CIPSEND=%d,%d\r\n"),  clientPendingCIPSEND, currentReplySize);
          pendingCipsend=false;
@@ -131,11 +131,13 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
        
         if (ch=='S') { // SEND OK probably 
           loopState=SKIPTOEND;
+          lastCIPSEND=0; // no need to wait next time 
           break;
         }
         
         if (ch=='b') {   // This is a busy indicator... probabaly must restart a CIPSEND  
            pendingCipsend=(clientPendingCIPSEND>=0);
+           if (pendingCipsend) lastCIPSEND=millis(); // forces a gap to next CIPSEND
            loopState=SKIPTOEND; 
            break; 
         }

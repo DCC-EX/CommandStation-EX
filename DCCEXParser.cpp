@@ -41,6 +41,14 @@
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
 
+// This macro can't be created easily as a portable function because the
+// flashlist requires a far pointer for high flash access. 
+#define SENDFLASHLIST(stream,flashList)                 \
+    for (int16_t i=0;;i+=sizeof(flashList[0])) {                            \
+        int16_t value=GETHIGHFLASHW(flashList,i);       \
+        if (value==0) break;                            \
+        StringFormatter::send(stream,F(" %d"),value);   \
+    }                                   
 
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
@@ -569,8 +577,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>
 #ifdef EXRAIL_ACTIVE
-                        sendFlashList(stream,RMFT2::routeIdList);
-                        sendFlashList(stream,RMFT2::automationIdList);
+                        SENDFLASHLIST(stream,RMFT2::routeIdList)
+                        SENDFLASHLIST(stream,RMFT2::automationIdList)
 #endif
                     }
                     else {  // <JA id>
@@ -589,7 +597,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             case HASH_KEYWORD_R: // <JR> returns rosters 
                 StringFormatter::send(stream, F("<jR"));
 #ifdef EXRAIL_ACTIVE
-                if (params==1) sendFlashList(stream,RMFT2::rosterIdList);
+                if (params==1) {
+                    SENDFLASHLIST(stream,RMFT2::rosterIdList)
+                }
                 else StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
                     id, RMFT2::getRosterName(id), RMFT2::getRosterFunctions(id));
 #endif          
@@ -632,14 +642,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     // Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
-}
-
-void DCCEXParser::sendFlashList(Print * stream,const int16_t flashList[]) {
-    for (int16_t i=0;;i++) {
-        int16_t value=GETFLASHW(flashList+i);
-        if (value==0) return;
-        StringFormatter::send(stream,F(" %d"),value);
-    } 
 }
 
 bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])

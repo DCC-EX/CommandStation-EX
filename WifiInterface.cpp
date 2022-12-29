@@ -344,11 +344,10 @@ void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
       while (wifiStream->available()) stream->write(wifiStream->read());
       if (stream->available()) {
         int cx=stream->read();
-        // A newline followed by !!! is an exit
+        // A newline followed by ! is an exit
         if (cx=='\n' || cx=='\r') startOfLine=true; 
         else if (startOfLine && cx=='!')  break;
         else startOfLine=false; 
-        stream->write(cx);
         wifiStream->write(cx);  
       }
     }
