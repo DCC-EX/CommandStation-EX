@@ -34,10 +34,10 @@
 #ifndef IO_ROTARYENCODER_H
 #define IO_ROTARYENCODER_H
 
+#include "EXRAIL2.h"
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
-#include "EXRAIL2.h"
 
 class RotaryEncoder : public IODevice {
 public:
@@ -53,14 +53,16 @@ public:
   }
 
 private:
-  uint8_t _I2CAddress;
-  int8_t _position;
-  int8_t _previousPosition;
-
   // Initiate the device
   void _begin() {
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
+      byte _getVersion[1] = {RE_VER};
+      I2CManager.read(_I2CAddress, _versionBuffer, 3, _getVersion, 1);
+      _majorVer = _versionBuffer[0];
+      _minorVer = _versionBuffer[1];
+      _patchVer = _versionBuffer[2];
+      I2CManager.write(_I2CAddress, RE_OP);
 #ifdef DIAG_IO
       _display();
 #endif
@@ -93,11 +95,31 @@ private:
     // DIAG(F("Received position %d"), _position);
     return _position;
   }
+
+  void _write(VPIN vpin, int value) override {
+    if (vpin == _firstVpin + 1) {
+      byte _feedbackBuffer[2] = {RE_OP, value};
+      I2CManager.write(_I2CAddress, _feedbackBuffer, 2);
+    }
+  }
   
   void _display() override {
-    DIAG(F("Rotary Encoder I2C:x%x Configured on Vpin:%d-%d %S"), _I2CAddress, (int)_firstVpin,
-      _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+    DIAG(F("Rotary Encoder I2C:x%x v%d.%d.%d Configured on Vpin:%d-%d %S"), _I2CAddress, _majorVer, _minorVer, _patchVer,
+      (int)_firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
+
+  uint8_t _I2CAddress;
+  int8_t _position;
+  int8_t _previousPosition;
+  uint8_t _versionBuffer[3];
+  uint8_t _majorVer = 0;
+  uint8_t _minorVer = 0;
+  uint8_t _patchVer = 0;
+
+  enum {
+    RE_VER = 0xA0,   // Flag to retrieve rotary encoder version from the device
+    RE_OP = 0xA1,    // Flag for normal operation
+  };
 
 };
 
