@@ -749,7 +749,7 @@ void RMFT2::loop2() {
     break;
   
   case OPCODE_IFRE: // do next operand if rotary encoder != position
-    skipIf=IODevice::readAnalogue(operand)!=(int)(GET_OPERAND(1));
+    skipIf=IODevice::readAnalogue(operand)!=(int)(getOperand(1));
     break;
     
   case OPCODE_IFRANDOM: // do block on random percentage
