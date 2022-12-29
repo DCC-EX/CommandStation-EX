@@ -23,11 +23,10 @@
 #include "defines.h"
 #include "IODevice.h"
 
-#define PIN_MASK(bit) (0x80>>(bit%8))
-#define GET_BIT(x) (_pinValues[(x)/8] & PIN_MASK((x)) )
-#define SET_BIT(x) _pinValues[(x)/8] |= PIN_MASK((x))
-#define CLR_BIT(x) _pinValues[(x)/8] &= ~PIN_MASK((x))
-#define DIAG_IO
+#define DN_PIN_MASK(bit) (0x80>>(bit%8))
+#define DN_GET_BIT(x) (_pinValues[(x)/8] & DN_PIN_MASK((x)) )
+#define DN_SET_BIT(x) _pinValues[(x)/8] |= DN_PIN_MASK((x))
+#define DN_CLR_BIT(x) _pinValues[(x)/8] &= ~DN_PIN_MASK((x))
 
 
 
@@ -98,7 +97,7 @@ void _loopOutput()  {
     _xmitPending=false; 
     ArduinoPins::fastWriteDigital(_latchPin, LOW);
     for (int xmitBit=_nShiftBytes*8 -1; xmitBit>=0; xmitBit--) {
-        ArduinoPins::fastWriteDigital(_dataPin,GET_BIT(xmitBit));
+        ArduinoPins::fastWriteDigital(_dataPin,DN_GET_BIT(xmitBit));
         ArduinoPins::fastWriteDigital(_clockPin,HIGH);
         ArduinoPins::fastWriteDigital(_clockPin,LOW);
     }  
@@ -107,17 +106,17 @@ void _loopOutput()  {
 
   int _read(VPIN vpin) override {
     int pin=vpin - _firstVpin;
-    bool b=GET_BIT(pin);
+    bool b=DN_GET_BIT(pin);
     return b?1:0;
   }
 
   void _write(VPIN vpin, int value) override {
     int pin = vpin - _firstVpin;
-    bool oldval=GET_BIT(pin);
+    bool oldval=DN_GET_BIT(pin);
     bool newval=value!=0;
     if (newval==oldval) return; // no change  
-    if (newval) SET_BIT(pin);
-           else CLR_BIT(pin);
+    if (newval) DN_SET_BIT(pin);
+           else DN_CLR_BIT(pin);
     _xmitPending=true;  // shift register will be sent on next _loop()
   }
 
