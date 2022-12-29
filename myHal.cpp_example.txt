@@ -20,6 +20,7 @@
 #include "IO_HCSR04.h"    // Ultrasonic range sensor
 #include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 #include "IO_DFPlayer.h"  // MP3 sound player
+//#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 
 
 //==========================================================================
@@ -158,6 +159,39 @@ void halSetup() {
   //      FOLLOW(1)         // Go back to start
 
   // DFPlayer::create(10000, 10, Serial1);
+
+
+  //=======================================================================
+  // The following directive defines an EX-Turntable turntable instance.
+  //=======================================================================
+  // EXTurntable::create(VPIN, Number of VPINs, I2C Address)
+  //
+  // The parameters are:
+  //   VPIN=600
+  //   Number of VPINs=1 (Note there is no reason to change this)
+  //   I2C address=0x60
+  //
+  // Note that the I2C address is defined in the EX-Turntable code, and 0x60 is the default.
+
+  //EXTurntable::create(600, 1, 0x60);
+
+
+  //=======================================================================
+  // The following directive defines an EX-IOExpander instance.
+  //=======================================================================
+  // EXIOExpander::create(VPIN, Number of VPINs, I2C Address, Digital pin count, Analogue pin count)
+  //
+  // The parameters are:
+  //   VPIN=an available Vpin
+  //   Number of VPINs=Digital pin count + Analogue pin count (must match device in use as per documentation)
+  //   I2C address=an available I2C address (default 0x65)
+  //
+  // Note that the I2C address is defined in the EX-IOExpander code, and 0x65 is the default.
+  // The first example is for an Arduino Nano with the default pin allocations.
+  // The second example is for an Arduino Uno using all pins as digital only.
+
+  //EXIOExpander::create(800, 18, 0x65, 12, 8);
+  //EXIOExpander::create(820, 16, 0x66, 16, 0);
 
 
 }
