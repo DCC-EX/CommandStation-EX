@@ -190,7 +190,7 @@ void halSetup() {
   // The first example is for an Arduino Nano with the default pin allocations.
   // The second example is for an Arduino Uno using all pins as digital only.
 
-  //EXIOExpander::create(800, 18, 0x65, 12, 8);
+  //EXIOExpander::create(800, 18, 0x65, 12, 6);
   //EXIOExpander::create(820, 16, 0x66, 16, 0);
 
 
