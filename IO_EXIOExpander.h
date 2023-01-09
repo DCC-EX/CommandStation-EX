@@ -66,13 +66,13 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
-    int _dPinArrayLen = (_numDigitalPins + 7) / 8;
+    // int _dPinArrayLen = (_numDigitalPins + 7) / 8;
     addDevice(this);
   }
 
   void _begin() {
     // Initialise EX-IOExander device
-    uint8_t _check = I2CManager.checkAddress(_i2cAddress);
+    // uint8_t _check = I2CManager.checkAddress(_i2cAddress);
     if (I2CManager.exists(_i2cAddress)) {
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
@@ -105,7 +105,7 @@ private:
     if (paramCount != 1) return false;
     bool pullup = params[0];
     int pin = vpin - _firstVpin;
-    uint8_t mask = 1 << ((pin-_firstVpin) % 8);
+    // uint8_t mask = 1 << ((pin-_firstVpin) % 8);
     _digitalOutBuffer[0] = EXIODPUP;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = pullup;
