@@ -73,6 +73,7 @@ private:
   void _begin() {
     // Initialise EX-IOExander device
     // uint8_t _check = I2CManager.checkAddress(_i2cAddress);
+    delay(100);
     if (I2CManager.exists(_i2cAddress)) {
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
