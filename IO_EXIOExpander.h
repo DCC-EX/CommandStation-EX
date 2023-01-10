@@ -66,20 +66,17 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
-    // int _dPinArrayLen = (_numDigitalPins + 7) / 8;
     addDevice(this);
   }
 
   void _begin() {
     // Initialise EX-IOExander device
-    // uint8_t _check = I2CManager.checkAddress(_i2cAddress);
     I2CManager.begin();
     if (I2CManager.exists(_i2cAddress)) {
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
       _digitalOutBuffer[2] = _numAnaloguePins;
       // Send config, if EXIORDY returned, we're good, otherwise go offline
-      // I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
       I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3);
       if (_digitalInBuffer[0] != EXIORDY) {
         DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
@@ -89,7 +86,6 @@ private:
       // Attempt to get version, if we don't get it, we don't care, don't go offline
       // Using digital in buffer in reverse to save RAM
       _digitalInBuffer[0] = EXIOVER;
-      // I2CManager.read(_i2cAddress, _versionBuffer, 3, _digitalInBuffer, 1, &_i2crb);
       I2CManager.read(_i2cAddress, _versionBuffer, 3, _digitalInBuffer, 1);
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
@@ -108,11 +104,9 @@ private:
     if (paramCount != 1) return false;
     bool pullup = params[0];
     int pin = vpin - _firstVpin;
-    // uint8_t mask = 1 << ((pin-_firstVpin) % 8);
     _digitalOutBuffer[0] = EXIODPUP;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = pullup;
-    // I2CManager.write(_i2cAddress, _digitalOutBuffer, 3, &_i2crb);
     I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
     return true;
   }
@@ -121,7 +115,6 @@ private:
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIORDAN;
     _analogueOutBuffer[1] = pin;
-    // I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2, &_i2crb);
     I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2);
     return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
   }
@@ -131,7 +124,6 @@ private:
     _digitalOutBuffer[0] = EXIORDD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = 0x00;  // Don't need to use this for reading
-    // I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3, &_i2crb);
     I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3);
     return _digitalInBuffer[0];
   }
@@ -141,7 +133,6 @@ private:
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = value;
-    // I2CManager.write(_i2cAddress, _digitalOutBuffer, 3, &_i2crb);
     I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
   }
 
@@ -174,7 +165,6 @@ private:
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
-  // I2CRB _i2crb;
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
