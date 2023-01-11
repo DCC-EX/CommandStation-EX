@@ -90,6 +90,8 @@ private:
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
+      DIAG(F("EX-IOExpander device found, I2C:x%x, Version v%d.%d.%d"),
+          _i2cAddress, _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
 #ifdef DIAG_IO
       _display();
 #endif
@@ -102,6 +104,10 @@ private:
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
     if (configType != CONFIGURE_INPUT) return false;
     if (paramCount != 1) return false;
+    if (vpin >= _firstVpin + _numDigitalPins) {
+      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
+      return false;
+    }
     bool pullup = params[0];
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIODPUP;
@@ -112,6 +118,10 @@ private:
   }
 
   int _readAnalogue(VPIN vpin) override {
+    if (vpin < _firstVpin + _numDigitalPins) {
+      DIAG(F("Vpin %d is a digital pin, cannot use as an analogue pin"), vpin);
+      return false;
+    }
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIORDAN;
     _analogueOutBuffer[1] = pin;
@@ -120,6 +130,10 @@ private:
   }
 
   int _read(VPIN vpin) override {
+    if (vpin >= _firstVpin + _numDigitalPins) {
+      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
+      return false;
+    }
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIORDD;
     _digitalOutBuffer[1] = pin;
@@ -129,6 +143,10 @@ private:
   }
 
   void _write(VPIN vpin, int value) override {
+    if (vpin >= _firstVpin + _numDigitalPins) {
+      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
+      return;
+    }
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
