@@ -1112,6 +1112,7 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
 
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
+  if (Diag::CMD)
    DIAG(F("Looking for clock event at : %d"), clocktime);
   if (change)  handleEvent(F("CHANGE"),onClockLookup,clocktime);
 } 
