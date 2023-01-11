@@ -105,7 +105,7 @@ private:
     if (configType != CONFIGURE_INPUT) return false;
     if (paramCount != 1) return false;
     if (vpin >= _firstVpin + _numDigitalPins) {
-      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
+      DIAG(F("EX-IOExpander ERROR: Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
       return false;
     }
     bool pullup = params[0];
@@ -117,11 +117,16 @@ private:
     return true;
   }
 
-  int _readAnalogue(VPIN vpin) override {
+  // We only use this to detect incorrect use of analogue pins
+  int _configureAnalogIn(VPIN vpin) override {
     if (vpin < _firstVpin + _numDigitalPins) {
-      DIAG(F("Vpin %d is a digital pin, cannot use as an analogue pin"), vpin);
-      return false;
+      DIAG(F("EX-IOExpander ERROR: Vpin %d is a digital pin, cannot use as an analogue pin"), vpin);
     }
+    return false;
+  }
+
+  int _readAnalogue(VPIN vpin) override {
+    if (vpin < _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIORDAN;
     _analogueOutBuffer[1] = pin;
@@ -130,10 +135,7 @@ private:
   }
 
   int _read(VPIN vpin) override {
-    if (vpin >= _firstVpin + _numDigitalPins) {
-      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
-      return false;
-    }
+    if (vpin >= _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIORDD;
     _digitalOutBuffer[1] = pin;
@@ -143,10 +145,7 @@ private:
   }
 
   void _write(VPIN vpin, int value) override {
-    if (vpin >= _firstVpin + _numDigitalPins) {
-      DIAG(F("Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
-      return;
-    }
+    if (vpin >= _firstVpin + _numDigitalPins) return;
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
