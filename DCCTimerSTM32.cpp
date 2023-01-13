@@ -37,7 +37,7 @@ HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 // Let's define Serial6 as an additional serial port (the only other option for the Nucleo-64s)
 HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
-#elif defined(ARDUINO_BLAH_F412ZG) || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
 #else
