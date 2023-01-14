@@ -261,7 +261,7 @@ private:
       // Output some pad characters to add an
       // artificial delay between commands
       for (int i=0; i<numPadCharacters; i++) 
-        _serial->write(0);
+        _serial->write((uint8_t)0);
     }
 
     // Now output the command
