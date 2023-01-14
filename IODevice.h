@@ -161,6 +161,8 @@ public:
   // once the GPIO port concerned has been read.
   void setGPIOInterruptPin(int16_t pinNumber);
 
+ // Method to check if pins will overlap before creating new device. 
+  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);
   
 protected:
   
@@ -234,9 +236,6 @@ protected:
   //  pin low if an input changes state.
   int16_t _gpioInterruptPin = -1;
     
-  // Method to check if pins will overlap before creating new device. 
-  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);
-
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice);
 
@@ -407,5 +406,8 @@ private:
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
 #include "IO_PCF8574.h"
+#include "IO_duinoNodes.h"
+#include "IO_EXIOExpander.h"
+
 
 #endif // iodevice_h

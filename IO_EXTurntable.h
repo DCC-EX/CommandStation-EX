@@ -47,7 +47,7 @@ EXTurntable::EXTurntable(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
   addDevice(this);
 }
 
-// Initialisation of TurntableEX
+// Initialisation of EXTurntable
 void EXTurntable::_begin() {
   I2CManager.begin();
   I2CManager.setClock(1000000);
@@ -103,7 +103,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
   uint8_t stepsMSB = value >> 8;
   uint8_t stepsLSB = value & 0xFF;
 #ifdef DIAG_IO
-  DIAG(F("TurntableEX WriteAnalogue Vpin:%d Value:%d Activity:%d Duration:%d"),
+  DIAG(F("EX-Turntable WriteAnalogue Vpin:%d Value:%d Activity:%d Duration:%d"),
     vpin, value, activity, duration);
   DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
     _I2CAddress, stepsMSB, stepsLSB, activity);
@@ -114,7 +114,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
 
 // Display Turnetable-EX device driver info.
 void EXTurntable::_display() {
-  DIAG(F("TurntableEX I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
+  DIAG(F("EX-Turntable I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

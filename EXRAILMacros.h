@@ -73,14 +73,14 @@ void exrailHalSetup() {
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) id,
-const int16_t FLASH RMFT2::routeIdList[]= {
+const int16_t HIGHFLASH RMFT2::routeIdList[]= {
     #include "myAutomation.h"
     0}; 
 // Pass 2a create throttle automation list 
 #include "EXRAIL2MacroReset.h"
 #undef AUTOMATION
 #define AUTOMATION(id, description) id,
-const int16_t FLASH RMFT2::automationIdList[]= {
+const int16_t HIGHFLASH RMFT2::automationIdList[]= {
     #include "myAutomation.h"
     0}; 
 
@@ -100,30 +100,54 @@ const FSH * RMFT2::getRouteDescription(int16_t id) {
 // Pass 4... Create Text sending functions
 #include "EXRAIL2MacroReset.h"
 const int StringMacroTracker1=__COUNTER__;
+#define THRUNGE(msg,mode) \
+     case (__COUNTER__ - StringMacroTracker1) : {\
+         static const char HIGHFLASH thrunge[]=msg;\
+         strfar=(uint32_t)GETFARPTR(thrunge);\
+         tmode=mode;\
+         break;\
+      } 
 #undef BROADCAST
-#define BROADCAST(msg) case (__COUNTER__ - StringMacroTracker1) : CommandDistributor::broadcastText(F(msg));break;
+#define BROADCAST(msg) THRUNGE(msg,thrunge_broadcast)
 #undef PARSE
-#define PARSE(msg) case (__COUNTER__ - StringMacroTracker1) : DCCEXParser::parse(F(msg));break;
+#define PARSE(msg) THRUNGE(msg,thrunge_parse)
 #undef PRINT
-#define PRINT(msg)    case (__COUNTER__ - StringMacroTracker1) : printMessage2(F(msg));break;
+#define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
-#define LCN(msg)      case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&LCN_SERIAL,F(msg));break;
+#define LCN(msg)   THRUNGE(msg,thrunge_lcn)
 #undef SERIAL
-#define SERIAL(msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial,F(msg));break;
+#define SERIAL(msg)   THRUNGE(msg,thrunge_serial)
 #undef SERIAL1
-#define SERIAL1(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial1,F(msg));break;
+#define SERIAL1(msg)  THRUNGE(msg,thrunge_serial1)
 #undef SERIAL2
-#define SERIAL2(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial2,F(msg));break;
+#define SERIAL2(msg)  THRUNGE(msg,thrunge_serial2)
 #undef SERIAL3
-#define SERIAL3(msg)  case (__COUNTER__ - StringMacroTracker1) : StringFormatter::send(&Serial3,F(msg));break;
+#define SERIAL3(msg)  THRUNGE(msg,thrunge_serial3)
+#undef SERIAL4
+#define SERIAL4(msg)  THRUNGE(msg,thrunge_serial4)
+#undef SERIAL5
+#define SERIAL5(msg)  THRUNGE(msg,thrunge_serial5)
+#undef SERIAL6
+#define SERIAL6(msg)  THRUNGE(msg,thrunge_serial6)
 #undef LCD
-#define LCD(id,msg)   case (__COUNTER__ - StringMacroTracker1) : StringFormatter::lcd(id,F(msg));break;
+#define LCD(id,msg)  \
+     case (__COUNTER__ - StringMacroTracker1) : {\
+         static const char HIGHFLASH thrunge[]=msg;\
+         strfar=(uint32_t)GETFARPTR(thrunge);\
+         tmode=thrunge_lcd; \
+         lcdid=id;\
+         break;\
+      } 
 
 void  RMFT2::printMessage(uint16_t id) { 
+  thrunger tmode;
+  uint32_t strfar=0;
+  byte lcdid=0; 
   switch(id) {
     #include "myAutomation.h"
     default: break ; 
   }
+  if (strfar) thrungeString(strfar,tmode,lcdid);
 }
 
 
@@ -158,7 +182,7 @@ const byte RMFT2::rosterNameCount=0
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) cabid,
-const int16_t FLASH  RMFT2::rosterIdList[]={
+const int16_t HIGHFLASH  RMFT2::rosterIdList[]={
    #include "myAutomation.h"
    0};
 
@@ -198,7 +222,7 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
-const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
+const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
     0,0,0,0 };
 
@@ -261,6 +285,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
+#define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
 #define KILLALL OPCODE_KILLALL,0,0,
@@ -277,6 +302,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
+#define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin), 
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
@@ -299,6 +325,9 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define SERIAL1(msg) PRINT(msg)
 #define SERIAL2(msg) PRINT(msg)
 #define SERIAL3(msg) PRINT(msg)
+#define SERIAL4(msg) PRINT(msg)
+#define SERIAL5(msg) PRINT(msg)
+#define SERIAL6(msg) PRINT(msg)
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
@@ -323,7 +352,7 @@ const  FLASH  int16_t RMFT2::SignalDefinitions[] = {
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
-const  FLASH  byte RMFT2::RouteCode[] = {
+const  HIGHFLASH  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
     OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 

@@ -63,69 +63,6 @@
 
 WiThrottle * WiThrottle::firstThrottle=NULL;
 
-static uint8_t xstrncmp(const char *s1, const char *s2, uint8_t n) {
-  if (n == 0)
-    return 0;
-  do {
-    if (*s1 != *s2++)
-      return 1;
-    if (*s1++ == 0)
-      break;
-  } while (--n != 0);
-  return 0;
-}
-
-void WiThrottle::findUniqThrottle(int id, char *u) {
-  WiThrottle *wtmyid = NULL;
-  WiThrottle *wtmyuniq = NULL;
-
-  // search 1, look for clientid match
-  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
-    if (wt->clientid == id) {
-      if (xstrncmp(u, wt->uniq, 16) == 0) // should be most common case
-	return;
-      wtmyid = wt;
-      break;
-    }
-  }
-  // search 2, look for string match
-  for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle){
-    if (xstrncmp(u, wt->uniq, 16) == 0) {
-      wtmyuniq = wt;
-      break;
-    }
-  }
-
-  // analyse result of the two for loops:
-  if (wtmyid == NULL) {  // should not happen
-    DIAG(F("Did not find my own wiThrottle handle"));
-    return;
-  }
-  // wtmyuniq == wtmyid has already returned in for loop 1
-  if (wtmyuniq == NULL) { // register uniq in the found id
-    strncpy(wtmyid->uniq, u, 16);
-    wtmyid->uniq[16] = '\0';
-    if (Diag::WITHROTTLE) DIAG(F("Client %d registered as %s"),wtmyid->clientid, wtmyid->uniq);
-    return;
-  }
-  // if we get here wtmyid and wtmyuniq point on objects but differnet ones
-  // so we need to do the copy (all other options covered above)
-  for(int n=0; n < MAX_MY_LOCO; n++)
-    wtmyid->myLocos[n] = wtmyuniq->myLocos[n];
-  wtmyid->heartBeatEnable = wtmyuniq->heartBeatEnable;
-  wtmyid->heartBeat       = wtmyuniq->heartBeat;
-  wtmyid->initSent        = wtmyuniq->initSent;
-  wtmyid->exRailSent      = wtmyuniq->exRailSent;
-  wtmyid->mostRecentCab   = wtmyuniq->mostRecentCab;
-  wtmyid->turnoutListHash = wtmyuniq->turnoutListHash;
-  wtmyid->lastPowerState  = wtmyuniq->lastPowerState;
-  strncpy(wtmyid->uniq, u, 16);
-  wtmyid->uniq[16] = '\0';
-  if (Diag::WITHROTTLE)
-    DIAG(F("New client %d replaces old client %d as %s"), wtmyid->clientid, wtmyuniq->clientid, wtmyid->uniq);
-  forget(wtmyuniq->clientid); // do not use wtmyid after this
-}
-
 WiThrottle* WiThrottle::getThrottle( int wifiClient) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
      if (wt->clientid==wifiClient) return wt; 
@@ -135,6 +72,7 @@ WiThrottle* WiThrottle::getThrottle( int wifiClient) {
 void WiThrottle::forget( byte clientId) {
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle)  
      if (wt->clientid==clientId) {
+      DIAG(F("Withrottle client %d dropped"),clientId);
       delete wt;
       break; 
      }
@@ -159,10 +97,7 @@ WiThrottle::WiThrottle( int wificlientid) {
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
-   initSent=false; // prevent sending heartbeats before connection completed
    heartBeatEnable=false; // until client turns it on
-   turnoutListHash = -1;  // make sure turnout list is sent once
-   exRailSent=false;
    mostRecentCab=0;                
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
@@ -187,47 +122,17 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   
   heartBeat=millis();
   if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d)<-[%e]"),millis(),clientid,cmd);
+  
+  // On first few commands, send turnout, roster and routes 
+  if (introSent) {  
+    if (!turnoutsSent) sendTurnouts(stream);
+    else if(!rosterSent) sendRoster(stream);
+    else if (!routesSent) sendRoutes(stream);
+    else if (!heartrateSent) {
+         heartrateSent=true;
+        // allow heartbeat to slow down once all metadata sent     
+        StringFormatter::send(stream,F("*%d\nHMConnected\n"),HEARTBEAT_SECONDS);
 
-  if (initSent) {
-    // Send turnout list if changed since last sent (will replace list on client)
-    if (turnoutListHash != Turnout::turnoutlistHash) {
-      StringFormatter::send(stream,F("PTL"));
-      for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
-          if (tt->isHidden()) continue;
-          int id=tt->getId();
-          const FSH * tdesc=NULL;
-          #ifdef EXRAIL_ACTIVE
-          tdesc=RMFT2::getTurnoutDescription(id);
-          #endif
-          char tchar=Turnout::isClosed(id)?'2':'4';
-          if (tdesc==NULL) // turnout with no description
-              StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);
-	        else 
-              StringFormatter::send(stream,F("]\\[%d}|{%S}|{%c"), id,tdesc,tchar);
-      }
-      StringFormatter::send(stream,F("\n"));
-      turnoutListHash = Turnout::turnoutlistHash; // keep a copy of hash for later comparison
-    }
-
-    else if (!exRailSent) {
-      // Send EX-RAIL routes list if not already sent (but not at same time as turnouts above)
-      exRailSent=true;
-#ifdef EXRAIL_ACTIVE
-   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
-   for (byte pass=0;pass<2;pass++) {
-      // first pass automations, second pass routes.
-    for (int ix=0;;ix++) {
-        int16_t id=GETFLASHW((pass?RMFT2::automationIdList:RMFT2::routeIdList)+ix);
-        if (id==0) break;
-        const FSH * desc=RMFT2::getRouteDescription(id);
-        StringFormatter::send(stream,F("]\\[%c%d}|{%S}|{%c"),
-                      pass?'A':'R',id,desc, pass?'4':'2');
-    }
-   }
-   StringFormatter::send(stream,F("\n"));
-#endif
-      // allow heartbeat to slow down once all metadata sent     
-      StringFormatter::send(stream,F("*%d\n"),HEARTBEAT_SECONDS);
     }
   }
   
@@ -283,32 +188,14 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       break;
     case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
-      StringFormatter::send(stream, F("*%d\n"), initSent ? HEARTBEAT_SECONDS : HEARTBEAT_SECONDS/2); // return timeout value
+      StringFormatter::send(stream, F("*%d\n"), heartrateSent ? HEARTBEAT_SECONDS : HEARTBEAT_PRELOAD); // return timeout value
       break;
     case 'M': // multithrottle
       multithrottle(stream, cmd); 
       break;
     case 'H': // send initial connection info after receiving "HU" message
-      if (cmd[1] == 'U') {
-	WiThrottle::findUniqThrottle(clientid, (char *)cmd+2);
-	StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
-	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
-	StringFormatter::send(stream,F("PPA%x\n"),TrackManager::getMainPower()==POWERMODE::ON);
-#ifdef EXRAIL_ACTIVE
-  StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
-  for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
-      int16_t cabid=GETFLASHW(RMFT2::rosterIdList+r);
-      StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
-      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
-  }
-  stream->write('\n'); // end roster        
-#endif
-
-       
-	// set heartbeat to 5 seconds because we need to sync the metadata (1 second is too short!)
-  StringFormatter::send(stream,F("*%d\n"), HEARTBEAT_SECONDS/2);
-	initSent = true;
+      if (cmd[1] == 'U') {    
+      sendIntro(stream);	
       }
       break;           
     case 'Q': // 
@@ -317,7 +204,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	  StringFormatter::send(stream, F("M%c-%c%d<;>\n"), myLocos[loco].throttle, LorS(myLocos[loco].cab), myLocos[loco].cab);
 	}
       }
-      if (Diag::WITHROTTLE) DIAG(F("%l WiThrottle(%d) Quit"),millis(),clientid);
+      if (Diag::WITHROTTLE) DIAG(F("WiThrottle(%d) Quit"),clientid);
       delete this; 
       break;           
     }
@@ -378,65 +265,17 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
     }
     //use first empty "slot" on this client's list, will be added to DCC registration list
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
-      if (myLocos[loco].throttle=='\0') { 
-	myLocos[loco].throttle=throttleChar;
-	myLocos[loco].cab=locoid; 
-	myLocos[loco].functionMap=DCC::getFunctionMap(locoid); 
-	myLocos[loco].broadcastPending=true; // means speed/dir will be sent later
-	mostRecentCab=locoid;
-	StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
-	int fkeys=29;
-	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
-        
-#ifdef EXRAIL_ACTIVE
-	const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
-	if (!functionNames) {
-	  // no roster, use presets as above 
-	}
-	else if (GETFLASH(functionNames)=='\0') {
-	  // "" = Roster but no functions given
-	  fkeys=0;
-	}  
-	else {
-	  // we have function names... 
-	  // scan names list emitting names, counting functions and 
-	  // flagging non-toggling things like horn.
-	  myLocos[loco].functionToggles =0;
-	  StringFormatter::send(stream, F("M%cL%c%d<;>]\\["), throttleChar,cmd[3],locoid);   
-	  fkeys=0;
-	  bool firstchar=true;
-	  for (int fx=0;;fx++) {
-	    char c=GETFLASH(functionNames+fx);
-	    if (c=='\0') {
-	      fkeys++;
-	      break;
-	    }
-	    if (c=='/') {
-	      fkeys++;
-	      StringFormatter::send(stream,F("]\\["));
-	      firstchar=true;
-	    }
-	    else if (firstchar && c=='*') {
-	      myLocos[loco].functionToggles |= 1UL<<fkeys;
-	      firstchar=false;
-	    } 
-	    else {
-	      firstchar=false;
-	      stream->write(c);
-	    }
-	  }
-	  StringFormatter::send(stream,F("\n"));
-	}
-        
-#endif
-	
-	for(int fKey=0; fKey<fkeys; fKey++) { 
-                      int fstate=DCC::getFn(locoid,fKey);
-                      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),throttleChar,cmd[3],locoid,fstate,fKey);                     
-	}
-	//speed and direction will be published at next broadcast cycle
-	StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
-	return;
+      if (myLocos[loco].throttle=='\0') {
+	      myLocos[loco].throttle=throttleChar;
+	      myLocos[loco].cab=locoid; 
+	      myLocos[loco].functionMap=DCC::getFunctionMap(locoid); 
+	      myLocos[loco].broadcastPending=true; // means speed/dir will be sent later
+	      mostRecentCab=locoid;
+	      StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
+	      sendFunctions(stream,loco);
+	      //speed and direction will be published at next broadcast cycle
+	      StringFormatter::send(stream, F("M%cA%c%d<;>s1\n"), throttleChar, cmd[3], locoid); //default speed step 128
+	      return;
       }
     }
     StringFormatter::send(stream, F("HMMax locos (%d) exceeded, %d not added!\n"), MAX_MY_LOCO ,locoid);                    
@@ -540,8 +379,6 @@ void WiThrottle::loop(RingStream * stream) {
   // for each WiThrottle, check the heartbeat and broadcast needed
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
     wt->checkHeartbeat(stream);
-  
-
 }
 
 void WiThrottle::checkHeartbeat(RingStream * stream) {
@@ -555,8 +392,8 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
 	heartBeat=millis(); // We have just stopped everyting, we don't need to do that again at next loop.
       }
     }
-    //haba no, not necessary the only throttle and it may come back
-    //delete this;
+    // if it does come back, the throttle should re-acquire 
+    delete this;
     return;
   }
    
@@ -656,5 +493,120 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   DIAG(F("LocoCallback commit success"));
   stashStream->commit();
   CommandDistributor::broadcastPower();
+}
 
+void WiThrottle::sendIntro(Print* stream) {
+  introSent=true; 
+  StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
+	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
+	StringFormatter::send(stream,F("PPA%x\n"),TrackManager::getMainPower()==POWERMODE::ON);     
+	// set heartbeat to 2 seconds because we need to sync the metadata (1 second is too short!)
+  StringFormatter::send(stream,F("*%d\nHMConnecting..\n"), HEARTBEAT_PRELOAD);
+}
+
+void WiThrottle::sendTurnouts(Print* stream) {
+     turnoutsSent=true;
+      StringFormatter::send(stream,F("PTL"));
+      for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
+          if (tt->isHidden()) continue;
+          int id=tt->getId();
+          const FSH * tdesc=NULL;
+          #ifdef EXRAIL_ACTIVE
+          tdesc=RMFT2::getTurnoutDescription(id);
+          #endif
+          char tchar=Turnout::isClosed(id)?'2':'4';
+          if (tdesc==NULL) // turnout with no description
+              StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);
+	        else 
+              StringFormatter::send(stream,F("]\\[%d}|{%S}|{%c"), id,tdesc,tchar);
+      }
+      StringFormatter::send(stream,F("\n"));
+}
+void WiThrottle::sendRoster(Print* stream) {
+  rosterSent=true;
+  #ifdef EXRAIL_ACTIVE
+  StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
+  for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
+      int16_t cabid=GETHIGHFLASHW(RMFT2::rosterIdList,r*2);
+      StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
+      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
+  }
+  StringFormatter::send(stream,F("\n"));       
+#endif
+}
+void WiThrottle::sendRoutes(Print* stream) {
+  routesSent=true; 
+  #ifdef EXRAIL_ACTIVE
+   StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
+    // first pass automations
+    for (int ix=0;;ix+=2) {
+        int16_t id =GETHIGHFLASHW(RMFT2::automationIdList,ix);
+        if (id==0) break;
+        const FSH * desc=RMFT2::getRouteDescription(id);
+        StringFormatter::send(stream,F("]\\[A%d}|{%S}|{4"),id,desc);
+    }
+    // second pass routes.
+    for (int ix=0;;ix+=2) {
+        int16_t id=GETHIGHFLASHW(RMFT2::routeIdList,ix);
+        if (id==0) break;
+        const FSH * desc=RMFT2::getRouteDescription(id);
+        StringFormatter::send(stream,F("]\\[R%d}|{%S}|{2"),id,desc);
+    }
+   StringFormatter::send(stream,F("\n"));
+    
+#endif
+}
+
+void WiThrottle::sendFunctions(Print* stream, byte loco) {
+  int16_t locoid=myLocos[loco].cab;
+  int fkeys=29;
+	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
+        
+#ifdef EXRAIL_ACTIVE
+	const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
+	if (!functionNames) {
+	  // no roster, use non-exrail presets as above 
+	}
+	else if (GETFLASH(functionNames)=='\0') {
+	  // "" = Roster but no functions given
+	  fkeys=0;
+	}  
+	else {
+	  // we have function names... 
+	  // scan names list emitting names, counting functions and 
+	  // flagging non-toggling things like horn.
+	  myLocos[loco].functionToggles =0;
+	  StringFormatter::send(stream, F("M%cL%c%d<;>]\\["), myLocos[loco].throttle,LorS(locoid),locoid);   
+	  fkeys=0;
+	  bool firstchar=true;
+	  for (int fx=0;;fx++) {
+	    char c=GETFLASH(functionNames+fx);
+	    if (c=='\0') {
+	      fkeys++;
+	      break;
+	    }
+	    if (c=='/') {
+	      fkeys++;
+	      StringFormatter::send(stream,F("]\\["));
+	      firstchar=true;
+	    }
+	    else if (firstchar && c=='*') {
+	      myLocos[loco].functionToggles |= 1UL<<fkeys;
+	      firstchar=false;
+	    } 
+	    else {
+	      firstchar=false;
+	      stream->write(c);
+	    }
+	  }
+	  StringFormatter::send(stream,F("\n"));
+	}
+        
+#endif
+	
+	for(int fKey=0; fKey<fkeys; fKey++) { 
+      int fstate=DCC::getFn(locoid,fKey);
+      if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),myLocos[loco].throttle,LorS(locoid),locoid,fstate,fKey);                     
+	}
 }

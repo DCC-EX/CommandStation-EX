@@ -344,11 +344,10 @@ void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
       while (wifiStream->available()) stream->write(wifiStream->read());
       if (stream->available()) {
         int cx=stream->read();
-        // A newline followed by !!! is an exit
+        // A newline followed by ! is an exit
         if (cx=='\n' || cx=='\r') startOfLine=true; 
         else if (startOfLine && cx=='!')  break;
         else startOfLine=false; 
-        stream->write(cx);
         wifiStream->write(cx);  
       }
     }
@@ -377,11 +376,12 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor,
   char *locator = (char *)waitfor;
   DIAG(F("Wifi Check: [%E]"), waitfor);
   while ( millis() - startTime < timeout) {
-    while (wifiStream->available()) {
-      int ch = wifiStream->read();
+    int nextchar;
+    while (wifiStream->available() && (nextchar = wifiStream->read()) > -1) {
+      char ch = (char)nextchar;
       if (echo) {
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
-        else USB_SERIAL.print((char)ch); 
+        else USB_SERIAL.print(ch);
       }
       if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {

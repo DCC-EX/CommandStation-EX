@@ -4,7 +4,13 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.6"
+#define VERSION "4.2.9pre1"
+// 4.2.9 duinoNodes support
+// 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
+//       Withrottle connect/disconnect improvements
+//       Report BOARD_TYPE if provided by compiler
+// 4.2.7 FIX: Static IP addr
+//       FIX: Reuse WiThrottle list entries
 // 4.2.6 FIX: Remove RAM thief
 //       FIX: ADC port 8-15 fix
 // 4.2.5 Make GETFLASHW code more universal

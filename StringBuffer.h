@@ -32,7 +32,7 @@ class StringBuffer : public Print {
   private:
     static const int  buffer_max=64; // enough for long text msgs to throttles  
     int16_t _pos_write;
-    char _buffer[buffer_max+1];
+    char _buffer[buffer_max+2];
 };
 
 #endif

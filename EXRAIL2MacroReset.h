@@ -72,6 +72,7 @@
 #undef IFRESERVE
 #undef IFTHROWN
 #undef IFTIMEOUT
+#undef IFRE
 #undef INVERT_DIRECTION 
 #undef JOIN 
 #undef KILLALL
@@ -88,6 +89,7 @@
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
+#undef ONCHANGE
 #undef PARSE
 #undef PAUSE
 #undef PIN_TURNOUT 
@@ -110,6 +112,9 @@
 #undef SERIAL1 
 #undef SERIAL2 
 #undef SERIAL3 
+#undef SERIAL4 
+#undef SERIAL5 
+#undef SERIAL6 
 #undef SERVO 
 #undef SERVO2 
 #undef SERVO_TURNOUT 
@@ -182,6 +187,7 @@
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
 #define IFTIMEOUT
+#define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
 #define JOIN 
 #define KILLALL
@@ -198,6 +204,7 @@
 #define ONGREEN(signal_id) 
 #define ONRED(signal_id) 
 #define ONTHROW(turnout_id) 
+#define ONCHANGE(sensor_id)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
@@ -220,6 +227,9 @@
 #define SERIAL1(msg) 
 #define SERIAL2(msg) 
 #define SERIAL3(msg) 
+#define SERIAL4(msg) 
+#define SERIAL5(msg) 
+#define SERIAL6(msg) 
 #define SERVO(id,position,profile) 
 #define SERVO2(id,position,duration) 
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
