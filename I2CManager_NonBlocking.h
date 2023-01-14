@@ -105,7 +105,7 @@ void I2CManagerClass::startTransaction() {
       currentRequest = queueHead;
       rxCount = txCount = 0;
       // Copy key fields to static data for speed.
-      operation = currentRequest->operation;
+      operation = currentRequest->operation & OPERATION_MASK;
       // Start the I2C process going.
       I2C_sendStart();
       startTime = micros();
@@ -227,8 +227,10 @@ void I2CManagerClass::handleInterrupt() {
   // and state isn't active then state contains the completion status of the request.
   if (state != I2C_STATE_ACTIVE && currentRequest != NULL) {
     // Operation has completed.
-    if (state == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES) {
-      // Status is OK, or has failed and retry count exceeded.
+    if (state == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
+      || currentRequest->operation & OPERATION_NORETRY) 
+    {
+      // Status is OK, or has failed and retry count exceeded, or retries disabled.
       // Remove completed request from head of queue
       I2CRB * t = queueHead;
       if (t == currentRequest) {

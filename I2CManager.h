@@ -157,6 +157,8 @@ typedef enum : uint8_t
   OPERATION_REQUEST = 2,
   OPERATION_SEND = 3,
   OPERATION_SEND_P = 4,
+  OPERATION_NORETRY = 0x80,  // OR with operation to suppress retries.
+  OPERATION_MASK = 0x7f,  // mask for extracting the operation code
 } OperationEnum;
 
 
@@ -178,6 +180,7 @@ public:
   void setReadParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen);
   void setRequestParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
   void setWriteParams(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen);
+  void suppressRetries(bool suppress);
 
   uint8_t writeLen;
   uint8_t readLen;

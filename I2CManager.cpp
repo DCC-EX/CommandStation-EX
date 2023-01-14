@@ -81,8 +81,13 @@ void I2CManagerClass::forceClock(uint32_t speed) {
 
 // Check if specified I2C address is responding (blocking operation)
 // Returns I2C_STATUS_OK (0) if OK, or error code.
+// Suppress retries.  If it doesn't respond first time it's out of the running.
 uint8_t I2CManagerClass::checkAddress(uint8_t address) {
-  return write(address, NULL, 0);
+  I2CRB rb;
+  rb.setWriteParams(address, NULL, 0);
+  rb.suppressRetries(true);
+  queueRequest(&rb);
+  return rb.wait();
 }
 
 
@@ -244,3 +249,9 @@ void I2CRB::setWriteParams(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8
   this->status = I2C_STATUS_OK;
 }
 
+void I2CRB::suppressRetries(bool suppress) {
+  if (suppress)
+    this->operation |= OPERATION_NORETRY;
+  else
+    this->operation &= ~OPERATION_NORETRY;
+}

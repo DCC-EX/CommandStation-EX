@@ -51,11 +51,14 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
 uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
   uint8_t status = I2C_STATUS_OK;
   uint8_t retryCount = 0;
+  // If request fails, retry up to the defined limit, unless the NORETRY flag is set
+  // in the request block.
   do {
     Wire.beginTransmission(address);
     if (size > 0) Wire.write(buffer, size);
     status = Wire.endTransmission();
-  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES));
+  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
+    || rb->operation & OPERATION_NORETRY));
   rb->status = status;
   return I2C_STATUS_OK;
 }
@@ -81,6 +84,8 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
   uint8_t status = I2C_STATUS_OK;
   uint8_t nBytes = 0;
   uint8_t retryCount = 0;
+  // If request fails, retry up to the defined limit, unless the NORETRY flag is set
+  // in the request block.
   do {
     if (writeSize > 0) {
       Wire.beginTransmission(address);
@@ -93,7 +98,8 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
         readBuffer[nBytes++] = Wire.read();
       if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
     }
-  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES));
+  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
+    || rb->operation & OPERATION_NORETRY));
 
   rb->nBytes = nBytes;
   rb->status = status;
@@ -109,7 +115,7 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
  * the non-blocking version.
  ***************************************************************************/
 void I2CManagerClass::queueRequest(I2CRB *req) {
-  switch (req->operation) {
+  switch (req->operation & OPERATION_MASK) {
     case OPERATION_READ:
       read(req->i2cAddress, req->readBuffer, req->readLen, NULL, 0, req);
       break;
