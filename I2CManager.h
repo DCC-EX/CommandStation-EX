@@ -111,6 +111,11 @@
  * 
  */
 
+// Maximum number of retries on an I2C operation
+// A value of zero will disable retries.
+// Maximum value is 254 (unsigned byte counter)
+#define MAX_I2C_RETRIES 2
+
 // Add following line to config.h to enable Wire library instead of native I2C drivers
 //#define I2C_USE_WIRE
 
@@ -265,6 +270,7 @@ private:
     static volatile unsigned long startTime;
 
     static unsigned long timeout; // Transaction timeout in microseconds.  0=disabled.
+    static uint8_t retryCounter;  // Count of retries
     
     void startTransaction();
     

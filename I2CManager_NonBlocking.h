@@ -223,16 +223,15 @@ void I2CManagerClass::handleInterrupt() {
   // Update hardware state machine
   I2C_handleInterrupt();
 
-  // Enable interrupts to minimise effect on other interrupt code
-  interrupts();
-
   // Check if current request has completed.  If there's a current request
   // and state isn't active then state contains the completion status of the request.
   if (state != I2C_STATE_ACTIVE && currentRequest != NULL) {
-    // Remove completed request from head of queue
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // Operation has completed.
+    if (state == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES) {
+      // Status is OK, or has failed and retry count exceeded.
+      // Remove completed request from head of queue
       I2CRB * t = queueHead;
-      if (t == queueHead) {
+      if (t == currentRequest) {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = queueHead;
         t->nBytes = rxCount;
@@ -241,11 +240,20 @@ void I2CManagerClass::handleInterrupt() {
         // I2C state machine is now free for next request
         currentRequest = NULL;
         state = I2C_STATE_FREE;
-
-        // Start next request (if any)
-        I2CManager.startTransaction();
       }
+      retryCounter = 0;
+    } else {
+      // Status is failed and retry permitted.
+      // Retry previous request.
+      state = I2C_STATE_FREE;  
     }
+  }
+
+  if (state == I2C_STATE_FREE && queueHead != NULL) {
+    // Allow any pending interrupts before starting the next request.
+    interrupts();
+    // Start next request
+    I2CManager.startTransaction();
   }
 }
 
@@ -261,5 +269,6 @@ volatile uint8_t I2CManagerClass::bytesToSend;
 volatile uint8_t I2CManagerClass::bytesToReceive;
 volatile unsigned long I2CManagerClass::startTime;
 unsigned long I2CManagerClass::timeout = 0;
+uint8_t I2CManagerClass::retryCounter = 0;
 
 #endif
