@@ -253,7 +253,6 @@ private:
   static IODevice *_firstDevice;
 
   static IODevice *_nextLoopDevice;
-  static bool _initPhase;
 };
 
 

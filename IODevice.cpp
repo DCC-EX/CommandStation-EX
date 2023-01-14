@@ -48,12 +48,14 @@ extern __attribute__((weak)) void exrailHalSetup();
 // Create any standard device instances that may be required, such as the Arduino pins 
 // and PCA9685.
 void IODevice::begin() {
+  // Initialise the IO subsystem defaults
+  ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
+
   // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
   //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
-  
-  // This is done first so that the following defaults will detect an overlap and not
-  // create something that conflicts with the users vpin definitions. 
+  // This is done early so that the subsequent defaults will detect an overlap and not
+  // create something that conflicts with the user's vpin definitions. 
   if (halSetup)
     halSetup();
 
@@ -61,8 +63,6 @@ void IODevice::begin() {
   if (exrailHalSetup)
     exrailHalSetup();
 
-  // Initialise the IO subsystem defaults
-  ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
   // Predefine two PCA9685 modules 0x40-0x41
   // Allocates 32 pins 100-131
   PCA9685::create(100, 16, 0x40);
@@ -72,12 +72,6 @@ void IODevice::begin() {
   // Allocates 32 pins 164-195
   MCP23017::create(164, 16, 0x20);
   MCP23017::create(180, 16, 0x21);
-
-  // Call the begin() methods of each configured device in turn
-  for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
-    dev->_begin();
-  }
-  _initPhase = false;
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the
@@ -109,18 +103,19 @@ void IODevice::loop() {
   
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)
+  unsigned long diagMicros = micros();
   static unsigned long lastMicros = 0;
-  // Measure time since loop() method started.
-  unsigned long halElapsed = micros() - currentMicros;
-  // Measure time between loop() method entries.
-  unsigned long elapsed = currentMicros - lastMicros;
+  // Measure time since HAL's loop() method started.
+  unsigned long halElapsed = diagMicros - currentMicros;
+  // Measure time between loop() method entries (excluding this diagnostic).
+  unsigned long elapsed = diagMicros - lastMicros;
   static unsigned long maxElapsed = 0, maxHalElapsed = 0;
   static unsigned long lastOutputTime = 0;
   static unsigned long halTotal = 0, total = 0;
   static unsigned long count = 0;
   const unsigned long interval = (unsigned long)5 * 1000 * 1000; // 5 seconds in microsec
 
-  // Ignore long loop counts while message is still outputting
+  // Ignore long loop counts while message is still outputting (~3 milliseconds)
   if (currentMicros - lastOutputTime > 3000UL) {
     if (elapsed > maxElapsed) maxElapsed = elapsed;
     if (halElapsed > maxHalElapsed) maxHalElapsed = halElapsed;
@@ -128,14 +123,16 @@ void IODevice::loop() {
     total += elapsed;
     count++;
   }
-  if (currentMicros - lastOutputTime > interval) {
+  if (diagMicros - lastOutputTime > interval) {
     if (lastOutputTime > 0) 
       DIAG(F("Loop Total:%lus (%lus max) HAL:%lus (%lus max)"), 
         total/count, maxElapsed, halTotal/count, maxHalElapsed);
     maxElapsed = maxHalElapsed = total = halTotal = count = 0;
-    lastOutputTime = currentMicros;
+    lastOutputTime = diagMicros;
   }
-  lastMicros = currentMicros;
+  // Read microsecond count after calculations, so they aren't
+  // included in the overall timings.
+  lastMicros = micros();
 #endif
 }
 
@@ -272,11 +269,7 @@ void IODevice::addDevice(IODevice *newDevice) {
     lastDevice->_nextDevice = newDevice;
   }
   newDevice->_nextDevice = 0;
-
-  // If the IODevice::begin() method has already been called, initialise device here.  If not,
-  // the device's _begin() method will be called by IODevice::begin().
-  if (!_initPhase)
-    newDevice->_begin();
+  newDevice->_begin();
 }
 
 // Private helper function to locate a device by VPIN.  Returns NULL if not found.
@@ -331,9 +324,6 @@ IODevice *IODevice::_firstDevice = 0;
 
 // Reference to next device to be called on _loop() method.
 IODevice *IODevice::_nextLoopDevice = 0;
-
-// Flag which is reset when IODevice::begin has been called.
-bool IODevice::_initPhase = true;  
 
 
 //==================================================================================================================
