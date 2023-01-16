@@ -292,16 +292,17 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
   VPIN lastPin=firstPin+nPins-1;
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
     
-    // check for pin range overlaps (verbose but compiler will fix that)  
-    VPIN firstDevPin=dev->_firstVpin;
-    VPIN lastDevPin=firstDevPin+dev->_nPins-1;
-    bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
-    if (!noOverlap) {
-        DIAG(F("WARNING HAL Overlap definition of pins  %d to %d ignored."),
-            firstPin, lastPin);
-        return false;
-    } 
-  
+    if (nPins > 0 && dev->_nPins > 0) {
+      // check for pin range overlaps (verbose but compiler will fix that)  
+      VPIN firstDevPin=dev->_firstVpin;
+      VPIN lastDevPin=firstDevPin+dev->_nPins-1;
+      bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
+      if (!noOverlap) {
+          DIAG(F("WARNING HAL Overlap definition of pins  %d to %d ignored."),
+              firstPin, lastPin);
+          return false;
+      } 
+    }
     // Check for overlapping I2C address
     if (i2cAddress && dev->_I2CAddress==i2cAddress) {
       DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),i2cAddress);
