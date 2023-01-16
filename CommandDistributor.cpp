@@ -155,6 +155,7 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 #endif
 }
 
+#ifdef USEFASTCLOCK 
 void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   // The JMRI clock command is of the form : PFT65871<;>4
   // The CS broadcast is of the form "<jC mmmm nn" where mmmm is time minutes and dd speed
@@ -165,6 +166,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   broadcastReply(WITHROTTLE_TYPE, F("PFT%d<;>%d\n"), time*60, rate);
 #endif
 }
+#endif
 
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];

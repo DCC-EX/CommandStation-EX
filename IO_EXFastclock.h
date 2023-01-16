@@ -26,8 +26,8 @@
 */
 
 #ifndef IO_EXFastclock_h
-  #define IO_EXFastclock_h
-#endif
+#define IO_EXFastclock_h
+
 
 #include "IODevice.h"
 #include "I2CManager.h"
@@ -55,12 +55,12 @@ static void EXFastClock::create(uint8_t _I2CAddress) {
   DIAG(F("Clock check result - %d"), _checkforclock);
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
-      DIAG(F("I2C Fast Clock found at x%x"), _I2CAddress);
+      //DIAG(F("I2C Fast Clock found at x%x"), _I2CAddress);
       new EXFastClock(_I2CAddress); 
     }
     else {
       FAST_CLOCK_EXISTS = false;
-      DIAG(F("No Fast Clock found"));
+      //DIAG(F("No Fast Clock found"));
       LCD(6,F("CLOCK NOT FOUND"));
     }
     
@@ -85,7 +85,7 @@ void _begin() override {
       #endif
     } else {
     _deviceState = DEVSTATE_FAILED;
-    LCD(6,F("CLOCK NOT FOUND")); 
+    //LCD(6,F("CLOCK NOT FOUND")); 
     DIAG(F("Fast Clock Not Found at address %d"), _I2CAddress);
     }
   }
@@ -107,8 +107,8 @@ void _loop(unsigned long currentMicros) override{
 
         if (_clocktime != _previousclocktime) {
             _previousclocktime = _clocktime;
-            if (Diag::CMD)
-              DIAG(F("Received Clock Time is: %d at rate: %d"), _clocktime, _clockrate);
+            //if (Diag::CMD)
+            //  DIAG(F("Received Clock Time is: %d at rate: %d"), _clocktime, _clockrate);
             LCD(6,F(("Clk Time:%d Sp %d")), _clocktime, _clockrate);
             RMFT2::clockEvent(_clocktime,1);
             // Now tell everyone else what the time is.
@@ -132,3 +132,5 @@ void _display() {
   DIAG(F("FastCLock on I2C:x%x - %S"), _I2CAddress,  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 };
+
+#endif

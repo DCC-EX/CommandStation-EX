@@ -86,8 +86,10 @@
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
+#ifdef USEFASTCLOCK 
 #undef ONTIME
 #undef ONCLOCKTIME
+#endif
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -200,8 +202,10 @@
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONAMBER(signal_id) 
+#ifdef USEFASTCLOCK 
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
+#endif
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)

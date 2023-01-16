@@ -97,7 +97,9 @@ Print *DCCEXParser::stashStream = NULL;
 RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
 
+#ifdef USEFASTCLOCK
 int16_t lastclocktime = 0;
+#endif
 
 // This is a JMRI command parser.
 // It doesnt know how the string got here, nor how it gets back.
@@ -572,9 +574,15 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'J' : // throttle info access
         {
+#ifdef USEFASTCLOCK
             if ((params<1) | (params>3)) break; // <J>
+#endif
+#ifndef USEFASTCLOCK
+            if ((params<1) | (params>2)) break; // <J>
+#endif
             int16_t id=(params==2)?p[1]:0;
             switch(p[0]) {
+#ifdef USEFASTCLOCK 
                 case HASH_KEYWORD_C: // <JC mmmm nn> sets time and speed
                     if (params==1) { // <JC> returns latest time
                         StringFormatter::send(stream, F("<jC %d>\n"), lastclocktime);
@@ -593,6 +601,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         lastclocktime = p[1];
                     }
                     return;
+#endif
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>

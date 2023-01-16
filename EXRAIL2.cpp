@@ -92,7 +92,9 @@ LookList *  RMFT2::onRedLookup=NULL;
 LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
+#ifdef USEFASTCLOCK
 LookList *  RMFT2::onClockLookup=NULL;
+#endif
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -176,7 +178,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onAmberLookup=LookListLoader(OPCODE_ONAMBER);
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
+  #ifdef USEFASTCLOCK
   onClockLookup=LookListLoader(OPCODE_ONTIME);
+  #endif
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -977,7 +981,9 @@ void RMFT2::loop2() {
   case OPCODE_ONAMBER:
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
+  #ifdef USEFASTCLOCK
   case OPCODE_ONTIME:
+  #endif
   
     break;
     
@@ -1110,12 +1116,14 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
 }
 
+#ifdef USEFASTCLOCK
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
   if (Diag::CMD)
    DIAG(F("Looking for clock event at : %d"), clocktime);
-  if (change)  handleEvent(F("CHANGE"),onClockLookup,clocktime);
+  if (change)  handleEvent(F("CLOCK"),onClockLookup,clocktime);
 } 
+#endif
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);
