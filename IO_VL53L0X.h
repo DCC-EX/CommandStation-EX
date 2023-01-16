@@ -115,6 +115,7 @@ private:
     STATE_CHECKSTATUS = 5,
     STATE_GETRESULTS = 6,
     STATE_DECODERESULTS = 7,
+    STATE_FAILED = 8,
   };
 
   // Register addresses
@@ -190,11 +191,12 @@ protected:
           // Set 2.8V mode
           write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
             read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
+          _nextState = STATE_INITIATESCAN;
         } else {
           DIAG(F("VL53L0X I2C:x%x device not responding"), _i2cAddress);
           _deviceState = DEVSTATE_FAILED;
+          _nextState = STATE_FAILED;
         }
-        _nextState = STATE_INITIATESCAN;
         break;
       case STATE_INITIATESCAN:
         // Not scanning, so initiate a scan
@@ -207,13 +209,11 @@ protected:
         status = _rb.status;
         if (status == I2C_STATUS_PENDING) return; // try next time
         if (status != I2C_STATUS_OK) {
-          DIAG(F("VL53L0X I2C:x%x Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
-          _deviceState = DEVSTATE_FAILED;
-          _value = false;
+          reportError(status);
+          _nextState = STATE_FAILED;
         } else
-          _nextState = 2;
+          _nextState = STATE_GETRESULTS;
         delayUntil(currentMicros + 95000); // wait for 95 ms before checking.
-        _nextState = STATE_GETRESULTS;
         break;
       case STATE_GETRESULTS:
         // Ranging completed.  Request results
@@ -240,13 +240,27 @@ protected:
             else if (_distance > _offThreshold) 
               _value = false;
           }
+          // Completed. Restart scan on next loop entry.
+          _nextState = STATE_INITIATESCAN;
+        } else {
+          reportError(status);
+          _nextState = STATE_FAILED;
         }
-        // Completed. Restart scan on next loop entry.
-        _nextState = STATE_INITIATESCAN;
+        break;
+      case STATE_FAILED:
+        // Do nothing.
+        delayUntil(currentMicros+1000000UL);
         break;
       default:
         break;
     }
+  }
+
+  // Function to report a failed I2C operation.  Put the device off-line.
+  void reportError(uint8_t status) {
+    DIAG(F("VL53L0X I2C:x%x Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
+    _deviceState = DEVSTATE_FAILED;
+    _value = false;
   }
 
   // For analogue read, first pin returns distance, second pin is signal strength, and third is ambient level.
