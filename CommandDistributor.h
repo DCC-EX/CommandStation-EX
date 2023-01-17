@@ -47,7 +47,7 @@ public :
   static void broadcastTurnout(int16_t id, bool isClosed);
 #ifdef USEFASTCLOCK 
   static void broadcastClockTime(int16_t time, int8_t rate);
-#ifdef
+#endif
   static void broadcastPower();
   static void broadcastText(const FSH * msg);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
