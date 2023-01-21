@@ -25,6 +25,7 @@
 #include "RingStream.h"
 #include "StringBuffer.h"
 #include "defines.h"
+#include "EXRAIL2.h"
 
 #if WIFI_ON | ETHERNET_ON 
   // Command Distributor must handle a RingStream of clients
@@ -45,13 +46,14 @@ public :
   static void broadcastLoco(byte slot);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
-#ifdef USEFASTCLOCK 
   static void broadcastClockTime(int16_t time, int8_t rate);
-#endif
+  static void setClockTime(int16_t time, int8_t rate, byte opt);
+  static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastText(const FSH * msg);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
+  
 };
 
 #endif

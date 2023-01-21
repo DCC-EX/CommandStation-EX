@@ -97,10 +97,6 @@ Print *DCCEXParser::stashStream = NULL;
 RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
 
-#ifdef USEFASTCLOCK
-int16_t lastclocktime = 0;
-#endif
-
 // This is a JMRI command parser.
 // It doesnt know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
@@ -574,34 +570,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'J' : // throttle info access
         {
-#ifdef USEFASTCLOCK
             if ((params<1) | (params>3)) break; // <J>
-#endif
-#ifndef USEFASTCLOCK
-            if ((params<1) | (params>2)) break; // <J>
-#endif
+            //if ((params<1) | (params>2)) break; // <J>
             int16_t id=(params==2)?p[1]:0;
             switch(p[0]) {
-#ifdef USEFASTCLOCK 
                 case HASH_KEYWORD_C: // <JC mmmm nn> sets time and speed
                     if (params==1) { // <JC> returns latest time
-                        StringFormatter::send(stream, F("<jC %d>\n"), lastclocktime);
+                        int16_t x = CommandDistributor::retClockTime();
+                        StringFormatter::send(stream, F("<jC %d>\n"), x);
                         return;
                     }
-                    if (p[1] != lastclocktime){
-                        if (Diag::CMD) {                    
-                            DIAG(F("Clock Command Received"));
-                            DIAG(F("Received Clock Time is: %d at rate: %d"), p[1], p[2]);
-                        }
-                        LCD(6,F("Clk Time:%d Sp %d"), p[1], p[2]);
-                        //LCD(7,F("Clock Speed: %d"), p[2]);
-                        RMFT2::clockEvent(p[1],1);
-                        // Now tell everyone else what the time is.
-                        CommandDistributor::broadcastClockTime(p[1], p[2]);
-                        lastclocktime = p[1];
-                    }
+                    CommandDistributor::setClockTime(p[1], p[2], 1);
                     return;
-#endif
+
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>

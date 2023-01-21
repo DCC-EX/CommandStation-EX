@@ -55,10 +55,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_SET_TRACK,
              OPCODE_ONRED,OPCODE_ONAMBER,OPCODE_ONGREEN,
              OPCODE_ONCHANGE,
-#ifdef USEFASTCLOCK 
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
-#endif
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -120,9 +118,7 @@ class LookList {
     static void turnoutEvent(int16_t id, bool closed);  
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
-  #ifdef USEFASTCLOCK 
     static void clockEvent(int16_t clocktime, bool change);
-  #endif
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
@@ -180,9 +176,7 @@ private:
    static LookList * onAmberLookup;
    static LookList * onGreenLookup;
    static LookList * onChangeLookup;
-#ifdef USEFASTCLOCK 
    static LookList * onClockLookup;
-#endif
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

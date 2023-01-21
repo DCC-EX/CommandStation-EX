@@ -45,7 +45,7 @@ public:
     addDevice(this);
   }
 
-static void EXFastClock::create(uint8_t _I2CAddress) {
+static void create(uint8_t _I2CAddress) {
 
   DIAG(F("Checking for Clock"));
   // Start by assuming we will find the clock
@@ -53,6 +53,7 @@ static void EXFastClock::create(uint8_t _I2CAddress) {
   // Returns I2C_STATUS_OK (0) if OK, or error code.
   uint8_t _checkforclock = I2CManager.checkAddress(_I2CAddress);
   DIAG(F("Clock check result - %d"), _checkforclock);
+  // XXXX change thistosave2 bytes
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
       //DIAG(F("I2C Fast Clock found at x%x"), _I2CAddress);
@@ -67,11 +68,8 @@ static void EXFastClock::create(uint8_t _I2CAddress) {
   }
     
 private:
-  //uint8_t _I2CAddress;
-  uint16_t _clocktime;
-  uint8_t _clockrate;
-  uint16_t _previousclocktime;
-  unsigned long _lastchecktime;
+uint8_t _I2CAddress;
+  
 
 // Initialisation of Fastclock
 void _begin() override {
@@ -98,39 +96,33 @@ void _loop(unsigned long currentMicros) override{
   if (FAST_CLOCK_EXISTS==true) {
       uint8_t readBuffer[3];
       byte a,b;
-      #if defined(EXRAIL_ACTIVE) 
+      #ifdef EXRAIL_ACTIVE
         I2CManager.read(_I2CAddress, readBuffer, 3);
+        // XXXX change this to save a few bytes
         a = readBuffer[0];
         b = readBuffer[1];
-        _clocktime = (a << 8) + b;
-        _clockrate = readBuffer[2];
+        //_clocktime = (a << 8) + b;
+        //_clockrate = readBuffer[2];
 
-        if (_clocktime != _previousclocktime) {
-            _previousclocktime = _clocktime;
-            //if (Diag::CMD)
-            //  DIAG(F("Received Clock Time is: %d at rate: %d"), _clocktime, _clockrate);
-            LCD(6,F(("Clk Time:%d Sp %d")), _clocktime, _clockrate);
-            RMFT2::clockEvent(_clocktime,1);
-            // Now tell everyone else what the time is.
-            CommandDistributor::broadcastClockTime(_clocktime, _clockrate);
-
-            // As the maximum clock increment is 2 seconds delay a bit - say 1 sec.
-            delayUntil(currentMicros + 1000000);  // Wait 1000ms before checking again,
+        CommandDistributor::setClockTime(((a << 8) + b), readBuffer[2], 1);
+        //setClockTime(int16_t clocktime, int8_t clockrate, byte opt);
+        
+        // As the minimum clock increment is 2 seconds delay a bit - say 1 sec.
+        // Clock interval is 60/ clockspeed i.e 60/b seconds
+        delayUntil(currentMicros + ((60/b) * 1000000));  
             
         }
-        _lastchecktime = currentMicros; 
-    
+     
       #endif
-  
     
   }
-  
-}
 
-// Display EX-FastClock device driver info.
-void _display() {
-  DIAG(F("FastCLock on I2C:x%x - %S"), _I2CAddress,  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
-}
+
+  // Display EX-FastClock device driver info.
+  void _display() {
+    DIAG(F("FastCLock on I2C:x%x - %S"), _I2CAddress,  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+  }
+  
 };
 
 #endif
