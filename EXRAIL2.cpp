@@ -1076,11 +1076,23 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
    
   // Manage invert (HIGH on) pins
   bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
-    
+      
   // set the three pins 
-  if (redpin) IODevice::write(redpin,(rag==SIGNAL_RED || rag==SIMAMBER)^aHigh);
-  if (amberpin) IODevice::write(amberpin,(rag==SIGNAL_AMBER)^aHigh);
-  if (greenpin) IODevice::write(greenpin,(rag==SIGNAL_GREEN || rag==SIMAMBER)^aHigh);
+  if (redpin) {
+    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
+    if (!aHigh) redval=!redval;
+    IODevice::write(redpin,redval);
+  }
+  if (amberpin) {
+    bool amberval=(rag==SIGNAL_AMBER);
+    if (!aHigh) amberval=!amberval;
+    IODevice::write(amberpin,amberval);
+  }
+  if (greenpin) {
+    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
+    if (!aHigh) greenval=!greenval;
+    IODevice::write(greenpin,greenval);
+  }
 }
 
 /* static */ bool RMFT2::isSignal(int16_t id,char rag) {
