@@ -70,7 +70,8 @@
  *       lowThreshold is the distance at which the digital vpin state is set to 1 (in mm),
  *       highThreshold is the distance at which the digital vpin state is set to 0 (in mm),
  *   and xshutPin is the VPIN number corresponding to a digital output that is connected to the
- *       XSHUT terminal on the module.
+ *       XSHUT terminal on the module.  The digital output may be an Arduino pin or an
+ *       I/O extender pin.
  * 
  * Example:
  *   In mySetup function within mySetup.cpp:
@@ -101,21 +102,24 @@ private:
   uint16_t _offThreshold;
   VPIN _xshutPin;
   bool _value;
-  uint8_t _nextState = 0;
+  uint8_t _nextState = STATE_INIT;
   I2CRB _rb;
   uint8_t _inBuffer[12];
   uint8_t _outBuffer[2];
+  static bool _addressConfigInProgress;
+
   // State machine states.
   enum : uint8_t {
     STATE_INIT = 0,
-    STATE_CONFIGUREADDRESS = 1,
-    STATE_SKIP = 2,
-    STATE_CONFIGUREDEVICE = 3,
-    STATE_INITIATESCAN = 4,
-    STATE_CHECKSTATUS = 5,
-    STATE_GETRESULTS = 6,
-    STATE_DECODERESULTS = 7,
-    STATE_FAILED = 8,
+    STATE_RESTARTMODULE = 1,
+    STATE_CONFIGUREADDRESS = 2,
+    STATE_SKIP = 3,
+    STATE_CONFIGUREDEVICE = 4,
+    STATE_INITIATESCAN = 5,
+    STATE_CHECKSTATUS = 6,
+    STATE_GETRESULTS = 7,
+    STATE_DECODERESULTS = 8,
+    STATE_FAILED = 9,
   };
 
   // Register addresses
@@ -146,14 +150,13 @@ protected:
     addDevice(this);
   }
   void _begin() override {
-    if (_xshutPin == VPIN_NONE) {
-      // Check if device is already responding on the nominated address.
-      if (I2CManager.exists(_i2cAddress)) {
-        // Yes, it's already on this address, so skip the address initialisation.
-        _nextState = STATE_CONFIGUREDEVICE;
-      } else {
-        _nextState = STATE_INIT;
-      }
+    // If there's only one device, then the XSHUT pin need not be connected.  However, 
+    //  the device will not respond on its default address if it has 
+    //  already been changed.  Therefore, we skip the address configuration if the 
+    //  desired address is already responding on the I2C bus.
+    if (_xshutPin == VPIN_NONE && I2CManager.exists(_i2cAddress)) {
+      // Device already present on this address, so skip the address initialisation.
+      _nextState = STATE_CONFIGUREDEVICE;
     }
   }
 
@@ -161,21 +164,32 @@ protected:
     uint8_t status;
     switch (_nextState) {
       case STATE_INIT:
-        // On first entry to loop, reset this module by pulling XSHUT low.  All modules
-        // will be reset in turn.
+        // On first entry to loop, reset this module by pulling XSHUT low.  Each module
+        // will be addressed in turn, until all are in the reset state.
+        // If no XSHUT pin is configured, then only one device is supported.
         if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
+        _nextState = STATE_RESTARTMODULE;
+        delayUntil(currentMicros+1000);
+        break;
+      case STATE_RESTARTMODULE:
+        // On second entry, set XSHUT pin high to allow this module to restart.
+        // On the module, there is a diode in series with the XSHUT pin to 
+        // protect the low-voltage pin against +5V.
+        // Ensure this is done for only one module at a time by using a
+        // shared flag accessible to all device instances.
+        if (_addressConfigInProgress) return;
+        _addressConfigInProgress = true;
+        // Set XSHUT pin (if connected)
+        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
+        // Allow the module time to restart
+        delayUntil(currentMicros+10000);
         _nextState = STATE_CONFIGUREADDRESS;
         break;
       case STATE_CONFIGUREADDRESS:
-        // On second entry, set XSHUT pin high to allow the module to restart.
-        // On the module, there is a diode in series with the XSHUT pin to 
-        // protect the low-voltage pin against +5V.
-        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
-        // Allow the module time to restart
-        delay(10);
         // Then write the desired I2C address to the device, while this is the only
         //  module responding to the default address.
         I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _i2cAddress);
+        _addressConfigInProgress = false;
         _nextState = STATE_SKIP;
         break;
       case STATE_SKIP:
@@ -310,5 +324,7 @@ private:
     return _inBuffer[0];
   }
 };
+
+bool VL53L0X::_addressConfigInProgress = false;
 
 #endif // IO_VL53L0X_h
