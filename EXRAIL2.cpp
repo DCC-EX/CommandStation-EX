@@ -1081,17 +1081,14 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (redpin) {
     bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
     if (!aHigh) redval=!redval;
-      // IODevice::write(redpin,(rag==SIGNAL_RED || rag==SIMAMBER)^aHigh);
     IODevice::write(redpin,redval);
   }
   if (amberpin) {
-    // IODevice::write(amberpin,(rag==SIGNAL_AMBER)^aHigh);
     bool amberval=(rag==SIGNAL_AMBER);
     if (!aHigh) amberval=!amberval;
     IODevice::write(amberpin,amberval);
   }
   if (greenpin) {
-    // IODevice::write(greenpin,(rag==SIGNAL_GREEN || rag==SIMAMBER)^aHigh);
     bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
     if (!aHigh) greenval=!greenval;
     IODevice::write(greenpin,greenval);
