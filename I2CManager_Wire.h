@@ -1,5 +1,5 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2023, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -30,11 +30,19 @@
 #define I2C_USE_WIRE
 #endif
 
+// Older versions of Wire don't have setWireTimeout function.  AVR does.
+#ifdef ARDUINO_ARCH_AVR
+#define WIRE_HAS_TIMEOUT
+#endif
+
 /***************************************************************************
  *  Initialise I2C interface software
  ***************************************************************************/
 void I2CManagerClass::_initialise() {
   Wire.begin();
+#if defined(WIRE_HAS_TIMEOUT) 
+  Wire.setWireTimeout(timeout, true);
+#endif
 }
 
 /***************************************************************************
@@ -43,6 +51,18 @@ void I2CManagerClass::_initialise() {
  ***************************************************************************/
 void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
   Wire.setClock(i2cClockSpeed);
+}
+
+/***************************************************************************
+ *  Set I2C timeout value in microseconds.  The timeout applies to each
+ *   Wire call separately, i.e. in a write+read, the timer is reset before the
+ *   read is started.
+ ***************************************************************************/
+void I2CManagerClass::setTimeout(unsigned long value) {
+  timeout = value;
+#if defined(WIRE_HAS_TIMEOUT) 
+  Wire.setWireTimeout(value, true);
+#endif
 }
 
 /***************************************************************************
@@ -93,10 +113,21 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
       status = Wire.endTransmission(false); // Don't free bus yet
     }
     if (status == I2C_STATUS_OK) {
+#ifdef WIRE_HAS_TIMEOUT
+      Wire.clearWireTimeoutFlag();
+#endif
       Wire.requestFrom(address, (size_t)readSize);
-      while (Wire.available() && nBytes < readSize) 
-        readBuffer[nBytes++] = Wire.read();
-      if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
+#ifdef WIRE_HAS_TIMEOUT
+      if (!Wire.getWireTimeoutFlag()) {
+#endif
+        while (Wire.available() && nBytes < readSize) 
+          readBuffer[nBytes++] = Wire.read();
+        if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
+#ifdef WIRE_HAS_TIMEOUT
+      } else {
+        status = I2C_STATUS_TIMEOUT;
+      }
+#endif
     }
   } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
     || rb->operation & OPERATION_NORETRY));
@@ -135,9 +166,5 @@ void I2CManagerClass::queueRequest(I2CRB *req) {
  *  Loop function, for general background work
  ***************************************************************************/
 void I2CManagerClass::loop() {}
-
-// Loop function
-void I2CManagerClass::checkForTimeout() {}
-
 
 #endif

@@ -1,5 +1,5 @@
 /*
- *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2023, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -96,9 +96,8 @@ void I2CManagerClass::I2C_init()
 void I2CManagerClass::I2C_sendStart() {
   bytesToSend = currentRequest->writeLen;
   bytesToReceive = currentRequest->readLen;
-  // We may have initiated a stop bit before this without waiting for it.
-  // Wait for stop bit to be sent before sending start.
-  while (TWCR & (1<<TWSTO)) {}
+  rxCount = 0;
+  txCount = 0;
   TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
 }
 
@@ -107,7 +106,7 @@ void I2CManagerClass::I2C_sendStart() {
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
   TWDR = 0xff;  // Default condition = SDA released
-  TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
+  TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);  // Send Stop
 }
 
 /***************************************************************************
@@ -115,9 +114,8 @@ void I2CManagerClass::I2C_sendStop() {
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
   // disable TWI
-  I2C_sendStop();
-  while (TWCR & (1<<TWSTO)) {}
   TWCR = (1<<TWINT);                 // clear any interrupt and stop twi.
+  delayMicroseconds(10);  // Wait for things to stabilise (hopefully)
 }
 
 /***************************************************************************
@@ -142,7 +140,8 @@ void I2CManagerClass::I2C_handleInterrupt() {
         bytesToSend--;
         TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
       } else if (bytesToReceive) {  // All sent, anything to receive?
-        while (TWCR & (1<<TWSTO)) {}    // Wait for stop to be sent
+        // Don't need to wait for stop, as the interface won't send the start until
+        // any in-progress stop condition has been sent.
         TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
       } else {  // Nothing left to send or receive
         TWDR = 0xff;  // Default condition = SDA released

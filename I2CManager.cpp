@@ -1,6 +1,6 @@
 /*
+ *  © 2023, Neil McKechnie
  *  © 2022 Paul M Antoine
- *  © 2021, Neil McKechnie
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -43,12 +43,21 @@
 
 // If not already initialised, initialise I2C
 void I2CManagerClass::begin(void) {
-  //setTimeout(25000); // 25 millisecond timeout
   if (!_beginCompleted) {
     _beginCompleted = true;
     _initialise();
 
-    // Probe and list devices.
+    // Check for short-circuits on I2C
+    if (!digitalRead(SDA))
+      DIAG(F("WARNING: Possible short-circuit on I2C SDA line"));
+    if (!digitalRead(SCL))
+      DIAG(F("WARNING: Possible short-circuit on I2C SCL line"));
+
+    // Probe and list devices.  Use standard mode 
+    //  (clock speed 100kHz) for best device compatibility.
+    _setClock(100000);
+    unsigned long originalTimeout = timeout;
+    setTimeout(1000);       // use 1ms timeout for probes
     bool found = false;
     for (byte addr=1; addr<127; addr++) {
       if (exists(addr)) {
@@ -57,6 +66,8 @@ void I2CManagerClass::begin(void) {
       }
     }
     if (!found) DIAG(F("No I2C Devices found"));
+    _setClock(_clockSpeed);
+    setTimeout(originalTimeout);      // set timeout back to original
   }
 }
 
@@ -65,18 +76,17 @@ void I2CManagerClass::begin(void) {
 void I2CManagerClass::setClock(uint32_t speed) {
   if (speed < _clockSpeed && !_clockSpeedFixed) {
     _clockSpeed = speed;
+    DIAG(F("I2C clock speed set to %l Hz"), _clockSpeed);
   }
   _setClock(_clockSpeed);
 }
 
-// Force clock speed to that specified.  It can then only 
-// be overridden by calling Wire.setClock directly.
+// Force clock speed to that specified.
 void I2CManagerClass::forceClock(uint32_t speed) {
-  if (!_clockSpeedFixed) {
-    _clockSpeed = speed;
-    _clockSpeedFixed = true;
-    _setClock(_clockSpeed);
-  }
+  _clockSpeed = speed;
+  _clockSpeedFixed = true;
+  _setClock(_clockSpeed);
+  DIAG(F("I2C clock speed forced to %l Hz"), _clockSpeed);
 }
 
 // Check if specified I2C address is responding (blocking operation)
@@ -181,40 +191,40 @@ const FSH *I2CManagerClass::getErrorMessage(uint8_t status) {
  ***************************************************************************/
 I2CManagerClass I2CManager = I2CManagerClass();
 
+// Default timeout 100ms on I2C request block completion.
+// A full 32-byte transmission takes about 8ms at 100kHz,
+// so this value allows lots of headroom.  
+// It can be modified by calling I2CManager.setTimeout() function.
+// When retries are enabled, the timeout applies to each
+// try, and failure from timeout does not get retried.
+unsigned long I2CManagerClass::timeout = 100000UL;
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Helper functions associated with I2C Request Block
 /////////////////////////////////////////////////////////////////////////////
 
 /***************************************************************************
- *  Block waiting for request block to complete, and return completion status.
- *  Since such a loop could potentially last for ever if the RB status doesn't
- *  change, we set a high limit (1sec, 1000ms) on the wait time and, if it
- *  hasn't changed by that time we assume it's not going to, and just return
- *  a timeout status.  This means that CS will not lock up.
+ *  Block waiting for request to complete, and return completion status.
+ *  Timeout monitoring is performed in the I2CManager.loop() function.
  ***************************************************************************/
 uint8_t I2CRB::wait() {
-  unsigned long waitStart = millis();
-  do {
+  while (status==I2C_STATUS_PENDING) {
     I2CManager.loop();
-    // Rather than looping indefinitely, let's set a very high timeout (1s).
-    if ((millis() - waitStart) > 1000UL) { 
-      DIAG(F("I2C TIMEOUT I2C:x%x I2CRB:x%x"), i2cAddress, this);
-      status = I2C_STATUS_TIMEOUT;
-      // Note that, although the timeout is posted, the request may yet complete.
-      // TODO: Ideally we would like to cancel the request.
-      return status;
-    }
-  } while (status==I2C_STATUS_PENDING);
+  };
   return status;
 }
 
 /***************************************************************************
  *  Check whether request is still in progress.
+ *  Timeout monitoring is performed in the I2CManager.loop() function.
  ***************************************************************************/
 bool I2CRB::isBusy() {
-  I2CManager.loop();
-  return (status==I2C_STATUS_PENDING);
+  if (status==I2C_STATUS_PENDING) {
+    I2CManager.loop();
+    return true;
+  } else
+    return false;
 }
 
 /***************************************************************************

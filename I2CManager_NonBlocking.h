@@ -1,6 +1,6 @@
 /*
+ *  © 2023, Neil McKechnie
  *  © 2022 Paul M Antoine
- *  © 2021, Neil McKechnie
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -84,6 +84,7 @@ void I2CManagerClass::_initialise()
   queueHead = queueTail = NULL;
   state = I2C_STATE_FREE;
   I2C_init();
+  I2C_setClock(_clockSpeed);
 }
 
 /***************************************************************************
@@ -102,13 +103,13 @@ void I2CManagerClass::startTransaction() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if ((state == I2C_STATE_FREE) && (queueHead != NULL)) {
       state = I2C_STATE_ACTIVE;
+      startTime = micros();
       currentRequest = queueHead;
       rxCount = txCount = 0;
       // Copy key fields to static data for speed.
       operation = currentRequest->operation & OPERATION_MASK;
       // Start the I2C process going.
       I2C_sendStart();
-      startTime = micros();
     }
   }
 }
@@ -168,20 +169,29 @@ uint8_t I2CManagerClass::read(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t r
 }
 
 /***************************************************************************
+ *  Set I2C timeout value in microseconds.  The timeout applies to the entire
+ *   I2CRB request, e.g. where a write+read is performed, the timer is not
+ *   reset before the read.
+ ***************************************************************************/
+void I2CManagerClass::setTimeout(unsigned long value) { 
+  timeout = value; 
+};
+
+/***************************************************************************
  * checkForTimeout() function, called from isBusy() and wait() to cancel
- * requests that are taking too long to complete.
- * This function doesn't fully work as intended so is not currently called.
- * Instead we check for an I2C hang-up and report an error from
- * I2CRB::wait(), but we aren't able to recover from the hang-up.  Such faults
+ * requests that are taking too long to complete.  Such faults
  * may be caused by an I2C wire short for example.
  ***************************************************************************/
 void I2CManagerClass::checkForTimeout() {
-  unsigned long currentMicros = micros();
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     I2CRB *t = queueHead;
     if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && timeout > 0) {
       // Check for timeout
-      if (currentMicros - startTime > timeout) { 
+      unsigned long elapsed = micros() - startTime;
+      if (elapsed > timeout) { 
+#ifdef DIAG_IO
+        //DIAG(F("I2CManager Timeout on x%x, I2CRB=x%x"), t->i2cAddress, currentRequest);
+#endif
         // Excessive time. Dequeue request
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = NULL;
@@ -192,7 +202,9 @@ void I2CManagerClass::checkForTimeout() {
         // Try close and init, not entirely satisfactory but sort of works...
         I2C_close();  // Shutdown and restart twi interface
         I2C_init();
+        _setClock(_clockSpeed);
         state = I2C_STATE_FREE;
+//        I2C_sendStop(); // in case device is waiting for a stop condition  
         
         // Initiate next queued request if any.
         startTransaction();
@@ -208,10 +220,8 @@ void I2CManagerClass::loop() {
 #if !defined(I2C_USE_INTERRUPTS)
   handleInterrupt();
 #endif
-  // Timeout is now reported in I2CRB::wait(), not here.
-  // I've left the code, commented out, as a reminder to look at this again
-  // in the future.
-  //checkForTimeout();
+  // Call function to monitor for stuch I2C operations.
+  checkForTimeout();
 }
 
 /***************************************************************************
@@ -270,7 +280,6 @@ volatile uint8_t I2CManagerClass::operation;
 volatile uint8_t I2CManagerClass::bytesToSend;
 volatile uint8_t I2CManagerClass::bytesToReceive;
 volatile unsigned long I2CManagerClass::startTime;
-unsigned long I2CManagerClass::timeout = 0;
 uint8_t I2CManagerClass::retryCounter = 0;
 
 #endif

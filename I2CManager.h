@@ -1,6 +1,6 @@
 /*
+ *  © 2023, Neil McKechnie. All rights reserved.
  *  © 2022 Paul M Antoine
- *  © 2021, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -29,7 +29,7 @@
  * of the Wire class, but also has a native implementation for AVR
  * which supports non-blocking queued I/O requests.
  * 
- * Helps to avoid calling Wire.begin() multiple times (which is not)
+ * Helps to avoid calling Wire.begin() multiple times (which is not
  * entirely benign as it reinitialises).
  * 
  * Also helps to avoid the Wire clock from being set, by another device
@@ -76,6 +76,8 @@
  * Timeout monitoring is possible, but requires that the following call is made
  * reasonably frequently in the program's loop() function:
  *  I2CManager.loop();
+ * So that the application doesn't need to do this explicitly, this call is performed
+ * from the I2CRB::isBusy() or I2CRB::wait() functions.
  * 
  */
 
@@ -111,9 +113,11 @@
  * 
  */
 
-// Maximum number of retries on an I2C operation
+// Maximum number of retries on an I2C operation.
 // A value of zero will disable retries.
 // Maximum value is 254 (unsigned byte counter)
+// Note that timeout failures are not retried, but any timeout
+// configured applies to each try separately.
 #define MAX_I2C_RETRIES 2
 
 // Add following line to config.h to enable Wire library instead of native I2C drivers
@@ -203,6 +207,8 @@ public:
   void setClock(uint32_t speed);
   // Force clock speed 
   void forceClock(uint32_t speed);
+  // setTimeout sets the timout value for I2C transactions (milliseconds).
+  void setTimeout(unsigned long);
   // Check if specified I2C address is responding.
   uint8_t checkAddress(uint8_t address);
   inline bool exists(uint8_t address) {
@@ -239,11 +245,14 @@ public:
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
+  static uint8_t retryCounter;  // Count of retries
 #if defined(__arm__)
   uint32_t _clockSpeed = 32000000L;  // 3.2MHz max on SAMD and STM32
 #else
   uint32_t _clockSpeed = 400000L;  // 400kHz max on Arduino.
 #endif
+  static unsigned long timeout; // Transaction timeout in microseconds.  0=disabled.
+    
 
   // Finish off request block by waiting for completion and posting status.
   uint8_t finishRB(I2CRB *rb, uint8_t status);
@@ -272,9 +281,6 @@ private:
     static volatile uint8_t operation;
     static volatile unsigned long startTime;
 
-    static unsigned long timeout; // Transaction timeout in microseconds.  0=disabled.
-    static uint8_t retryCounter;  // Count of retries
-    
     void startTransaction();
     
     // Low-level hardware manipulation functions.
@@ -286,10 +292,6 @@ private:
     static void I2C_close();
     
   public:
-    // setTimeout sets the timout value for I2C transactions.
-    // TODO: Get I2C timeout working before uncommenting the code below.
-    void setTimeout(unsigned long value) { (void)value; /* timeout = value; */ };
-
     // handleInterrupt needs to be public to be called from the ISR function!
     static void handleInterrupt();
 #endif
