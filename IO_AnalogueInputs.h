@@ -73,6 +73,11 @@ private:
     addDevice(this);
   }
   void _begin() {
+    // Initialise I2C
+    I2CManager.begin();
+    // ADS111x support high-speed I2C (4.3MHz) but that requires special
+    // processing.  So stick to fast mode (400kHz maximum).
+    I2CManager.setClock(400000);
     // Initialise ADS device
     if (I2CManager.exists(_i2cAddress)) {
       _nextState = STATE_STARTSCAN;
