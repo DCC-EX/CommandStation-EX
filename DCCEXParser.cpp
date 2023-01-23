@@ -190,9 +190,9 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 // Parse an F() string 
 void DCCEXParser::parse(const FSH * cmd) {
       DIAG(F("SETUP(\"%S\")"),cmd);
-      int size=strlen_P((char *)cmd)+1; 
+      int size=STRLEN_P((char *)cmd)+1; 
       char buffer[size];
-      strcpy_P(buffer,(char *)cmd);
+      STRCPY_P(buffer,(char *)cmd);
       parse(&USB_SERIAL,(byte *)buffer,NULL);
 }
 

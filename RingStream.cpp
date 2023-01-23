@@ -83,7 +83,7 @@ size_t RingStream::printFlash(const FSH * flashBuffer) {
 
 // Establish the actual length of the progmem string.
 char * flash=(char *)flashBuffer;
-int16_t plength=strlen_P(flash);
+int16_t plength=STRLEN_P(flash);
 if (plength==0) return 0; // just ignore empty string
 
 // Retain the buffer count as it will be modified by the marker+address insert
