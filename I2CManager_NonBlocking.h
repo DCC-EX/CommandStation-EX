@@ -196,6 +196,7 @@ void I2CManagerClass::checkForTimeout() {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = NULL;
         currentRequest = NULL;
+        bytesToReceive = bytesToSend = 0;
         // Post request as timed out.
         t->status = I2C_STATUS_TIMEOUT;
         // Reset TWI interface so it is able to continue
