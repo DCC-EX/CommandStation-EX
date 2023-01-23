@@ -67,9 +67,9 @@ private:
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
     _digitalPinBytes = (numDigitalPins+7)/8;
-    _analoguePinBytes = (numAnaloguePins+7)/8;
+    _analoguePinBytes = numAnaloguePins * 2;
     _digitalInputStates=(byte*) calloc(_digitalPinBytes,1);
-    _analogueInputStates=(byte*) calloc(_analoguePinBytes,2);
+    _analogueInputStates=(byte*) calloc(_analoguePinBytes,1);
     addDevice(this);
   }
 
@@ -130,7 +130,6 @@ private:
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIOENAN;
     _analogueOutBuffer[1] = pin;
-    DIAG(F("Enable Vpin %d/pin %d"), vpin, pin);
     I2CManager.write(_i2cAddress, _analogueOutBuffer, 2);
     return true;
   }
@@ -140,7 +139,6 @@ private:
     I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _commandBuffer, 1);
     _commandBuffer[0] = EXIORDAN;
     I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _commandBuffer, 1);
-    delayUntil(currentMicros + 500000);
   }
 
   int _readAnalogue(VPIN vpin) override {
@@ -150,9 +148,10 @@ private:
     // _analogueOutBuffer[1] = pin;
     // I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2);
     // return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
-    uint8_t _pinLSBByte = (pin / 4) * 2;
+    uint8_t _pinLSBByte = pin * 2;
     uint8_t _pinMSBByte = _pinLSBByte + 1;
-    return (_pinMSBByte << 8) + _pinLSBByte;
+    // DIAG(F("Vpin %d LSB %d MSB %d"), vpin, _analogueInputStates[_pinLSBByte], _analogueInputStates[_pinMSBByte]);
+    return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
   }
 
   int _read(VPIN vpin) override {
