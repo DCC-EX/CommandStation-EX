@@ -144,10 +144,6 @@ private:
   int _readAnalogue(VPIN vpin) override {
     if (vpin < _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin - _numDigitalPins;
-    // _analogueOutBuffer[0] = EXIORDAN;
-    // _analogueOutBuffer[1] = pin;
-    // I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2);
-    // return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
     uint8_t _pinLSBByte = pin * 2;
     uint8_t _pinMSBByte = _pinLSBByte + 1;
     return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
@@ -189,7 +185,6 @@ private:
   uint8_t _i2cAddress;
   uint8_t _numDigitalPins;
   uint8_t _numAnaloguePins;
-  byte _analogueInBuffer[2];
   byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   uint8_t _versionBuffer[3];
