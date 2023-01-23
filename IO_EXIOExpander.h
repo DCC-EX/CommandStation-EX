@@ -143,14 +143,13 @@ private:
 
   int _readAnalogue(VPIN vpin) override {
     if (vpin < _firstVpin + _numDigitalPins) return false;
-    int pin = vpin - _firstVpin;
+    int pin = vpin - _firstVpin - _numDigitalPins;
     // _analogueOutBuffer[0] = EXIORDAN;
     // _analogueOutBuffer[1] = pin;
     // I2CManager.read(_i2cAddress, _analogueInBuffer, 2, _analogueOutBuffer, 2);
     // return (_analogueInBuffer[1] << 8) + _analogueInBuffer[0];
     uint8_t _pinLSBByte = pin * 2;
     uint8_t _pinMSBByte = _pinLSBByte + 1;
-    // DIAG(F("Vpin %d LSB %d MSB %d"), vpin, _analogueInputStates[_pinLSBByte], _analogueInputStates[_pinMSBByte]);
     return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
   }
 
