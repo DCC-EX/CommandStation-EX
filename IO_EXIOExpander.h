@@ -66,6 +66,8 @@ private:
     _i2cAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
+    _digitalBytes = (numDigitalPins+7)/8;
+    _digitalPinStates=(byte*) calloc(_digitalBytes,1);
     addDevice(this);
   }
 
@@ -125,6 +127,11 @@ private:
     return false;
   }
 
+  void _loop(unsigned long currentMicros) override {
+    _commandBuffer[0] = EXIORDD;
+    I2CManager.read(_i2cAddress, _digitalPinStates, _digitalBytes, _commandBuffer, 1);
+  }
+
   int _readAnalogue(VPIN vpin) override {
     if (vpin < _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin;
@@ -137,11 +144,9 @@ private:
   int _read(VPIN vpin) override {
     if (vpin >= _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin;
-    _digitalOutBuffer[0] = EXIORDD;
-    _digitalOutBuffer[1] = pin;
-    _digitalOutBuffer[2] = 0x00;  // Don't need to use this for reading
-    I2CManager.read(_i2cAddress, _digitalInBuffer, 1, _digitalOutBuffer, 3);
-    return _digitalInBuffer[0];
+    uint8_t pinByte = pin / 8;
+    bool value = _digitalPinStates[pinByte] >> (pin - pinByte * 8);
+    return value;
   }
 
   void _write(VPIN vpin, int value) override {
@@ -182,6 +187,9 @@ private:
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
+  byte* _digitalPinStates;
+  uint8_t _digitalBytes = 0;
+  byte _commandBuffer[1];
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
