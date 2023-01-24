@@ -570,9 +570,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'J' : // throttle info access
         {
-            if ((params<1) | (params>2)) break; // <J>
+            if ((params<1) | (params>3)) break; // <J>
+            //if ((params<1) | (params>2)) break; // <J>
             int16_t id=(params==2)?p[1]:0;
             switch(p[0]) {
+                case HASH_KEYWORD_C: // <JC mmmm nn> sets time and speed
+                    if (params==1) { // <JC> returns latest time
+                        int16_t x = CommandDistributor::retClockTime();
+                        StringFormatter::send(stream, F("<jC %d>\n"), x);
+                        return;
+                    }
+                    CommandDistributor::setClockTime(p[1], p[2], 1);
+                    return;
+
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>
