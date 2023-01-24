@@ -1,5 +1,5 @@
 /*
- *  © 2023, Neil McKechnie. All rights reserved.
+ *  © 2021, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -28,21 +28,21 @@
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(unsigned long i2cClockSpeed) {
   uint16_t t_rise;
-  if (i2cClockSpeed < 200000)
+  if (i2cClockSpeed < 200000) {
+    i2cClockSpeed = 100000;
     t_rise = 1000;
-  else if (i2cClockSpeed < 800000)
+  } else if (i2cClockSpeed < 800000) {
+    i2cClockSpeed = 400000;
     t_rise = 300;
-  else
+  } else if (i2cClockSpeed < 1200000) {
+    i2cClockSpeed = 1000000;
     t_rise = 120;
-
-  if (t_rise == 120)
-    TWI0.CTRLA |= TWI_FMPEN_bm;
-  else
-    TWI0.CTRLA &= ~TWI_FMPEN_bm;
-  
+  } else {
+    i2cClockSpeed = 100000;
+    t_rise = 1000;
+  }
   uint32_t baud = (F_CPU_CORRECTED / i2cClockSpeed - F_CPU_CORRECTED / 1000 / 1000
     * t_rise / 1000 - 10) / 2;
-  if (baud > 255) baud = 255;  // ~30kHz
   TWI0.MBAUD = (uint8_t)baud;
 }
 
@@ -54,13 +54,13 @@ void I2CManagerClass::I2C_init()
   pinMode(PIN_WIRE_SDA, INPUT_PULLUP);
   pinMode(PIN_WIRE_SCL, INPUT_PULLUP);
   PORTMUX.TWISPIROUTEA |= TWI_MUX;
-  I2C_setClock(I2C_FREQ);
 
 #if defined(I2C_USE_INTERRUPTS)
   TWI0.MCTRLA = TWI_RIEN_bm | TWI_WIEN_bm | TWI_ENABLE_bm;
 #else
   TWI0.MCTRLA = TWI_ENABLE_bm;
 #endif
+  I2C_setClock(I2C_FREQ);
   TWI0.MSTATUS = TWI_BUSSTATE_IDLE_gc;
 }
 
@@ -70,8 +70,6 @@ void I2CManagerClass::I2C_init()
 void I2CManagerClass::I2C_sendStart() {
   bytesToSend = currentRequest->writeLen;
   bytesToReceive = currentRequest->readLen;
-  txCount = 0;
-  rxCount = 0;
 
   // If anything to send, initiate write.  Otherwise initiate read.
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
@@ -91,10 +89,7 @@ void I2CManagerClass::I2C_sendStop() {
  *  Close I2C down
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
-
-  TWI0.MCTRLA &= ~(TWI_RIEN_bm | TWI_WIEN_bm | TWI_ENABLE_bm);        // Switch off I2C
-  TWI0.MSTATUS = TWI_BUSSTATE_UNKNOWN_gc;
-  delayMicroseconds(10);  // Wait for things to stabilise (hopefully)
+  I2C_sendStop();
 }
 
 /***************************************************************************
@@ -119,9 +114,11 @@ void I2CManagerClass::I2C_handleInterrupt() {
       TWI0.MCTRLB = TWI_MCMD_STOP_gc;
       state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
     } else if (bytesToSend) {
-      // Acked, so send next byte (don't need to use GETFLASH)
-      txCount++;
-        TWI0.MDATA = *sendPointer++;
+      // Acked, so send next byte
+      if (currentRequest->operation == OPERATION_SEND_P)
+        TWI0.MDATA = GETFLASH(currentRequest->writeBuffer + (txCount++));
+      else
+        TWI0.MDATA = currentRequest->writeBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
         // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
@@ -134,10 +131,13 @@ void I2CManagerClass::I2C_handleInterrupt() {
   } else if (currentStatus & TWI_RIF_bm) {
     // Master read completed without errors
     if (bytesToReceive) {
-      rxCount++;
-      *receivePointer++ = TWI0.MDATA;  // Store received byte
+      currentRequest->readBuffer[rxCount++] = TWI0.MDATA;  // Store received byte
       bytesToReceive--;
-    } 
+    } else { 
+      // Buffer full, issue nack/stop
+      TWI0.MCTRLB = TWI_ACKACT_bm | TWI_MCMD_STOP_gc;
+      state = I2C_STATUS_OK;
+    }
     if (bytesToReceive) {
       // More bytes to receive, issue ack and start another read
       TWI0.MCTRLB = TWI_MCMD_RECVTRANS_gc;
