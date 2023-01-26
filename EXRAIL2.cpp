@@ -747,6 +747,10 @@ void RMFT2::loop2() {
     skipIf=IODevice::readAnalogue(operand)>=(int)(getOperand(1));
     break;
     
+  case OPCODE_IFLOCO: // do if the loco is the active one
+    skipIf=loco!=operand;
+    break;
+
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
@@ -1244,4 +1248,3 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
      default: break;       
     }
 }
-   

@@ -65,6 +65,7 @@
 #undef IFCLOSED
 #undef IFGREEN
 #undef IFGTE
+#undef IFLOCO
 #undef IFLT
 #undef IFNOT
 #undef IFRANDOM 
@@ -182,6 +183,7 @@
 #define IFCLOSED(turnout_id) 
 #define IFGREEN(signal_id)
 #define IFGTE(sensor_id,value) 
+#define IFLOCO(loco_id)
 #define IFLT(sensor_id,value) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent)
