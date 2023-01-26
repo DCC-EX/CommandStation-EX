@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.9pre1"
+#define VERSION "4.2.10pre1"
+// 4.2.10 SIGNAL/SIGNALH bug fix as they were inverted
+//        IO_EXIOExpander.h input speed optimisation
 // 4.2.9 duinoNodes support
 // 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
 //       Withrottle connect/disconnect improvements
