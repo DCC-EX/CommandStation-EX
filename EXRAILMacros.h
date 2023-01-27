@@ -282,6 +282,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
 #define IFGREEN(signal_id) OPCODE_IFGREEN,V(signal_id),
 #define IFGTE(sensor_id,value) OPCODE_IFGTE,V(sensor_id),OPCODE_PAD,V(value),
+#define IFLOCO(loco_id) OPCODE_IFLOCO,V(loco_id),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
