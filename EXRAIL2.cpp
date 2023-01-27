@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2021-2022 Harald Barth
+ *  © 2021-2023 Harald Barth
  *  © 2020-2022 Chris Harlow
  *  All rights reserved.
  *  

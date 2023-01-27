@@ -1,6 +1,6 @@
 /*
- *  © 2021-2022 Chris Harlow
- *  © 2020,2021 Chris Harlow. All rights reserved.
+ *  © 2020-2022 Chris Harlow. All rights reserved.
+ *  © 2023 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
