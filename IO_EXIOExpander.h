@@ -135,6 +135,7 @@ private:
   }
 
   void _loop(unsigned long currentMicros) override {
+    (void)currentMicros; // remove warning
     _commandBuffer[0] = EXIORDD;
     I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _commandBuffer, 1);
     _commandBuffer[0] = EXIORDAN;

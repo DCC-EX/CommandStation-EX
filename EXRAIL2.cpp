@@ -748,7 +748,7 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFLOCO: // do if the loco is the active one
-    skipIf=loco!=operand;
+    skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
     break;
 
   case OPCODE_IFNOT: // do next operand if sensor not set
