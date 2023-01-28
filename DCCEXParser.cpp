@@ -605,12 +605,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 		      tdesc = RMFT2::getTurnoutDescription(id);
 #endif
 		      if (tdesc == NULL)
-			StringFormatter::send(stream, F(" %d %c"),
-					      id,t->isThrown()?'T':'C');
-		      else
-			StringFormatter::send(stream, F(" %d %c \"%S\""),
-					      id,t->isThrown()?'T':'C',
-					      tdesc);
+			tdesc = F("");
+		      StringFormatter::send(stream, F(" %d %c \"%S\""),
+					    id,t->isThrown()?'T':'C',
+					    tdesc);
 		    }
                 }
                 StringFormatter::send(stream, F(">\n"));
