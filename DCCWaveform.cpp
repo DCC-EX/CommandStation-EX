@@ -62,7 +62,6 @@ const bool signalTransform[]={
    /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::begin() {
-  ADCee::begin();
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 

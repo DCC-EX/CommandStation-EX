@@ -1,5 +1,5 @@
 /*
- *  © 2022 Paul M. Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021-2022 Harald Barth
  *  © 2021 Fred Decker
@@ -102,9 +102,14 @@ private:
 // that an offset can be initialized.
 class ADCee {
 public:
-  // init does add the pin to the list of scanned pins (if this
+  // begin is called for any setup that must be done before
+  // **init** can be called. On some architectures this involves ADC
+  // initialisation and clock routing, sampling times etc.
+  static void begin();
+  // init adds the pin to the list of scanned pins (if this
   // platform's implementation scans pins) and returns the first
-  // read value. It is called before the regular scan is started.
+  // read value (which is why it required begin to have been called first!)
+  // It must be called before the regular scan is started.
   static int init(uint8_t pin);
   // read does read the pin value from the scanned cache or directly
   // if this is a platform that does not scan. fromISR is a hint if
@@ -117,9 +122,6 @@ private:
   // On platforms that scan, it is called from waveform ISR
   // only on a regular basis.
   static void scan();
-  // begin is called for any setup that must be done before
-  // scan can be called.
-  static void begin();
   // bit array of used pins (max 16)
   static uint16_t usedpins;
   // cached analog values (malloc:ed to actual number of ADC channels)
