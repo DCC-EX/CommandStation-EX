@@ -96,7 +96,7 @@ void DCCTimer::clearPWM() {
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
   volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
-  volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
+  // volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
 
   volatile uint32_t m1 = *serno1;
   volatile uint32_t m2 = *serno2;
@@ -172,9 +172,9 @@ int ADCee::init(uint8_t pin) {
 
   // Set the sampling rate for that analog input
   if (adcchan < 10)
-    ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles. 16MHz bus clock for ADC. 1/16MHz = 62.5ns. 480*62.5ns=30us
+    ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
   else
-    ADC1->SMPR1 |= (0b111 << ((adcchan - 10) * 3)); // Channel sampling rate 480 cycles. 16MHz bus clock for ADC. 1/16MHz = 62.5ns. 480*62.5ns=30us
+    ADC1->SMPR1 |= (0b111 << ((adcchan - 10) * 3)); // Channel sampling rate 480 cycles
 
   // Read the inital ADC value for this analog input
   ADC1->SQR3 = adcchan;           // 1st conversion in regular sequence
@@ -219,7 +219,7 @@ void ADCee::scan() {
 
   if (waiting) {
     // look if we have a result
-    if ((ADC1->SR & (1 << 1)))
+    if (!(ADC1->SR & (1 << 1)))
       return; // no result, continue to wait
     // found value
     analogvals[id] = ADC1->DR;
