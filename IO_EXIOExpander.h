@@ -54,22 +54,18 @@
  */
 class EXIOExpander : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress, int numDigitalPins, int numAnaloguePins) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress, numDigitalPins, numAnaloguePins);
+  static void create(VPIN vpin, int nPins, uint8_t i2cAddress) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress, int numDigitalPins, int numAnaloguePins) {
+  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
-    _numDigitalPins = numDigitalPins;
-    _numAnaloguePins = numAnaloguePins;
-    _digitalPinBytes = (numDigitalPins+7)/8;
-    _analoguePinBytes = numAnaloguePins * 2;
+    _digitalPinBytes = (nPins+7)/8;
     _digitalInputStates=(byte*) calloc(_digitalPinBytes,1);
-    _analogueInputStates=(byte*) calloc(_analoguePinBytes,1);
     addDevice(this);
   }
 
@@ -77,20 +73,26 @@ private:
     // Initialise EX-IOExander device
     I2CManager.begin();
     if (I2CManager.exists(_i2cAddress)) {
-      _digitalOutBuffer[0] = EXIOINIT;
-      _digitalOutBuffer[1] = _numDigitalPins;
-      _digitalOutBuffer[2] = _numAnaloguePins;
-      // Send config, if EXIORDY returned, we're good, otherwise go offline
-      I2CManager.read(_i2cAddress, _commandBuffer, 1, _digitalOutBuffer, 3);
-      if (_commandBuffer[0] != EXIORDY) {
+      _command2Buffer[0] = EXIOINIT;
+      _command2Buffer[1] = _nPins;
+      // Send config, if EXIOINITA returned, we're good, setup analogue input buffer, otherwise go offline
+      I2CManager.read(_i2cAddress, _receive2Buffer, 2, _command2Buffer, 2);
+      if (_receive2Buffer[0] == EXIOINITA) {
+        _numAnaloguePins = _receive2Buffer[1];
+        _analoguePinBytes = _numAnaloguePins * 2;
+        _analogueInputStates = (byte*) calloc(_analoguePinBytes, 1);
+        _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
+      } else {
         DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
         _deviceState = DEVSTATE_FAILED;
         return;
       }
+      // We now need to retrieve the analogue pin map
+      _command1Buffer[0] = EXIOINITA;
+      I2CManager.read(_i2cAddress, _analoguePinMap, _numAnaloguePins, _command1Buffer, 1);
       // Attempt to get version, if we don't get it, we don't care, don't go offline
-      // Using digital in buffer in reverse to save RAM
-      _commandBuffer[0] = EXIOVER;
-      I2CManager.read(_i2cAddress, _versionBuffer, 3, _commandBuffer, 1);
+      _command1Buffer[0] = EXIOVER;
+      I2CManager.read(_i2cAddress, _versionBuffer, 3, _command1Buffer, 1);
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
@@ -105,13 +107,10 @@ private:
     }
   }
 
+  // Digital input pin configuration, used to enable on EX-IOExpander device and set pullups if in use
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
     if (configType != CONFIGURE_INPUT) return false;
     if (paramCount != 1) return false;
-    if (vpin >= _firstVpin + _numDigitalPins) {
-      DIAG(F("EX-IOExpander ERROR: Vpin %d is an analogue pin, cannot use as a digital pin"), vpin);
-      return false;
-    }
     bool pullup = params[0];
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIODPUP;
@@ -121,37 +120,39 @@ private:
     return true;
   }
 
-  // We only use this to detect incorrect use of analogue pins
+  // Analogue input pin configuration, used to enable on EX-IOExpander device
   int _configureAnalogIn(VPIN vpin) override {
-    if (vpin < _firstVpin + _numDigitalPins) {
-      DIAG(F("EX-IOExpander ERROR: Vpin %d is a digital pin, cannot use as an analogue pin"), vpin);
-      return false;
-    }
     int pin = vpin - _firstVpin;
-    _analogueOutBuffer[0] = EXIOENAN;
-    _analogueOutBuffer[1] = pin;
-    I2CManager.write(_i2cAddress, _analogueOutBuffer, 2);
+    _command2Buffer[0] = EXIOENAN;
+    _command2Buffer[1] = pin;
+    I2CManager.write(_i2cAddress, _command2Buffer, 2);
     return true;
   }
 
+  // Main loop, collect both digital and analogue pin states continuously (faster sensor/input reads)
   void _loop(unsigned long currentMicros) override {
     (void)currentMicros; // remove warning
-    _commandBuffer[0] = EXIORDD;
-    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _commandBuffer, 1);
-    _commandBuffer[0] = EXIORDAN;
-    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _commandBuffer, 1);
+    _command1Buffer[0] = EXIORDD;
+    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1);
+    _command1Buffer[0] = EXIORDAN;
+    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1);
   }
 
+  // Obtain the correct analogue input value
   int _readAnalogue(VPIN vpin) override {
-    if (vpin < _firstVpin + _numDigitalPins) return false;
-    int pin = vpin - _firstVpin - _numDigitalPins;
-    uint8_t _pinLSBByte = pin * 2;
+    int pin = vpin - _firstVpin;
+    uint8_t _pinLSBByte;
+    for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
+      if (_analoguePinMap[aPin] == pin) {
+        _pinLSBByte = aPin * 2;
+      }
+    }
     uint8_t _pinMSBByte = _pinLSBByte + 1;
     return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
   }
 
+  // Obtain the correct digital input value
   int _read(VPIN vpin) override {
-    if (vpin >= _firstVpin + _numDigitalPins) return false;
     int pin = vpin - _firstVpin;
     uint8_t pinByte = pin / 8;
     bool value = _digitalInputStates[pinByte] >> (pin - pinByte * 8);
@@ -159,7 +160,6 @@ private:
   }
 
   void _write(VPIN vpin, int value) override {
-    if (vpin >= _firstVpin + _numDigitalPins) return;
     int pin = vpin - _firstVpin;
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
@@ -168,25 +168,14 @@ private:
   }
 
   void _display() override {
-    int _firstAnalogue, _lastAnalogue;
-    if (_numAnaloguePins == 0) {
-      _firstAnalogue = 0;
-      _lastAnalogue = 0;
-    } else {
-      _firstAnalogue = _firstVpin + _numDigitalPins;
-      _lastAnalogue = _firstVpin + _nPins - 1;
-    }
-    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d: %d Digital Vpins %d-%d, %d Analogue Vpins %d-%d %S"),
+    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d Vpins %d-%d %S"),
               _i2cAddress, _majorVer, _minorVer, _patchVer,
-              _numDigitalPins, _firstVpin, _firstVpin + _numDigitalPins - 1,
-              _numAnaloguePins, _firstAnalogue, _lastAnalogue,
+              (int)_firstVpin, (int)_firstVpin+_nPins-1,
               _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
   uint8_t _i2cAddress;
-  uint8_t _numDigitalPins;
   uint8_t _numAnaloguePins;
-  byte _analogueOutBuffer[2];
   byte _digitalOutBuffer[3];
   uint8_t _versionBuffer[3];
   uint8_t _majorVer = 0;
@@ -196,7 +185,10 @@ private:
   byte* _analogueInputStates;
   uint8_t _digitalPinBytes = 0;
   uint8_t _analoguePinBytes = 0;
-  byte _commandBuffer[1];
+  byte _command1Buffer[1];
+  byte _command2Buffer[2];
+  byte _receive2Buffer[2];
+  uint8_t* _analoguePinMap;
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -207,6 +199,7 @@ private:
     EXIOWRD = 0xE5,     // Flag for digital write
     EXIORDD = 0xE6,     // Flag to read digital input
     EXIOENAN = 0xE7,    // Flag eo enable an analogue pin
+    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin info
   };
 };
 
