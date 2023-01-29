@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.12pre2"
+#define VERSION "4.2.13"
+// 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
 // 4.2.11 Exrail IFLOCO feature added
 // 4.2.10 SIGNAL/SIGNALH bug fix as they were inverted
