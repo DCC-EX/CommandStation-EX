@@ -96,7 +96,7 @@ void DCCTimer::clearPWM() {
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
   volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
-  volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
+  // volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
 
   volatile uint32_t m1 = *serno1;
   volatile uint32_t m2 = *serno2;
@@ -131,31 +131,148 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+#define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
+
+// TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
+uint16_t ADCee::usedpins = 0;
+int * ADCee::analogvals = NULL;
+uint32_t * analogchans = NULL;
+bool adc1configured = false;
+
 int16_t ADCee::ADCmax() {
   return 4095;
 }
 
 int ADCee::init(uint8_t pin) {
-  return analogRead(pin);
+  uint id = pin - A0;
+  int value = 0;
+  PinName stmpin = digitalPin[analogInputPin[id]];
+  uint32_t stmgpio = stmpin / 16; // 16-bits per GPIO port group on STM32
+  uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC channel (only valid for ADC1!)
+  GPIO_TypeDef * gpioBase;
+
+  // Port config - find which port we're on and power it up
+  switch(stmgpio) {
+    case 0x00:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN; //Power up PORTA
+        gpioBase = GPIOA;
+        break;
+    case 0x01:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN; //Power up PORTB
+        gpioBase = GPIOB;
+        break;
+    case 0x02:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //Power up PORTC
+        gpioBase = GPIOC;
+        break;
+  }
+
+  // Set pin mux mode to analog input
+  gpioBase->MODER |= (0b011 << (stmpin << 1)); // Set pin mux to analog mode
+
+  // Set the sampling rate for that analog input
+  if (adcchan < 10)
+    ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
+  else
+    ADC1->SMPR1 |= (0b111 << ((adcchan - 10) * 3)); // Channel sampling rate 480 cycles
+
+  // Read the inital ADC value for this analog input
+  ADC1->SQR3 = adcchan;           // 1st conversion in regular sequence
+  ADC1->CR2 |= (1 << 30);         // Start 1st conversion SWSTART
+  while(!(ADC1->SR & (1 << 1)));  // Wait until conversion is complete
+  value = ADC1->DR;               // Read value from register
+
+  if (analogvals == NULL)
+  {
+    analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+    analogchans = (uint32_t *)calloc(NUM_ADC_INPUTS+1, sizeof(uint32_t));
+  }
+  analogvals[id] = value;     // Store sampled value
+  analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
+  usedpins |= (1 << id);      // This pin is now ready
+
+  return value;
 }
+
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  int current;
-  if (!fromISR) noInterrupts();
-  current = analogRead(pin);
-  if (!fromISR) interrupts();
-  return current;
+  uint8_t id = pin - A0;
+  // Was this pin initialised yet?
+  if ((usedpins & (1<<id) ) == 0)
+    return -1023;
+  // We do not need to check (analogvals == NULL)
+  // because usedpins would still be 0 in that case
+  return analogvals[id];
 }
+
 /*
  * Scan function that is called from interrupt
  */
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void ADCee::scan() {
+  static uint id = 0;        // id and mask are the same thing but it is faster to 
+  static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
+  static bool waiting = false;
+
+  if (waiting) {
+    // look if we have a result
+    if (!(ADC1->SR & (1 << 1)))
+      return; // no result, continue to wait
+    // found value
+    analogvals[id] = ADC1->DR;
+    // advance at least one track
+    // for scope debug TrackManager::track[1]->setBrake(0);
+    waiting = false;
+    id++;
+    mask = mask << 1;
+    if (id == NUM_ADC_INPUTS+1) {
+      id = 0;
+      mask = 1;
+    }
+  }
+  if (!waiting) {
+    if (usedpins == 0) // otherwise we would loop forever
+      return;
+    // look for a valid track to sample or until we are around
+    while (true) {
+      if (mask  & usedpins) {
+    	  // start new ADC aquire on id
+        ADC1->SQR3 = analogchans[id]; //1st conversion in regular sequence
+        ADC1->CR2 |= (1 << 30); //Start 1st conversion SWSTART
+	      // for scope debug TrackManager::track[1]->setBrake(1);
+	      waiting = true;
+	      return;
+      }
+      id++;
+      mask = mask << 1;
+      if (id == NUM_ADC_INPUTS+1) {
+	      id = 0;
+	      mask = 1;
+      }
+    }
+  }
 }
+#pragma GCC pop_options
 
 void ADCee::begin() {
   noInterrupts();
+  //ADC1 config sequence
+  // TODO: currently defaults to ADC1, may need more to handle other members of STM32F4xx family
+  RCC->APB2ENR |= (1 << 8); //Enable ADC1 clock (Bit8) 
+  // Set ADC prescaler - DIV8 ~ 40ms, DIV6 ~ 30ms, DIV4 ~ 20ms, DIV2 ~ 11ms
+  ADC->CCR = (0 << 16); // Set prescaler 0=DIV2, 1=DIV4, 2=DIV6, 3=DIV8
+  ADC1->CR1 &= ~(1 << 8); //SCAN mode disabled (Bit8)
+  ADC1->CR1 &= ~(3 << 24); //12bit resolution (Bit24,25 0b00)
+  ADC1->SQR1 = (1 << 20); //Set number of conversions projected (L[3:0] 0b0001) -> 1 conversion
+  ADC1->CR2 &= ~(1 << 1); //Single conversion
+  ADC1->CR2 &= ~(1 << 11); //Right alignment of data bits bit12....bit0
+  ADC1->SQR1 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC1->SQR2 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC1->SQR3 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC1->CR2 |= (1 << 0); // Switch on ADC1
   interrupts();
 }
 #endif
