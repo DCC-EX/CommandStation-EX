@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.13"
+#define VERSION "4.2.14"
+// 4.2.14 STM32F4xx fast ADC read implementation
 // 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
 // 4.2.11 Exrail IFLOCO feature added
