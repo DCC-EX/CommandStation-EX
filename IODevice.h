@@ -93,6 +93,8 @@ public:
     CONFIGURE_INPUT = 1,
     CONFIGURE_SERVO = 2,
     CONFIGURE_OUTPUT = 3,
+    CONFIGURE_ANALOGOUTPUT = 4,
+    CONFIGURE_ANALOGINPUT = 5,
   } ConfigTypeEnum;
 
   typedef enum : uint8_t {
@@ -174,8 +176,11 @@ protected:
     _I2CAddress=0;
   }
 
- // Method to perform initialisation of the device (optionally implemented within device class)
+  // Method to perform initialisation of the device (optionally implemented within device class)
   virtual void _begin() {}
+
+  // Method to check whether the vpin corresponds to this device
+  bool owns(VPIN vpin);
 
   // Method to configure device (optionally implemented within device class)
   virtual bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) { 
@@ -239,14 +244,13 @@ protected:
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice);
 
+  // Method to find device handling Vpin
+  static IODevice *findDevice(VPIN vpin);
+
   // Current state of device
   DeviceStateEnum _deviceState = DEVSTATE_DORMANT;
 
 private:
-  // Method to check whether the vpin corresponds to this device
-  bool owns(VPIN vpin);
-  // Method to find device handling Vpin
-  static IODevice *findDevice(VPIN vpin);
   IODevice *_nextDevice = 0;
   unsigned long _nextEntryTime;
   static IODevice *_firstDevice;
