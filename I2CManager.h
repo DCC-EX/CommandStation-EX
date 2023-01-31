@@ -281,6 +281,8 @@ private:
     static volatile uint8_t operation;
     static volatile unsigned long startTime;
 
+    volatile uint32_t pendingClockSpeed = 0;
+
     void startTransaction();
     
     // Low-level hardware manipulation functions.

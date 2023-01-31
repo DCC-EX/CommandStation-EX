@@ -49,7 +49,9 @@ void SERCOM3_Handler() {
 Sercom *s = SERCOM3;
 
 /***************************************************************************
- *  Set I2C clock speed register.
+ *  Set I2C clock speed register.  This should only be called outside of
+ *  a transmission.  The I2CManagerClass::_setClock() function ensures 
+ *  that it is only called at the beginning of an I2C transaction.
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
 
@@ -68,38 +70,24 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
     i2cClockSpeed = 100000L;
     t_rise = 1000;
   }
+
+  // Wait while the bus is busy
+  while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
+
+  // Disable the I2C master mode and wait for sync
+  s->I2CM.CTRLA.bit.ENABLE = 0 ;
+  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
+
   // Calculate baudrate - using a rise time appropriate for the speed
-  pendingBaudRate = SystemCoreClock / (2 * i2cClockSpeed) - 5 - (((SystemCoreClock / 1000000) * t_rise) / (2 * 1000));
-}
+  s->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * i2cClockSpeed) - 5 - (((SystemCoreClock / 1000000) * t_rise) / (2 * 1000));
 
-/***************************************************************************
- * Internal function to actually change the baud rate register, executed from 
- * interrupt code to avoid in-progress I2C transactions.
- ***************************************************************************/
-static void checkForPendingClockSpeedChange() {
-  if (pendingBaudRate > 0) {
-    // Wait while the bus is busy
-    while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
+  // Enable the I2C master mode and wait for sync
+  s->I2CM.CTRLA.bit.ENABLE = 1 ;
+  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
 
-    // Disable the I2C master mode and wait for sync
-    s->I2CM.CTRLA.bit.ENABLE = 0 ;
-    while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
-
-    // Update baudrate
-    s->I2CM.BAUD.bit.BAUD = pendingBaudRate;
-
-    // Enable the I2C master mode and wait for sync
-    s->I2CM.CTRLA.bit.ENABLE = 1 ;
-    while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
-
-    // Setting bus idle mode and wait for sync
-    s->I2CM.STATUS.bit.BUSSTATE = 1 ;
-    while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
-
-    // Clear pending rate now it's been implemented.
-    pendingBaudRate = 0;
-  }
-  return;
+  // Setting bus idle mode and wait for sync
+  s->I2CM.STATUS.bit.BUSSTATE = 1 ;
+  while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
 }
 
 /***************************************************************************
@@ -166,10 +154,6 @@ void I2CManagerClass::I2C_init()
  *  Initiate a start bit for transmission.
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStart() {
-  // Check if the clock is to be changed, if so do it now.  It doesn't matter
-  // what else is going on over the I2C bus as the clock change only affects
-  // this master.
-  checkForPendingClockSpeedChange();
 
   // Set counters here in case this is a retry.
   bytesToSend = currentRequest->writeLen;
@@ -205,6 +189,13 @@ void I2CManagerClass::I2C_sendStop() {
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
   I2C_sendStop();
+  // Disable the I2C master mode and wait for sync
+  s->I2CM.CTRLA.bit.ENABLE = 0 ;
+  // Wait for up to 500us only.
+  unsigned long startTime = micros();
+  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0) {
+    if (micros() - startTime >= 500UL) break;
+  }
 }
 
 /***************************************************************************

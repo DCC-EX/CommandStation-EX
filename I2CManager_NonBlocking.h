@@ -84,25 +84,36 @@ void I2CManagerClass::_initialise()
   queueHead = queueTail = NULL;
   state = I2C_STATE_FREE;
   I2C_init();
-  I2C_setClock(_clockSpeed);
+  _setClock(_clockSpeed);
 }
 
 /***************************************************************************
  *  Set I2C clock speed.  Normally 100000 (Standard) or 400000 (Fast)
  *   on Arduino.  Mega4809 supports 1000000 (Fast+) too.
+ *   This function saves the desired clock speed and the startTransaction
+ *   function acts on it before a new transaction, to avoid speed changes
+ *   during an I2C transaction.
  ***************************************************************************/
 void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
-  I2C_setClock(i2cClockSpeed);
+  pendingClockSpeed = i2cClockSpeed;
 }
 
 /***************************************************************************
  * Helper function to start operations, if the I2C interface is free and
  * there is a queued request to be processed.
+ * If there's an I2C clock speed change pending, then implement it before 
+ * starting the operation.
  ***************************************************************************/
-void I2CManagerClass::startTransaction() { 
+void I2CManagerClass::startTransaction() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if ((state == I2C_STATE_FREE) && (queueHead != NULL)) {
       state = I2C_STATE_ACTIVE;
+      // Check for pending clock speed change
+      if (pendingClockSpeed) {
+        // We're about to start a new I2C transaction, so set clock now.
+        I2C_setClock(pendingClockSpeed);
+        pendingClockSpeed = 0;
+      }
       startTime = micros();
       currentRequest = queueHead;
       rxCount = txCount = 0;
