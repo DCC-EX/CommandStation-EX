@@ -1,6 +1,6 @@
 /*
  *  © 2022 Paul M Antoine
- *  © 2021, Neil McKechnie
+ *  © 2023, Neil McKechnie
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -107,8 +107,8 @@ void I2CManagerClass::I2C_init()
   s->I2CM.CTRLA.reg =  SERCOM_I2CM_CTRLA_MODE( I2C_MASTER_OPERATION )/* |
                             SERCOM_I2CM_CTRLA_SCLSM*/ ;
 
-  // Enable Smart mode and Quick Command
-  s->I2CM.CTRLB.reg =  SERCOM_I2CM_CTRLB_SMEN | SERCOM_I2CM_CTRLB_QCEN;
+  // Enable Smart mode (but not Quick Command)
+  s->I2CM.CTRLB.reg =  SERCOM_I2CM_CTRLB_SMEN;
 
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
@@ -141,7 +141,7 @@ void I2CManagerClass::I2C_init()
 	PORT->Group[g_APinDescription[PIN_WIRE_SCL].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SCL].ulPin].reg =  
 		PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;  
   PORT->Group[g_APinDescription[PIN_WIRE_SDA].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SDA].ulPin].reg = 
-		PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
+	  PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
 }
 
 /***************************************************************************
@@ -152,18 +152,21 @@ void I2CManagerClass::I2C_sendStart() {
   bytesToReceive = currentRequest->readLen;
 
   // We may have initiated a stop bit before this without waiting for it.
-  // Wait for stop bit to be sent before sending start.
-  while (s->I2CM.STATUS.bit.BUSSTATE == 0x2);
+  //  However, the state machine ensures that the start bit isn't sent
+  //  until the stop bit is complete.
+  //while (s->I2CM.STATUS.bit.BUSSTATE == 0x2);
 
   // If anything to send, initiate write.  Otherwise initiate read.
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
   {
+    // Wait while the I2C bus is BUSY
+    //while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
     // Send start and address with read/write flag or'd in
     s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
   }
   else {
     // Wait while the I2C bus is BUSY
-    while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
+    //while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
     s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1ul) | 0;
   }
 }
@@ -203,14 +206,11 @@ void I2CManagerClass::I2C_handleInterrupt() {
       state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
     } else if (bytesToSend) {
       // Acked, so send next byte
-      if (currentRequest->operation == OPERATION_SEND_P)
-        s->I2CM.DATA.bit.DATA = GETFLASH(currentRequest->writeBuffer + (txCount++));
-      else
-        s->I2CM.DATA.bit.DATA = currentRequest->writeBuffer[txCount++];
+      s->I2CM.DATA.bit.DATA = currentRequest->writeBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
-        s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+      s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
     } else {
       // No more data to send/receive. Initiate a STOP condition.
       I2C_sendStop();
@@ -218,25 +218,16 @@ void I2CManagerClass::I2C_handleInterrupt() {
     }
   } else if (s->I2CM.INTFLAG.bit.SB) {
     // Master read completed without errors
-    if (bytesToReceive) {
+    if (bytesToReceive == 1) {
+      s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
+      I2C_sendStop();  // send stop
+      currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
+      bytesToReceive = 0;
+      state = I2C_STATUS_OK; // done
+    } else if (bytesToReceive) {
+      s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
       currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
       bytesToReceive--;
-    } else { 
-      // Buffer full, issue nack/stop
-      s->I2CM.CTRLB.bit.ACKACT = 1;
-      I2C_sendStop();
-      state = I2C_STATUS_OK;
-    }
-    if (bytesToReceive) {
-      // PMA - I think Smart Mode means we have nothing to do...
-      // More bytes to receive, issue ack and start another read
-    }
-    else
-    {
-      // Transaction finished, issue NACK and STOP.
-      s->I2CM.CTRLB.bit.ACKACT = 1;
-      I2C_sendStop();
-      state = I2C_STATUS_OK;
     }
   }
 }
