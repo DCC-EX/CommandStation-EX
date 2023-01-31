@@ -71,14 +71,12 @@ private:
       _command2Buffer[0] = EXIOINIT;
       _command2Buffer[1] = _nPins;
       // Send config, if EXIOINITA returned, we're good, setup analogue input buffer, otherwise go offline
-      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command2Buffer, 2);
-      if (_receive3Buffer[0] == EXIOINITA) {
-        _numAnaloguePins = _receive3Buffer[1];
-        _numPWMPins = _receive3Buffer[2];
+      I2CManager.read(_i2cAddress, _receive2Buffer, 2, _command2Buffer, 2);
+      if (_receive2Buffer[0] == EXIOINITA) {
+        _numAnaloguePins = _receive2Buffer[1];
         _analoguePinBytes = _numAnaloguePins * 2;
         _analogueInputStates = (byte*) calloc(_analoguePinBytes, 1);
         _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-
       } else {
         DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
         _deviceState = DEVSTATE_FAILED;
@@ -114,12 +112,6 @@ private:
       _digitalOutBuffer[1] = pin;
       _digitalOutBuffer[2] = pullup;
       I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
-      return true;
-    } else if (configType == CONFIGURE_SERVO) {
-      DIAG(F("Configure servo at pin %d"), (int)pin);
-      for (int i = 0; i < paramCount; i++) {
-        DIAG(F("Param %d is %x"), (int)i, params[i]);
-      }
       return true;
     } else {
       return false;
@@ -182,6 +174,7 @@ private:
 
   uint8_t _i2cAddress;
   uint8_t _numAnaloguePins = 0;
+  uint8_t numDigitalPins = 0;
   byte _digitalOutBuffer[3];
   uint8_t _versionBuffer[3];
   uint8_t _majorVer = 0;
@@ -193,9 +186,8 @@ private:
   uint8_t _analoguePinBytes = 0;
   byte _command1Buffer[1];
   byte _command2Buffer[2];
-  byte _receive3Buffer[3];
+  byte _receive2Buffer[2];
   uint8_t* _analoguePinMap;
-  uint8_t _numPWMPins = 0;
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
