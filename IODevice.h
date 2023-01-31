@@ -242,11 +242,12 @@ protected:
   // Current state of device
   DeviceStateEnum _deviceState = DEVSTATE_DORMANT;
 
+  // Method to find device handling Vpin
+  static IODevice *findDevice(VPIN vpin);
+
 private:
   // Method to check whether the vpin corresponds to this device
   bool owns(VPIN vpin);
-  // Method to find device handling Vpin
-  static IODevice *findDevice(VPIN vpin);
   IODevice *_nextDevice = 0;
   unsigned long _nextEntryTime;
   static IODevice *_firstDevice;
