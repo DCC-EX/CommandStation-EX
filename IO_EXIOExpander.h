@@ -78,7 +78,6 @@ private:
         _analoguePinBytes = _numAnaloguePins * 2;
         _analogueInputStates = (byte*) calloc(_analoguePinBytes, 1);
         _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-        _servoData = (struct ServoData*) calloc(_numPWMPins, 14);
 
       } else {
         DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
@@ -197,26 +196,6 @@ private:
   byte _receive3Buffer[3];
   uint8_t* _analoguePinMap;
   uint8_t _numPWMPins = 0;
-
-  struct ServoData {
-    uint16_t activePosition : 12; // Config parameter
-    uint16_t inactivePosition : 12; // Config parameter
-    uint16_t currentPosition : 12;
-    uint16_t fromPosition : 12;
-    uint16_t toPosition : 12; 
-    uint8_t profile;  // Config parameter
-    uint16_t stepNumber; // Index of current step (starting from 0)
-    uint16_t numSteps;  // Number of steps in animation, or 0 if none in progress.
-    uint8_t currentProfile; // profile being used for current animation.
-    uint16_t duration; // time (tenths of a second) for animation to complete.
-  } ServoData; // 14 bytes per element, i.e. per pin in use
-  
-  struct ServoData* _servoData;
-
-  static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
-  static const byte FLASH _bounceProfile[30];
-
-  const unsigned int refreshInterval = 50; // refresh every 50ms
 
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
