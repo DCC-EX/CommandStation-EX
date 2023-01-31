@@ -121,7 +121,6 @@ private:
   }
 
   // Analogue input pin configuration, used to enable on EX-IOExpander device
-  // Analogue input pin configuration, used to enable on EX-IOExpander device
   int _configureAnalogIn(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     _command2Buffer[0] = EXIOENAN;
