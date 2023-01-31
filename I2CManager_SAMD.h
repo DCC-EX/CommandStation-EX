@@ -29,6 +29,9 @@
 //#include <avr/interrupt.h>
 #include <wiring_private.h>
 
+// Storage for new baud rate.  Zero means no change pending
+static uint32_t pendingBaudRate = 0;
+
 /***************************************************************************
  *  Interrupt handler.
  *  IRQ handler for SERCOM3 which is the default I2C definition for Arduino Zero
@@ -65,22 +68,37 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
     i2cClockSpeed = 100000L;
     t_rise = 1000;
   }
-
-  // Disable the I2C master mode and wait for sync
-  s->I2CM.CTRLA.bit.ENABLE = 0 ;
-  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
-
   // Calculate baudrate - using a rise time appropriate for the speed
-  s->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * i2cClockSpeed) - 5 - (((SystemCoreClock / 1000000) * t_rise) / (2 * 1000));
+  pendingBaudRate = SystemCoreClock / (2 * i2cClockSpeed) - 5 - (((SystemCoreClock / 1000000) * t_rise) / (2 * 1000));
+}
 
-  // Enable the I2C master mode and wait for sync
-  s->I2CM.CTRLA.bit.ENABLE = 1 ;
-  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
+/***************************************************************************
+ * Internal function to actually change the baud rate register, executed from 
+ * interrupt code to avoid in-progress I2C transactions.
+ ***************************************************************************/
+static void checkForPendingClockSpeedChange() {
+  if (pendingBaudRate > 0) {
+    // Wait while the bus is busy
+    while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
 
-  // Setting bus idle mode and wait for sync
-  s->I2CM.STATUS.bit.BUSSTATE = 1 ;
-  while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
+    // Disable the I2C master mode and wait for sync
+    s->I2CM.CTRLA.bit.ENABLE = 0 ;
+    while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
 
+    // Update baudrate
+    s->I2CM.BAUD.bit.BAUD = pendingBaudRate;
+
+    // Enable the I2C master mode and wait for sync
+    s->I2CM.CTRLA.bit.ENABLE = 1 ;
+    while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
+
+    // Setting bus idle mode and wait for sync
+    s->I2CM.STATUS.bit.BUSSTATE = 1 ;
+    while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
+
+    // Clear pending rate now it's been implemented.
+    pendingBaudRate = 0;
+  }
   return;
 }
 
@@ -148,25 +166,29 @@ void I2CManagerClass::I2C_init()
  *  Initiate a start bit for transmission.
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStart() {
+  // Check if the clock is to be changed, if so do it now.  It doesn't matter
+  // what else is going on over the I2C bus as the clock change only affects
+  // this master.
+  checkForPendingClockSpeedChange();
+
+  // Set counters here in case this is a retry.
   bytesToSend = currentRequest->writeLen;
   bytesToReceive = currentRequest->readLen;
 
-  // We may have initiated a stop bit before this without waiting for it.
-  //  However, the state machine ensures that the start bit isn't sent
-  //  until the stop bit is complete.
-  //while (s->I2CM.STATUS.bit.BUSSTATE == 0x2);
+  // On a single-master I2C bus, the start bit won't be sent until the bus 
+  // state goes to IDLE so we can request it without waiting.  On a 
+  // multi-master bus, the bus may be BUSY under control of another master, 
+  // in which case we can avoid some arbitration failures by waiting until
+  // the bus state is IDLE.  We don't do that here.
 
   // If anything to send, initiate write.  Otherwise initiate read.
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
   {
-    // Wait while the I2C bus is BUSY
-    //while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
-    // Send start and address with read/write flag or'd in
+    // Send start and address with read flag (1) or'd in
     s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
   }
   else {
-    // Wait while the I2C bus is BUSY
-    //while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
+    // Send start and address with write flag (0) or'd in
     s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1ul) | 0;
   }
 }
