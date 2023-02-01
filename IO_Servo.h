@@ -139,7 +139,7 @@ private:
     DIAG(F("Servo Write Vpin:%d Value:%d"), vpin, value);
     #endif
     int pin = vpin - _firstVpin;
-    VPIN slavePin = vpin - _firstVpin + _firstSlavePin;
+    // VPIN slavePin = vpin - _firstVpin + _firstSlavePin;
     if (value) value = 1;
 
     struct ServoData *s = _servoData[pin];
