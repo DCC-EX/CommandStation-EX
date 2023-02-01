@@ -66,10 +66,12 @@ private:
     // Initialise EX-IOExander device
     I2CManager.begin();
     if (I2CManager.exists(_i2cAddress)) {
-      _command2Buffer[0] = EXIOINIT;
-      _command2Buffer[1] = _nPins;
+      _command4Buffer[0] = EXIOINIT;
+      _command4Buffer[1] = _nPins;
+      _command4Buffer[2] = _firstVpin & 0xFF;
+      _command4Buffer[3] = _firstVpin >> 8;
       // Send config, if EXIOPINS returned, we're good, setup pin buffers, otherwise go offline
-      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command2Buffer, 2);
+      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command4Buffer, 4);
       if (_receive3Buffer[0] == EXIOPINS) {
         _numDigitalPins = _receive3Buffer[1];
         _numAnaloguePins = _receive3Buffer[2];
@@ -170,7 +172,11 @@ private:
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
     int pin = vpin - _firstVpin;
-    DIAG(F("Write %d to pin %d, param 1 %d, param 2 %d"), value, pin, param1, param2);
+    _command4Buffer[0] = EXIOWRAN;
+    _command4Buffer[1] = pin;
+    _command4Buffer[2] = value & 0xFF;
+    _command4Buffer[3] = value >> 8;
+    I2CManager.write(_i2cAddress, _command4Buffer, 4);
   }
 
   void _display() override {
@@ -194,6 +200,7 @@ private:
   uint8_t _analoguePinBytes = 0;
   byte _command1Buffer[1];
   byte _command2Buffer[2];
+  byte _command4Buffer[4];
   byte _receive3Buffer[3];
   uint8_t* _analoguePinMap;
 
@@ -205,9 +212,11 @@ private:
     EXIORDAN = 0xE4,    // Flag to read an analogue input
     EXIOWRD = 0xE5,     // Flag for digital write
     EXIORDD = 0xE6,     // Flag to read digital input
-    EXIOENAN = 0xE7,    // Flag eo enable an analogue pin
+    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
     EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
     EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
+    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOERR = 0xEF,     // Flag we've received an error
   };
 };
 
