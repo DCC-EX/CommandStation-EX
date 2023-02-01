@@ -1,4 +1,5 @@
 /*
+ *  © 2023, Paul Antoine, Discord user @ADUBOURG
  *  © 2021, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
@@ -410,6 +411,7 @@ private:
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
 #include "IO_PCF8574.h"
+#include "IO_PCF8575.h"
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
 
