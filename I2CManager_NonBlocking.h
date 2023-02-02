@@ -213,10 +213,21 @@ void I2CManagerClass::checkForTimeout() {
         // Reset TWI interface so it is able to continue
         // Try close and init, not entirely satisfactory but sort of works...
         I2C_close();  // Shutdown and restart twi interface
+
+        // If SDA is stuck low, issue up to 9 clock pulses to attempt to free it.
+        pinMode(SCL, INPUT_PULLUP);
+        pinMode(SDA, INPUT_PULLUP);
+        for (int i=0; !digitalRead(SDA) && i<9; i++) {
+          digitalWrite(SCL, 0); 
+          pinMode(SCL, OUTPUT);         // Force clock low
+          delayMicroseconds(10);        // ... for 5us
+          pinMode(SCL, INPUT_PULLUP);   // ... then high
+          delayMicroseconds(10);        // ... for 5us (100kHz Clock)
+        }
+        // Whether that's succeeded or not, now try reinitialising.
         I2C_init();
         _setClock(_clockSpeed);
         state = I2C_STATE_FREE;
-//        I2C_sendStop(); // in case device is waiting for a stop condition  
         
         // Initiate next queued request if any.
         startTransaction();
