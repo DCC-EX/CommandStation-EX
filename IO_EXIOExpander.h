@@ -158,7 +158,7 @@ private:
   int _read(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     uint8_t pinByte = pin / 8;
-    bool value = _digitalInputStates[pinByte] >> (pin - pinByte * 8);
+    bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
     return value;
   }
 
