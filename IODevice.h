@@ -163,9 +163,35 @@ public:
   // once the GPIO port concerned has been read.
   void setGPIOInterruptPin(int16_t pinNumber);
 
- // Method to check if pins will overlap before creating new device. 
+  // Method to check if pins will overlap before creating new device. 
   static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);
-  
+
+  // Method used by IODevice filters to locate slave pins that may be overlayed by their own
+  // pin range.  
+  IODevice *findDeviceFollowing(VPIN vpin);
+
+  // Method to write new state (optionally implemented within device class)
+  virtual void _write(VPIN vpin, int value) {
+    (void)vpin; (void)value;
+  };
+
+  // Method to write an 'analogue' value (optionally implemented within device class)
+  virtual void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) {
+    (void)vpin; (void)value; (void) param1; (void)param2;
+  };
+
+  // Method to read digital pin state (optionally implemented within device class)
+  virtual int _read(VPIN vpin) { 
+    (void)vpin; 
+    return 0;
+  };
+
+  // Method to read analogue pin state (optionally implemented within device class)
+  virtual int _readAnalogue(VPIN vpin) { 
+    (void)vpin; 
+    return 0;
+  };
+
 protected:
   
   // Constructor
@@ -188,27 +214,6 @@ protected:
     return false;
   };
 
-  // Method to write new state (optionally implemented within device class)
-  virtual void _write(VPIN vpin, int value) {
-    (void)vpin; (void)value;
-  };
-
-  // Method to write an 'analogue' value (optionally implemented within device class)
-  virtual void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
-    (void)vpin; (void)value; (void) param1; (void)param2;
-  };
-
-  // Method to read digital pin state (optionally implemented within device class)
-  virtual int _read(VPIN vpin) { 
-    (void)vpin; 
-    return 0;
-  };
-
-  // Method to read analogue pin state (optionally implemented within device class)
-  virtual int _readAnalogue(VPIN vpin) { 
-    (void)vpin; 
-    return 0;
-  };
   virtual int _configureAnalogIn(VPIN vpin) { 
     (void)vpin; 
     return 0;
@@ -242,7 +247,7 @@ protected:
   int16_t _gpioInterruptPin = -1;
     
   // Static support function for subclass creation
-  static void addDevice(IODevice *newDevice);
+  static void addDevice(IODevice *newDevice, IODevice *slaveDevice = NULL);
 
   // Method to find device handling Vpin
   static IODevice *findDevice(VPIN vpin);

@@ -255,20 +255,26 @@ void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
   _gpioInterruptPin = pinNumber;
 }
 
-// Private helper function to add a device to the chain of devices.
-void IODevice::addDevice(IODevice *newDevice) {
-  // Link new object to the end of the chain.  Thereby, the first devices to be declared/created
-  // will be located faster by findDevice than those which are created later.
-  // Ideally declare/create the digital IO pins first, then servos, then more esoteric devices.
-  IODevice *lastDevice;
-  if (_firstDevice == 0)
+// Helper function to add a new device to the device chain.  If 
+// slaveDevice is NULL then the device is added to the end of the chain.
+// Otherwise, the chain is searched for slaveDevice and the new device linked
+// in front of it (to support filter devices that share the same VPIN range
+// as the devices they control).  If slaveDevice isn't found, then the
+// device is linked to the end of the chain.
+void IODevice::addDevice(IODevice *newDevice, IODevice *slaveDevice /* = NULL */) {
+  if (slaveDevice == _firstDevice) {
+    newDevice->_nextDevice = _firstDevice;
     _firstDevice = newDevice;
-  else {
-    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice)
-      lastDevice = dev;
-    lastDevice->_nextDevice = newDevice;
+  } else {
+    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+      if (dev->_nextDevice == slaveDevice || dev->_nextDevice == NULL) {
+          // Link new device between dev and slaveDevice (or at end of chain)
+        newDevice->_nextDevice = dev->_nextDevice;
+        dev->_nextDevice = newDevice;
+        break;
+      }
+    }
   }
-  newDevice->_nextDevice = 0;
   newDevice->_begin();
 }
 
@@ -276,6 +282,17 @@ void IODevice::addDevice(IODevice *newDevice) {
 //  This is performance-critical, so minimises the calculation and function calls necessary.
 IODevice *IODevice::findDevice(VPIN vpin) { 
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    VPIN firstVpin = dev->_firstVpin;
+    if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
+      return dev;
+  }
+  return NULL;
+}
+
+// Instance helper function for filter devices (layered over others).  Looks for 
+//  a device that is further down the chain than the current device.
+IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
+  for (IODevice *dev = _nextDevice; dev != 0; dev = dev->_nextDevice) {
     VPIN firstVpin = dev->_firstVpin;
     if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
       return dev;
@@ -320,7 +337,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
 // Chain of callback blocks (identifying registered callback functions for state changes)
 IONotifyCallback *IONotifyCallback::first = 0;
 
-// Start of chain of devices.
+// Start and end of chain of devices.
 IODevice *IODevice::_firstDevice = 0;
 
 // Reference to next device to be called on _loop() method.
