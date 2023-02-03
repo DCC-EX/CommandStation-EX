@@ -42,14 +42,17 @@
  * If you have more than one module, then you will need to specify a digital VPIN (Arduino
  * digital output or I/O extender pin) which you connect to the module's XSHUT pin.  Now,
  * when the device driver starts, the XSHUT pin is set LOW to turn the module off.  Once 
- * all VL53L0X modules are turned off, the driver works through each module in turn by
- * setting XSHUT to HIGH to turn the module on,, then writing the module's desired I2C address.
+ * all VL53L0X modules are turned off, the driver works through each module in turn,
+ * setting XSHUT to HIGH to turn that module on, then writing that module's desired I2C address.
  * In this way, many VL53L0X modules can be connected to the one I2C bus, each one 
- * using a distinct I2C address.
+ * using a distinct I2C address.  The process is described in ST Microelectronics application
+ * note AN4846.
  * 
  * WARNING:  If the device's XSHUT pin is not connected, then it is very prone to noise, 
- * and the device may even reset when handled.  If you're not using XSHUT, then it's 
- * best to tie it to +5V.
+ * and the device may reset spontaneously or when handled and the device will stop responding
+ * on its allocated address.  If you're not using XSHUT, then tie it to +5V via a resistor 
+ * (should be tied to +2.8V strictly). Some manufacturers (Adafruit and Polulu for example)
+ * include a pull-up on the module, but others don't.
  * 
  * The driver is configured as follows:
  * 
@@ -173,14 +176,17 @@ protected:
         break;
       case STATE_RESTARTMODULE:
         // On second entry, set XSHUT pin high to allow this module to restart.
-        // On the module, there is a diode in series with the XSHUT pin to 
-        // protect the low-voltage pin against +5V.
-        // Ensure this is done for only one module at a time by using a
+        // On some modules, there is a diode in series with the XSHUT pin to 
+        // protect the low-voltage pin against +5V, but we can provide additional
+        // protection by enabling the pull-up resistor on the microcontroller
+        // instead of driving the output directly.
+        // Ensure XSHUT is set for only one module at a time by using a
         // shared flag accessible to all device instances.
         if (_addressConfigInProgress) return;
         _addressConfigInProgress = true;
-        // Set XSHUT pin (if connected)
-        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
+        // Set XSHUT pin (if connected).  Because of supply voltage differences,
+        // drive the signal through the digital output's pull-up resistor.
+        if (_xshutPin != VPIN_NONE) IODevice::configureInput(_xshutPin, 1);
         // Allow the module time to restart
         delayUntil(currentMicros+10000);
         _nextState = STATE_CONFIGUREADDRESS;
