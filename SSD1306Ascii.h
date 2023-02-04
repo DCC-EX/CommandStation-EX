@@ -36,11 +36,12 @@
 class SSD1306AsciiWire : public LCDDisplay {
  public:
 
-  // Constructor
-  SSD1306AsciiWire(int width, int height);
+  // Constructors
+  SSD1306AsciiWire(int width, int height); // Auto-detects I2C address
+  SSD1306AsciiWire();  // Requires call to 'begin()'
 
   // Initialize the display controller.
-  void begin(uint8_t i2cAddr);
+  bool begin(I2CAddress address, int width, int height);
 
   // Clear the display and set the cursor to (0, 0).
   void clearNative() override;
@@ -66,6 +67,8 @@ class SSD1306AsciiWire : public LCDDisplay {
   uint8_t m_colOffset = 0;
   // Current font.
   const uint8_t* const m_font = System5x7;
+  // Flag to prevent calling begin() twice
+  uint8_t m_initialised = false;
 
   // Only fixed size 5x7 fonts in a 6x8 cell are supported.
   static const uint8_t fontWidth = 5;
@@ -74,7 +77,7 @@ class SSD1306AsciiWire : public LCDDisplay {
   static const uint8_t m_fontFirstChar = 0x20;
   static const uint8_t m_fontCharCount = 0x61;
 
-  uint8_t m_i2cAddr;
+  I2CAddress m_i2cAddr;
 
   I2CRB requestBlock;
   uint8_t outputBuffer[fontWidth+letterSpacing+1];

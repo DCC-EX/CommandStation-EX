@@ -43,13 +43,13 @@
 
 class PCF8574 : public GPIOBase<uint8_t> {
 public:
-  static void create(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1) {
-    if (checkNoOverlap(firstVpin, nPins,I2CAddress)) new PCF8574(firstVpin, nPins, I2CAddress, interruptPin);
+  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCF8574(firstVpin, nPins, i2cAddress, interruptPin);
   }
 
 private:
-  PCF8574(VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin=-1)
-    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, (uint8_t)8), I2CAddress, interruptPin) 
+  PCF8574(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1)
+    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, (uint8_t)8), i2cAddress, interruptPin) 
   {
     requestBlock.setReadParams(_I2CAddress, inputBuffer, 1);
   }

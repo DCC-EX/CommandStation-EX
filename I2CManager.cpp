@@ -58,13 +58,46 @@ void I2CManagerClass::begin(void) {
     _setClock(100000);
     unsigned long originalTimeout = timeout;
     setTimeout(1000);       // use 1ms timeout for probes
+
+  #if defined(I2C_EXTENDED_ADDRESS)
+    // First switch off all multiplexer subbuses.
+    for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
+      I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None});  // Deselect Mux
+    }
+  #endif
+
     bool found = false;
-    for (byte addr=1; addr<127; addr++) {
+    for (uint8_t addr=0x08; addr<0x78; addr++) {
       if (exists(addr)) {
         found = true; 
         DIAG(F("I2C Device found at x%x"), addr);
       }
     }
+
+#if defined(I2C_EXTENDED_ADDRESS)
+    // Enumerate all I2C devices that are connected via multiplexer, 
+    // i.e. respond when only one multiplexer has one subBus enabled
+    // and the device doesn't respond when the mux subBus is disabled.
+    for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
+      uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
+      if (exists(muxAddr)) {
+        for (uint8_t subBus=0; subBus<=7; subBus++) {
+          for (uint8_t addr=0x08; addr<0x78; addr++) {
+            if (exists({(I2CMux)muxNo, (I2CSubBus)subBus, addr})
+                && !exists({(I2CMux)muxNo, SubBus_None, addr})) {
+              found = true; 
+              DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,x%x}"), 
+                muxNo, subBus, addr);
+            }
+          }
+        }
+        // Probe mux address again with SubBus_None to deselect all
+        // subBuses for that mux.  Otherwise its devices will continue to
+        // respond when other muxes are being probed.
+        I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None});  // Deselect Mux
+      } 
+    }
+#endif
     if (!found) DIAG(F("No I2C Devices found"));
     _setClock(_clockSpeed);
     setTimeout(originalTimeout);      // set timeout back to original
@@ -92,7 +125,7 @@ void I2CManagerClass::forceClock(uint32_t speed) {
 // Check if specified I2C address is responding (blocking operation)
 // Returns I2C_STATUS_OK (0) if OK, or error code.
 // Suppress retries.  If it doesn't respond first time it's out of the running.
-uint8_t I2CManagerClass::checkAddress(uint8_t address) {
+uint8_t I2CManagerClass::checkAddress(I2CAddress address) {
   I2CRB rb;
   rb.setWriteParams(address, NULL, 0);
   rb.suppressRetries(true);
@@ -104,7 +137,7 @@ uint8_t I2CManagerClass::checkAddress(uint8_t address) {
 /***************************************************************************
  *  Write a transmission to I2C using a list of data (blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write(uint8_t address, uint8_t nBytes, ...) {
+uint8_t I2CManagerClass::write(I2CAddress address, uint8_t nBytes, ...) {
   uint8_t buffer[nBytes];
   va_list args;
   va_start(args, nBytes);
@@ -117,7 +150,7 @@ uint8_t I2CManagerClass::write(uint8_t address, uint8_t nBytes, ...) {
 /***************************************************************************
  *  Initiate a write to an I2C device (blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write(uint8_t i2cAddress, const uint8_t writeBuffer[], uint8_t writeLen) {
+uint8_t I2CManagerClass::write(I2CAddress i2cAddress, const uint8_t writeBuffer[], uint8_t writeLen) {
   I2CRB req;
   uint8_t status = write(i2cAddress, writeBuffer, writeLen, &req);
   return finishRB(&req, status);
@@ -126,7 +159,7 @@ uint8_t I2CManagerClass::write(uint8_t i2cAddress, const uint8_t writeBuffer[], 
 /***************************************************************************
  *  Initiate a write from PROGMEM (flash) to an I2C device (blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write_P(uint8_t i2cAddress, const uint8_t * data, uint8_t dataLen) {
+uint8_t I2CManagerClass::write_P(I2CAddress i2cAddress, const uint8_t * data, uint8_t dataLen) {
   I2CRB req;
   uint8_t status = write_P(i2cAddress, data, dataLen, &req);
   return finishRB(&req, status);
@@ -135,7 +168,7 @@ uint8_t I2CManagerClass::write_P(uint8_t i2cAddress, const uint8_t * data, uint8
 /***************************************************************************
  *  Initiate a write (optional) followed by a read from the I2C device (blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::read(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
+uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
     const uint8_t *writeBuffer, uint8_t writeLen)
 {
   I2CRB req;
@@ -146,7 +179,7 @@ uint8_t I2CManagerClass::read(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t r
 /***************************************************************************
  *  Overload of read() to allow command to be specified as a series of bytes (blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t readSize, 
+uint8_t I2CManagerClass::read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize, 
                                   uint8_t writeSize, ...) {
   va_list args;
   // Copy the series of bytes into an array.
@@ -230,7 +263,7 @@ bool I2CRB::isBusy() {
 /***************************************************************************
  *  Helper functions to fill the I2CRequest structure with parameters.
  ***************************************************************************/
-void I2CRB::setReadParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen) {
+void I2CRB::setReadParams(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen) {
   this->i2cAddress = i2cAddress;
   this->writeLen = 0;
   this->readBuffer = readBuffer;
@@ -239,7 +272,7 @@ void I2CRB::setReadParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readL
   this->status = I2C_STATUS_OK;
 }
 
-void I2CRB::setRequestParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
+void I2CRB::setRequestParams(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
     const uint8_t *writeBuffer, uint8_t writeLen) {
   this->i2cAddress = i2cAddress;
   this->writeBuffer = writeBuffer;
@@ -250,7 +283,7 @@ void I2CRB::setRequestParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t re
   this->status = I2C_STATUS_OK;
 }
 
-void I2CRB::setWriteParams(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen) {
+void I2CRB::setWriteParams(I2CAddress i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen) {
   this->i2cAddress = i2cAddress;
   this->writeBuffer = writeBuffer;
   this->writeLen = writeLen;

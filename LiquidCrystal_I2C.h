@@ -64,7 +64,7 @@
 
 class LiquidCrystal_I2C : public LCDDisplay {
 public:
-  LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
+  LiquidCrystal_I2C(I2CAddress lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
   void begin();
   void clearNative() override;
   void setRowNative(byte line) override;

@@ -65,18 +65,40 @@ void I2CManagerClass::setTimeout(unsigned long value) {
 #endif
 }
 
+/********************************************************
+ * Helper function for I2C Multiplexer operations
+ ********************************************************/
+#ifdef I2C_EXTENDED_ADDRESS
+static uint8_t muxSelect(I2CAddress &address) {
+  // Select MUX sub bus.
+  Wire.beginTransmission(I2C_MUX_BASE_ADDRESS+address.muxNumber()); 
+  uint8_t data = address.subBus();
+  Wire.write(&data, 1);
+  return Wire.endTransmission(true);  // have to release I2C bus for it to work
+}
+#endif
+
 /***************************************************************************
  *  Initiate a write to an I2C device (blocking operation on Wire)
  ***************************************************************************/
-uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
+uint8_t I2CManagerClass::write(I2CAddress address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
   uint8_t status = I2C_STATUS_OK;
   uint8_t retryCount = 0;
   // If request fails, retry up to the defined limit, unless the NORETRY flag is set
   // in the request block.
   do {
-    Wire.beginTransmission(address);
-    if (size > 0) Wire.write(buffer, size);
-    status = Wire.endTransmission();
+    status = I2C_STATUS_OK;
+#ifdef I2C_EXTENDED_ADDRESS
+    if (address.muxNumber() != I2CMux_None) {
+      status = muxSelect(address);
+    }
+#endif
+    // Only send new transaction if address and size are both nonzero.
+    if (status == I2C_STATUS_OK && address != 0 && size != 0) {
+      Wire.beginTransmission(address);
+      if (size > 0) Wire.write(buffer, size);
+      status = Wire.endTransmission();
+    }
   } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
     || rb->operation & OPERATION_NORETRY));
   rb->status = status;
@@ -86,7 +108,7 @@ uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t 
 /***************************************************************************
  *  Initiate a write from PROGMEM (flash) to an I2C device (blocking operation on Wire)
  ***************************************************************************/
-uint8_t I2CManagerClass::write_P(uint8_t address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
+uint8_t I2CManagerClass::write_P(I2CAddress address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
   uint8_t ramBuffer[size];
   const uint8_t *p1 = buffer;
   for (uint8_t i=0; i<size; i++)
@@ -98,7 +120,7 @@ uint8_t I2CManagerClass::write_P(uint8_t address, const uint8_t buffer[], uint8_
  *  Initiate a write (optional) followed by a read from the I2C device (blocking operation on Wire)
  *  If fewer than the number of requested bytes are received, status is I2C_STATUS_TRUNCATED.
  ***************************************************************************/
-uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t readSize,
+uint8_t I2CManagerClass::read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize,
                               const uint8_t writeBuffer[], uint8_t writeSize, I2CRB *rb)
 {
   uint8_t status = I2C_STATUS_OK;
@@ -107,27 +129,37 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
   // If request fails, retry up to the defined limit, unless the NORETRY flag is set
   // in the request block.
   do {
-    if (writeSize > 0) {
-      Wire.beginTransmission(address);
-      Wire.write(writeBuffer, writeSize);
-      status = Wire.endTransmission(false); // Don't free bus yet
+    status = I2C_STATUS_OK;
+#ifdef I2C_EXTENDED_ADDRESS
+    if (address.muxNumber() != I2CMux_None) {
+      status = muxSelect(address);
     }
-    if (status == I2C_STATUS_OK) {
-#ifdef WIRE_HAS_TIMEOUT
-      Wire.clearWireTimeoutFlag();
 #endif
-      Wire.requestFrom(address, (size_t)readSize);
-#ifdef WIRE_HAS_TIMEOUT
-      if (!Wire.getWireTimeoutFlag()) {
-#endif
-        while (Wire.available() && nBytes < readSize) 
-          readBuffer[nBytes++] = Wire.read();
-        if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
-#ifdef WIRE_HAS_TIMEOUT
-      } else {
-        status = I2C_STATUS_TIMEOUT;
+    // Only start new transaction if address and readSize are both nonzero.
+    if (status == I2C_STATUS_OK && address != 0 && writeSize > 0) {
+      if (writeSize > 0) {
+        Wire.beginTransmission(address);
+        Wire.write(writeBuffer, writeSize);
+        status = Wire.endTransmission(false); // Don't free bus yet
       }
+      if (status == I2C_STATUS_OK) {
+#ifdef WIRE_HAS_TIMEOUT
+        Wire.clearWireTimeoutFlag();
+        Wire.requestFrom(address, (size_t)readSize);
+        if (!Wire.getWireTimeoutFlag()) {
+          while (Wire.available() && nBytes < readSize) 
+            readBuffer[nBytes++] = Wire.read();
+          if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
+        } else {
+          status = I2C_STATUS_TIMEOUT;
+        }
+#else
+        Wire.requestFrom(address, (size_t)readSize);
+          while (Wire.available() && nBytes < readSize) 
+            readBuffer[nBytes++] = Wire.read();
+          if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
 #endif
+      }
     }
   } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
     || rb->operation & OPERATION_NORETRY));
@@ -136,6 +168,7 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
   rb->status = status;
   return I2C_STATUS_OK;
 }
+
 
 /***************************************************************************
  *  Function to queue a request block and initiate operations.

@@ -145,7 +145,7 @@ void I2CManagerClass::queueRequest(I2CRB *req) {
 /***************************************************************************
  *  Initiate a write to an I2C device (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen, I2CRB *req) {
+uint8_t I2CManagerClass::write(I2CAddress i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen, I2CRB *req) {
   // Make sure previous request has completed.
   req->wait();
   req->setWriteParams(i2cAddress, writeBuffer, writeLen);
@@ -156,7 +156,7 @@ uint8_t I2CManagerClass::write(uint8_t i2cAddress, const uint8_t *writeBuffer, u
 /***************************************************************************
  *  Initiate a write from PROGMEM (flash) to an I2C device (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write_P(uint8_t i2cAddress, const uint8_t * writeBuffer, uint8_t writeLen, I2CRB *req) {
+uint8_t I2CManagerClass::write_P(I2CAddress i2cAddress, const uint8_t * writeBuffer, uint8_t writeLen, I2CRB *req) {
   // Make sure previous request has completed.
   req->wait();
   req->setWriteParams(i2cAddress, writeBuffer, writeLen);
@@ -169,7 +169,7 @@ uint8_t I2CManagerClass::write_P(uint8_t i2cAddress, const uint8_t * writeBuffer
  *  Initiate a read from the I2C device, optionally preceded by a write 
  *   (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::read(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
+uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
     const uint8_t *writeBuffer, uint8_t writeLen, I2CRB *req)
 {
   // Make sure previous request has completed.
@@ -201,7 +201,7 @@ void I2CManagerClass::checkForTimeout() {
       unsigned long elapsed = micros() - startTime;
       if (elapsed > timeout) { 
 #ifdef DIAG_IO
-        //DIAG(F("I2CManager Timeout on x%x, I2CRB=x%x"), t->i2cAddress, currentRequest);
+        //DIAG(F("I2CManager Timeout on x%x, I2CRB=x%x"), (int)t->i2cAddress, currentRequest);
 #endif
         // Excessive time. Dequeue request
         queueHead = t->nextRequest;
@@ -304,5 +304,9 @@ volatile uint8_t I2CManagerClass::bytesToSend;
 volatile uint8_t I2CManagerClass::bytesToReceive;
 volatile unsigned long I2CManagerClass::startTime;
 uint8_t I2CManagerClass::retryCounter = 0;
+
+#if defined(I2C_EXTENDED_ADDRESS) 
+volatile uint8_t I2CManagerClass::muxSendStep = 0;
+#endif
 
 #endif

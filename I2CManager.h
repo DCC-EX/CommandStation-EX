@@ -131,6 +131,124 @@
 #define I2C_USE_INTERRUPTS
 #endif
 
+// I2C Extended Address support I2C Multiplexers and allows various properties to be 
+// associated with an I2C address such as the MUX and SubBus.  In the future, this
+// may be extended to include multiple buses, and other features. 
+// Uncomment to enable extended address.
+//
+// WARNING: When I2CAddress is passed to formatting commands such as DIAG, LCD etc,
+// it should be cast to (int) to ensure that the address value is passed rather than
+// the struct.
+
+//#define I2C_EXTENDED_ADDRESS
+
+
+// Type to hold I2C address
+#if defined(I2C_EXTENDED_ADDRESS)
+
+/////////////////////////////////////////////////////////////////////////////////////
+// Extended I2C Address type to facilitate extended I2C addresses including
+// I2C multiplexer support.
+/////////////////////////////////////////////////////////////////////////////////////
+
+// Currently I2CAddress supports one I2C bus, with up to eight
+// multipexers (MUX) attached.  Each MUX can have up to eight sub-buses.
+enum I2CMux : uint8_t {
+  I2CMux_0 = 0,
+  I2CMux_1 = 1,
+  I2CMux_2 = 2,
+  I2CMux_3 = 3,
+  I2CMux_4 = 4,
+  I2CMux_5 = 5,
+  I2CMux_6 = 6,
+  I2CMux_7 = 7,
+  I2CMux_None = 255,   // Address doesn't need mux switching
+};
+  
+enum I2CSubBus : uint8_t {
+  SubBus_0 = 0,        // Enable individual sub-buses...
+  SubBus_1 = 1,
+  SubBus_2 = 2,
+  SubBus_3 = 3,
+  SubBus_4 = 4,
+  SubBus_5 = 5,
+  SubBus_6 = 6,
+  SubBus_7 = 7,
+  SubBus_None = 254,   // Disable all sub-buses on selected mux
+  SubBus_All = 255,    // Enable all sub-buses
+};
+
+// First MUX address (they range between 0x70-0x77).
+#define I2C_MUX_BASE_ADDRESS 0x70
+
+// Currently I2C address supports one I2C bus, with up to eight
+// multiplexers (MUX) attached.  Each MUX can have up to eight sub-buses.
+// This structure could be extended in the future (if there is a need) 
+// to support 10-bit I2C addresses, different I2C clock speed for each
+// sub-bus, multiple I2C buses, and other features not yet thought of.
+struct I2CAddress {
+private:
+  // Fields
+  I2CMux _muxNumber;
+  I2CSubBus _subBus;
+  uint8_t _deviceAddress;
+public:
+  // Constructors
+  // For I2CAddress "{Mux_0, SubBus_0, 0x23}" syntax.
+  I2CAddress(I2CMux muxNumber, I2CSubBus subBus, uint8_t deviceAddress) {
+    _muxNumber = muxNumber;
+    _subBus = subBus;
+    _deviceAddress = deviceAddress;
+  }
+
+  // Basic constructor
+  I2CAddress() : I2CAddress(I2CMux_None, SubBus_None, 0) {}
+
+  // For I2CAddress in form "{SubBus_0, 0x23}" - assume Mux0 (0x70)
+  I2CAddress(I2CSubBus subBus, uint8_t deviceAddress) : 
+    I2CAddress(I2CMux_0, subBus, deviceAddress) {}
+
+  // Conversion from uint8_t to I2CAddress
+  // For I2CAddress in form "0x23"
+  // (device assumed to be on the main I2C bus).
+  I2CAddress(const uint8_t deviceAddress) : 
+    I2CAddress(I2CMux_None, SubBus_None, deviceAddress) {}
+
+  // For I2CAddress in form "{I2CMux_0, SubBus_0}" (mux selector)
+  I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus) :
+    I2CAddress(muxNumber, subBus, 0x00) {}
+
+  // Conversion operator from I2CAddress to uint8_t
+  // For "uint8_t address = i2cAddress;" syntax
+  // (device assumed to be on the main I2C bus or on a currently selected subbus.
+  operator uint8_t () const { return _deviceAddress; }
+
+  // Comparison operator
+  int operator == (I2CAddress &a) const {
+    if (_deviceAddress != a._deviceAddress) 
+      return false; // Different device address so no match
+    if (_muxNumber == I2CMux_None || a._muxNumber == I2CMux_None)
+      return true;  // Same device address, one or other on main bus
+    if (_subBus == SubBus_None || a._subBus == SubBus_None) 
+      return true;  // Same device address, one or other on main bus
+    if (_muxNumber != a._muxNumber) 
+      return false; // Connected to a subbus on a different mux
+    if (_subBus != a._subBus)
+      return false;  // different subbus
+    return true;  // Same address on same mux and same subbus
+  }
+  // Field accessors
+  I2CMux muxNumber() { return _muxNumber; }
+  I2CSubBus subBus() { return _subBus; }
+  uint8_t address() { return _deviceAddress; }
+};
+
+#else
+// Legacy single-byte I2C address type for compact code and smooth changeover.
+typedef uint8_t I2CAddress;
+#endif // I2C_EXTENDED_ADDRESS
+
+
 // Status codes for I2CRB structures.
 enum : uint8_t {
   // Codes used by Wire and by native drivers
@@ -181,19 +299,19 @@ public:
   uint8_t wait();
   bool isBusy();
 
-  void setReadParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen);
-  void setRequestParams(uint8_t i2cAddress, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
-  void setWriteParams(uint8_t i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen);
+  void setReadParams(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen);
+  void setRequestParams(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
+  void setWriteParams(I2CAddress i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen);
   void suppressRetries(bool suppress);
 
   uint8_t writeLen;
   uint8_t readLen;
   uint8_t operation;
-  uint8_t i2cAddress;
+  I2CAddress i2cAddress;
   uint8_t *readBuffer;
   const uint8_t *writeBuffer;
 #if !defined(I2C_USE_WIRE)
-  I2CRB *nextRequest;
+  I2CRB *nextRequest;  // Used by non-blocking devices for I2CRB queue management.
 #endif
 };
 
@@ -210,25 +328,30 @@ public:
   // setTimeout sets the timout value for I2C transactions (milliseconds).
   void setTimeout(unsigned long);
   // Check if specified I2C address is responding.
-  uint8_t checkAddress(uint8_t address);
-  inline bool exists(uint8_t address) {
+  uint8_t checkAddress(I2CAddress address);
+  inline bool exists(I2CAddress address) {
     return checkAddress(address)==I2C_STATUS_OK;
   }
+  // Select/deselect Mux Sub-Bus (if using legacy addresses, just checks address)
+  // E.g. muxSelectSubBus({I2CMux_0, SubBus_3});
+  uint8_t muxSelectSubBus(I2CAddress address) {
+    return checkAddress(address);
+  }
   // Write a complete transmission to I2C from an array in RAM
-  uint8_t write(uint8_t address, const uint8_t buffer[], uint8_t size);
-  uint8_t write(uint8_t address, const uint8_t buffer[], uint8_t size, I2CRB *rb);
+  uint8_t write(I2CAddress address, const uint8_t buffer[], uint8_t size);
+  uint8_t write(I2CAddress address, const uint8_t buffer[], uint8_t size, I2CRB *rb);
   // Write a complete transmission to I2C from an array in Flash
-  uint8_t write_P(uint8_t address, const uint8_t buffer[], uint8_t size);
-  uint8_t write_P(uint8_t address, const uint8_t buffer[], uint8_t size, I2CRB *rb);
+  uint8_t write_P(I2CAddress address, const uint8_t buffer[], uint8_t size);
+  uint8_t write_P(I2CAddress address, const uint8_t buffer[], uint8_t size, I2CRB *rb);
   // Write a transmission to I2C from a list of bytes.
-  uint8_t write(uint8_t address, uint8_t nBytes, ...);
+  uint8_t write(I2CAddress address, uint8_t nBytes, ...);
   // Write a command from an array in RAM and read response
-  uint8_t read(uint8_t address, uint8_t readBuffer[], uint8_t readSize, 
+  uint8_t read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize, 
     const uint8_t writeBuffer[]=NULL, uint8_t writeSize=0);
-  uint8_t read(uint8_t address, uint8_t readBuffer[], uint8_t readSize, 
+  uint8_t read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize, 
     const uint8_t writeBuffer[], uint8_t writeSize, I2CRB *rb);
   // Write a command from an arbitrary list of bytes and read response
-  uint8_t read(uint8_t address, uint8_t readBuffer[], uint8_t readSize, 
+  uint8_t read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize, 
     uint8_t writeSize, ...);
   void queueRequest(I2CRB *req);
 
@@ -280,6 +403,7 @@ private:
     static volatile uint8_t bytesToReceive;
     static volatile uint8_t operation;
     static volatile unsigned long startTime;
+    static volatile uint8_t muxSendStep;
 
     volatile uint32_t pendingClockSpeed = 0;
 

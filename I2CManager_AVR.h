@@ -98,7 +98,14 @@ void I2CManagerClass::I2C_sendStart() {
   bytesToReceive = currentRequest->readLen;
   rxCount = 0;
   txCount = 0;
+#if defined(I2C_EXTENDED_ADDRESS) 
+  if (currentRequest->i2cAddress.muxNumber() != I2CMux_None) {
+    // Send request to multiplexer
+    muxSendStep = 1;  // When start bit interrupt comes in, send SLA+W to MUX
+  }
+#endif
   TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
+
 }
 
 /***************************************************************************
@@ -132,17 +139,40 @@ void I2CManagerClass::I2C_handleInterrupt() {
   switch (twsr) {
     case TWI_MTX_DATA_ACK:      // Data byte has been transmitted and ACK received
     case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
+#if defined(I2C_EXTENDED_ADDRESS)   // Support multiplexer selection
+      if (muxSendStep == 2) {
+        muxSendStep = 3;
+        // Send MUX selecter mask following address
+        I2CSubBus subBus = currentRequest->i2cAddress.subBus();
+        uint8_t subBusMask = (subBus==SubBus_All) ? 0xff :
+                             (subBus==SubBus_None) ? 0x00 :
+                             1 << subBus;
+        TWDR = subBusMask;
+        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
+      } else if (muxSendStep == 3) {
+        muxSendStep = 0;  // Mux command complete, reset sequence step number
+        // If device address is zero, then finish here (i.e. send mux subBus mask only)
+        if (currentRequest->i2cAddress.address() == 0 && bytesToSend == 0) {
+          // Send stop and post rb.
+          TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);
+          state = I2C_STATUS_OK;
+        } else {
+          // Send stop followed by start, preparing to send device address
+          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTO)|(1<<TWSTA);
+        }
+      } else
+#endif
       if (bytesToSend) {  // Send first.
         if (operation == OPERATION_SEND_P)
           TWDR = GETFLASH(currentRequest->writeBuffer + (txCount++));
         else
           TWDR = currentRequest->writeBuffer[txCount++];
         bytesToSend--;
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
+        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
       } else if (bytesToReceive) {  // All sent, anything to receive?
         // Don't need to wait for stop, as the interface won't send the start until
         // any in-progress stop condition has been sent.
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
+        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTA);  // Send Start
       } else {  // Nothing left to send or receive
         TWDR = 0xff;  // Default condition = SDA released
         TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
@@ -173,11 +203,22 @@ void I2CManagerClass::I2C_handleInterrupt() {
       break;
     case TWI_START:             // START has been transmitted  
     case TWI_REP_START:         // Repeated START has been transmitted
-      // Set up address and R/W
-      if (operation == OPERATION_READ || (operation==OPERATION_REQUEST && !bytesToSend))
-        TWDR = (currentRequest->i2cAddress << 1) | 1; // SLA+R
-      else
-        TWDR = (currentRequest->i2cAddress << 1) | 0; // SLA+W
+#if defined(I2C_EXTENDED_ADDRESS)
+      if (muxSendStep == 1) {
+        muxSendStep = 2;
+        // Send multiplexer address first
+        uint8_t muxAddress = I2C_MUX_BASE_ADDRESS + currentRequest->i2cAddress.muxNumber();
+        TWDR = (muxAddress << 1) | 0;   // MUXaddress+Write
+      } else
+#endif
+      {
+        // Set up address and R/W
+        uint8_t deviceAddress = currentRequest->i2cAddress;
+        if (operation == OPERATION_READ || (operation==OPERATION_REQUEST && !bytesToSend))
+          TWDR = (deviceAddress << 1) | 1; // SLA+R
+        else
+          TWDR = (deviceAddress << 1) | 0; // SLA+W
+      }
       TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
       break;
     case TWI_MTX_ADR_NACK:      // SLA+W has been transmitted and NACK received

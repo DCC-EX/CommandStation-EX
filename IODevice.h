@@ -239,7 +239,7 @@ protected:
   // Common object fields.
   VPIN _firstVpin;
   int _nPins;
-  uint8_t _I2CAddress;
+  I2CAddress _I2CAddress;
   // Flag whether the device supports callbacks.
   bool _hasCallback = false;
 
@@ -272,7 +272,7 @@ private:
  
 class PCA9685 : public IODevice {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
+  static void create(VPIN vpin, int nPins, I2CAddress i2cAddress);
   enum ProfileType : uint8_t {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
     UseDuration = 0, // Use specified duration
@@ -285,7 +285,7 @@ public:
 
 private:
   // Constructor
-  PCA9685(VPIN vpin, int nPins, uint8_t I2CAddress);
+  PCA9685(VPIN vpin, int nPins, I2CAddress i2cAddress);
   // Device-specific initialisation
   void _begin() override;
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;

@@ -144,9 +144,32 @@ const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
 //------------------------------------------------------------------------------
  
 // Constructor
+SSD1306AsciiWire::SSD1306AsciiWire() {}
+
+// CS auto-detect and configure constructor
 SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
+  I2CManager.begin();
+  I2CManager.setClock(400000L);  // Set max supported I2C speed
+
+  // Probe for I2C device on 0x3c and 0x3d.
+  for (uint8_t address = 0x3c; address <= 0x3d; address++) {
+    if (I2CManager.exists(address)) {
+      begin(address, width, height);
+      // Set singleton Address so CS is able to call it.
+      lcdDisplay = this;
+      return;
+    }
+  }
+  DIAG(F("OLED display not found"));
+}
+
+bool SSD1306AsciiWire::begin(I2CAddress address, int width, int height) {
+  if (m_initialised) return true;
+
+  m_i2cAddr = address;
   m_displayWidth = width;
   m_displayHeight = height;
+  
   // Set size in characters in base class
   lcdRows = height / 8;
   lcdCols = width / 6;
@@ -154,35 +177,25 @@ SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
   m_row = 0;
   m_colOffset = 0;
 
-  I2CManager.begin();
-  I2CManager.setClock(400000L);  // Set max supported I2C speed
-  for (byte address = 0x3c; address <= 0x3d; address++) {
-    if (I2CManager.exists(address)) {
-      m_i2cAddr = address;
-      if (m_displayWidth==132 && m_displayHeight==64) {
-        // SH1106 display.  This uses 128x64 centered within a 132x64 OLED.
-        m_colOffset = 2;
-        I2CManager.write_P(address, SH1106_132x64init, sizeof(SH1106_132x64init));
-      } else if (m_displayWidth==128 && (m_displayHeight==64 || m_displayHeight==32)) {
-        // SSD1306 128x64 or 128x32
-        I2CManager.write_P(address, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
-        if (m_displayHeight == 32) 
-          I2CManager.write(address, 5, 0, // Set command mode
-            SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
-            SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
-      } else {
-        DIAG(F("OLED configuration option not recognised"));
-        return;
-      }
-      // Device found
-      DIAG(F("%dx%d OLED display configured on I2C:x%x"), width, height, address);
-      // Set singleton address
-      lcdDisplay = this;
-      clear();
-      return;
-    }
+  if (m_displayWidth==132 && m_displayHeight==64) {
+    // SH1106 display.  This uses 128x64 centered within a 132x64 OLED.
+    m_colOffset = 2;
+    I2CManager.write_P(m_i2cAddr, SH1106_132x64init, sizeof(SH1106_132x64init));
+  } else if (m_displayWidth==128 && (m_displayHeight==64 || m_displayHeight==32)) {
+    // SSD1306 128x64 or 128x32
+    I2CManager.write_P(m_i2cAddr, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
+    if (m_displayHeight == 32) 
+      I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
+        SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
+        SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
+  } else {
+    DIAG(F("OLED configuration option not recognised"));
+    return false;
   }
-  DIAG(F("OLED display not found"));
+  // Device found
+  DIAG(F("%dx%d OLED display configured on I2C:x%x"), m_displayWidth, m_displayHeight, (uint8_t)m_i2cAddr);
+  clear();
+  return true;
 }
 
 /* Clear screen by writing blank pixels. */

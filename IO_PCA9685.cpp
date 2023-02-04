@@ -38,8 +38,8 @@ static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C 
 static void writeRegister(byte address, byte reg, byte value);
 
 // Create device driver instance.
-void PCA9685::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
-  if (checkNoOverlap(firstVpin, nPins,I2CAddress)) new PCA9685(firstVpin, nPins, I2CAddress);
+void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+  if (checkNoOverlap(firstVpin, nPins,i2cAddress)) new PCA9685(firstVpin, nPins, i2cAddress);
 }
 
 // Configure a port on the PCA9685.
@@ -73,10 +73,10 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
 }
 
 // Constructor
-PCA9685::PCA9685(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
   _firstVpin = firstVpin;
   _nPins = min(nPins, 16);
-  _I2CAddress = I2CAddress;
+  _I2CAddress = i2cAddress;
   // To save RAM, space for servo configuration is not allocated unless a pin is used.
   // Initialise the pointers to NULL.
   for (int i=0; i<_nPins; i++)
@@ -239,13 +239,13 @@ void PCA9685::updatePosition(uint8_t pin) {
 // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
 void PCA9685::writeDevice(uint8_t pin, int value) {
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 I2C:x%x WriteDevice Pin:%d Value:%d"), _I2CAddress, pin, value);
+  DIAG(F("PCA9685 I2C:x%x WriteDevice Pin:%d Value:%d"), (int)_I2CAddress, pin, value);
   #endif
   // Wait for previous request to complete
   uint8_t status = requestBlock.wait();
   if (status != I2C_STATUS_OK) {
     _deviceState = DEVSTATE_FAILED;
-    DIAG(F("PCA9685 I2C:x%x failed %S"), _I2CAddress, I2CManager.getErrorMessage(status));
+    DIAG(F("PCA9685 I2C:x%x failed %S"), (int)_I2CAddress, I2CManager.getErrorMessage(status));
   } else {
     // Set up new request.
     outputBuffer[0] = PCA9685_FIRST_SERVO + 4 * pin;
@@ -259,7 +259,7 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
+  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d %S"), (int)_I2CAddress, (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

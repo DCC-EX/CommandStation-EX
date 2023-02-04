@@ -97,7 +97,6 @@
 
 class VL53L0X : public IODevice {
 private: 
-  uint8_t _i2cAddress;
   uint16_t _ambient;
   uint16_t _distance;
   uint16_t _signal;
@@ -145,7 +144,7 @@ protected:
   VL53L0X(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
     _firstVpin = firstVpin;
     _nPins = min(nPins, 3);
-    _i2cAddress = i2cAddress;
+    _I2CAddress = i2cAddress;
     _onThreshold = onThreshold;
     _offThreshold = offThreshold;
     _xshutPin = xshutPin;
@@ -157,7 +156,7 @@ protected:
     //  the device will not respond on its default address if it has 
     //  already been changed.  Therefore, we skip the address configuration if the 
     //  desired address is already responding on the I2C bus.
-    if (_xshutPin == VPIN_NONE && I2CManager.exists(_i2cAddress)) {
+    if (_xshutPin == VPIN_NONE && I2CManager.exists(_I2CAddress)) {
       // Device already present on this address, so skip the address initialisation.
       _nextState = STATE_CONFIGUREDEVICE;
     }
@@ -194,7 +193,7 @@ protected:
       case STATE_CONFIGUREADDRESS:
         // Then write the desired I2C address to the device, while this is the only
         //  module responding to the default address.
-        I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _i2cAddress);
+        I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
         _addressConfigInProgress = false;
         _nextState = STATE_SKIP;
         break;
@@ -204,7 +203,7 @@ protected:
         break;
       case STATE_CONFIGUREDEVICE:
         // On next entry, check if device address has been set.
-        if (I2CManager.exists(_i2cAddress)) {
+        if (I2CManager.exists(_I2CAddress)) {
           #ifdef DIAG_IO
           _display();
           #endif
@@ -213,7 +212,7 @@ protected:
             read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
           _nextState = STATE_INITIATESCAN;
         } else {
-          DIAG(F("VL53L0X I2C:x%x device not responding"), _i2cAddress);
+          DIAG(F("VL53L0X I2C:x%x device not responding"), (int)_I2CAddress);
           _deviceState = DEVSTATE_FAILED;
           _nextState = STATE_FAILED;
         }
@@ -222,7 +221,7 @@ protected:
         // Not scanning, so initiate a scan
         _outBuffer[0] = VL53L0X_REG_SYSRANGE_START;
         _outBuffer[1] = 0x01;
-        I2CManager.write(_i2cAddress, _outBuffer, 2, &_rb);
+        I2CManager.write(_I2CAddress, _outBuffer, 2, &_rb);
         _nextState = STATE_CHECKSTATUS;
         break;
       case STATE_CHECKSTATUS:
@@ -238,7 +237,7 @@ protected:
       case STATE_GETRESULTS:
         // Ranging completed.  Request results
         _outBuffer[0] = VL53L0X_REG_RESULT_RANGE_STATUS;
-        I2CManager.read(_i2cAddress, _inBuffer, 12, _outBuffer, 1, &_rb);
+        I2CManager.read(_I2CAddress, _inBuffer, 12, _outBuffer, 1, &_rb);
         _nextState = 3;
         delayUntil(currentMicros + 5000); // Allow 5ms to get data
         _nextState = STATE_DECODERESULTS;
@@ -278,7 +277,7 @@ protected:
 
   // Function to report a failed I2C operation.  Put the device off-line.
   void reportError(uint8_t status) {
-    DIAG(F("VL53L0X I2C:x%x Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
+    DIAG(F("VL53L0X I2C:x%x Error:%d %S"), (int)_I2CAddress, status, I2CManager.getErrorMessage(status));
     _deviceState = DEVSTATE_FAILED;
     _value = false;
   }
@@ -308,7 +307,7 @@ protected:
 
   void _display() override {
     DIAG(F("VL53L0X I2C:x%x Configured on Vpins:%d-%d On:%dmm Off:%dmm %S"),
-      _i2cAddress, _firstVpin, _firstVpin+_nPins-1, _onThreshold, _offThreshold,
+      (int)_I2CAddress, _firstVpin, _firstVpin+_nPins-1, _onThreshold, _offThreshold,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
@@ -322,11 +321,11 @@ private:
     uint8_t outBuffer[2];
     outBuffer[0] = reg;
     outBuffer[1] = data;
-    return I2CManager.write(_i2cAddress, outBuffer, 2);
+    return I2CManager.write(_I2CAddress, outBuffer, 2);
   }
   uint8_t read_reg(uint8_t reg) {
     // read byte from register and return value
-    I2CManager.read(_i2cAddress, _inBuffer, 1, &reg, 1);
+    I2CManager.read(_I2CAddress, _inBuffer, 1, &reg, 1);
     return _inBuffer[0];
   }
 };

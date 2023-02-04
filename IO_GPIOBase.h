@@ -34,7 +34,7 @@ class GPIOBase : public IODevice {
 
 protected:
   // Constructor
-  GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin);
+  GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin);
   // Device-specific initialisation
   void _begin() override;
   // Device-specific pin configuration function.  
@@ -80,11 +80,11 @@ protected:
 
 // Constructor
 template <class T>
-GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, uint8_t I2CAddress, int interruptPin) :
+GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin) :
   IODevice(firstVpin, nPins)
 {
   _deviceName = deviceName;
-  _I2CAddress = I2CAddress;
+  _I2CAddress = i2cAddress;
   _gpioInterruptPin = interruptPin;
   _hasCallback = true;
   // Add device to list of devices.
@@ -110,7 +110,7 @@ void GPIOBase<T>::_begin() {
     _setupDevice();
     _deviceState = DEVSTATE_NORMAL;
   } else {
-    DIAG(F("%S I2C:x%x Device not detected"), _deviceName, _I2CAddress);
+    DIAG(F("%S I2C:x%x Device not detected"), _deviceName, (int)_I2CAddress);
     _deviceState = DEVSTATE_FAILED;
   }
 }
@@ -125,7 +125,7 @@ bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   bool pullup = params[0];
   int pin = vpin - _firstVpin;
   #ifdef DIAG_IO
-  DIAG(F("%S I2C:x%x Config Pin:%d Val:%d"), _deviceName, _I2CAddress, pin, pullup);
+  DIAG(F("%S I2C:x%x Config Pin:%d Val:%d"), _deviceName, (int)_I2CAddress, pin, pullup);
   #endif
   uint16_t mask = 1 << pin;
   if (pullup) 
@@ -155,7 +155,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
       _deviceState = DEVSTATE_NORMAL;
     } else {
       _deviceState = DEVSTATE_FAILED;
-      DIAG(F("%S I2C:x%x Error:%d %S"), _deviceName, _I2CAddress, status, 
+      DIAG(F("%S I2C:x%x Error:%d %S"), _deviceName, (int)_I2CAddress, status, 
         I2CManager.getErrorMessage(status));
     }
     _processCompletion(status);
@@ -178,7 +178,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
 
     #ifdef DIAG_IO
     if (differences)
-      DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
+      DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, (int)_I2CAddress, _portInputState);
     #endif
   }
 
@@ -199,7 +199,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
 
 template <class T>
 void GPIOBase<T>::_display() {
-  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d %S"), _deviceName, _I2CAddress, 
+  DIAG(F("%S I2C:x%x Configured on Vpins:%d-%d %S"), _deviceName, (int)_I2CAddress, 
     _firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
@@ -208,7 +208,7 @@ void GPIOBase<T>::_write(VPIN vpin, int value) {
   int pin = vpin - _firstVpin;
   T mask = 1 << pin;
   #ifdef DIAG_IO
-  DIAG(F("%S I2C:x%x Write Pin:%d Val:%d"), _deviceName, _I2CAddress, pin, value);
+  DIAG(F("%S I2C:x%x Write Pin:%d Val:%d"), _deviceName, (int)_I2CAddress, pin, value);
   #endif
 
   // Set port mode output if currently not output mode
@@ -244,7 +244,7 @@ int GPIOBase<T>::_read(VPIN vpin) {
   // Set unused pin and write mode pin value to 1
     _portInputState |= ~_portInUse | _portMode;
     #ifdef DIAG_IO
-    DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, _I2CAddress, _portInputState);
+    DIAG(F("%S I2C:x%x PortStates:%x"), _deviceName, (int)_I2CAddress, _portInputState);
     #endif
   }
   return (_portInputState & mask) ? 0 : 1;  // Invert state (5v=0, 0v=1)
