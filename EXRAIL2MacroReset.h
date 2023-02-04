@@ -28,6 +28,7 @@
 #undef AFTER
 #undef ALIAS
 #undef AMBER
+#undef ANOUT
 #undef AT
 #undef ATGTE
 #undef ATLT
@@ -143,6 +144,7 @@
 #define AFTER(sensor_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
+#define ANOUT(vpin,value,param1,param2)
 #define AT(sensor_id)
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
