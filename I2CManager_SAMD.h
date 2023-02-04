@@ -29,9 +29,6 @@
 //#include <avr/interrupt.h>
 #include <wiring_private.h>
 
-// Storage for new baud rate.  Zero means no change pending
-static uint32_t pendingBaudRate = 0;
-
 /***************************************************************************
  *  Interrupt handler.
  *  IRQ handler for SERCOM3 which is the default I2C definition for Arduino Zero
