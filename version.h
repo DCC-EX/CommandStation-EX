@@ -5,8 +5,9 @@
 
 
 #define VERSION "4.2.15"
-// 4.2.15 Separate Servo from PCA9685
-//        Add PWM support to EX-IOExpander
+// 4.2.15 Add Servo device driver with PCA9685_basic driver
+//        Add basic experimental PWM support to EX-IOExpander
+//        EX-IOExpander 0.0.14 minimum required
 // 4.2.14 STM32F4xx fast ADC read implementation
 // 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
