@@ -114,8 +114,13 @@ private:
       _digitalOutBuffer[0] = EXIODPUP;
       _digitalOutBuffer[1] = pin;
       _digitalOutBuffer[2] = pullup;
-      I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
-      return true;
+      I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+      if (_command1Buffer[0] == EXIORDY) {
+        return true;
+      } else {
+        DIAG(F("Vpin %d cannot be used as a digital input pin"), (int)vpin);
+        return false;
+      }
     } else {
       return false;
     }
@@ -126,7 +131,13 @@ private:
     int pin = vpin - _firstVpin;
     _command2Buffer[0] = EXIOENAN;
     _command2Buffer[1] = pin;
-    I2CManager.write(_i2cAddress, _command2Buffer, 2);
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _command2Buffer, 2);
+    if (_command1Buffer[0] == EXIORDY) {
+      return true;
+    } else {
+      DIAG(F("Vpin %d cannot be used as an analogue input pin"), (int)vpin);
+      return false;
+    }
     return true;
   }
 
@@ -165,7 +176,10 @@ private:
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = value;
-    I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+    if (_command1Buffer[0] != EXIORDY) {
+      DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
+    }
   }
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
