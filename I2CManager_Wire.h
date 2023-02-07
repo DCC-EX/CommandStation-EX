@@ -69,38 +69,53 @@ void I2CManagerClass::setTimeout(unsigned long value) {
  * Helper function for I2C Multiplexer operations
  ********************************************************/
 #ifdef I2C_EXTENDED_ADDRESS
-static uint8_t muxSelect(I2CAddress &address) {
+static uint8_t muxSelect(I2CAddress address) {
   // Select MUX sub bus.
-  Wire.beginTransmission(I2C_MUX_BASE_ADDRESS+address.muxNumber()); 
-  uint8_t data = address.subBus();
-  Wire.write(&data, 1);
-  return Wire.endTransmission(true);  // have to release I2C bus for it to work
+  I2CMux muxNo = address.muxNumber();
+  I2CSubBus subBus = address.subBus();
+  if (muxNo != I2CMux_None) {
+    Wire.beginTransmission(I2C_MUX_BASE_ADDRESS+muxNo); 
+    uint8_t data =  (subBus == SubBus_All) ? 0xff :
+                    (subBus == SubBus_None) ? 0x00 :
+                    (1 << subBus);
+    Wire.write(&data, 1);
+    return Wire.endTransmission(true);  // have to release I2C bus for it to work
+  }
+  return I2C_STATUS_OK;
 }
 #endif
+
 
 /***************************************************************************
  *  Initiate a write to an I2C device (blocking operation on Wire)
  ***************************************************************************/
 uint8_t I2CManagerClass::write(I2CAddress address, const uint8_t buffer[], uint8_t size, I2CRB *rb) {
-  uint8_t status = I2C_STATUS_OK;
+  uint8_t status, muxStatus;
   uint8_t retryCount = 0;
   // If request fails, retry up to the defined limit, unless the NORETRY flag is set
   // in the request block.
   do {
-    status = I2C_STATUS_OK;
+    status = muxStatus = I2C_STATUS_OK;
 #ifdef I2C_EXTENDED_ADDRESS
-    if (address.muxNumber() != I2CMux_None) {
-      status = muxSelect(address);
-    }
+    if (address.muxNumber() != I2CMux_None)
+      muxStatus = muxSelect(address);
 #endif
-    // Only send new transaction if address and size are both nonzero.
-    if (status == I2C_STATUS_OK && address != 0 && size != 0) {
+    // Only send new transaction if address is non-zero.
+    if (muxStatus == I2C_STATUS_OK && address != 0) {
       Wire.beginTransmission(address);
       if (size > 0) Wire.write(buffer, size);
       status = Wire.endTransmission();
     }
-  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
-    || rb->operation & OPERATION_NORETRY));
+#ifdef I2C_EXTENDED_ADDRESS
+    // Deselect MUX if there's more than one MUX present, to avoid having multiple ones selected
+    if (_muxCount > 1 && muxStatus == I2C_STATUS_OK 
+          && address.deviceAddress() != 0 && address.muxNumber() != I2CMux_None) {
+      muxSelect({address.muxNumber(), SubBus_None});
+    }
+    if (muxStatus != I2C_STATUS_OK) status = muxStatus;
+#endif
+  } while (!(status == I2C_STATUS_OK
+    || ++retryCount > MAX_I2C_RETRIES || rb->operation & OPERATION_NORETRY));
   rb->status = status;
   return I2C_STATUS_OK;
 }
@@ -123,20 +138,20 @@ uint8_t I2CManagerClass::write_P(I2CAddress address, const uint8_t buffer[], uin
 uint8_t I2CManagerClass::read(I2CAddress address, uint8_t readBuffer[], uint8_t readSize,
                               const uint8_t writeBuffer[], uint8_t writeSize, I2CRB *rb)
 {
-  uint8_t status = I2C_STATUS_OK;
+  uint8_t status, muxStatus;
   uint8_t nBytes = 0;
   uint8_t retryCount = 0;
   // If request fails, retry up to the defined limit, unless the NORETRY flag is set
   // in the request block.
   do {
-    status = I2C_STATUS_OK;
+    status = muxStatus = I2C_STATUS_OK;
 #ifdef I2C_EXTENDED_ADDRESS
     if (address.muxNumber() != I2CMux_None) {
-      status = muxSelect(address);
+      muxStatus = muxSelect(address);
     }
 #endif
-    // Only start new transaction if address and readSize are both nonzero.
-    if (status == I2C_STATUS_OK && address != 0 && writeSize > 0) {
+    // Only start new transaction if address is non-zero.
+    if (muxStatus == I2C_STATUS_OK && address != 0) {
       if (writeSize > 0) {
         Wire.beginTransmission(address);
         Wire.write(writeBuffer, writeSize);
@@ -161,8 +176,16 @@ uint8_t I2CManagerClass::read(I2CAddress address, uint8_t readBuffer[], uint8_t 
 #endif
       }
     }
-  } while (!(status == I2C_STATUS_OK || ++retryCount > MAX_I2C_RETRIES
-    || rb->operation & OPERATION_NORETRY));
+#ifdef I2C_EXTENDED_ADDRESS
+    // Deselect MUX if there's more than one MUX present, to avoid having multiple ones selected
+    if (_muxCount > 1 && muxStatus == I2C_STATUS_OK && address != 0 && address.muxNumber() != I2CMux_None) {
+      muxSelect({address.muxNumber(), SubBus_None});
+    }
+    if (muxStatus != I2C_STATUS_OK) status = muxStatus;
+#endif
+
+  } while (!((status == I2C_STATUS_OK) 
+    || ++retryCount > MAX_I2C_RETRIES || rb->operation & OPERATION_NORETRY));
 
   rb->nBytes = nBytes;
   rb->status = status;

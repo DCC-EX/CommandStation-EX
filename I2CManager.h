@@ -195,7 +195,7 @@ private:
 public:
   // Constructors
   // For I2CAddress "{Mux_0, SubBus_0, 0x23}" syntax.
-  I2CAddress(I2CMux muxNumber, I2CSubBus subBus, uint8_t deviceAddress) {
+  I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus, const uint8_t deviceAddress) {
     _muxNumber = muxNumber;
     _subBus = subBus;
     _deviceAddress = deviceAddress;
@@ -217,6 +217,11 @@ public:
   // For I2CAddress in form "{I2CMux_0, SubBus_0}" (mux selector)
   I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus) :
     I2CAddress(muxNumber, subBus, 0x00) {}
+
+  // For I2CAddress in form "{i2cAddress, deviceAddress}"
+  // where deviceAddress is to be on the same subbus as i2cAddress.
+  I2CAddress(I2CAddress firstAddress, uint8_t newDeviceAddress) :
+    I2CAddress(firstAddress._muxNumber, firstAddress._subBus, newDeviceAddress) {}
 
   // Conversion operator from I2CAddress to uint8_t
   // For "uint8_t address = i2cAddress;" syntax
@@ -240,7 +245,7 @@ public:
   // Field accessors
   I2CMux muxNumber() { return _muxNumber; }
   I2CSubBus subBus() { return _subBus; }
-  uint8_t address() { return _deviceAddress; }
+  uint8_t deviceAddress() { return _deviceAddress; }
 };
 
 #else
@@ -271,6 +276,7 @@ enum : uint8_t {
   I2C_STATE_ACTIVE=253,
   I2C_STATE_FREE=254,
   I2C_STATE_CLOSING=255,
+  I2C_STATE_COMPLETED=252,
 };
 
 typedef enum : uint8_t
@@ -369,19 +375,22 @@ private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
   static uint8_t retryCounter;  // Count of retries
-#if defined(__arm__)
-  uint32_t _clockSpeed = 32000000L;  // 3.2MHz max on SAMD and STM32
-#else
-  uint32_t _clockSpeed = 400000L;  // 400kHz max on Arduino.
-#endif
+  // Clock speed must be no higher than 400kHz on AVR. Higher is possible on 4809, SAMD
+  // and STM32 but most popular I2C devices are 400kHz so in practice the higher speeds
+  // will not be useful.  The speed can be overridden by I2CManager::forceClock().
+  uint32_t _clockSpeed = I2C_FREQ;  
   static unsigned long timeout; // Transaction timeout in microseconds.  0=disabled.
     
-
   // Finish off request block by waiting for completion and posting status.
   uint8_t finishRB(I2CRB *rb, uint8_t status);
 
   void _initialise();
   void _setClock(unsigned long);
+
+#if defined(I2C_EXTENDED_ADDRESS)
+  static uint8_t _muxCount;
+  uint8_t getMuxCount() { return _muxCount; }
+#endif
 
 #if !defined(I2C_USE_WIRE)
     // I2CRB structs are queued on the following two links.
@@ -395,6 +404,7 @@ private:
     static I2CRB * volatile queueHead;
     static I2CRB * volatile queueTail;
     static volatile uint8_t state;
+    static uint8_t completionStatus;
 
     static I2CRB * volatile currentRequest;
     static volatile uint8_t txCount;
@@ -403,7 +413,7 @@ private:
     static volatile uint8_t bytesToReceive;
     static volatile uint8_t operation;
     static volatile unsigned long startTime;
-    static volatile uint8_t muxSendStep;
+    static volatile uint8_t muxPhase;
 
     volatile uint32_t pendingClockSpeed = 0;
 

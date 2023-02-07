@@ -155,6 +155,8 @@ void I2CManagerClass::I2C_sendStart() {
   // Set counters here in case this is a retry.
   bytesToSend = currentRequest->writeLen;
   bytesToReceive = currentRequest->readLen;
+  txCount = 0;
+  rxCount = 0;
 
   // On a single-master I2C bus, the start bit won't be sent until the bus 
   // state goes to IDLE so we can request it without waiting.  On a 
@@ -207,13 +209,15 @@ void I2CManagerClass::I2C_handleInterrupt() {
     I2C_sendStart();   // Reinitiate request
   } else if (s->I2CM.STATUS.bit.BUSERR) {
     // Bus error
-    state = I2C_STATUS_BUS_ERROR;
+    completionStatus = I2C_STATUS_BUS_ERROR;
+    state = I2C_STATE_COMPLETED;  // Completed with error
   } else if (s->I2CM.INTFLAG.bit.MB) {
     // Master write completed
     if (s->I2CM.STATUS.bit.RXNACK) {
       // Nacked, send stop.
       I2C_sendStop();
-      state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      state = I2C_STATE_COMPLETED;  // Completed with error
     } else if (bytesToSend) {
       // Acked, so send next byte
       s->I2CM.DATA.bit.DATA = currentRequest->writeBuffer[txCount++];
@@ -222,9 +226,9 @@ void I2CManagerClass::I2C_handleInterrupt() {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
       s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
     } else {
-      // No more data to send/receive. Initiate a STOP condition.
+      // No more data to send/receive. Initiate a STOP condition
       I2C_sendStop();
-      state = I2C_STATUS_OK; // Done
+      state = I2C_STATE_COMPLETED;  // Completed OK
     }
   } else if (s->I2CM.INTFLAG.bit.SB) {
     // Master read completed without errors
@@ -233,7 +237,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
       I2C_sendStop();  // send stop
       currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
       bytesToReceive = 0;
-      state = I2C_STATUS_OK; // done
+      state = I2C_STATE_COMPLETED;  // Completed OK
     } else if (bytesToReceive) {
       s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
       currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte

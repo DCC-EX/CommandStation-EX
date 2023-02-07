@@ -41,6 +41,28 @@
 #endif
 
 
+// Helper function for listing device types
+static const FSH * guessI2CDeviceType(uint8_t address) {
+  if (address >= 0x20 && address <= 0x26)
+    return F("GPIO Expander");
+  else if (address == 0x27)
+    return F("GPIO Expander or LCD Display");
+  else if (address == 0x29)
+    return F("Time-of-flight sensor");
+  else if (address >= 0x3c && address <= 0x3c)
+    return F("OLED Display");
+  else if (address >= 0x48 && address <= 0x4f)
+    return F("Analogue Inputs or PWM");
+  else if (address >= 0x40 && address <= 0x4f)
+    return F("PWM");
+  else if (address >= 0x50 && address <= 0x5f) 
+    return F("EEPROM"); 
+  else if (address >= 0x70 && address <= 0x77)
+    return F("I2C Mux");
+  else
+    return F("?");
+}
+
 // If not already initialised, initialise I2C
 void I2CManagerClass::begin(void) {
   if (!_beginCompleted) {
@@ -60,34 +82,46 @@ void I2CManagerClass::begin(void) {
     setTimeout(1000);       // use 1ms timeout for probes
 
   #if defined(I2C_EXTENDED_ADDRESS)
-    // First switch off all multiplexer subbuses.
+    // First count the multiplexers and switch off all subbuses
+    _muxCount = 0;
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
-      I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None});  // Deselect Mux
+      if (I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None})==I2C_STATUS_OK)
+        _muxCount++;
     }
   #endif
 
+    // Enumerate devices that are visible
     bool found = false;
     for (uint8_t addr=0x08; addr<0x78; addr++) {
       if (exists(addr)) {
         found = true; 
-        DIAG(F("I2C Device found at x%x"), addr);
+        DIAG(F("I2C Device found at x%x, %S?"), addr, guessI2CDeviceType(addr));
       }
     }
 
 #if defined(I2C_EXTENDED_ADDRESS)
     // Enumerate all I2C devices that are connected via multiplexer, 
-    // i.e. respond when only one multiplexer has one subBus enabled
+    // i.e. that respond when only one multiplexer has one subBus enabled
     // and the device doesn't respond when the mux subBus is disabled.
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
       uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
       if (exists(muxAddr)) {
+        // Select Mux Subbus
         for (uint8_t subBus=0; subBus<=7; subBus++) {
+          muxSelectSubBus({(I2CMux)muxNo, (I2CSubBus)subBus});
           for (uint8_t addr=0x08; addr<0x78; addr++) {
-            if (exists({(I2CMux)muxNo, (I2CSubBus)subBus, addr})
-                && !exists({(I2CMux)muxNo, SubBus_None, addr})) {
-              found = true; 
-              DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,x%x}"), 
-                muxNo, subBus, addr);
+            if (exists(addr)) {
+              // De-select subbus
+              muxSelectSubBus({(I2CMux)muxNo, SubBus_None});
+              if (!exists(addr)) {
+                // Device responds when subbus selected but not when
+                // subbus disabled - ergo it must be on subbus!
+                found = true; 
+                DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,x%x}, %S?"), 
+                  muxNo, subBus, addr, guessI2CDeviceType(addr));
+              }
+              // Re-select subbus
+              muxSelectSubBus({(I2CMux)muxNo, (I2CSubBus)subBus});
             }
           }
         }
@@ -231,6 +265,14 @@ I2CManagerClass I2CManager = I2CManagerClass();
 // When retries are enabled, the timeout applies to each
 // try, and failure from timeout does not get retried.
 unsigned long I2CManagerClass::timeout = 100000UL;
+
+#if defined(I2C_EXTENDED_ADDRESS)
+// Count of I2C multiplexers found when initialising.  If there is only one
+// MUX then the subbus does not de-selecting after use; however, if there
+// is two or more, then the subbus must be deselected to avoid multiple
+// sub-bus legs on different multiplexers being accessible simultaneously.
+uint8_t I2CManagerClass::_muxCount = 0;
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////

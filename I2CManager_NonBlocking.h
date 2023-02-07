@@ -76,6 +76,14 @@ for ( MY_ATOMIC_RESTORESTATE, _done =  my_iCliRetVal();                   \
 #undef I2C_USE_WIRE
 #endif
 
+enum MuxPhase: uint8_t {
+  MuxPhase_OFF = 0,
+  MuxPhase_PROLOG,
+  MuxPhase_PASSTHRU,
+  MuxPhase_EPILOG,
+} ;
+
+
 /***************************************************************************
  * Initialise the I2CManagerAsync class.
  ***************************************************************************/
@@ -108,6 +116,7 @@ void I2CManagerClass::startTransaction() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if ((state == I2C_STATE_FREE) && (queueHead != NULL)) {
       state = I2C_STATE_ACTIVE;
+      completionStatus = I2C_STATUS_OK;
       // Check for pending clock speed change
       if (pendingClockSpeed) {
         // We're about to start a new I2C transaction, so set clock now.
@@ -260,7 +269,7 @@ void I2CManagerClass::handleInterrupt() {
   // and state isn't active then state contains the completion status of the request.
   if (state != I2C_STATE_ACTIVE && currentRequest != NULL) {
     // Operation has completed.
-    if (state == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
+    if (completionStatus == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
       || currentRequest->operation & OPERATION_NORETRY) 
     {
       // Status is OK, or has failed and retry count exceeded, or retries disabled.
@@ -270,7 +279,7 @@ void I2CManagerClass::handleInterrupt() {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = queueHead;
         t->nBytes = rxCount;
-        t->status = state;
+        t->status = completionStatus;
         
         // I2C state machine is now free for next request
         currentRequest = NULL;
@@ -297,6 +306,7 @@ I2CRB * volatile I2CManagerClass::queueHead = NULL;
 I2CRB * volatile I2CManagerClass::queueTail = NULL;
 I2CRB * volatile I2CManagerClass::currentRequest = NULL;
 volatile uint8_t I2CManagerClass::state = I2C_STATE_FREE;
+uint8_t I2CManagerClass::completionStatus;
 volatile uint8_t I2CManagerClass::txCount;
 volatile uint8_t I2CManagerClass::rxCount;
 volatile uint8_t I2CManagerClass::operation;
@@ -306,7 +316,7 @@ volatile unsigned long I2CManagerClass::startTime;
 uint8_t I2CManagerClass::retryCounter = 0;
 
 #if defined(I2C_EXTENDED_ADDRESS) 
-volatile uint8_t I2CManagerClass::muxSendStep = 0;
+volatile uint8_t I2CManagerClass::muxPhase = 0;
 #endif
 
 #endif
