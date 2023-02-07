@@ -98,7 +98,8 @@ private:
 
   // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
   //            
-  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+  void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
+    (void)param1; (void)param2;  // suppress compiler warning
     #ifdef DIAG_IO
     DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
       vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));

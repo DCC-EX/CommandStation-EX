@@ -100,7 +100,7 @@ protected:
 
       // First clear the entire screen
       oled->clearNative();
-      
+
       // Set first two lines on screen
       LCD(0,F("DCC++ EX v%S"),F(VERSION));
       LCD(1,F("Lic GPLv3"));
@@ -115,6 +115,7 @@ protected:
   // for I2C to complete.
   /////////////////////////////////////////////////
   DisplayInterface* loop2(bool force) override {
+    (void)force;   // suppress compiler warning
 
     // Loop through the buffer and if a row has changed
     // (rowGeneration[row] is changed) then start writing the
