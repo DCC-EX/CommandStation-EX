@@ -22,6 +22,7 @@
 
 #include <Arduino.h>
 #include "I2CManager.h"
+#include "I2CManager_NonBlocking.h"   // to satisfy intellisense
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -139,9 +140,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
 #if defined(I2C_EXTENDED_ADDRESS)
   // First process the MUX state machine.
-  // This does not need to be entered during passthru phase unless the 
-  // application's send and receive have both completed.
-  if (muxPhase > MuxPhase_OFF && !(muxPhase==MuxPhase_PASSTHRU && (bytesToSend || bytesToReceive))) {
+  if (muxPhase > MuxPhase_OFF) {
     switch (twsr) {
       case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
         if (muxPhase == MuxPhase_PROLOG) {
