@@ -315,7 +315,7 @@ private:
   struct ServoData *_servoData [16];
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
-  static const byte FLASH _bounceProfile[30];
+  static const uint8_t FLASH _bounceProfile[30];
 
   const unsigned int refreshInterval = 50; // refresh every 50ms
 
