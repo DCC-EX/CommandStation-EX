@@ -144,7 +144,11 @@ const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
 //------------------------------------------------------------------------------
  
 // Constructor
-SSD1306AsciiWire::SSD1306AsciiWire() {}
+SSD1306AsciiWire::SSD1306AsciiWire() {
+  I2CManager.begin();
+  I2CManager.setClock(400000L);   // Set max supported I2C speed
+
+}
 
 // CS auto-detect and configure constructor
 SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
@@ -193,7 +197,7 @@ bool SSD1306AsciiWire::begin(I2CAddress address, int width, int height) {
     return false;
   }
   // Device found
-  DIAG(F("%dx%d OLED display configured on I2C:x%x"), m_displayWidth, m_displayHeight, (uint8_t)m_i2cAddr);
+  DIAG(F("%dx%d OLED display configured on I2C:x%x"), m_displayWidth, m_displayHeight, (int)m_i2cAddr);
   clear();
   return true;
 }
@@ -204,7 +208,8 @@ void SSD1306AsciiWire::clearNative() {
   for (uint8_t r = 0; r <= m_displayHeight/8 - 1; r++) {
     setRowNative(r);   // Position at start of row to be erased
     for (uint8_t c = 0; c <= m_displayWidth - 1; c += maxBytes-1) {
-      uint8_t len = min(m_displayWidth-c, maxBytes-1) + 1;
+      uint8_t len = m_displayWidth-c+1;
+      if (len > maxBytes) len = maxBytes;
       I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write a number of blank columns
     }
   }
