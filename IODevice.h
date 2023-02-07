@@ -385,9 +385,9 @@ private:
  
 class EXTurntable : public IODevice {
 public:
-  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress);
+  static void create(VPIN firstVpin, int nPins, I2CAddress I2CAddress);
   // Constructor
-  EXTurntable(VPIN firstVpin, int nPins, uint8_t I2CAddress);
+  EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress);
   enum ActivityNumber : uint8_t {
     Turn = 0,             // Rotate turntable, maintain phase
     Turn_PInvert = 1,     // Rotate turntable, invert phase
