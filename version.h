@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.14"
+#define VERSION "4.2.15"
 // 4.2.15 I2C Multiplexer support through Extended Addresses,
 //        added for Wire, 4209 and AVR I2C drivers.
 //        I2C retries when fail.
