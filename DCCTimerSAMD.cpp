@@ -168,23 +168,6 @@ int ADCee::init(uint8_t pin) {
   if (id > NUM_ADC_INPUTS)
     return -1023;
 
-  // Dummy read using Arduino library
-  analogReadResolution(12);
-  value = analogRead(pin);
-
-  // Reconfigure ADC
-  ADC->CTRLA.bit.ENABLE = 0;                      // disable ADC
-  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
-
-  ADC->CTRLB.reg &= 0b1111100011001111;           // mask PRESCALER and RESSEL bits
-  ADC->CTRLB.reg |= ADC_CTRLB_PRESCALER_DIV64 |   // divide Clock by 16
-                    ADC_CTRLB_RESSEL_12BIT;       // Result 12 bits, 10 bits possible
-  ADC->AVGCTRL.reg = ADC_AVGCTRL_SAMPLENUM_1 |    // take 1 sample at a time
-                     ADC_AVGCTRL_ADJRES(0x00ul);  // adjusting result by 0
-  ADC->SAMPCTRL.reg = 0x00ul;                     // sampling Time Length = 0
-  ADC->CTRLA.bit.ENABLE = 1;                      // enable ADC
-  while( ADC->STATUS.bit.SYNCBUSY == 1 );         // wait for synchronization
-
   // Permanently configure SAMD IO MUX for that pin
   pinPeripheral(pin, PIO_ANALOG);
   ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[pin].ulADCChannelNumber; // Selection for the positive ADC input
@@ -205,9 +188,11 @@ int ADCee::init(uint8_t pin) {
 
   return value;
 }
+
 int16_t ADCee::ADCmax() {
   return 4095;
 }
+
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */

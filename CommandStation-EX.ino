@@ -99,6 +99,9 @@ void setup()
   // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
 
+  // As the setup of a motor shield may require a read of the current sense input from the ADC,
+  // let's make sure to initialise the ADCee class!
+  ADCee::begin();
   // Responsibility 3: Start the DCC engine.
   // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
   // Standard supported devices have pre-configured macros but custome hardware installations require

@@ -1,6 +1,6 @@
 /*
- *  © 2021-2022 Chris Harlow
- *  © 2020,2021 Chris Harlow. All rights reserved.
+ *  © 2020-2022 Chris Harlow. All rights reserved.
+ *  © 2023 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -66,6 +66,7 @@
 #undef IFCLOSED
 #undef IFGREEN
 #undef IFGTE
+#undef IFLOCO
 #undef IFLT
 #undef IFNOT
 #undef IFRANDOM 
@@ -87,6 +88,8 @@
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
+#undef ONTIME
+#undef ONCLOCKTIME
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -182,6 +185,7 @@
 #define IFCLOSED(turnout_id) 
 #define IFGREEN(signal_id)
 #define IFGTE(sensor_id,value) 
+#define IFLOCO(loco_id)
 #define IFLT(sensor_id,value) 
 #define IFNOT(sensor_id)
 #define IFRANDOM(percent)
@@ -200,6 +204,8 @@
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONAMBER(signal_id) 
+#define ONTIME(value)
+#define ONCLOCKTIME(hours,mins)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)

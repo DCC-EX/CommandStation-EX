@@ -4,7 +4,13 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.9pre1"
+#define VERSION "4.2.14"
+// 4.2.14 STM32F4xx fast ADC read implementation
+// 4.2.13 Broadcast power for <s> again
+// 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
+// 4.2.11 Exrail IFLOCO feature added
+// 4.2.10 SIGNAL/SIGNALH bug fix as they were inverted
+//        IO_EXIOExpander.h input speed optimisation
 // 4.2.9 duinoNodes support
 // 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
 //       Withrottle connect/disconnect improvements

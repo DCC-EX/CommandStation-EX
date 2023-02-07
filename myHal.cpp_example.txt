@@ -21,7 +21,7 @@
 #include "IO_VL53L0X.h"   // Laser time-of-flight sensor
 #include "IO_DFPlayer.h"  // MP3 sound player
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
-
+//#include "IO_EXFastClock.h"  // FastClock driver
 
 //==========================================================================
 // The function halSetup() is invoked from CS if it exists within the build.
@@ -221,6 +221,19 @@ void halSetup() {
   //RotaryEncoder::create(700, 1, 0x70);
   //RotaryEncoder::create(701, 2, 0x71);
 
+ //=======================================================================
+  // The following directive defines an EX-FastClock instance.
+  //=======================================================================
+  // EXFastCLock::create(I2C Address)
+  //
+  // The parameters are:
+  //   
+  //   I2C address=0x55 (decimal 85)
+  //
+  // Note that the I2C address is defined in the EX-FastClock code, and 0x55 is the default.
+
+ 
+  //   EXFastClock::create(0x55);
 
 }
 

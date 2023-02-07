@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2021-2022 Harald Barth
+ *  © 2021-2023 Harald Barth
  *  © 2020-2022 Chris Harlow
  *  All rights reserved.
  *  
@@ -92,6 +92,7 @@ LookList *  RMFT2::onRedLookup=NULL;
 LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
+LookList *  RMFT2::onClockLookup=NULL;
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -175,6 +176,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onAmberLookup=LookListLoader(OPCODE_ONAMBER);
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
+  onClockLookup=LookListLoader(OPCODE_ONTIME);
+
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -744,6 +747,10 @@ void RMFT2::loop2() {
     skipIf=IODevice::readAnalogue(operand)>=(int)(getOperand(1));
     break;
     
+  case OPCODE_IFLOCO: // do if the loco is the active one
+    skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
+    break;
+
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
@@ -975,6 +982,7 @@ void RMFT2::loop2() {
   case OPCODE_ONAMBER:
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
+  case OPCODE_ONTIME:
   
     break;
     
@@ -1076,11 +1084,23 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
    
   // Manage invert (HIGH on) pins
   bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
-    
+      
   // set the three pins 
-  if (redpin) IODevice::write(redpin,(rag==SIGNAL_RED || rag==SIMAMBER)^aHigh);
-  if (amberpin) IODevice::write(amberpin,(rag==SIGNAL_AMBER)^aHigh);
-  if (greenpin) IODevice::write(greenpin,(rag==SIGNAL_GREEN || rag==SIMAMBER)^aHigh);
+  if (redpin) {
+    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
+    if (!aHigh) redval=!redval;
+    IODevice::write(redpin,redval);
+  }
+  if (amberpin) {
+    bool amberval=(rag==SIGNAL_AMBER);
+    if (!aHigh) amberval=!amberval;
+    IODevice::write(amberpin,amberval);
+  }
+  if (greenpin) {
+    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
+    if (!aHigh) greenval=!greenval;
+    IODevice::write(greenpin,greenval);
+  }
 }
 
 /* static */ bool RMFT2::isSignal(int16_t id,char rag) {
@@ -1106,7 +1126,14 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
 }
- 
+
+void RMFT2::clockEvent(int16_t clocktime, bool change) {
+  // Hunt for an ONTIME for this time
+  if (Diag::CMD)
+   DIAG(F("Looking for clock event at : %d"), clocktime);
+  if (change)  handleEvent(F("CLOCK"),onClockLookup,clocktime);
+} 
+
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);
   if (pc<0) return;
@@ -1221,4 +1248,3 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
      default: break;       
     }
 }
-   

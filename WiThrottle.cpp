@@ -525,7 +525,7 @@ void WiThrottle::sendTurnouts(Print* stream) {
 }
 void WiThrottle::sendRoster(Print* stream) {
   rosterSent=true;
-  #ifdef EXRAIL_ACTIVE
+#ifdef EXRAIL_ACTIVE
   StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
   for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
       int16_t cabid=GETHIGHFLASHW(RMFT2::rosterIdList,r*2);
@@ -533,11 +533,13 @@ void WiThrottle::sendRoster(Print* stream) {
       RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
   }
   StringFormatter::send(stream,F("\n"));       
+#else
+   (void)stream; // remove warning
 #endif
 }
 void WiThrottle::sendRoutes(Print* stream) {
   routesSent=true; 
-  #ifdef EXRAIL_ACTIVE
+#ifdef EXRAIL_ACTIVE
    StringFormatter::send(stream,F("PRT]\\[Routes}|{Route]\\[Set}|{2]\\[Handoff}|{4\nPRL"));
     // first pass automations
     for (int ix=0;;ix+=2) {
@@ -554,7 +556,8 @@ void WiThrottle::sendRoutes(Print* stream) {
         StringFormatter::send(stream,F("]\\[R%d}|{%S}|{2"),id,desc);
     }
    StringFormatter::send(stream,F("\n"));
-    
+#else
+   (void)stream; // remove warning
 #endif
 }
 

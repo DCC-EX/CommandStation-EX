@@ -29,6 +29,11 @@
 #include "DCCWaveform.h"
 #include "DCC.h"
 #include "TrackManager.h"
+#include "StringFormatter.h"
+
+// variables to hold clock time
+int16_t lastclocktime;
+int8_t lastclockrate;
 
 
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS)
@@ -153,6 +158,50 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 #ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PTA%c%d\n"), isClosed?'2':'4', id);
 #endif
+}
+
+void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
+  // The JMRI clock command is of the form : PFT65871<;>4
+  // The CS broadcast is of the form "<jC mmmm nn" where mmmm is time minutes and dd speed
+  // The string below contains serial and Withrottle protocols which should
+  // be safe for both types.
+  broadcastReply(COMMAND_TYPE, F("<jC %d %d>\n"),time, rate);
+#ifdef CD_HANDLE_RING
+  broadcastReply(WITHROTTLE_TYPE, F("PFT%d<;>%d\n"), time*60, rate);
+#endif
+}
+
+void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte opt) {
+  // opt - case 1 save the latest time if changed
+  //       case 2 broadcast the time when requested
+  //       case 3 display latest time
+  switch (opt)
+  {
+    case 1:
+      if (clocktime != lastclocktime){
+        if (Diag::CMD) {                    
+          DIAG(F("Clock Command Received"));
+          DIAG(F("Received Clock Time is: %d at rate: %d"), clocktime, clockrate);
+        }
+        LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
+        // look for an event for this time
+        RMFT2::clockEvent(clocktime,1);
+        // Now tell everyone else what the time is.
+        CommandDistributor::broadcastClockTime(clocktime, clockrate);
+        lastclocktime = clocktime;
+        lastclockrate = clockrate;
+      }
+      return;
+
+    case 2:
+      CommandDistributor::broadcastClockTime(lastclocktime, lastclockrate);
+      return;
+  }
+ 
+}
+
+int16_t CommandDistributor::retClockTime() {
+  return lastclocktime;
 }
 
 void  CommandDistributor::broadcastLoco(byte slot) {

@@ -510,6 +510,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 's': // <s>
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+        CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states
@@ -570,9 +571,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'J' : // throttle info access
         {
-            if ((params<1) | (params>2)) break; // <J>
+            if ((params<1) | (params>3)) break; // <J>
+            //if ((params<1) | (params>2)) break; // <J>
             int16_t id=(params==2)?p[1]:0;
             switch(p[0]) {
+                case HASH_KEYWORD_C: // <JC mmmm nn> sets time and speed
+                    if (params==1) { // <JC> returns latest time
+                        int16_t x = CommandDistributor::retClockTime();
+                        StringFormatter::send(stream, F("<jC %d>\n"), x);
+                        return;
+                    }
+                    CommandDistributor::setClockTime(p[1], p[2], 1);
+                    return;
+
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
                     StringFormatter::send(stream, F("<jA"));
                     if (params==1) {// <JA>
@@ -616,14 +627,17 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 else { // <JT id>
                     Turnout * t=Turnout::get(id);
                     if (!t || t->isHidden()) StringFormatter::send(stream, F(" %d X"),id);
-                    else  StringFormatter::send(stream, F(" %d %c \"%S\""),
-                            id,t->isThrown()?'T':'C', 
+                    else {
+		      const FSH *tdesc = NULL;
 #ifdef EXRAIL_ACTIVE
-                            RMFT2::getTurnoutDescription(id)
-#else
-                            F("") 
-#endif  
-                        );      
+		      tdesc = RMFT2::getTurnoutDescription(id);
+#endif
+		      if (tdesc == NULL)
+			tdesc = F("");
+		      StringFormatter::send(stream, F(" %d %c \"%S\""),
+					    id,t->isThrown()?'T':'C',
+					    tdesc);
+		    }
                 }
                 StringFormatter::send(stream, F(">\n"));
                 return;
