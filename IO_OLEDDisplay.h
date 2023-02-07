@@ -21,9 +21,11 @@
  * This driver provides a more immediate interface into the OLED display
  * than the one installed through the config.h file.  When an LCD(...) call
  * is made, the text is output immediately to the specified display line,
- * without waiting for the next 2.5 second refresh.  However, no scrolling
- * takes place, so if the line specified is off the screen then the text
- * will instead be shown on the bottom line of the screen.
+ * without waiting for the next 2.5 second refresh.  However, if the line 
+ * specified is off the screen then the text in the bottom line will be 
+ * overwritten.  There is however a special case that if line 255 is specified, 
+ * the existing text will scroll up and the new line added to the bottom
+ * line of the screen.
  * 
  * To install, use the following command in myHal.cpp:
 
@@ -78,6 +80,8 @@ protected:
     _numCols = _width / 6;    // character block 6 x 8 
     _numRows = _height / 8; 
 
+    _charPosToScreen = _numCols;
+
     // Allocate arrays
     _buffer = (char *)calloc(_numRows*_numCols, sizeof(char));
     _rowGeneration = (uint8_t *)calloc(_numRows, sizeof(uint8_t));
@@ -107,41 +111,62 @@ protected:
     }
   }
 
-  /////////////////////////////////////////////////
-  // DisplayInterface functions
-  // 
-  // TODO: Limit to one call to setRowNative or writeNative
-  // per entry so that the function doesn't block waiting
-  // for I2C to complete.
-  /////////////////////////////////////////////////
-  DisplayInterface* loop2(bool force) override {
-    (void)force;   // suppress compiler warning
+  
+  void _loop(unsigned long) override {
 
     // Loop through the buffer and if a row has changed
     // (rowGeneration[row] is changed) then start writing the
     // characters from the buffer, one character per entry, 
     // to the screen until that row has been refreshed.
-    // TODO: Currently this is done all in one go!  Split 
-    // it up so that at most one call is made to either
-    // setRowNative or writeNative per loop entry - then
-    // we shan't have to wait for I2C.
-    for (uint8_t row = 0; row < _numRows; row++) {
-      if (_rowGeneration[row] != _lastRowGeneration[row]) {
-        // Row has been modified, write to screen
-        oled->setRowNative(row);
-        for (uint8_t _col = 0; _col < _numCols; _col++) {
-          oled->writeNative(_buffer[(uint16_t)row*_numCols+_col]);
+
+    // First check if the OLED driver is still busy from a previous 
+    // call.  If so, don't to anything until the next entry.
+    if (!oled->isBusy()) {
+      // Check if we've just done the end of a row or just started
+      if (_charPosToScreen >= _numCols) {
+        // Move to next line
+        if (++_rowNoToScreen >= _numRows)
+          _rowNoToScreen = 0; // Wrap to first row
+
+        if (_rowGeneration[_rowNoToScreen] != _lastRowGeneration[_rowNoToScreen]) {
+          // Row content has changed, so start outputting it
+          _lastRowGeneration[_rowNoToScreen] = _rowGeneration[_rowNoToScreen];
+          oled->setRowNative(_rowNoToScreen);
+          _charPosToScreen = 0;  // Prepare to output first character on next entry
+        } else {
+          // Row not changed, don't bother writing it.
         }
-        _lastRowGeneration[row] = _rowGeneration[row];
-      }
+      } else {
+        // output character at current position
+        oled->writeNative(_buffer[_rowNoToScreen*_numCols+_charPosToScreen++]);
+      }  
     }
-    return NULL;
+    return;
   }
   
+  /////////////////////////////////////////////////
+  // DisplayInterface functions
+  // 
+  /////////////////////////////////////////////////
+  DisplayInterface* loop2(bool force) override {
+    (void)force;   // suppress compiler warning
+    return NULL;
+  }
+
   // Position on nominated line number (0 to number of lines -1)
   // Clear the line in the buffer ready for updating
   void setRow(byte line) override {
-    if (line >= _numRows) line = _numRows-1;
+    if (line == 255) {
+      // LCD(255, "xxx") - scroll the contents of the buffer
+      // and put the new line at the bottom of the screen
+      for (int row=1; row<_numRows; row++) {
+        strncpy(&_buffer[(row-1)*_numCols], &_buffer[row*_numCols], _numCols);
+        _rowGeneration[row-1]++;
+      }
+      line = _numRows-1;
+    } else if (line >= _numRows) 
+      line = _numRows - 1;  // Overwrite bottom line.
+
     _rowNo = line;
     // Fill line with blanks
     for (_colNo = 0; _colNo < _numCols; _colNo++)
