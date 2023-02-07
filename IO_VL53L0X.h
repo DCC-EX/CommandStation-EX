@@ -136,14 +136,14 @@ private:
 
 
   public:
-  static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
      if (checkNoOverlap(firstVpin, nPins,i2cAddress)) new VL53L0X(firstVpin, nPins, i2cAddress, onThreshold, offThreshold, xshutPin);
   }
 
 protected:
-  VL53L0X(VPIN firstVpin, int nPins, uint8_t i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
+  VL53L0X(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t onThreshold, uint16_t offThreshold, VPIN xshutPin = VPIN_NONE) {
     _firstVpin = firstVpin;
-    _nPins = min(nPins, 3);
+    _nPins = (nPins > 3) ? 3 : nPins;
     _I2CAddress = i2cAddress;
     _onThreshold = onThreshold;
     _offThreshold = offThreshold;
@@ -193,7 +193,15 @@ protected:
       case STATE_CONFIGUREADDRESS:
         // Then write the desired I2C address to the device, while this is the only
         //  module responding to the default address.
-        I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
+        {
+          #if defined(I2C_EXTENDED_ADDRESS)
+          // Add subbus reference for desired address to the device default address.
+          I2CAddress defaultAddress = {_I2CAddress, VL53L0X_I2C_DEFAULT_ADDRESS};
+          I2CManager.write(defaultAddress, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress.deviceAddress());
+          #else
+          I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
+          #endif
+        }
         _addressConfigInProgress = false;
         _nextState = STATE_SKIP;
         break;

@@ -30,13 +30,13 @@
  
 class MCP23017 : public GPIOBase<uint16_t> {
 public:
-  static void create(VPIN vpin, int nPins, I2CAddress i2cAddress, int interruptPin=-1) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new MCP23017(vpin, min(nPins,16), i2cAddress, interruptPin);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new MCP23017(vpin, nPins, i2cAddress, interruptPin);
   }
 
 private:  
   // Constructor
-  MCP23017(VPIN vpin, int nPins, I2CAddress i2cAddress, int interruptPin=-1) 
+  MCP23017(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) 
     : GPIOBase<uint16_t>((FSH *)F("MCP23017"), vpin, nPins, i2cAddress, interruptPin) 
   {
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
@@ -65,7 +65,7 @@ private:
     if (immediate) {
       uint8_t buffer[2];
       I2CManager.read(_I2CAddress, buffer, 2, 1, REG_GPIOA);
-      _portInputState = ((uint16_t)buffer[1]<<8) | buffer[0];
+      _portInputState = ((uint16_t)buffer[1]<<8) | buffer[0] | _portMode;
     } else {
       // Queue new request
       requestBlock.wait(); // Wait for preceding operation to complete
@@ -76,7 +76,7 @@ private:
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
     if (status == I2C_STATUS_OK) 
-      _portInputState = ((uint16_t)inputBuffer[1]<<8) | inputBuffer[0];
+      _portInputState = (((uint16_t)inputBuffer[1]<<8) | inputBuffer[0]) | _portMode;
     else  
       _portInputState = 0xffff;
   }

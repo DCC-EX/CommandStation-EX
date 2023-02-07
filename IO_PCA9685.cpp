@@ -75,7 +75,7 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
 // Constructor
 PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
   _firstVpin = firstVpin;
-  _nPins = min(nPins, 16);
+    _nPins = (nPins > 16) ? 16 : nPins;
   _I2CAddress = i2cAddress;
   // To save RAM, space for servo configuration is not allocated unless a pin is used.
   // Initialise the pointers to NULL.
@@ -272,5 +272,5 @@ static void writeRegister(byte address, byte reg, byte value) {
 // The profile below is in the range 0-100% and should be combined with the desired limits
 // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
 // i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
-const byte FLASH PCA9685::_bounceProfile[30] = 
+const uint8_t FLASH PCA9685::_bounceProfile[30] = 
     {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};

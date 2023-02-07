@@ -32,7 +32,7 @@ public:
 private:
   // Constructor
   MCP23008(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1)
-    : GPIOBase<uint8_t>((FSH *)F("MCP23008"), firstVpin, min(nPins, (uint8_t)8), i2cAddress, interruptPin) {
+    : GPIOBase<uint8_t>((FSH *)F("MCP23008"), firstVpin, nPins, i2cAddress, interruptPin) {
 
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
       outputBuffer, sizeof(outputBuffer));
@@ -60,7 +60,7 @@ private:
     if (immediate) {
       uint8_t buffer;
       I2CManager.read(_I2CAddress, &buffer, 1, 1, REG_GPIO);
-      _portInputState = buffer;
+      _portInputState = buffer | _portMode;
     } else {
       // Queue new request
       requestBlock.wait(); // Wait for preceding operation to complete
@@ -71,7 +71,7 @@ private:
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
     if (status == I2C_STATUS_OK) 
-      _portInputState = inputBuffer[0];
+      _portInputState = inputBuffer[0] | _portMode;
     else  
       _portInputState = 0xff;
   }

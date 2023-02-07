@@ -45,7 +45,7 @@
 class PCF8575 : public GPIOBase<uint16_t> {
 public:
   static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCF8575(firstVpin, min(nPins,(uint8_t)16), i2cAddress, interruptPin);
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCF8575(firstVpin, nPins, i2cAddress, interruptPin);
   }
 
 private:
@@ -55,9 +55,12 @@ private:
     requestBlock.setReadParams(_I2CAddress, inputBuffer, sizeof(inputBuffer));
   }
   
-  // The pin state is '1' if the pin is an input or if it is an output set to 1.  Zero otherwise. 
+  // The PCF8575 handles inputs by applying a weak pull-up when output is driven to '1'.
+  // The pin state is driven '1' if the pin is an input, or if it is an output set to 1.
+  // Unused pins are driven '0'.
   void _writeGpioPort() override {
-    I2CManager.write(_I2CAddress, 2, _portOutputState | ~_portMode, (_portOutputState | ~_portMode)>>8);
+    uint16_t bits = (_portOutputState | ~_portMode) & _portInUse;
+    I2CManager.write(_I2CAddress, 2, bits, bits>>8);
   }
 
   // The PCF8575 handles inputs by applying a weak pull-up when output is driven to '1'.
@@ -67,7 +70,7 @@ private:
 
   // The pin state is '1' if the pin is an input or if it is an output set to 1.  Zero otherwise. 
   void _writePortModes() override {
-    I2CManager.write(_I2CAddress, 2, _portOutputState | ~_portMode, (_portOutputState | ~_portMode)>>8);
+    _writeGpioPort();
   }
 
   // In immediate mode, _readGpioPort reads the device GPIO port and updates _portInputState accordingly.
@@ -77,7 +80,7 @@ private:
     if (immediate) {
       uint8_t buffer[2];
       I2CManager.read(_I2CAddress, buffer, 2);
-      _portInputState = ((uint16_t)buffer[1]<<8) | buffer[0];
+      _portInputState = (((uint16_t)buffer[1]<<8) | buffer[0]) | _portMode;
     } else {
       requestBlock.wait(); // Wait for preceding operation to complete
       // Issue new request to read GPIO register
@@ -88,7 +91,7 @@ private:
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
     if (status == I2C_STATUS_OK) 
-      _portInputState = ((uint16_t)inputBuffer[1]<<8) | inputBuffer[0];
+      _portInputState = (((uint16_t)inputBuffer[1]<<8) | inputBuffer[0]) | _portMode;
     else  
       _portInputState = 0xffff;
   }

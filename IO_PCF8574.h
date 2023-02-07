@@ -49,14 +49,16 @@ public:
 
 private:
   PCF8574(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1)
-    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, min(nPins, (uint8_t)8), i2cAddress, interruptPin) 
+    : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, nPins, i2cAddress, interruptPin) 
   {
     requestBlock.setReadParams(_I2CAddress, inputBuffer, 1);
   }
   
-  // The pin state is '1' if the pin is an input or if it is an output set to 1.  Zero otherwise. 
+  // The PCF8574 handles inputs by applying a weak pull-up when output is driven to '1'.
+  // The pin state is driven '1' if the pin is an input, or if it is an output set to 1.
+  // Unused pins are driven '0'.
   void _writeGpioPort() override {
-    I2CManager.write(_I2CAddress, 1, _portOutputState | ~_portMode);
+    I2CManager.write(_I2CAddress, 1, (_portOutputState | ~_portMode) & _portInUse);
   }
 
   // The PCF8574 handles inputs by applying a weak pull-up when output is driven to '1'.
@@ -64,9 +66,8 @@ private:
   // and enable pull-up.
   void _writePullups() override { }
 
-  // The pin state is '1' if the pin is an input or if it is an output set to 1.  Zero otherwise. 
   void _writePortModes() override {
-    I2CManager.write(_I2CAddress, 1, _portOutputState | ~_portMode);
+    _writeGpioPort();
   }
 
   // In immediate mode, _readGpioPort reads the device GPIO port and updates _portInputState accordingly.
@@ -76,7 +77,7 @@ private:
     if (immediate) {
       uint8_t buffer[1];
       I2CManager.read(_I2CAddress, buffer, 1);
-      _portInputState = buffer[0];
+      _portInputState = buffer[0] | _portMode;
     } else {
       requestBlock.wait(); // Wait for preceding operation to complete
       // Issue new request to read GPIO register
@@ -87,7 +88,7 @@ private:
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
     if (status == I2C_STATUS_OK) 
-      _portInputState = inputBuffer[0];
+      _portInputState = inputBuffer[0] | _portMode;
     else  
       _portInputState = 0xff; 
   }

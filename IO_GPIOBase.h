@@ -49,13 +49,13 @@ protected:
   // Data fields
  
   // Allocate enough space for all input pins
-  T _portInputState; 
-  T _portOutputState;
-  T _portMode;
-  T _portPullup;
-  T _portInUse;
-  // Interval between refreshes of each input port
-  static const int _portTickTime = 4000;
+  T _portInputState; // 1=high (inactive), 0=low (activated)
+  T _portOutputState; // 1 =high, 0=low
+  T _portMode;  // 0=input, 1=output
+  T _portPullup; // 0=nopullup, 1=pullup
+  T _portInUse;  // 0=not in use, 1=in use
+  // Target interval between refreshes of each input port
+  static const int _portTickTime = 4000; // 4ms
 
   // Virtual functions for interfacing with I2C GPIO Device
   virtual void _writeGpioPort() = 0;
@@ -69,10 +69,6 @@ protected:
 
   I2CRB requestBlock;
   FSH *_deviceName;
-#if defined(ARDUINO_ARCH_ESP32)
-  // workaround: Has somehow no min function for all types
-  static inline T min(T a, int b) { return a < b ? a : b; };
-#endif
 };
 
 // Because class GPIOBase is a template, the implementation (below) must be contained within the same
@@ -83,6 +79,7 @@ template <class T>
 GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin) :
   IODevice(firstVpin, nPins)
 {
+  if (_nPins > (int)sizeof(T)*8) _nPins = sizeof(T)*8;  // Ensure nPins is consistent with the number of bits in T
   _deviceName = deviceName;
   _I2CAddress = i2cAddress;
   _gpioInterruptPin = interruptPin;
@@ -117,7 +114,6 @@ void GPIOBase<T>::_begin() {
 
 // Configuration parameters for inputs: 
 //  params[0]: enable pullup
-//  params[1]: invert input (optional)
 template <class T>
 bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
   if (configType != CONFIGURE_INPUT) return false;
