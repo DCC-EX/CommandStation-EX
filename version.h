@@ -5,6 +5,20 @@
 
 
 #define VERSION "4.2.14"
+// 4.2.15 I2C Multiplexer support through Extended Addresses,
+//        added for Wire, 4209 and AVR I2C drivers.
+//        I2C retries when fail.
+//        I2C timeout handling and recovery completed.
+//        I2C SAMD Driver Read code completed.
+//        PCF8575 I2C GPIO driver added.
+//        EX-RAIL ANOUT function for triggering analogue
+//        HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
+//        Installable HAL OLED Display Driver.
+//        Layered HAL Drivers PCA9685pwm and Servo added for 
+//        (1) native PWM on PCA9685 module and
+//        (2) animations of servo movement via PCA9685pwm.
+//        This is intended to support EXIOExpander and also
+//        replace the existing PCA9685 driver.
 // 4.2.14 STM32F4xx fast ADC read implementation
 // 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
