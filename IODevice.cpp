@@ -322,7 +322,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
     }
     // Check for overlapping I2C address
     if (i2cAddress && dev->_I2CAddress==i2cAddress) {
-      DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),i2cAddress);
+      DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),(int)i2cAddress);
       return false;
     } 
   }

@@ -104,7 +104,7 @@ private:
   }
   
   void _display() override {
-    DIAG(F("Rotary Encoder I2C:x%x v%d.%d.%d Configured on Vpin:%d-%d %S"), _I2CAddress, _majorVer, _minorVer, _patchVer,
+    DIAG(F("Rotary Encoder I2C:x%x v%d.%d.%d Configured on Vpin:%d-%d %S"), (int)_I2CAddress, _majorVer, _minorVer, _patchVer,
       (int)_firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 

@@ -131,7 +131,7 @@ private:
           break;
       }
     } else { // error status
-      DIAG(F("ADS111x I2C:x%d Error:%d %S"), (int)_I2CAddress, status, I2CManager.getErrorMessage(status));
+      DIAG(F("ADS111x I2C:x%x Error:%d %S"), (int)_I2CAddress, status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     }
   }
