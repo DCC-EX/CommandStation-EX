@@ -72,6 +72,7 @@ private:
     _i2cAddress = i2cAddress;
     // To save RAM, space for servo configuration is not allocated unless a pin is used.
     // Initialise the pointers to NULL.
+    _servoData = (ServoData**) calloc(_nPins, sizeof(ServoData*));
     for (int i=0; i<_nPins; i++) {
       _servoData[i] = NULL;
     }
@@ -137,28 +138,6 @@ private:
         DIAG(F("Vpin %d cannot be used as a digital input pin"), (int)vpin);
         return false;
       }
-    } else if (configType == CONFIGURE_SERVO) {
-      if (paramCount != 5) return false;
-#ifdef DIAG_IO
-      DIAG(F("Servo: Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
-        vpin, params[0], params[1], params[2], params[3], params[4]);
-#endif
-      struct ServoData *s = _servoData[pin];
-      if (s == NULL) { 
-        _servoData[pin] = (struct ServoData *)calloc(1, sizeof(struct ServoData));
-        s = _servoData[pin];
-        if (!s) return false; // Check for failed memory allocation
-      }
-      s->activePosition = params[0];
-      s->inactivePosition = params[1];
-      s->profile = params[2];
-      s->duration = params[3];
-      int state = params[4];
-      if (state != -1) {
-        // Position servo to initial state
-        IODevice::writeAnalogue(pin, state ? s->activePosition : s->inactivePosition, 0, 0);
-      } 
-      return true;
     } else {
       return false;
     }
@@ -366,7 +345,8 @@ private:
     uint16_t duration; // time (tenths of a second) for animation to complete.
   }; // 14 bytes per element, i.e. per pin in use
   
-  struct ServoData *_servoData[256];
+  // struct ServoData *_servoData[256];
+  ServoData** _servoData;
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
   
