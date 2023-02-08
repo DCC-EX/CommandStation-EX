@@ -189,8 +189,13 @@ private:
     I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1);
     _command1Buffer[0] = EXIORDAN;
     I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1);
-    for (int pin=0; pin<_nPins; pin++) {
-      updatePosition(pin);
+    if ((currentMicros - _lastRefresh) / 1000UL > refreshInterval) {
+      _lastRefresh = currentMicros;
+      for (int pin=0; pin<_nPins; pin++) {
+        if (_servoData[pin] != NULL) {
+          updatePosition(pin);
+        }
+      }
     }
   }
 
@@ -249,16 +254,8 @@ private:
     }
   }
 
-  // void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
     int pin = vpin - _firstVpin;
-    /* Initial _writeAnalogue here
-    _command4Buffer[0] = EXIOWRAN;
-    _command4Buffer[1] = pin;
-    _command4Buffer[2] = value & 0xFF;
-    _command4Buffer[3] = value >> 8;
-    I2CManager.write(_i2cAddress, _command4Buffer, 4);
-    */
 #ifdef DIAG_IO
     DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
       vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
@@ -320,12 +317,6 @@ private:
       s->stepNumber++;
     } else if (s->stepNumber == s->numSteps + _catchupSteps 
               && s->currentPosition != 0) {
-  // #ifdef IO_SWITCH_OFF_SERVO
-  //     if ((s->currentProfile & NoPowerOff) == 0) {
-  //       // Wait has finished, so switch off PWM to prevent annoying servo buzz
-  //       // _slaveDevice->writeAnalogue(_firstSlavePin+pin, 0);
-  //     }
-  // #endif
       s->numSteps = 0;  // Done now.
     }
   }
@@ -380,9 +371,9 @@ private:
   struct ServoData *_servoData[256];
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
-  // static const uint8_t FLASH _bounceProfile[30];
-
+  
   const unsigned int refreshInterval = 50; // refresh every 50ms
+  unsigned long _lastRefresh = 0;
 
   // Profile for a bouncing signal or turnout
   // The profile below is in the range 0-100% and should be combined with the desired limits
