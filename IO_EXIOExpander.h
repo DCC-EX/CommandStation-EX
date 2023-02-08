@@ -182,10 +182,14 @@ private:
   // Main loop, collect both digital and analogue pin states continuously (faster sensor/input reads)
   void _loop(unsigned long currentMicros) override {
     (void)currentMicros; // remove warning
+    if (_deviceState == DEVSTATE_FAILED) return;
     _command1Buffer[0] = EXIORDD;
     I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1);
     _command1Buffer[0] = EXIORDAN;
     I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1);
+    for (int pin=0; pin<_nPins; pin++) {
+      updatePosition(pin);
+    }
   }
 
   // Obtain the correct analogue input value
@@ -203,20 +207,43 @@ private:
 
   // Obtain the correct digital input value
   int _read(VPIN vpin) override {
+    if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
-    uint8_t pinByte = pin / 8;
-    bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
-    return value;
+    if (_servoData[pin] == NULL) {
+      uint8_t pinByte = pin / 8;
+      bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
+      return value;
+    } else {
+      struct ServoData *s = _servoData[pin];
+      if (s == NULL) {
+        return false; // No structure means no animation!
+      } else {
+        return (s->stepNumber < s->numSteps);
+      }
+    }
   }
 
   void _write(VPIN vpin, int value) override {
+    if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    _digitalOutBuffer[0] = EXIOWRD;
-    _digitalOutBuffer[1] = pin;
-    _digitalOutBuffer[2] = value;
-    I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
-    if (_command1Buffer[0] != EXIORDY) {
-      DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
+    if (_servoData[pin] == NULL) {
+      _digitalOutBuffer[0] = EXIOWRD;
+      _digitalOutBuffer[1] = pin;
+      _digitalOutBuffer[2] = value;
+      I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+      if (_command1Buffer[0] != EXIORDY) {
+        DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
+      }
+    } else {
+      if (value) value = 1;
+      struct ServoData *s = _servoData[pin];
+      if (s != NULL) {
+        // Use configured parameters
+        this->_writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
+      }  else {
+        /* simulate digital pin on PWM */
+        this->_writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
+      }
     }
   }
 
@@ -230,12 +257,11 @@ private:
     _command4Buffer[3] = value >> 8;
     I2CManager.write(_i2cAddress, _command4Buffer, 4);
     */
-    #ifdef DIAG_IO
+#ifdef DIAG_IO
     DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
       vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
-    #endif
+#endif
     if (_deviceState == DEVSTATE_FAILED) return;
-    int pin = vpin - _firstVpin;
     if (value > 4095) value = 4095;
     else if (value < 0) value = 0;
 
@@ -286,20 +312,28 @@ private:
         s->currentPosition = map(s->stepNumber, 0, s->numSteps, s->fromPosition, s->toPosition);
       }
       // Send servo command
-      // _slaveDevice->writeAnalogue(_firstSlavePin+pin, s->currentPosition);
+      this->writePWM(pin, s->currentPosition);
     } else if (s->stepNumber < s->numSteps + _catchupSteps) {
       // We've finished animation, wait a little to allow servo to catch up
       s->stepNumber++;
     } else if (s->stepNumber == s->numSteps + _catchupSteps 
               && s->currentPosition != 0) {
-  #ifdef IO_SWITCH_OFF_SERVO
-      if ((s->currentProfile & NoPowerOff) == 0) {
-        // Wait has finished, so switch off PWM to prevent annoying servo buzz
-        // _slaveDevice->writeAnalogue(_firstSlavePin+pin, 0);
-      }
-  #endif
+  // #ifdef IO_SWITCH_OFF_SERVO
+  //     if ((s->currentProfile & NoPowerOff) == 0) {
+  //       // Wait has finished, so switch off PWM to prevent annoying servo buzz
+  //       // _slaveDevice->writeAnalogue(_firstSlavePin+pin, 0);
+  //     }
+  // #endif
       s->numSteps = 0;  // Done now.
     }
+  }
+
+  void writePWM(int pin, uint16_t value) {
+    _command4Buffer[0] = EXIOWRAN;
+    _command4Buffer[1] = pin;
+    _command4Buffer[2] = value & 0xFF;
+    _command4Buffer[3] = value >> 8;
+    I2CManager.write(_i2cAddress, _command4Buffer, 4);
   }
 
   void _display() override {
@@ -341,18 +375,18 @@ private:
     uint16_t duration; // time (tenths of a second) for animation to complete.
   }; // 14 bytes per element, i.e. per pin in use
   
-  struct ServoData *_servoData [16];
+  struct ServoData *_servoData[256];
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
-  static const uint8_t FLASH _bounceProfile[30];
+  // static const uint8_t FLASH _bounceProfile[30];
 
   const unsigned int refreshInterval = 50; // refresh every 50ms
 
-// Profile for a bouncing signal or turnout
-// The profile below is in the range 0-100% and should be combined with the desired limits
-// of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
-// i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
-const byte FLASH EXIOExpander::_bounceProfile[30] = 
+  // Profile for a bouncing signal or turnout
+  // The profile below is in the range 0-100% and should be combined with the desired limits
+  // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
+  // i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
+  const byte FLASH _bounceProfile[30] = 
     {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
 
   // EX-IOExpander protocol flags
