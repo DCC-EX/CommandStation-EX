@@ -55,7 +55,7 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
   // Calculate a rise time appropriate to the requested bus speed
   int t_rise;
   if (i2cClockSpeed < 200000L) {
-    i2cClockSpeed = 100000L;
+    i2cClockSpeed = 100000L;    // NB: this overrides a "force clock" of lower than 100KHz!
     t_rise = 1000;
   } else if (i2cClockSpeed < 800000L) {
     i2cClockSpeed = 400000L;
