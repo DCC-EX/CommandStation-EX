@@ -178,6 +178,7 @@ private:
 
   // Obtain the correct analogue input value
   int _readAnalogue(VPIN vpin) override {
+    if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
     uint8_t _pinLSBByte;
     for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
@@ -232,6 +233,7 @@ private:
   }
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+    if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
 #ifdef DIAG_IO
     DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
@@ -345,7 +347,6 @@ private:
     uint16_t duration; // time (tenths of a second) for animation to complete.
   }; // 14 bytes per element, i.e. per pin in use
   
-  // struct ServoData *_servoData[256];
   ServoData** _servoData;
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
