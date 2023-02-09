@@ -179,19 +179,17 @@ void halSetup() {
   //=======================================================================
   // The following directive defines an EX-IOExpander instance.
   //=======================================================================
-  // EXIOExpander::create(VPIN, Number of VPINs, I2C Address, Digital pin count, Analogue pin count)
+  // EXIOExpander::create(VPIN, Number of VPINs, I2C Address)
   //
   // The parameters are:
   //   VPIN=an available Vpin
-  //   Number of VPINs=Digital pin count + Analogue pin count (must match device in use as per documentation)
+  //   Number of VPINs=pin count (must match device in use as per documentation)
   //   I2C address=an available I2C address (default 0x65)
   //
   // Note that the I2C address is defined in the EX-IOExpander code, and 0x65 is the default.
-  // The first example is for an Arduino Nano with the default pin allocations.
-  // The second example is for an Arduino Uno using all pins as digital only.
+  // The example is for an Arduino Nano.
 
-  //EXIOExpander::create(800, 18, 0x65, 12, 6);
-  //EXIOExpander::create(820, 16, 0x66, 16, 0);
+  //EXIOExpander::create(800, 18, 0x65);
 
 
   //=======================================================================
