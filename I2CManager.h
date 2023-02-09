@@ -192,6 +192,7 @@ private:
   I2CMux _muxNumber;
   I2CSubBus _subBus;
   uint8_t _deviceAddress;
+  static char addressBuffer[];
 public:
   // Constructors
   // For I2CAddress "{Mux_0, SubBus_0, 0x23}" syntax.
@@ -228,6 +229,41 @@ public:
   // (device assumed to be on the main I2C bus or on a currently selected subbus.
   operator uint8_t () const { return _deviceAddress; }
 
+  // Conversion from I2CAddress to char* (uses static storage so only 
+  // one conversion can be done at a time).  So don't call it twice in a
+  // single DIAG statement for example.
+  const char* toString() { 
+    char *ptr = addressBuffer;
+    if (_muxNumber != I2CMux_None) {
+      strcpy_P(ptr, (const char*)F("{I2CMux_"));
+      ptr += 8;
+      *ptr++ = '0' + _muxNumber;
+      strcpy_P(ptr, (const char*)F(",Subbus_"));
+      ptr += 8;
+      if (_subBus == SubBus_None) {
+        strcpy_P(ptr, (const char*)F("None"));
+        ptr += 4;
+      } else if (_subBus == SubBus_All) {
+        strcpy_P(ptr, (const char*)F("All"));
+        ptr += 3;
+      } else 
+        *ptr++ = '0' + _subBus;
+      *ptr++ = ',';
+    }
+    uint8_t temp = _deviceAddress;
+    *ptr++ = '0';
+    *ptr++ = 'x';
+    for (uint8_t index = 0; index<2; index++) {
+      uint8_t bits = (temp >> 4) & 0x0f;
+      *ptr++ = bits > 9 ? bits-10+'A' : bits+'0';
+      temp <<= 4;
+    }
+    if (_muxNumber != I2CMux_None)
+      *ptr++ = '}';
+    *ptr = 0; // terminate string
+    return addressBuffer;
+  }
+
   // Comparison operator
   int operator == (I2CAddress &a) const {
     if (_deviceAddress != a._deviceAddress) 
@@ -249,8 +285,50 @@ public:
 };
 
 #else
+struct I2CAddress {
+private:
+  uint8_t _deviceAddress;
+  static char addressBuffer[];
+public:
+  // Constructors
+  I2CAddress(const uint8_t deviceAddress) {
+    _deviceAddress = deviceAddress;
+  }
+
+  // Basic constructor
+  I2CAddress() : I2CAddress(0) {}
+
+  // Conversion operator from I2CAddress to uint8_t
+  // For "uint8_t address = i2cAddress;" syntax
+  operator uint8_t () const { return _deviceAddress; }
+
+  // Conversion from I2CAddress to char* (uses static storage so only 
+  // one conversion can be done at a time).  So don't call it twice in a
+  // single DIAG statement for example.
+  const char* toString () { 
+    char *ptr = addressBuffer;
+    // Just display hex value, two digits.
+    uint8_t temp = _deviceAddress;
+    *ptr++ = '0';
+    *ptr++ = 'x';
+    for (uint8_t index = 0; index<2; index++) {
+      uint8_t bits = (temp >> 4) & 0xf;
+      *ptr++ = bits > 9 ? bits-10+'a' : bits+'0';
+      temp <<= 4;
+    }
+    *ptr = 0; // terminate string
+    return addressBuffer;
+  }
+
+  // Comparison operator
+  int operator == (I2CAddress &a) const {
+    if (_deviceAddress != a._deviceAddress) 
+      return false; // Different device address so no match
+    return true;  // Same address on same mux and same subbus
+  }
+};
 // Legacy single-byte I2C address type for compact code and smooth changeover.
-typedef uint8_t I2CAddress;
+//typedef uint8_t I2CAddress;
 #endif // I2C_EXTENDED_ADDRESS
 
 

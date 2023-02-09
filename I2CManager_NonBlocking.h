@@ -210,7 +210,7 @@ void I2CManagerClass::checkForTimeout() {
       unsigned long elapsed = micros() - startTime;
       if (elapsed > timeout) { 
 #ifdef DIAG_IO
-        //DIAG(F("I2CManager Timeout on x%x, I2CRB=x%x"), (int)t->i2cAddress, currentRequest);
+        //DIAG(F("I2CManager Timeout on %s, I2CRB=%s"), t->i2cAddress.toString(), currentRequest);
 #endif
         // Excessive time. Dequeue request
         queueHead = t->nextRequest;

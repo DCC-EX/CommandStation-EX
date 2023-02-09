@@ -95,7 +95,7 @@ void I2CManagerClass::begin(void) {
     for (uint8_t addr=0x08; addr<0x78; addr++) {
       if (exists(addr)) {
         found = true; 
-        DIAG(F("I2C Device found at x%x, %S?"), addr, guessI2CDeviceType(addr));
+        DIAG(F("I2C Device found at 0x%x, %S?"), addr, guessI2CDeviceType(addr));
       }
     }
 
@@ -117,7 +117,7 @@ void I2CManagerClass::begin(void) {
                 // Device responds when subbus selected but not when
                 // subbus disabled - ergo it must be on subbus!
                 found = true; 
-                DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,x%x}, %S?"), 
+                DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,0x%x}, %S?"), 
                   muxNo, subBus, addr, guessI2CDeviceType(addr));
               }
               // Re-select subbus
@@ -265,6 +265,9 @@ I2CManagerClass I2CManager = I2CManagerClass();
 // When retries are enabled, the timeout applies to each
 // try, and failure from timeout does not get retried.
 unsigned long I2CManagerClass::timeout = 100000UL;
+
+// Buffer for conversion of I2CAddress to char*.
+/* static */ char I2CAddress::addressBuffer[30];
 
 #if defined(I2C_EXTENDED_ADDRESS)
 // Count of I2C multiplexers found when initialising.  If there is only one
