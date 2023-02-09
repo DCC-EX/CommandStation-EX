@@ -85,7 +85,7 @@ private:
       _display();
 #endif
     } else {
-      DIAG(F("ADS111x device not found, I2C:%x"), (int)_I2CAddress);
+      DIAG(F("ADS111x device not found, I2C:%s"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -131,7 +131,7 @@ private:
           break;
       }
     } else { // error status
-      DIAG(F("ADS111x I2C:x%x Error:%d %S"), (int)_I2CAddress, status, I2CManager.getErrorMessage(status));
+      DIAG(F("ADS111x I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -142,7 +142,7 @@ private:
   }
   
   void _display() override {
-    DIAG(F("ADS111x I2C:x%x Configured on Vpins:%d-%d %S"), (int)_I2CAddress, _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("ADS111x I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 

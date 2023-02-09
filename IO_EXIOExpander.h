@@ -63,7 +63,7 @@ private:
   EXIOExpander(VPIN firstVpin, int nPins, I2CAddress i2cAddress, int numDigitalPins, int numAnaloguePins) {
     _firstVpin = firstVpin;
     _nPins = nPins;
-    _i2cAddress = i2cAddress;
+    _I2CAddress = i2cAddress;
     _numDigitalPins = numDigitalPins;
     _numAnaloguePins = numAnaloguePins;
     _digitalPinBytes = (numDigitalPins+7)/8;
@@ -76,31 +76,31 @@ private:
   void _begin() {
     // Initialise EX-IOExander device
     I2CManager.begin();
-    if (I2CManager.exists(_i2cAddress)) {
+    if (I2CManager.exists(_I2CAddress)) {
       _digitalOutBuffer[0] = EXIOINIT;
       _digitalOutBuffer[1] = _numDigitalPins;
       _digitalOutBuffer[2] = _numAnaloguePins;
       // Send config, if EXIORDY returned, we're good, otherwise go offline
-      I2CManager.read(_i2cAddress, _commandBuffer, 1, _digitalOutBuffer, 3);
+      I2CManager.read(_I2CAddress, _commandBuffer, 1, _digitalOutBuffer, 3);
       if (_commandBuffer[0] != EXIORDY) {
-        DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), (int)_i2cAddress);
+        DIAG(F("ERROR configuring EX-IOExpander device, I2C:%s"), _I2CAddress.toString());
         _deviceState = DEVSTATE_FAILED;
         return;
       }
       // Attempt to get version, if we don't get it, we don't care, don't go offline
       // Using digital in buffer in reverse to save RAM
       _commandBuffer[0] = EXIOVER;
-      I2CManager.read(_i2cAddress, _versionBuffer, 3, _commandBuffer, 1);
+      I2CManager.read(_I2CAddress, _versionBuffer, 3, _commandBuffer, 1);
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
-      DIAG(F("EX-IOExpander device found, I2C:x%x, Version v%d.%d.%d"),
-          (int)_i2cAddress, _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
+      DIAG(F("EX-IOExpander device found, I2C:%s, Version v%d.%d.%d"),
+          _I2CAddress.toString(), _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
-      DIAG(F("EX-IOExpander device not found, I2C:x%x"), (int)_i2cAddress);
+      DIAG(F("EX-IOExpander device not found, I2C:%s"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -117,7 +117,7 @@ private:
     _digitalOutBuffer[0] = EXIODPUP;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = pullup;
-    I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
+    I2CManager.write(_I2CAddress, _digitalOutBuffer, 3);
     return true;
   }
 
@@ -130,16 +130,16 @@ private:
     int pin = vpin - _firstVpin;
     _analogueOutBuffer[0] = EXIOENAN;
     _analogueOutBuffer[1] = pin;
-    I2CManager.write(_i2cAddress, _analogueOutBuffer, 2);
+    I2CManager.write(_I2CAddress, _analogueOutBuffer, 2);
     return true;
   }
 
   void _loop(unsigned long currentMicros) override {
     (void)currentMicros; // remove warning
     _commandBuffer[0] = EXIORDD;
-    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _commandBuffer, 1);
+    I2CManager.read(_I2CAddress, _digitalInputStates, _digitalPinBytes, _commandBuffer, 1);
     _commandBuffer[0] = EXIORDAN;
-    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _commandBuffer, 1);
+    I2CManager.read(_I2CAddress, _analogueInputStates, _analoguePinBytes, _commandBuffer, 1);
   }
 
   int _readAnalogue(VPIN vpin) override {
@@ -164,7 +164,7 @@ private:
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = value;
-    I2CManager.write(_i2cAddress, _digitalOutBuffer, 3);
+    I2CManager.write(_I2CAddress, _digitalOutBuffer, 3);
   }
 
   void _display() override {
@@ -176,14 +176,13 @@ private:
       _firstAnalogue = _firstVpin + _numDigitalPins;
       _lastAnalogue = _firstVpin + _nPins - 1;
     }
-    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d: %d Digital Vpins %d-%d, %d Analogue Vpins %d-%d %S"),
-              (int)_i2cAddress, _majorVer, _minorVer, _patchVer,
+    DIAG(F("EX-IOExpander I2C:%s v%d.%d.%d: %d Digital Vpins %d-%d, %d Analogue Vpins %d-%d %S"),
+              _I2CAddress.toString(), _majorVer, _minorVer, _patchVer,
               _numDigitalPins, _firstVpin, _firstVpin + _numDigitalPins - 1,
               _numAnaloguePins, _firstAnalogue, _lastAnalogue,
               _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
-  uint8_t _i2cAddress;
   uint8_t _numDigitalPins;
   uint8_t _numAnaloguePins;
   byte _analogueOutBuffer[2];

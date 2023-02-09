@@ -239,13 +239,13 @@ void PCA9685::updatePosition(uint8_t pin) {
 // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
 void PCA9685::writeDevice(uint8_t pin, int value) {
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 I2C:x%x WriteDevice Pin:%d Value:%d"), (int)_I2CAddress, pin, value);
+  DIAG(F("PCA9685 I2C:%s WriteDevice Pin:%d Value:%d"), _I2CAddress.toString(), pin, value);
   #endif
   // Wait for previous request to complete
   uint8_t status = requestBlock.wait();
   if (status != I2C_STATUS_OK) {
     _deviceState = DEVSTATE_FAILED;
-    DIAG(F("PCA9685 I2C:x%x failed %S"), (int)_I2CAddress, I2CManager.getErrorMessage(status));
+    DIAG(F("PCA9685 I2C:%s failed %S"), _I2CAddress.toString(), I2CManager.getErrorMessage(status));
   } else {
     // Set up new request.
     outputBuffer[0] = PCA9685_FIRST_SERVO + 4 * pin;
@@ -259,7 +259,7 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:x%x Configured on Vpins:%d-%d %S"), (int)_I2CAddress, (int)_firstVpin, 
+  DIAG(F("PCA9685 I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

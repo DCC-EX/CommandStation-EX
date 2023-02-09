@@ -86,32 +86,38 @@ protected:
     _buffer = (char *)calloc(_numRows*_numCols, sizeof(char));
     _rowGeneration = (uint8_t *)calloc(_numRows, sizeof(uint8_t));
     _lastRowGeneration = (uint8_t *)calloc(_numRows, sizeof(uint8_t));
+    // Fill buffer with spaces
+    memset(_buffer, ' ', _numCols*_numRows);
+
+    // Create OLED driver
+    oled = new SSD1306AsciiWire();
+
+    // Clear the entire screen
+    oled->clearNative();
     
     addDevice(this);
   }
-
+  
   // Device-specific initialisation
   void _begin() override {
-    // Create OLED driver
-    oled = new SSD1306AsciiWire();
     // Initialise device
     if (oled->begin(_I2CAddress, _width, _height)) {
       // Store pointer to this object into CS display hook, so that we
       // will intercept any subsequent calls to lcdDisplay methods.
       DisplayInterface::lcdDisplay = this;
 
-      DIAG(F("OLEDDisplay installed on address x%x"), (int)_I2CAddress);
-
-      // First clear the entire screen
-      oled->clearNative();
+      DIAG(F("OLEDDisplay installed on address %s"), _I2CAddress.toString());
 
       // Set first two lines on screen
       LCD(0,F("DCC++ EX v%S"),F(VERSION));
       LCD(1,F("Lic GPLv3"));
+
+      // Force all rows to be redrawn
+      for (uint8_t row=0; row<_numRows; row++)
+        _rowGeneration[row]++;
     }
   }
 
-  
   void _loop(unsigned long) override {
 
     // Loop through the buffer and if a row has changed
@@ -196,7 +202,7 @@ protected:
 
   // Display information about the device.
   void _display() {
-    DIAG(F("OLEDDisplay Configured addr x%x"), (int)_I2CAddress);
+    DIAG(F("OLEDDisplay Configured addr %s"), _I2CAddress.toString());
   }
 
 };

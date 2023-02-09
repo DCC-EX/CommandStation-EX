@@ -101,8 +101,8 @@ private:
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
     (void)param1; (void)param2;  // suppress compiler warning
     #ifdef DIAG_IO
-    DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
-      vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
+    DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d %S"), 
+      vpin, value, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
     #endif
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
@@ -114,7 +114,7 @@ private:
 
   // Display details of this device.
   void _display() override {
-    DIAG(F("PCA9685pwm I2C:x%x Configured on Vpins:%d-%d %S"), (int)_I2CAddress, (int)_firstVpin, 
+    DIAG(F("PCA9685pwm I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
@@ -122,13 +122,13 @@ private:
   // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
   void writeDevice(uint8_t pin, int value) {
     #ifdef DIAG_IO
-    DIAG(F("PCA9685pwm I2C:x%x WriteDevice Pin:%d Value:%d"), (int)_I2CAddress, pin, value);
+    DIAG(F("PCA9685pwm I2C:%s WriteDevice Pin:%d Value:%d"), _I2CAddress.toString(), pin, value);
     #endif
     // Wait for previous request to complete
     uint8_t status = requestBlock.wait();
     if (status != I2C_STATUS_OK) {
       _deviceState = DEVSTATE_FAILED;
-      DIAG(F("PCA9685pwm I2C:x%x failed %S"), (int)_I2CAddress, I2CManager.getErrorMessage(status));
+      DIAG(F("PCA9685pwm I2C:%s failed %S"), _I2CAddress.toString(), I2CManager.getErrorMessage(status));
     } else {
       // Set up new request.
       outputBuffer[0] = PCA9685_FIRST_SERVO + 4 * pin;

@@ -159,7 +159,9 @@ protected:
     if (_xshutPin == VPIN_NONE && I2CManager.exists(_I2CAddress)) {
       // Device already present on this address, so skip the address initialisation.
       _nextState = STATE_CONFIGUREDEVICE;
-    }
+    } else
+      _nextState = STATE_INIT;
+
   }
 
   void _loop(unsigned long currentMicros) override {
@@ -171,7 +173,7 @@ protected:
         // If no XSHUT pin is configured, then only one device is supported.
         if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
         _nextState = STATE_RESTARTMODULE;
-        delayUntil(currentMicros+1000);
+        delayUntil(currentMicros+10000);
         break;
       case STATE_RESTARTMODULE:
         // On second entry, set XSHUT pin high to allow this module to restart.
@@ -183,9 +185,8 @@ protected:
         // shared flag accessible to all device instances.
         if (_addressConfigInProgress) return;
         _addressConfigInProgress = true;
-        // Set XSHUT pin (if connected).  Because of supply voltage differences,
-        // drive the signal through the digital output's pull-up resistor.
-        if (_xshutPin != VPIN_NONE) IODevice::configureInput(_xshutPin, 1);
+        // Set XSHUT pin (if connected) to bring the module out of sleep mode.
+        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
         // Allow the module time to restart
         delayUntil(currentMicros+10000);
         _nextState = STATE_CONFIGUREADDRESS;
@@ -202,15 +203,12 @@ protected:
           I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
           #endif
         }
-        _addressConfigInProgress = false;
-        _nextState = STATE_SKIP;
-        break;
-      case STATE_SKIP:
-        // Do nothing on the third entry.
-        _nextState = STATE_CONFIGUREDEVICE;
+        delayUntil(currentMicros+10000);
         break;
       case STATE_CONFIGUREDEVICE:
-        // On next entry, check if device address has been set.
+        // Allow next VL53L0X device to be configured
+        _addressConfigInProgress = false;
+        // Now check if device address has been set.
         if (I2CManager.exists(_I2CAddress)) {
           #ifdef DIAG_IO
           _display();
@@ -220,7 +218,7 @@ protected:
             read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
           _nextState = STATE_INITIATESCAN;
         } else {
-          DIAG(F("VL53L0X I2C:x%x device not responding"), (int)_I2CAddress);
+          DIAG(F("VL53L0X I2C:%s device not responding"), _I2CAddress.toString());
           _deviceState = DEVSTATE_FAILED;
           _nextState = STATE_FAILED;
         }
@@ -285,7 +283,7 @@ protected:
 
   // Function to report a failed I2C operation.  Put the device off-line.
   void reportError(uint8_t status) {
-    DIAG(F("VL53L0X I2C:x%x Error:%d %S"), (int)_I2CAddress, status, I2CManager.getErrorMessage(status));
+    DIAG(F("VL53L0X I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
     _deviceState = DEVSTATE_FAILED;
     _value = false;
   }
@@ -314,8 +312,8 @@ protected:
   }
 
   void _display() override {
-    DIAG(F("VL53L0X I2C:x%x Configured on Vpins:%d-%d On:%dmm Off:%dmm %S"),
-      (int)_I2CAddress, _firstVpin, _firstVpin+_nPins-1, _onThreshold, _offThreshold,
+    DIAG(F("VL53L0X I2C:%s Configured on Vpins:%d-%d On:%dmm Off:%dmm %S"),
+      _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1, _onThreshold, _offThreshold,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   

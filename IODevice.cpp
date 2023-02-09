@@ -74,6 +74,13 @@ void IODevice::begin() {
   MCP23017::create(180, 16, 0x21);
 }
 
+// reset() function to reinitialise all devices
+void IODevice::reset() {
+  for (IODevice *dev = _firstDevice; dev != NULL; dev = dev->_nextDevice) {
+    dev->_begin();
+  }
+}
+
 // Overarching static loop() method for the IODevice subsystem.  Works through the
 // list of installed devices and calls their individual _loop() method.
 // Devices may or may not implement this, but if they do it is useful for things like animations 
@@ -302,9 +309,9 @@ IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
 
 // Private helper function to check for vpin overlap. Run during setup only.
 // returns true if pins DONT overlap with existing device
-bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) {
+bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddress) {
 #ifdef DIAG_IO
-  DIAG(F("Check no overlap %d %d 0x%x"), firstPin,nPins,i2cAddress);
+  DIAG(F("Check no overlap %d %d %s"), firstPin,nPins,i2cAddress.toString());
 #endif
   VPIN lastPin=firstPin+nPins-1;
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
@@ -322,7 +329,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
     }
     // Check for overlapping I2C address
     if (i2cAddress && dev->_I2CAddress==i2cAddress) {
-      DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),(int)i2cAddress);
+      DIAG(F("WARNING HAL Overlap. i2c Addr %s ignored."),i2cAddress.toString());
       return false;
     } 
   }

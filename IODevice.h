@@ -113,6 +113,10 @@ public:
   // Also, the _begin method of any existing instances is called from here.
   static void begin();
 
+  // reset function to invoke all driver's _begin() methods again, to
+  // reset the state of the devices and reinitialise.
+  static void reset();
+
   // configure is used invoke an IODevice instance's _configure method
   static bool configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]);
 
@@ -165,7 +169,7 @@ public:
   void setGPIOInterruptPin(int16_t pinNumber);
 
   // Method to check if pins will overlap before creating new device. 
-  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, uint8_t i2cAddress=0);
+  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, I2CAddress i2cAddress=0);
 
   // Method used by IODevice filters to locate slave pins that may be overlayed by their own
   // pin range.  

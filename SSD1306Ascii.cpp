@@ -197,7 +197,7 @@ bool SSD1306AsciiWire::begin(I2CAddress address, int width, int height) {
     return false;
   }
   // Device found
-  DIAG(F("%dx%d OLED display configured on I2C:x%x"), m_displayWidth, m_displayHeight, (int)m_i2cAddr);
+  DIAG(F("%dx%d OLED display configured on I2C:%s"), m_displayWidth, m_displayHeight, m_i2cAddr.toString());
   clear();
   return true;
 }
