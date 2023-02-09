@@ -64,8 +64,8 @@
   #define DISABLE_EEPROM
 #endif
 // Teensy support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+ #define I2C_USE_WIRE
 #endif
 #elif defined(ARDUINO_TEENSY35)
 #define ARDUINO_TYPE "TEENSY35"
@@ -76,8 +76,8 @@
   #define DISABLE_EEPROM
 #endif
 // Teensy support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+ #define I2C_USE_WIRE
 #endif
 #elif defined(ARDUINO_TEENSY36)
 #define ARDUINO_TYPE "TEENSY36"
@@ -87,8 +87,8 @@
   #define DISABLE_EEPROM
 #endif
 // Teensy support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+ #define I2C_USE_WIRE
 #endif
 #elif defined(ARDUINO_TEENSY40)
 #define ARDUINO_TYPE "TEENSY40"
@@ -98,8 +98,8 @@
   #define DISABLE_EEPROM
 #endif
 // Teensy support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+ #define I2C_USE_WIRE
 #endif
 #elif defined(ARDUINO_TEENSY41)
 #define ARDUINO_TYPE "TEENSY41"
@@ -109,8 +109,8 @@
   #define DISABLE_EEPROM
 #endif
 // Teensy support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
-  #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+  #define I2C_USE_WIRE
 #endif
 #elif defined(ARDUINO_ARCH_ESP8266)
 #define ARDUINO_TYPE "ESP8266"
@@ -135,8 +135,8 @@
   #define DISABLE_EEPROM
 #endif
 // STM32 support for native I2C is awaiting development 
-#ifndef I2C_NO_INTERRUPTS
- #define I2C_NO_INTERRUPTS
+#ifndef I2C_USE_WIRE
+ #define I2C_USE_WIRE
 #endif
 
 
