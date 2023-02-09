@@ -35,6 +35,9 @@
 #elif defined(ARDUINO_ARCH_SAMD)
 #include "I2CManager_NonBlocking.h"
 #include "I2CManager_SAMD.h"      // SAMD21 for now... SAMD51 as well later
+#elif defined(ARDUINO_ARCH_STM32)
+#include "I2CManager_NonBlocking.h"
+#include "I2CManager_STM32.h"      // STM32F411RE for now... more later
 #else
 #define I2C_USE_WIRE
 #include "I2CManager_Wire.h"      // Other platforms
