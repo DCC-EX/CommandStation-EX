@@ -948,6 +948,8 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     case HASH_KEYWORD_HAL: 
         if (p[1] == HASH_KEYWORD_SHOW) 
           IODevice::DumpAll();
+        else if (p[1] == HASH_KEYWORD_RESET)
+          IODevice::reset();
         break;
 #endif
 

@@ -19,6 +19,7 @@
 //        (2) animations of servo movement via PCA9685pwm.
 //        This is intended to support EXIOExpander and also
 //        replace the existing PCA9685 driver.
+//        Add <D HAL RESET> to reinitialise failed drivers.
 // 4.2.14 STM32F4xx fast ADC read implementation
 // 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL
