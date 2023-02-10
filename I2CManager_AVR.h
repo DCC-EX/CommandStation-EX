@@ -95,17 +95,16 @@ void I2CManagerClass::I2C_init()
  *  Initiate a start bit for transmission.
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStart() {
-  bytesToSend = currentRequest->writeLen;
-  bytesToReceive = currentRequest->readLen;
   rxCount = 0;
   txCount = 0;
-#if defined(I2C_EXTENDED_ADDRESS) 
+#if defined(I2C_EXTENDED_ADDRESSXXXXXXXXXXXX) 
   if (currentRequest->i2cAddress.muxNumber() != I2CMux_None) {
     // Send request to multiplexer
     muxPhase = MuxPhase_PROLOG;  // When start bit interrupt comes in, send SLA+W to MUX
   } else
     muxPhase = 0;
 #endif
+  while(TWCR & (1<<TWSTO)) {} // Wait for any in-progress stop to finish
   TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
 
 }
@@ -138,134 +137,30 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
   uint8_t twsr = TWSR & 0xF8;
 
-#if defined(I2C_EXTENDED_ADDRESS)
-  // First process the MUX state machine.
-  if (muxPhase > MuxPhase_OFF) {
-    switch (twsr) {
-      case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
-        if (muxPhase == MuxPhase_PROLOG) {
-          // Send MUX selecter mask to follow address
-          I2CSubBus subBus = currentRequest->i2cAddress.subBus();
-          TWDR =  (subBus==SubBus_All) ? 0xff :
-                  (subBus==SubBus_None) ? 0x00 :
-                  1 << subBus;
-          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
-          return;
-        } else if (muxPhase == MuxPhase_EPILOG) {
-          TWDR = 0x00;  // Disable all subbuses
-          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
-          return;
-        }
-        break;
 
-      case TWI_MTX_DATA_ACK:      // Data byte has been transmitted and ACK received
-        if (muxPhase == MuxPhase_PASSTHRU && !bytesToSend && !bytesToReceive) {
-          if (_muxCount > 1) {
-            // Device transaction complete, prepare to deselect MUX by sending start bit
-            TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTO)|(1<<TWSTA);
-            muxPhase = MuxPhase_EPILOG;
-            return;
-          } else {
-            // Only one MUX so no need to deselect it.  Just finish off
-            TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);
-            state = I2C_STATE_COMPLETED;
-            muxPhase = MuxPhase_OFF;
-            return;
-          }
-        } else if (muxPhase == MuxPhase_PROLOG) {
-          // If device address is zero, then finish here (i.e. send mux subBus mask only)
-          if (currentRequest->i2cAddress.deviceAddress() == 0) {
-            // Send stop and post rb.
-            TWDR = 0xff;
-            TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);
-            state = I2C_STATE_COMPLETED;
-            muxPhase = MuxPhase_OFF;
-            return;
-          } else {
-            // Send stop followed by start, preparing to send device address
-            TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTO)|(1<<TWSTA);
-            muxPhase = MuxPhase_PASSTHRU;
-            return;
-          } 
-        } else if (muxPhase == MuxPhase_EPILOG) {
-          // Send stop and allow RB to be posted.
-          TWDR = 0xff;
-          TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);
-          state = I2C_STATE_COMPLETED;
-          muxPhase = MuxPhase_OFF;
-          return;
-        }
-        break;
-
-      case TWI_MRX_DATA_NACK:     // Last data byte has been received and NACK transmitted
-        // We must read the data before processing the MUX, so do this here.
-        if (bytesToReceive > 0) {
-          currentRequest->readBuffer[rxCount++] = TWDR;
-          bytesToReceive--;
-        }
-        if (muxPhase == MuxPhase_PASSTHRU && _muxCount > 1) {
-          // Prepare to transmit epilog to mux - first send the stop bit and start bit
-          //  (we don't need to reset mux if there is only one.
-          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTO)|(1<<TWSTA);
-          muxPhase = MuxPhase_EPILOG;
-          return;
-        } else {
-          // Finish up.
-          TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);  // Send Stop
-          state = I2C_STATE_COMPLETED;
-          muxPhase = MuxPhase_OFF;
-          return;
-        }
-        break;
-        
-      case TWI_START:             // START has been transmitted  
-      case TWI_REP_START:         // Repeated START has been transmitted
-        if (muxPhase == MuxPhase_PROLOG || muxPhase == MuxPhase_EPILOG) {
-          // Send multiplexer address first
-          uint8_t muxAddress = I2C_MUX_BASE_ADDRESS + currentRequest->i2cAddress.muxNumber();
-          TWDR = (muxAddress << 1) | 0;   // MUXaddress+Write
-          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
-          return;
-        }
-        break;
-   
-      case TWI_MTX_ADR_NACK:      // SLA+W has been transmitted and NACK received
-      case TWI_MRX_ADR_NACK:      // SLA+R has been transmitted and NACK received
-      case TWI_MTX_DATA_NACK:     // Data byte has been transmitted and NACK received
-        if (muxPhase == MuxPhase_PASSTHRU) {
-          // Data transaction was nak'd, update RB status but continue with mux cleardown
-          completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
-          TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTO)|(1<<TWSTA);  // Send Stop and start
-          muxPhase = MuxPhase_EPILOG;
-          return;
-        } else if (muxPhase > MuxPhase_EPILOG) {
-          // Mux Cleardown was NAK'd, send stop and then finish.
-          TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);  // Send Stop
-          state = I2C_STATE_COMPLETED;
-          return;
-        }
-        break;
-
-    }
-  }
-  #endif
-
-  // Now the main I2C interrupt handler, used for the device communications.
-  //
+  // Main I2C interrupt handler, used for the device communications.
+  // The following variables are used:
+  //    bytesToSend, bytesToReceive (R/W)
+  //    txCount, rxCount (W)
+  //    deviceAddress (R)
+  //    sendBuffer, receiveBuffer (R)
+  //    operation (R)
+  //    state, completionStatus (W)
+  // 
   // Cases are ordered so that the most frequently used ones are tested first.
   switch (twsr) {
     case TWI_MTX_DATA_ACK:      // Data byte has been transmitted and ACK received
     case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
       if (bytesToSend) {  // Send first.
         if (operation == OPERATION_SEND_P)
-          TWDR = GETFLASH(currentRequest->writeBuffer + (txCount++));
+          TWDR = GETFLASH(sendBuffer + (txCount++));
         else
-          TWDR = currentRequest->writeBuffer[txCount++];
+          TWDR = sendBuffer[txCount++];
         bytesToSend--;
         TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
       } else if (bytesToReceive) {  // All sent, anything to receive?
         // Don't need to wait for stop, as the interface won't send the start until
-        // any in-progress stop condition has been sent.
+        // any in-progress stop condition from previous interrupts has been sent.
         TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTA);  // Send Start
       } else {  
          // Nothing left to send or receive
@@ -276,7 +171,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
     case TWI_MRX_DATA_ACK:      // Data byte has been received and ACK transmitted
       if (bytesToReceive > 0) {
-        currentRequest->readBuffer[rxCount++] = TWDR;
+        receiveBuffer[rxCount++] = TWDR;
         bytesToReceive--;
       }
       /* fallthrough */
@@ -292,7 +187,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
     case TWI_MRX_DATA_NACK:     // Data byte has been received and NACK transmitted
       if (bytesToReceive > 0) {
-        currentRequest->readBuffer[rxCount++] = TWDR;
+        receiveBuffer[rxCount++] = TWDR;
         bytesToReceive--;
       }
       TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
@@ -301,15 +196,12 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
     case TWI_START:             // START has been transmitted  
     case TWI_REP_START:         // Repeated START has been transmitted
-      {
-        // Set up address and R/W
-        uint8_t deviceAddress = currentRequest->i2cAddress;
-        if (operation == OPERATION_READ || (operation==OPERATION_REQUEST && !bytesToSend))
-          TWDR = (deviceAddress << 1) | 1; // SLA+R
-        else
-          TWDR = (deviceAddress << 1) | 0; // SLA+W
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
-      }
+      // Set up address and R/W
+      if (operation == OPERATION_READ || (operation==OPERATION_REQUEST && !bytesToSend))
+        TWDR = (deviceAddress << 1) | 1; // SLA+R
+      else
+        TWDR = (deviceAddress << 1) | 0; // SLA+W
+      TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
       break;
 
     case TWI_MTX_ADR_NACK:      // SLA+W has been transmitted and NACK received
@@ -336,7 +228,10 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
 #if defined(I2C_USE_INTERRUPTS)
 ISR(TWI_vect) {
-  I2CManagerClass::handleInterrupt();
+  // pinMode(2,OUTPUT);
+  // digitalWrite(2,1);
+  I2CManager.handleInterrupt();
+  // digitalWrite(2,0);
 }
 #endif
 

@@ -79,7 +79,7 @@ for ( MY_ATOMIC_RESTORESTATE, _done =  my_iCliRetVal();                   \
 enum MuxPhase: uint8_t {
   MuxPhase_OFF = 0,
   MuxPhase_PROLOG,
-  MuxPhase_PASSTHRU,
+  MuxPhase_PAYLOAD,
   MuxPhase_EPILOG,
 } ;
 
@@ -107,7 +107,7 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
 }
 
 /***************************************************************************
- * Helper function to start operations, if the I2C interface is free and
+ * Start an I2C transaction, if the I2C interface is free and
  * there is a queued request to be processed.
  * If there's an I2C clock speed change pending, then implement it before 
  * starting the operation.
@@ -126,9 +126,47 @@ void I2CManagerClass::startTransaction() {
       startTime = micros();
       currentRequest = queueHead;
       rxCount = txCount = 0;
-      // Copy key fields to static data for speed.
-      operation = currentRequest->operation & OPERATION_MASK;
+
       // Start the I2C process going.
+#if defined(I2C_EXTENDED_ADDRESS)
+      I2CMux muxNumber = currentRequest->i2cAddress.muxNumber();
+      if (muxNumber != I2CMux_None) {
+        muxPhase = MuxPhase_PROLOG;
+        uint8_t subBus = currentRequest->i2cAddress.subBus();
+        muxData[0] = (subBus == SubBus_All) ? 0xff :
+                     (subBus == SubBus_None) ? 0x00 :
+#if defined(I2CMUX_PCA9547)
+                      0x08 | subBus;
+#elif defined(I2CMUX_PCA9542) || defined(I2CMUX_PCA9544)
+                      0x04 | subBus;   // NB Only 2 or 4 subbuses respectively
+#else
+                      // Default behaviour for most MUXs is to use a mask
+                      // with a bit set for the subBus to be enabled
+                      1 << subBus;
+#endif
+        deviceAddress = I2C_MUX_BASE_ADDRESS + muxNumber;
+        sendBuffer = &muxData[0];
+        bytesToSend = 1;
+        bytesToReceive = 0;
+        operation = OPERATION_SEND;
+      } else {
+        // Send/receive payload for device only.
+        muxPhase = MuxPhase_OFF;
+        deviceAddress = currentRequest->i2cAddress;
+        sendBuffer = currentRequest->writeBuffer;
+        bytesToSend = currentRequest->writeLen;
+        receiveBuffer = currentRequest->readBuffer;
+        bytesToReceive = currentRequest->readLen;
+        operation = currentRequest->operation & OPERATION_MASK;
+      } 
+#else
+      deviceAddress = currentRequest->i2cAddress;
+      sendBuffer = currentRequest->writeBuffer;
+      bytesToSend = currentRequest->writeLen;
+      receiveBuffer = currentRequest->readBuffer;
+      bytesToReceive = currentRequest->readLen;
+      operation = currentRequest->operation & OPERATION_MASK;
+#endif
       I2C_sendStart();
     }
   }
@@ -194,7 +232,7 @@ uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_
  *   reset before the read.
  ***************************************************************************/
 void I2CManagerClass::setTimeout(unsigned long value) { 
-  timeout = value; 
+  _timeout = value; 
 };
 
 /***************************************************************************
@@ -205,12 +243,12 @@ void I2CManagerClass::setTimeout(unsigned long value) {
 void I2CManagerClass::checkForTimeout() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     I2CRB *t = queueHead;
-    if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && timeout > 0) {
+    if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && _timeout > 0) {
       // Check for timeout
       unsigned long elapsed = micros() - startTime;
-      if (elapsed > timeout) { 
+      if (elapsed > _timeout) { 
 #ifdef DIAG_IO
-        //DIAG(F("I2CManager Timeout on %s, I2CRB=%s"), t->i2cAddress.toString(), currentRequest);
+        //DIAG(F("I2CManager Timeout on %s"), t->i2cAddress.toString());
 #endif
         // Excessive time. Dequeue request
         queueHead = t->nextRequest;
@@ -267,19 +305,58 @@ void I2CManagerClass::handleInterrupt() {
 
   // Check if current request has completed.  If there's a current request
   // and state isn't active then state contains the completion status of the request.
-  if (state != I2C_STATE_ACTIVE && currentRequest != NULL) {
+  if (state == I2C_STATE_COMPLETED && currentRequest != NULL) {
     // Operation has completed.
     if (completionStatus == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
       || currentRequest->operation & OPERATION_NORETRY) 
     {
       // Status is OK, or has failed and retry count exceeded, or retries disabled.
+#if defined(I2C_EXTENDED_ADDRESS)
+      if (muxPhase == MuxPhase_PROLOG ) {
+        overallStatus = completionStatus;
+        uint8_t rbAddress = currentRequest->i2cAddress.deviceAddress();
+        if (completionStatus == I2C_STATUS_OK && rbAddress != 0) {
+          // Mux request OK, start handling application request.
+          muxPhase = MuxPhase_PAYLOAD;
+          deviceAddress = rbAddress;
+          sendBuffer = currentRequest->writeBuffer;
+          bytesToSend = currentRequest->writeLen;
+          bytesToReceive = currentRequest->readLen;
+          operation = currentRequest->operation & OPERATION_MASK;
+          state = I2C_STATE_ACTIVE;
+          I2C_sendStart();
+          return;
+        } 
+      } else if (muxPhase == MuxPhase_PAYLOAD) {
+        // Application request completed, now send epilogue to mux
+        overallStatus = completionStatus;
+        currentRequest->nBytes = rxCount;  // Save number of bytes read into rb
+        muxPhase = MuxPhase_EPILOG;
+        deviceAddress = I2C_MUX_BASE_ADDRESS + currentRequest->i2cAddress.muxNumber();
+        muxData[0] = 0x00;
+        sendBuffer = &muxData[0];
+        bytesToSend = 1;
+        bytesToReceive = 0;
+        operation = OPERATION_SEND;
+        state = I2C_STATE_ACTIVE;
+        I2C_sendStart();
+        return;
+      } else if (muxPhase == MuxPhase_EPILOG) {
+        // Epilog finished, ignore completionStatus
+        muxPhase = MuxPhase_OFF;
+      } else
+        overallStatus = completionStatus;
+#else
+      overallStatus = completionStatus;
+      currentRequest->nBytes = rxCount;
+#endif
+          
       // Remove completed request from head of queue
       I2CRB * t = queueHead;
       if (t == currentRequest) {
         queueHead = t->nextRequest;
         if (!queueHead) queueTail = queueHead;
-        t->nBytes = rxCount;
-        t->status = completionStatus;
+        t->status = overallStatus;
         
         // I2C state machine is now free for next request
         currentRequest = NULL;
@@ -295,28 +372,10 @@ void I2CManagerClass::handleInterrupt() {
 
   if (state == I2C_STATE_FREE && queueHead != NULL) {
     // Allow any pending interrupts before starting the next request.
-    interrupts();
+    //interrupts();
     // Start next request
     I2CManager.startTransaction();
   }
 }
-
-// Fields in I2CManager class specific to Non-blocking implementation.
-I2CRB * volatile I2CManagerClass::queueHead = NULL;
-I2CRB * volatile I2CManagerClass::queueTail = NULL;
-I2CRB * volatile I2CManagerClass::currentRequest = NULL;
-volatile uint8_t I2CManagerClass::state = I2C_STATE_FREE;
-uint8_t I2CManagerClass::completionStatus;
-volatile uint8_t I2CManagerClass::txCount;
-volatile uint8_t I2CManagerClass::rxCount;
-volatile uint8_t I2CManagerClass::operation;
-volatile uint8_t I2CManagerClass::bytesToSend;
-volatile uint8_t I2CManagerClass::bytesToReceive;
-volatile unsigned long I2CManagerClass::startTime;
-uint8_t I2CManagerClass::retryCounter = 0;
-
-#if defined(I2C_EXTENDED_ADDRESS) 
-volatile uint8_t I2CManagerClass::muxPhase = 0;
-#endif
 
 #endif

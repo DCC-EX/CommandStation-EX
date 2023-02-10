@@ -38,7 +38,7 @@
  ***************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_ARCH_STM32)
 void I2C1_IRQHandler() {
-  I2CManagerClass::handleInterrupt();
+  I2CManager.handleInterrupt();
 }
 #endif
 
@@ -151,8 +151,7 @@ void I2CManagerClass::I2C_init()
 void I2CManagerClass::I2C_sendStart() {
 
   // Set counters here in case this is a retry.
-  bytesToSend = currentRequest->writeLen;
-  bytesToReceive = currentRequest->readLen;
+  rxCount = txCount = 0;
   uint8_t temp;
 
   // On a single-master I2C bus, the start bit won't be sent until the bus 
@@ -168,7 +167,7 @@ void I2CManagerClass::I2C_sendStart() {
     s->CR1 |= (1<<10);  // Enable the ACK
     s->CR1 |= (1<<8);  // Generate START
     // Send address with read flag (1) or'd in
-    s->DR = (currentRequest->i2cAddress << 1) | 1;  //  send the address
+    s->DR = (deviceAddress << 1) | 1;  //  send the address
     while (!(s->SR1 & (1<<1)));  // wait for ADDR bit to set
     // Special case for 1 byte reads!
     if (bytesToReceive == 1)
@@ -185,7 +184,7 @@ void I2CManagerClass::I2C_sendStart() {
     s->CR1 |= (1<<10);  // Enable the ACK
     s->CR1 |= (1<<8);  // Generate START
     // Send address with write flag (0) or'd in
-    s->DR = (currentRequest->i2cAddress << 1) | 0;  //  send the address
+    s->DR = (deviceAddress << 1) | 0;  //  send the address
     while (!(s->SR1 & (1<<1)));  // wait for ADDR bit to set
     temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
   }
@@ -219,44 +218,48 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
 
+  if (!s) return;
+  
   if (s->SR1 && (1<<9)) {
     // Arbitration lost, restart
     I2C_sendStart();   // Reinitiate request
   } else if (s->SR1 && (1<<8)) {
     // Bus error
-    state = I2C_STATUS_BUS_ERROR;
+    completionStatus = I2C_STATUS_BUS_ERROR;
+    state = I2C_STATE_COMPLETED;
   } else if (s->SR1 && (1<<7)) {
     // Master write completed
     if (s->SR1 && (1<<10)) {
       // Nacked, send stop.
       I2C_sendStop();
-      state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      state = I2C_STATE_COMPLETED;
     } else if (bytesToSend) {
       // Acked, so send next byte
-      s->DR = currentRequest->writeBuffer[txCount++];
+      s->DR = sendBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
-      // s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+      // s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
     } else {
       // Check both TxE/BTF == 1 before generating stop
       while (!(s->SR1 && (1<<7)));    // Check TxE
       while (!(s->SR1 && (1<<2)));    // Check BTF
-      // No more data to send/receive. Initiate a STOP condition.
+      // No more data to send/receive. Initiate a STOP condition and finish
       I2C_sendStop();
-      state = I2C_STATUS_OK; // Done
+      state = I2C_STATE_COMPLETED;
     }
   } else if (s->SR1 && (1<<6)) {
     // Master read completed without errors
     if (bytesToReceive == 1) {
 //      s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
       I2C_sendStop();  // send stop
-      currentRequest->readBuffer[rxCount++] = s->DR;  // Store received byte
+      receiveBuffer[rxCount++] = s->DR;  // Store received byte
       bytesToReceive = 0;
-      state = I2C_STATUS_OK; // done
+      state = I2C_STATE_COMPLETED;
     } else if (bytesToReceive) {
 //      s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
-      currentRequest->readBuffer[rxCount++] = s->DR;  // Store received byte
+      receiveBuffer[rxCount++] = s->DR;  // Store received byte
       bytesToReceive--;
     }
   }

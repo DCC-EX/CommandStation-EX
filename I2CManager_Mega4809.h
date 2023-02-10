@@ -68,8 +68,6 @@ void I2CManagerClass::I2C_init()
  *  Initiate a start bit for transmission, followed by address and R/W
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStart() {
-  bytesToSend = currentRequest->writeLen;
-  bytesToReceive = currentRequest->readLen;
   txCount = 0;
   rxCount = 0;
 
@@ -123,11 +121,11 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
     } else if (bytesToSend) {
       // Acked, so send next byte (don't need to use GETFLASH)
-      TWI0.MDATA = currentRequest->writeBuffer[txCount++];
+      TWI0.MDATA = sendBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
-      TWI0.MADDR = (currentRequest->i2cAddress << 1) | 1;
+      TWI0.MADDR = (deviceAddress << 1) | 1;
     } else {
       // No more data to send/receive. Initiate a STOP condition.
       TWI0.MCTRLB = TWI_MCMD_STOP_gc;
@@ -136,7 +134,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
   } else if (currentStatus & TWI_RIF_bm) {
     // Master read completed without errors
     if (bytesToReceive) {
-      currentRequest->readBuffer[rxCount++] = TWI0.MDATA;  // Store received byte
+      receiveBuffer[rxCount++] = TWI0.MDATA;  // Store received byte
       bytesToReceive--;
     } 
     if (bytesToReceive) {
@@ -155,7 +153,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
  *  Interrupt handler.
  ***************************************************************************/
 ISR(TWI0_TWIM_vect) {
-  I2CManagerClass::handleInterrupt();
+  I2CManager.handleInterrupt();
 }
 
 #endif

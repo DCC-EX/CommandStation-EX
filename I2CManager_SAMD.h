@@ -153,8 +153,6 @@ void I2CManagerClass::I2C_init()
 void I2CManagerClass::I2C_sendStart() {
 
   // Set counters here in case this is a retry.
-  bytesToSend = currentRequest->writeLen;
-  bytesToReceive = currentRequest->readLen;
   txCount = 0;
   rxCount = 0;
 
@@ -220,11 +218,11 @@ void I2CManagerClass::I2C_handleInterrupt() {
       state = I2C_STATE_COMPLETED;  // Completed with error
     } else if (bytesToSend) {
       // Acked, so send next byte
-      s->I2CM.DATA.bit.DATA = currentRequest->writeBuffer[txCount++];
+      s->I2CM.DATA.bit.DATA = sendBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
-      s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+      s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
     } else {
       // No more data to send/receive. Initiate a STOP condition
       I2C_sendStop();
@@ -235,12 +233,12 @@ void I2CManagerClass::I2C_handleInterrupt() {
     if (bytesToReceive == 1) {
       s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
       I2C_sendStop();  // send stop
-      currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
+      receiveBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
       bytesToReceive = 0;
       state = I2C_STATE_COMPLETED;  // Completed OK
     } else if (bytesToReceive) {
       s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
-      currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
+      receiveBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
       bytesToReceive--;
     }
   }
