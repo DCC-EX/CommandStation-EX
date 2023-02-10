@@ -230,7 +230,7 @@ void I2CManagerClass::I2C_sendStart() {
     s->CR1 |= I2C_CR1_START;  // Generate START
     // Send address with write flag (0) or'd in
     s->DR = (deviceAddress << 1) | 0;  //  send the address
-    while (!(s->SR1 && (1<<I2C_SR1_ADDR)));  // wait for ADDR bit to set
+    while (!(s->SR1 && I2C_SR1_ADDR));  // wait for ADDR bit to set
     temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
   }
 }
@@ -270,7 +270,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     // Bus error
     completionStatus = I2C_STATUS_BUS_ERROR;
     state = I2C_STATE_COMPLETED;
-  } else if (s->SR1 && (1<<I2C_SR1_TXE)) {
+  } else if (s->SR1 && I2C_SR1_TXE) {
     // Master write completed
     if (s->SR1 && (1<<10)) {
       // Nacked, send stop.
