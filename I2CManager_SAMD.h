@@ -38,7 +38,7 @@
  ***************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_SAMD_ZERO)
 void SERCOM3_Handler() {
-  I2CManagerClass::handleInterrupt();
+  I2CManager.handleInterrupt();
 }
 #endif
 
@@ -166,11 +166,11 @@ void I2CManagerClass::I2C_sendStart() {
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
   {
     // Send start and address with read flag (1) or'd in
-    s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+    s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
   }
   else {
     // Send start and address with write flag (0) or'd in
-    s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1ul) | 0;
+    s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1ul) | 0;
   }
 }
 
