@@ -24,51 +24,39 @@
 
 #include <Arduino.h>
 #include "I2CManager.h"
-#if defined(I2C_USE_INTERRUPTS)
-// atomic.h isn't available on SAMD, and likely others too...
+
+// Support for atomic isolation (i.e. a block with interrupts disabled).
+// E.g. 
+//       ATOMIC_BLOCK() {
+//         doSomethingWithInterruptsDisabled();
+//       }
+// This has the advantage over simple noInterrupts/Interrupts that the
+// original interrupt state is restored when the block finishes.
+//
 #if defined(__AVR__)
-#include <util/atomic.h>
+static inline uint8_t _deferInterrupts(void) {
+  noInterrupts();
+  return 1;
+}
+#define ATOMIC_BLOCK(x) \
+for (uint8_t _int_saved=SREG,_ToDo=_deferInterrupts(); \
+    _ToDo; _ToDo=0, SREG=_int_saved)
 #elif defined(__arm__)
-// Helper assembly language functions
-static __inline__ uint8_t my_iSeiRetVal(void)
-{
-    __asm__ __volatile__ ("cpsie i" ::);
-    return 1;
+static inline uint8_t _deferInterrupts(void) {
+  __set_PRIMASK(1);
+  return 1;
 }
-
-static __inline__ uint8_t my_iCliRetVal(void)
-{
-    __asm__ __volatile__ ("cpsid i" ::);
-    return 1;
-}
-
-static __inline__ void my_iRestore(const  uint32_t *__s)
-{
-    uint32_t res = *__s;
-    __asm__ __volatile__ ("MSR primask, %0" : : "r" (res) );
-}
-
-static __inline__ uint32_t my_iGetIReg( void )
-{
-        uint32_t reg;
-        __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );
-        return reg;
-}
-// Macros for atomic isolation
-#define MY_ATOMIC_RESTORESTATE uint32_t _sa_saved                           \
-    __attribute__((__cleanup__(my_iRestore))) = my_iGetIReg()
-
-#define ATOMIC()                                                         \
-for ( MY_ATOMIC_RESTORESTATE, _done =  my_iCliRetVal();                   \
-    _done; _done = 0 )
-
-#define ATOMIC_BLOCK(x) ATOMIC()
-#define ATOMIC_RESTORESTATE
-#endif
+#define ATOMIC_BLOCK(x) \
+for (uint8_t _int_saved=__get_PRIMASK(),_ToDo=_deferInterrupts(); \
+    _ToDo; _ToDo=0, __set_PRIMASK(_int_saved))
 #else
-#define ATOMIC_BLOCK(x) 
-#define ATOMIC_RESTORESTATE
+// If it's not a recognised target, don't use interrupts in the I2C driver
+#ifdef I2C_USE_INTERRUPTS
+//#undef I2C_USE_INTERRUPTS
 #endif
+#define ATOMIC_BLOCK(x) // expand to nothing.
+#endif
+
 
 // This module is only compiled if I2C_USE_WIRE is not defined, so undefine it here
 // to get intellisense to work correctly.
@@ -178,7 +166,6 @@ void I2CManagerClass::startTransaction() {
 void I2CManagerClass::queueRequest(I2CRB *req) {
   req->status = I2C_STATUS_PENDING;
   req->nextRequest = NULL;
-
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if (!queueTail) 
       queueHead = queueTail = req;  // Only item on queue
