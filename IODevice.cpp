@@ -76,7 +76,12 @@ void IODevice::begin() {
 
 // reset() function to reinitialise all devices
 void IODevice::reset() {
+  unsigned long currentMicros = micros();
   for (IODevice *dev = _firstDevice; dev != NULL; dev = dev->_nextDevice) {
+    dev->_deviceState = DEVSTATE_DORMANT;
+    // First ensure that _loop isn't delaying 
+    dev->delayUntil(currentMicros);
+    // Then invoke _begin to restart driver
     dev->_begin();
   }
 }
