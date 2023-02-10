@@ -48,7 +48,7 @@
  * using a distinct I2C address.  The process is described in ST Microelectronics application
  * note AN4846.
  * 
- * WARNING:  If the device's XSHUT pin is not connected, then it is very prone to noise, 
+ * WARNING:  If the device's XSHUT pin is not connected, then it may be prone to noise, 
  * and the device may reset spontaneously or when handled and the device will stop responding
  * on its allocated address.  If you're not using XSHUT, then tie it to +5V via a resistor 
  * (should be tied to +2.8V strictly). Some manufacturers (Adafruit and Polulu for example)
@@ -112,16 +112,15 @@ private:
 
   // State machine states.
   enum : uint8_t {
-    STATE_INIT = 0,
-    STATE_RESTARTMODULE = 1,
-    STATE_CONFIGUREADDRESS = 2,
-    STATE_SKIP = 3,
-    STATE_CONFIGUREDEVICE = 4,
-    STATE_INITIATESCAN = 5,
-    STATE_CHECKSTATUS = 6,
-    STATE_GETRESULTS = 7,
-    STATE_DECODERESULTS = 8,
-    STATE_FAILED = 9,
+    STATE_INIT,
+    STATE_RESTARTMODULE,
+    STATE_CONFIGUREADDRESS,
+    STATE_CONFIGUREDEVICE,
+    STATE_INITIATESCAN,
+    STATE_CHECKSTATUS,
+    STATE_GETRESULTS,
+    STATE_DECODERESULTS,
+    STATE_FAILED,
   };
 
   // Register addresses
@@ -156,24 +155,25 @@ protected:
     //  the device will not respond on its default address if it has 
     //  already been changed.  Therefore, we skip the address configuration if the 
     //  desired address is already responding on the I2C bus.
-    if (_xshutPin == VPIN_NONE && I2CManager.exists(_I2CAddress)) {
-      // Device already present on this address, so skip the address initialisation.
-      _nextState = STATE_CONFIGUREDEVICE;
-    } else
-      _nextState = STATE_INIT;
-
+    _nextState = STATE_INIT;
+    _addressConfigInProgress = false;
   }
 
   void _loop(unsigned long currentMicros) override {
     uint8_t status;
     switch (_nextState) {
       case STATE_INIT:
-        // On first entry to loop, reset this module by pulling XSHUT low.  Each module
-        // will be addressed in turn, until all are in the reset state.
-        // If no XSHUT pin is configured, then only one device is supported.
-        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
-        _nextState = STATE_RESTARTMODULE;
-        delayUntil(currentMicros+10000);
+        if (I2CManager.exists(_I2CAddress)) {
+          // Device already present on the nominated address, so skip the address initialisation.
+          _nextState = STATE_CONFIGUREDEVICE;
+        } else {
+          // On first entry to loop, reset this module by pulling XSHUT low.  Each module
+          // will be addressed in turn, until all are in the reset state.
+          // If no XSHUT pin is configured, then only one device is supported.
+          if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 0);
+          _nextState = STATE_RESTARTMODULE;
+          delayUntil(currentMicros+10000);
+        }
         break;
       case STATE_RESTARTMODULE:
         // On second entry, set XSHUT pin high to allow this module to restart.
@@ -183,13 +183,14 @@ protected:
         // instead of driving the output directly.
         // Ensure XSHUT is set for only one module at a time by using a
         // shared flag accessible to all device instances.
-        if (_addressConfigInProgress) return;
-        _addressConfigInProgress = true;
-        // Set XSHUT pin (if connected) to bring the module out of sleep mode.
-        if (_xshutPin != VPIN_NONE) IODevice::write(_xshutPin, 1);
-        // Allow the module time to restart
-        delayUntil(currentMicros+10000);
-        _nextState = STATE_CONFIGUREADDRESS;
+        if (!_addressConfigInProgress) {
+          _addressConfigInProgress = true;
+          // Set XSHUT pin (if connected) to bring the module out of sleep mode.
+          if (_xshutPin != VPIN_NONE) IODevice::configureInput(_xshutPin, true);
+          // Allow the module time to restart
+          delayUntil(currentMicros+10000);
+          _nextState = STATE_CONFIGUREADDRESS;
+        }
         break;
       case STATE_CONFIGUREADDRESS:
         // Then write the desired I2C address to the device, while this is the only
@@ -198,12 +199,16 @@ protected:
           #if defined(I2C_EXTENDED_ADDRESS)
           // Add subbus reference for desired address to the device default address.
           I2CAddress defaultAddress = {_I2CAddress, VL53L0X_I2C_DEFAULT_ADDRESS};
-          I2CManager.write(defaultAddress, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress.deviceAddress());
+          status = I2CManager.write(defaultAddress, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress.deviceAddress());
           #else
-          I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
+          status = I2CManager.write(VL53L0X_I2C_DEFAULT_ADDRESS, 2, VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS, _I2CAddress);
           #endif
+          if (status != I2C_STATUS_OK) {
+            reportError(status);
+          }
         }
         delayUntil(currentMicros+10000);
+        _nextState = STATE_CONFIGUREDEVICE;
         break;
       case STATE_CONFIGUREDEVICE:
         // Allow next VL53L0X device to be configured
@@ -214,9 +219,12 @@ protected:
           _display();
           #endif
           // Set 2.8V mode
-          write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
+          status = write_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV, 
             read_reg(VL53L0X_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01);
-          _nextState = STATE_INITIATESCAN;
+          if (status != I2C_STATUS_OK) {
+            reportError(status);
+          } else
+            _nextState = STATE_INITIATESCAN;
         } else {
           DIAG(F("VL53L0X I2C:%s device not responding"), _I2CAddress.toString());
           _deviceState = DEVSTATE_FAILED;
@@ -235,7 +243,6 @@ protected:
         if (status == I2C_STATUS_PENDING) return; // try next time
         if (status != I2C_STATUS_OK) {
           reportError(status);
-          _nextState = STATE_FAILED;
         } else
           _nextState = STATE_GETRESULTS;
         delayUntil(currentMicros + 95000); // wait for 95 ms before checking.
@@ -244,7 +251,6 @@ protected:
         // Ranging completed.  Request results
         _outBuffer[0] = VL53L0X_REG_RESULT_RANGE_STATUS;
         I2CManager.read(_I2CAddress, _inBuffer, 12, _outBuffer, 1, &_rb);
-        _nextState = 3;
         delayUntil(currentMicros + 5000); // Allow 5ms to get data
         _nextState = STATE_DECODERESULTS;
         break;
@@ -269,7 +275,6 @@ protected:
           _nextState = STATE_INITIATESCAN;
         } else {
           reportError(status);
-          _nextState = STATE_FAILED;
         }
         break;
       case STATE_FAILED:
@@ -281,7 +286,7 @@ protected:
     }
   }
 
-  // Function to report a failed I2C operation.  Put the device off-line.
+  // Function to report a failed I2C operation.
   void reportError(uint8_t status) {
     DIAG(F("VL53L0X I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
     _deviceState = DEVSTATE_FAILED;
