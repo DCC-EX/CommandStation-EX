@@ -72,6 +72,10 @@ void I2CManagerClass::begin(void) {
     _beginCompleted = true;
     _initialise();
 
+    #if defined(I2C_USE_WIRE)
+    DIAG(F("I2CManager: Using Wire library"));
+    #endif
+
     // Check for short-circuits on I2C
     if (!digitalRead(SDA))
       DIAG(F("WARNING: Possible short-circuit on I2C SDA line"));
@@ -81,7 +85,7 @@ void I2CManagerClass::begin(void) {
     // Probe and list devices.  Use standard mode 
     //  (clock speed 100kHz) for best device compatibility.
     _setClock(100000);
-    unsigned long originalTimeout = timeout;
+    unsigned long originalTimeout = _timeout;
     setTimeout(1000);       // use 1ms timeout for probes
 
   #if defined(I2C_EXTENDED_ADDRESS)
@@ -110,7 +114,7 @@ void I2CManagerClass::begin(void) {
       uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
       if (exists(muxAddr)) {
         // Select Mux Subbus
-        for (uint8_t subBus=0; subBus<=7; subBus++) {
+        for (uint8_t subBus=0; subBus<=SubBus_No; subBus++) {
           muxSelectSubBus({(I2CMux)muxNo, (I2CSubBus)subBus});
           for (uint8_t addr=0x08; addr<0x78; addr++) {
             if (exists(addr)) {
@@ -261,25 +265,8 @@ const FSH *I2CManagerClass::getErrorMessage(uint8_t status) {
  ***************************************************************************/
 I2CManagerClass I2CManager = I2CManagerClass();
 
-// Default timeout 100ms on I2C request block completion.
-// A full 32-byte transmission takes about 8ms at 100kHz,
-// so this value allows lots of headroom.  
-// It can be modified by calling I2CManager.setTimeout() function.
-// When retries are enabled, the timeout applies to each
-// try, and failure from timeout does not get retried.
-unsigned long I2CManagerClass::timeout = 100000UL;
-
 // Buffer for conversion of I2CAddress to char*.
 /* static */ char I2CAddress::addressBuffer[30];
-
-#if defined(I2C_EXTENDED_ADDRESS)
-// Count of I2C multiplexers found when initialising.  If there is only one
-// MUX then the subbus does not de-selecting after use; however, if there
-// is two or more, then the subbus must be deselected to avoid multiple
-// sub-bus legs on different multiplexers being accessible simultaneously.
-uint8_t I2CManagerClass::_muxCount = 0;
-#endif
-
 
 /////////////////////////////////////////////////////////////////////////////
 // Helper functions associated with I2C Request Block
@@ -345,4 +332,17 @@ void I2CRB::suppressRetries(bool suppress) {
     this->operation |= OPERATION_NORETRY;
   else
     this->operation &= ~OPERATION_NORETRY;
+}
+
+
+// Helper function for converting a uint8_t to four characters (e.g. 0x23).
+void I2CAddress::toHex(const uint8_t value, char *buffer) {
+  char *ptr = buffer;
+  // Just display hex value, two digits.
+  *ptr++ = '0';
+  *ptr++ = 'x';
+  uint8_t bits = (value >> 4) & 0xf;
+  *ptr++ = bits > 9 ? bits-10+'a' : bits+'0';
+  bits = value & 0xf;
+  *ptr++ = bits > 9 ? bits-10+'a' : bits+'0';
 }

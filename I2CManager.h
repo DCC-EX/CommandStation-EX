@@ -23,6 +23,7 @@
 
 #include <inttypes.h>
 #include "FSH.h"
+#include "defines.h"
 
 /* 
  * Manager for I2C communications.  For portability, it allows use 
@@ -104,7 +105,7 @@
  * 
  *  Non-interrupting I2C:
  * 
- *  I2C may be operated without interrupts (undefine I2C_USE_INTERRUPTS).  Instead, the I2C state
+ *  Non-blocking I2C may be operated without interrupts (undefine I2C_USE_INTERRUPTS).  Instead, the I2C state
  *  machine handler, currently invoked from the interrupt service routine, is invoked from the loop() function.
  *  The speed at which I2C operations can be performed then becomes highly dependent on the frequency that 
  *  the loop() function is called, and may be adequate under some circumstances.  
@@ -151,6 +152,11 @@
 // I2C multiplexer support.
 /////////////////////////////////////////////////////////////////////////////////////
 
+// Currently only one bus supported, and one instance of I2CManager to handle it.
+enum I2CBus : uint8_t {
+    I2CBus_0 = 0,
+};
+
 // Currently I2CAddress supports one I2C bus, with up to eight
 // multipexers (MUX) attached.  Each MUX can have up to eight sub-buses.
 enum I2CMux : uint8_t {
@@ -168,12 +174,17 @@ enum I2CMux : uint8_t {
 enum I2CSubBus : uint8_t {
   SubBus_0 = 0,        // Enable individual sub-buses...
   SubBus_1 = 1,
+#if !defined(I2CMUX_PCA9542)
   SubBus_2 = 2,
   SubBus_3 = 3,
+#if !defined(I2CMUX_PCA9544)
   SubBus_4 = 4,
   SubBus_5 = 5,
   SubBus_6 = 6,
   SubBus_7 = 7,
+#endif
+#endif
+  SubBus_No,           // Number of subbuses (highest + 1)
   SubBus_None = 254,   // Disable all sub-buses on selected mux
   SubBus_All = 255,    // Enable all sub-buses
 };
@@ -189,14 +200,16 @@ enum I2CSubBus : uint8_t {
 struct I2CAddress {
 private:
   // Fields
+  I2CBus _busNumber;
   I2CMux _muxNumber;
   I2CSubBus _subBus;
   uint8_t _deviceAddress;
   static char addressBuffer[];
 public:
   // Constructors
-  // For I2CAddress "{Mux_0, SubBus_0, 0x23}" syntax.
-  I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus, const uint8_t deviceAddress) {
+  // For I2CAddress "{I2CBus_0, Mux_0, SubBus_0, 0x23}" syntax.
+  I2CAddress(const I2CBus busNumber, const I2CMux muxNumber, const I2CSubBus subBus, const uint8_t deviceAddress) {
+    _busNumber = busNumber;
     _muxNumber = muxNumber;
     _subBus = subBus;
     _deviceAddress = deviceAddress;
@@ -204,6 +217,10 @@ public:
 
   // Basic constructor
   I2CAddress() : I2CAddress(I2CMux_None, SubBus_None, 0) {}
+
+  // For I2CAddress "{Mux_0, SubBus_0, 0x23}" syntax.
+  I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus, const uint8_t deviceAddress) :
+    I2CAddress(I2CBus_0, muxNumber, subBus, deviceAddress) {}
 
   // For I2CAddress in form "{SubBus_0, 0x23}" - assume Mux0 (0x70)
   I2CAddress(I2CSubBus subBus, uint8_t deviceAddress) : 
@@ -214,6 +231,12 @@ public:
   // (device assumed to be on the main I2C bus).
   I2CAddress(const uint8_t deviceAddress) : 
     I2CAddress(I2CMux_None, SubBus_None, deviceAddress) {}
+    
+  // Conversion from uint8_t to I2CAddress
+  // For I2CAddress in form "{I2CBus_1, 0x23}"
+  // (device not connected via multiplexer).
+  I2CAddress(const I2CBus bus, const uint8_t deviceAddress) : 
+    I2CAddress(bus, I2CMux_None, SubBus_None, deviceAddress) {}
 
   // For I2CAddress in form "{I2CMux_0, SubBus_0}" (mux selector)
   I2CAddress(const I2CMux muxNumber, const I2CSubBus subBus) :
@@ -250,14 +273,8 @@ public:
         *ptr++ = '0' + _subBus;
       *ptr++ = ',';
     }
-    uint8_t temp = _deviceAddress;
-    *ptr++ = '0';
-    *ptr++ = 'x';
-    for (uint8_t index = 0; index<2; index++) {
-      uint8_t bits = (temp >> 4) & 0x0f;
-      *ptr++ = bits > 9 ? bits-10+'A' : bits+'0';
-      temp <<= 4;
-    }
+    toHex(_deviceAddress, ptr);
+    ptr += 4;
     if (_muxNumber != I2CMux_None)
       *ptr++ = '}';
     *ptr = 0; // terminate string
@@ -282,6 +299,10 @@ public:
   I2CMux muxNumber() { return _muxNumber; }
   I2CSubBus subBus() { return _subBus; }
   uint8_t deviceAddress() { return _deviceAddress; }
+
+private:
+  // Helper function for converting byte to four-character hex string (e.g. 0x23).
+  void toHex(const uint8_t value, char *buffer);
 };
 
 #else
@@ -308,14 +329,8 @@ public:
   const char* toString () { 
     char *ptr = addressBuffer;
     // Just display hex value, two digits.
-    uint8_t temp = _deviceAddress;
-    *ptr++ = '0';
-    *ptr++ = 'x';
-    for (uint8_t index = 0; index<2; index++) {
-      uint8_t bits = (temp >> 4) & 0xf;
-      *ptr++ = bits > 9 ? bits-10+'a' : bits+'0';
-      temp <<= 4;
-    }
+    toHex(_deviceAddress, ptr);
+    ptr += 4;
     *ptr = 0; // terminate string
     return addressBuffer;
   }
@@ -326,9 +341,10 @@ public:
       return false; // Different device address so no match
     return true;  // Same address on same mux and same subbus
   }
+private:
+  // Helper function for converting byte to four-character hex string (e.g. 0x23).
+  void toHex(const uint8_t value, char *buffer);
 };
-// Legacy single-byte I2C address type for compact code and smooth changeover.
-//typedef uint8_t I2CAddress;
 #endif // I2C_EXTENDED_ADDRESS
 
 
@@ -452,12 +468,19 @@ public:
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;
-  static uint8_t retryCounter;  // Count of retries
+  uint8_t retryCounter;  // Count of retries
   // Clock speed must be no higher than 400kHz on AVR. Higher is possible on 4809, SAMD
   // and STM32 but most popular I2C devices are 400kHz so in practice the higher speeds
   // will not be useful.  The speed can be overridden by I2CManager::forceClock().
   uint32_t _clockSpeed = I2C_FREQ;  
-  static unsigned long timeout; // Transaction timeout in microseconds.  0=disabled.
+  // Default timeout 100ms on I2C request block completion.
+  // A full 32-byte transmission takes about 8ms at 100kHz,
+  // so this value allows lots of headroom.  
+  // It can be modified by calling I2CManager.setTimeout() function.
+  // When retries are enabled, the timeout applies to each
+  // try, and failure from timeout does not get retried.
+  // A value of 0 means disable timeout monitoring.
+  unsigned long _timeout = 100000UL;
     
   // Finish off request block by waiting for completion and posting status.
   uint8_t finishRB(I2CRB *rb, uint8_t status);
@@ -466,7 +489,11 @@ private:
   void _setClock(unsigned long);
 
 #if defined(I2C_EXTENDED_ADDRESS)
-  static uint8_t _muxCount;
+// Count of I2C multiplexers found when initialising.  If there is only one
+// MUX then the subbus does not de-selecting after use; however, if there
+// are two or more, then the subbus must be deselected to avoid multiple
+// sub-bus legs on different multiplexers being accessible simultaneously.
+  uint8_t _muxCount = 0;
   uint8_t getMuxCount() { return _muxCount; }
 #endif
 
@@ -479,40 +506,56 @@ private:
     // Within the queue, each request's nextRequest field points to the 
     // next request, or NULL.
     // Mark volatile as they are updated by IRC and read/written elsewhere.
-    static I2CRB * volatile queueHead;
-    static I2CRB * volatile queueTail;
-    static volatile uint8_t state;
-    static uint8_t completionStatus;
+    I2CRB * volatile queueHead = NULL;
+    I2CRB * volatile queueTail = NULL;
 
-    static I2CRB * volatile currentRequest;
-    static volatile uint8_t txCount;
-    static volatile uint8_t rxCount;
-    static volatile uint8_t bytesToSend;
-    static volatile uint8_t bytesToReceive;
-    static volatile uint8_t operation;
-    static volatile unsigned long startTime;
-    static volatile uint8_t muxPhase;
+    // State is set to I2C_STATE_FREE when the interrupt handler has finished
+    // the current request and is ready to complete.
+    uint8_t state = I2C_STATE_FREE;
+
+    // CompletionStatus may be set by the interrupt handler at any time but is
+    // not written to the I2CRB until the state is I2C_STATE_FREE.
+    uint8_t completionStatus = I2C_STATUS_OK;
+    uint8_t overallStatus = I2C_STATUS_OK;
+
+    I2CRB * currentRequest = NULL;
+    uint8_t txCount = 0;
+    uint8_t rxCount = 0;
+    uint8_t bytesToSend = 0;
+    uint8_t bytesToReceive = 0;
+    uint8_t operation = 0;
+    unsigned long startTime = 0;
+    uint8_t muxPhase = 0;
+    uint8_t muxAddress = 0;
+    uint8_t muxData[1];
+    uint8_t deviceAddress;
+    const uint8_t *sendBuffer;
+    uint8_t *receiveBuffer;
 
     volatile uint32_t pendingClockSpeed = 0;
 
     void startTransaction();
     
     // Low-level hardware manipulation functions.
-    static void I2C_init();
-    static void I2C_setClock(unsigned long i2cClockSpeed);
-    static void I2C_handleInterrupt();
-    static void I2C_sendStart();
-    static void I2C_sendStop();
-    static void I2C_close();
+    void I2C_init();
+    void I2C_setClock(unsigned long i2cClockSpeed);
+    void I2C_handleInterrupt();
+    void I2C_sendStart();
+    void I2C_sendStop();
+    void I2C_close();
     
   public:
     // handleInterrupt needs to be public to be called from the ISR function!
-    static void handleInterrupt();
+    void handleInterrupt();
 #endif
 
 
 };
 
+// Pointer to class instance (Note: if there is more than one bus, each will have
+// its own instance of I2CManager, selected by the queueRequest function from
+// the I2CBus field within the request block's I2CAddress).
 extern I2CManagerClass I2CManager;
+
 
 #endif

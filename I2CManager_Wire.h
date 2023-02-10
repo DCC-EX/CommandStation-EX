@@ -41,7 +41,7 @@
 void I2CManagerClass::_initialise() {
   Wire.begin();
 #if defined(WIRE_HAS_TIMEOUT) 
-  Wire.setWireTimeout(timeout, true);
+  Wire.setWireTimeout(_timeout, true);
 #endif
 }
 
@@ -59,7 +59,7 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
  *   read is started.
  ***************************************************************************/
 void I2CManagerClass::setTimeout(unsigned long value) {
-  timeout = value;
+  _timeout = value;
 #if defined(WIRE_HAS_TIMEOUT) 
   Wire.setWireTimeout(value, true);
 #endif
