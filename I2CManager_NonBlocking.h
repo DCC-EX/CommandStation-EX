@@ -40,22 +40,23 @@ static inline uint8_t _deferInterrupts(void) {
   noInterrupts();
   return 1;
 }
-static inline void _enableInterruptsIf(uint8_t wasEnabled) {
-  if (wasEnabled) interrupts();
+static inline void _conditionalEnableInterrupts(bool *wasEnabled) {
+  if (*wasEnabled) interrupts();
 }
+#define ATOMIC_BLOCK(x) \
+for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) \
+            =_getInterruptState(),_ToDo=_deferInterrupts(); _ToDo; _ToDo=0)
+
 #if defined(__AVR__) // Nano, Uno, Mega2580, NanoEvery, etc.
-  #define ATOMIC_BLOCK(x) \
-  for (bool _int_saved=(SREG & (1<<SREG_I)),_ToDo=_deferInterrupts(); \
-      _ToDo; _ToDo=0, _enableInterruptsIf(_int_saved))
+  static inline bool _getInterruptState(void) {
+    return bitRead(SREG, SREG_I);  // true if enabled, false if disabled
+  }
 #elif defined(__arm__)  // STM32, SAMD, Teensy
-  static __inline__ bool _getInterruptState( void ) {
+  static inline bool _getInterruptState( void ) {
     uint32_t reg;
     __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );
     return !(reg & 1);  // true if interrupts enabled, false otherwise
   }
-  #define ATOMIC_BLOCK(x) \
-  for (bool _int_saved=_getInterruptState(),_ToDo=_deferInterrupts(); \
-      _ToDo; _ToDo=0, _enableInterruptsIf(_int_saved))
 #else
   #warning "ATOMIC_BLOCK() not defined for this target type, I2C interrupts disabled"
   #define ATOMIC_BLOCK(x) // expand to nothing.
