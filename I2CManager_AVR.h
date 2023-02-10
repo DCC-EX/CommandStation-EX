@@ -97,15 +97,10 @@ void I2CManagerClass::I2C_init()
 void I2CManagerClass::I2C_sendStart() {
   rxCount = 0;
   txCount = 0;
-#if defined(I2C_EXTENDED_ADDRESSXXXXXXXXXXXX) 
-  if (currentRequest->i2cAddress.muxNumber() != I2CMux_None) {
-    // Send request to multiplexer
-    muxPhase = MuxPhase_PROLOG;  // When start bit interrupt comes in, send SLA+W to MUX
-  } else
-    muxPhase = 0;
-#endif
-  while(TWCR & (1<<TWSTO)) {} // Wait for any in-progress stop to finish
-  TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
+  // We may have already triggered a stop bit in the same run as this.  To avoid
+  // clearing that bit before the stop bit has been sent, we can either wait for
+  // it to complete or we can OR the bit onto the existing bits.
+  TWCR |= (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
 
 }
 
