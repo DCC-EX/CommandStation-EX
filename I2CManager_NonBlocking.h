@@ -33,28 +33,35 @@
 // This has the advantage over simple noInterrupts/Interrupts that the
 // original interrupt state is restored when the block finishes.
 //
-#if defined(__AVR__)
+// (This should really be defined in an include file somewhere more global, so 
+// it can replace use of noInterrupts/interrupts in other parts of DCC-EX.
+//
 static inline uint8_t _deferInterrupts(void) {
   noInterrupts();
   return 1;
 }
-#define ATOMIC_BLOCK(x) \
-for (uint8_t _int_saved=SREG,_ToDo=_deferInterrupts(); \
-    _ToDo; _ToDo=0, SREG=_int_saved)
-#elif defined(__arm__)
-static inline uint8_t _deferInterrupts(void) {
-  __set_PRIMASK(1);
-  return 1;
+static inline void _enableInterruptsIf(uint8_t wasEnabled) {
+  if (wasEnabled) interrupts();
 }
-#define ATOMIC_BLOCK(x) \
-for (uint8_t _int_saved=__get_PRIMASK(),_ToDo=_deferInterrupts(); \
-    _ToDo; _ToDo=0, __set_PRIMASK(_int_saved))
+#if defined(__AVR__) // Nano, Uno, Mega2580, NanoEvery, etc.
+  #define ATOMIC_BLOCK(x) \
+  for (bool _int_saved=(SREG & (1<<SREG_I)),_ToDo=_deferInterrupts(); \
+      _ToDo; _ToDo=0, _enableInterruptsIf(_int_saved))
+#elif defined(__arm__)  // STM32, SAMD, Teensy
+  static __inline__ bool _getInterruptState( void ) {
+    uint32_t reg;
+    __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );
+    return !(reg & 1);  // true if interrupts enabled, false otherwise
+  }
+  #define ATOMIC_BLOCK(x) \
+  for (bool _int_saved=_getInterruptState(),_ToDo=_deferInterrupts(); \
+      _ToDo; _ToDo=0, _enableInterruptsIf(_int_saved))
 #else
-// If it's not a recognised target, don't use interrupts in the I2C driver
-#ifdef I2C_USE_INTERRUPTS
-//#undef I2C_USE_INTERRUPTS
-#endif
-#define ATOMIC_BLOCK(x) // expand to nothing.
+  #warning "ATOMIC_BLOCK() not defined for this target type, I2C interrupts disabled"
+  #define ATOMIC_BLOCK(x) // expand to nothing.
+  #ifdef I2C_USE_INTERRUPTS
+    #undef I2C_USE_INTERRUPTS
+  #endif
 #endif
 
 
@@ -277,7 +284,7 @@ void I2CManagerClass::loop() {
 #if !defined(I2C_USE_INTERRUPTS)
   handleInterrupt();
 #endif
-  // Call function to monitor for stuch I2C operations.
+  // Call function to monitor for stuck I2C operations.
   checkForTimeout();
 }
 
