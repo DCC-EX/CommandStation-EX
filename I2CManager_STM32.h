@@ -45,6 +45,39 @@ void I2C1_IRQHandler() {
 // Assume I2C1 for now - default I2C bus on Nucleo-F411RE and likely Nucleo-64 variants
 I2C_TypeDef *s = I2C1;
 #define I2C_IRQn  I2C1_EV_IRQn
+#define I2C_BUSFREQ 16
+
+// I2C SR1 Status Register #1 bit definitions for convenience
+// #define I2C_SR1_SMBALERT  (1<<15)   // SMBus alert
+// #define I2C_SR1_TIMEOUT   (1<<14)   // Timeout of Tlow error
+// #define I2C_SR1_PECERR    (1<<12)   // PEC error in reception
+// #define I2C_SR1_OVR       (1<<11)   // Overrun/Underrun error
+// #define I2C_SR1_AF        (1<<10)   // Acknowledge failure
+// #define I2C_SR1_ARLO      (1<<9)    // Arbitration lost (master mode)
+// #define I2C_SR1_BERR      (1<<8)    // Bus error (misplaced start or stop condition)
+// #define I2C_SR1_TxE       (1<<7)    // Data register empty on transmit
+// #define I2C_SR1_RxNE      (1<<6)    // Data register not empty on receive
+// #define I2C_SR1_STOPF     (1<<4)    // Stop detection (slave mode)
+// #define I2C_SR1_ADD10     (1<<3)    // 10 bit header sent
+// #define I2C_SR1_BTF       (1<<2)    // Byte transfer finished - data transfer done
+// #define I2C_SR1_ADDR      (1<<1)    // Address sent (master) or matched (slave)
+// #define I2C_SR1_SB        (1<<0)    // Start bit (master mode) 1=start condition generated
+
+// I2C CR1 Control Register #1 bit definitions for convenience
+// #define I2C_CR1_SWRST     (1<<15)   // Software reset - places peripheral under reset
+// #define I2C_CR1_ALERT     (1<<13)   // SMBus alert assertion
+// #define I2C_CR1_PEC       (1<<12)   // Packet Error Checking transfer in progress
+// #define I2C_CR1_POS       (1<<11)   // Acknowledge/PEC Postion (for data reception in PEC mode)
+// #define I2C_CR1_ACK       (1<<10)   // Acknowledge enable - ACK returned after byte is received (address or data)
+// #define I2C_CR1_STOP      (1<<9)    // STOP generated
+// #define I2C_CR1_START     (1<<8)    // START generated
+// #define I2C_CR1_NOSTRETCH (1<<7)    // Clock stretching disable (slave mode)
+// #define I2C_CR1_ENGC      (1<<6)    // General call (broadcast) enable (address 00h is ACKed)
+// #define I2C_CR1_ENPEC     (1<<5)    // PEC Enable
+// #define I2C_CR1_ENARP     (1<<4)    // ARP enable (SMBus)
+// #define I2C_CR1_SMBTYPE   (1<<3)    // SMBus type, 1=host, 0=device
+// #define I2C_CR1_SMBUS     (1<<1)    // SMBus mode, 1=SMBus, 0=I2C
+// #define I2C_CR1_PE        (1<<0)    // I2C Peripheral enable
 
 /***************************************************************************
  *  Set I2C clock speed register.  This should only be called outside of
@@ -54,36 +87,47 @@ I2C_TypeDef *s = I2C1;
 void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
 
   // Calculate a rise time appropriate to the requested bus speed
-  int t_rise;
+  // Use 10x the rise time spec to enable integer divide of 62.5ns clock period
+  uint16_t t_rise;
+  uint32_t ccr_freq;
   if (i2cClockSpeed < 200000L) {
-    i2cClockSpeed = 100000L;
-    t_rise = 1000;
-  } else if (i2cClockSpeed < 800000L) {
+    // i2cClockSpeed = 100000L;
+    t_rise = 0x11;  // (1000ns /62.5ns) + 1;
+  }
+  else if (i2cClockSpeed < 800000L)
+  {
     i2cClockSpeed = 400000L;
-    t_rise = 300;
-  } else if (i2cClockSpeed < 1200000L) {
-    i2cClockSpeed = 1000000L;
-    t_rise = 120;
-  } else {
+    t_rise = 0x06;  // (300ns / 62.5ns) + 1;
+    // } else if (i2cClockSpeed < 1200000L) {
+    //   i2cClockSpeed = 1000000L;
+    //   t_rise = 120;
+  }
+  else
+  {
     i2cClockSpeed = 100000L;
-    t_rise = 1000;
+    t_rise = 0x11;  // (1000ns /62.5ns) + 1;
   }
 
-
-  // Disable the I2C master mode and wait for sync
-  // s->I2CM.CTRLA.bit.ENABLE = 0 ;
-  // while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
+  // Enable the I2C master mode
+  s->CR1 &= ~(I2C_CR1_PE);  // Enable I2C
+  // Software reset the I2C peripheral
+  // s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
+  // Release reset
+  // s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
 
   // Calculate baudrate - using a rise time appropriate for the speed
-  // s->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * i2cClockSpeed) - 5 - (((SystemCoreClock / 1000000) * t_rise) / (2 * 1000));
+  ccr_freq = I2C_BUSFREQ * 1000000 / i2cClockSpeed / 2;
 
-  // Enable the I2C master mode and wait for sync
-  // s->I2CM.CTRLA.bit.ENABLE = 1 ;
-  // while (s->I2CM.SYNCBUSY.bit.ENABLE != 0);
+  // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
+  // Bit 14: Duty, fast mode duty cycle
+  // Bit 11-0: FREQR = 16MHz => TPCLK1 = 62.5ns, so CCR divisor must be 0x50 (80 * 62.5ns = 5000ns)
+  s->CCR = (uint16_t)ccr_freq;
 
-  // Setting bus idle mode and wait for sync
-  // s->I2CM.STATUS.bit.BUSSTATE = 1 ;
-  // while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
+  // Configure the rise time register
+  s->TRISE = t_rise;  // 1000 ns / 62.5 ns = 16 + 1
+
+  // Enable the I2C master mode
+  s->CR1 |= I2C_CR1_PE;  // Enable I2C
 }
 
 /***************************************************************************
@@ -107,11 +151,11 @@ void I2CManagerClass::I2C_init()
   GPIOB->AFR[1] |= (4<<0) | (4<<4);           // PB8 on low nibble, PB9 on next nibble up
 
   // Software reset the I2C peripheral
-  s->CR1 |= (1<<15);  // reset the I2C
-  s->CR1 &= ~(1<<15);  // Normal operation
+  s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
+  s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
 
   // Program the peripheral input clock in CR2 Register in order to generate correct timings
-  s->CR2 |= (16<<0);  // PCLK1 FREQUENCY in MHz
+  s->CR2 |= I2C_BUSFREQ;  // PCLK1 FREQUENCY in MHz
 
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
@@ -127,7 +171,8 @@ void I2CManagerClass::I2C_init()
   // Bit 8: ITERREN - Error interrupt enable
   // Bit 7-6: reserved
   // Bit 5-0: FREQ - Peripheral clock frequency (max 50MHz)
-  s->CR2 |= 0x0700;   // Enable Buffer, Event and Error interrupts
+  // s->CR2 |= 0x0700;   // Enable Buffer, Event and Error interrupts
+  s->CR2 |= 0x0300;   // Enable Event and Error interrupts
 #endif
 
   // Calculate baudrate and set default rate for now
@@ -141,7 +186,7 @@ void I2CManagerClass::I2C_init()
   s->TRISE = 0x0011; // 1000 ns / 62.5 ns = 16 + 1
 
   // Enable the I2C master mode
-  s->CR1 |= (1<<0);  // Enable I2C
+  s->CR1 |= I2C_CR1_PE;  // Enable I2C
   // Setting bus idle mode and wait for sync
 }
 
@@ -164,28 +209,28 @@ void I2CManagerClass::I2C_sendStart() {
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
   {
     // Send start for read operation
-    s->CR1 |= (1<<10);  // Enable the ACK
-    s->CR1 |= (1<<8);  // Generate START
+    s->CR1 |= I2C_CR1_ACK;  // Enable the ACK
+    s->CR1 |= I2C_CR1_START;  // Generate START
     // Send address with read flag (1) or'd in
     s->DR = (deviceAddress << 1) | 1;  //  send the address
-    while (!(s->SR1 & (1<<1)));  // wait for ADDR bit to set
+    while (!(s->SR1 && I2C_SR1_ADDR));  // wait for ADDR bit to set
     // Special case for 1 byte reads!
     if (bytesToReceive == 1)
     {
-      s->CR1 &= ~(1<<10);            // clear the ACK bit 
+      s->CR1 &= ~I2C_CR1_ACK;            // clear the ACK bit 
 		  temp = I2C1->SR1 | I2C1->SR2;  // read SR1 and SR2 to clear the ADDR bit.... EV6 condition
-		  s->CR1 |= (1<<9);              // Stop I2C
+		  s->CR1 |= I2C_CR1_STOP;              // Stop I2C
     }
     else
       temp = s->SR1 | s->SR2;        // read SR1 and SR2 to clear the ADDR bit
   }
   else {
     // Send start for write operation
-    s->CR1 |= (1<<10);  // Enable the ACK
-    s->CR1 |= (1<<8);  // Generate START
+    s->CR1 |= I2C_CR1_ACK;  // Enable the ACK
+    s->CR1 |= I2C_CR1_START;  // Generate START
     // Send address with write flag (0) or'd in
     s->DR = (deviceAddress << 1) | 0;  //  send the address
-    while (!(s->SR1 & (1<<1)));  // wait for ADDR bit to set
+    while (!(s->SR1 && (1<<I2C_SR1_ADDR)));  // wait for ADDR bit to set
     temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
   }
 }
@@ -194,7 +239,7 @@ void I2CManagerClass::I2C_sendStart() {
  *  Initiate a stop bit for transmission (does not interrupt)
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
-  s->CR1 |= (1<<9);              // Stop I2C
+  s->CR1 |= I2C_CR1_STOP;              // Stop I2C
 }
 
 /***************************************************************************
@@ -203,10 +248,10 @@ void I2CManagerClass::I2C_sendStop() {
 void I2CManagerClass::I2C_close() {
   I2C_sendStop();
   // Disable the I2C master mode and wait for sync
-  s->CR1 &= ~(1<<0);  // Disable I2C peripheral
+  s->CR1 &= ~I2C_CR1_PE;  // Disable I2C peripheral
   // Should never happen, but wait for up to 500us only.
   unsigned long startTime = micros();
-  while ((s->CR1 && 1) != 0) {
+  while ((s->CR1 && I2C_CR1_PE) != 0) {
     if (micros() - startTime >= 500UL) break;
   }
 }
@@ -218,16 +263,14 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
 
-  if (!s) return;
-  
-  if (s->SR1 && (1<<9)) {
+  if (s->SR1 && I2C_SR1_ARLO) {
     // Arbitration lost, restart
     I2C_sendStart();   // Reinitiate request
-  } else if (s->SR1 && (1<<8)) {
+  } else if (s->SR1 && I2C_SR1_BERR) {
     // Bus error
     completionStatus = I2C_STATUS_BUS_ERROR;
     state = I2C_STATE_COMPLETED;
-  } else if (s->SR1 && (1<<7)) {
+  } else if (s->SR1 && (1<<I2C_SR1_TXE)) {
     // Master write completed
     if (s->SR1 && (1<<10)) {
       // Nacked, send stop.
@@ -243,13 +286,13 @@ void I2CManagerClass::I2C_handleInterrupt() {
       // s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
     } else {
       // Check both TxE/BTF == 1 before generating stop
-      while (!(s->SR1 && (1<<7)));    // Check TxE
-      while (!(s->SR1 && (1<<2)));    // Check BTF
+      while (!(s->SR1 && I2C_SR1_TXE));    // Check TxE
+      while (!(s->SR1 && I2C_SR1_BTF));    // Check BTF
       // No more data to send/receive. Initiate a STOP condition and finish
       I2C_sendStop();
       state = I2C_STATE_COMPLETED;
     }
-  } else if (s->SR1 && (1<<6)) {
+  } else if (s->SR1 && I2C_SR1_RXNE) {
     // Master read completed without errors
     if (bytesToReceive == 1) {
 //      s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
