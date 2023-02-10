@@ -77,8 +77,8 @@ protected:
     _I2CAddress = i2cAddress;
     _width = width;
     _height = height;
-    _numCols = _width / 6;    // character block 6 x 8 
-    _numRows = _height / 8; 
+    _numCols = (_width+5) / 6;    // character block 6 x 8, round up 
+    _numRows = _height / 8;       // Round down
 
     _charPosToScreen = _numCols;
 
@@ -91,10 +91,7 @@ protected:
 
     // Create OLED driver
     oled = new SSD1306AsciiWire();
-
-    // Clear the entire screen
-    oled->clearNative();
-    
+   
     addDevice(this);
   }
   
@@ -115,6 +112,10 @@ protected:
       // Force all rows to be redrawn
       for (uint8_t row=0; row<_numRows; row++)
         _rowGeneration[row]++;
+      
+      // Start with top line (looks better)
+      _rowNoToScreen = _numRows;
+      _charPosToScreen = _numCols;
     }
   }
 
