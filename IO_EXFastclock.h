@@ -109,16 +109,14 @@ void _loop(unsigned long currentMicros) override{
         // As the minimum clock increment is 2 seconds delay a bit - say 1 sec.
         // Clock interval is 60/ clockspeed i.e 60/b seconds
         delayUntil(currentMicros + ((60/b) * 1000000));  
-            
-        }
      
       #endif
     
   }
-
+}
 
   // Display EX-FastClock device driver info.
-  void _display() {
+  void _display() override {
     DIAG(F("FastCLock on I2C:%s - %S"), _I2CAddress.toString(),  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
