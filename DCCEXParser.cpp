@@ -944,7 +944,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
         break;
 
-#if !defined(IO_MINIMAL_HAL)
+#if !defined(IO_NO_HAL)
     case HASH_KEYWORD_HAL: 
         if (p[1] == HASH_KEYWORD_SHOW) 
           IODevice::DumpAll();
