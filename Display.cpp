@@ -45,20 +45,20 @@
 
  */
 
-#include "LCDDisplay.h"
+#include "Display.h"
 
-void LCDDisplay::clear() {
+void Display::clear() {
   clearNative();
   for (byte row = 0; row < MAX_LCD_ROWS; row++) rowBuffer[row][0] = '\0';
   topRow = -1;  // loop2 will fill from row 0
 }
 
-void LCDDisplay::setRow(byte line) {
+void Display::setRow(byte line) {
   hotRow = line;
   hotCol = 0;
 }
 
-size_t LCDDisplay::write(uint8_t b) {
+size_t Display::write(uint8_t b) {
   if (hotRow >= MAX_LCD_ROWS || hotCol >= MAX_LCD_COLS) return -1;
   rowBuffer[hotRow][hotCol] = b;
   hotCol++;
@@ -66,12 +66,12 @@ size_t LCDDisplay::write(uint8_t b) {
   return 1;
 }
 
-void LCDDisplay::loop() {
+void Display::loop() {
   if (!lcdDisplay) return;
   lcdDisplay->loop2(false);
 }
 
-LCDDisplay *LCDDisplay::loop2(bool force) {
+Display *Display::loop2(bool force) {
   if (!lcdDisplay) return NULL;
 
   // If output device is busy, don't do anything on this loop
@@ -150,7 +150,7 @@ LCDDisplay *LCDDisplay::loop2(bool force) {
   return NULL;
 }
 
-void LCDDisplay::moveToNextRow() {
+void Display::moveToNextRow() {
   rowNext = (rowNext + 1) % MAX_LCD_ROWS;
 #if SCROLLMODE == 1
   // Finished if we've looped back to row 0
@@ -161,7 +161,7 @@ void LCDDisplay::moveToNextRow() {
 #endif
 }
 
-void LCDDisplay::skipBlankRows() {
+void Display::skipBlankRows() {
   while (!done && rowBuffer[rowNext][0] == 0)
     moveToNextRow();
 }

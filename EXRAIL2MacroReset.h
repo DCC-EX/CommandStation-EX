@@ -80,7 +80,7 @@
 #undef KILLALL
 #undef LATCH 
 #undef LCD 
-#undef LCD2
+#undef SCREEN
 #undef LCN 
 #undef MOVETT
 #undef ONACTIVATE
@@ -200,7 +200,7 @@
 #define KILLALL
 #define LATCH(sensor_id) 
 #define LCD(row,msg)
-#define LCD2(display,row,msg)
+#define SCREEN(display,row,msg)
 #define LCN(msg) 
 #define MOVETT(id,steps,activity)
 #define ONACTIVATE(addr,subaddr)

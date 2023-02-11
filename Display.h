@@ -34,16 +34,16 @@
 
 // This class is created in LCDisplay_Implementation.h
 
-class LCDDisplay : public DisplayInterface {
+class Display : public DisplayInterface {
  public:
-  LCDDisplay() {};
+  Display() {};
   static const int MAX_LCD_ROWS = 8;
   static const int MAX_LCD_COLS = MAX_MSG_SIZE;
   static const long LCD_SCROLL_TIME = 3000;  // 3 seconds
 
   // Internally handled functions
   static void loop();
-  LCDDisplay* loop2(bool force) override;
+  Display* loop2(bool force) override;
   void setRow(byte line) override;
   void clear() override;
 

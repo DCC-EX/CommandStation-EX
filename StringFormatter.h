@@ -21,7 +21,7 @@
 #include <Arduino.h>
 #include "FSH.h"
 #include "RingStream.h"
-#include "LCDDisplay.h"
+#include "Display.h"
 class Diag {
   public:
   static bool ACK;

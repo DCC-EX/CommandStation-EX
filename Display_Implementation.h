@@ -27,15 +27,15 @@
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include "LCDDisplay.h"
+#include "Display.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
   
 
-// Implement the LCDDisplay shim class as a singleton.
-// The DisplayInterface class implements a displayy handler with no code (null device);
-// The LCDDisplay class sub-classes DisplayInterface to provide the common display code;
-// Then LCDDisplay class is subclassed to the specific device type classes:
+// Implement the Display shim class as a singleton.
+// The DisplayInterface class implements a display handler with no code (null device);
+// The Display class sub-classes DisplayInterface to provide the common display code;
+// Then Display class is subclassed to the specific device type classes:
 //    SSD1306AsciiWire for I2C OLED driver with SSD1306 or SH1106 controllers;
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
 

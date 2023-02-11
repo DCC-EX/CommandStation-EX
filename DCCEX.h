@@ -40,7 +40,7 @@
 #if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #endif
-#include "LCD_Implementation.h"
+#include "Display_Implementation.h"
 #include "LCN.h"
 #include "IODevice.h"
 #include "Turnouts.h"

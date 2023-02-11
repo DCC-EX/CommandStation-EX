@@ -23,7 +23,7 @@
 
 #include "Arduino.h"
 #include "FSH.h"
-#include "LCDDisplay.h"
+#include "Display.h"
 
 #include "I2CManager.h"
 #include "DIAG.h"
@@ -33,7 +33,7 @@
 
 //------------------------------------------------------------------------------
 // Constructor
-class SSD1306AsciiWire : public LCDDisplay {
+class SSD1306AsciiWire : public Display {
  public:
 
   // Constructors

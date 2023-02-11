@@ -191,7 +191,7 @@ protected:
     _selectedDisplayNo = displayNo;
     if (displayNo == _displayNo) {
       if (line == 255) {
-        // LCD(255,"xxx") or LCD2(displayNo,255, "xxx") - 
+        // LCD(255,"xxx") or SCREEN(displayNo,255, "xxx") - 
         // scroll the contents of the buffer and put the new line
         // at the bottom of the screen
         for (int row=1; row<_numRows; row++) {

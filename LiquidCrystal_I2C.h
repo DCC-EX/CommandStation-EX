@@ -22,7 +22,7 @@
 #define LiquidCrystal_I2C_h
 
 #include <Arduino.h>
-#include "LCDDisplay.h"
+#include "Display.h"
 #include "I2CManager.h"
 
 // commands
@@ -62,7 +62,7 @@
 #define Rw (1 << BACKPACK_Rw_BIT)  // Read/Write bit
 #define Rs (1 << BACKPACK_Rs_BIT)  // Register select bit
 
-class LiquidCrystal_I2C : public LCDDisplay {
+class LiquidCrystal_I2C : public Display {
 public:
   LiquidCrystal_I2C(I2CAddress lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
   void begin();
