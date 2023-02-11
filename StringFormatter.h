@@ -46,7 +46,7 @@ class StringFormatter
     // DIAG support
     static void diag( const FSH* input...);
     static void lcd(byte row, const FSH* input...);
-    static void lcd(uint8_t display, byte row, const FSH* input...);
+    static void lcd2(uint8_t display, byte row, const FSH* input...);
     static void printEscapes(char * input);
     static void printEscape( char c);
 

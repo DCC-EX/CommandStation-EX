@@ -51,14 +51,13 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   send2(LCDDisplay::lcdDisplay,input,args);
 }
 
-void StringFormatter::lcd(uint8_t display, byte row, const FSH* input...) {
+void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
 
   if (!LCDDisplay::lcdDisplay) return;
   LCDDisplay::lcdDisplay->setRow(display, row);    
   va_start(args, input);
   send2(LCDDisplay::lcdDisplay,input,args);
-  va_end(args);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {

@@ -307,7 +307,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
-#define LCD2(display,id,msg)
+#define LCD2(display,id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
@@ -379,7 +379,7 @@ const  HIGHFLASH  byte RMFT2::RouteCode[] = {
 #undef LCD
 #define LCD   StringFormatter::lcd
 #undef LCD2
-#define LCD2  StringFormatter::lcd
+#define LCD2  StringFormatter::lcd2
 #undef SERIAL
 #define SERIAL  0x0
 #endif

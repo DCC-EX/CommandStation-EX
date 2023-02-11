@@ -138,7 +138,7 @@ protected:
   }
 
   void _loop(unsigned long) override {
-    screenUpdate();
+    //screenUpdate();
   }
 
   void screenUpdate() {
@@ -177,7 +177,7 @@ protected:
   // 
   /////////////////////////////////////////////////
   DisplayInterface* loop2(bool force) override {
-    //screenUpdate();
+    screenUpdate();
     if (_nextDisplay) 
       return _nextDisplay->loop2(force);  // continue to next display
     return NULL;
@@ -208,7 +208,8 @@ protected:
         _buffer[_rowNo*_numCols+_colNo] = ' ';
       _colNo = 0;
       // Mark that the buffer has been touched.  It will be 
-      // sent to the screen on the next loop entry.
+      // sent to the screen on the next loop entry, by which time
+      // the line should have been written to the buffer.
       _rowGeneration[_rowNo]++;
 
     } else if (_nextDisplay) 
