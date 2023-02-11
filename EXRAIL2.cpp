@@ -1209,6 +1209,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     case thrunge_parse:
     case thrunge_broadcast:
     case thrunge_lcd:
+    default:    // thrunge_lcd+1, ...
          if (!buffer) buffer=new StringBuffer();
          buffer->flush();
          stream=buffer;
@@ -1244,7 +1245,9 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     case thrunge_lcd:
          LCD(id,F("%s"),buffer->getString());
          break;
-
-     default: break;       
+    default:  // thrunge_lcd+1, ...
+      if (mode > thrunge_lcd) 
+        LCD2(mode-thrunge_lcd, id, F("%s"),buffer->getString());  // print to other display
+      break;       
     }
 }

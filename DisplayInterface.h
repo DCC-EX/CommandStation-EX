@@ -28,8 +28,18 @@ class DisplayInterface : public Print {
 public:
   virtual DisplayInterface* loop2(bool force) { (void)force; return NULL; };
   virtual void setRow(byte line) { (void)line; };
-  virtual void clear() {};
+  virtual void clear() { };
   virtual size_t write(uint8_t c) { (void)c; return 0; };
+  // Additional functions to support multiple displays.
+  // Display number zero is the default one and the original display
+  // drivers overloaded the above calls only.  Newer display drivers
+  // (e.g. HAL IO_OledDisplay) should override all functions.
+  virtual void setRow(uint8_t displayNo, byte line) { 
+    if (!displayNo) setRow(line);
+  }
+  virtual void clear(uint8_t displayNo) { 
+    if (!displayNo) clear();
+   }
 
   static DisplayInterface *lcdDisplay;
 };

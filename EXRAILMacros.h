@@ -45,7 +45,7 @@
 // Descriptive texts for routes and animations are created in a sepaerate function which
 // can be called to emit a list of routes/automatuions in a form suitable for Withrottle. 
  
-// PRINT(msg) and LCD(row,msg) is implemented in a separate pass to create 
+// PRINT(msg), LCD(row,msg) and LCD2(display,row,msg) are implemented in a separate pass to create 
 // a getMessageText(id) function.  
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
@@ -140,6 +140,15 @@ const int StringMacroTracker1=__COUNTER__;
          static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=thrunge_lcd; \
+         lcdid=id;\
+         break;\
+      }
+#undef LCD2
+#define LCD2(display,id,msg)  \
+     case (__COUNTER__ - StringMacroTracker1) : {\
+         static const char HIGHFLASH thrunge[]=msg;\
+         strfar=(uint32_t)GETFARPTR(thrunge);\
+         tmode=(thrunger)(thrunge_lcd+display); \
          lcdid=id;\
          break;\
       } 
@@ -298,6 +307,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCD(id,msg) PRINT(msg)
+#define LCD2(display,id,msg)
 #define LCN(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
@@ -368,6 +378,8 @@ const  HIGHFLASH  byte RMFT2::RouteCode[] = {
 // Restore normal code LCD & SERIAL  macro
 #undef LCD
 #define LCD   StringFormatter::lcd
+#undef LCD2
+#define LCD2  StringFormatter::lcd
 #undef SERIAL
 #define SERIAL  0x0
 #endif
