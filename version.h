@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.1.4"
+#define VERSION "4.1.5"
+// 4.1.5 Bugfix LCN number parsing
 // 4.1.4 Bugfix for issue #299 TurnoutDescription NULL
 // 4.1.3 Bugfix: Ethernet init order
 // 4.1.2 Bugfix: Ethernet shield W5100 does not report HW or link level
