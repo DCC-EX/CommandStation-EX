@@ -43,7 +43,7 @@ void LCN::loop() {
   
   while (stream->available()) {
     int ch = stream->read();
-    if (ch >= 0 && ch <= '9') {  // accumulate id value
+    if (ch >= '0' && ch <= '9') {  // accumulate id value
       id = 10 * id + ch - '0';
     }
     else if (ch == 't' || ch == 'T') { // Turnout opcodes

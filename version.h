@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.16"
+#define VERSION "4.2.17"
+// 4.2.17 LCN bugfix
 // 4.2.16 Move EX-IOExpander servo support to the EX-IOExpander software
 // 4.2.15 Add basic experimental PWM support to EX-IOExpander
 //        EX-IOExpander 0.0.14 minimum required
