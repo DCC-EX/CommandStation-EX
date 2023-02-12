@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.15"
+#define VERSION "4.2.16"
+// 4.2.16 Move EX-IOExpander servo support to the EX-IOExpander software
 // 4.2.15 Add basic experimental PWM support to EX-IOExpander
 //        EX-IOExpander 0.0.14 minimum required
 // 4.2.14 STM32F4xx fast ADC read implementation

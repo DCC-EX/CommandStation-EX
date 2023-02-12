@@ -72,10 +72,10 @@ private:
     _i2cAddress = i2cAddress;
     // To save RAM, space for servo configuration is not allocated unless a pin is used.
     // Initialise the pointers to NULL.
-    _servoData = (ServoData**) calloc(_nPins, sizeof(ServoData*));
-    for (int i=0; i<_nPins; i++) {
-      _servoData[i] = NULL;
-    }
+    // _servoData = (ServoData**) calloc(_nPins, sizeof(ServoData*));
+    // for (int i=0; i<_nPins; i++) {
+    //   _servoData[i] = NULL;
+    // }
     addDevice(this);
   }
 
@@ -166,14 +166,14 @@ private:
     I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1);
     _command1Buffer[0] = EXIORDAN;
     I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1);
-    if ((currentMicros - _lastRefresh) / 1000UL > refreshInterval) {
-      _lastRefresh = currentMicros;
-      for (int pin=0; pin<_nPins; pin++) {
-        if (_servoData[pin] != NULL) {
-          updatePosition(pin);
-        }
-      }
-    }
+    // if ((currentMicros - _lastRefresh) / 1000UL > refreshInterval) {
+    //   _lastRefresh = currentMicros;
+    //   for (int pin=0; pin<_nPins; pin++) {
+    //     if (_servoData[pin] != NULL) {
+    //       updatePosition(pin);
+    //     }
+    //   }
+    // }
   }
 
   // Obtain the correct analogue input value
@@ -194,24 +194,24 @@ private:
   int _read(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
-    if (_servoData[pin] == NULL) {
+    // if (_servoData[pin] == NULL) {
       uint8_t pinByte = pin / 8;
       bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
       return value;
-    } else {
-      struct ServoData *s = _servoData[pin];
-      if (s == NULL) {
-        return false; // No structure means no animation!
-      } else {
-        return (s->stepNumber < s->numSteps);
-      }
-    }
+    // } else {
+    //   struct ServoData *s = _servoData[pin];
+    //   if (s == NULL) {
+    //     return false; // No structure means no animation!
+    //   } else {
+    //     return (s->stepNumber < s->numSteps);
+    //   }
+    // }
   }
 
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    if (_servoData[pin] == NULL) {
+    // if (_servoData[pin] == NULL) {
       _digitalOutBuffer[0] = EXIOWRD;
       _digitalOutBuffer[1] = pin;
       _digitalOutBuffer[2] = value;
@@ -219,19 +219,40 @@ private:
       if (_command1Buffer[0] != EXIORDY) {
         DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
       }
-    } else {
-      if (value) value = 1;
-      struct ServoData *s = _servoData[pin];
-      if (s != NULL) {
-        // Use configured parameters
-        this->_writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
-      }  else {
-        /* simulate digital pin on PWM */
-        this->_writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
-      }
+    // } else {
+    //   if (value) value = 1;
+    //   struct ServoData *s = _servoData[pin];
+    //   if (s != NULL) {
+    //     // Use configured parameters
+    //     this->_writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
+    //   }  else {
+    //     /* simulate digital pin on PWM */
+    //     this->_writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
+    //   }
+    // }
+  }
+
+  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+    if (_deviceState == DEVSTATE_FAILED) return;
+    int pin = vpin - _firstVpin;
+#ifdef DIAG_IO
+    DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+      vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
+#endif
+    _servoBuffer[0] = EXIOWRAN;
+    _servoBuffer[1] = pin;
+    _servoBuffer[2] = value & 0xFF;
+    _servoBuffer[3] = value >> 8;
+    _servoBuffer[4] = profile;
+    _servoBuffer[5] = duration & 0xFF;
+    _servoBuffer[6] = duration >> 8;
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _servoBuffer, 7);
+    if (_command1Buffer[0] != EXIORDY) {
+      DIAG(F("Vpin %d cannot be used as a servo/PWM pin"), (int)vpin);
     }
   }
 
+/*
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
@@ -266,7 +287,9 @@ private:
     s->toPosition = value;
     s->fromPosition = s->currentPosition;
   }
+*/
 
+/*
   void updatePosition(uint8_t pin) {
     struct ServoData *s = _servoData[pin];
     if (s == NULL) return; // No pin configuration/state data
@@ -299,7 +322,9 @@ private:
       s->numSteps = 0;  // Done now.
     }
   }
+*/
 
+/*
   void writePWM(int pin, uint16_t value) {
     _command4Buffer[0] = EXIOWRAN;
     _command4Buffer[1] = pin;
@@ -307,6 +332,7 @@ private:
     _command4Buffer[3] = value >> 8;
     I2CManager.write(_i2cAddress, _command4Buffer, 4);
   }
+*/
 
   void _display() override {
     DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d Vpins %d-%d %S"),
@@ -331,8 +357,10 @@ private:
   byte _command2Buffer[2];
   byte _command4Buffer[4];
   byte _receive3Buffer[3];
+  byte _servoBuffer[7];
   uint8_t* _analoguePinMap;
 
+/*
   // Servo specific
   struct ServoData {
     uint16_t activePosition : 12; // Config parameter
@@ -360,6 +388,7 @@ private:
   // i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
   const byte FLASH _bounceProfile[30] = 
     {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
+*/
 
   // EX-IOExpander protocol flags
   enum {
