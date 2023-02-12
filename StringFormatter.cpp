@@ -45,19 +45,19 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   send2(&USB_SERIAL,input,args);
   send(&USB_SERIAL,F(" *>\n"));
   
-  if (!Display::lcdDisplay) return;
-  Display::lcdDisplay->setRow(row);    
+  if (!Display::displayHandler) return;
+  Display::displayHandler->setRow(row);    
   va_start(args, input);
-  send2(Display::lcdDisplay,input,args);
+  send2(Display::displayHandler,input,args);
 }
 
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
 
-  if (!Display::lcdDisplay) return;
-  Display::lcdDisplay->setRow(display, row);    
+  if (!Display::displayHandler) return;
+  Display::displayHandler->setRow(display, row);    
   va_start(args, input);
-  send2(Display::lcdDisplay,input,args);
+  send2(Display::displayHandler,input,args);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {

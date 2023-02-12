@@ -40,14 +40,14 @@
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
 
 #if defined(OLED_DRIVER)
-  #define CONDITIONAL_LCD_START for (DisplayInterface * dummy=new SSD1306AsciiWire(OLED_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
+  #define CONDITIONAL_DISPLAY_START for (DisplayInterface * dummy=new SSD1306AsciiWire(OLED_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
   
 #elif defined(LCD_DRIVER)
-  #define CONDITIONAL_LCD_START for (DisplayInterface * dummy=new LiquidCrystal_I2C(LCD_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
+  #define CONDITIONAL_DISPLAY_START for (DisplayInterface * dummy=new LiquidCrystal_I2C(LCD_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
 
 #else
-  // Create null display handler just in case someone calls lcdDisplay->something without checking if lcdDisplay is NULL!
-  #define CONDITIONAL_LCD_START { new DisplayInterface(); }
+  // Create null display handler just in case someone calls displayHandler->something without checking if displayHandler is NULL!
+  #define CONDITIONAL_DISPLAY_START { new DisplayInterface(); }
 #endif
 
 #endif // LCD_Implementation_h

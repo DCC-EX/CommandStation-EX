@@ -110,11 +110,11 @@ protected:
     oled = new SSD1306AsciiWire();
    
     // Store pointer to this object into CS display hook, so that we
-    // will intercept any subsequent calls to lcdDisplay methods.
+    // will intercept any subsequent calls to displayHandler methods.
     // Make a note of the existing display reference, to that we can
     // pass on anything we're not interested in.
-    _nextDisplay = DisplayInterface::lcdDisplay;
-    DisplayInterface::lcdDisplay = this;
+    _nextDisplay = DisplayInterface::displayHandler;
+    DisplayInterface::displayHandler = this;
 
     addDevice(this);
   }

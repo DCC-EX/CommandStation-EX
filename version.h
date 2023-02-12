@@ -13,7 +13,8 @@
 //        PCF8575 I2C GPIO driver added.
 //        EX-RAIL ANOUT function for triggering analogue
 //        HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
-//        Installable HAL OLED Display Driver.
+//        Installable HAL OLED Display Driver, with 
+//        support for multiple displays.
 //        Layered HAL Drivers PCA9685pwm and Servo added for 
 //        (1) native PWM on PCA9685 module and
 //        (2) animations of servo movement via PCA9685pwm.

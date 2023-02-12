@@ -41,7 +41,7 @@ public:
     if (!displayNo) clear();
    }
 
-  static DisplayInterface *lcdDisplay;
+  static DisplayInterface *displayHandler;
 };
 
 #endif

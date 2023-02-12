@@ -21,4 +21,4 @@
 
 #include "DisplayInterface.h"
 
-DisplayInterface *DisplayInterface::lcdDisplay = 0;
+DisplayInterface *DisplayInterface::displayHandler = 0;

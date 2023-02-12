@@ -160,7 +160,7 @@ SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
     if (I2CManager.exists(address)) {
       begin(address, width, height);
       // Set singleton Address so CS is able to call it.
-      lcdDisplay = this;
+      displayHandler = this;
       return;
     }
   }

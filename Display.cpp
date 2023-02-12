@@ -67,12 +67,12 @@ size_t Display::write(uint8_t b) {
 }
 
 void Display::loop() {
-  if (!lcdDisplay) return;
-  lcdDisplay->loop2(false);
+  if (!displayHandler) return;
+  displayHandler->loop2(false);
 }
 
 Display *Display::loop2(bool force) {
-  if (!lcdDisplay) return NULL;
+  if (!displayHandler) return NULL;
 
   // If output device is busy, don't do anything on this loop
   //  This avoids blocking while waiting for the device to complete.

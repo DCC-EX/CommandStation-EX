@@ -57,7 +57,7 @@ LiquidCrystal_I2C::LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols,
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
     begin();
     backlight();
-    lcdDisplay = this;
+    displayHandler = this;
   }
 }
 
