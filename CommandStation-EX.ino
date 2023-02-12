@@ -74,7 +74,7 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-  CONDITIONAL_LCD_START {
+  CONDITIONAL_DISPLAY_START {
     // This block is still executed for DIAGS if LCD not in use
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
     LCD(1,F("Lic GPLv3"));
@@ -160,7 +160,7 @@ void loop()
   LCN::loop();
   #endif
 
-  LCDDisplay::loop();  // ignored if LCD not in use
+  Display::loop();  // ignored if LCD not in use
 
   // Handle/update IO devices.
   IODevice::loop();
