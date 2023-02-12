@@ -146,12 +146,16 @@ void MotorDriver::setPower(POWERMODE mode) {
   if (on) {
     noInterrupts();
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
+    if (DCinuse)
+      setDCSignal(curSpeedCode);
     interrupts();
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
       noInterrupts();
+      if (DCinuse)
+	detachDCSignal();
       IODevice::write(powerPin,invertPower ? HIGH : LOW);
       interrupts();
   }
@@ -245,8 +249,9 @@ uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     220, 196, 175, 165 };
 #endif
 void MotorDriver::setDCSignal(byte speedcode) {
-  if (brakePin == UNUSED_PIN)
-    return;
+  curSpeedCode = speedcode;
+  DCinuse = true;
+
 #if defined(ARDUINO_AVR_UNO)
   TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
 #endif
@@ -257,7 +262,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
-  byte brake;
+  byte pwmratio;
 #if defined(ARDUINO_ARCH_ESP32)
   {
     int f = 131;
@@ -266,18 +271,18 @@ void MotorDriver::setDCSignal(byte speedcode) {
 	f = taurustones[ (tSpeed-2)/2 ] ;
       }
     }
-    DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
+    DCCEXanalogWriteFrequency(powerPin, f); // set DC PWM frequency to 100Hz XXX May move to setup
   }
 #endif
-  if (tSpeed <= 1) brake = 255;
-  else if (tSpeed >= 127) brake = 0;
-  else  brake = 2 * (128-tSpeed);
-  if (invertBrake)
-    brake=255-brake;
+  if (tSpeed <= 1) pwmratio = 0;
+  else if (tSpeed >= 127) pwmratio = 255;
+  else  pwmratio = 2 * tSpeed;
+  if (invertPower)
+    pwmratio =255-pwmratio;
 #if defined(ARDUINO_ARCH_ESP32)
-  DCCEXanalogWrite(brakePin,brake);
+  DCCEXanalogWrite(powerPin,pwmratio);
 #else
-  analogWrite(brakePin,brake);
+  analogWrite(powerPin,pwmratio);
 #endif
   //DIAG(F("DCSignal %d"), speedcode);
   if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {

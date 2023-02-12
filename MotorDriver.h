@@ -152,6 +152,7 @@ class MotorDriver {
 #else
       setDCSignal(128);
 #endif
+      DCinuse = false;
     };
     int  getCurrentRaw(bool fromISR=false);
     unsigned int raw2mA( int raw);
@@ -232,6 +233,7 @@ class MotorDriver {
     static const int TRIP_CURRENT_PROG=250;
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
-
+    bool DCinuse = false;
+    byte curSpeedCode = 0;
 };
 #endif
