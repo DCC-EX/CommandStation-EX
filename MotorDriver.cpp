@@ -155,6 +155,13 @@ void MotorDriver::setPower(POWERMODE mode) {
       noInterrupts();
       IODevice::write(powerPin,invertPower ? HIGH : LOW);
       interrupts();
+      if (DCinuse) {
+	// remember current (DC) speed
+	// but set PWM to zero/stop
+	byte s = curSpeedCode;
+	setDCSignal(128);
+	curSpeedCode = s;
+      }
   }
   powerMode=mode; 
 }
@@ -239,7 +246,7 @@ void MotorDriver::startCurrentFromHW() {
 #if defined(ARDUINO_ARCH_ESP32)
 uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     247, 262, 294, 330,
-			     249, 392, 440, 494,
+			     349, 392, 440, 494,
 			     523, 587, 659, 698,
 			     494, 440, 392, 249,
 			     330, 284, 262, 247,
