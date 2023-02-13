@@ -177,10 +177,10 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
     //DIAG(F("Track=%c"),trackToSet+'A');
-    // DC tracks require a motorDriver that can set brake!
+    // DC tracks require a motorDriver that can set power pin PWM
     if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
-         && !track[trackToSet]->brakeCanPWM()) {
-             DIAG(F("Brake pin can't PWM: No DC"));
+         && !track[trackToSet]->powerPinCanPWM()) {
+             DIAG(F("Power pin can't PWM: No DC"));
              return false; 
          }
 
@@ -218,7 +218,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (!(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)) {
       // DCC tracks need to have set the PWM to zero or they will not work.
       track[trackToSet]->detachDCSignal();
-      //track[trackToSet]->setBrake(false);
     }
 
     // EXT is a special case where the signal pin is
@@ -396,7 +395,6 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
             case TRACK_MODE_DC:
             case TRACK_MODE_DCX:
                 if (setProg) break; 
-                //driver->setBrake(true); // DC starts with brake on
                 applyDCSpeed(t);        // speed match DCC throttles
                 driver->setPower(mode);
                 break;  

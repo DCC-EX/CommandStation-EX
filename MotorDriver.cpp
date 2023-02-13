@@ -85,7 +85,6 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     // if brake is used for railcom  cutout we need to do PORTX register trick here as well
     pinMode(brakePin, OUTPUT);
-    setBrake(true);  // start with brake on in case we hace DC stuff going on
   }
   else brakePin=UNUSED_PIN;
   
@@ -146,16 +145,14 @@ void MotorDriver::setPower(POWERMODE mode) {
   if (on) {
     noInterrupts();
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
+    interrupts();
     if (DCinuse)
       setDCSignal(curSpeedCode);
-    interrupts();
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
       noInterrupts();
-      if (DCinuse)
-	detachDCSignal();
       IODevice::write(powerPin,invertPower ? HIGH : LOW);
       interrupts();
   }
@@ -253,11 +250,35 @@ void MotorDriver::setDCSignal(byte speedcode) {
   DCinuse = true;
 
 #if defined(ARDUINO_AVR_UNO)
-  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
+  if (powerPin == 3 || powerPin == 11)
+    TCCR2B = (TCCR2B & B11111000) | B00000110; // D3, D11: set divisor on timer 2 to result in (approx) 122.55Hz
 #endif
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
-  TCCR4B = (TCCR4B & B11111000) | B00000100; // same for timer 4 but maxcount and thus divisor differs
+// As timer 0 is the system timer, we leave it alone
+//TCCR0B = (TCCR0B & B11111000) | B00000100; // D4, D13    : 122 or 244Hz?
+// As we use timer 1 for DCC we leave it alone
+//TCCR1B = (TCCR1B & B11111000) | B00000100; // D11, D12   : 122Hz
+  switch(powerPin) {
+  case 9:
+  case 10:
+    TCCR2B = (TCCR2B & B11111000) | B00000110; // D9, D10    : 122Hz
+    break;
+  case 2:
+  case 3:
+  case 5:
+    TCCR3B = (TCCR3B & B11111000) | B00000100; // D2, D3, D5 : 122Hz but maxcount and thus divisor differs
+    break;
+  case 6:
+  case 7:
+  case 8:
+    TCCR4B = (TCCR4B & B11111000) | B00000100; // D6, D7, D8 : 122Hz but maxcount and thus divisor differs
+    break;
+  case 44:
+  case 45:
+  case 46:
+    TCCR5B = (TCCR5B & B11111000) | B00000100; // D44,D45,D46: 122Hz but maxcount and thus divisor differs
+    break;
+  }
 #endif
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127

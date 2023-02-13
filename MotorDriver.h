@@ -146,9 +146,9 @@ class MotorDriver {
     void setDCSignal(byte speedByte);
     inline void detachDCSignal() {
 #if defined(__arm__)
-      pinMode(brakePin, OUTPUT);
+      pinMode(powerPin, OUTPUT);
 #elif defined(ARDUINO_ARCH_ESP32)
-      ledcDetachPin(brakePin);
+      ledcDetachPin(powerPin);
 #else
       setDCSignal(128);
 #endif
@@ -157,15 +157,16 @@ class MotorDriver {
     int  getCurrentRaw(bool fromISR=false);
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
-    inline bool brakeCanPWM() {
+    inline bool powerPinCanPWM() {
 #if defined(ARDUINO_ARCH_ESP32) || defined(__arm__)
       // TODO: on ARM we can use digitalPinHasPWM, and may wish/need to
       return true;
 #else
-#ifdef digitalPinToTimer
-      return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
+#ifdef digitalPinHasPWM
+      return digitalPinHasPWM(powerPin);
 #else
-      return (brakePin<14 && brakePin >1);
+#warning No good digitalPinHasPWM doing approximation
+      return (powerPin<14 && powerPin >1);
 #endif //digitalPinToTimer
 #endif //ESP32/ARM
     }
