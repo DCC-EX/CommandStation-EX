@@ -52,7 +52,7 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("GPIO Expander or LCD Display");
   else if (address == 0x29)
     return F("Time-of-flight sensor");
-  else if (address >= 0x3c && address <= 0x3c)
+  else if (address >= 0x3c && address <= 0x3d)
     return F("OLED Display");
   else if (address >= 0x48 && address <= 0x4f)
     return F("Analogue Inputs or PWM");
@@ -110,6 +110,8 @@ void I2CManagerClass::begin(void) {
     // Enumerate all I2C devices that are connected via multiplexer, 
     // i.e. that respond when only one multiplexer has one subBus enabled
     // and the device doesn't respond when the mux subBus is disabled.
+    // If any probes time out, then assume that the subbus is dead and
+    // don't do any more on that subbus.
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
       uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
       if (exists(muxAddr)) {
@@ -117,7 +119,8 @@ void I2CManagerClass::begin(void) {
         for (uint8_t subBus=0; subBus<=SubBus_No; subBus++) {
           muxSelectSubBus({(I2CMux)muxNo, (I2CSubBus)subBus});
           for (uint8_t addr=0x08; addr<0x78; addr++) {
-            if (exists(addr)) {
+            uint8_t status = checkAddress(addr);
+            if (status == I2C_STATUS_OK) {
               // De-select subbus
               muxSelectSubBus({(I2CMux)muxNo, SubBus_None});
               if (!exists(addr)) {
@@ -129,11 +132,13 @@ void I2CManagerClass::begin(void) {
               }
               // Re-select subbus
               muxSelectSubBus({(I2CMux)muxNo, (I2CSubBus)subBus});
+            } else if (status == I2C_STATUS_TIMEOUT) {
+              // Bus stuck, skip to next one.
+              break;
             }
           }
         }
-        // Probe mux address again with SubBus_None to deselect all
-        // subBuses for that mux.  Otherwise its devices will continue to
+        // Deselect all subBuses for this mux.  Otherwise its devices will continue to
         // respond when other muxes are being probed.
         I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None});  // Deselect Mux
       } 
@@ -251,7 +256,7 @@ const FSH *I2CManagerClass::getErrorMessage(uint8_t status) {
     case I2C_STATUS_NEGATIVE_ACKNOWLEDGE: return F("No response from device (address NAK)");
     case I2C_STATUS_TRANSMIT_ERROR: return F("Transmit error (data NAK)");
     case I2C_STATUS_OTHER_TWI_ERROR: return F("Other Wire/TWI error");
-    case I2C_STATUS_TIMEOUT: return F("Timeout");
+    case I2C_STATUS_TIMEOUT: return F("I2C bus timeout");
     case I2C_STATUS_ARBITRATION_LOST: return F("Arbitration lost");
     case I2C_STATUS_BUS_ERROR: return F("I2C bus error");
     case I2C_STATUS_UNEXPECTED_ERROR: return F("Unexpected error");
