@@ -1165,11 +1165,11 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
    // Find out where the string is going 
    switch (mode) {
     case thrunge_print:
-         StringFormatter::send(&Serial,F("<* EXRAIL(%d) "),loco);
-         stream=&Serial;
+         StringFormatter::send(&USB_SERIAL,F("<* EXRAIL(%d) "),loco);
+         stream=&USB_SERIAL;
          break;
 
-    case thrunge_serial: stream=&Serial; break;  
+    case thrunge_serial: stream=&USB_SERIAL; break;  
     case thrunge_serial1: 
          #ifdef SERIAL1_COMMANDS
          stream=&Serial1; 
@@ -1200,7 +1200,6 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
          stream=&Serial6; 
          #endif
          break;
-  // TODO  more serials for SAMx case thrunge_serial4: stream=&Serial4; break;
     case thrunge_lcn: 
       #if defined(LCN_SERIAL) 
       stream=&LCN_SERIAL;
@@ -1233,11 +1232,11 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
   // and decide what to do next
    switch (mode) {
     case thrunge_print:
-         StringFormatter::send(&Serial,F(" *>\n"));
+         StringFormatter::send(&USB_SERIAL,F(" *>\n"));
          break;
     // TODO  more serials for SAMx case thrunge_serial4: stream=&Serial4; break;
     case thrunge_parse: 
-      DCCEXParser::parseOne(&Serial,(byte*)buffer->getString(),NULL);
+      DCCEXParser::parseOne(&USB_SERIAL,(byte*)buffer->getString(),NULL);
       break;
     case thrunge_broadcast:
   // TODO     CommandDistributor::broadcastText(buffer->getString());

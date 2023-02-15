@@ -207,7 +207,7 @@
     }
 
 #ifdef EESTOREDEBUG
-    printAll(&Serial);
+    printAll(&USB_SERIAL);
 #endif
     return tt;
   }
