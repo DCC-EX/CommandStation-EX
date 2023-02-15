@@ -326,6 +326,7 @@ private:
   // structures for setting up non-blocking writes to servo controller
   I2CRB requestBlock;
   uint8_t outputBuffer[5];
+  uint8_t prescaler; // clock prescaler for setting PWM frequency
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

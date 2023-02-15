@@ -23,6 +23,22 @@
  * commands the device to set the PWM mark-to-period ratio accordingly.
  * The call to IODevice::writeAnalogue(vpin, value) specifies the
  * desired value in the range 0-4095 (0=0% and 4095=100%).
+ * 
+ * This driver can be used for simple servo control by writing values between
+ * about 102 and 450 (extremes of movement for 9g micro servos) or 150 to 250
+ * for a more restricted range (corresponding to 1.5ms to 2.5ms pulse length).
+ * A value of zero will switch off the servo.  To create the device, use
+ * the following syntax:
+ * 
+ * PCA9685_basic::create(vpin, npins, i2caddress);
+ * 
+ * For LED control, a value of 0 is fully off, and 4095 is fully on.  It is
+ * recommended, to reduce flicker of LEDs, that the frequency be configured
+ * to a value higher than the default of 50Hz.  To do this, create the device
+ * as follows, for a frequency of 200Hz.:
+ * 
+ * PCA9685_basic::create(vpin, npins, i2caddress, 200);
+ * 
  */
 
 #ifndef PCA9685_BASIC_H
@@ -39,34 +55,38 @@
 class PCA9685pwm : public IODevice {
 public:
   // Create device driver instance.
-  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCA9685pwm(firstVpin, nPins, i2cAddress);
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency = 50) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCA9685pwm(firstVpin, nPins, i2cAddress, frequency);
   }
 
 private:
   
-  // structures for setting up non-blocking writes to servo controller
+  // structures for setting up non-blocking writes to PWM controller
   I2CRB requestBlock;
   uint8_t outputBuffer[5];
+  uint16_t prescaler;
 
   // REGISTER ADDRESSES
   const uint8_t PCA9685_MODE1=0x00;      // Mode Register 
-  const uint8_t PCA9685_FIRST_SERVO=0x06;  /** low uint8_t first servo register ON*/
+  const uint8_t PCA9685_FIRST_SERVO=0x06;  /** low uint8_t first PWM register ON*/
   const uint8_t PCA9685_PRESCALE=0xFE;     /** Prescale register for PWM output frequency */
   // MODE1 bits
   const uint8_t MODE1_SLEEP=0x10;   /**< Low power mode. Oscillator off */
   const uint8_t MODE1_AI=0x20;      /**< Auto-Increment enabled */
   const uint8_t MODE1_RESTART=0x80; /**< Restart enabled */
 
-  const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
+  const uint32_t FREQUENCY_OSCILLATOR=25000000; /** Accurate enough for our purposes  */
   const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
   const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 
   // Constructor
-  PCA9685pwm(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+  PCA9685pwm(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
     _firstVpin = firstVpin;
     _nPins = (nPins>16) ? 16 : nPins;
     _I2CAddress = i2cAddress;
+    if (frequency > 1526) frequency = 1526;
+    else if (frequency < 24) frequency = 24;
+    prescaler = FREQUENCY_OSCILLATOR / 4096 / frequency;
     addDevice(this);
 
     // Initialise structure used for setting pulse rate
@@ -82,8 +102,8 @@ private:
 
     // Initialise I/O module here.
     if (I2CManager.exists(_I2CAddress)) {
-      writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
-      writeRegister(_I2CAddress, PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
+      writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);
+      writeRegister(_I2CAddress, PCA9685_PRESCALE, prescaler);
       writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
       writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
       // In theory, we should wait 500us before sending any other commands to each device, to allow
@@ -100,7 +120,7 @@ private:
   //            
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
     (void)param1; (void)param2;  // suppress compiler warning
-    #ifdef DIAG_IO
+    #if DIAG_IO >= 3
     DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d %S"), 
       vpin, value, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
     #endif
@@ -121,7 +141,7 @@ private:
   // writeDevice (helper function) takes a pin in range 0 to _nPins-1 within the device, and a value
   // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
   void writeDevice(uint8_t pin, int value) {
-    #ifdef DIAG_IO
+    #if DIAG_IO >= 3
     DIAG(F("PCA9685pwm I2C:%s WriteDevice Pin:%d Value:%d"), _I2CAddress.toString(), pin, value);
     #endif
     // Wait for previous request to complete

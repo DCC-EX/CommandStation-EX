@@ -31,22 +31,21 @@ static const byte MODE1_AI=0x20;      /**< Auto-Increment enabled */
 static const byte MODE1_RESTART=0x80; /**< Restart enabled */
 
 static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
-static const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 
 // Predeclare helper function
 static void writeRegister(byte address, byte reg, byte value);
 
 // Create device driver instance.
-void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
-  if (checkNoOverlap(firstVpin, nPins,i2cAddress)) new PCA9685(firstVpin, nPins, i2cAddress);
+void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
+  if (checkNoOverlap(firstVpin, nPins,i2cAddress)) new PCA9685(firstVpin, nPins, i2cAddress, frequency);
 }
 
 // Configure a port on the PCA9685.
 bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
   if (configType != CONFIGURE_SERVO) return false;
   if (paramCount != 5) return false;
-  #ifdef DIAG_IO
+  #if DIAG_IO >= 3
   DIAG(F("PCA9685 Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
     vpin, params[0], params[1], params[2], params[3], params[4]);
   #endif
@@ -73,10 +72,14 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
 }
 
 // Constructor
-PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
   _firstVpin = firstVpin;
     _nPins = (nPins > 16) ? 16 : nPins;
   _I2CAddress = i2cAddress;
+  // Calculate prescaler value for PWM clock
+  if (frequency > 1526) frequency = 1526;
+  else if (frequency < 24) frequency = 24;
+  prescaler = FREQUENCY_OSCILLATOR / 4096 / frequency;
   // To save RAM, space for servo configuration is not allocated unless a pin is used.
   // Initialise the pointers to NULL.
   for (int i=0; i<_nPins; i++)
@@ -98,7 +101,7 @@ void PCA9685::_begin() {
   // Initialise I/O module here.
   if (I2CManager.exists(_I2CAddress)) {
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
-    writeRegister(_I2CAddress, PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
+    writeRegister(_I2CAddress, PCA9685_PRESCALE, prescaler);
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
     // In theory, we should wait 500us before sending any other commands to each device, to allow
@@ -114,7 +117,7 @@ void PCA9685::_begin() {
 // Device-specific write function, invoked from IODevice::write().  
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
-  #ifdef DIAG_IO
+  #if DIAG_IO >= 3
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
   #endif
   int pin = vpin - _firstVpin;
@@ -141,7 +144,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             4 (Bounce)  Servo 'bounces' at extremes.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-  #ifdef DIAG_IO
+  #if DIAG_IO >= 3
   DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
     vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
   #endif
