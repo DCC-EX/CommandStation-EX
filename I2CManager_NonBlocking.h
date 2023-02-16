@@ -109,7 +109,7 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
  * starting the operation.
  ***************************************************************************/
 void I2CManagerClass::startTransaction() {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+  ATOMIC_BLOCK() {
     if ((state == I2C_STATE_FREE) && (queueHead != NULL)) {
       state = I2C_STATE_ACTIVE;
       completionStatus = I2C_STATUS_OK;
@@ -174,7 +174,7 @@ void I2CManagerClass::startTransaction() {
 void I2CManagerClass::queueRequest(I2CRB *req) {
   req->status = I2C_STATUS_PENDING;
   req->nextRequest = NULL;
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+  ATOMIC_BLOCK() {
     if (!queueTail) 
       queueHead = queueTail = req;  // Only item on queue
     else
@@ -236,7 +236,7 @@ void I2CManagerClass::setTimeout(unsigned long value) {
  * may be caused by an I2C wire short for example.
  ***************************************************************************/
 void I2CManagerClass::checkForTimeout() {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+  ATOMIC_BLOCK() {
     I2CRB *t = queueHead;
     if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && _timeout > 0) {
       // Check for timeout
