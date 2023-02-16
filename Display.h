@@ -23,11 +23,8 @@
 #include "DisplayInterface.h"
 
 // Allow maximum message length to be overridden from config.h
-#if !defined(MAX_MSG_SIZE) 
-// On a screen that's 128 pixels wide, character 22 overlaps end of screen
-// However, by making the line longer than the screen, we don't have to 
-// clear the screen, we just overwrite what was there.
-#define MAX_MSG_SIZE 22  
+#if !defined(MAX_MSG_SIZE)
+#define MAX_MSG_SIZE 20 
 #endif
 
 // Set default scroll mode (overridable in config.h)
@@ -48,13 +45,13 @@ private:
   DisplayDevice *_deviceDriver;
 
   unsigned long lastScrollTime = 0;
-  int8_t hotRow = 0;
-  int8_t hotCol = 0;
+  uint8_t hotRow = 0;
+  uint8_t hotCol = 0;
   int8_t topRow = 0;
-  int8_t slot = 0;
+  uint8_t slot = 0;
   int8_t rowFirst = -1;
   int8_t rowNext = 0;
-  int8_t charIndex = 0;
+  uint8_t charIndex = 0;
   char buffer[MAX_CHARACTER_COLS + 1];
   char* bufferPointer = 0;
   bool done = false;
