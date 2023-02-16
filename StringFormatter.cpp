@@ -18,7 +18,7 @@
  */
 #include "StringFormatter.h"
 #include <stdarg.h>
-#include "Display.h"
+#include "DisplayInterface.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -45,19 +45,17 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   send2(&USB_SERIAL,input,args);
   send(&USB_SERIAL,F(" *>\n"));
   
-  if (!Display::displayHandler) return;
-  Display::displayHandler->setRow(row);    
+  DisplayInterface::setRow(row);    
   va_start(args, input);
-  send2(Display::displayHandler,input,args);
+  send2(DisplayInterface::getDisplayHandler(),input,args);
 }
 
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
 
-  if (!Display::displayHandler) return;
-  Display::displayHandler->setRow(display, row);    
+  DisplayInterface::setRow(display, row);    
   va_start(args, input);
-  send2(Display::displayHandler,input,args);
+  send2(DisplayInterface::getDisplayHandler(),input,args);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {

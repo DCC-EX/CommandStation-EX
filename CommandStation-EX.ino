@@ -49,6 +49,7 @@
  */
 
 #include "DCCEX.h"
+#include "Display_Implementation.h"
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -74,11 +75,11 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-  CONDITIONAL_DISPLAY_START {
-    // This block is still executed for DIAGS if LCD not in use
-    LCD(0,F("DCC++ EX v%S"),F(VERSION));
+  DISPLAY_START (
+    // This block is still executed for DIAGS if display not in use
+    LCD(0,F("DCC-EX v%S"),F(VERSION));
     LCD(1,F("Lic GPLv3"));
-  }
+  );
 
   // Responsibility 2: Start all the communications before the DCC engine
   // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
@@ -160,7 +161,8 @@ void loop()
   LCN::loop();
   #endif
 
-  Display::loop();  // ignored if LCD not in use
+  // Display refresh
+  DisplayInterface::loop();
 
   // Handle/update IO devices.
   IODevice::loop();

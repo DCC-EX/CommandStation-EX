@@ -16,15 +16,18 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef LCDDisplay_h
-#define LCDDisplay_h
+#ifndef Display_h
+#define Display_h
 #include <Arduino.h>
 #include "defines.h"
 #include "DisplayInterface.h"
 
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE) 
-#define MAX_MSG_SIZE 20
+// On a screen that's 128 pixels wide, character 22 overlaps end of screen
+// However, by making the line longer than the screen, we don't have to 
+// clear the screen, we just overwrite what was there.
+#define MAX_MSG_SIZE 22  
 #endif
 
 // Set default scroll mode (overridable in config.h)
@@ -32,36 +35,17 @@
 #define SCROLLMODE 1
 #endif
 
-// This class is created in LCDisplay_Implementation.h
+// This class is created in Display_Implementation.h
 
 class Display : public DisplayInterface {
- public:
-  Display() {};
-  static const int MAX_LCD_ROWS = 8;
-  static const int MAX_LCD_COLS = MAX_MSG_SIZE;
-  static const long LCD_SCROLL_TIME = 3000;  // 3 seconds
+public:
+  Display(DisplayDevice *deviceDriver);
+  static const int MAX_CHARACTER_ROWS = 8;
+  static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
+  static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds
 
-  // Internally handled functions
-  static void loop();
-  Display* loop2(bool force) override;
-  void setRow(byte line) override;
-  void clear() override;
-
-  size_t write(uint8_t b) override;
-
-protected:
-  uint8_t lcdRows;
-  uint8_t lcdCols;
-
- private:
-  void moveToNextRow();
-  void skipBlankRows();
-
-  // Relay functions to the live driver in the subclass
-  virtual void clearNative() = 0;
-  virtual void setRowNative(byte line) = 0;
-  virtual size_t writeNative(uint8_t b) = 0;
-  virtual bool isBusy() = 0;
+private:
+  DisplayDevice *_deviceDriver;
 
   unsigned long lastScrollTime = 0;
   int8_t hotRow = 0;
@@ -71,11 +55,25 @@ protected:
   int8_t rowFirst = -1;
   int8_t rowNext = 0;
   int8_t charIndex = 0;
-  char buffer[MAX_LCD_COLS + 1];
+  char buffer[MAX_CHARACTER_COLS + 1];
   char* bufferPointer = 0;
   bool done = false;
+  uint16_t numCharacterRows;
+  uint16_t numCharacterColumns = MAX_CHARACTER_COLS;
 
-  char rowBuffer[MAX_LCD_ROWS][MAX_LCD_COLS + 1];
+  char *rowBuffer[MAX_CHARACTER_ROWS];
+
+public:
+  void begin() override;  
+  void _clear() override;
+  void _setRow(uint8_t line) override;
+  size_t _write(uint8_t b) override;
+  void _refresh() override;
+  void _displayLoop() override;
+  Display *loop2(bool force);
+  void moveToNextRow();
+  void skipBlankRows();
+
 };
 
 #endif

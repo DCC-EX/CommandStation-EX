@@ -47,42 +47,65 @@
 
 #include "Display.h"
 
-void Display::clear() {
-  clearNative();
-  for (byte row = 0; row < MAX_LCD_ROWS; row++) rowBuffer[row][0] = '\0';
+// Constructor - allocates device driver.
+Display::Display(DisplayDevice *deviceDriver) {
+  _deviceDriver = deviceDriver;
+  // Get device dimensions in characters (e.g. 16x2).
+  numCharacterColumns = _deviceDriver->getNumCols();
+  numCharacterRows = _deviceDriver->getNumRows();;
+  for (uint8_t row=0; row<MAX_CHARACTER_ROWS; row++)
+    rowBuffer[row] = (char *)calloc(1, MAX_CHARACTER_COLS+1);
+  topRow = -1;  // loop2 will fill from row 0
+  
+  addDisplay(0);  // Add this display as display number 0
+};
+
+void Display::begin() {
+  _deviceDriver->begin();
+  _deviceDriver->clearNative();
+}
+
+void Display::_clear() {
+  _deviceDriver->clearNative();
+  for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
+    rowBuffer[row][0] = '\0';
   topRow = -1;  // loop2 will fill from row 0
 }
 
-void Display::setRow(byte line) {
+void Display::_setRow(uint8_t line) {
   hotRow = line;
   hotCol = 0;
+  rowBuffer[hotRow][hotCol] = 0;  // Clear existing text
 }
 
-size_t Display::write(uint8_t b) {
-  if (hotRow >= MAX_LCD_ROWS || hotCol >= MAX_LCD_COLS) return -1;
+size_t Display::_write(uint8_t b) {
+  if (hotRow >= MAX_CHARACTER_ROWS || hotCol >= MAX_CHARACTER_COLS) return -1;
   rowBuffer[hotRow][hotCol] = b;
   hotCol++;
   rowBuffer[hotRow][hotCol] = 0;
   return 1;
 }
 
-void Display::loop() {
-  if (!displayHandler) return;
-  displayHandler->loop2(false);
+// Refresh screen completely (will block until complete). Used
+// during start-up.
+void Display::_refresh() {
+  loop2(true);
+}
+
+// On normal loop entries, loop will only make one output request on each
+// entry, to avoid blocking while waiting for the I2C.
+void Display::_displayLoop() {
+  // If output device is busy, don't do anything on this loop
+  // This avoids blocking while waiting for the device to complete.
+  if (!_deviceDriver->isBusy()) loop2(false);
 }
 
 Display *Display::loop2(bool force) {
-  if (!displayHandler) return NULL;
-
-  // If output device is busy, don't do anything on this loop
-  //  This avoids blocking while waiting for the device to complete.
-  if (isBusy()) return NULL;  
-
   unsigned long currentMillis = millis();
 
   if (!force) {
     // See if we're in the time between updates
-    if ((currentMillis - lastScrollTime) < LCD_SCROLL_TIME)
+    if ((currentMillis - lastScrollTime) < DISPLAY_SCROLL_TIME)
       return NULL;
   } else {
     // force full screen update from the beginning.
@@ -104,7 +127,7 @@ Display *Display::loop2(bool force) {
           buffer[i] = rowBuffer[rowNext][i];
       } else
         buffer[0] = '\0';  // Empty line
-      setRowNative(slot);  // Set position for display
+      _deviceDriver->setRowNative(slot);  // Set position for display
       charIndex = 0;
       bufferPointer = &buffer[0];
 
@@ -113,12 +136,12 @@ Display *Display::loop2(bool force) {
       // Write next character, or a space to erase current position.
       char ch = *bufferPointer;
       if (ch) {
-        writeNative(ch);
+        _deviceDriver->writeNative(ch);
         bufferPointer++;
       } else
-        writeNative(' ');
+        _deviceDriver->writeNative(' ');
 
-      if (++charIndex >= MAX_LCD_COLS) {
+      if (++charIndex >= MAX_CHARACTER_COLS) {
         // Screen slot completed, move to next slot on screen
         slot++;
         bufferPointer = 0;
@@ -128,7 +151,7 @@ Display *Display::loop2(bool force) {
         }
       }
 
-      if (slot >= lcdRows) {
+      if (slot >= numCharacterRows) {
         // Last slot finished, reset ready for next screen update.
 #if SCROLLMODE==2
         if (!done) {
@@ -151,7 +174,8 @@ Display *Display::loop2(bool force) {
 }
 
 void Display::moveToNextRow() {
-  rowNext = (rowNext + 1) % MAX_LCD_ROWS;
+  rowNext = rowNext + 1;
+  if (rowNext >= MAX_CHARACTER_ROWS) rowNext = 0;
 #if SCROLLMODE == 1
   // Finished if we've looped back to row 0
   if (rowNext == 0) done = true;
