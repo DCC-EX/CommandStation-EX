@@ -316,6 +316,7 @@ void I2CManagerClass::handleInterrupt() {
           deviceAddress = rbAddress;
           sendBuffer = currentRequest->writeBuffer;
           bytesToSend = currentRequest->writeLen;
+          receiveBuffer = currentRequest->readBuffer;
           bytesToReceive = currentRequest->readLen;
           operation = currentRequest->operation & OPERATION_MASK;
           state = I2C_STATE_ACTIVE;
@@ -326,16 +327,21 @@ void I2CManagerClass::handleInterrupt() {
         // Application request completed, now send epilogue to mux
         overallStatus = completionStatus;
         currentRequest->nBytes = rxCount;  // Save number of bytes read into rb
-        muxPhase = MuxPhase_EPILOG;
-        deviceAddress = I2C_MUX_BASE_ADDRESS + currentRequest->i2cAddress.muxNumber();
-        muxData[0] = 0x00;
-        sendBuffer = &muxData[0];
-        bytesToSend = 1;
-        bytesToReceive = 0;
-        operation = OPERATION_SEND;
-        state = I2C_STATE_ACTIVE;
-        I2C_sendStart();
-        return;
+        if (_muxCount == 1) {
+          // Only one MUX, don't need to deselect subbus
+          muxPhase = MuxPhase_OFF;
+        } else {
+          muxPhase = MuxPhase_EPILOG;
+          deviceAddress = I2C_MUX_BASE_ADDRESS + currentRequest->i2cAddress.muxNumber();
+          muxData[0] = 0x00;
+          sendBuffer = &muxData[0];
+          bytesToSend = 1;
+          bytesToReceive = 0;
+          operation = OPERATION_SEND;
+          state = I2C_STATE_ACTIVE;
+          I2C_sendStart();
+          return;
+        }
       } else if (muxPhase == MuxPhase_EPILOG) {
         // Epilog finished, ignore completionStatus
         muxPhase = MuxPhase_OFF;
