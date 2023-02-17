@@ -1,4 +1,5 @@
 /*
+ *  © 2023 Neil McKechnie
  *  © 2022 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021 Harald Barth
@@ -50,13 +51,13 @@ HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
 #endif
 
 INTERRUPT_CALLBACK interruptHandler=0;
-// Let's use STM32's timer #11 until disabused of this notion
-// Timer #11 is used for "servo" library, but as DCC-EX is not using
-// this libary, we should be free and clear.
-HardwareTimer timer(TIM11);
+// Let's use STM32's timer #2 which supports hardware pulse generation on pins D3 and D6 
+// (accurate timing, independent of the latency of interrupt handling).
+// Pin D3 is driven by TIM2 channel 2 and D6 is TIM2 channel 3.
+HardwareTimer timer(TIM2);
 
 // Timer IRQ handler
-void Timer11_Handler() {
+void Timer_Handler() {
   interruptHandler();
 }
 
@@ -67,9 +68,8 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
   timer.pause();
   timer.setPrescaleFactor(1);
-//  timer.setOverflow(CLOCK_CYCLES * 2);
   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  timer.attachInterrupt(Timer11_Handler);
+  timer.attachInterrupt(Timer_Handler);
   timer.refresh();
   timer.resume();
 
@@ -77,20 +77,42 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-  //TODO: SAMD whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
-  //      there's no support yet for High Accuracy, so for now return false
-  //  return digitalPinHasPWM(pin);
-  return false;
+  // Timer 2 Channel 2 controls pin D3, and Timer2 Channel 3 controls D6.
+  //  Enable the appropriate timer channel.
+  switch (pin) {
+    case 3:
+      timer.setMode(2, TIMER_OUTPUT_COMPARE_INACTIVE, D3);
+      return true;
+    case 6:
+      timer.setMode(3, TIMER_OUTPUT_COMPARE_INACTIVE, D6);
+      return true;
+    default:
+      return false;
+  }
 }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-    // TODO: High Accuracy mode is not supported as yet, and may never need to be
-    (void) pin;
-    (void) high;
+  // Set the timer so that, at the next counter overflow, the requested
+  // pin state is activated automatically before the interrupt code runs.
+  switch (pin) {
+    case 3:
+      if (high) 
+        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC2M_Msk) | TIM_CCMR1_OC2M_0;
+      else
+        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC2M_Msk) | TIM_CCMR1_OC2M_1;
+      break;
+    case 6:
+      if (high) 
+        TIM2->CCMR2 = (TIM2->CCMR2 & ~TIM_CCMR2_OC3M_Msk) | TIM_CCMR2_OC3M_0;
+      else
+        TIM2->CCMR2 = (TIM2->CCMR2 & ~TIM_CCMR2_OC3M_Msk) | TIM_CCMR2_OC3M_1;
+      break;
+  }   
 }
 
 void DCCTimer::clearPWM() {
-  return;
+  timer.setMode(2, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
+  timer.setMode(3, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
