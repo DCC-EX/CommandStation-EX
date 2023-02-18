@@ -24,6 +24,7 @@
 #include <inttypes.h>
 #include "FSH.h"
 #include "defines.h"
+#include "DIAG.h"
 
 /* 
  * Manager for I2C communications.  For portability, it allows use 
@@ -144,9 +145,6 @@
 //#define I2C_EXTENDED_ADDRESS
 
 
-// Type to hold I2C address
-#if defined(I2C_EXTENDED_ADDRESS)
-
 /////////////////////////////////////////////////////////////////////////////////////
 // Extended I2C Address type to facilitate extended I2C addresses including
 // I2C multiplexer support.
@@ -188,6 +186,9 @@ enum I2CSubBus : uint8_t {
   SubBus_None = 254,   // Disable all sub-buses on selected mux
   SubBus_All = 255,    // Enable all sub-buses
 };
+
+// Type to hold I2C address
+#if defined(I2C_EXTENDED_ADDRESS)
 
 // First MUX address (they range between 0x70-0x77).
 #define I2C_MUX_BASE_ADDRESS 0x70
@@ -315,6 +316,14 @@ public:
   I2CAddress(const uint8_t deviceAddress) {
     _deviceAddress = deviceAddress;
   }
+  I2CAddress(I2CMux, I2CSubBus, const uint8_t deviceAddress) {
+    addressWarning();
+    _deviceAddress = deviceAddress;
+  }
+  I2CAddress(I2CSubBus, const uint8_t deviceAddress) {
+    addressWarning();
+    _deviceAddress = deviceAddress;
+  }
 
   // Basic constructor
   I2CAddress() : I2CAddress(0) {}
@@ -344,6 +353,13 @@ public:
 private:
   // Helper function for converting byte to four-character hex string (e.g. 0x23).
   void toHex(const uint8_t value, char *buffer);
+  void addressWarning() {
+    if (!_addressWarningDone) {
+      DIAG(F("WARNIING: Extended I2C address used but not supported in this configuration"));
+      _addressWarningDone = true;
+    }
+  }    
+  static bool _addressWarningDone;
 };
 #endif // I2C_EXTENDED_ADDRESS
 

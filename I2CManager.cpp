@@ -351,3 +351,9 @@ void I2CAddress::toHex(const uint8_t value, char *buffer) {
   bits = value & 0xf;
   *ptr++ = bits > 9 ? bits-10+'a' : bits+'0';
 }
+
+#if !defined(I2C_EXTENDED_ADDRESS) 
+
+/* static */ bool I2CAddress::_addressWarningDone = false;
+
+#endif
