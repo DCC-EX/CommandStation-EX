@@ -143,18 +143,18 @@ const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
 // SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
  
-// Constructor
-SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
-  m_i2cAddr = 0;
-  m_displayWidth = width;
-  m_displayHeight = height;
-}
+// Auto-detect address
+SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) 
+  : SSD1306AsciiWire(0, width, height) { }
 
-// CS auto-detect and configure constructor
+// Constructor with explicit address
 SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height) {
   m_i2cAddr = address;
   m_displayWidth = width;
   m_displayHeight = height;
+  // Set size in characters
+  m_charsPerColumn = m_displayHeight / fontHeight;
+  m_charsPerRow = (m_displayWidth+fontWidth-1) / fontWidth; // Round up
 }
 
 bool SSD1306AsciiWire::begin() {
@@ -173,9 +173,6 @@ bool SSD1306AsciiWire::begin() {
       DIAG(F("OLED display not found"));
   }
 
-  // Set size in characters
-  m_charsPerColumn = m_displayHeight / fontHeight;
-  m_charsPerRow = (m_displayWidth+fontWidth-1) / fontWidth; // Round up
   m_col = 0;
   m_row = 0;
   m_colOffset = 0;
