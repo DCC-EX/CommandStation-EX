@@ -43,6 +43,9 @@
 #undef USB_SERIAL     // Teensy has this defined by default...
 #define USB_SERIAL Serial
 
+// Include extended addresses unless specifically excluded
+#define I2C_EXTENDED_ADDRESS
+
 #if defined(ARDUINO_AVR_UNO)
 #define ARDUINO_TYPE "UNO"
 #undef HAS_ENOUGH_MEMORY
@@ -60,6 +63,8 @@
 #elif defined(ARDUINO_ARCH_MEGAAVR)
 #define ARDUINO_TYPE "MEGAAVR"
 #undef HAS_ENOUGH_MEMORY
+#define NO_EXTENDED_CHARACTERS
+#undef I2C_EXTENDED_ADDRESS
 #elif defined(ARDUINO_TEENSY31)
 #define ARDUINO_TYPE "TEENSY3132"
 #undef USB_SERIAL
