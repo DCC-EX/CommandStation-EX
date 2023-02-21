@@ -51,10 +51,13 @@ HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
 #endif
 
 INTERRUPT_CALLBACK interruptHandler=0;
-// Let's use STM32's timer #2 which supports hardware pulse generation on pins D3 and D6 
-// (accurate timing, independent of the latency of interrupt handling).
-// Pin D3 is driven by TIM2 channel 2 and D6 is TIM2 channel 3.
+// Let's use STM32's timer #2 which supports hardware pulse generation on pin D13.
+// Also, timer #3 will do hardware pulses on pin D12. This gives
+// accurate timing, independent of the latency of interrupt handling.
+// We only need to interrupt on one of these (TIM2), the other will just generate
+// pulses.
 HardwareTimer timer(TIM2);
+HardwareTimer timerAux(TIM3);
 
 // Timer IRQ handler
 void Timer_Handler() {
@@ -67,24 +70,30 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 
   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
   timer.pause();
+  timerAux.pause();
   timer.setPrescaleFactor(1);
   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
   timer.attachInterrupt(Timer_Handler);
   timer.refresh();
+  timerAux.setPrescaleFactor(1);
+  timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+  timerAux.refresh();
+  
   timer.resume();
+  timerAux.resume();
 
   interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-  // Timer 2 Channel 2 controls pin D3, and Timer2 Channel 3 controls D6.
+  // Timer 2 Channel 1 controls pin D13, and Timer3 Channel 1 controls D12.
   //  Enable the appropriate timer channel.
   switch (pin) {
-    case 3:
-      timer.setMode(2, TIMER_OUTPUT_COMPARE_INACTIVE, D3);
+    case 12:
+      timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D12);
       return true;
-    case 6:
-      timer.setMode(3, TIMER_OUTPUT_COMPARE_INACTIVE, D6);
+    case 13:
+      timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D13);
       return true;
     default:
       return false;
@@ -94,25 +103,26 @@ bool DCCTimer::isPWMPin(byte pin) {
 void DCCTimer::setPWM(byte pin, bool high) {
   // Set the timer so that, at the next counter overflow, the requested
   // pin state is activated automatically before the interrupt code runs.
+  // TIM2 is timer, TIM3 is timerAux.
   switch (pin) {
-    case 3:
+    case 12:
       if (high) 
-        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC2M_Msk) | TIM_CCMR1_OC2M_0;
+        TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
       else
-        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC2M_Msk) | TIM_CCMR1_OC2M_1;
+        TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
       break;
-    case 6:
+    case 13:
       if (high) 
-        TIM2->CCMR2 = (TIM2->CCMR2 & ~TIM_CCMR2_OC3M_Msk) | TIM_CCMR2_OC3M_0;
+        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
       else
-        TIM2->CCMR2 = (TIM2->CCMR2 & ~TIM_CCMR2_OC3M_Msk) | TIM_CCMR2_OC3M_1;
+        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
       break;
   }   
 }
 
 void DCCTimer::clearPWM() {
-  timer.setMode(2, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
-  timer.setMode(3, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
+  timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
+  timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
