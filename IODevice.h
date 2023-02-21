@@ -418,6 +418,55 @@ private:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+// IODevice framework for invoking user-written functions.
+// To use, define a function that you want to be regularly
+// invoked, and then create an instance of UserAddin.  
+// For example, you can show the status, on screen 3, of the first eight
+// locos in the speed table:
+// 
+// void updateLocoScreen() {
+//   for (int i=0; i<8; i++) {
+//     if (DCC::speedTable[i].loco > 0) {
+//       int speed = DCC::speedTable[i].speedCode;
+//       SCREEN(3, i, F("Loco:%4d %3d %c"), DCC::speedTable[i].loco,
+//         speed & 0x7f, speed & 0x80 ? 'R' : 'F');
+//     }
+//   }
+// }
+//
+// void halSetup() {
+//   ...
+//   UserAddin(updateLocoScreen, 1000);  // Update every 1000ms
+//   ...
+// }
+//
+class UserAddin : public IODevice {
+private:
+  void (*_invokeUserFunction)();
+  int _delay; // milliseconds
+public:
+  UserAddin(void (*func)(), int delay) {
+    _invokeUserFunction = func; 
+    _delay = delay; 
+    addDevice(this); 
+  }
+  // userFunction has no return value, no parameter.  delay is in milliseconds.
+  static void create(void (*userFunction)(), int delay) {
+    new UserAddin(userFunction, delay);
+  }
+protected:
+  void _begin() { _display(); }
+  void _loop(unsigned long currentMicros) override {
+    _invokeUserFunction();
+    // _loop won't be called again until _delay ms have elapsed.
+    delayUntil(currentMicros + _delay * 1000UL);
+  }
+  void _display() override {
+    DIAG(F("UserAddin run every %dms"), _delay);
+  }
+};
+
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
 #include "IO_PCF8574.h"
