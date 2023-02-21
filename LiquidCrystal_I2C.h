@@ -90,7 +90,7 @@ private:
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;
-  uint8_t _backlightval;
+  uint8_t _backlightval = 0;
 
   uint8_t outputBuffer[4];
   I2CRB rb;

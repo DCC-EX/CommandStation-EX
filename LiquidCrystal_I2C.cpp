@@ -80,15 +80,15 @@ bool LiquidCrystal_I2C::begin() {
 
   // we start in 8bit mode, try to set 4 bit mode
   write4bits(0x03);
-  delayMicroseconds(4500);  // wait min 4.1ms
+  delayMicroseconds(5000);  // wait min 4.1ms
 
   // second try
   write4bits(0x03);
-  delayMicroseconds(4500);  // wait min 4.1ms
+  delayMicroseconds(5000);  // wait min 4.1ms
 
   // third go!
   write4bits(0x03);
-  delayMicroseconds(150);
+  delayMicroseconds(5000);
 
   // finally, set to 4-bit interface
   write4bits(0x02);
@@ -112,7 +112,7 @@ bool LiquidCrystal_I2C::begin() {
 /********** high level commands, for the user! */
 void LiquidCrystal_I2C::clearNative() {
   command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
-  delayMicroseconds(1600);    // this command takes 1.52ms
+  delayMicroseconds(2000);    // this command takes 1.52ms but allow plenty
 }
 
 void LiquidCrystal_I2C::setRowNative(byte row) {
