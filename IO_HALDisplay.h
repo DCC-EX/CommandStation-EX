@@ -29,7 +29,7 @@
  * 
  * To install, use the following command in myHal.cpp:
 
- *    OLEDDisplay::create(address, width, height);
+ *    HALDisplay::create(address, width, height);
  * 
  * where address is the I2C address (0x3c or 0x3d),
  * width is the width in pixels of the display, and
@@ -41,18 +41,20 @@
  */
 
 
-#ifndef IO_OLEDDISPLAY_H
-#define IO_OLEDDISPLAY_H
+#ifndef IO_HALDisplay_H
+#define IO_HALDisplay_H
 
 #include "IODevice.h"
 #include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
+#include "LiquidCrystal_I2C.h"
 #include "version.h"
 
 typedef SSD1306AsciiWire OLED;
+typedef LiquidCrystal_I2C LiquidCrystal; 
 
 template <class T> 
-class OLEDDisplay : public IODevice, public DisplayInterface {
+class HALDisplay : public IODevice, public DisplayInterface {
 private:
   // Here we define the device-specific variables.  
   uint8_t _height; // in pixels
@@ -70,17 +72,17 @@ private:
   DisplayInterface *_nextDisplay = NULL;
 
 public:
-  //  Static function to handle "OLEDDisplay::create(...)" calls.
+  //  Static function to handle "HALDisplay::create(...)" calls.
   static void create(I2CAddress i2cAddress, int width, int height) {
-    /* if (checkNoOverlap(i2cAddress)) */ new OLEDDisplay(0, i2cAddress, width, height);
+    /* if (checkNoOverlap(i2cAddress)) */ new HALDisplay(0, i2cAddress, width, height);
   } 
   static void create(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
-    /* if (checkNoOverlap(i2cAddress)) */ new OLEDDisplay(displayNo, i2cAddress, width, height);
+    /* if (checkNoOverlap(i2cAddress)) */ new HALDisplay(displayNo, i2cAddress, width, height);
   } 
 
 protected:
   // Constructor
-  OLEDDisplay(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
+  HALDisplay(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
     _displayDriver = new T(i2cAddress, width, height);
     _I2CAddress = i2cAddress;
     _width = width;
@@ -178,7 +180,7 @@ protected:
   
   // Display information about the device.
   void _display() {
-    DIAG(F("OLEDDisplay %d configured on addr %s"), _displayNo, _I2CAddress.toString());
+    DIAG(F("HALDisplay %d configured on addr %s"), _displayNo, _I2CAddress.toString());
   }
   
   /////////////////////////////////////////////////
@@ -238,4 +240,4 @@ public:
 
 };
 
-#endif // IO_OLEDDISPLAY_H
+#endif // IO_HALDisplay_H
