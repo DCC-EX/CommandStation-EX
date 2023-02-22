@@ -40,6 +40,7 @@ public:
   static const int MAX_CHARACTER_ROWS = 8;
   static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
   static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds
+  static const uint8_t ROW_INITIAL = 255;
 
 private:
   DisplayDevice *_deviceDriver;
@@ -47,18 +48,18 @@ private:
   unsigned long lastScrollTime = 0;
   uint8_t hotRow = 0;
   uint8_t hotCol = 0;
-  int8_t topRow = 0;
+  uint8_t topRow = 0;
   uint8_t slot = 0;
-  int8_t rowFirst = -1;
-  int8_t rowNext = 0;
+  uint8_t rowFirst = ROW_INITIAL;
+  uint8_t rowNext = ROW_INITIAL;
   uint8_t charIndex = 0;
   char buffer[MAX_CHARACTER_COLS + 1];
   char* bufferPointer = 0;
-  bool done = false;
+  bool noMoreRowsToDisplay = false;
   uint16_t numCharacterRows;
   uint16_t numCharacterColumns = MAX_CHARACTER_COLS;
 
-  char *rowBuffer[MAX_CHARACTER_ROWS];
+  char rowBuffer[MAX_CHARACTER_ROWS][MAX_CHARACTER_COLS+1];
 
 public:
   void begin() override;  
@@ -68,8 +69,7 @@ public:
   void _refresh() override;
   void _displayLoop() override;
   Display *loop2(bool force);
-  void moveToNextRow();
-  void skipBlankRows();
+  bool findNextNonBlankRow();
 
 };
 

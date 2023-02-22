@@ -36,7 +36,7 @@
  *     not held up significantly.  The exception to this is when 
  *     the loop2() function is called with force=true, where 
  *     a screen update is executed to completion.  This is normally
- *     only done during start-up.
+ *     only noMoreRowsToDisplay during start-up.
  *  The scroll mode is selected by defining SCROLLMODE as 0, 1 or 2
  *  in the config.h.
  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
@@ -53,9 +53,9 @@ Display::Display(DisplayDevice *deviceDriver) {
   // Get device dimensions in characters (e.g. 16x2).
   numCharacterColumns = _deviceDriver->getNumCols();
   numCharacterRows = _deviceDriver->getNumRows();;
-  for (uint8_t row=0; row<MAX_CHARACTER_ROWS; row++)
-    rowBuffer[row] = (char *)calloc(1, MAX_CHARACTER_COLS+1);
-  topRow = -1;  // loop2 will fill from row 0
+  for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
+    rowBuffer[row][0] = '\0';
+  topRow = ROW_INITIAL;  // loop2 will fill from row 0
   
   addDisplay(0);  // Add this display as display number 0
 };
@@ -69,13 +69,13 @@ void Display::_clear() {
   _deviceDriver->clearNative();
   for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
     rowBuffer[row][0] = '\0';
-  topRow = -1;  // loop2 will fill from row 0
+  topRow = ROW_INITIAL;  // loop2 will fill from row 0
 }
 
 void Display::_setRow(uint8_t line) {
   hotRow = line;
   hotCol = 0;
-  rowBuffer[hotRow][hotCol] = 0;  // Clear existing text
+  rowBuffer[hotRow][0] = 0;  // Clear existing text
 }
 
 size_t Display::_write(uint8_t b) {
@@ -109,63 +109,57 @@ Display *Display::loop2(bool force) {
       return NULL;
   } else {
     // force full screen update from the beginning.
-    rowFirst = -1;
-    rowNext = 0;
+    rowFirst = ROW_INITIAL;
+    rowNext = ROW_INITIAL;
     bufferPointer = 0;
-    done = false;
+    noMoreRowsToDisplay = false;
     slot = 0;
   }
 
   do {
     if (bufferPointer == 0) {
       // Find a line of data to write to the screen.
-      if (rowFirst < 0) rowFirst = rowNext;
-      skipBlankRows();
-      if (!done) {
-        // Non-blank line found, so copy it.
-        for (uint8_t i = 0; i < sizeof(buffer); i++)
+      if (rowFirst == ROW_INITIAL) rowFirst = rowNext;
+      if (findNextNonBlankRow()) {
+        // Non-blank line found, so copy it (including terminator)
+        for (uint8_t i = 0; i <= MAX_CHARACTER_COLS; i++)
           buffer[i] = rowBuffer[rowNext][i];
-      } else
-        buffer[0] = '\0';  // Empty line
+      } else {
+        // No non-blank lines left, so draw a blank line
+        buffer[0] = 0;
+      }
       _deviceDriver->setRowNative(slot);  // Set position for display
       charIndex = 0;
       bufferPointer = &buffer[0];
-
     } else {
-
       // Write next character, or a space to erase current position.
       char ch = *bufferPointer;
       if (ch) {
         _deviceDriver->writeNative(ch);
         bufferPointer++;
-      } else
+      } else {
         _deviceDriver->writeNative(' ');
+      }
 
       if (++charIndex >= MAX_CHARACTER_COLS) {
         // Screen slot completed, move to next slot on screen
-        slot++;
         bufferPointer = 0;
-        if (!done) {
-          moveToNextRow();
-          skipBlankRows();
-        }
-      }
-
-      if (slot >= numCharacterRows) {
-        // Last slot finished, reset ready for next screen update.
+        slot++;
+        if (slot >= numCharacterRows) {
+          // Last slot on screen written, reset ready for next screen update.
 #if SCROLLMODE==2
-        if (!done) {
-          // On next refresh, restart one row on from previous start.
-          rowNext = rowFirst;
-          moveToNextRow();
-          skipBlankRows();
-        }
+          if (!noMoreRowsToDisplay) {
+            // On next refresh, restart one row on from previous start.
+            rowNext = rowFirst;
+            findNextNonBlankRow();
+          }
 #endif
-        done = false;
-        slot = 0;
-        rowFirst = -1;
-        lastScrollTime = currentMillis;
-        return NULL;
+          noMoreRowsToDisplay = false;
+          slot = 0;
+          rowFirst = ROW_INITIAL;
+          lastScrollTime = currentMillis;
+          return NULL;
+        }
       }
     }
   } while (force);
@@ -173,19 +167,30 @@ Display *Display::loop2(bool force) {
   return NULL;
 }
 
-void Display::moveToNextRow() {
-  rowNext = rowNext + 1;
-  if (rowNext >= MAX_CHARACTER_ROWS) rowNext = 0;
+bool Display::findNextNonBlankRow() {
+  while (!noMoreRowsToDisplay) {
+    if (rowNext == ROW_INITIAL)
+      rowNext = 0;
+    else
+      rowNext = rowNext + 1;
+    if (rowNext >= MAX_CHARACTER_ROWS) rowNext = ROW_INITIAL;
 #if SCROLLMODE == 1
-  // Finished if we've looped back to row 0
-  if (rowNext == 0) done = true;
+    // Finished if we've looped back to start
+    if (rowNext == ROW_INITIAL) {
+      noMoreRowsToDisplay = true;
+      return false;
+    }
 #else
-  // Finished if we're back to the first one shown
-  if (rowNext == rowFirst) done = true;
+    // Finished if we're back to the first one shown
+    if (rowNext == rowFirst) {
+      noMoreRowsToDisplay = true;
+      return false;
+    }
 #endif
-}
-
-void Display::skipBlankRows() {
-  while (!done && rowBuffer[rowNext][0] == 0)
-    moveToNextRow();
+    if (rowBuffer[rowNext][0] != 0) {
+      // Found non-blank row
+      return true;
+    }
+  }
+  return false;
 }
