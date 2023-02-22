@@ -24,6 +24,7 @@
 
 #include <Arduino.h>
 #include "I2CManager.h"
+#include "I2CManager_NonBlocking.h"   // to satisfy intellisense
 
 //#include <avr/io.h>
 //#include <avr/interrupt.h>

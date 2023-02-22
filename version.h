@@ -5,22 +5,24 @@
 
 
 #define VERSION "4.2.18"
-// 4.2.18 I2C Multiplexer support through Extended Addresses,
-//        added for Wire, 4209 and AVR I2C drivers.
-//        I2C retries when fail.
-//        I2C timeout handling and recovery completed.
-//        I2C SAMD Driver Read code completed.
-//        PCF8575 I2C GPIO driver added.
-//        EX-RAIL ANOUT function for triggering analogue
-//        HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
-//        Installable HAL OLED Display Driver, with 
-//        support for multiple displays.
-//        Layered HAL Drivers PCA9685pwm and Servo added for 
-//        (1) native PWM on PCA9685 module and
-//        (2) animations of servo movement via PCA9685pwm.
-//        This is intended to support EXIOExpander and also
-//        replace the existing PCA9685 driver.
-//        Add <D HAL RESET> to reinitialise failed drivers.
+// 4.2.18 - I2C Multiplexer support through Extended Addresses,
+//          added for Wire, 4209 and AVR I2C drivers.
+//        - I2C retries when an operation fails.
+//        - I2C timeout handling and recovery completed.
+//        - I2C SAMD Driver Read code completed.
+//        - PCF8575 I2C GPIO driver added.
+//        - EX-RAIL ANOUT function for triggering analogue
+//          HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
+//        - Installable HALDisplay Driver, with support
+//          for multiple displays.
+//        - Layered HAL Drivers PCA9685pwm and Servo added for 
+//          native PWM on PCA9685 module and
+//          for animations of servo movement via PCA9685pwm.
+//          This is intended to support EXIOExpander and also
+//          replace the existing PCA9685 driver.
+//        - Add <D HAL RESET> to reinitialise failed drivers.
+//        - Add UserAddin facility to allow a user-specific C++
+//          function to be added in myHal.cpp.
 // 4.2.17 LCN bugfix
 // 4.2.16 Move EX-IOExpander servo support to the EX-IOExpander software
 // 4.2.15 Add basic experimental PWM support to EX-IOExpander

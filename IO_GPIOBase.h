@@ -86,6 +86,11 @@ GPIOBase<T>::GPIOBase(FSH *deviceName, VPIN firstVpin, uint8_t nPins, I2CAddress
   _hasCallback = true;
   // Add device to list of devices.
   addDevice(this);
+
+  _portMode = 0;  // default to input mode
+  _portPullup = -1; // default to pullup enabled
+  _portInputState = -1;  // default to all inputs high (inactive)
+  _portInUse = 0;  // No ports in use initially.
 }
 
 template <class T>
@@ -100,10 +105,6 @@ void GPIOBase<T>::_begin() {
 #if defined(DIAG_IO)
     _display();
 #endif
-    _portMode = 0;  // default to input mode
-    _portPullup = -1; // default to pullup enabled
-    _portInputState = -1;
-    _portInUse = 0;
     _setupDevice();
     _deviceState = DEVSTATE_NORMAL;
   } else {
