@@ -60,6 +60,8 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("PWM");
   else if (address >= 0x50 && address <= 0x5f) 
     return F("EEPROM"); 
+  else if (address == 0x68) 
+    return F("Real-time clock"); 
   else if (address >= 0x70 && address <= 0x77)
     return F("I2C Mux");
   else
