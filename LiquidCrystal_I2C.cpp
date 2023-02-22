@@ -194,6 +194,7 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   uint8_t lownib = ((value & 0x0f) << BACKPACK_DATA_BITS) | mode;
   // Send both nibbles
   uint8_t len = 0;
+  rb.wait();
   outputBuffer[len++] = highnib|En;
   outputBuffer[len++] = highnib;
   outputBuffer[len++] = lownib|En;
@@ -208,6 +209,7 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   // I2C clock cycle time of 2.5us at 400kHz. Data is clocked in to the
   // HD44780 on the trailing edge of the Enable pin.
   uint8_t len = 0;
+  rb.wait();
   outputBuffer[len++] = _data|En;
   outputBuffer[len++] = _data;
   I2CManager.write(_Addr, outputBuffer, len, &rb);  // Write command asynchronously
@@ -216,6 +218,7 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
 // write a byte to the PCF8574 I2C interface.  We don't need to set
 // the enable pin for this.
 void LiquidCrystal_I2C::expanderWrite(uint8_t value) {
+  rb.wait();
   outputBuffer[0] = value | _backlightval;
   I2CManager.write(_Addr, outputBuffer, 1, &rb);  // Write command asynchronously
 }
