@@ -177,16 +177,18 @@ protected:
         break;
       case STATE_RESTARTMODULE:
         // On second entry, set XSHUT pin high to allow this module to restart.
-        // On some modules, there is a diode in series with the XSHUT pin to 
-        // protect the low-voltage pin against +5V, but we can provide additional
-        // protection by enabling the pull-up resistor on the microcontroller
-        // instead of driving the output directly.
+        // I've observed that the device tends to randomly reset if the XSHUT 
+        // pin is set high from a 5V arduino, even through a pullup resistor.  
+        // Assume that there will be a pull-up on the XSHUT pin to +2.8V as
+        // recommended in the device datasheet.  Then we only need to
+        // turn our output pin high-impedence (by making it an input) and the
+        // on-board pullup will do its job.
         // Ensure XSHUT is set for only one module at a time by using a
         // shared flag accessible to all device instances.
         if (!_addressConfigInProgress) {
           _addressConfigInProgress = true;
-          // Set XSHUT pin (if connected) to bring the module out of sleep mode.
-          if (_xshutPin != VPIN_NONE) IODevice::configureInput(_xshutPin, true);
+          // Configure XSHUT pin (if connected) to bring the module out of sleep mode.
+          if (_xshutPin != VPIN_NONE) IODevice::configureInput(_xshutPin, false);
           // Allow the module time to restart
           delayUntil(currentMicros+10000);
           _nextState = STATE_CONFIGUREADDRESS;
