@@ -28,16 +28,23 @@
  * line of the screen.
  * 
  * To install, use the following command in myHal.cpp:
-
- *    HALDisplay::create(address, width, height);
+ *
+ *    HALDisplay<OLED>::create(address, width, height);
  * 
- * where address is the I2C address (0x3c or 0x3d),
- * width is the width in pixels of the display, and
- * height is the height in pixels of the display.
+ * where address is the I2C address of the OLED display (0x3c or 0x3d),
+ * width is the width in pixels, and height is the height in pixels.
  * 
  * Valid width and height are 128x32 (SSD1306 controller), 
  * 128x64 (SSD1306) and 132x64 (SH1106).  The driver uses
  * a 5x7 character set in a 6x8 pixel cell.
+ * 
+ * OR
+ * 
+ *    HALDisplay<LiquidCrystal>::create(address, width, height);
+ * 
+ * where address is the I2C address of the LCD display (0x27 typically),
+ * width is the width in characters (16 or 20 typically),
+ * and height is the height in characters (2 or 4 typically).
  */
 
 
