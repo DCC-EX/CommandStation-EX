@@ -4,8 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.15"
-// 4.2.15 I2C Multiplexer support through Extended Addresses,
+#define VERSION "4.2.18"
+// 4.2.18 I2C Multiplexer support through Extended Addresses,
 //        added for Wire, 4209 and AVR I2C drivers.
 //        I2C retries when fail.
 //        I2C timeout handling and recovery completed.
@@ -21,6 +21,10 @@
 //        This is intended to support EXIOExpander and also
 //        replace the existing PCA9685 driver.
 //        Add <D HAL RESET> to reinitialise failed drivers.
+// 4.2.17 LCN bugfix
+// 4.2.16 Move EX-IOExpander servo support to the EX-IOExpander software
+// 4.2.15 Add basic experimental PWM support to EX-IOExpander
+//        EX-IOExpander 0.0.14 minimum required
 // 4.2.14 STM32F4xx fast ADC read implementation
 // 4.2.13 Broadcast power for <s> again
 // 4.2.12 Bugfix for issue #299 TurnoutDescription NULL

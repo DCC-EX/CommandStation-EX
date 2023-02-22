@@ -37,6 +37,10 @@ function need () {
 
 
 need git
+if test -d `basename "$DCCEXGITURL"` ; then
+    : assume we are almost there
+    cd `basename "$DCCEXGITURL"` || exit 255
+fi
 if test -d .git ; then
     : assume we are right here
     git pull
@@ -44,6 +48,21 @@ else
     git clone "$DCCEXGITURL"
     cd `basename "$DCCEXGITURL"` || exit 255
 fi
+
+# prepare versions
+VERSIONS=/tmp/versions.$$
+git tag --sort=v:refname | grep Prod  | tail -1  >  $VERSIONS
+echo master                                      >> $VERSIONS
+git tag --sort=v:refname | grep Devel | tail -1  >> $VERSIONS
+echo devel                                       >> $VERSIONS
+
+# ask user what version to use
+echo "What version to use? (give line number) If in doubt, use 1"
+cat -n $VERSIONS
+echo -n "> "
+LINE=`awk 'BEGIN {getline A < "/dev/tty"} ; A == NR {print}' $VERSIONS`
+git checkout $LINE
+
 if test -f config.h ; then
     : all well
 else
@@ -63,7 +82,14 @@ $ACLI core update-index || exit 255
 
 # Board discovery
 BOARDS=/tmp/boards.$$
-$ACLI board list | grep serial > $BOARDS
+$ACLI board list > /dev/null               # download missing components
+$ACLI board list | grep serial > $BOARDS   # real run
+if test -s $BOARDS ; then
+    : all well
+else
+    echo "$ACLI: No boards found"
+    exit 255
+fi
 if test x`< $BOARDS wc -l` = 'x1' ; then
     LINE=`cat $BOARDS`
 else
@@ -96,6 +122,6 @@ echo FQBN is $FQBN
 
 # Install phase
 $ACLI core install `echo $FQBN | sed 's,:[^:]*$,,1'` # remove last component to get package
-$ACLI board attach -p $PORT --fqbn $FQBN $PWD
-$ACLI compile --fqbn $FQBN $PWD
-$ACLI upload -v -t -p $PORT $PWD
+$ACLI board attach -p $PORT --fqbn $FQBN "$PWD"
+$ACLI compile --fqbn $FQBN "$PWD"
+$ACLI upload -v -t -p $PORT "$PWD"
