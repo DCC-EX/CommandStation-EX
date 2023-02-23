@@ -80,7 +80,7 @@ public:
   // The following are overridden within the specific device class
   virtual void begin() {};
   virtual size_t _write(uint8_t c) { (void)c; return 0; };
-  virtual void _setRow(uint8_t line) {}
+  virtual void _setRow(uint8_t line) { (void)line; }
   virtual void _clear() {}
   virtual void _refresh() {}
   virtual void _displayLoop() {}
