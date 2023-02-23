@@ -89,6 +89,21 @@ void halSetup() {
 
 
   //=======================================================================
+  // The following directive defines a PCF8575 16-port I2C GPIO Extender module.
+  //=======================================================================
+  // The parameters are: 
+  //   First Vpin=200
+  //   Number of VPINs=16 (numbered 200-215)
+  //   I2C address of module=0x23
+
+  //PCF8575::create(200, 16, 0x23);
+
+
+  // Alternative form using INT pin (see above)
+
+  //PCF8575::create(200, 16, 0x23, 40);
+
+  //=======================================================================
   // The following directive defines an HCSR04 ultrasonic ranging module.
   //=======================================================================
   // The parameters are: 

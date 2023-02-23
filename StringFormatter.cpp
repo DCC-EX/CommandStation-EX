@@ -18,7 +18,7 @@
  */
 #include "StringFormatter.h"
 #include <stdarg.h>
-#include "LCDDisplay.h"
+#include "DisplayInterface.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -45,10 +45,17 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   send2(&USB_SERIAL,input,args);
   send(&USB_SERIAL,F(" *>\n"));
   
-  if (!LCDDisplay::lcdDisplay) return;
-  LCDDisplay::lcdDisplay->setRow(row);    
+  DisplayInterface::setRow(row);    
   va_start(args, input);
-  send2(LCDDisplay::lcdDisplay,input,args);
+  send2(DisplayInterface::getDisplayHandler(),input,args);
+}
+
+void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
+  va_list args;
+
+  DisplayInterface::setRow(display, row);    
+  va_start(args, input);
+  send2(DisplayInterface::getDisplayHandler(),input,args);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {
@@ -108,7 +115,8 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 'l': printPadded(stream,va_arg(args, long), formatWidth, formatLeft); break;
       case 'b': stream->print(va_arg(args, int), BIN); break;
       case 'o': stream->print(va_arg(args, int), OCT); break;
-      case 'x': stream->print(va_arg(args, int), HEX); break;
+      case 'x': stream->print((unsigned int)va_arg(args, unsigned int), HEX); break;
+      case 'X': stream->print((unsigned long)va_arg(args, unsigned long), HEX); break;
       //case 'f': stream->print(va_arg(args, double), 2); break;
       //format width prefix
       case '-': 

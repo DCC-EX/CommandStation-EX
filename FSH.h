@@ -47,7 +47,11 @@
 typedef __FlashStringHelper FSH;
 #define FLASH PROGMEM
 #define GETFLASH(addr) pgm_read_byte_near(addr)
-
+#define STRCPY_P strcpy_P
+#define STRCMP_P strcmp_P
+#define STRNCPY_P strncpy_P
+#define STRNCMP_P strncmp_P
+#define STRLEN_P strlen_P
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
 // AVR_MEGA memory deliberately placed at end of link may need _far functions
@@ -80,5 +84,10 @@ typedef char FSH;
 #define GETFLASH(addr) (*(const byte *)(addr))
 #define GETHIGHFLASH(data,offset)  (*(const byte *)(GETFARPTR(data)+offset))
 #define GETHIGHFLASHW(data,offset) (*(const uint16_t *)(GETFARPTR(data)+offset))
+#define STRCPY_P strcpy
+#define STRCMP_P strcmp
+#define STRNCPY_P strncpy
+#define STRNCMP_P strncmp
+#define STRLEN_P strlen
 #endif
 #endif

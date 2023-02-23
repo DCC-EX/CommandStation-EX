@@ -1,6 +1,6 @@
 /*
  *  © 2022 Paul M Antoine
- *  © 2021, Neil McKechnie
+ *  © 2023, Neil McKechnie
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -38,7 +38,7 @@
  ***************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_SAMD_ZERO)
 void SERCOM3_Handler() {
-  I2CManagerClass::handleInterrupt();
+  I2CManager.handleInterrupt();
 }
 #endif
 
@@ -46,14 +46,16 @@ void SERCOM3_Handler() {
 Sercom *s = SERCOM3;
 
 /***************************************************************************
- *  Set I2C clock speed register.
+ *  Set I2C clock speed register.  This should only be called outside of
+ *  a transmission.  The I2CManagerClass::_setClock() function ensures 
+ *  that it is only called at the beginning of an I2C transaction.
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
 
   // Calculate a rise time appropriate to the requested bus speed
   int t_rise;
   if (i2cClockSpeed < 200000L) {
-    i2cClockSpeed = 100000L;
+    i2cClockSpeed = 100000L;    // NB: this overrides a "force clock" of lower than 100KHz!
     t_rise = 1000;
   } else if (i2cClockSpeed < 800000L) {
     i2cClockSpeed = 400000L;
@@ -65,6 +67,9 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
     i2cClockSpeed = 100000L;
     t_rise = 1000;
   }
+
+  // Wait while the bus is busy
+  while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
 
   // Disable the I2C master mode and wait for sync
   s->I2CM.CTRLA.bit.ENABLE = 0 ;
@@ -80,8 +85,6 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
   // Setting bus idle mode and wait for sync
   s->I2CM.STATUS.bit.BUSSTATE = 1 ;
   while (s->I2CM.SYNCBUSY.bit.SYSOP != 0);
-
-  return;
 }
 
 /***************************************************************************
@@ -107,8 +110,8 @@ void I2CManagerClass::I2C_init()
   s->I2CM.CTRLA.reg =  SERCOM_I2CM_CTRLA_MODE( I2C_MASTER_OPERATION )/* |
                             SERCOM_I2CM_CTRLA_SCLSM*/ ;
 
-  // Enable Smart mode and Quick Command
-  s->I2CM.CTRLB.reg =  SERCOM_I2CM_CTRLB_SMEN | SERCOM_I2CM_CTRLB_QCEN;
+  // Enable Smart mode (but not Quick Command)
+  s->I2CM.CTRLB.reg =  SERCOM_I2CM_CTRLB_SMEN;
 
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
@@ -141,30 +144,33 @@ void I2CManagerClass::I2C_init()
 	PORT->Group[g_APinDescription[PIN_WIRE_SCL].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SCL].ulPin].reg =  
 		PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;  
   PORT->Group[g_APinDescription[PIN_WIRE_SDA].ulPort].PINCFG[g_APinDescription[PIN_WIRE_SDA].ulPin].reg = 
-		PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
+	  PORT_PINCFG_DRVSTR | PORT_PINCFG_PULLEN | PORT_PINCFG_PMUXEN;
 }
 
 /***************************************************************************
  *  Initiate a start bit for transmission.
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStart() {
-  bytesToSend = currentRequest->writeLen;
-  bytesToReceive = currentRequest->readLen;
 
-  // We may have initiated a stop bit before this without waiting for it.
-  // Wait for stop bit to be sent before sending start.
-  while (s->I2CM.STATUS.bit.BUSSTATE == 0x2);
+  // Set counters here in case this is a retry.
+  txCount = 0;
+  rxCount = 0;
+
+  // On a single-master I2C bus, the start bit won't be sent until the bus 
+  // state goes to IDLE so we can request it without waiting.  On a 
+  // multi-master bus, the bus may be BUSY under control of another master, 
+  // in which case we can avoid some arbitration failures by waiting until
+  // the bus state is IDLE.  We don't do that here.
 
   // If anything to send, initiate write.  Otherwise initiate read.
   if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
   {
-    // Send start and address with read/write flag or'd in
-    s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+    // Send start and address with read flag (1) or'd in
+    s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
   }
   else {
-    // Wait while the I2C bus is BUSY
-    while (s->I2CM.STATUS.bit.BUSSTATE != 0x1);
-    s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1ul) | 0;
+    // Send start and address with write flag (0) or'd in
+    s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1ul) | 0;
   }
 }
 
@@ -180,6 +186,13 @@ void I2CManagerClass::I2C_sendStop() {
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
   I2C_sendStop();
+  // Disable the I2C master mode and wait for sync
+  s->I2CM.CTRLA.bit.ENABLE = 0 ;
+  // Wait for up to 500us only.
+  unsigned long startTime = micros();
+  while (s->I2CM.SYNCBUSY.bit.ENABLE != 0) {
+    if (micros() - startTime >= 500UL) break;
+  }
 }
 
 /***************************************************************************
@@ -194,49 +207,39 @@ void I2CManagerClass::I2C_handleInterrupt() {
     I2C_sendStart();   // Reinitiate request
   } else if (s->I2CM.STATUS.bit.BUSERR) {
     // Bus error
-    state = I2C_STATUS_BUS_ERROR;
+    completionStatus = I2C_STATUS_BUS_ERROR;
+    state = I2C_STATE_COMPLETED;  // Completed with error
   } else if (s->I2CM.INTFLAG.bit.MB) {
     // Master write completed
     if (s->I2CM.STATUS.bit.RXNACK) {
       // Nacked, send stop.
       I2C_sendStop();
-      state = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+      state = I2C_STATE_COMPLETED;  // Completed with error
     } else if (bytesToSend) {
       // Acked, so send next byte
-      if (currentRequest->operation == OPERATION_SEND_P)
-        s->I2CM.DATA.bit.DATA = GETFLASH(currentRequest->writeBuffer + (txCount++));
-      else
-        s->I2CM.DATA.bit.DATA = currentRequest->writeBuffer[txCount++];
+      s->I2CM.DATA.bit.DATA = sendBuffer[txCount++];
       bytesToSend--;
     } else if (bytesToReceive) {
       // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
-        s->I2CM.ADDR.bit.ADDR = (currentRequest->i2cAddress << 1) | 1;
+      s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
     } else {
-      // No more data to send/receive. Initiate a STOP condition.
+      // No more data to send/receive. Initiate a STOP condition
       I2C_sendStop();
-      state = I2C_STATUS_OK; // Done
+      state = I2C_STATE_COMPLETED;  // Completed OK
     }
   } else if (s->I2CM.INTFLAG.bit.SB) {
     // Master read completed without errors
-    if (bytesToReceive) {
-      currentRequest->readBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
+    if (bytesToReceive == 1) {
+      s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
+      I2C_sendStop();  // send stop
+      receiveBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
+      bytesToReceive = 0;
+      state = I2C_STATE_COMPLETED;  // Completed OK
+    } else if (bytesToReceive) {
+      s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
+      receiveBuffer[rxCount++] = s->I2CM.DATA.bit.DATA;  // Store received byte
       bytesToReceive--;
-    } else { 
-      // Buffer full, issue nack/stop
-      s->I2CM.CTRLB.bit.ACKACT = 1;
-      I2C_sendStop();
-      state = I2C_STATUS_OK;
-    }
-    if (bytesToReceive) {
-      // PMA - I think Smart Mode means we have nothing to do...
-      // More bytes to receive, issue ack and start another read
-    }
-    else
-    {
-      // Transaction finished, issue NACK and STOP.
-      s->I2CM.CTRLB.bit.ACKACT = 1;
-      I2C_sendStop();
-      state = I2C_STATUS_OK;
     }
   }
 }

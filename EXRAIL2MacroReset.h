@@ -28,6 +28,7 @@
 #undef AFTER
 #undef ALIAS
 #undef AMBER
+#undef ANOUT
 #undef AT
 #undef ATGTE
 #undef ATLT
@@ -79,6 +80,7 @@
 #undef KILLALL
 #undef LATCH 
 #undef LCD 
+#undef SCREEN
 #undef LCN 
 #undef MOVETT
 #undef ONACTIVATE
@@ -146,6 +148,7 @@
 #define AFTER(sensor_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
+#define ANOUT(vpin,value,param1,param2)
 #define AT(sensor_id)
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
@@ -196,7 +199,8 @@
 #define JOIN 
 #define KILLALL
 #define LATCH(sensor_id) 
-#define LCD(row,msg) 
+#define LCD(row,msg)
+#define SCREEN(display,row,msg)
 #define LCN(msg) 
 #define MOVETT(id,steps,activity)
 #define ONACTIVATE(addr,subaddr)

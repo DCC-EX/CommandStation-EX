@@ -35,12 +35,12 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 
-void EXTurntable::create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   new EXTurntable(firstVpin, nPins, I2CAddress);
 }
 
 // Constructor
-EXTurntable::EXTurntable(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
+EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _I2CAddress = I2CAddress;
@@ -106,7 +106,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
   DIAG(F("EX-Turntable WriteAnalogue Vpin:%d Value:%d Activity:%d Duration:%d"),
     vpin, value, activity, duration);
   DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
-    _I2CAddress, stepsMSB, stepsLSB, activity);
+    _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
 #endif
   _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
   I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, activity);
@@ -114,7 +114,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
 
 // Display Turnetable-EX device driver info.
 void EXTurntable::_display() {
-  DIAG(F("EX-Turntable I2C:x%x Configured on Vpins:%d-%d %S"), _I2CAddress, (int)_firstVpin, 
+  DIAG(F("EX-Turntable I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

@@ -48,7 +48,7 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
 // on a single USB connection config, write direct to Serial and ignore flush/shove
 template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
   (void)type; //shut up compiler warning
-  StringFormatter::send(&Serial, msg...);
+  StringFormatter::send(&USB_SERIAL, msg...);
 }
 #endif 
 

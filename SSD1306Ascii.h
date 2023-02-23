@@ -23,24 +23,28 @@
 
 #include "Arduino.h"
 #include "FSH.h"
-#include "LCDDisplay.h"
+#include "Display.h"
 
 #include "I2CManager.h"
 #include "DIAG.h"
+#include "DisplayInterface.h"
 
 // Uncomment to remove lower-case letters to save 108 bytes of flash
 //#define NOLOWERCASE
 
+
+
 //------------------------------------------------------------------------------
 // Constructor
-class SSD1306AsciiWire : public LCDDisplay {
+class SSD1306AsciiWire : public DisplayDevice {
  public:
 
-  // Constructor
-  SSD1306AsciiWire(int width, int height);
+  // Constructors
+  SSD1306AsciiWire(int width, int height); // Auto-detects I2C address
+  SSD1306AsciiWire(I2CAddress address, int width, int height);  
 
   // Initialize the display controller.
-  void begin(uint8_t i2cAddr);
+  bool begin();
 
   // Clear the display and set the cursor to (0, 0).
   void clearNative() override;
@@ -52,6 +56,8 @@ class SSD1306AsciiWire : public LCDDisplay {
   size_t writeNative(uint8_t c) override;
 
   bool isBusy() override { return requestBlock.isBusy(); }
+  uint16_t getNumCols() { return m_charsPerRow; }
+  uint16_t getNumRows() { return m_charsPerColumn; }
 
  private:
   // Cursor column.
@@ -62,26 +68,31 @@ class SSD1306AsciiWire : public LCDDisplay {
   uint8_t m_displayWidth;
   // Display height.
   uint8_t m_displayHeight;
+  // Display width in characters
+  uint8_t m_charsPerRow;
+  // Display height in characters
+  uint8_t m_charsPerColumn;
   // Column offset RAM to SEG.
   uint8_t m_colOffset = 0;
   // Current font.
-  const uint8_t* const m_font = System5x7;
+  const uint8_t* const m_font = System6x8;
+  // Flag to prevent calling begin() twice
+  uint8_t m_initialised = false;
 
-  // Only fixed size 5x7 fonts in a 6x8 cell are supported.
-  static const uint8_t fontWidth = 5;
-  static const uint8_t fontHeight = 7;
-  static const uint8_t letterSpacing = 1;
+  // Only fixed size 6x8 fonts in a 6x8 cell are supported.
+  static const uint8_t fontWidth = 6;
+  static const uint8_t fontHeight = 8;
   static const uint8_t m_fontFirstChar = 0x20;
-  static const uint8_t m_fontCharCount = 0x61;
+  static const uint8_t m_fontCharCount;
 
-  uint8_t m_i2cAddr;
+  I2CAddress m_i2cAddr = 0;
 
   I2CRB requestBlock;
-  uint8_t outputBuffer[fontWidth+letterSpacing+1];
+  uint8_t outputBuffer[fontWidth+1];
 
   static const uint8_t blankPixels[];
 
-  static const uint8_t System5x7[];
+  static const uint8_t System6x8[];
   static const uint8_t FLASH Adafruit128xXXinit[];
   static const uint8_t FLASH SH1106_132x64init[];
 };

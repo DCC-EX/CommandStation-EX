@@ -59,28 +59,33 @@
  **********************************************************************************************/
 class ADS111x: public IODevice { 
 public:
-  static void create(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     if (checkNoOverlap(firstVpin,nPins,i2cAddress)) new ADS111x(firstVpin, nPins, i2cAddress);
   }
 private:
-  ADS111x(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
+  ADS111x(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
-    _nPins = min(nPins,4);
-    _i2cAddress = i2cAddress;
+    _nPins = (nPins > 4) ? 4 : nPins;
+    _I2CAddress = i2cAddress;
     _currentPin = 0;
     for (int8_t i=0; i<_nPins; i++)
       _value[i] = -1;
     addDevice(this);
   }
   void _begin() {
+    // Initialise I2C
+    I2CManager.begin();
+    // ADS111x support high-speed I2C (4.3MHz) but that requires special
+    // processing.  So stick to fast mode (400kHz maximum).
+    I2CManager.setClock(400000);
     // Initialise ADS device
-    if (I2CManager.exists(_i2cAddress)) {
+    if (I2CManager.exists(_I2CAddress)) {
       _nextState = STATE_STARTSCAN;
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
-      DIAG(F("ADS111x device not found, I2C:%x"), _i2cAddress);
+      DIAG(F("ADS111x device not found, I2C:%s"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -98,7 +103,7 @@ private:
           _outBuffer[1] = 0xC0 + (_currentPin << 4); // Trigger single-shot, channel n
           _outBuffer[2] = 0xA3;           // 250 samples/sec, comparator off
           // Write command, without waiting for completion.
-          I2CManager.write(_i2cAddress, _outBuffer, 3, &_i2crb);
+          I2CManager.write(_I2CAddress, _outBuffer, 3, &_i2crb);
 
           delayUntil(currentMicros + scanInterval);
           _nextState = STATE_STARTREAD;
@@ -107,7 +112,7 @@ private:
         case STATE_STARTREAD:
           // Reading the pin value
           _outBuffer[0] = 0x00;  // Conversion register address
-          I2CManager.read(_i2cAddress, _inBuffer, 2, _outBuffer, 1, &_i2crb); // Read register
+          I2CManager.read(_I2CAddress, _inBuffer, 2, _outBuffer, 1, &_i2crb); // Read register
           _nextState = STATE_GETVALUE;
           break;
 
@@ -126,7 +131,7 @@ private:
           break;
       }
     } else { // error status
-      DIAG(F("ADS111x I2C:x%d Error:%d %S"), _i2cAddress, status, I2CManager.getErrorMessage(status));
+      DIAG(F("ADS111x I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -137,7 +142,7 @@ private:
   }
   
   void _display() override {
-    DIAG(F("ADS111x I2C:x%x Configured on Vpins:%d-%d %S"), _i2cAddress, _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("ADS111x I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
@@ -154,7 +159,6 @@ private:
     STATE_GETVALUE,
   };
   uint16_t _value[4];
-  uint8_t _i2cAddress;
   uint8_t _outBuffer[3];
   uint8_t _inBuffer[2];
   uint8_t _currentPin;  // ADC pin currently being scanned

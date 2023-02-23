@@ -144,16 +144,12 @@ bool MotorDriver::isPWMCapable() {
 void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
-    noInterrupts();
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
-    interrupts();
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
-      noInterrupts();
       IODevice::write(powerPin,invertPower ? HIGH : LOW);
-      interrupts();
   }
   powerMode=mode; 
 }

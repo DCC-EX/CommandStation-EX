@@ -41,27 +41,28 @@
 // can't assume that its in that state when a sketch starts (and the
 // LiquidCrystal constructor is called).
 
-LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols,
+LiquidCrystal_I2C::LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols,
                                      uint8_t lcd_rows) {
   _Addr = lcd_Addr;
-  lcdRows = lcd_rows;
-  lcdCols = lcd_cols;
-
+  lcdRows = lcd_rows;  // Number of character rows (typically 2 or 4).
+  lcdCols = lcd_cols;  // Number of character columns (typically 16 or 20)
   _backlightval = 0;
+ }
+
+bool LiquidCrystal_I2C::begin() {
 
   I2CManager.begin();
   I2CManager.setClock(100000L);    // PCF8574 is spec'd to 100kHz.
 
-  if (I2CManager.exists(lcd_Addr)) {
-    DIAG(F("%dx%d LCD configured on I2C:x%x"), (int)lcd_cols, (int)lcd_rows, (int)lcd_Addr);
+  if (I2CManager.exists(_Addr)) {
+    DIAG(F("%dx%d LCD configured on I2C:%s"), (int)lcdCols, (int)lcdRows, _Addr.toString());
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-    begin();
     backlight();
-    lcdDisplay = this;
+  } else {
+    DIAG(F("LCD not found on I2C:%s"), _Addr.toString());
+    return false;
   }
-}
 
-void LiquidCrystal_I2C::begin() {
   if (lcdRows > 1) {
     _displayfunction |= LCD_2LINE;
   }
@@ -79,15 +80,15 @@ void LiquidCrystal_I2C::begin() {
 
   // we start in 8bit mode, try to set 4 bit mode
   write4bits(0x03);
-  delayMicroseconds(4500);  // wait min 4.1ms
+  delayMicroseconds(5000);  // wait min 4.1ms
 
   // second try
   write4bits(0x03);
-  delayMicroseconds(4500);  // wait min 4.1ms
+  delayMicroseconds(5000);  // wait min 4.1ms
 
   // third go!
   write4bits(0x03);
-  delayMicroseconds(150);
+  delayMicroseconds(5000);
 
   // finally, set to 4-bit interface
   write4bits(0x02);
@@ -99,26 +100,23 @@ void LiquidCrystal_I2C::begin() {
   _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;
   display();
 
-  // clear it off
-  clear();
-
   // Initialize to default text direction (for roman languages)
   _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
 
   // set the entry mode
   command(LCD_ENTRYMODESET | _displaymode);
 
-  setRowNative(0);
+  return true;
 }
 
 /********** high level commands, for the user! */
 void LiquidCrystal_I2C::clearNative() {
   command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
-  delayMicroseconds(2000);    // this command takes 1.52ms
+  delayMicroseconds(2000);    // this command takes 1.52ms but allow plenty
 }
 
 void LiquidCrystal_I2C::setRowNative(byte row) {
-  int row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+  uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
   if (row >= lcdRows) {
     row = lcdRows - 1;  // we count rows starting w/0
   }
@@ -144,6 +142,10 @@ void LiquidCrystal_I2C::backlight(void) {
 size_t LiquidCrystal_I2C::writeNative(uint8_t value) {
   send(value, Rs);
   return 1;
+}
+
+bool LiquidCrystal_I2C::isBusy() { 
+  return rb.isBusy();
 }
 
 /*********** mid level commands, for sending data/cmds */
@@ -192,11 +194,12 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   uint8_t lownib = ((value & 0x0f) << BACKPACK_DATA_BITS) | mode;
   // Send both nibbles
   uint8_t len = 0;
+  rb.wait();
   outputBuffer[len++] = highnib|En;
   outputBuffer[len++] = highnib;
   outputBuffer[len++] = lownib|En;
   outputBuffer[len++] = lownib;
-  I2CManager.write(_Addr, outputBuffer, len);  // Write command synchronously
+  I2CManager.write(_Addr, outputBuffer, len, &rb);  // Write command asynchronously
 }
 
 // write 4 data bits to the HD44780 LCD controller.
@@ -206,14 +209,16 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   // I2C clock cycle time of 2.5us at 400kHz. Data is clocked in to the
   // HD44780 on the trailing edge of the Enable pin.
   uint8_t len = 0;
+  rb.wait();
   outputBuffer[len++] = _data|En;
   outputBuffer[len++] = _data;
-  I2CManager.write(_Addr, outputBuffer, len);  // Write command synchronously
+  I2CManager.write(_Addr, outputBuffer, len, &rb);  // Write command asynchronously
 }
 
 // write a byte to the PCF8574 I2C interface.  We don't need to set
 // the enable pin for this.
 void LiquidCrystal_I2C::expanderWrite(uint8_t value) {
+  rb.wait();
   outputBuffer[0] = value | _backlightval;
-  I2CManager.write(_Addr, outputBuffer, 1);  // Write command synchronously
+  I2CManager.write(_Addr, outputBuffer, 1, &rb);  // Write command asynchronously
 }

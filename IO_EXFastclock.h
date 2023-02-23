@@ -56,7 +56,7 @@ static void create(uint8_t _I2CAddress) {
   // XXXX change thistosave2 bytes
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
-      //DIAG(F("I2C Fast Clock found at x%x"), _I2CAddress);
+      //DIAG(F("I2C Fast Clock found at %s"), _I2CAddress.toString());
       new EXFastClock(_I2CAddress); 
     }
     else {
@@ -68,7 +68,6 @@ static void create(uint8_t _I2CAddress) {
   }
     
 private:
-uint8_t _I2CAddress;
   
 
 // Initialisation of Fastclock
@@ -84,7 +83,7 @@ void _begin() override {
     } else {
     _deviceState = DEVSTATE_FAILED;
     //LCD(6,F("CLOCK NOT FOUND")); 
-    DIAG(F("Fast Clock Not Found at address %d"), _I2CAddress);
+    DIAG(F("Fast Clock Not Found at address %s"), _I2CAddress.toString());
     }
   }
 }
@@ -110,17 +109,15 @@ void _loop(unsigned long currentMicros) override{
         // As the minimum clock increment is 2 seconds delay a bit - say 1 sec.
         // Clock interval is 60/ clockspeed i.e 60/b seconds
         delayUntil(currentMicros + ((60/b) * 1000000));  
-            
-        }
      
       #endif
     
   }
-
+}
 
   // Display EX-FastClock device driver info.
-  void _display() {
-    DIAG(F("FastCLock on I2C:x%x - %S"), _I2CAddress,  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+  void _display() override {
+    DIAG(F("FastCLock on I2C:%s - %S"), _I2CAddress.toString(),  (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
 };

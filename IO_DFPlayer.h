@@ -70,10 +70,12 @@
 
 class DFPlayer : public IODevice {
 private: 
+  const uint8_t MAXVOLUME=30;
   HardwareSerial *_serial;
   bool _playing = false;
   uint8_t _inputIndex = 0;
   unsigned long _commandSendTime; // Allows timeout processing
+  uint8_t _lastVolumeLevel = MAXVOLUME;
 
   // When two commands are sent in quick succession, the device sometimes 
   // fails to execute one.  A delay is required between successive commands.
@@ -179,41 +181,45 @@ protected:
   // Volume may be specified as second parameter to writeAnalogue.
   // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
+  // If starting a new file and setting volume, then avoid a short burst of loud noise by 
+  // the following strategy:
+  //    - If the volume is increasing, start playing the song before setting the volume,
+  //    - If the volume is decreasing, decrease it and then start playing.
+  //
   void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
     uint8_t pin = vpin - _firstVpin;
  
+    #ifdef DIAG_IO
+    DIAG(F("DFPlayer: VPIN:%d FileNo:%d Volume:%d"), vpin, value, volume);
+    #endif
+
     // Validate parameter.
-    volume = min((uint8_t)30,volume);
+    if (volume > MAXVOLUME) volume = MAXVOLUME;
 
     if (pin == 0) {
       // Play track 
       if (value > 0) {
-        #ifdef DIAG_IO
-        DIAG(F("DFPlayer: Play %d"), value);
-        #endif
-        sendPacket(0x03, value); // Play track
-        _playing = true;
-        if (volume > 0) {
-          #ifdef DIAG_IO
-          DIAG(F("DFPlayer: Volume %d"), volume);
-          #endif
-          sendPacket(0x06, volume);  // Set volume
+        if (volume != 0) {
+          if (volume <= _lastVolumeLevel)
+            sendPacket(0x06, volume);  // Set volume before starting
+          sendPacket(0x03, value); // Play track
+          _playing = true;
+          if (volume > _lastVolumeLevel) 
+            sendPacket(0x06, volume); // Set volume after starting
+          _lastVolumeLevel = volume;
+        } else {
+          // Volume not changed, just play
+          sendPacket(0x03, value); 
+          _playing = true;
         }
       } else {
-        #ifdef DIAG_IO
-        DIAG(F("DFPlayer: Stop"));
-        #endif
         sendPacket(0x16); // Stop play
         _playing = false;
       }
     } else if (pin == 1) {
       // Set volume (0-30)
-      if (value > 30) value = 30;
-      else if (value < 0) value = 0;
-      #ifdef DIAG_IO
-      DIAG(F("DFPlayer: Volume %d"), value);
-      #endif
-      sendPacket(0x06, value);      
+      sendPacket(0x06, value);    
+      _lastVolumeLevel = volume;  
     }
   }
 
@@ -261,7 +267,7 @@ private:
       // Output some pad characters to add an
       // artificial delay between commands
       for (int i=0; i<numPadCharacters; i++) 
-        _serial->write(0);
+        _serial->write((uint8_t)0);
     }
 
     // Now output the command

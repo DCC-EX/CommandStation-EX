@@ -485,10 +485,10 @@
 				<text x="32.86" y="598.05" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Accessories <v:newlineChar/><tspan
 							x="30.42" dy="1.2em" class="st5">(</tspan>Output.cpp)</text>			</g>
 		</a>
-		<a xlink:href="https://github.com/DCC-EX/CommandStation-EX/blob/master/LCDDisplay.cpp">
+		<a xlink:href="https://github.com/DCC-EX/CommandStation-EX/blob/master/Display.cpp">
 			<g id="shape14-81" v:mID="14" v:groupContext="shape" v:layerMember="0" transform="translate(288,-116.156)">
 				<title>Process.14</title>
-				<desc>Other Utilities (LCDDisplay.cpp)</desc>
+				<desc>Other Utilities (Display.cpp)</desc>
 				<v:custProps>
 					<v:cp v:nameU="Cost" v:lbl="Cost" v:prompt="" v:type="7" v:format="@" v:sortKey="" v:invis="false"
 							v:ask="false" v:langID="1033" v:cal="0"/>
@@ -522,7 +522,7 @@
 				</g>
 				<rect x="0" y="580.5" width="90" height="31.5" rx="13.5" ry="13.5" class="st3"/>
 				<text x="19.29" y="593.55" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Other Utilities<v:newlineChar/><tspan
-							x="14.29" dy="1.2em" class="st5">(</tspan>LCDDisplay.cpp)</text>			</g>
+							x="14.29" dy="1.2em" class="st5">(</tspan>Display.cpp)</text>			</g>
 		</a>
 		<g id="shape3-88" v:mID="3" v:groupContext="shape" v:layerMember="1" transform="translate(108,-443.812)">
 			<title>Dynamic connector</title>

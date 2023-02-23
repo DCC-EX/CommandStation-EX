@@ -27,27 +27,34 @@
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include "LCDDisplay.h"
+#include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
   
 
-// Implement the LCDDisplay shim class as a singleton.
-// The DisplayInterface class implements a displayy handler with no code (null device);
-// The LCDDisplay class sub-classes DisplayInterface to provide the common display code;
-// Then LCDDisplay class is subclassed to the specific device type classes:
+// Implement the Display shim class as a singleton.
+// The DisplayInterface class implements a display handler with no code (null device);
+// The Display class sub-classes DisplayInterface to provide the common display code;
+// Then Display class talks to the specific device type classes:
 //    SSD1306AsciiWire for I2C OLED driver with SSD1306 or SH1106 controllers;
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
 
 #if defined(OLED_DRIVER)
-  #define CONDITIONAL_LCD_START for (DisplayInterface * dummy=new SSD1306AsciiWire(OLED_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
+  #define DISPLAY_START(xxx) { \
+    DisplayInterface *t = new Display(new SSD1306AsciiWire(OLED_DRIVER)); \
+    t->begin(); \
+    xxx; \
+    t->refresh(); \
+  } 
   
 #elif defined(LCD_DRIVER)
-  #define CONDITIONAL_LCD_START for (DisplayInterface * dummy=new LiquidCrystal_I2C(LCD_DRIVER);dummy!=NULL; dummy=dummy->loop2(true))
-
+  #define DISPLAY_START(xxx) { \
+    DisplayInterface *t = new Display(new LiquidCrystal_I2C(LCD_DRIVER)); \
+    t->begin(); \
+    xxx;  \
+    t->refresh();}
 #else
-  // Create null display handler just in case someone calls lcdDisplay->something without checking if lcdDisplay is NULL!
-  #define CONDITIONAL_LCD_START { new DisplayInterface(); }
-#endif
+  #define DISPLAY_START(xxx) {}
 
+#endif
 #endif // LCD_Implementation_h

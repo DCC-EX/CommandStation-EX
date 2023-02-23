@@ -22,7 +22,7 @@
 #define LiquidCrystal_I2C_h
 
 #include <Arduino.h>
-#include "LCDDisplay.h"
+#include "Display.h"
 #include "I2CManager.h"
 
 // commands
@@ -62,33 +62,38 @@
 #define Rw (1 << BACKPACK_Rw_BIT)  // Read/Write bit
 #define Rs (1 << BACKPACK_Rs_BIT)  // Register select bit
 
-class LiquidCrystal_I2C : public LCDDisplay {
+class LiquidCrystal_I2C : public DisplayDevice {
 public:
-  LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
-  void begin();
+  LiquidCrystal_I2C(I2CAddress lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
+  bool begin() override;
   void clearNative() override;
   void setRowNative(byte line) override;
   size_t writeNative(uint8_t c) override;
+  // I/O is synchronous, so if this is called we're not busy!
+  bool isBusy() override; 
   
   void display();
   void noBacklight();
   void backlight();
   
   void command(uint8_t);
+  uint16_t getNumCols() { return lcdCols; }
+  uint16_t getNumRows() { return lcdRows; }
+
 
 private:
   void send(uint8_t, uint8_t);
   void write4bits(uint8_t);
   void expanderWrite(uint8_t);
-  uint8_t _Addr;
+  uint8_t lcdCols=0, lcdRows=0;
+  I2CAddress _Addr;
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;
-  uint8_t _backlightval;
+  uint8_t _backlightval = 0;
 
   uint8_t outputBuffer[4];
-  // I/O is synchronous, so if this is called we're not busy!
-  bool isBusy() override { return false; } 
+  I2CRB rb;
 };
 
 #endif

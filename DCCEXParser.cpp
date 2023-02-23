@@ -190,9 +190,9 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 // Parse an F() string 
 void DCCEXParser::parse(const FSH * cmd) {
       DIAG(F("SETUP(\"%S\")"),cmd);
-      int size=strlen_P((char *)cmd)+1; 
+      int size=STRLEN_P((char *)cmd)+1; 
       char buffer[size];
-      strcpy_P(buffer,(char *)cmd);
+      STRCPY_P(buffer,(char *)cmd);
       parse(&USB_SERIAL,(byte *)buffer,NULL);
 }
 
@@ -944,10 +944,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
         break;
 
-#if !defined(IO_MINIMAL_HAL)
+#if !defined(IO_NO_HAL)
     case HASH_KEYWORD_HAL: 
         if (p[1] == HASH_KEYWORD_SHOW) 
           IODevice::DumpAll();
+        else if (p[1] == HASH_KEYWORD_RESET)
+          IODevice::reset();
         break;
 #endif
 

@@ -60,13 +60,13 @@ public:
     NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
 
-  static void create(VPIN vpin, int nPins, uint8_t i2cAddress) {
+  static void create(VPIN vpin, int nPins, I2CAddress i2cAddress) {
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
   }
 
 private:  
   // Constructor
-  EXIOExpander(VPIN firstVpin, int nPins, uint8_t i2cAddress) {
+  EXIOExpander(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
     _nPins = nPins;
     _i2cAddress = i2cAddress;
@@ -92,7 +92,7 @@ private:
         _analogueInputStates = (byte*) calloc(_analoguePinBytes, 1);
         _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
       } else {
-        DIAG(F("ERROR configuring EX-IOExpander device, I2C:x%x"), _i2cAddress);
+        DIAG(F("ERROR configuring EX-IOExpander device, I2C:%s"), _i2cAddress.toString());
         _deviceState = DEVSTATE_FAILED;
         return;
       }
@@ -105,13 +105,13 @@ private:
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
-      DIAG(F("EX-IOExpander device found, I2C:x%x, Version v%d.%d.%d"),
-          _i2cAddress, _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
+      DIAG(F("EX-IOExpander device found, I2C:%s, Version v%d.%d.%d"),
+          _I2CAddress.toString(), _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
-      DIAG(F("EX-IOExpander device not found, I2C:x%x"), _i2cAddress);
+      DIAG(F("EX-IOExpander device not found, I2C:%s"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -218,13 +218,13 @@ private:
   }
 
   void _display() override {
-    DIAG(F("EX-IOExpander I2C:x%x v%d.%d.%d Vpins %d-%d %S"),
-              _i2cAddress, _majorVer, _minorVer, _patchVer,
+    DIAG(F("EX-IOExpander I2C:%s v%d.%d.%d Vpins %d-%d %S"),
+              _i2cAddress.toString(), _majorVer, _minorVer, _patchVer,
               (int)_firstVpin, (int)_firstVpin+_nPins-1,
               _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
-  uint8_t _i2cAddress;
+  I2CAddress _i2cAddress;
   uint8_t _numDigitalPins = 0;
   uint8_t _numAnaloguePins = 0;
   byte _digitalOutBuffer[3];

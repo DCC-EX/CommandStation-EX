@@ -184,8 +184,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
 
   const char *yourNetwork = "Your network ";
-  if (strncmp_P(yourNetwork, (const char*)SSid, 13) == 0 || strncmp_P("", (const char*)SSid, 13) == 0) {
-    if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
+  if (STRNCMP_P(yourNetwork, (const char*)SSid, 13) == 0 || STRNCMP_P("", (const char*)SSid, 13) == 0) {
+    if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
       // If the source code looks unconfigured, check if the
       // ESP8266 is preconfigured in station mode.
       // We check the first 13 chars of the SSid and the password
@@ -258,7 +258,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   
     i=0;
     do {
-      if (strncmp_P(yourNetwork, (const char*)password, 13) == 0) {
+      if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
 	// unconfigured
         StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
                                           oldCmd ? "" : "_CUR", macTail, macTail, channel);

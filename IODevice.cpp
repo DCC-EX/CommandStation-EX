@@ -48,12 +48,14 @@ extern __attribute__((weak)) void exrailHalSetup();
 // Create any standard device instances that may be required, such as the Arduino pins 
 // and PCA9685.
 void IODevice::begin() {
+  // Initialise the IO subsystem defaults
+  ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
+
   // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
   //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
-  
-  // This is done first so that the following defaults will detect an overlap and not
-  // create something that conflicts with the users vpin definitions. 
+  // This is done early so that the subsequent defaults will detect an overlap and not
+  // create something that conflicts with the user's vpin definitions. 
   if (halSetup)
     halSetup();
 
@@ -61,8 +63,6 @@ void IODevice::begin() {
   if (exrailHalSetup)
     exrailHalSetup();
 
-  // Initialise the IO subsystem defaults
-  ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
   // Predefine two PCA9685 modules 0x40-0x41
   // Allocates 32 pins 100-131
   PCA9685::create(100, 16, 0x40);
@@ -72,12 +72,18 @@ void IODevice::begin() {
   // Allocates 32 pins 164-195
   MCP23017::create(164, 16, 0x20);
   MCP23017::create(180, 16, 0x21);
+}
 
-  // Call the begin() methods of each configured device in turn
-  for (IODevice *dev=_firstDevice; dev!=NULL; dev = dev->_nextDevice) {
+// reset() function to reinitialise all devices
+void IODevice::reset() {
+  unsigned long currentMicros = micros();
+  for (IODevice *dev = _firstDevice; dev != NULL; dev = dev->_nextDevice) {
+    dev->_deviceState = DEVSTATE_DORMANT;
+    // First ensure that _loop isn't delaying 
+    dev->delayUntil(currentMicros);
+    // Then invoke _begin to restart driver
     dev->_begin();
   }
-  _initPhase = false;
 }
 
 // Overarching static loop() method for the IODevice subsystem.  Works through the
@@ -109,18 +115,19 @@ void IODevice::loop() {
   
   // Report loop time if diags enabled
 #if defined(DIAG_LOOPTIMES)
+  unsigned long diagMicros = micros();
   static unsigned long lastMicros = 0;
-  // Measure time since loop() method started.
-  unsigned long halElapsed = micros() - currentMicros;
-  // Measure time between loop() method entries.
-  unsigned long elapsed = currentMicros - lastMicros;
+  // Measure time since HAL's loop() method started.
+  unsigned long halElapsed = diagMicros - currentMicros;
+  // Measure time between loop() method entries (excluding this diagnostic).
+  unsigned long elapsed = diagMicros - lastMicros;
   static unsigned long maxElapsed = 0, maxHalElapsed = 0;
   static unsigned long lastOutputTime = 0;
   static unsigned long halTotal = 0, total = 0;
   static unsigned long count = 0;
   const unsigned long interval = (unsigned long)5 * 1000 * 1000; // 5 seconds in microsec
 
-  // Ignore long loop counts while message is still outputting
+  // Ignore long loop counts while message is still outputting (~3 milliseconds)
   if (currentMicros - lastOutputTime > 3000UL) {
     if (elapsed > maxElapsed) maxElapsed = elapsed;
     if (halElapsed > maxHalElapsed) maxHalElapsed = halElapsed;
@@ -128,14 +135,16 @@ void IODevice::loop() {
     total += elapsed;
     count++;
   }
-  if (currentMicros - lastOutputTime > interval) {
+  if (diagMicros - lastOutputTime > interval) {
     if (lastOutputTime > 0) 
       DIAG(F("Loop Total:%lus (%lus max) HAL:%lus (%lus max)"), 
         total/count, maxElapsed, halTotal/count, maxHalElapsed);
     maxElapsed = maxHalElapsed = total = halTotal = count = 0;
-    lastOutputTime = currentMicros;
+    lastOutputTime = diagMicros;
   }
-  lastMicros = currentMicros;
+  // Read microsecond count after calculations, so they aren't
+  // included in the overall timings.
+  lastMicros = micros();
 #endif
 }
 
@@ -258,25 +267,27 @@ void IODevice::setGPIOInterruptPin(int16_t pinNumber) {
   _gpioInterruptPin = pinNumber;
 }
 
-// Private helper function to add a device to the chain of devices.
-void IODevice::addDevice(IODevice *newDevice) {
-  // Link new object to the end of the chain.  Thereby, the first devices to be declared/created
-  // will be located faster by findDevice than those which are created later.
-  // Ideally declare/create the digital IO pins first, then servos, then more esoteric devices.
-  IODevice *lastDevice;
-  if (_firstDevice == 0)
+// Helper function to add a new device to the device chain.  If 
+// slaveDevice is NULL then the device is added to the end of the chain.
+// Otherwise, the chain is searched for slaveDevice and the new device linked
+// in front of it (to support filter devices that share the same VPIN range
+// as the devices they control).  If slaveDevice isn't found, then the
+// device is linked to the end of the chain.
+void IODevice::addDevice(IODevice *newDevice, IODevice *slaveDevice /* = NULL */) {
+  if (slaveDevice == _firstDevice) {
+    newDevice->_nextDevice = _firstDevice;
     _firstDevice = newDevice;
-  else {
-    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice)
-      lastDevice = dev;
-    lastDevice->_nextDevice = newDevice;
+  } else {
+    for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+      if (dev->_nextDevice == slaveDevice || dev->_nextDevice == NULL) {
+          // Link new device between dev and slaveDevice (or at end of chain)
+        newDevice->_nextDevice = dev->_nextDevice;
+        dev->_nextDevice = newDevice;
+        break;
+      }
+    }
   }
-  newDevice->_nextDevice = 0;
-
-  // If the IODevice::begin() method has already been called, initialise device here.  If not,
-  // the device's _begin() method will be called by IODevice::begin().
-  if (!_initPhase)
-    newDevice->_begin();
+  newDevice->_begin();
 }
 
 // Private helper function to locate a device by VPIN.  Returns NULL if not found.
@@ -290,28 +301,40 @@ IODevice *IODevice::findDevice(VPIN vpin) {
   return NULL;
 }
 
+// Instance helper function for filter devices (layered over others).  Looks for 
+//  a device that is further down the chain than the current device.
+IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
+  for (IODevice *dev = _nextDevice; dev != 0; dev = dev->_nextDevice) {
+    VPIN firstVpin = dev->_firstVpin;
+    if (vpin >= firstVpin && vpin < firstVpin+dev->_nPins)
+      return dev;
+  }
+  return NULL;
+}
+
 // Private helper function to check for vpin overlap. Run during setup only.
 // returns true if pins DONT overlap with existing device
-bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) {
+bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddress) {
 #ifdef DIAG_IO
-  DIAG(F("Check no overlap %d %d 0x%x"), firstPin,nPins,i2cAddress);
+  DIAG(F("Check no overlap %d %d %s"), firstPin,nPins,i2cAddress.toString());
 #endif
   VPIN lastPin=firstPin+nPins-1;
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
     
-    // check for pin range overlaps (verbose but compiler will fix that)  
-    VPIN firstDevPin=dev->_firstVpin;
-    VPIN lastDevPin=firstDevPin+dev->_nPins-1;
-    bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
-    if (!noOverlap) {
-        DIAG(F("WARNING HAL Overlap definition of pins  %d to %d ignored."),
-            firstPin, lastPin);
-        return false;
-    } 
-  
+    if (nPins > 0 && dev->_nPins > 0) {
+      // check for pin range overlaps (verbose but compiler will fix that)  
+      VPIN firstDevPin=dev->_firstVpin;
+      VPIN lastDevPin=firstDevPin+dev->_nPins-1;
+      bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
+      if (!noOverlap) {
+          DIAG(F("WARNING HAL Overlap definition of pins  %d to %d ignored."),
+              firstPin, lastPin);
+          return false;
+      } 
+    }
     // Check for overlapping I2C address
     if (i2cAddress && dev->_I2CAddress==i2cAddress) {
-      DIAG(F("WARNING HAL Overlap. i2c Addr 0x%x ignored."),i2cAddress);
+      DIAG(F("WARNING HAL Overlap. i2c Addr %s ignored."),i2cAddress.toString());
       return false;
     } 
   }
@@ -326,14 +349,11 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, uint8_t i2cAddress) 
 // Chain of callback blocks (identifying registered callback functions for state changes)
 IONotifyCallback *IONotifyCallback::first = 0;
 
-// Start of chain of devices.
+// Start and end of chain of devices.
 IODevice *IODevice::_firstDevice = 0;
 
 // Reference to next device to be called on _loop() method.
 IODevice *IODevice::_nextLoopDevice = 0;
-
-// Flag which is reset when IODevice::begin has been called.
-bool IODevice::_initPhase = true;  
 
 
 //==================================================================================================================

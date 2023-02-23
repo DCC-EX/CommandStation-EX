@@ -24,4 +24,5 @@
 #include "StringFormatter.h"
 #define DIAG  StringFormatter::diag
 #define LCD   StringFormatter::lcd
+#define SCREEN  StringFormatter::lcd2
 #endif
