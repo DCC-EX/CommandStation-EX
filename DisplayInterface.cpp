@@ -21,7 +21,7 @@
 
 #include "DisplayInterface.h"
 
-// Install null display driver initially - will be replaced if required.
-DisplayInterface *DisplayInterface::_displayHandler = new DisplayInterface();
+// Start of chain of display handlers.
+DisplayInterface *DisplayInterface::_displayHandler = NULL;
 
 uint8_t DisplayInterface::_selectedDisplayNo = 255;
