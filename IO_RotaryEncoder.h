@@ -45,14 +45,14 @@
 class RotaryEncoder : public IODevice {
 public:
   // Constructor
-  RotaryEncoder(VPIN firstVpin, int nPins, uint8_t I2CAddress){
+  RotaryEncoder(VPIN firstVpin, int nPins, I2CAddress i2cAddress){
     _firstVpin = firstVpin;
     _nPins = nPins;
-    _I2CAddress = I2CAddress;
+    _I2CAddress = i2cAddress;
     addDevice(this);
   }
-  static void create(VPIN firstVpin, int nPins, uint8_t I2CAddress) {
-    if (checkNoOverlap(firstVpin, nPins, I2CAddress)) new RotaryEncoder(firstVpin, nPins, I2CAddress);
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new RotaryEncoder(firstVpin, nPins, i2cAddress);
   }
 
 private:
@@ -108,7 +108,6 @@ private:
       (int)_firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
-  uint8_t _I2CAddress;
   int8_t _position;
   int8_t _previousPosition = 0;
   uint8_t _versionBuffer[3];
