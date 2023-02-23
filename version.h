@@ -13,6 +13,8 @@
 //        - PCF8575 I2C GPIO driver added.
 //        - EX-RAIL ANOUT function for triggering analogue
 //          HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
+//        - EX-RAIL SCREEN function for writing to screens other 
+//          than the primary one.
 //        - Installable HALDisplay Driver, with support
 //          for multiple displays.
 //        - Layered HAL Drivers PCA9685pwm and Servo added for 
@@ -21,8 +23,13 @@
 //          This is intended to support EXIOExpander and also
 //          replace the existing PCA9685 driver.
 //        - Add <D HAL RESET> to reinitialise failed drivers.
-//        - Add UserAddin facility to allow a user-specific C++
-//          function to be added in myHal.cpp.
+//        - Add UserAddin facility to allow a user-written C++ function to be 
+//          declared in myHal.cpp, to be called at a user-specified frequency.
+//        - Add ability to configure clock speed of PCA9685 drivers 
+//          (to allow flicker-free LED control).
+//        - Improve stability of VL53L0X driver when XSHUT pin connected.
+//        - Enable DCC high accuracy mode for STM32 on standard motor shield (pins D12/D13).
+//        - Incorporate improvements to ADC scanning performance (courtesy of HABA).
 // 4.2.17 LCN bugfix
 // 4.2.16 Move EX-IOExpander servo support to the EX-IOExpander software
 // 4.2.15 Add basic experimental PWM support to EX-IOExpander
