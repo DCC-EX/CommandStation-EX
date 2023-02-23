@@ -506,10 +506,12 @@ private:
 
 #if defined(I2C_EXTENDED_ADDRESS)
 // Count of I2C multiplexers found when initialising.  If there is only one
-// MUX then the subbus does not de-selecting after use; however, if there
+// MUX then the subbus does not need de-selecting after use; however, if there
 // are two or more, then the subbus must be deselected to avoid multiple
 // sub-bus legs on different multiplexers being accessible simultaneously.
+private:
   uint8_t _muxCount = 0;
+public:
   uint8_t getMuxCount() { return _muxCount; }
 #endif
 
@@ -522,6 +524,7 @@ private:
     // Within the queue, each request's nextRequest field points to the 
     // next request, or NULL.
     // Mark volatile as they are updated by IRC and read/written elsewhere.
+private:
     I2CRB * volatile queueHead = NULL;
     I2CRB * volatile queueTail = NULL;
 
