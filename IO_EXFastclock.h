@@ -40,24 +40,24 @@ bool FAST_CLOCK_EXISTS = true;
 class EXFastClock : public IODevice {
 public:
   // Constructor
-    EXFastClock(uint8_t I2CAddress){
-    _I2CAddress = I2CAddress;
+    EXFastClock(I2CAddress i2cAddress){
+    _I2CAddress = i2cAddress;
     addDevice(this);
   }
 
-static void create(uint8_t _I2CAddress) {
+static void create(I2CAddress i2cAddress) {
 
   DIAG(F("Checking for Clock"));
   // Start by assuming we will find the clock
   // Check if specified I2C address is responding (blocking operation)
   // Returns I2C_STATUS_OK (0) if OK, or error code.
-  uint8_t _checkforclock = I2CManager.checkAddress(_I2CAddress);
+  uint8_t _checkforclock = I2CManager.checkAddress(i2cAddress);
   DIAG(F("Clock check result - %d"), _checkforclock);
   // XXXX change thistosave2 bytes
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
-      //DIAG(F("I2C Fast Clock found at %s"), _I2CAddress.toString());
-      new EXFastClock(_I2CAddress); 
+      //DIAG(F("I2C Fast Clock found at %s"), i2cAddress.toString());
+      new EXFastClock(i2cAddress); 
     }
     else {
       FAST_CLOCK_EXISTS = false;
