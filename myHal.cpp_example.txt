@@ -156,12 +156,12 @@ void halSetup() {
   // With these parameters, up to 10 files may be played on pins 10000-10009.
   // Play is started from EX-RAIL with SET(10000) for first mp3 file, SET(10001)
   // for second file, etc.  Play may also be initiated by writing an analogue
-  // value to the first pin, e.g. SERVO(10000,23,0) will play the 23rd mp3 file.
-  // SERVO(10000,23,30) will do the same thing, as well as setting the volume to 
+  // value to the first pin, e.g. ANOUT(10000,23,0,0) will play the 23rd mp3 file.
+  // ANOUT(10000,23,30,0) will do the same thing, as well as setting the volume to 
   // 30 (maximum value).
   // Play is stopped by RESET(10000) (or any other allocated VPIN).
   // Volume may also be set by writing an analogue value to the second pin for the player, 
-  // e.g. SERVO(10001,30,0) sets volume to maximum (30).
+  // e.g. ANOUT(10001,30,0,0) sets volume to maximum (30).
   // The EX-RAIL script may check for completion of play by calling WAITFOR(pin), which will only proceed to the
   // following line when the player is no longer busy.
   // E.g.
@@ -170,7 +170,7 @@ void halSetup() {
   //      SET(10003)        // Play fourth MP3 file
   //      LCD(4, "Playing") // Display message on LCD/OLED
   //      WAITFOR(10003)    // Wait for playing to finish
-  //      LCD(4, " ")       // Clear LCD/OLED line 
+  //      LCD(4, "")       // Clear LCD/OLED line 
   //      FOLLOW(1)         // Go back to start
 
   // DFPlayer::create(10000, 10, Serial1);
