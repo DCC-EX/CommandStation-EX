@@ -223,10 +223,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
 #if defined(I2C_USE_INTERRUPTS)
 ISR(TWI_vect) {
-  // pinMode(2,OUTPUT);
-  // digitalWrite(2,1);
   I2CManager.handleInterrupt();
-  // digitalWrite(2,0);
 }
 #endif
 
