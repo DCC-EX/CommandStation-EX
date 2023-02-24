@@ -179,10 +179,7 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte 
   {
     case 1:
       if (clocktime != lastclocktime){
-        if (Diag::CMD) {                    
-          DIAG(F("Clock Command Received"));
-          DIAG(F("Received Clock Time is: %d at rate: %d"), clocktime, clockrate);
-        }
+        // CAH. DIAG removed because LCD does it anyway. 
         LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
         // look for an event for this time
         RMFT2::clockEvent(clocktime,1);
