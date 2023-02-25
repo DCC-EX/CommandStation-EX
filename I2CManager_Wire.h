@@ -77,7 +77,15 @@ static uint8_t muxSelect(I2CAddress address) {
     Wire.beginTransmission(I2C_MUX_BASE_ADDRESS+muxNo); 
     uint8_t data =  (subBus == SubBus_All) ? 0xff :
                     (subBus == SubBus_None) ? 0x00 :
-                    (1 << subBus);
+#if defined(I2CMUX_PCA9547)
+                    0x08 | subBus;
+#elif defined(I2CMUX_PCA9542) || defined(I2CMUX_PCA9544)
+                    0x04 | subBus;   // NB Only 2 or 4 subbuses respectively
+#else
+                    // Default behaviour for most MUXs is to use a mask
+                    // with a bit set for the subBus to be enabled
+                    1 << subBus;
+#endif
     Wire.write(&data, 1);
     return Wire.endTransmission(true);  // have to release I2C bus for it to work
   }
