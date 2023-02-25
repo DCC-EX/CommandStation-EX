@@ -76,6 +76,7 @@ private:
   uint8_t *_lastRowGeneration = NULL;
   uint8_t _rowNoToScreen = 0; 
   uint8_t _charPosToScreen = 0;
+  bool _startAgain = false;
   DisplayInterface *_nextDisplay = NULL;
 
 public:
@@ -91,6 +92,7 @@ protected:
   // Constructor
   HALDisplay(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
     _displayDriver = new T(i2cAddress, width, height);
+    if (!_displayDriver) return;  // Check for memory allocation failure
     _I2CAddress = i2cAddress;
     _width = width;
     _height = height;
@@ -101,8 +103,12 @@ protected:
 
     // Allocate arrays
     _buffer = (char *)calloc(_numRows*_numCols, sizeof(char));
+    if (!_buffer) return;  // Check for memory allocation failure
     _rowGeneration = (uint8_t *)calloc(_numRows, sizeof(uint8_t));
+    if (!_rowGeneration) return;  // Check for memory allocation failure
     _lastRowGeneration = (uint8_t *)calloc(_numRows, sizeof(uint8_t));
+    if (!_lastRowGeneration) return;  // Check for memory allocation failure
+
     // Fill buffer with spaces
     memset(_buffer, ' ', _numCols*_numRows);
 
@@ -116,7 +122,7 @@ protected:
     // Also add this display to list of display handlers
     DisplayInterface::addDisplay(displayNo);
 
-    // Is this the main display?
+    // Is this the system display (0)?
     if (displayNo == 0) {
       // Set first two lines on screen
       this->setRow(displayNo, 0);
@@ -135,13 +141,15 @@ protected:
     // to the screen until that row has been refreshed.
 
     // First check if the OLED driver is still busy from a previous 
-    // call.  If so, don't to anything until the next entry.
+    // call.  If so, don't do anything until the next entry.
     if (!_displayDriver->isBusy()) {
       // Check if we've just done the end of a row
       if (_charPosToScreen >= _numCols) {
         // Move to next line
-        if (++_rowNoToScreen >= _numRows)
+        if (++_rowNoToScreen >= _numRows || _startAgain) {
           _rowNoToScreen = 0; // Wrap to first row
+          _startAgain = false;
+        }
 
         if (_rowGeneration[_rowNoToScreen] != _lastRowGeneration[_rowNoToScreen]) {
           // Row content has changed, so start outputting it
@@ -222,10 +230,14 @@ public:
     for (_colNo = 0; _colNo < _numCols; _colNo++)
       _buffer[_rowNo*_numCols+_colNo] = ' ';
     _colNo = 0;
-    // Mark that the buffer has been touched.  It will be 
+    // Mark that the buffer has been touched.  It will start being 
     // sent to the screen on the next loop entry, by which time
     // the line should have been written to the buffer.
     _rowGeneration[_rowNo]++;
+    // Indicate that the output loop is to start updating the screen again from
+    // row 0.  Otherwise, on a full screen rewrite the bottom part may be drawn
+    // before the top part!
+    _startAgain = true;
   }
 
   // Write one character to the screen referenced in the last setRow() call.
