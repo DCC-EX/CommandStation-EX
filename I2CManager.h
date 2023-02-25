@@ -84,8 +84,6 @@
  */
 
 /* 
- * Future enhancement possibility:
- *
  *  I2C Multiplexer (e.g. TCA9547, TCA9548)
  * 
  *  A multiplexer offers a way of extending the address range of I2C devices.  For example, GPIO extenders use address range 0x20-0x27
@@ -98,11 +96,6 @@
  *  Thirdly, the multiplexer offers the ability to use mixed-speed devices more effectively, by allowing high-speed devices to be
  *  put on a different bus to low-speed devices, enabling the software to switch the I2C speed on-the-fly between I2C transactions.
  * 
- *  Changes required:  Increase the size of the I2CAddress field in the IODevice class from uint8_t to uint16_t.
- *  The most significant byte would contain a '1' bit flag, the multiplexer number (0-7) and bus number (0-7).  Then, when performing
- *  an I2C operation, the I2CManager would check this byte and, if zero, do what it currently does.  If the byte is non-zero, then
- *  that means the device is connected via a multiplexer so the I2C transaction should be preceded by a select command issued to the
- *  relevant multiplexer.
  * 
  *  Non-interrupting I2C:
  * 
@@ -138,12 +131,8 @@
 // may be extended to include multiple buses, and other features. 
 // Uncomment to enable extended address.
 //
-// WARNING: When I2CAddress is passed to formatting commands such as DIAG, LCD etc,
-// it should be cast to (int) to ensure that the address value is passed rather than
-// the struct.
 
 //#define I2C_EXTENDED_ADDRESS
-
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Extended I2C Address type to facilitate extended I2C addresses including
@@ -184,7 +173,7 @@ enum I2CSubBus : uint8_t {
 #endif
   SubBus_No,           // Number of subbuses (highest + 1)
   SubBus_None = 254,   // Disable all sub-buses on selected mux
-  SubBus_All = 255,    // Enable all sub-buses
+  SubBus_All = 255,    // Enable all sub-buses (not supported by some multiplexers)
 };
 
 // Type to hold I2C address
