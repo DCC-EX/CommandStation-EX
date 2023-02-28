@@ -225,7 +225,4 @@ The configuration file for DCC-EX Command Station
 //#define SERIAL_BT_COMMANDS
 
 
-// FastClock Enabler
-// To build the FastClock code into the CS please uncomment the line below
-//#define USEFASTCLOCK
 /////////////////////////////////////////////////////////////////////////////////////
