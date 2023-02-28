@@ -106,12 +106,12 @@ private:
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
       DIAG(F("EX-IOExpander device found, I2C:%s, Version v%d.%d.%d"),
-          _I2CAddress.toString(), _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
+          _i2cAddress.toString(), _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
-      DIAG(F("EX-IOExpander device not found, I2C:%s"), _I2CAddress.toString());
+      DIAG(F("EX-IOExpander device not found, I2C:%s"), _i2cAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
