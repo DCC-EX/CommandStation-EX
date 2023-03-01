@@ -120,7 +120,7 @@ private:
   //            
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
     (void)param1; (void)param2;  // suppress compiler warning
-    #if DIAG_IO >= 3
+    #ifdef DIAG_IO
     DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d %S"), 
       vpin, value, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
     #endif
@@ -141,7 +141,7 @@ private:
   // writeDevice (helper function) takes a pin in range 0 to _nPins-1 within the device, and a value
   // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
   void writeDevice(uint8_t pin, int value) {
-    #if DIAG_IO >= 3
+    #ifdef DIAG_IO
     DIAG(F("PCA9685pwm I2C:%s WriteDevice Pin:%d Value:%d"), _I2CAddress.toString(), pin, value);
     #endif
     // Wait for previous request to complete

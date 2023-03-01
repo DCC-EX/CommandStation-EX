@@ -45,7 +45,7 @@ void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t 
 bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
   if (configType != CONFIGURE_SERVO) return false;
   if (paramCount != 5) return false;
-  #if DIAG_IO >= 3
+  #ifdef DIAG_IO
   DIAG(F("PCA9685 Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
     vpin, params[0], params[1], params[2], params[3], params[4]);
   #endif
@@ -117,7 +117,7 @@ void PCA9685::_begin() {
 // Device-specific write function, invoked from IODevice::write().  
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
-  #if DIAG_IO >= 3
+  #ifdef DIAG_IO
   DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
   #endif
   int pin = vpin - _firstVpin;
@@ -144,7 +144,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             4 (Bounce)  Servo 'bounces' at extremes.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-  #if DIAG_IO >= 3
+  #ifdef DIAG_IO
   DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
     vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
   #endif
