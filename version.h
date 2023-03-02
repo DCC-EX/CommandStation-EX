@@ -4,8 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.19"
-// 4.2.19 - Bugfix for analog reading of track current sensor offeset.
+#define VERSION "4.2.20"
+// 4.2.20 - <JG> & <JI> commands for multi-track gauges
+//        - Reinstate <c> but remember its a bit useless when TM involved.   
+// 4.2.19 - Bugfix for analog reading of track current sensor offset.
 // 4.2.18 - I2C Multiplexer support through Extended Addresses,
 //          added for Wire, 4209 and AVR I2C drivers.
 //        - I2C retries when an operation fails.
