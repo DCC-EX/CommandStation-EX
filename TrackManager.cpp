@@ -423,7 +423,35 @@ POWERMODE TrackManager::getProgPower() {
                 return track[t]->getPower();
     return POWERMODE::OFF;   
   }
-   
+
+void TrackManager::reportObsoleteCurrent(Print* stream) {
+  // This function is for backward JMRI compatibility only
+  // It reports the first track only, as main, regardless of track settings.
+  //  <c MeterName value C/V unit min max res warn>
+  int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
+  StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 
+            track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
+}
+
+void TrackManager::reportCurrent(Print* stream) {
+    StringFormatter::send(stream,F("<jI"));
+    FOR_EACH_TRACK(t) {
+         StringFormatter::send(stream, F(" %d"),
+         (track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
+            track[t]->raw2mA(track[t]->getCurrentRaw(false)));
+         }
+    StringFormatter::send(stream,F(">\n"));    
+}
+
+void TrackManager::reportGauges(Print* stream) {
+    StringFormatter::send(stream,F("<jG"));
+    FOR_EACH_TRACK(t) {
+         StringFormatter::send(stream, F(" %d"),
+            track[t]->raw2mA(track[t]->getRawCurrentTripValue()));
+         }
+    StringFormatter::send(stream,F(">\n"));    
+}
+
 void TrackManager::setJoinRelayPin(byte joinRelayPin) {
   joinRelay=joinRelayPin;
   if (joinRelay!=UNUSED_PIN) {

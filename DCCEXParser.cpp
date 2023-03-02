@@ -79,6 +79,8 @@ const int16_t HASH_KEYWORD_TT=2688;
 const int16_t HASH_KEYWORD_VPIN=-415;
 const int16_t HASH_KEYWORD_A='A';
 const int16_t HASH_KEYWORD_C='C';
+const int16_t HASH_KEYWORD_G='G';
+const int16_t HASH_KEYWORD_I='I';
 const int16_t HASH_KEYWORD_R='R';
 const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_X='X';
@@ -501,8 +503,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'c': // SEND METER RESPONSES <c>
-        // No longer supported because of multiple tracks                               <c MeterName value C/V unit min max res warn>
-        break;
+        // No longer useful because of multiple tracks See <JG> and <JI>
+        if (params>0) break;
+        TrackManager::reportObsoleteCurrent(stream);
+        return;
 
     case 'Q': // SENSORS <Q>
         Sensor::printAll(stream);
@@ -582,6 +586,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         return;
                     }
                     CommandDistributor::setClockTime(p[1], p[2], 1);
+                    return;
+                
+                case HASH_KEYWORD_G: // <JG> current gauge limits
+                    if (params>1) break;
+                    TrackManager::reportGauges(stream);   // <g limit...limit>     
+                    return;
+                
+                case HASH_KEYWORD_I: // <JI> current values
+                    if (params>1) break;
+                    TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;
 
                 case HASH_KEYWORD_A: // <JA> returns automations/routes
