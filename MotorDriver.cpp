@@ -90,9 +90,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
-  if (currentPin!=UNUSED_PIN) {
-    senseOffset = ADCee::init(currentPin);
-  }
+  if (currentPin!=UNUSED_PIN) ADCee::init(currentPin);
+  senseOffset=0; // value can not be obtained until waveform is activated
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
@@ -121,8 +120,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   if (currentPin==UNUSED_PIN) 
     DIAG(F("** WARNING ** No current or short detection"));
   else  {
-    DIAG(F("CurrentPin=A%d, Offset=%d, TripValue=%d"),
-    currentPin-A0, senseOffset,rawCurrentTripValue);
+    DIAG(F("CurrentPin=A%d, TripValue=%d"),
+    currentPin-A0, rawCurrentTripValue);
 
     // self testing diagnostic for the non-float converters... may be removed when happy
     //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
@@ -144,6 +143,12 @@ bool MotorDriver::isPWMCapable() {
 void MotorDriver::setPower(POWERMODE mode) {
   bool on=mode==POWERMODE::ON;
   if (on) {
+    // when switching a track On, we need to check the crrentOffset with the pin OFF
+    if (powerMode==POWERMODE::OFF && currentPin!=UNUSED_PIN) {
+        senseOffset = ADCee::read(currentPin);
+        DIAG(F("CurrentPin A%d sensOffset=%d"),currentPin-A0,senseOffset);
+    }
+
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
