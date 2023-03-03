@@ -112,7 +112,7 @@ class MotorDriver {
   public:
     
     MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
-                byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+                byte current_pin, float senseFactor, unsigned int tripMilliamps, int8_t fault_pin);
     void setPower( POWERMODE mode);
     POWERMODE getPower() { return powerMode;}
     // as the port registers can be shadowed to get syncronized DCC signals
@@ -198,6 +198,7 @@ class MotorDriver {
     bool dualSignal;       // true to use signalPin2
     bool invertBrake;       // brake pin passed as negative means pin is inverted
     bool invertPower;       // power pin passed as negative means pin is inverted
+    bool invertFault;       // fault pin passed as negative means pin is inverted
     
     // Raw to milliamp conversion factors avoiding float data types.
     // Milliamps=rawADCreading * sensefactorInternal / senseScale

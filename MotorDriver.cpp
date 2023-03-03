@@ -38,7 +38,7 @@ volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, int8_t fault_pin) {
   powerPin=power_pin;
   invertPower=power_pin < 0;
   if (invertPower) {
@@ -95,6 +95,9 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
 
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
+    invertFault=fault_pin < 0;
+    faultPin=invertFault ? 0-fault_pin : fault_pin;
+    DIAG(F("Fault pin = %d invert %d"), faultPin, invertFault);
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
   }
@@ -196,8 +199,12 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   int current;
   current = ADCee::read(currentPin, fromISR)-senseOffset;
   if (current<0) current=0-current;
-  if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
+  if ((faultPin != UNUSED_PIN) && powerMode==POWERMODE::ON) {
+    if (invertFault && isLOW(fastFaultPin))
       return (current == 0 ? -1 : -current);
+    if (!invertFault && !isLOW(fastFaultPin))
+      return (current == 0 ? -1 : -current);
+  }
   return current;
    
 }
