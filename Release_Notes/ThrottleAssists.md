@@ -5,7 +5,8 @@ Chris Harlow April 2022
 There are a number of additional throttle information commands that have been implemented to assist throttle authors to obtain information from the Command Station in order to implement turnout, route/automation and roster features which are already found in the Withrottle implementations. 
 These commands are new and not overlapped with the existing commands which are probabaly due to be obsoleted as they are over complex and unfit for purpose. 
 
-Turnouts:
+Turnouts
+============
 
 The conventional turnout definition commands and the ```<H>``` responses do not contain information about the turnout description which may have been provided in an EXRAIL script. A turnout description is much more user friendly than the cryptic "T123", and having a list helps the throttle UI build a suitable set of buttons.
 
@@ -25,6 +26,7 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
 
 
  Automations/Routes
+ ====================
 
  A throttle need to know which EXRAIL Automations and Routes it can show the user.
 
@@ -64,6 +66,7 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
 
 
   COMMANDS TO AVOID
+ ======================
 
   ```<f cab func1 func2>```     Use ```<F cab function 1/0>```
   ```<t  slot cab speed dir>``` Just drop the slot number 
