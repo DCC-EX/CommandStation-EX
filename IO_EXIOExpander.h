@@ -82,7 +82,7 @@ private:
       _command4Buffer[2] = _firstVpin & 0xFF;
       _command4Buffer[3] = _firstVpin >> 8;
       // Send config, if EXIOPINS returned, we're good, setup pin buffers, otherwise go offline
-      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command4Buffer, 4);
+      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command4Buffer, 4, &_i2crb);
       if (_receive3Buffer[0] == EXIOPINS) {
         _numDigitalPins = _receive3Buffer[1];
         _numAnaloguePins = _receive3Buffer[2];
@@ -98,10 +98,10 @@ private:
       }
       // We now need to retrieve the analogue pin map
       _command1Buffer[0] = EXIOINITA;
-      I2CManager.read(_i2cAddress, _analoguePinMap, _numAnaloguePins, _command1Buffer, 1);
+      I2CManager.read(_i2cAddress, _analoguePinMap, _numAnaloguePins, _command1Buffer, 1, &_i2crb);
       // Attempt to get version, if we don't get it, we don't care, don't go offline
       _command1Buffer[0] = EXIOVER;
-      I2CManager.read(_i2cAddress, _versionBuffer, 3, _command1Buffer, 1);
+      I2CManager.read(_i2cAddress, _versionBuffer, 3, _command1Buffer, 1, &_i2crb);
       _majorVer = _versionBuffer[0];
       _minorVer = _versionBuffer[1];
       _patchVer = _versionBuffer[2];
@@ -125,7 +125,7 @@ private:
       _digitalOutBuffer[0] = EXIODPUP;
       _digitalOutBuffer[1] = pin;
       _digitalOutBuffer[2] = pullup;
-      I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+      I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3, &_i2crb);
       if (_command1Buffer[0] == EXIORDY) {
         return true;
       } else {
@@ -142,7 +142,7 @@ private:
     int pin = vpin - _firstVpin;
     _command2Buffer[0] = EXIOENAN;
     _command2Buffer[1] = pin;
-    I2CManager.read(_i2cAddress, _command1Buffer, 1, _command2Buffer, 2);
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _command2Buffer, 2, &_i2crb);
     if (_command1Buffer[0] == EXIORDY) {
       return true;
     } else {
@@ -157,9 +157,9 @@ private:
     (void)currentMicros; // remove warning
     if (_deviceState == DEVSTATE_FAILED) return;
     _command1Buffer[0] = EXIORDD;
-    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1);
+    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
     _command1Buffer[0] = EXIORDAN;
-    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1);
+    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
   }
 
   // Obtain the correct analogue input value
@@ -191,7 +191,7 @@ private:
     _digitalOutBuffer[0] = EXIOWRD;
     _digitalOutBuffer[1] = pin;
     _digitalOutBuffer[2] = value;
-    I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3, &_i2crb);
     if (_command1Buffer[0] != EXIORDY) {
       DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
     }
@@ -211,7 +211,7 @@ private:
     _servoBuffer[4] = profile;
     _servoBuffer[5] = duration & 0xFF;
     _servoBuffer[6] = duration >> 8;
-    I2CManager.read(_i2cAddress, _command1Buffer, 1, _servoBuffer, 7);
+    I2CManager.read(_i2cAddress, _command1Buffer, 1, _servoBuffer, 7, &_i2crb);
     if (_command1Buffer[0] != EXIORDY) {
       DIAG(F("Vpin %d cannot be used as a servo/PWM pin"), (int)vpin);
     }
@@ -242,6 +242,7 @@ private:
   byte _receive3Buffer[3];
   byte _servoBuffer[7];
   uint8_t* _analoguePinMap;
+  I2CRB _i2crb;
 
   // EX-IOExpander protocol flags
   enum {
