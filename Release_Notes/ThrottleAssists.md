@@ -7,7 +7,7 @@ These commands are new and not overlapped with the existing commands which are p
 
 Turnouts:
 
-The conventional turnout definition commands and the ```<H>``` responses do not contain information about the turnout description which may have been provided in an EXRAIL script. A turnout description is much more user friendly than T123 and having a list helps the throttle UI build a suitable set of buttons.
+The conventional turnout definition commands and the ```<H>``` responses do not contain information about the turnout description which may have been provided in an EXRAIL script. A turnout description is much more user friendly than the cryptic "T123", and having a list helps the throttle UI build a suitable set of buttons.
 
 ```<JT>``` command returns a list of turnout ids. The throttle should be uninterested in the turnout technology used but needs to know the ids it can throw/close and monitor the current state. 
 e.g.  response ```<jT 1 17 22 19>``` 
