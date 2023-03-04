@@ -13,7 +13,7 @@ The conventional turnout definition commands and the ```<H>``` responses do not 
 ```<JT>``` command returns a list of turnout ids. The throttle should be uninterested in the turnout technology used but needs to know the ids it can throw/close and monitor the current state.  
 e.g.  response ```<jT 1 17 22 19>``` 
 
-```<JT 17>`` requests info on turnout 17.\
+```<JT 17>`` requests info on turnout 17\
 e.g. response ```<jT 17 T "Coal yard exit">``` or ```<jT 17 C "Coal yard exit">``\
 (T=thrown, C=closed)\
 or ```<jT 17 C "">``` indicating turnout description not given.\
@@ -23,7 +23,6 @@ Note: It is still the throttles responsibility to monitor the status broadcasts.
 (TBD I'm thinking that the existing broadcast is messy and needs cleaning up)\
 However, I'm not keen on dynamically created/deleted turnouts so I have no intention of providing a command that indicates the turnout list has been updated since the throttle started.  
 Also note that turnouts marked in EXRAIL with the HIDDEN keyword instead of a "description" will NOT show up in these commands. 
-
 
  Automations/Routes
  ====================
@@ -51,30 +50,31 @@ An *Automation* is a handoff of the last accessed loco id to an EXRAIL AUTOMATIO
    Thus an Automation expects a start command with a cab id\
    e.g. ```</START 13 3>```
 
+Roster Information
+^^^^^^^^^^^^^^^^^^
 
-   Roster Information
-   ^^^^^^^^^^^^^^^^^^
-   The ```<JR>``` command requests a list of cab ids from the roster.
-   e.g. responding ```<jR 3 200 6336>```
-   or <jR> for none. 
+The ```<JR>``` command requests a list of cab ids from the roster.
+e.g. responding ```<jR 3 200 6336>```
+or <jR> for none. 
 
-   Each Roster entry had a name and function map obtained by:
-   ```<JR 200>```  reply like ```<jR 200 "Thomas" "whistle/*bell/squeal/panic">
+Each Roster entry had a name and function map obtained by:
+```<JR 200>```  reply like ```<jR 200 "Thomas" "whistle/*bell/squeal/panic">
    
-   Refer to EXRAIL ROSTER command for function map format.
+Refer to EXRAIL ROSTER command for function map format.
+
+Obtaining throttle status
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+```<t cabid>```  Requests a deliberate update on the cab speed/functions in the same format as the cab broadcast.
+```<l cabid slot speedbyte functionMap>```
+
+Note that a slot of -1 indicates that the cab is not in the reminders table and this comand will not reserve a slot until such time as the cab is throttled.
 
 
-  Obtaining throttle status
-  ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  ```<t cabid>```  Requests a deliberate update on the cab speed/functions in the same format as the cab broadcast.
-     ```<l cabid slot speedbyte functionMap>```
-      Note that a slot of -1 indicates that the cab is not in the reminders table and this comand will not reserve a slot until such time as the cab is throttled.
+COMMANDS TO AVOID
+======================
 
-
-  COMMANDS TO AVOID
- ======================
-
-  ```<f cab func1 func2>```     Use ```<F cab function 1/0>```\
+  ```<f cab func1 func2>``` - Instead Use ```<F cab function 1/0>```\
   ```<t  slot cab speed dir>``` Just drop the slot number\
   ```<T commands>``` other than ```<T id 0/1>```\
   ```<s>```\
