@@ -234,6 +234,6 @@ void CommandDistributor::broadcastText(const FSH * msg) {
 #endif
 }
 
-void CommandDistributor::broadcastTrackState(FSH* format,byte trackLetter,int16_t dcAddr) {
+void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr) {
   broadcastReply(COMMAND_TYPE, format,trackLetter,dcAddr);
 }
