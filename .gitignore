@@ -19,3 +19,4 @@ my*.h
 !my*.example.h
 .vscode/extensions.json
 .vscode/extensions.json
+compile_commands.json

@@ -51,6 +51,7 @@ public :
   static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastText(const FSH * msg);
+  static void broadcastTrackState(FSH* format,byte trackLetter,int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
   
