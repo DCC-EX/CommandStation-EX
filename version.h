@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.22"
+#define VERSION "4.2.23"
+// 4.2.23 - Bugfix signalpin2 was not set up in shadow port
 // 4.2.22 - Implement broadcast of Track Manager changes
 // 4.2.21 - Implement non-blocking I2C for EX-IOExpander device driver
 // 4.2.20 - <JG> & <JI> commands for multi-track gauges

@@ -75,6 +75,23 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     dualSignal=true;
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
+
+    fastSignalPin2.shadowinout = NULL;
+    if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
+      DIAG(F("Found PORTA pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTA;
+    }
+    if (HAVE_PORTB(fastSignalPin2.inout == &PORTB)) {
+      DIAG(F("Found PORTB pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTB;
+    }
+    if (HAVE_PORTC(fastSignalPin2.inout == &PORTC)) {
+      DIAG(F("Found PORTC pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTC;
+    }
   }
   else dualSignal=false; 
   
