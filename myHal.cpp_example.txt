@@ -17,9 +17,11 @@
 
 // Include devices you need.
 #include "IODevice.h"
-#include "IO_HCSR04.h"    // Ultrasonic range sensor
-#include "IO_VL53L0X.h"   // Laser time-of-flight sensor
-#include "IO_DFPlayer.h"  // MP3 sound player
+//#include "IO_HALDisplay.h"  // Auxiliary display devices (LCD/OLED)
+//#include "IO_HCSR04.h"    // Ultrasonic range sensor
+//#include "IO_VL53L0X.h"   // Laser time-of-flight sensor
+//#include "IO_DFPlayer.h"  // MP3 sound player
+//#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 //#include "IO_EXFastClock.h"  // FastClock driver
 
@@ -30,6 +32,61 @@
 //==========================================================================
 
 void halSetup() {
+
+  //=======================================================================
+  // The following directives define auxiliary display devices.
+  // These can be defined in addition to the system display (display
+  // number 0) that is defined in config.h.
+  // A write to a line which is beyond the length of the screen will overwrite
+  // the bottom line, unless the line number is 255 in which case the 
+  // screen contents will scroll up before the text is written to the
+  // bottom line.
+  //=======================================================================
+  // 
+  // Create a 128x32 OLED display device as display number 1 
+  // (line 0 is written by EX-RAIL 'SCREEN(1, 0, "text")').
+
+  //HALDisplay<OLED>::create(1, 0x3d, 128, 32);
+
+  // Create a 20x4 LCD display device as display number 2 
+  // (line 0 is written by EX-RAIL 'SCREEN(2, 0, "text")').
+
+  // HALDisplay<LiquidCrystal>(2, 0x27, 20, 4);
+
+
+  //=======================================================================
+  // User Add-ins
+  //=======================================================================
+  // User add-ins can be created when you want to do something that 
+  // can't be done in EX-RAIL but does not merit a HAL driver.  The 
+  // user add-in is a C++ function that is executed periodically by the
+  // HAL subsystem.
+
+  // Example: The function will be executed once per second and will display, 
+  // on screen #3, the first eight entries (assuming an 8-line display)
+  // from the loco speed table.
+  
+  // Put the following block of code in myHal.cpp OUTSIDE of the 
+  //   halSetup() function:
+  //
+  // void updateLocoScreen() {
+  //   for (int i=0; i<8; i++) {
+  //     if (DCC::speedTable[i].loco > 0) {
+  //       int speed = DCC::speedTable[i].speedCode;
+  //       char direction = (speed & 0x80) ? 'R' : 'F';
+  //       speed = speed & 0x7f;
+  //       if (speed > 0) speed = speed - 1;
+  //       SCREEN(3, i, F("Loco:%4d %3d %c"), DCC::speedTable[i].loco,
+  //         speed, direction);
+  //     }
+  //   }
+  // }
+  //
+  // Put the following line INSIDE the halSetup() function:
+  //
+  // UserAddin::create(updateLocoScreen, 1000);
+  //
+
 
   //=======================================================================
   // The following directive defines a PCA9685 PWM Servo driver module.
@@ -174,6 +231,21 @@ void halSetup() {
   //      FOLLOW(1)         // Go back to start
 
   // DFPlayer::create(10000, 10, Serial1);
+
+
+  //=======================================================================
+  // 16-pad capacitative touch key pad based on TP229 IC.
+  //=======================================================================
+  // Parameters below:
+  //   11000 = first VPIN allocated
+  //   16 = number of VPINs allocated
+  //   25 = local GPIO pin number for clock signal
+  //   24 = local GPIO pin number for data signal
+  //
+  // Pressing the key pads numbered 1-16 cause each of the nominated digital VPINs 
+  // (11000-11015 in this case) to be activated.
+
+  // TouchKeypad::create(11000, 16, 25, 24);
 
 
   //=======================================================================

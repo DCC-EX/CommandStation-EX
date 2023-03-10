@@ -82,10 +82,10 @@ private:
 public:
   //  Static function to handle "HALDisplay::create(...)" calls.
   static void create(I2CAddress i2cAddress, int width, int height) {
-    /* if (checkNoOverlap(i2cAddress)) */ new HALDisplay(0, i2cAddress, width, height);
+    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(0, i2cAddress, width, height);
   } 
   static void create(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
-    /* if (checkNoOverlap(i2cAddress)) */ new HALDisplay(displayNo, i2cAddress, width, height);
+    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(displayNo, i2cAddress, width, height);
   } 
 
 protected:
