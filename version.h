@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.23"
+#define VERSION "4.2.24"
+// 4.3.24 - Bugfix Ethernet shield: Static IP now possible
 // 4.2.23 - Bugfix signalpin2 was not set up in shadow port
 // 4.2.22 - Implement broadcast of Track Manager changes
 // 4.2.21 - Implement non-blocking I2C for EX-IOExpander device driver

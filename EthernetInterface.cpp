@@ -136,7 +136,7 @@ bool EthernetInterface::checkLink() {
       DIAG(F("Ethernet cable connected"));
       connected=true;
       #ifdef IP_ADDRESS
-      setLocalIP(IP_ADDRESS);               // for static IP, set it again
+      Ethernet.setLocalIP(IP_ADDRESS);      // for static IP, set it again
       #endif
       IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
