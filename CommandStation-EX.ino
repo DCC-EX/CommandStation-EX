@@ -81,6 +81,9 @@ void setup()
 #endif // WIFI_ON
 
 #if ETHERNET_ON
+#ifdef ETHERNET_CS
+  Ethernet.init (ETHERNET_CS);
+#endif // ETHERNET_CS
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
