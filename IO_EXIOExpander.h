@@ -156,10 +156,15 @@ private:
   void _loop(unsigned long currentMicros) override {
     (void)currentMicros; // remove warning
     if (_deviceState == DEVSTATE_FAILED) return;
-    _command1Buffer[0] = EXIORDD;
-    I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
-    _command1Buffer[0] = EXIORDAN;
-    I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
+    if (_i2crb.isBusy()) return;
+    if (_commandFlag) {
+      _command1Buffer[0] = EXIORDD;
+      I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
+    } else {
+      _command1Buffer[0] = EXIORDAN;
+      I2CManager.read(_i2cAddress, _analogueInputStates, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
+    }
+    _commandFlag = !_commandFlag;
   }
 
   // Obtain the correct analogue input value
@@ -243,6 +248,7 @@ private:
   byte _servoBuffer[7];
   uint8_t* _analoguePinMap;
   I2CRB _i2crb;
+  bool _commandFlag = 0;
 
   // EX-IOExpander protocol flags
   enum {
