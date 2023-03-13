@@ -159,13 +159,13 @@ private:
     if (status == I2C_STATUS_PENDING) return;  // If device busy, return
     if (status == I2C_STATUS_OK) {             // If device ok, read input data
       if (_commandFlag) {
-        if (currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay 10ms for digital read refresh
+        if (currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
           _lastDigitalRead = currentMicros;
           _command1Buffer[0] = EXIORDD;
           I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
         }
       } else {
-        if (currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay 50ms for analogue read refresh
+        if (currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
           _lastAnalogueRead = currentMicros;
           _command1Buffer[0] = EXIORDAN;
           byte _tempAnalogue[_analoguePinBytes];      // Setup temp buffer so reads come from known state
@@ -174,7 +174,6 @@ private:
         }
       }
       _commandFlag = !_commandFlag;
-      // Need to delay here: digital in IO_Base 4000UL, analogue in IO_AnalogueInputs 10000UL (fast) or 1000000UL(slow)
     } else {
       DIAG(F("EX-IOExpander I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
@@ -275,8 +274,8 @@ private:
   bool _commandFlag = 1;
   unsigned long _lastDigitalRead = 0;
   unsigned long _lastAnalogueRead = 0;
-  const unsigned long _digitalRefresh = 10000UL;
-  const unsigned long _analogueRefresh = 50000UL;
+  const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
+  const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
 
   // EX-IOExpander protocol flags
   enum {
