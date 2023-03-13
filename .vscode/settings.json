@@ -8,5 +8,6 @@
         "string_view": "cpp",
         "initializer_list": "cpp",
         "cstdint": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }

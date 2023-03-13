@@ -154,19 +154,24 @@ private:
 
   // Main loop, collect both digital and analogue pin states continuously (faster sensor/input reads)
   void _loop(unsigned long currentMicros) override {
-    (void)currentMicros; // remove warning
     if (_deviceState == DEVSTATE_FAILED) return;    // If device failed, return
     uint8_t status = _i2crb.status;
     if (status == I2C_STATUS_PENDING) return;  // If device busy, return
     if (status == I2C_STATUS_OK) {             // If device ok, read input data
       if (_commandFlag) {
-        _command1Buffer[0] = EXIORDD;
-        I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
+        if (currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay 10ms for digital read refresh
+          _lastDigitalRead = currentMicros;
+          _command1Buffer[0] = EXIORDD;
+          I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
+        }
       } else {
-        _command1Buffer[0] = EXIORDAN;
-        byte _tempAnalogue[_analoguePinBytes];      // Setup temp buffer so reads come from known state
-        I2CManager.read(_i2cAddress, _tempAnalogue, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
-        memcpy(_analogueInputStates, _tempAnalogue, _analoguePinBytes); // Copy temp buffer to states
+        if (currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay 50ms for analogue read refresh
+          _lastAnalogueRead = currentMicros;
+          _command1Buffer[0] = EXIORDAN;
+          byte _tempAnalogue[_analoguePinBytes];      // Setup temp buffer so reads come from known state
+          I2CManager.read(_i2cAddress, _tempAnalogue, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
+          memcpy(_analogueInputStates, _tempAnalogue, _analoguePinBytes); // Copy temp buffer to states
+        }
       }
       _commandFlag = !_commandFlag;
       // Need to delay here: digital in IO_Base 4000UL, analogue in IO_AnalogueInputs 10000UL (fast) or 1000000UL(slow)
@@ -268,6 +273,10 @@ private:
   uint8_t* _analoguePinMap;
   I2CRB _i2crb;
   bool _commandFlag = 1;
+  unsigned long _lastDigitalRead = 0;
+  unsigned long _lastAnalogueRead = 0;
+  const unsigned long _digitalRefresh = 10000UL;
+  const unsigned long _analogueRefresh = 50000UL;
 
   // EX-IOExpander protocol flags
   enum {
