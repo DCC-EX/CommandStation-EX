@@ -4,7 +4,11 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.25"
+#define VERSION "4.2.26"
+// 4.2.26 - EX-IOExpander device driver enhancements
+//        - Enhance I2C error checking
+//        - Introduce delays to _loop to allow room for other I2C device comms
+//        - Improve analogue read reliability
 // 4.2.25 - Bugfix SAMD21 Exrail odd byte boundary
 // 4.2.24 - Bugfix Ethernet shield: Static IP now possible
 // 4.2.23 - Bugfix signalpin2 was not set up in shadow port
