@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.26"
+#define VERSION "4.2.27"
+// 4.2.27 - Bugfix LCD showed random characters in SCROLLMODE 2
 // 4.2.26 - EX-IOExpander device driver enhancements
 //        - Enhance I2C error checking
 //        - Introduce delays to _loop to allow room for other I2C device comms
