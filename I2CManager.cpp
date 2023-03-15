@@ -74,7 +74,7 @@ void I2CManagerClass::begin(void) {
     _beginCompleted = true;
 
     // Check for short-circuit or floating lines (no pull-up) on I2C before enabling I2C
-    const FSH *message = F("WARNING: Possible short-circuit or inadequate pullup on I2C %S line");
+    const FSH *message = F("WARNING: Check I2C %S line for short/pullup");
     pinMode(SDA, INPUT);
     if (!digitalRead(SDA))
       DIAG(message, F("SDA"));
