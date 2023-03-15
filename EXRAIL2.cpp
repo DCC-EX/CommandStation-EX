@@ -105,12 +105,9 @@ uint16_t RMFT2::getOperand(byte n) {
 // getOperand static version, must be provided prog counter from loop etc.
 uint16_t RMFT2::getOperand(int progCounter,byte n) {
   int offset=progCounter+1+(n*3);
-  if (offset&1) {
-       byte lsb=GETHIGHFLASH(RouteCode,offset);
-       byte msb=GETHIGHFLASH(RouteCode,offset+1);
-       return msb<<8|lsb;
-  }
-  return GETHIGHFLASHW(RouteCode,offset);
+  byte lsb=GETHIGHFLASH(RouteCode,offset);
+  byte msb=GETHIGHFLASH(RouteCode,offset+1);
+  return msb<<8|lsb;
 }
 
 LookList::LookList(int16_t size) {

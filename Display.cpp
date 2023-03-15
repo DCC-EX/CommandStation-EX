@@ -1,5 +1,6 @@
 /*
  *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
+ *  © 2023, Harald Barth.
  *
  *  This file is part of CommandStation-EX
  *
@@ -52,7 +53,7 @@ Display::Display(DisplayDevice *deviceDriver) {
   _deviceDriver = deviceDriver;
   // Get device dimensions in characters (e.g. 16x2).
   numCharacterColumns = _deviceDriver->getNumCols();
-  numCharacterRows = _deviceDriver->getNumRows();;
+  numCharacterRows = _deviceDriver->getNumRows();
   for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
     rowBuffer[row][0] = '\0';
   topRow = ROW_INITIAL;  // loop2 will fill from row 0
@@ -173,16 +174,18 @@ bool Display::findNextNonBlankRow() {
       rowNext = 0;
     else
       rowNext = rowNext + 1;
-    if (rowNext >= MAX_CHARACTER_ROWS) rowNext = ROW_INITIAL;
 #if SCROLLMODE == 1
-    // Finished if we've looped back to start
-    if (rowNext == ROW_INITIAL) {
+    if (rowNext >= MAX_CHARACTER_ROWS) {
+      // Finished if we've looped back to start
+      rowNext = ROW_INITIAL;
       noMoreRowsToDisplay = true;
       return false;
     }
 #else
-    // Finished if we're back to the first one shown
+    if (rowNext >= MAX_CHARACTER_ROWS)
+      rowNext = 0;
     if (rowNext == rowFirst) {
+      // Finished if we're back to the first one shown
       noMoreRowsToDisplay = true;
       return false;
     }
