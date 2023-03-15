@@ -75,20 +75,9 @@ private:
   bool _playing = false;
   uint8_t _inputIndex = 0;
   unsigned long _commandSendTime; // Allows timeout processing
-  uint8_t _lastVolumeLevel = MAXVOLUME;
-
-  // When two commands are sent in quick succession, the device sometimes 
-  // fails to execute one.  A delay is required between successive commands.
-  // This could be implemented by buffering commands and outputting them
-  // from the loop() function, but it would somewhat complicate the 
-  // driver.  A simpler solution is to output a number of NUL pad characters
-  // between successive command strings if there isn't sufficient elapsed time
-  // between them.  At 9600 baud, each pad character takes approximately
-  // 1ms to complete.  Experiments indicate that the minimum number of pads
-  // for reliable operation is 17.  This gives 17.7ms between the end of one
-  // command and the beginning of the next, or 28ms between successive commands
-  // being completed.  I've allowed 20 characters, which is almost 21ms.
-  const int numPadCharacters = 20;  // Number of pad characters between commands
+  uint8_t _requestedVolumeLevel = MAXVOLUME;
+  uint8_t _currentVolume = MAXVOLUME;
+  int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
   
 public:
  
@@ -148,10 +137,38 @@ protected:
       } else 
         _inputIndex = 0;  // Unrecognised character sequence, start again!
     }
+
     // Check if the initial prompt to device has timed out.  Allow 5 seconds
     if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 5000000UL) {
       DIAG(F("DFPlayer device not responding on serial port"));
       _deviceState = DEVSTATE_FAILED;
+    }
+
+    // When two commands are sent in quick succession, the device will often fail to 
+    // execute one.  Testing has indicated that a delay of 100ms or more is required
+    // between successive commands to get reliable operation.
+    // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
+    if (currentMicros - _commandSendTime > 100000UL) {
+      if (_currentVolume > _requestedVolumeLevel) {
+        // Change volume before changing song if volume is reducing.
+        _currentVolume = _requestedVolumeLevel;
+        sendPacket(0x06, _currentVolume);
+        _commandSendTime = currentMicros;
+      } else if (_requestedSong > 0) {
+        // Change song
+        sendPacket(0x03, _requestedSong);
+        _requestedSong = -1;
+        _commandSendTime = currentMicros;
+      } else if (_requestedSong == 0) {
+        sendPacket(0x16);  // Stop playing
+        _requestedSong = -1;
+        _commandSendTime = currentMicros;
+      } else if (_currentVolume < _requestedVolumeLevel) {
+        // Change volume after changing song if volume is increasing.
+        _currentVolume = _requestedVolumeLevel;
+        sendPacket(0x06, _currentVolume);
+        _commandSendTime = currentMicros;
+      }
     }
     delayUntil(currentMicros + 10000); // Only enter every 10ms
   }
@@ -165,14 +182,14 @@ protected:
       #ifdef DIAG_IO
       DIAG(F("DFPlayer: Play %d"), pin+1);
       #endif
-      sendPacket(0x03, pin+1);
+      _requestedSong = pin+1;
       _playing = true;
     } else {
       // Value 0, stop playing
       #ifdef DIAG_IO
       DIAG(F("DFPlayer: Stop"));
       #endif
-      sendPacket(0x16);
+      _requestedSong = 0;  // No song
       _playing = false;
     }
   }
@@ -181,10 +198,6 @@ protected:
   // Volume may be specified as second parameter to writeAnalogue.
   // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
-  // If starting a new file and setting volume, then avoid a short burst of loud noise by 
-  // the following strategy:
-  //    - If the volume is increasing, start playing the song before setting the volume,
-  //    - If the volume is decreasing, decrease it and then start playing.
   //
   void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
     uint8_t pin = vpin - _firstVpin;
@@ -198,28 +211,18 @@ protected:
 
     if (pin == 0) {
       // Play track 
-      if (value > 0) {
-        if (volume != 0) {
-          if (volume <= _lastVolumeLevel)
-            sendPacket(0x06, volume);  // Set volume before starting
-          sendPacket(0x03, value); // Play track
-          _playing = true;
-          if (volume > _lastVolumeLevel) 
-            sendPacket(0x06, volume); // Set volume after starting
-          _lastVolumeLevel = volume;
-        } else {
-          // Volume not changed, just play
-          sendPacket(0x03, value); 
-          _playing = true;
-        }
+      if (value > 0 && volume != 0) {
+        if (volume != 0)
+          _requestedVolumeLevel = volume;
+        _requestedSong = value;
+        _playing = true;
       } else {
-        sendPacket(0x16); // Stop play
+        _requestedSong = 0; // stop playing
         _playing = false;
       }
     } else if (pin == 1) {
       // Set volume (0-30)
-      sendPacket(0x06, value);    
-      _lastVolumeLevel = volume;  
+      _requestedVolumeLevel = volume;  
     }
   }
 
@@ -246,7 +249,6 @@ private:
 
   void sendPacket(uint8_t command, uint16_t arg = 0)
   {
-    unsigned long currentMillis = millis();
     uint8_t out[] = { 0x7E,
         0xFF,
         06,
@@ -260,19 +262,8 @@ private:
 
     setChecksum(out);
 
-    // Check how long since the last command was sent.
-    // Each character takes approx 1ms at 9600 baud
-    unsigned long minimumGap = numPadCharacters + sizeof(out);
-    if (currentMillis - _commandSendTime < minimumGap) {
-      // Output some pad characters to add an
-      // artificial delay between commands
-      for (int i=0; i<numPadCharacters; i++) 
-        _serial->write((uint8_t)0);
-    }
-
-    // Now output the command
+    // Output the command
     _serial->write(out, sizeof(out));
-    _commandSendTime = currentMillis;
   }
 
   uint16_t calcChecksum(uint8_t* packet)
