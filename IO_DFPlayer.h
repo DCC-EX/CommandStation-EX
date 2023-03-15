@@ -160,7 +160,7 @@ protected:
         _requestedSong = -1;
         _commandSendTime = currentMicros;
       } else if (_requestedSong == 0) {
-        sendPacket(0x16);  // Stop playing
+        sendPacket(0x0e);  // Pause playing
         _requestedSong = -1;
         _commandSendTime = currentMicros;
       } else if (_currentVolume < _requestedVolumeLevel) {
@@ -211,8 +211,8 @@ protected:
 
     if (pin == 0) {
       // Play track 
-      if (value > 0 && volume != 0) {
-        if (volume != 0)
+      if (value > 0) {
+        if (volume > 0)
           _requestedVolumeLevel = volume;
         _requestedSong = value;
         _playing = true;
@@ -222,7 +222,7 @@ protected:
       }
     } else if (pin == 1) {
       // Set volume (0-30)
-      _requestedVolumeLevel = volume;  
+      _requestedVolumeLevel = value;  
     }
   }
 
