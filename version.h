@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.27"
+#define VERSION "4.2.28"
+// 4.2.28 - Reinstate use of timer11 in STM32 - remove HA mode.
+//        - Update IO_DFPlayer to work with MP3-TF-16P rev3.
 // 4.2.27 - Bugfix LCD showed random characters in SCROLLMODE 2
 // 4.2.26 - EX-IOExpander device driver enhancements
 //        - Enhance I2C error checking
