@@ -129,39 +129,76 @@ Display *Display::loop2(bool force) {
         // No non-blank lines left, so draw a blank line
         buffer[0] = 0;
       }
-      _deviceDriver->setRowNative(slot);  // Set position for display
-      charIndex = 0;
-      bufferPointer = &buffer[0];
+#if SCROLLMODE==2
+      if (buffer[0] == 0 && needScroll){     // surpresses empty line
+#else
+      if (false){
+#endif
+	charIndex = MAX_CHARACTER_COLS;
+	slot--;
+      } else {
+	_deviceDriver->setRowNative(slot);  // Set position for display
+	charIndex = 0;
+	bufferPointer = &buffer[0];
+      }
+      rowNext++;
     } else {
       // Write next character, or a space to erase current position.
       char ch = *bufferPointer;
       if (ch) {
-        _deviceDriver->writeNative(ch);
+	_deviceDriver->writeNative(ch);
         bufferPointer++;
       } else {
         _deviceDriver->writeNative(' ');
       }
+    }
 
-      if (++charIndex >= MAX_CHARACTER_COLS) {
-        // Screen slot completed, move to next slot on screen
-        bufferPointer = 0;
-        slot++;
-        if (slot >= numCharacterRows) {
-          // Last slot on screen written, reset ready for next screen update.
+    if (++charIndex >= MAX_CHARACTER_COLS) {
+      // Screen slot completed, move to next slot on screen
+      bufferPointer = 0;
+      slot++;
+      if (slot >= numCharacterRows) {
+	// Last slot on screen written, reset ready for next screen update.
+#if SCROLLMODE==2 || SCROLLMODE==1
+	if (!noMoreRowsToDisplay) {
+	  needScroll = true;
+	}
+	if (needScroll) {
 #if SCROLLMODE==2
-          if (!noMoreRowsToDisplay) {
-            // On next refresh, restart one row on from previous start.
-            rowNext = rowFirst;
-            findNextNonBlankRow();
-          }
+	  // SCROLLMODE 2 rotates through rowFirst and we
+	  // (ab)use findNextBlankRow() to figure out
+	  // next valid row which can be start row.
+	  rowNext = rowFirst + 1;
+	  noMoreRowsToDisplay = false;
+	  findNextNonBlankRow();
+	  if (rowNext == ROW_INITIAL)
+	    rowNext = 0;
+	  rowFirst = ROW_INITIAL;
+#else
+	  // SCROLLMODE 1 just alternates when the
+	  // flag indicates that we have come to the end
+	  if (noMoreRowsToDisplay)
+	    rowNext = 0;
 #endif
-          noMoreRowsToDisplay = false;
-          slot = 0;
-          rowFirst = ROW_INITIAL;
-          lastScrollTime = currentMillis;
-          return NULL;
-        }
+	} else {
+	  // SCROLLMODE 1 or 2 but not scroll active
+	  rowNext = 0;
+	}
+#else
+	// this is for SCROLLMODE 0 but what should it do?
+	rowNext = 0;
+#endif
+	rowFirst = ROW_INITIAL;
+
+	noMoreRowsToDisplay = false;
+	slot = 0;
+	lastScrollTime = currentMillis;
+	return NULL;
       }
+#if SCROLLMODE==2
+      if (needScroll)
+	noMoreRowsToDisplay = false;
+#endif
     }
   } while (force);
 
@@ -172,28 +209,19 @@ bool Display::findNextNonBlankRow() {
   while (!noMoreRowsToDisplay) {
     if (rowNext == ROW_INITIAL)
       rowNext = 0;
-    else
-      rowNext = rowNext + 1;
-#if SCROLLMODE == 1
     if (rowNext >= MAX_CHARACTER_ROWS) {
       // Finished if we've looped back to start
       rowNext = ROW_INITIAL;
       noMoreRowsToDisplay = true;
       return false;
     }
-#else
-    if (rowNext >= MAX_CHARACTER_ROWS)
-      rowNext = 0;
-    if (rowNext == rowFirst) {
-      // Finished if we're back to the first one shown
-      noMoreRowsToDisplay = true;
-      return false;
-    }
-#endif
     if (rowBuffer[rowNext][0] != 0) {
+      //rowBuffer[rowNext][0] = '0' + rowNext; // usefull for debug
+      //rowBuffer[rowNext][1] = '0' + rowFirst; // usefull for debug
       // Found non-blank row
       return true;
     }
+    rowNext = rowNext + 1;
   }
   return false;
 }

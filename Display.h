@@ -56,6 +56,7 @@ private:
   char buffer[MAX_CHARACTER_COLS + 1];
   char* bufferPointer = 0;
   bool noMoreRowsToDisplay = false;
+  bool needScroll = false;
   uint16_t numCharacterRows;
   uint16_t numCharacterColumns = MAX_CHARACTER_COLS;
 
