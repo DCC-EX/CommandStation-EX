@@ -210,29 +210,31 @@ private:
     // Request block is used for analogue and digital reads from the IOExpander, which are performed
     // on a cyclic basis.  Writes are performed synchronously as and when requested.
 
-    if (_i2crb.isBusy()) return;                // If I2C operation still in progress, return
+    if (_readState != RDS_IDLE) {
+      if (_i2crb.isBusy()) return;                // If I2C operation still in progress, return
 
-    uint8_t status = _i2crb.status;
-    if (status == I2C_STATUS_OK) {             // If device request ok, read input data
+      uint8_t status = _i2crb.status;
+      if (status == I2C_STATUS_OK) {             // If device request ok, read input data
 
-      // First check if we need to process received data
-      if (_readState == RDS_ANALOGUE) {
-        // Read of analogue values was in progress, so process received values
-        // Here we need to copy the values from input buffer to the analogue value array.  We need to 
-        // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
-        // while the value is being read).
-        memcpy(_analogueInputValues, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
-        _readState = RDS_IDLE;
+        // First check if we need to process received data
+        if (_readState == RDS_ANALOGUE) {
+          // Read of analogue values was in progress, so process received values
+          // Here we need to copy the values from input buffer to the analogue value array.  We need to 
+          // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
+          // while the value is being read).
+          memcpy(_analogueInputValues, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
 
-      } else if (_readState == RDS_DIGITAL) {
-        // Read of digital states was in progress, so process received values 
-        // The received digital states are placed directly into the digital buffer on receipt, 
-        // so don't need any further processing at this point (unless we want to check for
-        // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
-        _readState = RDS_IDLE;
-      }
-    } else
-      reportError(status, false);   // report eror but don't go offline.
+        } else if (_readState == RDS_DIGITAL) {
+          // Read of digital states was in progress, so process received values 
+          // The received digital states are placed directly into the digital buffer on receipt, 
+          // so don't need any further processing at this point (unless we want to check for
+          // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
+        }
+      } else
+        reportError(status, false);   // report eror but don't go offline.
+
+      _readState = RDS_IDLE;
+    }
 
     // If we're not doing anything now, check to see if a new input transfer is due.
     if (_readState == RDS_IDLE) {
