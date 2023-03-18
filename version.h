@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.30"
+#define VERSION "4.2.31"
+// 4.2.31 - Removes EXRAIL statup from top of file. (BREAKING CHANGE !!)
+//          Just add AUTOSTART to the top of your myAutomation.h to restore this function. 
 // 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
 // 4.2.29 - Bugfix Scroll LCD without empty lines and consistent
 // 4.2.28 - Reinstate use of timer11 in STM32 - remove HA mode.

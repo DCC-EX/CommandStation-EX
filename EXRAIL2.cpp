@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2023 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -24,8 +24,8 @@
    F1. [DONE] DCC accessory packet opcodes (short and long form)
    F2. [DONE] ONAccessory catchers 
    F3. [DONE] Turnout descriptions for Withrottle
-   F4. Oled announcements (depends on HAL)
-   F5. Withrottle roster info
+   F4. [DONE] Oled announcements (depends on HAL)
+   F5. [DONE] Withrottle roster info
    F6. Multi-occupancy semaphore
    F7. [DONE see AUTOSTART] Self starting sequences
    F8. Park/unpark
@@ -240,8 +240,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
         
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
-      // but we will do one at 0 anyway by default.
-      if (progCounter>0) new RMFT2(progCounter);
+      // Removed if (progCounter>0) check 4.2.31 because 
+      // default start it top of file is now removed. .   
+      new RMFT2(progCounter);
       break;
       
     default: // Ignore
@@ -252,7 +253,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   DIAG(F("EXRAIL %db, fl=%d"),progCounter,MAX_FLAGS);
 
-  new RMFT2(0); // add the startup route
+  // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
 }
 
