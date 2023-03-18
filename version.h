@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.29"
+#define VERSION "4.2.30"
+// 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
 // 4.2.29 - Bugfix Scroll LCD without empty lines and consistent
 // 4.2.28 - Reinstate use of timer11 in STM32 - remove HA mode.
 //        - Update IO_DFPlayer to work with MP3-TF-16P rev3.

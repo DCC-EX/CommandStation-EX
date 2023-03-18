@@ -34,11 +34,16 @@
 * device in use. There is no way for the device driver to sanity check pins are used for the
 * correct purpose, however the EX-IOExpander device's pin map will prevent pins being used
 * incorrectly (eg. A6/7 on Nano cannot be used for digital input/output).
+*
+* The total number of pins cannot exceed 256 because of the communications packet format.
+* The number of analogue inputs cannot exceed 16 because of a limit on the maximum
+* I2C packet size of 32 bytes (in the Wire library).
 */
 
 #ifndef IO_EX_IOEXPANDER_H
 #define IO_EX_IOEXPANDER_H
 
+#include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "FSH.h"
@@ -64,134 +69,203 @@ public:
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
   }
 
-private:  
+private:
   // Constructor
   EXIOExpander(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
+    // Number of pins cannot exceed 256 (1 byte) because of I2C message structure.
+    if (nPins > 256) nPins = 256;
     _nPins = nPins;
-    _i2cAddress = i2cAddress;
+    _I2CAddress = i2cAddress;
     addDevice(this);
   }
 
   void _begin() {
+    uint8_t status;
     // Initialise EX-IOExander device
     I2CManager.begin();
-    if (I2CManager.exists(_i2cAddress)) {
-      _command4Buffer[0] = EXIOINIT;
-      _command4Buffer[1] = _nPins;
-      _command4Buffer[2] = _firstVpin & 0xFF;
-      _command4Buffer[3] = _firstVpin >> 8;
+    if (I2CManager.exists(_I2CAddress)) {
       // Send config, if EXIOPINS returned, we're good, setup pin buffers, otherwise go offline
-      I2CManager.read(_i2cAddress, _receive3Buffer, 3, _command4Buffer, 4, &_i2crb);
-      if (_receive3Buffer[0] == EXIOPINS) {
-        _numDigitalPins = _receive3Buffer[1];
-        _numAnaloguePins = _receive3Buffer[2];
-        _digitalPinBytes = (_numDigitalPins + 7)/8;
-        _digitalInputStates=(byte*) calloc(_digitalPinBytes,1);
-        _analoguePinBytes = _numAnaloguePins * 2;
-        _analogueInputStates = (byte*) calloc(_analoguePinBytes, 1);
-        _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-      } else {
-        DIAG(F("ERROR configuring EX-IOExpander device, I2C:%s"), _i2cAddress.toString());
-        _deviceState = DEVSTATE_FAILED;
-        return;
-      }
+      // NB The I2C calls here are done as blocking calls, as they're not time-critical
+      // during initialisation and the reads require waiting for a response anyway.
+      // Hence we can allocate I/O buffers from the stack.
+      uint8_t receiveBuffer[3];
+      uint8_t commandBuffer[4] = {EXIOINIT, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
+      status = I2CManager.read(_I2CAddress, receiveBuffer, sizeof(receiveBuffer), commandBuffer, sizeof(commandBuffer));
+      if (status == I2C_STATUS_OK) {
+        if (receiveBuffer[0] == EXIOPINS) {
+          _numDigitalPins = receiveBuffer[1];
+          _numAnaloguePins = receiveBuffer[2];
+
+          // See if we already have suitable buffers assigned
+          size_t digitalBytesNeeded = (_numDigitalPins + 7) / 8;
+          if (_digitalPinBytes < digitalBytesNeeded) {
+            // Not enough space, free any existing buffer and allocate a new one
+            if (_digitalPinBytes > 0) free(_digitalInputStates);
+            _digitalInputStates = (byte*) calloc(_digitalPinBytes, 1);
+            _digitalPinBytes = digitalBytesNeeded;
+          }
+          size_t analogueBytesNeeded = _numAnaloguePins * sizeof(_analogueInputValues[0]);
+          if (_analoguePinBytes < analogueBytesNeeded) {
+            // Free any existing buffers and allocate new ones.
+            if (_analoguePinBytes > 0) {
+              free(_analogueInputBuffer);
+              free(_analogueInputValues);
+              free(_analoguePinMap);
+            }
+            _analogueInputValues = (int16_t*) calloc(_analoguePinBytes, 1);
+            _analogueInputBuffer = (uint8_t*) calloc(_analoguePinBytes, 1);
+            _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
+          }
+        } else {
+          DIAG(F("EX-IOExpander I2C:%s ERROR configuring device"), _I2CAddress.toString());
+          _deviceState = DEVSTATE_FAILED;
+          return;
+        }
+      } 
       // We now need to retrieve the analogue pin map
-      _command1Buffer[0] = EXIOINITA;
-      I2CManager.read(_i2cAddress, _analoguePinMap, _numAnaloguePins, _command1Buffer, 1, &_i2crb);
-      // Attempt to get version, if we don't get it, we don't care, don't go offline
-      _command1Buffer[0] = EXIOVER;
-      I2CManager.read(_i2cAddress, _versionBuffer, 3, _command1Buffer, 1, &_i2crb);
-      _majorVer = _versionBuffer[0];
-      _minorVer = _versionBuffer[1];
-      _patchVer = _versionBuffer[2];
-      DIAG(F("EX-IOExpander device found, I2C:%s, Version v%d.%d.%d"),
-          _i2cAddress.toString(), _versionBuffer[0], _versionBuffer[1], _versionBuffer[2]);
+      if (status == I2C_STATUS_OK) {
+        commandBuffer[0] = EXIOINITA;
+        status = I2CManager.read(_I2CAddress, _analoguePinMap, _numAnaloguePins, commandBuffer, 1);
+      }
+      if (status == I2C_STATUS_OK) {
+        // Attempt to get version, if we don't get it, we don't care, don't go offline
+        uint8_t versionBuffer[3];
+        commandBuffer[0] = EXIOVER;
+        if (I2CManager.read(_I2CAddress, versionBuffer, sizeof(versionBuffer), commandBuffer, 1) == I2C_STATUS_OK) {
+          _majorVer = versionBuffer[0];
+          _minorVer = versionBuffer[1];
+          _patchVer = versionBuffer[2];
+        }
+        DIAG(F("EX-IOExpander device found, I2C:%s, Version v%d.%d.%d"),
+            _I2CAddress.toString(), _majorVer, _minorVer, _patchVer);
+
 #ifdef DIAG_IO
-      _display();
+        _display();
 #endif
+      }
+      if (status != I2C_STATUS_OK)
+        reportError(status);
+
     } else {
-      DIAG(F("EX-IOExpander device not found, I2C:%s"), _i2cAddress.toString());
+      DIAG(F("EX-IOExpander I2C:%s device not found"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
   }
 
-  // Digital input pin configuration, used to enable on EX-IOExpander device and set pullups if in use
+  // Digital input pin configuration, used to enable on EX-IOExpander device and set pullups if requested.
+  // Configuration isn't done frequently so we can use blocking I2C calls here, and so buffers can
+  // be allocated from the stack to reduce RAM allocation.
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     if (configType == CONFIGURE_INPUT) {
-      bool pullup = params[0];
-      _digitalOutBuffer[0] = EXIODPUP;
-      _digitalOutBuffer[1] = pin;
-      _digitalOutBuffer[2] = pullup;
-      I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3, &_i2crb);
-      if (_command1Buffer[0] == EXIORDY) {
-        return true;
-      } else {
-        DIAG(F("Vpin %d cannot be used as a digital input pin"), (int)vpin);
-        return false;
-      }
-    } else {
+      uint8_t pullup = params[0];
+      uint8_t outBuffer[] = {EXIODPUP, (uint8_t)pin, pullup};
+      uint8_t responseBuffer[1];
+      uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, sizeof(responseBuffer),
+                                outBuffer, sizeof(outBuffer));
+      if (status == I2C_STATUS_OK) {
+        if (responseBuffer[0] == EXIORDY) {
+          return true;
+        } else {
+          DIAG(F("EXIOVpin %u cannot be used as a digital input pin"), (int)vpin);
+        }
+      } else
+        reportError(status);
+    } else if (configType == CONFIGURE_ANALOGINPUT) {
+      // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
+      // from IODevice class definition.  Not urgent, but each virtual function defined
+      // means increasing the RAM requirement of every HAL device driver, whether it's relevant
+      // to the driver or not.
       return false;
     }
+    return false;
   }
 
-  // Analogue input pin configuration, used to enable on EX-IOExpander device
+  // Analogue input pin configuration, used to enable an EX-IOExpander device.
+  // Use I2C blocking calls and allocate buffers from stack to save RAM.
   int _configureAnalogIn(VPIN vpin) override {
     int pin = vpin - _firstVpin;
-    _command2Buffer[0] = EXIOENAN;
-    _command2Buffer[1] = pin;
-    I2CManager.read(_i2cAddress, _command1Buffer, 1, _command2Buffer, 2, &_i2crb);
-    if (_command1Buffer[0] == EXIORDY) {
-      return true;
-    } else {
-      DIAG(F("Vpin %d cannot be used as an analogue input pin"), (int)vpin);
-      return false;
-    }
-    return true;
+    uint8_t commandBuffer[] = {EXIOENAN, (uint8_t)pin};
+    uint8_t responseBuffer[1];
+    uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, sizeof(responseBuffer),
+                                  commandBuffer, sizeof(commandBuffer));
+    if (status == I2C_STATUS_OK) {
+      if (responseBuffer[0] == EXIORDY) {
+        return true;
+      } else {
+        DIAG(F("EX-IOExpander: Vpin %u cannot be used as an analogue input pin"), (int)vpin);
+      }
+    } else
+      reportError(status);
+
+    return false;
   }
 
   // Main loop, collect both digital and analogue pin states continuously (faster sensor/input reads)
   void _loop(unsigned long currentMicros) override {
     if (_deviceState == DEVSTATE_FAILED) return;    // If device failed, return
+
+    // Request block is used for analogue and digital reads from the IOExpander, which are performed
+    // on a cyclic basis.  Writes are performed synchronously as and when requested.
+
+    if (_i2crb.isBusy()) return;                // If I2C operation still in progress, return
+
     uint8_t status = _i2crb.status;
-    if (status == I2C_STATUS_PENDING) return;  // If device busy, return
-    if (status == I2C_STATUS_OK) {             // If device ok, read input data
-      if (_commandFlag) {
-        if (currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
-          _lastDigitalRead = currentMicros;
-          _command1Buffer[0] = EXIORDD;
-          I2CManager.read(_i2cAddress, _digitalInputStates, _digitalPinBytes, _command1Buffer, 1, &_i2crb);
-        }
-      } else {
-        if (currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
-          _lastAnalogueRead = currentMicros;
-          _command1Buffer[0] = EXIORDAN;
-          byte _tempAnalogue[_analoguePinBytes];      // Setup temp buffer so reads come from known state
-          I2CManager.read(_i2cAddress, _tempAnalogue, _analoguePinBytes, _command1Buffer, 1, &_i2crb);
-          memcpy(_analogueInputStates, _tempAnalogue, _analoguePinBytes); // Copy temp buffer to states
-        }
+    if (status == I2C_STATUS_OK) {             // If device request ok, read input data
+
+      // First check if we need to process received data
+      if (_readState == RDS_ANALOGUE) {
+        // Read of analogue values was in progress, so process received values
+        // Here we need to copy the values from input buffer to the analogue value array.  We need to 
+        // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
+        // while the value is being read).
+        memcpy(_analogueInputValues, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
+        _readState = RDS_IDLE;
+
+      } else if (_readState == RDS_DIGITAL) {
+        // Read of digital states was in progress, so process received values 
+        // The received digital states are placed directly into the digital buffer on receipt, 
+        // so don't need any further processing at this point (unless we want to check for
+        // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
+        _readState = RDS_IDLE;
       }
-      _commandFlag = !_commandFlag;
-    } else {
-      DIAG(F("EX-IOExpander I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
-      _deviceState = DEVSTATE_FAILED;
+    } else
+      reportError(status, false);   // report eror but don't go offline.
+
+    // If we're not doing anything now, check to see if a new input transfer is due.
+    if (_readState == RDS_IDLE) {
+      if (currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
+        // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
+        // be allocated from heap (object state).
+        _readCommandBuffer[0] = EXIORDD;
+        I2CManager.read(_I2CAddress, _digitalInputStates, (_numDigitalPins+7)/8, _readCommandBuffer, 1, &_i2crb);
+                                                                // non-blocking read
+        _lastDigitalRead = currentMicros;
+        _readState = RDS_DIGITAL;
+      } else if (currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
+        // Issue new read for analogue input states
+        _readCommandBuffer[0] = EXIORDAN;
+        I2CManager.read(_I2CAddress, _analogueInputBuffer,
+            _numAnaloguePins * sizeof(_analogueInputBuffer[0]), _readCommandBuffer, 1, &_i2crb);
+        _lastAnalogueRead = currentMicros;
+        _readState = RDS_ANALOGUE;
+      }
     }
   }
 
-  // Obtain the correct analogue input value
+  // Obtain the correct analogue input value, with reference to the analogue
+  // pin map.  
+  // (QUESTION: Why isn't this mapping done in the remote node before transmission?)
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
-    uint8_t _pinLSBByte;
     for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
-      if (_analoguePinMap[aPin] == pin) {
-        _pinLSBByte = aPin * 2;
-      }
+      if (_analoguePinMap[aPin] == pin)
+        return _analogueInputValues[aPin];
     }
-    uint8_t _pinMSBByte = _pinLSBByte + 1;
-    return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
+    return 0;  // Pin not found
   }
 
   // Obtain the correct digital input value
@@ -203,75 +277,98 @@ private:
     return value;
   }
 
+  // Write digital value.  We could have an output buffer of states, that is periodically
+  // written to the device if there are any changes; this would reduce the I2C overhead
+  // if lots of output requests are being made.  We could also cache the last value 
+  // sent so that we don't write the same value over and over to the output.  
+  // However, for the time being, we just write the current value (blocking I2C) to the
+  // IOExpander node.  As it is a blocking request, we can use buffers allocated from
+  // the stack to save RAM allocation.
   void _write(VPIN vpin, int value) override {
+    uint8_t digitalOutBuffer[3];
+    uint8_t responseBuffer[1];
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    _digitalOutBuffer[0] = EXIOWRD;
-    _digitalOutBuffer[1] = pin;
-    _digitalOutBuffer[2] = value;
-    uint8_t status = I2CManager.read(_i2cAddress, _command1Buffer, 1, _digitalOutBuffer, 3);
+    digitalOutBuffer[0] = EXIOWRD;
+    digitalOutBuffer[1] = pin;
+    digitalOutBuffer[2] = value;
+    uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, 1, digitalOutBuffer, 3);
     if (status != I2C_STATUS_OK) {
-      DIAG(F("EX-IOExpander I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
-      _deviceState = DEVSTATE_FAILED;
+      reportError(status);
     } else {
-      if (_command1Buffer[0] != EXIORDY) {
-        DIAG(F("Vpin %d cannot be used as a digital output pin"), (int)vpin);
+      if (responseBuffer[0] != EXIORDY) {
+        DIAG(F("Vpin %u cannot be used as a digital output pin"), (int)vpin);
       }
     }
   }
 
+  // Write analogue (integer) value.  Write the parameters (blocking I2C) to the
+  // IOExpander node.  As it is a blocking request, we can use buffers allocated from
+  // the stack to reduce RAM allocation.
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+    uint8_t servoBuffer[7];
+    uint8_t responseBuffer[1];
+
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
 #ifdef DIAG_IO
-    DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+    DIAG(F("Servo: WriteAnalogue Vpin:%u Value:%d Profile:%d Duration:%d %S"), 
       vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
 #endif
-    _servoBuffer[0] = EXIOWRAN;
-    _servoBuffer[1] = pin;
-    _servoBuffer[2] = value & 0xFF;
-    _servoBuffer[3] = value >> 8;
-    _servoBuffer[4] = profile;
-    _servoBuffer[5] = duration & 0xFF;
-    _servoBuffer[6] = duration >> 8;
-    uint8_t status = I2CManager.read(_i2cAddress, _command1Buffer, 1, _servoBuffer, 7);
+    servoBuffer[0] = EXIOWRAN;
+    servoBuffer[1] = pin;
+    servoBuffer[2] = value & 0xFF;
+    servoBuffer[3] = value >> 8;
+    servoBuffer[4] = profile;
+    servoBuffer[5] = duration & 0xFF;
+    servoBuffer[6] = duration >> 8;
+    uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, 1, servoBuffer, 7);
     if (status != I2C_STATUS_OK) {
       DIAG(F("EX-IOExpander I2C:%s Error:%d %S"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     } else {
-      if (_command1Buffer[0] != EXIORDY) {
-        DIAG(F("Vpin %d cannot be used as a servo/PWM pin"), (int)vpin);
+      if (responseBuffer[0] != EXIORDY) {
+        DIAG(F("Vpin %u cannot be used as a servo/PWM pin"), (int)vpin);
       }
     }
   }
 
+  // Display device information and status.
   void _display() override {
-    DIAG(F("EX-IOExpander I2C:%s v%d.%d.%d Vpins %d-%d %S"),
-              _i2cAddress.toString(), _majorVer, _minorVer, _patchVer,
+    DIAG(F("EX-IOExpander I2C:%s v%d.%d.%d Vpins %u-%u %S"),
+              _I2CAddress.toString(), _majorVer, _minorVer, _patchVer,
               (int)_firstVpin, (int)_firstVpin+_nPins-1,
               _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
-  I2CAddress _i2cAddress;
+  // Helper function for error handling
+  void reportError(uint8_t status, bool fail=true) {
+    DIAG(F("EX-IOExpander I2C:%s Error:%d (%S)"), _I2CAddress.toString(), 
+      status, I2CManager.getErrorMessage(status));
+    if (fail)
+    _deviceState = DEVSTATE_FAILED;
+  }
+
   uint8_t _numDigitalPins = 0;
   uint8_t _numAnaloguePins = 0;
-  byte _digitalOutBuffer[3];
-  uint8_t _versionBuffer[3];
+
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
-  byte* _digitalInputStates;
-  byte* _analogueInputStates;
-  uint8_t _digitalPinBytes = 0;
-  uint8_t _analoguePinBytes = 0;
-  byte _command1Buffer[1];
-  byte _command2Buffer[2];
-  byte _command4Buffer[4];
-  byte _receive3Buffer[3];
-  byte _servoBuffer[7];
+
+  uint8_t* _digitalInputStates;
+  int16_t* _analogueInputValues;
+  uint8_t* _analogueInputBuffer;  // buffer for I2C input transfers
+  uint8_t _readCommandBuffer[1];
+
+  uint8_t _digitalPinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
+  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffers (may be longer than needed)
   uint8_t* _analoguePinMap;
   I2CRB _i2crb;
-  bool _commandFlag = 1;
+
+  enum {RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE};  // Read operation states
+  uint8_t _readState = RDS_IDLE;
+  
   unsigned long _lastDigitalRead = 0;
   unsigned long _lastAnalogueRead = 0;
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
