@@ -105,16 +105,16 @@ private:
             _digitalInputStates = (byte*) calloc(_digitalPinBytes, 1);
             _digitalPinBytes = digitalBytesNeeded;
           }
-          size_t analogueBytesNeeded = _numAnaloguePins * sizeof(_analogueInputValues[0]);
+          size_t analogueBytesNeeded = _numAnaloguePins * 2;
           if (_analoguePinBytes < analogueBytesNeeded) {
             // Free any existing buffers and allocate new ones.
             if (_analoguePinBytes > 0) {
               free(_analogueInputBuffer);
-              free(_analogueInputValues);
+              free(_analogueInputStates);
               free(_analoguePinMap);
             }
-            _analogueInputValues = (int16_t*) calloc(_analoguePinBytes, 1);
-            _analogueInputBuffer = (uint8_t*) calloc(_analoguePinBytes, 1);
+            _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
+            _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
             _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
           }
         } else {
@@ -129,6 +129,7 @@ private:
         status = I2CManager.read(_I2CAddress, _analoguePinMap, _numAnaloguePins, commandBuffer, 1);
       }
       if (status == I2C_STATUS_OK) {
+        DIAG(F("Map: %d %d %d %d %d %d"), _analoguePinMap[0], _analoguePinMap[1], _analoguePinMap[2], _analoguePinMap[3], _analoguePinMap[4], _analoguePinMap[5]);
         // Attempt to get version, if we don't get it, we don't care, don't go offline
         uint8_t versionBuffer[3];
         commandBuffer[0] = EXIOVER;
@@ -222,7 +223,7 @@ private:
           // Here we need to copy the values from input buffer to the analogue value array.  We need to 
           // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
           // while the value is being read).
-          memcpy(_analogueInputValues, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
+          memcpy(_analogueInputStates, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
 
         } else if (_readState == RDS_DIGITAL) {
           // Read of digital states was in progress, so process received values 
@@ -250,7 +251,7 @@ private:
         // Issue new read for analogue input states
         _readCommandBuffer[0] = EXIORDAN;
         I2CManager.read(_I2CAddress, _analogueInputBuffer,
-            _numAnaloguePins * sizeof(_analogueInputBuffer[0]), _readCommandBuffer, 1, &_i2crb);
+            _numAnaloguePins * 2, _readCommandBuffer, 1, &_i2crb);
         _lastAnalogueRead = currentMicros;
         _readState = RDS_ANALOGUE;
       }
@@ -259,15 +260,18 @@ private:
 
   // Obtain the correct analogue input value, with reference to the analogue
   // pin map.  
-  // (QUESTION: Why isn't this mapping done in the remote node before transmission?)
+  // Obtain the correct analogue input value
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
     for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
-      if (_analoguePinMap[aPin] == pin)
-        return _analogueInputValues[aPin];
+      if (_analoguePinMap[aPin] == pin) {
+        uint8_t _pinLSBByte = aPin * 2;
+        uint8_t _pinMSBByte = _pinLSBByte + 1;
+        return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
+      }
     }
-    return 0;  // Pin not found
+    return -1;  // pin not found in table
   }
 
   // Obtain the correct digital input value
@@ -359,7 +363,7 @@ private:
   uint8_t _patchVer = 0;
 
   uint8_t* _digitalInputStates;
-  int16_t* _analogueInputValues;
+  uint8_t* _analogueInputStates;
   uint8_t* _analogueInputBuffer;  // buffer for I2C input transfers
   uint8_t _readCommandBuffer[1];
 
