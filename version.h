@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.31"
+#define VERSION "4.2.32"
+// 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
 // 4.2.31 - Removes EXRAIL statup from top of file. (BREAKING CHANGE !!)
 //          Just add AUTOSTART to the top of your myAutomation.h to restore this function. 
 // 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
