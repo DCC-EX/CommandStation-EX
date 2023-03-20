@@ -182,7 +182,9 @@ class MotorDriver {
       isProgTrack = on;
     }
     void checkPowerOverload(bool useProgLimit, byte trackno);
-    void setTrackLetter(char c);
+    inline void setTrackLetter(char c) {
+      trackLetter = c;
+    };
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();

@@ -129,6 +129,7 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
      track[t]=driver;
      if (driver) {
          track[t]->setPower(POWERMODE::OFF);
+	 track[t]->setTrackLetter('A'+t);
          lastTrack=t;
      } 
 }
