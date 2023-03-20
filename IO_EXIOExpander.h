@@ -116,6 +116,7 @@ private:
             _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
             _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
             _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
+            _analoguePinBytes = analogueBytesNeeded;
           }
         } else {
           DIAG(F("EX-IOExpander I2C:%s ERROR configuring device"), _I2CAddress.toString());
@@ -222,7 +223,7 @@ private:
           // Here we need to copy the values from input buffer to the analogue value array.  We need to 
           // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
           // while the value is being read).
-          memcpy(_analogueInputStates, _analogueInputBuffer, sizeof(_analogueInputBuffer)); // Copy I2C input buffer to states
+          memcpy(_analogueInputStates, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states
 
         } else if (_readState == RDS_DIGITAL) {
           // Read of digital states was in progress, so process received values 
