@@ -129,7 +129,6 @@ private:
         status = I2CManager.read(_I2CAddress, _analoguePinMap, _numAnaloguePins, commandBuffer, 1);
       }
       if (status == I2C_STATUS_OK) {
-        DIAG(F("Map: %d %d %d %d %d %d"), _analoguePinMap[0], _analoguePinMap[1], _analoguePinMap[2], _analoguePinMap[3], _analoguePinMap[4], _analoguePinMap[5]);
         // Attempt to get version, if we don't get it, we don't care, don't go offline
         uint8_t versionBuffer[3];
         commandBuffer[0] = EXIOVER;
@@ -223,7 +222,7 @@ private:
           // Here we need to copy the values from input buffer to the analogue value array.  We need to 
           // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
           // while the value is being read).
-          memcpy(_analogueInputStates, _analogueInputBuffer, _analoguePinBytes); // Copy I2C input buffer to states      
+          memcpy(_analogueInputStates, _analogueInputBuffer, sizeof(_analogueInputBuffer)); // Copy I2C input buffer to states
 
         } else if (_readState == RDS_DIGITAL) {
           // Read of digital states was in progress, so process received values 
