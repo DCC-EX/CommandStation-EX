@@ -125,17 +125,18 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
   wifiState = setup2( SSid, password, hostname,  port, channel);
 
   if (wifiState == WIFI_NOAT) {
-      DIAG(F("++ Wifi Setup NO AT ++"));
-      return wifiState;
+    LCD(4, F("WiFi no AT chip"));
+    return wifiState;
   }
  
   if (wifiState == WIFI_CONNECTED) {
     StringFormatter::send(wifiStream, F("ATE0\r\n")); // turn off the echo 
-    checkForOK(200, true);      
+    checkForOK(200, true);
+    DIAG(F("WiFi CONNECTED"));
+    // LCD already shows IP
+  } else {
+    LCD(4,F("WiFi DISCON."));
   }
-
-    
-  DIAG(F("++ Wifi Setup %S ++"), wifiState == WIFI_CONNECTED ? F("CONNECTED") : F("DISCONNECTED"));
   return wifiState;
 }
 
