@@ -137,8 +137,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   if (currentPin==UNUSED_PIN) 
     DIAG(F("** WARNING ** No current or short detection"));
   else  {
-    DIAG(F("CurrentPin=A%d, TripValue=%d"),
-    currentPin-A0, rawCurrentTripValue);
+    DIAG(F("Track %c, TripValue=%d"), trackLetter, rawCurrentTripValue);
 
     // self testing diagnostic for the non-float converters... may be removed when happy
     //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
@@ -163,7 +162,7 @@ void MotorDriver::setPower(POWERMODE mode) {
     // when switching a track On, we need to check the crrentOffset with the pin OFF
     if (powerMode==POWERMODE::OFF && currentPin!=UNUSED_PIN) {
         senseOffset = ADCee::read(currentPin);
-        DIAG(F("CurrentPin A%d sensOffset=%d"),currentPin-A0,senseOffset);
+        DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
     }
 
     IODevice::write(powerPin,invertPower ? LOW : HIGH);

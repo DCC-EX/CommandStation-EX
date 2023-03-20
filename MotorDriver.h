@@ -182,11 +182,13 @@ class MotorDriver {
       isProgTrack = on;
     }
     void checkPowerOverload(bool useProgLimit, byte trackno);
+    void setTrackLetter(char c);
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
 #endif
   private:
+    char trackLetter = '?';
     bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
