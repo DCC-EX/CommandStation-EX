@@ -38,7 +38,10 @@
  *  bus on the SAMD architecture 
  ***************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_ARCH_STM32)
-void I2C1_IRQHandler() {
+extern "C" void I2C1_EV_IRQHandler(void) {
+  I2CManager.handleInterrupt();
+}
+extern "C" void I2C1_ER_IRQHandler(void) {
   I2CManager.handleInterrupt();
 }
 #endif
@@ -91,44 +94,60 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
   // Use 10x the rise time spec to enable integer divide of 62.5ns clock period
   uint16_t t_rise;
   uint32_t ccr_freq;
-  if (i2cClockSpeed < 200000L) {
-    // i2cClockSpeed = 100000L;
-    t_rise = 0x11;  // (1000ns /62.5ns) + 1;
-  }
-  else if (i2cClockSpeed < 800000L)
+
+  while (s->CR1 & I2C_CR1_STOP);  // Prevents lockup by guarding further
+                                  // writes to CR1 while STOP is being executed!
+  // Disable the I2C device, as TRISE can only be programmed whilst disabled
+  s->CR1 &= ~(I2C_CR1_PE);  // Disable I2C
+  // Software reset the I2C peripheral
+  // s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
+  // delay(1);
+  // Release reset
+  // s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
+
+  if (i2cClockSpeed > 100000L)
   {
-    i2cClockSpeed = 400000L;
-    t_rise = 0x06;  // (300ns / 62.5ns) + 1;
-    // } else if (i2cClockSpeed < 1200000L) {
-    //   i2cClockSpeed = 1000000L;
-    //   t_rise = 120;
+    if (i2cClockSpeed > 400000L)
+      i2cClockSpeed = 400000L;
+
+    t_rise = 0x06;  // (300ns /62.5ns) + 1;
   }
   else
   {
     i2cClockSpeed = 100000L;
     t_rise = 0x11;  // (1000ns /62.5ns) + 1;
   }
+  // Configure the rise time register
+  s->TRISE = t_rise;
 
-  // Enable the I2C master mode
-  s->CR1 &= ~(I2C_CR1_PE);  // Enable I2C
-  // Software reset the I2C peripheral
-  // s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
-  // Release reset
-  // s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
-
-  // Calculate baudrate - using a rise time appropriate for the speed
+  // DIAG(F("Setting I2C clock to: %d"), i2cClockSpeed);
+  // Calculate baudrate
   ccr_freq = I2C_BUSFREQ * 1000000 / i2cClockSpeed / 2;
 
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
   // Bit 14: Duty, fast mode duty cycle
   // Bit 11-0: FREQR = 16MHz => TPCLK1 = 62.5ns, so CCR divisor must be 0x50 (80 * 62.5ns = 5000ns)
-  s->CCR = (uint16_t)ccr_freq;
-
-  // Configure the rise time register
-  s->TRISE = t_rise;  // 1000 ns / 62.5 ns = 16 + 1
+  if (i2cClockSpeed > 100000L)
+    s->CCR = (uint16_t)ccr_freq | 0x8000; // We need Fast Mode set
+  else
+    s->CCR = (uint16_t)ccr_freq;
 
   // Enable the I2C master mode
   s->CR1 |= I2C_CR1_PE;  // Enable I2C
+  // Wait for bus to be clear?
+  unsigned long startTime = micros();
+  bool timeout = false;
+  while (s->SR2 & I2C_SR2_BUSY) {
+    if (micros() - startTime >= 500UL) {
+      timeout = true;
+      break;
+    }
+  }
+  if (timeout) {
+    digitalWrite(D13, HIGH);
+    DIAG(F("I2C: SR2->BUSY timeout"));
+    // delay(1000);
+  }
 }
 
 /***************************************************************************
@@ -136,32 +155,46 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
  ***************************************************************************/
 void I2CManagerClass::I2C_init()
 {
-  //Setting up the clocks
-  RCC->APB1ENR |= (1<<21);  // Enable I2C CLOCK
-  RCC->AHB1ENR |= (1<<1);   // Enable GPIOB CLOCK for PB8/PB9
+  // Setting up the clocks
+  RCC->APB1ENR |= RCC_APB1ENR_I2C1EN;//(1 << 21); // Enable I2C CLOCK
+  // Reset the I2C1 peripheral to initial state
+  RCC->APB1RSTR |=  RCC_APB1RSTR_I2C1RST;
+	RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C1RST;
   // Standard I2C pins are SCL on PB8 and SDA on PB9
+  RCC->AHB1ENR |= (1<<1);   // Enable GPIOB CLOCK for PB8/PB9
   // Bits (17:16)= 1:0 --> Alternate Function for Pin PB8;
   // Bits (19:18)= 1:0 --> Alternate Function for Pin PB9
+  GPIOB->MODER &= ~((3<<(8*2)) | (3<<(9*2)));    // Clear all MODER bits for PB8 and PB9
   GPIOB->MODER |= (2<<(8*2)) | (2<<(9*2));    // PB8 and PB9 set to ALT function
   GPIOB->OTYPER |= (1<<8) | (1<<9);           // PB8 and PB9 set to open drain output capability
   GPIOB->OSPEEDR |= (3<<(8*2)) | (3<<(9*2));  // PB8 and PB9 set to High Speed mode
+  GPIOB->PUPDR &= ~((3<<(8*2)) | (3<<(9*2))); // Clear all PUPDR bits for PB8 and PB9
   GPIOB->PUPDR |= (1<<(8*2)) | (1<<(9*2));    // PB8 and PB9 set to pull-up capability
   // Alt Function High register routing pins PB8 and PB9 for I2C1:
   // Bits (3:2:1:0) = 0:1:0:0 --> AF4 for pin PB8
   // Bits (7:6:5:4) = 0:1:0:0 --> AF4 for pin PB9
+  GPIOB->AFR[1] &= ~((15<<0) | (15<<4));      // Clear all AFR bits for PB8 on low nibble, PB9 on next nibble up
   GPIOB->AFR[1] |= (4<<0) | (4<<4);           // PB8 on low nibble, PB9 on next nibble up
 
-  // Software reset the I2C peripheral
+  // // Software reset the I2C peripheral
   s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
-  s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
+  asm("nop");    // wait a bit... suggestion from online!
+  s->CR1 &= ~(I2C_CR1_SWRST); // Normal operation
 
+  // Clear all bits in I2C CR2 register except reserved bits
+  s->CR2 &= 0xE000;
   // Program the peripheral input clock in CR2 Register in order to generate correct timings
   s->CR2 |= I2C_BUSFREQ;  // PCLK1 FREQUENCY in MHz
 
+  // set own address to 00 - not really used in master mode
+  I2C1->OAR1 |= (1 << 14); // bit 14 should be kept at 1 according to the datasheet
+
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
-  NVIC_SetPriority(I2C_IRQn, 1);  // Match default priorities
-  NVIC_EnableIRQ(I2C_IRQn);
+  NVIC_SetPriority(I2C1_EV_IRQn, 1);  // Match default priorities
+  NVIC_EnableIRQ(I2C1_EV_IRQn);
+  NVIC_SetPriority(I2C1_ER_IRQn, 1);  // Match default priorities
+  NVIC_EnableIRQ(I2C1_ER_IRQn);
 
   // CR2 Interrupt Settings
   // Bit 15-13: reserved
@@ -172,8 +205,8 @@ void I2CManagerClass::I2C_init()
   // Bit 8: ITERREN - Error interrupt enable
   // Bit 7-6: reserved
   // Bit 5-0: FREQ - Peripheral clock frequency (max 50MHz)
-  // s->CR2 |= 0x0700;   // Enable Buffer, Event and Error interrupts
-  s->CR2 |= 0x0300;   // Enable Event and Error interrupts
+  s->CR2 |= 0x0700;   // Enable Buffer, Event and Error interrupts
+  // s->CR2 |= 0x0300;   // Enable Event and Error interrupts
 #endif
 
   // Calculate baudrate and set default rate for now
@@ -181,14 +214,26 @@ void I2CManagerClass::I2C_init()
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
   // Bit 14: Duty, fast mode duty cycle
   // Bit 11-0: FREQR = 16MHz => TPCLK1 = 62.5ns, so CCR divisor must be 0x50 (80 * 62.5ns = 5000ns)
-  s->CCR = 0x0050;
+  s->CCR = 0x50;
 
   // Configure the rise time register - max allowed in 1000ns
   s->TRISE = 0x0011; // 1000 ns / 62.5 ns = 16 + 1
 
   // Enable the I2C master mode
   s->CR1 |= I2C_CR1_PE;  // Enable I2C
-  // Setting bus idle mode and wait for sync
+  // Wait for bus to be clear?
+  unsigned long startTime = micros();
+  bool timeout = false;
+  while (s->SR2 & I2C_SR2_BUSY) {
+    if (micros() - startTime >= 500UL) {
+      timeout = true;
+      break;
+    }
+  }
+  if (timeout) {
+    DIAG(F("I2C: SR2->BUSY timeout"));
+    // delay(1000);
+  }
 }
 
 /***************************************************************************
@@ -198,49 +243,56 @@ void I2CManagerClass::I2C_sendStart() {
 
   // Set counters here in case this is a retry.
   rxCount = txCount = 0;
-  uint8_t temp;
-
-  // On a single-master I2C bus, the start bit won't be sent until the bus 
-  // state goes to IDLE so we can request it without waiting.  On a 
-  // multi-master bus, the bus may be BUSY under control of another master, 
+  // On a single-master I2C bus, the start bit won't be sent until the bus
+  // state goes to IDLE so we can request it without waiting.  On a
+  // multi-master bus, the bus may be BUSY under control of another master,
   // in which case we can avoid some arbitration failures by waiting until
   // the bus state is IDLE.  We don't do that here.
 
-  // If anything to send, initiate write.  Otherwise initiate read.
-  if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
-  {
-    // Send start for read operation
-    s->CR1 |= I2C_CR1_ACK;  // Enable the ACK
-    s->CR1 |= I2C_CR1_START;  // Generate START
-    // Send address with read flag (1) or'd in
-    s->DR = (deviceAddress << 1) | 1;  //  send the address
-    while (!(s->SR1 && I2C_SR1_ADDR));  // wait for ADDR bit to set
-    // Special case for 1 byte reads!
-    if (bytesToReceive == 1)
-    {
-      s->CR1 &= ~I2C_CR1_ACK;            // clear the ACK bit 
-		  temp = I2C1->SR1 | I2C1->SR2;  // read SR1 and SR2 to clear the ADDR bit.... EV6 condition
-		  s->CR1 |= I2C_CR1_STOP;              // Stop I2C
+  // Send start for read operation
+  while (s->CR1 & I2C_CR1_STOP);  // Prevents lockup by guarding further
+                                  // writes to CR1 while STOP is being executed!
+  // Wait for bus to be clear?
+  unsigned long startTime = micros();
+  bool timeout = false;
+  while (s->SR2 & I2C_SR2_BUSY) {
+    if (micros() - startTime >= 500UL) {
+      timeout = true;
+      break;
     }
-    else
-      temp = s->SR1 | s->SR2;        // read SR1 and SR2 to clear the ADDR bit
   }
-  else {
-    // Send start for write operation
-    s->CR1 |= I2C_CR1_ACK;  // Enable the ACK
-    s->CR1 |= I2C_CR1_START;  // Generate START
-    // Send address with write flag (0) or'd in
-    s->DR = (deviceAddress << 1) | 0;  //  send the address
-    while (!(s->SR1 && I2C_SR1_ADDR));  // wait for ADDR bit to set
-    temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
+  if (timeout) {
+    DIAG(F("I2C_sendStart: SR2->BUSY timeout"));
+    // delay(1000);
   }
+  s->CR1 |= I2C_CR1_ACK;  // Enable the ACK
+  s->CR1 &= ~(I2C_CR1_POS); // Reset the POS bit - only used for 2-byte reception
+  s->CR1 |= I2C_CR1_START; // Generate START
 }
 
 /***************************************************************************
  *  Initiate a stop bit for transmission (does not interrupt)
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
-  s->CR1 |= I2C_CR1_STOP;              // Stop I2C
+  uint32_t temp;
+
+  s->CR1 |= I2C_CR1_STOP; // Stop I2C
+  temp = s->SR1 | s->SR2; // Read the status registers to clear them
+  while (s->CR1 & I2C_CR1_STOP);  // Prevents lockup by guarding further
+                                  // writes to CR1 while STOP is being executed!
+  // Wait for bus to be clear?
+  unsigned long startTime = micros();
+  bool timeout = false;
+  while (s->SR2 & I2C_SR2_BUSY) {
+    if (micros() - startTime >= 500UL) {
+      timeout = true;
+      break;
+    }
+  }
+  if (timeout) {
+    DIAG(F("I2C_sendStop: SR2->BUSY timeout"));
+    // delay(1000);
+  }
 }
 
 /***************************************************************************
@@ -252,9 +304,11 @@ void I2CManagerClass::I2C_close() {
   s->CR1 &= ~I2C_CR1_PE;  // Disable I2C peripheral
   // Should never happen, but wait for up to 500us only.
   unsigned long startTime = micros();
-  while ((s->CR1 && I2C_CR1_PE) != 0) {
+  while ((s->CR1 & I2C_CR1_PE) != 0) {
     if (micros() - startTime >= 500UL) break;
   }
+  NVIC_DisableIRQ(I2C1_EV_IRQn);
+  NVIC_DisableIRQ(I2C1_ER_IRQn);
 }
 
 /***************************************************************************
@@ -263,49 +317,157 @@ void I2CManagerClass::I2C_close() {
  *  (and therefore, indirectly, from I2CRB::wait() and I2CRB::isBusy()).
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
+  volatile uint16_t temp_sr1, temp_sr2, temp;
+  static bool led_lit = false;
 
-  if (s->SR1 && I2C_SR1_ARLO) {
+  temp_sr1 = s->SR1;
+  // if (temp_sr1 & I2C_SR1_ADDR)
+  //   temp_sr2 = s->SR2;
+
+  // Check to see if start bit sent - SB interrupt!
+  if (temp_sr1 & I2C_SR1_SB)
+  {
+    // If anything to send, initiate write.  Otherwise initiate read.
+    if (operation == OPERATION_READ || ((operation == OPERATION_REQUEST) && !bytesToSend))
+    {
+      // Send address with read flag (1) or'd in
+      s->DR = (deviceAddress << 1) | 1;  //  send the address
+      // while (!(s->SR1 & I2C_SR1_ADDR));  // wait for ADDR bit to set
+      // // // Special case for 1 byte reads!
+      // if (bytesToReceive == 1)
+      // {
+      //   s->CR1 &= ~I2C_CR1_ACK;            // clear the ACK bit 
+      //   temp = I2C1->SR1 | I2C1->SR2;  // read SR1 and SR2 to clear the ADDR bit.... EV6 condition
+      //   s->CR1 |= I2C_CR1_STOP;              // Stop I2C
+      // }
+      // else
+      //   temp = s->SR1 | s->SR2;        // read SR1 and SR2 to clear the ADDR bit
+    }
+    else
+    {
+      // Send address with write flag (0) or'd in
+      s->DR = (deviceAddress << 1) | 0;  //  send the address
+      // while (!(s->SR1 & I2C_SR1_ADDR));  // wait for ADDR bit to set
+      // temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
+    }
+    // while (!(s->SR1 & I2C_SR1_ADDR));  // wait for ADDR bit to set
+    // temp = s->SR1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
+  }
+  else if (temp_sr1 & I2C_SR1_ADDR) {
+    // Receive 1 byte (AN2824 figure 2)
+    if (bytesToReceive == 1) {
+      s->CR1 &= ~I2C_CR1_ACK;  // Disable ACK final byte
+      // EV6_1 must be atomic operation (AN2824)
+      // noInterrupts();
+      (void)s->SR2; // read SR2 to complete clearing the ADDR bit
+      I2C_sendStop(); // send stop
+      // interrupts();
+    }
+    // Receive 2 bytes (AN2824 figure 2)
+    else if (bytesToReceive == 2) {
+      s->CR1 |= I2C_CR1_POS;  // Set POS flag (NACK position next)
+      // EV6_1 must be atomic operation (AN2824)
+      // noInterrupts();
+      (void)s->SR2; // read SR2 to complete clearing the ADDR bit
+      s->CR1 &= ~I2C_CR1_ACK;  // Disable ACK byte
+      // interrupts();
+    }
+    else
+      temp = temp_sr1 | s->SR2;  // read SR1 and SR2 to clear the ADDR bit
+  }
+  else if (temp_sr1 & I2C_SR1_AF)
+  {
+    s->SR1 &= ~(I2C_SR1_AF); // Clear AF
+    s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
+    while (s->SR1 & I2C_SR1_AF); // Check AF cleared
+    I2C_sendStop(); // Clear the bus
+    completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
+    state = I2C_STATE_COMPLETED;
+  }
+  else if (temp_sr1 & I2C_SR1_ARLO)
+  {
     // Arbitration lost, restart
-    I2C_sendStart();   // Reinitiate request
-  } else if (s->SR1 && I2C_SR1_BERR) {
+    s->SR1 &= ~(I2C_SR1_ARLO); // Clear ARLO
+    s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
+    I2C_sendStop();
+    I2C_sendStart(); // Reinitiate request
+    // state = I2C_STATE_COMPLETED;
+  }
+  else if (temp_sr1 & I2C_SR1_BERR)
+  {
     // Bus error
+    s->SR1 &= ~(I2C_SR1_BERR); // Clear BERR
+    s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
+    I2C_sendStop(); // Clear the bus
     completionStatus = I2C_STATUS_BUS_ERROR;
     state = I2C_STATE_COMPLETED;
-  } else if (s->SR1 && I2C_SR1_TXE) {
+  }
+  else if (temp_sr1 & I2C_SR1_TXE)
+  {
+    // temp_sr2 = s->SR2;
     // Master write completed
-    if (s->SR1 && (1<<10)) {
-      // Nacked, send stop.
+    if (temp_sr1 & I2C_SR1_AF) {
+      // Nacked
+      s->SR1 &= ~(I2C_SR1_AF); // Clear AF
+      s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
+      // send stop.
       I2C_sendStop();
       completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
       state = I2C_STATE_COMPLETED;
     } else if (bytesToSend) {
       // Acked, so send next byte
+      while ((s->SR1 & I2C_SR1_BTF));    // Check BTF before proceeding
       s->DR = sendBuffer[txCount++];
       bytesToSend--;
-    } else if (bytesToReceive) {
-      // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
+    // } else if (bytesToReceive) {
+    //   // Last sent byte acked and no more to send.  Send repeated start, address and read bit.
+    //   s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
+    //   I2C_sendStart();
       // s->I2CM.ADDR.bit.ADDR = (deviceAddress << 1) | 1;
     } else {
+      // No bytes left to send or receive
       // Check both TxE/BTF == 1 before generating stop
-      while (!(s->SR1 && I2C_SR1_TXE));    // Check TxE
-      while (!(s->SR1 && I2C_SR1_BTF));    // Check BTF
+      // while (!(s->SR1 & I2C_SR1_TXE));    // Check TxE
+      while ((s->SR1 & I2C_SR1_BTF));    // Check BTF
       // No more data to send/receive. Initiate a STOP condition and finish
+      s->CR1 &= ~(I2C_CR1_ACK); // Clear ACK
       I2C_sendStop();
+      // completionStatus = I2C_STATUS_OK;
       state = I2C_STATE_COMPLETED;
     }
-  } else if (s->SR1 && I2C_SR1_RXNE) {
+  }
+  else if (temp_sr1 & I2C_SR1_RXNE)
+  {
     // Master read completed without errors
     if (bytesToReceive == 1) {
-//      s->I2CM.CTRLB.bit.ACKACT = 1;  // NAK final byte
+      s->CR1 &= ~I2C_CR1_ACK;  // NAK final byte
       I2C_sendStop();  // send stop
       receiveBuffer[rxCount++] = s->DR;  // Store received byte
       bytesToReceive = 0;
+      // completionStatus = I2C_STATUS_OK;
       state = I2C_STATE_COMPLETED;
-    } else if (bytesToReceive) {
-//      s->I2CM.CTRLB.bit.ACKACT = 0;  // ACK all but final byte
+    }
+    else if (bytesToReceive == 2)
+    {
+      // Also needs to be atomic!
+      // noInterrupts();
+      I2C_sendStop();
       receiveBuffer[rxCount++] = s->DR;  // Store received byte
+      // interrupts();
+    }
+    else if (bytesToReceive)
+    {
+      s->CR1 &= ~(I2C_CR1_ACK); // ACK all but final byte
+      receiveBuffer[rxCount++] = s->DR; // Store received byte
       bytesToReceive--;
     }
+  }
+  else
+  {
+    // DIAG(F("Unhandled I2C interrupt!"));
+    led_lit = ~led_lit;
+    digitalWrite(D13, led_lit);
+    // delay(1000);
   }
 }
 
