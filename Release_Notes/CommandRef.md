@@ -50,9 +50,12 @@ Note: Turnouts are best defined in myAutomation.h where a turnout description ca
 <T id DCC linearaddr>
    Valid commands respond with <O>
 
-Outputs (Used by JMRI, not required by EXRAIL)
-<Z id vpin active>   Define an output pin that JMRI can set by id 
-<Z id activate>      Activate an output pin by id
+Direct pin manipulation (replaces <Z commands, no predefinition required)
+<z vpin>     Set pin LOW
+<z -vpin>    Set pin HIGH
+<z vpin value> Set pin analog value
+<z vpin value profile> Set pin analig with profile
+<z vpin value profile duration> set pin analog with profile and value
 
 
 Sensors (Used by JMRI, not required by EXRAIL)
@@ -172,6 +175,9 @@ Obsolete commands/formats
 <W cv value obsolete obsolete>
 <R cv>            V command is much faster if prediction is correct.
 <B cv bit value>  V command is much faster if prediction is correct.
+<Z id vpin active> (use <z)  Define an output pin that JMRI can set by id 
+<Z id activate>    (use <z)  Activate an output pin by id
+
 
 Broadcast responses
 Note: broadcasts are sent to all throttles when appropriate (usually because something has changed)
