@@ -51,10 +51,10 @@ Note: Turnouts are best defined in myAutomation.h where a turnout description ca
    Valid commands respond with <O>
 
 Direct pin manipulation (replaces <Z commands, no predefinition required)
-<z vpin>     Set pin LOW
-<z -vpin>    Set pin HIGH
+<z vpin>     Set pin HIGH
+<z -vpin>    Set pin LOW
 <z vpin value> Set pin analog value
-<z vpin value profile> Set pin analig with profile
+<z vpin value profile> Set pin analog with profile
 <z vpin value profile duration> set pin analog with profile and value
 
 
