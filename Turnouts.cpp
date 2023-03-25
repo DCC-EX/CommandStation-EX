@@ -123,7 +123,7 @@
     return true;
   }
 
-
+#define DIAG_IO
   // Static setClosed function is invoked from close(), throw() etc. to perform the 
   //  common parts of the turnout operation.  Code which is specific to a turnout
   //  type should be placed in the virtual function setClosedInternal(bool) which is
@@ -289,7 +289,6 @@
 #ifndef IO_NO_HAL
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
-    _turnoutData.closed = close;
 #else
     (void)close;  // avoid compiler warnings
 #endif
@@ -387,7 +386,6 @@
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
     DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close ^ !rcn213Compliant);
-    _turnoutData.closed = close;
     return true;
   }
 
@@ -463,7 +461,6 @@
 
   bool VpinTurnout::setClosedInternal(bool close) {
     IODevice::write(_vpinTurnoutData.vpin, close);
-    _turnoutData.closed = close;
     return true;
   }
 
@@ -514,7 +511,10 @@
   bool LCNTurnout::setClosedInternal(bool close) {
     // Assume that the LCN command still uses 1 for throw and 0 for close...
     LCN::send('T', _turnoutData.id, !close);
-    // The _turnoutData.closed flag should be updated by a message from the LCN master, later.
+    // The _turnoutData.closed flag should be updated by a message from the LCN master.
+    // but in this implementation it is updated in setClosedStateOnly() instead.
+    // If the LCN master updates this, setClosedStateOnly() and all setClosedInternal()
+    // have to be updated accordingly so that the closed flag is only set once.
     return true;
   }
 
