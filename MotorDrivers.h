@@ -73,12 +73,12 @@
 #elif defined(ARDUINO_ARCH_ESP32)
 // STANDARD shield on an ESPDUINO-32 (ESP32 in Uno form factor). The shield must be eiter the
 // 3.3V compatible R3 version or it has to be modified to not supply more than 3.3V to the
-// analog inputs. Here we use analog inputs A4 and A5 as A0 and A1 are wired in a way so that
+// analog inputs. Here we use analog inputs A2 and A3 as A0 and A1 are wired in a way so that
 // they are not useable at the same time as WiFi (what a bummer). The numbers below are the
 // actual GPIO numbers. In comments the numbers the pins have on an Uno.
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 36/*A4*/, 0.70, 1500, UNUSED_PIN), \
-    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 39/*A5*/, 0.70, 1500, UNUSED_PIN)
+    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 0.70, 1500, UNUSED_PIN), \
+    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 0.70, 1500, UNUSED_PIN)
 
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
