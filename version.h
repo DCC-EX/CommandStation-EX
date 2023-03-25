@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.35"
+#define VERSION "4.2.36rc1"
+// 4.2.36 - do not broadcast a turnout state that has not changed
 // 4.2.35 - add <z> direct pin manipulation command 
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs
 // 4.2.33 - Fix EX-IOExpander non-working analogue inputs

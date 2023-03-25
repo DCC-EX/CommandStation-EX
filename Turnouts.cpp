@@ -110,15 +110,16 @@
   /* static */ bool Turnout::setClosedStateOnly(uint16_t id, bool closeFlag) {
     Turnout *tt = get(id);
     if (!tt) return false;
-    tt->_turnoutData.closed = closeFlag;
-
     // I know it says setClosedStateOnly, but we need to tell others
-    //  that the state has changed too.
-    #if defined(EXRAIL_ACTIVE)
-      RMFT2::turnoutEvent(id, closeFlag);
-    #endif
-
-    CommandDistributor::broadcastTurnout(id, closeFlag);
+    // that the state has changed too. But we only broadcast if there
+    // really has been a change.
+    if (tt->_turnoutData.closed != closeFlag) {
+      tt->_turnoutData.closed = closeFlag;
+      CommandDistributor::broadcastTurnout(id, closeFlag);
+    }
+#if defined(EXRAIL_ACTIVE)
+    RMFT2::turnoutEvent(id, closeFlag);
+#endif
     return true;
   }
 
@@ -128,31 +129,21 @@
   //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
   /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
-  #if defined(DIAG_IO)
-    if (closeFlag) 
-      DIAG(F("Turnout::close(%d)"), id);
-    else
-      DIAG(F("Turnout::throw(%d)"), id);
-  #endif
+#if defined(DIAG_IO)
+    DIAG(F("Turnout(%d,%c)"), id, closeFlag ? 'c':'t');
+#endif
     Turnout *tt = Turnout::get(id);
     if (!tt) return false;
     bool ok = tt->setClosedInternal(closeFlag);
 
     if (ok) {
-      
+      tt->setClosedStateOnly(id, closeFlag);
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
         EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);
 #endif
-
-    #if defined(EXRAIL_ACTIVE)
-      RMFT2::turnoutEvent(id, closeFlag);
-    #endif
-
-      // Send message to JMRI etc.
-      CommandDistributor::broadcastTurnout(id, closeFlag);
     }
     return ok;
   }
