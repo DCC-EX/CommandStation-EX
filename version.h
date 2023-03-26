@@ -4,10 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.36rc1"
-// 4.2.36 - Do not broadcast a turnout state that has not changed
+#define VERSION "4.2.36"
+// 4.2.36 - do not broadcast a turnout state that has not changed
 //        - Use A2/A3 for current sensing on ESP32 + Motor Shield
-// 4.2.35 - add <z> direct pin manipulation command
+// 4.2.35 - add <z> direct pin manipulation command 
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs
 // 4.2.33 - Fix EX-IOExpander non-working analogue inputs
 // 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
