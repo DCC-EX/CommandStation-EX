@@ -144,9 +144,9 @@
     #define DISABLE_EEPROM
   #endif
   // STM32 support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
+  // #ifndef I2C_USE_WIRE
+  // #define I2C_USE_WIRE
+  // #endif
 
 
 /* TODO when ready 

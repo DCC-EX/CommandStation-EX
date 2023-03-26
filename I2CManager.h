@@ -539,7 +539,8 @@ private:
     uint8_t deviceAddress;
     const uint8_t *sendBuffer;
     uint8_t *receiveBuffer;
-
+    uint8_t transactionState = 0;
+  
     volatile uint32_t pendingClockSpeed = 0;
 
     void startTransaction();
