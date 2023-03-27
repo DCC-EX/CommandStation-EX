@@ -119,7 +119,7 @@ private:
         case STATE_GETVALUE:
           _value[_currentPin] = ((uint16_t)_inBuffer[0] << 8) + (uint16_t)_inBuffer[1];
           #ifdef IO_ANALOGUE_SLOW
-          DIAG(F("ADS111x pin:%d value:%d"), _currentPin, _value[_currentPin]);
+          DIAG(F("ADS111x VPIN:%u value:%d"), _currentPin, _value[_currentPin]);
           #endif
 
           // Move to next pin
@@ -142,7 +142,7 @@ private:
   }
   
   void _display() override {
-    DIAG(F("ADS111x I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("ADS111x I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 

@@ -967,7 +967,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         break;
 
     case HASH_KEYWORD_ANIN:   // <D ANIN vpin>  Display analogue input value
-        DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
+        DIAG(F("VPIN=%u value=%d"), p[1], IODevice::readAnalogue(p[1]));
         break;
 
 #if !defined(IO_NO_HAL)

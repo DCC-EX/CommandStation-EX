@@ -62,7 +62,7 @@ void DCCAccessoryDecoder::_write(VPIN id, int state) {
 
 void DCCAccessoryDecoder::_display() {
   int endAddress = _packedAddress + _nPins - 1;
-  DIAG(F("DCCAccessoryDecoder Configured on Vpins:%d-%d Addresses %d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
+  DIAG(F("DCCAccessoryDecoder Configured on Vpins:%u-%u Addresses %d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
       ADDRESS(_packedAddress), SUBADDRESS(_packedAddress), ADDRESS(endAddress), SUBADDRESS(endAddress));
 }
 

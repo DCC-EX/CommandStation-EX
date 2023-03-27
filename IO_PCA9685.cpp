@@ -46,7 +46,7 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
   if (configType != CONFIGURE_SERVO) return false;
   if (paramCount != 5) return false;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
+  DIAG(F("PCA9685 Configure VPIN:%u Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
     vpin, params[0], params[1], params[2], params[3], params[4]);
   #endif
 
@@ -118,7 +118,7 @@ void PCA9685::_begin() {
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 Write Vpin:%d Value:%d"), vpin, value);
+  DIAG(F("PCA9685 Write VPIN:%u Value:%d"), vpin, value);
   #endif
   int pin = vpin - _firstVpin;
   if (value) value = 1;
@@ -145,7 +145,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+  DIAG(F("PCA9685 WriteAnalogue VPIN:%u Value:%d Profile:%d Duration:%d %S"), 
     vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
   #endif
   if (_deviceState == DEVSTATE_FAILED) return;
@@ -262,7 +262,7 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), (int)_firstVpin, 
+  DIAG(F("PCA9685 I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

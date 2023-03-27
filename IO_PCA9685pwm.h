@@ -121,7 +121,7 @@ private:
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {
     (void)param1; (void)param2;  // suppress compiler warning
     #ifdef DIAG_IO
-    DIAG(F("PCA9685pwm WriteAnalogue Vpin:%d Value:%d %S"), 
+    DIAG(F("PCA9685pwm WriteAnalogue VPIN:%u Value:%d %S"), 
       vpin, value, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
     #endif
     if (_deviceState == DEVSTATE_FAILED) return;
@@ -134,7 +134,7 @@ private:
 
   // Display details of this device.
   void _display() override {
-    DIAG(F("PCA9685pwm I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), (int)_firstVpin, 
+    DIAG(F("PCA9685pwm I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
