@@ -8,12 +8,13 @@
 // 4.2.37 - Add new FLAGS HAL device for communications to/from EX-RAIL;
 //        - Fix diag display of high VPINs within IODevice class.
 // 4.2.36 - do not broadcast a turnout state that has not changed
+//        - Use A2/A3 for current sensing on ESP32 + Motor Shield
 // 4.2.35 - add <z> direct pin manipulation command 
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs
 // 4.2.33 - Fix EX-IOExpander non-working analogue inputs
 // 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
 // 4.2.31 - Removes EXRAIL statup from top of file. (BREAKING CHANGE !!)
-//          Just add AUTOSTART to the top of your myAutomation.h to restore this function. 
+//          Just add AUTOSTART to the top of your myAutomation.h to restore this function.
 // 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
 // 4.2.29 - Bugfix Scroll LCD without empty lines and consistent
 // 4.2.28 - Reinstate use of timer11 in STM32 - remove HA mode.
