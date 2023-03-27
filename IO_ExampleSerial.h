@@ -84,7 +84,7 @@ protected:
   void _write(VPIN vpin, int value) {
     int pin = vpin -_firstVpin;
     #ifdef DIAG_IO
-    DIAG(F("IO_ExampleSerial::_write Pin:%d Value:%d"), (int)vpin, value);
+    DIAG(F("IO_ExampleSerial::_write VPIN:%u Value:%d"), (int)vpin, value);
     #endif
     // Send a command string over the serial line
     _serial->print('#');
@@ -153,10 +153,10 @@ protected:
   // Display information about the device, and perhaps its current condition (e.g. active, disabled etc).
   // Here we display the current values held for the pins.
   void _display() {
-    DIAG(F("IO_ExampleSerial Configured on VPins:%d-%d"), (int)_firstVpin, 
+    DIAG(F("IO_ExampleSerial Configured on Vpins:%u-%u"), (int)_firstVpin, 
       (int)_firstVpin+_nPins-1);
     for (int i=0; i<_nPins; i++)
-      DIAG(F("  VPin %2d: %d"), _firstVpin+i, _pinValues[i]);
+      DIAG(F("  VPin %2u: %d"), _firstVpin+i, _pinValues[i]);
   }
 
 

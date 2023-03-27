@@ -196,7 +196,7 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
 
 template <class T>
 void GPIOBase<T>::_display() {
-  DIAG(F("%S I2C:%s Configured on Vpins:%d-%d %S"), _deviceName, _I2CAddress.toString(), 
+  DIAG(F("%S I2C:%s Configured on Vpins:%u-%u %S"), _deviceName, _I2CAddress.toString(), 
     _firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 

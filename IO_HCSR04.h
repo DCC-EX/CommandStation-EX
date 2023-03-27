@@ -234,7 +234,7 @@ protected:
   }
 
   void _display() override {
-    DIAG(F("HCSR04 Configured on Vpin:%d TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"),
+    DIAG(F("HCSR04 Configured on VPIN:%u TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"),
       _firstVpin, _trigPin, _echoPin, _onThreshold, _offThreshold);
   }
 

@@ -329,7 +329,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddres
       VPIN lastDevPin=firstDevPin+dev->_nPins-1;
       bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
       if (!noOverlap) {
-          DIAG(F("WARNING HAL Overlap, definition of Vpins %u to %u ignored."),
+          DIAG(F("WARNING HAL Overlap, redefinition of Vpins %u to %u ignored."),
               firstPin, lastPin);
           return false;
       } 

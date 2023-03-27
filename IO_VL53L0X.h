@@ -319,7 +319,7 @@ protected:
   }
 
   void _display() override {
-    DIAG(F("VL53L0X I2C:%s Configured on Vpins:%d-%d On:%dmm Off:%dmm %S"),
+    DIAG(F("VL53L0X I2C:%s Configured on Vpins:%u-%u On:%dmm Off:%dmm %S"),
       _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1, _onThreshold, _offThreshold,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }

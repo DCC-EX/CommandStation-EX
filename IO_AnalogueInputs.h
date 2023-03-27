@@ -142,7 +142,7 @@ private:
   }
   
   void _display() override {
-    DIAG(F("ADS111x I2C:%s Configured on Vpins:%d-%d %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("ADS111x I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 

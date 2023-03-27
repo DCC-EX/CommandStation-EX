@@ -98,7 +98,7 @@ private:
     if (configType != CONFIGURE_SERVO) return false;
     if (paramCount != 5) return false;
     #ifdef DIAG_IO
-    DIAG(F("Servo: Configure VPIN:%d Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
+    DIAG(F("Servo: Configure VPIN:%u Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
       vpin, params[0], params[1], params[2], params[3], params[4]);
     #endif
 
@@ -165,7 +165,7 @@ private:
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
     #ifdef DIAG_IO
-    DIAG(F("Servo Write Vpin:%d Value:%d"), vpin, value);
+    DIAG(F("Servo Write VPIN:%u Value:%d"), vpin, value);
     #endif
     int pin = vpin - _firstVpin;
     if (value) value = 1;
@@ -193,7 +193,7 @@ private:
   //            
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
     #ifdef DIAG_IO
-    DIAG(F("Servo: WriteAnalogue Vpin:%d Value:%d Profile:%d Duration:%d %S"), 
+    DIAG(F("Servo: WriteAnalogue VPIN:%u Value:%d Profile:%d Duration:%d %S"), 
       vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
     #endif
     if (_deviceState == DEVSTATE_FAILED) return;
@@ -288,7 +288,7 @@ private:
 
   // Display details of this device.
   void _display() override {
-    DIAG(F("Servo Configured on Vpins:%d-%d, slave pins:%d-%d %S"),
+    DIAG(F("Servo Configured on Vpins:%u-%u, slave pins:%d-%d %S"),
       (int)_firstVpin, (int)_firstVpin+_nPins-1,
       (int)_firstSlavePin, (int)_firstSlavePin+_nPins-1,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));

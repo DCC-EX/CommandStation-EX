@@ -124,7 +124,7 @@ protected:
 
   // Display information about the device, and perhaps its current condition (e.g. active, disabled etc).
   void _display() {
-    DIAG(F("TouchKeypad Configured on VPins:%d-%d SCL=%d SDO=%d"), (int)_firstVpin, 
+    DIAG(F("TouchKeypad Configured on Vpins:%u-%u SCL=%d SDO=%d"), (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, _clockPin, _dataPin);
   }
 

@@ -203,7 +203,7 @@ protected:
     uint8_t pin = vpin - _firstVpin;
  
     #ifdef DIAG_IO
-    DIAG(F("DFPlayer: VPIN:%d FileNo:%d Volume:%d"), vpin, value, volume);
+    DIAG(F("DFPlayer: VPIN:%u FileNo:%d Volume:%d"), vpin, value, volume);
     #endif
 
     // Validate parameter.
@@ -232,7 +232,7 @@ protected:
   }
 
   void _display() override {
-    DIAG(F("DFPlayer Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("DFPlayer Configured on Vpins:%u-%u %S"), _firstVpin, _firstVpin+_nPins-1,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
