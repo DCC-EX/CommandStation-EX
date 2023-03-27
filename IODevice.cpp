@@ -169,7 +169,7 @@ bool IODevice::hasCallback(VPIN vpin) {
 
 // Display (to diagnostics) details of the device.
 void IODevice::_display() {
-  DIAG(F("Unknown device Vpins:%d-%d %S"), 
+  DIAG(F("Unknown device Vpins:%u-%u %S"), 
     (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState==DEVSTATE_FAILED ? F("OFFLINE") : F(""));
 }
 
@@ -179,7 +179,7 @@ bool IODevice::configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
   IODevice *dev = findDevice(vpin);
   if (dev) return dev->_configure(vpin, configType, paramCount, params);
 #ifdef DIAG_IO
-  DIAG(F("IODevice::configure(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::configure(): VPIN %u not found!"), (int)vpin);
 #endif
   return false;
 }
@@ -191,7 +191,7 @@ int IODevice::read(VPIN vpin) {
       return dev->_read(vpin);
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::read(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::read(): VPIN %u not found!"), (int)vpin);
 #endif
   return false;
 }
@@ -203,7 +203,7 @@ int IODevice::readAnalogue(VPIN vpin) {
       return dev->_readAnalogue(vpin);
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::readAnalogue(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::readAnalogue(): VPIN %u not found!"), (int)vpin);
 #endif
   return -1023;
 }
@@ -213,7 +213,7 @@ int IODevice::configureAnalogIn(VPIN vpin) {
       return dev->_configureAnalogIn(vpin);
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::configureAnalogIn(): Vpin %d not found!"), (int)vpin);
+  DIAG(F("IODevice::configureAnalogIn(): VPIN %u not found!"), (int)vpin);
 #endif
   return -1023;
 }
@@ -227,7 +227,7 @@ void IODevice::write(VPIN vpin, int value) {
     return;
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::write(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::write(): VPIN %u not found!"), (int)vpin);
 #endif
 }
 
@@ -246,7 +246,7 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t para
     return;
   }
 #ifdef DIAG_IO
-  DIAG(F("IODevice::writeAnalogue(): Vpin ID %d not found!"), (int)vpin);
+  DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
 #endif
 }
 
@@ -314,9 +314,11 @@ IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
 
 // Private helper function to check for vpin overlap. Run during setup only.
 // returns true if pins DONT overlap with existing device
+// TODO: Move the I2C address reservation and checks into the I2CManager code.
+// That will enable non-HAL devices to reserve I2C addresses too.
 bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddress) {
 #ifdef DIAG_IO
-  DIAG(F("Check no overlap %d %d %s"), firstPin,nPins,i2cAddress.toString());
+  DIAG(F("Check no overlap %u %u %s"), firstPin,nPins,i2cAddress.toString());
 #endif
   VPIN lastPin=firstPin+nPins-1;
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
@@ -327,7 +329,7 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddres
       VPIN lastDevPin=firstDevPin+dev->_nPins-1;
       bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
       if (!noOverlap) {
-          DIAG(F("WARNING HAL Overlap definition of pins  %d to %d ignored."),
+          DIAG(F("WARNING HAL Overlap, definition of Vpins %u to %u ignored."),
               firstPin, lastPin);
           return false;
       } 
@@ -374,7 +376,7 @@ void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
 bool IODevice::configure(VPIN pin, ConfigTypeEnum configType, int nParams, int p[]) {
   if (configType!=CONFIGURE_INPUT || nParams!=1 || pin >= NUM_DIGITAL_PINS) return false;
   #ifdef DIAG_IO
-  DIAG(F("Arduino _configurePullup Pin:%d Val:%d"), pin, p[0]);
+  DIAG(F("Arduino _configurePullup pin:%d Val:%d"), pin, p[0]);
   #endif
   pinMode(pin, p[0] ? INPUT_PULLUP : INPUT);
   return true;
@@ -528,7 +530,7 @@ int ArduinoPins::_configureAnalogIn(VPIN vpin) {
 }
 
 void ArduinoPins::_display() {
-  DIAG(F("Arduino Vpins:%d-%d"), (int)_firstVpin, (int)_firstVpin+_nPins-1);
+  DIAG(F("Arduino Vpins:%u-%u"), (int)_firstVpin, (int)_firstVpin+_nPins-1);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

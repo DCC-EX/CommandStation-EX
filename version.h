@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.36"
+#define VERSION "4.2.37"
+// 4.2.37 - Add new FLAGS HAL device for communications to/from EX-RAIL;
+//        - Fix diag display of high VPINs within IODevice class.
 // 4.2.36 - do not broadcast a turnout state that has not changed
 // 4.2.35 - add <z> direct pin manipulation command 
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs

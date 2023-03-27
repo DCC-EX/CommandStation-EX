@@ -1,0 +1,465 @@
+#include "defines.h"
+#include "IODevice.h"
+
+#ifndef IO_NO_HAL
+
+#include "IO_VL53L0X.h"
+#include "IO_HCSR04.h"
+#include "Sensors.h"
+#include "Turnouts.h"
+#include "IO_DFPlayer.h"
+//#include "IO_Wire.h"
+#include "IO_AnalogueInputs.h"
+#if __has_include("IO_Servo.h")
+#include "IO_Servo.h"
+#include "IO_PCA9685pwm.h"
+#endif
+
+#include "IO_HALDisplay.h"
+#include "LiquidCrystal_I2C.h"
+
+#if __has_include("IO_CMRI.h")
+#include "IO_CMRI.h"
+#endif
+
+//#include "IO_ExampleSerial.h"
+
+//#include "IO_EXFastclock.h"
+//#include "IO_EXTurntable.h"
+
+#if __has_include("IO_ExternalEEPROM.h")
+#include "IO_ExternalEEPROM.h"
+#endif
+
+#if __has_include("IO_Network.h")
+#include "IO_Network.h"
+#include "Net_RF24.h"
+#include "Net_ENC28J60.h"
+#include "Net_Ethernet.h"
+#define NETWORK_PRESENT
+#endif
+
+#include "IO_TouchKeypad.h"
+
+#define WIRE_TEST 0
+#define TESTHARNESS 1
+#define I2C_STRESS_TEST 0
+#define I2C_SETCLOCK 0
+
+#include "DCC.h"
+
+
+#if 0 // Long Strings
+#define s10 "0123456789"
+#define s100 s10 s10 s10 s10 s10 s10 s10 s10 s10 s10
+#define s1k s100 s100 s100 s100 s100 s100 s100 s100 s100 s100
+#define s10k s1k s1k s1k s1k s1k s1k s1k s1k s1k s1k
+#define s32k s10k s10k s10k s1k s1k
+volatile const char PROGMEM ss1[] = s32k;
+#endif
+
+
+#if TESTHARNESS
+
+// Function to be invoked by test harness
+void myTest() {
+  // DIAG(F("VL53L0X #1 Test: dist=%d signal=%d ambient=%d value=%d"), 
+  //   IODevice::readAnalogue(5000),
+  //   IODevice::readAnalogue(5001),
+  //   IODevice::readAnalogue(5002),
+  //   IODevice::read(5000));
+  // DIAG(F("VL53L0X #2 Test: dist=%d signal=%d ambient=%d value=%d"), 
+  //   IODevice::readAnalogue(5003),
+  //   IODevice::readAnalogue(5004),
+  //   IODevice::readAnalogue(5005),
+  //   IODevice::read(5003));
+  // DIAG(F("HCSR04 Test: dist=%d value=%d"),
+  //   IODevice::readAnalogue(2000),
+  //   IODevice::read(2000));
+  // DIAG(F("ADS111x Test: %d %d %d %d %d"), 
+  //   IODevice::readAnalogue(4500), 
+  //   IODevice::readAnalogue(4501),
+  //   IODevice::readAnalogue(4502),
+  //   IODevice::readAnalogue(4503),
+  //   IODevice::readAnalogue(A5)
+  // );
+  // DIAG(F("RF24 Test: 4000:%d 4002:%d"), 
+  //   IODevice::read(4000), 
+  //   IODevice::read(4002)
+  // );
+  DIAG(F("EXPANDER: 2212:%d 2213:%d 2214:%d"),
+    IODevice::readAnalogue(2212), 
+    IODevice::readAnalogue(2213),
+    IODevice::readAnalogue(2214));
+}
+#endif
+
+#if I2C_STRESS_TEST
+static bool initialised = false;
+static uint8_t lastStatus = 0;
+static const int nRBs = 3; // request blocks concurrently
+static const int I2cTestPeriod = 1; // milliseconds
+static I2CAddress testDevice = {SubBus_6, 0x27};
+static I2CRB rb[nRBs];
+static uint8_t readBuffer[nRBs*32]; // nRB x 32-byte input buffer
+static uint8_t writeBuffer[nRBs];  // nRB x 1-byte output buffer
+static unsigned long count = 0;
+static unsigned long errors = 0;
+static unsigned long lastOutput = millis();
+
+void I2CTest() {
+  if (!initialised) {
+    // I2C Loading for stress test.
+    // Write value then read back 32 times
+    for (int i=0; i<nRBs; i++) {
+      writeBuffer[i] = (0xc5 ^ i ^ i<<3 ^ i<<6) & ~0x08; // bit corresponding to 08 is hard-wired low
+      rb[i].setRequestParams(testDevice, &readBuffer[i*32], 32, 
+        &writeBuffer[i], 1);
+      I2CManager.queueRequest(&rb[i]);
+    }
+    initialised = true;
+  }
+
+  for (int i=0; i<nRBs; i++) {
+    if (!rb[i].isBusy()) {
+      count++;
+      uint8_t status = rb[i].status;
+      if (status != lastStatus) {
+        DIAG(F("I2CTest: status=%d (%S)"), 
+          (int)status, I2CManager.getErrorMessage(status));
+        lastStatus = status; 
+      }
+      if (status == I2C_STATUS_OK) {
+        bool diff = false;
+        // Check contents of response
+        for (uint8_t j=0; j<32; j++) {
+          if (readBuffer[i*32+j] != writeBuffer[i]) {
+            DIAG(F("I2CTest: Received message mismatch, sent %2x rcvd %2x"), 
+              writeBuffer[i], readBuffer[i*32+j]);
+            diff = true;
+          }
+        }
+        if (diff) errors++;
+      } else
+        errors++;
+      I2CManager.queueRequest(&rb[i]);
+    }
+  }
+  if (millis() - lastOutput > 60000) { // 1 minute
+    DIAG(F("I2CTest: Count=%l Errors=%l"), count, errors);
+    count = errors = 0;
+    lastOutput = millis();
+  }
+}
+#endif
+
+void updateLocoScreen() {
+  for (int i=0; i<8; i++) {
+    if (DCC::speedTable[i].loco > 0) {
+      int speed = DCC::speedTable[i].speedCode;
+      char direction = (speed & 0x80) ? 'R' : 'F';
+      speed = speed & 0x7f;
+      if (speed > 0) speed = speed - 1;
+      SCREEN(3, i, F("Loco:%4d %3d %c"), DCC::speedTable[i].loco,
+        speed, direction);
+    }
+  }
+}
+
+void updateTime() {
+  uint8_t buffer[20];
+  I2CAddress rtc = {SubBus_1, 0x68};  // Real-time clock I2C address
+  buffer[0] = 0;
+
+  // Set time - only needs to be done once if battery is ok.
+  static bool timeSet = false;
+  if (!timeSet) {
+    // I2CManager.read(rtc, buffer+1, sizeof(buffer)-1);
+    // uint8_t year = 23;    // 2023
+    // uint8_t day = 2;      // tuesday
+    // uint8_t date = 21;    // 21st
+    // uint8_t month = 2;    // feb
+    // uint8_t hours = 23;   // xx:
+    // uint8_t minutes = 25; // :xx
+    // buffer[1] = 0;   // seconds
+    // buffer[2] = ((minutes / 10) << 4) | (minutes % 10);
+    // buffer[3] = ((hours / 10) << 4) | (hours % 10);
+    // buffer[4] = day;
+    // buffer[5] = ((date/10) << 4) + date%10; // 24th
+    // buffer[6] = ((month/10) << 4) + month%10; // feb
+    // buffer[7] = ((year/10) << 4) + year%10; // xx23
+    // for (uint8_t i=8; i<sizeof(buffer); i++) buffer[i] = 0;
+    // I2CManager.write(rtc, buffer, sizeof(buffer));
+    timeSet = true;
+  }
+
+  uint8_t status = I2CManager.read(rtc, buffer+1, sizeof(buffer)-1, 1, 0);
+  if (status == I2C_STATUS_OK) {
+    uint8_t seconds10 = buffer[1] >> 4;
+    uint8_t seconds1 = buffer[1] & 0xf;
+    uint8_t minutes10 = buffer[2] >> 4;
+    uint8_t minutes1 = buffer[2] & 0xf;
+    uint8_t hours10 = buffer[3] >> 4;
+    uint8_t hours1 = buffer[3] & 0xf;
+    SCREEN(10, 0, F("Departures  %d%d:%d%d:%d%d"), 
+      hours10, hours1, minutes10, minutes1, seconds10, seconds1);
+  }
+}
+
+void showCharacterSet() {
+  if (millis() < 3000) return;
+  const uint8_t lineLen = 20;
+  char buffer[lineLen+1];
+  static uint8_t nextChar = 0x20;
+  for (uint8_t row=0; row<8; row+=1) {
+    for (uint8_t col=0; col<lineLen; col++) {
+      buffer[col] = nextChar++;
+      buffer[++col] = ' ';
+      if (nextChar == 0) nextChar = 0x20; // check for wrap-around
+    }
+    buffer[lineLen] = '\0';
+    SCREEN(3, row, F("%s"), buffer);
+  }
+}
+
+#if defined(ARDUINO_NUCLEO_F446RE)
+HardwareSerial Serial3(PC11, PC10);
+#endif
+
+
+// HAL device initialisation
+void halSetup() {
+
+  I2CManager.setTimeout(500); // microseconds
+  I2CManager.forceClock(400000);
+
+  HALDisplay<OLED>::create(10, {SubBus_5, 0x3c}, 132, 64); // SH1106
+  // UserAddin::create(updateLocoScreen, 1000);
+  // UserAddin::create(showCharacterSet, 5000);
+  // UserAddin::create(updateTime, 1000);
+  
+  HALDisplay<OLED>::create(10, {SubBus_4, 0x3c}, 128, 32);
+  HALDisplay<OLED>::create(10, {SubBus_7, 0x3c}, 128, 32);
+
+  //HALDisplay<LiquidCrystal_I2C>::create(10, {SubBus_4, 0x27}, 20, 4);
+
+    // Draw double boxes with X O O X inside.
+  // SCREEN(3, 2, F("\xc9\xcd\xcd\xcd\xcb\xcd\xcd\xcd\xcb\xcd\xcd\xcd\xcb\xcd\xcd\xcd\xcb\xcd\xcd\xcd\xbb"));
+  // SCREEN(3, 3, F("\xba X \xba O \xba O \xba O \xba X \xba"));
+  // SCREEN(3, 4, F("\xcc\xcd\xcd\xcd\xce\xcd\xcd\xcd\xce\xcd\xcd\xcd\xce\xcd\xcd\xcd\xce\xcd\xcd\xcd\xb9"));
+  // SCREEN(3, 5, F("\xba X \xba O \xba O \xba O \xba X \xba"));
+  // SCREEN(3, 6, F("\xc8\xcd\xcd\xcd\xca\xcd\xcd\xcd\xca\xcd\xcd\xcd\xca\xcd\xcd\xcd\xca\xcd\xcd\xcd\xbc"));
+
+  // Draw single boxes with X O O X inside.
+  // SCREEN(3, 0, F("Summary Data:"));
+  // SCREEN(3, 1, F("\xda\xc4\xc4\xc4\xc2\xc4\xc4\xc4\xc2\xc4\xc4\xc4\xc2\xc4\xc4\xc4\xc2\xc4\xc4\xc4\xbf"));
+  // SCREEN(3, 2, F("\xb3 X \xb3 O \xb3 O \xb3 O \xb3 X \xb3"));
+  // SCREEN(3, 3, F("\xc3\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xb4"));
+  // SCREEN(3, 4, F("\xb3 X \xb3 O \xb3 O \xb3 O \xb3 X \xb3"));
+  // SCREEN(3, 5, F("\xc3\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xc5\xc4\xc4\xc4\xb4"));
+  // SCREEN(3, 6, F("\xb3 X \xb3 O \xb3 O \xb3 O \xb3 X \xb3"));
+  // SCREEN(3, 7, F("\xc0\xc4\xc4\xc4\xc1\xc4\xc4\xc4\xc1\xc4\xc4\xc4\xc1\xc4\xc4\xc4\xc1\xc4\xc4\xc4\xd9"));
+
+  // Blocks of different greyness
+  // SCREEN(3, 0, F("\xb0\xb0\xb0\xb0\xb1\xb1\xb1\xb1\xb2\xb2\xb2\xb2\xdb\xdb\xdb\xdb"));
+  // SCREEN(3, 1, F("\xb0\xb0\xb0\xb0\xb1\xb1\xb1\xb1\xb2\xb2\xb2\xb2\xdb\xdb\xdb\xdb"));
+  // SCREEN(3, 2, F("\xb0\xb0\xb0\xb0\xb1\xb1\xb1\xb1\xb2\xb2\xb2\xb2\xdb\xdb\xdb\xdb"));
+
+  // DCCEX logo
+  // SCREEN(3, 1, F("\xb0\xb0\x20\x20\x20\xb0\x20\x20\x20\xb0\x20\x20\x20\x20\xb0\xb0\xb0\x20\xb0\x20\xb0"));
+  // SCREEN(3, 2, F("\xb0\x20\xb0\x20\xb0\x20\xb0\x20\xb0\x20\xb0\x20\x20\x20\xb0\x20\x20\x20\xb0\x20\xb0"));
+  // SCREEN(3, 3, F("\xb0\x20\xb0\x20\xb0\x20\x20\x20\xb0\x20\x20\x20\xb0\x20\xb0\xb0\x20\x20\x20\xb0\x20"));
+  // SCREEN(3, 4, F("\xb0\x20\xb0\x20\xb0\x20\xb0\x20\xb0\x20\xb0\x20\x20\x20\xb0\x20\x20\x20\xb0\x20\xb0"));
+  // SCREEN(3, 5, F("\xb0\xb0\x20\x20\x20\xb0\x20\x20\x20\xb0\x20\x20\x20\x20\xb0\xb0\xb0\x20\xb0\x20\xb0"));
+  // SCREEN(3, 7, F("\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"));
+  
+#if 0
+  // List versions of devices that respond to the version request
+  for (uint8_t address = 8; address<0x78; address++) {
+    uint8_t buffer[3];
+    uint8_t status = I2CManager.read(0x7c, buffer, sizeof(buffer), 1, address);
+    if (status == I2C_STATUS_OK) {
+      uint16_t manufacturer = ((uint16_t)buffer[0] << 4 ) | (buffer[1] >> 4);
+      uint16_t deviceID = ((uint16_t)(buffer[1] & 0x0f) << 5) | (buffer[2] >> 3);
+      uint16_t dieRevision = buffer[2] & 0x1f;
+      DIAG(F("Addr %s version: %x %x %x"), address.toString(), manufacturer, deviceID, dieRevision);
+    } 
+  }
+#endif
+
+#if I2C_STRESS_TEST
+  UserAddin::create(I2CTest, I2cTestPeriod);
+#endif
+
+#if WIRE_TEST
+  // Test of Wire-I2CManager interface
+  Wire.begin();
+  Wire.setClock(400000);
+  Wire.beginTransmission(0x23);
+  Wire.print("Hello");
+  uint8_t status = Wire.endTransmission();
+  if (status==0) DIAG(F("Wire: device Found on 0x23"));
+
+  Wire.beginTransmission(0x23);
+  Wire.write(0xde);
+  Wire.endTransmission(false); // don't send stop
+  Wire.requestFrom(0x23, 1);
+  if (Wire.available()) {
+    DIAG(F("Wire: value=x%x"), Wire.read());
+  }
+  uint8_t st = I2CManager.write(0x33, 0, 0);
+  DIAG(F("I2CManager 0x33 st=%d \"%S\""), st, 
+    I2CManager.getErrorMessage(st));
+#endif
+
+#if I2C_SETCLOCK
+  // Test I2C clock changes
+  // Set up two I2C request blocks
+  I2CRB rb1, rb2;
+  uint8_t readBuff[32];
+  rb1.setRequestParams(0x23, readBuff, sizeof(readBuff), readBuff, sizeof(readBuff));
+  rb2.setRequestParams(0x23, readBuff, sizeof(readBuff), readBuff, sizeof(readBuff));
+  // First set clock to 400kHz and then issue requests
+  I2CManager.forceClock(400000);
+  I2CManager.queueRequest(&rb1);
+  I2CManager.queueRequest(&rb2);
+  // Wait a little to allow the first transaction to start
+  delayMicroseconds(2);
+  // ... then request a clock speed change
+  I2CManager.forceClock(100000);
+  DIAG(F("I2CClock: rb1 status=%d"), rb1.wait());
+  DIAG(F("I2CClock: rb2 status=%d"), rb2.wait());
+  // Reset clock speed
+  I2CManager.forceClock(400000);
+#endif
+  
+  EXIOExpander::create(2200, 18, {SubBus_0, 0x65});
+  //UserAddin::create(myTest, 1000);
+  // ServoTurnout::create(2200, 2200, 400, 200, 0);
+  // ServoTurnout::create(2200, 2200, 400, 200, 0);
+
+  TouchKeypad::create(2300, 16, 25, 24);
+
+  // GPIO
+  PCF8574::create(800, 8, {SubBus_1, 0x23});
+  //PCF8574::create(808, 8, {SubBus_2, 0x27});
+  PCF8574::create(65000, 8, 0x27);
+
+  MCP23017::create(164,16,{SubBus_3, 0x20});
+  //MCP23017::create(180,16,{SubBus_0, 0x27});
+  Sensor::create(170, 170, 1); // Hall effect, enable pullup.
+  Sensor::create(171, 171, 1);
+
+  // PWM (LEDs and Servos)
+  // For servos, use default 50Hz pulses.
+  PCA9685::create(100, 16, {SubBus_1, 0x41});
+  // For LEDs, use 1kHz pulses.
+  PCA9685::create(116, 16, {SubBus_1, 0x40}, 1000);
+
+  // 4-pin Analogue Input Module
+  //ADS111x::create(4500, 4, 0x48);
+
+  // Laser Time-Of-Flight Sensors
+  VL53L0X::create(5000, 3, {SubBus_0, 0x60}, 300, 310, 46);
+  //VL53L0X::create(5003, 3, {SubBus_6, 0x61}, 300, 310, 47);
+  Sensor::create(5000, 5000, 0);
+  Sensor::create(5003, 5003, 0);
+  // Monitor reset digital on first TOF
+  //Sensor::create(46,46,0);
+
+  // // External 24C256 EEPROM (256kBytes) on I2C address 0x50.
+  // ExternalEEPROM::create({SubBus_0, 0x50}, 256);
+
+  // Play up to 10 sounds on pins 10000-10009. Player is connected to Serial1 or Serial2.
+  #if defined(HAVE_HWSERIAL1) && !defined(ARDUINO_ARCH_STM32)
+  DFPlayer::create(10000, 14, Serial1);
+  #elif defined(ARDUINO_ARCH_STM32)
+  DFPlayer::create(10000, 10, Serial3);  // Pins PC11 (RX) and PC10 (TX)
+  #endif
+
+  // Ultrasound echo device
+  HCSR04::create(2000, 32, 33, 80, 85 /*, HCSR04::LOOP */);
+  Sensor::create(2000, 2000, 0);
+
+#if __has_include("IO_CMRI.h")
+  CMRIbus::create(0, Serial2, 115200, 50, 40); // 50ms cycle, pin 40 for DE/!RE pins
+  CMRInode::create(25000, 72, 0, 0, 'M'); // SMINI address 0
+  for (int pin=0; pin<24; pin++) {
+    Sensor::create(25000+pin, 25000+pin, 0);
+  }
+#endif
+
+  //CMRInode::create(25072, 72, 0, 13, 'M');  // SMINI address 13
+  //CMRInode::create(25144, 288, 0, 14, 'C', 144, 144); // CPNODE address 14
+
+#ifdef NETWORK_PRESENT
+  // Define remote pins to be used.  The range of remote pins is like a common data area shared
+  // between all nodes.
+  // For outputs, a write to a remote VPIN causes a message to be sent to another node, which then performs
+  // the write operation on the device VPIN that is local to that node.
+  // For inputs, the state of remote input VPIN is read on the node where it is connected, and then 
+  // sent to other nodes in the system where the state is saved and processed.  Updates are sent on change, and
+  // also periodically if no changes.
+  //
+  // Each definition is a triple of remote node, remote pin, indexed by relative pin.  Up to 224 rpins can
+  // be configured (per node).  This is to fit into a 32-byte packet.
+  REMOTEPINS rpins[] = {
+      {30,164,RPIN_IN} ,       //4000  Node 30, first MCP23017 pin, input
+      {30,165,RPIN_IN},        //4001  Node 30, second MCP23017 pin, input
+      {30,166,RPIN_OUT},       //4002  Node 30, third MCP23017 pin, output
+      {30,166,RPIN_OUT},       //4003  Node 30, fourth MCP23017 pin, output
+      {30,100,RPIN_INOUT},     //4004  Node 30, first PCA9685 servo pin
+      {30,101,RPIN_INOUT},     //4005  Node 30, second PCA9685 servo pin
+      {30,102,RPIN_INOUT},     //4006  Node 30, third PCA9685 servo pin
+      {30,103,RPIN_INOUT},     //4007  Node 30, fourth PCA9685 servo pin
+      {30,24,RPIN_IN},         //4008  Node 30, Arduino pin D24
+      {30,25,RPIN_IN},         //4009  Node 30, Arduino pin D25
+      {30,26,RPIN_IN},         //4010  Node 30, Arduino pin D26
+      {30,27,RPIN_IN},         //4011  Node 30, Arduino pin D27
+      {30,1000,RPIN_OUT},      //4012  Node 30, DFPlayer playing flag (when read) / Song selector (when written)
+      {30,5000,RPIN_IN},       //4013  Node 30, VL53L0X detect pin
+      {30,VPIN_NONE,0},        //4014  Node 30, spare
+      {30,VPIN_NONE,0},        //4015  Node 30, spare
+    
+      {31,164,RPIN_IN} ,       //4016  Node 31, first MCP23017 pin, input
+      {31,165,RPIN_IN},        //4017  Node 31, second MCP23017 pin, input
+      {31,166,RPIN_OUT},       //4018  Node 31, third MCP23017 pin, output
+      {31,166,RPIN_OUT},       //4019  Node 31, fourth MCP23017 pin, output
+      {31,100,RPIN_INOUT},     //4020  Node 31, first PCA9685 servo pin
+      {31,101,RPIN_INOUT},     //4021  Node 31, second PCA9685 servo pin
+      {31,102,RPIN_INOUT},     //4022  Node 31, third PCA9685 servo pin
+      {31,103,RPIN_INOUT},     //4023  Node 31, fourth PCA9685 servo pin
+      {31,24,RPIN_IN},         //4024  Node 31, Arduino pin D24
+      {31,25,RPIN_IN},         //4025  Node 31, Arduino pin D25
+      {31,26,RPIN_IN},         //4026  Node 31, Arduino pin D26
+      {31,27,RPIN_IN},         //4027  Node 31, Arduino pin D27
+      {31,3,RPIN_IN},          //4028  Node 31, Arduino pin D3
+      {31,VPIN_NONE,0},        //4029  Node 31, spare
+      {31,VPIN_NONE,0},        //4030  Node 31, spare
+      {31,VPIN_NONE,0}         //4031  Node 31, spare
+    };
+  // FirstVPIN, nPins, thisNode, pinDefs, CEPin, CSNPin
+  // Net_RF24 *rf24Driver = new Net_RF24(48, 49);
+  // Network<Net_RF24>::create(4000, NUMREMOTEPINS(rpins), NODE, rpins, rf24Driver);
+  #if NODE==30
+  //Net_ENC28J60 *encDriver = new Net_ENC28J60(49);
+  //Network<Net_ENC28J60>::create(4000, NUMREMOTEPINS(rpins), NODE, rpins, encDriver);
+  #elif NODE==31
+  Net_ENC28J60 *encDriver = new Net_ENC28J60(53);
+  Network<Net_ENC28J60>::create(4000, NUMREMOTEPINS(rpins), NODE, rpins, encDriver);
+  #else
+  Net_Ethernet *etherDriver = new Net_Ethernet();
+  Network<Net_Ethernet>::create(4000, NUMREMOTEPINS(rpins), NODE, rpins, etherDriver);
+  #endif
+  for (int i=0; i<=32; i++) 
+    Sensor::create(4000+i, 4000+i, 0);
+#endif
+
+#ifdef ARDUINO_ARCH_STM32
+//PCF8574::create(1900, 8, 0x27);
+Sensor::create(1900,100,1);
+Sensor::create(1901,101,1);
+#endif
+
+}
+#endif // IO_NO_HAL
