@@ -92,7 +92,7 @@ void I2CManagerClass::begin(void) {
     // Probe and list devices.  Use standard mode 
     //  (clock speed 100kHz) for best device compatibility.
     _setClock(100000);
-    unsigned long originalTimeout = _timeout;
+    uint32_t originalTimeout = _timeout;
     setTimeout(1000);       // use 1ms timeout for probes
 
   #if defined(I2C_EXTENDED_ADDRESS)

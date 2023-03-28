@@ -232,6 +232,7 @@ void I2CManagerClass::I2C_sendStart() {
   // multi-master bus, the bus may be BUSY under control of another master,
   // in which case we can avoid some arbitration failures by waiting until
   // the bus state is IDLE.  We don't do that here.
+  //while (s->SR2 & I2C_SR2_BUSY) {}
 
   // Check there's no STOP still in progress.  If we OR the START bit into CR1
   // and the STOP bit is already set, we could output multiple STOP conditions.
@@ -247,6 +248,7 @@ void I2CManagerClass::I2C_sendStart() {
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
   s->CR1 |= I2C_CR1_STOP; // Stop I2C
+  //while (s->CR1 & I2C_CR1_STOP) {}  // Wait for STOP bit to reset
 }
 
 /***************************************************************************
@@ -272,6 +274,9 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
   volatile uint16_t temp_sr1, temp_sr2;
+
+  pinMode(D2, OUTPUT);
+  digitalWrite(D2, 1);
 
   temp_sr1 = s->SR1;
 
@@ -302,7 +307,8 @@ void I2CManagerClass::I2C_handleInterrupt() {
       completionStatus = I2C_STATUS_BUS_ERROR;
       state = I2C_STATE_COMPLETED;
     }
-  } else {
+  } 
+  else {
     // No error flags, so process event according to current state.
     switch (transactionState) {
       case TS_START:
@@ -324,6 +330,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
         break;
 
       case TS_W_ADDR:
+        temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
         if (temp_sr1 & I2C_SR1_ADDR) {
           // Event EV6
           // Address sent successfully, device has ack'd in response.
@@ -333,10 +340,25 @@ void I2CManagerClass::I2C_handleInterrupt() {
             completionStatus = I2C_STATUS_OK;
             state = I2C_STATE_COMPLETED;
           } else {
-            transactionState = TS_W_DATA;
+            if (bytesToSend <= 2) {
+              // After this interrupt, we will have no more data to send. 
+              // Next event of interest will be the BTF interrupt, so disable TXE interrupt
+              s->CR2 &= ~I2C_CR2_ITBUFEN;
+              transactionState = TS_W_STOP;
+            } else {
+              // More data to send, enable TXE interrupt.
+              s->CR2 |= I2C_CR2_ITBUFEN;
+              transactionState = TS_W_DATA;
+            }
+            // Put one or two bytes into DR to avoid interrupts
+            s->DR = sendBuffer[txCount++];
+            bytesToSend--;
+            if (bytesToSend) {
+              s->DR = sendBuffer[txCount++];
+              bytesToSend--;
+            }
           }
         }
-        temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
         break;
 
       case TS_W_DATA:
@@ -344,13 +366,16 @@ void I2CManagerClass::I2C_handleInterrupt() {
           // Event EV8_1/EV8/EV8_2
           // Transmitter empty, write a byte to it.
           if (bytesToSend) {
+            if (bytesToSend == 1) {
+              // We will next need to wait for BTF.
+              // TXE becomes set one byte before BTF is set, so disable 
+              // TXE interrupt while we're waiting for BTF, to suppress 
+              // repeated interrupts during that period.
+              s->CR2 &= ~I2C_CR2_ITBUFEN;
+              transactionState = TS_W_STOP;
+            }
             s->DR = sendBuffer[txCount++];
             bytesToSend--;
-          }
-          // See if we're finished sending
-          if (!bytesToSend) {
-            // Wait for last byte to be sent.
-            transactionState = TS_W_STOP;
           }
         }
         break;
@@ -358,7 +383,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
       case TS_W_STOP:
         if ((temp_sr1 & I2C_SR1_BTF) && (temp_sr1 & I2C_SR1_TXE)) {
           // Event EV8_2
-          // Write finished.
+          // All writes finished.
           if (bytesToReceive) {
               // Start a read operation by sending (re)start
               I2C_sendStart();
@@ -383,17 +408,22 @@ void I2CManagerClass::I2C_handleInterrupt() {
             // Receive 1 byte
             s->CR1 &= ~I2C_CR1_ACK;  // Disable ack
             temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
+            // Next step will occur after a RXNE interrupt, so enable it
+            s->CR2 |= I2C_CR2_ITBUFEN;
             transactionState = TS_R_STOP;
-            // Next step will occur after a BTF interrupt
           } else if (bytesToReceive == 2) {
             // Receive 2 bytes
             s->CR1 &= ~I2C_CR1_ACK;  // Disable ACK for final byte
             s->CR1 |= I2C_CR1_POS;  // set POS flag to delay effect of ACK flag
+            // Next step will occur after a BTF interrupt, so disable RXNE interrupt
+            s->CR2 &= ~I2C_CR2_ITBUFEN;
             temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
             transactionState = TS_R_STOP;
           } else {
             // >2 bytes, just wait for bytes to come in and ack them for the time being
             // (ack flag has already been set).
+            // Next step will occur after a BTF interrupt, so disable RXNE interrupt
+            s->CR2 &= ~I2C_CR2_ITBUFEN;
             temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
             transactionState = TS_R_DATA;
           }
@@ -448,6 +478,8 @@ void I2CManagerClass::I2C_handleInterrupt() {
         break;
     }
   }
+  delayMicroseconds(1);
+  digitalWrite(D2, 0);
 }
 
 #endif /* I2CMANAGER_STM32_H */

@@ -172,6 +172,10 @@ void I2CManagerClass::startTransaction() {
  *  Function to queue a request block and initiate operations.
  ***************************************************************************/
 void I2CManagerClass::queueRequest(I2CRB *req) {
+
+  if (((req->operation & OPERATION_MASK) == OPERATION_READ) && req->readLen == 0)
+    return;  // Ignore null read
+
   req->status = I2C_STATUS_PENDING;
   req->nextRequest = NULL;
   ATOMIC_BLOCK() {
@@ -183,6 +187,7 @@ void I2CManagerClass::queueRequest(I2CRB *req) {
   }
 
 }
+
 
 /***************************************************************************
  *  Initiate a write to an I2C device (non-blocking operation)
@@ -240,8 +245,8 @@ void I2CManagerClass::checkForTimeout() {
     I2CRB *t = queueHead;
     if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && _timeout > 0) {
       // Check for timeout
-      unsigned long elapsed = micros() - startTime;
-      if (elapsed > _timeout) { 
+      int32_t elapsed = micros() - startTime;
+      if (elapsed > (int32_t)_timeout) { 
 #ifdef DIAG_IO
         //DIAG(F("I2CManager Timeout on %s"), t->i2cAddress.toString());
 #endif
@@ -300,12 +305,12 @@ void I2CManagerClass::handleInterrupt() {
 
   // Check if current request has completed.  If there's a current request
   // and state isn't active then state contains the completion status of the request.
-  if (state == I2C_STATE_COMPLETED && currentRequest != NULL) {
+  if (state == I2C_STATE_COMPLETED && currentRequest != NULL && currentRequest == queueHead) {
     // Operation has completed.
     if (completionStatus == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
       || currentRequest->operation & OPERATION_NORETRY) 
     {
-      // Status is OK, or has failed and retry count exceeded, or retries disabled.
+      // Status is OK, or has failed and retry count exceeded, or failed and retries disabled.
 #if defined(I2C_EXTENDED_ADDRESS)
       if (muxPhase == MuxPhase_PROLOG ) {
         overallStatus = completionStatus;
