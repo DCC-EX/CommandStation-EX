@@ -98,7 +98,8 @@ private:
 
   void _write(VPIN vpin, int value) override {
     if (vpin == _firstVpin + 1) {
-      byte _feedbackBuffer[2] = {RE_OP, value};
+      if (value != 0) value = 0x01;
+      byte _feedbackBuffer[2] = {RE_OP, (byte)value};
       I2CManager.write(_I2CAddress, _feedbackBuffer, 2);
     }
   }
