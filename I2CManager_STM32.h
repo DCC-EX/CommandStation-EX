@@ -238,6 +238,8 @@ void I2CManagerClass::I2C_sendStart() {
   // and the STOP bit is already set, we could output multiple STOP conditions.
   while (s->CR1 & I2C_CR1_STOP) {}  // Wait for STOP bit to reset
 
+  s->CR2 |= (I2C_CR2_ITEVTEN | I2C_CR2_ITERREN);  // Enable interrupts
+  s->CR2 &= ~I2C_CR2_ITBUFEN;     // Don't enable buffer interupts yet.
   s->CR1 &= ~I2C_CR1_POS;   // Clear the POS bit
   s->CR1 |= (I2C_CR1_ACK | I2C_CR1_START);   // Enable the ACK and generate START
   transactionState = TS_START;
@@ -248,7 +250,6 @@ void I2CManagerClass::I2C_sendStart() {
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
   s->CR1 |= I2C_CR1_STOP; // Stop I2C
-  //while (s->CR1 & I2C_CR1_STOP) {}  // Wait for STOP bit to reset
 }
 
 /***************************************************************************
@@ -261,7 +262,7 @@ void I2CManagerClass::I2C_close() {
   // Should never happen, but wait for up to 500us only.
   unsigned long startTime = micros();
   while ((s->CR1 & I2C_CR1_PE) != 0) {
-    if (micros() - startTime >= 500UL) break;
+    if ((int32_t)(micros() - startTime) >= 500) break;
   }
   NVIC_DisableIRQ(I2C1_EV_IRQn);
   NVIC_DisableIRQ(I2C1_ER_IRQn);
@@ -274,9 +275,6 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
   volatile uint16_t temp_sr1, temp_sr2;
-
-  pinMode(D2, OUTPUT);
-  digitalWrite(D2, 1);
 
   temp_sr1 = s->SR1;
 
@@ -330,8 +328,8 @@ void I2CManagerClass::I2C_handleInterrupt() {
         break;
 
       case TS_W_ADDR:
-        temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
         if (temp_sr1 & I2C_SR1_ADDR) {
+          temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
           // Event EV6
           // Address sent successfully, device has ack'd in response.
           if (!bytesToSend) {
@@ -340,22 +338,25 @@ void I2CManagerClass::I2C_handleInterrupt() {
             completionStatus = I2C_STATUS_OK;
             state = I2C_STATE_COMPLETED;
           } else {
-            if (bytesToSend <= 2) {
-              // After this interrupt, we will have no more data to send. 
-              // Next event of interest will be the BTF interrupt, so disable TXE interrupt
-              s->CR2 &= ~I2C_CR2_ITBUFEN;
-              transactionState = TS_W_STOP;
-            } else {
-              // More data to send, enable TXE interrupt.
-              s->CR2 |= I2C_CR2_ITBUFEN;
-              transactionState = TS_W_DATA;
-            }
-            // Put one or two bytes into DR to avoid interrupts
+            // Put one byte into DR to load shift register.
             s->DR = sendBuffer[txCount++];
             bytesToSend--;
             if (bytesToSend) {
+              // Put another byte to load DR
               s->DR = sendBuffer[txCount++];
               bytesToSend--;
+            }
+            if (!bytesToSend) {
+              // No more bytes to send.
+              // The TXE interrupt occurs when the DR is empty, and the BTF interrupt 
+              // occurs when the shift register is also empty (one character later).
+              // To avoid repeated TXE interrupts during this time, we disable TXE interrupt.
+              s->CR2 &= ~I2C_CR2_ITBUFEN;  // Wait for BTF interrupt, disable TXE interrupt
+              transactionState = TS_W_STOP;
+            } else {
+              // More data remaining to send after this interrupt, enable TXE interrupt.
+              s->CR2 |= I2C_CR2_ITBUFEN;
+              transactionState = TS_W_DATA;
             }
           }
         }
@@ -363,37 +364,39 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
       case TS_W_DATA:
         if (temp_sr1 & I2C_SR1_TXE) {
-          // Event EV8_1/EV8/EV8_2
+          // Event EV8_1/EV8
           // Transmitter empty, write a byte to it.
           if (bytesToSend) {
-            if (bytesToSend == 1) {
-              // We will next need to wait for BTF.
-              // TXE becomes set one byte before BTF is set, so disable 
-              // TXE interrupt while we're waiting for BTF, to suppress 
-              // repeated interrupts during that period.
-              s->CR2 &= ~I2C_CR2_ITBUFEN;
-              transactionState = TS_W_STOP;
-            }
             s->DR = sendBuffer[txCount++];
             bytesToSend--;
+            if (!bytesToSend) {
+              s->CR2 &= ~I2C_CR2_ITBUFEN;  // Disable TXE interrupt
+              transactionState = TS_W_STOP;
+            }
           }
-        }
+        } 
         break;
 
       case TS_W_STOP:
-        if ((temp_sr1 & I2C_SR1_BTF) && (temp_sr1 & I2C_SR1_TXE)) {
+        if (temp_sr1 & I2C_SR1_BTF) {
           // Event EV8_2
-          // All writes finished.
+          // Done, last character sent. Anything to receive?
           if (bytesToReceive) {
-              // Start a read operation by sending (re)start
-              I2C_sendStart();
+            I2C_sendStart();
+            // NOTE: Three redundant BTF interrupts take place between the
+            // first BTF interrupt and the START interrupt.  I've tried all sorts
+            // of ways to eliminate them, and the only thing that worked for
+            // me was to loop until the BTF bit becomes reset.  Either way,
+            // it's a waste of processor time.  Anyone got a solution?
+            //while (s->SR1 && I2C_SR1_BTF) {}
+            transactionState = TS_START;
           } else {
-            // Done.
             I2C_sendStop();
             transactionState = TS_IDLE;
             completionStatus = I2C_STATUS_OK;
             state = I2C_STATE_COMPLETED;
           }
+          s->SR1 &= I2C_SR1_BTF;  // Clear BTF interrupt
         }
         break;
 
@@ -477,9 +480,11 @@ void I2CManagerClass::I2C_handleInterrupt() {
         }
         break;
     }
+    // If we've received an interrupt at any other time, we're not interested so clear it
+    // to prevent it recurring ad infinitum.
+    s->SR1 = 0;
   }
-  delayMicroseconds(1);
-  digitalWrite(D2, 0);
+  
 }
 
 #endif /* I2CMANAGER_STM32_H */
