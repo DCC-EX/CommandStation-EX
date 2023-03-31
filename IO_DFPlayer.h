@@ -231,8 +231,10 @@ protected:
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
         sendPacket(0x42); 
-        _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds
-        _awaitingResponse = true;
+        if (!_awaitingResponse) {
+          _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds
+          _awaitingResponse = true;
+        }
       }
     }
   }
