@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.38"
+#define VERSION "4.2.39"
+// 4.2.39 - DFplayer driver now polls device to detect failures and errors.
 // 4.2.38 - Clean up compiler warning when IO_RotaryEncoder.h included
 // 4.2.37 - Add new FLAGS HAL device for communications to/from EX-RAIL;
 //        - Fix diag display of high VPINs within IODevice class.

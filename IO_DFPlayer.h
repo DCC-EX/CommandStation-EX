@@ -1,5 +1,5 @@
 /*
- *  © 2022, Neil McKechnie. All rights reserved.
+ *  © 2023, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
  *
@@ -33,10 +33,13 @@
  *   and Serialn is the name of the Serial port connected to the DFPlayer (e.g. Serial1).
  * 
  * Example:
- *   In mySetup function within mySetup.cpp:
+ *   In halSetup function within myHal.cpp:
  *       DFPlayer::create(3500, 5, Serial1);
+ *   or in myAutomation.h:
+ *       HAL(DFPlayer, 3500, 5, Serial1)
  * 
- * Writing an analogue value 1-2999 to the first pin (3500) will play the numbered file from the SD card;
+ * Writing an analogue value 1-2999 to the first pin (3500) will play the numbered file from the
+ * SD card; e.g. a value of 1 will play the first file, 2 for the second file etc.
  * Writing an analogue value 0 to the first pin (3500) will stop the file playing;
  * Writing an analogue value 0-30 to the second pin (3501) will set the volume;
  * Writing a digital value of 1 to a pin will play the file corresponding to that pin, e.g.
@@ -61,6 +64,10 @@
  * card (as listed by the DIR command in Windows).  This may not match the order of the files 
  * as displayed by Windows File Manager, which sorts the file names.  It is suggested that
  * files be copied into an empty SDcard in the desired order, one at a time.
+ * 
+ * The driver now polls the device for its current status every second.  Should the device
+ * fail to respond it will be marked off-line and its busy indicator cleared, to avoid
+ * lock-ups in automation scripts that are executing for a WAITFOR().
  */
 
 #ifndef IO_DFPlayer_h
@@ -74,7 +81,10 @@ private:
   HardwareSerial *_serial;
   bool _playing = false;
   uint8_t _inputIndex = 0;
-  unsigned long _commandSendTime; // Allows timeout processing
+  unsigned long _commandSendTime; // Time (us) that last transmit took place.
+  unsigned long _timeoutTime;
+  uint8_t _recvCMD;  // Last received command code byte
+  bool _awaitingResponse = false;
   uint8_t _requestedVolumeLevel = MAXVOLUME;
   uint8_t _currentVolume = MAXVOLUME;
   int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
@@ -102,80 +112,135 @@ protected:
 
     // Send a query to the device to see if it responds
     sendPacket(0x42); 
-    _commandSendTime = micros();
+    _timeoutTime = micros() + 5000000UL;  // 5 second timeout
+    _awaitingResponse = true;
   }
 
   void _loop(unsigned long currentMicros) override {
-    // Check for incoming data on _serial, and update busy flag accordingly.
-    // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
-    while (_serial->available()) {
-      int c = _serial->read();
-      if (c == 0x7E && _inputIndex == 0) 
-        _inputIndex = 1;
-      else if ((c==0xFF && _inputIndex==1)
-            || (c==0x3D && _inputIndex==3) 
-            || (_inputIndex >=4 && _inputIndex <= 8))
-        _inputIndex++;
-      else if (c==0x06 && _inputIndex==2) { 
-        // Valid message prefix, so consider the device online
-        if (_deviceState==DEVSTATE_INITIALISING) {
-          _deviceState = DEVSTATE_NORMAL;
-          #ifdef DIAG_IO
-          _display();
-          #endif
-        }
-        _inputIndex++;
-      } else if (c==0xEF && _inputIndex==9) {
-        // End of play
-        if (_playing) {
-          #ifdef DIAG_IO
-          DIAG(F("DFPlayer: Finished"));
-          #endif
-          _playing = false;
-        }
-        _inputIndex = 0;
-      } else 
-        _inputIndex = 0;  // Unrecognised character sequence, start again!
-    }
 
-    // Check if the initial prompt to device has timed out.  Allow 5 seconds
-    if (_deviceState == DEVSTATE_INITIALISING && currentMicros - _commandSendTime > 5000000UL) {
+    // Read responses from device
+    processIncoming();
+
+    // Check if a command sent to device has timed out.  Allow 0.5 second for response
+    if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) {
       DIAG(F("DFPlayer device not responding on serial port"));
       _deviceState = DEVSTATE_FAILED;
+      _awaitingResponse = false;
+      _playing = false;
     }
+
+    // Send any commands that need to go.
+    processOutgoing(currentMicros);
+
+    delayUntil(currentMicros + 10000); // Only enter every 10ms
+  }
+
+  // Check for incoming data on _serial, and update busy flag and other state accordingly
+  void processIncoming() {
+    // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
+    bool ok = false;
+    while (_serial->available()) {
+      int c = _serial->read();
+      switch (_inputIndex) {
+        case 0:
+          if (c == 0x7E) ok = true;
+          break;
+        case 1:
+          if (c == 0xFF) ok = true;
+          break;
+        case 2:
+          if (c== 0x06) ok = true;
+          break;
+        case 3:
+          _recvCMD = c; // CMD byte
+          ok = true;
+          break;
+        case 6:
+          switch (_recvCMD) {
+            case 0x42:
+              // Response to status query
+              _playing = (c != 0);
+              // Mark the device online and cancel timeout
+              if (_deviceState==DEVSTATE_INITIALISING) {
+                _deviceState = DEVSTATE_NORMAL;
+                #ifdef DIAG_IO
+                _display();
+                #endif
+              }
+              _awaitingResponse = false;
+              break;
+            case 0x3d:
+              // End of play
+              if (_playing) {
+                #ifdef DIAG_IO
+                DIAG(F("DFPlayer: Finished"));
+                #endif
+                _playing = false;
+              }
+              break;
+            case 0x40:
+              // Error code
+              DIAG(F("DFPlayer: Error %d returned from device"), c);
+              _playing = false;
+              break;
+          }
+          ok = true;
+          break;
+        case 4: case 5: case 7: case 8: 
+          ok = true;  // Skip over these bytes in message.
+          break;
+        case 9:
+          if (c==0xef) {
+            // Message finished
+          }
+          break;
+        default:
+          break;
+      }
+      if (ok)
+        _inputIndex++;  // character as expected, so increment index
+      else
+        _inputIndex = 0;  // otherwise reset.
+    }
+  }
+
+  // Send any commands that need to be sent
+  void processOutgoing(unsigned long currentMicros) {
 
     // When two commands are sent in quick succession, the device will often fail to 
     // execute one.  Testing has indicated that a delay of 100ms or more is required
     // between successive commands to get reliable operation.
     // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
-    if (currentMicros - _commandSendTime > 100000UL) {
+    if (((int32_t)currentMicros - _commandSendTime) > 100000) {
       if (_currentVolume > _requestedVolumeLevel) {
         // Change volume before changing song if volume is reducing.
         _currentVolume = _requestedVolumeLevel;
         sendPacket(0x06, _currentVolume);
-        _commandSendTime = currentMicros;
       } else if (_requestedSong > 0) {
         // Change song
         sendPacket(0x03, _requestedSong);
         _requestedSong = -1;
-        _commandSendTime = currentMicros;
       } else if (_requestedSong == 0) {
         sendPacket(0x0e);  // Pause playing
         _requestedSong = -1;
-        _commandSendTime = currentMicros;
       } else if (_currentVolume < _requestedVolumeLevel) {
         // Change volume after changing song if volume is increasing.
         _currentVolume = _requestedVolumeLevel;
         sendPacket(0x06, _currentVolume);
-        _commandSendTime = currentMicros;
+      } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
+        // Poll device every second that other commands aren't being sent,
+        // to check if it's still connected and responding.
+        sendPacket(0x42); 
+        _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds
+        _awaitingResponse = true;
       }
     }
-    delayUntil(currentMicros + 10000); // Only enter every 10ms
   }
 
   // Write with value 1 starts playing a song.  The relative pin number is the file number.
   // Write with value 0 stops playing.
   void _write(VPIN vpin, int value) override {
+    if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
     if (value) {
       // Value 1, start playing
@@ -200,6 +265,7 @@ protected:
   // WriteAnalogue on second pin sets the output volume.
   //
   void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
+    if (_deviceState == DEVSTATE_FAILED) return;
     uint8_t pin = vpin - _firstVpin;
  
     #ifdef DIAG_IO
@@ -228,6 +294,7 @@ protected:
 
   // A read on any pin indicates whether the player is still playing.
   int _read(VPIN) override {
+    if (_deviceState == DEVSTATE_FAILED) return false;
     return _playing;
   }
 
@@ -264,6 +331,8 @@ private:
 
     // Output the command
     _serial->write(out, sizeof(out));
+
+    _commandSendTime = micros();
   }
 
   uint16_t calcChecksum(uint8_t* packet)
