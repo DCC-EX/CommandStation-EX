@@ -221,7 +221,7 @@ protected:
         sendPacket(0x03, _requestedSong);
         _requestedSong = -1;
       } else if (_requestedSong == 0) {
-        sendPacket(0x0e);  // Pause playing
+        sendPacket(0x16);  // Stop playing
         _requestedSong = -1;
       } else if (_currentVolume < _requestedVolumeLevel) {
         // Change volume after changing song if volume is increasing.
