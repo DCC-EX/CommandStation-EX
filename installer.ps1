@@ -21,33 +21,39 @@
 # https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip
 # https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip
 
+$gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
+
 param(
   [Parameter()]
-  [String]$BUILD_DIR
+  [String]$buildDirectory
 )
 
-if (!$PSBoundParameters.ContainsKey('BUILD_DIR')) {
+if (!$PSBoundParameters.ContainsKey('buildDirectory')) {
 # Use the current date/time stamp to create a unique directory if one is not specified.
-  $BUILD_DATE = Get-Date -Format 'yyyyMMdd-HHmmss'
-  $BUILD_DIR = $env:TEMP + "\" + $BUILD_DATE
+  $buildDate = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $buildDirectory = $env:TEMP + "\" + $buildDate
 }
 
 if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
-  $URL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
-  $OUTFILE = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
+  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
+  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
 } else {
-  $URL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
-  $OUTFILE = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
+  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
+  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
 }
 
-Write-Output "Downloading installer to $OUTFILE"
+Write-Output "Downloading installer to $arduinoCLIZip"
 
 $ProgressPreference = "SilentlyContinue"
-Invoke-WebRequest -Uri $URL -OutFile $OUTFILE
+Invoke-WebRequest -Uri $arduinoCLIURL -OutFile $arduinoCLIZip
 
-$CLI_INSTALL = $env:TEMP + "\" + "arduino-cli_installer"
+$arduinoCLIDirectory = $env:TEMP + "\" + "arduino-cli_installer"
 
-Expand-Archive -Path $OUTFILE -DestinationPath $CLI_INSTALL -Force
+Expand-Archive -Path $arduinoCLIZip -DestinationPath $arduinoCLIDirectory -Force
 $ProgressPreference = "Continue"
 
-Write-Output "Installing using directory $BUILD_DIR"
+Write-Output "Installing using directory $buildDirectory"
+
+foreach ($tag in Invoke-RestMethod -Uri $gitHubAPITags | Format-List -Property ref) {
+  $tag.getType()
+}
