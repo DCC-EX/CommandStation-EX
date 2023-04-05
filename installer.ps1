@@ -121,6 +121,31 @@ if (!(Test-Path -PathType Leaf -Path $arduinoCLI)) {
 }
 
 <#
+Get the list of tags
+#>
+try {
+  $tagList = Invoke-RestMethod -Uri $gitHubAPITags
+}
+catch {
+  Write-Output "Failed to obtain list of available EX-CommandStation versions"
+  Exit
+}
+
+<#
+Get latest two Prod and Devel releases, add to hash table for selection by user
+#>
+foreach ($tag in $tagList | Sort-Object -Property ref -Descending) {
+  if ($tag.ref -Like "*Prod") {
+    Write-Output $tag.ref
+  }
+}
+foreach ($tag in $tagList | Sort-Object -Property ref -Descending) {
+  if ($tag.ref -Like "*Devel") {
+    Write-Output $tag.ref
+  }
+}
+
+<#
 Write-Output "Installing using directory $buildDirectory"
 
 $tagList = Invoke-RestMethod -Uri $gitHubAPITags
