@@ -63,15 +63,31 @@ void IODevice::begin() {
   if (exrailHalSetup)
     exrailHalSetup();
 
-  // Predefine two PCA9685 modules 0x40-0x41
+  // Predefine two PCA9685 modules 0x40-0x41 if no conflicts
   // Allocates 32 pins 100-131
-  PCA9685::create(100, 16, 0x40);
-  PCA9685::create(116, 16, 0x41);
+  if (checkNoOverlap(100, 16, 0x40)) {
+    PCA9685::create(100, 16, 0x40);
+  } else {
+    DIAG(F("Default PCA9685 at I2C 0x40 disabled due to configured user device"));
+  }
+  if (checkNoOverlap(116, 16, 0x41)) {
+    PCA9685::create(116, 16, 0x41);
+  } else {
+    DIAG(F("Default PCA9685 at I2C 0x41 disabled due to configured user device"));
+  }
   
-  // Predefine two MCP23017 module 0x20/0x21
+  // Predefine two MCP23017 module 0x20/0x21 if no conflicts
   // Allocates 32 pins 164-195
-  MCP23017::create(164, 16, 0x20);
-  MCP23017::create(180, 16, 0x21);
+  if (checkNoOverlap(164, 16, 0x20)) {
+    MCP23017::create(164, 16, 0x20);
+  } else {
+    DIAG(F("Default MCP23017 at I2C 0x20 disabled due to configured user device"));
+  }
+  if (checkNoOverlap(180, 16, 0x21)) {
+    MCP23017::create(180, 16, 0x21);
+  } else {
+    DIAG(F("Default MCP23017 at I2C 0x21 disabled due to configured user device"));
+  }
 }
 
 // reset() function to reinitialise all devices
