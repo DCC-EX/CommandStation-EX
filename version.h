@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.40"
+#define VERSION "4.2.41"
+// 4.2.41 - Move HAl startup to ASAP in setup()
+//        - Fix DNOU8 output pin setup to all LOW  
 // 4.2.40 - Automatically detect conflicting default I2C devices and disable
 // 4.2.39 - DFplayer driver now polls device to detect failures and errors.
 // 4.2.38 - Clean up compiler warning when IO_RotaryEncoder.h included

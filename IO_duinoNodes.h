@@ -55,6 +55,7 @@ public:
     pinMode(_clockPin,OUTPUT);
     pinMode(_dataPin,_pinMap?INPUT_PULLUP:OUTPUT);
     _display();
+    if (!_pinMap) _loopOutput();
   }
 
 // loop called by HAL supervisor 
