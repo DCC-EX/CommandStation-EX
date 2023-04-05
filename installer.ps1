@@ -1,4 +1,4 @@
-#
+<#
 # © 2023 Peter Cole
 # 
 # This file is part of EX-CommandStation
@@ -15,28 +15,31 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
-#
+#>
 
-# 32/64 bit Win installer
-# https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip
-# https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip
-# 
-# For script errors set ExecutionPolicy:
-# Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
+<############################################
+For script errors set ExecutionPolicy:
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
+############################################>
 
+<############################################
+Optional command line parameters:
+  $buildDirectory - specify an existing directory rather than generating a new unique one
+  $version - specify an exact version to download
+############################################>
 Param(
   [Parameter()]
-  [String]$buildDirectory
+  [String]$buildDirectory,
+  [Parameter()]
+  [String]$version
 )
 
-if (!$PSBoundParameters.ContainsKey('buildDirectory')) {
-# Use the current date/time stamp to create a unique directory if one is not specified.
-  $buildDate = Get-Date -Format 'yyyyMMdd-HHmmss'
-  $buildDirectory = $env:TEMP + "\" + $buildDate
-}
-
+<############################################
+Define global parameters here such as known URLs etc.
+############################################>
+$installerVersion = "v0.0.1"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
-
+$gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
 if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
   $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
   $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
@@ -44,25 +47,87 @@ if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchi
   $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
   $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
 }
-
-Write-Output "Downloading installer to $arduinoCLIZip"
-
-$ProgressPreference = "SilentlyContinue"
-Invoke-WebRequest -Uri $arduinoCLIURL -OutFile $arduinoCLIZip
-
 $arduinoCLIDirectory = $env:TEMP + "\" + "arduino-cli_installer"
+$arduinoCLI = $arduinoCLIDirectory + "\arduino-cli.exe"
 
-Expand-Archive -Path $arduinoCLIZip -DestinationPath $arduinoCLIDirectory -Force
-$ProgressPreference = "Continue"
+<############################################
+Set default action for progress indicators, warnings, and errors
+############################################>
+$global:ProgressPreference = "SilentlyContinue"
+$global:WarningPreference = "SilentlyContinue"
+$global:ErrorActionPreference = "SilentlyContinue"
 
+<############################################
+If $buildDirectory not provided, generate a new time/date stamp based directory to use
+############################################>
+if (!$PSBoundParameters.ContainsKey('buildDirectory')) {
+  $buildDate = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $buildDirectory = $env:TEMP + "\" + $buildDate
+}
+$commandStationDirectory = $buildDirectory + "\CommandStation-EX"
+
+<############################################
+Write out intro message and prompt to continue
+############################################>
+@"
+Welcome to the DCC-EX PowerShell installer for EX-CommandStation ($installerVersion)
+
+Current installer options:
+- EX-CommandStation will be built in $commandStationDirectory
+- Arduino CLI will be in $arduinoCLIDirectory
+"@
+
+
+<############################################
+Create build directory if it doesn't exist, or fail
+############################################>
+if (!(Test-Path -PathType Container -Path $buildDirectory)) {
+  try {
+    New-Item -ItemType Directory -Path $buildDirectory | Out-Null
+  }
+  catch {
+    Write-Output "Could not create build directory $buildDirectory"
+    Exit
+  }
+}
+
+<############################################
+See if we have the Arduino CLI already, otherwise download and extract it
+############################################>
+if (!(Test-Path -PathType Leaf -Path $arduinoCLI)) {
+  if (!(Test-Path -PathType Container -Path $arduinoCLIDirectory)) {
+    try {
+      New-Item -ItemType Directory -Path $arduinoCLIDirectory | Out-Null
+    }
+    catch {
+      Write-Output "Arduino CLI does not exist and cannot create directory $arduinoCLIDirectory"
+      Exit
+    }
+  }
+  Write-Output "Downloading and extracting Arduino CLI"
+  try {
+    Invoke-WebRequest -Uri $arduinoCLIURL -OutFile $arduinoCLIZip
+  }
+  catch {
+    Write-Output "Failed to download Arduino CLI"
+    Exit
+  }
+  try {
+    Expand-Archive -Path $arduinoCLIZip -DestinationPath $arduinoCLIDirectory -Force
+  }
+  catch {
+    Write-Output "Failed to extract Arduino CLI"
+  }
+}
+
+<#
 Write-Output "Installing using directory $buildDirectory"
 
 $tagList = Invoke-RestMethod -Uri $gitHubAPITags
 
-# Example zip: https://github.com/DCC-EX/CommandStation-EX/archive/refs/tags/v4.2.36-Devel.zip
-
 foreach ($tag in $tagList) {
   $version = $tag.ref.split("/")[2]
-  $versionURL = "https://github.com/DCC-EX/CommandStation-EX/archive/" + $tag.ref
+  $versionURL = $gitHubURLPrefix + $tag.ref
   Write-Output "$version : $versionURL"
 }
+#>
