@@ -35,6 +35,24 @@ Param(
 )
 
 <############################################
+List of supported devices with FQBN in case clones used that aren't detected
+############################################>
+$supportedDevices = @(
+  @{
+    name = "Arduino Mega or Mega 2560"
+    fqbn = "arduino:avr:mega"
+  },
+  @{
+    name = "Arduino Nano"
+    fqbn = "arduino:avr:nano"
+  },
+  @{
+    name = "Arduino Uno"
+    fqbn = "arduino:avr:uno"
+  }
+)
+
+<############################################
 Define global parameters here such as known URLs etc.
 ############################################>
 $installerVersion = "v0.0.1"
@@ -75,6 +93,9 @@ Welcome to the DCC-EX PowerShell installer for EX-CommandStation ($installerVers
 Current installer options:
 - EX-CommandStation will be built in $commandStationDirectory
 - Arduino CLI will be in $arduinoCLIDirectory
+
+Available EX-CommandStation versions:
+-------------------------------------
 "@
 
 
@@ -176,7 +197,7 @@ foreach ($selection in $userList.Keys | Sort-Object $selection) {
 Write-Output "5 - Exit"
 $userSelection = 0
 do {
-  [int]$userSelection = Read-Host "Select the version to install from the list above (1 - 5)"
+  [int]$userSelection = Read-Host "`r`nSelect the version to install from the list above (1 - 5)"
 } until (
   (($userSelection -ge 1) -and ($userSelection -le 5))
 )
@@ -197,6 +218,14 @@ try {
 }
 catch {
   Write-Output "Error downloading EX-CommandStation zip file"
+  Exit
+}
+
+<############################################
+If folder exists, bail out and tell user
+############################################>
+if (Test-Path -PathType Container -Path "$buildDirectory\CommandStation-EX") {
+  Write-Output "EX-CommandStation directory already exists, please ensure you have copied any user files then delete manually: $buildDirectory\CommandStation-EX"
   Exit
 }
 
@@ -224,36 +253,117 @@ catch {
 <############################################
 If config directory provided, copy files here
 ############################################>
-
+# To be done
+# If exists copy config.h, myAutomation.h, myHal.cpp, mySetup.h
 
 <############################################
 Once files all together, identify available board(s)
 ############################################>
 # Need to do an initial board list to download everything first
-& $arduinoCLI board list | Out-Null
-# Run again to generate the list of discovered boards
-& $arduinoCLI board list --format json
+try {
+  & $arduinoCLI board list | Out-Null
+}
+catch {
+  Write-Output "Failed to update Arduino CLI board list"
+  Exit
+}
+# Run again to generate the list of discovered boards into a custom object
+try {
+  $boardList = & $arduinoCLI board list --format jsonmini | ConvertFrom-Json
+}
+catch {
+  Write-Output "Failed to obtain list of boards"
+  Exit
+}
 
 <############################################
 Get user to select board
 ############################################>
+if ($boardList.count -eq 0) {
+  Write-Output "Could not find any attached devices, please ensure your device is plugged in to a USB port and Windows recognises it"
+  Exit
+} else {
+@"
 
+Devices attached to COM ports:
+------------------------------
+"@
 
+  $boardSelect = 1
+  foreach ($board in $boardList) {
+    if ($board.matching_boards.name) {
+      $boardName = $board.matching_boards.name
+    } else {
+      $boardName = "Unknown device"
+    }
+    $port = $board.port.address
+    Write-Output "$boardSelect - $boardName on port $port"
+    $boardSelect++
+  }
+  Write-Output "$boardSelect - Exit"
+  $userSelection = 0
+  do {
+    [int]$userSelection = Read-Host "`r`nSelect the device to use from the list above"
+  } until (
+    (($userSelection -ge 1) -and ($userSelection -le ($boardList.count + 1)))
+  )
+  if ($userSelection -eq ($boardList.count + 1)) {
+    Write-Output "Exiting installer"
+    Exit
+  } else {
+    $selectedBoard = $userSelection - 1
+  }
+}
 
+<############################################
+If the board is unknown, need to choose which one
+############################################>
+if ($null -eq $boardList[$selectedBoard].matching_boards.name) {
+  Write-Output "The device selected is unknown, these boards are supported:`r`n"
+  $deviceSelect = 1
+  foreach ($device in $supportedDevices) {
+    Write-Output "$deviceSelect - $($supportedDevices[$deviceSelect - 1].name)"
+    $deviceSelect++
+  }
+  Write-Output "$deviceSelect - Exit"
+  $userSelection = 0
+  do {
+    [int]$userSelection = Read-Host "Select the board type from the list above"
+  } until (
+    (($userSelection -ge 1) -and ($userSelection -le ($supportedDevices.count + 1)))
+  )
+  if ($userSelection -eq ($supportedDevices.count + 1)) {
+    Write-Output "Exiting installer"
+    Exit
+  } else {
+    $deviceName = $supportedDevices[$userSelection - 1].name
+    $deviceFQBN = $supportedDevices[$userSelection - 1].fqbn
+  }
+} else {
+  $deviceName = $boardList[$selectedBoard].matching_boards.name
+  $deviceFQBN = $boardList[$selectedBoard].matching_boards.fqbn
+  $devicePort = $boardList[$selectedBoard].port.address
+}
 
 <############################################
 Upload the sketch to the selected board
 ############################################>
 #$arduinoCLI upload -b fqbn -p port $commandStationDirectory
-
-<#
-Write-Output "Installing using directory $buildDirectory"
-
-$tagList = Invoke-RestMethod -Uri $gitHubAPITags
-
-foreach ($tag in $tagList) {
-  $version = $tag.ref.split("/")[2]
-  $versionURL = $gitHubURLPrefix + $tag.ref
-  Write-Output "$version : $versionURL"
+Write-Output "Compiling for $deviceName"
+try {
+  $output = & $arduinoCLI compile -b $deviceFQBN $commandStationDirectory --format jsonmini | ConvertFrom-Json
 }
-#>
+catch {
+  Write-Output "Failed to compile"
+  Exit
+}
+Write-Output "$output"
+Write-Output "Now uploading to $deviceName on port $devicePort"
+try {
+  $output = & $arduinoCLI upload -t -b $deviceFQBN -p $devicePort $commandStationDirectory --format jsonmini | ConvertFrom-Json
+}
+catch {
+  Write-Output "Failed to upload"
+  Exit
+}
+Write-Output "$output"
