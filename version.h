@@ -103,9 +103,17 @@
 //       TrackManager DCC & DC up to 8 Districts Architecture 
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
+// 4.1.5 Bugfix LCN number parsing
+// 4.1.4 Bugfix for issue #299 TurnoutDescription NULL
+// 4.1.3 Bugfix: Ethernet init order
+// 4.1.2 Bugfix: Ethernet shield W5100 does not report HW or link level
 // 4.1.1 Bugfix: preserve turnout format
-//       Bugfix: parse multiple commands in one buffer string correct
-//       Bugfix: </> command signal status in Exrail
+//       Bugfix: parse multiple commands in one buffer string correctly (ex: <s><Q>)
+//       Bugfix: </> command signal status of EX-RAIL tasks or threads
+//       Bugfix: EX-RAIL read long loco addr
+//       Bugfix: Add space character after version string 4.1.1 for JMRI parsing.
+//       Improved display and loop time for signals make service start to be outside the DONT_TOUCH_WIFI_CONF area
+//       Improve WiFi startup by making service start to be outside the DONT_TOUCH_WIFI_CONF area
 // 4.1.0 ...
 //
 // 4.0.2 EXRAIL additions:
