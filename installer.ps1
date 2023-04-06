@@ -31,7 +31,7 @@ Param(
   [Parameter()]
   [String]$buildDirectory,
   [Parameter()]
-  [String]$version
+  [String]$configDirectory
 )
 
 <############################################
@@ -120,30 +120,131 @@ if (!(Test-Path -PathType Leaf -Path $arduinoCLI)) {
   }
 }
 
-<#
+<############################################
 Get the list of tags
-#>
+############################################>
 try {
-  $tagList = Invoke-RestMethod -Uri $gitHubAPITags
+  $gitHubTags = Invoke-RestMethod -Uri $gitHubAPITags
 }
 catch {
   Write-Output "Failed to obtain list of available EX-CommandStation versions"
   Exit
 }
 
-<#
-Get latest two Prod and Devel releases, add to hash table for selection by user
-#>
-foreach ($tag in $tagList | Sort-Object -Property ref -Descending) {
-  if ($tag.ref -Like "*Prod") {
-    Write-Output $tag.ref
+<############################################
+Get our GitHub tag list in a hash so we can sort by version numbers and extract just the ones we want
+############################################>
+$versionMatch = ".*?v(\d+)\.(\d+).(\d+)-(.*)"
+$tagList = @{}
+foreach ($tag in $gitHubTags) {
+  $tagHash = @{}
+  $tagHash["Ref"] = $tag.ref
+  $version = $tag.ref.split("/")[2]
+  $null = $version -match $versionMatch
+  $tagHash["Major"] = [int]$Matches[1]
+  $tagHash["Minor"] = [int]$Matches[2]
+  $tagHash["Patch"] = [int]$Matches[3]
+  $tagHash["Type"] = $Matches[4]
+  $tagList.Add($version, $tagHash)
+}
+
+<############################################
+Get latest two Prod and Devel for user to select
+############################################>
+$userList = @{}
+$prodCount = 1
+$devCount = 1
+$select = 1
+foreach ($tag in $tagList.Keys | Sort-Object {$tagList[$_]["Major"]},{$tagList[$_]["Minor"]},{$tagList[$_]["Patch"]} -Descending) {
+  if (($tagList[$tag]["Type"] -eq "Prod") -and $prodCount -le 2) {
+    $userList[$select] = $tag
+    $select++
+    $prodCount++
+  } elseif (($tagList[$tag]["Type"] -eq "Devel") -and $devCount -le 2) {
+    $userList[$select] = $tag
+    $select++
+    $devCount++
   }
 }
-foreach ($tag in $tagList | Sort-Object -Property ref -Descending) {
-  if ($tag.ref -Like "*Devel") {
-    Write-Output $tag.ref
-  }
+
+<############################################
+Display options for user to select and get the selection
+############################################>
+foreach ($selection in $userList.Keys | Sort-Object $selection) {
+  Write-Output "$selection - $($userList[$selection])"
 }
+Write-Output "5 - Exit"
+$userSelection = 0
+do {
+  [int]$userSelection = Read-Host "Select the version to install from the list above (1 - 5)"
+} until (
+  (($userSelection -ge 1) -and ($userSelection -le 5))
+)
+if ($userSelection -eq 5) {
+  Write-Output "Exiting installer"
+  Exit
+} else {
+  $downloadURL = $gitHubURLPrefix + $tagList[$userList[$userSelection]]["Ref"] + ".zip"
+}
+
+<############################################
+Download the chosen version to the build directory
+############################################>
+$downladFile = $buildDirectory + "\CommandStation-EX.zip"
+Write-Output "Downloading and extracting $($userList[$userSelection])"
+try {
+  Invoke-WebRequest -Uri $downloadURL -OutFile $downladFile
+}
+catch {
+  Write-Output "Error downloading EX-CommandStation zip file"
+  Exit
+}
+
+<############################################
+Extract and rename to CommandStation-EX to allow building
+############################################>
+try {
+  Expand-Archive -Path $downladFile -DestinationPath $buildDirectory -Force
+}
+catch {
+  Write-Output "Failed to extract EX-CommandStation zip file"
+  Exit
+}
+
+$folderName = $buildDirectory + "\CommandStation-EX-" + ($userList[$userSelection] -replace "^v", "")
+Write-Output $folderName
+try {
+  Rename-Item -Path $folderName -NewName $commandStationDirectory
+}
+catch {
+  Write-Output "Could not rename folder"
+  Exit
+}
+
+<############################################
+If config directory provided, copy files here
+############################################>
+
+
+<############################################
+Once files all together, identify available board(s)
+############################################>
+# Need to do an initial board list to download everything first
+& $arduinoCLI board list | Out-Null
+# Run again to generate the list of discovered boards
+& $arduinoCLI board list --format json
+
+<############################################
+Get user to select board
+############################################>
+
+
+
+
+<############################################
+Upload the sketch to the selected board
+############################################>
+#$arduinoCLI upload -b fqbn -p port $commandStationDirectory
 
 <#
 Write-Output "Installing using directory $buildDirectory"
