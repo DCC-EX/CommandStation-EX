@@ -69,10 +69,10 @@ else
     # need to do this config better
     cp -p config.example.h config.h
 fi
-need curl
 if test -x "$ACLI" ; then
     : all well
 else
+    need curl
     curl "$ACLIINSTALL" > acliinstall.sh
     chmod +x acliinstall.sh
     ./acliinstall.sh
