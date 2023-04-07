@@ -55,7 +55,7 @@ $supportedDevices = @(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.2"
+$installerVersion = "v0.0.3"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
 $gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
 if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
@@ -241,7 +241,6 @@ catch {
 }
 
 $folderName = $buildDirectory + "\CommandStation-EX-" + ($userList[$userSelection] -replace "^v", "")
-Write-Output $folderName
 try {
   Rename-Item -Path $folderName -NewName $commandStationDirectory
 }
@@ -357,11 +356,23 @@ if ($null -eq $boardList[$selectedBoard].matching_boards.name) {
 }
 
 <############################################
+Install core libraries for the platform
+############################################>
+$platformArray = $deviceFQBN.split(":")
+$platform = $platformArray[0] + ":" + $platformArray[1]
+try {
+  & $arduinoCLI core install $platform
+}
+catch {
+  Write-Output "Error install core libraries"
+  Exit
+}
+
+<############################################
 Upload the sketch to the selected board
 ############################################>
 #$arduinoCLI upload -b fqbn -p port $commandStationDirectory
 Write-Output "Compiling and uploading to $deviceName on $devicePort"
-Write-Output "& $arduinoCLI compile -b $deviceFQBN -u -t -p $devicePort $commandStationDirectory"
 try {
   $output = & $arduinoCLI compile -b $deviceFQBN -u -t -p $devicePort $commandStationDirectory --format jsonmini | ConvertFrom-Json
 }
@@ -369,4 +380,14 @@ catch {
   Write-Output "Failed to compile"
   Exit
 }
-Write-Output "$output"
+if ($output.success -eq "True") {
+  Write-Output "`r`nCongratulations! DCC-EX EX-CommandStation $($userList[$userSelection]) has been installed on your $deviceName`r`n"
+} else {
+  Write-Output "`r`nThere was an error installing $($userList[$userSelection]) on your $($deviceName), please take note of the errors provided:`r`n"
+  if ($null -ne $output.compiler_err) {
+    Write-Output "Compiler error: $($output.compiler_err)`r`n"
+  }
+  if ($null -ne $output.builder_result) {
+    Write-Output "Builder result: $($output.builder_result)`r`n"
+  }
+}
