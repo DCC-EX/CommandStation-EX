@@ -55,7 +55,7 @@ $supportedDevices = @(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.1"
+$installerVersion = "v0.0.2"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
 $gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
 if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
@@ -253,8 +253,18 @@ catch {
 <############################################
 If config directory provided, copy files here
 ############################################>
-# To be done
-# If exists copy config.h, myAutomation.h, myHal.cpp, mySetup.h
+$configFiles = @("config.h", "myAutomation.h", "myHal.cpp", "mySetup.h")
+if ($PSBoundParameters.ContainsKey('configDirectory')) {
+  if (Test-Path -PathType Container -Path $configDirectory) {
+    foreach ($file in $configFiles) {
+      if (Test-Path -PathType Leaf -Path "$configDirectory\$file") {
+        Copy-Item -Path "$configDirectory\$file" -Destination "$commandStationDirectory\$file"
+      }
+    }
+  } else {
+    Write-Output "Provided configuration directory $configDirectory does not exist, skipping"
+  }
+}
 
 <############################################
 Once files all together, identify available board(s)
@@ -338,6 +348,7 @@ if ($null -eq $boardList[$selectedBoard].matching_boards.name) {
   } else {
     $deviceName = $supportedDevices[$userSelection - 1].name
     $deviceFQBN = $supportedDevices[$userSelection - 1].fqbn
+    $devicePort = $boardList[$selectedBoard].port.address
   }
 } else {
   $deviceName = $boardList[$selectedBoard].matching_boards.name
@@ -349,21 +360,13 @@ if ($null -eq $boardList[$selectedBoard].matching_boards.name) {
 Upload the sketch to the selected board
 ############################################>
 #$arduinoCLI upload -b fqbn -p port $commandStationDirectory
-Write-Output "Compiling for $deviceName"
+Write-Output "Compiling and uploading to $deviceName on $devicePort"
+Write-Output "& $arduinoCLI compile -b $deviceFQBN -u -t -p $devicePort $commandStationDirectory"
 try {
-  $output = & $arduinoCLI compile -b $deviceFQBN $commandStationDirectory --format jsonmini | ConvertFrom-Json
+  $output = & $arduinoCLI compile -b $deviceFQBN -u -t -p $devicePort $commandStationDirectory --format jsonmini | ConvertFrom-Json
 }
 catch {
   Write-Output "Failed to compile"
-  Exit
-}
-Write-Output "$output"
-Write-Output "Now uploading to $deviceName on port $devicePort"
-try {
-  $output = & $arduinoCLI upload -t -b $deviceFQBN -p $devicePort $commandStationDirectory --format jsonmini | ConvertFrom-Json
-}
-catch {
-  Write-Output "Failed to upload"
   Exit
 }
 Write-Output "$output"
