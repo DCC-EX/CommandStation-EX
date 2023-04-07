@@ -37,7 +37,7 @@ Param(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.5"
+$installerVersion = "v0.0.6"
 $userDirectory = $env:USERPROFILE + "\"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
 $gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
@@ -48,7 +48,7 @@ if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchi
   $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
   $arduinoCLIZip = $userDirectory + "Downloads\" + "arduino-cli_latest_Windows_32bit.zip"
 }
-$arduinoCLIDirectory = $userDirectory + "arduino-cli_installer"
+$arduinoCLIDirectory = $userDirectory + "arduino-cli"
 $arduinoCLI = $arduinoCLIDirectory + "\arduino-cli.exe"
 
 <############################################
