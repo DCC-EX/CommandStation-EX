@@ -35,6 +35,22 @@ Param(
 )
 
 <############################################
+Define global parameters here such as known URLs etc.
+############################################>
+$installerVersion = "v0.0.4"
+$gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
+$gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
+if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
+  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
+  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
+} else {
+  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
+  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
+}
+$arduinoCLIDirectory = $env:TEMP + "\" + "arduino-cli_installer"
+$arduinoCLI = $arduinoCLIDirectory + "\arduino-cli.exe"
+
+<############################################
 List of supported devices with FQBN in case clones used that aren't detected
 ############################################>
 $supportedDevices = @(
@@ -51,22 +67,6 @@ $supportedDevices = @(
     fqbn = "arduino:avr:uno"
   }
 )
-
-<############################################
-Define global parameters here such as known URLs etc.
-############################################>
-$installerVersion = "v0.0.3"
-$gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
-$gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
-if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
-  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
-  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
-} else {
-  $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
-  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
-}
-$arduinoCLIDirectory = $env:TEMP + "\" + "arduino-cli_installer"
-$arduinoCLI = $arduinoCLIDirectory + "\arduino-cli.exe"
 
 <############################################
 Set default action for progress indicators, warnings, and errors
@@ -266,8 +266,16 @@ if ($PSBoundParameters.ContainsKey('configDirectory')) {
 }
 
 <############################################
-Once files all together, identify available board(s)
+Make sure Arduino CLI core index updated and list of boards populated
 ############################################>
+# Need to do an initial board list to download everything first
+try {
+  & $arduinoCLI core update-index | Out-Null
+}
+catch {
+  Write-Output "Failed to update Arduino CLI core index"
+  Exit
+}
 # Need to do an initial board list to download everything first
 try {
   & $arduinoCLI board list | Out-Null
@@ -276,7 +284,10 @@ catch {
   Write-Output "Failed to update Arduino CLI board list"
   Exit
 }
-# Run again to generate the list of discovered boards into a custom object
+
+<############################################
+Once files all together, identify available board(s)
+############################################>
 try {
   $boardList = & $arduinoCLI board list --format jsonmini | ConvertFrom-Json
 }
