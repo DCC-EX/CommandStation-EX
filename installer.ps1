@@ -37,17 +37,18 @@ Param(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.4"
+$installerVersion = "v0.0.5"
+$userDirectory = $env:USERPROFILE + "\"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
 $gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
 if ((Get-WmiObject win32_operatingsystem | Select-Object osarchitecture).osarchitecture -eq "64-bit") {
   $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.zip"
-  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_64bit.zip"
+  $arduinoCLIZip = $userDirectory + "Downloads\" + "arduino-cli_latest_Windows_64bit.zip"
 } else {
   $arduinoCLIURL = "https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_32bit.zip"
-  $arduinoCLIZip = $env:TEMP + "\" + "arduino-cli_latest_Windows_32bit.zip"
+  $arduinoCLIZip = $userDirectory + "Downloads\" + "arduino-cli_latest_Windows_32bit.zip"
 }
-$arduinoCLIDirectory = $env:TEMP + "\" + "arduino-cli_installer"
+$arduinoCLIDirectory = $userDirectory + "arduino-cli_installer"
 $arduinoCLI = $arduinoCLIDirectory + "\arduino-cli.exe"
 
 <############################################
@@ -80,7 +81,7 @@ If $buildDirectory not provided, generate a new time/date stamp based directory 
 ############################################>
 if (!$PSBoundParameters.ContainsKey('buildDirectory')) {
   $buildDate = Get-Date -Format 'yyyyMMdd-HHmmss'
-  $buildDirectory = $env:TEMP + "\" + $buildDate
+  $buildDirectory = $userDirectory + "EX-CommandStation-Installer\" + $buildDate
 }
 $commandStationDirectory = $buildDirectory + "\CommandStation-EX"
 
@@ -94,8 +95,6 @@ Current installer options:
 - EX-CommandStation will be built in $commandStationDirectory
 - Arduino CLI will be in $arduinoCLIDirectory
 
-Available EX-CommandStation versions:
--------------------------------------
 "@
 
 
@@ -191,6 +190,11 @@ foreach ($tag in $tagList.Keys | Sort-Object {$tagList[$_]["Major"]},{$tagList[$
 <############################################
 Display options for user to select and get the selection
 ############################################>
+@"
+
+Available EX-CommandStation versions:
+-------------------------------------
+"@
 foreach ($selection in $userList.Keys | Sort-Object $selection) {
   Write-Output "$selection - $($userList[$selection])"
 }
