@@ -361,6 +361,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
+#define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
 #define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 

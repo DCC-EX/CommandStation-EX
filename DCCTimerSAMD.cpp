@@ -162,7 +162,7 @@ uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
 
 int ADCee::init(uint8_t pin) {
-  uint id = pin - A0;
+  uint8_t id = pin - A0;
   int value = 0;
 
   if (id > NUM_ADC_INPUTS)
@@ -210,7 +210,7 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void ADCee::scan() {
-  static uint id = 0;        // id and mask are the same thing but it is faster to 
+  static uint8_t id = 0;        // id and mask are the same thing but it is faster to 
   static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
 
