@@ -237,9 +237,8 @@ int16_t ADCee::ADCmax() {
 }
 
 int ADCee::init(uint8_t pin) {
-  uint id = pin - A0;
   int value = 0;
-  PinName stmpin = digitalPin[analogInputPin[id]];
+  PinName stmpin = analogInputToPinName(pin);
   uint32_t stmgpio = stmpin / 16; // 16-bits per GPIO port group on STM32
   uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC channel (only valid for ADC1!)
   GPIO_TypeDef * gpioBase;
@@ -280,6 +279,8 @@ int ADCee::init(uint8_t pin) {
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
     analogchans = (uint32_t *)calloc(NUM_ADC_INPUTS+1, sizeof(uint32_t));
   }
+
+  uint8_t id = pin - PNUM_ANALOG_BASE;
   analogvals[id] = value;     // Store sampled value
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
   usedpins |= (1 << id);      // This pin is now ready
@@ -291,7 +292,7 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  uint8_t id = pin - A0;
+  uint8_t id = pin - PNUM_ANALOG_BASE;
   // Was this pin initialised yet?
   if ((usedpins & (1<<id) ) == 0)
     return -1023;
@@ -306,7 +307,7 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void ADCee::scan() {
-  static uint id = 0;        // id and mask are the same thing but it is faster to 
+  static uint8_t id = 0;     // id and mask are the same thing but it is faster to
   static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
 
