@@ -134,6 +134,7 @@
 #undef STOP 
 #undef THROW  
 #undef TURNOUT 
+#undef TURNOUTL
 #undef UNJOIN
 #undef UNLATCH 
 #undef VIRTUAL_SIGNAL
@@ -254,6 +255,7 @@
 #define STOP 
 #define THROW(id)  
 #define TURNOUT(id,addr,subaddr,description...) 
+#define TURNOUTL(id,addr,description...) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
 #define VIRTUAL_SIGNAL(id) 

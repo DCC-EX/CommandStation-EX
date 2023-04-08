@@ -5,6 +5,7 @@
 
 
 #define VERSION "4.2.41"
+// 4.2.42 - Added EXRAIL TURNOUTL Macro definition
 // 4.2.41 - Move HAl startup to ASAP in setup()
 //        - Fix DNOU8 output pin setup to all LOW  
 // 4.2.40 - Automatically detect conflicting default I2C devices and disable
@@ -72,6 +73,10 @@
 // 4.2.11 Exrail IFLOCO feature added
 // 4.2.10 SIGNAL/SIGNALH bug fix as they were inverted
 //        IO_EXIOExpander.h input speed optimisation
+//        ONCLOCK and ONCLOCKTIME command added to EXRAIL for EX-FastCLock
+//        <JC> Serial command added for EX-FastClock
+//        <jC> Broadcast added for EX-FastClock
+//        IO_EXFastClock.h added for I2C FastClock connection
 // 4.2.9 duinoNodes support
 // 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
 //       Withrottle connect/disconnect improvements
