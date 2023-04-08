@@ -237,7 +237,7 @@ int16_t ADCee::ADCmax() {
 }
 
 int ADCee::init(uint8_t pin) {
-  uint id = pin - A0;
+  uint8_t id = pin - A0;
   int value = 0;
   PinName stmpin = digitalPin[analogInputPin[id]];
   uint32_t stmgpio = stmpin / 16; // 16-bits per GPIO port group on STM32
