@@ -210,7 +210,10 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   (void)fromISR;
   if (currentPin==UNUSED_PIN) return 0; 
   int current;
-  current = ADCee::read(currentPin, fromISR)-senseOffset;
+  current = ADCee::read(currentPin, fromISR);
+  // here one can diag raw value
+  // if (fromISR == false) DIAG(F("%c: %d"), trackLetter, current);
+  current = current-senseOffset;     // adjust with offset
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN)  && isLOW(fastFaultPin) && powerMode==POWERMODE::ON)
       return (current == 0 ? -1 : -current);

@@ -240,7 +240,10 @@ int ADCee::init(uint8_t pin) {
 
   int value = 0;
   PinName stmpin = analogInputToPinName(pin);
-  uint32_t stmgpio = stmpin / 16; // 16-bits per GPIO port group on STM32
+  if (stmpin == NC) // do not continue if this is not an analog pin at all
+    return -1024;   // some silly value as error
+
+  uint32_t stmgpio = STM_PORT(stmpin); // converts to the GPIO port (16-bits per port group on STM32)
   uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC channel (only valid for ADC1!)
   GPIO_TypeDef * gpioBase;
 
@@ -258,12 +261,20 @@ int ADCee::init(uint8_t pin) {
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //Power up PORTC
         gpioBase = GPIOC;
         break;
+    default:
+      return -1023; // some silly value as error
   }
 
-  // Set pin mux mode to analog input
-  gpioBase->MODER |= (0b011 << (stmpin << 1)); // Set pin mux to analog mode
+  // Set pin mux mode to analog input, the 32 bit port mode register has 2 bits per pin
+  gpioBase->MODER |= (0b011 << (STM_PIN(stmpin) << 1)); // Set pin mux to analog mode (binary 11)
 
   // Set the sampling rate for that analog input
+  // This is F411x specific! Different on for example F334
+  // STM32F11xC/E Reference manual
+  // 11.12.4 ADC sample time register 1 (ADC_SMPR1) (channels 10 to 18)
+  // 11.12.5 ADC sample time register 2 (ADC_SMPR2) (channels 0 to 9)
+  if (adcchan > 18)
+    return -1022; // silly value as error
   if (adcchan < 10)
     ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
   else
