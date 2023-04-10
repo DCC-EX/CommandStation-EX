@@ -473,6 +473,10 @@ If device supports WiFi, prompt to configure
       $configLines+= "#define IP_PORT 2560"
       $configLines+= "#define WIFI_HOSTNAME ""dccex"""
       $configLines+= "#define WIFI_CHANNEL 1"
+      if ($wifiChoice -eq 2) {
+        $configLines+= "#define WIFI_SSID ""Your network name"""
+        $configLines+= "#define WIFI_PASSWORD ""Your network passwd"""
+      }
       if ($wifiChoice -eq 3) {
         $wifiSSID = Read-Host "Please enter the SSID of your home network here"
         $wifiPassword = Read-Host "Please enter your home network WiFi password here"
