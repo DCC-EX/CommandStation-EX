@@ -25,7 +25,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
 <############################################
 Optional command line parameters:
   $buildDirectory - specify an existing directory rather than generating a new unique one
-  $version - specify an exact version to download
+  $configDirectory - specify a directory containing existing files as per $configFiles
 ############################################>
 Param(
   [Parameter()]
@@ -37,7 +37,9 @@ Param(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.6"
+$installerVersion = "v0.0.7"
+$configFiles = @("config.h", "myAutomation.h", "myHal.cpp", "mySetup.h")
+$wifiBoards = @("arduino:avr:mega", "esp32:esp32:esp32")
 $userDirectory = $env:USERPROFILE + "\"
 $gitHubAPITags = "https://api.github.com/repos/DCC-EX/CommandStation-EX/git/refs/tags"
 $gitHubURLPrefix = "https://github.com/DCC-EX/CommandStation-EX/archive/"
@@ -66,6 +68,47 @@ $supportedDevices = @(
   @{
     name = "Arduino Uno"
     fqbn = "arduino:avr:uno"
+  },
+  @{
+    name = "ESP32 Dev Module"
+    fqbn = "esp32:esp32:esp32"
+  }
+)
+
+<############################################
+List of supported displays and scroll modes
+############################################>
+$displayList = @(
+  @{
+    option = "LCD 16 columns x 2 rows"
+    configLine = "#define LCD_DRIVER  0x27,16,2"
+  },
+  @{
+    option = "LCD 16 columns x 4 rows"
+    configLine = "#define LCD_DRIVER  0x27,16,4"
+  },
+  @{
+    option = "OLED 128 x 32"
+    configLine = "#define OLED_DRIVER 128,32,0x3c"
+  },
+  @{
+    option = "OLED 128 x 64"
+    configLine = "#define OLED_DRIVER 128,64,0x3c"
+  }
+)
+
+$scrollList = @(
+  @{
+    mode = "Continuous - fill screen if possible"
+    configLine = "#define SCROLLMODE 0"
+  },
+  @{
+    mode = "Page (default) - alternate between pages"
+    configLine = "#define SCROLLMODE 1"
+  },
+  @{
+    mode = "Row - move up one row at a time"
+    configLine = "#define SCROLLMODE 2"
   }
 )
 
@@ -92,23 +135,27 @@ Write out intro message and prompt to continue
 Welcome to the DCC-EX PowerShell installer for EX-CommandStation ($installerVersion)
 
 Current installer options:
+
 - EX-CommandStation will be built in $commandStationDirectory
-- Arduino CLI will be in $arduinoCLIDirectory
+- Arduino CLI will downloaded and extracted to $arduinoCLIDirectory
+
+Before continuing, please ensure:
+
+- Your computer is connected to the internet
+- The device you wish to install EX-CommandStation on is connected to a USB port
+
+This installer will obtain the Arduino CLI (if not already present), and then download and install your chosen version of EX-CommandStation
 
 "@
 
-
 <############################################
-Create build directory if it doesn't exist, or fail
+Prompt user to confirm all is ready to proceed
 ############################################>
-if (!(Test-Path -PathType Container -Path $buildDirectory)) {
-  try {
-    New-Item -ItemType Directory -Path $buildDirectory | Out-Null
-  }
-  catch {
-    Write-Output "Could not create build directory $buildDirectory"
-    Exit
-  }
+$confirmation = Read-Host "Enter 'Y' or 'y' then press <Enter> to confirm you are ready to proceed, any other key to exit"
+if ($confirmation -ne "Y" -and $confirmation -ne "y") {
+  Exit
+} else {
+  Write-Output "Proceeding to obtain the Arduino CLI..."
 }
 
 <############################################
@@ -141,135 +188,6 @@ if (!(Test-Path -PathType Leaf -Path $arduinoCLI)) {
 }
 
 <############################################
-Get the list of tags
-############################################>
-try {
-  $gitHubTags = Invoke-RestMethod -Uri $gitHubAPITags
-}
-catch {
-  Write-Output "Failed to obtain list of available EX-CommandStation versions"
-  Exit
-}
-
-<############################################
-Get our GitHub tag list in a hash so we can sort by version numbers and extract just the ones we want
-############################################>
-$versionMatch = ".*?v(\d+)\.(\d+).(\d+)-(.*)"
-$tagList = @{}
-foreach ($tag in $gitHubTags) {
-  $tagHash = @{}
-  $tagHash["Ref"] = $tag.ref
-  $version = $tag.ref.split("/")[2]
-  $null = $version -match $versionMatch
-  $tagHash["Major"] = [int]$Matches[1]
-  $tagHash["Minor"] = [int]$Matches[2]
-  $tagHash["Patch"] = [int]$Matches[3]
-  $tagHash["Type"] = $Matches[4]
-  $tagList.Add($version, $tagHash)
-}
-
-<############################################
-Get latest two Prod and Devel for user to select
-############################################>
-$userList = @{}
-$prodCount = 1
-$devCount = 1
-$select = 1
-foreach ($tag in $tagList.Keys | Sort-Object {$tagList[$_]["Major"]},{$tagList[$_]["Minor"]},{$tagList[$_]["Patch"]} -Descending) {
-  if (($tagList[$tag]["Type"] -eq "Prod") -and $prodCount -le 2) {
-    $userList[$select] = $tag
-    $select++
-    $prodCount++
-  } elseif (($tagList[$tag]["Type"] -eq "Devel") -and $devCount -le 2) {
-    $userList[$select] = $tag
-    $select++
-    $devCount++
-  }
-}
-
-<############################################
-Display options for user to select and get the selection
-############################################>
-@"
-
-Available EX-CommandStation versions:
--------------------------------------
-"@
-foreach ($selection in $userList.Keys | Sort-Object $selection) {
-  Write-Output "$selection - $($userList[$selection])"
-}
-Write-Output "5 - Exit"
-$userSelection = 0
-do {
-  [int]$userSelection = Read-Host "`r`nSelect the version to install from the list above (1 - 5)"
-} until (
-  (($userSelection -ge 1) -and ($userSelection -le 5))
-)
-if ($userSelection -eq 5) {
-  Write-Output "Exiting installer"
-  Exit
-} else {
-  $downloadURL = $gitHubURLPrefix + $tagList[$userList[$userSelection]]["Ref"] + ".zip"
-}
-
-<############################################
-Download the chosen version to the build directory
-############################################>
-$downladFile = $buildDirectory + "\CommandStation-EX.zip"
-Write-Output "Downloading and extracting $($userList[$userSelection])"
-try {
-  Invoke-WebRequest -Uri $downloadURL -OutFile $downladFile
-}
-catch {
-  Write-Output "Error downloading EX-CommandStation zip file"
-  Exit
-}
-
-<############################################
-If folder exists, bail out and tell user
-############################################>
-if (Test-Path -PathType Container -Path "$buildDirectory\CommandStation-EX") {
-  Write-Output "EX-CommandStation directory already exists, please ensure you have copied any user files then delete manually: $buildDirectory\CommandStation-EX"
-  Exit
-}
-
-<############################################
-Extract and rename to CommandStation-EX to allow building
-############################################>
-try {
-  Expand-Archive -Path $downladFile -DestinationPath $buildDirectory -Force
-}
-catch {
-  Write-Output "Failed to extract EX-CommandStation zip file"
-  Exit
-}
-
-$folderName = $buildDirectory + "\CommandStation-EX-" + ($userList[$userSelection] -replace "^v", "")
-try {
-  Rename-Item -Path $folderName -NewName $commandStationDirectory
-}
-catch {
-  Write-Output "Could not rename folder"
-  Exit
-}
-
-<############################################
-If config directory provided, copy files here
-############################################>
-$configFiles = @("config.h", "myAutomation.h", "myHal.cpp", "mySetup.h")
-if ($PSBoundParameters.ContainsKey('configDirectory')) {
-  if (Test-Path -PathType Container -Path $configDirectory) {
-    foreach ($file in $configFiles) {
-      if (Test-Path -PathType Leaf -Path "$configDirectory\$file") {
-        Copy-Item -Path "$configDirectory\$file" -Destination "$commandStationDirectory\$file"
-      }
-    }
-  } else {
-    Write-Output "Provided configuration directory $configDirectory does not exist, skipping"
-  }
-}
-
-<############################################
 Make sure Arduino CLI core index updated and list of boards populated
 ############################################>
 # Need to do an initial board list to download everything first
@@ -290,7 +208,7 @@ catch {
 }
 
 <############################################
-Once files all together, identify available board(s)
+Identify available board(s)
 ############################################>
 try {
   $boardList = & $arduinoCLI board list --format jsonmini | ConvertFrom-Json
@@ -369,6 +287,197 @@ if ($null -eq $boardList[$selectedBoard].matching_boards.name) {
   $deviceFQBN = $boardList[$selectedBoard].matching_boards.fqbn
   $devicePort = $boardList[$selectedBoard].port.address
 }
+
+<############################################
+Get the list of tags
+############################################>
+try {
+  $gitHubTags = Invoke-RestMethod -Uri $gitHubAPITags
+}
+catch {
+  Write-Output "Failed to obtain list of available EX-CommandStation versions"
+  Exit
+}
+
+<############################################
+Get our GitHub tag list in a hash so we can sort by version numbers and extract just the ones we want
+############################################>
+$versionMatch = ".*?v(\d+)\.(\d+).(\d+)-(.*)"
+$tagList = @{}
+foreach ($tag in $gitHubTags) {
+  $tagHash = @{}
+  $tagHash["Ref"] = $tag.ref
+  $version = $tag.ref.split("/")[2]
+  $null = $version -match $versionMatch
+  $tagHash["Major"] = [int]$Matches[1]
+  $tagHash["Minor"] = [int]$Matches[2]
+  $tagHash["Patch"] = [int]$Matches[3]
+  $tagHash["Type"] = $Matches[4]
+  $tagList.Add($version, $tagHash)
+}
+
+<############################################
+Get latest two Prod and Devel for user to select
+############################################>
+$userList = @{}
+$prodCount = 1
+$devCount = 1
+$select = 1
+foreach ($tag in $tagList.Keys | Sort-Object {$tagList[$_]["Major"]},{$tagList[$_]["Minor"]},{$tagList[$_]["Patch"]} -Descending) {
+  if (($tagList[$tag]["Type"] -eq "Prod") -and $prodCount -le 2) {
+    $userList[$select] = $tag
+    $select++
+    $prodCount++
+  } elseif (($tagList[$tag]["Type"] -eq "Devel") -and $devCount -le 2) {
+    $userList[$select] = $tag
+    $select++
+    $devCount++
+  }
+}
+
+<############################################
+Display options for user to select and get the selection
+############################################>
+@"
+
+Available EX-CommandStation versions:
+-------------------------------------
+"@
+foreach ($selection in $userList.Keys | Sort-Object $selection) {
+  Write-Output "$selection - $($userList[$selection])"
+}
+Write-Output "5 - Exit"
+$userSelection = 0
+do {
+  [int]$userSelection = Read-Host "`r`nSelect the version to install from the list above (1 - 5)"
+} until (
+  (($userSelection -ge 1) -and ($userSelection -le 5))
+)
+if ($userSelection -eq 5) {
+  Write-Output "Exiting installer"
+  Exit
+} else {
+  $downloadURL = $gitHubURLPrefix + $tagList[$userList[$userSelection]]["Ref"] + ".zip"
+}
+
+<############################################
+Create build directory if it doesn't exist, or fail
+############################################>
+if (!(Test-Path -PathType Container -Path $buildDirectory)) {
+  try {
+    New-Item -ItemType Directory -Path $buildDirectory | Out-Null
+  }
+  catch {
+    Write-Output "Could not create build directory $buildDirectory"
+    Exit
+  }
+}
+
+<############################################
+Download the chosen version to the build directory
+############################################>
+$downladFile = $buildDirectory + "\CommandStation-EX.zip"
+Write-Output "Downloading and extracting $($userList[$userSelection])"
+try {
+  Invoke-WebRequest -Uri $downloadURL -OutFile $downladFile
+}
+catch {
+  Write-Output "Error downloading EX-CommandStation zip file"
+  Exit
+}
+
+<############################################
+If folder exists, bail out and tell user
+############################################>
+if (Test-Path -PathType Container -Path "$buildDirectory\CommandStation-EX") {
+  Write-Output "EX-CommandStation directory already exists, please ensure you have copied any user files then delete manually: $buildDirectory\CommandStation-EX"
+  Exit
+}
+
+<############################################
+Extract and rename to CommandStation-EX to allow building
+############################################>
+try {
+  Expand-Archive -Path $downladFile -DestinationPath $buildDirectory -Force
+}
+catch {
+  Write-Output "Failed to extract EX-CommandStation zip file"
+  Exit
+}
+
+$folderName = $buildDirectory + "\CommandStation-EX-" + ($userList[$userSelection] -replace "^v", "")
+try {
+  Rename-Item -Path $folderName -NewName $commandStationDirectory
+}
+catch {
+  Write-Output "Could not rename folder"
+  Exit
+}
+
+<############################################
+If config directory provided, copy files here
+############################################>
+if ($PSBoundParameters.ContainsKey('configDirectory')) {
+  if (Test-Path -PathType Container -Path $configDirectory) {
+    foreach ($file in $configFiles) {
+      if (Test-Path -PathType Leaf -Path "$configDirectory\$file") {
+        Copy-Item -Path "$configDirectory\$file" -Destination "$commandStationDirectory\$file"
+      }
+    }
+  } else {
+    Write-Output "User provided configuration directory $configDirectory does not exist, skipping"
+  }
+} else {
+
+<############################################
+If no config directory provided, prompt for display option, and WiFi if using Mega
+############################################>
+  Write-Output "`r`nIf you have an LCD or OLED display connected, you can configure it here`r`n"
+  $displaySelect = 1
+  foreach ($display in $displayList) {
+    Write-Output "$displaySelect - $($displayList[$displaySelect - 1].option)"
+    $displaySelect++
+  }
+  Write-Output "$($displayList.Count + 1) - I have no display"
+  Write-Output "$($displayList.Count + 2) - Exit"
+  do {
+    [int]$displayChoice = Read-Host "`r`nSelect a display option"
+  } until (
+    ($displayChoice -ge 1 -and $displayChoice -le ($displayList.Count + 2))
+  )
+  if ($displayChoice -eq ($displayList.Count + 2)) {
+    Exit
+  } elseif ($displayChoice -le ($displayList.Count + 1)) {
+    $displayLine = $displayList[$displayChoice - 1].configLine
+    $scrollSelect = 1
+    $defaultScroll = 1
+    Write-Host "`r`n Select a scroll option, or press <Enter> to accept the default [$($defaultScroll)]"
+    foreach ($scroll in $scrollList) {
+      Write-Output "$scrollSelect - $($scrollList[$scrollSelect - 1].mode)"
+      $scrollSelect++
+    }
+    Write-Output "$($scrollList.Count + 1) - Exit"
+    do {
+      [int]$displayScroll = Read-Host "`r`n Select a scroll option, or press <Enter> to accept the default [$($defaultScroll)]"
+    } until (
+      (($displayScroll -ge 1 -and $displayScroll -le ($scrollList.Count + 1)) -or $displayScroll -eq "")
+    )
+    if ($displayScroll -eq ($scrollList.Count + 1)) {
+      Exit
+    } elseif ($displayScroll -eq "") {
+      $displayScroll = $defaultScroll
+    }
+    $scrollLine = $scrollList[$displayScroll - 1]
+  }
+  if ($wifiBoards.Contains($deviceFQBN)) {
+    # WiFi prompt
+  }
+}
+
+<############################################
+If display or WiFi options set, create config.h
+############################################>
+
 
 <############################################
 Install core libraries for the platform
