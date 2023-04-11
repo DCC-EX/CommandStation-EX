@@ -37,7 +37,7 @@ Param(
 <############################################
 Define global parameters here such as known URLs etc.
 ############################################>
-$installerVersion = "v0.0.7"
+$installerVersion = "v0.0.8"
 $configFiles = @("config.h", "myAutomation.h", "myHal.cpp", "mySetup.h")
 $wifiBoards = @("arduino:avr:mega", "esp32:esp32:esp32")
 $userDirectory = $env:USERPROFILE + "\"
@@ -431,12 +431,12 @@ if ($PSBoundParameters.ContainsKey('configDirectory')) {
 If no config directory provided, prompt for display option
 ############################################>
   Write-Output "`r`nIf you have an LCD or OLED display connected, you can configure it here`r`n"
-  $displaySelect = 1
+  Write-Output "1 - I have no display, skip this step"
+  $displaySelect = 2
   foreach ($display in $displayList) {
-    Write-Output "$displaySelect - $($displayList[$displaySelect - 1].option)"
+    Write-Output "$displaySelect - $($displayList[$displaySelect - 2].option)"
     $displaySelect++
   }
-  Write-Output "$($displayList.Count + 1) - I have no display"
   Write-Output "$($displayList.Count + 2) - Exit"
   do {
     [int]$displayChoice = Read-Host "`r`nSelect a display option"
@@ -445,9 +445,9 @@ If no config directory provided, prompt for display option
   )
   if ($displayChoice -eq ($displayList.Count + 2)) {
     Exit
-  } elseif ($displayChoice -le ($displayList.Count)) {
+  } elseif ($displayChoice -ge 2) {
     $configLines+= "// Display configuration"
-    $configLines+= "$($displayList[$displayChoice - 1].configLine)"
+    $configLines+= "$($displayList[$displayChoice - 2].configLine)"
     $configLines+= "#define SCROLLMODE 1 // Alternate between pages"
   }
 <############################################
@@ -535,3 +535,6 @@ if ($output.success -eq "True") {
     Write-Output "Builder result: $($output.builder_result)`r`n"
   }
 }
+
+Write-Output "`r`nPress any key to exit the installer"
+[void][System.Console]::ReadKey($true)
