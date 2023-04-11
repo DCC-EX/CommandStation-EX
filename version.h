@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.43"
+#define VERSION "4.2.44"
+// 4.2.44 - Add PowerShell installer EX-CommandStation-installer.exe
 // 4.2.43 - Fix STM32 set right port mode bits for analog
 // 4.2.42 - Added EXRAIL TURNOUTL Macro definition
 // 4.2.41 - Move HAl startup to ASAP in setup()
