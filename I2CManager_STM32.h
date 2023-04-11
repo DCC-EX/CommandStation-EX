@@ -26,34 +26,42 @@
 #include "I2CManager.h"
 #include "I2CManager_NonBlocking.h"   // to satisfy intellisense
 
-//#include <avr/io.h>
-//#include <avr/interrupt.h>
 #include <wiring_private.h>
+#include "stm32f4xx_hal_rcc.h"
 
-/***************************************************************************
- *  Interrupt handler.
- *  IRQ handler for SERCOM3 which is the default I2C definition for Arduino Zero
- *  compatible variants such as the Sparkfun SAMD21 Dev Breakout etc.
- *  Later we may wish to allow use of an alternate I2C bus, or more than one I2C
- *  bus on the SAMD architecture 
- ***************************************************************************/
+/*****************************************************************************
+ *  STM32F4xx I2C native driver support
+ * 
+ *  Nucleo-64 and Nucleo-144 boards all use I2C1 as the default I2C peripheral
+ *  Later we may wish to support other STM32 boards, allow use of an alternate
+ *  I2C bus, or more than one I2C bus on the STM32 architecture 
+ *****************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+// Assume I2C1 for now - default I2C bus on Nucleo-F411RE and likely all Nucleo-64
+// and Nucleo-144variants
+I2C_TypeDef *s = I2C1;
+
+// In init we will ask the STM32 HAL layer for the configured APB1 clock frequency in Hz
+uint32_t APB1clk1; // Peripheral Input Clock speed in Hz.
+uint32_t i2c_MHz;  // Peripheral Input Clock speed in MHz.
+
+// IRQ handler for I2C1, replacing the weak definition in the STM32 HAL 
 extern "C" void I2C1_EV_IRQHandler(void) {
   I2CManager.handleInterrupt();
 }
 extern "C" void I2C1_ER_IRQHandler(void) {
   I2CManager.handleInterrupt();
 }
+#else
+#warning STM32 board selected is not yet supported - so I2C1 peripheral is not defined
 #endif
-
-// Assume I2C1 for now - default I2C bus on Nucleo-F411RE and likely Nucleo-64 variants
-I2C_TypeDef *s = I2C1;
-#define I2C_IRQn  I2C1_EV_IRQn
+#endif
 
 // Peripheral Input Clock speed in MHz.
 // For STM32F446RE, the speed is 45MHz.  Ideally, this should be determined
 // at run-time from the APB1 clock, as it can vary from STM32 family to family.
-#define I2C_PERIPH_CLK 45
+// #define I2C_PERIPH_CLK 45
 
 // I2C SR1 Status Register #1 bit definitions for convenience
 // #define I2C_SR1_SMBALERT  (1<<15)   // SMBus alert
@@ -97,8 +105,6 @@ enum {TS_IDLE,TS_START,TS_W_ADDR,TS_W_DATA,TS_W_STOP,TS_R_ADDR,TS_R_DATA,TS_R_ST
  *  that it is only called at the beginning of an I2C transaction.
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
-  return;
-
   // Calculate a rise time appropriate to the requested bus speed
   // Use 10x the rise time spec to enable integer divide of 50ns clock period
   uint16_t t_rise;
@@ -106,13 +112,9 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
 
   while (s->CR1 & I2C_CR1_STOP);  // Prevents lockup by guarding further
                                   // writes to CR1 while STOP is being executed!
+
   // Disable the I2C device, as TRISE can only be programmed whilst disabled
   s->CR1 &= ~(I2C_CR1_PE);  // Disable I2C
-  // Software reset the I2C peripheral
-  // s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
-  // delay(1);
-  // Release reset
-  // s->CR1 &= ~(I2C_CR1_SWRST);  // Normal operation
 
   if (i2cClockSpeed > 100000L)
   {
@@ -127,19 +129,20 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
     t_rise = 1000;  // nanoseconds
   }
   // Configure the rise time register
-  s->TRISE = t_rise * I2C_PERIPH_CLK / 1000UL + 1;
+  s->TRISE = (t_rise / (1000 / i2c_MHz)) + 1;
 
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
   // Bit 14: Duty, fast mode duty cycle (use 2:1)
-  // Bit 11-0: FREQR = 16MHz => TPCLK1 = 62.5ns
+  // Bit 11-0: FREQR
   if (i2cClockSpeed > 100000L) {
     // In fast mode, I2C period is 3 * CCR * TPCLK1.
-    ccr_freq = I2C_PERIPH_CLK * 1000000 / 3 / i2cClockSpeed;
-    s->CCR = (uint16_t)ccr_freq | 0x8000; // We need Fast Mode set
+    //APB1clk1 / 3 / i2cClockSpeed = 38, but that results in 306KHz not 400! 
+    ccr_freq = 30;     // So 30 gives 396KHz or so!
+    s->CCR = (uint16_t)(ccr_freq | 0x8000); // We need Fast Mode set
   } else {
-    // In standard mode, I2C period is 2 * CCR * TPCLK1. 
-    ccr_freq = I2C_PERIPH_CLK * 1000000 / 2 / i2cClockSpeed;
-    s->CCR = (uint16_t)ccr_freq;
+    // In standard mode, I2C period is 2 * CCR * TPCLK1
+    ccr_freq = (APB1clk1 / 2 / i2cClockSpeed); // Should be 225 for 45Mhz APB1 clock
+    s->CCR |= (uint16_t)ccr_freq;
   }
 
   // Enable the I2C master mode
@@ -151,7 +154,10 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
  ***************************************************************************/
 void I2CManagerClass::I2C_init()
 {
-  // Setting up the clocks
+  // Query the clockspeed from the STM32 HAL layer
+  APB1clk1 = HAL_RCC_GetPCLK1Freq();
+  i2c_MHz = APB1clk1 / 1000000UL;
+  // Enable clocks
   RCC->APB1ENR |= RCC_APB1ENR_I2C1EN;//(1 << 21); // Enable I2C CLOCK
   // Reset the I2C1 peripheral to initial state
   RCC->APB1RSTR |=  RCC_APB1RSTR_I2C1RST;
@@ -181,7 +187,8 @@ void I2CManagerClass::I2C_init()
   s->CR2 &= 0xE000;
 
   // Set I2C peripheral clock frequency
-  s->CR2 |= I2C_PERIPH_CLK;
+  // s->CR2 |= I2C_PERIPH_CLK;
+  s->CR2 |= i2c_MHz;
 
   // set own address to 00 - not used in master mode
   I2C1->OAR1 = (1 << 14); // bit 14 should be kept at 1 according to the datasheet
@@ -210,10 +217,14 @@ void I2CManagerClass::I2C_init()
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
   // Bit 14: Duty, fast mode duty cycle
   // Bit 11-0: so CCR divisor would be clk / 2 / 100000 (where clk is in Hz)
-  s->CCR = I2C_PERIPH_CLK * 5;
+  // s->CCR = I2C_PERIPH_CLK * 5;
+  s->CCR &= ~(0x3000); // Clear all bits except 12 and 13 which must remain per reset value
+  s->CCR |= (APB1clk1 / 2 / 100000UL); // i2c_MHz * 5;
+  // s->CCR = i2c_MHz * 5;
 
   // Configure the rise time register - max allowed is 1000ns, so value = 1000ns * I2C_PERIPH_CLK MHz / 1000 + 1.
-  s->TRISE = I2C_PERIPH_CLK + 1;    // 1000 ns / 50 ns = 20 + 1 = 21
+  // s->TRISE = I2C_PERIPH_CLK + 1;    // 1000 ns / 50 ns = 20 + 1 = 21
+  s->TRISE = i2c_MHz + 1;
 
   // Enable the I2C master mode
   s->CR1 |= I2C_CR1_PE;  // Enable I2C
