@@ -286,13 +286,15 @@ int ADCee::init(uint8_t pin) {
   while(!(ADC1->SR & (1 << 1)));  // Wait until conversion is complete
   value = ADC1->DR;               // Read value from register
 
-  if (analogvals == NULL)
-  {
+  uint8_t id = pin - PNUM_ANALOG_BASE;
+  if (id > 15) { // today we have not enough bits in the mask to support more
+    return -1021;
+  }
+
+  if (analogvals == NULL) {  // allocate analogvals and analogchans if this is the first invocation of init.
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
     analogchans = (uint32_t *)calloc(NUM_ADC_INPUTS+1, sizeof(uint32_t));
   }
-
-  uint8_t id = pin - PNUM_ANALOG_BASE;
   analogvals[id] = value;     // Store sampled value
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
   usedpins |= (1 << id);      // This pin is now ready
