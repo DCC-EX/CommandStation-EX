@@ -316,6 +316,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONTIME(value) OPCODE_ONTIME,V(value),  
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
+#define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
