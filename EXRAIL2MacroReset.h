@@ -91,6 +91,7 @@
 #undef ONCLOSE
 #undef ONTIME
 #undef ONCLOCKTIME
+#undef ONCLOCKMINS
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -209,6 +210,7 @@
 #define ONAMBER(signal_id) 
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
+#define ONCLOCKMINS(mins)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)

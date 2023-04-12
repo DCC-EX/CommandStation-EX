@@ -1129,7 +1129,10 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
   if (Diag::CMD)
    DIAG(F("Looking for clock event at : %d"), clocktime);
-  if (change)  handleEvent(F("CLOCK"),onClockLookup,clocktime);
+  if (change) {
+    handleEvent(F("CLOCK"),onClockLookup,clocktime);
+    handleEvent(F("CLOCK"),onClockLookup,25*60+clocktime%60);
+  }
 } 
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
