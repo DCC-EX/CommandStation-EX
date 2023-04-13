@@ -1,8 +1,8 @@
 /*
  *  © 2023 Neil McKechnie
- *  © 2022 Paul M. Antoine
+ *  © 2022-23 Paul M. Antoine
  *  © 2021 Mike S
- *  © 2021 Harald Barth
+ *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
@@ -43,11 +43,18 @@ HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 
 HardwareSerial Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// NB: USART3 and USART6 are available but as yet undefined
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
+// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+// via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// NB:
+//    On all of the above, USART3, and USART6 are available but as yet undefined
+//    On F446ZE and F429ZI, UART4, UART5 are also available but as yet undefined
+//    On F429ZI, UART7 and UART8 are also available but as yet undefined
 #else
-#warning Serial1 not defined
+#error STM32 board selected is not yet explicitly supported - so Serial1 peripheral is not defined
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +234,9 @@ void DCCTimer::reset() {
 #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
 
 // TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
+#if defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#warning STM32 board selected not fully supported - only use ADC1 inputs 0-15 for current sensing!
+#endif
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
 uint32_t * analogchans = NULL;
