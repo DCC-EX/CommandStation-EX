@@ -1,8 +1,8 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022-2023 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2022 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *  
@@ -26,10 +26,6 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-
-#if defined(ARDUINO_ARCH_ESP32)
-#include "ESP32-fixes.h"
-#endif
 
 bool MotorDriver::commonFaultPin=false;
 
@@ -286,7 +282,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
 	f = taurustones[ (tSpeed-2)/2 ] ;
       }
     }
-    DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
   }
 #endif
   if (tSpeed <= 1) brake = 255;
@@ -295,7 +291,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (invertBrake)
     brake=255-brake;
 #if defined(ARDUINO_ARCH_ESP32)
-  DCCEXanalogWrite(brakePin,brake);
+  DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else
   analogWrite(brakePin,brake);
 #endif
