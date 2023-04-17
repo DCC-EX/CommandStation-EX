@@ -233,3 +233,7 @@ void CommandDistributor::broadcastText(const FSH * msg) {
   broadcastReply(WITHROTTLE_TYPE, F("Hm%S\n"), msg);
 #endif
 }
+
+void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr) {
+  broadcastReply(COMMAND_TYPE, format,trackLetter,dcAddr);
+}

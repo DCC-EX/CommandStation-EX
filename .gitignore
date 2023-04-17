@@ -7,15 +7,9 @@ Release/*
 .pio/
 .vscode/
 config.h
-.vscode/*
-# mySetup.h
 mySetup.cpp
 myHal.cpp
-# myAutomation.h
 myFilter.cpp
-# myAutomation.h
-# myLayout.h
 my*.h
 !my*.example.h
-.vscode/extensions.json
-.vscode/extensions.json
+compile_commands.json

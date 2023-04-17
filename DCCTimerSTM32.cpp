@@ -1,8 +1,8 @@
 /*
  *  © 2023 Neil McKechnie
- *  © 2022 Paul M. Antoine
+ *  © 2022-23 Paul M. Antoine
  *  © 2021 Mike S
- *  © 2021 Harald Barth
+ *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
@@ -40,27 +40,123 @@ HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F
 HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
 #elif defined(ARDUINO_NUCLEO_F446RE)
 // Nucleo-64 boards don't have Serial1 defined by default
-HardwareSerial Serial1(PA10, PB6);  // Rx=PA10, Tx=PB6 -- CN10 pins 33 and 17 - F446RE 
+HardwareSerial Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// NB: USART3 and USART6 are available but as yet undefined
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- D0, D1 - F412ZG/F446ZE
+// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+// via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// NB:
+//    On all of the above, USART3, and USART6 are available but as yet undefined
+//    On F446ZE and F429ZI, UART4, UART5 are also available but as yet undefined
+//    On F429ZI, UART7 and UART8 are also available but as yet undefined
 #else
-#warning Serial1 not defined
+#error STM32 board selected is not yet explicitly supported - so Serial1 peripheral is not defined
 #endif
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// Experimental code for High Accuracy (HA) DCC Signal mode
+// Warning - use of TIM2 and TIM3 can affect the use of analogWrite() function on certain pins,
+// which is used by the DC motor types.
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+// INTERRUPT_CALLBACK interruptHandler=0;
+// // Let's use STM32's timer #2 which supports hardware pulse generation on pin D13.
+// // Also, timer #3 will do hardware pulses on pin D12. This gives
+// // accurate timing, independent of the latency of interrupt handling.
+// // We only need to interrupt on one of these (TIM2), the other will just generate
+// // pulses.
+// HardwareTimer timer(TIM2);
+// HardwareTimer timerAux(TIM3);
+// static bool tim2ModeHA = false;
+// static bool tim3ModeHA = false;
+
+// // Timer IRQ handler
+// void Timer_Handler() {
+//   interruptHandler();
+// }
+
+// void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+//   interruptHandler=callback;
+//   noInterrupts();
+
+//   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
+//   timer.pause();
+//   timerAux.pause();
+//   timer.setPrescaleFactor(1);
+//   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+//   timer.attachInterrupt(Timer_Handler);
+//   timer.refresh();
+//   timerAux.setPrescaleFactor(1);
+//   timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+//   timerAux.refresh();
+  
+//   timer.resume();
+//   timerAux.resume();
+
+//   interrupts();
+// }
+
+// bool DCCTimer::isPWMPin(byte pin) {
+//   // Timer 2 Channel 1 controls pin D13, and Timer3 Channel 1 controls D12.
+//   //  Enable the appropriate timer channel.
+//   switch (pin) {
+//     case 12:
+//       return true;
+//     case 13:
+//       return true;
+//     default:
+//       return false;
+//   }
+// }
+
+// void DCCTimer::setPWM(byte pin, bool high) {
+//   // Set the timer so that, at the next counter overflow, the requested
+//   // pin state is activated automatically before the interrupt code runs.
+//   // TIM2 is timer, TIM3 is timerAux.
+//   switch (pin) {
+//     case 12:
+//       if (!tim3ModeHA) {
+//         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D12);
+//         tim3ModeHA = true;
+//       }
+//       if (high) 
+//         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+//       else
+//         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+//       break;
+//     case 13:
+//       if (!tim2ModeHA) {
+//         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D13);
+//         tim2ModeHA = true;
+//       }
+//       if (high) 
+//         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+//       else
+//         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+//       break;
+//   }   
+// }
+
+// void DCCTimer::clearPWM() {
+//   timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
+//   tim2ModeHA = false;
+//   timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
+//   tim3ModeHA = false;
+// }
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 INTERRUPT_CALLBACK interruptHandler=0;
-// Let's use STM32's timer #2 which supports hardware pulse generation on pin D13.
-// Also, timer #3 will do hardware pulses on pin D12. This gives
-// accurate timing, independent of the latency of interrupt handling.
-// We only need to interrupt on one of these (TIM2), the other will just generate
-// pulses.
-HardwareTimer timer(TIM2);
-HardwareTimer timerAux(TIM3);
+// Let's use STM32's timer #11 until disabused of this notion
+// Timer #11 is used for "servo" library, but as DCC-EX is not using
+// this libary, we should be free and clear.
+HardwareTimer timer(TIM11);
 
 // Timer IRQ handler
-void Timer_Handler() {
+void Timer11_Handler() {
   interruptHandler();
 }
 
@@ -70,59 +166,31 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 
   // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
   timer.pause();
-  timerAux.pause();
   timer.setPrescaleFactor(1);
+//  timer.setOverflow(CLOCK_CYCLES * 2);
   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  timer.attachInterrupt(Timer_Handler);
+  timer.attachInterrupt(Timer11_Handler);
   timer.refresh();
-  timerAux.setPrescaleFactor(1);
-  timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  timerAux.refresh();
-  
   timer.resume();
-  timerAux.resume();
 
   interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-  // Timer 2 Channel 1 controls pin D13, and Timer3 Channel 1 controls D12.
-  //  Enable the appropriate timer channel.
-  switch (pin) {
-    case 12:
-      timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D12);
-      return true;
-    case 13:
-      timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D13);
-      return true;
-    default:
-      return false;
-  }
+  //TODO: SAMD whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
+  //      there's no support yet for High Accuracy, so for now return false
+  //  return digitalPinHasPWM(pin);
+  return false;
 }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-  // Set the timer so that, at the next counter overflow, the requested
-  // pin state is activated automatically before the interrupt code runs.
-  // TIM2 is timer, TIM3 is timerAux.
-  switch (pin) {
-    case 12:
-      if (high) 
-        TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
-      else
-        TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
-      break;
-    case 13:
-      if (high) 
-        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
-      else
-        TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
-      break;
-  }   
+    // TODO: High Accuracy mode is not supported as yet, and may never need to be
+    (void) pin;
+    (void) high;
 }
 
 void DCCTimer::clearPWM() {
-  timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
-  timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
+  return;
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
@@ -166,6 +234,9 @@ void DCCTimer::reset() {
 #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
 
 // TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
+#if defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#warning STM32 board selected not fully supported - only use ADC1 inputs 0-15 for current sensing!
+#endif
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
 uint32_t * analogchans = NULL;
@@ -176,10 +247,13 @@ int16_t ADCee::ADCmax() {
 }
 
 int ADCee::init(uint8_t pin) {
-  uint id = pin - A0;
+
   int value = 0;
-  PinName stmpin = digitalPin[analogInputPin[id]];
-  uint32_t stmgpio = stmpin / 16; // 16-bits per GPIO port group on STM32
+  PinName stmpin = analogInputToPinName(pin);
+  if (stmpin == NC) // do not continue if this is not an analog pin at all
+    return -1024;   // some silly value as error
+
+  uint32_t stmgpio = STM_PORT(stmpin); // converts to the GPIO port (16-bits per port group on STM32)
   uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC channel (only valid for ADC1!)
   GPIO_TypeDef * gpioBase;
 
@@ -197,12 +271,20 @@ int ADCee::init(uint8_t pin) {
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //Power up PORTC
         gpioBase = GPIOC;
         break;
+    default:
+      return -1023; // some silly value as error
   }
 
-  // Set pin mux mode to analog input
-  gpioBase->MODER |= (0b011 << (stmpin << 1)); // Set pin mux to analog mode
+  // Set pin mux mode to analog input, the 32 bit port mode register has 2 bits per pin
+  gpioBase->MODER |= (0b011 << (STM_PIN(stmpin) << 1)); // Set pin mux to analog mode (binary 11)
 
   // Set the sampling rate for that analog input
+  // This is F411x specific! Different on for example F334
+  // STM32F11xC/E Reference manual
+  // 11.12.4 ADC sample time register 1 (ADC_SMPR1) (channels 10 to 18)
+  // 11.12.5 ADC sample time register 2 (ADC_SMPR2) (channels 0 to 9)
+  if (adcchan > 18)
+    return -1022; // silly value as error
   if (adcchan < 10)
     ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
   else
@@ -214,8 +296,12 @@ int ADCee::init(uint8_t pin) {
   while(!(ADC1->SR & (1 << 1)));  // Wait until conversion is complete
   value = ADC1->DR;               // Read value from register
 
-  if (analogvals == NULL)
-  {
+  uint8_t id = pin - PNUM_ANALOG_BASE;
+  if (id > 15) { // today we have not enough bits in the mask to support more
+    return -1021;
+  }
+
+  if (analogvals == NULL) {  // allocate analogvals and analogchans if this is the first invocation of init.
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
     analogchans = (uint32_t *)calloc(NUM_ADC_INPUTS+1, sizeof(uint32_t));
   }
@@ -230,7 +316,7 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  uint8_t id = pin - A0;
+  uint8_t id = pin - PNUM_ANALOG_BASE;
   // Was this pin initialised yet?
   if ((usedpins & (1<<id) ) == 0)
     return -1023;
@@ -245,7 +331,7 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void ADCee::scan() {
-  static uint id = 0;        // id and mask are the same thing but it is faster to 
+  static uint8_t id = 0;     // id and mask are the same thing but it is faster to
   static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
 

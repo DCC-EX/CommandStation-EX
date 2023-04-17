@@ -55,6 +55,7 @@ public:
     pinMode(_clockPin,OUTPUT);
     pinMode(_dataPin,_pinMap?INPUT_PULLUP:OUTPUT);
     _display();
+    if (!_pinMap) _loopOutput();
   }
 
 // loop called by HAL supervisor 
@@ -121,7 +122,7 @@ void _loopOutput()  {
   }
 
   void _display() override {
-      DIAG(F("IO_duinoNodes %SPUT Configured on VPins:%d-%d shift=%d"), 
+      DIAG(F("IO_duinoNodes %SPUT Configured on Vpins:%u-%u shift=%d"), 
       _pinMap?F("IN"):F("OUT"),
       (int)_firstVpin, 
       (int)_firstVpin+_nPins-1, _nShiftBytes*8);

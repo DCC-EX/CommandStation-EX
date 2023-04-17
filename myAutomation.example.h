@@ -23,7 +23,9 @@
  *  
  */
 
-// This is the startup sequence, AKA SEQUENCE(0)
+// This is the startup sequence, 
+AUTOSTART
+POWERON        // turn on track power
 SENDLOCO(3,1) // send loco 3 off along route 1
 SENDLOCO(10,2) // send loco 10 off along route 2
 DONE     // This just ends the startup thread, leaving 2 others running.

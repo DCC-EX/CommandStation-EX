@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2023 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -24,8 +24,8 @@
    F1. [DONE] DCC accessory packet opcodes (short and long form)
    F2. [DONE] ONAccessory catchers 
    F3. [DONE] Turnout descriptions for Withrottle
-   F4. Oled announcements (depends on HAL)
-   F5. Withrottle roster info
+   F4. [DONE] Oled announcements (depends on HAL)
+   F5. [DONE] Withrottle roster info
    F6. Multi-occupancy semaphore
    F7. [DONE see AUTOSTART] Self starting sequences
    F8. Park/unpark
@@ -105,12 +105,9 @@ uint16_t RMFT2::getOperand(byte n) {
 // getOperand static version, must be provided prog counter from loop etc.
 uint16_t RMFT2::getOperand(int progCounter,byte n) {
   int offset=progCounter+1+(n*3);
-  if (offset&1) {
-       byte lsb=GETHIGHFLASH(RouteCode,offset);
-       byte msb=GETHIGHFLASH(RouteCode,offset+1);
-       return msb<<8|lsb;
-  }
-  return GETHIGHFLASHW(RouteCode,offset);
+  byte lsb=GETHIGHFLASH(RouteCode,offset);
+  byte msb=GETHIGHFLASH(RouteCode,offset+1);
+  return msb<<8|lsb;
 }
 
 LookList::LookList(int16_t size) {
@@ -201,7 +198,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_IFNOT: {
       int16_t pin = (int16_t)operand;
       if (pin<0) pin = -pin;
-      DIAG(F("EXRAIL input vpin %d"),pin);
+      DIAG(F("EXRAIL input VPIN %u"),pin);
       IODevice::configureInput((VPIN)pin,true);
       break;
     }
@@ -211,7 +208,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_IFGTE:
     case OPCODE_IFLT:
     case OPCODE_DRIVE: {
-      DIAG(F("EXRAIL analog input vpin %d"),(VPIN)operand);
+      DIAG(F("EXRAIL analog input VPIN %u"),(VPIN)operand);
       IODevice::configureAnalogIn((VPIN)operand);
       break;
     }
@@ -243,8 +240,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
         
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
-      // but we will do one at 0 anyway by default.
-      if (progCounter>0) new RMFT2(progCounter);
+      // Removed if (progCounter>0) check 4.2.31 because 
+      // default start it top of file is now removed. .   
+      new RMFT2(progCounter);
       break;
       
     default: // Ignore
@@ -255,7 +253,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   DIAG(F("EXRAIL %db, fl=%d"),progCounter,MAX_FLAGS);
 
-  new RMFT2(0); // add the startup route
+  // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
 }
 
@@ -1131,7 +1129,10 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
   if (Diag::CMD)
    DIAG(F("Looking for clock event at : %d"), clocktime);
-  if (change)  handleEvent(F("CLOCK"),onClockLookup,clocktime);
+  if (change) {
+    handleEvent(F("CLOCK"),onClockLookup,clocktime);
+    handleEvent(F("CLOCK"),onClockLookup,25*60+clocktime%60);
+  }
 } 
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {

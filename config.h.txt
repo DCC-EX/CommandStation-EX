@@ -1,0 +1,169 @@
+/**********************************************************************
+
+Config.h
+COPYRIGHT (c) 2013-2016 Gregg E. Berman
+COPYRIGHT (c) 2020 Fred Decker
+
+The configuration file for DCC++ EX Command Station
+
+**********************************************************************/
+/////////////////////////////////////////////////////////////////////////////////////
+//  NOTE: Before connecting these boards and selecting one in this software
+//        check the quick install guides!!! Some of these boards require a voltage
+//        generating resitor on the current sense pin of the device. Failure to select
+//        the correct resistor could damage the sense pin on your Arduino or destroy
+//        the device.
+//
+// DEFINE MOTOR_SHIELD_TYPE BELOW ACCORDING TO THE FOLLOWING TABLE:
+//
+//  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
+//  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
+//  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
+//  FIREBOX_MK1           : The Firebox MK1                    
+//  FIREBOX_MK1S          : The Firebox MK1S    
+//   |
+//   +-----------------------v
+//
+// #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                              
+//                               new MotorDriver(3, 12, UNUSED_PIN, 9, A0, 0.488, 1500, UNUSED_PIN),
+//                               new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 0.488, 1500, UNUSED_PIN)
+
+#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// The IP port to talk to a WIFI or Ethernet shield.
+//
+#define IP_PORT 2560
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// NOTE: Only supported on Arduino Mega
+// Set to false if you not even want it on the Arduino Mega
+//
+//#define ENABLE_WIFI true
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE WiFi Parameters (only in effect if WIFI is on)
+//
+// If DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
+// the <+> commands and this sketch will not change anything over
+// AT commands and the other WIFI_* defines below do not have any effect.
+//#define DONT_TOUCH_WIFI_CONF
+//
+// WIFI_SSID is the network name IF you want to use your existing home network.
+// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
+//
+// If you do NOT set the WIFI_SSID, the WiFi chip will first try
+// to connect to the previously configured network and if that fails
+// fall back to Access Point mode. The SSID of the AP will be
+// automatically set to DCCEX_*.
+//
+// Your SSID may not conain ``"'' (double quote, ASCII 0x22).
+#define WIFI_SSID "Your network name"
+//
+// WIFI_PASSWORD is the network password for your home network or if
+// you want to change the password from default AP mode password
+// to the AP password you want. 
+// Your password may not conain ``"'' (double quote, ASCII 0x22).
+#define WIFI_PASSWORD "deadcafe"
+//
+// WIFI_HOSTNAME: You probably don't need to change this
+#define WIFI_HOSTNAME "dccex"
+//
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// Wifi connect timeout in milliseconds. Default is 14000 (14 seconds). You only need
+// to set this if you have an extremely slow Wifi router.
+//
+#define WIFI_CONNECT_TIMEOUT 14000
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired). This
+// is not for Wifi. You will then need the Arduino Ethernet library as well
+//
+//#define ENABLE_ETHERNET true
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
+//
+//#define IP_ADDRESS { 192, 168, 1, 31 }
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE MAC ADDRESS ARRAY FOR ETHERNET COMMUNICATIONS INTERFACE
+//
+// Uncomment to use with Ethernet Shields
+//
+// Ethernet Shields do not have have a MAC address in hardware. There may be one on 
+// a sticker on the Shield that you should use. Otherwise choose one of the ones below
+// Be certain that no other device on your network has this same MAC address!
+//
+// 52:b8:8a:8e:ce:21
+// e3:e9:73:e1:db:0d
+// 54:2b:13:52:ac:0c
+
+// NOTE: This is not used with ESP8266 WiFi modules.
+
+//#define MAC_ADDRESS { 0x52, 0xB8, 0x8A, 0x8E, 0xCE, 0x21 }      // MAC address of your networking card found on the sticker on your card or take one from above
+
+// 
+// #define MAC_ADDRESS {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEF }
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE LCD SCREEN USAGE BY THE BASE STATION
+//
+// Note: This feature requires an I2C enabled LCD screen using a Hitachi  HD44780
+//       controller and a PCF8574 based I2C 'backpack',
+//       OR an I2C Oled screen based on SSD1306 (128x64 or 128x32) controller,
+//       OR an I2C Oled screen based on SH1106 (132x64) controller.
+// To enable, uncomment one of the lines below
+
+// define LCD_DRIVER for I2C LCD address 0x3f,16 cols, 2 rows
+//#define LCD_DRIVER  {SubBus_4,0x27},20,4
+
+//OR define OLED_DRIVER width,height in pixels (address auto detected) 
+#if defined(ARDUINO_ARCH_STM32) 
+#define OLED_DRIVER 0x3c, 128, 64
+#else
+#define OLED_DRIVER {SubBus_0,0x3c}, 128, 32
+#endif
+
+#define SCROLLMODE 1
+
+/////////////////////////////////////////////////////////////////////////////////////
+// DISABLE EEPROM
+//
+// If you do not need the EEPROM at all, you can disable all the code that saves
+// data in the EEPROM. You might want to do that if you are in a Arduino UNO
+// and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
+// to do that. Of course, then none of the EEPROM related commands work.
+//
+#define DISABLE_EEPROM
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// DEFINE TURNOUTS/ACCESSORIES FOLLOW NORM RCN-213
+//
+// According to norm RCN-213 a DCC packet with a 1 is closed/straight
+// and one with a 0 is thrown/diverging.  In DCC++ Classic, and in previous
+// versions of DCC++EX, a turnout throw command was implemented in the packet as 
+// '1' and a close command as '0'. The #define below makes the states
+// match with the norm.  But we don't want to cause havoc on existent layouts,
+// so we define this only for new installations. If you don't want this,
+// don't add it to your config.h.
+//#define DCC_TURNOUTS_RCN_213
+
+// The following #define likewise inverts the behaviour of the <a> command 
+// for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a 
+// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
+// (throw turnout).
+//#define DCC_ACCESSORY_RCN_213
+
+/////////////////////////////////////////////////////////////////////////////////////

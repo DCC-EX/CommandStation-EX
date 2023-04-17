@@ -98,13 +98,14 @@ private:
 
   void _write(VPIN vpin, int value) override {
     if (vpin == _firstVpin + 1) {
-      byte _feedbackBuffer[2] = {RE_OP, value};
+      if (value != 0) value = 0x01;
+      byte _feedbackBuffer[2] = {RE_OP, (byte)value};
       I2CManager.write(_I2CAddress, _feedbackBuffer, 2);
     }
   }
   
   void _display() override {
-    DIAG(F("Rotary Encoder I2C:%s v%d.%d.%d Configured on Vpin:%d-%d %S"), _I2CAddress.toString(), _majorVer, _minorVer, _patchVer,
+    DIAG(F("Rotary Encoder I2C:%s v%d.%d.%d Configured on VPIN:%u-%d %S"), _I2CAddress.toString(), _majorVer, _minorVer, _patchVer,
       (int)_firstVpin, _firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 

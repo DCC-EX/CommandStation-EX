@@ -91,6 +91,7 @@
 #undef ONCLOSE
 #undef ONTIME
 #undef ONCLOCKTIME
+#undef ONCLOCKMINS
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -134,6 +135,7 @@
 #undef STOP 
 #undef THROW  
 #undef TURNOUT 
+#undef TURNOUTL
 #undef UNJOIN
 #undef UNLATCH 
 #undef VIRTUAL_SIGNAL
@@ -208,6 +210,7 @@
 #define ONAMBER(signal_id) 
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
+#define ONCLOCKMINS(mins)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
@@ -254,6 +257,7 @@
 #define STOP 
 #define THROW(id)  
 #define TURNOUT(id,addr,subaddr,description...) 
+#define TURNOUTL(id,addr,description...) 
 #define UNJOIN 
 #define UNLATCH(sensor_id) 
 #define VIRTUAL_SIGNAL(id) 

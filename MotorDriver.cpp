@@ -1,8 +1,8 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022-2023 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2022 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *  
@@ -26,10 +26,6 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-
-#if defined(ARDUINO_ARCH_ESP32)
-#include "ESP32-fixes.h"
-#endif
 
 bool MotorDriver::commonFaultPin=false;
 
@@ -75,6 +71,23 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     dualSignal=true;
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
+
+    fastSignalPin2.shadowinout = NULL;
+    if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
+      DIAG(F("Found PORTA pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTA;
+    }
+    if (HAVE_PORTB(fastSignalPin2.inout == &PORTB)) {
+      DIAG(F("Found PORTB pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTB;
+    }
+    if (HAVE_PORTC(fastSignalPin2.inout == &PORTC)) {
+      DIAG(F("Found PORTC pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTC;
+    }
   }
   else dualSignal=false; 
   
@@ -123,8 +136,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   if (currentPin==UNUSED_PIN) 
     DIAG(F("** WARNING ** No current or short detection"));
   else  {
-    DIAG(F("CurrentPin=A%d, TripValue=%d"),
-    currentPin-A0, rawCurrentTripValue);
+    DIAG(F("Track %c, TripValue=%d"), trackLetter, rawCurrentTripValue);
 
     // self testing diagnostic for the non-float converters... may be removed when happy
     //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
@@ -149,7 +161,7 @@ void MotorDriver::setPower(POWERMODE mode) {
     // when switching a track On, we need to check the crrentOffset with the pin OFF
     if (powerMode==POWERMODE::OFF && currentPin!=UNUSED_PIN) {
         senseOffset = ADCee::read(currentPin);
-        DIAG(F("CurrentPin A%d sensOffset=%d"),currentPin-A0,senseOffset);
+        DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
     }
 
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
@@ -197,7 +209,10 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   (void)fromISR;
   if (currentPin==UNUSED_PIN) return 0; 
   int current;
-  current = ADCee::read(currentPin, fromISR)-senseOffset;
+  current = ADCee::read(currentPin, fromISR);
+  // here one can diag raw value
+  // if (fromISR == false) DIAG(F("%c: %d"), trackLetter, current);
+  current = current-senseOffset;     // adjust with offset
   if (current<0) current=0-current;
   if ((faultPin != UNUSED_PIN) && powerMode==POWERMODE::ON) {
     if (invertFault && isLOW(fastFaultPin))
@@ -274,7 +289,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
 	f = taurustones[ (tSpeed-2)/2 ] ;
       }
     }
-    DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
   }
 #endif
   if (tSpeed <= 1) brake = 255;
@@ -283,7 +298,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   if (invertBrake)
     brake=255-brake;
 #if defined(ARDUINO_ARCH_ESP32)
-  DCCEXanalogWrite(brakePin,brake);
+  DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else
   analogWrite(brakePin,brake);
 #endif

@@ -467,6 +467,75 @@ protected:
   }
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// 
+// This HAL device driver is intended for communication in automation
+// sequences.  A VPIN can be SET or RESET within a sequence, and its
+// current state checked elsewhere using IF, IFNOT, AT etc. or monitored
+// from JMRI using a Sensor object (DCC-EX <S ...> command).
+// Alternatively, the flag can be set from JMRI and other interfaces
+// using the <Z ...> command, to enable or disable actions within a sequence.
+// 
+// Example of configuration in halSetup.h:
+// 
+//  FLAGS::create(32000, 128);
+// 
+// or in myAutomation.h:
+//  
+//  HAL(FLAGS, 32000, 128);
+// 
+// Both create 128 flags numbered with VPINs 32000-32127.
+// 
+//
+
+class FLAGS : IODevice {
+private:
+  uint8_t *_states = NULL;
+
+public:
+  static void create(VPIN firstVpin, unsigned int nPins) {
+    if (checkNoOverlap(firstVpin, nPins))
+        new FLAGS(firstVpin, nPins);
+  }
+
+protected:
+  // Constructor performs static initialisation of the device object
+  FLAGS (VPIN firstVpin, int nPins) {
+    _firstVpin = firstVpin;
+    _nPins = nPins;
+    _states = (uint8_t *)calloc(1, (_nPins+7)/8);
+    if (!_states) {
+      DIAG(F("FLAGS: ERROR Memory Allocation Failure"));
+      return;
+    }
+
+    addDevice(this);
+  }
+
+  int _read(VPIN vpin) override {
+    int pin = vpin - _firstVpin;
+    if (pin >= _nPins || pin < 0) return 0;
+    uint8_t mask = 1 << (pin & 7);
+    return (_states[pin>>3] & mask) ? 1 : 0;
+  }
+
+  void _write(VPIN vpin, int value) override {
+    int pin = vpin - _firstVpin;
+    if (pin >= _nPins || pin < 0) return;
+    uint8_t mask = 1 << (pin & 7);
+    if (value) 
+      _states[pin>>3] |= mask;
+    else
+      _states[pin>>3] &= ~mask;
+  }
+
+  void _display() override {
+    DIAG(F("FLAGS configured on VPINs %u-%u"),
+      _firstVpin, _firstVpin+_nPins-1);
+  }
+
+};
+
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
 #include "IO_PCF8574.h"

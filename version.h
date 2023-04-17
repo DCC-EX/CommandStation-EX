@@ -4,7 +4,40 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.20"
+#define VERSION "4.2.45"
+// 4.2.45 - Add ONCLOCKMINS to FastClock to allow hourly repeat events
+// 4.2.44 - Add PowerShell installer EX-CommandStation-installer.exe
+// 4.2.43 - Fix STM32 set right port mode bits for analog
+// 4.2.42 - Added EXRAIL TURNOUTL Macro definition
+// 4.2.41 - Move HAl startup to ASAP in setup()
+//        - Fix DNOU8 output pin setup to all LOW  
+// 4.2.40 - Automatically detect conflicting default I2C devices and disable
+// 4.2.39 - DFplayer driver now polls device to detect failures and errors.
+// 4.2.38 - Clean up compiler warning when IO_RotaryEncoder.h included
+// 4.2.37 - Add new FLAGS HAL device for communications to/from EX-RAIL;
+//        - Fix diag display of high VPINs within IODevice class.
+// 4.2.36 - do not broadcast a turnout state that has not changed
+//        - Use A2/A3 for current sensing on ESP32 + Motor Shield
+// 4.2.35 - add <z> direct pin manipulation command 
+// 4.2.34 - Completely fix EX-IOExpander analogue inputs
+// 4.2.33 - Fix EX-IOExpander non-working analogue inputs
+// 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
+// 4.2.31 - Removes EXRAIL statup from top of file. (BREAKING CHANGE !!)
+//          Just add AUTOSTART to the top of your myAutomation.h to restore this function.
+// 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
+// 4.2.29 - Bugfix Scroll LCD without empty lines and consistent
+// 4.2.28 - Reinstate use of timer11 in STM32 - remove HA mode.
+//        - Update IO_DFPlayer to work with MP3-TF-16P rev3.
+// 4.2.27 - Bugfix LCD showed random characters in SCROLLMODE 2
+// 4.2.26 - EX-IOExpander device driver enhancements
+//        - Enhance I2C error checking
+//        - Introduce delays to _loop to allow room for other I2C device comms
+//        - Improve analogue read reliability
+// 4.2.25 - Bugfix SAMD21 Exrail odd byte boundary
+// 4.2.24 - Bugfix Ethernet shield: Static IP now possible
+// 4.2.23 - Bugfix signalpin2 was not set up in shadow port
+// 4.2.22 - Implement broadcast of Track Manager changes
+// 4.2.21 - Implement non-blocking I2C for EX-IOExpander device driver
 // 4.2.20 - <JG> & <JI> commands for multi-track gauges
 //        - Reinstate <c> but remember its a bit useless when TM involved.   
 // 4.2.19 - Bugfix for analog reading of track current sensor offset.
@@ -43,6 +76,10 @@
 // 4.2.11 Exrail IFLOCO feature added
 // 4.2.10 SIGNAL/SIGNALH bug fix as they were inverted
 //        IO_EXIOExpander.h input speed optimisation
+//        ONCLOCK and ONCLOCKTIME command added to EXRAIL for EX-FastCLock
+//        <JC> Serial command added for EX-FastClock
+//        <jC> Broadcast added for EX-FastClock
+//        IO_EXFastClock.h added for I2C FastClock connection
 // 4.2.9 duinoNodes support
 // 4.2.8 HIGHMEM (EXRAIL support beyond 64kb)
 //       Withrottle connect/disconnect improvements

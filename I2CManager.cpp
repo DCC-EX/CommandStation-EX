@@ -72,17 +72,22 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
 void I2CManagerClass::begin(void) {
   if (!_beginCompleted) {
     _beginCompleted = true;
+
+    // Check for short-circuit or floating lines (no pull-up) on I2C before enabling I2C
+    const FSH *message = F("WARNING: Check I2C %S line for short/pullup");
+    pinMode(SDA, INPUT);
+    if (!digitalRead(SDA))
+      DIAG(message, F("SDA"));
+    pinMode(SCL, INPUT);
+    if (!digitalRead(SCL))
+      DIAG(message, F("SCL"));
+
+    // Now initialise I2C
     _initialise();
 
     #if defined(I2C_USE_WIRE)
     DIAG(F("I2CManager: Using Wire library"));
     #endif
-
-    // Check for short-circuits on I2C
-    if (!digitalRead(SDA))
-      DIAG(F("WARNING: Possible short-circuit on I2C SDA line"));
-    if (!digitalRead(SCL))
-      DIAG(F("WARNING: Possible short-circuit on I2C SCL line"));
 
     // Probe and list devices.  Use standard mode 
     //  (clock speed 100kHz) for best device compatibility.

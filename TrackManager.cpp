@@ -25,6 +25,7 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include"CommandDistributor.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
     
@@ -128,6 +129,7 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
      track[t]=driver;
      if (driver) {
          track[t]->setPower(POWERMODE::OFF);
+	 track[t]->setTrackLetter('A'+t);
          lastTrack=t;
      } 
 }
@@ -203,6 +205,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	  track[t]->setPower(POWERMODE::OFF);
 	  trackMode[t]=TRACK_MODE_OFF;
 	  track[t]->makeProgTrack(false);     // revoke prog track special handling
+    streamTrackState(NULL,t);
 	}
       track[trackToSet]->makeProgTrack(true); // set for prog track special handling
     } else {
@@ -210,7 +213,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     }
     trackMode[trackToSet]=mode;
     trackDCAddr[trackToSet]=dcAddr;
-    
+    streamTrackState(NULL,trackToSet);
+
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
 
@@ -290,36 +294,7 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     
     if (params==0) { // <=>  List track assignments
         FOR_EACH_TRACK(t)
-            if (track[t]!=NULL) {
-                StringFormatter::send(stream,F("<= %c "),'A'+t);
-                switch(trackMode[t]) {
-                    case TRACK_MODE_MAIN:
-                        StringFormatter::send(stream,F("MAIN"));
-			if (track[t]->trackPWM)
-			  StringFormatter::send(stream,F("+"));
-                        break;
-                    case TRACK_MODE_PROG:
-                        StringFormatter::send(stream,F("PROG"));
-			if (track[t]->trackPWM)
-			  StringFormatter::send(stream,F("+"));
-                        break;
-                    case TRACK_MODE_OFF:
-                        StringFormatter::send(stream,F("OFF"));
-                        break;
-                    case TRACK_MODE_EXT:
-                        StringFormatter::send(stream,F("EXT"));
-                        break;
-                    case TRACK_MODE_DC:
-                        StringFormatter::send(stream,F("DC %d"),trackDCAddr[t]);
-                        break;
-                    case TRACK_MODE_DCX:
-                        StringFormatter::send(stream,F("DCX %d"),trackDCAddr[t]);
-                        break;
-                    default:
-                        break; // unknown, dont care    
-                    }
-                StringFormatter::send(stream,F(">\n"));
-                }
+             streamTrackState(stream,t);
         return true;
     }
     
@@ -347,6 +322,36 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
         return setTrackMode(p[0],TRACK_MODE_DCX,p[2]);
 
     return false;
+}
+
+void TrackManager::streamTrackState(Print* stream, byte t) {
+  // null stream means send to commandDistributor for broadcast
+  if (track[t]==NULL) return;
+  auto format=F("");
+  switch(trackMode[t]) {
+  case TRACK_MODE_MAIN:
+      format=F("<= %c MAIN>\n");
+      break;
+  case TRACK_MODE_PROG:
+      format=F("<= %c PROG>\n");
+      break;
+  case TRACK_MODE_OFF:
+      format=F("<= %c OFF>\n");
+      break;
+  case TRACK_MODE_EXT:
+      format=F("<= %c EXT>\n");
+      break;
+  case TRACK_MODE_DC:
+      format=F("<= %c DC %d>\n");
+      break;
+  case TRACK_MODE_DCX:
+      format=F("<= %c DCX %d>\n");
+      break;
+  default:
+      break; // unknown, dont care    
+  }
+  if (stream) StringFormatter::send(stream,format,'A'+t,trackDCAddr[t]);
+  else CommandDistributor::broadcastTrackState(format,'A'+t,trackDCAddr[t]);
 }
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;

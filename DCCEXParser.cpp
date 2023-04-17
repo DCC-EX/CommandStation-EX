@@ -344,6 +344,20 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
+    case 'z':  // direct pin manipulation
+        if (p[0]==0) break; 
+        if (params==1) {  // <z vpin | -vpin> 
+            if (p[0]>0) IODevice::write(p[0],HIGH);
+            else IODevice::write(-p[0],LOW);
+            return;
+        }
+        if (params>=2 && params<=4) { // <z vpin ana;og profile duration> 
+            // unused params default to 0           
+            IODevice::writeAnalogue(p[0],p[1],p[2],p[3]);
+            return;
+        }
+        break; 
+
     case 'Z': // OUTPUT <Z ...>
         if (parseZ(stream, params, p))
             return;
@@ -516,9 +530,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
-        Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states
-        // TODO Send stats of  speed reminders table
         return;       
 
 #ifndef DISABLE_EEPROM
@@ -955,7 +967,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         break;
 
     case HASH_KEYWORD_ANIN:   // <D ANIN vpin>  Display analogue input value
-        DIAG(F("VPIN=%d value=%d"), p[1], IODevice::readAnalogue(p[1]));
+        DIAG(F("VPIN=%u value=%d"), p[1], IODevice::readAnalogue(p[1]));
         break;
 
 #if !defined(IO_NO_HAL)

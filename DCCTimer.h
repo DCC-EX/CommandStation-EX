@@ -1,7 +1,7 @@
 /*
- *  © 2022 Paul M. Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
- *  © 2021-2022 Harald Barth
+ *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
  *  All rights reserved.
  *  
@@ -62,6 +62,9 @@ class DCCTimer {
   static bool isPWMPin(byte pin);
   static void setPWM(byte pin, bool high);
   static void clearPWM();
+  static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
+  static void DCCEXanalogWrite(uint8_t pin, int value);
+
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
 // called subroutines.  Must be called with interrupts disabled.

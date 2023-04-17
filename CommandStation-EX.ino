@@ -75,6 +75,9 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
+// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+  IODevice::begin();
+
   DISPLAY_START (
     // This block is still executed for DIAGS if display not in use
     LCD(0,F("DCC-EX v%S"),F(VERSION));
@@ -96,10 +99,7 @@ void setup()
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
-
-  // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
-  IODevice::begin();
-
+  
   // As the setup of a motor shield may require a read of the current sense input from the ADC,
   // let's make sure to initialise the ADCee class!
   ADCee::begin();
