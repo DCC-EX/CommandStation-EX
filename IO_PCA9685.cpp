@@ -141,7 +141,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             1 (Fast)    Move servo in 0.5 seconds
 //             2 (Medium)  Move servo in 1.0 seconds
 //             3 (Slow)    Move servo in 2.0 seconds
-//             4 (Bounce)  Servo 'bounces' at extremes.
+//             >=4         Predefined profiles:  Bounce, UserProfile1, UserProfile2 etc.
 //            
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
   #ifdef DIAG_IO
@@ -165,13 +165,22 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
   }
 
   // Animated profile.  Initiate the appropriate action.
-  s->currentProfile = profile;
   uint8_t profileValue = profile & ~NoPowerOff;  // Mask off 'don't-power-off' bit.
-  s->numSteps = profileValue==Fast ? 10 :   // 0.5 seconds
-                profileValue==Medium ? 20 : // 1.0 seconds
-                profileValue==Slow ? 40 :   // 2.0 seconds
-                profileValue==Bounce ? sizeof(_bounceProfile)-1 : // ~ 1.5 seconds
-                duration * 2 + 1; // Convert from deciseconds (100ms) to refresh cycles (50ms)
+  if (profileValue >= UserProfile0 && profileValue <= LastUserProfile) {
+    const uint8_t *ptr = _profiles[profileValue - UserProfile0];
+    if (ptr != NULL) {
+      s->numSteps = GETFLASH(ptr);  // First entry in array is number of steps (1-255)
+    } else {
+      profileValue = 0;  // Profile not assigned, so use instant.
+      s->numSteps = 1;
+    }
+  } else {
+    s->numSteps = profileValue==Fast ? 10 :   // 0.5 seconds
+                  profileValue==Medium ? 20 : // 1.0 seconds
+                  profileValue==Slow ? 40 :   // 2.0 seconds
+                  duration * 2 + 1; // Convert from deciseconds (100ms) to refresh cycles (50ms)
+  }
+  s->currentProfile = (profile & NoPowerOff) | profileValue;  // Adjust profile if necessary
   s->stepNumber = 0;
   s->toPosition = value;
   s->fromPosition = s->currentPosition;
@@ -213,9 +222,10 @@ void PCA9685::updatePosition(uint8_t pin) {
   if (s->stepNumber < s->numSteps) {
     // Animation in progress, reposition servo
     s->stepNumber++;
-    if ((s->currentProfile & ~NoPowerOff) == Bounce) {
-      // Retrieve step positions from array in flash
-      byte profileValue = GETFLASH(&_bounceProfile[s->stepNumber]);
+    uint8_t profile = s->currentProfile & ~NoPowerOff;
+    if (profile >= UserProfile0 && profile <= LastUserProfile) {
+      const uint8_t *ptr = _profiles[profile-UserProfile0];
+      byte profileValue = GETFLASH(ptr + s->stepNumber);
       s->currentPosition = map(profileValue, 0, 100, s->fromPosition, s->toPosition);
     } else {
       // All other profiles - calculate step by linear interpolation between from and to positions.
@@ -274,6 +284,16 @@ static void writeRegister(byte address, byte reg, byte value) {
 // Profile for a bouncing signal or turnout
 // The profile below is in the range 0-100% and should be combined with the desired limits
 // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
-// i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
-const uint8_t FLASH PCA9685::_bounceProfile[30] = 
-    {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
+// i.e. the bounce is the same on the down action as on the up action.  First entry is the number of steps.
+const FLASH uint8_t PCA9685::_bounceProfile[] = 
+    {30, 0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
+
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile1[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile2[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile3[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile4[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile5[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile6[];
+extern __attribute__((weak)) const FLASH uint8_t _UserProfile7[];
+const uint8_t *PCA9685::_profiles[] = {_bounceProfile, 
+  _UserProfile1, _UserProfile2, _UserProfile3, _UserProfile4, _UserProfile5, _UserProfile6, _UserProfile7};

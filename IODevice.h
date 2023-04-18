@@ -277,13 +277,23 @@ private:
 class PCA9685 : public IODevice {
 public:
   static void create(VPIN vpin, int nPins, I2CAddress i2cAddress, uint16_t frequency = 50);
+  #define NUMUSERPROFILES 8
   enum ProfileType : uint8_t {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
     UseDuration = 0, // Use specified duration
     Fast = 1,     // Takes around 500ms end-to-end
     Medium = 2,   // 1 second end-to-end
     Slow = 3,     // 2 seconds end-to-end
-    Bounce = 4,   // For semaphores/turnouts with a bit of bounce!!
+    UserProfile0 = 4, // For user-defined profiles
+    UserProfile1 = 5,
+    UserProfile2 = 6,
+    UserProfile3 = 7,
+    UserProfile4 = 8,
+    UserProfile5 = 9,
+    UserProfile6 = 10,
+    UserProfile7 = 11,
+    LastUserProfile = 11,
+    Bounce = UserProfile0,   // For semaphores/turnouts with a bit of bounce!!
     NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
 
@@ -319,7 +329,8 @@ private:
   struct ServoData *_servoData [16];
 
   static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
-  static const uint8_t FLASH _bounceProfile[30];
+  static const FLASH uint8_t _bounceProfile[];
+  static const uint8_t *_profiles[];
 
   const unsigned int refreshInterval = 50; // refresh every 50ms
 
