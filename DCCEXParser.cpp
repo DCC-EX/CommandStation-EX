@@ -897,6 +897,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("Free memory=%d\n"), DCCTimer::getMinimumFreeMemory());
         break;
 
+#ifndef DISABLE_PROG
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
@@ -917,6 +918,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	  Diag::ACK = onOff;
 	}
         return true;
+#endif
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>
         Diag::CMD = onOff;
