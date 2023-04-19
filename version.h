@@ -4,7 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.45"
+#define VERSION "4.2.47"
+// 4.2.47 - Correct response to <JA 0>
+// 4.2.46 - Support boards with inverted fault pin
 // 4.2.45 - Add ONCLOCKMINS to FastClock to allow hourly repeat events
 // 4.2.44 - Add PowerShell installer EX-CommandStation-installer.exe
 // 4.2.43 - Fix STM32 set right port mode bits for analog

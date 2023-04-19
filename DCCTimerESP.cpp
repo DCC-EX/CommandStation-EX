@@ -150,6 +150,45 @@ int DCCTimer::freeMemory() {
 void DCCTimer::reset() {
    ESP.restart();
 }
+
+#include "esp32-hal.h"
+#include "soc/soc_caps.h"
+
+
+#ifdef SOC_LEDC_SUPPORT_HS_MODE
+#define LEDC_CHANNELS           (SOC_LEDC_CHANNEL_NUM<<1)
+#else
+#define LEDC_CHANNELS           (SOC_LEDC_CHANNEL_NUM)
+#endif
+
+static int8_t pin_to_channel[SOC_GPIO_PIN_COUNT] = { 0 };
+static int cnt_channel = LEDC_CHANNELS;
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency) {
+  if (pin < SOC_GPIO_PIN_COUNT) {
+    if (pin_to_channel[pin] != 0) {
+      ledcSetup(pin_to_channel[pin], frequency, 8);
+    }
+  }
+}
+
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+  if (pin < SOC_GPIO_PIN_COUNT) {
+    if (pin_to_channel[pin] == 0) {
+      if (!cnt_channel) {
+          log_e("No more PWM channels available! All %u already used", LEDC_CHANNELS);
+          return;
+      }
+      pin_to_channel[pin] = --cnt_channel;
+      ledcAttachPin(pin, cnt_channel);
+      ledcSetup(cnt_channel, 1000, 8);
+    } else {
+      ledcAttachPin(pin, pin_to_channel[pin]);
+    }
+    ledcWrite(pin_to_channel[pin], value);
+  }
+}
+
 int ADCee::init(uint8_t pin) {
   pinMode(pin, ANALOG);
   adc1_config_width(ADC_WIDTH_BIT_12);

@@ -76,9 +76,13 @@
 // analog inputs. Here we use analog inputs A2 and A3 as A0 and A1 are wired in a way so that
 // they are not useable at the same time as WiFi (what a bummer). The numbers below are the
 // actual GPIO numbers. In comments the numbers the pins have on an Uno.
-#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 0.70, 1500, UNUSED_PIN), \
-    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 0.70, 1500, UNUSED_PIN)
+#define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"), \
+ new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 0.70, 1500, UNUSED_PIN), \
+ new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 0.70, 1500, UNUSED_PIN)
+
+#define EX8874_SHIELD F("EX8874"),\
+ new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.17, 5000, -36 /*-A4*/), \
+ new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.17, 5000, -39 /*-A5*/)
 
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
@@ -115,6 +119,10 @@
 #define POLOLU_TB9051FTG F("POLOLU_TB9051FTG"),              \
    new MotorDriver(2, 7, UNUSED_PIN,  -9, A0, 10, 2500,  6), \
    new MotorDriver(4, 8, UNUSED_PIN, -10, A1, 10, 2500, 12)
+
+#define EX8874_SHIELD F("EX8874"), \
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 4.86, 5000, -A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 4.86, 5000, -A5)
 
 // Firebox Mk1
 #define FIREBOX_MK1 F("FIREBOX_MK1"),                                                  \
