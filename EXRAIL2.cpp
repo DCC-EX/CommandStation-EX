@@ -704,11 +704,13 @@ void RMFT2::loop2() {
     DCC::setThrottle(0,1,true);  // pause all locos on the track
     pausingTask=this;
     break;
-    
+
+#ifndef DISABLE_PROG    
   case OPCODE_POM:
     if (loco) DCC::writeCVByteMain(loco, operand, getOperand(1));
     break;
-    
+#endif
+
   case OPCODE_POWEROFF:
     TrackManager::setPower(POWERMODE::OFF);
     TrackManager::setJoin(false);

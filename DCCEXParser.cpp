@@ -369,6 +369,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
+#ifndef DISABLE_PROG
     case 'w': // WRITE CV on MAIN <w CAB CV VALUE>
         DCC::writeCVByteMain(p[0], p[1], p[2]);
         return;
@@ -376,6 +377,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'b': // WRITE CV BIT ON MAIN <b CAB CV BIT VALUE>
         DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
         return;
+#endif
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
     case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
@@ -393,6 +395,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         return;
         
+#ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
             if (!stashCallback(stream, p, ringStream))
                 break;
@@ -427,7 +430,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         DCC::writeCVBit(p[0], p[1], p[2], callback_B);
         return;
 
+#endif
     case 'R': // READ CV ON PROG
+#ifndef DISABLE_PROG
         if (params == 1)
         { // <R CV> -- uses verify callback
             if (!stashCallback(stream, p, ringStream))
@@ -442,6 +447,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::readCV(p[0], callback_R);
             return;
         }
+#endif
         if (params == 0)
         { // <R> New read loco id
             if (!stashCallback(stream, p, ringStream))
