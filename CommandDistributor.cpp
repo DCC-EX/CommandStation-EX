@@ -2,6 +2,7 @@
  *  © 2022 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  © 2020 Gregor Baues
+ *  © 2022 Colin Murdoch
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX

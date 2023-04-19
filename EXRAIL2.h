@@ -1,6 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2020-2022 Chris Harlow
+ *  © 2022 Colin Murdoch
  *  © 2023 Harald Barth
  *  All rights reserved.
  *  

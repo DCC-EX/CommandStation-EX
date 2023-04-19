@@ -7,6 +7,7 @@
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
+ *  © 2022 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
