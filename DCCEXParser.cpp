@@ -430,9 +430,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         DCC::writeCVBit(p[0], p[1], p[2], callback_B);
         return;
 
-#endif
     case 'R': // READ CV ON PROG
-#ifndef DISABLE_PROG
         if (params == 1)
         { // <R CV> -- uses verify callback
             if (!stashCallback(stream, p, ringStream))
@@ -447,7 +445,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::readCV(p[0], callback_R);
             return;
         }
-#endif
         if (params == 0)
         { // <R> New read loco id
             if (!stashCallback(stream, p, ringStream))
@@ -456,6 +453,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         }
         break;
+#endif
 
     case '1': // POWERON <1   [MAIN|PROG|JOIN]>
         {
