@@ -326,7 +326,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#ifndef DISABLE_PROG
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
+#endif
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
