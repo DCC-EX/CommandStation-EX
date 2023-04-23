@@ -705,11 +705,9 @@ void RMFT2::loop2() {
     pausingTask=this;
     break;
 
-#ifndef DISABLE_PROG    
   case OPCODE_POM:
     if (loco) DCC::writeCVByteMain(loco, operand, getOperand(1));
     break;
-#endif
 
   case OPCODE_POWEROFF:
     TrackManager::setPower(POWERMODE::OFF);
@@ -885,23 +883,18 @@ void RMFT2::loop2() {
     while(loopTask) loopTask->kill(F("KILLALL"));
     return;
 
+#ifndef DISABLE_PROG
   case OPCODE_JOIN:
     TrackManager::setPower(POWERMODE::ON);
     TrackManager::setJoin(true);
     CommandDistributor::broadcastPower();
     break;
-    
-  case OPCODE_POWERON:
-    TrackManager::setMainPower(POWERMODE::ON);
-    TrackManager::setJoin(false);
-    CommandDistributor::broadcastPower();
-    break;
-    
+
   case OPCODE_UNJOIN:
     TrackManager::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
-    
+
   case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
     progtrackLocoId=LOCO_ID_WAITING;  // Nothing found yet
     DCC::getLocoId(readLocoCallback);
@@ -921,6 +914,13 @@ void RMFT2::loop2() {
     speedo=0;
     forward=true;
     invert=false;
+    break;
+#endif
+
+  case OPCODE_POWERON:
+    TrackManager::setMainPower(POWERMODE::ON);
+    TrackManager::setJoin(false);
+    CommandDistributor::broadcastPower();
     break;
     
   case OPCODE_START:

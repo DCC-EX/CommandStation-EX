@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Herb Morton
- *  © 2020-2022 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
@@ -55,7 +55,6 @@
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
 const int16_t HASH_KEYWORD_MAIN = 11339;
-const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
 const int16_t HASH_KEYWORD_RAM = 25982;
 const int16_t HASH_KEYWORD_CMD = 9962;
@@ -64,6 +63,7 @@ const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
 const int16_t HASH_KEYWORD_SLOW = -17209;
 #ifndef DISABLE_PROG
+const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
 #endif
@@ -470,15 +470,15 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             prog=true;
         }
 	if (params==1) {
-	  if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
+	  if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+            main=true;
+	  }
+#ifndef DISABLE_PROG
+	  else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
             main=true;
             prog=true;
             join=true;
 	  }
-	  else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
-            main=true;
-	  }
-#ifndef DISABLE_PROG
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
             prog=true;
 	  }
