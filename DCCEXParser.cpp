@@ -54,7 +54,6 @@
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
-const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
@@ -64,7 +63,10 @@ const int16_t HASH_KEYWORD_ACK = 3113;
 const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
 const int16_t HASH_KEYWORD_SLOW = -17209;
+#ifndef DISABLE_PROG
+const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
+#endif
 #ifndef DISABLE_EEPROM
 const int16_t HASH_KEYWORD_EEPROM = -7168;
 #endif
@@ -380,7 +382,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
+#ifndef DISABLE_PROG
     case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
+#endif
         // NOTE: this command was parsed in HEX instead of decimal
         params--; // drop REG
         if (params<1) break;
@@ -474,9 +478,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
             main=true;
 	  }
+#ifndef DISABLE_PROG
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
             prog=true;
 	  }
+#endif
 	  else break; // will reply <X>
 	}
         if (main) TrackManager::setMainPower(POWERMODE::ON);
@@ -500,9 +506,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
 	    main=true;
 	  }
+#ifndef DISABLE_PROG
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
 	    prog=true;
 	  }
+#endif
 	  else break; // will reply <X>
 	}
 
@@ -941,11 +949,11 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::LCN = onOff;
         return true;
 #endif
-
+#ifndef DISABLE_PROG
     case HASH_KEYWORD_PROGBOOST:
         TrackManager::progTrackBoosted=true;
 	    return true;
-
+#endif
     case HASH_KEYWORD_RESET:
         DCCTimer::reset();
         break; // and <X> if we didnt restart 

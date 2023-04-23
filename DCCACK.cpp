@@ -152,7 +152,7 @@ byte DCCACK::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
-
+#ifndef DISABLE_PROG
 void DCCACK::loop() {
   while (ackManagerProg) {
     byte opcode=GETFLASH(ackManagerProg);
@@ -414,7 +414,7 @@ void DCCACK::callback(int value) {
           (ackManagerCallback)( value);
     }
 }
-
+#endif
 
 void DCCACK::checkAck(byte sentResetsSincePacket) {
     if (!ackPending) return; 
