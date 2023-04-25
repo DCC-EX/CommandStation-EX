@@ -127,7 +127,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
           #endif
           char tchar=Turnout::isClosed(id)?'2':'4';
           if (tdesc==NULL) // turnout with no description
-              StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);
+              StringFormatter::send(stream,F("]\\[%d}|{T%d}|{%c"), id,id,tchar);
 	        else 
               StringFormatter::send(stream,F("]\\[%d}|{%S}|{%c"), id,tdesc,tchar);
       }
