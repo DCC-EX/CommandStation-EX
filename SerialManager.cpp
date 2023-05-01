@@ -87,6 +87,9 @@ void SerialManager::init() {
     delay(1000);
   }
 #endif
+#ifdef SABERTOOTH
+  Serial2.begin(9600, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+#endif
 }
 
 void SerialManager::broadcast(char * stringBuffer) {

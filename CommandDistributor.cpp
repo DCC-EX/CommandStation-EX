@@ -205,6 +205,36 @@ int16_t CommandDistributor::retClockTime() {
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];
   broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,sp->functions);
+#ifdef SABERTOOTH
+  if (Serial2 && sp->loco == SABERTOOTH) {
+    static uint8_t rampingmode = 0;
+    bool direction = (sp->speedCode & 0x80) !=0; // true for forward
+    int32_t speed = sp->speedCode & 0x7f;
+    if (speed == 1) { // emergency stop
+      if (rampingmode != 1) {
+	rampingmode = 1;
+	Serial2.print("R1: 0\r\n");
+	Serial2.print("R2: 0\r\n");
+      }
+      Serial2.print("MD: 0\r\n");
+    } else {
+      if (speed != 0) {
+        // speed is here 2 to 127
+	speed = (speed - 1) * 1625 / 100;
+	speed = speed * (direction ? 1 : -1);
+	// speed is here -2047 to 2047
+      }
+      if (rampingmode != 2) {
+	rampingmode = 2;
+	Serial2.print("R1: 2047\r\n");
+	Serial2.print("R2: 2047\r\n");
+      }
+      Serial2.print("MD: ");
+      Serial2.print(speed);
+      Serial2.print("\r\n");
+    }
+  }
+#endif
 #ifdef CD_HANDLE_RING
   WiThrottle::markForBroadcast(sp->loco);
 #endif
