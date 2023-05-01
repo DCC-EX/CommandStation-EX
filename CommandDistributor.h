@@ -35,8 +35,9 @@
 #endif 
 
 class CommandDistributor {
-private:
+public:
   enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
+private:
   static void broadcastToClients(clientType type);
   static StringBuffer * broadcastBufferWriter;
   #ifdef CD_HANDLE_RING
@@ -52,7 +53,7 @@ public :
   static void setClockTime(int16_t time, int8_t rate, byte opt);
   static int16_t retClockTime();
   static void broadcastPower();
-  static void broadcastText(const FSH * msg);
+  static void broadcastRaw(clientType type,char * msg);
   static void broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);

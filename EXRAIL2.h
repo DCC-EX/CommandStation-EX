@@ -77,7 +77,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
 // Ensure thrunge_lcd is put last as there may be more than one display, 
 // sequentially numbered from thrunge_lcd.
 enum thrunger: byte {
-  thrunge_print, thrunge_broadcast, thrunge_serial,thrunge_parse,
+  thrunge_print, thrunge_broadcast, thrunge_withrottle,
+  thrunge_serial,thrunge_parse,
   thrunge_serial1, thrunge_serial2, thrunge_serial3,
   thrunge_serial4, thrunge_serial5, thrunge_serial6,
   thrunge_lcn, 

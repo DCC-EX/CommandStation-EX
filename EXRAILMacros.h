@@ -153,6 +153,8 @@ const int StringMacroTracker1=__COUNTER__;
          lcdid=id;\
          break;\
       } 
+#undef WITHROTTLE
+#define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -368,6 +370,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
+#define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),

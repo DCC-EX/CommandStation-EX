@@ -228,11 +228,8 @@ void  CommandDistributor::broadcastPower() {
   LCD(2,F("Power %S%S"),state=='1'?F("On"):F("Off"),reason);  
 }
 
-void CommandDistributor::broadcastText(const FSH * msg) {
-  broadcastReply(COMMAND_TYPE, F("<I %S>\n"),msg);
-#ifdef CD_HANDLE_RING
-  broadcastReply(WITHROTTLE_TYPE, F("Hm%S\n"), msg);
-#endif
+void CommandDistributor::broadcastRaw(clientType type, char * msg) {
+  broadcastReply(type, F("%s"),msg);
 }
 
 void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr) {

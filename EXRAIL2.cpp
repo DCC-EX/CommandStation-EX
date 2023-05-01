@@ -1242,7 +1242,10 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
       DCCEXParser::parseOne(&USB_SERIAL,(byte*)buffer->getString(),NULL);
       break;
     case thrunge_broadcast:
-  // TODO     CommandDistributor::broadcastText(buffer->getString());
+      CommandDistributor::broadcastRaw(CommandDistributor::COMMAND_TYPE,buffer->getString());
+      break;
+    case thrunge_withrottle:
+      CommandDistributor::broadcastRaw(CommandDistributor::WITHROTTLE_TYPE,buffer->getString());
       break;
     case thrunge_lcd:
          LCD(id,F("%s"),buffer->getString());
