@@ -229,7 +229,10 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 	Serial2.print("R1: 2047\r\n");
 	Serial2.print("R2: 2047\r\n");
       }
-      Serial2.print("MD: ");
+      Serial2.print("M1: ");
+      Serial2.print(speed);
+      Serial2.print("\r\n");
+      Serial2.print("M2: ");
       Serial2.print(speed);
       Serial2.print("\r\n");
     }
