@@ -610,6 +610,7 @@ void RMFT2::loop2() {
       break;
       
   case OPCODE_SPEED:
+    forward=DCC::getThrottleDirection(loco)^invert;
     driveLoco(operand);
     break;
     

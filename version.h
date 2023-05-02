@@ -5,6 +5,7 @@
 
 
 #define VERSION "4.2.48"
+// 4.2.49 - Exrail SPEED take notice of external direction change 
 // 4.2.48 - BROADCAST/WITHROTTLE Exrail macros 
 // 4.2.47 - Correct response to <JA 0>
 // 4.2.46 - Support boards with inverted fault pin
