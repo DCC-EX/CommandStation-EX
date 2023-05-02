@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.47"
+#define VERSION "4.2.48"
+// 4.2.48 - BROADCAST/WITHROTTLE Exrail macros 
 // 4.2.47 - Correct response to <JA 0>
 // 4.2.46 - Support boards with inverted fault pin
 // 4.2.45 - Add ONCLOCKMINS to FastClock to allow hourly repeat events
