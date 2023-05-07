@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.48"
+#define VERSION "4.2.50"
+// 4.2.50 - Fixes: estop all, turnout eeprom, cab ID check
 // 4.2.49 - Exrail SPEED take notice of external direction change 
 // 4.2.48 - BROADCAST/WITHROTTLE Exrail macros 
 // 4.2.47 - Correct response to <JA 0>
