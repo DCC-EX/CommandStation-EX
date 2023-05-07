@@ -250,6 +250,7 @@
       }
     }
     tt = (Turnout *)new ServoTurnout(id, vpin, thrownPosition, closedPosition, profile, closed);
+    DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
     IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
     return tt;
 #else
