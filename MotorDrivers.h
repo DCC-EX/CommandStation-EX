@@ -80,9 +80,11 @@
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 0.70, 1500, UNUSED_PIN), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 0.70, 1500, UNUSED_PIN)
 
+// EX 8874 based shield connected to a 3.3V system (like ESP32) and 12bit (4096) ADC
+// numbers are GPIO numbers. comments are UNO form factor shield pin numbers
 #define EX8874_SHIELD F("EX8874"),\
- new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.17, 5000, -36 /*-A4*/), \
- new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.17, 5000, -39 /*-A5*/)
+ new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.27, 5000, -36 /*-A4*/), \
+ new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.27, 5000, -39 /*-A5*/)
 
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
@@ -120,9 +122,10 @@
    new MotorDriver(2, 7, UNUSED_PIN,  -9, A0, 10, 2500,  6), \
    new MotorDriver(4, 8, UNUSED_PIN, -10, A1, 10, 2500, 12)
 
+// EX 8874 based shield connected to a 5V system (like Arduino) and 10bit (1024) ADC
 #define EX8874_SHIELD F("EX8874"), \
- new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 4.86, 5000, -A4), \
- new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 4.86, 5000, -A5)
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 5000, -A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 5000, -A5)
 
 // Firebox Mk1
 #define FIREBOX_MK1 F("FIREBOX_MK1"),                                                  \
