@@ -286,6 +286,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
         if (direction < 0 || direction > 1)
             break; // invalid direction code
+	if (cab > 10239 || cab < 0)
+	    break; // beyond DCC range
 
         DCC::setThrottle(cab, tspeed, direction);
         if (params == 4) // send obsolete format T response

@@ -235,6 +235,10 @@ int WiThrottle::getLocoId(byte * cmd) {
 void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
   char throttleChar=cmd[1];
   int locoid=getLocoId(cmd+3); // -1 for *
+  if (locoid > 10239 || locoid < -1) {
+    StringFormatter::send(stream, F("No valid DCC loco %d\n"), locoid);
+    return;
+  }
   byte * aval=cmd;
   while(*aval !=';' && *aval !='\0') aval++;
   if (*aval) aval+=2;  // skip ;>
