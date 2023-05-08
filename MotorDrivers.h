@@ -1,7 +1,7 @@
 /*
- *  © 2022 Paul M. Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Fred Decker
- *  © 2020-2022 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  (c) 2020 Chris Harlow. All rights reserved.
  *  (c) 2021 Fred Decker.  All rights reserved.
  *  (c) 2020 Harald Barth. All rights reserved.
@@ -60,7 +60,8 @@
 // Arduino STANDARD Motor Shield, used on different architectures:
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
-// Setup for SAMD21 Sparkfun DEV board using Arduino standard Motor Shield R3 (MUST be R3
+// Standard Motor Shield definition for 3v3 processors (other than the ESP32)
+// Setup for SAMD21 Sparkfun DEV board MUST use Arduino Motor Shield R3 (MUST be R3
 // for 3v3 compatibility!!) senseFactor for 3.3v systems is 1.95 as calculated when using
 // 10-bit A/D samples, and for 12-bit samples it's more like 0.488, but we probably need
 // to tweak both these
@@ -69,6 +70,12 @@
                               new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 0.488, 1500, UNUSED_PIN)
 #define SAMD_STANDARD_MOTOR_SHIELD STANDARD_MOTOR_SHIELD
 #define STM32_STANDARD_MOTOR_SHIELD STANDARD_MOTOR_SHIELD
+
+// EX 8874 based shield connected to a 3V3 system with 12-bit (4096) ADC
+#define EX8874_SHIELD F("EX8874"), \
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 1.27, 5000, -A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 1.27, 5000, -A5)
+
 
 #elif defined(ARDUINO_ARCH_ESP32)
 // STANDARD shield on an ESPDUINO-32 (ESP32 in Uno form factor). The shield must be eiter the
@@ -94,6 +101,12 @@
 #define BRAKE_PWM_SWAPPED_MOTOR_SHIELD F("BPS_MOTOR_SHIELD"),                                       \
                               new MotorDriver(-9 , 12, UNUSED_PIN, -3, A0, 2.99, 1500, UNUSED_PIN), \
                               new MotorDriver(-8 , 13, UNUSED_PIN,-11, A1, 2.99, 1500, UNUSED_PIN)
+
+// EX 8874 based shield connected to a 5V system (like Arduino) and 10bit (1024) ADC
+#define EX8874_SHIELD F("EX8874"), \
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 5000, -A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 5000, -A5)
+
 #endif
 
 // Pololu Motor Shield
@@ -121,11 +134,6 @@
 #define POLOLU_TB9051FTG F("POLOLU_TB9051FTG"),              \
    new MotorDriver(2, 7, UNUSED_PIN,  -9, A0, 10, 2500,  6), \
    new MotorDriver(4, 8, UNUSED_PIN, -10, A1, 10, 2500, 12)
-
-// EX 8874 based shield connected to a 5V system (like Arduino) and 10bit (1024) ADC
-#define EX8874_SHIELD F("EX8874"), \
- new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 5000, -A4), \
- new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 5000, -A5)
 
 // Firebox Mk1
 #define FIREBOX_MK1 F("FIREBOX_MK1"),                                                  \
