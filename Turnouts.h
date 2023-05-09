@@ -69,10 +69,12 @@ protected:
     uint16_t id;
   } _turnoutData;  // 3 bytes
 
+#ifndef DISABLE_EEPROM
   // Address in eeprom of first byte of the _turnoutData struct (containing the closed flag).
   // Set to zero if the object has not been saved in EEPROM, e.g. for newly created Turnouts, and 
   // for all LCN turnouts.
   uint16_t _eepromAddress = 0;
+#endif
 
   // Pointer to next turnout on linked list.
   Turnout *_nextTurnout = 0;
