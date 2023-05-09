@@ -141,13 +141,24 @@ The configuration file for DCC-EX Command Station
 //
 // If you do not need the EEPROM at all, you can disable all the code that saves
 // data in the EEPROM. You might want to do that if you are in a Arduino UNO
-// and want to use the EX-RAIL automation. Otherwise you do not have enough RAM
+// and want to use the EXRAIL automation. Otherwise you do not have enough RAM
 // to do that. Of course, then none of the EEPROM related commands work.
 //
 // EEPROM does not work on ESP32. So on ESP32, EEPROM will always be disabled,
 // at least until it works.
 //
 // #define DISABLE_EEPROM
+
+/////////////////////////////////////////////////////////////////////////////////////
+// DISABLE PROG
+//
+// If you do not need programming capability, you can disable all programming related
+// commands. You might want to do that if you are using an Arduino UNO and still want
+// to use EXRAIL automation, as the Uno is lacking in RAM and Flash to run both.
+// 
+// Note this disables all programming functionality, including EXRAIL.
+//
+// #define DISABLE_PROG
 
 /////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address

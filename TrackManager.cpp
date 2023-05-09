@@ -33,8 +33,9 @@
         FOR_EACH_TRACK(t) \
             if (trackMode[t]==findmode) \
                 track[t]->function;
-
+#ifndef DISABLE_PROG
 const int16_t HASH_KEYWORD_PROG = -29718;
+#endif
 const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_OFF = 22479;  
 const int16_t HASH_KEYWORD_DC = 2183;  
@@ -116,7 +117,11 @@ void TrackManager::Setup(const FSH * shieldname,
     
     // Default the first 2 tracks (which may be null) and perform HA waveform check.
     setTrackMode(0,TRACK_MODE_MAIN);
+#ifndef DISABLE_PROG
     setTrackMode(1,TRACK_MODE_PROG);
+#else
+    setTrackMode(1,TRACK_MODE_MAIN);
+#endif
   
   // TODO Fault pin config for odd motor boards (example pololu)
   // MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
@@ -198,7 +203,11 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       pinMode(p.invpin, OUTPUT); // gpio_reset_pin may reset to input
     }
 #endif
+#ifndef DISABLE_PROG
     if (mode==TRACK_MODE_PROG) {
+#else
+    if (false) {
+#endif
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
 	if (trackMode[t]==TRACK_MODE_PROG && t != trackToSet) {
@@ -306,8 +315,10 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]==HASH_KEYWORD_MAIN) // <= id MAIN>
         return setTrackMode(p[0],TRACK_MODE_MAIN);
     
+#ifndef DISABLE_PROG
     if (params==2  && p[1]==HASH_KEYWORD_PROG) // <= id PROG>
         return setTrackMode(p[0],TRACK_MODE_PROG);
+#endif
     
     if (params==2  && p[1]==HASH_KEYWORD_OFF) // <= id OFF>
         return setTrackMode(p[0],TRACK_MODE_OFF);
@@ -332,9 +343,11 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   case TRACK_MODE_MAIN:
       format=F("<= %c MAIN>\n");
       break;
+#ifndef DISABLE_PROG
   case TRACK_MODE_PROG:
       format=F("<= %c PROG>\n");
       break;
+#endif
   case TRACK_MODE_OFF:
       format=F("<= %c OFF>\n");
       break;
@@ -357,8 +370,10 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
 
 void TrackManager::loop() {
-    DCCWaveform::loop(); 
-    DCCACK::loop(); 
+    DCCWaveform::loop();
+#ifndef DISABLE_PROG
+    DCCACK::loop();
+#endif
     bool dontLimitProg=DCCACK::isActive() || progTrackSyncMain || progTrackBoosted;
     nextCycleTrack++;
     if (nextCycleTrack>lastTrack) nextCycleTrack=0;

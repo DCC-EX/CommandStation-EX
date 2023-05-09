@@ -101,7 +101,9 @@
 #undef PAUSE
 #undef PIN_TURNOUT 
 #undef PRINT
+#ifndef DISABLE_PROG
 #undef POM
+#endif
 #undef POWEROFF
 #undef POWERON
 #undef READ_LOCO 
@@ -224,7 +226,9 @@
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
 #define PARSE(msg)
+#ifndef DISABLE_PROG
 #define POM(cv,value)
+#endif
 #define POWEROFF
 #define POWERON
 #define READ_LOCO 

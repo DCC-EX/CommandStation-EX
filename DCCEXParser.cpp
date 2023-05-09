@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Herb Morton
- *  © 2020-2022 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
@@ -54,9 +54,7 @@
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command
-const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_MAIN = 11339;
-const int16_t HASH_KEYWORD_JOIN = -30750;
 const int16_t HASH_KEYWORD_CABS = -11981;
 const int16_t HASH_KEYWORD_RAM = 25982;
 const int16_t HASH_KEYWORD_CMD = 9962;
@@ -64,7 +62,11 @@ const int16_t HASH_KEYWORD_ACK = 3113;
 const int16_t HASH_KEYWORD_ON = 2657;
 const int16_t HASH_KEYWORD_DCC = 6436;
 const int16_t HASH_KEYWORD_SLOW = -17209;
+#ifndef DISABLE_PROG
+const int16_t HASH_KEYWORD_JOIN = -30750;
+const int16_t HASH_KEYWORD_PROG = -29718;
 const int16_t HASH_KEYWORD_PROGBOOST = -6353;
+#endif
 #ifndef DISABLE_EEPROM
 const int16_t HASH_KEYWORD_EEPROM = -7168;
 #endif
@@ -371,6 +373,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
+#ifndef DISABLE_PROG
     case 'w': // WRITE CV on MAIN <w CAB CV VALUE>
         DCC::writeCVByteMain(p[0], p[1], p[2]);
         return;
@@ -378,9 +381,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'b': // WRITE CV BIT ON MAIN <b CAB CV BIT VALUE>
         DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
         return;
+#endif
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
+#ifndef DISABLE_PROG
     case 'P': // WRITE TRANSPARENT DCC PACKET PROG <P REG X1 ... X9>
+#endif
         // NOTE: this command was parsed in HEX instead of decimal
         params--; // drop REG
         if (params<1) break;
@@ -395,6 +401,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         return;
         
+#ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
             if (!stashCallback(stream, p, ringStream))
                 break;
@@ -452,6 +459,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         }
         break;
+#endif
 
     case '1': // POWERON <1   [MAIN|PROG|JOIN]>
         {
@@ -464,17 +472,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             prog=true;
         }
 	if (params==1) {
-	  if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
+	  if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+            main=true;
+	  }
+#ifndef DISABLE_PROG
+	  else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
             main=true;
             prog=true;
             join=true;
 	  }
-	  else if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
-            main=true;
-	  }
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
             prog=true;
 	  }
+#endif
 	  else break; // will reply <X>
 	}
         if (main) TrackManager::setMainPower(POWERMODE::ON);
@@ -498,9 +508,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
 	    main=true;
 	  }
+#ifndef DISABLE_PROG
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
 	    prog=true;
 	  }
+#endif
 	  else break; // will reply <X>
 	}
 
@@ -895,6 +907,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("Free memory=%d\n"), DCCTimer::getMinimumFreeMemory());
         break;
 
+#ifndef DISABLE_PROG
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
@@ -915,6 +928,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	  Diag::ACK = onOff;
 	}
         return true;
+#endif
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>
         Diag::CMD = onOff;
@@ -937,11 +951,11 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::LCN = onOff;
         return true;
 #endif
-
+#ifndef DISABLE_PROG
     case HASH_KEYWORD_PROGBOOST:
         TrackManager::progTrackBoosted=true;
 	    return true;
-
+#endif
     case HASH_KEYWORD_RESET:
         DCCTimer::reset();
         break; // and <X> if we didnt restart 
