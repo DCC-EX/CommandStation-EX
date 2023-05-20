@@ -235,5 +235,15 @@ The configuration file for DCC-EX Command Station
 //
 //#define SERIAL_BT_COMMANDS
 
+// SABERTOOTH
+//
+// This is a very special option and only useful if you happen to have a
+// sabertooth motor controller from dimension engineering configured to
+// take commands from and ESP32 via serial at 9600 baud from GPIO17 (TX)
+// and GPIO16 (RX, currently unused).
+// The number defined is the DCC address for which speed controls are sent
+// to the sabertooth controller _as_well_. Default: Undefined.
+//
+//#define SABERTOOTH 1
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.51"
+#define VERSION "4.2.52"
+// 4.2.52 - Experimental support for sabertooth motor controller on ESP32
 // 4.2.51 - Add DISABLE_PROG to disable programming to save RAM/Flash
 // 4.2.50 - Fixes: estop all, turnout eeprom, cab ID check
 // 4.2.49 - Exrail SPEED take notice of external direction change 
