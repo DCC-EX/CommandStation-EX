@@ -214,14 +214,12 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
   // if (fromISR == false) DIAG(F("%c: %d"), trackLetter, current);
   current = current-senseOffset;     // adjust with offset
   if (current<0) current=0-current;
-  if ((faultPin != UNUSED_PIN) && powerMode==POWERMODE::ON) {
-    if (invertFault && isLOW(fastFaultPin))
-      return (current == 0 ? -1 : -current);
-    if (!invertFault && !isLOW(fastFaultPin))
+  // current >= 0 here, we use negative current as fault pin flag
+  if ((faultPin != UNUSED_PIN) && powerPin) {
+    if (invertFault ? isHIGH(fastFaultPin) : isLOW(fastFaultPin))
       return (current == 0 ? -1 : -current);
   }
   return current;
-   
 }
 
 #ifdef ANALOG_READ_INTERRUPT

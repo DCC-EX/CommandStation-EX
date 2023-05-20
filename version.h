@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.52"
+#define VERSION "4.2.53"
+// 4.2.53 - Fix: Fault pin handling made more straight forward
 // 4.2.52 - Experimental support for sabertooth motor controller on ESP32
 // 4.2.51 - Add DISABLE_PROG to disable programming to save RAM/Flash
 // 4.2.50 - Fixes: estop all, turnout eeprom, cab ID check
