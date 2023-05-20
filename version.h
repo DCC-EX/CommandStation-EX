@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.1.5"
+#define VERSION "4.1.6"
+// 4.1.6 Support DCC-EX shield
 // 4.1.5 Bugfix LCN number parsing
 // 4.1.4 Bugfix for issue #299 TurnoutDescription NULL
 // 4.1.3 Bugfix: Ethernet init order

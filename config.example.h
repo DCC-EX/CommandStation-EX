@@ -41,6 +41,7 @@ The configuration file for DCC-EX Command Station
 //  FIREBOX_MK1           : The Firebox MK1                    
 //  FIREBOX_MK1S          : The Firebox MK1S
 //  IBT_2_WITH_ARDUINO    : Arduino Motor Shield for PROG and IBT-2 for MAIN
+//  EX8874_SHIELD         : DCC-EX TI DRV8874 based motor shield
 //   |
 //   +-----------------------v
 //

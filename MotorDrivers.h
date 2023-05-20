@@ -50,6 +50,12 @@
                               new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
                               new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
 
+// DCC-EX TI DRV8874 based motor shield
+// This motor shield has reverse sense fault pins thus the -A4 and -A5 pin values.
+#define EX8874_SHIELD F("EX8874"), \
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 4.86, 5000, A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 4.86, 5000, A5)
+
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \
                             new MotorDriver( 9, 7, UNUSED_PIN,         -4, A0, 18, 3000, 12), \
