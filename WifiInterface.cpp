@@ -58,6 +58,20 @@ Stream * WifiInterface::wifiStream;
 #define NUM_SERIAL 1
 #endif
 
+// To be able to define these in platform specific
+// DCCTimer<PLATFORM>.cpp files, we here make the
+// assumption that these exist to link against.
+// if enough serial interfaces exist.
+#if NUM_SERIAL > 0
+extern HardwareSerial Serial1;
+#endif
+#if NUM_SERIAL > 1
+extern HardwareSerial Serial2;
+#endif
+#if NUM_SERIAL > 2
+extern HardwareSerial Serial3;
+#endif
+
 bool WifiInterface::setup(long serial_link_speed, 
                           const FSH *wifiESSID,
                           const FSH *wifiPassword,
