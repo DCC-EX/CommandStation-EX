@@ -58,20 +58,14 @@ Stream * WifiInterface::wifiStream;
 #define NUM_SERIAL 1
 #endif
 
-// To be able to define these in platform specific
-// DCCTimer<PLATFORM>.cpp files, we here make the
-// assumption that these exist to link against.
-// if enough serial interfaces exist.
-#if NUM_SERIAL > 0
-extern HardwareSerial Serial1;
-#endif
-#if NUM_SERIAL > 1
-extern HardwareSerial Serial2;
-#endif
+// For STM32 we need to define Serial3 in the platform specific
+// DCCTimerSTM32.cpp file, we here make the assumption that it
+// exists to link against.
+#ifdef ARDUINO_ARCH_STM32
 #if NUM_SERIAL > 2
 extern HardwareSerial Serial3;
 #endif
-
+#endif
 bool WifiInterface::setup(long serial_link_speed, 
                           const FSH *wifiESSID,
                           const FSH *wifiPassword,
@@ -97,6 +91,8 @@ bool WifiInterface::setup(long serial_link_speed,
 #endif
 
 // Other serials are tried, depending on hardware.
+// Currently only the Arduino Mega 2560 has usable Serial2
+#if defined(ARDUINO_AVR_MEGA2560)
 #if NUM_SERIAL > 1 && !defined(SERIAL2_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
@@ -104,7 +100,10 @@ bool WifiInterface::setup(long serial_link_speed,
     wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel);
   }
 #endif
-  
+#endif
+
+// We guess here that in all architctures that have a Serial3
+// we can use it for our purpose.
 #if NUM_SERIAL > 2 && !defined(SERIAL3_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
