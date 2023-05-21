@@ -36,7 +36,7 @@
 // custom defines in config.h.
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDriver.h
-#define UNUSED_PIN 127 // inside int8_t
+#define UNUSED_PIN 255 // inside uint8_t
 #endif
 
 // The MotorDriver definition is:

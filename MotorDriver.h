@@ -74,8 +74,9 @@
 // Virtualised Motor shield 1-track hardware Interface
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
-#define UNUSED_PIN 127 // inside int8_t
+#define UNUSED_PIN 255 // inside uint8_t
 #endif
+#define MAX_PIN 254
 
 class pinpair {
 public:
@@ -111,8 +112,8 @@ enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 class MotorDriver {
   public:
     
-    MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
-                byte current_pin, float senseFactor, unsigned int tripMilliamps, int8_t fault_pin);
+    MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin, 
+                byte current_pin, float senseFactor, unsigned int tripMilliamps, int16_t fault_pin);
     void setPower( POWERMODE mode);
     POWERMODE getPower() { return powerMode;}
     // as the port registers can be shadowed to get syncronized DCC signals

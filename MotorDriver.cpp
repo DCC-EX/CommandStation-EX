@@ -33,9 +33,10 @@ volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
 
-MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, int8_t fault_pin) {
-  powerPin=power_pin;
+MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, int16_t fault_pin) {
+  bool pinWarning = false;
+
   invertPower=power_pin < 0;
   if (invertPower) {
     powerPin = 0-power_pin;
@@ -91,28 +92,38 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   }
   else dualSignal=false; 
   
-  brakePin=brake_pin;
   if (brake_pin!=UNUSED_PIN){
     invertBrake=brake_pin < 0;
-    brakePin=invertBrake ? 0-brake_pin : brake_pin;
+    if (invertBrake)
+      brake_pin = 0-brake_pin;
+    if (brake_pin > MAX_PIN)
+      pinWarning = true;
+    brakePin=(byte)brake_pin;
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     // if brake is used for railcom  cutout we need to do PORTX register trick here as well
     pinMode(brakePin, OUTPUT);
     setBrake(true);  // start with brake on in case we hace DC stuff going on
+  } else {
+    brakePin=UNUSED_PIN;
   }
-  else brakePin=UNUSED_PIN;
   
   currentPin=current_pin;
-  if (currentPin!=UNUSED_PIN) ADCee::init(currentPin);
+  if (currentPin!=UNUSED_PIN)
+    ADCee::init(currentPin);
   senseOffset=0; // value can not be obtained until waveform is activated
 
-  faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
     invertFault=fault_pin < 0;
-    faultPin=invertFault ? 0-fault_pin : fault_pin;
+    if (invertFault)
+      fault_pin =  0-fault_pin;
+    if (fault_pin > MAX_PIN)
+      pinWarning = true;
+    faultPin=(byte)fault_pin;
     DIAG(F("Fault pin = %d invert %d"), faultPin, invertFault);
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
+  } else {
+      faultPin=UNUSED_PIN;
   }
 
   // This conversion performed at compile time so the remainder of the code never needs
@@ -142,6 +153,10 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     //  DIAG(F("senseFactorInternal=%d raw2mA(1000)=%d mA2Raw(1000)=%d"),
     //   senseFactorInternal, raw2mA(1000),mA2raw(1000));
   }
+
+  // give general warning if pin values out of range were encountered
+  if (pinWarning)
+    DIAG(F("** WARNING ** Pin values > 255"));
 
   // prepare values for current detection
   sampleDelay = 0;
