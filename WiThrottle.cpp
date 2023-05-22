@@ -573,7 +573,11 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
 #ifdef EXRAIL_ACTIVE
 	const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
 	if (!functionNames) {
-	  // no roster, use non-exrail presets as above 
+	  // no roster entry for locoid, try to find default entry
+	  functionNames=(char *) RMFT2::getRosterFunctions(0);
+	}
+	if (!functionNames) {
+	  // no default roster entry either, use non-exrail presets as above 
 	}
 	else if (GETFLASH(functionNames)=='\0') {
 	  // "" = Roster but no functions given
