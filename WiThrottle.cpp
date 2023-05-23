@@ -531,11 +531,13 @@ void WiThrottle::sendRoster(Print* stream) {
   rosterSent=true;
 #ifdef EXRAIL_ACTIVE
   StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
-  for (int16_t r=0;r<RMFT2::rosterNameCount;r++) {
+  for (int16_t r=0;;r++) {
       int16_t cabid=GETHIGHFLASHW(RMFT2::rosterIdList,r*2);
       if (cabid > 0)
 	StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
 			      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
+      else if (cabid == INT16_MAX)
+	break;
   }
   StringFormatter::send(stream,F("\n"));       
 #else

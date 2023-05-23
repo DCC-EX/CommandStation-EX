@@ -190,7 +190,7 @@ const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
 // Pass 6: Roster IDs (count)
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
-#define ROSTER(cabid,name,funcmap...) +(cabid == 0 ? 0 : 1)
+#define ROSTER(cabid,name,funcmap...) +(cabid <= 0 ? 0 : 1)
 const byte RMFT2::rosterNameCount=0
    #include "myAutomation.h"
    ;
