@@ -81,14 +81,14 @@ void exrailHalSetup() {
 #define ROUTE(id, description) id,
 const int16_t HIGHFLASH RMFT2::routeIdList[]= {
     #include "myAutomation.h"
-    -1};
+    INT16_MAX};
 // Pass 2a create throttle automation list 
 #include "EXRAIL2MacroReset.h"
 #undef AUTOMATION
 #define AUTOMATION(id, description) id,
 const int16_t HIGHFLASH RMFT2::automationIdList[]= {
     #include "myAutomation.h"
-    -1};
+    INT16_MAX};
 
 // Pass 3 Create route descriptions:
 #undef ROUTE
@@ -201,7 +201,7 @@ const byte RMFT2::rosterNameCount=0
 #define ROSTER(cabid,name,funcmap...) cabid,
 const int16_t HIGHFLASH  RMFT2::rosterIdList[]={
    #include "myAutomation.h"
-   -1};
+   INT16_MAX};
 
 // Pass 7: Roster names getter
 #include "EXRAIL2MacroReset.h"
