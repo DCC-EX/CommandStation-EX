@@ -168,7 +168,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   // be safe for both types.
   broadcastReply(COMMAND_TYPE, F("<jC %d %d>\n"),time, rate);
 #ifdef CD_HANDLE_RING
-  broadcastReply(WITHROTTLE_TYPE, F("PFT%d<;>%d\n"), time*60, rate);
+  broadcastReply(WITHROTTLE_TYPE, F("PFT%l<;>%d\n"), (int32_t)time*60, rate);
 #endif
 }
 
