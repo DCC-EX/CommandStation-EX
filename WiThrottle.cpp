@@ -551,14 +551,14 @@ void WiThrottle::sendRoutes(Print* stream) {
     // first pass automations
     for (int ix=0;;ix+=2) {
         int16_t id =GETHIGHFLASHW(RMFT2::automationIdList,ix);
-        if (id==0) break;
+        if (id==INT16_MAX) break;
         const FSH * desc=RMFT2::getRouteDescription(id);
         StringFormatter::send(stream,F("]\\[A%d}|{%S}|{4"),id,desc);
     }
     // second pass routes.
     for (int ix=0;;ix+=2) {
         int16_t id=GETHIGHFLASHW(RMFT2::routeIdList,ix);
-        if (id==0) break;
+        if (id==INT16_MAX) break;
         const FSH * desc=RMFT2::getRouteDescription(id);
         StringFormatter::send(stream,F("]\\[R%d}|{%S}|{2"),id,desc);
     }
