@@ -652,8 +652,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 if (params==1) {
                     SENDFLASHLIST(stream,RMFT2::rosterIdList)
                 }
-                else StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
-                    id, RMFT2::getRosterName(id), RMFT2::getRosterFunctions(id));
+                else {
+		  const FSH * functionNames= RMFT2::getRosterFunctions(id);
+		  StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
+					id, RMFT2::getRosterName(id),
+					functionNames == NULL ? RMFT2::getRosterFunctions(0) : functionNames);
+		}
 #endif          
                 StringFormatter::send(stream, F(">\n"));      
                 return; 
