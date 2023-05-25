@@ -595,7 +595,7 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
 	  fkeys=0;
 	  bool firstchar=true;
 	  for (int fx=0;;fx++) {
-	    char c=GETFLASH(functionNames+fx);
+	    char c=GETFLASH((char *)functionNames+fx);
 	    if (c=='\0') {
 	      fkeys++;
 	      break;

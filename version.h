@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.54pre3"
+#define VERSION "4.2.54pre4"
 // 4.2.54 - Fix: Pin handling supports pins up to 254
 // 4.2.53 - Fix: Fault pin handling made more straight forward
 // 4.2.52 - Experimental support for sabertooth motor controller on ESP32
