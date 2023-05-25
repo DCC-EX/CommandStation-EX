@@ -536,7 +536,7 @@ void WiThrottle::sendRoster(Print* stream) {
       if (cabid > 0)
 	StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
 			      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
-      else if (cabid == INT16_MAX)
+      if (cabid == INT16_MAX)
 	break;
   }
   StringFormatter::send(stream,F("\n"));       
