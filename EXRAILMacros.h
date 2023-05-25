@@ -223,7 +223,7 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
       #include "myAutomation.h"
    default: break; 
    }   
-   return F("");
+   return NULL;
 } 
 
 // Pass 8 Signal definitions

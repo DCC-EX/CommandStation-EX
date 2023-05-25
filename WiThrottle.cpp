@@ -533,11 +533,11 @@ void WiThrottle::sendRoster(Print* stream) {
   StringFormatter::send(stream,F("RL%d"), RMFT2::rosterNameCount);
   for (int16_t r=0;;r++) {
       int16_t cabid=GETHIGHFLASHW(RMFT2::rosterIdList,r*2);
+      if (cabid == INT16_MAX)
+	break;
       if (cabid > 0)
 	StringFormatter::send(stream,F("]\\[%S}|{%d}|{%c"),
 			      RMFT2::getRosterName(cabid),cabid,cabid<128?'S':'L');
-      if (cabid == INT16_MAX)
-	break;
   }
   StringFormatter::send(stream,F("\n"));       
 #else
@@ -574,12 +574,12 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
 	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
         
 #ifdef EXRAIL_ACTIVE
-	const char * functionNames=(char *) RMFT2::getRosterFunctions(locoid);
-	if (!functionNames) {
+	const FSH * functionNames= RMFT2::getRosterFunctions(locoid);
+	if (functionNames == NULL) {
 	  // no roster entry for locoid, try to find default entry
-	  functionNames=(char *) RMFT2::getRosterFunctions(0);
+	  functionNames= RMFT2::getRosterFunctions(0);
 	}
-	if (!functionNames) {
+	if (functionNames == NULL) {
 	  // no default roster entry either, use non-exrail presets as above 
 	}
 	else if (GETFLASH(functionNames)=='\0') {
