@@ -48,14 +48,9 @@ HardwareSerial Serial3(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F446RE
 // NB: USART3 and USART6 are available but as yet undefined
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
-HardwareSerial Serial1(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F412ZG/F446ZE
-HardwareSerial Serial3(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F412ZG/F446ZE
-// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
+// Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
-// NB:
-//    On all of the above, USART3, and USART6 are available but as yet undefined
-//    On F446ZE and F429ZI, UART4, UART5 are also available but as yet undefined
-//    On F429ZI, UART7 and UART8 are also available but as yet undefined
 #else
 #error STM32 board selected is not yet explicitly supported - so Serial1 peripheral is not defined
 #endif
