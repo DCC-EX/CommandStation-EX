@@ -4,8 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.54pre5"
-// 4.2.54 - Fix: Better warnings for pin number errors
+#define VERSION "4.2.54"
+// 4.2.54 - EX8874 shield in config.example.h
+//        - Fix: Better warnings for pin number errors
 //        - Fix: Default roster list possible in Withrottle and <jR>
 //        - Fix: Pin handling supports pins up to 254
 // 4.2.53 - Fix: Fault pin handling made more straight forward

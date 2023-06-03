@@ -1,7 +1,7 @@
 /*
  *  © 2022 Paul M. Antoine
  *  © 2021 Neil McKechnie
- *  © 2020-2021 Harald Barth
+ *  © 2020-2023 Harald Barth
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
  *  
@@ -28,21 +28,31 @@ The configuration file for DCC-EX Command Station
 **********************************************************************/
 
 /////////////////////////////////////////////////////////////////////////////////////
+// If you want to add your own motor driver definition(s), add them here
+//   For example MY_SHIELD with display name "MINE":
+//   (remove comment start and end marker if you want to edit and use that)
+/* 
+#define MY_SHIELD F("MINE"), \
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 3000, A4), \
+ new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 1500, A5)
+*/
+
+/////////////////////////////////////////////////////////////////////////////////////
 //  NOTE: Before connecting these boards and selecting one in this software
 //        check the quick install guides!!! Some of these boards require a voltage
 //        generating resistor on the current sense pin of the device. Failure to select
 //        the correct resistor could damage the sense pin on your Arduino or destroy
 //        the device.
 //
-// DEFINE MOTOR_SHIELD_TYPE BELOW ACCORDING TO THE FOLLOWING TABLE:
+// DEFINE MOTOR_SHIELD_TYPE BELOW. THESE ARE EXAMPLES. FULL LIST IN MotorDrivers.h
 //
 //  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
 //  POLOLU_MOTOR_SHIELD   : Pololu MC33926 Motor Driver (not recommended for prog track)
-//  POLOLU_TB9051FTG      : Pololu Dual TB9051FTG Motor Driver
 //  FUNDUMOTO_SHIELD      : Fundumoto Shield, no current sensing (not recommended, no short protection)
 //  FIREBOX_MK1           : The Firebox MK1                    
 //  FIREBOX_MK1S          : The Firebox MK1S
 //  IBT_2_WITH_ARDUINO    : Arduino Motor Shield for PROG and IBT-2 for MAIN
+//  EX8874_SHIELD         : DCC-EX TI DRV8874 based motor shield
 //   |
 //   +-----------------------v
 //
