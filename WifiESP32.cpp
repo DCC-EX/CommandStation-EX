@@ -27,6 +27,7 @@
 #include "RingStream.h"
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
+#include "Z21Throttle.h"
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -113,6 +114,7 @@ bool WifiESP::setup(const char *SSid,
   bool havePassword = true;
   bool haveSSID = true;
   bool wifiUp = false;
+  IPAddress localIP;
   uint8_t tries = 40;
 
   //#ifdef SERIAL_BT_COMMANDS
@@ -152,7 +154,7 @@ bool WifiESP::setup(const char *SSid,
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
-      DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
+      DIAG(F("Wifi STA IP %s"),(localIP=WiFi.localIP()).toString().c_str());
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
@@ -166,7 +168,7 @@ bool WifiESP::setup(const char *SSid,
 	delay(500);
       }
       if (WiFi.status() == WL_CONNECTED) {
-	DIAG(F("Wifi STA IP 2nd try %s"),WiFi.localIP().toString().c_str());
+	DIAG(F("Wifi STA IP 2nd try %s"),(localIP=WiFi.localIP()).toString().c_str());
 	wifiUp = true;
       } else {
 	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
@@ -195,7 +197,7 @@ bool WifiESP::setup(const char *SSid,
 		    havePassword ? password : strPass.c_str(),
 		    channel, false, 8)) {
       DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
-      DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
+      DIAG(F("Wifi AP IP %s"),(localIP=WiFi.softAPIP()).toString().c_str());
       wifiUp = true;
       APmode = true;
     } else {
@@ -212,6 +214,7 @@ bool WifiESP::setup(const char *SSid,
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here
+  Z21Throttle::setup(localIP, Z21_UDPPORT);
 
 #ifdef WIFI_TASK_ON_CORE0
   //start loop task
@@ -297,6 +300,7 @@ void WifiESP::loop() {
     } // all clients
 
     WiThrottle::loop(outboundRing);
+    Z21Throttle::loop();
 
     // something to write out?
     clientId=outboundRing->read();

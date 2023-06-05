@@ -24,6 +24,9 @@ bool Diag::ACK=false;
 bool Diag::CMD=false;
 bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
+bool Diag::Z21THROTTLE=true;
+bool Diag::Z21THROTTLEVERBOSE=true;
+bool Diag::Z21THROTTLEDATA=true;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
 
