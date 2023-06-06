@@ -21,8 +21,8 @@
 #include "CircularBuffer.hpp"
 #include "WiFiClient.h"
 
-#define UDPBYTE_SIZE	64
-#define UDP_BUFFERSIZE	256
+#define UDPBYTE_SIZE	1500
+#define UDP_BUFFERSIZE  2048
 
 struct MYLOCOZ21 {
     char throttle; //indicates which throttle letter on client, '0' + clientid
