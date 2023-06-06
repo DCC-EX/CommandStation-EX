@@ -24,6 +24,20 @@
 #define UDPBYTE_SIZE	1500
 #define UDP_BUFFERSIZE  2048
 
+// Broadcast flags
+
+#define BROADCAST_BASE				0x00000001
+#define BROADCAST_RBUS				0x00000002
+#define BROADCAST_RAILCOM			0x00000004
+#define BROADCAST_SYSTEM			0x00000100
+#define BROADCAST_BASE_LOCOINFO		0x00010000
+#define BROADCAST_LOCONET			0x01000000
+#define BROADCAST_LOCONET_LOCO		0x02000000
+#define BROADCAST_LOCONET_SWITCH	0x04000000
+#define BROADCAST_LOCONET_DETECTOR	0x08000000
+#define BROADCAST_RAILCOM_AUTO		0x00040000
+#define BROADCAST_CAN				0x00080000
+
 struct MYLOCOZ21 {
     char throttle; //indicates which throttle letter on client, '0' + clientid
     int cab; //address of this loco
@@ -104,7 +118,7 @@ class Z21Throttle {
 		uint16_t mostRecentCab;
 		int turnoutListHash;  // used to check for changes to turnout list
 		bool lastPowerState;  // last power state sent to this client
-		int32_t broadcastFlags;
+		int32_t broadcastFlags = BROADCAST_BASE;
 
 		int getOrAddLoco(int cab);
 		void printLocomotives(bool addTab = false);
@@ -206,18 +220,5 @@ class Z21Throttle {
 #define LAN_X_DB0_CV_NACK_SC 0x12
 #define LAN_X_DB0_CV_NACK 0x13
 
-// Broadcast flags
-
-#define BROADCAST_BASE				0x00000001
-#define BROADCAST_RBUS				0x00000002
-#define BROADCAST_RAILCOM			0x00000004
-#define BROADCAST_SYSTEM			0x00000100
-#define BROADCAST_BASE_LOCOINFO		0x00010000
-#define BROADCAST_LOCONET			0x01000000
-#define BROADCAST_LOCONET_LOCO		0x02000000
-#define BROADCAST_LOCONET_SWITCH	0x04000000
-#define BROADCAST_LOCONET_DETECTOR	0x08000000
-#define BROADCAST_RAILCOM_AUTO		0x00040000
-#define BROADCAST_CAN				0x00080000
 
 #endif
