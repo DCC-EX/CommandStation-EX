@@ -252,7 +252,7 @@ void Z21Throttle::write(byte* inpData, int inLengthData) {
 	size = NetworkClientUDP::client.write(inpData, inLengthData);
 	NetworkClientUDP::client.endPacket();
 
-	if (Diag::Z21THROTTLEDATA) DIAG(F("Z21 Throttle %d : %s SENT 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"), clientid,
+	if (Diag::Z21THROTTLEDATA && inpData[0] != 0x14 && inpData[2] != 0x84 ) DIAG(F("Z21 Throttle %d : %s SENT 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"), clientid,
                           size == 0 ? "BINARY NOT" :"",
                           (inLengthData > 0)?inpData[0]:0,
                           (inLengthData > 1)?inpData[1]:0,
@@ -635,7 +635,7 @@ bool Z21Throttle::parse() {
 
 	if (lengthData > 0)	{
 		pBuffer->GetBytes(DB, lengthData);
-		if (Diag::Z21THROTTLEDATA) DIAG(F("%d <- len:%d  header:0x%02x  : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"),
+		if (Diag::Z21THROTTLEDATA && DB[1] != LAN_X_DB0_GET_STATUS) DIAG(F("%d <- len:%d  header:0x%02x  : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"),
 					this->clientid, lengthData, header,
 					(lengthData > 0)?DB[0]:0,
 					(lengthData > 1)?DB[1]:0,
@@ -660,7 +660,7 @@ bool Z21Throttle::parse() {
 						if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET_VERSION"), this->clientid);
 						break;
 					case LAN_X_DB0_GET_STATUS:
-						if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET_STATUS  "), this->clientid);
+						if (false && Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET_STATUS  "), this->clientid);
 						notifyStatus();
 						done = true;
 						break;
