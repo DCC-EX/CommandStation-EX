@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.54"
+#define VERSION "4.2.54-Z21"
+// Z21 experiments ongoing
 // 4.2.54 - EX8874 shield in config.example.h
 //        - Fix: Better warnings for pin number errors
 //        - Fix: Default roster list possible in Withrottle and <jR>
