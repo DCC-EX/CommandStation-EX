@@ -1,5 +1,6 @@
 /*
  *  © 2023 Thierry Paris / Locoduino
+ *  © 2023 Harald Barth
  *  All rights reserved.
  *  
  *  This is free software: you can redistribute it and/or modify
@@ -18,9 +19,10 @@
 #ifndef Z21Throttle_h
 #define Z21Throttle_h
 
-#include "CircularBuffer.hpp"
+//#include "CircularBuffer.hpp"
 #include "WiFiClient.h"
 
+#define MAX_MTU 1460
 #define UDPBYTE_SIZE	1500
 #define UDP_BUFFERSIZE  2048
 
@@ -49,8 +51,6 @@ struct MYLOCOZ21 {
 class NetworkClientUDP {
 	public:
 	NetworkClientUDP() {
-		this->pudpBuffer = new CircularBuffer(UDP_BUFFERSIZE);
-		this->pudpBuffer->begin(true);
 	};
 	bool ok() {
 		return (inUse);
@@ -58,7 +58,6 @@ class NetworkClientUDP {
 
 	bool inUse = true;
 	bool connected = false;
-	CircularBuffer *pudpBuffer = NULL;
 	IPAddress remoteIP;
 	int remotePort;
 
@@ -77,7 +76,7 @@ class Z21Throttle {
 		void notifyCvNACK(int inCvAddress);
 		void notifyCvRead(int inCvAddress, int inValue);
 		
-		bool parse();
+  bool parse(byte *networkPacket, int len);
 
 		static Z21Throttle *readWriteThrottle;	// NULL if no throttle is reading or writing a CV...
 		static int cvAddress;
