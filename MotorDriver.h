@@ -186,6 +186,15 @@ class MotorDriver {
     inline void setTrackLetter(char c) {
       trackLetter = c;
     };
+    // this returns how much time has passed since the last power change. If it
+    // was really long ago (approx > 52min) advance counter approx 35 min so that
+    // we are at 18 minutes again. Times for 32 bit unsigned long.
+    inline unsigned long microsSinceLastPowerChange() {
+      unsigned long diff = micros() - lastPowerChange;
+      if (diff > (1UL << (6 *sizeof(unsigned long))))
+	lastPowerChange += 1UL << (4 * sizeof(unsigned long));
+      return diff;
+    };
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
@@ -217,8 +226,8 @@ class MotorDriver {
     int rawCurrentTripValue;
     // current sampling
     POWERMODE powerMode;
-    unsigned long lastSampleTaken;
-    unsigned int sampleDelay;
+    POWERMODE oldPowerMode;
+    unsigned long lastPowerChange; // timestamp in microseconds
     int progTripValue;
     int  lastCurrent;
 #ifdef ANALOG_READ_INTERRUPT
@@ -229,9 +238,9 @@ class MotorDriver {
     int tripmA;
 
     // Wait times for power management. Unit: milliseconds
-    static const int  POWER_SAMPLE_ON_WAIT = 100;
-    static const int  POWER_SAMPLE_OFF_WAIT = 1000;
-    static const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+    static const int  POWER_SAMPLE_ON_WAIT = 1;
+    static const int  POWER_SAMPLE_OFF_WAIT = 100;
+    static const int  POWER_SAMPLE_OVERLOAD_WAIT = 500UL;
     
     // Trip current for programming track, 250mA. Change only if you really
     // need to be non-NMRA-compliant because of decoders that are not either.
