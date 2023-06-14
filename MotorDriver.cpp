@@ -364,18 +364,15 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 }
 
 void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
-  //if (millis() - lastSampleTaken  < sampleDelay) return;
-  //lastSampleTaken = millis();
   int tripValue= useProgLimit?progTripValue:getRawCurrentTripValue();
 
-  // check if there was a change from last time
-  if (powerMode != oldPowerMode) {
-    lastPowerChange = micros();
-    oldPowerMode = powerMode;
-  }
-  
   switch (powerMode) {
     case POWERMODE::OFF:
+      if (overloadNow) {
+	overloadNow=false;
+	lastPowerChange = micros();
+	DIAG(F("OVERLOAD POFF OFF"));
+      }
       if (microsSinceLastPowerChange() > 5000000UL) { 
 	power_sample_overload_wait = 100UL;
       }
@@ -385,6 +382,11 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       lastCurrent=getCurrentRaw();
       if (lastCurrent < 0) {
 	// We have a fault pin condition to take care of
+	if (!overloadNow) {
+	  overloadNow=true;
+	  lastPowerChange = micros();
+	  DIAG(F("OVERLOAD FPIN ON"));
+	}
 	lastCurrent = -lastCurrent;
 	if (commonFaultPin) {
 	  if (lastCurrent < tripValue) {
@@ -416,22 +418,44 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       }
       // // //
       if (lastCurrent < tripValue) {
+	if (overloadNow) {
+	  overloadNow=false;
+	  lastPowerChange = micros();
+	  DIAG(F("OVERLOAD PON OFF"));
+	}
 	if (microsSinceLastPowerChange() > 5000000UL) { 
 	  power_sample_overload_wait = 100UL;
 	}
       } else {
 	// too much current
+	if (!overloadNow) {
+	  overloadNow=true;
+	  lastPowerChange = micros();
+	  DIAG(F("OVERLOAD PON ON"));
+	}
+	unsigned long us = microsSinceLastPowerChange();
 	if (power_sample_overload_wait > 100UL ||    // not virgin
-	    microsSinceLastPowerChange() > 10000UL) { // Longer than 10ms
+	    us > 10000UL) { // Longer than 10ms
 	  setPower(POWERMODE::OVERLOAD);
+	  // the setPower just turned off, so overload is now gone
+	  if (overloadNow) {
+	    overloadNow=false;
+	    lastPowerChange = micros();
+	    DIAG(F("OVERLOAD PON OFF"));
+	  }
 	  unsigned int mA=raw2mA(lastCurrent);
 	  unsigned int maxmA=raw2mA(tripValue);
-	  DIAG(F("TRACK %c POWER OVERLOAD %dmA (limit %dmA) shutdown for %lus"),
-	       trackno + 'A', mA, maxmA, power_sample_overload_wait);
+	  DIAG(F("TRACK %c POWER OVERLOAD %dmA (limit %dmA) shutdown after %lus for %lus"),
+	       trackno + 'A', mA, maxmA, us, power_sample_overload_wait);
 	}
       }
       break;
   case POWERMODE::OVERLOAD:
+    if (overloadNow) {
+      overloadNow=false;
+      lastPowerChange = micros();
+      DIAG(F("OVERLOAD POVER OFF"));
+    }
     // Try setting it back on after the OVERLOAD_WAIT
     if (microsSinceLastPowerChange() > power_sample_overload_wait) {
       // adjust next wait time

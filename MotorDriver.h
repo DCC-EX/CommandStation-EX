@@ -226,7 +226,7 @@ class MotorDriver {
     int rawCurrentTripValue;
     // current sampling
     POWERMODE powerMode;
-    POWERMODE oldPowerMode;
+    bool overloadNow = false;
     unsigned long lastPowerChange; // timestamp in microseconds
     int progTripValue;
     int  lastCurrent;
