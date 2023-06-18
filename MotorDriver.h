@@ -190,9 +190,10 @@ class MotorDriver {
     // was really long ago (approx > 52min) advance counter approx 35 min so that
     // we are at 18 minutes again. Times for 32 bit unsigned long.
     inline unsigned long microsSinceLastPowerChange() {
-      unsigned long diff = micros() - lastPowerChange;
-      if (diff > (1UL << (6 *sizeof(unsigned long))))
-	lastPowerChange += 1UL << (4 * sizeof(unsigned long));
+      unsigned long now = micros();
+      unsigned long diff = now - lastPowerChange;
+      if (diff > (1UL << (7 *sizeof(unsigned long)))) // 2^(4*7)us = 268.4 seconds
+        lastPowerChange = now - 30000000UL;           // 30 seconds ago
       return diff;
     };
 #ifdef ANALOG_READ_INTERRUPT
