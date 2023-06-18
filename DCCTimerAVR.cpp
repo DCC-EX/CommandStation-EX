@@ -123,14 +123,13 @@ void DCCTimer::reset() {
 }
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-#define NUM_ADC_INPUTS 16
+#define NUM_ADC_INPUTS 15
 #else
-#define NUM_ADC_INPUTS 8
+#define NUM_ADC_INPUTS 7
 #endif
 uint16_t ADCee::usedpins = 0;
 int * ADCee::analogvals = NULL;
-byte *ADCee::idarr = NULL;
-static bool ADCusesHighPort = false;
+bool ADCusesHighPort = false;
 
 /*
  * Register a new pin to be scanned
@@ -139,28 +138,16 @@ static bool ADCusesHighPort = false;
  */
 int ADCee::init(uint8_t pin) {
   uint8_t id = pin - A0;
-  byte n;
-  if (id >= NUM_ADC_INPUTS)
+  if (id > NUM_ADC_INPUTS)
     return -1023;
   if (id > 7)
     ADCusesHighPort = true;
   pinMode(pin, INPUT);
   int value = analogRead(pin);
-  if (analogvals == NULL) {
-    analogvals = (int *)calloc(NUM_ADC_INPUTS, sizeof(int));
-    for (n=0 ; n < NUM_ADC_INPUTS; n++) // set unreasonable value at startup as marker
-      analogvals[n] = -32768;           // 16 bit int min value
-    idarr = (byte *)calloc(NUM_ADC_INPUTS+1, sizeof(byte));  // +1 for terminator value
-    for (n=0 ; n <= NUM_ADC_INPUTS; n++)
-      idarr[n] = 255;                   // set 255 as end of array marker
-  }
-  analogvals[id] = value; // store before enable by idarr[n]
-  for (n=0 ; n <= NUM_ADC_INPUTS; n++) {
-    if (idarr[n] == 255) {
-      idarr[n] = id;
-      break;
-    }
-  }
+  if (analogvals == NULL)
+    analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+  analogvals[id] = value;
+  usedpins |= (1<<id);
   return value;
 }
 int16_t ADCee::ADCmax() {
@@ -172,13 +159,11 @@ int16_t ADCee::ADCmax() {
 int ADCee::read(uint8_t pin, bool fromISR) {
   (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
-  int a;
+  if ((usedpins & (1<<id) ) == 0)
+    return -1023;
   // we do not need to check (analogvals == NULL)
   // because usedpins would still be 0 in that case
-  noInterrupts();
-  a = analogvals[id];
-  interrupts();
-  return a;
+  return analogvals[id];
 }
 /*
  * Scan function that is called from interrupt
@@ -186,7 +171,8 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void ADCee::scan() {
-  static byte num = 0;       // index into id array
+  static byte id = 0;        // id and mask are the same thing but it is faster to 
+  static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
 
   if (waiting) {
@@ -198,26 +184,45 @@ void ADCee::scan() {
     low = ADCL; //must read low before high
     high = ADCH;
     bitSet(ADCSRA, ADIF);
-    analogvals[idarr[num]] = (high << 8) | low;
+    analogvals[id] = (high << 8) | low;
+    // advance at least one track
+    // for scope debug TrackManager::track[1]->setBrake(0);
     waiting = false;
+    id++;
+    mask = mask << 1;
+    if (id == NUM_ADC_INPUTS+1) {
+      id = 0;
+      mask = 1;
+    }
   }
   if (!waiting) {
-    // cycle around in-use analogue pins
-    num++;
-    if (idarr[num] == 255)
-      num = 0;
-    // start new ADC aquire on id
+    if (usedpins == 0) // otherwise we would loop forever
+      return;
+    // look for a valid track to sample or until we are around
+    while (true) {
+      if (mask  & usedpins) {
+	// start new ADC aquire on id
 #if defined(ADCSRB) && defined(MUX5)
-    if (ADCusesHighPort) {     // if we ever have started to use high pins)
-      if (idarr[num] > 7)              // if we use a high ADC pin
-	bitSet(ADCSRB, MUX5);  // set MUX5 bit
-      else
-	bitClear(ADCSRB, MUX5);
-    }
+	if (ADCusesHighPort) { // if we ever have started to use high pins)
+	  if (id > 7)          // if we use a high ADC pin
+	    bitSet(ADCSRB, MUX5); // set MUX5 bit
+	  else
+	    bitClear(ADCSRB, MUX5);
+	}
 #endif
-    ADMUX = (1 << REFS0) | (idarr[num] & 0x07); // select AVCC as reference and set MUX
-    bitSet(ADCSRA, ADSC);               // start conversion
-    waiting = true;
+	ADMUX=(1<<REFS0)|(id & 0x07); //select AVCC as reference and set MUX
+	bitSet(ADCSRA,ADSC); // start conversion
+	// for scope debug TrackManager::track[1]->setBrake(1);
+	waiting = true;
+	return;
+      }
+      id++;
+      mask = mask << 1;
+      if (id == NUM_ADC_INPUTS+1) {
+	id = 0;
+	mask = 1;
+      }
+    }
   }
 }
 #pragma GCC pop_options
