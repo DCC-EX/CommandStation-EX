@@ -1,4 +1,5 @@
 /*
+ *  © 2023, Peter Cole. All rights reserved.
  *  © 2022, Peter Cole. All rights reserved.
  *
  *  This file is part of EX-CommandStation
@@ -28,8 +29,22 @@
 * ONCHANGE(vpin) - flag when the rotary encoder position has changed from the previous position
 * IFRE(vpin, position) - test to see if specified rotary encoder position has been received
 *
-* Further to this, feedback can be sent to the rotary encoder by using 2 Vpins, and sending a SET()/RESET() to the second Vpin.
+* Feedback can also be sent to the rotary encoder by using 2 Vpins, and sending a SET()/RESET() to the second Vpin.
 * A SET(vpin) will flag that a turntable (or anything else) is in motion, and a RESET(vpin) that the motion has finished.
+*
+* In addition, defining a third Vpin will allow a position number to be sent so that when an EXRAIL automation or some other
+* activity has moved a turntable, the position can be reflected in the rotary encoder software. This can be accomplished
+* using the EXRAIL SERVO(vpin, position, profile) command, where:
+* - vpin = the third defined Vpin (any other is ignored)
+* - position = the defined position in the DCC-EX Rotary Encoder software, 0 (Home) to 255
+* - profile = Must be defined as per the SERVO() command, but is ignored as it has no relevance
+*
+* Defining in myAutomation.h requires the device driver to be included in addition to the HAL() statement. Examples:
+*
+* #include "IO_RotaryEncoder.h"
+* HAL(RotaryEncoder, 700, 1, 0x70)    // Define single Vpin, no feedback or position sent to rotary encoder software
+* HAL(RotaryEncoder, 700, 2, 0x70)    // Define two Vpins, feedback only sent to rotary encoder software
+* HAL(RotaryEncoder, 700, 3, 0x70)    // Define three Vpins, can send feedback and position update to rotary encoder software
 *
 * Refer to the documentation for further information including the valid activities and examples.
 */
@@ -103,6 +118,15 @@ private:
       I2CManager.write(_I2CAddress, _feedbackBuffer, 2);
     }
   }
+
+  void _writeAnalogue(VPIN vpin, int position, uint8_t profile, uint16_t duration) override {
+    if (vpin == _firstVpin + 2) {
+      if (position >= 0 && position <= 255) {
+        byte _positionBuffer[2] = {RE_MOVE, position};
+        I2CManager.write(_I2CAddress, _positionBuffer, 2);
+      }
+    }
+  }
   
   void _display() override {
     DIAG(F("Rotary Encoder I2C:%s v%d.%d.%d Configured on VPIN:%u-%d %S"), _I2CAddress.toString(), _majorVer, _minorVer, _patchVer,
@@ -120,6 +144,7 @@ private:
   enum {
     RE_VER = 0xA0,   // Flag to retrieve rotary encoder version from the device
     RE_OP = 0xA1,    // Flag for normal operation
+    RE_MOVE = 0xA2,  // Flag for sending a position update
   };
 
 };
