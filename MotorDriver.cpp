@@ -108,8 +108,13 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   }
   
   currentPin=current_pin;
-  if (currentPin!=UNUSED_PIN)
-    ADCee::init(currentPin);
+  if (currentPin!=UNUSED_PIN) {
+    int ret = ADCee::init(currentPin);
+    if (ret < -1010) { // XXX give value a name later
+      DIAG(F("ADCee::init error %d, disable current pin %d"), ret, currentPin);
+      currentPin = UNUSED_PIN;
+    }
+  }
   senseOffset=0; // value can not be obtained until waveform is activated
 
   if (fault_pin != UNUSED_PIN) {
