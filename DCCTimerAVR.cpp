@@ -1,6 +1,6 @@
 /*
  *  © 2021 Mike S
- *  © 2021-2022 Harald Barth
+ *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
  *  © 2021 Chris Harlow
  *  © 2021 David Cutting
@@ -29,6 +29,9 @@
 #include <avr/boot.h> 
 #include <avr/wdt.h>
 #include "DCCTimer.h"
+#ifdef DEBUG_ADC
+#include "TrackManager.h"
+#endif
 INTERRUPT_CALLBACK interruptHandler=0;
 
   // Arduino nano, uno, mega etc
@@ -123,13 +126,14 @@ void DCCTimer::reset() {
 }
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-#define NUM_ADC_INPUTS 15
+#define NUM_ADC_INPUTS 16
 #else
-#define NUM_ADC_INPUTS 7
+#define NUM_ADC_INPUTS 8
 #endif
 uint16_t ADCee::usedpins = 0;
+uint8_t ADCee::highestPin = 0;
 int * ADCee::analogvals = NULL;
-bool ADCusesHighPort = false;
+static bool ADCusesHighPort = false;
 
 /*
  * Register a new pin to be scanned
@@ -138,16 +142,17 @@ bool ADCusesHighPort = false;
  */
 int ADCee::init(uint8_t pin) {
   uint8_t id = pin - A0;
-  if (id > NUM_ADC_INPUTS)
+  if (id >= NUM_ADC_INPUTS)
     return -1023;
   if (id > 7)
     ADCusesHighPort = true;
   pinMode(pin, INPUT);
   int value = analogRead(pin);
   if (analogvals == NULL)
-    analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
+    analogvals = (int *)calloc(NUM_ADC_INPUTS, sizeof(int));
   analogvals[id] = value;
   usedpins |= (1<<id);
+  if (id > highestPin) highestPin = id;
   return value;
 }
 int16_t ADCee::ADCmax() {
@@ -157,13 +162,15 @@ int16_t ADCee::ADCmax() {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  (void)fromISR; // AVR does ignore this arg
   uint8_t id = pin - A0;
   if ((usedpins & (1<<id) ) == 0)
     return -1023;
   // we do not need to check (analogvals == NULL)
   // because usedpins would still be 0 in that case
-  return analogvals[id];
+  if (!fromISR) noInterrupts();
+  int a = analogvals[id];
+  if (!fromISR) interrupts();
+  return a;
 }
 /*
  * Scan function that is called from interrupt
@@ -171,8 +178,8 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void ADCee::scan() {
-  static byte id = 0;        // id and mask are the same thing but it is faster to 
-  static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
+  static byte id = 0;       // id and mask are the same thing but it is faster to
+  static uint16_t mask = 1; // increment and shift instead to calculate mask from id
   static bool waiting = false;
 
   if (waiting) {
@@ -186,11 +193,13 @@ void ADCee::scan() {
     bitSet(ADCSRA, ADIF);
     analogvals[id] = (high << 8) | low;
     // advance at least one track
-    // for scope debug TrackManager::track[1]->setBrake(0);
+#ifdef DEBUG_ADC
+    if (id == 1) TrackManager::track[1]->setBrake(0);
+#endif
     waiting = false;
     id++;
     mask = mask << 1;
-    if (id == NUM_ADC_INPUTS+1) {
+    if (id > highestPin) { // the 1 has been shifted out
       id = 0;
       mask = 1;
     }
@@ -212,13 +221,15 @@ void ADCee::scan() {
 #endif
 	ADMUX=(1<<REFS0)|(id & 0x07); //select AVCC as reference and set MUX
 	bitSet(ADCSRA,ADSC); // start conversion
-	// for scope debug TrackManager::track[1]->setBrake(1);
+#ifdef DEBUG_ADC
+	if (id == 1) TrackManager::track[1]->setBrake(1);
+#endif
 	waiting = true;
 	return;
       }
       id++;
       mask = mask << 1;
-      if (id == NUM_ADC_INPUTS+1) {
+      if (id > highestPin) {
 	id = 0;
 	mask = 1;
       }

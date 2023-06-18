@@ -127,6 +127,7 @@ private:
   static void scan();
   // bit array of used pins (max 16)
   static uint16_t usedpins;
+  static uint8_t highestPin;
   // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;
   // friend so that we can call scan() and begin()
