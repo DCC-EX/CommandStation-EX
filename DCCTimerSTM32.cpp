@@ -30,6 +30,10 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
+#ifdef DEBUG_ADC
+#include "TrackManager.h"
+#endif
+#include "DIAG.h"
 
 #if defined(ARDUINO_NUCLEO_F411RE)
 // Nucleo-64 boards don't have Serial1 defined by default
@@ -307,6 +311,8 @@ int ADCee::init(uint8_t pin) {
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
   usedpins |= (1 << id);      // This pin is now ready
 
+  DIAG(F("ADCee::init(): value=%d, channel=%d, id=%d"), value, adcchan, id);
+
   return value;
 }
 
@@ -340,11 +346,13 @@ void ADCee::scan() {
     // found value
     analogvals[id] = ADC1->DR;
     // advance at least one track
-    // for scope debug TrackManager::track[1]->setBrake(0);
+#ifdef DEBUG_ADC
+    if (id == 1) TrackManager::track[1]->setBrake(0);
+#endif
     waiting = false;
     id++;
     mask = mask << 1;
-    if (id == NUM_ADC_INPUTS+1) {
+    if (mask == 0) { // the 1 has been shifted out
       id = 0;
       mask = 1;
     }
@@ -355,18 +363,20 @@ void ADCee::scan() {
     // look for a valid track to sample or until we are around
     while (true) {
       if (mask  & usedpins) {
-    	  // start new ADC aquire on id
+	// start new ADC aquire on id
         ADC1->SQR3 = analogchans[id]; //1st conversion in regular sequence
         ADC1->CR2 |= (1 << 30); //Start 1st conversion SWSTART
-	      // for scope debug TrackManager::track[1]->setBrake(1);
-	      waiting = true;
-	      return;
+#ifdef DEBUG_ADC
+	if (id == 1) TrackManager::track[1]->setBrake(1);
+#endif
+	waiting = true;
+	return;
       }
       id++;
       mask = mask << 1;
-      if (id == NUM_ADC_INPUTS+1) {
-	      id = 0;
-	      mask = 1;
+      if (mask == 0) { // the 1 has been shifted out
+	id = 0;
+	mask = 1;
       }
     }
   }
