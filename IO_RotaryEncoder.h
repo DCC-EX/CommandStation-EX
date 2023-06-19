@@ -59,50 +59,98 @@
 
 class RotaryEncoder : public IODevice {
 public:
-  // Constructor
-  RotaryEncoder(VPIN firstVpin, int nPins, I2CAddress i2cAddress){
-    _firstVpin = firstVpin;
-    _nPins = nPins;
-    _I2CAddress = i2cAddress;
-    addDevice(this);
-  }
+  
   static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new RotaryEncoder(firstVpin, nPins, i2cAddress);
   }
 
 private:
+  // Constructor
+  RotaryEncoder(VPIN firstVpin, int nPins, I2CAddress i2cAddress){
+    _firstVpin = firstVpin;
+    _nPins = nPins;
+    if (_nPins > 3) {
+      _nPins = 3;
+      DIAG(F("RotaryEncoder WARNING:%d vpins defined, only 3 supported"), _nPins);
+    }
+    _I2CAddress = i2cAddress;
+    addDevice(this);
+  }
+
   // Initiate the device
   void _begin() {
+    uint8_t _status;
+    // Attempt to initilalise device
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
-      byte _getVersion[1] = {RE_VER};
-      I2CManager.read(_I2CAddress, _versionBuffer, 3, _getVersion, 1);
-      _majorVer = _versionBuffer[0];
-      _minorVer = _versionBuffer[1];
-      _patchVer = _versionBuffer[2];
-      _buffer[0] = RE_OP;
-      I2CManager.write(_I2CAddress, _buffer, 1);
+      // Send RE_OP, must receive RE_OP to be online
+      _sendBuffer[0] = RE_OP;
+      _status = I2CManager.read(_I2CAddress, _rcvBuffer, 1, _sendBuffer, 1);
+      if (_status == I2C_STATUS_OK) {
+        if (_rcvBuffer[0] == RE_OP) {
+          _sendBuffer[0] = RE_VER;
+          if (I2CManager.read(_I2CAddress, _versionBuffer, 3, _sendBuffer, 1) == I2C_STATUS_OK) {
+            _majorVer = _versionBuffer[0];
+            _minorVer = _versionBuffer[1];
+            _patchVer = _versionBuffer[2];
+          }
+        } else {
+          DIAG(F("RotaryEncoder I2C:%s garbage received: %d"), _I2CAddress.toString(), _rcvBuffer[0]);
+          _deviceState = DEVSTATE_FAILED;
+          return;
+        }
+      } else {
+        DIAG(F("RotaryEncoder I2C:%s ERROR connecting"), _I2CAddress.toString());
+        _deviceState = DEVSTATE_FAILED;
+        return;
+      }
+      // byte _getVersion[1] = {RE_VER};
+      // I2CManager.read(_I2CAddress, _versionBuffer, 3, _getVersion, 1);
+      // _majorVer = _versionBuffer[0];
+      // _minorVer = _versionBuffer[1];
+      // _patchVer = _versionBuffer[2];
+      // _buffer[0] = RE_OP;
+      // I2CManager.write(_I2CAddress, _buffer, 1);
 #ifdef DIAG_IO
       _display();
 #endif
     } else {
-        _deviceState = DEVSTATE_FAILED;
+      DIAG(F("RotaryEncoder I2C:%s device not found"), _I2CAddress.toString());
+      _deviceState = DEVSTATE_FAILED;
     }
   }
 
   void _loop(unsigned long currentMicros) override {
-    I2CManager.read(_I2CAddress, _buffer, 1);
-    _position = _buffer[0];
-    // This here needs to have a change check, ie. position is a different value.
-  #if defined(EXRAIL_ACTIVE)
+    if (_deviceState == DEVSTATE_FAILED) return;  // Return if device has failed
+    if (_i2crb.isBusy()) return;                  // Return if I2C operation still in progress
+
+    if (currentMicros - _lastPositionRead > _positionRefresh) {
+      _lastPositionRead = currentMicros;
+      _sendBuffer[0] = RE_READ;
+      I2CManager.read(_I2CAddress, _rcvBuffer, 1, _sendBuffer, 1, &_i2crb); // Read position from encoder
+      _position = _rcvBuffer[0];
+      // If EXRAIL is active, we need to trigger the ONCHANGE() event handler if it's in use
+#if defined(EXRAIL_ACTIVE)
       if (_position != _previousPosition) {
         _previousPosition = _position;
-        RMFT2::changeEvent(_firstVpin,1);
+        RMFT2::changeEvent(_firstVpin, 1);
       } else {
-        RMFT2::changeEvent(_firstVpin,0);
+        RMFT2::changeEvent(_firstVpin, 0);
       }
-  #endif
-    delayUntil(currentMicros + 100000);
+#endif
+    }
+  //   I2CManager.read(_I2CAddress, _buffer, 1);
+  //   _position = _buffer[0];
+  //   // This here needs to have a change check, ie. position is a different value.
+  // #if defined(EXRAIL_ACTIVE)
+  //     if (_position != _previousPosition) {
+  //       _previousPosition = _position;
+  //       RMFT2::changeEvent(_firstVpin,1);
+  //     } else {
+  //       RMFT2::changeEvent(_firstVpin,0);
+  //     }
+  // #endif
+  //   delayUntil(currentMicros + 100000);
   }
 
   // Device specific read function
@@ -122,7 +170,8 @@ private:
   void _writeAnalogue(VPIN vpin, int position, uint8_t profile, uint16_t duration) override {
     if (vpin == _firstVpin + 2) {
       if (position >= 0 && position <= 255) {
-        byte _positionBuffer[2] = {RE_MOVE, position};
+        byte newPosition = position & 0xFF;
+        byte _positionBuffer[2] = {RE_MOVE, newPosition};
         I2CManager.write(_I2CAddress, _positionBuffer, 2);
       }
     }
@@ -136,15 +185,20 @@ private:
   int8_t _position;
   int8_t _previousPosition = 0;
   uint8_t _versionBuffer[3];
-  uint8_t _buffer[1];
+  uint8_t _sendBuffer[1];
+  uint8_t _rcvBuffer[1];
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
+  I2CRB _i2crb;
+  unsigned long _lastPositionRead = 0;
+  const unsigned long _positionRefresh = 100000UL;    // Delay refreshing position for 100ms
 
   enum {
     RE_VER = 0xA0,   // Flag to retrieve rotary encoder version from the device
     RE_OP = 0xA1,    // Flag for normal operation
-    RE_MOVE = 0xA2,  // Flag for sending a position update
+    RE_MOVE = 0xA2,  // Flag for sending a position update from the device driver to the encoder
+    RE_READ = 0xA3,  // Flag to read the current position of the encoder
   };
 
 };
