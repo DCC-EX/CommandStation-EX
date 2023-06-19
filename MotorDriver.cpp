@@ -478,6 +478,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
       // power on test
       setPower(POWERMODE::ON);
+      // here we change power but not the overloadNow as that was
+      // already changed to false when we entered POWERMODE::OVERLOAD
+      // so we need to set the lastPowerChange anyway.
+      lastPowerChange = micros();
       DIAG(F("TRACK %c POWER RESTORE (was off %lus)"), trackno + 'A', power_sample_overload_wait);
     }
     break;
