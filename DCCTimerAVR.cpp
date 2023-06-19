@@ -199,7 +199,7 @@ void ADCee::scan() {
     waiting = false;
     id++;
     mask = mask << 1;
-    if (id > highestPin) { // the 1 has been shifted out
+    if (id > highestPin) {
       id = 0;
       mask = 1;
     }
@@ -230,8 +230,8 @@ void ADCee::scan() {
       id++;
       mask = mask << 1;
       if (id > highestPin) {
-	id = 0;
-	mask = 1;
+      	id = 0;
+	      mask = 1;
       }
     }
   }

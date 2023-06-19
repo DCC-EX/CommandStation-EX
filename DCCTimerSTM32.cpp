@@ -233,13 +233,16 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
-#define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
-
 // TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
 #if defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 #warning STM32 board selected not fully supported - only use ADC1 inputs 0-15 for current sensing!
 #endif
+// For now, define the max of 16 ports - some variants have more, but this not **yet** supported
+#define NUM_ADC_INPUTS 16
+// #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
+
 uint16_t ADCee::usedpins = 0;
+uint8_t ADCee::highestPin = 0;
 int * ADCee::analogvals = NULL;
 uint32_t * analogchans = NULL;
 bool adc1configured = false;
@@ -310,6 +313,7 @@ int ADCee::init(uint8_t pin) {
   analogvals[id] = value;     // Store sampled value
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
   usedpins |= (1 << id);      // This pin is now ready
+  if (id > highestPin) highestPin = id; // Store our highest pin in use
 
   DIAG(F("ADCee::init(): value=%d, channel=%d, id=%d"), value, adcchan, id);
 
@@ -352,7 +356,7 @@ void ADCee::scan() {
     waiting = false;
     id++;
     mask = mask << 1;
-    if (mask == 0) { // the 1 has been shifted out
+    if (id > highestPin) { // the 1 has been shifted out
       id = 0;
       mask = 1;
     }
@@ -374,9 +378,9 @@ void ADCee::scan() {
       }
       id++;
       mask = mask << 1;
-      if (mask == 0) { // the 1 has been shifted out
-	id = 0;
-	mask = 1;
+      if (id > highestPin) {
+      	id = 0;
+      	mask = 1;
       }
     }
   }
