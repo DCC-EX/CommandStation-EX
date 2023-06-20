@@ -104,13 +104,6 @@ private:
         _deviceState = DEVSTATE_FAILED;
         return;
       }
-      // byte _getVersion[1] = {RE_VER};
-      // I2CManager.read(_I2CAddress, _versionBuffer, 3, _getVersion, 1);
-      // _majorVer = _versionBuffer[0];
-      // _minorVer = _versionBuffer[1];
-      // _patchVer = _versionBuffer[2];
-      // _buffer[0] = RE_OP;
-      // I2CManager.write(_I2CAddress, _buffer, 1);
 #ifdef DIAG_IO
       _display();
 #endif
@@ -139,18 +132,6 @@ private:
       }
 #endif
     }
-  //   I2CManager.read(_I2CAddress, _buffer, 1);
-  //   _position = _buffer[0];
-  //   // This here needs to have a change check, ie. position is a different value.
-  // #if defined(EXRAIL_ACTIVE)
-  //     if (_position != _previousPosition) {
-  //       _previousPosition = _position;
-  //       RMFT2::changeEvent(_firstVpin,1);
-  //     } else {
-  //       RMFT2::changeEvent(_firstVpin,0);
-  //     }
-  // #endif
-  //   delayUntil(currentMicros + 100000);
   }
 
   // Device specific read function
