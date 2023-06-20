@@ -147,8 +147,6 @@
   #ifndef I2C_USE_WIRE
   #define I2C_USE_WIRE
   #endif
-  #undef NUM_SERIAL
-  #define NUM_SERIAL 3
 
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
