@@ -83,11 +83,11 @@ private:
     // Attempt to initilalise device
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
-      // Send RE_OP, must receive RE_OP to be online
-      _sendBuffer[0] = RE_OP;
+      // Send RE_RDY, must receive RE_RDY to be online
+      _sendBuffer[0] = RE_RDY;
       _status = I2CManager.read(_I2CAddress, _rcvBuffer, 1, _sendBuffer, 1);
       if (_status == I2C_STATUS_OK) {
-        if (_rcvBuffer[0] == RE_OP) {
+        if (_rcvBuffer[0] == RE_RDY) {
           _sendBuffer[0] = RE_VER;
           if (I2CManager.read(_I2CAddress, _versionBuffer, 3, _sendBuffer, 1) == I2C_STATUS_OK) {
             _majorVer = _versionBuffer[0];
@@ -195,10 +195,11 @@ private:
   const unsigned long _positionRefresh = 100000UL;    // Delay refreshing position for 100ms
 
   enum {
-    RE_VER = 0xA0,   // Flag to retrieve rotary encoder version from the device
-    RE_OP = 0xA1,    // Flag for normal operation
-    RE_MOVE = 0xA2,  // Flag for sending a position update from the device driver to the encoder
-    RE_READ = 0xA3,  // Flag to read the current position of the encoder
+    RE_RDY = 0xA0,   // Flag to check if encoder is ready for operation
+    RE_VER = 0xA1,   // Flag to retrieve rotary encoder software version
+    RE_READ = 0xA2,  // Flag to read the current position of the encoder
+    RE_OP = 0xA3,    // Flag for operation start/end, sent to when sending feedback on move start/end
+    RE_MOVE = 0xA4,  // Flag for sending a position update from the device driver to the encoder
   };
 
 };
