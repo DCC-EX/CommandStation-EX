@@ -4,7 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.55"
+#define VERSION "4.2.56"
+// 4.2.56 - Update IO_RotaryEncoder.h:
+//        - Improved I2C communication, non-blocking reads
+//        - Enable sending positions to the encoder from EXRAIL via SERVO()
 // 4.2.55 - Optimize analog read for AVR
 // 4.2.54 - EX8874 shield in config.example.h
 //        - Fix: Better warnings for pin number errors
