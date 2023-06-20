@@ -159,11 +159,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     //   senseFactorInternal, raw2mA(1000),mA2raw(1000));
   }
 
-  // prepare values for current detection
-  sampleDelay = 0;
-  lastSampleTaken = millis();
   progTripValue = mA2raw(TRIP_CURRENT_PROG); 
-
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -172,6 +168,7 @@ bool MotorDriver::isPWMCapable() {
 
 
 void MotorDriver::setPower(POWERMODE mode) {
+  if (powerMode == mode) return;
   bool on=mode==POWERMODE::ON;
   if (on) {
     // when switching a track On, we need to check the crrentOffset with the pin OFF
@@ -372,63 +369,123 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 }
 
 void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
-  if (millis() - lastSampleTaken  < sampleDelay) return;
-  lastSampleTaken = millis();
   int tripValue= useProgLimit?progTripValue:getRawCurrentTripValue();
-  
-  // Trackname for diag messages later
+
   switch (powerMode) {
     case POWERMODE::OFF:
-      sampleDelay = POWER_SAMPLE_OFF_WAIT;
+      if (overloadNow) {
+	// reset overload condition as we have just turned off power
+	// DIAG(F("OVERLOAD POFF OFF"));
+	overloadNow=false;
+	lastPowerChange = micros();
+      }
+      if (microsSinceLastPowerChange() > POWER_SAMPLE_ALL_GOOD) {
+	power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+      }
       break;
     case POWERMODE::ON:
       // Check current
       lastCurrent=getCurrentRaw();
       if (lastCurrent < 0) {
-	  // We have a fault pin condition to take care of
-	  lastCurrent = -lastCurrent;
-	  setPower(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
-	  if (commonFaultPin) {
-	      if (lastCurrent < tripValue) {
-		      setPower(POWERMODE::ON); // maybe other track
-	      }
-	      // Write this after the fact as we want to turn on as fast as possible
-	      // because we don't know which output actually triggered the fault pin
-	      DIAG(F("COMMON FAULT PIN ACTIVE: POWERTOGGLE TRACK %c"), trackno + 'A');
-	  } else {
-	    DIAG(F("TRACK %c FAULT PIN ACTIVE - OVERLOAD"), trackno + 'A');
-	      if (lastCurrent < tripValue) {
-		  lastCurrent = tripValue; // exaggerate
-	      }
+	// We have a fault pin condition to take care of
+	if (!overloadNow) {
+	  // turn on overload condition as fault pin has gone active
+	  // DIAG(F("OVERLOAD FPIN ON"));
+	  overloadNow=true;
+	  lastPowerChange = micros();
+	}
+	lastCurrent = -lastCurrent;
+	if (commonFaultPin) {
+	  if (lastCurrent < tripValue) {
+	    // probably other track, do a fast toggle.
+	    setPower(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
+	    setPower(POWERMODE::ON); // maybe other track
+	    // Write this after the fact as we want to turn on as fast as possible
+	    // because we don't know which output actually triggered the fault pin
+	    DIAG(F("COMMON FAULT PIN ACTIVE: POWERTOGGLE TRACK %c"), trackno + 'A');
 	  }
+	} else {
+	  if (lastCurrent < tripValue) {
+	    if (power_sample_overload_wait <= (POWER_SAMPLE_OVERLOAD_WAIT * 10) &&    // almost virgin
+		microsSinceLastPowerChange() < POWER_SAMPLE_IGNORE_FAULT_LOW) {
+	      // Ignore 50ms fault pin if no current
+	      DIAG(F("TRACK %c FAULT PIN 50ms ignore"), trackno + 'A');
+	      break;
+	    }
+	    lastCurrent = tripValue; // exaggerate so condition below (*) is true
+	  } else {
+	    if (power_sample_overload_wait <= POWER_SAMPLE_OVERLOAD_WAIT &&   // virgin
+		microsSinceLastPowerChange() < POWER_SAMPLE_IGNORE_FAULT_HIGH) {
+              // Ignore 5ms fault pin if we see current
+	      DIAG(F("TRACK %c FAULT PIN 5ms ignore"), trackno + 'A');
+	      break;
+	    }
+	  }
+	  DIAG(F("TRACK %c FAULT PIN ACTIVE"), trackno + 'A');
+	}
       }
-      if (lastCurrent < tripValue) {
-        sampleDelay = POWER_SAMPLE_ON_WAIT;
-	if(power_good_counter<100)
-	  power_good_counter++;
-	else
-	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
+      // // //
+      // above we looked at fault pin, below we look at current
+      // // //
+      if (lastCurrent < tripValue) { // see above (*)
+	if (overloadNow) {
+	  // current is below trip value, turn off overload condition
+	  // DIAG(F("OVERLOAD PON OFF"));
+	  overloadNow=false;
+	  lastPowerChange = micros();
+	}
+	if (microsSinceLastPowerChange() > POWER_SAMPLE_ALL_GOOD) {
+	  power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+	}
       } else {
-        setPower(POWERMODE::OVERLOAD);
-        unsigned int mA=raw2mA(lastCurrent);
-        unsigned int maxmA=raw2mA(tripValue);
-	      power_good_counter=0;
-        sampleDelay = power_sample_overload_wait;
-        DIAG(F("TRACK %c POWER OVERLOAD %dmA (limit %dmA) shutdown for %dms"), trackno + 'A', mA, maxmA, sampleDelay);
-	if (power_sample_overload_wait >= 10000)
-	    power_sample_overload_wait = 10000;
-	else
-	    power_sample_overload_wait *= 2;
+	// too much current
+	if (!overloadNow) {
+	  // current is over trip value, turn on overload condition
+	  // DIAG(F("OVERLOAD PON ON"));
+	  overloadNow=true;
+	  lastPowerChange = micros();
+	}
+	unsigned long uSecs = microsSinceLastPowerChange();
+	if (power_sample_overload_wait > POWER_SAMPLE_OVERLOAD_WAIT ||    // not virgin
+	    uSecs > POWER_SAMPLE_OFF_DELAY) {
+	  // Overload has existed longer than delay (typ. 10ms)
+	  setPower(POWERMODE::OVERLOAD);
+	  if (overloadNow) {
+	    // the setPower just turned off, so overload is now gone
+	    // DIAG(F("OVERLOAD PON OFF"));
+	    overloadNow=false;
+	    lastPowerChange = micros();
+	  }
+	  unsigned int mA=raw2mA(lastCurrent);
+	  unsigned int maxmA=raw2mA(tripValue);
+	  DIAG(F("TRACK %c POWER OVERLOAD %dmA (limit %dmA) shutdown after %lus for %lus"),
+	       trackno + 'A', mA, maxmA, uSecs, power_sample_overload_wait);
+	}
       }
       break;
-    case POWERMODE::OVERLOAD:
-      // Try setting it back on after the OVERLOAD_WAIT
+  case POWERMODE::OVERLOAD:
+    if (overloadNow) {
+      // state overload mode means power is off, turn off overload condition flag as well
+      // DIAG(F("OVERLOAD POVER OFF"));
+      overloadNow=false;
+      lastPowerChange = micros();
+    }
+    // Try setting it back on after the OVERLOAD_WAIT
+    if (microsSinceLastPowerChange() > power_sample_overload_wait) {
+      // adjust next wait time
+      power_sample_overload_wait *= 2;
+      if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
+	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+      // power on test
       setPower(POWERMODE::ON);
-      sampleDelay = POWER_SAMPLE_ON_WAIT;
-      // Debug code....
-      DIAG(F("TRACK %c POWER RESTORE (check %dms)"), trackno + 'A', sampleDelay);
-      break;
-    default:
-      sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
+      // here we change power but not the overloadNow as that was
+      // already changed to false when we entered POWERMODE::OVERLOAD
+      // so we need to set the lastPowerChange anyway.
+      lastPowerChange = micros();
+      DIAG(F("TRACK %c POWER RESTORE (was off %lus)"), trackno + 'A', power_sample_overload_wait);
+    }
+    break;
+  default:
+    break;
   }
 }

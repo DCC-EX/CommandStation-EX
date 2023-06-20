@@ -186,6 +186,16 @@ class MotorDriver {
     inline void setTrackLetter(char c) {
       trackLetter = c;
     };
+    // this returns how much time has passed since the last power change. If it
+    // was really long ago (approx > 52min) advance counter approx 35 min so that
+    // we are at 18 minutes again. Times for 32 bit unsigned long.
+    inline unsigned long microsSinceLastPowerChange() {
+      unsigned long now = micros();
+      unsigned long diff = now - lastPowerChange;
+      if (diff > (1UL << (7 *sizeof(unsigned long)))) // 2^(4*7)us = 268.4 seconds
+        lastPowerChange = now - 30000000UL;           // 30 seconds ago
+      return diff;
+    };
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
@@ -217,8 +227,8 @@ class MotorDriver {
     int rawCurrentTripValue;
     // current sampling
     POWERMODE powerMode;
-    unsigned long lastSampleTaken;
-    unsigned int sampleDelay;
+    bool overloadNow = false;
+    unsigned long lastPowerChange; // timestamp in microseconds
     int progTripValue;
     int  lastCurrent;
 #ifdef ANALOG_READ_INTERRUPT
@@ -228,10 +238,19 @@ class MotorDriver {
     int maxmA;
     int tripmA;
 
-    // Wait times for power management. Unit: milliseconds
-    static const int  POWER_SAMPLE_ON_WAIT = 100;
-    static const int  POWER_SAMPLE_OFF_WAIT = 1000;
-    static const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+    // Times for overload management. Unit: microseconds.
+    // Base for wait time until power is turned on again
+    static const unsigned long POWER_SAMPLE_OVERLOAD_WAIT =       100UL;
+    // Time after we consider all faults old and forgotten
+    static const unsigned long POWER_SAMPLE_ALL_GOOD =        5000000UL;
+    // How long to ignore fault pin if current is under limit
+    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_LOW =  50000UL;
+    // How long to ignore fault pin if current is higher than limit
+    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_HIGH =  5000UL;
+    // How long to wait between overcurrent and turning off
+    static const unsigned long POWER_SAMPLE_OFF_DELAY =         10000UL;
+    // Upper limit for retry period
+    static const unsigned long POWER_SAMPLE_RETRY_MAX =      10000000UL;
     
     // Trip current for programming track, 250mA. Change only if you really
     // need to be non-NMRA-compliant because of decoders that are not either.
