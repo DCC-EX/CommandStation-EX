@@ -467,7 +467,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool prog=false;
         bool join=false;
         if (params > 1) break;
-        if (params==0 || MotorDriver::commonFaultPin) { // <1> or tracks can not be handled individually
+        if (params==0) { // All
             main=true;
             prog=true;
         }
@@ -500,7 +500,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool main=false;
         bool prog=false;
         if (params > 1) break;
-        if (params==0 || MotorDriver::commonFaultPin) { // <0> or tracks can not be handled individually
+        if (params==0) { // All
 	  main=true;
 	  prog=true;
         }

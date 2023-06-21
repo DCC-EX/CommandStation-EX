@@ -123,9 +123,17 @@ void TrackManager::Setup(const FSH * shieldname,
     setTrackMode(1,TRACK_MODE_MAIN);
 #endif
   
-  // TODO Fault pin config for odd motor boards (example pololu)
-  // MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
-  //				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  // Fault pin config for odd motor boards (example pololu)
+  FOR_EACH_TRACK(t) {
+    for (byte s=t+1;s<=lastTrack;s++) {
+      if (track[t]->getFaultPin() != UNUSED_PIN &&
+	  track[t]->getFaultPin() == track[s]->getFaultPin()) {
+	track[t]->setCommonFaultPin();
+	track[s]->setCommonFaultPin();
+	DIAG(F("Common Fault pin tracks %c and %c"), t+'A', s+'A');
+      }
+    }
+  }
   DCC::begin(shieldname);   
 }
 

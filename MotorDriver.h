@@ -175,7 +175,10 @@ class MotorDriver {
     bool isPWMCapable();
     bool canMeasureCurrent();
     bool trackPWM = false; // this track uses PWM timer to generate the DCC waveform
-    static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
+    bool commonFaultPin = false; // This is a stupid motor shield which has only a common fault pin for both outputs
+    inline byte setCommonFaultPin() {
+      return commonFaultPin = true;
+    }
     inline byte getFaultPin() {
 	return faultPin;
     }
@@ -195,6 +198,17 @@ class MotorDriver {
       if (diff > (1UL << (7 *sizeof(unsigned long)))) // 2^(4*7)us = 268.4 seconds
         lastPowerChange = now - 30000000UL;           // 30 seconds ago
       return diff;
+    };
+    inline void setLastPowerChange() {
+      lastPowerChange = micros();
+    };
+    // as setLastPowerChange but sets the global timestamp as well which
+    // is only used to sync power restore in case of common Fault pin.
+    inline void setLastPowerChangeOverload() {
+      if (commonFaultPin)
+	globalOverloadStart = lastPowerChange = micros();
+      else
+	setLastPowerChange();
     };
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
@@ -228,7 +242,9 @@ class MotorDriver {
     // current sampling
     POWERMODE powerMode;
     bool overloadNow = false;
-    unsigned long lastPowerChange; // timestamp in microseconds
+    unsigned long lastPowerChange;            // timestamp in microseconds
+    // used to sync restore time when common Fault pin detected
+    static unsigned long globalOverloadStart; // timestamp in microseconds
     int progTripValue;
     int  lastCurrent;
 #ifdef ANALOG_READ_INTERRUPT
