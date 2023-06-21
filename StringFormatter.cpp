@@ -117,6 +117,24 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 'o': stream->print(va_arg(args, int), OCT); break;
       case 'x': stream->print((unsigned int)va_arg(args, unsigned int), HEX); break;
       case 'X': stream->print((unsigned long)va_arg(args, unsigned long), HEX); break;
+      case 'M':
+      { // this prints a unsigned long microseconds time in readable format
+	unsigned long time = va_arg(args, long);
+	if (time >= 2000) {
+	  time = time / 1000;
+	  if (time >= 2000) {
+	    printPadded(stream, time/1000, formatWidth, formatLeft);
+	    stream->print(F("sec"));
+	  } else {
+	    printPadded(stream,time, formatWidth, formatLeft);
+	    stream->print(F("msec"));
+	  }
+	} else {
+	  printPadded(stream,time, formatWidth, formatLeft);
+	  stream->print(F("usec"));
+	}
+      }
+      break;
       //case 'f': stream->print(va_arg(args, double), 2); break;
       //format width prefix
       case '-': 
