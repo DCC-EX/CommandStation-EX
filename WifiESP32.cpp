@@ -176,7 +176,7 @@ bool WifiESP::setup(const char *SSid,
   }
   if (!haveSSID) {
     // prepare all strings
-    String strSSID("DCC_");
+    String strSSID("DCCEX_");
     String strPass("PASS_");
     String strMac = WiFi.macAddress();
     strMac.remove(0,9);
