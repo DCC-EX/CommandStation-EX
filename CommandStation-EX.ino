@@ -77,7 +77,11 @@ void setup()
 
 // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
-// Set up MotorDrivers early to initialize all pins
+
+  // As the setup of a motor shield may require a read of the current sense input from the ADC,
+  // let's make sure to initialise the ADCee class!
+  ADCee::begin();
+  // Set up MotorDrivers early to initialize all pins
   TrackManager::Setup(MOTOR_SHIELD_TYPE);
 
   DISPLAY_START (
@@ -102,9 +106,6 @@ void setup()
   EthernetInterface::setup();
 #endif // ETHERNET_ON
   
-  // As the setup of a motor shield may require a read of the current sense input from the ADC,
-  // let's make sure to initialise the ADCee class!
-  ADCee::begin();
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
 
