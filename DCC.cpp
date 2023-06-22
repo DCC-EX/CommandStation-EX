@@ -60,8 +60,7 @@ const byte FN_GROUP_5=0x10;
 FSH* DCC::shieldName=NULL;
 byte DCC::globalSpeedsteps=128;
 
-void DCC::begin(const FSH * motorShieldName) {
-  shieldName=(FSH *)motorShieldName;
+void DCC::begin() {
   StringFormatter::send(&USB_SERIAL,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 #ifndef DISABLE_EEPROM
   // Load stuff from EEprom

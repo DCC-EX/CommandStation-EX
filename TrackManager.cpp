@@ -134,7 +134,7 @@ void TrackManager::Setup(const FSH * shieldname,
       }
     }
   }
-  DCC::begin(shieldname);   
+  DCC::setShieldName(shieldname);
 }
 
 void TrackManager::addTrack(byte t, MotorDriver* driver) {

@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.57"
+#define VERSION "4.2.58"
+// 4.2.58 - Start motordriver as soon as possible but without waveform
 // 4.2.57 - New overload handling (faster and handles commonFaultPin again)
 //        - Optimize analog read STM32
 // 4.2.56 - Update IO_RotaryEncoder.h:

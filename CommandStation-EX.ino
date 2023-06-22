@@ -77,6 +77,8 @@ void setup()
 
 // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
+// Set up MotorDrivers early to initialize all pins
+  TrackManager::Setup(MOTOR_SHIELD_TYPE);
 
   DISPLAY_START (
     // This block is still executed for DIAGS if display not in use
@@ -104,11 +106,7 @@ void setup()
   // let's make sure to initialise the ADCee class!
   ADCee::begin();
   // Responsibility 3: Start the DCC engine.
-  // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
-  // Standard supported devices have pre-configured macros but custome hardware installations require
-  //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
-  // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
-  TrackManager::Setup(MOTOR_SHIELD_TYPE);
+  DCC::begin();
 
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();
