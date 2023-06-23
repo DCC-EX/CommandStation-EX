@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.59"
+#define VERSION "4.2.60"
+// 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
 // 4.2.59 - Fix: AP SSID was DCC_ instead of DCCEX_
 // 4.2.58 - Start motordriver as soon as possible but without waveform
 // 4.2.57 - New overload handling (faster and handles commonFaultPin again)

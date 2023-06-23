@@ -20,6 +20,7 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include <vector>
 #include "defines.h"
+#include "ESPmDNS.h"
 #include <WiFi.h>
 #include "esp_wifi.h"
 #include "WifiESP32.h"
@@ -209,6 +210,15 @@ bool WifiESP::setup(const char *SSid,
     // no idea to go on
     return false;
   }
+
+  // Now Wifi is up, register the mDNS service
+  if(!MDNS.begin(hostname)) {
+    DIAG(F("Wifi setup failed to start mDNS"));
+  }
+  if(!MDNS.addService("withrottle", "tcp", 2560)) {
+    DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
+  }
+
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here
