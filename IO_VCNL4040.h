@@ -29,41 +29,43 @@
  * led drive current: 200 (Affects led brightness, therefore distance and sensitivity)
  * persistence: (higher values reduce false triggers)
  * 
- * The basic PS function settings, such as duty ratio, integration time,
-interrupt, and PS enable / disable, and persistence, are handled by the register: PS_CONF1. Duty ratio controls the PS response
-time. Integration time represents the duration of the energy being received. The interrupt is triggered when the PS detection
-levels over the high threshold level setting (register: PS_THDH) or lower than low threshold (register: PS_THDL). If the interrupt
-function is enabled, the host can react to the interrupt pin, instead of polling the PS data registers. The INT flag (register:
-INT_Flag) indicates the type of interrupt that has been triggered, depending on the interrupt settings in the configuration
-registers. PS persistence (PS_PERS) sets up the PS INT trigger conditions, defining the amount of consecutive hits required
-before an interrupt event occurs. The intelligent cancellation level can be set on register: PS_CANC to reduce the cross talk
-phenomenon.
-VCNL4040 also supports an easy to use proximity detection logic mode, that triggers when the PS high threshold is exceeded
-and automatically resets the interrupt pin when the proximity reading falls beneath the PS low threshold. This functionality can
-be set in the register: PS_MS. A smart persistence is provided to be able to prevent false PS interrupt trigger events.
-Descriptions of each of these parameters are shown in table 1.
-
-REGISTER: PS_CONF1 COMMAND CODE: 0x03_L (0x03 DATA BYTE LOW)
-Command    Bit      Description
-PS_Duty    7 : 6    (0 : 0) = 1/40, (0 : 1) = 1/80, (1 : 0) = 1/160, (1 : 1) = 1/320 
-                    PS IRED on / off duty ratio setting
-PS_PERS    5 : 4    (0 : 0) = 1, (0 : 1) = 2, (1 : 0) = 3, (1 : 1) = 4 
-                    PS interrupt persistence setting
-PS_ IT     3 : 1    (0 : 0 : 0) = 1T, (0 : 0 : 1) = 1.5T, (0 : 1 : 0) = 2T, (0 : 1 : 1) = 2.5T
-                    (1 : 0 : 0) = 3T, (1 : 0 : 1) = 3.5T, (1 : 1 : 0) = 4T, (1 : 1 : 1) = 8T
-                    PS integration time setting
-PS_SD          0    0 = PS power on, 1 = PS shut down, default = 1
-
-REGISTER: PS_CONF2 COMMAND CODE: 0x03_H (0x03 DATA BYTE HIGH)
-PS_HD           3   0 = PS output is 12 bits; 1 = PS output is 16 bits
-Reserved        2   Default = 0
-PS_INT      1 : 0   (0 : 0) = interrupt disable, (0 : 1) = trigger when close, 
-                    (1 : 0)= trigger when away, (1 : 1)= trigger when close or away
-
-fred gave up here. too many options to cover
+ * The basic PS function settings, such as duty ratio, integration time,interrupt,
+ * and PS enable / disable, and persistence, are handled by the register: PS_CONF1. 
+ * Duty ratio controls the PS response time. Integration time represents the duration
+ * of the energy being received. The interrupt is triggered when the PS detection
+ * levels over the high threshold level setting (register: PS_THDH) or lower than 
+ * low threshold (register: PS_THDL). If the interrupt function is enabled, the host
+ * can react to the interrupt pin, instead of polling the PS data registers. The INT
+ * flag (register:INT_Flag) indicates the type of interrupt that has been triggered, 
+ * depending on the interrupt settings in the configuration registers. PS persistence
+ * (PS_PERS) sets up the PS INT trigger conditions, defining the amount of consecutive
+ * hits required before an interrupt event occurs. The intelligent cancellation level
+ * can be set on register: PS_CANC to reduce the cross talk phenomenon.
+ * VCNL4040 also supports an easy to use proximity detection logic mode, that triggers
+ *  when the PS high threshold is exceeded and automatically resets the interrupt pin
+ * when the proximity reading falls beneath the PS low threshold. This functionality
+ * can be set in the register: PS_MS. A smart persistence is provided to be able to
+ * prevent false PS interrupt trigger events. Descriptions of each of these parameters
+ * are shown in table 1.
+ *
+ * REGISTER: PS_CONF1 COMMAND CODE: 0x03_L (0x03 DATA BYTE LOW)
+ * Command    Bit      Description
+ * PS_Duty    7 : 6    (0 : 0) = 1/40, (0 : 1) = 1/80, (1 : 0) = 1/160, (1 : 1) = 1/320 
+ *                    PS IRED on / off duty ratio setting
+ * PS_PERS    5 : 4    (0 : 0) = 1, (0 : 1) = 2, (1 : 0) = 3, (1 : 1) = 4 
+ *                    PS interrupt persistence setting
+ * PS_ IT     3 : 1    (0 : 0 : 0) = 1T, (0 : 0 : 1) = 1.5T, (0 : 1 : 0) = 2T, (0 : 1 : 1) = 2.5T
+ *                    (1 : 0 : 0) = 3T, (1 : 0 : 1) = 3.5T, (1 : 1 : 0) = 4T, (1 : 1 : 1) = 8T
+ *                     PS integration time setting
+ * PS_SD          0    0 = PS power on, 1 = PS shut down, default = 1
+ *
+ * REGISTER: PS_CONF2 COMMAND CODE: 0x03_H (0x03 DATA BYTE HIGH)
+ * PS_HD           3   0 = PS output is 12 bits; 1 = PS output is 16 bits
+ * Reserved        2   Default = 0
+ * PS_INT      1 : 0   (0 : 0) = interrupt disable, (0 : 1) = trigger when close, 
+ *                     (1 : 0)= trigger when away, (1 : 1)= trigger when close or away
  * 
- * 
- fnd stopped here
+ * NOTE: fnd stopped here
  * the reflection of the pulse.  The time between the pulse and the receipt of reflections
  * is measured and used to determine the distance to the reflecting object.
  * 
