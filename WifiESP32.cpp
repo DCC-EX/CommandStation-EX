@@ -106,6 +106,12 @@ void wifiLoop(void *){
 }
 #endif
 
+char asciitolower(char in) {
+  if (in <= 'Z' && in >= 'A')
+    return in - ('Z' - 'z');
+  return in;
+}
+
 bool WifiESP::setup(const char *SSid,
                     const char *password,
                     const char *hostname,
@@ -183,6 +189,8 @@ bool WifiESP::setup(const char *SSid,
     strMac.remove(0,9);
     strMac.replace(":","");
     strMac.replace(":","");
+    // convert mac addr hex chars to lower case to be compatible with AT software
+    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
     strSSID.concat(strMac);
     strPass.concat(strMac);
 
