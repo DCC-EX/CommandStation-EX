@@ -135,7 +135,11 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   // float calculations or libraray code. 
   senseFactorInternal=sense_factor * senseScale; 
   tripMilliamps=trip_milliamps;
-  rawCurrentTripValue=mA2raw(trip_milliamps);
+#ifdef MAX_CURRENT
+  if (MAX_CURRENT > 0 && MAX_CURRENT < tripMilliamps)
+    tripMilliamps = MAX_CURRENT;
+#endif
+  rawCurrentTripValue=mA2raw(tripMilliamps);
 
   if (rawCurrentTripValue + senseOffset > ADCee::ADCmax()) {
     // This would mean that the values obtained from the ADC never
