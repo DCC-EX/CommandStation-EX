@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.60"
+#define VERSION "4.2.61"
+// 4.2.61 - MAX_CURRENT restriction (caps motor shield value)
 // 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
 // 4.2.59 - Fix: AP SSID was DCC_ instead of DCCEX_
 // 4.2.58 - Start motordriver as soon as possible but without waveform
