@@ -47,8 +47,8 @@
 //
 // Arduino standard Motor Shield
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
-                              new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 2000, UNUSED_PIN), \
-                              new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 2.99, 2000, UNUSED_PIN)
+                              new MotorDriver(3, 12, UNUSED_PIN, UNUSED_PIN, A0, 65.54, 7000, UNUSED_PIN), \
+                              new MotorDriver(11, 13, UNUSED_PIN, UNUSED_PIN, A1, 65.54, 7000, UNUSED_PIN)
 
 // DCC-EX TI DRV8874 based motor shield
 // This motor shield has reverse sense fault pins thus the -A4 and -A5 pin values.

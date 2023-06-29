@@ -21,6 +21,8 @@
 
 #include "SerialManager.h"
 #include "DCCEXParser.h"
+#include "DCCWaveform.h"
+
 SerialManager * SerialManager::first=NULL;
 
 SerialManager::SerialManager(Stream * myserial) {
@@ -78,5 +80,4 @@ void SerialManager::loop2() {
             if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) buffer[bufferLength++] = ch;
         }
     }
-    
 }

@@ -292,6 +292,15 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
+    case 'A': //switch current reporting on/off
+        if ((params==2) && (p[0] <= 1) && (p[1] <= 1)) { // <A MAINSTATUS PROGSTATUS> currently only 0,1 higher values reserved for buffer size for local calculation
+          {
+            DCCWaveform::mainTrack.setRMSMode(p[0]);
+            DCCWaveform::progTrack.setRMSMode(p[1]);
+          }
+          return;
+        }
+        break;
     case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE> or <a LINEARADDRESS ACTIVATE>
         { 
           int address;
@@ -487,9 +496,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'c': // SEND METER RESPONSES <c>
         //                               <c MeterName value C/V unit min max res warn>
-        StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), DCCWaveform::mainTrack.getCurrentmA(), 
+//        if (params==0) 
+        {
+          StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), round(DCCWaveform::mainTrack.getCurrentmA()),
             DCCWaveform::mainTrack.getMaxmA(), DCCWaveform::mainTrack.getTripmA());
-        StringFormatter::send(stream, F("<a %d>\n"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
+//        StringFormatter::send(stream, F("<a %d>\n"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
+        }
+//        else
+//          if (p[0]== 0)
+//            StringFormatter::send(stream, F("<c CurrentMAIN %d %d C Milli 0 %d 1 %d>\n"), round(DCCWaveform::mainTrack.getCurrentRMS()), round(DCCWaveform::progTrack.getCurrentRMS()),
+//              DCCWaveform::mainTrack.getMaxmA(), DCCWaveform::mainTrack.getTripmA());
         return;
 
     case 'Q': // SENSORS <Q>
