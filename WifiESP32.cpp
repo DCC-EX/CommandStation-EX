@@ -1,4 +1,5 @@
 /*
+    © 2023, Paul M. Antoine
     © 2021, Harald Barth.
 
     This file is part of CommandStation-EX
@@ -145,6 +146,7 @@ bool WifiESP::setup(const char *SSid,
     havePassword = false;
 
   if (haveSSID && havePassword) {
+    WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
     WiFi.mode(WIFI_STA);
 #ifdef SERIAL_BT_COMMANDS
     WiFi.setSleep(true);
