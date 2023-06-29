@@ -83,7 +83,8 @@ bool WifiInterface::setup(long serial_link_speed,
                           const FSH *wifiPassword,
                           const FSH *hostname,
                           const int port,
-                          const byte channel) {
+                          const byte channel,
+                          const bool forceAP) {
 
   wifiSerialState wifiUp = WIFI_NOAT;
 
@@ -100,7 +101,7 @@ bool WifiInterface::setup(long serial_link_speed,
 // See if the WiFi is attached to the first serial port
 #if NUM_SERIAL > 0 && !defined(SERIAL1_COMMANDS)
   SERIAL1.begin(serial_link_speed);
-  wifiUp = setup(SERIAL1, wifiESSID, wifiPassword, hostname, port, channel);
+  wifiUp = setup(SERIAL1, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
 #endif
 
 // Other serials are tried, depending on hardware.
@@ -110,7 +111,7 @@ bool WifiInterface::setup(long serial_link_speed,
   if (wifiUp == WIFI_NOAT)
   {
     Serial2.begin(serial_link_speed);
-    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel);
+    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
   }
 #endif
 #endif
@@ -121,7 +122,7 @@ bool WifiInterface::setup(long serial_link_speed,
   if (wifiUp == WIFI_NOAT)
   {
     SERIAL3.begin(serial_link_speed);
-    wifiUp = setup(SERIAL3, wifiESSID, wifiPassword, hostname, port, channel);
+    wifiUp = setup(SERIAL3, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
   }
 #endif
 
@@ -139,7 +140,7 @@ bool WifiInterface::setup(long serial_link_speed,
 }
 
 wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, const FSH* password,
-				     const FSH* hostname,  int port, byte channel) {
+				     const FSH* hostname,  int port, byte channel, bool forceAP) {
   wifiSerialState wifiState;
   static uint8_t ntry = 0;
   ntry++;
@@ -148,7 +149,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 
   DIAG(F("++ Wifi Setup Try %d ++"), ntry);
 
-  wifiState = setup2( SSid, password, hostname,  port, channel);
+  wifiState = setup2( SSid, password, hostname,  port, channel, forceAP);
 
   if (wifiState == WIFI_NOAT) {
     LCD(4, F("WiFi no AT chip"));
@@ -172,7 +173,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
-				      const FSH* hostname, int port, byte channel) {
+				      const FSH* hostname, int port, byte channel, bool forceAP) {
   bool ipOK = false;
   bool oldCmd = false;
 
@@ -225,7 +226,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 	  if (!checkForOK(1000, F("0.0.0.0"), true,false))
 	      ipOK = true;
     }
-  } else {
+  } else if (!forceAP) {
       // SSID was configured, so we assume station (client) mode.
       if (oldCmd) {
 	      // AT command early version supports CWJAP/CWSAP
@@ -285,14 +286,19 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   
     i=0;
     do {
-      if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
-	// unconfigured
-        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
-                                          oldCmd ? "" : "_CUR", macTail, macTail, channel);
+      if (!forceAP) {
+        if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
+    // unconfigured
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
+                                            oldCmd ? "" : "_CUR", macTail, macTail, channel);
+        } else {
+          // password configured by user
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
+                                          macTail, password, channel);
+        }
       } else {
-        // password configured by user
-       StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
-	                                       macTail, password, channel);
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%s\",\"%s\",%d,4\r\n"),
+                                        oldCmd ? "" : "_CUR", SSid, password, channel);
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
     if (i >= 2)
