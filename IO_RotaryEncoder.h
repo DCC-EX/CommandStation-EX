@@ -134,12 +134,13 @@ private:
     }
   }
 
-  // Device specific read function
+  // Return the position sent by the rotary encoder software
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     return _position;
   }
 
+  // Send the feedback value to the rotary encoder software
   void _write(VPIN vpin, int value) override {
     if (vpin == _firstVpin + 1) {
       if (value != 0) value = 0x01;
@@ -148,9 +149,12 @@ private:
     }
   }
 
+  // Send a position update to the rotary encoder software
+  // To be valid, must be 0 to 255, and different to the current position
+  // If the current position is the same, it was initiated by the rotary encoder
   void _writeAnalogue(VPIN vpin, int position, uint8_t profile, uint16_t duration) override {
     if (vpin == _firstVpin + 2) {
-      if (position >= 0 && position <= 255) {
+      if (position >= 0 && position <= 255 && position != _position) {
         byte newPosition = position & 0xFF;
         byte _positionBuffer[2] = {RE_MOVE, newPosition};
         I2CManager.write(_I2CAddress, _positionBuffer, 2);
