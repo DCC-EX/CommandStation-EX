@@ -50,12 +50,12 @@ EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
 // Initialisation of EXTurntable
 void EXTurntable::_begin() {
   I2CManager.begin();
-  I2CManager.setClock(1000000);
   if (I2CManager.exists(_I2CAddress)) {
 #ifdef DIAG_IO
     _display();
 #endif
   } else {
+    DIAG(F("EX-Turntable I2C:%s device not found"), _I2CAddress.toString());
     _deviceState = DEVSTATE_FAILED;
   }
 }

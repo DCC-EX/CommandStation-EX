@@ -4,7 +4,10 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.61"
+#define VERSION "4.2.62"
+// 4.2.62 - Update IO_RotaryEncoder.h to ignore sending current position
+//        - Update IO_EXTurntable.h to remove forced I2C clock speed
+//        - Show device offline if EX-Turntable not connected
 // 4.2.61 - MAX_CURRENT restriction (caps motor shield value)
 // 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
 // 4.2.59 - Fix: AP SSID was DCC_ instead of DCCEX_
