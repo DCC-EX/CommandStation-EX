@@ -401,22 +401,26 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	lastCurrent = -lastCurrent;
 	{
 	  if (lastCurrent < tripValue) {
-	    if (power_sample_overload_wait <= (POWER_SAMPLE_OVERLOAD_WAIT * 10) &&    // almost virgin
+	    if (/*power_sample_overload_wait <= (POWER_SAMPLE_OVERLOAD_WAIT * 10) &&*/    // almost virgin
 		microsSinceLastPowerChange() < POWER_SAMPLE_IGNORE_FAULT_LOW) {
 	      // Ignore 50ms fault pin if no current
 	      DIAG(F("TRACK %c FAULT PIN (50ms ignore)"), trackno + 'A');
 	      break;
 	    }
-	    lastCurrent = tripValue; // exaggerate so condition below (*) is true
+	    setPower(POWERMODE::OVERLOAD);
+	    overloadNow=false;
+	    DIAG(F("TRACK %c FAULT PIN"), trackno + 'A');
+	    break;
+	    //lastCurrent = tripValue; // exaggerate so condition below (*) is true
 	  } else {
-	    if (power_sample_overload_wait <= POWER_SAMPLE_OVERLOAD_WAIT &&   // virgin
+	    if (/*power_sample_overload_wait <= POWER_SAMPLE_OVERLOAD_WAIT && */  // virgin
 		microsSinceLastPowerChange() < POWER_SAMPLE_IGNORE_FAULT_HIGH) {
               // Ignore 5ms fault pin if we see current
 	      DIAG(F("TRACK %c FAULT PIN (5ms ignore)"), trackno + 'A');
 	      break;
 	    }
 	  }
-	  DIAG(F("TRACK %c FAULT PIN"), trackno + 'A');
+	  DIAG(F("TRACK %c FAULT PIN AND OVERCURRENT"), trackno + 'A');
 	}
       }
       // // //
@@ -441,8 +445,11 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	  setLastPowerChange();
 	}
 	unsigned long uSecs = microsSinceLastPowerChange();
-	if (power_sample_overload_wait > POWER_SAMPLE_OVERLOAD_WAIT ||    // not virgin
+	if (/*power_sample_overload_wait > POWER_SAMPLE_OVERLOAD_WAIT || */   // not virgin
 	    uSecs > POWER_SAMPLE_OFF_DELAY) {
+	/*
+	if (micros() - overloadStart > POWER_SAMPLE_OFF_DELAY) {
+	*/
 	  // Overload has existed longer than delay (typ. 10ms)
 	  setPower(POWERMODE::OVERLOAD);
 	  if (overloadNow) {
