@@ -27,10 +27,14 @@
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include "LCDDisplay.h"
-#include "SSD1306Ascii.h"
-#include "LiquidCrystal_I2C.h"
-  
+#if !defined(OLED_DRIVER) && !defined(LCD_DRIVER)
+  #include "DisplayInterface.h"
+  #define NO_LCD_USED
+#else
+  #include "LCDDisplay.h"
+  #include "SSD1306Ascii.h"
+  #include "LiquidCrystal_I2C.h"
+#endif
 
 // Implement the LCDDisplay shim class as a singleton.
 // The DisplayInterface class implements a displayy handler with no code (null device);

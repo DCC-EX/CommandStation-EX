@@ -25,7 +25,6 @@
   #include <cstdarg>  
 #endif
 
-#include "LCDDisplay.h"
 class Diag {
   public:
   static bool ACK;

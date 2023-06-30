@@ -27,7 +27,7 @@
   Print * StringFormatter::diagSerial=&Serial;
 #endif
 
-#include "LCDDisplay.h"
+#include "LCD_Implementation.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -47,6 +47,7 @@ void StringFormatter::diag( const FSH* input...) {
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
+#ifndef NO_LCD_USED
   va_list args;
 
   // Issue the LCD as a diag first
@@ -59,6 +60,7 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   LCDDisplay::lcdDisplay->setRow(row);    
   va_start(args, input);
   send2(LCDDisplay::lcdDisplay,input,args);
+#endif
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {
