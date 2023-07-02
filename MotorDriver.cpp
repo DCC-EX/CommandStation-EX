@@ -173,7 +173,7 @@ bool MotorDriver::isPWMCapable() {
 
 void MotorDriver::setPower(POWERMODE mode) {
   if (powerMode == mode) return;
-  //DIAG(F("POWERMODE=%d"), (int)mode);
+  //DIAG(F("Track %c POWERMODE=%d"), trackLetter, (int)mode);
   lastPowerChange[(int)mode] = micros();
   if (mode == POWERMODE::OVERLOAD)
     globalOverloadStart = lastPowerChange[(int)mode];
@@ -375,6 +375,67 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     result.maskLOW = ~result.maskHIGH;
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// checkPowerOverload(useProgLimit, trackno)
+// bool useProgLimit: Trackmanager knows if this track is in prog mode or in main mode
+// byte trackno: trackmanager knows it's number (could be skipped?)
+//
+// Short ciruit handling strategy:
+//
+// There are the following power states: ON ALERT OVERLOAD OFF
+// OFF state is only changed to/from manually. Power is on
+// during ON and ALERT. Power is off during OVERLOAD and OFF.
+// The overload mechanism changes between the other states like
+//
+// ON -1-> ALERT -2-> OVERLOAD -3-> ALERT -4-> ON
+// or
+// ON -1-> ALERT -4-> ON
+//
+// Times are in class MotorDriver (MotorDriver.h).
+//
+// 1. ON to ALERT:
+// Transition on fault pin condition or current overload
+//
+// 2. ALERT to OVERLOAD:
+// Transition happens if different timeouts have elapsed.
+// If only the fault pin is active, timeout is
+// POWER_SAMPLE_IGNORE_FAULT_LOW (50ms)
+// If only overcurrent is detected, timeout is
+// POWER_SAMPLE_IGNORE_CURRENT (100ms)
+// If fault pin and overcurrent are active, timeout is
+// POWER_SAMPLE_IGNORE_FAULT_HIGH (5ms)
+// Transition to OVERLOAD turns off power to the affected
+// output (unless fault pins are shared)
+// If the transition conditions are not fullfilled,
+// transition according to 4 is tested.
+//
+// 3. OVERLOAD to ALERT
+// Transiton happens when timeout has elapsed, timeout
+// is named power_sample_overload_wait. It is started
+// at POWER_SAMPLE_OVERLOAD_WAIT (10ms) at first entry
+// to OVERLOAD and then increased by a factor of 2
+// at further entries to the OVERLOAD condition. This
+// happens until POWER_SAMPLE_RETRY_MAX (10sec) is reached.
+// power_sample_overload_wait is reset by a poweroff or
+// a POWER_SAMPLE_ALL_GOOD (5sec) period during ON.
+// After timeout power is turned on again and state
+// goes back to ALERT.
+//
+// 4. ALERT to ON
+// Transition happens by watching the current and fault pin
+// samples during POWER_SAMPLE_ALERT_GOOD (20ms) time. If
+// values have been good during that time, transition is
+// made back to ON. Note that even if state is back to ON,
+// the power_sample_overload_wait time is first reset
+// later (see above).
+//
+// The time keeping is handled by timestamps lastPowerChange[]
+// which are set by each power change and by lastBadSample which
+// keeps track if conditions during ALERT have been good enough
+// to go back to ON. The time differences are calculated by
+// microsSinceLastPowerChange().
+//
 
 void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 
