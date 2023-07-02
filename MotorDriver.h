@@ -260,13 +260,13 @@ class MotorDriver {
 
     // Times for overload management. Unit: microseconds.
     // Base for wait time until power is turned on again
-    static const unsigned long POWER_SAMPLE_OVERLOAD_WAIT =     10000UL;
+    static const unsigned long POWER_SAMPLE_OVERLOAD_WAIT =     40000UL;
     // Time after we consider all faults old and forgotten
     static const unsigned long POWER_SAMPLE_ALL_GOOD =        5000000UL;
     // Time after which we consider a ALERT over 
     static const unsigned long POWER_SAMPLE_ALERT_GOOD =        20000UL;
     // How long to ignore fault pin if current is under limit
-    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_LOW =  50000UL;
+    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_LOW = 100000UL;
     // How long to ignore fault pin if current is higher than limit
     static const unsigned long POWER_SAMPLE_IGNORE_FAULT_HIGH =  5000UL;
     // How long to wait between overcurrent and turning off

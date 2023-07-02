@@ -400,7 +400,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 // 2. ALERT to OVERLOAD:
 // Transition happens if different timeouts have elapsed.
 // If only the fault pin is active, timeout is
-// POWER_SAMPLE_IGNORE_FAULT_LOW (50ms)
+// POWER_SAMPLE_IGNORE_FAULT_LOW (100ms)
 // If only overcurrent is detected, timeout is
 // POWER_SAMPLE_IGNORE_CURRENT (100ms)
 // If fault pin and overcurrent are active, timeout is
@@ -413,7 +413,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 // 3. OVERLOAD to ALERT
 // Transiton happens when timeout has elapsed, timeout
 // is named power_sample_overload_wait. It is started
-// at POWER_SAMPLE_OVERLOAD_WAIT (10ms) at first entry
+// at POWER_SAMPLE_OVERLOAD_WAIT (40ms) at first entry
 // to OVERLOAD and then increased by a factor of 2
 // at further entries to the OVERLOAD condition. This
 // happens until POWER_SAMPLE_RETRY_MAX (10sec) is reached.
@@ -525,7 +525,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
     unsigned long mslpc = (commonFaultPin ? (micros() - globalOverloadStart) : microsSinceLastPowerChange(POWERMODE::OVERLOAD));
     if (mslpc > power_sample_overload_wait) {
       // adjust next wait time
-      power_sample_overload_wait *= 4;
+      power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
 	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
       // power on test

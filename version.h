@@ -4,7 +4,7 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.62pre1"
+#define VERSION "4.2.62pre2"
 // 4.2.62 - completely new overcurrent detection
 // 4.2.61 - MAX_CURRENT restriction (caps motor shield value)
 // 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
