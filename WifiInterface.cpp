@@ -297,7 +297,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
                                           macTail, password, channel);
         }
       } else {
-        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%s\",\"%s\",%d,4\r\n"),
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%S\",\"%S\",%d,4\r\n"),
                                         oldCmd ? "" : "_CUR", SSid, password, channel);
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
