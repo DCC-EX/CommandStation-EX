@@ -38,6 +38,11 @@ function need () {
 
 need git
 
+if cat /etc/issue | egrep '^Raspbian' 2>&1 >/dev/null ; then
+    # we are on a raspi where we do not support graphical
+    unset DISPLAY
+fi
+
 if [ x$DISPLAY != x ] ; then
     # we have DISPLAY, do the graphic thing
     need python3-tk
