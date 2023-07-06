@@ -247,6 +247,9 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
+// DIAG repeated commands (accesories)
+//  if (pendingRepeats > 0)
+//    DIAG(F("Repeats=%d on %s track"), pendingRepeats, isMainTrack ? "MAIN" : "PROG");
   // The resets will be zero not only now but as well repeats packets into the future
   clearResets(repeats+1);
   {

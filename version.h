@@ -4,8 +4,9 @@
 #include "StringFormatter.h"
 
 
-#define VERSION "4.2.62pre2"
+#define VERSION "4.2.62pre3"
 // 4.2.62 - completely new overcurrent detection
+//        - ESP32 protect from race in RMT code
 // 4.2.61 - MAX_CURRENT restriction (caps motor shield value)
 // 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
 // 4.2.59 - Fix: AP SSID was DCC_ instead of DCCEX_
