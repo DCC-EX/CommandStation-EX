@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-
-#define VERSION "4.2.62"
+#define VERSION "4.2.63"
+// 4.2.63 - completely new overcurrent detection
+//        - ESP32 protect from race in RMT code
 // 4.2.62 - Update IO_RotaryEncoder.h to ignore sending current position
 //        - Update IO_EXTurntable.h to remove forced I2C clock speed
 //        - Show device offline if EX-Turntable not connected

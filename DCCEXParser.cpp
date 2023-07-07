@@ -487,9 +487,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
 	  else break; // will reply <X>
 	}
+        TrackManager::setJoin(join);
         if (main) TrackManager::setMainPower(POWERMODE::ON);
         if (prog) TrackManager::setProgPower(POWERMODE::ON);
-        TrackManager::setJoin(join);
 
         CommandDistributor::broadcastPower();
         return;
@@ -516,12 +516,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  else break; // will reply <X>
 	}
 
+        TrackManager::setJoin(false);
         if (main) TrackManager::setMainPower(POWERMODE::OFF);
         if (prog) {
             TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
             TrackManager::setProgPower(POWERMODE::OFF);
         }
-        TrackManager::setJoin(false);
 
         CommandDistributor::broadcastPower();
         return;

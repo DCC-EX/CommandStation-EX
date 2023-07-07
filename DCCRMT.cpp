@@ -194,8 +194,10 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
   setDCCBit1(data + bitcounter-1);     // overwrite previous zero bit with one bit
   setEOT(data + bitcounter++);         // EOT marker
   dataLen = bitcounter;
+  noInterrupts();                      // keep dataReady and dataRepeat consistnet to each other
   dataReady = true;
   dataRepeat = repeatCount+1;         // repeatCount of 0 means send once
+  interrupts();
   return 0;
 }
 
@@ -212,6 +214,8 @@ void IRAM_ATTR RMTChannel::RMTinterrupt() {
   if (dataReady) {            // if we have new data, fill while preamble is running
     rmt_fill_tx_items(channel, data, dataLen, preambleLen-1);
     dataReady = false;
+    if (dataRepeat == 0)       // all data should go out at least once
+      DIAG(F("Channel %d DCC signal lost data"), channel);
   }
   if (dataRepeat > 0)         // if a repeat count was specified, work on that
     dataRepeat--;

@@ -205,7 +205,7 @@
 #define WIFI_SERIAL_LINK_SPEED 115200
 
 #if __has_include ( "myAutomation.h")
-  #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM)
+  #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)
     #define EXRAIL_ACTIVE
   #else
     #define EXRAIL_WARNING
