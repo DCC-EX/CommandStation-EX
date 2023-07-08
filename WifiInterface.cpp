@@ -2,6 +2,7 @@
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
  *  © 2020-2022 Chris Harlow
+ *  © 2023 Nathan Kellenicki
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -96,6 +97,7 @@ bool WifiInterface::setup(long serial_link_speed,
   (void) hostname;
   (void) port;
   (void) channel;
+  (void) forceAP;
 #endif  
 
 // See if the WiFi is attached to the first serial port

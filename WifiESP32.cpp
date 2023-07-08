@@ -1,6 +1,7 @@
 /*
-    © 2023, Paul M. Antoine
-    © 2021, Harald Barth.
+    © 2023 Paul M. Antoine
+    © 2021 Harald Barth
+    © 2023 Nathan Kellenicki
 
     This file is part of CommandStation-EX
 

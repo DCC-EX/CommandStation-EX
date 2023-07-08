@@ -1,5 +1,6 @@
 /*
- *  © 2021, Harald Barth.
+ *  © 2021 Harald Barth
+ *  © 2023 Nathan Kellenicki
  *
  *  This file is part of CommandStation-EX
  *
