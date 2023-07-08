@@ -51,7 +51,10 @@ const byte MAX_LOCOS = 30;
 class DCC
 {
 public:
-  static void begin(const FSH * motorShieldName);
+  static inline void setShieldName(const FSH * motorShieldName) {
+    shieldName=(FSH *)motorShieldName;
+  };
+  static void begin();
   static void loop();
 
   // Public DCC API functions

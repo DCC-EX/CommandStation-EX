@@ -107,7 +107,7 @@ extern volatile portreg_t shadowPORTA;
 extern volatile portreg_t shadowPORTB;
 extern volatile portreg_t shadowPORTC;
 
-enum class POWERMODE : byte { OFF, ON, OVERLOAD };
+enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 
 class MotorDriver {
   public:
@@ -175,7 +175,10 @@ class MotorDriver {
     bool isPWMCapable();
     bool canMeasureCurrent();
     bool trackPWM = false; // this track uses PWM timer to generate the DCC waveform
-    static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
+    bool commonFaultPin = false; // This is a stupid motor shield which has only a common fault pin for both outputs
+    inline byte setCommonFaultPin() {
+      return commonFaultPin = true;
+    }
     inline byte getFaultPin() {
 	return faultPin;
     }
@@ -186,6 +189,16 @@ class MotorDriver {
     inline void setTrackLetter(char c) {
       trackLetter = c;
     };
+    // this returns how much time has passed since the last power change. If it
+    // was really long ago (approx > 52min) advance counter approx 35 min so that
+    // we are at 18 minutes again. Times for 32 bit unsigned long.
+    inline unsigned long microsSinceLastPowerChange(POWERMODE mode) {
+      unsigned long now = micros();
+      unsigned long diff = now - lastPowerChange[(int)mode];
+      if (diff > (1UL << (7 *sizeof(unsigned long)))) // 2^(4*7)us = 268.4 seconds
+        lastPowerChange[(int)mode] = now - 30000000UL;           // 30 seconds ago
+      return diff;
+    };
 #ifdef ANALOG_READ_INTERRUPT
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
@@ -194,9 +207,22 @@ class MotorDriver {
     char trackLetter = '?';
     bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
-    void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
+    inline void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
 	getFastPin(type, pin, 0, result);
-    }
+    };
+    // side effect sets lastCurrent and tripValue
+    inline bool checkCurrent(bool useProgLimit) {
+      tripValue= useProgLimit?progTripValue:getRawCurrentTripValue();
+      lastCurrent = getCurrentRaw();
+      if (lastCurrent < 0)
+	lastCurrent = -lastCurrent;
+      return lastCurrent >= tripValue;
+    };
+    // side effect sets lastCurrent
+    inline bool checkFault() {
+      lastCurrent = getCurrentRaw();
+      return lastCurrent < 0;
+    };
     VPIN powerPin;
     byte signalPin, signalPin2, currentPin, faultPin, brakePin;
     FASTPIN fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;
@@ -217,10 +243,14 @@ class MotorDriver {
     int rawCurrentTripValue;
     // current sampling
     POWERMODE powerMode;
-    unsigned long lastSampleTaken;
-    unsigned int sampleDelay;
+    POWERMODE lastPowerMode;
+    unsigned long lastPowerChange[4];         // timestamp in microseconds
+    unsigned long lastBadSample;              // timestamp in microseconds
+    // used to sync restore time when common Fault pin detected
+    static unsigned long globalOverloadStart; // timestamp in microseconds
     int progTripValue;
-    int  lastCurrent;
+    int  lastCurrent; //temp value
+    int  tripValue;   //temp value
 #ifdef ANALOG_READ_INTERRUPT
     volatile unsigned long sampleCurrentTimestamp;
     volatile uint16_t sampleCurrent;
@@ -228,10 +258,21 @@ class MotorDriver {
     int maxmA;
     int tripmA;
 
-    // Wait times for power management. Unit: milliseconds
-    static const int  POWER_SAMPLE_ON_WAIT = 100;
-    static const int  POWER_SAMPLE_OFF_WAIT = 1000;
-    static const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+    // Times for overload management. Unit: microseconds.
+    // Base for wait time until power is turned on again
+    static const unsigned long POWER_SAMPLE_OVERLOAD_WAIT =     40000UL;
+    // Time after we consider all faults old and forgotten
+    static const unsigned long POWER_SAMPLE_ALL_GOOD =        5000000UL;
+    // Time after which we consider a ALERT over 
+    static const unsigned long POWER_SAMPLE_ALERT_GOOD =        20000UL;
+    // How long to ignore fault pin if current is under limit
+    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_LOW = 100000UL;
+    // How long to ignore fault pin if current is higher than limit
+    static const unsigned long POWER_SAMPLE_IGNORE_FAULT_HIGH =  5000UL;
+    // How long to wait between overcurrent and turning off
+    static const unsigned long POWER_SAMPLE_IGNORE_CURRENT  =  100000UL;
+    // Upper limit for retry period
+    static const unsigned long POWER_SAMPLE_RETRY_MAX =      10000000UL;
     
     // Trip current for programming track, 250mA. Change only if you really
     // need to be non-NMRA-compliant because of decoders that are not either.

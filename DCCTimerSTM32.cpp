@@ -30,25 +30,31 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
+#ifdef DEBUG_ADC
+#include "TrackManager.h"
+#endif
+#include "DIAG.h"
 
 #if defined(ARDUINO_NUCLEO_F411RE)
-// Nucleo-64 boards don't have Serial1 defined by default
+// Nucleo-64 boards don't have additional serial ports defined by default
 HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 // Let's define Serial6 as an additional serial port (the only other option for the Nucleo-64s)
-HardwareSerial Serial3(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
+HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
 #elif defined(ARDUINO_NUCLEO_F446RE)
-// Nucleo-64 boards don't have Serial1 defined by default
+// Nucleo-64 boards don't have additional serial ports defined by default
+// On the F446RE, Serial1 isn't really useable as it's Rx/Tx pair sit on already used D2/D10 pins
 // HardwareSerial Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
-HardwareSerial Serial1(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
-HardwareSerial Serial3(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F446RE
-// NB: USART3 and USART6 are available but as yet undefined
+// On the F446RE, Serial3 and Serial5 are easy to use:
+HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
+HardwareSerial Serial5(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F446RE
+// On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Nucleo-144 boards don't have Serial1 defined by default
-HardwareSerial Serial1(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
+HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 #else
@@ -229,13 +235,16 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
-#define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
-
 // TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
 #if defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 #warning STM32 board selected not fully supported - only use ADC1 inputs 0-15 for current sensing!
 #endif
+// For now, define the max of 16 ports - some variants have more, but this not **yet** supported
+#define NUM_ADC_INPUTS 16
+// #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
+
 uint16_t ADCee::usedpins = 0;
+uint8_t ADCee::highestPin = 0;
 int * ADCee::analogvals = NULL;
 uint32_t * analogchans = NULL;
 bool adc1configured = false;
@@ -306,6 +315,9 @@ int ADCee::init(uint8_t pin) {
   analogvals[id] = value;     // Store sampled value
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
   usedpins |= (1 << id);      // This pin is now ready
+  if (id > highestPin) highestPin = id; // Store our highest pin in use
+
+  DIAG(F("ADCee::init(): value=%d, channel=%d, id=%d"), value, adcchan, id);
 
   return value;
 }
@@ -340,11 +352,13 @@ void ADCee::scan() {
     // found value
     analogvals[id] = ADC1->DR;
     // advance at least one track
-    // for scope debug TrackManager::track[1]->setBrake(0);
+#ifdef DEBUG_ADC
+    if (id == 1) TrackManager::track[1]->setBrake(0);
+#endif
     waiting = false;
     id++;
     mask = mask << 1;
-    if (id == NUM_ADC_INPUTS+1) {
+    if (id > highestPin) { // the 1 has been shifted out
       id = 0;
       mask = 1;
     }
@@ -355,18 +369,20 @@ void ADCee::scan() {
     // look for a valid track to sample or until we are around
     while (true) {
       if (mask  & usedpins) {
-    	  // start new ADC aquire on id
+	// start new ADC aquire on id
         ADC1->SQR3 = analogchans[id]; //1st conversion in regular sequence
         ADC1->CR2 |= (1 << 30); //Start 1st conversion SWSTART
-	      // for scope debug TrackManager::track[1]->setBrake(1);
-	      waiting = true;
-	      return;
+#ifdef DEBUG_ADC
+	if (id == 1) TrackManager::track[1]->setBrake(1);
+#endif
+	waiting = true;
+	return;
       }
       id++;
       mask = mask << 1;
-      if (id == NUM_ADC_INPUTS+1) {
-	      id = 0;
-	      mask = 1;
+      if (id > highestPin) {
+      	id = 0;
+      	mask = 1;
       }
     }
   }

@@ -1,5 +1,7 @@
 /*
-    © 2021, Harald Barth.
+    © 2023 Paul M. Antoine
+    © 2021 Harald Barth
+    © 2023 Nathan Kellenicki
 
     This file is part of CommandStation-EX
 
@@ -20,6 +22,7 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include <vector>
 #include "defines.h"
+#include "ESPmDNS.h"
 #include <WiFi.h>
 #include "esp_wifi.h"
 #include "WifiESP32.h"
@@ -106,11 +109,18 @@ void wifiLoop(void *){
 }
 #endif
 
+char asciitolower(char in) {
+  if (in <= 'Z' && in >= 'A')
+    return in - ('Z' - 'z');
+  return in;
+}
+
 bool WifiESP::setup(const char *SSid,
                     const char *password,
                     const char *hostname,
                     int port,
-                    const byte channel) {
+                    const byte channel,
+                    const bool forceAP) {
   bool havePassword = true;
   bool haveSSID = true;
   bool wifiUp = false;
@@ -139,7 +149,8 @@ bool WifiESP::setup(const char *SSid,
   if (strncmp(yourNetwork, password, 13) == 0 || strncmp("", password, 13) == 0)
     havePassword = false;
 
-  if (haveSSID && havePassword) {
+  if (haveSSID && havePassword && !forceAP) {
+    WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
     WiFi.mode(WIFI_STA);
 #ifdef SERIAL_BT_COMMANDS
     WiFi.setSleep(true);
@@ -176,16 +187,20 @@ bool WifiESP::setup(const char *SSid,
       }
     }
   }
-  if (!haveSSID) {
+  if (!haveSSID || forceAP) {
     // prepare all strings
-    String strSSID("DCC_");
-    String strPass("PASS_");
-    String strMac = WiFi.macAddress();
-    strMac.remove(0,9);
-    strMac.replace(":","");
-    strMac.replace(":","");
-    strSSID.concat(strMac);
-    strPass.concat(strMac);
+    String strSSID(forceAP ? SSid : "DCCEX_");
+    String strPass(forceAP ? password : "PASS_");
+    if (!forceAP) {
+      String strMac = WiFi.macAddress();
+      strMac.remove(0,9);
+      strMac.replace(":","");
+      strMac.replace(":","");
+      // convert mac addr hex chars to lower case to be compatible with AT software
+      std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
+      strSSID.concat(strMac);
+      strPass.concat(strMac);
+    }
 
     WiFi.mode(WIFI_AP);
 #ifdef SERIAL_BT_COMMANDS
@@ -211,6 +226,15 @@ bool WifiESP::setup(const char *SSid,
     // no idea to go on
     return false;
   }
+
+  // Now Wifi is up, register the mDNS service
+  if(!MDNS.begin(hostname)) {
+    DIAG(F("Wifi setup failed to start mDNS"));
+  }
+  if(!MDNS.addService("withrottle", "tcp", 2560)) {
+    DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
+  }
+
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here

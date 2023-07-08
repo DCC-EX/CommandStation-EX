@@ -3,9 +3,23 @@
 
 #include "StringFormatter.h"
 
-
-#define VERSION "4.2.54-Z21"
-// Z21 experiments ongoing
+#define VERSION "4.2.64"
+// 4.2.64 - new config WIFI_FORCE_AP option
+// 4.2.63 - completely new overcurrent detection
+//        - ESP32 protect from race in RMT code
+// 4.2.62 - Update IO_RotaryEncoder.h to ignore sending current position
+//        - Update IO_EXTurntable.h to remove forced I2C clock speed
+//        - Show device offline if EX-Turntable not connected
+// 4.2.61 - MAX_CURRENT restriction (caps motor shield value)
+// 4.2.60 - Add mDNS capability to ESP32 for autodiscovery
+// 4.2.59 - Fix: AP SSID was DCC_ instead of DCCEX_
+// 4.2.58 - Start motordriver as soon as possible but without waveform
+// 4.2.57 - New overload handling (faster and handles commonFaultPin again)
+//        - Optimize analog read STM32
+// 4.2.56 - Update IO_RotaryEncoder.h:
+//        - Improved I2C communication, non-blocking reads
+//        - Enable sending positions to the encoder from EXRAIL via SERVO()
+// 4.2.55 - Optimize analog read for AVR
 // 4.2.54 - EX8874 shield in config.example.h
 //        - Fix: Better warnings for pin number errors
 //        - Fix: Default roster list possible in Withrottle and <jR>

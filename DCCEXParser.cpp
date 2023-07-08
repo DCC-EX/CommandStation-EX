@@ -467,7 +467,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool prog=false;
         bool join=false;
         if (params > 1) break;
-        if (params==0 || MotorDriver::commonFaultPin) { // <1> or tracks can not be handled individually
+        if (params==0) { // All
             main=true;
             prog=true;
         }
@@ -487,9 +487,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
 	  else break; // will reply <X>
 	}
+        TrackManager::setJoin(join);
         if (main) TrackManager::setMainPower(POWERMODE::ON);
         if (prog) TrackManager::setProgPower(POWERMODE::ON);
-        TrackManager::setJoin(join);
 
         CommandDistributor::broadcastPower();
         return;
@@ -500,7 +500,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool main=false;
         bool prog=false;
         if (params > 1) break;
-        if (params==0 || MotorDriver::commonFaultPin) { // <0> or tracks can not be handled individually
+        if (params==0) { // All
 	  main=true;
 	  prog=true;
         }
@@ -516,12 +516,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  else break; // will reply <X>
 	}
 
+        TrackManager::setJoin(false);
         if (main) TrackManager::setMainPower(POWERMODE::OFF);
         if (prog) {
             TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
             TrackManager::setProgPower(POWERMODE::OFF);
         }
-        TrackManager::setJoin(false);
 
         CommandDistributor::broadcastPower();
         return;

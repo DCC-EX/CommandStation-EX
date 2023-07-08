@@ -30,6 +30,7 @@
  *  © 2021 Neil McKechnie
  *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
  *  Fred Decker, Gregor Baues, Anthony W - Dayton
+ *  © 2023 Nathan Kellenicki
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -78,6 +79,12 @@ void setup()
 // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
 
+  // As the setup of a motor shield may require a read of the current sense input from the ADC,
+  // let's make sure to initialise the ADCee class!
+  ADCee::begin();
+  // Set up MotorDrivers early to initialize all pins
+  TrackManager::Setup(MOTOR_SHIELD_TYPE);
+
   DISPLAY_START (
     // This block is still executed for DIAGS if display not in use
     LCD(0,F("DCC-EX v%S"),F(VERSION));
@@ -89,26 +96,19 @@ void setup()
   // Start Ethernet if it exists
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
-  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
+  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // WIFI_ON
 #else
   // ESP32 needs wifi on always
-  WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL);
+  WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
   
-  // As the setup of a motor shield may require a read of the current sense input from the ADC,
-  // let's make sure to initialise the ADCee class!
-  ADCee::begin();
   // Responsibility 3: Start the DCC engine.
-  // Note: this provides DCC with two motor drivers, main and prog, which handle the motor shield(s)
-  // Standard supported devices have pre-configured macros but custome hardware installations require
-  //  detailed pin mappings and may also require modified subclasses of the MotorDriver to implement specialist logic.
-  // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
-  TrackManager::Setup(MOTOR_SHIELD_TYPE);
+  DCC::begin();
 
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();

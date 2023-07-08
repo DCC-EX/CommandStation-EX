@@ -84,8 +84,15 @@ class TrackManager {
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
-     static bool progTrackBoosted;   // true when prog track is not current limited
-    
+    static bool progTrackBoosted;   // true when prog track is not current limited
+
+#ifdef DEBUG_ADC
+  public:
+#else
+  private:
+#endif
+    static MotorDriver* track[MAX_TRACKS];
+
   private:
     static void addTrack(byte t, MotorDriver* driver);
     static byte lastTrack;
@@ -93,7 +100,6 @@ class TrackManager {
     static POWERMODE mainPowerGuess;
     static void applyDCSpeed(byte t);
 
-    static MotorDriver* track[MAX_TRACKS];
     static TRACK_MODE trackMode[MAX_TRACKS]; 
     static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
 #ifdef ARDUINO_ARCH_ESP32

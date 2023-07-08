@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# © 2022 Harald Barth
+# © 2022,2023 Harald Barth
 # 
 # This file is part of CommandStation-EX
 #
@@ -29,14 +29,33 @@ ACLI="./bin/arduino-cli"
 
 function need () {
     type -p $1 > /dev/null && return
+    dpkg -l $1 2>&1 | egrep ^ii >/dev/null && return
     sudo apt-get install $1
     type -p $1 > /dev/null && return
     echo "Could not install $1, abort"
     exit 255
 }
 
-
 need git
+
+if cat /etc/issue | egrep '^Raspbian' 2>&1 >/dev/null ; then
+    # we are on a raspi where we do not support graphical
+    unset DISPLAY
+fi
+
+if [ x$DISPLAY != x ] ; then
+    # we have DISPLAY, do the graphic thing
+    need python3-tk
+    need python3.8-venv
+    mkdir -p ~/ex-installer/venv
+    python3 -m venv ~/ex-installer/venv
+    cd ~/ex-installer/venv || exit 255
+    source ./bin/activate
+    git clone https://github.com/DCC-EX/EX-Installer
+    cd EX-Installer || exit 255
+    pip3 install -r requirements.txt
+    exec python3 -m ex_installer
+fi
 if test -d `basename "$DCCEXGITURL"` ; then
     : assume we are almost there
     cd `basename "$DCCEXGITURL"` || exit 255

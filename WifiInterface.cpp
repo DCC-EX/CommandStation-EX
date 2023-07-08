@@ -2,6 +2,7 @@
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
  *  © 2020-2022 Chris Harlow
+ *  © 2023 Nathan Kellenicki
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -52,26 +53,39 @@ Stream * WifiInterface::wifiStream;
  
 #if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
 #define NUM_SERIAL 3
+#define SERIAL1 Serial1
+#define SERIAL3 Serial3
+#endif
+
+#if defined(ARDUINO_ARCH_STM32)
+// Handle serial ports availability on STM32 for variants!
+// #undef NUM_SERIAL
+#if defined(ARDUINO_NUCLEO_F411RE)
+#define NUM_SERIAL 3
+#define SERIAL1 Serial1
+#define SERIAL3 Serial6
+#elif defined(ARDUINO_NUCLEO_F446RE)
+#define NUM_SERIAL 3
+#define SERIAL1 Serial3
+#define SERIAL3 Serial5
+#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#define NUM_SERIAL 2
+#define SERIAL1 Serial6
+#endif
 #endif
 
 #ifndef NUM_SERIAL
 #define NUM_SERIAL 1
+#define SERIAL1 Serial1
 #endif
 
-// For STM32 we need to define Serial3 in the platform specific
-// DCCTimerSTM32.cpp file, we here make the assumption that it
-// exists to link against.
-#ifdef ARDUINO_ARCH_STM32
-#if NUM_SERIAL > 2
-extern HardwareSerial Serial3;
-#endif
-#endif
 bool WifiInterface::setup(long serial_link_speed, 
                           const FSH *wifiESSID,
                           const FSH *wifiPassword,
                           const FSH *hostname,
                           const int port,
-                          const byte channel) {
+                          const byte channel,
+                          const bool forceAP) {
 
   wifiSerialState wifiUp = WIFI_NOAT;
 
@@ -83,21 +97,23 @@ bool WifiInterface::setup(long serial_link_speed,
   (void) hostname;
   (void) port;
   (void) channel;
+  (void) forceAP;
 #endif  
-  
+
+// See if the WiFi is attached to the first serial port
 #if NUM_SERIAL > 0 && !defined(SERIAL1_COMMANDS)
-  Serial1.begin(serial_link_speed);
-  wifiUp = setup(Serial1, wifiESSID, wifiPassword, hostname, port, channel);
+  SERIAL1.begin(serial_link_speed);
+  wifiUp = setup(SERIAL1, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
 #endif
 
 // Other serials are tried, depending on hardware.
-// Currently only the Arduino Mega 2560 has usable Serial2
+// Currently only the Arduino Mega 2560 has usable Serial2 (Nucleo-64 boards use Serial 2 for console!)
 #if defined(ARDUINO_AVR_MEGA2560)
 #if NUM_SERIAL > 1 && !defined(SERIAL2_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
     Serial2.begin(serial_link_speed);
-    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel);
+    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
   }
 #endif
 #endif
@@ -107,8 +123,8 @@ bool WifiInterface::setup(long serial_link_speed,
 #if NUM_SERIAL > 2 && !defined(SERIAL3_COMMANDS)
   if (wifiUp == WIFI_NOAT)
   {
-    Serial3.begin(serial_link_speed);
-    wifiUp = setup(Serial3, wifiESSID, wifiPassword, hostname, port, channel);
+    SERIAL3.begin(serial_link_speed);
+    wifiUp = setup(SERIAL3, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
   }
 #endif
 
@@ -126,7 +142,7 @@ bool WifiInterface::setup(long serial_link_speed,
 }
 
 wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, const FSH* password,
-				     const FSH* hostname,  int port, byte channel) {
+				     const FSH* hostname,  int port, byte channel, bool forceAP) {
   wifiSerialState wifiState;
   static uint8_t ntry = 0;
   ntry++;
@@ -135,7 +151,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 
   DIAG(F("++ Wifi Setup Try %d ++"), ntry);
 
-  wifiState = setup2( SSid, password, hostname,  port, channel);
+  wifiState = setup2( SSid, password, hostname,  port, channel, forceAP);
 
   if (wifiState == WIFI_NOAT) {
     LCD(4, F("WiFi no AT chip"));
@@ -159,7 +175,7 @@ wifiSerialState WifiInterface::setup(Stream & setupStream,  const FSH* SSid, con
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
-				      const FSH* hostname, int port, byte channel) {
+				      const FSH* hostname, int port, byte channel, bool forceAP) {
   bool ipOK = false;
   bool oldCmd = false;
 
@@ -212,7 +228,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 	  if (!checkForOK(1000, F("0.0.0.0"), true,false))
 	      ipOK = true;
     }
-  } else {
+  } else if (!forceAP) {
       // SSID was configured, so we assume station (client) mode.
       if (oldCmd) {
 	      // AT command early version supports CWJAP/CWSAP
@@ -272,14 +288,19 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   
     i=0;
     do {
-      if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
-	// unconfigured
-        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
-                                          oldCmd ? "" : "_CUR", macTail, macTail, channel);
+      if (!forceAP) {
+        if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
+    // unconfigured
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
+                                            oldCmd ? "" : "_CUR", macTail, macTail, channel);
+        } else {
+          // password configured by user
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
+                                          macTail, password, channel);
+        }
       } else {
-        // password configured by user
-       StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
-	                                       macTail, password, channel);
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%S\",\"%S\",%d,4\r\n"),
+                                        oldCmd ? "" : "_CUR", SSid, password, channel);
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
     if (i >= 2)
