@@ -36,17 +36,18 @@ public:
                           const FSH *wifiPassword,
                           const FSH *hostname,
                           const int port,
-                          const byte channel);
+                          const byte channel,
+                          const bool forceAP);
   static void loop();
   static void ATCommand(HardwareSerial * stream,const byte *command);
   
 private:
   static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
-                    const FSH *hostname, int port, byte channel);
+                    const FSH *hostname, int port, byte channel, bool forceAP);
   static Stream *wifiStream;
   static DCCEXParser parser;
   static wifiSerialState setup2(const FSH *SSSid, const FSH *password,
-                     const FSH *hostname, int port, byte channel);
+                     const FSH *hostname, int port, byte channel, bool forceAP);
   static bool checkForOK(const unsigned int timeout, bool echo, bool escapeEcho = true);
   static bool checkForOK(const unsigned int timeout, const FSH *waitfor, bool echo, bool escapeEcho = true);
   static bool connected;

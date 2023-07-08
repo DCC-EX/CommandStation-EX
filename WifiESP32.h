@@ -31,7 +31,8 @@ public:
 		    const char *wifiPassword,
 		    const char *hostname,
 		    const int port,
-		    const byte channel);
+		    const byte channel,
+			const bool forceAP);
   static void loop();
 private:
 };

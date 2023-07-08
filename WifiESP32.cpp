@@ -117,7 +117,8 @@ bool WifiESP::setup(const char *SSid,
                     const char *password,
                     const char *hostname,
                     int port,
-                    const byte channel) {
+                    const byte channel,
+                    const bool forceAP) {
   bool havePassword = true;
   bool haveSSID = true;
   bool wifiUp = false;
@@ -145,7 +146,7 @@ bool WifiESP::setup(const char *SSid,
   if (strncmp(yourNetwork, password, 13) == 0 || strncmp("", password, 13) == 0)
     havePassword = false;
 
-  if (haveSSID && havePassword) {
+  if (haveSSID && havePassword && !forceAP) {
     WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
     WiFi.mode(WIFI_STA);
 #ifdef SERIAL_BT_COMMANDS
@@ -183,18 +184,20 @@ bool WifiESP::setup(const char *SSid,
       }
     }
   }
-  if (!haveSSID) {
+  if (!haveSSID || forceAP) {
     // prepare all strings
-    String strSSID("DCCEX_");
-    String strPass("PASS_");
-    String strMac = WiFi.macAddress();
-    strMac.remove(0,9);
-    strMac.replace(":","");
-    strMac.replace(":","");
-    // convert mac addr hex chars to lower case to be compatible with AT software
-    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    strSSID.concat(strMac);
-    strPass.concat(strMac);
+    String strSSID(forceAP ? SSid : "DCCEX_");
+    String strPass(forceAP ? password : "PASS_");
+    if (!forceAP) {
+      String strMac = WiFi.macAddress();
+      strMac.remove(0,9);
+      strMac.replace(":","");
+      strMac.replace(":","");
+      // convert mac addr hex chars to lower case to be compatible with AT software
+      std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
+      strSSID.concat(strMac);
+      strPass.concat(strMac);
+    }
 
     WiFi.mode(WIFI_AP);
 #ifdef SERIAL_BT_COMMANDS
