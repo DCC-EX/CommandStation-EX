@@ -182,6 +182,15 @@
   #define WIFI_ON false
 #endif
 
+#ifndef WIFI_FORCE_AP
+  #define WIFI_FORCE_AP false
+#else
+  #if WIFI_FORCE_AP==true || WIFI_FORCE_AP==false
+  #else
+    #error WIFI_FORCE_AP needs to be true or false
+  #endif
+#endif
+
 #if ENABLE_ETHERNET
   #if defined(HAS_ENOUGH_MEMORY)
     #define ETHERNET_ON true

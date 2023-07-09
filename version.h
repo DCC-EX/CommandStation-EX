@@ -3,8 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.64"
-// 4.2.64 - new config WIFI_FORCE_AP option
+#define VERSION "4.2.65"
+// 4.2.65 - new config WIFI_FORCE_AP option
 // 4.2.63 - completely new overcurrent detection
 //        - ESP32 protect from race in RMT code
 // 4.2.62 - Update IO_RotaryEncoder.h to ignore sending current position
