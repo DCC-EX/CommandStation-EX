@@ -481,6 +481,11 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
     // check how long we have been in this state
     unsigned long mslpc = microsSinceLastPowerChange(POWERMODE::ALERT);
     if(checkFault()) {
+#define INRUSH
+#ifdef INRUSH
+      DCCTimer::DCCEXanalogWrite(brakePin,208);
+      DCCTimer::DCCEXanalogWriteFrequency(brakePin, 62500);
+#endif
       lastBadSample = now;
       unsigned long timeout = checkCurrent(useProgLimit) ? POWER_SAMPLE_IGNORE_FAULT_HIGH : POWER_SAMPLE_IGNORE_FAULT_LOW;
       if ( mslpc < timeout) {
@@ -489,6 +494,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	break;
       }
       DIAG(F("TRACK %c FAULT PIN detected after %4M. Pause %4M)"), trackno + 'A', mslpc, power_sample_overload_wait);
+#ifdef INRUSH
+      DCCTimer::DCCEXanalogWrite(brakePin,0);
+#endif
       setPower(POWERMODE::OVERLOAD);
       break;
     }
@@ -505,6 +513,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       unsigned int maxmA=raw2mA(tripValue);
       DIAG(F("TRACK %c POWER OVERLOAD %4dmA (max %4dmA) detected after %4M. Pause %4M"),
 	   trackno + 'A', mA, maxmA, mslpc, power_sample_overload_wait);
+#ifdef INRUSH
+      DCCTimer::DCCEXanalogWrite(brakePin,0);
+#endif
       setPower(POWERMODE::OVERLOAD);
       break;
     }
@@ -515,6 +526,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	unsigned int mA=raw2mA(lastCurrent);
 	DIAG(F("TRACK %c NORMAL (after %M/%M) %dmA"), trackno + 'A', goodtime, mslpc, mA);
       }
+#ifdef INRUSH
+      DCCTimer::DCCEXanalogWrite(brakePin,0);
+#endif
       setPower(POWERMODE::ON);
     }
     break;
