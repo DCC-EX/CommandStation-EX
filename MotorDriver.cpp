@@ -350,6 +350,8 @@ void MotorDriver::setDCSignal(byte speedcode) {
 void MotorDriver::throttleInrush(bool on) {
   if (brakePin == UNUSED_PIN)
     return;
+  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT)))
+    return;
   byte duty = on ? 208 : 0;
   if (invertBrake)
     duty = 255-duty;
