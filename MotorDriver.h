@@ -27,6 +27,10 @@
 #include "IODevice.h"
 #include "DCCTimer.h"
 
+// use powers of two so we can do logical and/or on the track modes in if clauses.
+enum TRACK_MODE : byte {TRACK_MODE_OFF = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
+                        TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
+
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
@@ -203,6 +207,12 @@ class MotorDriver {
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
 #endif
+  inline void setMode(TRACK_MODE m) {
+    trackMode = m;
+  };
+  inline TRACK_MODE getMode() {
+    return trackMode;
+  };
   private:
     char trackLetter = '?';
     bool isProgTrack = false; // tells us if this is a prog track
@@ -279,6 +289,7 @@ class MotorDriver {
     static const int TRIP_CURRENT_PROG=250;
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
+    TRACK_MODE trackMode = TRACK_MODE_OFF; // we assume off at startup
 
 };
 #endif
