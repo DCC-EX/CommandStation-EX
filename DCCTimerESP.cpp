@@ -180,8 +180,8 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
           return;
       }
       pin_to_channel[pin] = --cnt_channel;
-      ledcAttachPin(pin, cnt_channel);
       ledcSetup(cnt_channel, 1000, 8);
+      ledcAttachPin(pin, cnt_channel);
     } else {
       ledcAttachPin(pin, pin_to_channel[pin]);
     }
