@@ -190,7 +190,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
-    //DIAG(F("Track=%c"),trackToSet+'A');
+    DIAG(F("Track=%c Mode=%d"),trackToSet+'A', mode);
     // DC tracks require a motorDriver that can set brake!
     if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
          && !track[trackToSet]->brakeCanPWM()) {
