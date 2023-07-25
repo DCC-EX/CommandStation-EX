@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.65"
+#define VERSION "4.2.66"
+// 4.2.66 - Throttle inrush current by applying PWM to brake pin when
+//          fault pin goes active
 // 4.2.65 - new config WIFI_FORCE_AP option
 // 4.2.63 - completely new overcurrent detection
 //        - ESP32 protect from race in RMT code
