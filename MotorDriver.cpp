@@ -278,6 +278,7 @@ void MotorDriver::startCurrentFromHW() {
 #endif //ANALOG_READ_INTERRUPT
 
 #if defined(ARDUINO_ARCH_ESP32)
+#ifdef VARIABLE_TONES
 uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     247, 262, 294, 330,
 			     349, 392, 440, 494,
@@ -285,6 +286,7 @@ uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     494, 440, 392, 249,
 			     330, 284, 262, 247,
 			     220, 196, 175, 165 };
+#endif
 #endif
 void MotorDriver::setDCSignal(byte speedcode) {
   if (brakePin == UNUSED_PIN)
@@ -304,11 +306,13 @@ void MotorDriver::setDCSignal(byte speedcode) {
 #if defined(ARDUINO_ARCH_ESP32)
   {
     int f = 131;
+#ifdef VARIABLE_TONES
     if (tSpeed > 2) {
       if (tSpeed <= 58) {
 	f = taurustones[ (tSpeed-2)/2 ] ;
       }
     }
+#endif
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
   }
 #endif
