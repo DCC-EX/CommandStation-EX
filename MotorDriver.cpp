@@ -501,9 +501,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
   case POWERMODE::ALERT: {
     // set local flags that handle how much is output to diag (do not output duplicates)
     bool notFromOverload = (lastPowerMode != POWERMODE::OVERLOAD);
-    bool newPowerMode = (powerMode != lastPowerMode);
+    bool powerModeChange = (powerMode != lastPowerMode);
     unsigned long now = micros();
-    if (newPowerMode)
+    if (powerModeChange)
       lastBadSample = now;
     lastPowerMode = POWERMODE::ALERT;
     // check how long we have been in this state
@@ -513,7 +513,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       lastBadSample = now;
       unsigned long timeout = checkCurrent(useProgLimit) ? POWER_SAMPLE_IGNORE_FAULT_HIGH : POWER_SAMPLE_IGNORE_FAULT_LOW;
       if ( mslpc < timeout) {
-	if (newPowerMode)
+	if (powerModeChange)
 	  DIAG(F("TRACK %c FAULT PIN (%M ignore)"), trackno + 'A', timeout);
 	break;
       }
@@ -525,7 +525,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
     if (checkCurrent(useProgLimit)) {
       lastBadSample = now;
       if (mslpc < POWER_SAMPLE_IGNORE_CURRENT) {
-	if (newPowerMode) {
+	if (powerModeChange) {
 	  unsigned int mA=raw2mA(lastCurrent);
 	  DIAG(F("TRACK %c CURRENT (%M ignore) %dmA"), trackno + 'A', POWER_SAMPLE_IGNORE_CURRENT, mA);
 	}
