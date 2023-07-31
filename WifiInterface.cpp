@@ -60,7 +60,7 @@ Stream * WifiInterface::wifiStream;
 #if defined(ARDUINO_ARCH_STM32)
 // Handle serial ports availability on STM32 for variants!
 // #undef NUM_SERIAL
-#if defined(ARDUINO_NUCLEO_F411RE)
+#if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE)
 #define NUM_SERIAL 3
 #define SERIAL1 Serial1
 #define SERIAL3 Serial6
@@ -68,9 +68,11 @@ Stream * WifiInterface::wifiStream;
 #define NUM_SERIAL 3
 #define SERIAL1 Serial3
 #define SERIAL3 Serial5
-#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG)
 #define NUM_SERIAL 2
 #define SERIAL1 Serial6
+#else
+#warning This variant of Nucleo not yet explicitly supported
 #endif
 #endif
 
