@@ -219,6 +219,9 @@ void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
 
 void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 {
+#ifdef DISABLE_PROG
+    (void)ringStream;
+#endif
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif

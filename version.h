@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.66"
+#define VERSION "4.2.67"
+// 4.2.67 - AVR: Pin specific timer register seting
+//        - Protect Uno user from choosing DC(X)
+//        - More Nucleo variant defines
+//        - GPIO PCA9555 / TCA9555 support
 // 4.2.66 - Throttle inrush current by applying PWM to brake pin when
 //          fault pin goes active
 // 4.2.65 - new config WIFI_FORCE_AP option
