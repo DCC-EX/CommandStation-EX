@@ -192,11 +192,16 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
     //DIAG(F("Track=%c Mode=%d"),trackToSet+'A', mode);
     // DC tracks require a motorDriver that can set brake!
-    if ((mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)
-         && !track[trackToSet]->brakeCanPWM()) {
-             DIAG(F("Brake pin can't PWM: No DC"));
-             return false; 
-         }
+    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
+#if defined(ARDUINO_AVR_UNO)
+      DIAG(F("Uno has no PWM timers available for DC"));
+      return false;
+#endif
+      if (!track[trackToSet]->brakeCanPWM()) {
+	DIAG(F("Brake pin can't PWM: No DC"));
+	return false;
+      }
+    }
 
 #ifdef ARDUINO_ARCH_ESP32
     // remove pin from MUX matrix and turn it off
