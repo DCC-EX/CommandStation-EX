@@ -38,6 +38,7 @@ const int16_t HASH_KEYWORD_PROG = -29718;
 #endif
 const int16_t HASH_KEYWORD_MAIN = 11339;
 const int16_t HASH_KEYWORD_OFF = 22479;  
+const int16_t HASH_KEYWORD_NONE = -26550;
 const int16_t HASH_KEYWORD_DC = 2183;  
 const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity 
 const int16_t HASH_KEYWORD_EXT = 8201; // External DCC signal
@@ -140,7 +141,7 @@ void TrackManager::addTrack(byte t, MotorDriver* driver) {
      track[t]=driver;
      if (driver) {
          track[t]->setPower(POWERMODE::OFF);
-         track[t]->setMode(TRACK_MODE_OFF);
+         track[t]->setMode(TRACK_MODE_NONE);
 	 track[t]->setTrackLetter('A'+t);
          lastTrack=t;
      } 
@@ -224,7 +225,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       FOR_EACH_TRACK(t)
 	if (track[t]->getMode()==TRACK_MODE_PROG && t != trackToSet) {
 	  track[t]->setPower(POWERMODE::OFF);
-	  track[t]->setMode(TRACK_MODE_OFF);
+	  track[t]->setMode(TRACK_MODE_NONE);
 	  track[t]->makeProgTrack(false);     // revoke prog track special handling
     streamTrackState(NULL,t);
 	}
@@ -332,8 +333,8 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
         return setTrackMode(p[0],TRACK_MODE_PROG);
 #endif
     
-    if (params==2  && p[1]==HASH_KEYWORD_OFF) // <= id OFF>
-        return setTrackMode(p[0],TRACK_MODE_OFF);
+    if (params==2  && (p[1]==HASH_KEYWORD_OFF || p[1]==HASH_KEYWORD_NONE)) // <= id OFF> <= id NONE>
+        return setTrackMode(p[0],TRACK_MODE_NONE);
 
     if (params==2  && p[1]==HASH_KEYWORD_EXT) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
@@ -360,8 +361,8 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
       format=F("<= %c PROG>\n");
       break;
 #endif
-  case TRACK_MODE_OFF:
-      format=F("<= %c OFF>\n");
+  case TRACK_MODE_NONE:
+      format=F("<= %c NONE>\n");
       break;
   case TRACK_MODE_EXT:
       format=F("<= %c EXT>\n");
@@ -443,7 +444,7 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
 	        driver->setBrake(false);
 		driver->setPower(mode);
 	        break;
-            case TRACK_MODE_OFF:
+            case TRACK_MODE_NONE:
                 break;
         }
     }

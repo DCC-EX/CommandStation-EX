@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.67"
+#define VERSION "4.2.68"
+// 4.2.68 - Rename track mode OFF to NONE
 // 4.2.67 - AVR: Pin specific timer register seting
 //        - Protect Uno user from choosing DC(X)
 //        - More Nucleo variant defines
