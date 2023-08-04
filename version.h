@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.68"
+#define VERSION "4.2.69"
+// 4.2.69 - Bugfix: Make <!> work in DC mode
 // 4.2.68 - Rename track mode OFF to NONE
 // 4.2.67 - AVR: Pin specific timer register seting
 //        - Protect Uno user from choosing DC(X)

@@ -182,7 +182,7 @@ void TrackManager::setPROGSignal( bool on) {
 // with interrupts turned off around the critical section
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   FOR_EACH_TRACK(t) {
-    if (trackDCAddr[t]!=cab) continue;
+    if (trackDCAddr[t]!=cab && cab != 0) continue;
     if (track[t]->getMode()==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
     else if (track[t]->getMode()==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
   }
