@@ -200,7 +200,21 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
   // Display the AT version information
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
-  checkForOK(2000, true, false);      // Makes this visible on the console
+  if (checkForOK(2000, F("AT version:"), true, false)) {
+    char version[] = "0.0.0.0";
+    for (int i=0; i<8;i++) {
+      while(!wifiStream->available());
+      version[i]=wifiStream->read();
+      StringFormatter::printEscape(version[i]);
+      if ((version[0] == '0') ||
+	  (version[0] == '2' && version[2] == '0') ||
+	  (version[0] == '2' && version[2] == '2' && version[4] == '0' && version[6] == '0')) {
+	SSid = F("DCCEX_SAYS_BROKEN_FIRMWARE");
+	forceAP = true;
+      }
+    }
+  }
+  checkForOK(2000, true, false);
 
 #ifdef DONT_TOUCH_WIFI_CONF
   DIAG(F("DONT_TOUCH_WIFI_CONF was set: Using existing config"));

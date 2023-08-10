@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.69"
+#define VERSION "5.0.1"
+// 5.0.1  - Check bad AT firmware version
+// 5.0.0  - Make 4.2.69 the 5.0.0 release
 // 4.2.69 - Bugfix: Make <!> work in DC mode
 // 4.2.68 - Rename track mode OFF to NONE
 // 4.2.67 - AVR: Pin specific timer register seting
