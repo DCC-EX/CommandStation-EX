@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2020-2022 Chris Harlow
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  All rights reserved.
  *  
@@ -188,6 +188,7 @@ private:
    static LookList * onGreenLookup;
    static LookList * onChangeLookup;
    static LookList * onClockLookup;
+   static LookList * onOverloadLookup;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

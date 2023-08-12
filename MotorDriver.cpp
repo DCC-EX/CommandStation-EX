@@ -4,6 +4,7 @@
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 Chris Harlow
+ *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -574,6 +575,8 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       DIAG(F("TRACK %c FAULT PIN detected after %4M. Pause %4M)"), trackno + 'A', mslpc, power_sample_overload_wait);
       throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
+      DIAG(F("Calling EXRAIL"));
+      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       break;
     }
     if (checkCurrent(useProgLimit)) {
@@ -591,6 +594,8 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	   trackno + 'A', mA, maxmA, mslpc, power_sample_overload_wait);
       throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
+      DIAG(F("Calling EXRAIL"));
+      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       break;
     }
     // all well

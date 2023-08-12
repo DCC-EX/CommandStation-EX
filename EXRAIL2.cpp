@@ -2,7 +2,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
  *  © 2020-2023 Chris Harlow
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -94,6 +94,7 @@ LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
 LookList *  RMFT2::onClockLookup=NULL;
+LookList *  RMFT2::onOverloadLookup=NULL;
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -175,6 +176,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
+  onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
 
 
   // Second pass startup, define any turnouts or servos, set signals red
@@ -986,6 +988,7 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+  case OPCODE_ONOVERLOAD:
   
     break;
     
@@ -1139,6 +1142,16 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
     handleEvent(F("CLOCK"),onClockLookup,25*60+clocktime%60);
   }
 } 
+
+void RMFT2::powerEvent(char track, bool overload) {
+  // Hunt for an ONOVERLOAD for this item
+  if (Diag::CMD)
+   DIAG(F("Looking for Power event on track : %c"), track);
+  if (overload) {
+    handleEvent(F("POWER"),onOverloadLookup,track);
+  }
+}
+
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);

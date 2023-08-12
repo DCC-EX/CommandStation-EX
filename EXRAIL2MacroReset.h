@@ -1,6 +1,6 @@
 /*
  *  © 2020-2022 Chris Harlow. All rights reserved.
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  
  *  This file is part of CommandStation-EX
@@ -93,6 +93,7 @@
 #undef ONTIME
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
+#undef ONOVERLOAD
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -215,6 +216,7 @@
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
 #define ONCLOCKMINS(mins)
+#define ONOVERLOAD(track_id)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)

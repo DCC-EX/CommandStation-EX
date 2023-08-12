@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2020-2022 Chris Harlow
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  All rights reserved.
  *  
@@ -320,6 +320,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONTIME(value) OPCODE_ONTIME,V(value),  
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
+#define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
