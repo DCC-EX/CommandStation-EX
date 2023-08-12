@@ -27,6 +27,7 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 
 unsigned long MotorDriver::globalOverloadStart = 0;
 

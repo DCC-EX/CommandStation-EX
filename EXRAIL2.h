@@ -62,6 +62,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
+             OPCODE_ONOVERLOAD,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -130,6 +131,7 @@ class LookList {
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
     static void clockEvent(int16_t clocktime, bool change);
+    static void powerEvent(int16_t track, bool overload);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
