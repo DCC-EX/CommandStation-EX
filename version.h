@@ -5,6 +5,7 @@
 
 #define VERSION "5.0.1"
 // 5.0.1  - Check bad AT firmware version
+//        - Update IO_PCA9555.h reflecting IO_MCP23017.h changes to support PCA9548 mux
 // 5.0.0  - Make 4.2.69 the 5.0.0 release
 // 4.2.69 - Bugfix: Make <!> work in DC mode
 // 4.2.68 - Rename track mode OFF to NONE
