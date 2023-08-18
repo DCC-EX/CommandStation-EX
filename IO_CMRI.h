@@ -255,8 +255,10 @@ public:
       _nodeListStart = newNode;
     if (!_nodeListEnd) 
       _nodeListEnd = newNode;
-    else
+    else {
       _nodeListEnd->setNext(newNode);
+      _nodeListEnd = newNode;
+    }
   }
 
 protected:
