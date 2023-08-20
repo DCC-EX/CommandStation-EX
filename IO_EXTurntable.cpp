@@ -20,9 +20,9 @@
 /*
 * The IO_EXTurntable device driver is used to control a turntable via an Arduino with a stepper motor over I2C.
 *
-* The EX-Turntable code lives in a separate repo (https://github.com/DCC-EX/Turntable-EX) and contains the stepper motor logic.
+* The EX-Turntable code lives in a separate repo (https://github.com/DCC-EX/EX-Turntable) and contains the stepper motor logic.
 *
-* This device driver sends a step position to Turntable-EX to indicate the step position to move to using either of these commands:
+* This device driver sends a step position to EX-Turntable to indicate the step position to move to using either of these commands:
 * <D TT vpin steps activity> in the serial console
 * MOVETT(vpin, steps, activity) in EX-RAIL
 * Refer to the documentation for further information including the valid activities.

@@ -41,7 +41,7 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
-#include "Turntables.h"
+// #include "Turntables.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -96,6 +96,7 @@ const int16_t HASH_KEYWORD_ANOUT = -26399;
 const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;
 const int16_t HASH_KEYWORD_WIT = 31594;
+const int16_t HASH_KEYWORD_EXTT = 8573;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -1021,25 +1022,45 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
 // ==========================
 // Turntable
+// <I> - list all
+// <I id> - delete
+// <I id steps> - operate (DCC)
+// <I id steps activity> - operate (EXTT)
+// <I id EXTT i2caddress vpin position1 position2 ...> - create EXTT
+// <I id DCC linear1 linear2 ...> - create DCC? - This TBA
 bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
 {
     switch (params)
     {
     case 0: // <I> list turntable objects
-        return Turntable::printAll(stream);
+        StringFormatter::send(stream, F("<i all>\n"));
+        return true;
+        // return Turntable::printAll(stream);
 
     case 1: // <T id> delete turntable
-        if (!Turntable::remove(p[0]))
-            return false;
-        StringFormatter::send(stream, F("<i>\n"));
+        // if (!Turntable::remove(p[0]))
+            // return false;
+        StringFormatter::send(stream, F("<i delete>\n"));
         return true;
     
     case 2: // <T id position> - rotate to position for DCC turntables
     case 3: // <T id position activity> rotate to position for EX-Turntable
         {
-            
+            DIAG(F("Got %d parameters (2 or 3)"), params);
+            return true;
         }
+    
+    default:
+        {
+            if (params < 40) {
+                DIAG(F("Create turntable with %d parameters"), params);
+                return true;
+            }
+        }
+        break;
+
     }
+    return false;
 }
 
 // CALLBACKS must be static

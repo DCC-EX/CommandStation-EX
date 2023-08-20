@@ -542,7 +542,6 @@ protected:
 #include "IO_PCF8575.h"
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
-#include "IO_EXTurntable.h"
 
 
 #endif // iodevice_h
