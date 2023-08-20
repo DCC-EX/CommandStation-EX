@@ -41,6 +41,7 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
+#include "Turntables.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -694,6 +695,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break; // case J
         }
 
+    case 'I': // TURNTABLE  <I ...>
+        if (parseI(stream, params, p))
+            return;
+        break;
+
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
@@ -1011,6 +1017,29 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         break;
     }
     return false;
+}
+
+// ==========================
+// Turntable
+bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
+{
+    switch (params)
+    {
+    case 0: // <I> list turntable objects
+        return Turntable::printAll(stream);
+
+    case 1: // <T id> delete turntable
+        if (!Turntable::remove(p[0]))
+            return false;
+        StringFormatter::send(stream, F("<i>\n"));
+        return true;
+    
+    case 2: // <T id position> - rotate to position for DCC turntables
+    case 3: // <T id position activity> rotate to position for EX-Turntable
+        {
+            
+        }
+    }
 }
 
 // CALLBACKS must be static

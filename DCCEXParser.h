@@ -45,13 +45,14 @@ struct DCCEXParser
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command, bool usehex);
      
     static bool parseT(Print * stream, int16_t params, int16_t p[]);
-     static bool parseZ(Print * stream, int16_t params, int16_t p[]);
-     static bool parseS(Print * stream,  int16_t params, int16_t p[]);
-     static bool parsef(Print * stream,  int16_t params, int16_t p[]);
-     static bool parseD(Print * stream,  int16_t params, int16_t p[]);
+    static bool parseZ(Print * stream, int16_t params, int16_t p[]);
+    static bool parseS(Print * stream, int16_t params, int16_t p[]);
+    static bool parsef(Print * stream, int16_t params, int16_t p[]);
+    static bool parseD(Print * stream, int16_t params, int16_t p[]);
+    static bool parseI(Print * stream, int16_t params, int16_t p[]);
 
-     static Print * getAsyncReplyStream();
-     static void commitAsyncReplyStream();
+    static Print * getAsyncReplyStream();
+    static void commitAsyncReplyStream();
 
     static bool stashBusy;
     static byte stashTarget;

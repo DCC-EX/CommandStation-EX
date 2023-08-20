@@ -161,6 +161,10 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 #endif
 }
 
+void CommandDistributor::broadcastTurntable(int16_t id, uint8_t position) {
+  broadcastReply(COMMAND_TYPE, F("<i %d %d>\n"), id, position);
+}
+
 void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   // The JMRI clock command is of the form : PFT65871<;>4
   // The CS broadcast is of the form "<jC mmmm nn" where mmmm is time minutes and dd speed
