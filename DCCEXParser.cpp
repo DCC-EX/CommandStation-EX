@@ -1044,18 +1044,23 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         return true;
     
     case 2: // <T id position> - rotate to position for DCC turntables
+        DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
+        return true;
+
     case 3: // <T id position activity> rotate to position for EX-Turntable
-        {
-            DIAG(F("Got %d parameters (2 or 3)"), params);
-            return true;
-        }
+        DIAG(F("Rotate EXTT turntable %d to angle %d with activity %d"), p[0], p[1], p[2]);
+        return true;
     
-    default:
+    default:    // If we're here, it must be creating a turntable object
         {
-            if (params < 40) {
-                DIAG(F("Create turntable with %d parameters"), params);
+            if (params < 41 && p[1] == HASH_KEYWORD_EXTT) {
+                DIAG(F("Create EXTT turntable %d on vpin %d and address %s with %d positions"), p[0], p[2], p[3], params - 4);
+                return true;
+            } else if (params < 39 && p[1] == HASH_KEYWORD_DCC) {
+                DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
                 return true;
             }
+            
         }
         break;
 
