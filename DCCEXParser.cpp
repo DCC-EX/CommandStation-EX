@@ -41,7 +41,7 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
-// #include "Turntables.h"
+#include "Turntables.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -1033,14 +1033,12 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     switch (params)
     {
     case 0: // <I> list turntable objects
-        StringFormatter::send(stream, F("<i all>\n"));
-        return true;
-        // return Turntable::printAll(stream);
+        return Turntable::printAll(stream);
 
     case 1: // <T id> delete turntable
-        // if (!Turntable::remove(p[0]))
-            // return false;
-        StringFormatter::send(stream, F("<i delete>\n"));
+        if (!Turntable::remove(p[0]))
+            return false;
+        StringFormatter::send(stream, F("<O>\n"));
         return true;
     
     case 2: // <T id position> - rotate to position for DCC turntables
@@ -1053,19 +1051,17 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     
     default:    // If we're here, it must be creating a turntable object
         {
-            if (params < 41 && p[1] == HASH_KEYWORD_EXTT) {
-                DIAG(F("Create EXTT turntable %d on vpin %d and address %s with %d positions"), p[0], p[2], p[3], params - 4);
-                return true;
-            } else if (params < 39 && p[1] == HASH_KEYWORD_DCC) {
+            if (params > 5 && params < 41 && p[1] == HASH_KEYWORD_EXTT) {
+                DIAG(F("Create EXTT turntable %d on vpin %d and address %d with %d positions"), p[0], p[2], p[3], params - 4);
+                if (!EXTTTurntable::create(p[0], (uint8_t)p[1], (VPIN)p[2])) return false;
+            } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
                 DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
-                return true;
+            } else {
+                return false;
             }
-            
         }
-        break;
-
+        return true;
     }
-    return false;
 }
 
 // CALLBACKS must be static

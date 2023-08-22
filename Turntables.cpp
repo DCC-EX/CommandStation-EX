@@ -36,13 +36,14 @@ Turntable *Turntable::_firstTurntable = 0;
 /*
  * Public static data
  */
-int Turntable::_turntablelistHash = 0;
+int Turntable::turntablelistHash = 0;
 
 
 /*
  * Protected static functions
  */
 // Add new turntable to end of list
+
 void Turntable::add(Turntable *tto) {
   if (!_firstTurntable) {
     _firstTurntable = tto;
@@ -73,25 +74,25 @@ bool Turntable::remove(uint16_t id) {
     pp->_nextTurntable = tto->_nextTurntable;
   }
 
-  delete (EXTTTurntable *)tto;
+  // delete (EXTTTurntable *)tto;
 
   turntablelistHash++;
   return true;
 }
-
 
 /*
  * Public static functions
  */
 bool Turntable::isPosition(uint16_t id, uint8_t position) {
   Turntable *tto = get(id);
-  if (!tto) return false;
   if (tto) {
     if (tto->getPosition() == position) {
       return true;
     } else {
       return false;
     }
+  } else {
+    return false;
   }
 }
 
@@ -102,15 +103,16 @@ bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position) {
 #if defined(EXRAIL_ACTIVE)
   // RMFT2::turntableEvent(id, position);
 #endif
+  return true;
 }
 
-bool Turntable::setPosition(uint16_t id, uint8_t position) {
+bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 #if defined(DIAG_IO)
   DIAG(F("Turntable(%d, %d)"), id, position);
 #endif
   Turntable *tto = Turntable::get(id);
   if (!tto) return false;
-  bool ok = tto->setPositionInternal(position);
+  bool ok = tto->setPositionInternal(position, activity);
 
   if (ok) {
     tto->setPositionStateOnly(id, position);
@@ -123,30 +125,28 @@ bool Turntable::setPosition(uint16_t id, uint8_t position) {
  * 
  *************************************************************************************/
 // Private constructor
-EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin, long **positions) :
+EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
   Turntable(id, TURNTABLE_EXTT)
 {
   _exttTurntableData.i2caddress = i2caddress;
   _exttTurntableData.vpin = vpin;
-  _exttTurntableData.positions = **positions;
 }
 
 // Create function
 #ifndef IO_NO_HAL
-  Turntable *EXTTTurntable::create(uint16_t id, uint8_t i2caddress, VPIN vpin, long **positions) {
+  Turntable *EXTTTurntable::create(uint16_t id, uint8_t i2caddress, VPIN vpin) {
     Turntable *tto = get(id);
     if (tto) {
       if (tto->isType(TURNTABLE_EXTT)) {
         EXTTTurntable *extt = (EXTTTurntable *)tto;
         extt->_exttTurntableData.i2caddress = i2caddress;
         extt->_exttTurntableData.vpin = vpin;
-        extt->_exttTurntableData.positions = positions;
         return tto;
       } else {
         remove(id);
       }
     }
-    tto = (Turntable *)new EXTTTurntable(id, i2caddress, vpin, **positions);
+    tto = (Turntable *)new EXTTTurntable(id, i2caddress, vpin);
     DIAG(F("Turntable 0x%x"), tto);
     return tto;
 #else
@@ -166,9 +166,9 @@ EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin, long **
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
 #ifndef IO_NO_HAL
     // Get step value from positions
-    int value = _exttTurntableData.positions[position];
+    // int value = _exttTurntableData.positions[position];
     // Set position via device driver
-    EXTurntable::_writeAnalogue(vpin, value, activity, 0);
+    // EXTurntable::_writeAnalogue(vpin, value, activity, 0);
 #else
     (void)position;
 #endif

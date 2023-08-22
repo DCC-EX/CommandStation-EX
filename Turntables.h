@@ -104,6 +104,7 @@ public:
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
+  
 
   /*
    * Virtual functions
@@ -112,6 +113,7 @@ public:
     (void)stream; // suppress compiler warnings
   }
   virtual ~Turntable() {} // Destructor
+  
 
   /*
    * Public static functions
@@ -119,7 +121,7 @@ public:
   inline static bool exists(uint16_t id) { return get(id) != 0; }
   static bool remove(uint16_t id);
   static bool isPosition(uint16_t id, uint8_t position);
-  static bool setPosition(uint16_t id, uint8_t position);
+  static bool setPosition(uint16_t id, uint8_t position, uint8_t activity=0);
   static bool setPositionStateOnly(uint16_t id, uint8_t position);
   inline static Turntable *first() { return _firstTurntable; }
   static bool printAll(Print *stream) {
@@ -148,11 +150,11 @@ private:
   } _exttTurntableData;
 
   // Constructor
-  EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin, long **positions);
+  EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin);
 
 public:
   // Create function
-  static Turntable *create(uint16_t id, uint8_t i2caddress, VPIN vpin, long **positions);
+  static Turntable *create(uint16_t id, uint8_t i2caddress, VPIN vpin);
   void print(Print *stream) override;
 
 protected:
