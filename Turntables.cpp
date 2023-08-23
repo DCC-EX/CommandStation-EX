@@ -133,8 +133,8 @@ EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
 }
 
 // Create function
-#ifndef IO_NO_HAL
   Turntable *EXTTTurntable::create(uint16_t id, uint8_t i2caddress, VPIN vpin) {
+#ifndef IO_NO_HAL
     Turntable *tto = get(id);
     if (tto) {
       if (tto->isType(TURNTABLE_EXTT)) {
@@ -153,7 +153,6 @@ EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
   (void)id;
   (void)i2caddress;
   (void)vpin;
-  (void)positions;
   return NULL;
 #endif
   }
