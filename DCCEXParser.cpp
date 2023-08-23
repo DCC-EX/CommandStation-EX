@@ -1035,17 +1035,17 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     case 0: // <I> list turntable objects
         return Turntable::printAll(stream);
 
-    case 1: // <T id> delete turntable
+    case 1: // <I id> delete turntable
         if (!Turntable::remove(p[0]))
             return false;
         StringFormatter::send(stream, F("<O>\n"));
         return true;
     
-    case 2: // <T id position> - rotate to position for DCC turntables
+    case 2: // <I id position> - rotate to position for DCC turntables
         DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
         return true;
 
-    case 3: // <T id position activity> rotate to position for EX-Turntable
+    case 3: // <I id position activity> rotate to position for EX-Turntable
         DIAG(F("Rotate EXTT turntable %d to angle %d with activity %d"), p[0], p[1], p[2]);
         return true;
     

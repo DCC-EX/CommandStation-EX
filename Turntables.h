@@ -57,6 +57,12 @@ protected:
     uint16_t id;
   } _turntableData;
 
+  // Linked list to store either positions (EXTT) or DCC addresses (DCC)
+  struct Position {
+    int16_t position;
+    Position *next;
+  };
+
   // Pointer to next turntable object
   Turntable *_nextTurntable = 0;
 
@@ -146,7 +152,6 @@ private:
   struct EXTTTurntableData {
     uint8_t i2caddress;
     VPIN vpin;
-    long **positions;   // Array of longs to store step positions
   } _exttTurntableData;
 
   // Constructor

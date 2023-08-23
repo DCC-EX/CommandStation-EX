@@ -74,7 +74,7 @@ bool Turntable::remove(uint16_t id) {
     pp->_nextTurntable = tto->_nextTurntable;
   }
 
-  // delete (EXTTTurntable *)tto;
+  delete (EXTTTurntable *)tto;
 
   turntablelistHash++;
   return true;
