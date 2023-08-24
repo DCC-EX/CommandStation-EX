@@ -1,1 +1,1 @@
-#define GITHUB_SHA "devel-202308102205Z"
+#define GITHUB_SHA "devel-202308240808Z"
