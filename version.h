@@ -103,6 +103,7 @@
 //       TrackManager DCC & DC up to 8 Districts Architecture 
 //       Automatic ALIAS(name) 
 //       Command Parser now accepts Underscore in Alias Names
+// 4.1.6 Support for new EX-MotorShield8874 Dual 5Amp Shield
 // 4.1.5 Bugfix LCN number parsing
 // 4.1.4 Bugfix for issue #299 TurnoutDescription NULL
 // 4.1.3 Bugfix: Ethernet init order
