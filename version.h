@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.0.1"
+#define VERSION "5.0.2"
+// 5.0.2  - Bugfix: ESP32 30ms off time
 // 5.0.1  - Bugfix: execute 30ms off time before rejoin
 // 5.0.0  - Make 4.2.69 the 5.0.0 release
 // 4.2.69 - Bugfix: Make <!> work in DC mode
