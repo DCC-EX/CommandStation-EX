@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.1"
+#define VERSION "5.1.2"
+// 5.1.2  - Bugfix: ESP32 30ms off time
 // 5.1.1  - Check bad AT firmware version
 //        - Update IO_PCA9555.h reflecting IO_MCP23017.h changes to support PCA9548 mux
 // 5.0.1  - Bugfix: execute 30ms off time before rejoin
