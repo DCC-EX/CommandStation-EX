@@ -53,7 +53,7 @@ bool TrackManager::progTrackSyncMain=false;
 bool TrackManager::progTrackBoosted=false; 
 int16_t TrackManager::joinRelay=UNUSED_PIN;
 #ifdef ARDUINO_ARCH_ESP32
-byte TrackManager::tempProgTrack=MAX_TRACKS+1;
+byte TrackManager::tempProgTrack=MAX_TRACKS+1; // MAX_TRACKS+1 is the unused flag
 #endif
 
 #ifdef ANALOG_READ_INTERRUPT
@@ -505,7 +505,12 @@ void TrackManager::setJoin(bool joined) {
     }
   } else {
     if (tempProgTrack != MAX_TRACKS+1) {
+      // as setTrackMode with TRACK_MODE_PROG defaults to
+      // power off, we will take the current power state
+      // of our track and then preserve that state.
+      POWERMODE tPTmode = track[tempProgTrack]->getPower(); //get current power status of this track
       setTrackMode(tempProgTrack, TRACK_MODE_PROG);
+      track[tempProgTrack]->setPower(tPTmode);              //set track status as it was before
       tempProgTrack = MAX_TRACKS+1;
     }
   }
