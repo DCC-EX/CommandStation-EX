@@ -34,6 +34,41 @@ enum {
 };
 
 /*************************************************************************************
+ * Turntable positions.
+ * 
+ *************************************************************************************/
+struct TurntablePosition {
+  uint16_t data;
+  TurntablePosition* next;
+  
+  TurntablePosition(uint16_t value) : data(value), next(nullptr) {}
+};
+
+class TurntablePositionList {
+public:
+  TurntablePositionList() : head(nullptr) {}
+
+  void insert(uint16_t value) {
+    TurntablePosition* newPosition = new TurntablePosition(value);
+    if(!head) {
+      head = newPosition;
+    } else {
+      newPosition->next = head;
+      head = newPosition;
+    }
+  }
+
+  TurntablePosition* getHead() {
+    return head;
+  }
+
+private:
+  TurntablePosition* head;
+
+};
+
+
+/*************************************************************************************
  * Turntable - Base class for turntables.
  * 
  *************************************************************************************/
@@ -57,14 +92,11 @@ protected:
     uint16_t id;
   } _turntableData;
 
-  // Linked list to store either positions (EXTT) or DCC addresses (DCC)
-  struct Position {
-    int16_t position;
-    Position *next;
-  };
-
   // Pointer to next turntable object
   Turntable *_nextTurntable = 0;
+
+  // Linked list for positions
+  TurntablePositionList _turntablePositions;
 
   /*
    * Constructor
@@ -73,6 +105,7 @@ protected:
     _turntableData.id = id;
     _turntableData.turntableType = turntableType;
     _turntableData.hidden = false;
+    _turntableData.position = 0;
     add(this);
   }
 
@@ -110,7 +143,8 @@ public:
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
-  
+  void addPosition(uint16_t value);
+  uint16_t getPositionValue(size_t position);
 
   /*
    * Virtual functions
@@ -125,7 +159,6 @@ public:
    * Public static functions
    */
   inline static bool exists(uint16_t id) { return get(id) != 0; }
-  static bool remove(uint16_t id);
   static bool isPosition(uint16_t id, uint8_t position);
   static bool setPosition(uint16_t id, uint8_t position, uint8_t activity=0);
   static bool setPositionStateOnly(uint16_t id, uint8_t position);

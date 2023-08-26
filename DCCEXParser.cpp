@@ -1035,18 +1035,27 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     case 0: // <I> list turntable objects
         return Turntable::printAll(stream);
 
-    case 1: // <I id> delete turntable
-        if (!Turntable::remove(p[0]))
-            return false;
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
+    case 1: // <I id> nothing here for the moment at least
+        return false;
     
     case 2: // <I id position> - rotate to position for DCC turntables
         DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
         return true;
 
     case 3: // <I id position activity> rotate to position for EX-Turntable
-        DIAG(F("Rotate EXTT turntable %d to angle %d with activity %d"), p[0], p[1], p[2]);
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (tto) {
+                uint16_t value = tto->getPositionValue(p[1]);
+                if (value) {
+                    DIAG(F("Position %d value is %d"), p[1], value);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
         return true;
     
     default:    // If we're here, it must be creating a turntable object
@@ -1054,6 +1063,11 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             if (params > 5 && params < 41 && p[1] == HASH_KEYWORD_EXTT) {
                 DIAG(F("Create EXTT turntable %d on vpin %d and address %d with %d positions"), p[0], p[2], p[3], params - 4);
                 if (!EXTTTurntable::create(p[0], (uint8_t)p[1], (VPIN)p[2])) return false;
+                Turntable *tto = Turntable::get(p[0]);
+                for ( uint8_t i = 0; i < params - 4; i++) {
+                    tto->addPosition(p[i + 3]);
+                    DIAG(F("Add position %d"), p[i + 3]);
+                }
             } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
                 DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
             } else {

@@ -62,22 +62,23 @@ Turntable *Turntable::get(uint16_t id) {
   return NULL;
 }
 
-// Remove specified turntable from list and delete it
-bool Turntable::remove(uint16_t id) {
-  Turntable *tto, *pp=NULL;
+// Add a position
+void Turntable::addPosition(uint16_t value) {
+  _turntablePositions.insert(value);
+}
 
-  for (tto=_firstTurntable; tto!=NULL && tto->_turntableData.id!=id; pp=tto, tto=tto->_nextTurntable) {}
-  if (tto == NULL) return false;
-  if (tto == _firstTurntable) {
-    _firstTurntable = tto->_nextTurntable;
-  } else {
-    pp->_nextTurntable = tto->_nextTurntable;
+// Get value for position
+uint16_t Turntable::getPositionValue(size_t position) {
+  TurntablePosition* currentPosition = _turntablePositions.getHead();
+  for (size_t i = 0; i < position && currentPosition; i++) {
+    currentPosition = currentPosition->next;
   }
 
-  delete (EXTTTurntable *)tto;
-
-  turntablelistHash++;
-  return true;
+  if (currentPosition) {
+    return currentPosition->data;
+  } else {
+    return false;
+  }
 }
 
 /*
@@ -142,8 +143,6 @@ EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
         extt->_exttTurntableData.i2caddress = i2caddress;
         extt->_exttTurntableData.vpin = vpin;
         return tto;
-      } else {
-        remove(id);
       }
     }
     tto = (Turntable *)new EXTTTurntable(id, i2caddress, vpin);
