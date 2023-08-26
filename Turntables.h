@@ -183,16 +183,16 @@ class EXTTTurntable : public Turntable {
 private:
   // EXTTTurntableData contains device specific data
   struct EXTTTurntableData {
-    uint8_t i2caddress;
     VPIN vpin;
+    uint8_t i2caddress;
   } _exttTurntableData;
 
   // Constructor
-  EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin);
+  EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress);
 
 public:
   // Create function
-  static Turntable *create(uint16_t id, uint8_t i2caddress, VPIN vpin);
+  static Turntable *create(uint16_t id, VPIN vpin, uint8_t i2caddress);
   void print(Print *stream) override;
 
 protected:

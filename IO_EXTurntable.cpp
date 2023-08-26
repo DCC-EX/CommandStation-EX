@@ -100,6 +100,7 @@ int EXTurntable::_read(VPIN vpin) {
 // Acc_Off = 9           // Turn accessory pin off
 void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) {
   if (_deviceState == DEVSTATE_FAILED) return;
+  if (value < 0) return;
   uint8_t stepsMSB = value >> 8;
   uint8_t stepsLSB = value & 0xFF;
 #ifdef DIAG_IO

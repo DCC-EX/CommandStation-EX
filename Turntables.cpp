@@ -126,26 +126,26 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
  * 
  *************************************************************************************/
 // Private constructor
-EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
+EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
   Turntable(id, TURNTABLE_EXTT)
 {
-  _exttTurntableData.i2caddress = i2caddress;
   _exttTurntableData.vpin = vpin;
+  _exttTurntableData.i2caddress = i2caddress;
 }
 
 // Create function
-  Turntable *EXTTTurntable::create(uint16_t id, uint8_t i2caddress, VPIN vpin) {
+  Turntable *EXTTTurntable::create(uint16_t id, VPIN vpin, uint8_t i2caddress) {
 #ifndef IO_NO_HAL
     Turntable *tto = get(id);
     if (tto) {
       if (tto->isType(TURNTABLE_EXTT)) {
         EXTTTurntable *extt = (EXTTTurntable *)tto;
-        extt->_exttTurntableData.i2caddress = i2caddress;
         extt->_exttTurntableData.vpin = vpin;
+        extt->_exttTurntableData.i2caddress = i2caddress;
         return tto;
       }
     }
-    tto = (Turntable *)new EXTTTurntable(id, i2caddress, vpin);
+    tto = (Turntable *)new EXTTTurntable(id, vpin, i2caddress);
     DIAG(F("Turntable 0x%x"), tto);
     return tto;
 #else
@@ -157,7 +157,7 @@ EXTTTurntable::EXTTTurntable(uint16_t id, uint8_t i2caddress, VPIN vpin) :
   }
 
   void EXTTTurntable::print(Print *stream) {
-    StringFormatter::send(stream, F("<i %d EXTURNTABLE %d %d>\n"), _turntableData.id, _exttTurntableData.i2caddress, _exttTurntableData.vpin);
+    StringFormatter::send(stream, F("<i %d EXTURNTABLE %d %d>\n"), _turntableData.id, _exttTurntableData.vpin, _exttTurntableData.i2caddress);
   }
 
   // EX-Turntable specific code for moving to the specified position

@@ -1060,11 +1060,12 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     
     default:    // If we're here, it must be creating a turntable object
         {
+            DIAG(F("Params: %d"), params);
             if (params > 5 && params < 41 && p[1] == HASH_KEYWORD_EXTT) {
                 DIAG(F("Create EXTT turntable %d on vpin %d and address %d with %d positions"), p[0], p[2], p[3], params - 4);
-                if (!EXTTTurntable::create(p[0], (uint8_t)p[1], (VPIN)p[2])) return false;
+                if (!EXTTTurntable::create(p[0], (VPIN)p[2], (uint8_t)p[3])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                for ( uint8_t i = 0; i < params - 4; i++) {
+                for ( uint8_t i = params - 4; i > 0; i--) {
                     tto->addPosition(p[i + 3]);
                     DIAG(F("Add position %d"), p[i + 3]);
                 }
