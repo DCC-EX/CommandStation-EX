@@ -84,19 +84,6 @@ uint16_t Turntable::getPositionValue(size_t position) {
 /*
  * Public static functions
  */
-bool Turntable::isPosition(uint16_t id, uint8_t position) {
-  Turntable *tto = get(id);
-  if (tto) {
-    if (tto->getPosition() == position) {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
-}
-
 bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position) {
   Turntable *tto = get(id);
   if (!tto) return false;
@@ -117,6 +104,7 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 
   if (ok) {
     tto->setPositionStateOnly(id, position);
+    tto->_turntableData.position = position;
   }
   return ok;
 }
@@ -163,10 +151,12 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
   // EX-Turntable specific code for moving to the specified position
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
 #ifndef IO_NO_HAL
-    // Get step value from positions
-    // int value = _exttTurntableData.positions[position];
+    DIAG(F("Set EXTT %d to position %d with activity %d"), _exttTurntableData.vpin, position, activity);
+    // Get position value from position list
+    int16_t value = getPositionValue(position);
+    if (!value) return false; // Return false if it's not a valid position
     // Set position via device driver
-    // EXTurntable::_writeAnalogue(vpin, value, activity, 0);
+    EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
 #else
     (void)position;
 #endif

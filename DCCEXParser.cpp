@@ -1039,19 +1039,27 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         return false;
     
     case 2: // <I id position> - rotate to position for DCC turntables
-        DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (tto) {
+                if (tto->getPosition() == p[1]) return true;
+                uint16_t value = tto->getPositionValue(p[1]);
+                if (value) {
+                    DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
         return true;
 
     case 3: // <I id position activity> rotate to position for EX-Turntable
         {
             Turntable *tto = Turntable::get(p[0]);
             if (tto) {
-                uint16_t value = tto->getPositionValue(p[1]);
-                if (value) {
-                    DIAG(F("Position %d value is %d"), p[1], value);
-                } else {
-                    return false;
-                }
+                if (!tto->setPosition(p[0], p[1], p[2])) return false;
             } else {
                 return false;
             }
@@ -1061,7 +1069,6 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     default:    // If we're here, it must be creating a turntable object
         {
             if (params > 5 && params < 41 && p[1] == HASH_KEYWORD_EXTT) {
-                DIAG(F("Create EXTT turntable %d on vpin %d and address %d with %d positions"), p[0], p[2], p[3], params - 4);
                 if (Turntable::get(p[0])) return false;
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2], (uint8_t)p[3])) return false;
                 Turntable *tto = Turntable::get(p[0]);

@@ -159,7 +159,6 @@ public:
    * Public static functions
    */
   inline static bool exists(uint16_t id) { return get(id) != 0; }
-  static bool isPosition(uint16_t id, uint8_t position);
   static bool setPosition(uint16_t id, uint8_t position, uint8_t activity=0);
   static bool setPositionStateOnly(uint16_t id, uint8_t position);
   inline static Turntable *first() { return _firstTurntable; }
