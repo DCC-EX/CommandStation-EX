@@ -85,6 +85,7 @@ const int16_t HASH_KEYWORD_A='A';
 const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
 const int16_t HASH_KEYWORD_I='I';
+const int16_t HASH_KEYWORD_O='O';
 const int16_t HASH_KEYWORD_R='R';
 const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_X='X';
@@ -691,6 +692,29 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 StringFormatter::send(stream, F(">\n"));
                 return;
+            case HASH_KEYWORD_O: // <JO returns turntable list
+                StringFormatter::send(stream, F("<jO"));
+                if (params==1) { // <JO>
+                    for ( Turntable * tto=Turntable::first(); tto; tto=tto->next()) { 
+                        if (tto->isHidden()) continue;          
+                        StringFormatter::send(stream, F(" %d"),tto->getId());
+                    }
+                } else {    // <JO id>
+                    Turntable *tto=Turntable::get(id);
+                    if (!tto || tto->isHidden()) {
+                        StringFormatter::send(stream, F(" %d X"), id);
+                    } else {
+                        uint8_t pos = tto->getPosition();
+                        const FSH *todesc = NULL;
+#ifdef EXRAIL_ACTIVE
+                        // todesc = RMFT2::getTurntableDescription(id);
+#endif
+                        if (todesc == NULL) todesc = F("");
+                        StringFormatter::send(stream, F(" %d %d"), id, pos);
+                    }
+                }
+                StringFormatter::send(stream, F(">\n"));
+                return;
             default: break;    
             }  // switch(p[1])
         break; // case J
@@ -1075,7 +1099,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 for (uint8_t i = params - 4; i > 0; i--) {
                     tto->addPosition(p[i + 3]);
                 }
-                tto->addPosition(0);    // Need to add position 0 as 0 so positions start at 1
+                tto->addPosition(p[3]); // Allow setting a value for the home angle for throttles to draw it
             } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
                 DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
             } else {

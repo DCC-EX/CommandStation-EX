@@ -152,8 +152,8 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
 #ifndef IO_NO_HAL
     DIAG(F("Set EXTT %d to position %d with activity %d"), _exttTurntableData.vpin, position, activity);
-    // Get position value from position list
-    int16_t value = getPositionValue(position);
+    if (position == 0) return false;  // Position 0 is just so throttles know where home is
+    int16_t value = getPositionValue(position); // Get position value from position list
     if (!value) return false; // Return false if it's not a valid position
     // Set position via device driver
     EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
