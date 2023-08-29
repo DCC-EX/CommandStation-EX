@@ -638,12 +638,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case ' ': // < >
         StringFormatter::send(stream, F("\n"));
         return;
-
+#ifndef DISABLE_DIAG
     case 'D': // < >
         if (parseD(stream, params, p))
             return;
         return;
-
+#endif
     case '=': // <= Track manager control  >
         if (TrackManager::parseJ(stream, params, p))
             return;
