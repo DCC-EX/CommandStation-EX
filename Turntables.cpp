@@ -81,6 +81,17 @@ uint16_t Turntable::getPositionValue(size_t position) {
   }
 }
 
+// Get the count of positions associated with the turntable
+uint8_t Turntable::getPositionCount()  {
+  TurntablePosition* currentPosition = _turntablePositions.getHead();
+  uint8_t count = 0;
+  while (currentPosition) {
+    count++;
+    currentPosition = currentPosition->next;
+  }
+  return count;
+}
+
 /*
  * Public static functions
  */
@@ -103,8 +114,11 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
   bool ok = tto->setPositionInternal(position, activity);
 
   if (ok) {
-    tto->setPositionStateOnly(id, position);
-    tto->_turntableData.position = position;
+    // Broadcast a position change only if non zero has been set, or home/calibration sent
+    if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
+      tto->setPositionStateOnly(id, position);
+      tto->_turntableData.position = position;
+    }
   }
   return ok;
 }
@@ -134,7 +148,7 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
       }
     }
     tto = (Turntable *)new EXTTTurntable(id, vpin, i2caddress);
-    DIAG(F("Turntable 0x%x"), tto);
+    DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
     return tto;
 #else
   (void)id;
@@ -151,10 +165,14 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
   // EX-Turntable specific code for moving to the specified position
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
 #ifndef IO_NO_HAL
-    DIAG(F("Set EXTT %d to position %d with activity %d"), _exttTurntableData.vpin, position, activity);
-    if (position == 0) return false;  // Position 0 is just so throttles know where home is
-    int16_t value = getPositionValue(position); // Get position value from position list
-    if (!value) return false; // Return false if it's not a valid position
+    int16_t value;
+    if (position == 0) {
+      value = 0;  // Position 0 is just to send activities
+    } else {
+      if (activity > 1) return false; // If sending a position update, only phase changes valid (0|1)
+      value = getPositionValue(position); // Get position value from position list
+    }
+    if (position > 0 && !value) return false; // Return false if it's not a valid position
     // Set position via device driver
     EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
 #else

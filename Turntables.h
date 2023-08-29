@@ -140,11 +140,13 @@ public:
   inline bool isHidden() { return _turntableData.hidden; }
   inline void setHidden(bool h) {_turntableData.hidden=h; }
   inline bool isType(uint8_t type) { return _turntableData.turntableType == type; }
+  inline uint8_t getType() { return _turntableData.turntableType; }
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
   void addPosition(uint16_t value);
   uint16_t getPositionValue(size_t position);
+  uint8_t getPositionCount();
 
   /*
    * Virtual functions

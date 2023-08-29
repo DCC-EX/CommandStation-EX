@@ -695,7 +695,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             case HASH_KEYWORD_O: // <JO returns turntable list
                 StringFormatter::send(stream, F("<jO"));
                 if (params==1) { // <JO>
-                    for ( Turntable * tto=Turntable::first(); tto; tto=tto->next()) { 
+                    for (Turntable * tto=Turntable::first(); tto; tto=tto->next()) { 
                         if (tto->isHidden()) continue;          
                         StringFormatter::send(stream, F(" %d"),tto->getId());
                     }
@@ -705,12 +705,18 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         StringFormatter::send(stream, F(" %d X"), id);
                     } else {
                         uint8_t pos = tto->getPosition();
+                        uint8_t type = tto->getType();
+                        uint8_t posCount = tto->getPositionCount();
                         const FSH *todesc = NULL;
 #ifdef EXRAIL_ACTIVE
                         // todesc = RMFT2::getTurntableDescription(id);
 #endif
                         if (todesc == NULL) todesc = F("");
-                        StringFormatter::send(stream, F(" %d %d"), id, pos);
+                        StringFormatter::send(stream, F(" %d %d %d %d"), id, type, pos, posCount);
+                        for (uint8_t p = 0; p < posCount; p++) {
+                            int16_t value = tto->getPositionValue(p);
+                            StringFormatter::send(stream, F(" %d"), value);
+                        }
                     }
                 }
                 StringFormatter::send(stream, F(">\n"));
@@ -1047,7 +1053,6 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 // ==========================
 // Turntable
 // <I> - list all
-// <I id> - delete
 // <I id steps> - operate (DCC)
 // <I id steps activity> - operate (EXTT)
 // <I id EXTT i2caddress vpin position1 position2 ...> - create EXTT
@@ -1096,10 +1101,10 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (Turntable::get(p[0])) return false;
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2], (uint8_t)p[3])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                for (uint8_t i = params - 4; i > 0; i--) {
-                    tto->addPosition(p[i + 3]);
+                for (uint8_t i = params - 5; i > 0; i--) {
+                    tto->addPosition(p[i + 4]);
                 }
-                tto->addPosition(p[3]); // Allow setting a value for the home angle for throttles to draw it
+                tto->addPosition(p[4]); // Allow setting a value for the home angle for throttles to draw it
             } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
                 DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
             } else {
