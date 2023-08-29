@@ -27,12 +27,6 @@
 // Define symbol DIAG_LOOPTIMES to enable CS loop execution time to be reported
 //#define DIAG_LOOPTIMES
 
-// Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
-// The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
-#if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO) 
-#define IO_NO_HAL
-#endif
-
 // Define symbol IO_SWITCH_OFF_SERVO to set the PCA9685 output to 0 when an 
 // animation has completed.  This switches off the servo motor, preventing 
 // the continuous buzz sometimes found on servos, and reducing the 

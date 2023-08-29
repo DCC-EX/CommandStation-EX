@@ -24,6 +24,7 @@
 #include <Arduino.h>
 #include "FSH.h"
 #include "RingStream.h"
+#include "defines.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 typedef void (*AT_COMMAND_CALLBACK)(HardwareSerial * stream,const byte * command);
@@ -37,7 +38,7 @@ struct DCCEXParser
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
-   static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
+   static const int MAX_COMMAND_PARAMS=MAX_PARSER_PARAMS;  // Must not exceed this
  
    private:
   
@@ -49,7 +50,9 @@ struct DCCEXParser
     static bool parseS(Print * stream, int16_t params, int16_t p[]);
     static bool parsef(Print * stream, int16_t params, int16_t p[]);
     static bool parseD(Print * stream, int16_t params, int16_t p[]);
+#ifndef IO_NO_HAL
     static bool parseI(Print * stream, int16_t params, int16_t p[]);
+#endif
 
     static Print * getAsyncReplyStream();
     static void commitAsyncReplyStream();

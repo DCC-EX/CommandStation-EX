@@ -26,6 +26,8 @@
 #include "EXRAIL2.h"
 #include "DCC.h"
 
+// No turntable support without HAL
+#ifndef IO_NO_HAL
 
 /*
  * Protected static data
@@ -180,3 +182,5 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
 #endif
     return true;
   }
+
+#endif

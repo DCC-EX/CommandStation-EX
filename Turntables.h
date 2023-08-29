@@ -25,6 +25,9 @@
 #include "IODevice.h"
 #include "StringFormatter.h"
 
+// No turntable support without HAL
+#ifndef IO_NO_HAL
+
 // Turntable type definitions
 // EXTT = EX-Turntable
 // DCC = DCC accessory turntables - to be added later
@@ -201,5 +204,7 @@ protected:
   bool setPositionInternal(uint8_t position, uint8_t activity) override;
 
 };
+
+#endif
 
 #endif

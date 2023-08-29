@@ -692,6 +692,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 StringFormatter::send(stream, F(">\n"));
                 return;
+// No turntables without HAL support
+#ifndef IO_NO_HAL
             case HASH_KEYWORD_O: // <JO returns turntable list
                 StringFormatter::send(stream, F("<jO"));
                 if (params==1) { // <JO>
@@ -721,15 +723,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 StringFormatter::send(stream, F(">\n"));
                 return;
+#endif
             default: break;    
             }  // switch(p[1])
         break; // case J
         }
 
+// No turntables without HAL support
+#ifndef IO_NO_HAL
     case 'I': // TURNTABLE  <I ...>
         if (parseI(stream, params, p))
             return;
         break;
+#endif
 
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
@@ -1051,12 +1057,13 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 }
 
 // ==========================
-// Turntable
+// Turntable - no support if no HAL
 // <I> - list all
 // <I id steps> - operate (DCC)
 // <I id steps activity> - operate (EXTT)
 // <I id EXTT i2caddress vpin position1 position2 ...> - create EXTT
 // <I id DCC linear1 linear2 ...> - create DCC? - This TBA
+#ifndef IO_NO_HAL
 bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
 {
     switch (params)
@@ -1114,6 +1121,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         return true;
     }
 }
+#endif
 
 // CALLBACKS must be static
 bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream)
