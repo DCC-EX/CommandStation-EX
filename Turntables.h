@@ -32,8 +32,8 @@
 // EXTT = EX-Turntable
 // DCC = DCC accessory turntables - to be added later
 enum {
-  TURNTABLE_EXTT = 1,
-  // TURNTABLE_DCC = 2,
+  TURNTABLE_EXTT = 0,
+  TURNTABLE_DCC = 1,
 };
 
 /*************************************************************************************
@@ -41,18 +41,19 @@ enum {
  * 
  *************************************************************************************/
 struct TurntablePosition {
+  uint8_t index;
   uint16_t data;
   TurntablePosition* next;
   
-  TurntablePosition(uint16_t value) : data(value), next(nullptr) {}
+  TurntablePosition(uint8_t idx, uint16_t value) : index(idx), data(value), next(nullptr) {}
 };
 
 class TurntablePositionList {
 public:
-  TurntablePositionList() : head(nullptr) {}
+  TurntablePositionList() : head(nullptr), currentIndex(0) {}
 
   void insert(uint16_t value) {
-    TurntablePosition* newPosition = new TurntablePosition(value);
+    TurntablePosition* newPosition = new TurntablePosition(currentIndex++, value);
     if(!head) {
       head = newPosition;
     } else {
@@ -67,6 +68,7 @@ public:
 
 private:
   TurntablePosition* head;
+  uint8_t currentIndex;
 
 };
 
@@ -87,8 +89,8 @@ protected:
     union {
       struct {
         bool hidden : 1;
-        uint8_t turntableType : 2;
-        uint8_t position : 5;       // Allows up to 38 positions including 0/home
+        bool turntableType : 1;
+        uint8_t position : 6;       // Allows up to 63 positions including 0/home
       };
       uint8_t flags;
     };
@@ -148,7 +150,7 @@ public:
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
   void addPosition(uint16_t value);
-  uint16_t getPositionValue(size_t position);
+  uint16_t getPositionValue(uint8_t position);
   uint8_t getPositionCount();
 
   /*

@@ -98,6 +98,7 @@ const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;
 const int16_t HASH_KEYWORD_WIT = 31594;
 const int16_t HASH_KEYWORD_EXTT = 8573;
+const int16_t HASH_KEYWORD_ADD = 3201;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -714,7 +715,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         // todesc = RMFT2::getTurntableDescription(id);
 #endif
                         if (todesc == NULL) todesc = F("");
-                        StringFormatter::send(stream, F(" %d %d %d %d"), id, type, pos, posCount);
+                        StringFormatter::send(stream, F(" %d %d %d"), id, type, pos);
                         for (uint8_t p = 0; p < posCount; p++) {
                             int16_t value = tto->getPositionValue(p);
                             StringFormatter::send(stream, F(" %d"), value);
@@ -1059,10 +1060,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 // ==========================
 // Turntable - no support if no HAL
 // <I> - list all
+// <I id> - broadcast type and current position
+// <I id DCC> - create DCC - This is TBA
 // <I id steps> - operate (DCC)
 // <I id steps activity> - operate (EXTT)
-// <I id EXTT i2caddress vpin position1 position2 ...> - create EXTT
-// <I id DCC linear1 linear2 ...> - create DCC? - This TBA
+// <I id ADD position value> - add position
+// <I id EXTT i2caddress vpin home> - create EXTT
 #ifndef IO_NO_HAL
 bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
 {
@@ -1071,47 +1074,58 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     case 0: // <I> list turntable objects
         return Turntable::printAll(stream);
 
-    case 1: // <I id> nothing here for the moment at least
+    case 1: // <I id> broadcast type and current position
         return false;
     
     case 2: // <I id position> - rotate to position for DCC turntables
         {
-            Turntable *tto = Turntable::get(p[0]);
-            if (tto) {
-                if (tto->getPosition() == p[1]) return true;
-                uint16_t value = tto->getPositionValue(p[1]);
-                if (value) {
-                    DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
+            if (p[1] == HASH_KEYWORD_DCC) { // Create a DCC turntable
+                DIAG(F("Create DCC turntable %d"), p[0]);
+            } else {    // Otherwise move a DCC turntable
+                Turntable *tto = Turntable::get(p[0]);
+                if (tto) {
+                    if (tto->getPosition() == p[1]) return true;
+                    uint16_t value = tto->getPositionValue(p[1]);
+                    if (value) {
+                        DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
+                    } else {
+                        return false;
+                    }
                 } else {
                     return false;
                 }
-            } else {
-                return false;
             }
         }
         return true;
 
-    case 3: // <I id position activity> rotate to position for EX-Turntable
+    case 3: 
         {
-            Turntable *tto = Turntable::get(p[0]);
-            if (tto) {
-                if (!tto->setPosition(p[0], p[1], p[2])) return false;
-            } else {
-                return false;
+            if (p[1] == HASH_KEYWORD_ADD) { // <I id ADD value> add position value to turntable
+                Turntable *tto = Turntable::get(p[0]);
+                if (tto) {
+                    tto->addPosition(p[2]);
+                    StringFormatter::send(stream, F("<i>\n"));
+                } else {
+                    return false;
+                }
+            } else {    // <I id position activity> rotate to position for EX-Turntable
+                Turntable *tto = Turntable::get(p[0]);
+                if (tto) {
+                    if (!tto->setPosition(p[0], p[1], p[2])) return false;
+                } else {
+                    return false;
+                }
             }
         }
         return true;
     
-    default:    // If we're here, it must be creating a turntable object
+    case 5: // <I id EXTT vpin i2caddress home> create an EXTT turntable
         {
-            if (params > 5 && params < 41 && p[1] == HASH_KEYWORD_EXTT) {
+            if (p[1] == HASH_KEYWORD_EXTT) {
                 if (Turntable::get(p[0])) return false;
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2], (uint8_t)p[3])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                for (uint8_t i = params - 5; i > 0; i--) {
-                    tto->addPosition(p[i + 4]);
-                }
-                tto->addPosition(p[4]); // Allow setting a value for the home angle for throttles to draw it
+                tto->addPosition(p[4]);
             } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
                 DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
             } else {
@@ -1119,6 +1133,9 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             }
         }
         return true;
+    
+    default:    // Anything else is invalid
+        return false;
     }
 }
 #endif

@@ -70,17 +70,15 @@ void Turntable::addPosition(uint16_t value) {
 }
 
 // Get value for position
-uint16_t Turntable::getPositionValue(size_t position) {
+uint16_t Turntable::getPositionValue(uint8_t position) {
   TurntablePosition* currentPosition = _turntablePositions.getHead();
-  for (size_t i = 0; i < position && currentPosition; i++) {
+  while (currentPosition) {
+    if (currentPosition->index == position) {
+      return currentPosition->data;
+    }
     currentPosition = currentPosition->next;
   }
-
-  if (currentPosition) {
-    return currentPosition->data;
-  } else {
-    return false;
-  }
+  return false;
 }
 
 // Get the count of positions associated with the turntable
