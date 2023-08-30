@@ -451,12 +451,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
 #ifndef DISABLE_PROG
     case 'w': // WRITE CV on MAIN <w CAB CV VALUE>
-        DCC::writeCVByteMain(p[0], p[1], p[2]);
-        return;
+      if (params != 3)
+	break;
+      DCC::writeCVByteMain(p[0], p[1], p[2]);
+      return;
 
     case 'b': // WRITE CV BIT ON MAIN <b CAB CV BIT VALUE>
-        DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
-        return;
+      if (params != 4)
+	break;
+      DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
+      return;
 #endif
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
@@ -479,14 +483,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         
 #ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
-            if (!stashCallback(stream, p, ringStream))
-                break;
+        if (!stashCallback(stream, p, ringStream))
+	    break;
         if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
             DCC::setLocoId(p[0],callback_Wloco);
         else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
             DCC::writeCVByte(p[0], p[1], callback_W4);
-        else  // WRITE CV ON PROG <W CV VALUE>
+        else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
+	else
+            break;
         return;
 
     case 'V': // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
@@ -506,9 +512,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         break;
 
-    case 'B': // WRITE CV BIT ON PROG <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
+    case 'B': // WRITE CV BIT ON PROG  <B CV BIT VALUE CALLBACKNUM CALLBACKSUB> or <B CV BIT VALUE>
+        if (params != 3 && params != 5)
+	  break;
         if (!stashCallback(stream, p, ringStream))
-            break;
+	  break;
         DCC::writeCVBit(p[0], p[1], p[2], callback_B);
         return;
 
@@ -642,7 +650,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'D': // < >
         if (parseD(stream, params, p))
             return;
-        return;
+        break;
 #endif
     case '=': // <= Track manager control  >
         if (TrackManager::parseJ(stream, params, p))
