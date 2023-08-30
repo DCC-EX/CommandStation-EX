@@ -27,6 +27,12 @@
 #include "IO_MCP23017.h"
 #include "DCCTimer.h"
 
+#if !defined(IO_NO_HAL)
+  #ifdef FAST_CLOCK_I2C
+    #include "IO_EXFastClock.h"  // FastClock driver
+  #endif
+#endif
+
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
 #endif
@@ -75,6 +81,11 @@ void IODevice::begin() {
   } else {
     DIAG(F("Default PCA9685 at I2C 0x41 disabled due to configured user device"));
   }
+
+  #ifdef FAST_CLOCK_I2C
+    EXFastClock::create(FAST_CLOCK_I2C);
+    DIAG(F("EXFastClock::create"));
+  #endif
   
   // Predefine two MCP23017 module 0x20/0x21 if no conflicts
   // Allocates 32 pins 164-195
@@ -582,4 +593,3 @@ bool ArduinoPins::fastReadDigital(uint8_t pin) {
 #endif
   return result;
 }
-

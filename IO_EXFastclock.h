@@ -56,12 +56,12 @@ static void create(I2CAddress i2cAddress) {
   // XXXX change thistosave2 bytes
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
-      //DIAG(F("I2C Fast Clock found at %s"), i2cAddress.toString());
+      DIAG(F("I2C Fast Clock found at %s"), i2cAddress.toString());
       new EXFastClock(i2cAddress); 
     }
     else {
       FAST_CLOCK_EXISTS = false;
-      //DIAG(F("No Fast Clock found"));
+      DIAG(F("No Fast Clock found"));
       LCD(6,F("CLOCK NOT FOUND"));
     }
     
