@@ -36,6 +36,9 @@ enum {
   TURNTABLE_DCC = 1,
 };
 
+// Callback needs to return a bool: 1 = moving, 0 = stopped
+typedef void (*EXTT_CALLBACK)(bool moving);
+
 /*************************************************************************************
  * Turntable positions.
  * 
@@ -167,7 +170,7 @@ public:
    */
   inline static bool exists(uint16_t id) { return get(id) != 0; }
   static bool setPosition(uint16_t id, uint8_t position, uint8_t activity=0);
-  static bool setPositionStateOnly(uint16_t id, uint8_t position);
+  static bool setPositionStateOnly(uint16_t id, uint8_t position, bool moving);
   inline static Turntable *first() { return _firstTurntable; }
   static bool printAll(Print *stream) {
     bool gotOne = false;

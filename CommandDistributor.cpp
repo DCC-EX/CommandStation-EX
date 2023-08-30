@@ -161,8 +161,8 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
 #endif
 }
 
-void CommandDistributor::broadcastTurntable(int16_t id, uint8_t position) {
-  broadcastReply(COMMAND_TYPE, F("<i %d %d>\n"), id, position);
+void CommandDistributor::broadcastTurntable(int16_t id, uint8_t position, bool moving) {
+  broadcastReply(COMMAND_TYPE, F("<i %d %d %d>\n"), id, position, moving);
 }
 
 void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {

@@ -49,7 +49,7 @@ public :
   static void broadcastLoco(byte slot);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
-  static void broadcastTurntable(int16_t id, uint8_t position);
+  static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);
   static void setClockTime(int16_t time, int8_t rate, byte opt);
   static int16_t retClockTime();

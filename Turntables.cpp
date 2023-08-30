@@ -95,10 +95,10 @@ uint8_t Turntable::getPositionCount()  {
 /*
  * Public static functions
  */
-bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position) {
+bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position, bool moving) {
   Turntable *tto = get(id);
   if (!tto) return false;
-  CommandDistributor::broadcastTurntable(id, position);
+  CommandDistributor::broadcastTurntable(id, position, moving);
 #if defined(EXRAIL_ACTIVE)
   // RMFT2::turntableEvent(id, position);
 #endif
@@ -116,7 +116,11 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
   if (ok) {
     // Broadcast a position change only if non zero has been set, or home/calibration sent
     if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
-      tto->setPositionStateOnly(id, position);
+      if (tto->getType() == TURNTABLE_EXTT) {
+        tto->setPositionStateOnly(id, position, 1);
+      } else {
+        tto->setPositionStateOnly(id, position, 0);
+      }
       tto->_turntableData.position = position;
     }
   }
