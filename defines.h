@@ -222,17 +222,6 @@
 #define IO_NO_HAL
 #endif
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// This defines the maximum number of parameters DCCEXParser will accept.
-// The increase is required to allow for a sufficient number of turntable positions.
-//
-#ifdef IO_NO_HAL
-  #define MAX_PARSER_PARAMS 10
-#else
-  #define MAX_PARSER_PARAMS 20
-#endif
-
 #if __has_include ( "myAutomation.h")
   #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)
     #define EXRAIL_ACTIVE

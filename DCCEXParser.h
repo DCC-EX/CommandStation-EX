@@ -38,7 +38,7 @@ struct DCCEXParser
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
-   static const int MAX_COMMAND_PARAMS=MAX_PARSER_PARAMS;  // Must not exceed this
+   static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
  
    private:
   
