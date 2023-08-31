@@ -28,8 +28,7 @@
 * Refer to the documentation for further information including the valid activities.
 */
 
-#ifndef IO_EXTurntable_h
-#define IO_EXTurntable_h
+#ifndef IO_NO_HAL
 
 #include "IODevice.h"
 #include "I2CManager.h"
