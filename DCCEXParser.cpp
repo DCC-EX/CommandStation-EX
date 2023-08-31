@@ -1226,8 +1226,3 @@ void DCCEXParser::callback_Wloco(int16_t result)
     StringFormatter::send(getAsyncReplyStream(), F("<w %d>\n"), result);
     commitAsyncReplyStream();
 }
-
-void DCCEXParser::callback_Imoving(bool moving) {
-    if (!moving) StringFormatter::send(getAsyncReplyStream(), F("<i>"));
-    commitAsyncReplyStream();
-}
