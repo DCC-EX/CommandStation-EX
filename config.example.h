@@ -239,13 +239,22 @@ The configuration file for DCC-EX Command Station
 // SAMD/SAMC and STM32 have up to 6.)
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
-//
+// -------------------------------------
+// For Use with FastClock serial: uncomment the needed serial Port and 
+// FastClock will work, no further actions are needed
+// -------------------------------------
 //#define SERIAL1_COMMANDS
 //#define SERIAL2_COMMANDS
 //#define SERIAL3_COMMANDS
 //#define SERIAL4_COMMANDS
 //#define SERIAL5_COMMANDS
 //#define SERIAL6_COMMANDS
+//
+// -------------------------------------
+// FastClock with I2C
+// uncomment the following Line and Set the used I2C Address
+//#define FAST_CLOCK_I2C 0x55 // default is 0x55
+// -------------------------------------
 //
 // BLUETOOTH SERIAL ON ESP32
 // On ESP32 you have the possibility to use the builtin BT serial to connect to
