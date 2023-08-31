@@ -57,13 +57,6 @@ void Turntable::add(Turntable *tto) {
   turntablelistHash++;
 }
 
-// Find turntable from list
-Turntable *Turntable::get(uint16_t id) {
-  for (Turntable *tto = _firstTurntable; tto != NULL; tto = tto->_nextTurntable)
-    if (tto->_turntableData.id == id) return tto;
-  return NULL;
-}
-
 // Add a position
 void Turntable::addPosition(uint16_t value) {
   _turntablePositions.insert(value);
@@ -95,16 +88,39 @@ uint8_t Turntable::getPositionCount()  {
 /*
  * Public static functions
  */
+// Find turntable from list
+Turntable *Turntable::get(uint16_t id) {
+  for (Turntable *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable)
+    if (tto->_turntableData.id == id) return tto;
+  return NULL;
+}
+
+// Find turntable via Vpin
+Turntable *Turntable::getByVpin(VPIN vpin) {
+  for (Turntable *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable) {
+    if (tto->isEXTT()) {
+      EXTTTurntable *exttTto = static_cast<EXTTTurntable*>(tto);
+      if (exttTto->getVpin() == vpin) {
+        return tto;
+      }
+    }
+  }
+  return nullptr;
+}
+
+// Broadcast position changes
 bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position, bool moving) {
   Turntable *tto = get(id);
   if (!tto) return false;
-  CommandDistributor::broadcastTurntable(id, position, moving);
+  // Only need to broadcast from here if it's a DCC type, device driver broadcasts EXTT
+  if (!tto->isEXTT()) { CommandDistributor::broadcastTurntable(id, position, moving); }
 #if defined(EXRAIL_ACTIVE)
   // RMFT2::turntableEvent(id, position);
 #endif
   return true;
 }
 
+// Initiate a turntable move
 bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 #if defined(DIAG_IO)
   DIAG(F("Turntable(%d, %d)"), id, position);
@@ -116,12 +132,12 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
   if (ok) {
     // Broadcast a position change only if non zero has been set, or home/calibration sent
     if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
-      if (tto->getType() == TURNTABLE_EXTT) {
+      tto->_turntableData.position = position;
+      if (tto->isEXTT()) {
         tto->setPositionStateOnly(id, position, 1);
       } else {
         tto->setPositionStateOnly(id, position, 0);
       }
-      tto->_turntableData.position = position;
     }
   }
   return ok;
@@ -132,38 +148,39 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
  * 
  *************************************************************************************/
 // Private constructor
-EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
+EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin) :
   Turntable(id, TURNTABLE_EXTT)
 {
   _exttTurntableData.vpin = vpin;
-  _exttTurntableData.i2caddress = i2caddress;
 }
 
+using DevState = IODevice::DeviceStateEnum;
+
 // Create function
-  Turntable *EXTTTurntable::create(uint16_t id, VPIN vpin, uint8_t i2caddress) {
+  Turntable *EXTTTurntable::create(uint16_t id, VPIN vpin) {
 #ifndef IO_NO_HAL
     Turntable *tto = get(id);
     if (tto) {
       if (tto->isType(TURNTABLE_EXTT)) {
         EXTTTurntable *extt = (EXTTTurntable *)tto;
         extt->_exttTurntableData.vpin = vpin;
-        extt->_exttTurntableData.i2caddress = i2caddress;
         return tto;
       }
     }
-    tto = (Turntable *)new EXTTTurntable(id, vpin, i2caddress);
+    if (!IODevice::exists(vpin)) return nullptr;
+    if (IODevice::getStatus(vpin) == DevState::DEVSTATE_FAILED) return nullptr;
+    tto = (Turntable *)new EXTTTurntable(id, vpin);
     DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
     return tto;
 #else
   (void)id;
-  (void)i2caddress;
   (void)vpin;
   return NULL;
 #endif
   }
 
   void EXTTTurntable::print(Print *stream) {
-    StringFormatter::send(stream, F("<i %d EXTURNTABLE %d %d>\n"), _turntableData.id, _exttTurntableData.vpin, _exttTurntableData.i2caddress);
+    StringFormatter::send(stream, F("<i %d EXTURNTABLE %d>\n"), _turntableData.id, _exttTurntableData.vpin);
   }
 
   // EX-Turntable specific code for moving to the specified position
@@ -179,6 +196,45 @@ EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress) :
     if (position > 0 && !value) return false; // Return false if it's not a valid position
     // Set position via device driver
     EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
+#else
+    (void)position;
+#endif
+    return true;
+  }
+
+/*************************************************************************************
+ * DCCTurntable - DCC Turntable device.
+ * 
+ *************************************************************************************/
+// Private constructor
+DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
+
+// Create function
+  Turntable *DCCTurntable::create(uint16_t id) {
+#ifndef IO_NO_HAL
+    Turntable *tto = get(id);
+    if (!tto) {
+      tto = (Turntable *)new DCCTurntable(id);
+      DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
+    }
+    return tto;
+#else
+  (void)id;
+  return NULL;
+#endif
+  }
+
+  void DCCTurntable::print(Print *stream) {
+    StringFormatter::send(stream, F("<i %d DCCTURNTABLE>\n"), _turntableData.id);
+  }
+
+  // EX-Turntable specific code for moving to the specified position
+  bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
+#ifndef IO_NO_HAL
+    int16_t value = getPositionValue(position);
+    if (position == 0 || !value) return false; // Return false if it's not a valid position
+    // Set position via device driver
+    // DCC activate function here
 #else
     (void)position;
 #endif

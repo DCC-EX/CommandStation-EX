@@ -34,6 +34,8 @@
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
+#include "Turntables.h"
+#include "CommandDistributor.h"
 
 void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   new EXTurntable(firstVpin, nPins, I2CAddress);
@@ -44,6 +46,8 @@ EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _I2CAddress = I2CAddress;
+  _stepperStatus = 0;
+  _previousStatus = 0;
   addDevice(this);
 }
 
@@ -80,7 +84,19 @@ int EXTurntable::_read(VPIN vpin) {
   if (_stepperStatus > 1) {
     return false;
   } else {
+    if (_stepperStatus != _previousStatus) {
+      _broadcastStatus(vpin, _stepperStatus);
+      _previousStatus = _stepperStatus;
+    }
     return _stepperStatus;
+  }
+}
+
+// If a status change has occurred for a turntable object, broadcast it
+void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status) {
+  Turntable *tto = Turntable::getByVpin(vpin);
+  if (tto) {
+    CommandDistributor::broadcastTurntable(tto->getId(), tto->getPosition(), status);
   }
 }
 

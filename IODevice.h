@@ -154,6 +154,9 @@ public:
   // exists checks whether there is a device owning the specified vpin
   static bool exists(VPIN vpin);
 
+  // getStatus returns the state of the device at the specified vpin
+  static uint8_t getStatus(VPIN vpin);
+
   // Enable shared interrupt on specified pin for GPIO extender modules.  The extender module
   // should pull down this pin when requesting a scan.  The pin may be shared by multiple modules.
   // Without the shared interrupt, input states are scanned periodically to detect changes on 
@@ -405,9 +408,11 @@ private:
   void _begin() override;
   void _loop(unsigned long currentMicros) override;
   int _read(VPIN vpin) override;
+  void _broadcastStatus (VPIN vpin, uint8_t status);
   void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) override;
   void _display() override;
   uint8_t _stepperStatus;
+  uint8_t _previousStatus;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -135,6 +135,7 @@ protected:
 
 public:
   static Turntable *get(uint16_t id);
+  static Turntable *getByVpin(VPIN vpin);
 
   /*
    * Static data
@@ -148,7 +149,7 @@ public:
   inline bool isHidden() { return _turntableData.hidden; }
   inline void setHidden(bool h) {_turntableData.hidden=h; }
   inline bool isType(uint8_t type) { return _turntableData.turntableType == type; }
-  inline uint8_t getType() { return _turntableData.turntableType; }
+  inline bool isEXTT() const { return _turntableData.turntableType == TURNTABLE_EXTT; }
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
@@ -193,20 +194,40 @@ private:
   // EXTTTurntableData contains device specific data
   struct EXTTTurntableData {
     VPIN vpin;
-    uint8_t i2caddress;
   } _exttTurntableData;
 
   // Constructor
-  EXTTTurntable(uint16_t id, VPIN vpin, uint8_t i2caddress);
+  EXTTTurntable(uint16_t id, VPIN vpin);
 
 public:
   // Create function
-  static Turntable *create(uint16_t id, VPIN vpin, uint8_t i2caddress);
+  static Turntable *create(uint16_t id, VPIN vpin);
   void print(Print *stream) override;
+  VPIN getVpin() const { return _exttTurntableData.vpin; }
 
 protected:
   // EX-Turntable specific code for setting position
   bool setPositionInternal(uint8_t position, uint8_t activity) override;
+
+};
+
+/*************************************************************************************
+ * DCCTurntable - DCC accessory Turntable device.
+ * 
+ *************************************************************************************/
+class DCCTurntable : public Turntable {
+private:
+  // Constructor
+  DCCTurntable(uint16_t id);
+
+public:
+  // Create function
+  static Turntable *create(uint16_t id);
+  void print(Print *stream) override;
+
+protected:
+  // DCC specific code for setting position
+  bool setPositionInternal(uint8_t position, uint8_t activity=0) override;
 
 };
 

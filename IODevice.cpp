@@ -176,6 +176,13 @@ bool IODevice::exists(VPIN vpin) {
   return findDevice(vpin) != NULL;
 }
 
+// Return the status of the device att vpin.
+uint8_t IODevice::getStatus(VPIN vpin) {
+  IODevice *dev = findDevice(vpin);
+  if (!dev) return false;
+  return dev->_deviceState;
+}
+
 // check whether the pin supports notification.  If so, then regular _read calls are not required.
 bool IODevice::hasCallback(VPIN vpin) {
   IODevice *dev = findDevice(vpin);

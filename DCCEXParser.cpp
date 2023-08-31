@@ -708,7 +708,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         StringFormatter::send(stream, F(" %d X"), id);
                     } else {
                         uint8_t pos = tto->getPosition();
-                        uint8_t type = tto->getType();
+                        uint8_t type = tto->isEXTT();
                         uint8_t posCount = tto->getPositionCount();
                         const FSH *todesc = NULL;
 #ifdef EXRAIL_ACTIVE
@@ -1075,22 +1075,29 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         return Turntable::printAll(stream);
 
     case 1: // <I id> broadcast type and current position
-        return false;
+        {    
+            Turntable *tto = Turntable::get(p[0]);
+            if (tto) {
+                bool type = tto->isEXTT();
+                uint8_t position = tto->getPosition();
+                StringFormatter::send(stream, F("<i %d %d>\n"), type, position);
+            } else {
+                return false;
+            }
+        }
+        return true;
     
     case 2: // <I id position> - rotate to position for DCC turntables
         {
+            Turntable *tto = Turntable::get(p[0]);
             if (p[1] == HASH_KEYWORD_DCC) { // Create a DCC turntable
-                DIAG(F("Create DCC turntable %d"), p[0]);
-            } else {    // Otherwise move a DCC turntable
+                if (tto) return false;
+                if (!DCCTurntable::create(p[0])) return false;
                 Turntable *tto = Turntable::get(p[0]);
+                tto->addPosition(0);
+            } else {    // Otherwise move a DCC turntable
                 if (tto) {
-                    if (tto->getPosition() == p[1]) return true;
-                    uint16_t value = tto->getPositionValue(p[1]);
-                    if (value) {
-                        DIAG(F("Rotate DCC turntable %d to position %d"), p[0], p[1]);
-                    } else {
-                        return false;
-                    }
+                    if (!tto->setPosition(p[0], p[1])) return false;
                 } else {
                     return false;
                 }
@@ -1100,34 +1107,24 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
 
     case 3: 
         {
+            Turntable *tto = Turntable::get(p[0]);
+            if (!tto) return false;
             if (p[1] == HASH_KEYWORD_ADD) { // <I id ADD value> add position value to turntable
-                Turntable *tto = Turntable::get(p[0]);
-                if (tto) {
-                    tto->addPosition(p[2]);
-                    StringFormatter::send(stream, F("<i>\n"));
-                } else {
-                    return false;
-                }
+                tto->addPosition(p[2]);
+                StringFormatter::send(stream, F("<i>\n"));
             } else {    // <I id position activity> rotate to position for EX-Turntable
-                Turntable *tto = Turntable::get(p[0]);
-                if (tto) {
-                    if (!tto->setPosition(p[0], p[1], p[2])) return false;
-                } else {
-                    return false;
-                }
+                if (!tto->setPosition(p[0], p[1], p[2])) return false;
             }
         }
         return true;
     
-    case 5: // <I id EXTT vpin i2caddress home> create an EXTT turntable
+    case 4: // <I id EXTT vpin home> create an EXTT turntable
         {
             if (p[1] == HASH_KEYWORD_EXTT) {
                 if (Turntable::get(p[0])) return false;
-                if (!EXTTTurntable::create(p[0], (VPIN)p[2], (uint8_t)p[3])) return false;
+                if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                tto->addPosition(p[4]);
-            } else if (params > 3 && params < 39 && p[1] == HASH_KEYWORD_DCC) {
-                DIAG(F("Create DCC turntable %d at base address %d with %d positions"), p[0], p[2], params - 2);
+                tto->addPosition(p[3]);
             } else {
                 return false;
             }
