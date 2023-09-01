@@ -83,8 +83,8 @@ void IODevice::begin() {
   }
 
   #ifdef FAST_CLOCK_I2C
-    EXFastClock::create(FAST_CLOCK_I2C);
     DIAG(F("EXFastClock::create"));
+    EXFastClock::create(FAST_CLOCK_I2C);
   #endif
   
   // Predefine two MCP23017 module 0x20/0x21 if no conflicts
