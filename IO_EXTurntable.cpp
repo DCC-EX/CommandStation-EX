@@ -71,6 +71,12 @@ void EXTurntable::_loop(unsigned long currentMicros) {
   uint8_t readBuffer[1];
   I2CManager.read(_I2CAddress, readBuffer, 1);
   _stepperStatus = readBuffer[0];
+  if (_stepperStatus < 2) {
+    if (_stepperStatus != _previousStatus) {
+      _broadcastStatus(_firstVpin, _stepperStatus);
+      _previousStatus = _stepperStatus;
+    }
+  }
   // DIAG(F("Turntable-EX returned status: %d"), _stepperStatus);
   delayUntil(currentMicros + 500000);  // Wait 500ms before checking again, turntables turn slowly
 }
@@ -83,10 +89,6 @@ int EXTurntable::_read(VPIN vpin) {
   if (_stepperStatus > 1) {
     return false;
   } else {
-    if (_stepperStatus != _previousStatus) {
-      _broadcastStatus(vpin, _stepperStatus);
-      _previousStatus = _stepperStatus;
-    }
     return _stepperStatus;
   }
 }
