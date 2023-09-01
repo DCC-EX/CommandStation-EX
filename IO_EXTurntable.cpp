@@ -28,13 +28,13 @@
 * Refer to the documentation for further information including the valid activities.
 */
 
-#ifndef IO_NO_HAL
-
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "Turntables.h"
 #include "CommandDistributor.h"
+
+#ifndef IO_NO_HAL
 
 void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   new EXTurntable(firstVpin, nPins, I2CAddress);
