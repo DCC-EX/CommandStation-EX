@@ -25,6 +25,7 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "Turnouts.h"
+#include "Turntables.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
 // Each instruction is normally 3 bytes long with an operation code followed by a parameter.
@@ -62,6 +63,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
+             OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
+             OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_IFTTPOSITION,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -130,6 +133,7 @@ class LookList {
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
     static void clockEvent(int16_t clocktime, bool change);
+    static void rotateEvent(int16_t id, bool change);
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
@@ -144,6 +148,8 @@ class LookList {
   static const FSH *  getTurnoutDescription(int16_t id);
   static const FSH *  getRosterName(int16_t id);
   static const FSH *  getRosterFunctions(int16_t id);
+  static const FSH *  getTurntableDescription(int16_t id);
+  // static const FSH *  getTurntablePositionDescription(int16_t id, uint8_t position);
     
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
@@ -156,6 +162,7 @@ private:
     static bool isSignal(int16_t id,char rag); 
     static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
+    static void setTurntableHiddenState(Turntable * tto);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);
@@ -188,6 +195,7 @@ private:
    static LookList * onGreenLookup;
    static LookList * onChangeLookup;
    static LookList * onClockLookup;
+   static LookList * onRotateLookup;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

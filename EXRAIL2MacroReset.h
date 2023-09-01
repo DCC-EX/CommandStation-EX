@@ -40,6 +40,7 @@
 #undef CALL 
 #undef CLOSE 
 #undef DCC_SIGNAL
+#undef DCC_TURNTABLE
 #undef DEACTIVATE
 #undef DEACTIVATEL
 #undef DELAY
@@ -51,8 +52,9 @@
 #undef ENDEXRAIL 
 #undef ENDIF  
 #undef ENDTASK
-#undef ESTOP 
-#undef EXRAIL  
+#undef ESTOP
+#undef EXRAIL
+#undef EXTT_TURNTABLE
 #undef FADE
 #undef FOFF
 #undef FOLLOW 
@@ -75,6 +77,7 @@
 #undef IFRESERVE
 #undef IFTHROWN
 #undef IFTIMEOUT
+#undef IFTTPOSITION
 #undef IFRE
 #undef INVERT_DIRECTION 
 #undef JOIN 
@@ -95,6 +98,7 @@
 #undef ONCLOCKMINS
 #undef ONGREEN
 #undef ONRED
+#undef ONROTATE
 #undef ONTHROW 
 #undef ONCHANGE
 #undef PARSE
@@ -113,7 +117,8 @@
 #undef RESUME 
 #undef RETURN 
 #undef REV
-#undef ROSTER 
+#undef ROSTER
+#undef ROTATE
 #undef ROUTE
 #undef SENDLOCO 
 #undef SEQUENCE 
@@ -136,7 +141,8 @@
 #undef SPEED 
 #undef START 
 #undef STOP 
-#undef THROW  
+#undef THROW
+#undef TT_ADDPOSITION
 #undef TURNOUT 
 #undef TURNOUTL
 #undef UNJOIN
@@ -165,6 +171,7 @@
 #define CALL(route) 
 #define CLOSE(id) 
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCC_TURNTABLE(id,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
 #define DELAY(mindelay)
@@ -177,7 +184,8 @@
 #define ENDIF  
 #define ENDTASK
 #define ESTOP 
-#define EXRAIL  
+#define EXRAIL
+#define EXTT_TURNTABLE(id,vpin,home,description)
 #define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 
@@ -200,6 +208,7 @@
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
 #define IFTIMEOUT
+#define IFTTPOSITION(turntable_id,position)
 #define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
 #define JOIN 
@@ -219,7 +228,8 @@
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
 #define ONGREEN(signal_id) 
-#define ONRED(signal_id) 
+#define ONRED(signal_id)
+#define ONROTATE(turntable_id)
 #define ONTHROW(turnout_id) 
 #define ONCHANGE(sensor_id)
 #define PAUSE
@@ -238,8 +248,9 @@
 #define RESUME 
 #define RETURN 
 #define REV(speed) 
-#define ROUTE(id,description)
+#define ROTATE(turntable_id,position,activity)
 #define ROSTER(cab,name,funcmap...)
+#define ROUTE(id,description)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 
 #define SERIAL(msg) 
@@ -261,7 +272,8 @@
 #define SPEED(speed) 
 #define START(route) 
 #define STOP 
-#define THROW(id)  
+#define THROW(id)
+#define TT_ADDPOSITION(turntable_id,value,description)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
 #define UNJOIN 

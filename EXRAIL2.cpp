@@ -52,6 +52,7 @@
 #include "Turnouts.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
+#include "Turntables.h"
 
 // Command parsing keywords
 const int16_t HASH_KEYWORD_EXRAIL=15435;    
@@ -94,6 +95,7 @@ LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
 LookList *  RMFT2::onClockLookup=NULL;
+LookList *  RMFT2::onRotateLookup=NULL;
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -175,6 +177,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
+  onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 
 
   // Second pass startup, define any turnouts or servos, set signals red
@@ -238,6 +241,32 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
+
+    case OPCODE_DCCTURNTABLE: {
+      VPIN id=operand;
+      setTurntableHiddenState(DCCTurntable::create(id));
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(0);
+      break;
+    }
+
+    case OPCODE_EXTTTURNTABLE: {
+      VPIN id=operand;
+      VPIN pin=getOperand(progCounter,1);
+      int home=getOperand(progCounter,2);
+      setTurntableHiddenState(EXTTTurntable::create(id,pin));
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(home);
+      break;
+    }
+
+    case OPCODE_TTADDPOSITION: {
+      VPIN id=operand;
+      int value=getOperand(progCounter,1);
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(value);
+      break;
+    }
         
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
@@ -261,6 +290,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 void RMFT2::setTurnoutHiddenState(Turnout * t) {
   // turnout descriptions are in low flash F strings 
   t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+}
+
+void RMFT2::setTurntableHiddenState(Turntable * tto) {
+  tto->setHidden(GETFLASH(getTurntableDescription(tto->getId()))==0x01);
 }
 
 char RMFT2::getRouteType(int16_t id) {
@@ -598,6 +631,13 @@ void RMFT2::loop2() {
   case OPCODE_CLOSE:
     Turnout::setClosed(operand, true);
     break;
+  
+  case OPCODE_ROTATE:
+    uint8_t activity;
+    activity=getOperand(2);
+    if (!activity) activity=0;
+    Turntable::setPosition(operand,getOperand(1),activity);
+    break;
 
   case OPCODE_REV:
     forward = false;
@@ -787,6 +827,10 @@ void RMFT2::loop2() {
     
   case OPCODE_IFCLOSED:
     skipIf=Turnout::isThrown(operand);
+    break;
+
+  case OPCODE_IFTTPOSITION: // do block if turntable at this position
+    skipIf=Turntable::getPosition(operand)!=(int)getOperand(1);
     break;
     
   case OPCODE_ENDIF:
@@ -986,6 +1030,10 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+  case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
+  case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
+  case OPCODE_TTADDPOSITION:  // Turntable position definition ignored at runtime
+  case OPCODE_ONROTATE:
   
     break;
     
@@ -1128,6 +1176,11 @@ void RMFT2::activateEvent(int16_t addr, bool activate) {
 void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
+}
+
+void RMFT2::rotateEvent(int16_t turntableId, bool change) {
+  // Hunt or an ONROTATE for this turntable
+  if (change) handleEvent(F("ROTATE"),onRotateLookup,turntableId);
 }
 
 void RMFT2::clockEvent(int16_t clocktime, bool change) {

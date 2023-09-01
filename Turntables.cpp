@@ -108,6 +108,13 @@ Turntable *Turntable::getByVpin(VPIN vpin) {
   return nullptr;
 }
 
+// Get the current position for turntable with the specified ID
+uint8_t Turntable::getPosition(uint16_t id) {
+  Turntable *tto = get(id);
+  if (!tto) return false;
+  return tto->getPosition();
+}
+
 // Broadcast position changes
 bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position, bool moving) {
   Turntable *tto = get(id);
@@ -234,7 +241,10 @@ DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
     int16_t value = getPositionValue(position);
     if (position == 0 || !value) return false; // Return false if it's not a valid position
     // Set position via device driver
-    // DCC activate function here
+    int16_t addr=value>>3;
+    int16_t subaddr=(value>>1) & 0x03;
+    bool active=value & 0x01;
+    DCC::setAccessory(addr, subaddr, active);
 #else
     (void)position;
 #endif
