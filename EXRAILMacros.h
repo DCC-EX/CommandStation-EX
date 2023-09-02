@@ -292,7 +292,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,description...) OPCODE_DCCTURNTABLE,V(id),
+#endif
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
@@ -307,7 +309,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ENDTASK OPCODE_ENDTASK,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
 #define EXRAIL
+#ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
+#endif
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
@@ -330,7 +334,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
+#ifndef IO_NO_HAL
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
+#endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
@@ -351,7 +357,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
+#ifndef IO_NO_HAL
 #define ONROTATE(id) OPCODE_ONROTATE,V(id),
+#endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
@@ -371,7 +379,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
+#ifndef IO_NO_HAL
 #define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(activity),
+#endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
@@ -395,7 +405,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define START(route) OPCODE_START,V(route),
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
+#ifndef IO_NO_HAL
 #define TT_ADDPOSITION(id,value,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(value),
+#endif
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
 #define UNJOIN OPCODE_UNJOIN,0,0,

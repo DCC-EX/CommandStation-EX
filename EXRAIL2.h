@@ -162,7 +162,9 @@ private:
     static bool isSignal(int16_t id,char rag); 
     static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
+    #ifndef IO_NO_HAL
     static void setTurntableHiddenState(Turntable * tto);
+    #endif
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);

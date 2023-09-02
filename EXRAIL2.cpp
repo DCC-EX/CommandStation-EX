@@ -242,6 +242,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       break;
     }
 
+#ifndef IO_NO_HAL
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       setTurntableHiddenState(DCCTurntable::create(id));
@@ -267,7 +268,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       tto->addPosition(value);
       break;
     }
-        
+#endif
+
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
       // Removed if (progCounter>0) check 4.2.31 because 
@@ -292,9 +294,11 @@ void RMFT2::setTurnoutHiddenState(Turnout * t) {
   t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
 }
 
+#ifndef IO_NO_HAL
 void RMFT2::setTurntableHiddenState(Turntable * tto) {
   tto->setHidden(GETFLASH(getTurntableDescription(tto->getId()))==0x01);
 }
+#endif
 
 char RMFT2::getRouteType(int16_t id) {
   for (int16_t i=0;;i+=2) {
@@ -631,13 +635,15 @@ void RMFT2::loop2() {
   case OPCODE_CLOSE:
     Turnout::setClosed(operand, true);
     break;
-  
+
+#ifndef IO_NO_HAL
   case OPCODE_ROTATE:
     uint8_t activity;
     activity=getOperand(2);
     if (!activity) activity=0;
     Turntable::setPosition(operand,getOperand(1),activity);
     break;
+#endif
 
   case OPCODE_REV:
     forward = false;
@@ -829,10 +835,12 @@ void RMFT2::loop2() {
     skipIf=Turnout::isThrown(operand);
     break;
 
+#ifndef IO_NO_HAL
   case OPCODE_IFTTPOSITION: // do block if turntable at this position
     skipIf=Turntable::getPosition(operand)!=(int)getOperand(1);
     break;
-    
+#endif
+
   case OPCODE_ENDIF:
     break;
     
