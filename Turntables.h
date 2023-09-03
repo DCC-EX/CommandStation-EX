@@ -109,6 +109,9 @@ protected:
   // Store the previous position to allow checking for changes
   uint8_t _previousPosition = 0;
 
+  // Store the current state of the turntable
+  bool _isMoving = false;
+
   /*
    * Constructor
    */
@@ -159,6 +162,8 @@ public:
   void addPosition(uint16_t value);
   uint16_t getPositionValue(uint8_t position);
   uint8_t getPositionCount();
+  bool isMoving() { return _isMoving; }
+  void setMoving(bool moving) { _isMoving=moving; }
 
   /*
    * Virtual functions

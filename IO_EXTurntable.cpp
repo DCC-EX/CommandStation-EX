@@ -95,6 +95,7 @@ void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status) {
   Turntable *tto = Turntable::getByVpin(vpin);
   if (tto) {
     CommandDistributor::broadcastTurntable(tto->getId(), tto->getPosition(), status);
+    tto->setMoving(status);
   }
 }
 
