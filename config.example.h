@@ -167,6 +167,9 @@ The configuration file for DCC-EX Command Station
 //  *  #define SCROLLMODE 2 is by row (move up 1 row at a time).
 #define SCROLLMODE 1
 
+// Shows IP and Port on Display in a single line
+// #define PRINT_IP_PORT_SINGLE_LINE
+
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE EEPROM
 //
@@ -254,6 +257,11 @@ The configuration file for DCC-EX Command Station
 // FastClock with I2C
 // uncomment the following Line and Set the used I2C Address
 //#define FAST_CLOCK_I2C 0x55 // default is 0x55
+// -------------------------------------
+//
+// -------------------------------------
+// FastClock in HH:MM on Display
+//#define FASTCLOCK_READABLE
 // -------------------------------------
 //
 // BLUETOOTH SERIAL ON ESP32

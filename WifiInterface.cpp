@@ -347,11 +347,17 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       }
       ipString[ipLen]=ipChar;
     }
-    LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this      
+    #ifndef PRINT_IP_PORT_SINGLE_LINE
+      LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this    
+    #else
+      LCD(4,F("%s:%d"),ipString,port); // *** Single IP:Port  
+    #endif
   }
   // suck up anything after the IP. 
   if (!checkForOK(1000, true, false)) return WIFI_DISCONNECTED;
-  LCD(5,F("PORT=%d"),port);
+  #ifndef PRINT_IP_PORT_SINGLE_LINE
+    LCD(5,F("PORT=%d"),port);
+  #endif
    
   return WIFI_CONNECTED;
 }

@@ -181,7 +181,20 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte 
     case 1:
       if (clocktime != lastclocktime){
         // CAH. DIAG removed because LCD does it anyway. 
-        LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
+
+        #ifndef FASTCLOCK_READABLE
+          LCD(6,F("Clk Time: %d Sp %d"), clocktime, clockrate);
+        #else
+          // Make Time readable
+          int hours = clocktime / 60;
+          int minutes = clocktime - (hours * 60);
+          int hoursH = hours / 10;
+          int hoursL  = hours - (hoursH * 10);
+          int minutesH = minutes / 10;
+          int minutesL  = minutes - (minutesH * 10);
+          LCD(6,F("Clk Time: %d%d:%d%d Sp %d"), hoursH, hoursL, minutesH, minutesL, clockrate);
+        #endif
+        
         // look for an event for this time
         RMFT2::clockEvent(clocktime,1);
         // Now tell everyone else what the time is.
