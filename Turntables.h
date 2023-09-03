@@ -105,6 +105,9 @@ protected:
 
   // Linked list for positions
   TurntablePositionList _turntablePositions;
+  
+  // Store the previous position to allow checking for changes
+  uint8_t _previousPosition = 0;
 
   /*
    * Constructor

@@ -122,7 +122,9 @@ bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position, bool moving)
   // Only need to broadcast from here if it's a DCC type, device driver broadcasts EXTT
   if (!tto->isEXTT()) { CommandDistributor::broadcastTurntable(id, position, moving); }
 #if defined(EXRAIL_ACTIVE)
-  // RMFT2::turntableEvent(id, position);
+  bool rotated = false;
+  if (position != tto->_previousPosition) rotated = true;
+  if (!tto->isEXTT()) { RMFT2::rotateEvent(id, rotated); }
 #endif
   return true;
 }
@@ -138,6 +140,7 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 
   if (ok) {
     // Broadcast a position change only if non zero has been set, or home/calibration sent
+    tto->_previousPosition = tto->getPosition();
     if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
       tto->_turntableData.position = position;
       if (tto->isEXTT()) {

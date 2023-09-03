@@ -71,14 +71,11 @@ void EXTurntable::_loop(unsigned long currentMicros) {
   uint8_t readBuffer[1];
   I2CManager.read(_I2CAddress, readBuffer, 1);
   _stepperStatus = readBuffer[0];
-  if (_stepperStatus < 2) {
-    if (_stepperStatus != _previousStatus) {
-      _broadcastStatus(_firstVpin, _stepperStatus);
-      _previousStatus = _stepperStatus;
-    }
+  if (_stepperStatus != _previousStatus && _stepperStatus == 0) { // Broadcast when a rotation finishes
+    _broadcastStatus(_firstVpin, _stepperStatus);
+    _previousStatus = _stepperStatus;
   }
-  // DIAG(F("Turntable-EX returned status: %d"), _stepperStatus);
-  delayUntil(currentMicros + 500000);  // Wait 500ms before checking again, turntables turn slowly
+  delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
 }
 
 // Read returns status as obtained in our loop.
@@ -128,6 +125,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
     _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
 #endif
   _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
+  _broadcastStatus(vpin, _stepperStatus); // Broadcast when the rotation starts
   I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, activity);
 }
 
