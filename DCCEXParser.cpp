@@ -1087,7 +1087,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         }
         return true;
     
-    case 2: // <I id position> - rotate to position for DCC turntables
+    case 2: // <I id DCC> | <I id position> - rotate or create DCC turntable
         {
             Turntable *tto = Turntable::get(p[0]);
             if (p[1] == HASH_KEYWORD_DCC) { // Create a DCC turntable
@@ -1096,7 +1096,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 Turntable *tto = Turntable::get(p[0]);
                 tto->addPosition(0);
             } else {    // Otherwise move a DCC turntable
-                if (tto) {
+                if (tto && !tto->isEXTT()) {
                     if (!tto->setPosition(p[0], p[1])) return false;
                 } else {
                     return false;
@@ -1105,14 +1105,15 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         }
         return true;
 
-    case 3: 
+    case 3: // <I id ADD value> | <I id position activity>
         {
             Turntable *tto = Turntable::get(p[0]);
             if (!tto) return false;
-            if (p[1] == HASH_KEYWORD_ADD) { // <I id ADD value> add position value to turntable
+            if (p[1] == HASH_KEYWORD_ADD) { // Add position value to turntable
                 tto->addPosition(p[2]);
                 StringFormatter::send(stream, F("<i>\n"));
             } else {    // <I id position activity> rotate to position for EX-Turntable
+                if (!tto->isEXTT()) return false;
                 if (!tto->setPosition(p[0], p[1], p[2])) return false;
             }
         }

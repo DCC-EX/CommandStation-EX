@@ -140,8 +140,8 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 
   if (ok) {
     // Broadcast a position change only if non zero has been set, or home/calibration sent
-    tto->_previousPosition = tto->getPosition();
     if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
+      tto->_previousPosition = tto->getPosition();
       tto->_turntableData.position = position;
       if (tto->isEXTT()) {
         tto->setPositionStateOnly(id, position, 1);
@@ -179,6 +179,7 @@ using DevState = IODevice::DeviceStateEnum;
     }
     if (!IODevice::exists(vpin)) return nullptr;
     if (IODevice::getStatus(vpin) == DevState::DEVSTATE_FAILED) return nullptr;
+    if (Turntable::getByVpin(vpin)) return nullptr;
     tto = (Turntable *)new EXTTTurntable(id, vpin);
     DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
     return tto;
