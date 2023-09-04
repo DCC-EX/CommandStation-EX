@@ -115,40 +115,27 @@ uint8_t Turntable::getPosition(uint16_t id) {
   return tto->getPosition();
 }
 
-// Broadcast position changes
-bool Turntable::setPositionStateOnly(uint16_t id, uint8_t position, bool moving) {
-  Turntable *tto = get(id);
-  if (!tto) return false;
-  // Only need to broadcast from here if it's a DCC type, device driver broadcasts EXTT
-  if (!tto->isEXTT()) { CommandDistributor::broadcastTurntable(id, position, moving); }
-#if defined(EXRAIL_ACTIVE)
-  bool rotated = false;
-  if (position != tto->_previousPosition) rotated = true;
-  if (!tto->isEXTT()) { RMFT2::rotateEvent(id, rotated); }
-#endif
-  return true;
-}
-
 // Initiate a turntable move
 bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 #if defined(DIAG_IO)
-  DIAG(F("Turntable(%d, %d)"), id, position);
+  DIAG(F("Rotate turntable %d to position %d, activity %d)"), id, position, activity);
 #endif
   Turntable *tto = Turntable::get(id);
   if (!tto) return false;
+  if (tto->isMoving()) return false;
   bool ok = tto->setPositionInternal(position, activity);
 
   if (ok) {
-    // Broadcast a position change only if non zero has been set, or home/calibration sent
-    if (position > 0 || (position == 0 && (activity == 2 || activity == 3))) {
-      tto->_previousPosition = tto->getPosition();
-      tto->_turntableData.position = position;
-      if (tto->isEXTT()) {
-        tto->setPositionStateOnly(id, position, 1);
-      } else {
-        tto->setPositionStateOnly(id, position, 0);
-      }
+    // We only deal with broadcasts for DCC turntables here, EXTT in the device driver
+    if (!tto->isEXTT()) {
+      CommandDistributor::broadcastTurntable(id, position, false);
     }
+    // Trigger EXRAIL rotateEvent for both types here if changed
+#if defined(EXRAIL_ACTIVE)
+    bool rotated = false;
+    if (position != tto->_previousPosition) rotated = true;
+    RMFT2::rotateEvent(id, rotated);
+#endif
   }
   return ok;
 }
@@ -206,6 +193,8 @@ using DevState = IODevice::DeviceStateEnum;
     }
     if (position > 0 && !value) return false; // Return false if it's not a valid position
     // Set position via device driver
+    _previousPosition = _turntableData.position;
+    _turntableData.position = position;
     EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
 #else
     (void)position;
@@ -248,6 +237,8 @@ DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
     int16_t addr=value>>3;
     int16_t subaddr=(value>>1) & 0x03;
     bool active=value & 0x01;
+    _previousPosition = _turntableData.position;
+    _turntableData.position = position;
     DCC::setAccessory(addr, subaddr, active);
 #else
     (void)position;

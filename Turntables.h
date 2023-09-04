@@ -179,7 +179,6 @@ public:
    */
   inline static bool exists(uint16_t id) { return get(id) != 0; }
   static bool setPosition(uint16_t id, uint8_t position, uint8_t activity=0);
-  static bool setPositionStateOnly(uint16_t id, uint8_t position, bool moving);
   static uint8_t getPosition(uint16_t id);
   inline static Turntable *first() { return _firstTurntable; }
   static bool printAll(Print *stream) {
