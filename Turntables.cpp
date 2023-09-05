@@ -58,8 +58,8 @@ void Turntable::add(Turntable *tto) {
 }
 
 // Add a position
-void Turntable::addPosition(uint16_t value) {
-  _turntablePositions.insert(value);
+void Turntable::addPosition(uint8_t idx, uint16_t value) {
+  _turntablePositions.insert(idx, value);
 }
 
 // Get value for position

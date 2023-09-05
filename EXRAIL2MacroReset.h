@@ -273,7 +273,7 @@
 #define START(route) 
 #define STOP 
 #define THROW(id)
-#define TT_ADDPOSITION(turntable_id,value,description)
+#define TT_ADDPOSITION(turntable_id,position,value,description)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
 #define UNJOIN 

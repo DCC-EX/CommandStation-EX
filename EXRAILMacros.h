@@ -406,7 +406,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #ifndef IO_NO_HAL
-#define TT_ADDPOSITION(id,value,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(value),
+#define TT_ADDPOSITION(id,position,value,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),
 #endif
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)

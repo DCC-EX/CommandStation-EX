@@ -53,10 +53,10 @@ struct TurntablePosition {
 
 class TurntablePositionList {
 public:
-  TurntablePositionList() : head(nullptr), currentIndex(0) {}
+  TurntablePositionList() : head(nullptr) {}
 
-  void insert(uint16_t value) {
-    TurntablePosition* newPosition = new TurntablePosition(currentIndex++, value);
+  void insert(uint8_t idx, uint16_t value) {
+    TurntablePosition* newPosition = new TurntablePosition(idx, value);
     if(!head) {
       head = newPosition;
     } else {
@@ -71,7 +71,6 @@ public:
 
 private:
   TurntablePosition* head;
-  uint8_t currentIndex;
 
 };
 
@@ -159,7 +158,7 @@ public:
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
-  void addPosition(uint16_t value);
+  void addPosition(uint8_t idx, uint16_t value);
   uint16_t getPositionValue(uint8_t position);
   uint8_t getPositionCount();
   bool isMoving() { return _isMoving; }

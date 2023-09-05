@@ -247,7 +247,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       setTurntableHiddenState(DCCTurntable::create(id));
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(0);
+      tto->addPosition(0,0);
       break;
     }
 
@@ -257,15 +257,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int home=getOperand(progCounter,2);
       setTurntableHiddenState(EXTTTurntable::create(id,pin));
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(home);
+      tto->addPosition(0,home);
       break;
     }
 
     case OPCODE_TTADDPOSITION: {
       VPIN id=operand;
-      int value=getOperand(progCounter,1);
+      int position=getOperand(progCounter,1);
+      int value=getOperand(progCounter,2);
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(value);
+      tto->addPosition(position,value);
       break;
     }
 #endif

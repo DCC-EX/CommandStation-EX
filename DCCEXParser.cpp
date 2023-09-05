@@ -1094,7 +1094,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (tto) return false;
                 if (!DCCTurntable::create(p[0])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                tto->addPosition(0);
+                tto->addPosition(0, 0);
             } else {    // Otherwise move a DCC turntable
                 if (tto && !tto->isEXTT()) {
                     if (!tto->setPosition(p[0], p[1])) return false;
@@ -1105,27 +1105,27 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         }
         return true;
 
-    case 3: // <I id ADD value> | <I id position activity>
+    case 3: // <I id position activity> rotate to position for EX-Turntable
         {
             Turntable *tto = Turntable::get(p[0]);
             if (!tto) return false;
-            if (p[1] == HASH_KEYWORD_ADD) { // Add position value to turntable
-                tto->addPosition(p[2]);
-                StringFormatter::send(stream, F("<i>\n"));
-            } else {    // <I id position activity> rotate to position for EX-Turntable
-                if (!tto->isEXTT()) return false;
-                if (!tto->setPosition(p[0], p[1], p[2])) return false;
-            }
+            if (!tto->isEXTT()) return false;
+            if (!tto->setPosition(p[0], p[1], p[2])) return false;
         }
         return true;
     
-    case 4: // <I id EXTT vpin home> create an EXTT turntable
+    case 4: // <I id EXTT vpin home> | <I id ADD position value> create an EXTT turntable or add position
         {
+            Turntable *tto = Turntable::get(p[0]);
             if (p[1] == HASH_KEYWORD_EXTT) {
-                if (Turntable::get(p[0])) return false;
+                if (tto) return false;
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                tto->addPosition(p[3]);
+                tto->addPosition(0, p[3]);
+            } else if (p[1] == HASH_KEYWORD_ADD) {
+                if (!tto) return false;
+                tto->addPosition(p[2], p[3]);
+                StringFormatter::send(stream, F("<i>\n"));
             } else {
                 return false;
             }
