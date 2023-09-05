@@ -27,6 +27,7 @@
 #undef ACTIVATE
 #undef ACTIVATEL
 #undef AFTER
+#undef AFTEROVERLOAD
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
@@ -153,6 +154,7 @@
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
 #define AFTER(sensor_id)
+#define AFTEROVERLOAD(track_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)

@@ -197,6 +197,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_AT:
     case OPCODE_ATTIMEOUT2:
     case OPCODE_AFTER:
+    case OPCODE_AFTEROVERLOAD:
     case OPCODE_IF:
     case OPCODE_IFNOT: {
       int16_t pin = (int16_t)operand;
@@ -686,7 +687,17 @@ void RMFT2::loop2() {
     }
     if (millis()-waitAfter < 500 ) return;
     break;
-    
+
+  case OPCODE_AFTEROVERLOAD: // waits for the power to be turned back on - either by power routine or button
+    if (!TrackManager::isPowerOn(operand)) {
+      // reset timer to half a second and keep waiting
+      waitAfter=millis();
+      delayMe(50);
+      return;
+    }
+    if (millis()-waitAfter < 500 ) return;
+    break;
+
   case OPCODE_LATCH:
     setFlag(operand,LATCH_FLAG);
     break;

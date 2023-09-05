@@ -1,6 +1,7 @@
 /*
  *  © 2022 Chris Harlow
  *  © 2022 Harald Barth
+ *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of DCC++EX
@@ -513,3 +514,10 @@ void TrackManager::setJoin(bool joined) {
   progTrackSyncMain=joined;
   if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,joined?HIGH:LOW);
 }
+
+bool TrackManager::isPowerOn(byte t) {
+      if (track[t]->getPower()==POWERMODE::ON) 
+	        return true;
+    return false;   
+  }
+
