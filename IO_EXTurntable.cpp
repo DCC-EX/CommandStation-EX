@@ -82,7 +82,6 @@ void EXTurntable::_loop(unsigned long currentMicros) {
 // Return false if our status value is invalid.
 int EXTurntable::_read(VPIN vpin) {
   if (_deviceState == DEVSTATE_FAILED) return 0;
-  // DIAG(F("_read status: %d"), _stepperStatus);
   if (_stepperStatus > 1) {
     return false;
   } else {
@@ -126,6 +125,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
     _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
 #endif
   _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
+  _previousStatus = _stepperStatus;
   _broadcastStatus(vpin, _stepperStatus); // Broadcast when the rotation starts
   I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, activity);
 }
