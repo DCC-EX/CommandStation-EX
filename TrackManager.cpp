@@ -516,8 +516,8 @@ void TrackManager::setJoin(bool joined) {
 }
 
 bool TrackManager::isPowerOn(byte t) {
-      if (track[t]->getPower()==POWERMODE::ON) 
-	        return true;
-    return false;   
+      if (track[t]->getPower()!=POWERMODE::ON) 
+	        return false;
+    return true;   
   }
 
