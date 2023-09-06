@@ -86,6 +86,7 @@ const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
 const int16_t HASH_KEYWORD_I='I';
 const int16_t HASH_KEYWORD_O='O';
+const int16_t HASH_KEYWORD_P='P';
 const int16_t HASH_KEYWORD_R='R';
 const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_X='X';
@@ -706,30 +707,41 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 } else {    // <JO id>
                     Turntable *tto=Turntable::get(id);
                     if (!tto || tto->isHidden()) {
-                        StringFormatter::send(stream, F(" %d X"), id);
+                        StringFormatter::send(stream, F(" %d X>\n"), id);
                     } else {
                         uint8_t pos = tto->getPosition();
                         uint8_t type = tto->isEXTT();
                         uint8_t posCount = tto->getPositionCount();
                         const FSH *todesc = NULL;
-                        const FSH *tpdesc = NULL;
 #ifdef EXRAIL_ACTIVE
                         todesc = RMFT2::getTurntableDescription(id);
 #endif
                         if (todesc == NULL) todesc = F("");
                         StringFormatter::send(stream, F(" %d %d %d %d \"%S\">\n"), id, type, pos, posCount, todesc);
-                        
+                    }
+                }
+                return;
+            case HASH_KEYWORD_P: // <JP id> returns turntable position list for the turntable id
+                if (params==2) { // <JP id>
+                    Turntable *tto=Turntable::get(id);
+                    if (!tto || tto->isHidden()) {
+                        StringFormatter::send(stream, F(" %d X>\n"), id);
+                    } else {
+                        uint8_t posCount = tto->getPositionCount();
+                        const FSH *tpdesc = NULL;
                         for (uint8_t p = 0; p < posCount; p++) {
-                            StringFormatter::send(stream, F("jO>"));
+                            StringFormatter::send(stream, F("<jP"));
                             int16_t value = tto->getPositionValue(p);
 #ifdef EXRAIL_ACTIVE
                             tpdesc = RMFT2::getTurntablePositionDescription(id, p);
 #endif
-                            if (tpdesc == NULL) todesc = F("");
-                            StringFormatter::send(stream, F(" %d \"%S\""), value, tpdesc);
+                            if (tpdesc == NULL) tpdesc = F("");
+                            StringFormatter::send(stream, F(" %d %d %d \"%S\""), id, p, value, tpdesc);
                             StringFormatter::send(stream, F(">\n"));
                         }
                     }
+                } else {
+                    StringFormatter::send(stream, F("<jP X>\n"));
                 }
                 return;
 #endif
