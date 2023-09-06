@@ -149,7 +149,7 @@ class LookList {
   static const FSH *  getRosterName(int16_t id);
   static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
-  // static const FSH *  getTurntablePositionDescription(int16_t id, uint8_t position);
+  static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
     
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);

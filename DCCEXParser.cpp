@@ -712,10 +712,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         uint8_t posCount = tto->getPositionCount();
                         const FSH *todesc = NULL;
 #ifdef EXRAIL_ACTIVE
-                        // todesc = RMFT2::getTurntableDescription(id);
+                        todesc = RMFT2::getTurntableDescription(id);
 #endif
                         if (todesc == NULL) todesc = F("");
-                        StringFormatter::send(stream, F(" %d %d %d"), id, type, pos);
+                        StringFormatter::send(stream, F(" %d %d %d"), id, type, pos, todesc);
+                        
                         for (uint8_t p = 0; p < posCount; p++) {
                             int16_t value = tto->getPositionValue(p);
                             StringFormatter::send(stream, F(" %d"), value);

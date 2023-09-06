@@ -205,10 +205,14 @@ const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
 // Pass to get turntable position descriptions (optional)
 // #include "EXRAIL2MacroReset.h"
 // #undef TT_ADDPOSITION
-// #define TT_ADDPOSITION(turntable_id,value,description...) 0_DESC(id,description)
+// #define TT_ADDPOSITION(turntable_id,value,description...) O_DESC(turntable_id,description)
 
 // const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
-
+//    switch (turntableId) {
+//       #include "myAutomation.h"
+//    default:break;
+//    }
+//    return NULL;
 // }
 
 // Pass 6: Roster IDs (count)
