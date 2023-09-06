@@ -576,8 +576,6 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       DIAG(F("TRACK %c FAULT PIN detected after %4M. Pause %4M)"), trackno + 'A', mslpc, power_sample_overload_wait);
       throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
-      DIAG(F("Calling EXRAIL"));
-      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       break;
     }
     if (checkCurrent(useProgLimit)) {
@@ -595,8 +593,6 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	   trackno + 'A', mA, maxmA, mslpc, power_sample_overload_wait);
       throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
-      DIAG(F("Calling EXRAIL"));
-      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       break;
     }
     // all well
@@ -619,7 +615,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       // adjust next wait time
       power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
-	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+	      power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+      DIAG(F("Calling EXRAIL"));
+      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       // power on test
       DIAG(F("TRACK %c POWER RESTORE (after %4M)"), trackno + 'A', mslpc);
       setPower(POWERMODE::ALERT);
