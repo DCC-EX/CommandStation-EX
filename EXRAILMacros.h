@@ -54,6 +54,8 @@
 
 // helper macro for turnout descriptions, creates NULL for missing description
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+// helper macro for turntable descriptions, creates NULL for missing description
+#define T_DESC(tid,pid,desc) if(turntableId==tid && positionId==pid) return ("" desc)[0]?F("" desc):NULL;
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
@@ -203,17 +205,14 @@ const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
 }
 
 // Pass to get turntable position descriptions (optional)
-// #include "EXRAIL2MacroReset.h"
-// #undef TT_ADDPOSITION
-// #define TT_ADDPOSITION(turntable_id,value,description...) O_DESC(turntable_id,description)
+#include "EXRAIL2MacroReset.h"
+#undef TT_ADDPOSITION
+#define TT_ADDPOSITION(turntable_id,position,value,description...) T_DESC(turntable_id,position,description)
 
-// const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
-//    switch (turntableId) {
-//       #include "myAutomation.h"
-//    default:break;
-//    }
-//    return NULL;
-// }
+const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
+   #include "myAutomation.h"
+   return NULL;
+}
 
 // Pass 6: Roster IDs (count)
 #include "EXRAIL2MacroReset.h"

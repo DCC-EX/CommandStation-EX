@@ -702,6 +702,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         if (tto->isHidden()) continue;          
                         StringFormatter::send(stream, F(" %d"),tto->getId());
                     }
+                    StringFormatter::send(stream, F(">\n"));
                 } else {    // <JO id>
                     Turntable *tto=Turntable::get(id);
                     if (!tto || tto->isHidden()) {
@@ -711,19 +712,25 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         uint8_t type = tto->isEXTT();
                         uint8_t posCount = tto->getPositionCount();
                         const FSH *todesc = NULL;
+                        const FSH *tpdesc = NULL;
 #ifdef EXRAIL_ACTIVE
                         todesc = RMFT2::getTurntableDescription(id);
 #endif
                         if (todesc == NULL) todesc = F("");
-                        StringFormatter::send(stream, F(" %d %d %d"), id, type, pos, todesc);
+                        StringFormatter::send(stream, F(" %d %d %d %d \"%S\">\n"), id, type, pos, posCount, todesc);
                         
                         for (uint8_t p = 0; p < posCount; p++) {
+                            StringFormatter::send(stream, F("jO>"));
                             int16_t value = tto->getPositionValue(p);
-                            StringFormatter::send(stream, F(" %d"), value);
+#ifdef EXRAIL_ACTIVE
+                            tpdesc = RMFT2::getTurntablePositionDescription(id, p);
+#endif
+                            if (tpdesc == NULL) todesc = F("");
+                            StringFormatter::send(stream, F(" %d \"%S\""), value, tpdesc);
+                            StringFormatter::send(stream, F(">\n"));
                         }
                     }
                 }
-                StringFormatter::send(stream, F(">\n"));
                 return;
 #endif
             default: break;    
