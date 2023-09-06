@@ -150,6 +150,9 @@
 #undef VIRTUAL_SIGNAL
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
+#ifndef IO_NO_HAL
+#undef WAITFORTT
+#endif
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
@@ -281,6 +284,9 @@
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) 
 #define WAITFOR(pin)
+#ifndef IO_NO_HAL
+#define WAITFORTT(turntable_id)
+#endif
 #define WITHROTTLE(msg)
 #define XFOFF(cab,func)
 #define XFON(cab,func)

@@ -63,8 +63,10 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
+#ifndef IO_NO_HAL
              OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
-             OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_IFTTPOSITION,
+             OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_IFTTPOSITION,OPCODE_WAITFORTT,
+#endif
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -197,7 +199,9 @@ private:
    static LookList * onGreenLookup;
    static LookList * onChangeLookup;
    static LookList * onClockLookup;
+#ifndef IO_NO_HAL
    static LookList * onRotateLookup;
+#endif
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

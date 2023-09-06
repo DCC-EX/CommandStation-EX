@@ -115,6 +115,12 @@ uint8_t Turntable::getPosition(uint16_t id) {
   return tto->getPosition();
 }
 
+bool Turntable::ttMoving(uint16_t id) {
+  Turntable *tto = get(id);
+  if (!tto) return false;
+  return tto->isMoving();
+}
+
 // Initiate a turntable move
 bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
 #if defined(DIAG_IO)

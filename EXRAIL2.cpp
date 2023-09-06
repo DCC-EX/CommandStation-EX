@@ -95,7 +95,9 @@ LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
 LookList *  RMFT2::onClockLookup=NULL;
+#ifndef IO_NO_HAL
 LookList *  RMFT2::onRotateLookup=NULL;
+#endif
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -177,8 +179,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
+#ifndef IO_NO_HAL
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
-
+#endif
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -1014,7 +1017,16 @@ void RMFT2::loop2() {
       return;
     }
     break;
-    
+
+#ifndef IO_NO_HAL
+  case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
+    if (Turntable::ttMoving(operand)) {
+      delayMe(100);
+      return;
+    }
+    break;
+#endif
+
   case OPCODE_PRINT:
     printMessage(operand);
     break;
@@ -1039,10 +1051,12 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+#ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
   case OPCODE_TTADDPOSITION:  // Turntable position definition ignored at runtime
   case OPCODE_ONROTATE:
+#endif
   
     break;
     
@@ -1187,10 +1201,12 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
 }
 
+#ifndef IO_NO_HAL
 void RMFT2::rotateEvent(int16_t turntableId, bool change) {
   // Hunt or an ONROTATE for this turntable
   if (change) handleEvent(F("ROTATE"),onRotateLookup,turntableId);
 }
+#endif
 
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time

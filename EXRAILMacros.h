@@ -419,6 +419,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
+#ifndef IO_NO_HAL
+#define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
+#endif
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 
