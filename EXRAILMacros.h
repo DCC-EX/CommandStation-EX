@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2020-2022 Chris Harlow
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  All rights reserved.
  *  
@@ -256,6 +256,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
 #define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1 | 1),
 #define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
+#define AFTEROVERLOAD(track_id) OPCODE_AFTEROVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
@@ -320,6 +321,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONTIME(value) OPCODE_ONTIME,V(value),  
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
+#define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),

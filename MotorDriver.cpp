@@ -4,6 +4,7 @@
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 Chris Harlow
+ *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -26,6 +27,7 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 
 unsigned long MotorDriver::globalOverloadStart = 0;
 
@@ -613,7 +615,9 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       // adjust next wait time
       power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
-	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+	      power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+      DIAG(F("Calling EXRAIL"));
+      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
       // power on test
       DIAG(F("TRACK %c POWER RESTORE (after %4M)"), trackno + 'A', mslpc);
       setPower(POWERMODE::ALERT);

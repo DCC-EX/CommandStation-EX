@@ -1,6 +1,6 @@
 /*
  *  © 2020-2022 Chris Harlow. All rights reserved.
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  
  *  This file is part of CommandStation-EX
@@ -27,6 +27,7 @@
 #undef ACTIVATE
 #undef ACTIVATEL
 #undef AFTER
+#undef AFTEROVERLOAD
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
@@ -93,6 +94,7 @@
 #undef ONTIME
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
+#undef ONOVERLOAD
 #undef ONGREEN
 #undef ONRED
 #undef ONTHROW 
@@ -152,6 +154,7 @@
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
 #define AFTER(sensor_id)
+#define AFTEROVERLOAD(track_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)
@@ -215,6 +218,7 @@
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
 #define ONCLOCKMINS(mins)
+#define ONOVERLOAD(track_id)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
