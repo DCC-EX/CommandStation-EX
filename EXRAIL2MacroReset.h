@@ -119,6 +119,7 @@
 #undef REV
 #undef ROSTER
 #undef ROTATE
+#undef ROTATE_DCC
 #undef ROUTE
 #undef SENDLOCO 
 #undef SEQUENCE 
@@ -174,7 +175,7 @@
 #define CALL(route) 
 #define CLOSE(id) 
 #define DCC_SIGNAL(id,add,subaddr)
-#define DCC_TURNTABLE(id,description)
+#define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
 #define DELAY(mindelay)
@@ -252,6 +253,7 @@
 #define RETURN 
 #define REV(speed) 
 #define ROTATE(turntable_id,position,activity)
+#define ROTATE_DCC(turntable_id,position)
 #define ROSTER(cab,name,funcmap...)
 #define ROUTE(id,description)
 #define SENDLOCO(cab,route) 
@@ -276,7 +278,7 @@
 #define START(route) 
 #define STOP 
 #define THROW(id)
-#define TT_ADDPOSITION(turntable_id,position,value,description)
+#define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
 #define UNJOIN 

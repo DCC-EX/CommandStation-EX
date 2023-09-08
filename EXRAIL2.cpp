@@ -53,6 +53,7 @@
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "Turntables.h"
+#include "IODevice.h"
 
 // Command parsing keywords
 const int16_t HASH_KEYWORD_EXRAIL=15435;    
@@ -248,9 +249,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 #ifndef IO_NO_HAL
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
+      int home=getOperand(progCounter,1);
       setTurntableHiddenState(DCCTurntable::create(id));
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0);
+      tto->addPosition(0,0,home);
       break;
     }
 
@@ -260,7 +262,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int home=getOperand(progCounter,2);
       setTurntableHiddenState(EXTTTurntable::create(id,pin));
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,home);
+      tto->addPosition(0,0,home);
       break;
     }
 
@@ -268,8 +270,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       int position=getOperand(progCounter,1);
       int value=getOperand(progCounter,2);
+      int angle=getOperand(progCounter,3);
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(position,value);
+      tto->addPosition(position,value,angle);
       break;
     }
 #endif

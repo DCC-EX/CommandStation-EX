@@ -732,11 +732,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         for (uint8_t p = 0; p < posCount; p++) {
                             StringFormatter::send(stream, F("<jP"));
                             int16_t value = tto->getPositionValue(p);
+                            int16_t angle = tto->getPositionAngle(p);
 #ifdef EXRAIL_ACTIVE
                             tpdesc = RMFT2::getTurntablePositionDescription(id, p);
 #endif
                             if (tpdesc == NULL) tpdesc = F("");
-                            StringFormatter::send(stream, F(" %d %d %d \"%S\""), id, p, value, tpdesc);
+                            StringFormatter::send(stream, F(" %d %d %d %d \"%S\""), id, p, value, angle, tpdesc);
                             StringFormatter::send(stream, F(">\n"));
                         }
                     }
@@ -1107,44 +1108,54 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         }
         return true;
     
-    case 2: // <I id DCC> | <I id position> - rotate or create DCC turntable
+    case 2: // <I id position> - rotate a DCC turntable
         {
             Turntable *tto = Turntable::get(p[0]);
-            if (p[1] == HASH_KEYWORD_DCC) { // Create a DCC turntable
-                if (tto) return false;
-                if (!DCCTurntable::create(p[0])) return false;
-                Turntable *tto = Turntable::get(p[0]);
-                tto->addPosition(0, 0);
-            } else {    // Otherwise move a DCC turntable
-                if (tto && !tto->isEXTT()) {
-                    if (!tto->setPosition(p[0], p[1])) return false;
-                } else {
-                    return false;
-                }
+            if (tto && !tto->isEXTT()) {
+                if (!tto->setPosition(p[0], p[1])) return false;
+            } else {
+                return false;
             }
         }
         return true;
 
-    case 3: // <I id position activity> rotate to position for EX-Turntable
+    case 3: // <I id position activity> | <I id DCC home> - rotate to position for EX-Turntable or create DCC turntable
         {
             Turntable *tto = Turntable::get(p[0]);
-            if (!tto) return false;
-            if (!tto->isEXTT()) return false;
-            if (!tto->setPosition(p[0], p[1], p[2])) return false;
+            if (p[1] == HASH_KEYWORD_DCC) {
+                if (tto || p[2] < 0 || p[2] > 3600) return false;
+                if (!DCCTurntable::create(p[0])) return false;
+                Turntable *tto = Turntable::get(p[0]);
+                tto->addPosition(0, 0, p[2]);
+            } else {
+                if (!tto) return false;
+                if (!tto->isEXTT()) return false;
+                if (!tto->setPosition(p[0], p[1], p[2])) return false;
+            }
         }
         return true;
     
-    case 4: // <I id EXTT vpin home> | <I id ADD position value> create an EXTT turntable or add position
+    case 4: // <I id EXTT vpin home> create an EXTT turntable
         {
             Turntable *tto = Turntable::get(p[0]);
             if (p[1] == HASH_KEYWORD_EXTT) {
-                if (tto) return false;
+                if (tto || p[3] < 0 || p[3] > 3600) return false;
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
                 Turntable *tto = Turntable::get(p[0]);
-                tto->addPosition(0, p[3]);
-            } else if (p[1] == HASH_KEYWORD_ADD) {
-                if (!tto) return false;
-                tto->addPosition(p[2], p[3]);
+                tto->addPosition(0, 0, p[3]);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    
+    case 5: // <I id ADD position value angle> add a position
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (p[1] == HASH_KEYWORD_ADD) {
+                // tto must exist, no more than 48 positions, angle 0 - 3600
+                if (!tto || p[2] > 48 || p[4] < 0 || p[4] > 3600) return false;
+                tto->addPosition(p[2], p[3], p[4]);
                 StringFormatter::send(stream, F("<i>\n"));
             } else {
                 return false;

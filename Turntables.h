@@ -36,9 +36,6 @@ enum {
   TURNTABLE_DCC = 1,
 };
 
-// Callback needs to return a bool: 1 = moving, 0 = stopped
-typedef void (*EXTT_CALLBACK)(bool moving);
-
 /*************************************************************************************
  * Turntable positions.
  * 
@@ -46,17 +43,18 @@ typedef void (*EXTT_CALLBACK)(bool moving);
 struct TurntablePosition {
   uint8_t index;
   uint16_t data;
+  uint16_t angle;
   TurntablePosition* next;
   
-  TurntablePosition(uint8_t idx, uint16_t value) : index(idx), data(value), next(nullptr) {}
+  TurntablePosition(uint8_t idx, uint16_t value, uint16_t angle) : index(idx), data(value), angle(angle), next(nullptr) {}
 };
 
 class TurntablePositionList {
 public:
   TurntablePositionList() : head(nullptr) {}
 
-  void insert(uint8_t idx, uint16_t value) {
-    TurntablePosition* newPosition = new TurntablePosition(idx, value);
+  void insert(uint8_t idx, uint16_t value, uint16_t angle) {
+    TurntablePosition* newPosition = new TurntablePosition(idx, value, angle);
     if(!head) {
       head = newPosition;
     } else {
@@ -158,8 +156,9 @@ public:
   inline uint16_t getId() { return _turntableData.id; }
   inline Turntable *next() { return _nextTurntable; }
   void printState(Print *stream);
-  void addPosition(uint8_t idx, uint16_t value);
+  void addPosition(uint8_t idx, uint16_t value, uint16_t angle);
   uint16_t getPositionValue(uint8_t position);
+  uint16_t getPositionAngle(uint8_t position);
   uint8_t getPositionCount();
   bool isMoving() { return _isMoving; }
   void setMoving(bool moving) { _isMoving=moving; }

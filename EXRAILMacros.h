@@ -192,7 +192,7 @@ const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
 // Pass to get turntable descriptions (optional)
 #include "EXRAIL2MacroReset.h"
 #undef DCC_TURNTABLE
-#define DCC_TURNTABLE(id,description...) O_DESC(id,description)
+#define DCC_TURNTABLE(id,home,description...) O_DESC(id,description)
 #undef EXTT_TURNTABLE
 #define EXTT_TURNTABLE(id,vpin,home,description...) O_DESC(id,description)
 
@@ -207,7 +207,7 @@ const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
 // Pass to get turntable position descriptions (optional)
 #include "EXRAIL2MacroReset.h"
 #undef TT_ADDPOSITION
-#define TT_ADDPOSITION(turntable_id,position,value,description...) T_DESC(turntable_id,position,description)
+#define TT_ADDPOSITION(turntable_id,position,value,home,description...) T_DESC(turntable_id,position,description)
 
 const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
    #include "myAutomation.h"
@@ -296,7 +296,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #ifndef IO_NO_HAL
-#define DCC_TURNTABLE(id,description...) OPCODE_DCCTURNTABLE,V(id),
+#define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
 #endif
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
@@ -383,7 +383,8 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
 #ifndef IO_NO_HAL
-#define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(activity),
+#define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
+#define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
 #endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
@@ -409,7 +410,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #ifndef IO_NO_HAL
-#define TT_ADDPOSITION(id,position,value,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),
+#define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
 #endif
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)

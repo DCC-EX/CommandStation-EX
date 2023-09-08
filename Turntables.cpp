@@ -58,8 +58,8 @@ void Turntable::add(Turntable *tto) {
 }
 
 // Add a position
-void Turntable::addPosition(uint8_t idx, uint16_t value) {
-  _turntablePositions.insert(idx, value);
+void Turntable::addPosition(uint8_t idx, uint16_t value, uint16_t angle) {
+  _turntablePositions.insert(idx, value, angle);
 }
 
 // Get value for position
@@ -68,6 +68,18 @@ uint16_t Turntable::getPositionValue(uint8_t position) {
   while (currentPosition) {
     if (currentPosition->index == position) {
       return currentPosition->data;
+    }
+    currentPosition = currentPosition->next;
+  }
+  return false;
+}
+
+// Get value for position
+uint16_t Turntable::getPositionAngle(uint8_t position) {
+  TurntablePosition* currentPosition = _turntablePositions.getHead();
+  while (currentPosition) {
+    if (currentPosition->index == position) {
+      return currentPosition->angle;
     }
     currentPosition = currentPosition->next;
   }
@@ -115,6 +127,7 @@ uint8_t Turntable::getPosition(uint16_t id) {
   return tto->getPosition();
 }
 
+// Got the moving state of the specified turntable
 bool Turntable::ttMoving(uint16_t id) {
   Turntable *tto = get(id);
   if (!tto) return false;
