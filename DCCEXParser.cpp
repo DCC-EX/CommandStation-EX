@@ -1127,6 +1127,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (!DCCTurntable::create(p[0])) return false;
                 Turntable *tto = Turntable::get(p[0]);
                 tto->addPosition(0, 0, p[2]);
+                StringFormatter::send(stream, F("<i>\n"));
             } else {
                 if (!tto) return false;
                 if (!tto->isEXTT()) return false;
@@ -1143,6 +1144,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
                 Turntable *tto = Turntable::get(p[0]);
                 tto->addPosition(0, 0, p[3]);
+                StringFormatter::send(stream, F("<i>\n"));
             } else {
                 return false;
             }
