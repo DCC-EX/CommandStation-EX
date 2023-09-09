@@ -259,7 +259,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_EXTTTURNTABLE: {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
-      int home=getOperand(progCounter,2);
+      int home=getOperand(progCounter,3);
       setTurntableHiddenState(EXTTTurntable::create(id,pin));
       Turntable *tto=Turntable::get(id);
       tto->addPosition(0,0,home);

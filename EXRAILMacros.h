@@ -69,10 +69,13 @@
 #define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
 #include "myAutomation.h"
 
-// Pass 1h Implements HAL macro by creating exrailHalSetup function 
+// Pass 1h Implements HAL macro by creating exrailHalSetup function
+// Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
+#undef EXTT_TURNTABLE
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) EXTurntable::create(vpin,1,i2c_address);
 void exrailHalSetup() {
    #include "myAutomation.h"
 }
@@ -194,7 +197,7 @@ const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
 #undef DCC_TURNTABLE
 #define DCC_TURNTABLE(id,home,description...) O_DESC(id,description)
 #undef EXTT_TURNTABLE
-#define EXTT_TURNTABLE(id,vpin,home,description...) O_DESC(id,description)
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) O_DESC(id,description)
 
 const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
    switch (turntableId) {
@@ -313,7 +316,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ESTOP OPCODE_SPEED,V(1), 
 #define EXRAIL
 #ifndef IO_NO_HAL
-#define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(i2c_address),OPCODE_PAD,V(home),
 #endif
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
