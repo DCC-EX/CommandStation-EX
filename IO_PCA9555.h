@@ -30,8 +30,8 @@
  
 class PCA9555 : public GPIOBase<uint16_t> {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) {
-    new PCA9555(vpin, min(nPins,16), I2CAddress, interruptPin);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new PCA9555(vpin,nPins, i2cAddress, interruptPin);
   }
   
   // Constructor

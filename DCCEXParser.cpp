@@ -25,6 +25,79 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+/*
+List of single character OPCODEs in use for reference.
+
+When determining a new OPCODE for a new feature, refer to this list as the source of truth.
+
+Once a new OPCODE is decided upon, update this list.
+
+  Character, Usage
+  /, |EX-R| interactive commands
+  -, Remove from reminder table
+  =, |TM| configuration
+  !, Emergency stop
+  @, Reserved for future use - LCD messages to JMRI
+  #, Request number of supported cabs/locos; heartbeat
+  +, WiFi AT commands
+  ?, Reserved for future use
+  0, Track power off
+  1, Track power on
+  a, DCC accessory control
+  A,
+  b, Write CV bit on main
+  B, Write CV bit
+  c, Request current command
+  C,
+  d,
+  D, Diagnostic commands
+  e, Erase EEPROM
+  E, Store configuration in EEPROM
+  f, Loco decoder function control (deprecated)
+  F, Loco decoder function control
+  g,
+  G,
+  h,
+  H, Turnout state broadcast
+  i, Reserved for future use - Turntable object broadcast
+  I, Reserved for future use - Turntable object command and control
+  j, Throttle responses
+  J, Throttle queries
+  k, Reserved for future use - Potentially Railcom
+  K, Reserved for future use - Potentially Railcom
+  l, Loco speedbyte/function map broadcast
+  L,
+  m,
+  M, Write DCC packet
+  n,
+  N,
+  o,
+  O, Output broadcast
+  p, Broadcast power state
+  P, Write DCC packet
+  q, Sensor deactivated
+  Q, Sensor activated
+  r, Broadcast address read on programming track
+  R, Read CVs
+  s, Display status
+  S, Sensor configuration
+  t, Cab/loco update command
+  T, Turnout configuration/control
+  u, Reserved for user commands
+  U, Reserved for user commands
+  v,
+  V, Verify CVs
+  w, Write CV on main
+  W, Write CV
+  x,
+  X, Invalid command
+  y,
+  Y, Output broadcast
+  z,
+  Z, Output configuration/control
+*/
+
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
 #include "DCC.h"
@@ -383,12 +456,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
 #ifndef DISABLE_PROG
     case 'w': // WRITE CV on MAIN <w CAB CV VALUE>
-        DCC::writeCVByteMain(p[0], p[1], p[2]);
-        return;
+      if (params != 3)
+	break;
+      DCC::writeCVByteMain(p[0], p[1], p[2]);
+      return;
 
     case 'b': // WRITE CV BIT ON MAIN <b CAB CV BIT VALUE>
-        DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
-        return;
+      if (params != 4)
+	break;
+      DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
+      return;
 #endif
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
@@ -411,14 +488,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         
 #ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
-            if (!stashCallback(stream, p, ringStream))
-                break;
+        if (!stashCallback(stream, p, ringStream))
+	    break;
         if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
             DCC::setLocoId(p[0],callback_Wloco);
         else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
             DCC::writeCVByte(p[0], p[1], callback_W4);
-        else  // WRITE CV ON PROG <W CV VALUE>
+        else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
+	else
+            break;
         return;
 
     case 'V': // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
@@ -438,9 +517,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         break;
 
-    case 'B': // WRITE CV BIT ON PROG <B CV BIT VALUE CALLBACKNUM CALLBACKSUB>
+    case 'B': // WRITE CV BIT ON PROG  <B CV BIT VALUE CALLBACKNUM CALLBACKSUB> or <B CV BIT VALUE>
+        if (params != 3 && params != 5)
+	  break;
         if (!stashCallback(stream, p, ringStream))
-            break;
+	  break;
         DCC::writeCVBit(p[0], p[1], p[2], callback_B);
         return;
 
@@ -570,12 +651,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case ' ': // < >
         StringFormatter::send(stream, F("\n"));
         return;
-
+#ifndef DISABLE_DIAG
     case 'D': // < >
         if (parseD(stream, params, p))
             return;
-        return;
-
+        break;
+#endif
     case '=': // <= Track manager control  >
         if (TrackManager::parseJ(stream, params, p))
             return;
