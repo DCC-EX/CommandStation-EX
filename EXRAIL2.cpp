@@ -650,7 +650,6 @@ void RMFT2::loop2() {
   case OPCODE_ROTATE:
     uint8_t activity;
     activity=getOperand(2);
-    if (!activity) activity=0;
     Turntable::setPosition(operand,getOperand(1),activity);
     break;
 #endif
