@@ -54,6 +54,8 @@
 
 // helper macro for turnout descriptions, creates NULL for missing description
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+// helper macro for turntable descriptions, creates NULL for missing description
+#define T_DESC(tid,pid,desc) if(turntableId==tid && positionId==pid) return ("" desc)[0]?F("" desc):NULL;
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
@@ -67,10 +69,13 @@
 #define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
 #include "myAutomation.h"
 
-// Pass 1h Implements HAL macro by creating exrailHalSetup function 
+// Pass 1h Implements HAL macro by creating exrailHalSetup function
+// Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
+#undef EXTT_TURNTABLE
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) EXTurntable::create(vpin,1,i2c_address);
 void exrailHalSetup() {
    #include "myAutomation.h"
 }
@@ -187,6 +192,31 @@ const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
      return NULL;
 }
 
+// Pass to get turntable descriptions (optional)
+#include "EXRAIL2MacroReset.h"
+#undef DCC_TURNTABLE
+#define DCC_TURNTABLE(id,home,description...) O_DESC(id,description)
+#undef EXTT_TURNTABLE
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) O_DESC(id,description)
+
+const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
+   switch (turntableId) {
+      #include "myAutomation.h"
+   default:break;
+   }
+   return NULL;
+}
+
+// Pass to get turntable position descriptions (optional)
+#include "EXRAIL2MacroReset.h"
+#undef TT_ADDPOSITION
+#define TT_ADDPOSITION(turntable_id,position,value,home,description...) T_DESC(turntable_id,position,description)
+
+const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
+   #include "myAutomation.h"
+   return NULL;
+}
+
 // Pass 6: Roster IDs (count)
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
@@ -269,6 +299,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#ifndef IO_NO_HAL
+#define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
+#endif
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
@@ -282,7 +315,10 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ENDIF  OPCODE_ENDIF,0,0,
 #define ENDTASK OPCODE_ENDTASK,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
-#define EXRAIL 
+#define EXRAIL
+#ifndef IO_NO_HAL
+#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(i2c_address),OPCODE_PAD,V(home),
+#endif
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
@@ -305,6 +341,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
+#ifndef IO_NO_HAL
+#define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
+#endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JOIN OPCODE_JOIN,0,0,
@@ -326,6 +365,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
+#ifndef IO_NO_HAL
+#define ONROTATE(id) OPCODE_ONROTATE,V(id),
+#endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
@@ -345,6 +387,10 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
+#ifndef IO_NO_HAL
+#define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
+#define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
+#endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
@@ -368,6 +414,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define START(route) OPCODE_START,V(route),
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
+#ifndef IO_NO_HAL
+#define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
+#endif
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
 #define UNJOIN OPCODE_UNJOIN,0,0,
@@ -376,6 +425,9 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
+#ifndef IO_NO_HAL
+#define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
+#endif
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 

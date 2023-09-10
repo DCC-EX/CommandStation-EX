@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.4"
+#define VERSION "5.1.5"
+// 5.1.5  - Added turntable object and EXRAIL commands
+//        - <I ...>, <JO ...>, <JP ...> - turntable commands
+//        - DCC_TURNTABLE, EXTT_TURNTABLE, IFTTPOSITION, ONROTATE, ROTATE, ROTATE_DCC, TT_ADDPOSITION, WAITFORTT EXRAIL
 // 5.1.4  - Added ONOVERLOAD & AFTEROVERLOAD to EXRAIL
 // 5.1.3  - Make parser more fool proof
 // 5.1.2  - Bugfix: ESP32 30ms off time

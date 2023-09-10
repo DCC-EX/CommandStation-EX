@@ -27,17 +27,6 @@
 // Define symbol DIAG_LOOPTIMES to enable CS loop execution time to be reported
 //#define DIAG_LOOPTIMES
 
-// Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
-// The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
-#include "defines.h"
-#if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
-  #if defined(DISABLE_DIAG) && defined(DISABLE_EEPROM) && defined(DISABLE_PROG)
-    #warning you have sacrificed DIAG for HAL
-  #else
-    #define IO_NO_HAL
-  #endif
-#endif
-
 // Define symbol IO_SWITCH_OFF_SERVO to set the PCA9685 output to 0 when an 
 // animation has completed.  This switches off the servo motor, preventing 
 // the continuous buzz sometimes found on servos, and reducing the 
@@ -164,6 +153,9 @@ public:
 
   // exists checks whether there is a device owning the specified vpin
   static bool exists(VPIN vpin);
+
+  // getStatus returns the state of the device at the specified vpin
+  static uint8_t getStatus(VPIN vpin);
 
   // Enable shared interrupt on specified pin for GPIO extender modules.  The extender module
   // should pull down this pin when requesting a scan.  The pin may be shared by multiple modules.
@@ -388,6 +380,7 @@ private:
   uint8_t *_pinInUse; 
 };
 
+#ifndef IO_NO_HAL
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
  * IODevice subclass for EX-Turntable.
@@ -416,10 +409,13 @@ private:
   void _begin() override;
   void _loop(unsigned long currentMicros) override;
   int _read(VPIN vpin) override;
+  void _broadcastStatus (VPIN vpin, uint8_t status);
   void _writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) override;
   void _display() override;
   uint8_t _stepperStatus;
+  uint8_t _previousStatus;
 };
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 

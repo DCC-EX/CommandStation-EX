@@ -114,6 +114,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
+#include "Turntables.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -157,6 +158,8 @@ const int16_t HASH_KEYWORD_A='A';
 const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
 const int16_t HASH_KEYWORD_I='I';
+const int16_t HASH_KEYWORD_O='O';
+const int16_t HASH_KEYWORD_P='P';
 const int16_t HASH_KEYWORD_R='R';
 const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_X='X';
@@ -168,6 +171,8 @@ const int16_t HASH_KEYWORD_ANOUT = -26399;
 const int16_t HASH_KEYWORD_WIFI = -5583;
 const int16_t HASH_KEYWORD_ETHERNET = -30767;
 const int16_t HASH_KEYWORD_WIT = 31594;
+const int16_t HASH_KEYWORD_EXTT = 8573;
+const int16_t HASH_KEYWORD_ADD = 3201;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -770,10 +775,70 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 StringFormatter::send(stream, F(">\n"));
                 return;
+// No turntables without HAL support
+#ifndef IO_NO_HAL
+            case HASH_KEYWORD_O: // <JO returns turntable list
+                StringFormatter::send(stream, F("<jO"));
+                if (params==1) { // <JO>
+                    for (Turntable * tto=Turntable::first(); tto; tto=tto->next()) { 
+                        if (tto->isHidden()) continue;          
+                        StringFormatter::send(stream, F(" %d"),tto->getId());
+                    }
+                    StringFormatter::send(stream, F(">\n"));
+                } else {    // <JO id>
+                    Turntable *tto=Turntable::get(id);
+                    if (!tto || tto->isHidden()) {
+                        StringFormatter::send(stream, F(" %d X>\n"), id);
+                    } else {
+                        uint8_t pos = tto->getPosition();
+                        uint8_t type = tto->isEXTT();
+                        uint8_t posCount = tto->getPositionCount();
+                        const FSH *todesc = NULL;
+#ifdef EXRAIL_ACTIVE
+                        todesc = RMFT2::getTurntableDescription(id);
+#endif
+                        if (todesc == NULL) todesc = F("");
+                        StringFormatter::send(stream, F(" %d %d %d %d \"%S\">\n"), id, type, pos, posCount, todesc);
+                    }
+                }
+                return;
+            case HASH_KEYWORD_P: // <JP id> returns turntable position list for the turntable id
+                if (params==2) { // <JP id>
+                    Turntable *tto=Turntable::get(id);
+                    if (!tto || tto->isHidden()) {
+                        StringFormatter::send(stream, F(" %d X>\n"), id);
+                    } else {
+                        uint8_t posCount = tto->getPositionCount();
+                        const FSH *tpdesc = NULL;
+                        for (uint8_t p = 0; p < posCount; p++) {
+                            StringFormatter::send(stream, F("<jP"));
+                            int16_t value = tto->getPositionValue(p);
+                            int16_t angle = tto->getPositionAngle(p);
+#ifdef EXRAIL_ACTIVE
+                            tpdesc = RMFT2::getTurntablePositionDescription(id, p);
+#endif
+                            if (tpdesc == NULL) tpdesc = F("");
+                            StringFormatter::send(stream, F(" %d %d %d %d \"%S\""), id, p, value, angle, tpdesc);
+                            StringFormatter::send(stream, F(">\n"));
+                        }
+                    }
+                } else {
+                    StringFormatter::send(stream, F("<jP X>\n"));
+                }
+                return;
+#endif
             default: break;    
             }  // switch(p[1])
         break; // case J
         }
+
+// No turntables without HAL support
+#ifndef IO_NO_HAL
+    case 'I': // TURNTABLE  <I ...>
+        if (parseI(stream, params, p))
+            return;
+        break;
+#endif
 
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
@@ -1093,6 +1158,99 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     }
     return false;
 }
+
+// ==========================
+// Turntable - no support if no HAL
+// <I> - list all
+// <I id> - broadcast type and current position
+// <I id DCC> - create DCC - This is TBA
+// <I id steps> - operate (DCC)
+// <I id steps activity> - operate (EXTT)
+// <I id ADD position value> - add position
+// <I id EXTT i2caddress vpin home> - create EXTT
+#ifndef IO_NO_HAL
+bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
+{
+    switch (params)
+    {
+    case 0: // <I> list turntable objects
+        return Turntable::printAll(stream);
+
+    case 1: // <I id> broadcast type and current position
+        {    
+            Turntable *tto = Turntable::get(p[0]);
+            if (tto) {
+                bool type = tto->isEXTT();
+                uint8_t position = tto->getPosition();
+                StringFormatter::send(stream, F("<i %d %d>\n"), type, position);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    
+    case 2: // <I id position> - rotate a DCC turntable
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (tto && !tto->isEXTT()) {
+                if (!tto->setPosition(p[0], p[1])) return false;
+            } else {
+                return false;
+            }
+        }
+        return true;
+
+    case 3: // <I id position activity> | <I id DCC home> - rotate to position for EX-Turntable or create DCC turntable
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (p[1] == HASH_KEYWORD_DCC) {
+                if (tto || p[2] < 0 || p[2] > 3600) return false;
+                if (!DCCTurntable::create(p[0])) return false;
+                Turntable *tto = Turntable::get(p[0]);
+                tto->addPosition(0, 0, p[2]);
+                StringFormatter::send(stream, F("<i>\n"));
+            } else {
+                if (!tto) return false;
+                if (!tto->isEXTT()) return false;
+                if (!tto->setPosition(p[0], p[1], p[2])) return false;
+            }
+        }
+        return true;
+    
+    case 4: // <I id EXTT vpin home> create an EXTT turntable
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (p[1] == HASH_KEYWORD_EXTT) {
+                if (tto || p[3] < 0 || p[3] > 3600) return false;
+                if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
+                Turntable *tto = Turntable::get(p[0]);
+                tto->addPosition(0, 0, p[3]);
+                StringFormatter::send(stream, F("<i>\n"));
+            } else {
+                return false;
+            }
+        }
+        return true;
+    
+    case 5: // <I id ADD position value angle> add a position
+        {
+            Turntable *tto = Turntable::get(p[0]);
+            if (p[1] == HASH_KEYWORD_ADD) {
+                // tto must exist, no more than 48 positions, angle 0 - 3600
+                if (!tto || p[2] > 48 || p[4] < 0 || p[4] > 3600) return false;
+                tto->addPosition(p[2], p[3], p[4]);
+                StringFormatter::send(stream, F("<i>\n"));
+            } else {
+                return false;
+            }
+        }
+        return true;
+    
+    default:    // Anything else is invalid
+        return false;
+    }
+}
+#endif
 
 // CALLBACKS must be static
 bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream)

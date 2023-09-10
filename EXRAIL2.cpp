@@ -52,6 +52,8 @@
 #include "Turnouts.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
+#include "Turntables.h"
+#include "IODevice.h"
 
 // Command parsing keywords
 const int16_t HASH_KEYWORD_EXRAIL=15435;    
@@ -94,6 +96,9 @@ LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
 LookList *  RMFT2::onClockLookup=NULL;
+#ifndef IO_NO_HAL
+LookList *  RMFT2::onRotateLookup=NULL;
+#endif
 LookList *  RMFT2::onOverloadLookup=NULL;
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
@@ -176,8 +181,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
+#ifndef IO_NO_HAL
+  onRotateLookup=LookListLoader(OPCODE_ONROTATE);
+#endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
-
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
@@ -241,7 +248,38 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
-        
+
+#ifndef IO_NO_HAL
+    case OPCODE_DCCTURNTABLE: {
+      VPIN id=operand;
+      int home=getOperand(progCounter,1);
+      setTurntableHiddenState(DCCTurntable::create(id));
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(0,0,home);
+      break;
+    }
+
+    case OPCODE_EXTTTURNTABLE: {
+      VPIN id=operand;
+      VPIN pin=getOperand(progCounter,1);
+      int home=getOperand(progCounter,3);
+      setTurntableHiddenState(EXTTTurntable::create(id,pin));
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(0,0,home);
+      break;
+    }
+
+    case OPCODE_TTADDPOSITION: {
+      VPIN id=operand;
+      int position=getOperand(progCounter,1);
+      int value=getOperand(progCounter,2);
+      int angle=getOperand(progCounter,3);
+      Turntable *tto=Turntable::get(id);
+      tto->addPosition(position,value,angle);
+      break;
+    }
+#endif
+
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
       // Removed if (progCounter>0) check 4.2.31 because 
@@ -265,6 +303,12 @@ void RMFT2::setTurnoutHiddenState(Turnout * t) {
   // turnout descriptions are in low flash F strings 
   t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
 }
+
+#ifndef IO_NO_HAL
+void RMFT2::setTurntableHiddenState(Turntable * tto) {
+  tto->setHidden(GETFLASH(getTurntableDescription(tto->getId()))==0x01);
+}
+#endif
 
 char RMFT2::getRouteType(int16_t id) {
   for (int16_t i=0;;i+=2) {
@@ -602,6 +646,14 @@ void RMFT2::loop2() {
     Turnout::setClosed(operand, true);
     break;
 
+#ifndef IO_NO_HAL
+  case OPCODE_ROTATE:
+    uint8_t activity;
+    activity=getOperand(2);
+    Turntable::setPosition(operand,getOperand(1),activity);
+    break;
+#endif
+
   case OPCODE_REV:
     forward = false;
     driveLoco(operand);
@@ -801,7 +853,13 @@ void RMFT2::loop2() {
   case OPCODE_IFCLOSED:
     skipIf=Turnout::isThrown(operand);
     break;
-    
+
+#ifndef IO_NO_HAL
+  case OPCODE_IFTTPOSITION: // do block if turntable at this position
+    skipIf=Turntable::getPosition(operand)!=(int)getOperand(1);
+    break;
+#endif
+
   case OPCODE_ENDIF:
     break;
     
@@ -974,7 +1032,16 @@ void RMFT2::loop2() {
       return;
     }
     break;
-    
+
+#ifndef IO_NO_HAL
+  case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
+    if (Turntable::ttMoving(operand)) {
+      delayMe(100);
+      return;
+    }
+    break;
+#endif
+
   case OPCODE_PRINT:
     printMessage(operand);
     break;
@@ -999,6 +1066,12 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+#ifndef IO_NO_HAL
+  case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
+  case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
+  case OPCODE_TTADDPOSITION:  // Turntable position definition ignored at runtime
+  case OPCODE_ONROTATE:
+#endif
   case OPCODE_ONOVERLOAD:
   
     break;
@@ -1143,6 +1216,13 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
 }
+
+#ifndef IO_NO_HAL
+void RMFT2::rotateEvent(int16_t turntableId, bool change) {
+  // Hunt or an ONROTATE for this turntable
+  if (change) handleEvent(F("ROTATE"),onRotateLookup,turntableId);
+}
+#endif
 
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
