@@ -485,7 +485,7 @@ private:
   // When retries are enabled, the timeout applies to each
   // try, and failure from timeout does not get retried.
   // A value of 0 means disable timeout monitoring.
-  unsigned long _timeout = 100000UL;
+  uint32_t _timeout = 100000UL;
     
   // Finish off request block by waiting for completion and posting status.
   uint8_t finishRB(I2CRB *rb, uint8_t status);
@@ -532,14 +532,15 @@ private:
     uint8_t bytesToSend = 0;
     uint8_t bytesToReceive = 0;
     uint8_t operation = 0;
-    unsigned long startTime = 0;
+    uint32_t startTime = 0;
     uint8_t muxPhase = 0;
     uint8_t muxAddress = 0;
     uint8_t muxData[1];
     uint8_t deviceAddress;
     const uint8_t *sendBuffer;
     uint8_t *receiveBuffer;
-
+    uint8_t transactionState = 0;
+  
     volatile uint32_t pendingClockSpeed = 0;
 
     void startTransaction();
