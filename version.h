@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.5"
+#define VERSION "5.1.6"
+// 5.1.6  - STM32F4xx native I2C driver added
 // 5.1.5  - Added turntable object and EXRAIL commands
 //        - <I ...>, <JO ...>, <JP ...> - turntable commands
 //        - DCC_TURNTABLE, EXTT_TURNTABLE, IFTTPOSITION, ONROTATE, ROTATE, ROTATE_DCC, TT_ADDPOSITION, WAITFORTT EXRAIL
