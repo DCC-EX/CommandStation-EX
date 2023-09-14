@@ -812,13 +812,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         const FSH *tpdesc = NULL;
                         for (uint8_t p = 0; p < posCount; p++) {
                             StringFormatter::send(stream, F("<jP"));
-                            int16_t value = tto->getPositionValue(p);
                             int16_t angle = tto->getPositionAngle(p);
 #ifdef EXRAIL_ACTIVE
                             tpdesc = RMFT2::getTurntablePositionDescription(id, p);
 #endif
                             if (tpdesc == NULL) tpdesc = F("");
-                            StringFormatter::send(stream, F(" %d %d %d %d \"%S\""), id, p, value, angle, tpdesc);
+                            StringFormatter::send(stream, F(" %d %d %d \"%S\""), id, p, angle, tpdesc);
                             StringFormatter::send(stream, F(">\n"));
                         }
                     }
