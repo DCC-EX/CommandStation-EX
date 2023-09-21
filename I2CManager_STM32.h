@@ -37,9 +37,11 @@
  *  I2C bus, or more than one I2C bus on the STM32 architecture 
  *****************************************************************************/
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_ARCH_STM32)
-#if defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_F446RE) \
+    || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) \
+    || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Assume I2C1 for now - default I2C bus on Nucleo-F411RE and likely all Nucleo-64
-// and Nucleo-144variants
+// and Nucleo-144 variants
 I2C_TypeDef *s = I2C1;
 
 // In init we will ask the STM32 HAL layer for the configured APB1 clock frequency in Hz
