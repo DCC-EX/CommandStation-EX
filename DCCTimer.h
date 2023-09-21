@@ -125,8 +125,13 @@ private:
   // On platforms that scan, it is called from waveform ISR
   // only on a regular basis.
   static void scan();
+  #if defined (ARDUINO_ARCH_STM32)
+  // bit array of used pins (max 32)
+  static uint32_t usedpins;
+#else
   // bit array of used pins (max 16)
   static uint16_t usedpins;
+#endif
   static uint8_t highestPin;
   // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;
