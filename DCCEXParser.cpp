@@ -555,6 +555,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool main=false;
         bool prog=false;
         bool join=false;
+        bool singletrack=false;
         if (params > 1) break;
         if (params==0) { // All
             main=true;
@@ -574,12 +575,28 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             prog=true;
 	  }
 #endif
+      else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+            uint8_t t = (p[0] - 'A');
+                if (TrackManager::isProg(t)) {
+                    main = false;
+                    prog = true;
+                }
+                else
+                {
+                    main=true;
+                    prog=false;
+                }
+            singletrack=true;
+            if (main) TrackManager::SetMainTrackPower(POWERMODE::ON, t);
+            if (prog) TrackManager::SetProgTrackPower(POWERMODE::ON, t);
+      }
 	  else break; // will reply <X>
 	}
         TrackManager::setJoin(join);
-        if (main) TrackManager::setMainPower(POWERMODE::ON);
-        if (prog) TrackManager::setProgPower(POWERMODE::ON);
-
+        if (!singletrack) {
+            if (main) TrackManager::setMainPower(POWERMODE::ON);
+            if (prog) TrackManager::setProgPower(POWERMODE::ON);
+        }
         CommandDistributor::broadcastPower();
         return;
         }
@@ -588,6 +605,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         {
         bool main=false;
         bool prog=false;
+        bool singletrack=false;
         if (params > 1) break;
         if (params==0) { // All
 	  main=true;
@@ -601,17 +619,34 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
 	    prog=true;
 	  }
-#endif
+#endif  
+      else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+            uint8_t t = (p[0] - 'A');
+            if (TrackManager::isProg(t)) {
+                    main = false;
+                    prog = true;
+                }
+                else
+                {
+                    main=true;
+                    prog=false;
+                }
+            singletrack=true;
+            if (main) TrackManager::SetMainTrackPower(POWERMODE::OFF, t);
+            if (prog) TrackManager::SetProgTrackPower(POWERMODE::OFF, t);
+      }
+    
 	  else break; // will reply <X>
 	}
 
         TrackManager::setJoin(false);
+        if (!singletrack) {
         if (main) TrackManager::setMainPower(POWERMODE::OFF);
-        if (prog) {
-            TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-            TrackManager::setProgPower(POWERMODE::OFF);
+            if (prog) {
+                TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+                TrackManager::setProgPower(POWERMODE::OFF);
+            }
         }
-
         CommandDistributor::broadcastPower();
         return;
         }

@@ -269,6 +269,6 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
 }
 
-void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr) {
-  broadcastReply(COMMAND_TYPE, format,trackLetter,dcAddr);
+void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,char pmode, int16_t dcAddr) {
+  broadcastReply(COMMAND_TYPE, format,trackLetter,pmode, dcAddr);
 }

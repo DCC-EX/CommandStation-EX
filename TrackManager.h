@@ -60,10 +60,12 @@ class TrackManager {
 #ifdef ARDUINO_ARCH_ESP32
   static std::vector<MotorDriver *>getMainDrivers();
 #endif
-    static void setPower2(bool progTrack,POWERMODE mode);
+    static void setPower2(bool progTrack,POWERMODE mode, bool doall, uint8_t thistrack);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
-    static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
-    static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
+    static void setMainPower(POWERMODE mode) {setPower2(false,mode,true,0);}
+    static void setProgPower(POWERMODE mode) {setPower2(true,mode,true,0);}
+    static void SetMainTrackPower(POWERMODE mode, uint8_t track) {setPower2(false,mode,false,track);}
+    static void SetProgTrackPower(POWERMODE mode, uint8_t track) {setPower2(true,mode,false,track);}
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
@@ -80,6 +82,7 @@ class TrackManager {
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
+    static bool isProg(byte t);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main

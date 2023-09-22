@@ -353,32 +353,48 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   // null stream means send to commandDistributor for broadcast
   if (track[t]==NULL) return;
   auto format=F("");
+  bool pstate = TrackManager::isPowerOn(t);
+  //char PMODE[] = "OFF";
+  //if (pstate) PMODE="ON ";
+  //if (TrackManager::isPowerOn(t))  {char PMODE[] = "ON";}
+  //    else {char PMODE[] = "OFF";}
+  
   switch(track[t]->getMode()) {
   case TRACK_MODE_MAIN:
-      format=F("<= %c MAIN>\n");
+      format=F("<= %c MAIN %c>\n");
       break;
 #ifndef DISABLE_PROG
   case TRACK_MODE_PROG:
-      format=F("<= %c PROG>\n");
+      format=F("<= %c PROG %c>\n");
       break;
 #endif
   case TRACK_MODE_NONE:
-      format=F("<= %c NONE>\n");
+      format=F("<= %c NONE %c>\n");
       break;
   case TRACK_MODE_EXT:
-      format=F("<= %c EXT>\n");
+      format=F("<= %c EXT %c>\n");
       break;
   case TRACK_MODE_DC:
-      format=F("<= %c DC %d>\n");
+      format=F("<= %c DC %c  %d>\n");
       break;
   case TRACK_MODE_DCX:
-      format=F("<= %c DCX %d>\n");
+      format=F("<= %c DCX %c  %d>\n");
       break;
   default:
       break; // unknown, dont care    
   }
-  if (stream) StringFormatter::send(stream,format,'A'+t,trackDCAddr[t]);
-  else CommandDistributor::broadcastTrackState(format,'A'+t,trackDCAddr[t]);
+  switch (pstate) {
+    case true:
+      if (stream) StringFormatter::send(stream,format,'A'+t,"ON", trackDCAddr[t]);
+      else CommandDistributor::broadcastTrackState(format,'A'+t,"ON", trackDCAddr[t]);
+    break;
+    case false:
+      if (stream) StringFormatter::send(stream,format,'A'+t,"OFF", trackDCAddr[t]);
+      else CommandDistributor::broadcastTrackState(format,'A'+t,"OFF", trackDCAddr[t]);
+    break;
+  }
+  //if (stream) StringFormatter::send(stream,format,'A'+t,PMODE, trackDCAddr[t]);
+  //else CommandDistributor::broadcastTrackState(format,'A'+t,PMODE, trackDCAddr[t]);
 }
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
@@ -412,45 +428,51 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 }
 #endif
 
-void TrackManager::setPower2(bool setProg,POWERMODE mode) {
+void TrackManager::setPower2(bool setProg,POWERMODE mode, bool doall, uint8_t thistrack) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
-        MotorDriver * driver=track[t]; 
-        if (!driver) continue; 
-        switch (track[t]->getMode()) {
-            case TRACK_MODE_MAIN:
-                if (setProg) break; 
-                // toggle brake before turning power on - resets overcurrent error
-                // on the Pololu board if brake is wired to ^D2.
-		// XXX see if we can make this conditional
-                driver->setBrake(true);
-                driver->setBrake(false); // DCC runs with brake off
-                driver->setPower(mode);  
-                break; 
-            case TRACK_MODE_DC:
-            case TRACK_MODE_DCX:
-                if (setProg) break; 
-                driver->setBrake(true); // DC starts with brake on
-                applyDCSpeed(t);        // speed match DCC throttles
-                driver->setPower(mode);
-                break;  
-            case TRACK_MODE_PROG:
-                if (!setProg) break; 
-                driver->setBrake(true);
-                driver->setBrake(false);
-                driver->setPower(mode);
-                break;  
-            case TRACK_MODE_EXT:
-	        driver->setBrake(true);
-	        driver->setBrake(false);
-		driver->setPower(mode);
-	        break;
-            case TRACK_MODE_NONE:
-                break;
+      if (doall==false && thistrack != t) break;
+      MotorDriver * driver=track[t]; 
+      if (!driver) continue; 
+      switch (track[t]->getMode()) {
+          case TRACK_MODE_MAIN:
+              if (setProg) break; 
+              // toggle brake before turning power on - resets overcurrent error
+              // on the Pololu board if brake is wired to ^D2.
+              // XXX see if we can make this conditional
+              driver->setBrake(true);
+              driver->setBrake(false); // DCC runs with brake off
+              driver->setPower(mode);  
+              break; 
+          case TRACK_MODE_DC:
+          case TRACK_MODE_DCX:
+              if (setProg) break; 
+              driver->setBrake(true); // DC starts with brake on
+              applyDCSpeed(t);        // speed match DCC throttles
+              driver->setPower(mode);
+              break;  
+          case TRACK_MODE_PROG:
+              if (!setProg) break; 
+              driver->setBrake(true);
+              driver->setBrake(false);
+              driver->setPower(mode);
+              break;  
+          case TRACK_MODE_EXT:
+        driver->setBrake(true);
+        driver->setBrake(false);
+        driver->setPower(mode);
+        break;
+          case TRACK_MODE_NONE:
+              break;
         }
+      
     }
 }
-  
+
+// void TrackManager::setTrackPower(bool progTrack,POWERMODE mode, uint8_t track) {
+//    // write the code for this.
+// }
+
 POWERMODE TrackManager::getProgPower() {
     FOR_EACH_TRACK(t)
       if (track[t]->getMode()==TRACK_MODE_PROG) 
@@ -526,3 +548,8 @@ bool TrackManager::isPowerOn(byte t) {
     return true;   
   }
 
+bool TrackManager::isProg(byte t) {
+    if (track[t]->getMode()==TRACK_MODE_PROG)
+        return true;
+    return false;
+}
