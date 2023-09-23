@@ -52,7 +52,7 @@ HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 
 HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
 HardwareSerial Serial5(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F446RE
 // On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
-#elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)|| defined(ARDUINO_NUCLEO_F412ZG) 
+#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE) 
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
@@ -235,22 +235,19 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
-// TODO: may need to use uint32_t on STMF4xx variants with > 16 analog inputs!
-#if defined(ARDUINO_NUCLEO_F446RE) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
-#warning STM32 board selected not fully supported - only use ADC1 inputs 0-15 for current sensing!
-#endif
-// For now, define the max of 16 ports - some variants have more, but this not **yet** supported
-#define NUM_ADC_INPUTS 16
-// #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
+// Now we can handle more ADCs, maybe this works!
+#define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
 
-uint16_t ADCee::usedpins = 0;
-uint8_t ADCee::highestPin = 0;
-int * ADCee::analogvals = NULL;
-uint32_t * analogchans = NULL;
-bool adc1configured = false;
+uint32_t ADCee::usedpins = 0;         // Max of 32 ADC input channels!
+uint8_t ADCee::highestPin = 0;        // Highest pin to scan
+int * ADCee::analogvals = NULL;       // Array of analog values last captured
+uint32_t * analogchans = NULL;        // Array of channel numbers to be scanned
+// bool adc1configured = false;
+ADC_TypeDef * * adcchans = NULL;      // Array to capture which ADC is each input channel on
 
-int16_t ADCee::ADCmax() {
-  return 4095;
+int16_t ADCee::ADCmax()
+{
+    return 4095;
 }
 
 int ADCee::init(uint8_t pin) {
@@ -261,11 +258,33 @@ int ADCee::init(uint8_t pin) {
     return -1024;   // some silly value as error
 
   uint32_t stmgpio = STM_PORT(stmpin); // converts to the GPIO port (16-bits per port group on STM32)
-  uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC channel (only valid for ADC1!)
-  GPIO_TypeDef * gpioBase;
+  uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC input channel
+  ADC_TypeDef *adc = (ADC_TypeDef *)pinmap_find_peripheral(stmpin, PinMap_ADC); // find which ADC this pin is on ADC1/2/3 etc.
+  int adcnum = 1;
+  if (adc == ADC1)
+    DIAG(F("ADCee::init(): found pin %d on ADC1"), pin);
+// Checking for ADC2 and ADC3 being defined helps cater for more variants later
+#if defined(ADC2)
+  else if (adc == ADC2)
+  {
+    DIAG(F("ADCee::init(): found pin %d on ADC2"), pin);
+    adcnum = 2;
+  }
+#endif
+#if defined(ADC3)
+  else if (adc == ADC3)
+  {
+    DIAG(F("ADCee::init(): found pin %d on ADC3"), pin);
+    adcnum = 3;
+  }
+#endif
+  else DIAG(F("ADCee::init(): found pin %d on unknown ADC!"), pin);
 
-  // Port config - find which port we're on and power it up
-  switch(stmgpio) {
+    // Port config - find which port we're on and power it up
+    GPIO_TypeDef *gpioBase;
+
+    switch (stmgpio)
+    {
     case 0x00:
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN; //Power up PORTA
         gpioBase = GPIOA;
@@ -278,6 +297,20 @@ int ADCee::init(uint8_t pin) {
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //Power up PORTC
         gpioBase = GPIOC;
         break;
+    case 0x03:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN; //Power up PORTD
+        gpioBase = GPIOD;
+        break;
+    case 0x04:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOEEN; //Power up PORTE
+        gpioBase = GPIOE;
+        break;
+#if defined(GPIOF)
+    case 0x05:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN; //Power up PORTF
+        gpioBase = GPIOF;
+        break;
+#endif
     default:
       return -1023; // some silly value as error
   }
@@ -293,31 +326,33 @@ int ADCee::init(uint8_t pin) {
   if (adcchan > 18)
     return -1022; // silly value as error
   if (adcchan < 10)
-    ADC1->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
+    adc->SMPR2 |= (0b111 << (adcchan * 3)); // Channel sampling rate 480 cycles
   else
-    ADC1->SMPR1 |= (0b111 << ((adcchan - 10) * 3)); // Channel sampling rate 480 cycles
+    adc->SMPR1 |= (0b111 << ((adcchan - 10) * 3)); // Channel sampling rate 480 cycles
 
   // Read the inital ADC value for this analog input
-  ADC1->SQR3 = adcchan;           // 1st conversion in regular sequence
-  ADC1->CR2 |= (1 << 30);         // Start 1st conversion SWSTART
-  while(!(ADC1->SR & (1 << 1)));  // Wait until conversion is complete
-  value = ADC1->DR;               // Read value from register
+  adc->SQR3 = adcchan;           // 1st conversion in regular sequence
+  adc->CR2 |= ADC_CR2_SWSTART;   //(1 << 30);                     // Start 1st conversion SWSTART
+  while(!(adc->SR & (1 << 1)));  // Wait until conversion is complete
+  value = adc->DR;               // Read value from register
 
   uint8_t id = pin - PNUM_ANALOG_BASE;
-  if (id > 15) { // today we have not enough bits in the mask to support more
-    return -1021;
-  }
+  // if (id > 15) { // today we have not enough bits in the mask to support more
+  //   return -1021;
+  // }
 
-  if (analogvals == NULL) {  // allocate analogvals and analogchans if this is the first invocation of init.
+  if (analogvals == NULL) {  // allocate analogvals, analogchans and adcchans if this is the first invocation of init
     analogvals = (int *)calloc(NUM_ADC_INPUTS+1, sizeof(int));
     analogchans = (uint32_t *)calloc(NUM_ADC_INPUTS+1, sizeof(uint32_t));
+    adcchans = (ADC_TypeDef **)calloc(NUM_ADC_INPUTS+1, sizeof(ADC_TypeDef));
   }
   analogvals[id] = value;     // Store sampled value
   analogchans[id] = adcchan;  // Keep track of which ADC channel is used for reading this pin
-  usedpins |= (1 << id);      // This pin is now ready
+  adcchans[id] = adc;         // Keep track of which ADC this channel is on
+  usedpins |= (1 << id);                // This pin is now ready
   if (id > highestPin) highestPin = id; // Store our highest pin in use
 
-  DIAG(F("ADCee::init(): value=%d, channel=%d, id=%d"), value, adcchan, id);
+  DIAG(F("ADCee::init(): value=%d, ADC%d: channel=%d, id=%d"), value, adcnum, adcchan, id);
 
   return value;
 }
@@ -344,13 +379,16 @@ void ADCee::scan() {
   static uint8_t id = 0;     // id and mask are the same thing but it is faster to
   static uint16_t mask = 1;  // increment and shift instead to calculate mask from id
   static bool waiting = false;
+  static ADC_TypeDef *adc;
 
-  if (waiting) {
+  adc = adcchans[id];
+  if (waiting)
+  {
     // look if we have a result
-    if (!(ADC1->SR & (1 << 1)))
+    if (!(adc->SR & (1 << 1)))
       return; // no result, continue to wait
     // found value
-    analogvals[id] = ADC1->DR;
+    analogvals[id] = adc->DR;
     // advance at least one track
 #ifdef DEBUG_ADC
     if (id == 1) TrackManager::track[1]->setBrake(0);
@@ -369,9 +407,10 @@ void ADCee::scan() {
     // look for a valid track to sample or until we are around
     while (true) {
       if (mask  & usedpins) {
-	// start new ADC aquire on id
-        ADC1->SQR3 = analogchans[id]; //1st conversion in regular sequence
-        ADC1->CR2 |= (1 << 30); //Start 1st conversion SWSTART
+        // start new ADC aquire on id
+        adc = adcchans[id];
+        adc->SQR3 = analogchans[id]; // 1st conversion in regular sequence
+        adc->CR2 |= (1 << 30);       // Start 1st conversion SWSTART
 #ifdef DEBUG_ADC
 	if (id == 1) TrackManager::track[1]->setBrake(1);
 #endif
@@ -392,19 +431,83 @@ void ADCee::scan() {
 void ADCee::begin() {
   noInterrupts();
   //ADC1 config sequence
-  // TODO: currently defaults to ADC1, may need more to handle other members of STM32F4xx family
-  RCC->APB2ENR |= (1 << 8); //Enable ADC1 clock (Bit8) 
+  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN; // Enable ADC1 clock
   // Set ADC prescaler - DIV8 ~ 40ms, DIV6 ~ 30ms, DIV4 ~ 20ms, DIV2 ~ 11ms
   ADC->CCR = (0 << 16); // Set prescaler 0=DIV2, 1=DIV4, 2=DIV6, 3=DIV8
   ADC1->CR1 &= ~(1 << 8); //SCAN mode disabled (Bit8)
   ADC1->CR1 &= ~(3 << 24); //12bit resolution (Bit24,25 0b00)
   ADC1->SQR1 = (1 << 20); //Set number of conversions projected (L[3:0] 0b0001) -> 1 conversion
+  // Disable the DMA controller for ADC1
+  ADC1->CR2 &= ~ADC_CR2_DMA;
   ADC1->CR2 &= ~(1 << 1); //Single conversion
   ADC1->CR2 &= ~(1 << 11); //Right alignment of data bits bit12....bit0
   ADC1->SQR1 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
   ADC1->SQR2 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
   ADC1->SQR3 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
   ADC1->CR2 |= (1 << 0); // Switch on ADC1
+  // Wait for ADC1 to become ready (calibration complete)
+  while (!(ADC1->CR2 & ADC_CR2_ADON)) {
+  }
+#if defined(ADC2)
+  // Enable the ADC2 clock
+  RCC->APB2ENR |= RCC_APB2ENR_ADC2EN;
+
+  // Initialize ADC2
+  ADC2->CR1 = 0; // Disable all channels
+  ADC2->CR2 = 0; // Clear CR2 register
+
+  ADC2->CR1 &= ~(1 << 8); //SCAN mode disabled (Bit8)
+  ADC2->CR1 &= ~(3 << 24); //12bit resolution (Bit24,25 0b00)
+  ADC2->SQR1 = (1 << 20); //Set number of conversions projected (L[3:0] 0b0001) -> 1 conversion
+  ADC2->CR2 &= ~ADC_CR2_DMA;   // Disable the DMA controller for ADC3
+  ADC2->CR2 &= ~(1 << 1); //Single conversion
+  ADC2->CR2 &= ~(1 << 11); //Right alignment of data bits bit12....bit0
+  ADC2->SQR1 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC2->SQR2 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC2->SQR3 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+
+  // Enable the ADC
+  ADC2->CR2 |= ADC_CR2_ADON;
+
+  // Wait for ADC2 to become ready (calibration complete)
+  while (!(ADC2->CR2 & ADC_CR2_ADON)) {
+  }
+
+  // Perform ADC3 calibration (optional)
+  // ADC3->CR2 |= ADC_CR2_CAL;
+  // while (ADC3->CR2 & ADC_CR2_CAL) {
+  // }
+#endif
+#if defined(ADC3)
+  // Enable the ADC3 clock
+  RCC->APB2ENR |= RCC_APB2ENR_ADC3EN;
+
+  // Initialize ADC3
+  ADC3->CR1 = 0; // Disable all channels
+  ADC3->CR2 = 0; // Clear CR2 register
+
+  ADC3->CR1 &= ~(1 << 8); //SCAN mode disabled (Bit8)
+  ADC3->CR1 &= ~(3 << 24); //12bit resolution (Bit24,25 0b00)
+  ADC3->SQR1 = (1 << 20); //Set number of conversions projected (L[3:0] 0b0001) -> 1 conversion
+  ADC3->CR2 &= ~ADC_CR2_DMA;   // Disable the DMA controller for ADC3
+  ADC3->CR2 &= ~(1 << 1); //Single conversion
+  ADC3->CR2 &= ~(1 << 11); //Right alignment of data bits bit12....bit0
+  ADC3->SQR1 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC3->SQR2 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+  ADC3->SQR3 &= ~(0x3FFFFFFF); //Clear whole 1st 30bits in register
+
+  // Enable the ADC
+  ADC3->CR2 |= ADC_CR2_ADON;
+
+  // Wait for ADC3 to become ready (calibration complete)
+  while (!(ADC3->CR2 & ADC_CR2_ADON)) {
+  }
+
+  // Perform ADC3 calibration (optional)
+  // ADC3->CR2 |= ADC_CR2_CAL;
+  // while (ADC3->CR2 & ADC_CR2_CAL) {
+  // }
+#endif
   interrupts();
 }
 #endif
