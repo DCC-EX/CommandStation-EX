@@ -34,7 +34,6 @@ public:
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new PCA9555(vpin,nPins, i2cAddress, interruptPin);
   }
 
-
 private:  
   // Constructor
   PCA9555(VPIN vpin, uint8_t nPins, I2CAddress I2CAddress, int interruptPin=-1) 
