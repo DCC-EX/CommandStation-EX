@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.8"
+#define VERSION "5.1.9"
+// 5.1.9  - Fixed IO_PCA9555'h to work with PCA9548 mux, tested OK
 // 5.1.8  - STM32Fxx ADCee extension to support ADCs #2 and #3
 // 5.1.7  - Fix turntable broadcasts for non-movement activities and <JP> result
 // 5.1.6  - STM32F4xx native I2C driver added
