@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.7"
-// 5.1.7  - IO_PCA9555.h fixed to work on PCA9548 Subbus, tested
+#define VERSION "5.1.8"
+// 5.1.8  - STM32Fxx ADCee extension to support ADCs #2 and #3
+// 5.1.7  - Fix turntable broadcasts for non-movement activities and <JP> result
 // 5.1.6  - STM32F4xx native I2C driver added
 // 5.1.5  - Added turntable object and EXRAIL commands
 //        - <I ...>, <JO ...>, <JP ...> - turntable commands
