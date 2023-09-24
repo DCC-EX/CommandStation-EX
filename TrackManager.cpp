@@ -354,47 +354,32 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   if (track[t]==NULL) return;
   auto format=F("");
   bool pstate = TrackManager::isPowerOn(t);
-  //char PMODE[] = "OFF";
-  //if (pstate) PMODE="ON ";
-  //if (TrackManager::isPowerOn(t))  {char PMODE[] = "ON";}
-  //    else {char PMODE[] = "OFF";}
-  
   switch(track[t]->getMode()) {
   case TRACK_MODE_MAIN:
-      format=F("<= %c MAIN %c>\n");
+      if (pstate) {format=F("<= %c MAIN ON \n");} else {format = F("<= %c MAIN OFF \n");}
       break;
 #ifndef DISABLE_PROG
   case TRACK_MODE_PROG:
-      format=F("<= %c PROG %c>\n");
+      if (pstate) {format=F("<= %c PROG ON>\n");} else {format=F("<= %c PROG OFF>\n");}
       break;
 #endif
   case TRACK_MODE_NONE:
-      format=F("<= %c NONE %c>\n");
+      if (pstate) {format=F("<= %c NONE %ON>\n");} else {format=F("<= %c NONE %OFF>\n");}
       break;
   case TRACK_MODE_EXT:
-      format=F("<= %c EXT %c>\n");
+      if (pstate) {format=F("<= %c EXT ON>\n");} else {format=F("<= %c EXT OFF>\n");}
       break;
   case TRACK_MODE_DC:
-      format=F("<= %c DC %c  %d>\n");
+      if (pstate) {format=F("<= %c DC ON  %d>\n");} else {format=F("<= %c DC OFF  %d>\n");}
       break;
   case TRACK_MODE_DCX:
-      format=F("<= %c DCX %c  %d>\n");
+      if (pstate) {format=F("<= %c DCX ON  %d>\n");} else {format=F("<= %c DCX OFF  %d>\n");}
       break;
   default:
       break; // unknown, dont care    
   }
-  switch (pstate) {
-    case true:
-      if (stream) StringFormatter::send(stream,format,'A'+t,"ON", trackDCAddr[t]);
-      else CommandDistributor::broadcastTrackState(format,'A'+t,"ON", trackDCAddr[t]);
-    break;
-    case false:
-      if (stream) StringFormatter::send(stream,format,'A'+t,"OFF", trackDCAddr[t]);
-      else CommandDistributor::broadcastTrackState(format,'A'+t,"OFF", trackDCAddr[t]);
-    break;
-  }
-  //if (stream) StringFormatter::send(stream,format,'A'+t,PMODE, trackDCAddr[t]);
-  //else CommandDistributor::broadcastTrackState(format,'A'+t,PMODE, trackDCAddr[t]);
+    if (stream) StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
+    else CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
 }
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
@@ -428,10 +413,9 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 }
 #endif
 
-void TrackManager::setPower2(bool setProg,POWERMODE mode, bool doall, uint8_t thistrack) {
+void TrackManager::setPower2(bool setProg,POWERMODE mode) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
-      if (doall==false && thistrack != t) break;
       MotorDriver * driver=track[t]; 
       if (!driver) continue; 
       switch (track[t]->getMode()) {
@@ -469,9 +453,15 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode, bool doall, uint8_t th
     }
 }
 
-// void TrackManager::setTrackPower(bool progTrack,POWERMODE mode, uint8_t track) {
-//    // write the code for this.
-// }
+void TrackManager::setTrackPower(POWERMODE mode, byte thistrack) {
+
+      DIAG(F("SetPower Processing Track %d"), thistrack);
+      MotorDriver * driver=track[thistrack]; 
+      if (!driver) return; 
+
+      driver->setPower(mode);  
+
+ }
 
 POWERMODE TrackManager::getProgPower() {
     FOR_EACH_TRACK(t)

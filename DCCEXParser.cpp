@@ -576,7 +576,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  }
 #endif
       else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            uint8_t t = (p[0] - 'A');
+            byte t = (p[0] - 'A');
+                DIAG(F("Processing track - %d "), t);
                 if (TrackManager::isProg(t)) {
                     main = false;
                     prog = true;
@@ -587,8 +588,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     prog=false;
                 }
             singletrack=true;
-            if (main) TrackManager::SetMainTrackPower(POWERMODE::ON, t);
-            if (prog) TrackManager::SetProgTrackPower(POWERMODE::ON, t);
+            DIAG(F("Calling SetPower %d - %d - %d"),  POWERMODE::ON, false, t);
+            if (main) TrackManager::setTrackPower(POWERMODE::ON, t);
+            //if (main) TrackManager::SetMainTrackPower(POWERMODE::ON, t);
+            //if (prog) TrackManager::SetProgTrackPower(POWERMODE::ON, t);
       }
 	  else break; // will reply <X>
 	}
@@ -621,8 +624,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  }
 #endif  
       else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            uint8_t t = (p[0] - 'A');
-            if (TrackManager::isProg(t)) {
+            byte t = (p[0] - 'A');
+                DIAG(F("Processing track - %d "), t);
+                if (TrackManager::isProg(t)) {
                     main = false;
                     prog = true;
                 }
@@ -632,8 +636,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     prog=false;
                 }
             singletrack=true;
-            if (main) TrackManager::SetMainTrackPower(POWERMODE::OFF, t);
-            if (prog) TrackManager::SetProgTrackPower(POWERMODE::OFF, t);
+            DIAG(F("Calling SetPower %d - %d - %d"),  POWERMODE::OFF, false, t);
+            if (main) TrackManager::setTrackPower(POWERMODE::OFF, t);
       }
     
 	  else break; // will reply <X>

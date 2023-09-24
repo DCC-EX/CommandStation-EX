@@ -63,6 +63,11 @@
 // (10#mins)%100)
 #define STRIP_ZERO(value) 10##value%100
 
+// These constants help EXRAIL macros convert Track Power e.g. SET_POWER(A ON|OFF).
+//const byte TRACK_POWER_0=0, TRACK_POWER_OFF=0;    
+//const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
+
+
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
@@ -407,11 +412,12 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
 #define SET(pin) OPCODE_SET,V(pin),
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
+#define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff, TRACK_NUMBER_##track),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
-#define START(route) OPCODE_START,V(route),
+#define START(route) OPCODE_START,V(route), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #ifndef IO_NO_HAL
