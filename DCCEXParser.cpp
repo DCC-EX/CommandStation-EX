@@ -1057,7 +1057,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
     case HASH_KEYWORD_RAM: // <D RAM>
         StringFormatter::send(stream, F("Free memory=%d\n"), DCCTimer::getMinimumFreeMemory());
-        break;
+        return true;
 
 #ifndef DISABLE_PROG
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
