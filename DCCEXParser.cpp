@@ -1073,7 +1073,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           IODevice::DumpAll();
         else if (p[1] == HASH_KEYWORD_RESET)
           IODevice::reset();
-        break;
+        return true;
 #endif
 
     case HASH_KEYWORD_TT:     // <D TT vpin steps activity>
