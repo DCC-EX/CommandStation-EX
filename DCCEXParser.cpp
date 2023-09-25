@@ -588,10 +588,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     prog=false;
                 }
             singletrack=true;
-            DIAG(F("Calling SetPower %d - %d - %d"),  POWERMODE::ON, false, t);
             if (main) TrackManager::setTrackPower(POWERMODE::ON, t);
-            //if (main) TrackManager::SetMainTrackPower(POWERMODE::ON, t);
-            //if (prog) TrackManager::SetProgTrackPower(POWERMODE::ON, t);
       }
 	  else break; // will reply <X>
 	}
@@ -622,7 +619,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
 	    prog=true;
 	  }
-#endif  
+#endif  <=
       else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
             byte t = (p[0] - 'A');
                 DIAG(F("Processing track - %d "), t);
@@ -636,7 +633,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     prog=false;
                 }
             singletrack=true;
-            DIAG(F("Calling SetPower %d - %d - %d"),  POWERMODE::OFF, false, t);
             if (main) TrackManager::setTrackPower(POWERMODE::OFF, t);
       }
     
