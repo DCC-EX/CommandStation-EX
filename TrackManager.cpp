@@ -364,16 +364,16 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
       break;
 #endif
   case TRACK_MODE_NONE:
-      if (pstate) {format=F("<= %c NONE %ON>\n");} else {format=F("<= %c NONE %OFF>\n");}
+      if (pstate) {format=F("<= %c NONE ON>\n");} else {format=F("<= %c NONE OFF>\n");}
       break;
   case TRACK_MODE_EXT:
       if (pstate) {format=F("<= %c EXT ON>\n");} else {format=F("<= %c EXT OFF>\n");}
       break;
   case TRACK_MODE_DC:
-      if (pstate) {format=F("<= %c DC ON  %d>\n");} else {format=F("<= %c DC OFF  %d>\n");}
+      if (pstate) {format=F("<= %c DC %d ON>\n");} else {format=F("<= %c DC %d OFF>\n");}
       break;
   case TRACK_MODE_DCX:
-      if (pstate) {format=F("<= %c DCX ON  %d>\n");} else {format=F("<= %c DCX OFF  %d>\n");}
+      if (pstate) {format=F("<= %c DCX %d ON>\n");} else {format=F("<= %c DCX %d OFF>\n");}
       break;
   default:
       break; // unknown, dont care    
@@ -416,9 +416,51 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 void TrackManager::setPower2(bool setProg,POWERMODE mode) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
-      MotorDriver * driver=track[t]; 
-      if (!driver) continue; 
-      switch (track[t]->getMode()) {
+      TrackManager::setTrackPower(setProg, mode, t);
+      // MotorDriver * driver=track[t]; 
+      // if (!driver) continue; 
+      // switch (track[t]->getMode()) {
+      //     case TRACK_MODE_MAIN:
+      //         if (setProg) break; 
+      //         // toggle brake before turning power on - resets overcurrent error
+      //         // on the Pololu board if brake is wired to ^D2.
+      //         // XXX see if we can make this conditional
+      //         driver->setBrake(true);
+      //         driver->setBrake(false); // DCC runs with brake off
+      //         driver->setPower(mode);  
+      //         break; 
+      //     case TRACK_MODE_DC:
+      //     case TRACK_MODE_DCX:
+      //         if (setProg) break; 
+      //         driver->setBrake(true); // DC starts with brake on
+      //         applyDCSpeed(t);        // speed match DCC throttles
+      //         driver->setPower(mode);
+      //         break;  
+      //     case TRACK_MODE_PROG:
+      //         if (!setProg) break; 
+      //         driver->setBrake(true);
+      //         driver->setBrake(false);
+      //         driver->setPower(mode);
+      //         break;  
+      //     case TRACK_MODE_EXT:
+      //   driver->setBrake(true);
+      //   driver->setBrake(false);
+      //   driver->setPower(mode);
+      //   break;
+      //     case TRACK_MODE_NONE:
+      //         break;
+      //   }
+      
+    }
+}
+
+void TrackManager::setTrackPower(bool setProg, POWERMODE mode, byte thistrack) {
+
+      DIAG(F("SetTrackPower Processing Track %d"), thistrack);
+      MotorDriver * driver=track[thistrack]; 
+      if (!driver) return; 
+
+      switch (track[thistrack]->getMode()) {
           case TRACK_MODE_MAIN:
               if (setProg) break; 
               // toggle brake before turning power on - resets overcurrent error
@@ -432,7 +474,7 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
           case TRACK_MODE_DCX:
               if (setProg) break; 
               driver->setBrake(true); // DC starts with brake on
-              applyDCSpeed(t);        // speed match DCC throttles
+              applyDCSpeed(thistrack);        // speed match DCC throttles
               driver->setPower(mode);
               break;  
           case TRACK_MODE_PROG:
@@ -449,17 +491,9 @@ void TrackManager::setPower2(bool setProg,POWERMODE mode) {
           case TRACK_MODE_NONE:
               break;
         }
-      
-    }
-}
-
-void TrackManager::setTrackPower(POWERMODE mode, byte thistrack) {
-
-      DIAG(F("SetPower Processing Track %d"), thistrack);
-      MotorDriver * driver=track[thistrack]; 
-      if (!driver) return; 
-
-      driver->setPower(mode);  
+      if (mode == POWERMODE::ON) {DIAG(F("Power Track %d ON"), thistrack);}
+        else {DIAG(F("Power Track %d OFF"), thistrack);}
+      //driver->setPower(mode);  
 
  }
 

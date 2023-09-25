@@ -556,6 +556,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool prog=false;
         bool join=false;
         bool singletrack=false;
+        byte t=0;
         if (params > 1) break;
         if (params==0) { // All
             main=true;
@@ -576,8 +577,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  }
 #endif
       else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            byte t = (p[0] - 'A');
-                DIAG(F("Processing track - %d "), t);
+            t = (p[0] - 'A');
+                //DIAG(F("Processing track - %d "), t);
                 if (TrackManager::isProg(t)) {
                     main = false;
                     prog = true;
@@ -588,7 +589,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     prog=false;
                 }
             singletrack=true;
-            if (main) TrackManager::setTrackPower(POWERMODE::ON, t);
+
       }
 	  else break; // will reply <X>
 	}
@@ -596,6 +597,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         if (!singletrack) {
             if (main) TrackManager::setMainPower(POWERMODE::ON);
             if (prog) TrackManager::setProgPower(POWERMODE::ON);
+        }
+        else {
+            if (main) TrackManager::setTrackPower(false, POWERMODE::ON, t);
+            if (prog) {
+                TrackManager::setTrackPower(true, POWERMODE::ON, t);
+            }
         }
         CommandDistributor::broadcastPower();
         return;
@@ -606,6 +613,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         bool main=false;
         bool prog=false;
         bool singletrack=false;
+        byte t=0;
         if (params > 1) break;
         if (params==0) { // All
 	  main=true;
@@ -621,8 +629,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  }
 #endif  <=
       else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            byte t = (p[0] - 'A');
-                DIAG(F("Processing track - %d "), t);
+            t = (p[0] - 'A');
+                //DIAG(F("Processing track - %d "), t);
                 if (TrackManager::isProg(t)) {
                     main = false;
                     prog = true;
@@ -632,24 +640,29 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     main=true;
                     prog=false;
                 }
-            singletrack=true;
-            if (main) TrackManager::setTrackPower(POWERMODE::OFF, t);
-      }
-    
+            singletrack=true;         
+      } 
 	  else break; // will reply <X>
 	}
 
         TrackManager::setJoin(false);
         if (!singletrack) {
-        if (main) TrackManager::setMainPower(POWERMODE::OFF);
+            if (main) TrackManager::setMainPower(POWERMODE::OFF);
+                if (prog) {
+                    TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+                    TrackManager::setProgPower(POWERMODE::OFF);
+                }
+            }
+        else {
+            if (main) TrackManager::setTrackPower(false, POWERMODE::OFF, t);
             if (prog) {
                 TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                TrackManager::setProgPower(POWERMODE::OFF);
+                TrackManager::setTrackPower(true, POWERMODE::OFF, t);
             }
         }
         CommandDistributor::broadcastPower();
         return;
-        }
+    }
 
     case '!': // ESTOP ALL  <!>
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
