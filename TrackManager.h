@@ -64,12 +64,12 @@ class TrackManager {
 #ifdef ARDUINO_ARCH_ESP32
   static std::vector<MotorDriver *>getMainDrivers();
 #endif
-    static void setTrackPower(bool setProg, POWERMODE mode, byte thistrack);
+  
     static void setPower2(bool progTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
     static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
     static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
-    
+    static void setTrackPower(bool setProg, POWERMODE mode, byte thistrack);
    
 
     static const int16_t MAX_TRACKS=8;
@@ -84,6 +84,7 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
+    static void reportPowerChange(Print* stream, byte thistrack);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);

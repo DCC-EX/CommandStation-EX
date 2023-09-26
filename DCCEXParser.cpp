@@ -552,84 +552,88 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case '1': // POWERON <1   [MAIN|PROG|JOIN]>
         {
-        bool main=false;
-        bool prog=false;
-        bool join=false;
-        bool singletrack=false;
-        byte t=0;
-        if (params > 1) break;
-        if (params==0) { // All
-            main=true;
-            prog=true;
-        }
-	if (params==1) {
-	  if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
-            main=true;
-	  }
+            bool main=false;
+            bool prog=false;
+            bool join=false;
+            bool singletrack=false;
+            //byte t=0;
+            if (params > 1) break;
+            if (params==0) { // All
+                main=true;
+                prog=true;
+            }
+            if (params==1) {
+                if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+                        main=true;
+            }
 #ifndef DISABLE_PROG
-	  else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
-            main=true;
-            prog=true;
-            join=true;
-	  }
-	  else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
-            prog=true;
-	  }
+            else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
+                main=true;
+                prog=true;
+                join=true;
+            }
+            else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
+                prog=true;
+            }
 #endif
-      else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            t = (p[0] - 'A');
-                //DIAG(F("Processing track - %d "), t);
-                if (TrackManager::isProg(t)) {
-                    main = false;
-                    prog = true;
-                }
-                else
-                {
-                    main=true;
-                    prog=false;
-                }
-            singletrack=true;
+            else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+                byte t = (p[0] - 'A');
+                    //DIAG(F("Processing track - %d "), t);
+                    if (TrackManager::isProg(t)) {
+                        main = false;
+                        prog = true;
+                    }
+                    else
+                    {
+                        main=true;
+                        prog=false;
+                    }
+                singletrack=true;
+                if (main) TrackManager::setTrackPower(false, POWERMODE::ON, t);
+                if (prog) TrackManager::setTrackPower(true, POWERMODE::ON, t);
+                //CommandDistributor::broadcastPower();
+                //TrackManager::streamTrackState(stream, t);
+                TrackManager::streamTrackState(NULL,t);
+                StringFormatter::send(stream, F("Track %d ON\n"), t);
+                return;
+            }
 
-      }
-	  else break; // will reply <X>
-	}
-        TrackManager::setJoin(join);
+	    else break; // will reply <X>
+	    }
+
         if (!singletrack) {
+            TrackManager::setJoin(join);
             if (main) TrackManager::setMainPower(POWERMODE::ON);
             if (prog) TrackManager::setProgPower(POWERMODE::ON);
-        }
-        else {
-            if (main) TrackManager::setTrackPower(false, POWERMODE::ON, t);
-            if (prog) {
-                TrackManager::setTrackPower(true, POWERMODE::ON, t);
+            CommandDistributor::broadcastPower();
+          
+            return;
             }
-        }
-        CommandDistributor::broadcastPower();
-        return;
+            
         }
 
     case '0': // POWEROFF <0 [MAIN | PROG] >
         {
-        bool main=false;
-        bool prog=false;
-        bool singletrack=false;
-        byte t=0;
-        if (params > 1) break;
-        if (params==0) { // All
-	  main=true;
-	  prog=true;
-        }
-	if (params==1) {
-	  if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
-	    main=true;
-	  }
+            bool main=false;
+            bool prog=false;
+            bool singletrack=false;
+            //byte t=0;
+            if (params > 1) break;
+            if (params==0) { // All
+                main=true;
+                prog=true;
+            }
+            if (params==1) {
+                if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
+                    main=true;
+            }
 #ifndef DISABLE_PROG
-	  else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
-	    prog=true;
-	  }
-#endif  <=
-      else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-            t = (p[0] - 'A');
+            else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
+                prog=true;
+            }
+#endif
+            else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+                byte t = (p[0] - 'A');
                 //DIAG(F("Processing track - %d "), t);
                 if (TrackManager::isProg(t)) {
                     main = false;
@@ -640,28 +644,33 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     main=true;
                     prog=false;
                 }
-            singletrack=true;         
-      } 
-	  else break; // will reply <X>
-	}
-
-        TrackManager::setJoin(false);
-        if (!singletrack) {
-            if (main) TrackManager::setMainPower(POWERMODE::OFF);
+                singletrack=true;  
+                TrackManager::setJoin(false);
+                if (main) TrackManager::setTrackPower(false, POWERMODE::OFF, t);
                 if (prog) {
+                    TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+                    TrackManager::setTrackPower(true, POWERMODE::OFF, t);
+                    CommandDistributor::broadcastPower();
+                }   
+                StringFormatter::send(stream, F("Track %d OFF\n"), t);
+                TrackManager::streamTrackState(NULL, t);
+                return;
+            }    
+
+	    else break; // will reply <X>
+	    }
+
+        if (!singletrack) {
+            TrackManager::setJoin(false);
+            
+            if (main) TrackManager::setMainPower(POWERMODE::OFF);
+            if (prog) {
                     TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
                     TrackManager::setProgPower(POWERMODE::OFF);
                 }
-            }
-        else {
-            if (main) TrackManager::setTrackPower(false, POWERMODE::OFF, t);
-            if (prog) {
-                TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                TrackManager::setTrackPower(true, POWERMODE::OFF, t);
-            }
+            CommandDistributor::broadcastPower();
+            return;
         }
-        CommandDistributor::broadcastPower();
-        return;
     }
 
     case '!': // ESTOP ALL  <!>

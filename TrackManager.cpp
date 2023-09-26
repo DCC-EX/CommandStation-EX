@@ -26,7 +26,8 @@
 #include "MotorDriver.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
-#include"CommandDistributor.h"
+#include "CommandDistributor.h"
+#include "DCCEXParser.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
     
@@ -319,6 +320,7 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
         FOR_EACH_TRACK(t)
              streamTrackState(stream,t);
         return true;
+        
     }
     
     p[0]-=HASH_KEYWORD_A;  // convert A... to 0.... 
@@ -378,8 +380,10 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   default:
       break; // unknown, dont care    
   }
-    if (stream) StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
+
+  if (stream) StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);   
     else CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
+  
 }
 
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
@@ -416,47 +420,16 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 void TrackManager::setPower2(bool setProg,POWERMODE mode) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
+
       TrackManager::setTrackPower(setProg, mode, t);
-      // MotorDriver * driver=track[t]; 
-      // if (!driver) continue; 
-      // switch (track[t]->getMode()) {
-      //     case TRACK_MODE_MAIN:
-      //         if (setProg) break; 
-      //         // toggle brake before turning power on - resets overcurrent error
-      //         // on the Pololu board if brake is wired to ^D2.
-      //         // XXX see if we can make this conditional
-      //         driver->setBrake(true);
-      //         driver->setBrake(false); // DCC runs with brake off
-      //         driver->setPower(mode);  
-      //         break; 
-      //     case TRACK_MODE_DC:
-      //     case TRACK_MODE_DCX:
-      //         if (setProg) break; 
-      //         driver->setBrake(true); // DC starts with brake on
-      //         applyDCSpeed(t);        // speed match DCC throttles
-      //         driver->setPower(mode);
-      //         break;  
-      //     case TRACK_MODE_PROG:
-      //         if (!setProg) break; 
-      //         driver->setBrake(true);
-      //         driver->setBrake(false);
-      //         driver->setPower(mode);
-      //         break;  
-      //     case TRACK_MODE_EXT:
-      //   driver->setBrake(true);
-      //   driver->setBrake(false);
-      //   driver->setPower(mode);
-      //   break;
-      //     case TRACK_MODE_NONE:
-      //         break;
-      //   }
       
     }
+    return;
 }
 
 void TrackManager::setTrackPower(bool setProg, POWERMODE mode, byte thistrack) {
 
-      DIAG(F("SetTrackPower Processing Track %d"), thistrack);
+      //DIAG(F("SetTrackPower Processing Track %d"), thistrack);
       MotorDriver * driver=track[thistrack]; 
       if (!driver) return; 
 
@@ -491,16 +464,22 @@ void TrackManager::setTrackPower(bool setProg, POWERMODE mode, byte thistrack) {
           case TRACK_MODE_NONE:
               break;
         }
-      if (mode == POWERMODE::ON) {DIAG(F("Power Track %d ON"), thistrack);}
-        else {DIAG(F("Power Track %d OFF"), thistrack);}
-      //driver->setPower(mode);  
 
  }
+
+ void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
+  // This function is for backward JMRI compatibility only
+  // It reports the first track only, as main, regardless of track settings.
+  //  <c MeterName value C/V unit min max res warn>
+  int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
+  StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 
+            track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
+}
 
 POWERMODE TrackManager::getProgPower() {
     FOR_EACH_TRACK(t)
       if (track[t]->getMode()==TRACK_MODE_PROG) 
-	return track[t]->getPower();
+	  return track[t]->getPower();
     return POWERMODE::OFF;   
   }
 
