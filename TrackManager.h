@@ -65,11 +65,12 @@ class TrackManager {
   static std::vector<MotorDriver *>getMainDrivers();
 #endif
   
-    static void setPower2(bool progTrack,POWERMODE mode);
+    static void setPower2(bool progTrack,bool joinTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
-    static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
-    static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
-    static void setTrackPower(bool setProg, POWERMODE mode, byte thistrack);
+    static void setMainPower(POWERMODE mode) {setPower2(false,false,mode);}
+    static void setProgPower(POWERMODE mode) {setPower2(true,false,mode);}
+    static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
+    static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
    
 
     static const int16_t MAX_TRACKS=8;

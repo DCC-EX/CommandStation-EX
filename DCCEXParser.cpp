@@ -589,8 +589,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         prog=false;
                     }
                 singletrack=true;
-                if (main) TrackManager::setTrackPower(false, POWERMODE::ON, t);
-                if (prog) TrackManager::setTrackPower(true, POWERMODE::ON, t);
+                if (main) TrackManager::setTrackPower(false, false, POWERMODE::ON, t);
+                if (prog) TrackManager::setTrackPower(true, false, POWERMODE::ON, t);
                 //CommandDistributor::broadcastPower();
                 //TrackManager::streamTrackState(stream, t);
                 TrackManager::streamTrackState(NULL,t);
@@ -603,8 +603,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
         if (!singletrack) {
             TrackManager::setJoin(join);
-            if (main) TrackManager::setMainPower(POWERMODE::ON);
-            if (prog) TrackManager::setProgPower(POWERMODE::ON);
+            if (join) TrackManager::setJoinPower(POWERMODE::ON);
+            else {
+                if (main) TrackManager::setMainPower(POWERMODE::ON);
+                if (prog) TrackManager::setProgPower(POWERMODE::ON);
+            }
             CommandDistributor::broadcastPower();
           
             return;
@@ -646,10 +649,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 singletrack=true;  
                 TrackManager::setJoin(false);
-                if (main) TrackManager::setTrackPower(false, POWERMODE::OFF, t);
+                if (main) TrackManager::setTrackPower(false, false, POWERMODE::OFF, t);
                 if (prog) {
                     TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                    TrackManager::setTrackPower(true, POWERMODE::OFF, t);
+                    TrackManager::setTrackPower(true, false, POWERMODE::OFF, t);
                     CommandDistributor::broadcastPower();
                 }   
                 StringFormatter::send(stream, F("Track %d OFF\n"), t);

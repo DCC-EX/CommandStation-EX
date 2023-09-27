@@ -786,10 +786,10 @@ void RMFT2::loop2() {
         //byte thistrack=getOperand(1);
         switch (operand) {
           case TRACK_POWER_0:
-            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), POWERMODE::OFF, getOperand(1));
+            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::OFF, getOperand(1));
           break;
           case TRACK_POWER_1:
-            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), POWERMODE::ON, getOperand(1));
+            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::ON, getOperand(1));
           break;
         }
 

@@ -417,17 +417,17 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 }
 #endif
 
-void TrackManager::setPower2(bool setProg,POWERMODE mode) {
+void TrackManager::setPower2(bool setProg,bool setJoin, POWERMODE mode) {
     if (!setProg) mainPowerGuess=mode; 
     FOR_EACH_TRACK(t) {
 
-      TrackManager::setTrackPower(setProg, mode, t);
+      TrackManager::setTrackPower(setProg, setJoin, mode, t);
       
     }
     return;
 }
 
-void TrackManager::setTrackPower(bool setProg, POWERMODE mode, byte thistrack) {
+void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack) {
 
       //DIAG(F("SetTrackPower Processing Track %d"), thistrack);
       MotorDriver * driver=track[thistrack]; 
@@ -445,21 +445,23 @@ void TrackManager::setTrackPower(bool setProg, POWERMODE mode, byte thistrack) {
               break; 
           case TRACK_MODE_DC:
           case TRACK_MODE_DCX:
-              if (setProg) break; 
+              DIAG(F("Processing track - %d setProg %d"), thistrack, setProg);
+              if (setProg || setJoin) {DIAG(F("Nowt to do")); break;} 
               driver->setBrake(true); // DC starts with brake on
               applyDCSpeed(thistrack);        // speed match DCC throttles
               driver->setPower(mode);
+              DIAG(F("Doing it anyway"));
               break;  
           case TRACK_MODE_PROG:
-              if (!setProg) break; 
+              if (!setProg && !setJoin) break; 
               driver->setBrake(true);
               driver->setBrake(false);
               driver->setPower(mode);
               break;  
           case TRACK_MODE_EXT:
-        driver->setBrake(true);
-        driver->setBrake(false);
-        driver->setPower(mode);
+              driver->setBrake(true);
+              driver->setBrake(false);
+              driver->setPower(mode);
         break;
           case TRACK_MODE_NONE:
               break;
