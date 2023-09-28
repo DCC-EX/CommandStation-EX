@@ -358,7 +358,7 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   bool pstate = TrackManager::isPowerOn(t);
   switch(track[t]->getMode()) {
   case TRACK_MODE_MAIN:
-      if (pstate) {format=F("<= %c MAIN ON \n");} else {format = F("<= %c MAIN OFF \n");}
+      if (pstate) {format=F("<= %c MAIN ON>\n");} else {format = F("<= %c MAIN OFF>\n");}
       break;
 #ifndef DISABLE_PROG
   case TRACK_MODE_PROG:
@@ -445,12 +445,11 @@ void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byt
               break; 
           case TRACK_MODE_DC:
           case TRACK_MODE_DCX:
-              DIAG(F("Processing track - %d setProg %d"), thistrack, setProg);
-              if (setProg || setJoin) {DIAG(F("Nowt to do")); break;} 
+              //DIAG(F("Processing track - %d setProg %d"), thistrack, setProg);
+              if (setProg || setJoin)  break; 
               driver->setBrake(true); // DC starts with brake on
               applyDCSpeed(thistrack);        // speed match DCC throttles
               driver->setPower(mode);
-              DIAG(F("Doing it anyway"));
               break;  
           case TRACK_MODE_PROG:
               if (!setProg && !setJoin) break; 

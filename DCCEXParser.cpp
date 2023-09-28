@@ -157,6 +157,7 @@ const int16_t HASH_KEYWORD_VPIN=-415;
 const int16_t HASH_KEYWORD_A='A';
 const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
+const int16_t HASH_KEYWORD_H='H';
 const int16_t HASH_KEYWORD_I='I';
 const int16_t HASH_KEYWORD_O='O';
 const int16_t HASH_KEYWORD_P='P';
@@ -576,7 +577,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 prog=true;
             }
 #endif
-            else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+            //else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+            else if (p[0] >= HASH_KEYWORD_A && p[0] <= HASH_KEYWORD_H) { // <1 A-H>
                 byte t = (p[0] - 'A');
                     //DIAG(F("Processing track - %d "), t);
                     if (TrackManager::isProg(t)) {
@@ -591,10 +593,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 singletrack=true;
                 if (main) TrackManager::setTrackPower(false, false, POWERMODE::ON, t);
                 if (prog) TrackManager::setTrackPower(true, false, POWERMODE::ON, t);
+                
+                StringFormatter::send(stream, F("<1 %c>\n"), t+'A');
                 //CommandDistributor::broadcastPower();
-                //TrackManager::streamTrackState(stream, t);
-                TrackManager::streamTrackState(NULL,t);
-                StringFormatter::send(stream, F("Track %d ON\n"), t);
+                //TrackManager::streamTrackState(NULL,t);
                 return;
             }
 
@@ -635,7 +637,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 prog=true;
             }
 #endif
-            else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+            //else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
+             else if (p[0] >= HASH_KEYWORD_A && p[0] <= HASH_KEYWORD_H) { // <1 A-H>
                 byte t = (p[0] - 'A');
                 //DIAG(F("Processing track - %d "), t);
                 if (TrackManager::isProg(t)) {
@@ -652,11 +655,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 if (main) TrackManager::setTrackPower(false, false, POWERMODE::OFF, t);
                 if (prog) {
                     TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                    TrackManager::setTrackPower(true, false, POWERMODE::OFF, t);
-                    CommandDistributor::broadcastPower();
+                    TrackManager::setTrackPower(true, false, POWERMODE::OFF, t);                 
                 }   
-                StringFormatter::send(stream, F("Track %d OFF\n"), t);
-                TrackManager::streamTrackState(NULL, t);
+                StringFormatter::send(stream, F("<0 %c>\n"), t+'A');
+                //CommandDistributor::broadcastPower();
+                //TrackManager::streamTrackState(NULL, t);
                 return;
             }    
 
