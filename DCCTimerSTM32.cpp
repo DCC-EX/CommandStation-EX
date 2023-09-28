@@ -1,6 +1,6 @@
 /*
  *  © 2023 Neil McKechnie
- *  © 2022-23 Paul M. Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
@@ -154,13 +154,28 @@ HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 INTERRUPT_CALLBACK interruptHandler=0;
-// Let's use STM32's timer #11 until disabused of this notion
-// Timer #11 is used for "servo" library, but as DCC-EX is not using
-// this libary, we should be free and clear.
-HardwareTimer timer(TIM11);
+
+// On STM32F4xx models that have them, Timers 6 and 7 have no PWM output capability,
+// so are good choices for general timer duties - they are used for tone and servo
+// in stm32duino so we shall usurp those as DCC-EX doesn't use tone or servo libs.
+// NB: the F401, F410 and F411 do **not** have Timer 6 or 7, so we use Timer 11
+#ifndef DCC_EX_TIMER
+#if defined(TIM6)
+#define DCC_EX_TIMER TIM6
+#elif defined(TIM7)
+#define DCC_EX_TIMER TIM7
+#elif defined(TIM11)
+#define DCC_EX_TIMER TIM11
+#else
+#warning This STM32F4XX variant does not have Timers 6,7 or 11!!
+#endif
+#endif // ifndef DCC_EX_TIMER
+
+HardwareTimer dcctimer(DCC_EX_TIMER);
+void DCCTimer_Handler() __attribute__((interrupt));
 
 // Timer IRQ handler
-void Timer11_Handler() {
+void DCCTimer_Handler() {
   interruptHandler();
 }
 
@@ -168,22 +183,24 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts();
 
-  // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
-  timer.pause();
-  timer.setPrescaleFactor(1);
+  dcctimer.pause();
+  dcctimer.setPrescaleFactor(1);
 //  timer.setOverflow(CLOCK_CYCLES * 2);
-  timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  timer.attachInterrupt(Timer11_Handler);
-  timer.refresh();
-  timer.resume();
+  dcctimer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+  // dcctimer.attachInterrupt(Timer11_Handler);
+  dcctimer.attachInterrupt(DCCTimer_Handler);
+  dcctimer.setInterruptPriority(0, 0); // Set highest preemptive priority!
+  dcctimer.refresh();
+  dcctimer.resume();
 
   interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-  //TODO: SAMD whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
+  //TODO: STM32 whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
   //      there's no support yet for High Accuracy, so for now return false
   //  return digitalPinHasPWM(pin);
+  (void) pin;
   return false;
 }
 
@@ -234,6 +251,78 @@ void DCCTimer::reset() {
     NVIC_SystemReset();
     while(true) {};
 }
+
+// TODO: rationalise the size of these... could really use sparse arrays etc.
+static HardwareTimer * pin_timer[100] = {0};
+static uint32_t channel_frequency[100] = {0};
+static uint32_t pin_channel[100] = {0};
+
+// Using the HardwareTimer library API included in stm32duino core to handle PWM duties
+// TODO: in order to use the HA code above which Neil kindly wrote, we may have to do something more
+// sophisticated about detecting any clash between the timer we'd like to use for PWM and the ones
+// currently used for HA so they don't interfere with one another. For now we'll just make PWM
+// work well... then work backwards to integrate with HA mode if we can.
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency)
+{
+  if (pin_timer[pin] == NULL) {
+    // Automatically retrieve TIM instance and channel associated to pin
+    // This is used to be compatible with all STM32 series automatically.
+    TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(digitalPinToPinName(pin), PinMap_PWM);
+    if (Instance == NULL) {
+      // We shouldn't get here (famous last words) as it ought to have been caught by brakeCanPWM()!
+      DIAG(F("DCCEXanalogWriteFrequency::Pin %d has no PWM function!"), pin);
+      return;
+    }
+    pin_channel[pin] = STM_PIN_CHANNEL(pinmap_function(digitalPinToPinName(pin), PinMap_PWM));
+
+    // Instantiate HardwareTimer object. Thanks to 'new' instantiation,
+    // HardwareTimer is not destructed when setup function is finished.
+    pin_timer[pin] = new HardwareTimer(Instance);
+    // Configure and start PWM
+    // MyTim->setPWM(channel, pin, 5, 10, NULL, NULL); // No callback required, we can simplify the function call
+    if (pin_timer[pin] != NULL)
+    {
+      pin_timer[pin]->setPWM(pin_channel[pin], pin, frequency, 0); // set frequency in Hertz, 0% dutycycle
+      DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer %d, frequency %d"), pin, pin_channel[pin], frequency);
+    }
+    else
+      DIAG(F("DCCEXanalogWriteFrequency::failed to allocate HardwareTimer instance!"));
+  }
+  else
+  {
+    // Frequency change request
+    if (frequency != channel_frequency[pin])
+    {
+      pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!
+      pin_timer[pin]->setOverflow(frequency, HERTZ_FORMAT); // Just change the frequency if it's already running!
+      DIAG(F("DCCEXanalogWriteFrequency::setting frequency to %d"), frequency);
+    }
+  }
+  channel_frequency[pin] = frequency;
+  return;
+}
+
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+    // Calculate percentage duty cycle from value given
+    uint32_t duty_cycle = (value * 100 / 256) + 1;
+    if (pin_timer[pin] != NULL) {
+      if (duty_cycle == 100)
+      {
+        pin_timer[pin]->pauseChannel(pin_channel[pin]);
+        DIAG(F("DCCEXanalogWrite::Pausing timer channel on pin %d"), pin);
+      }
+      else
+      {
+        pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!
+        pin_timer[pin]->resumeChannel(pin_channel[pin]);
+        pin_timer[pin]->setCaptureCompare(pin_channel[pin], duty_cycle, PERCENT_COMPARE_FORMAT); // DCC_EX_PWM_FREQ Hertz, duty_cycle% dutycycle
+        DIAG(F("DCCEXanalogWrite::Pin %d, value %d, duty cycle %d"), pin, value, duty_cycle);
+      }
+    }
+    else
+      DIAG(F("DCCEXanalogWrite::Pin %d is not configured for PWM!"), pin);
+}
+
 
 // Now we can handle more ADCs, maybe this works!
 #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS

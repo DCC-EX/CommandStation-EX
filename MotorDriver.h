@@ -1,5 +1,5 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
@@ -60,6 +60,16 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define HAVE_PORTB(X) X
 #define PORTC GPIOC->ODR
 #define HAVE_PORTC(X) X
+#define PORTD GPIOD->ODR
+#define HAVE_PORTD(X) X
+#if defined(GPIOE)
+#define PORTE GPIOE->ODR
+#define HAVE_PORTE(X) X
+#endif
+#if defined(GPIOF)
+#define PORTF GPIOF->ODR
+#define HAVE_PORTF(X) X
+#endif
 #endif
 
 // if macros not defined as pass-through we define
@@ -73,6 +83,15 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #endif
 #ifndef HAVE_PORTC
 #define HAVE_PORTC(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTD
+#define HAVE_PORTD(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTE
+#define HAVE_PORTE(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTF
+#define HAVE_PORTF(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
 #endif
 
 // Virtualised Motor shield 1-track hardware Interface
@@ -110,6 +129,9 @@ struct FASTPIN {
 extern volatile portreg_t shadowPORTA;
 extern volatile portreg_t shadowPORTB;
 extern volatile portreg_t shadowPORTC;
+extern volatile portreg_t shadowPORTD;
+extern volatile portreg_t shadowPORTE;
+extern volatile portreg_t shadowPORTF;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 
@@ -163,16 +185,16 @@ class MotorDriver {
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
-#if defined(ARDUINO_ARCH_ESP32) || defined(__arm__)
-      // TODO: on ARM we can use digitalPinHasPWM, and may wish/need to
-      return true;
-#else
-#ifdef digitalPinToTimer
+#if defined(ARDUINO_ARCH_ESP32)
+      return (brakePin != UNUSED_PIN); // This was just (true) but we probably do need to check for UNUSED_PIN!
+#elif defined(__arm__)
+      // On ARM we can use digitalPinHasPWM
+      return ((brakePin!=UNUSED_PIN) && (digitalPinHasPWM(brakePin)));
+#elif defined(digitalPinToTimer)
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
 #else
       return (brakePin<14 && brakePin >1);
-#endif //digitalPinToTimer
-#endif //ESP32/ARM
+#endif
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;

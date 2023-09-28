@@ -34,6 +34,11 @@ unsigned long MotorDriver::globalOverloadStart = 0;
 volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
+#if defined(ARDUINO_ARCH_STM32)
+volatile portreg_t shadowPORTD;
+volatile portreg_t shadowPORTE;
+volatile portreg_t shadowPORTF;
+#endif
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, int16_t fault_pin) {
@@ -68,6 +73,21 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTC;
   }
+  if (HAVE_PORTD(fastSignalPin.inout == &PORTD)) {
+    DIAG(F("Found PORTD pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTD;
+  }
+  if (HAVE_PORTE(fastSignalPin.inout == &PORTE)) {
+    DIAG(F("Found PORTE pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTE;
+  }
+  if (HAVE_PORTF(fastSignalPin.inout == &PORTF)) {
+    DIAG(F("Found PORTF pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTF;
+  }
 
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
@@ -90,6 +110,21 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
       DIAG(F("Found PORTC pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTC;
+    }
+    if (HAVE_PORTD(fastSignalPin2.inout == &PORTD)) {
+      DIAG(F("Found PORTD pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTD;
+    }
+    if (HAVE_PORTE(fastSignalPin2.inout == &PORTE)) {
+      DIAG(F("Found PORTE pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTE;
+    }
+    if (HAVE_PORTF(fastSignalPin2.inout == &PORTF)) {
+      DIAG(F("Found PORTF pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTF;
     }
   }
   else dualSignal=false; 
@@ -279,7 +314,7 @@ void MotorDriver::startCurrentFromHW() {
 #pragma GCC pop_options
 #endif //ANALOG_READ_INTERRUPT
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
 #ifdef VARIABLE_TONES
 uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     247, 262, 294, 330,
@@ -330,7 +365,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
   byte brake;
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
   {
     int f = 131;
 #ifdef VARIABLE_TONES
@@ -348,7 +383,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   else  brake = 2 * (128-tSpeed);
   if (invertBrake)
     brake=255-brake;
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
   DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else
   analogWrite(brakePin,brake);
@@ -372,6 +407,24 @@ void MotorDriver::setDCSignal(byte speedcode) {
     setSignal(tDir);
     HAVE_PORTC(PORTC=shadowPORTC);
     interrupts();
+  } else if (HAVE_PORTD(fastSignalPin.shadowinout == &PORTD)) {
+    noInterrupts();
+    HAVE_PORTD(shadowPORTD=PORTD);
+    setSignal(tDir);
+    HAVE_PORTD(PORTD=shadowPORTD);
+    interrupts();
+  } else if (HAVE_PORTE(fastSignalPin.shadowinout == &PORTE)) {
+    noInterrupts();
+    HAVE_PORTE(shadowPORTE=PORTE);
+    setSignal(tDir);
+    HAVE_PORTE(PORTE=shadowPORTE);
+    interrupts();
+  } else if (HAVE_PORTF(fastSignalPin.shadowinout == &PORTF)) {
+    noInterrupts();
+    HAVE_PORTF(shadowPORTF=PORTF);
+    setSignal(tDir);
+    HAVE_PORTF(PORTF=shadowPORTF);
+    interrupts();
   } else {
     noInterrupts();
     setSignal(tDir);
@@ -392,6 +445,13 @@ void MotorDriver::throttleInrush(bool on) {
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 62500);
   } else {
     ledcDetachPin(brakePin);
+  }
+#elif defined(ARDUINO_ARCH_STM32)
+  if(on) {
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 62500);
+    DCCTimer::DCCEXanalogWrite(brakePin,duty);
+  } else {
+    pinMode(brakePin, OUTPUT);
   }
 #else
   if(on){
