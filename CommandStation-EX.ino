@@ -96,7 +96,11 @@ void setup()
   // Start Ethernet if it exists
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
+#ifndef WIFI_NINA
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+#else
+  WifiNINA::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+#endif // WIFI_NINA
 #endif // WIFI_ON
 #else
   // ESP32 needs wifi on always
@@ -144,7 +148,11 @@ void loop()
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
+#ifndef WIFI_NINA
   WifiInterface::loop();
+#else
+  WifiNINA::loop();
+#endif //WIFI_NINA
 #endif //WIFI_ON
 #else  //ARDUINO_ARCH_ESP32
 #ifndef WIFI_TASK_ON_CORE0

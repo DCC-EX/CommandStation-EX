@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.10"
+#define VERSION "5.1.10-nina"
+// 5.1.10-nina - Initial cut of a WifiNINA driver for Wifi for STM32
 // 5.1.10 - STM32F4xx DCCEXanalogWrite to handle PWM generation for TrackManager DC/DCX
 //        - STM32F4xx DCC 58uS timer now using non-PWM output timers where possible
 //        - ESP32 brakeCanPWM check now detects UNUSED_PIN
