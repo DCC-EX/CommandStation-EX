@@ -117,35 +117,46 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
 
   // Disable the I2C device, as TRISE can only be programmed whilst disabled
   s->CR1 &= ~(I2C_CR1_PE);  // Disable I2C
+  s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
+  asm("nop");    // wait a bit... suggestion from online!
+  s->CR1 &= ~(I2C_CR1_SWRST); // Normal operation
 
-  if (i2cClockSpeed > 100000L)
+  if (i2cClockSpeed > 100000UL)
   {
-    if (i2cClockSpeed > 400000L)
-      i2cClockSpeed = 400000L;
+    // if (i2cClockSpeed > 400000L)
+    //   i2cClockSpeed = 400000L;
 
     t_rise = 300;  // nanoseconds
   }
   else
   {
-    i2cClockSpeed = 100000L;
+    // i2cClockSpeed = 100000L;
     t_rise = 1000;  // nanoseconds
   }
-  // Configure the rise time register
-  s->TRISE = (t_rise / (1000 / i2c_MHz)) + 1;
+  // Configure the rise time register - max allowed tRISE is 1000ns,
+  // so value = 1000ns * I2C_PERIPH_CLK MHz / 1000 + 1.
+  s->TRISE = (t_rise * i2c_MHz / 1000) + 1;
 
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
   // Bit 14: Duty, fast mode duty cycle (use 2:1)
   // Bit 11-0: FREQR
-  if (i2cClockSpeed > 100000L) {
-    // In fast mode, I2C period is 3 * CCR * TPCLK1.
-    //APB1clk1 / 3 / i2cClockSpeed = 38, but that results in 306KHz not 400! 
-    ccr_freq = 30;     // So 30 gives 396KHz or so!
-    s->CCR = (uint16_t)(ccr_freq | 0x8000); // We need Fast Mode set
-  } else {
-    // In standard mode, I2C period is 2 * CCR * TPCLK1
-    ccr_freq = (APB1clk1 / 2 / i2cClockSpeed); // Should be 225 for 45Mhz APB1 clock
-    s->CCR |= (uint16_t)ccr_freq;
-  }
+  // if (i2cClockSpeed > 400000UL) {
+  //   // In fast mode plus, I2C period is 3 * CCR * TPCLK1.
+  //   // s->CCR &= ~(0x3000); // Clear all bits except 12 and 13 which must remain per reset value
+  //   s->CCR = APB1clk1 / 3 / i2cClockSpeed; // Set I2C clockspeed to start!
+  //   s->CCR |= 0xC000; // We need Fast Mode AND DUTY bits set
+  // } else {
+    // In standard and fast mode, I2C period is 2 * CCR * TPCLK1
+    s->CCR &= ~(0x3000); // Clear all bits except 12 and 13 which must remain per reset value
+    s->CCR |= (APB1clk1 / 2 / i2cClockSpeed); // Set I2C clockspeed to start!
+    // s->CCR |= (i2c_MHz * 500 / (i2cClockSpeed / 1000)); // Set I2C clockspeed to start!
+    // if (i2cClockSpeed > 100000UL)
+    //     s->CCR |= 0xC000; // We need Fast Mode bits set as well
+  // }
+
+  // DIAG(F("I2C_init() peripheral clock is now: %d, full reg is %x"), (s->CR2 & 0xFF), s->CR2);
+  // DIAG(F("I2C_init() peripheral CCR is now: %d"), s->CCR);
+  // DIAG(F("I2C_init() peripheral TRISE is now: %d"), s->TRISE);
 
   // Enable the I2C master mode
   s->CR1 |= I2C_CR1_PE;  // Enable I2C
@@ -159,6 +170,7 @@ void I2CManagerClass::I2C_init()
   // Query the clockspeed from the STM32 HAL layer
   APB1clk1 = HAL_RCC_GetPCLK1Freq();
   i2c_MHz = APB1clk1 / 1000000UL;
+  // DIAG(F("I2C_init() peripheral clock speed is: %d"), i2c_MHz);
   // Enable clocks
   RCC->APB1ENR |= RCC_APB1ENR_I2C1EN;//(1 << 21); // Enable I2C CLOCK
   // Reset the I2C1 peripheral to initial state
@@ -181,6 +193,7 @@ void I2CManagerClass::I2C_init()
   GPIOB->AFR[1] |= (4<<0) | (4<<4);           // PB8 on low nibble, PB9 on next nibble up
 
   // Software reset the I2C peripheral
+  I2C1->CR1 &= ~I2C_CR1_PE; // Disable I2C1 peripheral
   s->CR1 |= I2C_CR1_SWRST;  // reset the I2C
   asm("nop");    // wait a bit... suggestion from online!
   s->CR1 &= ~(I2C_CR1_SWRST); // Normal operation
@@ -191,6 +204,7 @@ void I2CManagerClass::I2C_init()
   // Set I2C peripheral clock frequency
   // s->CR2 |= I2C_PERIPH_CLK;
   s->CR2 |= i2c_MHz;
+  // DIAG(F("I2C_init() peripheral clock is now: %d"), s->CR2);
 
   // set own address to 00 - not used in master mode
   I2C1->OAR1 = (1 << 14); // bit 14 should be kept at 1 according to the datasheet
@@ -214,6 +228,7 @@ void I2CManagerClass::I2C_init()
   s->CR2 |= (I2C_CR2_ITBUFEN | I2C_CR2_ITEVTEN | I2C_CR2_ITERREN);   // Enable Buffer, Event and Error interrupts
 #endif
 
+  // DIAG(F("I2C_init() setting initial I2C clock to 100KHz"));
   // Calculate baudrate and set default rate for now
   // Configure the Clock Control Register for 100KHz SCL frequency
   // Bit 15: I2C Master mode, 0=standard, 1=Fast Mode
@@ -221,12 +236,14 @@ void I2CManagerClass::I2C_init()
   // Bit 11-0: so CCR divisor would be clk / 2 / 100000 (where clk is in Hz)
   // s->CCR = I2C_PERIPH_CLK * 5;
   s->CCR &= ~(0x3000); // Clear all bits except 12 and 13 which must remain per reset value
-  s->CCR |= (APB1clk1 / 2 / 100000UL); // i2c_MHz * 5;
-  // s->CCR = i2c_MHz * 5;
+  s->CCR |= (APB1clk1 / 2 / 100000UL); // Set a default of 100KHz I2C clockspeed to start!
 
   // Configure the rise time register - max allowed is 1000ns, so value = 1000ns * I2C_PERIPH_CLK MHz / 1000 + 1.
-  // s->TRISE = I2C_PERIPH_CLK + 1;    // 1000 ns / 50 ns = 20 + 1 = 21
-  s->TRISE = i2c_MHz + 1;
+  s->TRISE = (1000 * i2c_MHz / 1000) + 1;
+
+  // DIAG(F("I2C_init() peripheral clock is now: %d, full reg is %x"), (s->CR2 & 0xFF), s->CR2);
+  // DIAG(F("I2C_init() peripheral CCR is now: %d"), s->CCR);
+  // DIAG(F("I2C_init() peripheral TRISE is now: %d"), s->TRISE);
 
   // Enable the I2C master mode
   s->CR1 |= I2C_CR1_PE;  // Enable I2C
