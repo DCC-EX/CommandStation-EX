@@ -306,18 +306,18 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
     // Calculate percentage duty cycle from value given
     uint32_t duty_cycle = (value * 100 / 256) + 1;
     if (pin_timer[pin] != NULL) {
-      if (duty_cycle == 100)
-      {
-        pin_timer[pin]->pauseChannel(pin_channel[pin]);
-        DIAG(F("DCCEXanalogWrite::Pausing timer channel on pin %d"), pin);
-      }
-      else
-      {
+      // if (duty_cycle == 100)
+      // {
+      //   pin_timer[pin]->pauseChannel(pin_channel[pin]);
+      //   DIAG(F("DCCEXanalogWrite::Pausing timer channel on pin %d"), pin);
+      // }
+      // else
+      // {
         pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!
-        pin_timer[pin]->resumeChannel(pin_channel[pin]);
+        // pin_timer[pin]->resumeChannel(pin_channel[pin]);
         pin_timer[pin]->setCaptureCompare(pin_channel[pin], duty_cycle, PERCENT_COMPARE_FORMAT); // DCC_EX_PWM_FREQ Hertz, duty_cycle% dutycycle
         DIAG(F("DCCEXanalogWrite::Pin %d, value %d, duty cycle %d"), pin, value, duty_cycle);
-      }
+      // }
     }
     else
       DIAG(F("DCCEXanalogWrite::Pin %d is not configured for PWM!"), pin);
