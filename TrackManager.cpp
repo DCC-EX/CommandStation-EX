@@ -557,3 +557,23 @@ bool TrackManager::isProg(byte t) {
         return true;
     return false;
 }
+
+byte TrackManager::returnMode(byte t) {
+    return (track[t]->getMode());
+}
+
+static const char* TrackManager::getModeName(byte Mode) {
+  
+  //DIAG(F("PowerMode %d"), Mode);
+
+switch (Mode)
+  {
+  case 1: return "NONE";
+  case 2: return "MAIN";
+  case 4: return "PROG";
+  case 8: return "DC";
+  case 16: return "DCX";
+  case 32: return "EXT";
+  default: return "----";
+  }
+}

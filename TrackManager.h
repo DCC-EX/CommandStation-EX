@@ -90,6 +90,8 @@ class TrackManager {
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
     static bool isProg(byte t);
+    static byte returnMode(byte t);
+    static const char* getModeName(byte Mode);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
