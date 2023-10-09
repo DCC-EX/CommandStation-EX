@@ -24,6 +24,7 @@
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 //#include "IO_EXFastClock.h"  // FastClock driver
+//#include "IO_PCA9555.h"     // 16-bit I/O expander (NXP & Texas Instruments).
 
 //==========================================================================
 // The function halSetup() is invoked from CS if it exists within the build.
