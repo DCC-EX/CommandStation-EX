@@ -121,7 +121,7 @@ Once a new OPCODE is decided upon, update this list.
     for (int16_t i=0;;i+=sizeof(flashList[0])) {                            \
         int16_t value=GETHIGHFLASHW(flashList,i);       \
         if (value==INT16_MAX) break;                            \
-        if (value != 0) StringFormatter::send(stream,F(" %d"),value);	\
+        StringFormatter::send(stream,F(" %d"),value);	\
     }                                   
 
 
