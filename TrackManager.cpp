@@ -356,6 +356,7 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   if (track[t]==NULL) return;
   auto format=F("");
   bool pstate = TrackManager::isPowerOn(t);
+  
   switch(track[t]->getMode()) {
   case TRACK_MODE_MAIN:
       if (pstate) {format=F("<= %c MAIN ON>\n");} else {format = F("<= %c MAIN OFF>\n");}
@@ -562,7 +563,11 @@ byte TrackManager::returnMode(byte t) {
     return (track[t]->getMode());
 }
 
-static const char* TrackManager::getModeName(byte Mode) {
+int16_t TrackManager::returnDCAddr(byte t) {
+    return (trackDCAddr[t]);
+}
+
+const char* TrackManager::getModeName(byte Mode) {
   
   //DIAG(F("PowerMode %d"), Mode);
 

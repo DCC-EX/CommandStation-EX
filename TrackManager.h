@@ -91,6 +91,7 @@ class TrackManager {
     static bool isPowerOn(byte t);
     static bool isProg(byte t);
     static byte returnMode(byte t);
+    static int16_t returnDCAddr(byte t);
     static const char* getModeName(byte Mode);
 
     static int16_t joinRelay;
