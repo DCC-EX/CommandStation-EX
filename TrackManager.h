@@ -39,6 +39,10 @@ const byte TRACK_NUMBER_5=5, TRACK_NUMBER_F=5;
 const byte TRACK_NUMBER_6=6, TRACK_NUMBER_G=6;    
 const byte TRACK_NUMBER_7=7, TRACK_NUMBER_H=7;    
 
+// These constants help EXRAIL macros convert Track Power e.g. SET_POWER(A ON|OFF).
+const byte TRACK_POWER_0=0, TRACK_POWER_OFF=0;    
+const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
+
 class TrackManager {
   public:
     static void Setup(const FSH * shieldName,
@@ -60,10 +64,14 @@ class TrackManager {
 #ifdef ARDUINO_ARCH_ESP32
   static std::vector<MotorDriver *>getMainDrivers();
 #endif
-    static void setPower2(bool progTrack,POWERMODE mode);
+  
+    static void setPower2(bool progTrack,bool joinTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
-    static void setMainPower(POWERMODE mode) {setPower2(false,mode);}
-    static void setProgPower(POWERMODE mode) {setPower2(true,mode);}
+    static void setMainPower(POWERMODE mode) {setPower2(false,false,mode);}
+    static void setProgPower(POWERMODE mode) {setPower2(true,false,mode);}
+    static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
+    static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
+   
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
@@ -77,9 +85,14 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
+    static void reportPowerChange(Print* stream, byte thistrack);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
+    static bool isProg(byte t);
+    static byte returnMode(byte t);
+    static int16_t returnDCAddr(byte t);
+    static const char* getModeName(byte Mode);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main

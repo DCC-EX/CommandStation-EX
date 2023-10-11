@@ -780,6 +780,20 @@ void RMFT2::loop2() {
     TrackManager::setJoin(false);
     CommandDistributor::broadcastPower();
     break;
+  
+  case OPCODE_SET_POWER:
+      // operand is TRACK_POWER , trackid
+        //byte thistrack=getOperand(1);
+        switch (operand) {
+          case TRACK_POWER_0:
+            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::OFF, getOperand(1));
+          break;
+          case TRACK_POWER_1:
+            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::ON, getOperand(1));
+          break;
+        }
+
+    break;
 
   case OPCODE_SET_TRACK:
       // operand is trackmode<<8 | track id
