@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.11"
+#define VERSION "5.1.12"
+// 5.1.12 - Added Power commands <0 A> & <1 A> etc. and update to <=>
+//          Added EXRAIL SET_POWER(track, ON/OFF)
+//          Fixed a problem whereby <1 MAIN> also powered on PROG track
+//          Added functions to TrackManager.cpp to allow UserAddin code for power display on OLED/LCD
+//          Added - returnMode(byte t), returnDCAddr(byte t) & getModeName(byte Mode)
 // 5.1.11 - STM32F4xx revised I2C clock setup, no correctly sets clock and has fully variable frequency selection
 // 5.1.10 - STM32F4xx DCCEXanalogWrite to handle PWM generation for TrackManager DC/DCX
 //        - STM32F4xx DCC 58uS timer now using non-PWM output timers where possible
