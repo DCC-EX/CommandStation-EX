@@ -60,8 +60,8 @@ Once a new OPCODE is decided upon, update this list.
   G,
   h,
   H, Turnout state broadcast
-  i, Reserved for future use - Turntable object broadcast
-  I, Reserved for future use - Turntable object command and control
+  i, Server details string
+  I, Turntable object command, control, and broadcast
   j, Throttle responses
   J, Throttle queries
   k, Reserved for future use - Potentially Railcom
@@ -1244,7 +1244,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             if (tto) {
                 bool type = tto->isEXTT();
                 uint8_t position = tto->getPosition();
-                StringFormatter::send(stream, F("<i %d %d>\n"), type, position);
+                StringFormatter::send(stream, F("<I %d %d>\n"), type, position);
             } else {
                 return false;
             }
@@ -1270,7 +1270,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (!DCCTurntable::create(p[0])) return false;
                 Turntable *tto = Turntable::get(p[0]);
                 tto->addPosition(0, 0, p[2]);
-                StringFormatter::send(stream, F("<i>\n"));
+                StringFormatter::send(stream, F("<I>\n"));
             } else {
                 if (!tto) return false;
                 if (!tto->isEXTT()) return false;
@@ -1287,7 +1287,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 if (!EXTTTurntable::create(p[0], (VPIN)p[2])) return false;
                 Turntable *tto = Turntable::get(p[0]);
                 tto->addPosition(0, 0, p[3]);
-                StringFormatter::send(stream, F("<i>\n"));
+                StringFormatter::send(stream, F("<I>\n"));
             } else {
                 return false;
             }
@@ -1301,7 +1301,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
                 // tto must exist, no more than 48 positions, angle 0 - 3600
                 if (!tto || p[2] > 48 || p[4] < 0 || p[4] > 3600) return false;
                 tto->addPosition(p[2], p[3], p[4]);
-                StringFormatter::send(stream, F("<i>\n"));
+                StringFormatter::send(stream, F("<I>\n"));
             } else {
                 return false;
             }
