@@ -185,7 +185,7 @@ public:
     for (Turntable *tto = _firstTurntable; tto != 0; tto = tto->_nextTurntable)
       if (!tto->isHidden()) {
         gotOne = true;
-        StringFormatter::send(stream, F("<i %d %d>\n"), tto->getId(), tto->getPosition());
+        StringFormatter::send(stream, F("<I %d %d>\n"), tto->getId(), tto->getPosition());
       }
     return gotOne;
   }
