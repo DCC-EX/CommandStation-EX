@@ -64,10 +64,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
-#ifndef IO_NO_HAL
              OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
-             OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_IFTTPOSITION,OPCODE_WAITFORTT,
-#endif
+             OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_WAITFORTT,
              OPCODE_ONOVERLOAD,
 
              // OPcodes below this point are skip-nesting IF operations
@@ -81,7 +79,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_IFRANDOM,OPCODE_IFRESERVE,
              OPCODE_IFCLOSED,OPCODE_IFTHROWN,
              OPCODE_IFRE,
-             OPCODE_IFLOCO
+             OPCODE_IFLOCO,
+             OPCODE_IFTTPOSITION
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 
