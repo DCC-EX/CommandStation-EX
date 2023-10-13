@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.14"
+#define VERSION "5.1.15"
+// 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
 // 5.1.14 - Fixed IFTTPOSITION
 // 5.1.13 - Changed turntable broadcast from i to I due to server string conflict
 // 5.1.12 - Added Power commands <0 A> & <1 A> etc. and update to <=>

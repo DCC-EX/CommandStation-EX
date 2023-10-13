@@ -66,6 +66,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONTIME,
              OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
              OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_WAITFORTT,
+             OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ONOVERLOAD,
 
              // OPcodes below this point are skip-nesting IF operations
@@ -94,7 +95,11 @@ enum thrunger: byte {
   thrunge_lcd,  // Must be last!!
   };
 
-
+  // Flag bits for compile time features.
+  static const byte FEATURE_SIGNAL= 0x80;
+  static const byte FEATURE_LCC   = 0x40;
+  static const byte FEATURE_ROSTER= 0x20;
+  
  
   // Flag bits for status of hardware and TPL
   static const byte SECTION_FLAG = 0x80;
@@ -173,6 +178,7 @@ private:
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);
     static uint16_t getOperand(int progCounter,byte n);
+    static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
@@ -191,6 +197,7 @@ private:
    static const  HIGHFLASH  byte RouteCode[];
    static const  HIGHFLASH  int16_t SignalDefinitions[];
    static byte flags[MAX_FLAGS];
+   static Print * LCCSerial;
    static LookList * sequenceLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
@@ -205,6 +212,10 @@ private:
    static LookList * onRotateLookup;
 #endif
    static LookList * onOverloadLookup;
+   
+   static const int countLCCLookup;
+   static int onLCCLookup[];
+   static const byte compileFeatures;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 

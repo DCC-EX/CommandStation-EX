@@ -85,7 +85,7 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
  // when pausingTask is set, that is the ONLY task that gets any service,
  // and all others will have their locos stopped, then resumed after the pausing task resumes.
 byte RMFT2::flags[MAX_FLAGS];
-
+Print * RMFT2::LCCSerial=0;
 LookList *  RMFT2::sequenceLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
@@ -176,22 +176,25 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
   onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
   onDeactivateLookup=LookListLoader(OPCODE_ONDEACTIVATE);
-  onRedLookup=LookListLoader(OPCODE_ONRED);
-  onAmberLookup=LookListLoader(OPCODE_ONAMBER);
-  onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
 #ifndef IO_NO_HAL
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 #endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
+  // onLCCLookup is not the same so not loaded here. 
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
+if (compileFeatures & FEATURE_SIGNAL) {
+  onRedLookup=LookListLoader(OPCODE_ONRED);
+  onAmberLookup=LookListLoader(OPCODE_ONAMBER);
+  onGreenLookup=LookListLoader(OPCODE_ONGREEN);
   for (int sigslot=0;;sigslot++) {
     VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
     if (sigid==0) break;  // end of signal list
     doSignal(sigid & SIGNAL_ID_MASK, SIGNAL_RED);
+  }
   }
 
   int progCounter;
@@ -343,13 +346,65 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     reject=!parseSlash(stream,paramCount,p);
     opcode=0;
     break;
-    
+  case 'L':
+    if (compileFeatures & FEATURE_LCC) { 
+      // This entire code block is compiled out if LLC macros not used 
+    if (paramCount==0) {  //<L>  LCC adapter introducing self
+      LCCSerial=stream;   // now we know where to send events we raise
+
+      // loop through all possible sent events 
+      for (int progCounter=0;; SKIPOP) {
+        byte opcode=GET_OPCODE;
+        if (opcode==OPCODE_ENDEXRAIL) break;
+        if (opcode==OPCODE_LCC)  StringFormatter::send(stream,F("<LS x%h>\n"),getOperand(progCounter,0));   
+        if (opcode==OPCODE_LCCX) { // long form LCC
+           StringFormatter::send(stream,F("<LS x%h%h%h%h>\n"),
+                 getOperand(progCounter,1),
+                 getOperand(progCounter,2),
+                 getOperand(progCounter,3),
+                 getOperand(progCounter,0)
+                 );        
+        }}
+      
+      // we stream the hex events we wish to listen to
+      // and at the same time build the event index looku.
+      
+      
+      int eventIndex=0;
+      for (int progCounter=0;; SKIPOP) {
+        byte opcode=GET_OPCODE;
+        if (opcode==OPCODE_ENDEXRAIL) break;
+        if (opcode==OPCODE_ONLCC) {
+           onLCCLookup[eventIndex]=progCounter; // TODO skip...
+           StringFormatter::send(stream,F("<LL %d x%h%h%h:%h>\n"),
+                 eventIndex,
+                 getOperand(progCounter,1),
+                 getOperand(progCounter,2),
+                 getOperand(progCounter,3),
+                 getOperand(progCounter,0)
+                 );   
+           eventIndex++;      
+        }
+      }
+      StringFormatter::send(stream,F("<LR>\n")); // Ready to rumble
+      opcode=0;
+      break;
+    }
+    if (paramCount==1) {  // <L eventid> LCC event arrived from adapter
+        int16_t eventid=p[0];
+        reject=eventid<0 || eventid>=countLCCLookup;
+        if (!reject)  startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
+        opcode=0;
+    }
+    }
+    break; 
+
   default:  // other commands pass through
     break;
   }
   if (reject) {
     opcode=0;
-    StringFormatter::send(stream,F("<X>"));
+    StringFormatter::send(stream,F("<X>\n"));
   }
 }
 
@@ -377,17 +432,19 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }
     }
-    // do the signals
-    // flags[n] represents the state of the nth signal in the table 
-    for (int sigslot=0;;sigslot++) {
-      VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-      if (sigid==0) break; // end of signal list 
-      byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
-      StringFormatter::send(stream,F("\n%S[%d]"), 
-        (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
-        sigid & SIGNAL_ID_MASK); 
-    } 
-    
+
+    if (compileFeatures & FEATURE_SIGNAL) {
+      // do the signals
+      // flags[n] represents the state of the nth signal in the table 
+      for (int sigslot=0;;sigslot++) {
+        VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
+        if (sigid==0) break; // end of signal list 
+        byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
+        StringFormatter::send(stream,F("\n%S[%d]"), 
+          (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
+          sigid & SIGNAL_ID_MASK); 
+      } 
+    }
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }
@@ -1034,7 +1091,21 @@ void RMFT2::loop2() {
       invert=false;
     }
     break;
-    
+
+  case OPCODE_LCC:  // short form LCC
+      if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
+          StringFormatter::send(LCCSerial,F("<L x%h>"),(uint16_t)operand);
+       break; 
+
+  case OPCODE_LCCX: // long form LCC
+       if ((compileFeatures & FEATURE_LCC) && LCCSerial)
+            StringFormatter::send(LCCSerial,F("<L x%h%h%h%h>\n"),
+                 getOperand(progCounter,1),
+                 getOperand(progCounter,2),
+                 getOperand(progCounter,3),
+                 getOperand(progCounter,0)
+                 );    
+        break;  
     
   case OPCODE_SERVO: // OPCODE_SERVO,V(vpin),OPCODE_PAD,V(position),OPCODE_PAD,V(profile),OPCODE_PAD,V(duration)
     IODevice::writeAnalogue(operand,getOperand(1),getOperand(2),getOperand(3));
@@ -1072,6 +1143,7 @@ void RMFT2::loop2() {
   case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_ONCLOSE: // Turnout event catchers ignored here
+  case OPCODE_ONLCC:   // LCC event catchers ignored here 
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
@@ -1141,6 +1213,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
 }
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
+  if (!(compileFeatures & FEATURE_SIGNAL)) return; // dont compile code below
   if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
@@ -1208,6 +1281,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
 }
 
 /* static */ bool RMFT2::isSignal(int16_t id,char rag) {
+  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return false; 
   return (flags[sigslot] & SIGNAL_MASK) == rag;
@@ -1260,8 +1334,10 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
 
 void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);
-  if (pc<0) return;
-  
+  if (pc>=0) startNonRecursiveTask(reason,id,pc);
+}
+
+void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {  
   // Check we dont already have a task running this handler
   RMFT2 * task=loopTask;
   while(task) {

@@ -85,6 +85,30 @@ void exrailHalSetup() {
    #include "myAutomation.h"
 }
 
+// Pass 1c detect compile time featurtes
+#include "EXRAIL2MacroReset.h"
+#undef SIGNAL
+#define SIGNAL(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
+#undef SIGNALH
+#define SIGNALH(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
+#undef SERVO_SIGNAL
+#define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
+#undef DCC_SIGNAL
+#define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
+#undef VIRTUAL_SIGNAL
+#define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
+
+#undef LCC
+#define LCC(eventid)  | FEATURE_LCC
+#undef LCCX
+#define LCCX(senderid,eventid) | FEATURE_LCC 
+#undef ONLCC
+#define ONLCC(senderid,eventid) | FEATURE_LCC
+
+const byte RMFT2::compileFeatures = 0
+   #include "myAutomation.h"
+;
+
 // Pass 2 create throttle route list 
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
@@ -278,6 +302,16 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
     0,0,0,0 };
 
+// Pass 9 ONLCC counter and lookup array
+#include "EXRAIL2MacroReset.h"
+#undef ONLCC
+#define ONLCC(sender,event) +1 
+
+const int RMFT2::countLCCLookup=0
+#include "myAutomation.h"
+;
+int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
+
 // Last Pass : create main routes table
 // Only undef the macros, not dummy them.  
 #define  RMFT2_UNDEF_ONLY
@@ -354,6 +388,11 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define JOIN OPCODE_JOIN,0,0,
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
+#define LCC(eventid) OPCODE_LCC,V(eventid),
+#define LCCX(sender,event) OPCODE_LCCX,V(event),\
+        OPCODE_PAD,V((((uint64_t)sender)>>32)&0xFFFF),\
+        OPCODE_PAD,V((((uint64_t)sender)>>16)&0xFFFF),\
+        OPCODE_PAD,V((((uint64_t)sender)>>0)&0xFFFF),  
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
 #define LCN(msg) PRINT(msg)
@@ -362,6 +401,10 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
+#define ONLCC(sender,event) OPCODE_ONLCC,V(event),\
+        OPCODE_PAD,V((((uint64_t)sender)>>32)&0xFFFF),\
+        OPCODE_PAD,V((((uint64_t)sender)>>16)&0xFFFF),\
+        OPCODE_PAD,V((((uint64_t)sender)>>0)&0xFFFF),        
 #define ONTIME(value) OPCODE_ONTIME,V(value),  
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)

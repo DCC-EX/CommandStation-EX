@@ -86,6 +86,8 @@
 #undef LATCH 
 #undef LCD 
 #undef SCREEN
+#undef LCC 
+#undef LCCX 
 #undef LCN 
 #undef MOVETT
 #undef ONACTIVATE
@@ -94,6 +96,7 @@
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
+#undef ONLCC
 #undef ONTIME
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
@@ -221,7 +224,9 @@
 #define INVERT_DIRECTION 
 #define JOIN 
 #define KILLALL
-#define LATCH(sensor_id) 
+#define LATCH(sensor_id)
+#define LCC(eventid) 
+#define LCCX(senderid,eventid) 
 #define LCD(row,msg)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
@@ -236,6 +241,7 @@
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
+#define ONLCC(sender,event)
 #define ONGREEN(signal_id) 
 #define ONRED(signal_id)
 #define ONROTATE(turntable_id)

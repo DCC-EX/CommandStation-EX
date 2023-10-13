@@ -117,6 +117,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 'o': stream->print(va_arg(args, int), OCT); break;
       case 'x': stream->print((unsigned int)va_arg(args, unsigned int), HEX); break;
       case 'X': stream->print((unsigned long)va_arg(args, unsigned long), HEX); break;
+      case 'h': printHex(stream,(unsigned int)va_arg(args, unsigned int)); break;
       case 'M':
       { // this prints a unsigned long microseconds time in readable format
 	unsigned long time = va_arg(args, long);
@@ -218,4 +219,15 @@ void StringFormatter::printPadded(Print* stream, long value, byte width, bool fo
     if (!formatLeft) stream->print(value, DEC);    
   }
 
+// printHex prints the full 2 byte hex with leading zeros, unlike print(value,HEX)
+const char FLASH hexchars[]="0123456789ABCDEF";
+void StringFormatter::printHex(Print * stream,uint16_t value) {
+    char result[5];
+    for (int i=3;i>=0;i--) {
+      result[i]=GETFLASH(hexchars+(value & 0x0F));
+      value>>=4;
+    }
+    result[4]='\0';
+     stream->print(result);
+}
  
