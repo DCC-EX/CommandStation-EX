@@ -196,7 +196,7 @@
 #define ENDTASK
 #define ESTOP 
 #define EXRAIL
-#define EXTT_TURNTABLE(id,vpin,i2c_address,home,description)
+#define EXTT_TURNTABLE(id,vpin,home,description)
 #define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 

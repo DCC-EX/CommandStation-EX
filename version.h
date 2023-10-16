@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.15"
+#define VERSION "5.1.16"
+// 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
 // 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
 // 5.1.14 - Fixed IFTTPOSITION
 // 5.1.13 - Changed turntable broadcast from i to I due to server string conflict
