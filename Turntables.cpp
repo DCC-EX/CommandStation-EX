@@ -183,7 +183,7 @@ using DevState = IODevice::DeviceStateEnum;
         return tto;
       }
     }
-    // if (!IODevice::exists(vpin)) return nullptr;
+    if (!IODevice::exists(vpin)) return nullptr;
     if (IODevice::getStatus(vpin) == DevState::DEVSTATE_FAILED) return nullptr;
     if (Turntable::getByVpin(vpin)) return nullptr;
     tto = (Turntable *)new EXTTTurntable(id, vpin);
