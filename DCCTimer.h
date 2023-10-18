@@ -88,7 +88,7 @@ private:
   static int freeMemory();
   static volatile int minimum_free_memory;
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
-#if defined(ARDUINO_ARCH_STM32)  // TODO: PMA temporary hack - assumes 100Mhz F_CPU as STM32 can change frequency
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_GIGA)  // TODO: PMA temporary hack - assumes 100Mhz F_CPU as STM32 can change frequency
   static const long CLOCK_CYCLES=(100000000L / 1000000 * DCC_SIGNAL_TIME) >>1;
 #else
   static const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;

@@ -147,6 +147,18 @@
   // #ifndef I2C_USE_WIRE
   // #define I2C_USE_WIRE
   // #endif
+#elif defined(ARDUINO_ARCH_MBED_GIGA)
+  #define ARDUINO_TYPE "ARDUINO_GIGA"
+  #ifndef DISABLE_EEPROM
+    #define DISABLE_EEPROM
+  #endif
+  //#ifndef ENABLE_ETHERNET
+    //#define ENABLE_ETHERNET
+  //#endif
+  // STM32 support for native I2C is awaiting development 
+  // #ifndef I2C_USE_WIRE
+  // #define I2C_USE_WIRE
+  // #endif
 
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)

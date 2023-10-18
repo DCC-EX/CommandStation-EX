@@ -184,6 +184,12 @@ class MotorDriver {
     int  getCurrentRaw(bool fromISR=false);
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
+#if defined(ARDUINO_GIGA)
+    inline bool digitalPinHasPWM(int pin) {
+      if (pin!=UNUSED_PIN && pin>=2 && pin<=13) return true;
+      else return false;
+    }
+#endif
     inline bool brakeCanPWM() {
 #if defined(ARDUINO_ARCH_ESP32)
       return (brakePin != UNUSED_PIN); // This was just (true) but we probably do need to check for UNUSED_PIN!
