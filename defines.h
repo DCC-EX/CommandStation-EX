@@ -167,7 +167,7 @@
   //#define digitalPinToBitMask(P) ( pgm_read_byte( digital_pin_to_bit_mask_PGM + (P) ) )
   #define portOutputRegister(port)   ( &(port->OUT.reg) )
   #define portInputRegister(port)    ( &(port->IN.reg) )
-  #define portModeRegister(port)     ( &(port->DIR.reg) )
+  //#define portModeRegister(port)     ( &(port->DIR.reg) )
   char16_t digitalPinToBitMask(char16_t P) { return digitalPinToPinName(P);}
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
