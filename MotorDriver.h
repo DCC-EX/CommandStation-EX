@@ -30,10 +30,9 @@
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
                         TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
-#if defined(ARDUINO_GIGA)
-
-#define setHIGH(fastpin)  gpio_write(&fastpin, 1)
-#define setLOW(fastpin) gpio_write(&fastpin, 0)
+#ifdef ARDUINO_ARCH_MBED_GIGA
+#define setHIGH(fastpin) (gpio_read(&fastpin)==1)
+#define setLOW(fastpin) (gpio_read(&fastpin)==0)
 #else
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
