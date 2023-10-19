@@ -127,7 +127,7 @@ void DCCTimer::setPWM(byte pin, bool high) {
    tim3ModeHA = false;
 }*/
 ///////////////////////////////////////////////////////////////////////////////////////////////
-INTERRUPT_CALLBACK interruptHandler=0;
+/*INTERRUPT_CALLBACK interruptHandler=0;
 extern char *__brkval;
 extern char *__malloc_heap_start;
 
@@ -195,7 +195,7 @@ void DCCTimer::reset() {
   CPU_CCP=0xD8;
   WDT.CTRLA=0x4;
   while(true){}
-}
+}*/
 
 int16_t ADCee::ADCmax()
 {
