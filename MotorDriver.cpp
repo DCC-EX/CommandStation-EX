@@ -501,9 +501,15 @@ unsigned int MotorDriver::mA2raw( unsigned int mA) {
   return (int32_t)mA * senseScale / senseFactorInternal;
 }
 
+
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
     (void) type; // avoid compiler warning if diag not used above.
+#if defined(ARDUINO_GIGA)
+    (void)type;
+    (void)input; // no warnings please
+    *result = digitalPinToGpio(pin);
+#else
 #if defined(ARDUINO_ARCH_SAMD)
     PortGroup *port = digitalPinToPort(pin);
 #elif defined(ARDUINO_ARCH_STM32)
@@ -517,6 +523,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
+#endif
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
 
