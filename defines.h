@@ -161,17 +161,14 @@
   // #endif
   #define SDA I2C_SDA
   #define SCL I2C_SCL
-  #include <api\deprecated-avr-comp\avr\pgmspace.h>
-  extern const uint16_t PROGMEM port_to_mode_PGM[];
-  extern const uint16_t PROGMEM port_to_input_PGM[];
-  extern const uint16_t PROGMEM port_to_output_PGM[];
-  extern const uint8_t PROGMEM digital_pin_to_port_PGM[];
-  // extern const uint8_t PROGMEM digital_pin_to_bit_PGM[];
-  extern const uint8_t PROGMEM digital_pin_to_bit_mask_PGM[];
-  extern const uint8_t PROGMEM digital_pin_to_timer_PGM[];
-  #define portOutputRegister(P) ( (volatile uint8_t *)( pgm_read_word( port_to_output_PGM + (P))) )
-  #define portInputRegister(P) ( (volatile uint8_t *)( pgm_read_word( port_to_input_PGM + (P))) )
-  #define digitalPinToBitMask(P) ( pgm_read_byte( digital_pin_to_bit_mask_PGM + (P) ) )
+  
+  //#define portOutputRegister(P) ( (volatile uint8_t *)( pgm_read_word( port_to_output_PGM + (P))) )
+  //#define portInputRegister(P) ( (volatile uint8_t *)( pgm_read_word( port_to_input_PGM + (P))) )
+  //#define digitalPinToBitMask(P) ( pgm_read_byte( digital_pin_to_bit_mask_PGM + (P) ) )
+  #define portOutputRegister(port)   ( &(port->OUT.reg) )
+  #define portInputRegister(port)    ( &(port->IN.reg) )
+  #define portModeRegister(port)     ( &(port->DIR.reg) )
+  char16_t digitalPinToBitMask(char16_t P) { return digitalPinToPinName(P);}
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
   #define ARDUINO_TYPE "RP2040"
