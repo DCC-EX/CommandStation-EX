@@ -127,6 +127,8 @@ typedef uint8_t portreg_t;
 
 #if defined(ARDUINO_GIGA)
 typedef gpio_t FASTPIN;
+#include <pinDefinitions.h>
+//extern gpio_t digitalPinToGpio(uint8_t P);
 #else
 struct FASTPIN {
   volatile portreg_t *inout;
