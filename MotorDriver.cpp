@@ -510,7 +510,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 #if defined(ARDUINO_GIGA)
     (void)type;
     (void)input; // no warnings please
-    result = digitalPinToGpio(pin);
+    result = pin;
 #else
     (void) type; // avoid compiler warning if diag not used above.
 #if defined(ARDUINO_ARCH_SAMD)
