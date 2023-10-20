@@ -57,9 +57,8 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
 
-  #ifndef ARDUINO_ARCH_MBED_GIGA
+  #ifndef ARDUINO_GIGA
   fastSignalPin.shadowinout = NULL;
-  #endif
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
@@ -90,16 +89,15 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTF;
   }
-
+  #endif
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
     dualSignal=true;
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
 
-    #ifndef ARDUINO_ARCH_MBED_ARDUINO
+    #ifndef ARDUINO_GIGA
     fastSignalPin2.shadowinout = NULL;
-    #endif
     if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
       DIAG(F("Found PORTA pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
@@ -130,6 +128,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTF;
     }
+    #endif
   }
   else dualSignal=false; 
   
