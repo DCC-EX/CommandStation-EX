@@ -507,12 +507,12 @@ unsigned int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-    (void) type; // avoid compiler warning if diag not used above.
 #if defined(ARDUINO_GIGA)
     (void)type;
     (void)input; // no warnings please
     *result = digitalPinToPort(pin);
 #else
+    (void) type; // avoid compiler warning if diag not used above.
 #if defined(ARDUINO_ARCH_SAMD)
     PortGroup *port = digitalPinToPort(pin);
 #elif defined(ARDUINO_ARCH_STM32)
