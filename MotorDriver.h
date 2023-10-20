@@ -31,7 +31,6 @@
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
                         TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
 #ifdef ARDUINO_GIGA
-extern gpio_t digitalPinToGpio(int P);
 #define setHIGH(fastpin)  gpio_write(&fastpin, 1)
 #define setLOW(fastpin) gpio_write(&fastpin, 0)
 #else

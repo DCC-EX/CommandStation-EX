@@ -39,7 +39,9 @@ volatile portreg_t shadowPORTD;
 volatile portreg_t shadowPORTE;
 volatile portreg_t shadowPORTF;
 #endif
-
+#ifdef ARDUINO_GIGA
+extern gpio_t digitalPinToGpio(int P);
+#endif
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, int16_t fault_pin) {
   const FSH * warnString = F("** WARNING **");
