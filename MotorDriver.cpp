@@ -511,7 +511,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 #if defined(ARDUINO_GIGA)
     (void)type;
     (void)input; // no warnings please
-    *result = digitalPinToGpio(pin);
+    *result = digitalPinToPort(pin);
 #else
 #if defined(ARDUINO_ARCH_SAMD)
     PortGroup *port = digitalPinToPort(pin);
