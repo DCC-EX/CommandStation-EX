@@ -243,14 +243,15 @@ int DCCTimer::getMinimumFreeMemory() {
 
 int DCCTimer::freeMemory() {
   char top;
-  return (int)(1024);
+  return (int)(1024000);
 }
 
 void DCCTimer::reset() {
   //Watchdog &watchdog = Watchdog::get_instance();
   //Watchdog::stop();
   //Watchdog::start(500);
-  while(true) {};
+  
+  //while(true) {};
 }
 
 int16_t ADCee::ADCmax()
