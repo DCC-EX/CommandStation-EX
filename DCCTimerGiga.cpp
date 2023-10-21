@@ -31,7 +31,6 @@
 #if defined(ARDUINO_GIGA)
 
 #include "DCCTimer.h"
-
 #include "DIAG.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -248,7 +247,10 @@ int DCCTimer::freeMemory() {
 }
 
 void DCCTimer::reset() {
-  // do nothing for now
+  //Watchdog &watchdog = Watchdog::get_instance();
+  //Watchdog::stop();
+  //Watchdog::start(500);
+  while(true) {};
 }
 
 int16_t ADCee::ADCmax()
