@@ -152,9 +152,9 @@
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
   #endif
-  #if !defined(I2C_USE_WIRE)
-  #define I2C_USE_WIRE
-  #endif
+  //#if !defined(I2C_USE_WIRE)
+  //#define I2C_USE_WIRE
+  //#endif
   #define SDA I2C_SDA
   #define SCL I2C_SCL
   
