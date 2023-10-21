@@ -28,12 +28,10 @@
 // ATTENTION: this file only compiles on a STM32 based boards
 // Please refer to DCCTimer.h for general comments about how this class works
 // This is to avoid repetition and duplication.
-#ifdef ARDUINO_GIGA
+#if defined(ARDUINO_GIGA)
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
-#include "TrackManager.h"
-#endif
+
 #include "DIAG.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,6 +194,62 @@ void DCCTimer::reset() {
   WDT.CTRLA=0x4;
   while(true){}
 }*/
+INTERRUPT_CALLBACK interruptHandler=0;
+
+
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  interruptHandler=callback;
+  noInterrupts(); 
+  interrupts();
+}
+
+bool DCCTimer::isPWMPin(byte pin) {
+    (void) pin; 
+    return false;  // TODO what are the relevant pins? 
+}
+
+void DCCTimer::setPWM(byte pin, bool high) {
+    (void) pin;
+    (void) high;
+    // TODO what are the relevant pins?
+ }
+
+void DCCTimer::clearPWM() {
+    // Do nothing unless we implent HA
+}
+
+void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+  volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
+  volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
+  // volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
+
+  volatile uint32_t m1 = *serno1;
+  volatile uint32_t m2 = *serno2;
+  mac[0] = m1 >> 8;
+  mac[1] = m1 >> 0;
+  mac[2] = m2 >> 24;
+  mac[3] = m2 >> 16;
+  mac[4] = m2 >> 8;
+  mac[5] = m2 >> 0;
+}
+volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
+
+// Return low memory value... 
+int DCCTimer::getMinimumFreeMemory() {
+  noInterrupts(); // Disable interrupts to get volatile value 
+  int retval = freeMemory();
+  interrupts();
+  return retval;
+}
+
+int DCCTimer::freeMemory() {
+  char top;
+  return (int)(1024);
+}
+
+void DCCTimer::reset() {
+  // do nothing for now
+}
 
 int16_t ADCee::ADCmax()
 {

@@ -148,17 +148,13 @@
   // #define I2C_USE_WIRE
   // #endif
 #elif defined(ARDUINO_ARCH_MBED_GIGA)
-  #define ARDUINO_TYPE "ARDUINO_GIGA"
+  #define ARDUINO_TYPE "Giga"
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
   #endif
-  //#ifndef ENABLE_ETHERNET
-    //#define ENABLE_ETHERNET
-  //#endif
-  // STM32 support for native I2C is awaiting development 
-  // #ifndef I2C_USE_WIRE
-  // #define I2C_USE_WIRE
-  // #endif
+  #if !defined(I2C_USE_WIRE)
+  #define I2C_USE_WIRE
+  #endif
   #define SDA I2C_SDA
   #define SCL I2C_SCL
   

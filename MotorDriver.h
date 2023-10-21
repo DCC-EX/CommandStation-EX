@@ -30,18 +30,17 @@
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
                         TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
-#ifdef ARDUINO_GIGA
-//#include <pinDefinitions.h>
-//extern gpio_t digitalPinToGpio(int P);
-#define setHIGH(fastpin)  digitalWrite(fastpin, 1)
-#define setLOW(fastpin) digitalWrite(fastpin, 0)
+#if defined(ARDUINO_GIGA)
+
+#define setHIGH(fastpin)  digitalWrite(fastpin,1)
+#define setLOW(fastpin) digitalWrite(fastpin,0)
 #else
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
 #endif
-#if  defined(ARDUINO_GIGA)
-#define isHIGH(fastpin) (digitalRead(fastpin)==1)
-#define isLOW(fastpin) (digitalRead(fastpin)==0)
+#if defined(ARDUINO_GIGA)
+#define isHIGH(fastpin) ((PinStatus)digitalRead(fastpin)==1)
+#define isLOW(fastpin) ((PinStatus)digitalRead(fastpin)==0)
 #else
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
@@ -128,7 +127,7 @@ typedef uint8_t portreg_t;
 #endif
 
 #if defined(ARDUINO_GIGA)
-typedef pin_size_t FASTPIN;
+typedef int FASTPIN;
 
 
 #else
