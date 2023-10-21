@@ -32,7 +32,7 @@
 
 #include "DCCTimer.h"
 #include "DIAG.h"
-
+#include "Portenta_H7_TimerInterrupt.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Experimental code for High Accuracy (HA) DCC Signal mode
 // Warning - use of TIM2 and TIM3 can affect the use of analogWrite() function on certain pins,
@@ -194,11 +194,41 @@ void DCCTimer::reset() {
   while(true){}
 }*/
 INTERRUPT_CALLBACK interruptHandler=0;
+#ifndef DCC_EX_TIMER
+#if defined(TIM6)
+#define DCC_EX_TIMER TIM6
+#elif defined(TIM7)
+#define DCC_EX_TIMER TIM7
+#elif defined(TIM11)
+#define DCC_EX_TIMER TIM11
+#else
+#warning This STM32F4XX variant does not have Timers 6,7 or 11!!
+#endif
+#endif // ifndef DCC_EX_TIMER
 
+HardwareTimer*  _hwTimer = NULL;
+void DCCTimer_Handler() __attribute__((interrupt));
+
+void DCCTimer_Handler() {
+  interruptHandler();
+}
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
   noInterrupts(); 
+  // Init timer TIM15
+  Portenta_H7_Timer ITimer0(TIM15);
+  // Init  timer TIM16
+  Portenta_H7_Timer ITimer1(TIM16);
+  _hwTimer->pause();
+  _hwTimer->setPrescaleFactor(1);
+//  timer.setOverflow(CLOCK_CYCLES * 2);
+  _hwTimer->setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+  // dcctimer.attachInterrupt(Timer11_Handler);
+  _hwTimer->attachInterrupt(DCCTimer_Handler);
+  _hwTimer->setInterruptPriority(0, 0); // Set highest preemptive priority!
+  _hwTimer->refresh();
+  _hwTimer->resume();
   interrupts();
 }
 
@@ -277,11 +307,11 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 /*
  * Scan function that is called from interrupt
  */
-#pragma GCC push_options
-#pragma GCC optimize ("-O3")
+//#pragma GCC push_options
+//#pragma GCC optimize ("-O3")
 void ADCee::scan() {
 }
-#pragma GCC pop_options
+//#pragma GCC pop_options
 
 void ADCee::begin() {
   noInterrupts();
