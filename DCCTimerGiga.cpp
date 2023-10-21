@@ -194,19 +194,14 @@ void DCCTimer::reset() {
   while(true){}
 }*/
 INTERRUPT_CALLBACK interruptHandler=0;
-#ifndef DCC_EX_TIMER
-#if defined(TIM6)
-#define DCC_EX_TIMER TIM6
-#elif defined(TIM7)
-#define DCC_EX_TIMER TIM7
-#elif defined(TIM11)
-#define DCC_EX_TIMER TIM11
-#else
-#warning This STM32F4XX variant does not have Timers 6,7 or 11!!
-#endif
-#endif // ifndef DCC_EX_TIMER
 
-HardwareTimer*  _hwTimer = NULL;
+//HardwareTimer*  timer = NULL;
+//HardwareTimer*  timerAux = NULL;
+HardwareTimer timer(TIM2);
+HardwareTimer timerAux(TIM3);
+static bool tim2ModeHA = false;
+static bool tim3ModeHA = false;
+
 void DCCTimer_Handler() __attribute__((interrupt));
 
 void DCCTimer_Handler() {
@@ -215,36 +210,66 @@ void DCCTimer_Handler() {
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
-  noInterrupts(); 
-  // Init timer TIM15
-  Portenta_H7_Timer ITimer0(TIM15);
-  // Init  timer TIM16
-  Portenta_H7_Timer ITimer1(TIM16);
-  _hwTimer->pause();
-  _hwTimer->setPrescaleFactor(1);
-//  timer.setOverflow(CLOCK_CYCLES * 2);
-  _hwTimer->setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-  // dcctimer.attachInterrupt(Timer11_Handler);
-  _hwTimer->attachInterrupt(DCCTimer_Handler);
-  _hwTimer->setInterruptPriority(0, 0); // Set highest preemptive priority!
-  _hwTimer->refresh();
-  _hwTimer->resume();
-  interrupts();
+   noInterrupts();
+
+ // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
+   timer.pause();
+   timerAux.pause();
+   timer.setPrescaleFactor(1);
+   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+   timer.attachInterrupt(DCCTimer_Handler);
+   timer.refresh();
+   timerAux.setPrescaleFactor(1);
+   timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+   timerAux.refresh();
+  
+   timer.resume();
+   timerAux.resume();
+
+   interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-    (void) pin; 
-    return false;  // TODO what are the relevant pins? 
+    switch (pin) {
+     case 12:
+       return true;
+     case 13:
+       return true;
+     default:
+       return false;
+    }
 }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-    (void) pin;
-    (void) high;
-    // TODO what are the relevant pins?
+    switch (pin) {
+     case 12:
+       if (!tim3ModeHA) {
+         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D12);
+         tim3ModeHA = true;
+       }
+       if (high) 
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+       else
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+       break;
+     case 13:
+       if (!tim2ModeHA) {
+         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D13);
+         tim2ModeHA = true;
+       }
+       if (high) 
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+       else
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+       break;
+   }
  }
 
 void DCCTimer::clearPWM() {
-    // Do nothing unless we implent HA
+  timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
+  tim2ModeHA = false;
+  timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
+  tim3ModeHA = false;
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
