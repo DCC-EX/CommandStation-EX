@@ -244,7 +244,7 @@ void DCCTimer::setPWM(byte pin, bool high) {
     switch (pin) {
      case 12:
        if (!tim3ModeHA) {
-         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D12);
+         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 13);
          tim3ModeHA = true;
        }
        if (high) 
@@ -254,7 +254,7 @@ void DCCTimer::setPWM(byte pin, bool high) {
        break;
      case 13:
        if (!tim2ModeHA) {
-         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, D13);
+         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 12);
          tim2ModeHA = true;
        }
        if (high) 
