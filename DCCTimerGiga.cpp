@@ -210,23 +210,23 @@ void DCCTimer_Handler() {
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
-   noInterrupts();
-
+    noInterrupts();
+    
  // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
-   timer.pause();
-   timerAux.pause();
-   timer.setPrescaleFactor(1);
-   timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-   timer.attachInterrupt(DCCTimer_Handler);
-   timer.refresh();
-   timerAux.setPrescaleFactor(1);
-   timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-   timerAux.refresh();
-  
-   timer.resume();
-   timerAux.resume();
+    timer.pause();
+    timerAux.pause();
+    timer.setPrescaleFactor(1);
+    timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+    timer.attachInterrupt(DCCTimer_Handler);
+    timer.refresh();
+    timerAux.setPrescaleFactor(1);
+    timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+    timerAux.refresh();
 
-   interrupts();
+    timer.resume();
+    timerAux.resume();
+
+    interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
@@ -295,10 +295,13 @@ int DCCTimer::getMinimumFreeMemory() {
   interrupts();
   return retval;
 }
+extern "C" char* sbrk(int incr);
 
 int DCCTimer::freeMemory() {
+  
   char top;
-  return (int)(1024000);
+
+  return (int)(&top - reinterpret_cast<char*>(sbrk(0)));
 }
 
 void DCCTimer::reset() {
