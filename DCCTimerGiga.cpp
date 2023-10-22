@@ -314,7 +314,7 @@ void DCCTimer::reset() {
 
 int16_t ADCee::ADCmax()
 {
-    return 1024;
+    return 4095;
 }
 
 int ADCee::init(uint8_t pin) {
