@@ -164,6 +164,12 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
+    #if defined(ARDUINO_GIGA)
+    __attribute__((always_inline)) inline void setSignal( bool high) {
+      digitalWrite(signalPin, high);
+      if (dualSignal) digitalWrite(signalPin2, !high);
+    };
+    #else
   __attribute__((always_inline)) inline void setSignal( bool high) {
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
@@ -179,6 +185,7 @@ class MotorDriver {
 	}
       }
     };
+    #endif
     inline void enableSignal(bool on) {
       if (on)
 	pinMode(signalPin, OUTPUT);
