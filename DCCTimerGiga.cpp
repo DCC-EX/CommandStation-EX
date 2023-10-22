@@ -242,25 +242,25 @@ bool DCCTimer::isPWMPin(byte pin) {
 
 void DCCTimer::setPWM(byte pin, bool high) {
     switch (pin) {
-     case 12:
+     case 9:
        if (!tim3ModeHA) {
-         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 13);
+         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 9);
          tim3ModeHA = true;
        }
        if (high) 
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM17->CCMR1 = (TIM17->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM17->CCMR1 = (TIM17->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
-     case 13:
+     case 8:
        if (!tim2ModeHA) {
-         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 12);
+         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 8);
          tim2ModeHA = true;
        }
        if (high) 
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM16->CCMR1 = (TIM16->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM16->CCMR1 = (TIM16->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
    }
  }
