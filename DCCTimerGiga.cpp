@@ -300,8 +300,8 @@ extern "C" char* sbrk(int incr);
 int DCCTimer::freeMemory() {
   
   char top;
-
-  return (int)(&top - reinterpret_cast<char*>(sbrk(0)));
+  unsigned int tmp = (unsigned int)(&top - reinterpret_cast<char*>(sbrk(0)));
+  return (int)(tmp / 1000);
 }
 
 void DCCTimer::reset() {
