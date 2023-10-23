@@ -49,7 +49,7 @@ Once a new OPCODE is decided upon, update this list.
   b, Write CV bit on main
   B, Write CV bit
   c, Request current command
-  C,
+  C, configure the CS
   d,
   D, Diagnostic commands
   e, Erase EEPROM
@@ -693,7 +693,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         Sensor::printAll(stream);
         return;
 
-    case 's': // <s>
+    case 's': // STATUS <s>
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
@@ -714,13 +714,17 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case ' ': // < >
         StringFormatter::send(stream, F("\n"));
         return;
+    case 'C': // CONFIG <C [params]>
+        if (parseC(stream, params, p))
+            return;
+        break;
 #ifndef DISABLE_DIAG
-    case 'D': // < >
+    case 'D': // DIAG <D [params]>
         if (parseD(stream, params, p))
             return;
         break;
 #endif
-    case '=': // <= Track manager control  >
+    case '=': // TACK MANAGER CONTROL <= [params]>
         if (TrackManager::parseJ(stream, params, p))
             return;
         break;
@@ -1114,19 +1118,28 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
     return false;
 }
 
-bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
-{
+bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
     if (params == 0)
         return false;
     bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
     switch (p[0])
     {
-    case HASH_KEYWORD_CABS: // <D CABS>
-        DCC::displayCabList(stream);
+#ifndef DISABLE_PROG
+    case HASH_KEYWORD_PROGBOOST:
+        TrackManager::progTrackBoosted=true;
+	    return true;
+#endif
+    case HASH_KEYWORD_RESET:
+        DCCTimer::reset();
+        break; // and <X> if we didnt restart
+    case HASH_KEYWORD_SPEED28:
+        DCC::setGlobalSpeedsteps(28);
+	DIAG(F("28 Speedsteps"));
         return true;
 
-    case HASH_KEYWORD_RAM: // <D RAM>
-        StringFormatter::send(stream, F("Free memory=%d\n"), DCCTimer::getMinimumFreeMemory());
+    case HASH_KEYWORD_SPEED128:
+        DCC::setGlobalSpeedsteps(128);
+	DIAG(F("128 Speedsteps"));
         return true;
 
 #ifndef DISABLE_PROG
@@ -1146,11 +1159,32 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
-	  StringFormatter::send(stream, F("Ack diag %S\n"), onOff ? F("on") : F("off"));
+	  DIAG(F("Ack diag %S"), onOff ? F("on") : F("off"));
 	  Diag::ACK = onOff;
 	}
         return true;
 #endif
+
+default: // invalid/unknown
+      break;
+    }
+    return false;
+}
+
+bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
+{
+    if (params == 0)
+        return false;
+    bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
+    switch (p[0])
+    {
+    case HASH_KEYWORD_CABS: // <D CABS>
+        DCC::displayCabList(stream);
+        return true;
+
+    case HASH_KEYWORD_RAM: // <D RAM>
+        DIAG(F("Free memory=%d"), DCCTimer::getMinimumFreeMemory());
+        return true;
 
     case HASH_KEYWORD_CMD: // <D CMD ON/OFF>
         Diag::CMD = onOff;
@@ -1173,34 +1207,14 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::LCN = onOff;
         return true;
 #endif
-#ifndef DISABLE_PROG
-    case HASH_KEYWORD_PROGBOOST:
-        TrackManager::progTrackBoosted=true;
-	    return true;
-#endif
-    case HASH_KEYWORD_RESET:
-        DCCTimer::reset();
-        break; // and <X> if we didnt restart 
-    
-
 #ifndef DISABLE_EEPROM
     case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>
 	if (params >= 2)
 	    EEStore::dump(p[1]);
 	return true;
 #endif
-
-    case HASH_KEYWORD_SPEED28:
-        DCC::setGlobalSpeedsteps(28);
-	StringFormatter::send(stream, F("28 Speedsteps"));
-        return true;
-
-    case HASH_KEYWORD_SPEED128:
-        DCC::setGlobalSpeedsteps(128);
-	StringFormatter::send(stream, F("128 Speedsteps"));
-        return true;
-
     case HASH_KEYWORD_SERVO:  // <D SERVO vpin position [profile]>
+
     case HASH_KEYWORD_ANOUT:  // <D ANOUT vpin position [profile]>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
         break;
@@ -1223,7 +1237,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         break;
 
     default: // invalid/unknown
-        break;
+        return parseC(stream, params, p);
     }
     return false;
 }
