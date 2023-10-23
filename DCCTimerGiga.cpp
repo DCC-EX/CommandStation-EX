@@ -169,10 +169,7 @@ AdvancedADC adc(A0, A1);
 int ADCee::init(uint8_t pin) {
   
   adc.begin(AN_RESOLUTION_10, 16000, 1, 4);
-  if (adc.available()) {
-    SampleBuffer buf = adc.read();
-    buf.release();
-  }
+  return 123;
 }
 
 /*
@@ -194,8 +191,6 @@ int ADCee::read(uint8_t pin, bool fromISR) {
     }
     buf.release();
   }
-  
-  return 1023;
 }
 
 /*
