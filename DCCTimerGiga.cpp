@@ -160,10 +160,12 @@ void DCCTimer::reset() {
 
 int16_t ADCee::ADCmax()
 {
-    return 1023;
+    return 4095;
 }
 
 int ADCee::init(uint8_t pin) {
+  analogReadResolution(12);
+  //DIAG(F("ADCee Init: current val:%d"),analogRead(pin));
   return analogRead(pin);
 }
 
@@ -172,9 +174,11 @@ int ADCee::init(uint8_t pin) {
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
   int current;
-  if (!fromISR) noInterrupts();
+  //DIAG(F("ADCee Read:%d"),fromISR);
+  //if (!fromISR) noInterrupts();
   current = analogRead(pin);
-  if (!fromISR) interrupts();
+  //if (!fromISR) interrupts();
+  
   return current;
 }
 
@@ -189,6 +193,7 @@ void ADCee::scan() {
 
 void ADCee::begin() {
   noInterrupts();
+  
   interrupts();
 }
 #endif
