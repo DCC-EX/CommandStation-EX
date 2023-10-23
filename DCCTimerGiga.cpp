@@ -33,8 +33,7 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "Portenta_H7_TimerInterrupt.h"
-#include "pins_arduino.h"
-#include "pinDefinitions.h"
+#include <Arduino_AdvancedAnalog.h>
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Experimental code for High Accuracy (HA) DCC Signal mode
 // Warning - use of TIM2 and TIM3 can affect the use of analogWrite() function on certain pins,
@@ -163,31 +162,40 @@ void DCCTimer::reset() {
 
 int16_t ADCee::ADCmax()
 {
-    return 4095;
+    return 1023;
 }
-
+int retBuff[2];
+AdvancedADC adc(A0, A1);
 int ADCee::init(uint8_t pin) {
   
-  
-  return 123; // random number, faked for now
+  adc.begin(AN_RESOLUTION_10, 16000, 1, 4);
+  if (adc.available()) {
+    SampleBuffer buf = adc.read();
+    buf.release();
+  }
 }
 
 /*
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  //int current;
-  //DIAG(F("ADCee Read:%d"),fromISR);
-  //if (!fromISR) noInterrupts();
-  //current = analogRead(pin);
-  //if (!fromISR) interrupts();
-  
-  mbed::AnalogIn* adc = analogPinToAdcObj(pin);
-  if (adc == NULL) {
-    adc = new mbed::AnalogIn(analogPinToPinName(pin));
-    analogPinToAdcObj(pin) = adc;
+  if (adc.available()) {
+    SampleBuffer buf = adc.read();
+    switch(pin){
+      case A0:
+        return buf[0];
+        break;
+      case A1:
+        return buf[1];
+        break;
+      default:
+        return 0;
+        break;
+    }
+    buf.release();
   }
-  return (int)(adc->read_u16() >> (16 - 10));
+  
+  return 1023;
 }
 
 /*
