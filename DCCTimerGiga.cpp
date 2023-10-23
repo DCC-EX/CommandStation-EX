@@ -314,7 +314,7 @@ void DCCTimer::reset() {
 
 int16_t ADCee::ADCmax()
 {
-    return 4095;
+    return 1023;
 }
 
 int ADCee::init(uint8_t pin) {
@@ -335,11 +335,11 @@ int ADCee::read(uint8_t pin, bool fromISR) {
 /*
  * Scan function that is called from interrupt
  */
-//#pragma GCC push_options
-//#pragma GCC optimize ("-O3")
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
 void ADCee::scan() {
 }
-//#pragma GCC pop_options
+#pragma GCC pop_options
 
 void ADCee::begin() {
   noInterrupts();
