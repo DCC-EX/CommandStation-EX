@@ -47,6 +47,7 @@ INTERRUPT_CALLBACK interruptHandler=0;
 //HardwareTimer*  timerAux = NULL;
 HardwareTimer timer(TIM2);
 HardwareTimer timerAux(TIM3);
+
 static bool tim2ModeHA = false;
 static bool tim3ModeHA = false;
 
@@ -166,9 +167,9 @@ int16_t ADCee::ADCmax()
 }
 
 int ADCee::init(uint8_t pin) {
-  analogReadResolution(12);
-  //DIAG(F("ADCee Init: current val:%d"),analogRead(pin));
-  return analogRead(pin);
+  
+  
+  return 123; // random number, faked for now
 }
 
 /*
@@ -180,13 +181,13 @@ int ADCee::read(uint8_t pin, bool fromISR) {
   //if (!fromISR) noInterrupts();
   //current = analogRead(pin);
   //if (!fromISR) interrupts();
-  PinName name = analogPinToPinName(pin);
+  
   mbed::AnalogIn* adc = analogPinToAdcObj(pin);
   if (adc == NULL) {
-    adc = new mbed::AnalogIn(name);
+    adc = new mbed::AnalogIn(analogPinToPinName(pin));
     analogPinToAdcObj(pin) = adc;
   }
-  return (adc->read_u16() >> (16 - 12));
+  return (int)(adc->read_u16() >> (16 - 10));
 }
 
 /*
