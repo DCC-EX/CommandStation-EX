@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.17"
+#define VERSION "5.1.17eth"
+// 5.1.17e - Initial ethernet code for STM32F429ZI and F439ZI boards
 // 5.1.17 - Divide out C for config and D for diag commands
 // 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
 // 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
