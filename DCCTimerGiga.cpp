@@ -33,6 +33,8 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "Portenta_H7_TimerInterrupt.h"
+#include "pins_arduino.h"
+#include "pinDefinitions.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Experimental code for High Accuracy (HA) DCC Signal mode
 // Warning - use of TIM2 and TIM3 can affect the use of analogWrite() function on certain pins,
@@ -173,13 +175,18 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  int current;
+  //int current;
   //DIAG(F("ADCee Read:%d"),fromISR);
   //if (!fromISR) noInterrupts();
-  current = analogRead(pin);
+  //current = analogRead(pin);
   //if (!fromISR) interrupts();
-  
-  return current;
+  PinName name = analogPinToPinName(pin);
+  mbed::AnalogIn* adc = analogPinToAdcObj(pin);
+  if (adc == NULL) {
+    adc = new mbed::AnalogIn(name);
+    analogPinToAdcObj(pin) = adc;
+  }
+  return (adc->read_u16() >> (16 - 12));
 }
 
 /*

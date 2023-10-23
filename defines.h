@@ -157,7 +157,7 @@
   //#endif
   #define SDA I2C_SDA
   #define SCL I2C_SCL
-  
+  #define DCC_EX_TIMER
   // these don't work...
   //extern const uint16_t PROGMEM port_to_input_PGM[];
   //extern const uint16_t PROGMEM port_to_output_PGM[];
