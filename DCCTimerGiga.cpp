@@ -90,25 +90,25 @@ bool DCCTimer::isPWMPin(byte pin) {
 
 void DCCTimer::setPWM(byte pin, bool high) {
     switch (pin) {
-     case 9:
+     case 12:
        if (!tim3ModeHA) {
-         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 9);
+         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 12);
          tim3ModeHA = true;
        }
        if (high) 
-         TIM17->CCMR1 = (TIM17->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM17->CCMR1 = (TIM17->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
-     case 8:
+     case 13:
        if (!tim2ModeHA) {
-         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 8);
+         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 13);
          tim2ModeHA = true;
        }
        if (high) 
-         TIM16->CCMR1 = (TIM16->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM16->CCMR1 = (TIM16->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
    }
  }
@@ -168,7 +168,7 @@ int retBuff[2];
 AdvancedADC adc(A0, A1);
 int ADCee::init(uint8_t pin) {
   
-  adc.begin(AN_RESOLUTION_10, 16000, 1, 4);
+  adc.begin(AN_RESOLUTION_10, 16000, 1, 128);
   return 123;
 }
 
@@ -176,21 +176,24 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
+  int retVal = 0;
   if (adc.available()) {
     SampleBuffer buf = adc.read();
     switch(pin){
       case A0:
-        return buf[0];
+        retVal = buf[0];
         break;
       case A1:
-        return buf[1];
+        retVal = buf[1];
         break;
       default:
-        return 0;
+        retVal = -1023;
         break;
     }
     buf.release();
   }
+  //DIAG(F("retVal: %d"),retVal);
+  return retVal;
 }
 
 /*
