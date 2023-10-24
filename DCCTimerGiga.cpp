@@ -160,15 +160,16 @@ void DCCTimer::reset() {
   //while(true) {};
 }
 
+int * ADCee::analogvals = NULL;
+
 int16_t ADCee::ADCmax()
 {
     return 1023;
 }
-int retBuff[2];
+
 AdvancedADC adc(A0, A1);
 int ADCee::init(uint8_t pin) {
-  
-  adc.begin(AN_RESOLUTION_10, 16000, 1, 128);
+  adc.begin(AN_RESOLUTION_10, 16000, 1, 512);
   return 123;
 }
 
@@ -176,24 +177,13 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  int retVal = 0;
+  static SampleBuffer buf = adc.read();
+  int retVal = -123;
   if (adc.available()) {
-    SampleBuffer buf = adc.read();
-    switch(pin){
-      case A0:
-        retVal = buf[0];
-        break;
-      case A1:
-        retVal = buf[1];
-        break;
-      default:
-        retVal = -1023;
-        break;
-    }
     buf.release();
+    buf = adc.read();
   }
-  //DIAG(F("retVal: %d"),retVal);
-  return retVal;
+  return (buf[pin - A0]);
 }
 
 /*
