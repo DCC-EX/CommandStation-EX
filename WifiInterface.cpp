@@ -57,6 +57,14 @@ Stream * WifiInterface::wifiStream;
 #define SERIAL3 Serial3
 #endif
 
+#if (defined(ARDUINO_GIGA))
+#define NUM_SERIAL 5
+#define SERIAL1 Serial1
+#define SERIAL2 Serial2
+#define SERIAL3 Serial3
+#define SERIAL4 Serial4
+#endif
+
 #if defined(ARDUINO_ARCH_STM32)
 // Handle serial ports availability on STM32 for variants!
 // #undef NUM_SERIAL
