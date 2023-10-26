@@ -34,6 +34,7 @@
 #include "DIAG.h"
 #include "Portenta_H7_TimerInterrupt.h"
 #include <Arduino_AdvancedAnalog.h>
+//#include "config.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Experimental code for High Accuracy (HA) DCC Signal mode
 // Warning - use of TIM2 and TIM3 can affect the use of analogWrite() function on certain pins,
@@ -121,18 +122,13 @@ void DCCTimer::clearPWM() {
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-  volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
-  volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
-  // volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
-
-  volatile uint32_t m1 = *serno1;
-  volatile uint32_t m2 = *serno2;
-  mac[0] = m1 >> 8;
-  mac[1] = m1 >> 0;
-  mac[2] = m2 >> 24;
-  mac[3] = m2 >> 16;
-  mac[4] = m2 >> 8;
-  mac[5] = m2 >> 0;
+  /*mac[0] = 0xDE;
+  mac[1] = 0xAD;
+  mac[2] = 0xBE;
+  mac[3] = 0xEF;
+  mac[4] = MAC_A;
+  mac[5] = MAC_B;
+  DIAG(F("MAC: %d:%d:%d:%d:%d:%d"),mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);*/
 }
 volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
 
