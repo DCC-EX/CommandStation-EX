@@ -1,5 +1,5 @@
 /*
- *  @ 2023 Travis Farmer
+ *  © 2023 Travis Farmer
  *  © 2023 Neil McKechnie
  *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
