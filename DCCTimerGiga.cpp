@@ -124,16 +124,17 @@ void DCCTimer::clearPWM() {
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   volatile uint32_t *serno1 = (volatile uint32_t *)UID_BASE;
   volatile uint32_t *serno2 = (volatile uint32_t *)UID_BASE+4;
-
+  volatile uint32_t *serno3 = (volatile uint32_t *)UID_BASE+8;
   volatile uint32_t m1 = *serno1;
   volatile uint32_t m2 = *serno2;
-  mac[0] = m1 >> 8;
-  mac[1] = m1 >> 0;
-  mac[2] = m2 >> 24;
-  mac[3] = m2 >> 16;
-  mac[4] = m2 >> 8;
-  mac[5] = m2 >> 0;
-  DIAG(F("MAC: %P:%P:%P:%P:%P:%P"),mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+  volatile uint32_t m3 = *serno3;
+  mac[0] = 0xBE;
+  mac[1] = 0xEF;
+  mac[2] = m1 ^ m3 >> 24;
+  mac[3] = m1 ^ m3 >> 16;
+  mac[4] = m1 ^ m3 >> 8;
+  mac[5] = m1 ^ m3 >> 0;
+  //DIAG(F("MAC: %P:%P:%P:%P:%P:%P"),mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
 
 }
 volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
