@@ -55,12 +55,8 @@ void EthernetInterface::setup()
  */
 EthernetInterface::EthernetInterface()
 {
-    #if defined(ARDUINO_GIGA)
-    byte mac[] =  MAC_ADDRESS;
-    #else // no giga
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    #endif // giga
     connected=false;
    
     #ifdef IP_ADDRESS
