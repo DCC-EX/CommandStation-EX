@@ -134,7 +134,6 @@ void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   mac[4] = m2 >> 8;
   mac[5] = m2 >> 0;
   DIAG(F("MAC: %P:%P:%P:%P:%P:%P"),mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-  DIAG(F("Ser1: %P Ser2: %P"),m1,m2);
 
 }
 volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
