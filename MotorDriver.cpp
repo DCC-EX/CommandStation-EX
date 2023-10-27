@@ -58,7 +58,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
 
-  #ifndef ARDUINO_GIGA
+  #ifndef ARDUINO_GIGA // no giga
   fastSignalPin.shadowinout = NULL;
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
@@ -90,14 +90,14 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTF;
   }
-  #endif
+  #endif // giga
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
     dualSignal=true;
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
 
-    #ifndef ARDUINO_GIGA
+    #ifndef ARDUINO_GIGA // no giga
     fastSignalPin2.shadowinout = NULL;
     if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
       DIAG(F("Found PORTA pin %d"),signalPin2);
@@ -129,7 +129,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTF;
     }
-    #endif
+    #endif // giga
   }
   else dualSignal=false; 
   
@@ -508,13 +508,13 @@ unsigned int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-#if defined(ARDUINO_GIGA)
+#if defined(ARDUINO_GIGA) // yes giga
     (void)type;
     (void)input; // no warnings please
 
     result = pin;
   
-#else
+#else // no giga
     (void) type; // avoid compiler warning if diag not used above.
 #if defined(ARDUINO_ARCH_SAMD)
     PortGroup *port = digitalPinToPort(pin);
@@ -529,7 +529,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-#endif
+#endif // giga
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
 

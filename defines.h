@@ -148,7 +148,7 @@
   // #ifndef I2C_USE_WIRE
   // #define I2C_USE_WIRE
   // #endif
-#elif defined(ARDUINO_ARCH_MBED_GIGA)
+#elif defined(ARDUINO_GIGA)
   #define ARDUINO_TYPE "Giga"
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
