@@ -32,7 +32,7 @@
 
 #include "DCCTimer.h"
 #include "DIAG.h"
-#include "Portenta_H7_TimerInterrupt.h"
+#include "GigaHardwareTimer.h"
 #include <Arduino_AdvancedAnalog.h>
 //#include "config.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////
