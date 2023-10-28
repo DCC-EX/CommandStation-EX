@@ -206,12 +206,13 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       while(!wifiStream->available());
       version[i]=wifiStream->read();
       StringFormatter::printEscape(version[i]);
-      if ((version[0] == '0') ||
-	  (version[0] == '2' && version[2] == '0') ||
-	  (version[0] == '2' && version[2] == '2' && version[4] == '0' && version[6] == '0')) {
-	SSid = F("DCCEX_SAYS_BROKEN_FIRMWARE");
-	forceAP = true;
-      }
+    }
+    if ((version[0] == '0') ||
+	(version[0] == '2' && version[2] == '0') ||
+	(version[0] == '2' && version[2] == '2' && version[4] == '0' && version[6] == '0')) {
+      DIAG(F("You need to up/downgrade the ESP firmware"));
+      SSid = F("UPDATE_ESP_FIRMWARE");
+      forceAP = true;
     }
   }
   checkForOK(2000, true, false);
