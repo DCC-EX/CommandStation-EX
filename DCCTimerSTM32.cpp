@@ -215,9 +215,9 @@ void DCCTimer::clearPWM() {
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-  volatile uint32_t *serno1 = (volatile uint32_t *)0x1FFF7A10;
-  volatile uint32_t *serno2 = (volatile uint32_t *)0x1FFF7A14;
-  // volatile uint32_t *serno3 = (volatile uint32_t *)0x1FFF7A18;
+  volatile uint32_t *serno1 = (volatile uint32_t *)UID_BASE;
+  volatile uint32_t *serno2 = (volatile uint32_t *)UID_BASE+4;
+  // volatile uint32_t *serno3 = (volatile uint32_t *)UID_BASE+8;
 
   volatile uint32_t m1 = *serno1;
   volatile uint32_t m2 = *serno2;
