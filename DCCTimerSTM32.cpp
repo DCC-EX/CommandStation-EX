@@ -52,7 +52,7 @@ HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 
 HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
 HardwareSerial Serial5(PD2, PC12);  // Rx=PC7, Tx=PC6 -- UART5 - F446RE
 // On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
-#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE) 
+#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F446ZE) 
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
