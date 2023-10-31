@@ -150,7 +150,7 @@
   // #endif
 #elif defined(ARDUINO_GIGA)
   #define ARDUINO_TYPE "Giga"
-  #ifndef DISABLE_EEPROM
+  #ifndef GIGA_EXT_EEPROM
     #define DISABLE_EEPROM
   #endif
   //#if !defined(I2C_USE_WIRE)
