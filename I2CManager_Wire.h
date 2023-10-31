@@ -35,13 +35,21 @@
 #define WIRE_HAS_TIMEOUT
 #endif
 
+#if defined(GIGA_I2C_1)
+#define DCCEX_WIRE Wire1
+#else
+#define DCCEX_WIRE Wire
+#endif
+
+
+
 /***************************************************************************
  *  Initialise I2C interface software
  ***************************************************************************/
 void I2CManagerClass::_initialise() {
-  Wire.begin();
+  DCCEX_WIRE.begin();
 #if defined(WIRE_HAS_TIMEOUT) 
-  Wire.setWireTimeout(_timeout, true);
+  DCCEX_WIRE.setWireTimeout(_timeout, true);
 #endif
 }
 
@@ -50,7 +58,7 @@ void I2CManagerClass::_initialise() {
  *   on Arduino.  Mega4809 supports 1000000 (Fast+) too.
  ***************************************************************************/
 void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
-  Wire.setClock(i2cClockSpeed);
+  DCCEX_WIRE.setClock(i2cClockSpeed);
 }
 
 /***************************************************************************
@@ -61,7 +69,7 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
 void I2CManagerClass::setTimeout(unsigned long value) {
   _timeout = value;
 #if defined(WIRE_HAS_TIMEOUT) 
-  Wire.setWireTimeout(value, true);
+  DCCEX_WIRE.setWireTimeout(value, true);
 #endif
 }
 
@@ -74,7 +82,7 @@ static uint8_t muxSelect(I2CAddress address) {
   I2CMux muxNo = address.muxNumber();
   I2CSubBus subBus = address.subBus();
   if (muxNo != I2CMux_None) {
-    Wire.beginTransmission(I2C_MUX_BASE_ADDRESS+muxNo); 
+    DCCEX_WIRE.beginTransmission(I2C_MUX_BASE_ADDRESS+muxNo); 
     uint8_t data =  (subBus == SubBus_All) ? 0xff :
                     (subBus == SubBus_None) ? 0x00 :
 #if defined(I2CMUX_PCA9547)
@@ -86,8 +94,8 @@ static uint8_t muxSelect(I2CAddress address) {
                     // with a bit set for the subBus to be enabled
                     1 << subBus;
 #endif
-    Wire.write(&data, 1);
-    return Wire.endTransmission(true);  // have to release I2C bus for it to work
+    DCCEX_WIRE.write(&data, 1);
+    return DCCEX_WIRE.endTransmission(true);  // have to release I2C bus for it to work
   }
   return I2C_STATUS_OK;
 }
@@ -110,9 +118,9 @@ uint8_t I2CManagerClass::write(I2CAddress address, const uint8_t buffer[], uint8
 #endif
     // Only send new transaction if address is non-zero.
     if (muxStatus == I2C_STATUS_OK && address != 0) {
-      Wire.beginTransmission(address);
-      if (size > 0) Wire.write(buffer, size);
-      status = Wire.endTransmission();
+      DCCEX_WIRE.beginTransmission(address);
+      if (size > 0) DCCEX_WIRE.write(buffer, size);
+      status = DCCEX_WIRE.endTransmission();
     }
 #ifdef I2C_EXTENDED_ADDRESS
     // Deselect MUX if there's more than one MUX present, to avoid having multiple ones selected
@@ -161,25 +169,25 @@ uint8_t I2CManagerClass::read(I2CAddress address, uint8_t readBuffer[], uint8_t 
     // Only start new transaction if address is non-zero.
     if (muxStatus == I2C_STATUS_OK && address != 0) {
       if (writeSize > 0) {
-        Wire.beginTransmission(address);
-        Wire.write(writeBuffer, writeSize);
-        status = Wire.endTransmission(false); // Don't free bus yet
+        DCCEX_WIRE.beginTransmission(address);
+        DCCEX_WIRE.write(writeBuffer, writeSize);
+        status = DCCEX_WIRE.endTransmission(false); // Don't free bus yet
       }
       if (status == I2C_STATUS_OK) {
 #ifdef WIRE_HAS_TIMEOUT
-        Wire.clearWireTimeoutFlag();
-        Wire.requestFrom(address, (size_t)readSize);
-        if (!Wire.getWireTimeoutFlag()) {
-          while (Wire.available() && nBytes < readSize) 
-            readBuffer[nBytes++] = Wire.read();
+        DCCEX_WIRE.clearWireTimeoutFlag();
+        DCCEX_WIRE.requestFrom(address, (size_t)readSize);
+        if (!DCCEX_WIRE.getWireTimeoutFlag()) {
+          while (DCCEX_WIRE.available() && nBytes < readSize) 
+            readBuffer[nBytes++] = DCCEX_WIRE.read();
           if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
         } else {
           status = I2C_STATUS_TIMEOUT;
         }
 #else
-        Wire.requestFrom(address, (size_t)readSize);
-          while (Wire.available() && nBytes < readSize) 
-            readBuffer[nBytes++] = Wire.read();
+        DCCEX_WIRE.requestFrom(address, (size_t)readSize);
+          while (DCCEX_WIRE.available() && nBytes < readSize) 
+            readBuffer[nBytes++] = DCCEX_WIRE.read();
           if (nBytes < readSize) status = I2C_STATUS_TRUNCATED;
 #endif
       }
