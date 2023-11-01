@@ -153,6 +153,9 @@
   #ifndef GIGA_EXT_EEPROM
     #define DISABLE_EEPROM
   #endif
+  #if defined(ENABLE_WIFI) && !defined(WIFI_NINA)
+    #define WIFI_NINA
+  #endif
   //#if !defined(I2C_USE_WIRE)
   //#define I2C_USE_WIRE
   //#endif

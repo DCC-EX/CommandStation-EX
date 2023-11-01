@@ -1,4 +1,5 @@
 /*
+ *  © 2023 Paul M. Antoine
  *  © 2021 Fred Decker
  *  © 2020-2021 Harald Barth
  *  © 2020-2021 Chris Harlow
@@ -33,8 +34,13 @@
 #include "SerialManager.h"
 #include "version.h"
 #ifndef ARDUINO_ARCH_ESP32
-#include "WifiInterface.h"
+#ifdef WIFI_NINA
+#include "Wifi_NINA.h"
 #else
+#include "WifiInterface.h"
+#endif // WIFI_NINA
+#else
+#undef WIFI_NINA
 #include "WifiESP32.h"
 #endif
 #if ETHERNET_ON == true
