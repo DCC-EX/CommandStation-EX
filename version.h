@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.0.5"
+#define VERSION "5.0.6"
+// 5.0.6  - Bugfix lost TURNOUTL description
 // 5.0.5  - Bugfix version detection logic and better message
 // 5.0.4  - Bugfix: <JR> misses default roster. 
 // 5.0.3  - Check bad AT firmware version

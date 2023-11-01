@@ -172,6 +172,8 @@ void  RMFT2::printMessage(uint16_t id) {
 #include "EXRAIL2MacroReset.h"
 #undef TURNOUT
 #define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
+#undef TURNOUTL
+#define TURNOUTL(id,addr,description...) O_DESC(id,description)
 #undef PIN_TURNOUT
 #define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
 #undef SERVO_TURNOUT
