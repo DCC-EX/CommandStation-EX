@@ -3,6 +3,7 @@
  *  © 2020-2022 Harald Barth
  *  © 2020-2022 Chris Harlow
  *  © 2023 Nathan Kellenicki
+ *  © 2023 Travis Farmer
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -56,6 +57,14 @@ Stream * WifiInterface::wifiStream;
 #define SERIAL1 Serial1
 #define SERIAL3 Serial3
 #endif
+
+#if defined(ARDUINO_GIGA) // yes giga
+#define NUM_SERIAL 5
+#define SERIAL1 Serial1
+#define SERIAL2 Serial2
+#define SERIAL3 Serial3
+#define SERIAL4 Serial4
+#endif // giga
 
 #if defined(ARDUINO_ARCH_STM32)
 // Handle serial ports availability on STM32 for variants!

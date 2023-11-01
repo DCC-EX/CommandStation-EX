@@ -4,6 +4,7 @@
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
  *  © 2022 Harald Barth
+ *  © 2023 Travis Farmer
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -30,12 +31,21 @@
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
                         TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
+#if defined(ARDUINO_GIGA) // yes giga
 
+#define setHIGH(fastpin)  digitalWrite(fastpin,1)
+#define setLOW(fastpin) digitalWrite(fastpin,0)
+#else // no giga
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
+#endif // giga
+#if defined(ARDUINO_GIGA) // yes giga
+#define isHIGH(fastpin) ((PinStatus)digitalRead(fastpin)==1)
+#define isLOW(fastpin) ((PinStatus)digitalRead(fastpin)==0)
+#else // no giga
 #define isHIGH(fastpin)   (*fastpin.inout & fastpin.maskHIGH)
 #define isLOW(fastpin)    (!isHIGH(fastpin))
-
+#endif // giga
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 
@@ -117,12 +127,19 @@ typedef uint32_t portreg_t;
 typedef uint8_t portreg_t;
 #endif
 
+#if defined(ARDUINO_GIGA) // yes giga
+typedef int FASTPIN;
+
+
+#else // no giga
 struct FASTPIN {
   volatile portreg_t *inout;
   portreg_t maskHIGH;
   portreg_t maskLOW;
   volatile portreg_t *shadowinout;
 };
+#endif // giga
+
 // The port registers that are shadowing
 // the real port registers. These are
 // defined in Motordriver.cpp
@@ -148,6 +165,12 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
+    #if defined(ARDUINO_GIGA) // yes giga
+    __attribute__((always_inline)) inline void setSignal( bool high) {
+      digitalWrite(signalPin, high);
+      if (dualSignal) digitalWrite(signalPin2, !high);
+    };
+    #else // no giga
   __attribute__((always_inline)) inline void setSignal( bool high) {
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
@@ -163,6 +186,7 @@ class MotorDriver {
 	}
       }
     };
+    #endif // giga
     inline void enableSignal(bool on) {
       if (on)
 	pinMode(signalPin, OUTPUT);
@@ -184,6 +208,12 @@ class MotorDriver {
     int  getCurrentRaw(bool fromISR=false);
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
+#if defined(ARDUINO_GIGA) // yes giga
+    inline bool digitalPinHasPWM(int pin) {
+      if (pin!=UNUSED_PIN && pin>=2 && pin<=13) return true;
+      else return false;
+    }
+#endif // giga
     inline bool brakeCanPWM() {
 #if defined(ARDUINO_ARCH_ESP32)
       return (brakePin != UNUSED_PIN); // This was just (true) but we probably do need to check for UNUSED_PIN!

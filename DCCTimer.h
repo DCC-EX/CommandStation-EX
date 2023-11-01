@@ -3,6 +3,7 @@
  *  © 2021 Mike S
  *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
+ *  © 2023 Travis Farmer
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -90,6 +91,8 @@ private:
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
 #if defined(ARDUINO_ARCH_STM32)  // TODO: PMA temporary hack - assumes 100Mhz F_CPU as STM32 can change frequency
   static const long CLOCK_CYCLES=(100000000L / 1000000 * DCC_SIGNAL_TIME) >>1;
+#elif defined(ARDUINO_GIGA)
+  static const long CLOCK_CYCLES=(480000000L / 1000000 * DCC_SIGNAL_TIME) >>1;
 #else
   static const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;
 #endif
