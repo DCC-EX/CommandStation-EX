@@ -55,7 +55,7 @@ public:
   NetworkClient(WiFiClient c) {
     wifi = c;
   };
-  bool ok() {
+ bool ok() {
     return (inUse && wifi.connected());
   };
   bool recycle(WiFiClient c) {
@@ -65,13 +65,13 @@ public:
     // return false here until we have
     // implemented a LRU timer
     // if (LRU too recent) return false;
-    return false;
+    //return false;
 
     wifi = c;
     inUse = true;
     return true;
   };
-  WiFiClient wifi;
+ WiFiClient wifi;
   bool inUse = true;
 };
 
@@ -248,6 +248,9 @@ bool WifiNINA::setup(const char *SSid,
 // #else
   DIAG(F("Server will be started on port %d"),port);
 // #endif
+  ip = WiFi.localIP();
+  LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+  LCD(5,F("Port:%d"), port);
   return true;
 }
 
@@ -271,31 +274,33 @@ void WifiNINA::loop() {
     for (clientId=0; clientId<clients.size(); clientId++){
       // check if client is there and alive
       if(clients[clientId].inUse && !clients[clientId].wifi.connected()) {
-	DIAG(F("Remove client %d"), clientId);
-	CommandDistributor::forget(clientId);
-	clients[clientId].wifi.stop();
-	clients[clientId].inUse = false;
-	//Do NOT clients.erase(clients.begin()+clientId) as
-	//that would mix up clientIds for later.
+        DIAG(F("Remove client %d"), clientId);
+        CommandDistributor::forget(clientId);
+        clients[clientId].wifi.stop();
+        clients[clientId].inUse = false;
+        
+        //Do NOT clients.erase(clients.begin()+clientId) as
+        //that would mix up clientIds for later.
       }
     }
-    if (server->available()) {
-      WiFiClient client;
-      while (client = server->available()) {
+    WiFiClient client = server->available();
+    if (client) {
+      ///while (!client) {
         for (clientId=0; clientId<clients.size(); clientId++){
           if (clients[clientId].recycle(client)) {
             ip = client.remoteIP();
-            DIAG(F("Recycle client %d %s"), clientId, ip);
+            DIAG(F("Recycle client %d %d.%d.%d.%d"), clientId, ip[0], ip[1], ip[2], ip[3]);
             break;
           }
         }
         if (clientId>=clients.size()) {
-          NetworkClient nc(client);
-          clients.push_back(nc);
+          auto nc=new NetworkClient(client);
+          clients.push_back(*nc);
+          delete nc;
           ip = client.remoteIP();
-          DIAG(F("New client %d, %s"), clientId, ip);
+          DIAG(F("New client %d, %d.%d.%d.%d"), clientId, ip[0], ip[1], ip[2], ip[3]);
         }
-      }
+      ///}
     }
     // loop over all connected clients
     for (clientId=0; clientId<clients.size(); clientId++){
