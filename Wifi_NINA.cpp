@@ -284,8 +284,8 @@ void WifiNINA::loop() {
       }
     }
     WiFiClient client = server->available();
-    if (client) {
-      ///while (!client) {
+    if (client == true) {
+      ///while (client.available() == true) {
         for (clientId=0; clientId<clients.size(); clientId++){
           if (clients[clientId].recycle(client)) {
             ip = client.remoteIP();
@@ -294,9 +294,9 @@ void WifiNINA::loop() {
           }
         }
         if (clientId>=clients.size()) {
-          auto nc=new NetworkClient(client);
+          NetworkClient* nc=new NetworkClient(client);
           clients.push_back(*nc);
-          delete nc;
+          //delete nc;
           ip = client.remoteIP();
           DIAG(F("New client %d, %d.%d.%d.%d"), clientId, ip[0], ip[1], ip[2], ip[3]);
         }
