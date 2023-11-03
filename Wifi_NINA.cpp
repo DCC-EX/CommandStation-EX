@@ -149,7 +149,7 @@ bool WifiNINA::setup(const char *SSid,
     }
     if (WiFi.status() == WL_CONNECTED) {
       // String ip_str = sprintf("%xl", WiFi.localIP());
-      DIAG(F("Wifi STA IP %d.%d.%d.%d"), WiFi.localIP()[0], WiFi.localIP()[1],WiFi.localIP()[2],WiFi.localIP()[3],WiFi.localIP()[4],WiFi.localIP()[5]);
+      DIAG(F("Wifi STA IP %d.%d.%d.%d"), WiFi.localIP()[0], WiFi.localIP()[1],WiFi.localIP()[2],WiFi.localIP()[3]);
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
@@ -164,7 +164,7 @@ bool WifiNINA::setup(const char *SSid,
       }
       if (WiFi.status() == WL_CONNECTED) {
   ip = WiFi.localIP();
-  DIAG(F("Wifi STA IP 2nd try %s"), ip);
+  DIAG(F("Wifi STA IP 2nd try %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
   wifiUp = true;
       } else {
 	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
@@ -435,9 +435,9 @@ void WifiNINA::checkForClientOutput() {
 }
 
 void WifiNINA::loop() {
-  checkForLostClients();
+  checkForLostClients(); // ***
   checkForNewClient();
-  checkForClientInput();
+  checkForClientInput(); // ***
   WiThrottle::loop(outboundRing); // allow withrottle to broadcast if needed
   checkForClientOutput();
 }
