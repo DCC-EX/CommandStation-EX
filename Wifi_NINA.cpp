@@ -21,7 +21,7 @@
 #include "defines.h"
 
 #ifdef WIFI_NINA
-#include <vector>
+//#include <vector>
 #include <SPI.h>
 #ifndef ARDUINO_GIGA
 #include <WifiNINA.h>
@@ -49,8 +49,8 @@
 #else
 #warning "WiFiNINA has no SPI port or pin allocations for this archiecture yet!"
 #endif
-#define MAX_CLIENTS 10
-class NetworkClient {
+#define MAX_CLIENTS 4
+/*class NetworkClient {
 public:
   NetworkClient(WiFiClient c) {
     wifi = c;
@@ -73,7 +73,7 @@ public:
   };
  WiFiClient wifi;
   bool inUse = true;
-};
+};*/
 
 //static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
