@@ -378,7 +378,7 @@ void WifiNINA::checkForNewClient() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
       clients[clientId]=&newClient; // use this slot
-      DIAG(F("New client connected to slot %d"),clientId);
+      DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
       return;
     }
   }
@@ -390,7 +390,7 @@ void WifiNINA::checkForLostClients() {
     if(c && !c->connected()) {
         DIAG(F("Remove client %d"), clientId);
         CommandDistributor::forget(clientId);
-        //delete c; // this causes a crash when client drops.. commenting out for now
+        //delete c; //TJF: this causes a crash when client drops.. commenting out for now.
         clients[clientId]=nullptr;
       }
   }
@@ -423,10 +423,14 @@ void WifiNINA::checkForClientOutput() {
   if (!c) {
     // client is gone, throw away msg
     for (int i=0;i<replySize;i++) outboundRing->read();
+    DIAG(F("gone, drop message.")); //TJF: only for diag
     return;
   }
   // emit data to the client object
   // This should work in theory, the
+  DIAG(F("send message")); //TJF: only for diag
+  //TJF: the old code had to add a 0x00 byte to the end to terminate the
+  //TJF: c string, before sending it. i take it this is not needed?
   for (int i=0;i<replySize;i++) c->write(outboundRing->read());
 }
 
