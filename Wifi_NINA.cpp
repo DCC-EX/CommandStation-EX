@@ -184,7 +184,7 @@ bool WifiNINA::setup(const char *SSid,
         strMac += String(mac[i], HEX);
       }
 
-      DIAG(F("MAC address: %x:%x:%x:%x:%X;%x"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+      DIAG(F("MAC address: %x:%x:%x:%x:%x:%x"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
       strMac.remove(0,9);
       strMac.replace(":","");
@@ -200,7 +200,7 @@ bool WifiNINA::setup(const char *SSid,
 		    channel) == WL_AP_LISTENING) {
       DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       ip = WiFi.localIP();
-      DIAG(F("Wifi AP IP %s"),ip);
+      DIAG(F("Wifi AP IP %d.%d.%d.%d"),ip[0], ip[1], ip[2], ip[3]);
       wifiUp = true;
       APmode = true;
     } else {
@@ -370,14 +370,14 @@ const char *wlerror[] = {
   }
 }*/
 
-WiFiClient * clients[MAX_CLIENTS];  // nulled in setup
+WiFiClient clients[MAX_CLIENTS];  // nulled in setup
 
 void WifiNINA::checkForNewClient() {
   auto newClient=server->available();
   if (!newClient) return;
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
-      clients[clientId]=&newClient; // use this slot
+      clients[clientId]=newClient; // use this slot
       DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
       return;
     }
@@ -387,12 +387,12 @@ void WifiNINA::checkForNewClient() {
 void WifiNINA::checkForLostClients() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     auto c=clients[clientId];
-    if(c && !c->connected()) {
-        DIAG(F("Remove client %d"), clientId);
-        CommandDistributor::forget(clientId);
-        //delete c; //TJF: this causes a crash when client drops.. commenting out for now.
-        clients[clientId]=nullptr;
-      }
+    if(c && !c.connected()) {
+      DIAG(F("Remove client %d"), clientId);
+      CommandDistributor::forget(clientId);
+      //delete c; //TJF: this causes a crash when client drops.. commenting out for now.
+      //clients[clientId]=NULL; // TJF: what to do... what to do...
+    }
   }
 }
 
@@ -401,11 +401,11 @@ void WifiNINA::checkForClientInput() {
     for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
       auto c=clients[clientId];
       if(c) {
-        auto len=c->available();
+        auto len=c.available();
         if (len) {
           // read data from client
           byte cmd[len+1];
-          for(int i=0; i<len; i++) cmd[i]=c->read();
+          for(int i=0; i<len; i++) cmd[i]=c.read();
           cmd[len]=0;
           CommandDistributor::parse(clientId,cmd,outboundRing);
         }
@@ -431,7 +431,7 @@ void WifiNINA::checkForClientOutput() {
   DIAG(F("send message")); //TJF: only for diag
   //TJF: the old code had to add a 0x00 byte to the end to terminate the
   //TJF: c string, before sending it. i take it this is not needed?
-  for (int i=0;i<replySize;i++) c->write(outboundRing->read());
+  for (int i=0;i<replySize;i++) c.write(outboundRing->read());
 }
 
 void WifiNINA::loop() {
