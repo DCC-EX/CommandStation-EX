@@ -378,7 +378,7 @@ void WifiNINA::checkForNewClient() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
       clients[clientId]=&newClient; // use this slot
-      // DIAG("New client connected to slot %d,clientId);
+      DIAG(F("New client connected to slot %d"),clientId);
       return;
     }
   }
@@ -390,7 +390,7 @@ void WifiNINA::checkForLostClients() {
     if(c && !c->connected()) {
         DIAG(F("Remove client %d"), clientId);
         CommandDistributor::forget(clientId);
-        delete c; // we have now finished with this client
+        //delete c; // we have now finished with this client
         clients[clientId]=nullptr;
       }
   }
