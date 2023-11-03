@@ -390,7 +390,7 @@ void WifiNINA::checkForLostClients() {
     if(c && !c->connected()) {
         DIAG(F("Remove client %d"), clientId);
         CommandDistributor::forget(clientId);
-        //delete c; // we have now finished with this client
+        //delete c; // this causes a crash when client drops.. commenting out for now
         clients[clientId]=nullptr;
       }
   }
@@ -412,24 +412,22 @@ void WifiNINA::checkForClientInput() {
       }
     }
 }
+
 void WifiNINA::checkForClientOutput() {
   // something to write out?
   auto clientId=outboundRing->read();
   if (clientId < 0) return;
   auto replySize=outboundRing->count();
   if (replySize==0) return; // nothing to send
-  
   auto c=clients[clientId];
   if (!c) {
     // client is gone, throw away msg
     for (int i=0;i<replySize;i++) outboundRing->read();
     return;
   }
-
   // emit data to the client object
   // This should work in theory, the
   for (int i=0;i<replySize;i++) c->write(outboundRing->read());
-
 }
 
 void WifiNINA::loop() {
