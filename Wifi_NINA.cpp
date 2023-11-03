@@ -49,7 +49,7 @@
 #else
 #warning "WiFiNINA has no SPI port or pin allocations for this archiecture yet!"
 #endif
-
+#define MAX_CLIENTS 10
 class NetworkClient {
 public:
   NetworkClient(WiFiClient c) {
@@ -75,7 +75,7 @@ public:
   bool inUse = true;
 };
 
-static std::vector<NetworkClient> clients; // a list to hold all clients
+//static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
@@ -264,7 +264,7 @@ const char *wlerror[] = {
 			 "WL_DISCONNECTED"
 };
 
-void WifiNINA::loop() {
+/*void WifiNINA::loop() {
   int clientId; //tmp loop var
 
   // really no good way to check for LISTEN especially in AP mode?
@@ -284,7 +284,7 @@ void WifiNINA::loop() {
       }
     }
     WiFiClient client = server->available();
-    if (client == true) {
+    if (client) {
       ///while (client.available() == true) {
         for (clientId=0; clientId<clients.size(); clientId++){
           if (clients[clientId].recycle(client)) {
@@ -368,5 +368,76 @@ void WifiNINA::loop() {
       //DIAG(F("Running BT"));
     }
   }
+}*/
+
+WiFiClient * clients[MAX_CLIENTS];  // nulled in setup
+
+void WifiNINA::checkForNewClient() {
+  auto newClient=server->available();
+  if (!newClient) return;
+  for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+    if (!clients[clientId]) {
+      clients[clientId]=&newClient; // use this slot
+      // DIAG("New client connected to slot %d,clientId);
+      return;
+    }
+  }
 }
+
+void WifiNINA::checkForLostClients() {
+  for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+    auto c=clients[clientId];
+    if(c && !c->connected()) {
+        DIAG(F("Remove client %d"), clientId);
+        CommandDistributor::forget(clientId);
+        delete c; // we have now finished with this client
+        clients[clientId]=nullptr;
+      }
+  }
+}
+
+void WifiNINA::checkForClientInput() {
+  // Find a client providing input
+    for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+      auto c=clients[clientId];
+      if(c) {
+        auto len=c->available();
+        if (len) {
+          // read data from client
+          byte cmd[len+1];
+          for(int i=0; i<len; i++) cmd[i]=c->read();
+          cmd[len]=0;
+          CommandDistributor::parse(clientId,cmd,outboundRing);
+        }
+      }
+    }
+}
+void WifiNINA::checkForClientOutput() {
+  // something to write out?
+  auto clientId=outboundRing->read();
+  if (clientId < 0) return;
+  auto replySize=outboundRing->count();
+  if (replySize==0) return; // nothing to send
+  
+  auto c=clients[clientId];
+  if (!c) {
+    // client is gone, throw away msg
+    for (int i=0;i<replySize;i++) outboundRing->read();
+    return;
+  }
+
+  // emit data to the client object
+  // This should work in theory, the
+  for (int i=0;i<replySize;i++) c->write(outboundRing->read());
+
+}
+
+void WifiNINA::loop() {
+  checkForLostClients();
+  checkForNewClient();
+  checkForClientInput();
+  WiThrottle::loop(outboundRing); // allow withrottle to broadcast if needed
+  checkForClientOutput();
+}
+
 #endif // WIFI_NINA
