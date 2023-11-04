@@ -49,7 +49,7 @@
 #else
 #warning "WiFiNINA has no SPI port or pin allocations for this archiecture yet!"
 #endif
-#define MAX_CLIENTS 4
+#define MAX_CLIENTS 10
 /*class NetworkClient {
 public:
   NetworkClient(WiFiClient c) {
@@ -80,7 +80,6 @@ static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
 static IPAddress ip;
-
 // #ifdef WIFI_TASK_ON_CORE0
 // void wifiLoop(void *){
 //   for(;;){
@@ -370,14 +369,14 @@ const char *wlerror[] = {
   }
 }*/
 
-WiFiClient clients[MAX_CLIENTS];  // nulled in setup
+WiFiClient * clients[MAX_CLIENTS];  // nulled in setup
 
 void WifiNINA::checkForNewClient() {
   auto newClient=server->available();
   if (!newClient) return;
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
-      clients[clientId]=newClient; // use this slot
+      clients[clientId]= new WiFiClient(newClient); // use this slot
       DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
       return;
     }
@@ -387,11 +386,12 @@ void WifiNINA::checkForNewClient() {
 void WifiNINA::checkForLostClients() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     auto c=clients[clientId];
-    if(c && !c.connected()) {
+    if(c && !c->connected()) {
+      clients[clientId]->stop();
       DIAG(F("Remove client %d"), clientId);
       CommandDistributor::forget(clientId);
       //delete c; //TJF: this causes a crash when client drops.. commenting out for now.
-      //clients[clientId]=NULL; // TJF: what to do... what to do...
+      clients[clientId]=nullptr; // TJF: what to do... what to do...
     }
   }
 }
@@ -401,11 +401,11 @@ void WifiNINA::checkForClientInput() {
     for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
       auto c=clients[clientId];
       if(c) {
-        auto len=c.available();
+        auto len=c->available();
         if (len) {
           // read data from client
           byte cmd[len+1];
-          for(int i=0; i<len; i++) cmd[i]=c.read();
+          for(int i=0; i<len; i++) cmd[i]=c->read();
           cmd[len]=0;
           CommandDistributor::parse(clientId,cmd,outboundRing);
         }
@@ -431,7 +431,7 @@ void WifiNINA::checkForClientOutput() {
   DIAG(F("send message")); //TJF: only for diag
   //TJF: the old code had to add a 0x00 byte to the end to terminate the
   //TJF: c string, before sending it. i take it this is not needed?
-  for (int i=0;i<replySize;i++) c.write(outboundRing->read());
+  for (int i=0;i<replySize;i++) c->write(outboundRing->read());
 }
 
 void WifiNINA::loop() {
