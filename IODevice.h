@@ -22,7 +22,8 @@
 #define iodevice_h
 
 // Define symbol DIAG_IO to enable diagnostic output
-//#define DIAG_IO Y
+//#define DIAG_IO
+
 
 // Define symbol DIAG_LOOPTIMES to enable CS loop execution time to be reported
 //#define DIAG_LOOPTIMES
