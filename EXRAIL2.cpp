@@ -1130,7 +1130,16 @@ void RMFT2::loop2() {
   case OPCODE_PRINT:
     printMessage(operand);
     break;
-    
+  case OPCODE_ROUTE_HIDDEN:
+    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_HIDDEN);
+    break;   
+  case OPCODE_ROUTE_ACTIVE:
+    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_ACTIVE);
+    break;   
+  case OPCODE_ROUTE_INACTIVE:
+    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_INACTIVE);
+    break;   
+  
   case OPCODE_ROUTE:
   case OPCODE_AUTOMATION:
   case OPCODE_SEQUENCE:

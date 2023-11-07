@@ -153,6 +153,12 @@ const int StringMacroTracker1=__COUNTER__;
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
 #define LCN(msg)   THRUNGE(msg,thrunge_lcn)
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) \
+case (__COUNTER__ - StringMacroTracker1) : {\
+   CommandDistributor::broadcastRouteCaption(id,F(caption));\
+   return;\
+   }
 #undef SERIAL
 #define SERIAL(msg)   THRUNGE(msg,thrunge_serial)
 #undef SERIAL1
@@ -440,6 +446,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
 #endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
+#define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
+#define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
+#define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
+#define ROUTE_CAPTION(id,caption) PRINT(caption)
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)

@@ -126,6 +126,10 @@
 #undef ROTATE
 #undef ROTATE_DCC
 #undef ROUTE
+#undef ROUTE_ACTVE
+#undef ROUTE_INACTVE
+#undef ROUTE_HIDDEN
+#undef ROUTE_CAPTION
 #undef SENDLOCO 
 #undef SEQUENCE 
 #undef SERIAL 
@@ -267,6 +271,10 @@
 #define ROTATE_DCC(turntable_id,position)
 #define ROSTER(cab,name,funcmap...)
 #define ROUTE(id,description)
+#define ROUTE_ACTIVE(id)
+#define ROUTE_INACTIVE(id)
+#define ROUTE_HIDDEN(id)
+#define ROUTE_CAPTION(id,caption)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 
 #define SERIAL(msg) 
