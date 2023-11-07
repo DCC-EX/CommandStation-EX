@@ -558,7 +558,7 @@
   }
 
   void HBridgeTurnout::save() {
-#ifndef DISAB LE_EEPROM
+#ifndef DISABLE_EEPROM
     // Write turnout definition and current position to EEPROM
     // First write common servo data, then
     // write the servo-specific data
