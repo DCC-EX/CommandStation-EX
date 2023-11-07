@@ -114,8 +114,8 @@ bool WifiNINA::setup(const char *SSid,
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
-      // String ip_str = sprintf("%xl", WiFi.localIP());
-      DIAG(F("Wifi STA IP %d.%d.%d.%d"), WiFi.localIP()[0], WiFi.localIP()[1],WiFi.localIP()[2],WiFi.localIP()[3]);
+      IPAddress ip = WiFi.localIP();
+      DIAG(F("Wifi STA IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
@@ -124,17 +124,17 @@ bool WifiNINA::setup(const char *SSid,
       // esp_wifi_connect();
       tries=40;
       while (WiFi.status() != WL_CONNECTED && tries) {
-	Serial.print('.');
-	tries--;
-	delay(500);
+        Serial.print('.');
+        tries--;
+        delay(500);
       }
       if (WiFi.status() == WL_CONNECTED) {
-  ip = WiFi.localIP();
-  DIAG(F("Wifi STA IP 2nd try %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-  wifiUp = true;
-      } else {
-	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
-	haveSSID=false;
+        ip = WiFi.localIP();
+        DIAG(F("Wifi STA IP 2nd try %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+        wifiUp = true;
+            } else {
+        DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
+        haveSSID=false;
       }
     }
   }
