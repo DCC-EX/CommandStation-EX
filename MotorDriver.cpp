@@ -35,10 +35,19 @@ unsigned long MotorDriver::globalOverloadStart = 0;
 volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
-#if defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_STM32) || (defined(ARDUINO_GIGA) && defined(XGIGA))
 volatile portreg_t shadowPORTD;
 volatile portreg_t shadowPORTE;
 volatile portreg_t shadowPORTF;
+#endif
+
+#if defined(ARDUINO_GIGA) && defined(XGIGA)
+#define STM_PORT(X) (((uint32_t)(X) >> 4) & 0xF)
+#define STM_PIN(X)  ((uint32_t)(X) & 0xF)
+#define STM_GPIO_PIN(X) ((uint16_t)(1<<STM_PIN(X)))
+#define digitalPinToBitMask(p)      (STM_GPIO_PIN(digitalPinToPinName(p)))
+#define portOutputRegister(P)       (&(P->ODR))
+#define portInputRegister(P)        (&(P->IDR))
 #endif
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
@@ -58,7 +67,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   getFastPin(F("SIG"),signalPin,fastSignalPin);
   pinMode(signalPin, OUTPUT);
 
-  #ifndef ARDUINO_GIGA // no giga
+  #if !defined(ARDUINO_GIGA) || (defined(ARDUINO_GIGA) && defined(XGIGA)) // no giga
   fastSignalPin.shadowinout = NULL;
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
     DIAG(F("Found PORTA pin %d"),signalPin);
@@ -97,7 +106,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
 
-    #ifndef ARDUINO_GIGA // no giga
+    #if !defined(ARDUINO_GIGA) || (defined(ARDUINO_GIGA) && defined(XGIGA)) // no giga
     fastSignalPin2.shadowinout = NULL;
     if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
       DIAG(F("Found PORTA pin %d"),signalPin2);
@@ -508,7 +517,7 @@ unsigned int MotorDriver::mA2raw( unsigned int mA) {
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
     // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-#if defined(ARDUINO_GIGA) // yes giga
+#if defined(ARDUINO_GIGA) && !defined(XGIGA) // yes giga
     (void)type;
     (void)input; // no warnings please
 
@@ -520,6 +529,8 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     PortGroup *port = digitalPinToPort(pin);
 #elif defined(ARDUINO_ARCH_STM32)
     GPIO_TypeDef *port = digitalPinToPort(pin);
+#elif defined(ARDUINO_GIGA)
+    auto * port = ((GPIO_TypeDef *)(GPIOA_BASE + (GPIOB_BASE - GPIOA_BASE) * (digitalPinToPinName(pin) >> 4)));
 #else
     uint8_t port = digitalPinToPort(pin);
 #endif

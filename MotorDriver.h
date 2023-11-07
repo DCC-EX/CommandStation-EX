@@ -31,7 +31,7 @@
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
                         TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
-#if defined(ARDUINO_GIGA) // yes giga
+#if defined(ARDUINO_GIGA) && !defined(XGIGA) // yes giga
 
 #define setHIGH(fastpin)  digitalWrite(fastpin,1)
 #define setLOW(fastpin) digitalWrite(fastpin,0)
@@ -39,7 +39,7 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
 #endif // giga
-#if defined(ARDUINO_GIGA) // yes giga
+#if defined(ARDUINO_GIGA) && !defined(XGIGA) // yes giga
 #define isHIGH(fastpin) ((PinStatus)digitalRead(fastpin)==1)
 #define isLOW(fastpin) ((PinStatus)digitalRead(fastpin)==0)
 #else // no giga
@@ -64,6 +64,25 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define HAVE_PORTB(X) X
 #endif
 #if defined(ARDUINO_ARCH_STM32)
+#define PORTA GPIOA->ODR
+#define HAVE_PORTA(X) X
+#define PORTB GPIOB->ODR
+#define HAVE_PORTB(X) X
+#define PORTC GPIOC->ODR
+#define HAVE_PORTC(X) X
+#define PORTD GPIOD->ODR
+#define HAVE_PORTD(X) X
+#if defined(GPIOE)
+#define PORTE GPIOE->ODR
+#define HAVE_PORTE(X) X
+#endif
+#if defined(GPIOF)
+#define PORTF GPIOF->ODR
+#define HAVE_PORTF(X) X
+#endif
+#endif
+
+#if defined(ARDUINO_GIGA) && defined(XGIGA)
 #define PORTA GPIOA->ODR
 #define HAVE_PORTA(X) X
 #define PORTB GPIOB->ODR
@@ -121,13 +140,13 @@ public:
   byte invpin = UNUSED_PIN;
 };
 
-#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
+#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32) || (defined(ARDUINO_GIGA) && defined(XGIGA))
 typedef uint32_t portreg_t;
 #else
 typedef uint8_t portreg_t;
 #endif
 
-#if defined(ARDUINO_GIGA) // yes giga
+#if defined(ARDUINO_GIGA) && !defined(XGIGA) // yes giga
 typedef int FASTPIN;
 
 
@@ -165,7 +184,7 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
-    #if defined(ARDUINO_GIGA) // yes giga
+    #if defined(ARDUINO_GIGA) && !defined(XGIGA) // yes giga
     __attribute__((always_inline)) inline void setSignal( bool high) {
       digitalWrite(signalPin, high);
       if (dualSignal) digitalWrite(signalPin2, !high);
