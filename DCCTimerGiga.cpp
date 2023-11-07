@@ -45,8 +45,8 @@ INTERRUPT_CALLBACK interruptHandler=0;
 
 //HardwareTimer*  timer = NULL;
 //HardwareTimer*  timerAux = NULL;
-HardwareTimer timer(TIM2);
-HardwareTimer timerAux(TIM3);
+HardwareTimer timer(TIM3);
+HardwareTimer timerAux(TIM2);
 
 static bool tim2ModeHA = false;
 static bool tim3ModeHA = false;
@@ -97,9 +97,9 @@ void DCCTimer::setPWM(byte pin, bool high) {
          tim3ModeHA = true;
        }
        if (high) 
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
      case 13:
        if (!tim2ModeHA) {
@@ -107,9 +107,9 @@ void DCCTimer::setPWM(byte pin, bool high) {
          tim2ModeHA = true;
        }
        if (high) 
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
        else
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
+         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
        break;
    }
  }
