@@ -92,6 +92,7 @@ private:
 #if defined(ARDUINO_ARCH_STM32)  // TODO: PMA temporary hack - assumes 100Mhz F_CPU as STM32 can change frequency
   static const long CLOCK_CYCLES=(100000000L / 1000000 * DCC_SIGNAL_TIME) >>1;
 #elif defined(ARDUINO_GIGA)
+  ///TJF: we could get F_CPU from SystemCoreClock, but it will not allow as it is a non-constant value
   static const long CLOCK_CYCLES=(480000000L / 1000000 * DCC_SIGNAL_TIME) >>1;
 #else
   static const long CLOCK_CYCLES=(F_CPU / 1000000 * DCC_SIGNAL_TIME) >>1;
