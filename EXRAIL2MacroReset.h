@@ -62,6 +62,7 @@
 #undef FWD 
 #undef GREEN
 #undef HAL
+#undef HBRIDGE_TURNOUT
 #undef IF 
 #undef IFAMBER
 #undef IFCLOSED
@@ -187,6 +188,7 @@
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
+#define HBRIDGE_TURNOUT(id,pin1,pin2,dly,description...)
 #define IF(sensor_id) 
 #define IFAMBER(signal_id)
 #define IFCLOSED(turnout_id) 
