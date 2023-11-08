@@ -530,7 +530,8 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 #elif defined(ARDUINO_ARCH_STM32)
     GPIO_TypeDef *port = digitalPinToPort(pin);
 #elif defined(ARDUINO_GIGA)
-    auto * port = ((GPIO_TypeDef *)(GPIOA_BASE + (GPIOB_BASE - GPIOA_BASE) * (digitalPinToPinName(pin) >> 4)));
+    //auto * port = ((GPIO_TypeDef *)(GPIOA_BASE + (GPIOB_BASE - GPIOA_BASE) * (digitalPinToPinName(pin) >> 4)));
+    GPIO_TypeDef *port = (GPIO_TypeDef *)digitalPinToPort(pin);
 #else
     uint8_t port = digitalPinToPort(pin);
 #endif
