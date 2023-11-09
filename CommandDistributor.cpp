@@ -273,7 +273,7 @@ void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter,
   broadcastReply(COMMAND_TYPE, format,trackLetter, dcAddr);
 }
 
-void  CommandDistributor::broadcastRouteState(uint16_t routeId, RouteState state ) {
+void  CommandDistributor::broadcastRouteState(uint16_t routeId, byte state ) {
   broadcastReply(COMMAND_TYPE, F("<jB %d %d>\n"),routeId,state);
 }
 

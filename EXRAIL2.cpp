@@ -100,6 +100,7 @@ LookList *  RMFT2::onClockLookup=NULL;
 LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
+byte * RMFT2::routeStateArray=nullptr; 
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -139,6 +140,15 @@ int16_t LookList::find(int16_t value) {
   }
   return -1;
 }
+int16_t LookList::findPosition(int16_t value) {
+  for (int16_t i=0;i<m_size;i++) {
+    if (m_lookupArray[i]==value) return i;
+  }
+  return -1;
+}
+int16_t LookList::size() {
+   return m_size;
+}
 
 LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   int progCounter;
@@ -172,6 +182,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   
   // create lookups
   sequenceLookup=LookListLoader(OPCODE_ROUTE, OPCODE_AUTOMATION,OPCODE_SEQUENCE);
+  routeStateArray=(byte *)calloc(sequenceLookup->size(),sizeof(byte));
   onThrowLookup=LookListLoader(OPCODE_ONTHROW);
   onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
   onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
@@ -1131,13 +1142,13 @@ void RMFT2::loop2() {
     printMessage(operand);
     break;
   case OPCODE_ROUTE_HIDDEN:
-    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_HIDDEN);
+    manageRoute(operand,2);
     break;   
   case OPCODE_ROUTE_ACTIVE:
-    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_ACTIVE);
+    manageRoute(operand,0);
     break;   
   case OPCODE_ROUTE_INACTIVE:
-    CommandDistributor::broadcastRouteState(operand,CommandDistributor::RouteState::STATE_INACTIVE);
+    manageRoute(operand,1);
     break;   
   
   case OPCODE_ROUTE:
@@ -1462,3 +1473,14 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
       break;       
     }
 }
+
+void RMFT2::manageRoute(uint16_t id, byte state) {
+  CommandDistributor::broadcastRouteState(id,state);
+  // Route state must be maintained for when new throttles connect.
+  // locate route id in the Routes lookup
+  int16_t position=sequenceLookup->findPosition(id);
+  if (position<0) return; 
+  // set state beside it 
+  routeStateArray[position]=state; 
+}
+  

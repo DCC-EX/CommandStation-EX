@@ -37,7 +37,6 @@
 class CommandDistributor {
 public:
   enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
-  enum RouteState: byte {STATE_ACTIVE,STATE_INACTIVE,STATE_HIDDEN};
 private:
   static void broadcastToClients(clientType type);
   static StringBuffer * broadcastBufferWriter;
@@ -59,7 +58,7 @@ public :
   static void broadcastTrackState(const FSH* format,byte trackLetter, int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
-  static void broadcastRouteState(uint16_t routeId,RouteState state);
+  static void broadcastRouteState(uint16_t routeId,byte state);
   static void broadcastRouteCaption(uint16_t routeId,const FSH * caption);
 
   

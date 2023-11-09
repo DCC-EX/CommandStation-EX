@@ -126,8 +126,8 @@
 #undef ROTATE
 #undef ROTATE_DCC
 #undef ROUTE
-#undef ROUTE_ACTVE
-#undef ROUTE_INACTVE
+#undef ROUTE_ACTIVE
+#undef ROUTE_INACTIVE
 #undef ROUTE_HIDDEN
 #undef ROUTE_CAPTION
 #undef SENDLOCO 

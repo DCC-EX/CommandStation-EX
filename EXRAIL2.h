@@ -121,7 +121,9 @@ class LookList {
   public: 
     LookList(int16_t size);
     void add(int16_t lookup, int16_t result);
-    int16_t find(int16_t value);
+    int16_t find(int16_t value); // finds result value
+    int16_t findPosition(int16_t value); // finds index 
+    int16_t size(); 
   private:
      int16_t m_size;
      int16_t m_loaded;
@@ -217,6 +219,8 @@ private:
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
+   static void manageRoute(uint16_t id, byte state);
+   static byte * routeStateArray;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
