@@ -86,7 +86,7 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
  // and all others will have their locos stopped, then resumed after the pausing task resumes.
 byte RMFT2::flags[MAX_FLAGS];
 Print * RMFT2::LCCSerial=0;
-LookList *  RMFT2::sequenceLookup=NULL;
+LookList *  RMFT2::routeLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
@@ -101,6 +101,7 @@ LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
 byte * RMFT2::routeStateArray=nullptr; 
+const FSH  * * RMFT2::routeCaptionArray=nullptr; 
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
@@ -121,6 +122,7 @@ uint16_t RMFT2::getOperand(int progCounter,byte n) {
 LookList::LookList(int16_t size) {
   m_size=size;
   m_loaded=0;
+  m_chain=nullptr;
   if (size) {
     m_lookupArray=new int16_t[size];
     m_resultArray=new int16_t[size];
@@ -138,8 +140,12 @@ int16_t LookList::find(int16_t value) {
   for (int16_t i=0;i<m_size;i++) {
     if (m_lookupArray[i]==value) return m_resultArray[i];
   }
-  return -1;
+  return m_chain ?  m_chain->find(value)  :-1;
 }
+void LookList::chain(LookList * chain) {
+  m_chain=chain;
+}
+
 int16_t LookList::findPosition(int16_t value) {
   for (int16_t i=0;i<m_size;i++) {
     if (m_lookupArray[i]==value) return i;
@@ -181,8 +187,11 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
   
   // create lookups
-  sequenceLookup=LookListLoader(OPCODE_ROUTE, OPCODE_AUTOMATION,OPCODE_SEQUENCE);
-  routeStateArray=(byte *)calloc(sequenceLookup->size(),sizeof(byte));
+  routeLookup=LookListLoader(OPCODE_ROUTE, OPCODE_AUTOMATION);
+  routeLookup->chain(LookListLoader(OPCODE_SEQUENCE));
+  routeStateArray=(byte *)calloc(routeLookup->size(),sizeof(byte));
+  routeCaptionArray=(const FSH * *)calloc(routeLookup->size(),sizeof(const FSH *));
+  
   onThrowLookup=LookListLoader(OPCODE_ONTHROW);
   onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
   onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
@@ -485,7 +494,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     {
       int route=(paramCount==2) ? p[1] : p[2];
       uint16_t cab=(paramCount==2)? 0 : p[1];
-      int pc=sequenceLookup->find(route);
+      int pc=routeLookup->find(route);
       if (pc<0) return false;
       RMFT2* task=new RMFT2(pc);
       task->loco=cab;
@@ -605,7 +614,7 @@ RMFT2::~RMFT2() {
 }
 
 void RMFT2::createNewTask(int route, uint16_t cab) {
-      int pc=sequenceLookup->find(route);
+      int pc=routeLookup->find(route);
       if (pc<0) return;
       RMFT2* task=new RMFT2(pc);
       task->loco=cab;
@@ -1006,7 +1015,7 @@ void RMFT2::loop2() {
   }
     
   case OPCODE_FOLLOW:
-    progCounter=sequenceLookup->find(operand);
+    progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("FOLLOW unknown"), operand);
     return;
     
@@ -1016,7 +1025,7 @@ void RMFT2::loop2() {
       return;
     }
     callStack[stackDepth++]=progCounter+3;
-    progCounter=sequenceLookup->find(operand);
+    progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
     
@@ -1079,7 +1088,7 @@ void RMFT2::loop2() {
     
   case OPCODE_START:
     {
-      int newPc=sequenceLookup->find(operand);
+      int newPc=routeLookup->find(operand);
       if (newPc<0) break;
       new RMFT2(newPc);
     }
@@ -1087,7 +1096,7 @@ void RMFT2::loop2() {
     
   case OPCODE_SENDLOCO:  // cab, route
     {
-      int newPc=sequenceLookup->find(getOperand(1));
+      int newPc=routeLookup->find(getOperand(1));
       if (newPc<0) break;
       RMFT2* newtask=new RMFT2(newPc); // create new task
       newtask->loco=operand;
@@ -1142,13 +1151,13 @@ void RMFT2::loop2() {
     printMessage(operand);
     break;
   case OPCODE_ROUTE_HIDDEN:
-    manageRoute(operand,2);
+    manageRouteState(operand,2);
     break;   
   case OPCODE_ROUTE_ACTIVE:
-    manageRoute(operand,0);
+    manageRouteState(operand,0);
     break;   
   case OPCODE_ROUTE_INACTIVE:
-    manageRoute(operand,1);
+    manageRouteState(operand,1);
     break;   
   
   case OPCODE_ROUTE:
@@ -1474,13 +1483,24 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     }
 }
 
-void RMFT2::manageRoute(uint16_t id, byte state) {
-  CommandDistributor::broadcastRouteState(id,state);
+void RMFT2::manageRouteState(uint16_t id, byte state) {
   // Route state must be maintained for when new throttles connect.
   // locate route id in the Routes lookup
-  int16_t position=sequenceLookup->findPosition(id);
+  int16_t position=routeLookup->findPosition(id);
   if (position<0) return; 
   // set state beside it 
-  routeStateArray[position]=state; 
+  if (routeStateArray[position]==state) return; 
+  routeStateArray[position]=state;
+  CommandDistributor::broadcastRouteState(id,state);
+}
+void RMFT2::manageRouteCaption(uint16_t id,const FSH* caption) {
+  // Route state must be maintained for when new throttles connect.
+  // locate route id in the Routes lookup
+  int16_t position=routeLookup->findPosition(id);
+  if (position<0) return; 
+  // set state beside it 
+  if (routeCaptionArray[position]==caption) return; 
+  routeCaptionArray[position]=caption;
+  CommandDistributor::broadcastRouteCaption(id,caption);
 }
   

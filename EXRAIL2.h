@@ -120,6 +120,7 @@ enum thrunger: byte {
 class LookList {
   public: 
     LookList(int16_t size);
+    void chain(LookList* chainTo);
     void add(int16_t lookup, int16_t result);
     int16_t find(int16_t value); // finds result value
     int16_t findPosition(int16_t value); // finds index 
@@ -128,7 +129,8 @@ class LookList {
      int16_t m_size;
      int16_t m_loaded;
      int16_t * m_lookupArray;
-     int16_t * m_resultArray;     
+     int16_t * m_resultArray;
+     LookList* m_chain;     
 };
 
  class RMFT2 {
@@ -201,7 +203,7 @@ private:
    static const  HIGHFLASH  int16_t SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static Print * LCCSerial;
-   static LookList * sequenceLookup;
+   static LookList * routeLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;
@@ -219,8 +221,10 @@ private:
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
-   static void manageRoute(uint16_t id, byte state);
+   static void manageRouteState(uint16_t id, byte state);
+   static void manageRouteCaption(uint16_t id, const FSH* caption);
    static byte * routeStateArray;
+   static const FSH * * routeCaptionArray;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
