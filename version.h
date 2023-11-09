@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.18"
-// 5.1.8 TURNOUTL bugfix 
+#define VERSION "5.1.19"
+// 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
+// 5.1.18 - TURNOUTL bugfix
 // 5.1.17 - Divide out C for config and D for diag commands
 // 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
 // 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
