@@ -72,7 +72,7 @@ class TrackManager {
     static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
     static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
    
-#if defined(ARduINO_GIGA) // yes giga
+#if defined(ARDUINO_GIGA) // yes giga
     static const int16_t MAX_TRACKS=4;
 #else // no giga
     static const int16_t MAX_TRACKS=8;
