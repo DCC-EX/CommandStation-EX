@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.19"
+#define VERSION "5.1.20"
+// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
 // 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
 // 5.1.18 - TURNOUTL bugfix
 // 5.1.17 - Divide out C for config and D for diag commands

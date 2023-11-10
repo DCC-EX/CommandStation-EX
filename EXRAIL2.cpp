@@ -1270,7 +1270,6 @@ void RMFT2::manageRouteCaption(uint16_t id,const FSH* caption) {
     // set state beside it 
     if (routeCaptionArray[position]==caption) return; 
     routeCaptionArray[position]=caption;
-    DIAG(F("rCA[%d]=%d, c=%d"),position,routeStateArray[position],caption);
     CommandDistributor::broadcastRouteCaption(id,caption);
   }
 }
