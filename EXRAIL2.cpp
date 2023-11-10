@@ -126,6 +126,13 @@ int16_t LookList::find(int16_t value) {
 void LookList::chain(LookList * chain) {
   m_chain=chain;
 }
+void LookList::handleEvent(const FSH* reason,int16_t id) {
+  // New feature... create multiple ONhandlers
+  for (int i=0;i<m_size;i++) 
+    if (m_lookupArray[i]==id)
+       RMFT2::startNonRecursiveTask(reason,id,m_resultArray[i]);
+}
+
 
 void LookList::stream(Print * _stream) {
   for (int16_t i=0;i<m_size;i++) {
@@ -1013,9 +1020,9 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   
   // Schedule any event handler for this signal change.
   // Thjis will work even without a signal definition. 
-  if (rag==SIGNAL_RED) handleEvent(F("RED"),onRedLookup,id);
-  else if (rag==SIGNAL_GREEN) handleEvent(F("GREEN"), onGreenLookup,id);
-  else handleEvent(F("AMBER"), onAmberLookup,id);
+  if (rag==SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
+  else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
+  else onAmberLookup->handleEvent(F("AMBER"),id);
   
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return; 
@@ -1084,26 +1091,26 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
 
 void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   // Hunt for an ONTHROW/ONCLOSE for this turnout
-  if (closed)  handleEvent(F("CLOSE"),onCloseLookup,turnoutId);
-  else handleEvent(F("THROW"),onThrowLookup,turnoutId);
+  if (closed)  onCloseLookup->handleEvent(F("CLOSE"),turnoutId);
+  else onThrowLookup->handleEvent(F("THROW"),turnoutId);
 }
 
 
 void RMFT2::activateEvent(int16_t addr, bool activate) {
   // Hunt for an ONACTIVATE/ONDEACTIVATE for this accessory
-  if (activate)  handleEvent(F("ACTIVATE"),onActivateLookup,addr);
-  else handleEvent(F("DEACTIVATE"),onDeactivateLookup,addr);
+  if (activate)  onActivateLookup->handleEvent(F("ACTIVATE"),addr);
+  else onDeactivateLookup->handleEvent(F("DEACTIVATE"),addr);
 }
 
 void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
-  if (change)  handleEvent(F("CHANGE"),onChangeLookup,vpin);
+  if (change)  onChangeLookup->handleEvent(F("CHANGE"),vpin);
 }
 
 #ifndef IO_NO_HAL
 void RMFT2::rotateEvent(int16_t turntableId, bool change) {
   // Hunt or an ONROTATE for this turntable
-  if (change) handleEvent(F("ROTATE"),onRotateLookup,turntableId);
+  if (change) onRotateLookup->handleEvent(F("ROTATE"),turntableId);
 }
 #endif
 
@@ -1112,8 +1119,8 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
   if (Diag::CMD)
    DIAG(F("Looking for clock event at : %d"), clocktime);
   if (change) {
-    handleEvent(F("CLOCK"),onClockLookup,clocktime);
-    handleEvent(F("CLOCK"),onClockLookup,25*60+clocktime%60);
+    onClockLookup->handleEvent(F("CLOCK"),clocktime);
+    onClockLookup->handleEvent(F("CLOCK"),25*60+clocktime%60);
   }
 } 
 
@@ -1122,14 +1129,8 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
   if (Diag::CMD)
    DIAG(F("Looking for Power event on track : %c"), track);
   if (overload) {
-    handleEvent(F("POWER"),onOverloadLookup,track);
+    onOverloadLookup->handleEvent(F("POWER"),track);
   }
-}
-
-
-void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
-  int pc= handlers->find(id);
-  if (pc>=0) startNonRecursiveTask(reason,id,pc);
 }
 
 void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {  

@@ -127,6 +127,8 @@ class LookList {
     int16_t findPosition(int16_t value); // finds index 
     int16_t size();
     void stream(Print * _stream); 
+    void handleEvent(const FSH* reason,int16_t id);
+
   private:
      int16_t m_size;
      int16_t m_loaded;
@@ -166,7 +168,8 @@ class LookList {
   static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
-    
+  static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
+      
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -183,9 +186,7 @@ private:
     #endif
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
-    static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);
     static uint16_t getOperand(int progCounter,byte n);
-    static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
