@@ -152,11 +152,11 @@ AdvancedADC adc;
 pin_size_t active_pins[] = {A0, A1, A2, A3};
 pin_size_t active_pinsB[] = {A4, A5, A6, A7};
 int num_active_pins = 4;
-const int samples_per_round = 3;
+const int samples_per_round = 512;
 int ADCee::init(uint8_t pin) {
   adc.stop();
-  if (pin >= A0 && pin <= A3) adc.begin(AN_RESOLUTION_16, 2, 1, samples_per_round, num_active_pins, active_pins);
-  else if (pin >= A4 && pin <= A7) adc.begin(AN_RESOLUTION_16, 2, 1, samples_per_round, num_active_pins, active_pinsB);
+  if (pin >= A0 && pin <= A3) adc.begin(AN_RESOLUTION_10, 16000, 1, samples_per_round, num_active_pins, active_pins);
+  else if (pin >= A4 && pin <= A7) adc.begin(AN_RESOLUTION_10, 16000, 1, samples_per_round, num_active_pins, active_pinsB);
   return 123;
 }
 
