@@ -102,6 +102,14 @@ void exrailHalSetup() {
 #define LCCX(senderid,eventid) | FEATURE_LCC 
 #undef ONLCC
 #define ONLCC(senderid,eventid) | FEATURE_LCC
+#undef ROUTE_ACTIVE
+#define ROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_INACTIVE
+#define ROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_HIDDEN
+#define ROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -156,7 +164,7 @@ const int StringMacroTracker1=__COUNTER__;
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) \
 case (__COUNTER__ - StringMacroTracker1) : {\
-   CommandDistributor::broadcastRouteCaption(id,F(caption));\
+   manageRouteCaption(id,F(caption));\
    return;\
    }
 #undef SERIAL

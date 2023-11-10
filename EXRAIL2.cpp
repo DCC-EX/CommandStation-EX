@@ -55,22 +55,6 @@
 #include "Turntables.h"
 #include "IODevice.h"
 
-// Command parsing keywords
-const int16_t HASH_KEYWORD_EXRAIL=15435;    
-const int16_t HASH_KEYWORD_ON = 2657;
-const int16_t HASH_KEYWORD_START=23232;
-const int16_t HASH_KEYWORD_RESERVE=11392;
-const int16_t HASH_KEYWORD_FREE=-23052;
-const int16_t HASH_KEYWORD_LATCH=1618;  
-const int16_t HASH_KEYWORD_UNLATCH=1353;
-const int16_t HASH_KEYWORD_PAUSE=-4142;
-const int16_t HASH_KEYWORD_RESUME=27609;
-const int16_t HASH_KEYWORD_KILL=5218;
-const int16_t HASH_KEYWORD_ALL=3457;
-const int16_t HASH_KEYWORD_ROUTES=-3702;
-const int16_t HASH_KEYWORD_RED=26099;
-const int16_t HASH_KEYWORD_AMBER=18713;
-const int16_t HASH_KEYWORD_GREEN=-31493;
 
 // One instance of RMFT clas is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
@@ -102,9 +86,6 @@ LookList *  RMFT2::onRotateLookup=NULL;
 LookList *  RMFT2::onOverloadLookup=NULL;
 byte * RMFT2::routeStateArray=nullptr; 
 const FSH  * * RMFT2::routeCaptionArray=nullptr; 
-
-#define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
-#define SKIPOP progCounter+=3
 
 // getOperand instance version, uses progCounter from instance.
 uint16_t RMFT2::getOperand(byte n) {
@@ -144,6 +125,13 @@ int16_t LookList::find(int16_t value) {
 }
 void LookList::chain(LookList * chain) {
   m_chain=chain;
+}
+
+void LookList::stream(Print * _stream) {
+  for (int16_t i=0;i<m_size;i++) {
+    _stream->print(" ");
+    _stream->print(m_lookupArray[i]);
+  }
 }
 
 int16_t LookList::findPosition(int16_t value) {
@@ -189,9 +177,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   // create lookups
   routeLookup=LookListLoader(OPCODE_ROUTE, OPCODE_AUTOMATION);
   routeLookup->chain(LookListLoader(OPCODE_SEQUENCE));
-  routeStateArray=(byte *)calloc(routeLookup->size(),sizeof(byte));
-  routeCaptionArray=(const FSH * *)calloc(routeLookup->size(),sizeof(const FSH *));
-  
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    routeStateArray=(byte *)calloc(routeLookup->size(),sizeof(byte));
+    routeCaptionArray=(const FSH * *)calloc(routeLookup->size(),sizeof(const FSH *));
+  }
   onThrowLookup=LookListLoader(OPCODE_ONTHROW);
   onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
   onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
@@ -334,237 +323,14 @@ void RMFT2::setTurntableHiddenState(Turntable * tto) {
 #endif
 
 char RMFT2::getRouteType(int16_t id) {
-  for (int16_t i=0;;i+=2) {
-    int16_t rid= GETHIGHFLASHW(routeIdList,i);
-    if (rid==INT16_MAX) break;
-    if (rid==id) return 'R';
-  }
-  for (int16_t i=0;;i+=2) {
-    int16_t rid= GETHIGHFLASHW(automationIdList,i);
-    if (rid==INT16_MAX) break;
-    if (rid==id) return 'A';
+  int16_t progCounter=routeLookup->find(id);
+  if (progCounter>=0) {
+    OPCODE type=GET_OPCODE; 
+    if (type==OPCODE_ROUTE) return 'R';
+    if (type==OPCODE_AUTOMATION) return 'A';
   }
   return 'X';
 }
-
-// This filter intercepts <> commands to do the following:
-// - Implement RMFT specific commands/diagnostics
-// - Reject/modify JMRI commands that would interfere with RMFT processing
-void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
-  (void)stream; // avoid compiler warning if we don't access this parameter
-  bool reject=false;
-  switch(opcode) {
-    
-  case 'D':
-    if (p[0]==HASH_KEYWORD_EXRAIL) { // <D EXRAIL ON/OFF>
-      diag = paramCount==2 && (p[1]==HASH_KEYWORD_ON || p[1]==1);
-      opcode=0;
-    }
-        break;
-	
-  case '/':  // New EXRAIL command
-    reject=!parseSlash(stream,paramCount,p);
-    opcode=0;
-    break;
-  case 'L':
-    if (compileFeatures & FEATURE_LCC) { 
-      // This entire code block is compiled out if LLC macros not used 
-    if (paramCount==0) {  //<L>  LCC adapter introducing self
-      LCCSerial=stream;   // now we know where to send events we raise
-
-      // loop through all possible sent events 
-      for (int progCounter=0;; SKIPOP) {
-        byte opcode=GET_OPCODE;
-        if (opcode==OPCODE_ENDEXRAIL) break;
-        if (opcode==OPCODE_LCC)  StringFormatter::send(stream,F("<LS x%h>\n"),getOperand(progCounter,0));   
-        if (opcode==OPCODE_LCCX) { // long form LCC
-           StringFormatter::send(stream,F("<LS x%h%h%h%h>\n"),
-                 getOperand(progCounter,1),
-                 getOperand(progCounter,2),
-                 getOperand(progCounter,3),
-                 getOperand(progCounter,0)
-                 );        
-        }}
-      
-      // we stream the hex events we wish to listen to
-      // and at the same time build the event index looku.
-      
-      
-      int eventIndex=0;
-      for (int progCounter=0;; SKIPOP) {
-        byte opcode=GET_OPCODE;
-        if (opcode==OPCODE_ENDEXRAIL) break;
-        if (opcode==OPCODE_ONLCC) {
-           onLCCLookup[eventIndex]=progCounter; // TODO skip...
-           StringFormatter::send(stream,F("<LL %d x%h%h%h:%h>\n"),
-                 eventIndex,
-                 getOperand(progCounter,1),
-                 getOperand(progCounter,2),
-                 getOperand(progCounter,3),
-                 getOperand(progCounter,0)
-                 );   
-           eventIndex++;      
-        }
-      }
-      StringFormatter::send(stream,F("<LR>\n")); // Ready to rumble
-      opcode=0;
-      break;
-    }
-    if (paramCount==1) {  // <L eventid> LCC event arrived from adapter
-        int16_t eventid=p[0];
-        reject=eventid<0 || eventid>=countLCCLookup;
-        if (!reject)  startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
-        opcode=0;
-    }
-    }
-    break; 
-
-  default:  // other commands pass through
-    break;
-  }
-  if (reject) {
-    opcode=0;
-    StringFormatter::send(stream,F("<X>\n"));
-  }
-}
-
-bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
-
-  if (paramCount==0) { // STATUS
-    StringFormatter::send(stream, F("<* EXRAIL STATUS"));
-    RMFT2 * task=loopTask;
-    while(task) {
-      StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d%c,SPEED=%d%c"),
-			    (int)(task->taskId),task->progCounter,task->loco,
-			    task->invert?'I':' ',
-			    task->speedo,
-			    task->forward?'F':'R'
-			    );
-      task=task->next;
-      if (task==loopTask) break;
-    }
-    // Now stream the flags
-    for (int id=0;id<MAX_FLAGS; id++) {
-      byte flag=flags[id];
-      if (flag & ~TASK_FLAG & ~SIGNAL_MASK) { // not interested in TASK_FLAG only. Already shown above
-	      StringFormatter::send(stream,F("\nflags[%d] "),id);
-	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
-	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
-      }
-    }
-
-    if (compileFeatures & FEATURE_SIGNAL) {
-      // do the signals
-      // flags[n] represents the state of the nth signal in the table 
-      for (int sigslot=0;;sigslot++) {
-        VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-        if (sigid==0) break; // end of signal list 
-        byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
-        StringFormatter::send(stream,F("\n%S[%d]"), 
-          (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
-          sigid & SIGNAL_ID_MASK); 
-      } 
-    }
-    StringFormatter::send(stream,F(" *>\n"));
-    return true;
-  }
-  switch (p[0]) {
-  case HASH_KEYWORD_PAUSE: // </ PAUSE>
-    if (paramCount!=1) return false;
-    DCC::setThrottle(0,1,true);  // pause all locos on the track
-    pausingTask=(RMFT2 *)1; // Impossible task address
-    return true;
-    
-  case HASH_KEYWORD_RESUME: // </ RESUME>
-    if (paramCount!=1) return false;
-    pausingTask=NULL;
-    {
-      RMFT2 * task=loopTask;
-      while(task) {
-	if (task->loco) task->driveLoco(task->speedo);
-	task=task->next;
-	if (task==loopTask) break;
-      }
-    }
-    return true;
-    
-    
-  case HASH_KEYWORD_START: // </ START [cab] route >
-    if (paramCount<2 || paramCount>3) return false;
-    {
-      int route=(paramCount==2) ? p[1] : p[2];
-      uint16_t cab=(paramCount==2)? 0 : p[1];
-      int pc=routeLookup->find(route);
-      if (pc<0) return false;
-      RMFT2* task=new RMFT2(pc);
-      task->loco=cab;
-    }
-    return true;
-    
-  default:
-    break;
-  }
-
-  // check KILL ALL here, otherwise the next validation confuses ALL with a flag  
-  if (p[0]==HASH_KEYWORD_KILL && p[1]==HASH_KEYWORD_ALL) {
-    while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
-    return true;   
-  }
-
-  // all other / commands take 1 parameter
-  if (paramCount!=2 ) return false;
-  
-  switch (p[0]) {
-  case HASH_KEYWORD_KILL: // Kill taskid|ALL
-    {
-    if ( p[1]<0  || p[1]>=MAX_FLAGS) return false;
-    RMFT2 * task=loopTask;
-      while(task) {
-	      if (task->taskId==p[1]) {
-	        task->kill(F("KILL"));
-	        return  true;
-	      }
-	      task=task->next;
-	      if (task==loopTask) break;
-      }
-    }
-    return false;
-    
-  case HASH_KEYWORD_RESERVE:  // force reserve a section
-    return setFlag(p[1],SECTION_FLAG);
-    
-  case HASH_KEYWORD_FREE:  // force free a section
-    return setFlag(p[1],0,SECTION_FLAG);
-    
-  case HASH_KEYWORD_LATCH:
-    return setFlag(p[1], LATCH_FLAG);
-    
-  case HASH_KEYWORD_UNLATCH:
-    return setFlag(p[1], 0, LATCH_FLAG);
- 
-  case HASH_KEYWORD_RED:
-    doSignal(p[1],SIGNAL_RED);
-    return true;
- 
-  case HASH_KEYWORD_AMBER:
-    doSignal(p[1],SIGNAL_AMBER);
-    return true;
- 
-  case HASH_KEYWORD_GREEN:
-    doSignal(p[1],SIGNAL_GREEN);
-    return true;
-    
-  default:
-    return false;
-  }
-}
-
-
-// This emits Routes and Automations to Withrottle
-// Automations are given a state to set the button to "handoff" which implies
-// handing over the loco to the automation.
-// Routes are given "Set" buttons and do not cause the loco to be handed over.
-
 
 
 RMFT2::RMFT2(int progCtr) {
@@ -1484,23 +1250,28 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
 }
 
 void RMFT2::manageRouteState(uint16_t id, byte state) {
-  // Route state must be maintained for when new throttles connect.
-  // locate route id in the Routes lookup
-  int16_t position=routeLookup->findPosition(id);
-  if (position<0) return; 
-  // set state beside it 
-  if (routeStateArray[position]==state) return; 
-  routeStateArray[position]=state;
-  CommandDistributor::broadcastRouteState(id,state);
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    // Route state must be maintained for when new throttles connect.
+    // locate route id in the Routes lookup
+    int16_t position=routeLookup->findPosition(id);
+    if (position<0) return; 
+    // set state beside it 
+    if (routeStateArray[position]==state) return; 
+    routeStateArray[position]=state;
+    CommandDistributor::broadcastRouteState(id,state);
+  }
 }
 void RMFT2::manageRouteCaption(uint16_t id,const FSH* caption) {
-  // Route state must be maintained for when new throttles connect.
-  // locate route id in the Routes lookup
-  int16_t position=routeLookup->findPosition(id);
-  if (position<0) return; 
-  // set state beside it 
-  if (routeCaptionArray[position]==caption) return; 
-  routeCaptionArray[position]=caption;
-  CommandDistributor::broadcastRouteCaption(id,caption);
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    // Route state must be maintained for when new throttles connect.
+    // locate route id in the Routes lookup
+    int16_t position=routeLookup->findPosition(id);
+    if (position<0) return; 
+    // set state beside it 
+    if (routeCaptionArray[position]==caption) return; 
+    routeCaptionArray[position]=caption;
+    DIAG(F("rCA[%d]=%d, c=%d"),position,routeStateArray[position],caption);
+    CommandDistributor::broadcastRouteCaption(id,caption);
+  }
 }
   

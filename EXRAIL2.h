@@ -100,6 +100,7 @@ enum thrunger: byte {
   static const byte FEATURE_SIGNAL= 0x80;
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
+  static const byte FEATURE_ROUTESTATE= 0x10;
   
  
   // Flag bits for status of hardware and TPL
@@ -124,7 +125,8 @@ class LookList {
     void add(int16_t lookup, int16_t result);
     int16_t find(int16_t value); // finds result value
     int16_t findPosition(int16_t value); // finds index 
-    int16_t size(); 
+    int16_t size();
+    void stream(Print * _stream); 
   private:
      int16_t m_size;
      int16_t m_loaded;
@@ -224,7 +226,7 @@ private:
    static void manageRouteState(uint16_t id, byte state);
    static void manageRouteCaption(uint16_t id, const FSH* caption);
    static byte * routeStateArray;
-   static const FSH * * routeCaptionArray;
+   static const FSH ** routeCaptionArray;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
@@ -246,4 +248,8 @@ private:
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };
+
+#define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
+#define SKIPOP progCounter+=3
+
 #endif
