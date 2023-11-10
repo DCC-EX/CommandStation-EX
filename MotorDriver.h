@@ -3,7 +3,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
- *  © 2022 Harald Barth
+ *  © 2022,2023 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -28,8 +28,14 @@
 #include "DCCTimer.h"
 
 // use powers of two so we can do logical and/or on the track modes in if clauses.
+// RACK_MODE_DCX is (TRACK_MODE_DC|TRACK_MODE_INV)
+template<class T> inline T operator~ (T a) { return (T)~(int)a; }
+template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
+template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
+template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
-                        TRACK_MODE_DC = 8, TRACK_MODE_DCX = 16, TRACK_MODE_EXT = 32};
+                        TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16, TRACK_MODE_BOOST = 32,
+                        TRACK_MODE_INV = 64, TRACK_MODE_DCX = 72, TRACK_MODE_AUTOINV = 128};
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
@@ -240,7 +246,7 @@ class MotorDriver {
 #endif
   inline void setMode(TRACK_MODE m) {
     trackMode = m;
-    invertOutput(trackMode & TRACK_MODE_DCX);// change later to TRACK_MODE_INVERTED?
+    invertOutput(trackMode & TRACK_MODE_INV);
   };
   inline void invertOutput() {               // toggles output inversion
     invertPhase = !invertPhase;

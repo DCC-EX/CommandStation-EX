@@ -857,7 +857,7 @@ void RMFT2::loop2() {
       // If DC/DCX use  my loco for DC address 
       {
         TRACK_MODE mode = (TRACK_MODE)(operand>>8);
-        int16_t cab=(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ? loco : 0;
+        int16_t cab=(mode & TRACK_MODE_DC) ? loco : 0;
         TrackManager::setTrackMode(operand & 0x0F, mode, cab);
       }
       break; 

@@ -112,7 +112,7 @@ class TrackManager {
     static POWERMODE mainPowerGuess;
     static void applyDCSpeed(byte t);
 
-    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
+    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC
 #ifdef ARDUINO_ARCH_ESP32
     static byte tempProgTrack; // holds the prog track number during join
 #endif

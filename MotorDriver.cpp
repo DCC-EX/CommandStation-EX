@@ -605,7 +605,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	DIAG(F("TRACK %c ALERT FAULT"), trackno + 'A');
       }
       setPower(POWERMODE::ALERT);
-      if (trackMode & (TRACK_MODE_MAIN|TRACK_MODE_EXT)){ // add (&& isAutoreverse) later
+      if ((trackMode & TRACK_MODE_AUTOINV) && (trackMode & (TRACK_MODE_MAIN|TRACK_MODE_EXT|TRACK_MODE_BOOST))){
 	DIAG(F("TRACK %c INVERT"), trackno + 'A');
 	invertOutput();
       }
