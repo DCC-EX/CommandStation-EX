@@ -148,7 +148,9 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
-  __attribute__((always_inline)) inline void setSignal( bool high) {
+    __attribute__((always_inline)) inline void setSignal( bool high) {
+      if (invertPhase)
+	high = !high;
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
@@ -168,6 +170,12 @@ class MotorDriver {
 	pinMode(signalPin, OUTPUT);
       else
 	pinMode(signalPin, INPUT);
+      if (signalPin2 != UNUSED_PIN) {
+	if (on)
+	  pinMode(signalPin2, OUTPUT);
+	else
+	  pinMode(signalPin2, INPUT);
+      }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
     void setDCSignal(byte speedByte);
@@ -232,6 +240,32 @@ class MotorDriver {
 #endif
   inline void setMode(TRACK_MODE m) {
     trackMode = m;
+    invertOutput(trackMode & TRACK_MODE_DCX);// change later to TRACK_MODE_INVERTED?
+  };
+  inline void invertOutput() {               // toggles output inversion
+    invertPhase = !invertPhase;
+    invertOutput(invertPhase);
+  };
+  inline void invertOutput(bool b) {         // sets output inverted or not
+    if (b)
+      invertPhase = 1;
+    else
+      invertPhase = 0;
+#if defined(ARDUINO_ARCH_ESP32)
+    pinpair p = getSignalPin();
+    uint32_t *outreg = (uint32_t *)(GPIO_FUNC0_OUT_SEL_CFG_REG + 4*p.pin);
+    if (invertPhase) // set or clear the invert bit in the gpio out register
+      *outreg |=  ((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    else
+      *outreg &= ~((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    if (p.invpin != UNUSED_PIN) {
+      outreg = (uint32_t *)(GPIO_FUNC0_OUT_SEL_CFG_REG + 4*p.invpin);
+      if (invertPhase) // clear or set the invert bit in the gpio out register
+	*outreg &= ~((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+      else
+	*outreg |=  ((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    }
+#endif
   };
   inline TRACK_MODE getMode() {
     return trackMode;
@@ -263,7 +297,7 @@ class MotorDriver {
     bool invertBrake;       // brake pin passed as negative means pin is inverted
     bool invertPower;       // power pin passed as negative means pin is inverted
     bool invertFault;       // fault pin passed as negative means pin is inverted
-    
+    bool invertPhase = 0;   // phase of out pin is inverted
     // Raw to milliamp conversion factors avoiding float data types.
     // Milliamps=rawADCreading * sensefactorInternal / senseScale
     //

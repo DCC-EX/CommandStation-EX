@@ -197,8 +197,8 @@ void TrackManager::setPROGSignal( bool on) {
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab && cab != 0) continue;
-    if (track[t]->getMode()==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
-    else if (track[t]->getMode()==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
+    if (track[t]->getMode() & (TRACK_MODE_DC|TRACK_MODE_DCX))
+      track[t]->setDCSignal(speedbyte);
   }
 }    
 
@@ -223,11 +223,18 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     pinpair p = track[trackToSet]->getSignalPin();
     //DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
     gpio_reset_pin((gpio_num_t)p.pin);
-    pinMode(p.pin, OUTPUT); // gpio_reset_pin may reset to input
     if (p.invpin != UNUSED_PIN) {
       //DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
       gpio_reset_pin((gpio_num_t)p.invpin);
-      pinMode(p.invpin, OUTPUT); // gpio_reset_pin may reset to input
+    }
+
+    if (mode == TRACK_MODE_EXT) {
+      pinMode(26, INPUT);
+      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
+      gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
+      if (p.invpin != UNUSED_PIN) {
+	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
+      }
     }
 #endif
 #ifndef DISABLE_PROG
@@ -261,10 +268,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       track[trackToSet]->setBrake(false);
     }
 
+#ifndef ARDUINO_ARCH_ESP32
     // EXT is a special case where the signal pin is
     // turned off. So unless that is set, the signal
     // pin should be turned on
     track[trackToSet]->enableSignal(mode != TRACK_MODE_EXT);
+#endif
 
 #ifndef ARDUINO_ARCH_ESP32
     // re-evaluate HighAccuracy mode
@@ -320,8 +329,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
 void TrackManager::applyDCSpeed(byte t) {
   uint8_t speedByte=DCC::getThrottleSpeedByte(trackDCAddr[t]);
-  if (track[t]->getMode()==TRACK_MODE_DCX)
-    speedByte = speedByte ^ 128; // reverse direction bit
   track[t]->setDCSignal(speedByte);
 }
 
