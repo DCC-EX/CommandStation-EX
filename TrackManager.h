@@ -72,8 +72,11 @@ class TrackManager {
     static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
     static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
    
-
+#if defined(ARduINO_GIGA) // yes giga
+    static const int16_t MAX_TRACKS=4;
+#else // no giga
     static const int16_t MAX_TRACKS=8;
+#endif // giga
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
     static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
     static void loop();

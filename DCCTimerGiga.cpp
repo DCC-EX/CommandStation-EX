@@ -43,14 +43,19 @@
 
 INTERRUPT_CALLBACK interruptHandler=0;
 
-//HardwareTimer*  timer = NULL;
-//HardwareTimer*  timerAux = NULL;
-HardwareTimer timer(TIM3);
-HardwareTimer timerAux(TIM2);
+#ifndef DCC_EX_TIMER
+#if defined(TIM6)
+#define DCC_EX_TIMER TIM6
+#elif defined(TIM7)
+#define DCC_EX_TIMER TIM7
+#elif defined(TIM12)
+#define DCC_EX_TIMER TIM12
+#else
+#warning This Giga variant does not have Timers 1,8 or 11!!
+#endif
+#endif // ifndef DCC_EX_TIMER
 
-static bool tim2ModeHA = false;
-static bool tim3ModeHA = false;
-
+HardwareTimer dcctimer(TIM8);
 void DCCTimer_Handler() __attribute__((interrupt));
 
 void DCCTimer_Handler() {
@@ -59,66 +64,38 @@ void DCCTimer_Handler() {
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interruptHandler=callback;
-    noInterrupts();
-    
- // adc_set_sample_rate(ADC_SAMPLETIME_480CYCLES);
-    timer.pause();
-    timerAux.pause();
-    timer.setPrescaleFactor(1);
-    timer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-    timer.attachInterrupt(DCCTimer_Handler);
-    timer.refresh();
-    timerAux.setPrescaleFactor(1);
-    timerAux.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
-    timerAux.refresh();
+  noInterrupts();
 
-    timer.resume();
-    timerAux.resume();
+  dcctimer.pause();
+  dcctimer.setPrescaleFactor(1);
+//  timer.setOverflow(CLOCK_CYCLES * 2);
+  dcctimer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
+  // dcctimer.attachInterrupt(Timer11_Handler);
+  dcctimer.attachInterrupt(DCCTimer_Handler);
+  dcctimer.setInterruptPriority(0, 0); // Set highest preemptive priority!
+  dcctimer.refresh();
+  dcctimer.resume();
 
-    interrupts();
+  interrupts();
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
-    switch (pin) {
-     case 12:
-       return true;
-     case 13:
-       return true;
-     default:
-       return false;
-    }
+  //TODO: STM32 whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
+  //      there's no support yet for High Accuracy, so for now return false
+  //  return digitalPinHasPWM(pin);
+  (void) pin;
+  return false;
 }
 
 void DCCTimer::setPWM(byte pin, bool high) {
-    switch (pin) {
-     case 12:
-       if (!tim3ModeHA) {
-         timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 12);
-         tim3ModeHA = true;
-       }
-       if (high) 
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
-       else
-         TIM3->CCMR1 = (TIM3->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
-       break;
-     case 13:
-       if (!tim2ModeHA) {
-         timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, 13);
-         tim2ModeHA = true;
-       }
-       if (high) 
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_0;
-       else
-         TIM2->CCMR1 = (TIM2->CCMR1 & ~TIM_CCMR1_OC1M_Msk) | TIM_CCMR1_OC1M_1;
-       break;
-   }
+    // TODO: High Accuracy mode is not supported as yet, and may never need to be
+    (void) pin;
+    (void) high;
+    return;
  }
 
 void DCCTimer::clearPWM() {
-  timer.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);
-  tim2ModeHA = false;
-  timerAux.setMode(1, TIMER_OUTPUT_COMPARE_INACTIVE, NC);  
-  tim3ModeHA = false;
+  return;
 }
 
 void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
@@ -161,6 +138,7 @@ void DCCTimer::reset() {
   //Watchdog::start(500);
   
   //while(true) {};
+  return;
 }
 
 int * ADCee::analogvals = NULL;
@@ -170,7 +148,7 @@ int16_t ADCee::ADCmax()
     return 1023;
 }
 
-AdvancedADC adc(A0, A1);
+AdvancedADC adc(A0, A1, A2, A3);
 int ADCee::init(uint8_t pin) {
   adc.begin(AN_RESOLUTION_10, 16000, 1, 512);
   return 123;
