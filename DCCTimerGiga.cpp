@@ -148,9 +148,15 @@ int16_t ADCee::ADCmax()
     return 1023;
 }
 
-AdvancedADC adc(A0, A1, A2, A3);
+AdvancedADC adc;
+pin_size_t active_pins[] = {A0, A1, A2, A3};
+pin_size_t active_pinsB[] = {A4, A5, A6, A7};
+int num_active_pins = 4;
+const int samples_per_round = 3;
 int ADCee::init(uint8_t pin) {
-  adc.begin(AN_RESOLUTION_10, 16000, 1, 512);
+  adc.stop();
+  if (pin >= A0 && pin <= A3) adc.begin(AN_RESOLUTION_16, 2, 1, samples_per_round, num_active_pins, active_pins);
+  else if (pin >= A4 && pin <= A7) adc.begin(AN_RESOLUTION_16, 2, 1, samples_per_round, num_active_pins, active_pinsB);
   return 123;
 }
 
@@ -158,13 +164,16 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
+  int tmpPin = 0;
+  if (pin >= A0 && pin <= A3) tmpPin = (pin - A0);
+  else if (pin >= A4 && pin <= A7) tmpPin = ((pin - A0) - 4);
   static SampleBuffer buf = adc.read();
   int retVal = -123;
   if (adc.available()) {
     buf.release();
     buf = adc.read();
   }
-  return (buf[pin - A0]);
+  return (buf[tmpPin]);
 }
 
 /*
