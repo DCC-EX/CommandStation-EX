@@ -68,6 +68,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_WAITFORTT,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ONOVERLOAD,
+             OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -99,6 +100,7 @@ enum thrunger: byte {
   static const byte FEATURE_SIGNAL= 0x80;
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
+  static const byte FEATURE_ROUTESTATE= 0x10;
   
  
   // Flag bits for status of hardware and TPL
@@ -119,13 +121,20 @@ enum thrunger: byte {
 class LookList {
   public: 
     LookList(int16_t size);
+    void chain(LookList* chainTo);
     void add(int16_t lookup, int16_t result);
-    int16_t find(int16_t value);
+    int16_t find(int16_t value); // finds result value
+    int16_t findPosition(int16_t value); // finds index 
+    int16_t size();
+    void stream(Print * _stream); 
+    void handleEvent(const FSH* reason,int16_t id);
+
   private:
      int16_t m_size;
      int16_t m_loaded;
      int16_t * m_lookupArray;
-     int16_t * m_resultArray;     
+     int16_t * m_resultArray;
+     LookList* m_chain;     
 };
 
  class RMFT2 {
@@ -159,7 +168,8 @@ class LookList {
   static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
-    
+  static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
+      
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -176,9 +186,7 @@ private:
     #endif
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
-    static void handleEvent(const FSH* reason,LookList* handlers, int16_t id);
     static uint16_t getOperand(int progCounter,byte n);
-    static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
@@ -198,7 +206,7 @@ private:
    static const  HIGHFLASH  int16_t SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static Print * LCCSerial;
-   static LookList * sequenceLookup;
+   static LookList * routeLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;
@@ -216,6 +224,10 @@ private:
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
+   static void manageRouteState(uint16_t id, byte state);
+   static void manageRouteCaption(uint16_t id, const FSH* caption);
+   static byte * routeStateArray;
+   static const FSH ** routeCaptionArray;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
@@ -237,4 +249,8 @@ private:
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
 };
+
+#define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
+#define SKIPOP progCounter+=3
+
 #endif

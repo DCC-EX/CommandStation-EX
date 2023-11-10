@@ -781,27 +781,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;
 
-                case HASH_KEYWORD_A: // <JA> returns automations/routes
-                    StringFormatter::send(stream, F("<jA"));
-                    if (params==1) {// <JA>
-#ifdef EXRAIL_ACTIVE
-                        SENDFLASHLIST(stream,RMFT2::routeIdList)
-                        SENDFLASHLIST(stream,RMFT2::automationIdList)
-#endif
-                    }
-                    else {  // <JA id>
-                        StringFormatter::send(stream,F(" %d %c \"%S\""), 
-                                        id, 
-#ifdef EXRAIL_ACTIVE
-                                        RMFT2::getRouteType(id), // A/R
-                                        RMFT2::getRouteDescription(id)
-#else  
-                                        'X',F("")
-#endif                                        
-                                        );
-                    }
-                    StringFormatter::send(stream, F(">\n"));      
-                    return; 
+                case HASH_KEYWORD_A: // <JA> intercepted by EXRAIL// <JA> returns automations/routes
+                    if (params!=1) break; // <JA>
+                    StringFormatter::send(stream, F("<jA>\n"));
+                    return;
+ 
             case HASH_KEYWORD_R: // <JR> returns rosters 
                 StringFormatter::send(stream, F("<jR"));
 #ifdef EXRAIL_ACTIVE
@@ -1121,7 +1105,6 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
 bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
     if (params == 0)
         return false;
-    bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
     switch (p[0])
     {
 #ifndef DISABLE_PROG
@@ -1159,6 +1142,8 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
+      bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
+    
 	  DIAG(F("Ack diag %S"), onOff ? F("on") : F("off"));
 	  Diag::ACK = onOff;
 	}

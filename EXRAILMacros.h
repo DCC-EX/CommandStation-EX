@@ -102,6 +102,14 @@ void exrailHalSetup() {
 #define LCCX(senderid,eventid) | FEATURE_LCC 
 #undef ONLCC
 #define ONLCC(senderid,eventid) | FEATURE_LCC
+#undef ROUTE_ACTIVE
+#define ROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_INACTIVE
+#define ROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_HIDDEN
+#define ROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -153,6 +161,12 @@ const int StringMacroTracker1=__COUNTER__;
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
 #define LCN(msg)   THRUNGE(msg,thrunge_lcn)
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) \
+case (__COUNTER__ - StringMacroTracker1) : {\
+   manageRouteCaption(id,F(caption));\
+   return;\
+   }
 #undef SERIAL
 #define SERIAL(msg)   THRUNGE(msg,thrunge_serial)
 #undef SERIAL1
@@ -440,6 +454,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
 #endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
+#define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
+#define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
+#define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
+#define ROUTE_CAPTION(id,caption) PRINT(caption)
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
