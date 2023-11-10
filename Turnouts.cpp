@@ -38,6 +38,10 @@
 #include "DIAG.h"
 #endif
 
+#ifndef IO_NO_HAL
+#include "IO_ScheduledPin.h"
+#endif
+
   /* 
    * Protected static data
    */ 
@@ -493,6 +497,14 @@
     _hbridgeTurnoutData.pin1 = pin1;
     _hbridgeTurnoutData.pin2 = pin2;
     _hbridgeTurnoutData.millisDelay = millisDelay;
+#ifndef IO_NO_HAL
+    // HARD LIMIT to maximum 0.5 second to avoid burning the coil
+    // Also note 1000x multiplier because ScheduledPin works with microSeconds.
+    ScheduledPin::create(pin1, LOW, 1000*min(millisDelay, 500));
+    ScheduledPin::create(pin2, LOW, 1000*min(millisDelay, 500));
+#else
+    DIAG(F("H-Brdige Turnout %d will be disabled because HAL is off"), id);
+#endif
   }
 
   // Create function
@@ -545,10 +557,11 @@
   void HBridgeTurnout::turnUpDown(VPIN pin) {
     // HBridge turnouts require very small, prescribed time to keep pin1 or pin2 in HIGH state.
     // Otherwise internal coil of the turnout will burn.
+    // If HAL is disabled (and therefore SchedulePin class), we can not turn this on,
+    // otherwise coil will burn and device will be lost.
+#ifndef IO_NO_HAL
     IODevice::write(pin, HIGH);
-    // HARD LIMIT to maximum 0.5 second to avoid burning the coil
-    delay(min(_hbridgeTurnoutData.millisDelay, 500));
-    IODevice::write(pin, LOW);
+#endif
   }
 
   bool HBridgeTurnout::setClosedInternal(bool close) {
