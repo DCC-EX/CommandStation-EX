@@ -39,11 +39,11 @@ void StringFormatter::diag( const FSH* input...) {
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
 
-  // Copy to serial client for display 0 <@ display# line# message>
-  send(&USB_SERIAL,F("<@ 0 %d "),row);
+  // Copy to serial client for display 0 <@ display# line# "message">
+  send(&USB_SERIAL,F("<@ 0 %d \""),row);
   va_start(args, input);
   send2(&USB_SERIAL,input,args);
-  send(&USB_SERIAL,F(">\n"));
+  send(&USB_SERIAL,F("\">\n"));
 
   DisplayInterface::setRow(row);    
   va_start(args, input);
@@ -53,11 +53,11 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
 
-  // Copy to serial client <@ display# line# message>
-  send(&USB_SERIAL,F("<@ %d %d "),display,row);
+  // Copy to serial client <@ display# line# "message">
+  send(&USB_SERIAL,F("<@ %d %d \""),display,row);
   va_start(args, input);
   send2(&USB_SERIAL,input,args);
-  send(&USB_SERIAL,F(">\n"));
+  send(&USB_SERIAL,F("\">\n"));
 
   DisplayInterface::setRow(display, row);    
   va_start(args, input);
