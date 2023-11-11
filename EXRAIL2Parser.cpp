@@ -123,7 +123,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     case 'J':  // throttle info commands
         // This entire code block is compiled out if FEATURE_ROUTESTATE macros not used 
         if (paramCount<1) return; 
-        switch(p[0]) 
+        switch(p[0]) {
           case HASH_KEYWORD_A: // <JA> returns automations/routes
             if (paramCount==1) {// <JA>
               StringFormatter::send(stream, F("<jA"));
@@ -151,6 +151,9 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               return;
             }
             break;  
+        default:
+            break;
+        }
   default:  // other commands pass through
     break;
   }
