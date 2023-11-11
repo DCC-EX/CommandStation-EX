@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.21"
+#define VERSION "5.2.0"
+// 5.2.0  - ESP32: Autoreverse and booster mode support
 // 5.1.21 - EXRAIL invoke multiple ON handlers for same event
 // 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
 // 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
