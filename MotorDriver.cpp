@@ -680,8 +680,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
 	      power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+  #ifdef EXRAIL_ACTIVE
       DIAG(F("Calling EXRAIL"));
       RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
+  #endif
       // power on test
       DIAG(F("TRACK %c POWER RESTORE (after %4M)"), trackno + 'A', mslpc);
       setPower(POWERMODE::ALERT);

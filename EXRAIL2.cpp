@@ -332,7 +332,7 @@ void RMFT2::setTurntableHiddenState(Turntable * tto) {
 char RMFT2::getRouteType(int16_t id) {
   int16_t progCounter=routeLookup->find(id);
   if (progCounter>=0) {
-    OPCODE type=GET_OPCODE; 
+    byte type=GET_OPCODE; 
     if (type==OPCODE_ROUTE) return 'R';
     if (type==OPCODE_AUTOMATION) return 'A';
   }
