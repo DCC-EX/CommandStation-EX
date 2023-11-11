@@ -401,50 +401,45 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
   // null stream means send to commandDistributor for broadcast
   if (track[t]==NULL) return;
   auto format=F("");
-//  bool pstate = TrackManager::isPowerOn(t);
-//  char *statestr;
-//  if (pstate)
-//    statestr = (char *)"ON";
-//  else
-//    statestr = (char *)"OFF";
+  byte pstate = TrackManager::isPowerOn(t) ? 1 : 0;
   TRACK_MODE tm = track[t]->getMode();
   if (tm & TRACK_MODE_MAIN) {
     if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c MAIN AUTOINV>\n");
+      format=F("<= %c %d MAIN AUTOINV>\n");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c MAIN INV>\n");
+      format=F("<= %c %d MAIN INV>\n");
     else
-      format=F("<= %c MAIN>\n");
+      format=F("<= %c %d MAIN>\n");
   }
 #ifndef DISABLE_PROG
   else if (tm & TRACK_MODE_PROG)
-    format=F("<= %c PROG>\n");
+    format=F("<= %c %d PROG>\n");
 #endif
   else if (tm & TRACK_MODE_NONE)
-    format=F("<= %c NONE>\n");
+    format=F("<= %c %d NONE>\n");
   else if(tm & TRACK_MODE_EXT)
-    format=F("<= %c EXT>\n");
+    format=F("<= %c %d EXT>\n");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c BOOST AUTOINV>\n");
+      format=F("<= %c %d BOOST AUTOINV>\n");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c BOOST INV>\n");
+      format=F("<= %c %d BOOST INV>\n");
     else
-      format=F("<= %c BOOST>\n");
+      format=F("<= %c %d BOOST>\n");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
-      format=F("<= %c DCX %d>\n");
+      format=F("<= %c %d DCX %d>\n");
     else
-      format=F("<= %c DC %d>\n");
+      format=F("<= %c %d DC %d>\n");
   }
   else
-    format=F("<= %c XXX>\n");
+    format=F("<= %c %d XXX>\n");
 
   if (stream)
-    StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);   
+    StringFormatter::send(stream,format,'A'+t, pstate, trackDCAddr[t]);
   else
-    CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
+    CommandDistributor::broadcastTrackState(format,'A'+t, pstate, trackDCAddr[t]);
   
 }
 
