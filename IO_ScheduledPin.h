@@ -65,7 +65,7 @@ protected:
       addDevice(this, controlledDevice);
     }
     else {
-      DIAG(F("ScheduledPin Controlled device not found for pin:%d"), pin);
+      DIAG(F("ScheduledPin Controlled device not found for VPIN:%d"), pin);
       _deviceState = DEVSTATE_FAILED;
     }
   }
@@ -88,7 +88,7 @@ protected:
       return;
     }
     #ifdef DIAG_IO
-    DIAG(F("ScheduledPin Write VPIN:%u Value:%d"), vpin, value);
+    DIAG(F("ScheduledPin Write VPIN:%u Value:%d Micros:%l"), vpin, value, micros());
     #endif
     unsigned long currentMicros = micros();
     delayUntil(currentMicros + _durationMicros);
@@ -99,7 +99,7 @@ protected:
   void _loop(unsigned long currentMicros) {
     if (_deviceState == DEVSTATE_FAILED) return;
     #ifdef DIAG_IO
-    DIAG(F("ScheduledPin Write VPIN:%u Value:%d"), _firstVpin, _scheduledValue);
+    DIAG(F("ScheduledPin Bounce VPIN:%u Value:%d Micros:%l"), _firstVpin, _scheduledValue, micros());
     #endif
     ArduinoPins::fastWriteDigital(_firstVpin, _scheduledValue);
     delayUntil(currentMicros + 0x7fffffff); // Largest time in the future!  Effectively disable _loop calls.
@@ -107,8 +107,8 @@ protected:
 
   // Display information about the device, and perhaps its current condition (e.g. active, disabled etc).
   void _display() {
-    DIAG(F("ScheduledPin Configured:%u value=%d duration=%ld"), (int)_firstVpin,
-      (int)_firstVpin, _scheduledValue, _durationMicros);
+    DIAG(F("ScheduledPin Configured:%u Value:%d Duration:%l"), (int)_firstVpin,
+      _scheduledValue, _durationMicros);
   }
 };
 
