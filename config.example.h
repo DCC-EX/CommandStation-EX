@@ -266,6 +266,12 @@ The configuration file for DCC-EX Command Station
 //
 //#define SERIAL_BT_COMMANDS
 
+// BOOSTER PIN INPUT ON ESP32
+// On ESP32 you have the possibility to define a pin as booster input
+// Arduio pin D2 is GPIO 26 on ESPDuino32
+//
+//#define BOOSTER_INPUT 26
+
 // SABERTOOTH
 //
 // This is a very special option and only useful if you happen to have a

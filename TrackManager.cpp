@@ -46,7 +46,9 @@ const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity
 const int16_t HASH_KEYWORD_EXT = 8201; // External DCC signal
 const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
 const int16_t HASH_KEYWORD_AUTO = -5457;
+#ifdef BOOSTER_INPUT
 const int16_t HASH_KEYWORD_BOOST = 11269;
+#endif
 const int16_t HASH_KEYWORD_INV = 11857;
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
@@ -230,15 +232,18 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       //DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
       gpio_reset_pin((gpio_num_t)p.invpin);
     }
+#ifdef BOOSTER_INPUT
     if (mode & TRACK_MODE_BOOST) {
-      DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
-      pinMode(26, INPUT); // hardcoded XXX
+      //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
+      pinMode(BOOSTER_INPUT, INPUT);
       gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
       gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
       if (p.invpin != UNUSED_PIN) {
 	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
       }
-    } else if (mode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_DC)) {
+    } else // elseif clause continues
+#endif
+    if (mode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_DC)) {
       // gpio_reset_pin may reset to input
       pinMode(p.pin, OUTPUT);
       if (p.invpin != UNUSED_PIN)
@@ -373,10 +378,10 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 
     if (params==2  && p[1]==HASH_KEYWORD_EXT) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
-
+#ifdef BOOSTER_INPUT
     if (params==2  && p[1]==HASH_KEYWORD_BOOST) // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
-
+#endif
     if (params==2  && p[1]==HASH_KEYWORD_AUTO) // <= id AUTO>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
 
@@ -403,8 +408,14 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
 //  else
 //    statestr = (char *)"OFF";
   TRACK_MODE tm = track[t]->getMode();
-  if (tm & TRACK_MODE_MAIN)
-    format=F("<= %c MAIN>\n");
+  if (tm & TRACK_MODE_MAIN) {
+    if(tm & TRACK_MODE_AUTOINV)
+      format=F("<= %c MAIN AUTOINV>\n");
+    else if (tm & TRACK_MODE_INV)
+      format=F("<= %c MAIN INV>\n");
+    else
+      format=F("<= %c MAIN>\n");
+  }
 #ifndef DISABLE_PROG
   else if (tm & TRACK_MODE_PROG)
     format=F("<= %c PROG>\n");
@@ -413,13 +424,19 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
     format=F("<= %c NONE>\n");
   else if(tm & TRACK_MODE_EXT)
     format=F("<= %c EXT>\n");
-  else if(tm & TRACK_MODE_BOOST)
-    format=F("<= %c BOOST>\n");
+  else if(tm & TRACK_MODE_BOOST) {
+        if(tm & TRACK_MODE_AUTOINV)
+      format=F("<= %c BOOST AUTOINV>\n");
+    else if (tm & TRACK_MODE_INV)
+      format=F("<= %c BOOST INV>\n");
+    else
+      format=F("<= %c BOOST>\n");
+  }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
-      format=F("<= %c DCX>\n");
+      format=F("<= %c DCX %d>\n");
     else
-      format=F("<= %c DC>\n");
+      format=F("<= %c DC %d>\n");
   }
   else
     format=F("<= %c XXX>\n");
