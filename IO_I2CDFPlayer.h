@@ -100,6 +100,8 @@ private:
   uint8_t _requestedVolumeLevel = MAXVOLUME;
   uint8_t _currentVolume = MAXVOLUME;
   int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
+  uint8_t _repeat;
+  uint8_t _previousCmd = true;
   // SC16IS752 defines
   I2CAddress _I2CAddress;
   I2CRB _rb;
@@ -113,6 +115,7 @@ private:
   uint8_t PRESCALER = 0x01;   // Value MCR bit 7
   uint8_t TEMP_REG_VAL = 0x00;
   uint8_t FIFO_RX_LEVEL = 0x00;
+  uint8_t RX_BUFFER = 0x00; // nr of bytes copied into _inbuffer
   uint8_t FIFO_TX_LEVEL = 0x00;
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
@@ -128,9 +131,7 @@ public:
     _I2CAddress = i2cAddress;
     _UART_CH = UART_CH;  
     addDevice(this);
-
    } 
-
   
 public:
    static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH) {
@@ -140,7 +141,7 @@ public:
   void _begin() override {
     // check if SC16IS752 exist first, initialize and then resume DFPlayer init via SC16IS752
     I2CManager.begin();
-    //I2CManager.setClock(1000000);
+    I2CManager.setClock(1000000);
     if (I2CManager.exists(_I2CAddress)){
       DIAG(F("SC16IS752 I2C:%s UART detected"), _I2CAddress.toString());
       Init_SC16IS752(); // Initialize UART
@@ -158,45 +159,71 @@ public:
       _deviceState = DEVSTATE_INITIALISING; 
       sendPacket(0x42);
       _timeoutTime = micros() + 5000000UL;  // 5 second timeout      
-      //_timeoutTime = micros() + 10000000UL;  // 5 second timeout
-      _awaitingResponse = true;     
+      _awaitingResponse = true;
      }
   
   
   void _loop(unsigned long currentMicros) override {
     // Read responses from device
- 
-    processIncoming();
-    // Check if a command sent to device has timed out.  Allow 0.5 second for response
-    if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) {
-      DIAG(F("I2CDFPlayer:%s, DFPlayer not responding on UART channel: 0x%x"), _I2CAddress.toString(), _UART_CH);
-      _deviceState = DEVSTATE_FAILED;
-      _awaitingResponse = false;
-      _playing = false;
+    uint8_t status = _rb.status;
+    if (status == I2C_STATUS_PENDING) return;  // Busy, so don't do anything
+    if (status == I2C_STATUS_OK) { 
+      processIncoming(currentMicros);
+      // Check if a command sent to device has timed out.  Allow 0.5 second for response   
+      if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) {
+        DIAG(F("I2CDFPlayer:%s, DFPlayer not responding on UART channel: 0x%x"), _I2CAddress.toString(), _UART_CH);
+        _deviceState = DEVSTATE_FAILED;
+       _awaitingResponse = false;
+        _playing = false;
+      }
     }
 
-    // Send any commands that need to go.
-    processOutgoing(currentMicros);
-    delayUntil(currentMicros + 10000); // Only enter every 10ms
+    status = _rb.status;
+    if (status == I2C_STATUS_PENDING) return;  // Busy, try next time
+    if (status == I2C_STATUS_OK) {
+     // Send any commands that need to go.
+      processOutgoing(currentMicros);
+     }
+    delayUntil(currentMicros + 10000); // Only enter every 10ms    
   }
 
  
   // Check for incoming data on _serial, and update busy flag and other state accordingly
  
-  void processIncoming() {
+  void processIncoming(unsigned long currentMicros) {
     // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
     RX_fifo_lvl();
     if (FIFO_RX_LEVEL >= 10) {      
       #ifdef DIAG_I2CDFplayer
-        DIAG(F("I2CDFPlayer: %s Retrieving data from RX Fifo on UART_CH: 0x%x"),_I2CAddress.toString(), _UART_CH); 
+        DIAG(F("I2CDFPlayer: %s Retrieving data from RX Fifo on UART_CH: 0x%x FIFO_RX_LEVEL: %d"),_I2CAddress.toString(), _UART_CH, FIFO_RX_LEVEL); 
       #endif
-       ReceiveI2CData();
+      _outbuffer[0] = REG_RHR << 3 | _UART_CH << 1;
+      // Only copy 10 bytes from RX FIFO, there maybe additional partial return data after a track is finished playing in the RX FIFO
+      I2CManager.read(_I2CAddress, _inbuffer, 10, _outbuffer, 1); // inbuffer[] has the data now
+      //delayUntil(currentMicros + 10000); // Allow time to get the data
+      RX_BUFFER = 10; // We have copied 10 bytes from RX FIFO to _inbuffer
+        #ifdef DIAG_I2CDFplayer_data
+          DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, RX FIFO Data"), _I2CAddress.toString(), _UART_CH);
+          for (int i = 0; i < sizeof _inbuffer; i++){
+            DIAG(F("SC16IS752: Data _inbuffer[0x%x]: 0x%x"), i, _inbuffer[i]);  
+          }
+        #endif       
     } else {
-       return; // No data or not enough data in rx fifo, check again next time around
+        FIFO_RX_LEVEL = 0; //set to 0, we'll read a fresh FIFO_RX_LEVEL next time
+        return; // No data or not enough data in rx fifo, check again next time around
       }
 
+/*
+    #ifdef DIAG_I2CDFplayer
+     if (FIFO_RX_LEVEL > 10) {
+        DIAG(F("I2CDFPlayer: %s FIFO_RX_LEVEL: %d"),_I2CAddress.toString(), FIFO_RX_LEVEL); 
+     }
+    #endif
+*/
+    
     bool ok = false;
-    while (FIFO_RX_LEVEL != 0) {
+    //DIAG(F("I2CDFPlayer: RX_BUFFER: %d"), RX_BUFFER);
+    while (RX_BUFFER != 0) {
       int c = _inbuffer[_inputIndex]; // Start at 0, increment to FIFO_RX_LEVEL
       switch (_inputIndex) {
         case 0:
@@ -214,6 +241,7 @@ public:
           break;
         case 6:
           switch (_recvCMD) {
+            DIAG(F("I2CDFPlayer: %s, _recvCMD: 0x%x _awaitingResponse: 0x0%x"),_I2CAddress.toString(), _recvCMD, _awaitingResponse);
             case 0x42:
               // Response to status query
               _playing = (c != 0);              
@@ -229,7 +257,7 @@ public:
               }
               _awaitingResponse = false;
               break;
-            case 0x3d:
+            case 0x3d:            
               // End of play
               if (_playing) {
                 #ifdef DIAG_IO
@@ -259,12 +287,13 @@ public:
       }
       if (ok){
         _inputIndex++;  // character as expected, so increment index
-        FIFO_RX_LEVEL --; // Decrease FIFO_RX_LEVEL with each character read from _inbuffer[_inputIndex]
+        RX_BUFFER --; // Decrease FIFO_RX_LEVEL with each character read from _inbuffer[_inputIndex]
       } else {
         _inputIndex = 0;  // otherwise reset.
-        FIFO_RX_LEVEL = 0;
+        RX_BUFFER = 0;
       }
     }
+    RX_BUFFER = 0; //Set to 0, we'll read a new RX FIFO level again
   }
 
   // Send any commands that need to be sent
@@ -273,7 +302,7 @@ public:
     // execute one.  Testing has indicated that a delay of 100ms or more is required
     // between successive commands to get reliable operation.
     // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
-    if (((int32_t)currentMicros - _commandSendTime) > 100000) {
+    if (((int32_t)currentMicros - _commandSendTime) > 100000) { 
       if (_currentVolume > _requestedVolumeLevel) {
         // Change volume before changing song if volume is reducing.
         _currentVolume = _requestedVolumeLevel;
@@ -281,7 +310,7 @@ public:
       } else if (_requestedSong > 0) {
         // Change song
         sendPacket(0x03, _requestedSong);
-        _requestedSong = -1;
+        _requestedSong = -1;    
       } else if (_requestedSong == 0) {
         sendPacket(0x16);  // Stop playing
         _requestedSong = -1;
@@ -298,7 +327,7 @@ public:
           _awaitingResponse = true;
         }
       }
-    }
+    }  
   }
 
   // Write with value 1 starts playing a song.  The relative pin number is the file number.
@@ -328,23 +357,27 @@ public:
   // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
   //
-  void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
+  //void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
+  void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t cmd=0) override { 
     if (_deviceState == DEVSTATE_FAILED) return;
     uint8_t pin = vpin - _firstVpin;
- 
     #ifdef DIAG_IO
-      DIAG(F("I2CDFPlayer: VPIN:%u FileNo:%d Volume:%d"), vpin, value, volume);
+      DIAG(F("I2CDFPlayer: VPIN:%u FileNo:%d Volume:%d Repeat:0x0%x"), vpin, value, volume, cmd);
     #endif
-
     // Validate parameter.
     if (volume > MAXVOLUME) volume = MAXVOLUME;
 
     if (pin == 0) {
-      // Play track 
+      // Play track
       if (value > 0) {
         if (volume > 0)
           _requestedVolumeLevel = volume;
         _requestedSong = value;
+        if (cmd = 1){ // check for Repeat playback of song          
+          _repeat = true;
+        } else {          
+          _repeat = false;
+        }
         _playing = true;
       } else {
         _requestedSong = 0; // stop playing
@@ -410,8 +443,8 @@ private:
       
     TX_fifo_lvl();
     if(FIFO_TX_LEVEL > 0){ //FIFO is empty
-      //I2CManager.write(_I2CAddress, _outbuffer, sizeof(_outbuffer), &_rb);
-      I2CManager.write(_I2CAddress, _outbuffer, sizeof(_outbuffer));
+      I2CManager.write(_I2CAddress, _outbuffer, sizeof(_outbuffer), &_rb);
+      //I2CManager.write(_I2CAddress, _outbuffer, sizeof(_outbuffer));
       #ifdef DIAG_I2CDFplayer
        DIAG(F("SC16IS752: I2C: %s data transmit complete on UART: 0x%x"), _I2CAddress.toString(), _UART_CH);
       #endif
@@ -472,13 +505,13 @@ private:
     TEMP_REG_VAL = _inbuffer[0] & 0x7F; // Disable Divisor latch enabled bit
     UART_WriteRegister(REG_LCR, TEMP_REG_VAL); // Divisor latch disabled  
 
-    uint8_t status = _rb.wait();
+    uint8_t status = _rb.status;
     if (status != I2C_STATUS_OK) {
       DIAG(F("SC16IS752: I2C: %s failed %S"), _I2CAddress.toString(), I2CManager.getErrorMessage(status));
       _deviceState = DEVSTATE_FAILED;
     } else {
       #ifdef DIAG_IO
-       DIAG(F("SC16IS752: I2C: %s, _deviceState == I2C_STATUS_OK"), _I2CAddress.toString());
+       DIAG(F("SC16IS752: I2C: %s, _deviceState: %S"), _I2CAddress.toString(), I2CManager.getErrorMessage(status));
       #endif
      _deviceState = DEVSTATE_NORMAL; // If I2C state is OK, then proceed to initialize DFPlayer 
     }
@@ -493,7 +526,7 @@ private:
     FIFO_RX_LEVEL = _inbuffer[0];
     #ifdef DIAG_I2CDFplayer
     if (FIFO_RX_LEVEL > 0){
-      DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, RX FIFO Level: 0d%d"), _I2CAddress.toString(), _UART_CH, _inbuffer[0]);
+    //  DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, FIFO_RX_LEVEL: 0d%d"), _I2CAddress.toString(), _UART_CH, _inbuffer[0]);
     }
     #endif   
   }
@@ -506,24 +539,9 @@ private:
     UART_ReadRegister(REG_TXLV);
     FIFO_TX_LEVEL = _inbuffer[0];
     #ifdef DIAG_I2CDFplayer
-      DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, TX FIFO Level: 0d%d"), _I2CAddress.toString(), _UART_CH, FIFO_TX_LEVEL);
+    //  DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, FIFO_TX_LEVEL: 0d%d"), _I2CAddress.toString(), _UART_CH, FIFO_TX_LEVEL);
     #endif 
   }
-
-  // Read from RX FIFO, we know the register REG_RHR
-  void ReceiveI2CData(){
-     //_inbuffer[0] = 0x00;
-    _outbuffer[0] = REG_RHR << 3 | _UART_CH << 1;   
-    //I2CManager.read(_I2CAddress, _inbuffer, FIFO_RX_LEVEL, _outbuffer, 1, &_rb); // inbuffer[] has the data now
-    I2CManager.read(_I2CAddress, _inbuffer, FIFO_RX_LEVEL, _outbuffer, 1); // _inbuffer[] has the data now
-    #ifdef DIAG_I2CDFplayer_data
-      DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, RX FIFO Data"), _I2CAddress.toString(), _UART_CH);
-      for (int i = 0; i < sizeof _inbuffer; i++){
-        DIAG(F("SC16IS752: Data _inbuffer[0x%x]: 0x%x"), i, _inbuffer[i]);  
-      }
-    #endif   
-  }
-
 
 
   //void UART_WriteRegister(I2CAddress _I2CAddress, uint8_t _UART_CH, uint8_t UART_REG, uint8_t Val, I2CRB &_rb){
