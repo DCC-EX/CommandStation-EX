@@ -145,7 +145,7 @@ int * ADCee::analogvals = NULL;
 
 int16_t ADCee::ADCmax()
 {
-    return 1023;
+    return 4095;
 }
 
 AdvancedADC adc;
@@ -155,8 +155,8 @@ int num_active_pins = 4;
 const int samples_per_round = 512;
 int ADCee::init(uint8_t pin) {
   adc.stop();
-  if (pin >= A0 && pin <= A3) adc.begin(AN_RESOLUTION_10, 16000, 1, samples_per_round, num_active_pins, active_pins);
-  else if (pin >= A4 && pin <= A7) adc.begin(AN_RESOLUTION_10, 16000, 1, samples_per_round, num_active_pins, active_pinsB);
+  if (pin >= A0 && pin <= A3) adc.begin(AN_RESOLUTION_12, 16000, 1, samples_per_round, num_active_pins, active_pins);
+  else if (pin >= A4 && pin <= A7) adc.begin(AN_RESOLUTION_12, 16000, 1, samples_per_round, num_active_pins, active_pinsB);
   return 123;
 }
 
