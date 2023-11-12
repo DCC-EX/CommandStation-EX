@@ -120,7 +120,7 @@ private:
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
   
-  unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change xtal frequency to 14.7456Mhz (14745600) to allow for higher baud rates
+  unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change oscillator frequency to 14.7456Mhz (14745600) to allow for higher baud rates
   //unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates
 
 public:
