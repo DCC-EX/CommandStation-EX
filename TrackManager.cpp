@@ -400,46 +400,43 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 void TrackManager::streamTrackState(Print* stream, byte t) {
   // null stream means send to commandDistributor for broadcast
   if (track[t]==NULL) return;
-  auto format=F("");
-  byte pstate = TrackManager::isPowerOn(t) ? 1 : 0;
+  auto format=F("<= %d XXX>\n");
   TRACK_MODE tm = track[t]->getMode();
   if (tm & TRACK_MODE_MAIN) {
     if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c %d MAIN AUTOINV>\n");
+      format=F("<= %c MAIN A>\n");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c %d MAIN INV>\n");
+      format=F("<= %c MAIN I>\n");
     else
-      format=F("<= %c %d MAIN>\n");
+      format=F("<= %c MAIN>\n");
   }
 #ifndef DISABLE_PROG
   else if (tm & TRACK_MODE_PROG)
-    format=F("<= %c %d PROG>\n");
+    format=F("<= %c PROG>\n");
 #endif
   else if (tm & TRACK_MODE_NONE)
-    format=F("<= %c %d NONE>\n");
+    format=F("<= %c NONE>\n");
   else if(tm & TRACK_MODE_EXT)
-    format=F("<= %c %d EXT>\n");
+    format=F("<= %c EXT>\n");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c %d BOOST AUTOINV>\n");
+      format=F("<= %c B A>\n");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c %d BOOST INV>\n");
+      format=F("<= %c B I>\n");
     else
-      format=F("<= %c %d BOOST>\n");
+      format=F("<= %c B>\n");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
-      format=F("<= %c %d DCX %d>\n");
+      format=F("<= %c DCX %d>\n");
     else
-      format=F("<= %c %d DC %d>\n");
+      format=F("<= %c DC %d>\n");
   }
-  else
-    format=F("<= %c %d XXX>\n");
 
   if (stream)
-    StringFormatter::send(stream,format,'A'+t, pstate, trackDCAddr[t]);
+    StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
   else
-    CommandDistributor::broadcastTrackState(format,'A'+t, pstate, trackDCAddr[t]);
+    CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
   
 }
 
