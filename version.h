@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.0"
+#define VERSION "5.2.1"
+// 5.2.1  - Trackmanager rework for simpler structure
 // 5.2.0  - ESP32: Autoreverse and booster mode support
 // 5.1.21 - EXRAIL invoke multiple ON handlers for same event
 // 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
