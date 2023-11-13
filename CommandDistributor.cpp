@@ -248,6 +248,11 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 }
 
 void  CommandDistributor::broadcastPower() {
+  char pstr[] = "? x";
+  for(byte t=0; t<8; t++)
+    if (TrackManager::getPower(t, pstr))
+      broadcastReply(COMMAND_TYPE, F("<p%s>\n"),pstr);
+
   bool main=TrackManager::getMainPower()==POWERMODE::ON;
   bool prog=TrackManager::getProgPower()==POWERMODE::ON;
   bool join=TrackManager::isJoined();

@@ -471,51 +471,48 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 }
 #endif
 
-void TrackManager::setPower2(bool setProg,bool setJoin, POWERMODE mode) {
-    if (!setProg) mainPowerGuess=mode; 
-    FOR_EACH_TRACK(t) {
-
-      TrackManager::setTrackPower(setProg, setJoin, mode, t);
-      
-    }
-    return;
-}
-
-void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack) {
-
-      //DIAG(F("SetTrackPower Processing Track %d"), thistrack);
-      MotorDriver * driver=track[thistrack]; 
-      if (!driver) return; 
-
-      TRACK_MODE tm = track[thistrack]->getMode();
-      if (    (tm & TRACK_MODE_MAIN)
-	  && !setProg ){
-              // toggle brake before turning power on - resets overcurrent error
-              // on the Pololu board if brake is wired to ^D2.
-              // XXX see if we can make this conditional
-              driver->setBrake(true);
-              driver->setBrake(false); // DCC runs with brake off
-              driver->setPower(mode);
-      } else if (    (tm & TRACK_MODE_DC)
-		 && !(setProg || setJoin)){
-	      //DIAG(F("Processing track - %d setProg %d"), thistrack, setProg);
-              driver->setBrake(true); // DC starts with brake on
-              applyDCSpeed(thistrack);        // speed match DCC throttles
-              driver->setPower(mode);
-      } else if (   (tm & TRACK_MODE_PROG)
-		 && (setProg || setJoin) ){
-              driver->setBrake(true);
-              driver->setBrake(false);
-              driver->setPower(mode);
-      } else if (   (tm & TRACK_MODE_EXT)
-		 || (tm & TRACK_MODE_BOOST)){
-              driver->setBrake(true);
-              driver->setBrake(false);
-              driver->setPower(mode);
+// Set track power for all tracks with this mode
+void TrackManager::setTrackPower(TRACK_MODE trackmode, POWERMODE powermode) {
+  FOR_EACH_TRACK(t) {
+    MotorDriver *driver=track[t]; 
+    if (trackmode & driver->getMode()) {
+      if (powermode == POWERMODE::ON) {
+	if (trackmode & TRACK_MODE_DC) {
+	  driver->setBrake(true);   // DC starts with brake on
+	  applyDCSpeed(t);          // speed match DCC throttles
+	} else {
+	  // toggle brake before turning power on - resets overcurrent error
+	  // on the Pololu board if brake is wired to ^D2.
+	  driver->setBrake(true);
+	  driver->setBrake(false); // DCC runs with brake off
+	}
       }
+      driver->setPower(powermode);
+    }
+  }
 }
 
- void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
+// Set track power for this track, inependent of mode
+void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
+  MotorDriver *driver=track[t]; 
+  TRACK_MODE trackmode = driver->getMode();
+  if (trackmode & TRACK_MODE_DC) {
+    if (powermode == POWERMODE::ON) {
+      driver->setBrake(true);   // DC starts with brake on
+      applyDCSpeed(t);          // speed match DCC throttles
+    }
+  } else {
+    if (powermode == POWERMODE::ON) {
+      // toggle brake before turning power on - resets overcurrent error
+      // on the Pololu board if brake is wired to ^D2.
+      driver->setBrake(true);
+      driver->setBrake(false); // DCC runs with brake off
+    }
+  }
+  driver->setPower(powermode);
+}
+
+void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
   // This function is for backward JMRI compatibility only
   // It reports the first track only, as main, regardless of track settings.
   //  <c MeterName value C/V unit min max res warn>
@@ -524,12 +521,38 @@ void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byt
             track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
 }
 
+// returns state of the one and only prog track
 POWERMODE TrackManager::getProgPower() {
-    FOR_EACH_TRACK(t)
-      if (track[t]->getMode() & TRACK_MODE_PROG)
-	  return track[t]->getPower();
-    return POWERMODE::OFF;   
+  FOR_EACH_TRACK(t)
+    if (track[t]->getMode() & TRACK_MODE_PROG)
+      return track[t]->getPower(); // optimize: there is max one prog track
+  return POWERMODE::OFF;   
+}
+
+// returns on if all are on. returns off otherwise
+POWERMODE TrackManager::getMainPower() {
+  POWERMODE result = POWERMODE::OFF;
+  FOR_EACH_TRACK(t) {
+    if (track[t]->getMode() & TRACK_MODE_MAIN) {
+      POWERMODE p = track[t]->getPower();
+      if (p == POWERMODE::OFF)
+	return POWERMODE::OFF; // done and out
+      if (p == POWERMODE::ON)
+	result = POWERMODE::ON;
+    }
   }
+  return result;
+}
+
+bool TrackManager::getPower(byte t, char s[]) {
+  if (track[t]) {
+    s[0] = track[t]->getPower() == POWERMODE::ON ? '1' : '0';
+    s[2] = t + 'A';
+    return true;
+  }
+  return false;
+}
+
 
 void TrackManager::reportObsoleteCurrent(Print* stream) {
   // This function is for backward JMRI compatibility only
