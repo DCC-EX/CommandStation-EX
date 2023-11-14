@@ -81,7 +81,7 @@ bool WifiNINA::setup(const char *SSid,
   uint8_t tries = 40;
 
   // Set up the pins!
-#ifndef GIGA_WIFI
+#if !defined(GIGA_WIFI)
   WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
 #endif
   // check for the WiFi module:
@@ -193,7 +193,6 @@ bool WifiNINA::setup(const char *SSid,
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here
-
   DIAG(F("Server will be started on port %d"),port);
 
   ip = WiFi.localIP();
