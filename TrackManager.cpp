@@ -526,7 +526,7 @@ POWERMODE TrackManager::getProgPower() {
   FOR_EACH_TRACK(t)
     if (track[t]->getMode() & TRACK_MODE_PROG)
       return track[t]->getPower(); // optimize: there is max one prog track
-  return POWERMODE::OFF;   
+  return POWERMODE::OFF;
 }
 
 // returns on if all are on. returns off otherwise
@@ -545,6 +545,8 @@ POWERMODE TrackManager::getMainPower() {
 }
 
 bool TrackManager::getPower(byte t, char s[]) {
+  if (t > lastTrack)
+    return false;
   if (track[t]) {
     s[0] = track[t]->getPower() == POWERMODE::ON ? '1' : '0';
     s[2] = t + 'A';

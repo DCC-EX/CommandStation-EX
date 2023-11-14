@@ -249,7 +249,7 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 
 void  CommandDistributor::broadcastPower() {
   char pstr[] = "? x";
-  for(byte t=0; t<8; t++)
+  for(byte t=0; t<TrackManager::MAX_TRACKS; t++)
     if (TrackManager::getPower(t, pstr))
       broadcastReply(COMMAND_TYPE, F("<p%s>\n"),pstr);
 
