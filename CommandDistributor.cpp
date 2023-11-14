@@ -249,6 +249,11 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 }
 
 void  CommandDistributor::broadcastPower() {
+  char pstr[] = "? x";
+  for(byte t=0; t<TrackManager::MAX_TRACKS; t++)
+    if (TrackManager::getPower(t, pstr))
+      broadcastReply(COMMAND_TYPE, F("<p%s>\n"),pstr);
+
   bool main=TrackManager::getMainPower()==POWERMODE::ON;
   bool prog=TrackManager::getProgPower()==POWERMODE::ON;
   bool join=TrackManager::isJoined();
@@ -271,7 +276,7 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
 }
 
 void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter, int16_t dcAddr) {
-  broadcastReply(COMMAND_TYPE, format,trackLetter, dcAddr);
+  broadcastReply(COMMAND_TYPE, format, trackLetter, dcAddr);
 }
 
 void  CommandDistributor::broadcastRouteState(uint16_t routeId, byte state ) {

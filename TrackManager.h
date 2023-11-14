@@ -62,23 +62,22 @@ class TrackManager {
     static void setDCSignal(int16_t cab, byte speedbyte);
     static MotorDriver * getProgDriver();
 #ifdef ARDUINO_ARCH_ESP32
-  static std::vector<MotorDriver *>getMainDrivers();
+    static std::vector<MotorDriver *>getMainDrivers();
 #endif
   
-    static void setPower2(bool progTrack,bool joinTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
-    static void setMainPower(POWERMODE mode) {setPower2(false,false,mode);}
-    static void setProgPower(POWERMODE mode) {setPower2(true,false,mode);}
-    static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
-    static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
-   
+    static void setTrackPower(POWERMODE mode, byte t);
+    static void setTrackPower(TRACK_MODE trackmode, POWERMODE powermode);
+    static void setMainPower(POWERMODE mode) {setTrackPower(TRACK_MODE_MAIN, mode);}
+    static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
     static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
-    static POWERMODE getMainPower() {return mainPowerGuess;}
+    static POWERMODE getMainPower();
     static POWERMODE getProgPower();
+    static bool getPower(byte t, char s[]);
     static void setJoin(bool join);
     static bool isJoined() { return progTrackSyncMain;}
     static void setJoinRelayPin(byte joinRelayPin);
@@ -112,7 +111,7 @@ class TrackManager {
     static POWERMODE mainPowerGuess;
     static void applyDCSpeed(byte t);
 
-    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
+    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC
 #ifdef ARDUINO_ARCH_ESP32
     static byte tempProgTrack; // holds the prog track number during join
 #endif

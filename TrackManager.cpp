@@ -1,6 +1,6 @@
 /*
  *  © 2022 Chris Harlow
- *  © 2022 Harald Barth
+ *  © 2022,2023 Harald Barth
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -45,6 +45,11 @@ const int16_t HASH_KEYWORD_DC = 2183;
 const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity 
 const int16_t HASH_KEYWORD_EXT = 8201; // External DCC signal
 const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
+const int16_t HASH_KEYWORD_AUTO = -5457;
+#ifdef BOOSTER_INPUT
+const int16_t HASH_KEYWORD_BOOST = 11269;
+#endif
+const int16_t HASH_KEYWORD_INV = 11857;
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackDCAddr[MAX_TRACKS];
@@ -87,7 +92,7 @@ void TrackManager::sampleCurrent() {
   if (!waiting) {
     // look for a valid track to sample or until we are around
     while (true) {
-      if (track[tr]->getMode() & ( TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_DCX|TRACK_MODE_EXT )) {
+      if (track[tr]->getMode() & ( TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_BOOST|TRACK_MODE_EXT )) {
 	track[tr]->startCurrentFromHW();
 	// for scope debug track[1]->setBrake(1);
 	waiting = true;
@@ -197,8 +202,8 @@ void TrackManager::setPROGSignal( bool on) {
 void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab && cab != 0) continue;
-    if (track[t]->getMode()==TRACK_MODE_DC) track[t]->setDCSignal(speedbyte);
-    else if (track[t]->getMode()==TRACK_MODE_DCX) track[t]->setDCSignal(speedbyte ^ 128);
+    if (track[t]->getMode() & TRACK_MODE_DC)
+      track[t]->setDCSignal(speedbyte);
   }
 }    
 
@@ -207,7 +212,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
     //DIAG(F("Track=%c Mode=%d"),trackToSet+'A', mode);
     // DC tracks require a motorDriver that can set brake!
-    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
+    if (mode & TRACK_MODE_DC) {
 #if defined(ARDUINO_AVR_UNO)
       DIAG(F("Uno has no PWM timers available for DC"));
       return false;
@@ -223,21 +228,37 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     pinpair p = track[trackToSet]->getSignalPin();
     //DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
     gpio_reset_pin((gpio_num_t)p.pin);
-    pinMode(p.pin, OUTPUT); // gpio_reset_pin may reset to input
     if (p.invpin != UNUSED_PIN) {
       //DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
       gpio_reset_pin((gpio_num_t)p.invpin);
-      pinMode(p.invpin, OUTPUT); // gpio_reset_pin may reset to input
     }
+#ifdef BOOSTER_INPUT
+    if (mode & TRACK_MODE_BOOST) {
+      //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
+      pinMode(BOOSTER_INPUT, INPUT);
+      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
+      gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
+      if (p.invpin != UNUSED_PIN) {
+	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
+      }
+    } else // elseif clause continues
+#endif
+    if (mode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_DC)) {
+      // gpio_reset_pin may reset to input
+      pinMode(p.pin, OUTPUT);
+      if (p.invpin != UNUSED_PIN)
+	pinMode(p.invpin, OUTPUT);
+    }
+
 #endif
 #ifndef DISABLE_PROG
-    if (mode==TRACK_MODE_PROG) {
+    if (mode & TRACK_MODE_PROG) {
 #else
     if (false) {
 #endif
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
-	if (track[t]->getMode()==TRACK_MODE_PROG && t != trackToSet) {
+	if ( (track[t]->getMode() & TRACK_MODE_PROG) && t != trackToSet) {
 	  track[t]->setPower(POWERMODE::OFF);
 	  track[t]->setMode(TRACK_MODE_NONE);
 	  track[t]->makeProgTrack(false);     // revoke prog track special handling
@@ -255,16 +276,20 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     // state, otherwise trains run away or just dont move.
 
     // This can be done BEFORE the PWM-Timer evaluation (methinks)
-    if (!(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)) {
+    if (!(mode & TRACK_MODE_DC)) {
       // DCC tracks need to have set the PWM to zero or they will not work.
       track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);
     }
 
-    // EXT is a special case where the signal pin is
-    // turned off. So unless that is set, the signal
-    // pin should be turned on
-    track[trackToSet]->enableSignal(mode != TRACK_MODE_EXT);
+    // BOOST:
+    //  Leave it as is
+    // otherwise:
+    //  EXT is a special case where the signal pin is
+    //  turned off. So unless that is set, the signal
+    //  pin should be turned on
+    if (!(mode & TRACK_MODE_BOOST))
+      track[trackToSet]->enableSignal(!(mode & TRACK_MODE_EXT));
 
 #ifndef ARDUINO_ARCH_ESP32
     // re-evaluate HighAccuracy mode
@@ -274,7 +299,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       // DC tracks must not have the DCC PWM switched on
       // so we globally turn it off if one of the PWM
       // capable tracks is now DC or DCX.
-      if (track[t]->getMode()==TRACK_MODE_DC || track[t]->getMode()==TRACK_MODE_DCX) {
+      if (track[t]->getMode() & TRACK_MODE_DC) {
 	if (track[t]->isPWMCapable()) {
 	  canDo=false;    // this track is capable but can not run PWM
 	  break;          // in this mode, so abort and prevent globally below
@@ -282,7 +307,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	  track[t]->trackPWM=false; // this track sure can not run with PWM
 	  //DIAG(F("Track %c trackPWM 0 (not capable)"), t+'A');
 	}
-      } else if (track[t]->getMode()==TRACK_MODE_MAIN || track[t]->getMode()==TRACK_MODE_PROG) {
+      } else if (track[t]->getMode() & (TRACK_MODE_MAIN |TRACK_MODE_PROG)) {
 	track[t]->trackPWM = track[t]->isPWMCapable(); // trackPWM is still a guess here
 	//DIAG(F("Track %c trackPWM %d"), t+'A', track[t]->trackPWM);
 	canDo &= track[t]->trackPWM;
@@ -300,10 +325,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #else
     // For ESP32 we just reinitialize the DCC Waveform
     DCCWaveform::begin();
+    // setMode() again AFTER Waveform::begin() of ESP32 fixes INVERTED signal
+    track[trackToSet]->setMode(mode);
 #endif
 
     // This block must be AFTER the PWM-Timer modifications
-    if (mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) {
+    if (mode & TRACK_MODE_DC) {
         // DC tracks need to be given speed of the throttle for that cab address
         // otherwise will not match other tracks on same cab.
         // This also needs to allow for inverted DCX
@@ -312,7 +339,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
     // Normal running tracks are set to the global power state 
     track[trackToSet]->setPower(
-        (mode==TRACK_MODE_MAIN || mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX || mode==TRACK_MODE_EXT) ?
+      (mode & (TRACK_MODE_MAIN | TRACK_MODE_DC | TRACK_MODE_EXT | TRACK_MODE_BOOST)) ?
         mainPowerGuess : POWERMODE::OFF);
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
@@ -320,8 +347,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 
 void TrackManager::applyDCSpeed(byte t) {
   uint8_t speedByte=DCC::getThrottleSpeedByte(trackDCAddr[t]);
-  if (track[t]->getMode()==TRACK_MODE_DCX)
-    speedByte = speedByte ^ 128; // reverse direction bit
   track[t]->setDCSignal(speedByte);
 }
 
@@ -353,12 +378,21 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 
     if (params==2  && p[1]==HASH_KEYWORD_EXT) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
+#ifdef BOOSTER_INPUT
+    if (params==2  && p[1]==HASH_KEYWORD_BOOST) // <= id BOOST>
+        return setTrackMode(p[0],TRACK_MODE_BOOST);
+#endif
+    if (params==2  && p[1]==HASH_KEYWORD_AUTO) // <= id AUTO>
+      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
+
+    if (params==2  && p[1]==HASH_KEYWORD_INV) // <= id AUTO>
+      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_INV);
 
     if (params==3  && p[1]==HASH_KEYWORD_DC && p[2]>0) // <= id DC cab>
         return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
     
     if (params==3  && p[1]==HASH_KEYWORD_DCX && p[2]>0) // <= id DCX cab>
-        return setTrackMode(p[0],TRACK_MODE_DCX,p[2]);
+        return setTrackMode(p[0],TRACK_MODE_DC|TRACK_MODE_INV,p[2]);
 
     return false;
 }
@@ -366,36 +400,43 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
 void TrackManager::streamTrackState(Print* stream, byte t) {
   // null stream means send to commandDistributor for broadcast
   if (track[t]==NULL) return;
-  auto format=F("");
-  bool pstate = TrackManager::isPowerOn(t);
-  
-  switch(track[t]->getMode()) {
-  case TRACK_MODE_MAIN:
-      if (pstate) {format=F("<= %c MAIN ON>\n");} else {format = F("<= %c MAIN OFF>\n");}
-      break;
+  auto format=F("<= %d XXX>\n");
+  TRACK_MODE tm = track[t]->getMode();
+  if (tm & TRACK_MODE_MAIN) {
+    if(tm & TRACK_MODE_AUTOINV)
+      format=F("<= %c MAIN A>\n");
+    else if (tm & TRACK_MODE_INV)
+      format=F("<= %c MAIN I>\n");
+    else
+      format=F("<= %c MAIN>\n");
+  }
 #ifndef DISABLE_PROG
-  case TRACK_MODE_PROG:
-      if (pstate) {format=F("<= %c PROG ON>\n");} else {format=F("<= %c PROG OFF>\n");}
-      break;
+  else if (tm & TRACK_MODE_PROG)
+    format=F("<= %c PROG>\n");
 #endif
-  case TRACK_MODE_NONE:
-      if (pstate) {format=F("<= %c NONE ON>\n");} else {format=F("<= %c NONE OFF>\n");}
-      break;
-  case TRACK_MODE_EXT:
-      if (pstate) {format=F("<= %c EXT ON>\n");} else {format=F("<= %c EXT OFF>\n");}
-      break;
-  case TRACK_MODE_DC:
-      if (pstate) {format=F("<= %c DC %d ON>\n");} else {format=F("<= %c DC %d OFF>\n");}
-      break;
-  case TRACK_MODE_DCX:
-      if (pstate) {format=F("<= %c DCX %d ON>\n");} else {format=F("<= %c DCX %d OFF>\n");}
-      break;
-  default:
-      break; // unknown, dont care    
+  else if (tm & TRACK_MODE_NONE)
+    format=F("<= %c NONE>\n");
+  else if(tm & TRACK_MODE_EXT)
+    format=F("<= %c EXT>\n");
+  else if(tm & TRACK_MODE_BOOST) {
+        if(tm & TRACK_MODE_AUTOINV)
+      format=F("<= %c B A>\n");
+    else if (tm & TRACK_MODE_INV)
+      format=F("<= %c B I>\n");
+    else
+      format=F("<= %c B>\n");
+  }
+  else if (tm & TRACK_MODE_DC) {
+    if (tm & TRACK_MODE_INV)
+      format=F("<= %c DCX %d>\n");
+    else
+      format=F("<= %c DC %d>\n");
   }
 
-  if (stream) StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);   
-    else CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
+  if (stream)
+    StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
+  else
+    CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
   
 }
 
@@ -411,13 +452,13 @@ void TrackManager::loop() {
     if (nextCycleTrack>lastTrack) nextCycleTrack=0;
     if (track[nextCycleTrack]==NULL) return;
     MotorDriver * motorDriver=track[nextCycleTrack];
-    bool useProgLimit=dontLimitProg? false: track[nextCycleTrack]->getMode()==TRACK_MODE_PROG;
+    bool useProgLimit=dontLimitProg ? false : (bool)(track[nextCycleTrack]->getMode() & TRACK_MODE_PROG);
     motorDriver->checkPowerOverload(useProgLimit, nextCycleTrack);   
 }
 
 MotorDriver * TrackManager::getProgDriver() {
     FOR_EACH_TRACK(t)
-      if (track[t]->getMode()==TRACK_MODE_PROG) return track[t];
+      if (track[t]->getMode() & TRACK_MODE_PROG) return track[t];
     return NULL;
 } 
 
@@ -425,63 +466,53 @@ MotorDriver * TrackManager::getProgDriver() {
 std::vector<MotorDriver *>TrackManager::getMainDrivers() {
   std::vector<MotorDriver *>  v;
   FOR_EACH_TRACK(t)
-    if (track[t]->getMode()==TRACK_MODE_MAIN) v.push_back(track[t]);
+    if (track[t]->getMode() & TRACK_MODE_MAIN) v.push_back(track[t]);
   return v;
 }
 #endif
 
-void TrackManager::setPower2(bool setProg,bool setJoin, POWERMODE mode) {
-    if (!setProg) mainPowerGuess=mode; 
-    FOR_EACH_TRACK(t) {
-
-      TrackManager::setTrackPower(setProg, setJoin, mode, t);
-      
+// Set track power for all tracks with this mode
+void TrackManager::setTrackPower(TRACK_MODE trackmode, POWERMODE powermode) {
+  FOR_EACH_TRACK(t) {
+    MotorDriver *driver=track[t]; 
+    if (trackmode & driver->getMode()) {
+      if (powermode == POWERMODE::ON) {
+	if (trackmode & TRACK_MODE_DC) {
+	  driver->setBrake(true);   // DC starts with brake on
+	  applyDCSpeed(t);          // speed match DCC throttles
+	} else {
+	  // toggle brake before turning power on - resets overcurrent error
+	  // on the Pololu board if brake is wired to ^D2.
+	  driver->setBrake(true);
+	  driver->setBrake(false); // DCC runs with brake off
+	}
+      }
+      driver->setPower(powermode);
     }
-    return;
+  }
 }
 
-void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack) {
+// Set track power for this track, inependent of mode
+void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
+  MotorDriver *driver=track[t]; 
+  TRACK_MODE trackmode = driver->getMode();
+  if (trackmode & TRACK_MODE_DC) {
+    if (powermode == POWERMODE::ON) {
+      driver->setBrake(true);   // DC starts with brake on
+      applyDCSpeed(t);          // speed match DCC throttles
+    }
+  } else {
+    if (powermode == POWERMODE::ON) {
+      // toggle brake before turning power on - resets overcurrent error
+      // on the Pololu board if brake is wired to ^D2.
+      driver->setBrake(true);
+      driver->setBrake(false); // DCC runs with brake off
+    }
+  }
+  driver->setPower(powermode);
+}
 
-      //DIAG(F("SetTrackPower Processing Track %d"), thistrack);
-      MotorDriver * driver=track[thistrack]; 
-      if (!driver) return; 
-
-      switch (track[thistrack]->getMode()) {
-          case TRACK_MODE_MAIN:
-              if (setProg) break; 
-              // toggle brake before turning power on - resets overcurrent error
-              // on the Pololu board if brake is wired to ^D2.
-              // XXX see if we can make this conditional
-              driver->setBrake(true);
-              driver->setBrake(false); // DCC runs with brake off
-              driver->setPower(mode);  
-              break; 
-          case TRACK_MODE_DC:
-          case TRACK_MODE_DCX:
-              //DIAG(F("Processing track - %d setProg %d"), thistrack, setProg);
-              if (setProg || setJoin)  break; 
-              driver->setBrake(true); // DC starts with brake on
-              applyDCSpeed(thistrack);        // speed match DCC throttles
-              driver->setPower(mode);
-              break;  
-          case TRACK_MODE_PROG:
-              if (!setProg && !setJoin) break; 
-              driver->setBrake(true);
-              driver->setBrake(false);
-              driver->setPower(mode);
-              break;  
-          case TRACK_MODE_EXT:
-              driver->setBrake(true);
-              driver->setBrake(false);
-              driver->setPower(mode);
-        break;
-          case TRACK_MODE_NONE:
-              break;
-        }
-
- }
-
- void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
+void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
   // This function is for backward JMRI compatibility only
   // It reports the first track only, as main, regardless of track settings.
   //  <c MeterName value C/V unit min max res warn>
@@ -490,12 +521,40 @@ void TrackManager::setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byt
             track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
 }
 
+// returns state of the one and only prog track
 POWERMODE TrackManager::getProgPower() {
-    FOR_EACH_TRACK(t)
-      if (track[t]->getMode()==TRACK_MODE_PROG) 
-	  return track[t]->getPower();
-    return POWERMODE::OFF;   
+  FOR_EACH_TRACK(t)
+    if (track[t]->getMode() & TRACK_MODE_PROG)
+      return track[t]->getPower(); // optimize: there is max one prog track
+  return POWERMODE::OFF;
+}
+
+// returns on if all are on. returns off otherwise
+POWERMODE TrackManager::getMainPower() {
+  POWERMODE result = POWERMODE::OFF;
+  FOR_EACH_TRACK(t) {
+    if (track[t]->getMode() & TRACK_MODE_MAIN) {
+      POWERMODE p = track[t]->getPower();
+      if (p == POWERMODE::OFF)
+	return POWERMODE::OFF; // done and out
+      if (p == POWERMODE::ON)
+	result = POWERMODE::ON;
+    }
   }
+  return result;
+}
+
+bool TrackManager::getPower(byte t, char s[]) {
+  if (t > lastTrack)
+    return false;
+  if (track[t]) {
+    s[0] = track[t]->getPower() == POWERMODE::ON ? '1' : '0';
+    s[2] = t + 'A';
+    return true;
+  }
+  return false;
+}
+
 
 void TrackManager::reportObsoleteCurrent(Print* stream) {
   // This function is for backward JMRI compatibility only
@@ -537,7 +596,7 @@ void TrackManager::setJoin(bool joined) {
 #ifdef ARDUINO_ARCH_ESP32
   if (joined) {
     FOR_EACH_TRACK(t) {
-      if (track[t]->getMode()==TRACK_MODE_PROG) {
+      if (track[t]->getMode() & TRACK_MODE_PROG) {
 	tempProgTrack = t;
 	setTrackMode(t, TRACK_MODE_MAIN);
 	break;
@@ -566,7 +625,7 @@ bool TrackManager::isPowerOn(byte t) {
   }
 
 bool TrackManager::isProg(byte t) {
-    if (track[t]->getMode()==TRACK_MODE_PROG)
+    if (track[t]->getMode() & TRACK_MODE_PROG)
         return true;
     return false;
 }

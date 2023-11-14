@@ -636,10 +636,10 @@ void RMFT2::loop2() {
         //byte thistrack=getOperand(1);
         switch (operand) {
           case TRACK_POWER_0:
-            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::OFF, getOperand(1));
+            TrackManager::setTrackPower(POWERMODE::OFF, getOperand(1));
           break;
           case TRACK_POWER_1:
-            TrackManager::setTrackPower(TrackManager::isProg(getOperand(1)), false, POWERMODE::ON, getOperand(1));
+            TrackManager::setTrackPower(POWERMODE::ON, getOperand(1));
           break;
         }
 
@@ -650,7 +650,7 @@ void RMFT2::loop2() {
       // If DC/DCX use  my loco for DC address 
       {
         TRACK_MODE mode = (TRACK_MODE)(operand>>8);
-        int16_t cab=(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX) ? loco : 0;
+        int16_t cab=(mode & TRACK_MODE_DC) ? loco : 0;
         TrackManager::setTrackMode(operand & 0x0F, mode, cab);
       }
       break; 
