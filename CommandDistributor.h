@@ -60,8 +60,15 @@ public :
   static void forget(byte clientId);
   static void broadcastRouteState(uint16_t routeId,byte state);
   static void broadcastRouteCaption(uint16_t routeId,const FSH * caption);
-
   
+  // Handling code for virtual LCD receiver.
+  static Print * getVirtualLCDSerial(byte screen, byte row);
+  static void commitVirtualLCDSerial();
+  static void setVirtualLCDSerial(Print * stream); 
+  private:
+    static Print * virtualLCDSerial;
+    static byte virtualLCDClient;
+    static byte rememberVLCDClient;
 };
 
 #endif

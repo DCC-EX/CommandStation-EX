@@ -19,6 +19,7 @@
 #include "StringFormatter.h"
 #include <stdarg.h>
 #include "DisplayInterface.h"
+#include "CommandDistributor.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -45,6 +46,14 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   send2(&USB_SERIAL,input,args);
   send(&USB_SERIAL,F(" *>\n"));
   
+  // send to virtual LCD collector (if any) 
+  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(0,row);
+  if (virtualLCD) {
+    va_start(args, input);
+    send2(virtualLCD,input,args);
+    CommandDistributor::commitVirtualLCDSerial();
+  }
+
   DisplayInterface::setRow(row);    
   va_start(args, input);
   send2(DisplayInterface::getDisplayHandler(),input,args);
@@ -52,6 +61,14 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
 
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
+  
+   // send to virtual LCD collector (if any) 
+  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(display,row);
+  if (virtualLCD) {
+    va_start(args, input);
+    send2(virtualLCD,input,args);
+    CommandDistributor::commitVirtualLCDSerial();
+  }
 
   DisplayInterface::setRow(display, row);    
   va_start(args, input);

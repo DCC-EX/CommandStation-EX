@@ -724,7 +724,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 #endif
-    case '=': // TACK MANAGER CONTROL <= [params]>
+    case '=': // TRACK MANAGER CONTROL <= [params]>
         if (TrackManager::parseJ(stream, params, p))
             return;
         break;
@@ -896,6 +896,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
+
+    case '@': // JMRI saying "give me virtual LCD msgs"
+        CommandDistributor::setVirtualLCDSerial(stream);
+        return; 
 
     default: //anything else will diagnose and drop out to <X>
         DIAG(F("Opcode=%c params=%d"), opcode, params);
