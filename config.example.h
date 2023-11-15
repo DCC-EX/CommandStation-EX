@@ -167,6 +167,14 @@ The configuration file for DCC-EX Command Station
 //  *  #define SCROLLMODE 2 is by row (move up 1 row at a time).
 #define SCROLLMODE 1
 
+// In order to avoid wasting memory the current scroll buffer is limited
+// to 8 lines.  Some users wishing to display additional information
+// such as TrackManager power states have requested additional rows aware
+// of the warning that this will take extra RAM.  if you wish to include additional rows
+// uncomment the following #define and set the number of lines you need.
+//#define MAX_CHARACTER_ROWS 12
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE EEPROM
 //
