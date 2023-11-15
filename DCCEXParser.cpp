@@ -210,8 +210,10 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
         case 1: // skipping spaces before a param
             if (hot == ' ')
                 break;
-            if (hot == '\0' || hot == '>')
-                return parameterCount;
+            if (hot == '\0')
+	      return -1;
+	    if (hot == '>')
+	      return parameterCount;
             state = 2;
             continue;
 
@@ -304,14 +306,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif
+    byte params = 0;
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte opcode = com[0];
-    byte params = splitValues(p, com, opcode=='M' || opcode=='P');
-    
+    int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
+    if (splitnum < 0 || splitnum >= MAX_COMMAND_PARAMS) // if arguments are broken, leave but via printing <X>
+      goto out;
+    // Because of check above we are now inside byte size
+    params = splitnum;
+
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
     if (filterRMFTCallback && opcode!='\0')
@@ -833,14 +840,18 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break; // Will <X> if not intercepted by EXRAIL 
 
     default: //anything else will diagnose and drop out to <X>
+      if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
             DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
-        break;
+      } else {
+	DIAG(F("Unprintable %x"), opcode);
+      }
+      break;
 
     } // end of opcode switch
 
-    // Any fallout here sends an <X>
+out:// Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
 }
 
