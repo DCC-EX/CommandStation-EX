@@ -234,7 +234,7 @@ void WifiNINA::checkForLostClients() {
       DIAG(F("Remove client %d"), clientId);
       CommandDistributor::forget(clientId);
       //delete c; //TJF: this causes a crash when client drops.. commenting out for now.
-      clients[clientId]=nullptr; // TJF: what to do... what to do...
+      clients[clientId]=nullptr;
     }
   }
 }
