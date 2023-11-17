@@ -108,6 +108,8 @@ void exrailHalSetup() {
 #define ROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
 #undef ROUTE_HIDDEN
 #define ROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef ROUTE_DISABLED
+#define ROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
 
@@ -457,6 +459,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
 #define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
 #define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
+#define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
 #define ROUTE_CAPTION(id,caption) PRINT(caption)
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 

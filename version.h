@@ -4,6 +4,8 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.2.3"
+// 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
+//        - Added ROUTE_DISABLED macro in EXRAIL
 // 5.2.3  - Bugfix: Catch stange input to parser
 // 5.2.2  - Added option to allow MAX_CHARACTER_ROWS to be defined in config.h
 // 5.2.1  - Trackmanager rework for simpler structure

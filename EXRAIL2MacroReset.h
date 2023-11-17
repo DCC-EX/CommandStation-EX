@@ -129,6 +129,7 @@
 #undef ROUTE_ACTIVE
 #undef ROUTE_INACTIVE
 #undef ROUTE_HIDDEN
+#undef ROUTE_DISABLED
 #undef ROUTE_CAPTION
 #undef SENDLOCO 
 #undef SEQUENCE 
@@ -274,6 +275,7 @@
 #define ROUTE_ACTIVE(id)
 #define ROUTE_INACTIVE(id)
 #define ROUTE_HIDDEN(id)
+#define ROUTE_DISABLED(id)
 #define ROUTE_CAPTION(id,caption)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 
