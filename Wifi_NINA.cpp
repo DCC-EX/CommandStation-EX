@@ -249,7 +249,7 @@ void WifiNINA::checkForClientInput() {
           // read data from client
           byte cmd[len+1];
           for(int i=0; i<len; i++) cmd[i]=c->read();
-          cmd[len]=0;
+          cmd[len]=0x00;
           CommandDistributor::parse(clientId,cmd,outboundRing);
         }
       }
@@ -275,6 +275,7 @@ void WifiNINA::checkForClientOutput() {
   //TJF: the old code had to add a 0x00 byte to the end to terminate the
   //TJF: c string, before sending it. i take it this is not needed?
   for (int i=0;i<replySize;i++) c->write(outboundRing->read());
+  //c->write((byte)0x00);
 }
 
 void WifiNINA::loop() {
