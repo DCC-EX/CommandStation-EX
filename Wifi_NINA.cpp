@@ -219,7 +219,7 @@ void WifiNINA::checkForNewClient() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
       clients[clientId]= new WiFiClient(newClient); // use this slot
-      clients[clientId]->flush(); // clear out the input buffer
+      ///clients[clientId]->flush(); // clear out the input buffer
       DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
       return;
     }
