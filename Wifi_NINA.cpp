@@ -122,6 +122,8 @@ bool WifiNINA::setup(const char *SSid,
       DIAG(F("Forcing one more Wifi restart"));
       // esp_wifi_start();
       // esp_wifi_connect();
+      WiFi.end();
+      WiFi.begin(SSid, password);
       tries=40;
       while (WiFi.status() != WL_CONNECTED && tries) {
         Serial.print('.');
@@ -219,7 +221,7 @@ void WifiNINA::checkForNewClient() {
   for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
     if (!clients[clientId]) {
       clients[clientId]= new WiFiClient(newClient); // use this slot
-      DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
+      //DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
       return;
     }
   }
@@ -230,7 +232,7 @@ void WifiNINA::checkForLostClients() {
     auto c=clients[clientId];
     if(c && !c->connected()) {
       clients[clientId]->stop();
-      DIAG(F("Remove client %d"), clientId);
+      //DIAG(F("Remove client %d"), clientId);
       CommandDistributor::forget(clientId);
       clients[clientId]=nullptr;
     }
@@ -264,7 +266,7 @@ void WifiNINA::checkForClientOutput() {
   if (!c) {
     // client is gone, throw away msg
     for (int i=0;i<replySize;i++) outboundRing->read();
-    DIAG(F("gone, drop message.")); //TJF: only for diag
+    //DIAG(F("gone, drop message.")); //TJF: only for diag
     return;
   }
   // emit data to the client object
