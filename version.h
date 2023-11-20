@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.3"
+#define VERSION "5.2.5"
+// 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
 // 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
 //        - Added ROUTE_DISABLED macro in EXRAIL
 // 5.2.3  - Bugfix: Catch stange input to parser
