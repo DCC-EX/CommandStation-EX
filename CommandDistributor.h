@@ -59,6 +59,14 @@ public :
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
   
+    // Handling code for virtual LCD receiver.
+  static Print * getVirtualLCDSerial(byte screen, byte row);
+  static void commitVirtualLCDSerial();
+  static void setVirtualLCDSerial(Print * stream); 
+  private:
+    static Print * virtualLCDSerial;
+    static byte virtualLCDClient;
+    static byte rememberVLCDClient;
 };
 
 #endif

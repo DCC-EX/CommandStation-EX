@@ -272,3 +272,50 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
 void CommandDistributor::broadcastTrackState(const FSH* format,byte trackLetter, int16_t dcAddr) {
   broadcastReply(COMMAND_TYPE, format,trackLetter, dcAddr);
 }
+
+Print * CommandDistributor::getVirtualLCDSerial(byte screen, byte row) {
+  Print * stream=virtualLCDSerial;
+  #ifdef  CD_HANDLE_RING
+  rememberVLCDClient=RingStream::NO_CLIENT;
+  if (!stream && virtualLCDClient!=RingStream::NO_CLIENT) {
+    // If we are broadcasting from a wifi/eth process we need to complete its output
+    // before merging broadcasts in the ring, then reinstate it in case
+    // the process continues to output to its client.
+    if ((rememberVLCDClient = ring->peekTargetMark()) != RingStream::NO_CLIENT) {
+      ring->commit();
+    }
+    ring->mark(virtualLCDClient);   
+    stream=ring; 
+  }
+  #endif
+  if (stream) StringFormatter::send(stream,F("<@ %d %d \""), screen,row);
+  return stream;  
+}
+
+void CommandDistributor::commitVirtualLCDSerial() {
+  #ifdef  CD_HANDLE_RING
+  if (virtualLCDClient!=RingStream::NO_CLIENT) {
+    StringFormatter::send(ring,F("\">\n"));
+    ring->commit();
+    if (rememberVLCDClient!=RingStream::NO_CLIENT) ring->mark(rememberVLCDClient);
+    return;  
+   }
+  #endif
+  StringFormatter::send(virtualLCDSerial,F("\">\n"));  
+}
+
+void CommandDistributor::setVirtualLCDSerial(Print * stream) {
+  #ifdef  CD_HANDLE_RING
+  virtualLCDClient=RingStream::NO_CLIENT;
+  if (stream && stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM) {
+     virtualLCDClient=((RingStream *) stream)->peekTargetMark();
+     virtualLCDSerial=nullptr;
+     return;
+  }      
+    #endif
+  virtualLCDSerial=stream;
+}
+
+Print* CommandDistributor::virtualLCDSerial=nullptr;
+byte CommandDistributor::virtualLCDClient=0xFF;
+byte CommandDistributor::rememberVLCDClient=0;
