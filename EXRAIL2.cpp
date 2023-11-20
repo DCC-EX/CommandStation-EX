@@ -932,6 +932,9 @@ void RMFT2::loop2() {
   case OPCODE_ROUTE_ACTIVE:
     manageRouteState(operand,1);
     break;   
+  case OPCODE_ROUTE_DISABLED:
+    manageRouteState(operand,4);
+    break;   
   
   case OPCODE_ROUTE:
   case OPCODE_AUTOMATION:

@@ -39,15 +39,18 @@ void StringFormatter::diag( const FSH* input...) {
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
-
+  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(0,row);
+  
   // Issue the LCD as a diag first
-  send(&USB_SERIAL,F("<* LCD%d:"),row);
-  va_start(args, input);
-  send2(&USB_SERIAL,input,args);
-  send(&USB_SERIAL,F(" *>\n"));
+  // Unless the same serial is asking for the virtual @ respomnse
+  if (virtualLCD!=&USB_SERIAL) {
+    send(&USB_SERIAL,F("<* LCD%d:"),row);
+    va_start(args, input);
+    send2(&USB_SERIAL,input,args);
+    send(&USB_SERIAL,F(" *>\n"));
+  }
   
   // send to virtual LCD collector (if any) 
-  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(0,row);
   if (virtualLCD) {
     va_start(args, input);
     send2(virtualLCD,input,args);

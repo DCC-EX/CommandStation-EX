@@ -69,6 +69,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ONOVERLOAD,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
+             OPCODE_ROUTE_DISABLED,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group

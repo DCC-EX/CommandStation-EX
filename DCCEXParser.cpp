@@ -115,6 +115,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
 #include "Turntables.h"
+#include "version.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -841,6 +842,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case '@': // JMRI saying "give me virtual LCD msgs"
         CommandDistributor::setVirtualLCDSerial(stream);
+        StringFormatter::send(stream,
+            F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
+               "<@ 0 1 \"Lic GPLv3\">\n"));
         return; 
 
     default: //anything else will diagnose and drop out to <X>
