@@ -472,12 +472,13 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 #endif
 
 // Set track power for all tracks with this mode
-void TrackManager::setTrackPower(TRACK_MODE trackmode, POWERMODE powermode) {
+void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermode) {
   FOR_EACH_TRACK(t) {
-    MotorDriver *driver=track[t]; 
-    if (trackmode & driver->getMode()) {
+    MotorDriver *driver=track[t];
+    TRACK_MODE trackmodeOfTrack = driver->getMode();
+    if (trackmodeToMatch & trackmodeOfTrack) {
       if (powermode == POWERMODE::ON) {
-	if (trackmode & TRACK_MODE_DC) {
+	if (trackmodeOfTrack & TRACK_MODE_DC) {
 	  driver->setBrake(true);   // DC starts with brake on
 	  applyDCSpeed(t);          // speed match DCC throttles
 	} else {
