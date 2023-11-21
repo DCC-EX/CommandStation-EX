@@ -43,7 +43,11 @@ const uint16_t LONG_ADDR_MARKER = 0x4000;
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 #if defined(HAS_ENOUGH_MEMORY)
+#if defined(ARDUINO_GIGA) // yes giga
+const byte MAX_LOCOS = 100;
+#else // no giga
 const byte MAX_LOCOS = 50;
+#endif // giga
 #else
 const byte MAX_LOCOS = 30;
 #endif

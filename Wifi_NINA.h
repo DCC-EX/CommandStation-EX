@@ -35,8 +35,12 @@ public:
 		    const char *hostname,
 		    const int port,
 		    const byte channel,
-			const bool forceAP);
+				const bool forceAP);
   static void loop();
 private:
+	static void checkForNewClient();
+	static void checkForLostClients();
+	static void checkForClientInput();
+	static void checkForClientOutput();
 };
 #endif //WifiNINA_h
