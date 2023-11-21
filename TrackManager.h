@@ -91,7 +91,7 @@ class TrackManager {
     static bool isProg(byte t);
     static byte returnMode(byte t);
     static int16_t returnDCAddr(byte t);
-    static const char* getModeName(byte Mode);
+    static const FSH* getModeName(TRACK_MODE Mode);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main

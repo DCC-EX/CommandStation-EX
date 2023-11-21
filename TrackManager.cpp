@@ -397,46 +397,58 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     return false;
 }
 
-// null stream means send to commandDistributor for broadcast
-void TrackManager::streamTrackState(Print* stream, byte t) {
-  if (track[t]==NULL) return;
-  auto format=F("<= %d XXX>\n");
-  TRACK_MODE tm = track[t]->getMode();
+const FSH* TrackManager::getModeName(TRACK_MODE tm) {
+  const FSH *modename=F("---");
+  
   if (tm & TRACK_MODE_MAIN) {
     if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c MAIN A>\n");
+      modename=F("MAIN A");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c MAIN I>\n");
+      modename=F("MAIN I>\n");
     else
-      format=F("<= %c MAIN>\n");
+      modename=F("MAIN");
   }
 #ifndef DISABLE_PROG
   else if (tm & TRACK_MODE_PROG)
-    format=F("<= %c PROG>\n");
+    modename=F("PROG");
 #endif
   else if (tm & TRACK_MODE_NONE)
-    format=F("<= %c NONE>\n");
+    modename=F("NONE");
   else if(tm & TRACK_MODE_EXT)
-    format=F("<= %c EXT>\n");
+    modename=F("EXT");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      format=F("<= %c B A>\n");
+      modename=F("B A");
     else if (tm & TRACK_MODE_INV)
-      format=F("<= %c B I>\n");
+      modename=F("B I");
     else
-      format=F("<= %c B>\n");
+      modename=F("B");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
-      format=F("<= %c DCX %d>\n");
+      modename=F("DCX");
     else
-      format=F("<= %c DC %d>\n");
+      modename=F("DC");
   }
+  return modename;
+}
 
+// null stream means send to commandDistributor for broadcast
+void TrackManager::streamTrackState(Print* stream, byte t) {
+  const FSH *format;
+  
+  if (track[t]==NULL) return;
+  TRACK_MODE tm = track[t]->getMode();
+  if (tm & TRACK_MODE_DC)
+    format=F("<= %c %S %d>\n");
+  else
+    format=F("<= %c %S>\n");
+
+  const FSH *modename=getModeName(tm);
   if (stream) {  // null stream means send to commandDistributor for broadcast
-    StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
+    StringFormatter::send(stream,format,'A'+t, modename, trackDCAddr[t]);
   } else {
-    CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
+    CommandDistributor::broadcastTrackState(format,'A'+t, modename, trackDCAddr[t]);
     CommandDistributor::broadcastPower();
   }
   
@@ -641,18 +653,3 @@ int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
 }
 
-const char* TrackManager::getModeName(byte Mode) {
-  
-  //DIAG(F("PowerMode %d"), Mode);
-
-switch (Mode)
-  {
-  case 1: return "NONE";
-  case 2: return "MAIN";
-  case 4: return "PROG";
-  case 8: return "DC";
-  case 16: return "DCX";
-  case 32: return "EXT";
-  default: return "----";
-  }
-}
