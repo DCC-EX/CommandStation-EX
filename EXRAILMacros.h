@@ -121,7 +121,7 @@ const byte RMFT2::compileFeatures = 0
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) id,
-const int16_t HIGHFLASH RMFT2::routeIdList[]= {
+const int16_t HIGHFLASH  RMFT2::routeIdList[]= {
     #include "myAutomation.h"
     INT16_MAX};
 // Pass 2a create throttle automation list 
@@ -503,7 +503,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
-const  HIGHFLASH  byte RMFT2::RouteCode[] = {
+const  HIGHFLASH3  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
     OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 
