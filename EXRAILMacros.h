@@ -121,14 +121,14 @@ const byte RMFT2::compileFeatures = 0
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) id,
-const int16_t HIGHFLASH const RMFT2::routeIdList[]= {
+const int16_t HIGHFLASH RMFT2::routeIdList[]= {
     #include "myAutomation.h"
     INT16_MAX};
 // Pass 2a create throttle automation list 
 #include "EXRAIL2MacroReset.h"
 #undef AUTOMATION
 #define AUTOMATION(id, description) id,
-const int16_t HIGHFLASH const RMFT2::automationIdList[]= {
+const int16_t HIGHFLASH RMFT2::automationIdList[]= {
     #include "myAutomation.h"
     INT16_MAX};
 
@@ -150,7 +150,7 @@ const FSH * RMFT2::getRouteDescription(int16_t id) {
 const int StringMacroTracker1=__COUNTER__;
 #define THRUNGE(msg,mode) \
      case (__COUNTER__ - StringMacroTracker1) : {\
-         static const char HIGHFLASH const thrunge[]=msg;\
+         static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=mode;\
          break;\
@@ -186,7 +186,7 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #undef LCD
 #define LCD(id,msg)  \
      case (__COUNTER__ - StringMacroTracker1) : {\
-         static const char HIGHFLASH const thrunge[]=msg;\
+         static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=thrunge_lcd; \
          lcdid=id;\
@@ -195,7 +195,7 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #undef SCREEN
 #define SCREEN(display,id,msg)  \
      case (__COUNTER__ - StringMacroTracker1) : {\
-         static const char HIGHFLASH const thrunge[]=msg;\
+         static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=(thrunger)(thrunge_lcd+display); \
          lcdid=id;\
@@ -274,7 +274,7 @@ const byte RMFT2::rosterNameCount=0
 #include "EXRAIL2MacroReset.h"
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) cabid,
-const int16_t HIGHFLASH  const RMFT2::rosterIdList[]={
+const int16_t HIGHFLASH  RMFT2::rosterIdList[]={
    #include "myAutomation.h"
    INT16_MAX};
 
@@ -314,7 +314,7 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
-const  HIGHFLASH  int16_t const RMFT2::SignalDefinitions[] = {
+const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
     0,0,0,0 };
 
@@ -503,7 +503,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
-const  HIGHFLASH  byte const RMFT2::RouteCode[] = {
+const  HIGHFLASH  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
     OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 
