@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.5"
+#define VERSION "5.2.6"
+// 5.2.6  - Trackmanager broadcast power state on track mode change
 // 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
 // 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
 //        - Added ROUTE_DISABLED macro in EXRAIL
