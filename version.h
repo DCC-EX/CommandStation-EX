@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.6"
+#define VERSION "5.2.7"
+// 5.2.7  - Bugfix: EXRAIL ling segment
+//        - Bugfix: Back out wrongly added const
+//        - Bugfix ESP32: Do not inverse DCX direction signal twice
 // 5.2.6  - Trackmanager broadcast power state on track mode change
 // 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
 // 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
