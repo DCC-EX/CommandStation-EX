@@ -73,7 +73,7 @@ class TrackManager {
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
-    static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
+    static bool parseEqualSign(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
     static POWERMODE getMainPower();
     static POWERMODE getProgPower();

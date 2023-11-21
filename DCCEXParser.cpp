@@ -668,7 +668,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 #endif
     case '=': // TRACK MANAGER CONTROL <= [params]>
-        if (TrackManager::parseJ(stream, params, p))
+        if (TrackManager::parseEqualSign(stream, params, p))
             return;
         break;
 

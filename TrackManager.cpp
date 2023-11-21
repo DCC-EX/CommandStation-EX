@@ -350,7 +350,7 @@ void TrackManager::applyDCSpeed(byte t) {
   track[t]->setDCSignal(speedByte);
 }
 
-bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
+bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
 {
     
     if (params==0) { // <=>  List track assignments
@@ -397,8 +397,8 @@ bool TrackManager::parseJ(Print *stream, int16_t params, int16_t p[])
     return false;
 }
 
+// null stream means send to commandDistributor for broadcast
 void TrackManager::streamTrackState(Print* stream, byte t) {
-  // null stream means send to commandDistributor for broadcast
   if (track[t]==NULL) return;
   auto format=F("<= %d XXX>\n");
   TRACK_MODE tm = track[t]->getMode();
@@ -433,10 +433,12 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
       format=F("<= %c DC %d>\n");
   }
 
-  if (stream)
+  if (stream) {  // null stream means send to commandDistributor for broadcast
     StringFormatter::send(stream,format,'A'+t, trackDCAddr[t]);
-  else
+  } else {
     CommandDistributor::broadcastTrackState(format,'A'+t, trackDCAddr[t]);
+    CommandDistributor::broadcastPower();
+  }
   
 }
 
