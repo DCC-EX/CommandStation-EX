@@ -156,8 +156,10 @@ class MotorDriver {
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
     __attribute__((always_inline)) inline void setSignal( bool high) {
+#ifndef ARDUINO_ARCH_ESP32
       if (invertPhase)
 	high = !high;
+#endif
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
