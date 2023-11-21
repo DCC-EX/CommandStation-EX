@@ -203,7 +203,7 @@ private:
     uint16_t getOperand(byte n); 
     
    static bool diag;
-   static const  HIGHFLASH  byte RouteCode[];
+   static const  HIGHFLASH3  byte RouteCode[];
    static const  HIGHFLASH  int16_t SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static Print * LCCSerial;
