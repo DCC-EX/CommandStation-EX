@@ -128,7 +128,7 @@ const int16_t HIGHFLASH  RMFT2::routeIdList[]= {
 #include "EXRAIL2MacroReset.h"
 #undef AUTOMATION
 #define AUTOMATION(id, description) id,
-const int16_t HIGHFLASH  RMFT2::automationIdList[]= {
+const int16_t HIGHFLASH RMFT2::automationIdList[]= {
     #include "myAutomation.h"
     INT16_MAX};
 
@@ -150,7 +150,7 @@ const FSH * RMFT2::getRouteDescription(int16_t id) {
 const int StringMacroTracker1=__COUNTER__;
 #define THRUNGE(msg,mode) \
      case (__COUNTER__ - StringMacroTracker1) : {\
-         static const char HIGHFLASH  thrunge[]=msg;\
+         static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=mode;\
          break;\
@@ -186,7 +186,7 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #undef LCD
 #define LCD(id,msg)  \
      case (__COUNTER__ - StringMacroTracker1) : {\
-         static const char HIGHFLASH  thrunge[]=msg;\
+         static const char HIGHFLASH thrunge[]=msg;\
          strfar=(uint32_t)GETFARPTR(thrunge);\
          tmode=thrunge_lcd; \
          lcdid=id;\
