@@ -511,12 +511,15 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
 void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   MotorDriver *driver=track[t]; 
   TRACK_MODE trackmode = driver->getMode();
-  if (trackmode & TRACK_MODE_DC) {
+  if (trackmode & TRACK_MODE_NONE) {
+    driver->setBrake(true);     // Track is unused. Brake is good to have.
+    powermode = POWERMODE::OFF; // Track is unused. Force it to OFF
+  } else if (trackmode & TRACK_MODE_DC) { // includes inverted DC (called DCX)
     if (powermode == POWERMODE::ON) {
       driver->setBrake(true);   // DC starts with brake on
       applyDCSpeed(t);          // speed match DCC throttles
     }
-  } else {
+  } else /* MAIN PROG EXT BOOST */ {
     if (powermode == POWERMODE::ON) {
       // toggle brake before turning power on - resets overcurrent error
       // on the Pololu board if brake is wired to ^D2.
