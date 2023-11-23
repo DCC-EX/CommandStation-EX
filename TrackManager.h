@@ -77,9 +77,13 @@ class TrackManager {
     static void loop();
     static POWERMODE getMainPower();
     static POWERMODE getProgPower();
+    static inline POWERMODE getPower(byte t) { return track[t]->getPower(); }
     static bool getPower(byte t, char s[]);
     static void setJoin(bool join);
     static bool isJoined() { return progTrackSyncMain;}
+    static inline bool isActive (byte tr) {
+      if (tr > lastTrack) return false;
+      return track[tr]->getMode() & (TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_BOOST|TRACK_MODE_EXT);}
     static void setJoinRelayPin(byte joinRelayPin);
     static void sampleCurrent();
     static void reportGauges(Print* stream);
@@ -108,7 +112,6 @@ class TrackManager {
     static void addTrack(byte t, MotorDriver* driver);
     static byte lastTrack;
     static byte nextCycleTrack;
-    static POWERMODE mainPowerGuess;
     static void applyDCSpeed(byte t);
 
     static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC
