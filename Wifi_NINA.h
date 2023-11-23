@@ -21,7 +21,7 @@
 
 #ifndef WifiNINA_h
 #define WifiNINA_h
-#include "FSH.h"
+// #include "FSH.h"
 #include <Arduino.h>
 // #include <SPI.h>
 // #include <WifiNINA.h>
@@ -35,8 +35,12 @@ public:
 		    const char *hostname,
 		    const int port,
 		    const byte channel,
-			const bool forceAP);
+				const bool forceAP);
   static void loop();
 private:
+	static void checkForNewClient();
+	static void checkForLostClients();
+	static void checkForClientInput();
+	static void checkForClientOutput();
 };
 #endif //WifiNINA_h

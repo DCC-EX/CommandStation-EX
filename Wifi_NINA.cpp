@@ -1,8 +1,10 @@
 /*
     © 2023 Paul M. Antoine
-    © 2021 Harald Barth
+    © 2021-23 Harald Barth
     © 2023 Nathan Kellenicki
-
+    © 2023 Travis Farmer
+    © 2023 Chris Harlow
+    
     This file is part of CommandStation-EX
 
     This is free software: you can redistribute it and/or modify
@@ -18,73 +20,48 @@
     You should have received a copy of the GNU General Public License
     along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-
-#ifdef WIFI_NINA
-#include <vector>
 #include "defines.h"
-#include "Wifi_NINA.h"
-// #include "ESPmDNS.h"
-// #include <WiFi.h>
-// #include "esp_wifi.h"
-// #include "WifiESP32.h"
-// #include <SPI.h>
-// #include <WifiNINA.h>
+
+#if defined(WIFI_NINA) || defined(GIGA_WIFI)
+//#include <vector>
 #include <SPI.h>
+#ifndef ARDUINO_GIGA
 #include <WifiNINA.h>
+#else
+#if defined(GIGA_WIFI)
+#include <WiFi.h>
+#else
+#include <WiFiNINA.h>
+#endif
+#endif
+#include "Wifi_NINA.h"
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 
 // Configure the pins used for the ESP32 connection
-#if defined(ARDUINO_ARCH_STM32) // Here my STM32 configuration
+#if !defined(ARDUINO_GIGA) && defined(ARDUINO_ARCH_STM32) // Here my STM32 configuration
   #define SPIWIFI       SPI  // The SPI port
   #define SPIWIFI_SS    PA4   // Chip select pin
   #define ESP32_RESETN  PA10   // Reset pin
   #define SPIWIFI_ACK   PB3   // a.k.a BUSY or READY pin
   #define ESP32_GPIO0   -1
+#elif defined(ARDUINO_GIGA)
+  #define SPIWIFI       SPI
+  #define SPIWIFI_SS    10   // Chip select pin
+  #define SPIWIFI_ACK    7   // a.k.a BUSY or READY pin
+  #define ESP32_RESETN   5   // Reset pin
+  #define ESP32_GPIO0   -1   // Not connected
 #else
 #warning "WiFiNINA has no SPI port or pin allocations for this archiecture yet!"
 #endif
+#define MAX_CLIENTS 10
 
-class NetworkClient {
-public:
-  NetworkClient(WiFiClient c) {
-    wifi = c;
-  };
-  bool ok() {
-    return (inUse && wifi.connected());
-  };
-  bool recycle(WiFiClient c) {
-
-    if (inUse == true) return false;
-
-    // return false here until we have
-    // implemented a LRU timer
-    // if (LRU too recent) return false;
-    return false;
-
-    wifi = c;
-    inUse = true;
-    return true;
-  };
-  WiFiClient wifi;
-  bool inUse = true;
-};
-
-static std::vector<NetworkClient> clients; // a list to hold all clients
 static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
 static IPAddress ip;
-
-// #ifdef WIFI_TASK_ON_CORE0
-// void wifiLoop(void *){
-//   for(;;){
-//     WifiNINA::loop();
-//   }
-// }
-// #endif
 
 char asciitolower(char in) {
   if (in <= 'Z' && in >= 'A')
@@ -104,8 +81,9 @@ bool WifiNINA::setup(const char *SSid,
   uint8_t tries = 40;
 
   // Set up the pins!
+#if !defined(GIGA_WIFI)
   WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
- 
+#endif
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
     DIAG(F("Communication with WiFi module failed!"));
@@ -117,14 +95,6 @@ bool WifiNINA::setup(const char *SSid,
   String fv = WiFi.firmwareVersion();
   DIAG(F("WifiNINA Firmware version found:%s"), fv.c_str());
 
-  // clean start
-  // WiFi.mode(WIFI_STA);
-  // WiFi.disconnect(true);
-  // differnet settings that did not improve for haba
-  // WiFi.useStaticBuffers(true);
-  // WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-  // WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SECURITY);
-
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
     haveSSID = false;
@@ -132,7 +102,9 @@ bool WifiNINA::setup(const char *SSid,
     havePassword = false;
 
   if (haveSSID && havePassword && !forceAP) {
+#ifndef ARDUINO_GIGA
     WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
+#endif
     // WiFi.mode(WIFI_STA);
     // WiFi.setAutoReconnect(true);
     WiFi.begin(SSid, password);
@@ -142,27 +114,29 @@ bool WifiNINA::setup(const char *SSid,
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
-      // String ip_str = sprintf("%xl", WiFi.localIP());
-      DIAG(F("Wifi STA IP %d.%d.%d.%d"), WiFi.localIP()[0], WiFi.localIP()[1],WiFi.localIP()[2],WiFi.localIP()[3],WiFi.localIP()[4],WiFi.localIP()[5]);
+      IPAddress ip = WiFi.localIP();
+      DIAG(F("Wifi STA IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
       DIAG(F("Forcing one more Wifi restart"));
       // esp_wifi_start();
       // esp_wifi_connect();
+      WiFi.end();
+      WiFi.begin(SSid, password);
       tries=40;
       while (WiFi.status() != WL_CONNECTED && tries) {
-	Serial.print('.');
-	tries--;
-	delay(500);
+        Serial.print('.');
+        tries--;
+        delay(500);
       }
       if (WiFi.status() == WL_CONNECTED) {
-  ip = WiFi.localIP();
-  DIAG(F("Wifi STA IP 2nd try %s"), ip);
-  wifiUp = true;
-      } else {
-	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
-	haveSSID=false;
+        ip = WiFi.localIP();
+        DIAG(F("Wifi STA IP 2nd try %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+        wifiUp = true;
+            } else {
+        DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
+        haveSSID=false;
       }
     }
   }
@@ -178,13 +152,13 @@ bool WifiNINA::setup(const char *SSid,
         strMac += String(mac[i], HEX);
       }
 
-      DIAG(F("MAC address: %x:%x:%x:%x:%X;%x"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+      DIAG(F("MAC address: %x:%x:%x:%x:%x:%x"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
       strMac.remove(0,9);
       strMac.replace(":","");
       strMac.replace(":","");
       // convert mac addr hex chars to lower case to be compatible with AT software
-      std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
+      //std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower); ///TJF: why does this fail compile with WiFiNINA, but not giga WiFi???
       strSSID.concat(strMac);
       strPass.concat(strMac);
     }
@@ -194,7 +168,7 @@ bool WifiNINA::setup(const char *SSid,
 		    channel) == WL_AP_LISTENING) {
       DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       ip = WiFi.localIP();
-      DIAG(F("Wifi AP IP %s"),ip);
+      DIAG(F("Wifi AP IP %d.%d.%d.%d"),ip[0], ip[1], ip[2], ip[3]);
       wifiUp = true;
       APmode = true;
     } else {
@@ -221,27 +195,11 @@ bool WifiNINA::setup(const char *SSid,
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here
-
-// #ifdef WIFI_TASK_ON_CORE0
-//   //start loop task
-//   if (pdPASS != xTaskCreatePinnedToCore(
-// 	wifiLoop, /* Task function. */
-// 	"wifiLoop",/* name of task.  */
-// 	10000,     /* Stack size of task */
-// 	NULL,      /* parameter of the task */
-// 	1,         /* priority of the task */
-// 	NULL,      /* Task handle to keep track of created task */
-// 	0)) {      /* pin task to core 0 */
-//     DIAG(F("Could not create wifiLoop task"));
-//     return false;
-//   }
-
-//   // report server started after wifiLoop creation
-//   // when everything looks good
-//   DIAG(F("Server starting (core 0) port %d"),port);
-// #else
   DIAG(F("Server will be started on port %d"),port);
-// #endif
+
+  ip = WiFi.localIP();
+  LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+  LCD(5,F("Port:%d"), port);
   return true;
 }
 
@@ -255,107 +213,72 @@ const char *wlerror[] = {
 			 "WL_DISCONNECTED"
 };
 
-void WifiNINA::loop() {
-  int clientId; //tmp loop var
+WiFiClient * clients[MAX_CLIENTS];  // nulled in setup
 
-  // really no good way to check for LISTEN especially in AP mode?
-  wl_status_t wlStatus;
-  if (APmode || (wlStatus = (wl_status_t)WiFi.status()) == WL_CONNECTED) {
-    // loop over all clients and remove inactive
-    for (clientId=0; clientId<clients.size(); clientId++){
-      // check if client is there and alive
-      if(clients[clientId].inUse && !clients[clientId].wifi.connected()) {
-	DIAG(F("Remove client %d"), clientId);
-	CommandDistributor::forget(clientId);
-	clients[clientId].wifi.stop();
-	clients[clientId].inUse = false;
-	//Do NOT clients.erase(clients.begin()+clientId) as
-	//that would mix up clientIds for later.
-      }
-    }
-    if (server->available()) {
-      WiFiClient client;
-      while (client = server->available()) {
-        for (clientId=0; clientId<clients.size(); clientId++){
-          if (clients[clientId].recycle(client)) {
-            ip = client.remoteIP();
-            DIAG(F("Recycle client %d %s"), clientId, ip);
-            break;
-          }
-        }
-        if (clientId>=clients.size()) {
-          NetworkClient nc(client);
-          clients.push_back(nc);
-          ip = client.remoteIP();
-          DIAG(F("New client %d, %s"), clientId, ip);
-        }
-      }
-    }
-    // loop over all connected clients
-    for (clientId=0; clientId<clients.size(); clientId++){
-      if(clients[clientId].ok()) {
-	int len;
-	if ((len = clients[clientId].wifi.available()) > 0) {
-	  // read data from client
-	  byte cmd[len+1];
-	  for(int i=0; i<len; i++) {
-	    cmd[i]=clients[clientId].wifi.read();
-	  }
-	  cmd[len]=0;
-	  CommandDistributor::parse(clientId,cmd,outboundRing);
-	}
-      }
-    } // all clients
-
-    WiThrottle::loop(outboundRing);
-
-    // something to write out?
-    clientId=outboundRing->read();
-    if (clientId >= 0) {
-      // We have data to send in outboundRing
-      // and we have a valid clientId.
-      // First read it out to buffer
-      // and then look if it can be sent because
-      // we can not leave it in the ring for ever
-      int count=outboundRing->count();
-      {
-	char buffer[count+1]; // one extra for '\0'
-	for(int i=0;i<count;i++) {
-	  int c = outboundRing->read();
-	  if (c >= 0) // Panic check, should never be false
-	    buffer[i] = (char)c;
-	  else {
-	    DIAG(F("Ringread fail at %d"),i);
-	    break;
-	  }
-	}
-	// buffer filled, end with '\0' so we can use it as C string
-	buffer[count]='\0';
-	if((unsigned int)clientId <= clients.size() && clients[clientId].ok()) {
-	  if (Diag::CMD || Diag::WITHROTTLE)
-	    DIAG(F("SEND %d:%s"), clientId, buffer);
-	  clients[clientId].wifi.write(buffer,count);
-	} else {
-	  DIAG(F("Unsent(%d): %s"), clientId, buffer);
-	}
-      }
-    }
-  } else if (!APmode) { // in STA mode but not connected any more
-    // kick it again
-    if (wlStatus <= 6) {
-      DIAG(F("Wifi aborted with error %s. Kicking Wifi!"), wlerror[wlStatus]);
-      // esp_wifi_start();
-      // esp_wifi_connect();
-      uint8_t tries=40;
-      while (WiFi.status() != WL_CONNECTED && tries) {
-	Serial.print('.');
-	tries--;
-	delay(500);
-      }
-    } else {
-      // all well, probably
-      //DIAG(F("Running BT"));
+void WifiNINA::checkForNewClient() {
+  auto newClient=server->available();
+  if (!newClient) return;
+  for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+    if (!clients[clientId]) {
+      clients[clientId]= new WiFiClient(newClient); // use this slot
+      //DIAG(F("New client connected to slot %d"),clientId); //TJF: brought in for debugging.
+      return;
     }
   }
 }
+
+void WifiNINA::checkForLostClients() {
+  for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+    auto c=clients[clientId];
+    if(c && !c->connected()) {
+      clients[clientId]->stop();
+      //DIAG(F("Remove client %d"), clientId);
+      CommandDistributor::forget(clientId);
+      clients[clientId]=nullptr;
+    }
+  }
+}
+
+void WifiNINA::checkForClientInput() {
+  // Find a client providing input
+    for (byte clientId=0; clientId<MAX_CLIENTS; clientId++){
+      auto c=clients[clientId];
+      if(c) {
+        auto len=c->available();
+        if (len) {
+          // read data from client
+          byte cmd[len+1];
+          for(int i=0; i<len; i++) cmd[i]=c->read();
+          cmd[len]=0x00;
+          CommandDistributor::parse(clientId,cmd,outboundRing);
+        }
+      }
+    }
+}
+
+void WifiNINA::checkForClientOutput() {
+  // something to write out?
+  auto clientId=outboundRing->read();
+  if (clientId < 0) return;
+  auto replySize=outboundRing->count();
+  if (replySize==0) return; // nothing to send
+  auto c=clients[clientId];
+  if (!c) {
+    // client is gone, throw away msg
+    for (int i=0;i<replySize;i++) outboundRing->read();
+    //DIAG(F("gone, drop message.")); //TJF: only for diag
+    return;
+  }
+  // emit data to the client object
+  for (int i=0;i<replySize;i++) c->write(outboundRing->read());
+}
+
+void WifiNINA::loop() {
+  checkForLostClients(); // ***
+  checkForNewClient();
+  checkForClientInput(); // ***
+  WiThrottle::loop(outboundRing); // allow withrottle to broadcast if needed
+  checkForClientOutput();
+}
+
 #endif // WIFI_NINA
