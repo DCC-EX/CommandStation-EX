@@ -1,6 +1,6 @@
 /*
     © 2023 Paul M. Antoine
-    © 2021 Harald Barth
+    © 2021-23 Harald Barth
     © 2023 Nathan Kellenicki
     © 2023 Travis Farmer
     © 2023 Chris Harlow
@@ -22,7 +22,7 @@
 */
 #include "defines.h"
 
-#ifdef WIFI_NINA || GIGA_WIFI
+#if defined(WIFI_NINA) || defined(GIGA_WIFI)
 //#include <vector>
 #include <SPI.h>
 #ifndef ARDUINO_GIGA
