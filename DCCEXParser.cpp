@@ -160,6 +160,7 @@ const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
 const int16_t HASH_KEYWORD_H='H';
 const int16_t HASH_KEYWORD_I='I';
+const int16_t HASH_KEYWORD_M='M';
 const int16_t HASH_KEYWORD_O='O';
 const int16_t HASH_KEYWORD_P='P';
 const int16_t HASH_KEYWORD_R='R';
@@ -727,6 +728,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 case HASH_KEYWORD_A: // <JA> intercepted by EXRAIL// <JA> returns automations/routes
                     if (params!=1) break; // <JA>
                     StringFormatter::send(stream, F("<jA>\n"));
+                    return;
+ 
+                case HASH_KEYWORD_M: // <JM> intercepted by EXRAIL
+                    if (params>1) break; // invalid cant do
+                    // <JM> requests stash size so say none.
+                    StringFormatter::send(stream,F("<jM 0>\n")); 
                     return;
  
             case HASH_KEYWORD_R: // <JR> returns rosters 

@@ -44,7 +44,9 @@ const int16_t HASH_KEYWORD_ROUTES=-3702;
 const int16_t HASH_KEYWORD_RED=26099;
 const int16_t HASH_KEYWORD_AMBER=18713;
 const int16_t HASH_KEYWORD_GREEN=-31493;
-const int16_t HASH_KEYWORD_A='A';
+const int16_t HASH_KEYWORD_A='A';   
+const int16_t HASH_KEYWORD_M='M';
+
 
 // This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics
@@ -149,7 +151,33 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               opcode=0;
               return;
             }
-            break;  
+            break;
+        case HASH_KEYWORD_M:
+            // NOTE: we only need to handle valid calls here because 
+            // DCCEXParser has to have code to handle the <J<> cases where
+            // exrail isnt involved anyway. 
+            // This entire code block is compiled out if STASH macros not used 
+          if (!(compileFeatures & FEATURE_STASH)) return;
+          if (paramCount==1) { // <JM>
+              StringFormatter::send(stream,F("<jM %d>\n"),maxStashId);
+              opcode=0;
+              break;
+            } 
+          if (paramCount==2) {  // <JM id>
+              if (p[1]<=0 || p[1]>maxStashId) break;
+              StringFormatter::send(stream,F("<jM %d %d>\n"),
+                    p[1],stashArray[p[1]]);
+               opcode=0;     
+               break;    
+          } 
+          if (paramCount==3) {  // <JM id cab>
+              if (p[1]<=0 || p[1]>maxStashId) break;
+              stashArray[p[1]]=p[2];
+              opcode=0;
+              break;      
+          }
+          break; 
+
         default:
             break;
         }
@@ -195,6 +223,15 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
           sigid & SIGNAL_ID_MASK); 
       } 
     }
+
+    if (compileFeatures & FEATURE_STASH) {
+      for (int i=1;i<=maxStashId;i++) {
+        if (stashArray[i])
+          StringFormatter::send(stream,F("\nSTASH[%d] Loco=%d"),
+              i, stashArray[i]); 
+      } 
+    }
+    
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }

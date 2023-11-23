@@ -326,7 +326,7 @@ if (compileFeatures & FEATURE_SIGNAL) {
      //TODO check EEPROM and fetch stashArray
   }
   
-  DIAG(F("EXRAIL %db, fl=%d, stash=%d"),progCounter,MAX_FLAGS, maxStashArray);
+  DIAG(F("EXRAIL %db, fl=%d, stash=%d"),progCounter,MAX_FLAGS, maxStashId);
 
   // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
