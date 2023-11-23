@@ -54,7 +54,6 @@ const int16_t HASH_KEYWORD_INV = 11857;
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackDCAddr[MAX_TRACKS];
 
-POWERMODE TrackManager::mainPowerGuess=POWERMODE::OFF;
 byte TrackManager::lastTrack=0;
 bool TrackManager::progTrackSyncMain=false; 
 bool TrackManager::progTrackBoosted=false; 
@@ -210,6 +209,9 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
+    // Remember track mode we came from for later
+    TRACK_MODE oldmode = track[trackToSet]->getMode();
+
     //DIAG(F("Track=%c Mode=%d"),trackToSet+'A', mode);
     // DC tracks require a motorDriver that can set brake!
     if (mode & TRACK_MODE_DC) {
@@ -262,7 +264,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	  track[t]->setPower(POWERMODE::OFF);
 	  track[t]->setMode(TRACK_MODE_NONE);
 	  track[t]->makeProgTrack(false);     // revoke prog track special handling
-    streamTrackState(NULL,t);
+	  streamTrackState(NULL,t);
 	}
       track[trackToSet]->makeProgTrack(true); // set for prog track special handling
     } else {
@@ -270,7 +272,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     }
     track[trackToSet]->setMode(mode);
     trackDCAddr[trackToSet]=dcAddr;
-    streamTrackState(NULL,trackToSet);
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
@@ -337,10 +338,11 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         applyDCSpeed(trackToSet);
     }
 
-    // Normal running tracks are set to the global power state 
-    track[trackToSet]->setPower(
-      (mode & (TRACK_MODE_MAIN | TRACK_MODE_DC | TRACK_MODE_EXT | TRACK_MODE_BOOST)) ?
-        mainPowerGuess : POWERMODE::OFF);
+    // Turn off power if we changed the mode of this track
+    if (mode != oldmode)
+      track[trackToSet]->setPower(POWERMODE::OFF);
+    streamTrackState(NULL,trackToSet);
+
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
 }
