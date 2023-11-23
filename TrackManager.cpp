@@ -532,15 +532,6 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   driver->setPower(powermode);
 }
 
-void TrackManager::reportPowerChange(Print* stream, byte thistrack) {
-  // This function is for backward JMRI compatibility only
-  // It reports the first track only, as main, regardless of track settings.
-  //  <c MeterName value C/V unit min max res warn>
-  int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
-  StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 
-            track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
-}
-
 // returns state of the one and only prog track
 POWERMODE TrackManager::getProgPower() {
   FOR_EACH_TRACK(t)
