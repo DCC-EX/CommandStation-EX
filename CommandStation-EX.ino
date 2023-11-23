@@ -87,7 +87,7 @@ void setup()
 
   DISPLAY_START (
     // This block is still executed for DIAGS if display not in use
-    LCD(0,F("DCC-EX v%S"),F(VERSION));
+    LCD(0,F("DCC-EX v" VERSION));
     LCD(1,F("Lic GPLv3"));
   );
 
