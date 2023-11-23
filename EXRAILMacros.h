@@ -113,6 +113,15 @@ void exrailHalSetup() {
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
 
+#undef CLEAR_STASH
+#define CLEAR_STASH(id) | FEATURE_STASH
+#undef CLEAR_ALL_STASH
+#define CLEAR_ALL_STASH | FEATURE_STASH
+#undef PICKUP_STASH
+#define PICKUP_STASH(id) | FEATURE_STASH
+#undef STASH
+#define STASH(id) | FEATURE_STASH
+
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
 ;
@@ -353,6 +362,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
+#define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
+#define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
@@ -435,6 +446,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
+#define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
 #ifndef DISABLE_PROG
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
@@ -482,6 +494,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define START(route) OPCODE_START,V(route), 
+#define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #ifndef IO_NO_HAL

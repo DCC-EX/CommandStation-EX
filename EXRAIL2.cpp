@@ -86,6 +86,8 @@ LookList *  RMFT2::onRotateLookup=NULL;
 LookList *  RMFT2::onOverloadLookup=NULL;
 byte * RMFT2::routeStateArray=nullptr; 
 const FSH  * * RMFT2::routeCaptionArray=nullptr; 
+int16_t * RMFT2::stashArray=nullptr;
+int16_t RMFT2::maxStashId=0;
 
 // getOperand instance version, uses progCounter from instance.
 uint16_t RMFT2::getOperand(byte n) {
@@ -232,6 +234,12 @@ if (compileFeatures & FEATURE_SIGNAL) {
       IODevice::configureInput((VPIN)pin,true);
       break;
     }
+    case OPCODE_STASH:
+    case OPCODE_CLEAR_STASH:
+    case OPCODE_PICKUP_STASH: {
+      maxStashId=max(maxStashId,((int16_t)operand));
+      break;
+    }
 
     case OPCODE_ATGTE:
     case OPCODE_ATLT:
@@ -311,8 +319,14 @@ if (compileFeatures & FEATURE_SIGNAL) {
     }
   }
   SKIPOP; // include ENDROUTES opcode
-
-  DIAG(F("EXRAIL %db, fl=%d"),progCounter,MAX_FLAGS);
+  
+  if (compileFeatures & FEATURE_STASH) {
+    // create the stash array from the highest id found
+    if (maxStashId>0) stashArray=(int16_t*)calloc(maxStashId+1, sizeof(int16_t));
+     //TODO check EEPROM and fetch stashArray
+  }
+  
+  DIAG(F("EXRAIL %db, fl=%d, stash=%d"),progCounter,MAX_FLAGS, maxStashArray);
 
   // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
@@ -935,6 +949,34 @@ void RMFT2::loop2() {
   case OPCODE_ROUTE_DISABLED:
     manageRouteState(operand,4);
     break;   
+
+  case OPCODE_STASH:
+    if (compileFeatures & FEATURE_STASH) 
+      stashArray[operand] = invert? -loco : loco;
+    break; 
+
+  case OPCODE_CLEAR_STASH:
+    if (compileFeatures & FEATURE_STASH) 
+      stashArray[operand] = 0;
+    break; 
+       
+  case OPCODE_CLEAR_ALL_STASH:
+    if (compileFeatures & FEATURE_STASH) 
+      for (int i=0;i<=maxStashId;i++) stashArray[operand]=0;
+    break;
+
+  case OPCODE_PICKUP_STASH:
+    if (compileFeatures & FEATURE_STASH) {
+      int16_t x=stashArray[operand];
+      if (x>=0) {
+        loco=x;
+        invert=false;
+        break;
+      }
+      loco=-x;
+      invert=true;
+    }
+    break;
   
   case OPCODE_ROUTE:
   case OPCODE_AUTOMATION:

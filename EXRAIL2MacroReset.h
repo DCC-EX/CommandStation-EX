@@ -39,6 +39,8 @@
 #undef AUTOSTART
 #undef BROADCAST
 #undef CALL 
+#undef CLEAR_STASH
+#undef CLEAR_ALL_STASH
 #undef CLOSE 
 #undef DCC_SIGNAL
 #undef DCC_TURNTABLE
@@ -108,6 +110,7 @@
 #undef ONCHANGE
 #undef PARSE
 #undef PAUSE
+#undef PICKUP_STASH
 #undef PIN_TURNOUT 
 #undef PRINT
 #ifndef DISABLE_PROG
@@ -152,6 +155,7 @@
 #undef SIGNALH 
 #undef SPEED 
 #undef START 
+#undef STASH
 #undef STOP 
 #undef THROW
 #undef TT_ADDPOSITION
@@ -184,7 +188,9 @@
 #define AUTOMATION(id,description) 
 #define AUTOSTART
 #define BROADCAST(msg)
-#define CALL(route) 
+#define CALL(route)
+#define CLEAR_STASH(id)
+#define CLEAR_ALL_STASH(id)
 #define CLOSE(id) 
 #define DCC_SIGNAL(id,add,subaddr)
 #define DCC_TURNTABLE(id,home,description)
@@ -256,6 +262,7 @@
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
 #define PARSE(msg)
+#define PICKUP_STASH(id)
 #ifndef DISABLE_PROG
 #define POM(cv,value)
 #endif
@@ -297,7 +304,8 @@
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
-#define START(route) 
+#define START(route)
+#define STASH(id) 
 #define STOP 
 #define THROW(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)

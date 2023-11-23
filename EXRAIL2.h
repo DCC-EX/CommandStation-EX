@@ -70,6 +70,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ONOVERLOAD,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
+             OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
 
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
@@ -102,6 +103,7 @@ enum thrunger: byte {
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
+  static const byte FEATURE_STASH = 0x08;
   
  
   // Flag bits for status of hardware and TPL
@@ -229,6 +231,8 @@ private:
    static void manageRouteCaption(uint16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;
+   static int16_t * stashArray;
+   static int16_t maxStashId;
     
   // Local variables - exist for each instance/task 
     RMFT2 *next;   // loop chain 
