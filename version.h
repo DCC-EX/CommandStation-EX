@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.7"
+#define VERSION "5.2.8"
+// 5.2.8  - Bugfix: Do not turn off all tracks on change
+//          give better power messages
 // 5.2.7  - Bugfix: EXRAIL ling segment
 //        - Bugfix: Back out wrongly added const
 //        - Bugfix ESP32: Do not inverse DCX direction signal twice
