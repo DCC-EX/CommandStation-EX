@@ -847,13 +847,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
 
+#ifndef DISABLE_VDPY
     case '@': // JMRI saying "give me virtual LCD msgs"
         CommandDistributor::setVirtualLCDSerial(stream);
         StringFormatter::send(stream,
             F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
                "<@ 0 1 \"Lic GPLv3\">\n"));
         return; 
-
+#endif
     default: //anything else will diagnose and drop out to <X>
       if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
@@ -1064,6 +1065,7 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
 }
 
 bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
+    (void)stream; // arg not used, maybe later?
     if (params == 0)
         return false;
     switch (p[0])

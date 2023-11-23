@@ -200,6 +200,18 @@ The configuration file for DCC-EX Command Station
 // #define DISABLE_PROG
 
 /////////////////////////////////////////////////////////////////////////////////////
+// DISABLE / ENABLE VDPY
+//
+// The Virtual display "VDPY" feature is by default enabled everywhere
+// but on Uno and Nano. If you think you can fit it (for example
+// having disabled some of the features above) you can enable it with
+// ENABLE_VDPY. You can even disable it on all other CPUs with
+// DISABLE_VDPY
+//
+// #define DISABLE_VDPY
+// #define ENABLE_VDPY
+
+/////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
 // is 127 and the first long address is 128. There are manufacturers which have
 // another view. Lenz CS for example have considered addresses long from 100. If

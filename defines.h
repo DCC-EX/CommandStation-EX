@@ -219,11 +219,10 @@
 // The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
 // 
 #if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
-  #if defined(DISABLE_DIAG) && defined(DISABLE_EEPROM) && defined(DISABLE_PROG)
-    #warning you have sacrificed DIAG for HAL
-  #else
-    #define IO_NO_HAL
-  #endif
+#define IO_NO_HAL // HAL too big whatever you disable otherwise
+#ifndef ENABLE_VDPY
+#define DISABLE_VDPY
+#endif
 #endif
 
 #if __has_include ( "myAutomation.h")
