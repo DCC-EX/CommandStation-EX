@@ -542,8 +542,10 @@ protected:
 #include "IO_MCP23017.h"
 #include "IO_PCF8574.h"
 #include "IO_PCF8575.h"
+#include "IO_PCA9555.h"
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
+#include "IO_trainbrains.h"
 
 
 #endif // iodevice_h

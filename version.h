@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.9"
+#define VERSION "5.2.10"
+// 5.2.10 - Include trainbrains.eu block unoccupancy driver
+//        - include IO_PCA9555  
 // 5.2.9  - Bugfix LCD startup with no LCD, uses <@
 // 5.2.9  - EXRAIL STASH feature 
 // 5.2.8  - Bugfix: Do not turn off all tracks on change
