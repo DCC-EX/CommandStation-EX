@@ -595,7 +595,7 @@ void DCC::loop()  {
 
 void DCC::issueReminders() {
   // if the main track transmitter still has a pending packet, skip this time around.
-  if ( DCCWaveform::mainTrack.getPacketPending()) return;
+  if (!DCCWaveform::mainTrack.isReminderWindowOpen()) return;
   // Move to next loco slot.  If occupied, send a reminder.
   int reg = lastLocoReminder+1;
   if (reg > highestUsedReg) reg = 0;  // Go to start of table
