@@ -641,7 +641,7 @@ bool TrackManager::isProg(byte t) {
     return false;
 }
 
-byte TrackManager::returnMode(byte t) {
+TRACK_MODE TrackManager::getMode(byte t) {
     return (track[t]->getMode());
 }
 

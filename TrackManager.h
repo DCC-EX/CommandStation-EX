@@ -92,7 +92,7 @@ class TrackManager {
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
     static bool isProg(byte t);
-    static byte returnMode(byte t);
+    static TRACK_MODE getMode(byte t);
     static int16_t returnDCAddr(byte t);
     static const FSH* getModeName(TRACK_MODE Mode);
 

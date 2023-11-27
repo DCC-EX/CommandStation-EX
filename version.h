@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.10"
+#define VERSION "5.2.11"
+// 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
 // 5.2.10 - Include trainbrains.eu block unoccupancy driver
 //        - include IO_PCA9555  
 // 5.2.9  - Bugfix LCD startup with no LCD, uses <@
