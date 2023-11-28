@@ -283,15 +283,15 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   }
 }
 
-bool DCCWaveform::getPacketPending() {
+bool DCCWaveform::isReminderWindowOpen() {
   if(isMainTrack) {
     if (rmtMainChannel == NULL)
-      return true;
-    return rmtMainChannel->busy();
+      return false;
+    return !rmtMainChannel->busy();
   } else {
     if (rmtProgChannel == NULL)
-      return true;
-    return rmtProgChannel->busy();
+      return false;
+    return !rmtProgChannel->busy();
   }
 }
 void IRAM_ATTR DCCWaveform::loop() {
