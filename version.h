@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.11"
+#define VERSION "5.2.12"
+// 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
+//        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
+//        - STM32 extra UART/USARTs for larger Nucleo models
 // 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
 // 5.2.10 - Include trainbrains.eu block unoccupancy driver
 //        - include IO_PCA9555  

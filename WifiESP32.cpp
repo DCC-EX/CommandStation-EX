@@ -163,7 +163,9 @@ bool WifiESP::setup(const char *SSid,
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
-      DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
+      // DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
+      DIAG(F("Wifi in STA mode"));
+      LCD(7, F("IP: %s"), WiFi.softAPIP().toString().c_str());
       wifiUp = true;
     } else {
       DIAG(F("Could not connect to Wifi SSID %s"),SSid);
@@ -209,8 +211,12 @@ bool WifiESP::setup(const char *SSid,
     if (WiFi.softAP(strSSID.c_str(),
 		    havePassword ? password : strPass.c_str(),
 		    channel, false, 8)) {
-      DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
-      DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
+      // DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
+      DIAG(F("Wifi in AP mode"));
+      LCD(5, F("Wifi: %s"), strSSID.c_str());
+      LCD(6, F("PASS: %s"),havePassword ? password : strPass.c_str());
+      // DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
+      LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
       wifiUp = true;
       APmode = true;
     } else {
