@@ -210,6 +210,8 @@ case (__COUNTER__ - StringMacroTracker1) : {\
          lcdid=id;\
          break;\
       } 
+#undef STEALTH
+#define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
 
@@ -422,6 +424,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V((((uint64_t)sender)>>0)&0xFFFF),  
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
+#define STEALTH(code...) PRINT(dummy)
 #define LCN(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),

@@ -156,6 +156,7 @@
 #undef SPEED 
 #undef START 
 #undef STASH
+#undef STEALTH
 #undef STOP 
 #undef THROW
 #undef TT_ADDPOSITION
@@ -306,6 +307,7 @@
 #define SPEED(speed) 
 #define START(route)
 #define STASH(id) 
+#define STEALTH(code...)
 #define STOP 
 #define THROW(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)

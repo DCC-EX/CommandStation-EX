@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.12"
+#define VERSION "5.2.13"
+// 5.2.13 - EXRAIL STEALTH 
 // 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
 //        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
 //        - STM32 extra UART/USARTs for larger Nucleo models
