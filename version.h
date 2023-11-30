@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.13"
+#define VERSION "5.2.14"
+// 5.2.14 - Reminder window DCC packet optimization
+//        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
 // 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
 //        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
