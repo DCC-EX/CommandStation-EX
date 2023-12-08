@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.14"
+#define VERSION "5.2.14eth"
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//         - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
