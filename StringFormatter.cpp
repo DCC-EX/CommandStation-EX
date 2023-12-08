@@ -19,6 +19,7 @@
 #include "StringFormatter.h"
 #include <stdarg.h>
 #include "DisplayInterface.h"
+#include "CommandDistributor.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -38,13 +39,28 @@ void StringFormatter::diag( const FSH* input...) {
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
-
+#ifndef DISABLE_VDPY
+  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(0,row);
+#else
+  Print * virtualLCD=NULL;
+#endif
   // Issue the LCD as a diag first
-  send(&USB_SERIAL,F("<* LCD%d:"),row);
-  va_start(args, input);
-  send2(&USB_SERIAL,input,args);
-  send(&USB_SERIAL,F(" *>\n"));
+  // Unless the same serial is asking for the virtual @ respomnse
+  if (virtualLCD!=&USB_SERIAL) {
+    send(&USB_SERIAL,F("<* LCD%d:"),row);
+    va_start(args, input);
+    send2(&USB_SERIAL,input,args);
+    send(&USB_SERIAL,F(" *>\n"));
+  }
   
+#ifndef DISABLE_VDPY
+  // send to virtual LCD collector (if any) 
+  if (virtualLCD) {
+    va_start(args, input);
+    send2(virtualLCD,input,args);
+    CommandDistributor::commitVirtualLCDSerial();
+  }
+#endif
   DisplayInterface::setRow(row);    
   va_start(args, input);
   send2(DisplayInterface::getDisplayHandler(),input,args);
@@ -52,6 +68,16 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
 
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
+  
+   // send to virtual LCD collector (if any) 
+#ifndef DISABLE_VDPY
+  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(display,row);
+  if (virtualLCD) {
+    va_start(args, input);
+    send2(virtualLCD,input,args);
+    CommandDistributor::commitVirtualLCDSerial();
+  }
+#endif
 
   DisplayInterface::setRow(display, row);    
   va_start(args, input);
@@ -230,4 +256,3 @@ void StringFormatter::printHex(Print * stream,uint16_t value) {
     result[4]='\0';
      stream->print(result);
 }
- 

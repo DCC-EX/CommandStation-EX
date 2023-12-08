@@ -62,37 +62,39 @@ class TrackManager {
     static void setDCSignal(int16_t cab, byte speedbyte);
     static MotorDriver * getProgDriver();
 #ifdef ARDUINO_ARCH_ESP32
-  static std::vector<MotorDriver *>getMainDrivers();
+    static std::vector<MotorDriver *>getMainDrivers();
 #endif
   
-    static void setPower2(bool progTrack,bool joinTrack,POWERMODE mode);
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
-    static void setMainPower(POWERMODE mode) {setPower2(false,false,mode);}
-    static void setProgPower(POWERMODE mode) {setPower2(true,false,mode);}
-    static void setJoinPower(POWERMODE mode) {setPower2(false,true,mode);}
-    static void setTrackPower(bool setProg, bool setJoin, POWERMODE mode, byte thistrack);
-   
+    static void setTrackPower(POWERMODE mode, byte t);
+    static void setTrackPower(TRACK_MODE trackmode, POWERMODE powermode);
+    static void setMainPower(POWERMODE mode) {setTrackPower(TRACK_MODE_MAIN, mode);}
+    static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
-    static bool parseJ(Print * stream,  int16_t params, int16_t p[]);
+    static bool parseEqualSign(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
-    static POWERMODE getMainPower() {return mainPowerGuess;}
+    static POWERMODE getMainPower();
     static POWERMODE getProgPower();
+    static inline POWERMODE getPower(byte t) { return track[t]->getPower(); }
+    static bool getPower(byte t, char s[]);
     static void setJoin(bool join);
     static bool isJoined() { return progTrackSyncMain;}
+    static inline bool isActive (byte tr) {
+      if (tr > lastTrack) return false;
+      return track[tr]->getMode() & (TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_BOOST|TRACK_MODE_EXT);}
     static void setJoinRelayPin(byte joinRelayPin);
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
-    static void reportPowerChange(Print* stream, byte thistrack);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
     static bool isProg(byte t);
-    static byte returnMode(byte t);
+    static TRACK_MODE getMode(byte t);
     static int16_t returnDCAddr(byte t);
-    static const char* getModeName(byte Mode);
+    static const FSH* getModeName(TRACK_MODE Mode);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
@@ -109,10 +111,9 @@ class TrackManager {
     static void addTrack(byte t, MotorDriver* driver);
     static byte lastTrack;
     static byte nextCycleTrack;
-    static POWERMODE mainPowerGuess;
     static void applyDCSpeed(byte t);
 
-    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC or TRACK_MODE_DCX
+    static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC
 #ifdef ARDUINO_ARCH_ESP32
     static byte tempProgTrack; // holds the prog track number during join
 #endif

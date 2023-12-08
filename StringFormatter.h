@@ -54,6 +54,5 @@ class StringFormatter
     private: 
     static void send2(Print * serial, const FSH* input,va_list args);
     static void printPadded(Print* stream, long value, byte width, bool formatLeft);
-
 };
 #endif

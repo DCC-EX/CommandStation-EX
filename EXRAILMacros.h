@@ -102,6 +102,25 @@ void exrailHalSetup() {
 #define LCCX(senderid,eventid) | FEATURE_LCC 
 #undef ONLCC
 #define ONLCC(senderid,eventid) | FEATURE_LCC
+#undef ROUTE_ACTIVE
+#define ROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_INACTIVE
+#define ROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef ROUTE_HIDDEN
+#define ROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef ROUTE_DISABLED
+#define ROUTE_DISABLED(id) | FEATURE_ROUTESTATE
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
+
+#undef CLEAR_STASH
+#define CLEAR_STASH(id) | FEATURE_STASH
+#undef CLEAR_ALL_STASH
+#define CLEAR_ALL_STASH | FEATURE_STASH
+#undef PICKUP_STASH
+#define PICKUP_STASH(id) | FEATURE_STASH
+#undef STASH
+#define STASH(id) | FEATURE_STASH
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -111,7 +130,7 @@ const byte RMFT2::compileFeatures = 0
 #include "EXRAIL2MacroReset.h"
 #undef ROUTE
 #define ROUTE(id, description) id,
-const int16_t HIGHFLASH RMFT2::routeIdList[]= {
+const int16_t HIGHFLASH  RMFT2::routeIdList[]= {
     #include "myAutomation.h"
     INT16_MAX};
 // Pass 2a create throttle automation list 
@@ -153,6 +172,12 @@ const int StringMacroTracker1=__COUNTER__;
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
 #define LCN(msg)   THRUNGE(msg,thrunge_lcn)
+#undef ROUTE_CAPTION
+#define ROUTE_CAPTION(id,caption) \
+case (__COUNTER__ - StringMacroTracker1) : {\
+   manageRouteCaption(id,F(caption));\
+   return;\
+   }
 #undef SERIAL
 #define SERIAL(msg)   THRUNGE(msg,thrunge_serial)
 #undef SERIAL1
@@ -185,6 +210,8 @@ const int StringMacroTracker1=__COUNTER__;
          lcdid=id;\
          break;\
       } 
+#undef STEALTH
+#define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
 
@@ -204,6 +231,8 @@ void  RMFT2::printMessage(uint16_t id) {
 #include "EXRAIL2MacroReset.h"
 #undef TURNOUT
 #define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
+#undef TURNOUTL
+#define TURNOUTL(id,addr,description...) O_DESC(id,description)
 #undef PIN_TURNOUT
 #define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
 #undef SERVO_TURNOUT
@@ -335,6 +364,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
+#define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
+#define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
@@ -393,6 +424,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V((((uint64_t)sender)>>0)&0xFFFF),  
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
+#define STEALTH(code...) PRINT(dummy)
 #define LCN(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
@@ -417,6 +449,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
+#define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
 #ifndef DISABLE_PROG
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
@@ -438,6 +471,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
 #endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
+#define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
+#define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
+#define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
+#define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
+#define ROUTE_CAPTION(id,caption) PRINT(caption)
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
@@ -459,6 +497,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define START(route) OPCODE_START,V(route), 
+#define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #ifndef IO_NO_HAL
@@ -480,7 +519,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
-const  HIGHFLASH  byte RMFT2::RouteCode[] = {
+const  HIGHFLASH3  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
     OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
 

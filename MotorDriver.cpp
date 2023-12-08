@@ -605,6 +605,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	DIAG(F("TRACK %c ALERT FAULT"), trackno + 'A');
       }
       setPower(POWERMODE::ALERT);
+      if ((trackMode & TRACK_MODE_AUTOINV) && (trackMode & (TRACK_MODE_MAIN|TRACK_MODE_EXT|TRACK_MODE_BOOST))){
+	DIAG(F("TRACK %c INVERT"), trackno + 'A');
+	invertOutput();
+      }
       break;
     }
     // all well
@@ -676,8 +680,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
 	      power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+  #ifdef EXRAIL_ACTIVE
       DIAG(F("Calling EXRAIL"));
       RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
+  #endif
       // power on test
       DIAG(F("TRACK %c POWER RESTORE (after %4M)"), trackno + 'A', mslpc);
       setPower(POWERMODE::ALERT);

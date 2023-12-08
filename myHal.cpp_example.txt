@@ -25,6 +25,16 @@
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 //#include "IO_EXFastClock.h"  // FastClock driver
 //#include "IO_PCA9555.h"     // 16-bit I/O expander (NXP & Texas Instruments).
+//#include "IO_CMRI.h"      //  CMRI nodes
+
+//==========================================================================
+//  also for CMRI connection using RS485 TTL module
+//==========================================================================
+//  define UARt2 pins for ESP32 Rx=16, Tx=17 -- can conflict if sabertooth defined
+//HardwareSerial mySerial2(2); // use UART2
+//
+//  for SERIAL_8N2 include this in config.h  
+//              #define ARDUINOCMRI_COMPATIBLE
 
 //==========================================================================
 // The function halSetup() is invoked from CS if it exists within the build.
@@ -33,6 +43,36 @@
 //==========================================================================
 
 void halSetup() {
+
+//==========================================================================
+//   CMRI bus and nodes defined
+//==========================================================================
+// further explanation in IO_CMRI.h
+// this example is being used to test connection of existing CMRI device
+// add lines to myHal.cpp within halSetup()
+
+// for ESP32
+//mySerial2.begin(9600, SERIAL_8N2, 16, 17);  // ESP32 to define pins  also check DCCTimerESP.cpp
+//CMRIbus::create(0, mySerial2, 9600, 500, 4);  // for ESP32
+
+// for Mega
+//CMRIbus::create(0, Serial3, 9600, 500, 38);  // for Mega - Serial3 already defined
+ // bus=0 always, unless multiple serial ports are used
+ // baud=9600 to match setting in existing CMRI nodes
+ // cycletime.. 500ms is default -- more frequent might be needed on master
+ // pin..  DE/!RE pins tied together on TTL RS485 module.
+ // pin 38 should work on Mega and F411RE (pin D38 aka PB12 on CN10_16)
+ 
+//CMRInode::create(900, 72, 0, 4, 'M');
+//CMRInode::create(1000, 72, 0, 5, 'M');
+ // bus=0 must agree with bus in CMRIbus
+ // node=4 number to agree with node numbering
+ // 'M' is for SMINI.
+ // Starting VPin, Number of VPins=72 for SMINI
+//==========================================================================
+//         end of CMRI
+//==========================================================================
+
 
   //=======================================================================
   // The following directives define auxiliary display devices.

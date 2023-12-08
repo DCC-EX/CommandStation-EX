@@ -167,6 +167,14 @@ The configuration file for DCC-EX Command Station
 //  *  #define SCROLLMODE 2 is by row (move up 1 row at a time).
 #define SCROLLMODE 1
 
+// In order to avoid wasting memory the current scroll buffer is limited
+// to 8 lines.  Some users wishing to display additional information
+// such as TrackManager power states have requested additional rows aware
+// of the warning that this will take extra RAM.  if you wish to include additional rows
+// uncomment the following #define and set the number of lines you need.
+//#define MAX_CHARACTER_ROWS 12
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE EEPROM
 //
@@ -190,6 +198,18 @@ The configuration file for DCC-EX Command Station
 // Note this disables all programming functionality, including EXRAIL.
 //
 // #define DISABLE_PROG
+
+/////////////////////////////////////////////////////////////////////////////////////
+// DISABLE / ENABLE VDPY
+//
+// The Virtual display "VDPY" feature is by default enabled everywhere
+// but on Uno and Nano. If you think you can fit it (for example
+// having disabled some of the features above) you can enable it with
+// ENABLE_VDPY. You can even disable it on all other CPUs with
+// DISABLE_VDPY
+//
+// #define DISABLE_VDPY
+// #define ENABLE_VDPY
 
 /////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
@@ -265,6 +285,12 @@ The configuration file for DCC-EX Command Station
 //    with your CS.
 //
 //#define SERIAL_BT_COMMANDS
+
+// BOOSTER PIN INPUT ON ESP32
+// On ESP32 you have the possibility to define a pin as booster input
+// Arduio pin D2 is GPIO 26 on ESPDuino32
+//
+//#define BOOSTER_INPUT 26
 
 // SABERTOOTH
 //

@@ -115,6 +115,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "DCCTimer.h"
 #include "EXRAIL2.h"
 #include "Turntables.h"
+#include "version.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -159,6 +160,7 @@ const int16_t HASH_KEYWORD_C='C';
 const int16_t HASH_KEYWORD_G='G';
 const int16_t HASH_KEYWORD_H='H';
 const int16_t HASH_KEYWORD_I='I';
+const int16_t HASH_KEYWORD_M='M';
 const int16_t HASH_KEYWORD_O='O';
 const int16_t HASH_KEYWORD_P='P';
 const int16_t HASH_KEYWORD_R='R';
@@ -210,8 +212,10 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
         case 1: // skipping spaces before a param
             if (hot == ' ')
                 break;
-            if (hot == '\0' || hot == '>')
-                return parameterCount;
+            if (hot == '\0')
+	      return -1;
+	    if (hot == '>')
+	      return parameterCount;
             state = 2;
             continue;
 
@@ -304,14 +308,19 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif
+    byte params = 0;
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte opcode = com[0];
-    byte params = splitValues(p, com, opcode=='M' || opcode=='P');
-    
+    int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
+    if (splitnum < 0 || splitnum >= MAX_COMMAND_PARAMS) // if arguments are broken, leave but via printing <X>
+      goto out;
+    // Because of check above we are now inside byte size
+    params = splitnum;
+
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
     if (filterRMFTCallback && opcode!='\0')
@@ -553,131 +562,66 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case '1': // POWERON <1   [MAIN|PROG|JOIN]>
         {
-            bool main=false;
-            bool prog=false;
-            bool join=false;
-            bool singletrack=false;
-            //byte t=0;
-            if (params > 1) break;
-            if (params==0) { // All
-                main=true;
-                prog=true;
-            }
-            if (params==1) {
-                if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
-                        main=true;
+	  if (params > 1) break;
+	  if (params==0) { // All
+	    TrackManager::setTrackPower(TRACK_MODE_ALL, POWERMODE::ON);
+	  }
+	  if (params==1) {
+	    if (p[0]==HASH_KEYWORD_MAIN) { // <1 MAIN>
+	      TrackManager::setTrackPower(TRACK_MODE_MAIN, POWERMODE::ON);
             }
 #ifndef DISABLE_PROG
             else if (p[0] == HASH_KEYWORD_JOIN) {  // <1 JOIN>
-                main=true;
-                prog=true;
-                join=true;
+	      TrackManager::setJoin(true);
+	      TrackManager::setTrackPower(TRACK_MODE_MAIN|TRACK_MODE_PROG, POWERMODE::ON);
             }
             else if (p[0]==HASH_KEYWORD_PROG) { // <1 PROG>
-                prog=true;
+	      TrackManager::setJoin(false);
+	      TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::ON);
             }
 #endif
-            //else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
             else if (p[0] >= HASH_KEYWORD_A && p[0] <= HASH_KEYWORD_H) { // <1 A-H>
-                byte t = (p[0] - 'A');
-                    //DIAG(F("Processing track - %d "), t);
-                    if (TrackManager::isProg(t)) {
-                        main = false;
-                        prog = true;
-                    }
-                    else
-                    {
-                        main=true;
-                        prog=false;
-                    }
-                singletrack=true;
-                if (main) TrackManager::setTrackPower(false, false, POWERMODE::ON, t);
-                if (prog) TrackManager::setTrackPower(true, false, POWERMODE::ON, t);
-                
-                StringFormatter::send(stream, F("<1 %c>\n"), t+'A');
-                //CommandDistributor::broadcastPower();
-                //TrackManager::streamTrackState(NULL,t);
-                return;
+	      byte t = (p[0] - 'A');
+	      TrackManager::setTrackPower(POWERMODE::ON, t);
+	      //StringFormatter::send(stream, F("<p1 %c>\n"), t+'A');
             }
-
 	    else break; // will reply <X>
-	    }
-
-        if (!singletrack) {
-            TrackManager::setJoin(join);
-            if (join) TrackManager::setJoinPower(POWERMODE::ON);
-            else {
-                if (main) TrackManager::setMainPower(POWERMODE::ON);
-                if (prog) TrackManager::setProgPower(POWERMODE::ON);
-            }
-            CommandDistributor::broadcastPower();
+	  }
+	  CommandDistributor::broadcastPower();
+	  //TrackManager::streamTrackState(NULL,t);
           
-            return;
-            }
+	  return;
+	}
             
-        }
-
     case '0': // POWEROFF <0 [MAIN | PROG] >
         {
-            bool main=false;
-            bool prog=false;
-            bool singletrack=false;
-            //byte t=0;
-            if (params > 1) break;
-            if (params==0) { // All
-                main=true;
-                prog=true;
-            }
-            if (params==1) {
-                if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
-                    main=true;
-            }
+	  if (params > 1) break;
+	  if (params==0) { // All
+	    TrackManager::setJoin(false);
+	    TrackManager::setTrackPower(TRACK_MODE_ALL, POWERMODE::OFF);
+	  }
+	  if (params==1) {
+	    if (p[0]==HASH_KEYWORD_MAIN) { // <0 MAIN>
+	      TrackManager::setJoin(false);
+	      TrackManager::setTrackPower(TRACK_MODE_MAIN, POWERMODE::OFF);
+	    }
 #ifndef DISABLE_PROG
             else if (p[0]==HASH_KEYWORD_PROG) { // <0 PROG>
-                prog=true;
+	      TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
+	      TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::OFF);
             }
 #endif
-            //else if (p[0] >= 'A' && p[0] <= 'H') { // <1 A-H>
-             else if (p[0] >= HASH_KEYWORD_A && p[0] <= HASH_KEYWORD_H) { // <1 A-H>
-                byte t = (p[0] - 'A');
-                //DIAG(F("Processing track - %d "), t);
-                if (TrackManager::isProg(t)) {
-                    main = false;
-                    prog = true;
-                }
-                else
-                {
-                    main=true;
-                    prog=false;
-                }
-                singletrack=true;  
-                TrackManager::setJoin(false);
-                if (main) TrackManager::setTrackPower(false, false, POWERMODE::OFF, t);
-                if (prog) {
-                    TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                    TrackManager::setTrackPower(true, false, POWERMODE::OFF, t);                 
-                }   
-                StringFormatter::send(stream, F("<0 %c>\n"), t+'A');
-                //CommandDistributor::broadcastPower();
-                //TrackManager::streamTrackState(NULL, t);
-                return;
-            }    
-
-	    else break; // will reply <X>
+	    else if (p[0] >= HASH_KEYWORD_A && p[0] <= HASH_KEYWORD_H) { // <1 A-H>
+	      byte t = (p[0] - 'A');
+	      TrackManager::setJoin(false);
+	      TrackManager::setTrackPower(POWERMODE::OFF, t);
+	      //StringFormatter::send(stream, F("<p0 %c>\n"), t+'A');
 	    }
-
-        if (!singletrack) {
-            TrackManager::setJoin(false);
-            
-            if (main) TrackManager::setMainPower(POWERMODE::OFF);
-            if (prog) {
-                    TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
-                    TrackManager::setProgPower(POWERMODE::OFF);
-                }
-            CommandDistributor::broadcastPower();
-            return;
-        }
-    }
+	    else break; // will reply <X>
+	  }
+	  CommandDistributor::broadcastPower();
+	  return;
+	}
 
     case '!': // ESTOP ALL  <!>
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
@@ -724,8 +668,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 #endif
-    case '=': // TACK MANAGER CONTROL <= [params]>
-        if (TrackManager::parseJ(stream, params, p))
+    case '=': // TRACK MANAGER CONTROL <= [params]>
+        if (TrackManager::parseEqualSign(stream, params, p))
             return;
         break;
 
@@ -781,27 +725,17 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;
 
-                case HASH_KEYWORD_A: // <JA> returns automations/routes
-                    StringFormatter::send(stream, F("<jA"));
-                    if (params==1) {// <JA>
-#ifdef EXRAIL_ACTIVE
-                        SENDFLASHLIST(stream,RMFT2::routeIdList)
-                        SENDFLASHLIST(stream,RMFT2::automationIdList)
-#endif
-                    }
-                    else {  // <JA id>
-                        StringFormatter::send(stream,F(" %d %c \"%S\""), 
-                                        id, 
-#ifdef EXRAIL_ACTIVE
-                                        RMFT2::getRouteType(id), // A/R
-                                        RMFT2::getRouteDescription(id)
-#else  
-                                        'X',F("")
-#endif                                        
-                                        );
-                    }
-                    StringFormatter::send(stream, F(">\n"));      
-                    return; 
+                case HASH_KEYWORD_A: // <JA> intercepted by EXRAIL// <JA> returns automations/routes
+                    if (params!=1) break; // <JA>
+                    StringFormatter::send(stream, F("<jA>\n"));
+                    return;
+ 
+                case HASH_KEYWORD_M: // <JM> intercepted by EXRAIL
+                    if (params>1) break; // invalid cant do
+                    // <JM> requests stash size so say none.
+                    StringFormatter::send(stream,F("<jM 0>\n")); 
+                    return;
+ 
             case HASH_KEYWORD_R: // <JR> returns rosters 
                 StringFormatter::send(stream, F("<jR"));
 #ifdef EXRAIL_ACTIVE
@@ -913,15 +847,27 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
 
+#ifndef DISABLE_VDPY
+    case '@': // JMRI saying "give me virtual LCD msgs"
+        CommandDistributor::setVirtualLCDSerial(stream);
+        StringFormatter::send(stream,
+            F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
+               "<@ 0 1 \"Lic GPLv3\">\n"));
+        return; 
+#endif
     default: //anything else will diagnose and drop out to <X>
+      if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
             DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
-        break;
+      } else {
+	DIAG(F("Unprintable %x"), opcode);
+      }
+      break;
 
     } // end of opcode switch
 
-    // Any fallout here sends an <X>
+out:// Any fallout here sends an <X>
     StringFormatter::send(stream, F("<X>\n"));
 }
 
@@ -1119,9 +1065,9 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
 }
 
 bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
+    (void)stream; // arg not used, maybe later?
     if (params == 0)
         return false;
-    bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
     switch (p[0])
     {
 #ifndef DISABLE_PROG
@@ -1159,6 +1105,8 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
 	    }
 	} else {
+      bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
+    
 	  DIAG(F("Ack diag %S"), onOff ? F("on") : F("off"));
 	  Diag::ACK = onOff;
 	}

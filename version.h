@@ -3,8 +3,37 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.1.17eth"
-// 5.1.17e - Initial ethernet code for STM32F429ZI and F439ZI boards
+#define VERSION "5.2.14eth"
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//         - CMRI RS485 connection
+// 5.2.14 - Reminder window DCC packet optimization
+//        - Optional #define DISABLE_FUNCTION_REMINDERS 
+// 5.2.13 - EXRAIL STEALTH 
+// 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
+//        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
+//        - STM32 extra UART/USARTs for larger Nucleo models
+// 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
+// 5.2.10 - Include trainbrains.eu block unoccupancy driver
+//        - include IO_PCA9555  
+// 5.2.9  - Bugfix LCD startup with no LCD, uses <@
+// 5.2.9  - EXRAIL STASH feature 
+// 5.2.8  - Bugfix: Do not turn off all tracks on change
+//          give better power messages
+// 5.2.7  - Bugfix: EXRAIL ling segment
+//        - Bugfix: Back out wrongly added const
+//        - Bugfix ESP32: Do not inverse DCX direction signal twice
+// 5.2.6  - Trackmanager broadcast power state on track mode change
+// 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
+// 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
+//        - Added ROUTE_DISABLED macro in EXRAIL
+// 5.2.3  - Bugfix: Catch stange input to parser
+// 5.2.2  - Added option to allow MAX_CHARACTER_ROWS to be defined in config.h
+// 5.2.1  - Trackmanager rework for simpler structure
+// 5.2.0  - ESP32: Autoreverse and booster mode support
+// 5.1.21 - EXRAIL invoke multiple ON handlers for same event
+// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
+// 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
+// 5.1.18 - TURNOUTL bugfix
 // 5.1.17 - Divide out C for config and D for diag commands
 // 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
 // 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.

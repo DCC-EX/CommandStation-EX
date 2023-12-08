@@ -106,6 +106,7 @@ void DCCWaveform::interruptHandler() {
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
+  reminderWindowOpen = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
@@ -127,9 +128,15 @@ void DCCWaveform::interrupt2() {
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
+
+    // As we get to the end of the preambles, open the reminder window.
+    // This delays any reminder insertion until the last moment so
+    // that the reminder doesn't block a more urgent packet. 
+    reminderWindowOpen=transmitRepeats==0 && remainingPreambles<4 && remainingPreambles>1;
+    if (remainingPreambles==1) promotePendingPacket();
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    DCCTimer::updateMinimumFreeMemoryISR(22); 
+    else DCCTimer::updateMinimumFreeMemoryISR(22); 
     return;
   }
 
@@ -148,30 +155,9 @@ void DCCWaveform::interrupt2() {
     if (bytes_sent >= transmitLength) {
       // end of transmission buffer... repeat or switch to next message
       bytes_sent = 0;
+      // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
-
-      if (transmitRepeats > 0) {
-        transmitRepeats--;
       }
-      else if (packetPending) {
-        // Copy pending packet to transmit packet
-        // a fixed length memcpy is faster than a variable length loop for these small lengths
-        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
-        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
-        
-        transmitLength = pendingLength;
-        transmitRepeats = pendingRepeats;
-        packetPending = false;
-        clearResets();
-      }
-      else {
-        // Fortunately reset and idle packets are the same length
-        memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
-        transmitLength = sizeof(idlePacket);
-        transmitRepeats = 0;
-        if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
-      }
-    }
   }  
 }
 #pragma GCC pop_options
@@ -193,8 +179,39 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   packetPending = true;
   clearResets();
 }
-bool DCCWaveform::getPacketPending() {
-  return packetPending;
+
+bool DCCWaveform::isReminderWindowOpen() {
+  return reminderWindowOpen && ! packetPending;
+}
+
+void DCCWaveform::promotePendingPacket() {
+    // fill the transmission packet from the pending packet
+    
+    // Just keep going if repeating  
+    if (transmitRepeats > 0) {
+        transmitRepeats--;
+        return;
+      }
+
+    if (packetPending) {
+        // Copy pending packet to transmit packet
+        // a fixed length memcpy is faster than a variable length loop for these small lengths
+        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+        
+        transmitLength = pendingLength;
+        transmitRepeats = pendingRepeats;
+        packetPending = false;
+        clearResets();
+        return;
+      }
+      
+      // nothing to do, just send idles or resets
+      // Fortunately reset and idle packets are the same length
+      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
+      transmitLength = sizeof(idlePacket);
+      transmitRepeats = 0;
+      if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
 #endif
 
@@ -266,15 +283,15 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   }
 }
 
-bool DCCWaveform::getPacketPending() {
+bool DCCWaveform::isReminderWindowOpen() {
   if(isMainTrack) {
     if (rmtMainChannel == NULL)
-      return true;
-    return rmtMainChannel->busy();
+      return false;
+    return !rmtMainChannel->busy();
   } else {
     if (rmtProgChannel == NULL)
-      return true;
-    return rmtProgChannel->busy();
+      return false;
+    return !rmtProgChannel->busy();
   }
 }
 void IRAM_ATTR DCCWaveform::loop() {
