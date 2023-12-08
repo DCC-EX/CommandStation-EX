@@ -1,6 +1,6 @@
 /*
  *  © 2020-2022 Chris Harlow. All rights reserved.
- *  © 2022 Colin Murdoch
+ *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  
  *  This file is part of CommandStation-EX
@@ -27,6 +27,7 @@
 #undef ACTIVATE
 #undef ACTIVATEL
 #undef AFTER
+#undef AFTEROVERLOAD
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
@@ -38,8 +39,11 @@
 #undef AUTOSTART
 #undef BROADCAST
 #undef CALL 
+#undef CLEAR_STASH
+#undef CLEAR_ALL_STASH
 #undef CLOSE 
 #undef DCC_SIGNAL
+#undef DCC_TURNTABLE
 #undef DEACTIVATE
 #undef DEACTIVATEL
 #undef DELAY
@@ -51,8 +55,9 @@
 #undef ENDEXRAIL 
 #undef ENDIF  
 #undef ENDTASK
-#undef ESTOP 
-#undef EXRAIL  
+#undef ESTOP
+#undef EXRAIL
+#undef EXTT_TURNTABLE
 #undef FADE
 #undef FOFF
 #undef FOLLOW 
@@ -75,6 +80,7 @@
 #undef IFRESERVE
 #undef IFTHROWN
 #undef IFTIMEOUT
+#undef IFTTPOSITION
 #undef IFRE
 #undef INVERT_DIRECTION 
 #undef JOIN 
@@ -82,6 +88,8 @@
 #undef LATCH 
 #undef LCD 
 #undef SCREEN
+#undef LCC 
+#undef LCCX 
 #undef LCN 
 #undef MOVETT
 #undef ONACTIVATE
@@ -90,15 +98,19 @@
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
+#undef ONLCC
 #undef ONTIME
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
+#undef ONOVERLOAD
 #undef ONGREEN
 #undef ONRED
+#undef ONROTATE
 #undef ONTHROW 
 #undef ONCHANGE
 #undef PARSE
 #undef PAUSE
+#undef PICKUP_STASH
 #undef PIN_TURNOUT 
 #undef PRINT
 #ifndef DISABLE_PROG
@@ -113,8 +125,15 @@
 #undef RESUME 
 #undef RETURN 
 #undef REV
-#undef ROSTER 
+#undef ROSTER
+#undef ROTATE
+#undef ROTATE_DCC
 #undef ROUTE
+#undef ROUTE_ACTIVE
+#undef ROUTE_INACTIVE
+#undef ROUTE_HIDDEN
+#undef ROUTE_DISABLED
+#undef ROUTE_CAPTION
 #undef SENDLOCO 
 #undef SEQUENCE 
 #undef SERIAL 
@@ -130,13 +149,17 @@
 #undef SERVO_SIGNAL
 #undef SET
 #undef SET_TRACK
+#undef SET_POWER
 #undef SETLOCO 
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED 
 #undef START 
+#undef STASH
+#undef STEALTH
 #undef STOP 
-#undef THROW  
+#undef THROW
+#undef TT_ADDPOSITION
 #undef TURNOUT 
 #undef TURNOUTL
 #undef UNJOIN
@@ -144,6 +167,9 @@
 #undef VIRTUAL_SIGNAL
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
+#ifndef IO_NO_HAL
+#undef WAITFORTT
+#endif
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
@@ -152,6 +178,7 @@
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
 #define AFTER(sensor_id)
+#define AFTEROVERLOAD(track_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)
@@ -162,9 +189,12 @@
 #define AUTOMATION(id,description) 
 #define AUTOSTART
 #define BROADCAST(msg)
-#define CALL(route) 
+#define CALL(route)
+#define CLEAR_STASH(id)
+#define CLEAR_ALL_STASH(id)
 #define CLOSE(id) 
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
 #define DELAY(mindelay)
@@ -177,7 +207,8 @@
 #define ENDIF  
 #define ENDTASK
 #define ESTOP 
-#define EXRAIL  
+#define EXRAIL
+#define EXTT_TURNTABLE(id,vpin,home,description)
 #define FADE(pin,value,ms)
 #define FOFF(func)
 #define FOLLOW(route) 
@@ -200,11 +231,14 @@
 #define IFTHROWN(turnout_id) 
 #define IFRESERVE(block)
 #define IFTIMEOUT
+#define IFTTPOSITION(turntable_id,position)
 #define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
 #define JOIN 
 #define KILLALL
-#define LATCH(sensor_id) 
+#define LATCH(sensor_id)
+#define LCC(eventid) 
+#define LCCX(senderid,eventid) 
 #define LCD(row,msg)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
@@ -215,17 +249,21 @@
 #define ONTIME(value)
 #define ONCLOCKTIME(hours,mins)
 #define ONCLOCKMINS(mins)
+#define ONOVERLOAD(track_id)
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)
+#define ONLCC(sender,event)
 #define ONGREEN(signal_id) 
-#define ONRED(signal_id) 
+#define ONRED(signal_id)
+#define ONROTATE(turntable_id)
 #define ONTHROW(turnout_id) 
 #define ONCHANGE(sensor_id)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
 #define PARSE(msg)
+#define PICKUP_STASH(id)
 #ifndef DISABLE_PROG
 #define POM(cv,value)
 #endif
@@ -238,8 +276,15 @@
 #define RESUME 
 #define RETURN 
 #define REV(speed) 
-#define ROUTE(id,description)
+#define ROTATE(turntable_id,position,activity)
+#define ROTATE_DCC(turntable_id,position)
 #define ROSTER(cab,name,funcmap...)
+#define ROUTE(id,description)
+#define ROUTE_ACTIVE(id)
+#define ROUTE_INACTIVE(id)
+#define ROUTE_HIDDEN(id)
+#define ROUTE_DISABLED(id)
+#define ROUTE_CAPTION(id,caption)
 #define SENDLOCO(cab,route) 
 #define SEQUENCE(id) 
 #define SERIAL(msg) 
@@ -255,13 +300,17 @@
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
 #define SET(pin) 
 #define SET_TRACK(track,mode)
+#define SET_POWER(track,onoff)
 #define SETLOCO(loco) 
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
-#define START(route) 
+#define START(route)
+#define STASH(id) 
+#define STEALTH(code...)
 #define STOP 
-#define THROW(id)  
+#define THROW(id)
+#define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
 #define UNJOIN 
@@ -269,6 +318,9 @@
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) 
 #define WAITFOR(pin)
+#ifndef IO_NO_HAL
+#define WAITFORTT(turntable_id)
+#endif
 #define WITHROTTLE(msg)
 #define XFOFF(cab,func)
 #define XFON(cab,func)

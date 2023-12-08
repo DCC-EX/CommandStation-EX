@@ -76,11 +76,13 @@ class DCCWaveform {
     };
 #endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
-    bool getPacketPending();
+    bool isReminderWindowOpen();
+    void promotePendingPacket();
     
   private:
 #ifndef ARDUINO_ARCH_ESP32
     volatile bool packetPending;
+    volatile bool reminderWindowOpen;
     volatile byte sentResetsSincePacket;
 #else
     volatile uint32_t resetPacketBase;

@@ -37,7 +37,9 @@
 class Display : public DisplayInterface {
 public:
   Display(DisplayDevice *deviceDriver);
+#if !defined (MAX_CHARACTER_ROWS)
   static const int MAX_CHARACTER_ROWS = 8;
+#endif
   static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
   static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds
 

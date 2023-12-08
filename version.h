@@ -3,7 +3,66 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "4.2.68"
+#define VERSION "5.2.14"
+// 5.2.14 - Reminder window DCC packet optimization
+//        - Optional #define DISABLE_FUNCTION_REMINDERS 
+// 5.2.13 - EXRAIL STEALTH 
+// 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
+//        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
+//        - STM32 extra UART/USARTs for larger Nucleo models
+// 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
+// 5.2.10 - Include trainbrains.eu block unoccupancy driver
+//        - include IO_PCA9555  
+// 5.2.9  - Bugfix LCD startup with no LCD, uses <@
+// 5.2.9  - EXRAIL STASH feature 
+// 5.2.8  - Bugfix: Do not turn off all tracks on change
+//          give better power messages
+// 5.2.7  - Bugfix: EXRAIL ling segment
+//        - Bugfix: Back out wrongly added const
+//        - Bugfix ESP32: Do not inverse DCX direction signal twice
+// 5.2.6  - Trackmanager broadcast power state on track mode change
+// 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
+// 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
+//        - Added ROUTE_DISABLED macro in EXRAIL
+// 5.2.3  - Bugfix: Catch stange input to parser
+// 5.2.2  - Added option to allow MAX_CHARACTER_ROWS to be defined in config.h
+// 5.2.1  - Trackmanager rework for simpler structure
+// 5.2.0  - ESP32: Autoreverse and booster mode support
+// 5.1.21 - EXRAIL invoke multiple ON handlers for same event
+// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
+// 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
+// 5.1.18 - TURNOUTL bugfix
+// 5.1.17 - Divide out C for config and D for diag commands
+// 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
+// 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
+// 5.1.14 - Fixed IFTTPOSITION
+// 5.1.13 - Changed turntable broadcast from i to I due to server string conflict
+// 5.1.12 - Added Power commands <0 A> & <1 A> etc. and update to <=>
+//          Added EXRAIL SET_POWER(track, ON/OFF)
+//          Fixed a problem whereby <1 MAIN> also powered on PROG track
+//          Added functions to TrackManager.cpp to allow UserAddin code for power display on OLED/LCD
+//          Added - returnMode(byte t), returnDCAddr(byte t) & getModeName(byte Mode)
+// 5.1.11 - STM32F4xx revised I2C clock setup, no correctly sets clock and has fully variable frequency selection
+// 5.1.10 - STM32F4xx DCCEXanalogWrite to handle PWM generation for TrackManager DC/DCX
+//        - STM32F4xx DCC 58uS timer now using non-PWM output timers where possible
+//        - ESP32 brakeCanPWM check now detects UNUSED_PIN
+//        - ARM architecture brakeCanPWM now uses digitalPinHasPWM()
+//        - STM32F4xx shadowpin extensions to handle pins on ports D, E and F
+// 5.1.9  - Fixed IO_PCA9555'h to work with PCA9548 mux, tested OK
+// 5.1.8  - STM32Fxx ADCee extension to support ADCs #2 and #3
+// 5.1.7  - Fix turntable broadcasts for non-movement activities and <JP> result
+// 5.1.6  - STM32F4xx native I2C driver added
+// 5.1.5  - Added turntable object and EXRAIL commands
+//        - <I ...>, <JO ...>, <JP ...> - turntable commands
+//        - DCC_TURNTABLE, EXTT_TURNTABLE, IFTTPOSITION, ONROTATE, ROTATE, ROTATE_DCC, TT_ADDPOSITION, WAITFORTT EXRAIL
+// 5.1.4  - Added ONOVERLOAD & AFTEROVERLOAD to EXRAIL
+// 5.1.3  - Make parser more fool proof
+// 5.1.2  - Bugfix: ESP32 30ms off time
+// 5.1.1  - Check bad AT firmware version
+//        - Update IO_PCA9555.h reflecting IO_MCP23017.h changes to support PCA9548 mux
+// 5.0.1  - Bugfix: execute 30ms off time before rejoin
+// 5.0.0  - Make 4.2.69 the 5.0.0 release
+// 4.2.69 - Bugfix: Make <!> work in DC mode
 // 4.2.68 - Rename track mode OFF to NONE
 // 4.2.67 - AVR: Pin specific timer register seting
 //        - Protect Uno user from choosing DC(X)
