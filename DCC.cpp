@@ -122,7 +122,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
-void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
+void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
   // DIAG(F("setFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
@@ -133,7 +133,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  DCCWaveform::mainTrack.schedulePacket(b, nB, count);
 }
 
 // returns speed steps 0 to 127 (1 == emergency stop)
@@ -619,33 +619,39 @@ bool DCC::issueReminder(int reg) {
          break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1)
-              setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
-#ifdef DISABLE_FUNCTION_REMINDERS
+#ifndef DISABLE_FUNCTION_REMINDERS
+	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),0); // 100D DDDD
+#else
+	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),2);
           flags&= ~FN_GROUP_1;  // dont send them again
 #endif
           break;
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2)
-              setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));                           // 1011 DDDD
-#ifdef DISABLE_FUNCTION_REMINDERS
+#ifndef DISABLE_FUNCTION_REMINDERS
+  	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),0);                           // 1011 DDDD
+#else
+	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),2);
           flags&= ~FN_GROUP_2;  // dont send them again
 #endif
           break;
        case 3: // remind function group 3 F9-F12
           if (flags & FN_GROUP_3)
-              setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));                           // 1010 DDDD
-#ifdef DISABLE_FUNCTION_REMINDERS
+#ifndef DISABLE_FUNCTION_REMINDERS
+	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),0);                           // 1010 DDDD
+#else
+	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),2);
           flags&= ~FN_GROUP_3;  // dont send them again
 #endif
           break;
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4)
-              setFunctionInternal(loco,222, ((functions>>13)& 0xFF));
+	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),2);
           flags&= ~FN_GROUP_4;  // dont send them again
           break;
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
-              setFunctionInternal(loco,223, ((functions>>21)& 0xFF));
+	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),2);
           flags&= ~FN_GROUP_5;  // dont send them again
           break;
       }
