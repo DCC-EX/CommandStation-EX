@@ -414,7 +414,6 @@ void RMFT2::driveLoco(byte speed) {
  power on appropriate track if DC or main if dcc
   if (TrackManager::getMainPowerMode()==POWERMODE::OFF) {
     TrackManager::setMainPower(POWERMODE::ON);
-    CommandDistributor::broadcastPower();
   }
   **********/
 
@@ -642,7 +641,6 @@ void RMFT2::loop2() {
   case OPCODE_POWEROFF:
     TrackManager::setPower(POWERMODE::OFF);
     TrackManager::setJoin(false);
-    CommandDistributor::broadcastPower();
     break;
   
   case OPCODE_SET_POWER:
@@ -837,12 +835,10 @@ void RMFT2::loop2() {
   case OPCODE_JOIN:
     TrackManager::setPower(POWERMODE::ON);
     TrackManager::setJoin(true);
-    CommandDistributor::broadcastPower();
     break;
 
   case OPCODE_UNJOIN:
     TrackManager::setJoin(false);
-    CommandDistributor::broadcastPower();
     break;
 
   case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
@@ -870,7 +866,6 @@ void RMFT2::loop2() {
   case OPCODE_POWERON:
     TrackManager::setMainPower(POWERMODE::ON);
     TrackManager::setJoin(false);
-    CommandDistributor::broadcastPower();
     break;
     
   case OPCODE_START:

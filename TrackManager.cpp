@@ -489,10 +489,13 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 
 // Set track power for all tracks with this mode
 void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermode) {
+  bool didChange=false;
   FOR_EACH_TRACK(t) {
     MotorDriver *driver=track[t];
     TRACK_MODE trackmodeOfTrack = driver->getMode();
     if (trackmodeToMatch & trackmodeOfTrack) {
+      if (powermode != driver->getPower())
+	didChange=true;
       if (powermode == POWERMODE::ON) {
 	if (trackmodeOfTrack & TRACK_MODE_DC) {
 	  driver->setBrake(true);   // DC starts with brake on
@@ -507,12 +510,15 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
       driver->setPower(powermode);
     }
   }
+  if (didChange)
+    CommandDistributor::broadcastPower();
 }
 
 // Set track power for this track, inependent of mode
 void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   MotorDriver *driver=track[t]; 
   TRACK_MODE trackmode = driver->getMode();
+  POWERMODE oldpower = driver->getPower();
   if (trackmode & TRACK_MODE_NONE) {
     driver->setBrake(true);     // Track is unused. Brake is good to have.
     powermode = POWERMODE::OFF; // Track is unused. Force it to OFF
@@ -530,6 +536,8 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
     }
   }
   driver->setPower(powermode);
+  if (oldpower != driver->getPower())
+    CommandDistributor::broadcastPower();
 }
 
 // returns state of the one and only prog track
