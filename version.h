@@ -3,9 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.15"
+#define VERSION "5.2.15ethC"
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//         - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
