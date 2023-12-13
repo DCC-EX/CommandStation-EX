@@ -587,7 +587,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             }
 	    else break; // will reply <X>
 	  }
-	  CommandDistributor::broadcastPower();
 	  //TrackManager::streamTrackState(NULL,t);
           
 	  return;
@@ -619,7 +618,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	    }
 	    else break; // will reply <X>
 	  }
-	  CommandDistributor::broadcastPower();
 	  return;
 	}
 

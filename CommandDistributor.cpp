@@ -283,7 +283,7 @@ void  CommandDistributor::broadcastPower() {
   //DIAG(F("m=%d p=%d j=%d"), main, prog, join);
   const FSH * reason=F("");
   if (join) {
-    reason = F("JOIN");
+    reason = F(" JOIN"); // with space at start so we can append without space
     broadcastReply(COMMAND_TYPE, F("<p1 %S>\n"),reason);
   } else {
     if (main) {
@@ -303,7 +303,7 @@ void  CommandDistributor::broadcastPower() {
   broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1': state);
 #endif
 
-  LCD(2,F("Power %S %S"),state=='1'?F("On"): ( state=='0'? F("Off") : F("SC") ),reason);
+  LCD(2,F("Power %S%S"),state=='1'?F("On"): ( state=='0'? F("Off") : F("SC") ),reason);
 }
 
 void CommandDistributor::broadcastRaw(clientType type, char * msg) {

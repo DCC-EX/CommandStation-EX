@@ -150,7 +150,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	  DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
 */
 
-	CommandDistributor::broadcastPower();
       }
 #if defined(EXRAIL_ACTIVE)
       else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
@@ -496,7 +495,6 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   TrackManager::setJoin(true);          // <1 JOIN> so we can drive loco away
   DIAG(F("LocoCallback commit success"));
   stashStream->commit();
-  CommandDistributor::broadcastPower();
 }
 
 void WiThrottle::sendIntro(Print* stream) {
