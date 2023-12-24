@@ -80,16 +80,15 @@ public:
   };
   bool recycle(WiFiClient c) {
 
-    if (inUse == true) return false;
-
-    // return false here until we have
-    // implemented a LRU timer
-    // if (LRU too recent) return false;
+    if (wifi == c) {
+      if (inUse == true)
+	DIAG(F("WARNING: Duplicate"));
+      else
+	DIAG(F("Returning"));
+      inUse = true;
+      return true;
+    }
     return false;
-
-    wifi = c;
-    inUse = true;
-    return true;
   };
   WiFiClient wifi;
   bool inUse = true;
@@ -299,14 +298,14 @@ void WifiESP::loop() {
       while (client = server->available()) {
 	for (clientId=0; clientId<clients.size(); clientId++){
 	  if (clients[clientId].recycle(client)) {
-	    DIAG(F("Recycle client %d %s"), clientId, client.remoteIP().toString().c_str());
+	    DIAG(F("Recycle client %d %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	    break;
 	  }
 	}
 	if (clientId>=clients.size()) {
 	  NetworkClient nc(client);
 	  clients.push_back(nc);
-	  DIAG(F("New client %d, %s"), clientId, client.remoteIP().toString().c_str());
+	  DIAG(F("New client %d, %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	}
       }
     }
