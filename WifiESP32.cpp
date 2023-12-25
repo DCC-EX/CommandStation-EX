@@ -386,8 +386,9 @@ void WifiESP::loop() {
   // prio task. On core1 this is not a problem
   // as there the wdt is disabled by the
   // arduio IDE startup routines.
-  if (xPortGetCoreID() == 0)
+  if (xPortGetCoreID() == 0) {
     feedTheDog0();
-  yield();
+    yield();
+  }
 }
 #endif //ESP32
