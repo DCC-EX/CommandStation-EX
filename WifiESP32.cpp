@@ -74,12 +74,21 @@ class NetworkClient {
 public:
   NetworkClient(WiFiClient c) {
     wifi = c;
+    inUse = true;
   };
-  bool ok() {
-    return (inUse && wifi.connected());
-  };
+  bool active(byte clientId) {
+    if (!inUse)
+      return false;
+    if(!wifi.connected()) {
+      DIAG(F("Remove client %d"), clientId);
+      CommandDistributor::forget(clientId);
+      wifi.stop();
+      inUse = false;
+      return false;
+    }
+    return true;
+  }
   bool recycle(WiFiClient c) {
-
     if (wifi == c) {
       if (inUse == true)
 	DIAG(F("WARNING: Duplicate"));
@@ -88,10 +97,16 @@ public:
       inUse = true;
       return true;
     }
+    if (inUse == false) {
+      wifi = c;
+      inUse = true;
+      return true;
+    }
     return false;
   };
   WiFiClient wifi;
-  bool inUse = true;
+private:
+  bool inUse;
 };
 
 static std::vector<NetworkClient> clients; // a list to hold all clients
@@ -281,18 +296,6 @@ void WifiESP::loop() {
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
-    // loop over all clients and remove inactive
-    for (clientId=0; clientId<clients.size(); clientId++){
-      // check if client is there and alive
-      if(clients[clientId].inUse && !clients[clientId].wifi.connected()) {
-	DIAG(F("Remove client %d"), clientId);
-	CommandDistributor::forget(clientId);
-	clients[clientId].wifi.stop();
-	clients[clientId].inUse = false;
-	//Do NOT clients.erase(clients.begin()+clientId) as
-	//that would mix up clientIds for later.
-      }
-    }
     if (server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
@@ -310,8 +313,9 @@ void WifiESP::loop() {
       }
     }
     // loop over all connected clients
+    // this removes as a side effect inactive clients when checking ::active()
     for (clientId=0; clientId<clients.size(); clientId++){
-      if(clients[clientId].ok()) {
+      if(clients[clientId].active(clientId)) {
 	int len;
 	if ((len = clients[clientId].wifi.available()) > 0) {
 	  // read data from client
@@ -349,7 +353,7 @@ void WifiESP::loop() {
 	}
 	// buffer filled, end with '\0' so we can use it as C string
 	buffer[count]='\0';
-	if((unsigned int)clientId <= clients.size() && clients[clientId].ok()) {
+	if((unsigned int)clientId <= clients.size() && clients[clientId].active(clientId)) {
 	  if (Diag::CMD || Diag::WITHROTTLE)
 	    DIAG(F("SEND %d:%s"), clientId, buffer);
 	  clients[clientId].wifi.write(buffer,count);
