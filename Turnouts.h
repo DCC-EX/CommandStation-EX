@@ -1,4 +1,5 @@
 /*
+ *  © 2023 Andrey Baboshin
  *  © 2021 Neil McKechnie
  *  © 2021 M Steve Todd
  *  © 2021 Fred Decker
@@ -6,7 +7,7 @@
  *  © 2020-2022 Chris Harlow
  *  © 2013-2016 Gregg E. Berman
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -26,7 +27,7 @@
 #ifndef TURNOUTS_H
 #define TURNOUTS_H
 
-//#define EESTOREDEBUG 
+//#define EESTOREDEBUG
 #include "Arduino.h"
 #include "IODevice.h"
 #include "StringFormatter.h"
@@ -37,20 +38,21 @@ enum {
   TURNOUT_SERVO = 2,
   TURNOUT_VPIN = 3,
   TURNOUT_LCN = 4,
+  TURNOUT_PIN = 5
 };
 
 /*************************************************************************************
  * Turnout - Base class for turnouts.
- * 
+ *
  *************************************************************************************/
 
 class Turnout {
 protected:
-  /* 
+  /*
    * Object data
    */
 
-  // The TurnoutData struct contains data common to all turnout types, that 
+  // The TurnoutData struct contains data common to all turnout types, that
   // is written to EEPROM when the turnout is saved.
   // The first byte of this struct contains the 'closed' flag which is
   // updated whenever the turnout changes from thrown to closed and
@@ -71,7 +73,7 @@ protected:
 
 #ifndef DISABLE_EEPROM
   // Address in eeprom of first byte of the _turnoutData struct (containing the closed flag).
-  // Set to zero if the object has not been saved in EEPROM, e.g. for newly created Turnouts, and 
+  // Set to zero if the object has not been saved in EEPROM, e.g. for newly created Turnouts, and
   // for all LCN turnouts.
   uint16_t _eepromAddress = 0;
 #endif
@@ -90,35 +92,35 @@ protected:
     add(this);
   }
 
-  /* 
+  /*
    * Static data
-   */ 
+   */
 
   static Turnout *_firstTurnout;
   static int _turnoutlistHash;
 
-  /* 
+  /*
    * Virtual functions
    */
 
   virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
   virtual void save() {}
-  
+
   /*
    * Static functions
    */
 
 
   static void add(Turnout *tt);
-  
+
 public:
   static Turnout *get(uint16_t id);
-  /* 
+  /*
    * Static data
    */
   static int turnoutlistHash;
   static const bool useClassicTurnoutCommands;
-  
+
   /*
    * Public base class functions
    */
@@ -130,7 +132,7 @@ public:
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }
   void printState(Print *stream);
-  /* 
+  /*
    * Virtual functions
    */
   virtual void print(Print *stream) {
@@ -189,11 +191,11 @@ public:
 
 /*************************************************************************************
  * ServoTurnout - Turnout controlled by servo device.
- * 
+ *
  *************************************************************************************/
 class ServoTurnout : public Turnout {
 private:
-  // ServoTurnoutData contains data specific to this subclass that is 
+  // ServoTurnoutData contains data specific to this subclass that is
   // written to EEPROM when the turnout is saved.
   struct ServoTurnoutData {
     VPIN vpin;
@@ -222,11 +224,11 @@ protected:
 
 /*************************************************************************************
  * DCCTurnout - Turnout controlled by DCC Accessory Controller.
- * 
+ *
  *************************************************************************************/
 class DCCTurnout : public Turnout {
 private:
-  // DCCTurnoutData contains data specific to this subclass that is 
+  // DCCTurnoutData contains data specific to this subclass that is
   // written to EEPROM when the turnout is saved.
   struct DCCTurnoutData {
     // DCC address (Address in bits 15-2, subaddress in bits 1-0)
@@ -257,11 +259,11 @@ protected:
 
 /*************************************************************************************
  * VpinTurnout - Turnout controlled through a HAL vpin.
- * 
+ *
  *************************************************************************************/
 class VpinTurnout : public Turnout {
 private:
-  // VpinTurnoutData contains data specific to this subclass that is 
+  // VpinTurnoutData contains data specific to this subclass that is
   // written to EEPROM when the turnout is saved.
   struct VpinTurnoutData {
     VPIN vpin;
@@ -287,7 +289,7 @@ protected:
 
 /*************************************************************************************
  * LCNTurnout - Turnout controlled by Loconet
- * 
+ *
  *************************************************************************************/
 class LCNTurnout : public Turnout {
 private:
@@ -295,7 +297,7 @@ private:
   // struct LCNTurnoutData {
   // } _lcnTurnoutData; // 0 bytes
 
-  // Constructor 
+  // Constructor
   LCNTurnout(uint16_t id, bool closed);
 
 public:
