@@ -1,4 +1,4 @@
-/*
+   /*
  *  © 2023, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
@@ -87,6 +87,7 @@
 //#define DIAG_I2CDFplayer
 //#define DIAG_I2CDFplayer_data
 //#define DIAG_I2CDFplayer_reg
+#define DIAG_I2CDFplayer_playing
 
 class I2CDFPlayer : public IODevice {
 private: 
@@ -100,12 +101,13 @@ private:
   uint8_t _requestedVolumeLevel = MAXVOLUME;
   uint8_t _currentVolume = MAXVOLUME;
   int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
-  uint8_t _repeat;
+  bool _repeat = false; // audio file is repeat playing
   uint8_t _previousCmd = true;
   // SC16IS752 defines
   I2CAddress _I2CAddress;
   I2CRB _rb;
   uint8_t _UART_CH;
+  uint8_t _audioMixer = 0x00; // Default no audio mixer installed
   // Communication parameters for the DFPlayer are fixed at 8 bit, No parity, 1 stopbit
   uint8_t WORD_LEN = 0x03;    // Value LCR bit 0,1
   uint8_t STOP_BIT = 0x00;    // Value LCR bit 2 
@@ -116,26 +118,43 @@ private:
   uint8_t TEMP_REG_VAL = 0x00;
   uint8_t FIFO_RX_LEVEL = 0x00;
   uint8_t RX_BUFFER = 0x00; // nr of bytes copied into _inbuffer
-  uint8_t FIFO_TX_LEVEL = 0x00;
+  uint8_t FIFO_TX_LEVEL = 0x00;  
+  //uint8_t DFPlayerValue = NONE; // Values for enhanced commands
+  //uint8_t DFPlayerCmd = NONE; // Enhanced commands
+  bool _playCmd = false;
+  bool _volCmd = false;
+  bool _folderCmd = false;
+  uint8_t _requestedFolder = 0x01; // default to folder 01
+  uint8_t _currentFolder = 0x01; // default to folder 01
+  bool _repeatCmd = false;
+  bool _stopplayCmd = false;
+  bool _resetCmd = false;
+  bool _eqCmd = false;
+  uint8_t _requestedEQValue = NORMAL;
+  uint8_t _currentEQvalue = NORMAL; // start equalizer value
+  bool _daconCmd = false;
+   
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
+
   
-  unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change oscillator frequency to 14.7456Mhz (14745600) to allow for higher baud rates
-  //unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates
+  //unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change oscillator frequency to 14.7456Mhz (14745600) to allow for higher baud rates
+  unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates
 
 public:
   // Constructor
-  I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH){
+  I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM){
     _firstVpin = firstVpin;
     _nPins = nPins;
     _I2CAddress = i2cAddress;
-    _UART_CH = UART_CH;  
+    _UART_CH = UART_CH;
+    _audioMixer = AM;  
     addDevice(this);
    } 
   
 public:
-   static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH) {
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new I2CDFPlayer(firstVpin, nPins, i2cAddress, UART_CH);
+   static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new I2CDFPlayer(firstVpin, nPins, i2cAddress, UART_CH, AM);
   }
 
   void _begin() override {
@@ -159,7 +178,7 @@ public:
       _deviceState = DEVSTATE_INITIALISING; 
       sendPacket(0x42);
       _timeoutTime = micros() + 5000000UL;  // 5 second timeout      
-      _awaitingResponse = true;
+      _awaitingResponse = true; 
      }
   
   
@@ -296,28 +315,75 @@ public:
     RX_BUFFER = 0; //Set to 0, we'll read a new RX FIFO level again
   }
 
+  //sendPacket(0x1A,0x00,0x01); //Enable DAC
+
   // Send any commands that need to be sent
   void processOutgoing(unsigned long currentMicros) {
     // When two commands are sent in quick succession, the device will often fail to 
     // execute one.  Testing has indicated that a delay of 100ms or more is required
     // between successive commands to get reliable operation.
     // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
-    if (((int32_t)currentMicros - _commandSendTime) > 100000) { 
+    if (((int32_t)currentMicros - _commandSendTime) > 100000) {              
       if (_currentVolume > _requestedVolumeLevel) {
         // Change volume before changing song if volume is reducing.
         _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, _currentVolume);
-      } else if (_requestedSong > 0) {
+        sendPacket(0x06, 0x00, _currentVolume);
+      } else if (_playCmd == true) {
         // Change song
-        sendPacket(0x03, _requestedSong);
-        _requestedSong = -1;    
-      } else if (_requestedSong == 0) {
-        sendPacket(0x16);  // Stop playing
+        if (_requestedSong != -1) {
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: _requestedVolumeLevel: %u, _requestedSong: %u, _playCmd: 0x%x"), _requestedVolumeLevel, _requestedSong, _playCmd);
+          #endif               
+          sendPacket(0x0F, 0x01, _requestedSong);  // audio file in folder 01          
+          _requestedSong = -1; 
+          _playCmd = false;
+        }           
+      } //else if (_requestedSong == 0) {
+        else if (_stopplayCmd == true) {
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: Stop playing: _stopplayCmd: 0x%x"), _stopplayCmd);
+          #endif
+        sendPacket(0x16, 0x00, 0x00);  // Stop playing        
         _requestedSong = -1;
+        _repeat = false; // reset repeat        
+        _stopplayCmd = false;
+        } else if (_folderCmd == true) {
+          if (_currentFolder != _requestedFolder){
+            _currentFolder = _requestedFolder;
+          }
+          _folderCmd = false;
+      } else if (_repeatCmd == true) {
+        if(_repeat == false) { // No repeat play currently
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: Repeat: _repeatCmd: 0x%x, _requestedSong: %d, _repeat: 0x0%x"), _repeatCmd, _requestedSong, _repeat);
+          #endif 
+          sendPacket(0x08, 0x00, _requestedSong);  // repeat playing audio file in root folder          
+          _requestedSong = -1;
+          _repeat = true; 
+        }
+        _repeatCmd= false;      
+      } else if (_daconCmd == true) { // Always turn DAC on
+        #ifdef DIAG_I2CDFplayer_playing
+          DIAG(F("I2CDFPlayer: DACON: _daconCmd: 0x%x"), _daconCmd);
+        #endif 
+        sendPacket(0x1A,0,0x00);
+        _daconCmd = false;
+      } else if (_eqCmd == true){ // Set Equalizer, values 0x00 - 0x05        
+        if (_currentEQvalue != _requestedEQValue){
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: EQ: _eqCmd: 0x%x, _currentEQvalue: 0x0%x, _requestedEQValue: 0x0%x"), _eqCmd, _currentEQvalue, _requestedEQValue);
+          #endif 
+          _currentEQvalue = _requestedEQValue;
+          sendPacket(0x07,0x00,_currentEQvalue);
+        }
+        _eqCmd = false;
+      } else if ( _resetCmd == true){
+          sendPacket(0x0C,0,0);
+          _resetCmd = false;               
       } else if (_currentVolume < _requestedVolumeLevel) {
         // Change volume after changing song if volume is increasing.
         _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, _currentVolume);
+        sendPacket(0x06, 0x00, _currentVolume);
       } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
@@ -357,13 +423,15 @@ public:
   // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
   //
+  // Currently all WrtiteAnalogue to be done on vpin 2, will move to vpin 0 when fully implemented
+  //
   //void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
   void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t cmd=0) override { 
-    if (_deviceState == DEVSTATE_FAILED) return;
-    uint8_t pin = vpin - _firstVpin;
+    if (_deviceState == DEVSTATE_FAILED) return;    
     #ifdef DIAG_IO
-      DIAG(F("I2CDFPlayer: VPIN:%u FileNo:%d Volume:%d Repeat:0x0%x"), vpin, value, volume, cmd);
+      DIAG(F("I2CDFPlayer: VPIN:%u FileNo:%d Volume:%d Command:0x%x"), vpin, value, volume, cmd);
     #endif
+    uint8_t pin = vpin - _firstVpin;
     // Validate parameter.
     if (volume > MAXVOLUME) volume = MAXVOLUME;
 
@@ -372,12 +440,7 @@ public:
       if (value > 0) {
         if (volume > 0)
           _requestedVolumeLevel = volume;
-        _requestedSong = value;
-        if (cmd = 1){ // check for Repeat playback of song          
-          _repeat = true;
-        } else {          
-          _repeat = false;
-        }
+        _requestedSong = value; 
         _playing = true;
       } else {
         _requestedSong = 0; // stop playing
@@ -386,7 +449,75 @@ public:
     } else if (pin == 1) {
       // Set volume (0-30)
       _requestedVolumeLevel = value;  
-    }
+      
+    } else if (pin == 2) { // Enhanced DFPlayer commands     
+     // Read command and value
+      switch (cmd){
+       //case NONE:
+       // DFPlayerCmd = cmd;
+       // break;
+       case PLAY:
+        _playCmd = true;
+        //DFPlayerCmd = cmd;
+        _requestedSong = value;
+        _requestedVolumeLevel = volume; 
+        _playing = true;        
+        break;
+        case VOL:
+          _volCmd = true;
+          //DFPlayerCmd = cmd;
+          _requestedVolumeLevel = volume;
+        break;
+       case FOLDER:
+        _folderCmd = true;
+        if (volume <= 0 && volume > 99){ // Range checking
+          _requestedFolder = 0x01; // if outside range, default to folder 01  
+        } else {
+          _requestedFolder = volume;
+        }        
+        break;
+       case REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
+        if (_repeat == false) {
+           #ifdef DIAG_I2CDFplayer_playing
+            DIAG(F("I2CDFPlayer: WriteAnalog Repeat: _repeat: 0x0%x, value: %d _repeatCmd: 0x%x"), _repeat, value, _repeatCmd);
+           #endif
+          _repeatCmd = true;          
+          _requestedSong = value;
+          _requestedVolumeLevel = volume;
+          _playing = true;         
+        }
+        break;
+       case STOPPLAY:
+        _stopplayCmd = true;
+        //DFPlayerCmd = cmd;
+        break;
+       case EQ:
+       //DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
+        _eqCmd = true;
+        //DFPlayerCmd = cmd;
+        if (volume <= NORMAL) { // to keep backward compatibility the volume parameter is used for values of the EQ cmd
+          _requestedEQValue = NORMAL;
+          //DFPlayerValue = NONE;        
+        } else if (volume <= 0x05) { // Validate EQ parameters
+          _requestedEQValue = volume;
+          //DFPlayerValue = volume;
+        }
+        break;
+        
+       case RESET:
+        _resetCmd = true;
+        //DFPlayerCmd = cmd;
+        break; 
+       case DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
+        //DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
+        _daconCmd = true;
+        //DFPlayerCmd = 0x1A;        
+        //DFPlayerValue = 0x00;
+        break;
+       default:
+        break;
+      }
+    }    
   }
 
   // A read on any pin indicates whether the player is still playing.
@@ -411,7 +542,8 @@ private:
   // 7~8	->	checksum = 0 - ( FF+06+0F+00+01+01 )
   // 9	->	EF is end code
 
-  void sendPacket(uint8_t command, uint16_t arg = 0)
+  //void sendPacket(uint8_t command, uint16_t arg = 0)
+  void sendPacket(uint8_t command, uint8_t arg1 = 0, uint8_t arg2 = 0)
   {
     FIFO_TX_LEVEL = 0; // Reset FIFO_TX_LEVEL    
     uint8_t out[] = {
@@ -420,8 +552,10 @@ private:
         06,
         command,
         00,
-        static_cast<uint8_t>(arg >> 8),
-        static_cast<uint8_t>(arg & 0x00ff),
+        //static_cast<uint8_t>(arg >> 8),
+        //static_cast<uint8_t>(arg & 0x00ff),
+        arg1,
+        arg2,
         00,
         00,
         0xEF };
@@ -493,6 +627,13 @@ private:
     uint16_t _divisor = (SC16IS752_XTAL_FREQ / PRESCALER) / (BAUD_RATE * 16);
     TEMP_REG_VAL = 0x08; // UART Software reset
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
+    TEMP_REG_VAL = 0x00; // Set pins to GPIO mode
+    UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
+    TEMP_REG_VAL = 0xFF; //Set all pins as output
+    UART_WriteRegister(REG_IODIR, TEMP_REG_VAL);
+    TEMP_REG_VAL = 0x01; //Set initial value as high
+    //TEMP_REG_VAL = 0x00; //Set initial value as low
+    UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);        
     TEMP_REG_VAL = 0x07; // Reset FIFO, clear RX & TX FIFO
     UART_WriteRegister(REG_FCR, TEMP_REG_VAL);
     TEMP_REG_VAL = 0x00; // Set MCR to all 0, includes Clock divisor
@@ -600,6 +741,26 @@ enum : uint8_t{
     REG_XON2      = 0x05, // R/W
     REG_XOFF1     = 0x06, // R/W
     REG_XOFF2     = 0x07, // R/W
+  };
+
+// DFPlayer commands and values
+enum  : uint8_t{
+    //NONE          = 0x00, // redundant
+    PLAY          = 0x0F,
+    VOL           = 0x06,
+    FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
+    REPEATPLAY    = 0x08,
+    STOPPLAY      = 0x16,
+    EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
+    RESET         = 0x0C,
+    //DACOFF        = 0x1A, // Require 3rd byte to 0x00 in processOutgoing()
+    DACON         = 0x1A, // Not a DFLayer command,need to sent 0x1A and 3rd byte to 0x01 in processOutgoing()
+    NORMAL        = 0x00, // Equalizer parameters
+    POP           = 0x01,
+    ROCK          = 0x02,
+    JAZZ          = 0x03,
+    CLASSIC       = 0x04,
+    BASS          = 0x05,  
   };
 
 };
