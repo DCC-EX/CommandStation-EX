@@ -87,7 +87,7 @@
 //#define DIAG_I2CDFplayer
 //#define DIAG_I2CDFplayer_data
 //#define DIAG_I2CDFplayer_reg
-#define DIAG_I2CDFplayer_playing
+//#define DIAG_I2CDFplayer_playing
 
 class I2CDFPlayer : public IODevice {
 private: 
@@ -98,6 +98,8 @@ private:
   unsigned long _timeoutTime;
   uint8_t _recvCMD;  // Last received command code byte
   bool _awaitingResponse = false;
+  uint8_t RETRYCOUNT = 0x03;
+  uint8_t _retryCounter = RETRYCOUNT; // Max retries before timing out
   uint8_t _requestedVolumeLevel = MAXVOLUME;
   uint8_t _currentVolume = MAXVOLUME;
   int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
@@ -107,7 +109,7 @@ private:
   I2CAddress _I2CAddress;
   I2CRB _rb;
   uint8_t _UART_CH;
-  uint8_t _audioMixer = 0x00; // Default no audio mixer installed
+  uint8_t _audioMixer = 0x01; // Default to output amplifier 1
   // Communication parameters for the DFPlayer are fixed at 8 bit, No parity, 1 stopbit
   uint8_t WORD_LEN = 0x03;    // Value LCR bit 0,1
   uint8_t STOP_BIT = 0x00;    // Value LCR bit 2 
@@ -136,11 +138,12 @@ private:
    
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
-
-  
+ 
   //unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change oscillator frequency to 14.7456Mhz (14745600) to allow for higher baud rates
   unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates
 
+  unsigned long test = 0;
+  
 public:
   // Constructor
   I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM){
@@ -176,7 +179,7 @@ public:
       // Now init DFPlayer
       // Send a query to the device to see if it responds
       _deviceState = DEVSTATE_INITIALISING; 
-      sendPacket(0x42);
+      sendPacket(0x42,0,0);
       _timeoutTime = micros() + 5000000UL;  // 5 second timeout      
       _awaitingResponse = true; 
      }
@@ -188,13 +191,26 @@ public:
     if (status == I2C_STATUS_PENDING) return;  // Busy, so don't do anything
     if (status == I2C_STATUS_OK) { 
       processIncoming(currentMicros);
-      // Check if a command sent to device has timed out.  Allow 0.5 second for response   
-      if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) {
-        DIAG(F("I2CDFPlayer:%s, DFPlayer not responding on UART channel: 0x%x"), _I2CAddress.toString(), _UART_CH);
-        _deviceState = DEVSTATE_FAILED;
-       _awaitingResponse = false;
-        _playing = false;
-      }
+          // Check if a command sent to device has timed out.  Allow 0.5 second for response
+          // added retry counter, sometimes we do not sent keep alive due to other commands sent to DFPlayer
+      if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) { // timeout triggered
+        if(_retryCounter == 0){ // retry counter out of luck, must take the device to failed state     
+          DIAG(F("I2CDFPlayer:%s, DFPlayer not responding on UART channel: 0x%x"), _I2CAddress.toString(), _UART_CH);
+          _deviceState = DEVSTATE_FAILED;
+          _awaitingResponse = false;
+          _playing = false;
+          _retryCounter = RETRYCOUNT;
+        } else { // timeout and retry protection and recovery of corrupt data frames from DFPlayer
+            DIAG(F("I2CDFPlayer: %s, DFPlayer timout, retry counter: %d on UART channel: 0x%x"), _I2CAddress.toString(), _retryCounter, _UART_CH);
+            _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds// reset timeout
+            _awaitingResponse = false; // trigger sending a keep alive 0x42 in processOutgoing()
+            _retryCounter --; // decrement retry counter            
+            _resetCmd = true; // queue a DFPlayer reset
+            _currentVolume = MAXVOLUME; // Resetting the DFPlayer makes the volume go to default i.e. MAXVOLUME
+            //sendPacket(0x0C,0,0); // Reset DFPlayer            
+            resetRX_fifo(); // reset the RX fifo as it maybe poisoned            
+          }
+      }      
     }
 
     status = _rb.status;
@@ -232,13 +248,6 @@ public:
         return; // No data or not enough data in rx fifo, check again next time around
       }
 
-/*
-    #ifdef DIAG_I2CDFplayer
-     if (FIFO_RX_LEVEL > 10) {
-        DIAG(F("I2CDFPlayer: %s FIFO_RX_LEVEL: %d"),_I2CAddress.toString(), FIFO_RX_LEVEL); 
-     }
-    #endif
-*/
     
     bool ok = false;
     //DIAG(F("I2CDFPlayer: RX_BUFFER: %d"), RX_BUFFER);
@@ -260,7 +269,7 @@ public:
           break;
         case 6:
           switch (_recvCMD) {
-            DIAG(F("I2CDFPlayer: %s, _recvCMD: 0x%x _awaitingResponse: 0x0%x"),_I2CAddress.toString(), _recvCMD, _awaitingResponse);
+            //DIAG(F("I2CDFPlayer: %s, _recvCMD: 0x%x _awaitingResponse: 0x0%x"),_I2CAddress.toString(), _recvCMD, _awaitingResponse);
             case 0x42:
               // Response to status query
               _playing = (c != 0);              
@@ -299,6 +308,7 @@ public:
         case 9:
           if (c==0xef) {
             // Message finished
+            _retryCounter = RETRYCOUNT; // reset the retry counter as we have received a valid packet
           }
           break;
         default:
@@ -315,7 +325,6 @@ public:
     RX_BUFFER = 0; //Set to 0, we'll read a new RX FIFO level again
   }
 
-  //sendPacket(0x1A,0x00,0x01); //Enable DAC
 
   // Send any commands that need to be sent
   void processOutgoing(unsigned long currentMicros) {
@@ -323,8 +332,15 @@ public:
     // execute one.  Testing has indicated that a delay of 100ms or more is required
     // between successive commands to get reliable operation.
     // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
-    if (((int32_t)currentMicros - _commandSendTime) > 100000) {              
-      if (_currentVolume > _requestedVolumeLevel) {
+    if (((int32_t)currentMicros - _commandSendTime) > 100000) {
+      if ( _resetCmd == true){
+          sendPacket(0x0C,0,0);
+          _resetCmd = false;
+          return; // after reset do not execute more commands, wait for the next time giving the DFPlayer time to reset
+                  // A more saver/elegant way is to wait for the 'SD card online' packet (7E FF 06 3F 00 00 02 xx xx EF)
+                  // this indicate that the DFPlayer is ready.This may take between 500ms and 1500ms depending on the
+                  // number of tracks on the SD card
+      } else if (_currentVolume > _requestedVolumeLevel) {
         // Change volume before changing song if volume is reducing.
         _currentVolume = _requestedVolumeLevel;
         sendPacket(0x06, 0x00, _currentVolume);
@@ -332,9 +348,9 @@ public:
         // Change song
         if (_requestedSong != -1) {
           #ifdef DIAG_I2CDFplayer_playing
-           DIAG(F("I2CDFPlayer: _requestedVolumeLevel: %u, _requestedSong: %u, _playCmd: 0x%x"), _requestedVolumeLevel, _requestedSong, _playCmd);
+           DIAG(F("I2CDFPlayer: _requestedVolumeLevel: %u, _requestedSong: %u, _currentFolder: %u _playCmd: 0x%x"), _requestedVolumeLevel, _requestedSong, _currentFolder, _playCmd);
           #endif               
-          sendPacket(0x0F, 0x01, _requestedSong);  // audio file in folder 01          
+          sendPacket(0x0F, _currentFolder, _requestedSong);  // audio file in folder          
           _requestedSong = -1; 
           _playCmd = false;
         }           
@@ -348,6 +364,9 @@ public:
         _repeat = false; // reset repeat        
         _stopplayCmd = false;
         } else if (_folderCmd == true) {
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: Folder: _folderCmd: 0x%x, _requestedFolder: %d"), _stopplayCmd, _requestedFolder);
+          #endif
           if (_currentFolder != _requestedFolder){
             _currentFolder = _requestedFolder;
           }
@@ -377,9 +396,6 @@ public:
           sendPacket(0x07,0x00,_currentEQvalue);
         }
         _eqCmd = false;
-      } else if ( _resetCmd == true){
-          sendPacket(0x0C,0,0);
-          _resetCmd = false;               
       } else if (_currentVolume < _requestedVolumeLevel) {
         // Change volume after changing song if volume is increasing.
         _currentVolume = _requestedVolumeLevel;
@@ -387,8 +403,14 @@ public:
       } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
-        sendPacket(0x42); 
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: Send keepalive") );
+          #endif
+        sendPacket(0x42,0,0); 
         if (!_awaitingResponse) {
+          #ifdef DIAG_I2CDFplayer_playing
+           DIAG(F("I2CDFPlayer: Send keepalive, _awaitingResponse: 0x0%x"), _awaitingResponse );
+          #endif
           _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds
           _awaitingResponse = true;
         }
@@ -457,15 +479,13 @@ public:
        // DFPlayerCmd = cmd;
        // break;
        case PLAY:
-        _playCmd = true;
-        //DFPlayerCmd = cmd;
+        _playCmd = true;        
         _requestedSong = value;
         _requestedVolumeLevel = volume; 
         _playing = true;        
         break;
         case VOL:
-          _volCmd = true;
-          //DFPlayerCmd = cmd;
+          _volCmd = true;          
           _requestedVolumeLevel = volume;
         break;
        case FOLDER:
@@ -479,7 +499,7 @@ public:
        case REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
         if (_repeat == false) {
            #ifdef DIAG_I2CDFplayer_playing
-            DIAG(F("I2CDFPlayer: WriteAnalog Repeat: _repeat: 0x0%x, value: %d _repeatCmd: 0x%x"), _repeat, value, _repeatCmd);
+              DIAG(F("I2CDFPlayer: WriteAnalog Repeat: _repeat: 0x0%x, value: %d _repeatCmd: 0x%x"), _repeat, value, _repeatCmd);
            #endif
           _repeatCmd = true;          
           _requestedSong = value;
@@ -488,31 +508,27 @@ public:
         }
         break;
        case STOPPLAY:
-        _stopplayCmd = true;
-        //DFPlayerCmd = cmd;
+        _stopplayCmd = true;        
         break;
        case EQ:
-       //DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
-        _eqCmd = true;
-        //DFPlayerCmd = cmd;
+        #ifdef DIAG_I2CDFplayer_playing
+          DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
+        #endif
+        _eqCmd = true;        
         if (volume <= NORMAL) { // to keep backward compatibility the volume parameter is used for values of the EQ cmd
-          _requestedEQValue = NORMAL;
-          //DFPlayerValue = NONE;        
+          _requestedEQValue = NORMAL;            
         } else if (volume <= 0x05) { // Validate EQ parameters
-          _requestedEQValue = volume;
-          //DFPlayerValue = volume;
+          _requestedEQValue = volume;     
         }
-        break;
-        
+        break;        
        case RESET:
-        _resetCmd = true;
-        //DFPlayerCmd = cmd;
+        _resetCmd = true;      
         break; 
        case DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
-        //DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
+        #ifdef DIAG_I2CDFplayer_playing
+          DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
+        #endif
         _daconCmd = true;
-        //DFPlayerCmd = 0x1A;        
-        //DFPlayerValue = 0x00;
         break;
        default:
         break;
@@ -666,11 +682,26 @@ private:
     UART_ReadRegister(REG_RXLV);
     FIFO_RX_LEVEL = _inbuffer[0];
     #ifdef DIAG_I2CDFplayer
-    if (FIFO_RX_LEVEL > 0){
-    //  DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, FIFO_RX_LEVEL: 0d%d"), _I2CAddress.toString(), _UART_CH, _inbuffer[0]);
+    //if (FIFO_RX_LEVEL > 0){
+    if (FIFO_RX_LEVEL > 0 && FIFO_RX_LEVEL < 10){
+      DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, FIFO_RX_LEVEL: 0d%d"), _I2CAddress.toString(), _UART_CH, _inbuffer[0]);
     }
     #endif   
   }
+
+  // When a frame is transmitted from the DFPlayer to the serial port, and at the same time the CS is sending a 42 query
+  // the following two frames from the DFPlayer are corrupt. This result in the receive buffer being out of sync and the 
+  // CS will complain and generate a timeout.
+  // The RX fifo has corrupt data and need to be flushed, this function does that
+  // 
+  void resetRX_fifo(){
+    #ifdef DIAG_I2CDFplayer
+      DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, RX fifo reset"), _I2CAddress.toString(), _UART_CH);
+    #endif    
+    TEMP_REG_VAL = 0x03; // Reset RX fifo
+    UART_WriteRegister(REG_FCR, TEMP_REG_VAL);
+  }
+  
 
   // Read the Tranmit FIFO Level register (TXLVL), return a single unsigned integer
   // of nr characters free in the TX FIFO, bit 6:0, 7 not used, set to zero
