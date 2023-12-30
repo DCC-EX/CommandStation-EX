@@ -138,7 +138,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
 
 // returns speed steps 0 to 127 (1 == emergency stop)
 // or -1 on "loco not found"
-int8_t DCC::getThrottleSpeed(int cab) {
+static int8_t DCC::getThrottleSpeed(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0) return -1;
   return speedTable[reg].speedCode & 0x7F;
@@ -146,11 +146,19 @@ int8_t DCC::getThrottleSpeed(int cab) {
 
 // returns speed code byte
 // or 128 (speed 0, dir forward) on "loco not found".
-uint8_t DCC::getThrottleSpeedByte(int cab) {
+static uint8_t DCC::getThrottleSpeedByte(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0)
     return 128;
   return speedTable[reg].speedCode;
+}
+
+// returns -1 for fault, 0 to 3 for frequency
+static int8_t DCC::getThrottleFrequency(int cab) {
+  int reg=lookupSpeedTable(cab);
+  if (reg<0)
+    return -1;
+  return (int8_t)(speedTable[reg].functions >>29); // shift out first 29 bits so we have the "frequency bits" left
 }
 
 // returns direction on loco

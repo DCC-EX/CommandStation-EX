@@ -325,7 +325,7 @@ uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     220, 196, 175, 165 };
 #endif
 #endif
-void MotorDriver::setDCSignal(byte speedcode) {
+void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) {
   if (brakePin == UNUSED_PIN)
     return;
   // spedcoode is a dcc speed & direction
@@ -341,7 +341,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
 
   { // new block because of variable f
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
-    int f = 131;
+    int f = frequency;
 #ifdef VARIABLE_TONES
     if (tSpeed > 2) {
       if (tSpeed <= 58) {
@@ -352,7 +352,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
     DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else // all AVR here
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 0); // 0 is lowest possible f, like 120Hz
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps 0 to 3
     analogWrite(brakePin,brake);
 #endif
   }
