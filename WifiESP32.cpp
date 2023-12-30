@@ -74,25 +74,39 @@ class NetworkClient {
 public:
   NetworkClient(WiFiClient c) {
     wifi = c;
-  };
-  bool ok() {
-    return (inUse && wifi.connected());
-  };
-  bool recycle(WiFiClient c) {
-
-    if (inUse == true) return false;
-
-    // return false here until we have
-    // implemented a LRU timer
-    // if (LRU too recent) return false;
-    return false;
-
-    wifi = c;
     inUse = true;
+  };
+  bool active(byte clientId) {
+    if (!inUse)
+      return false;
+    if(!wifi.connected()) {
+      DIAG(F("Remove client %d"), clientId);
+      CommandDistributor::forget(clientId);
+      wifi.stop();
+      inUse = false;
+      return false;
+    }
     return true;
+  }
+  bool recycle(WiFiClient c) {
+    if (wifi == c) {
+      if (inUse == true)
+	DIAG(F("WARNING: Duplicate"));
+      else
+	DIAG(F("Returning"));
+      inUse = true;
+      return true;
+    }
+    if (inUse == false) {
+      wifi = c;
+      inUse = true;
+      return true;
+    }
+    return false;
   };
   WiFiClient wifi;
-  bool inUse = true;
+private:
+  bool inUse;
 };
 
 static std::vector<NetworkClient> clients; // a list to hold all clients
@@ -282,37 +296,26 @@ void WifiESP::loop() {
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
-    // loop over all clients and remove inactive
-    for (clientId=0; clientId<clients.size(); clientId++){
-      // check if client is there and alive
-      if(clients[clientId].inUse && !clients[clientId].wifi.connected()) {
-	DIAG(F("Remove client %d"), clientId);
-	CommandDistributor::forget(clientId);
-	clients[clientId].wifi.stop();
-	clients[clientId].inUse = false;
-	//Do NOT clients.erase(clients.begin()+clientId) as
-	//that would mix up clientIds for later.
-      }
-    }
     if (server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
 	for (clientId=0; clientId<clients.size(); clientId++){
 	  if (clients[clientId].recycle(client)) {
-	    DIAG(F("Recycle client %d %s"), clientId, client.remoteIP().toString().c_str());
+	    DIAG(F("Recycle client %d %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	    break;
 	  }
 	}
 	if (clientId>=clients.size()) {
 	  NetworkClient nc(client);
 	  clients.push_back(nc);
-	  DIAG(F("New client %d, %s"), clientId, client.remoteIP().toString().c_str());
+	  DIAG(F("New client %d, %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	}
       }
     }
     // loop over all connected clients
+    // this removes as a side effect inactive clients when checking ::active()
     for (clientId=0; clientId<clients.size(); clientId++){
-      if(clients[clientId].ok()) {
+      if(clients[clientId].active(clientId)) {
 	int len;
 	if ((len = clients[clientId].wifi.available()) > 0) {
 	  // read data from client
@@ -350,7 +353,7 @@ void WifiESP::loop() {
 	}
 	// buffer filled, end with '\0' so we can use it as C string
 	buffer[count]='\0';
-	if((unsigned int)clientId <= clients.size() && clients[clientId].ok()) {
+	if((unsigned int)clientId <= clients.size() && clients[clientId].active(clientId)) {
 	  if (Diag::CMD || Diag::WITHROTTLE)
 	    DIAG(F("SEND %d:%s"), clientId, buffer);
 	  clients[clientId].wifi.write(buffer,count);
@@ -383,8 +386,9 @@ void WifiESP::loop() {
   // prio task. On core1 this is not a problem
   // as there the wdt is disabled by the
   // arduio IDE startup routines.
-  if (xPortGetCoreID() == 0)
+  if (xPortGetCoreID() == 0) {
     feedTheDog0();
-  yield();
+    yield();
+  }
 }
 #endif //ESP32

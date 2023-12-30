@@ -3,11 +3,14 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.15ethC"
+#define VERSION "5.2.17ethCdf"
+// 5.2.17 - ESP32 simplify network logic
+// 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
+//       df - I2C DFPlayper capability
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
 // 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
-//         - CMRI RS485 connection
+//        C - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
