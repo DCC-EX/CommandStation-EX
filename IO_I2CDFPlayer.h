@@ -20,60 +20,26 @@
 /*
  * DFPlayer is an MP3 player module with an SD card holder.  It also has an integrated
  * amplifier, so it only needs a power supply and a speaker.
- * 
- * This driver allows the device to be controlled through IODevice::write() and 
- * IODevice::writeAnalogue() calls.
- * 
- * The driver is configured as follows:
- * 
- *       DFPlayer::create(firstVpin, nPins, Serialn);
- * 
- * Where firstVpin is the first vpin reserved for reading the device,
- *       nPins is the number of pins to be allocated (max 5)
- *   and Serialn is the name of the Serial port connected to the DFPlayer (e.g. Serial1).
- * 
- * Example:
- *   In halSetup function within myHal.cpp:
- *       DFPlayer::create(3500, 5, Serial1);
- *   or in myAutomation.h:
- *       HAL(DFPlayer, 3500, 5, Serial1)
- * 
- * Writing an analogue value 1-2999 to the first pin (3500) will play the numbered file from the
- * SD card; e.g. a value of 1 will play the first file, 2 for the second file etc.
- * Writing an analogue value 0 to the first pin (3500) will stop the file playing;
- * Writing an analogue value 0-30 to the second pin (3501) will set the volume;
- * Writing a digital value of 1 to a pin will play the file corresponding to that pin, e.g.
-   the first file will be played by setting pin 3500, the second by setting pin 3501 etc.;
- * Writing a digital value of 0 to any pin will stop the player;
- * Reading a digital value from any pin will return true(1) if the player is playing, false(0) otherwise.
- * 
- * From EX-RAIL, the following commands may be used:
- *   SET(3500)      -- starts playing the first file (file 1) on the SD card
- *   SET(3501)      -- starts playing the second file (file 2) on the SD card
- *   etc.
- *   RESET(3500)    -- stops all playing on the player
- *   WAITFOR(3500)  -- wait for the file currently being played by the player to complete
- *   SERVO(3500,2,Instant)  -- plays file 2 at current volume
- *   SERVO(3501,20,Instant)   -- Sets the volume to 20
- * 
- * NB The DFPlayer's serial lines are not 5V safe, so connecting the Arduino TX directly 
- * to the DFPlayer's RX terminal will cause lots of noise over the speaker, or worse.
- * A 1k resistor in series with the module's RX terminal will alleviate this.
- * 
- * Files on the SD card are numbered according to their order in the directory on the 
- * card (as listed by the DIR command in Windows).  This may not match the order of the files 
- * as displayed by Windows File Manager, which sorts the file names.  It is suggested that
- * files be copied into an empty SDcard in the desired order, one at a time.
- * 
- * The driver now polls the device for its current status every second.  Should the device
- * fail to respond it will be marked off-line and its busy indicator cleared, to avoid
- * lock-ups in automation scripts that are executing for a WAITFOR().
- *
+ * This driver is a modified version of the IO_DFPlayer.h file
  * *********************************************************************************************
+ * 
  * 2023, Added NXP SC16IS752 I2C Dual UART to enable the DFPlayer connection over the I2C bus
  * The SC16IS752 has 64 bytes TX & RX FIFO buffer
- * First version without interrupts from I2C UART and only RX/TX are used, interrupts may not be needed as the RX Fifo holds the reply
- *
+ * First version without interrupts from I2C UART and only RX/TX are used, interrupts may not be
+ * needed as the RX Fifo holds the reply 
+ * 
+ * myHall.cpp configuration syntax:
+ * 
+ * I2CDFPlayer::create(1st vPin, vPins, I2C address, UART ch, AM);
+ * 
+ * Parameters:
+ * 1st vPin     : First virtual pin that EX-Rail can control to play a sound, use PLAYSOUND command (alias of ANOUT)
+ * vPins        : Total number of virtual pins allocated (only 1 vPin is supported)
+ * I2C Address  : I2C address of the serial controller, in 0x format,
+ * UART ch      : Indicating UART 0 or UART 1, values 0 or 1
+ * AM           : audio mixer, values: 1 or 2 to select an audio amplifier, no effect if AM is not installed
+ * 
+ * The vPin is also an pin that can be read, it indicated if the DFPlayer has finished playing a track
  *
  */
 
@@ -84,6 +50,7 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 
+// Debug and diagnostic defines, enable too many will result in slowing the driver
 //#define DIAG_I2CDFplayer
 //#define DIAG_I2CDFplayer_data
 //#define DIAG_I2CDFplayer_reg
@@ -92,13 +59,13 @@
 class I2CDFPlayer : public IODevice {
 private: 
   const uint8_t MAXVOLUME=30;
+  uint8_t RETRYCOUNT = 0x03;
   bool _playing = false;
   uint8_t _inputIndex = 0;
   unsigned long _commandSendTime; // Time (us) that last transmit took place.
   unsigned long _timeoutTime;
   uint8_t _recvCMD;  // Last received command code byte
-  bool _awaitingResponse = false;
-  uint8_t RETRYCOUNT = 0x03;
+  bool _awaitingResponse = false;  
   uint8_t _retryCounter = RETRYCOUNT; // Max retries before timing out
   uint8_t _requestedVolumeLevel = MAXVOLUME;
   uint8_t _currentVolume = MAXVOLUME;
@@ -121,8 +88,6 @@ private:
   uint8_t FIFO_RX_LEVEL = 0x00;
   uint8_t RX_BUFFER = 0x00; // nr of bytes copied into _inbuffer
   uint8_t FIFO_TX_LEVEL = 0x00;  
-  //uint8_t DFPlayerValue = NONE; // Values for enhanced commands
-  //uint8_t DFPlayerCmd = NONE; // Enhanced commands
   bool _playCmd = false;
   bool _volCmd = false;
   bool _folderCmd = false;
@@ -135,15 +100,13 @@ private:
   uint8_t _requestedEQValue = NORMAL;
   uint8_t _currentEQvalue = NORMAL; // start equalizer value
   bool _daconCmd = false;
-   
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
  
-  //unsigned long SC16IS752_XTAL_FREQ = 1843200; // May need to change oscillator frequency to 14.7456Mhz (14745600) to allow for higher baud rates
-  unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates
+  //unsigned long SC16IS752_XTAL_FREQ = 1843200; // To support cheap eBay/AliExpress SC16IS752 boards
+  unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates, standard for modular EX-IO system
 
-  unsigned long test = 0;
-  
+   
 public:
   // Constructor
   I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM){
@@ -201,14 +164,13 @@ public:
           _playing = false;
           _retryCounter = RETRYCOUNT;
         } else { // timeout and retry protection and recovery of corrupt data frames from DFPlayer
-            DIAG(F("I2CDFPlayer: %s, DFPlayer timout, retry counter: %d on UART channel: 0x%x"), _I2CAddress.toString(), _retryCounter, _UART_CH);
+            #ifdef DIAG_I2CDFplayer_playing
+              DIAG(F("I2CDFPlayer: %s, DFPlayer timout, retry counter: %d on UART channel: 0x%x"), _I2CAddress.toString(), _retryCounter, _UART_CH);
+            #endif
             _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds// reset timeout
             _awaitingResponse = false; // trigger sending a keep alive 0x42 in processOutgoing()
-            _retryCounter --; // decrement retry counter            
-            _resetCmd = true; // queue a DFPlayer reset
-            _currentVolume = MAXVOLUME; // Resetting the DFPlayer makes the volume go to default i.e. MAXVOLUME
-            //sendPacket(0x0C,0,0); // Reset DFPlayer            
-            resetRX_fifo(); // reset the RX fifo as it maybe poisoned            
+            _retryCounter --; // decrement retry counter                        
+            resetRX_fifo(); // reset the RX fifo as it has corrupt data            
           }
       }      
     }
@@ -223,7 +185,7 @@ public:
   }
 
  
-  // Check for incoming data on _serial, and update busy flag and other state accordingly
+  // Check for incoming data, and update busy flag and other state accordingly
  
   void processIncoming(unsigned long currentMicros) {
     // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
@@ -335,15 +297,13 @@ public:
     if (((int32_t)currentMicros - _commandSendTime) > 100000) {
       if ( _resetCmd == true){
           sendPacket(0x0C,0,0);
-          _resetCmd = false;
-          return; // after reset do not execute more commands, wait for the next time giving the DFPlayer time to reset
-                  // A more saver/elegant way is to wait for the 'SD card online' packet (7E FF 06 3F 00 00 02 xx xx EF)
-                  // this indicate that the DFPlayer is ready.This may take between 500ms and 1500ms depending on the
-                  // number of tracks on the SD card
-      } else if (_currentVolume > _requestedVolumeLevel) {
-        // Change volume before changing song if volume is reducing.
-        _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, 0x00, _currentVolume);
+          _resetCmd = false;          
+      } else if(_volCmd == true) { // do the volme before palying a track
+         if(_requestedVolumeLevel >= 0 && _requestedVolumeLevel <= 30){         
+         _currentVolume = _requestedVolumeLevel; // If _requestedVolumeLevel is out of range, sent _currentV1olume      
+         }
+         sendPacket(0x06, 0x00, _currentVolume);
+        _volCmd = false;
       } else if (_playCmd == true) {
         // Change song
         if (_requestedSong != -1) {
@@ -396,10 +356,6 @@ public:
           sendPacket(0x07,0x00,_currentEQvalue);
         }
         _eqCmd = false;
-      } else if (_currentVolume < _requestedVolumeLevel) {
-        // Change volume after changing song if volume is increasing.
-        _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, 0x00, _currentVolume);
       } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
@@ -418,34 +374,22 @@ public:
     }  
   }
 
-  // Write with value 1 starts playing a song.  The relative pin number is the file number.
-  // Write with value 0 stops playing.
+
+  // Write to a vPin will do nothing
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
-    int pin = vpin - _firstVpin;
-    if (value) {
-      // Value 1, start playing
       #ifdef DIAG_IO
-        DIAG(F("I2CDFPlayer: Play %d"), pin+1);
+        DIAG(F("I2CDFPlayer: Writing to any vPin not supported"));
       #endif
-      _requestedSong = pin+1;
-      _playing = true;
-    } else {
-      // Value 0, stop playing
-      #ifdef DIAG_IO
-        DIAG(F("I2CDFPlayer: Stop"));
-      #endif
-      _requestedSong = 0;  // No song
-      _playing = false;
-    }
   }
+
 
   // WriteAnalogue on first pin uses the nominated value as a file number to start playing, if file number > 0.
   // Volume may be specified as second parameter to writeAnalogue.
   // If value is zero, the player stops playing.  
   // WriteAnalogue on second pin sets the output volume.
   //
-  // Currently all WrtiteAnalogue to be done on vpin 2, will move to vpin 0 when fully implemented
+  // WriteAnalogue to be done on first vpin
   //
   //void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
   void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t cmd=0) override { 
@@ -454,32 +398,15 @@ public:
       DIAG(F("I2CDFPlayer: VPIN:%u FileNo:%d Volume:%d Command:0x%x"), vpin, value, volume, cmd);
     #endif
     uint8_t pin = vpin - _firstVpin;
-    // Validate parameter.
-    if (volume > MAXVOLUME) volume = MAXVOLUME;
-
-    if (pin == 0) {
-      // Play track
-      if (value > 0) {
-        if (volume > 0)
-          _requestedVolumeLevel = volume;
-        _requestedSong = value; 
-        _playing = true;
-      } else {
-        _requestedSong = 0; // stop playing
-        _playing = false;
-      }
-    } else if (pin == 1) {
-      // Set volume (0-30)
-      _requestedVolumeLevel = value;  
-      
-    } else if (pin == 2) { // Enhanced DFPlayer commands     
+    if (pin == 0) { // Enhanced DFPlayer commands, do nothing if not vPin 0     
      // Read command and value
       switch (cmd){
        //case NONE:
        // DFPlayerCmd = cmd;
        // break;
        case PLAY:
-        _playCmd = true;        
+        _playCmd = true;
+        _volCmd = true;        
         _requestedSong = value;
         _requestedVolumeLevel = volume; 
         _playing = true;        
@@ -536,31 +463,33 @@ public:
     }    
   }
 
-  // A read on any pin indicates whether the player is still playing.
-  int _read(VPIN) override {
+  // A read on any pin indicates if the player is still playing.
+  int _read(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return false;
-    return _playing;
-  }
+    uint8_t pin = vpin - _firstVpin;
+      if (pin == 0) { // Do nothing if not vPin 0
+        return _playing;
+      }
+    }
 
   void _display() override {
     DIAG(F("I2CDFPlayer Configured on Vpins:%u-%u %S"), _firstVpin, _firstVpin+_nPins-1,
       (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
   
-private:
+private: 
+  // DFPlayer command frame
   // 7E FF 06 0F 00 01 01 xx xx EF
-  // 0	->	7E is start code
-  // 1	->	FF is version
-  // 2	->	06 is length
-  // 3	->	0F is command
-  // 4	->	00 is no receive
+  // 0	  ->	7E is start code
+  // 1	  ->	FF is version
+  // 2	  ->	06 is length
+  // 3	  ->	0F is command
+  // 4	  ->	00 is no receive
   // 5~6	->	01 01 is argument
   // 7~8	->	checksum = 0 - ( FF+06+0F+00+01+01 )
-  // 9	->	EF is end code
+  // 9	  ->	EF is end code
 
-  //void sendPacket(uint8_t command, uint16_t arg = 0)
-  void sendPacket(uint8_t command, uint8_t arg1 = 0, uint8_t arg2 = 0)
-  {
+  void sendPacket(uint8_t command, uint8_t arg1 = 0, uint8_t arg2 = 0) {
     FIFO_TX_LEVEL = 0; // Reset FIFO_TX_LEVEL    
     uint8_t out[] = {
         0x7E,
@@ -618,7 +547,6 @@ private:
   void setChecksum(uint8_t* out)
   {
     uint16_t sum = calcChecksum(out);
-
     out[7] = (sum >> 8);
     out[8] = (sum & 0xff);
   }
@@ -628,6 +556,9 @@ private:
   // First a software reset
   // Enable FIFO and clear TX & RX FIFO
   // Need to set the following registers
+  // IOCONTROL set bit 1 and 2 to 0 indicating that they are GPIO
+  // IODIR set all bit to 1 indicating al are output
+  // IOSTATE set only bit 0 to 1 for UART 0, or only bit 1 for UART 1  // 
   // LCR bit 7=0 divisor latch (clock division registers DLH & DLL, they store 16 bit divisor), 
   //     WORD_LEN, STOP_BIT, PARITY_ENA and PARITY_TYPE
   // MCR bit 7=0 clock divisor devide-by-1 clock input
@@ -647,8 +578,13 @@ private:
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
     TEMP_REG_VAL = 0xFF; //Set all pins as output
     UART_WriteRegister(REG_IODIR, TEMP_REG_VAL);
-    TEMP_REG_VAL = 0x01; //Set initial value as high
-    //TEMP_REG_VAL = 0x00; //Set initial value as low
+    UART_ReadRegister(REG_IOSTATE); // Read current state as not to overwrite the other GPIO pins
+    TEMP_REG_VAL = _inbuffer[0];
+    if (_UART_CH == 0){    
+      TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 0 to high
+    } else { // must be UART 1
+      TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 1 to high
+    }
     UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);        
     TEMP_REG_VAL = 0x07; // Reset FIFO, clear RX & TX FIFO
     UART_WriteRegister(REG_FCR, TEMP_REG_VAL);
@@ -678,12 +614,13 @@ private:
   // Read the Receive FIFO Level register (RXLVL), return a single unsigned integer
   // of nr of characters in the RX FIFO, bit 6:0, 7 not used, set to zero
   // value from 0 (0x00) to 64 (0x40) Only display if RX FIFO has data
+  // The RX fifo level is used to check if there are enough bytes to process a frame
   void RX_fifo_lvl(){
     UART_ReadRegister(REG_RXLV);
     FIFO_RX_LEVEL = _inbuffer[0];
     #ifdef DIAG_I2CDFplayer
-    //if (FIFO_RX_LEVEL > 0){
-    if (FIFO_RX_LEVEL > 0 && FIFO_RX_LEVEL < 10){
+     if (FIFO_RX_LEVEL > 0){
+     //if (FIFO_RX_LEVEL > 0 && FIFO_RX_LEVEL < 10){
       DIAG(F("SC16IS752: At I2C: %s, UART channel: 0x%x, FIFO_RX_LEVEL: 0d%d"), _I2CAddress.toString(), _UART_CH, _inbuffer[0]);
     }
     #endif   
@@ -776,7 +713,6 @@ enum : uint8_t{
 
 // DFPlayer commands and values
 enum  : uint8_t{
-    //NONE          = 0x00, // redundant
     PLAY          = 0x0F,
     VOL           = 0x06,
     FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
@@ -784,7 +720,6 @@ enum  : uint8_t{
     STOPPLAY      = 0x16,
     EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
     RESET         = 0x0C,
-    //DACOFF        = 0x1A, // Require 3rd byte to 0x00 in processOutgoing()
     DACON         = 0x1A, // Not a DFLayer command,need to sent 0x1A and 3rd byte to 0x01 in processOutgoing()
     NORMAL        = 0x00, // Equalizer parameters
     POP           = 0x01,
