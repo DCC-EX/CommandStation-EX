@@ -138,7 +138,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
 
 // returns speed steps 0 to 127 (1 == emergency stop)
 // or -1 on "loco not found"
-static int8_t DCC::getThrottleSpeed(int cab) {
+int8_t DCC::getThrottleSpeed(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0) return -1;
   return speedTable[reg].speedCode & 0x7F;
@@ -146,7 +146,7 @@ static int8_t DCC::getThrottleSpeed(int cab) {
 
 // returns speed code byte
 // or 128 (speed 0, dir forward) on "loco not found".
-static uint8_t DCC::getThrottleSpeedByte(int cab) {
+uint8_t DCC::getThrottleSpeedByte(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0)
     return 128;
@@ -154,7 +154,7 @@ static uint8_t DCC::getThrottleSpeedByte(int cab) {
 }
 
 // returns -1 for fault, 0 to 3 for frequency
-static int8_t DCC::getThrottleFrequency(int cab) {
+int8_t DCC::getThrottleFrequency(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0)
     return -1;
@@ -199,8 +199,8 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
 
   // Take care of functions:
   // Set state of function
-  unsigned long previous=speedTable[reg].functions;
-  unsigned long funcmask = (1UL<<functionNumber);
+  uint32_t previous=speedTable[reg].functions;
+  uint32_t funcmask = (1UL<<functionNumber);
   if (on) {
       speedTable[reg].functions |= funcmask;
   } else {

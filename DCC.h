@@ -99,7 +99,7 @@ public:
     int loco;
     byte speedCode;
     byte groupFlags;
-    unsigned long functions;
+    uint32_t functions;
   };
  static LOCO speedTable[MAX_LOCOS];
  static int lookupSpeedTable(int locoId, bool autoCreate=true);
