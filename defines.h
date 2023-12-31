@@ -125,9 +125,15 @@
   #define ARDUINO_TYPE "ESP8266"
   #warning "ESP8266 platform untested, you are on your own"
 #elif defined(ARDUINO_ARCH_ESP32)
-  #define ARDUINO_TYPE "ESP32"
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
+#if defined(ARDUINO_ESP32_DEV)
+  #define ARDUINO_TYPE "ESP32-WROOM"
+#elif defined (ARDUINO_ESP32S3_DEV)
+  #define ARDUINO_TYPE "ESP32-S3"
+//   #undef USB_SERIAL
+//   #define USB_SERIAL SerialUSB
+#endif
   #endif
 #elif defined(ARDUINO_ARCH_SAMD)
   #define ARDUINO_TYPE "SAMD21"

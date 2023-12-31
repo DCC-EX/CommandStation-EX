@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.1"
+#define VERSION "5.2.2"
+// 5.2.2  - ESP32-S3 initial code support, WDT, ADCee(), but note RMT not tested!
 // 5.2.1  - Trackmanager rework for simpler structure
 // 5.2.0  - ESP32: Autoreverse and booster mode support
 // 5.1.21 - EXRAIL invoke multiple ON handlers for same event

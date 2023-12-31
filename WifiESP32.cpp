@@ -38,6 +38,7 @@
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"
 void feedTheDog0(){
+#if defined(ARDUINO_ESP32_DEV)
   // feed dog 0
   TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
   TIMERG0.wdt_feed=1;                       // feed dog
@@ -46,6 +47,13 @@ void feedTheDog0(){
   //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
   //TIMERG1.wdt_feed=1;                       // feed dog
   //TIMERG1.wdt_wprotect=0;                   // write protect
+#elif defined(ARDUINO_ESP32S3_DEV)
+  TIMERG0.wdtwprotect.wdt_wkey = TIMG_WDT_WKEY_V;       // write enable
+  TIMERG0.wdtfeed.wdt_feed = 1;                       // feed dog
+  TIMERG0.wdtwprotect.wdt_wkey = 0;                   // write protect
+#else
+#warning This ESP32 variant not supported
+#endif
 }
 
 /*

@@ -37,5 +37,5 @@ public:
   static void loop();
 private:
 };
-#endif //WifiESP8266_h
-#endif //ESP8266
+#endif // include guard
+#endif // ARDUINO_ARCH_ESP32
