@@ -19,6 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #include "TrackManager.h"
 #include "FSH.h"
 #include "DCCWaveform.h"
@@ -578,10 +579,12 @@ void TrackManager::reportObsoleteCurrent(Print* stream) {
   // This function is for backward JMRI compatibility only
   // It reports the first track only, as main, regardless of track settings.
   //  <c MeterName value C/V unit min max res warn>
-#ifdef HAVE_ENOUGH_MEMORY
+#ifdef HAS_ENOUGH_MEMORY
   int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
   StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 
             track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);
+#else
+  (void)stream;
 #endif
 }
 
