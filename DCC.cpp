@@ -155,12 +155,17 @@ uint8_t DCC::getThrottleSpeedByte(int cab) {
 
 // returns 0 to 3 for frequency
 uint8_t DCC::getThrottleFrequency(int cab) {
+#if defined(ARDUINO_AVR_UNO)
+  (void)cab;
+  return 0;
+#else
   int reg=lookupSpeedTable(cab);
   if (reg<0)
     return 0; // use default frequency 
   uint8_t res = (uint8_t)(speedTable[reg].functions >>30);
   DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
   return res; // shift out first 29 bits so we have the "frequency bits" left
+#endif
 }
 
 // returns direction on loco
