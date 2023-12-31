@@ -156,6 +156,11 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
+}
+
 #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS
 
 uint16_t ADCee::usedpins = 0;
