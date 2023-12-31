@@ -142,9 +142,9 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
   if (pin == 9 || pin == 10) { // timer 2 is different
 
     if (fbits >= 3)
-      abits = B11;
+      abits = B00000011;
     else
-      abits = B01;
+      abits = B00000001;
 
     if (fbits >= 3)
       bbits = B0001;

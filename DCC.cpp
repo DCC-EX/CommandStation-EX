@@ -153,12 +153,14 @@ uint8_t DCC::getThrottleSpeedByte(int cab) {
   return speedTable[reg].speedCode;
 }
 
-// returns -1 for fault, 0 to 3 for frequency
-int8_t DCC::getThrottleFrequency(int cab) {
+// returns 0 to 3 for frequency
+uint8_t DCC::getThrottleFrequency(int cab) {
   int reg=lookupSpeedTable(cab);
   if (reg<0)
-    return -1;
-  return (int8_t)(speedTable[reg].functions >>29); // shift out first 29 bits so we have the "frequency bits" left
+    return 0; // use default frequency 
+  uint8_t res = (uint8_t)(speedTable[reg].functions >>30);
+  DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
+  return res; // shift out first 29 bits so we have the "frequency bits" left
 }
 
 // returns direction on loco
@@ -191,9 +193,12 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
-    return true;
   }
-
+  // We use the reminder table up to 28 for normal functions.
+  // We use 29 to 31 for DC frequency as well.
+  if (functionNumber > 31)
+    return true;
+  
   int reg = lookupSpeedTable(cab);
   if (reg<0) return false;
 
@@ -206,7 +211,7 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  if (speedTable[reg].functions != previous) {
+  if (speedTable[reg].functions != previous && functionNumber > 28) {
     updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }

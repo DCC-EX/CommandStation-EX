@@ -202,7 +202,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab && cab != 0) continue;
     if (track[t]->getMode() & TRACK_MODE_DC)
-      track[t]->setDCSignal(speedbyte);
+      track[t]->setDCSignal(speedbyte, DCC::getThrottleFrequency(trackDCAddr[t]));
   }
 }    
 
@@ -348,11 +348,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-  int8_t frequency = DCC::getThrottleFrequency(trackDCAddr[t]);
-  if (frequency <0) // loco was not found
-    frequency = 0;  // default
-  uint8_t speedByte = DCC::getThrottleSpeedByte(trackDCAddr[t]);
-  track[t]->setDCSignal(speedByte, (uint8_t)frequency);
+  track[t]->setDCSignal(DCC::getThrottleSpeedByte(trackDCAddr[t]),
+			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 
 bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
