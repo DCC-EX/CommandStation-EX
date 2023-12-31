@@ -625,12 +625,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
         return;
 
+#ifdef HAVE_ENOUGH_MEMORY
     case 'c': // SEND METER RESPONSES <c>
         // No longer useful because of multiple tracks See <JG> and <JI>
         if (params>0) break;
         TrackManager::reportObsoleteCurrent(stream);
         return;
-
+#endif
     case 'Q': // SENSORS <Q>
         Sensor::printAll(stream);
         return;
