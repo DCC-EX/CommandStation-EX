@@ -349,7 +349,7 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
       }
     }
 #endif
-    DIAG(F("Brake %d freqencybits %x"), brakePin, f);
+    DIAG(F("Brake %d freqency %d"), brakePin, f);
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
     DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else // all AVR here
@@ -423,7 +423,7 @@ void MotorDriver::throttleInrush(bool on) {
   } else {
     pinMode(brakePin, OUTPUT);
   }
-#else
+#else // all AVR here
   if(on){
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 3);
   }
