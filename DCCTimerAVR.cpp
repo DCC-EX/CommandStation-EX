@@ -157,7 +157,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 
     TCCR2A = (TCCR2A & B11111100) | abits; // set WGM0 and WGM1
     TCCR2B = (TCCR2B & B11110000) | bbits; // set WGM2 and 3 bits of prescaler
-    DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
+    //DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
 
   } else { // not timer 9 or 10
     abits = B01;
@@ -179,7 +179,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
       // Timer4
       TCCR4A = (TCCR4A & B11111100) | abits; // set WGM0 and WGM1
       TCCR4B = (TCCR4B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
-      DIAG(F("Timer 4 A=%x B=%x"), TCCR4A, TCCR4B);
+      //DIAG(F("Timer 4 A=%x B=%x"), TCCR4A, TCCR4B);
       break;
     case 46:
     case 45:
@@ -187,7 +187,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
       // Timer5
       TCCR5A = (TCCR5A & B11111100) | abits; // set WGM0 and WGM1
       TCCR5B = (TCCR5B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
-      DIAG(F("Timer 5 A=%x B=%x"), TCCR5A, TCCR5B);
+      //DIAG(F("Timer 5 A=%x B=%x"), TCCR5A, TCCR5B);
       break;
     default:
       break;

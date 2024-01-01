@@ -163,8 +163,8 @@ uint8_t DCC::getThrottleFrequency(int cab) {
   if (reg<0)
     return 0; // use default frequency 
   uint8_t res = (uint8_t)(speedTable[reg].functions >>30);
-  DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
-  return res; // shift out first 29 bits so we have the "frequency bits" left
+  //DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
+  return res; // shift out first 30 bits so we have the "frequency bits" left
 #endif
 }
 
