@@ -377,8 +377,7 @@ public:
               //_setamCmd = false;
               //UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
             }*/
-        _setamCmd = false;
-        UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
+        _setamCmd = false;        
       } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
