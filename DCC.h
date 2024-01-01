@@ -68,7 +68,7 @@ public:
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
   static void changeFn(int cab, int16_t functionNumber);
-  static int  getFn(int cab, int16_t functionNumber);
+  static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);

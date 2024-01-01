@@ -238,7 +238,7 @@ void DCC::changeFn( int cab, int16_t functionNumber) {
 
 // Report function state (used from withrottle protocol)
 // returns 0 false, 1 true or -1 for do not know
-int DCC::getFn( int cab, int16_t functionNumber) {
+int8_t DCC::getFn( int cab, int16_t functionNumber) {
   if (cab<=0 || functionNumber>28)
     return -1;  // unknown
   int reg = lookupSpeedTable(cab);
