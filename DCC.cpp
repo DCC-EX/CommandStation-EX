@@ -216,28 +216,34 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  if (speedTable[reg].functions != previous && functionNumber > 28) {
+  if (speedTable[reg].functions != previous && functionNumber <= 28) {
     updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }
   return true;
 }
 
-// Flip function state
+// Flip function state (used from withrottle protocol)
 void DCC::changeFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return;
+  if (cab<=0 || functionNumber>31) return;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;
   unsigned long funcmask = (1UL<<functionNumber);
   speedTable[reg].functions ^= funcmask;
-  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  CommandDistributor::broadcastLoco(reg);
+  if (functionNumber <= 28) {
+    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+    CommandDistributor::broadcastLoco(reg);
+  }
 }
 
+// Report function state (used from withrottle protocol)
+// returns 0 false, 1 true or -1 for do not know
 int DCC::getFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return -1;  // unknown
+  if (cab<=0 || functionNumber>28)
+    return -1;  // unknown
   int reg = lookupSpeedTable(cab);
-  if (reg<0) return -1;
+  if (reg<0)
+    return -1;
 
   unsigned long funcmask = (1UL<<functionNumber);
   return  (speedTable[reg].functions & funcmask)? 1 : 0;
