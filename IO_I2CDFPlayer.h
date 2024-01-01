@@ -75,8 +75,7 @@ private:
   // SC16IS752 defines
   I2CAddress _I2CAddress;
   I2CRB _rb;
-  uint8_t _UART_CH;
-  uint8_t _audioMixer = 0x01; // Default to output amplifier 1
+  uint8_t _UART_CH;  
   // Communication parameters for the DFPlayer are fixed at 8 bit, No parity, 1 stopbit
   uint8_t WORD_LEN = 0x03;    // Value LCR bit 0,1
   uint8_t STOP_BIT = 0x00;    // Value LCR bit 2 
@@ -100,6 +99,8 @@ private:
   uint8_t _requestedEQValue = NORMAL;
   uint8_t _currentEQvalue = NORMAL; // start equalizer value
   bool _daconCmd = false;
+  uint8_t _audioMixer = 0x01; // Default to output amplifier 1
+  bool _setamCmd = false; // Set the Audio mixer channel
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
  
@@ -356,6 +357,28 @@ public:
           sendPacket(0x07,0x00,_currentEQvalue);
         }
         _eqCmd = false;
+      } else if (_setamCmd == true){ // Set Audio mixer channel
+         setGPIO(); // Set the audio mixer channel
+         /*        
+          if (_audioMixer == 1){ // set to audio mixer 1       
+            if (_UART_CH == 0){ 
+              TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 0 to high
+            } else { // must be UART 1
+              TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 1 to high
+              }
+           //_setamCmd = false;
+           //UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
+          } else { // set to audio mixer 2
+              if (_UART_CH == 0){ 
+                TEMP_REG_VAL &= (0x00 << _UART_CH); //Set GPIO pin 0 to Low
+              } else { // must be UART 1
+                TEMP_REG_VAL &= (0x00 << _UART_CH); //Set GPIO pin 1 to Low
+                }
+              //_setamCmd = false;
+              //UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
+            }*/
+        _setamCmd = false;
+        UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
       } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
         // Poll device every second that other commands aren't being sent,
         // to check if it's still connected and responding.
@@ -417,7 +440,7 @@ public:
         break;
        case FOLDER:
         _folderCmd = true;
-        if (volume <= 0 && volume > 99){ // Range checking
+        if (volume <= 0 || volume > 99){ // Range checking, valid values 1-99, else default to 1
           _requestedFolder = 0x01; // if outside range, default to folder 01  
         } else {
           _requestedFolder = volume;
@@ -442,11 +465,11 @@ public:
           DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
         #endif
         _eqCmd = true;        
-        if (volume <= NORMAL) { // to keep backward compatibility the volume parameter is used for values of the EQ cmd
+        if (volume <= 0 || volume > 5) { // If out of range, default to NORMAL
           _requestedEQValue = NORMAL;            
-        } else if (volume <= 0x05) { // Validate EQ parameters
+        } else { // Valid EQ parameter range
           _requestedEQValue = volume;     
-        }
+          }
         break;        
        case RESET:
         _resetCmd = true;      
@@ -456,6 +479,17 @@ public:
           DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
         #endif
         _daconCmd = true;
+        break;
+        case SETAM: // Set the audio mixer channel to 1 or 2
+          _setamCmd = true;
+          #ifdef DIAG_I2CDFplayer_playing
+            DIAG(F("I2CDFPlayer: WrtieAnalog SETAM: cmd: 0x%x"), cmd);
+          #endif
+          if (volume <= 0 || volume > 2) { // If out of range, default to 1
+            _audioMixer = 1;            
+          } else { // Valid SETAM parameter in range
+              _audioMixer = volume; // _audioMixer valid values 1 or 2
+            }          
         break;
        default:
         break;
@@ -580,12 +614,15 @@ private:
     UART_WriteRegister(REG_IODIR, TEMP_REG_VAL);
     UART_ReadRegister(REG_IOSTATE); // Read current state as not to overwrite the other GPIO pins
     TEMP_REG_VAL = _inbuffer[0];
-    if (_UART_CH == 0){    
+    setGPIO(); // Set the audio mixer channel
+    /*
+    if (_UART_CH == 0){ // Set Audio mixer channel
       TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 0 to high
     } else { // must be UART 1
       TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 1 to high
     }
-    UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);        
+    UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
+    */
     TEMP_REG_VAL = 0x07; // Reset FIFO, clear RX & TX FIFO
     UART_WriteRegister(REG_FCR, TEMP_REG_VAL);
     TEMP_REG_VAL = 0x00; // Set MCR to all 0, includes Clock divisor
@@ -637,6 +674,29 @@ private:
     #endif    
     TEMP_REG_VAL = 0x03; // Reset RX fifo
     UART_WriteRegister(REG_FCR, TEMP_REG_VAL);
+  }
+
+  // Set or reset GPIO pin 0 and 1 depending on the UART ch
+  // This function may be modified in a future release to enable all 8 pins to be set or reset with EX-Rail
+  // for various auxilary functions
+  void setGPIO(){
+    UART_ReadRegister(REG_IOSTATE); // Get the current GPIO pins state from the IOSTATE register
+    TEMP_REG_VAL = _inbuffer[0];
+    if (_audioMixer == 1){ // set to audio mixer 1
+      if (_UART_CH == 0){ 
+        TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 0 to high
+      } else { // must be UART 1
+         TEMP_REG_VAL |= (0x01 << _UART_CH); //Set GPIO pin 1 to high
+        }
+    } else { // set to audio mixer 2
+        if (_UART_CH == 0){ 
+          TEMP_REG_VAL &= ~(0x01 << _UART_CH); //Set GPIO pin 0 to Low
+        } else { // must be UART 1
+           TEMP_REG_VAL &= ~(0x01 << _UART_CH); //Set GPIO pin 1 to Low
+          }
+      }    
+    UART_WriteRegister(REG_IOSTATE, TEMP_REG_VAL);
+    _setamCmd = false;  
   }
   
 
@@ -720,13 +780,14 @@ enum  : uint8_t{
     STOPPLAY      = 0x16,
     EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
     RESET         = 0x0C,
-    DACON         = 0x1A, // Not a DFLayer command,need to sent 0x1A and 3rd byte to 0x01 in processOutgoing()
+    DACON         = 0x1A,
+    SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
     NORMAL        = 0x00, // Equalizer parameters
     POP           = 0x01,
     ROCK          = 0x02,
     JAZZ          = 0x03,
     CLASSIC       = 0x04,
-    BASS          = 0x05,  
+    BASS          = 0x05,    
   };
 
 };
