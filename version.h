@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.17ethCdf"
+#define VERSION "5.2.18ethCdf"
+// 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
 //       df - I2C DFPlayper capability
