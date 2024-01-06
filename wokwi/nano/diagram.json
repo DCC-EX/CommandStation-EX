@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "author": "Olivier Chatelain",
+  "editor": "wokwi",
+  "parts": [ { "type": "wokwi-arduino-nano", "id": "nano", "top": 0, "left": 0, "attrs": {} } ],
+  "connections": [],
+  "dependencies": {}
+}
