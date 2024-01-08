@@ -85,9 +85,9 @@ EthernetInterface::EthernetInterface()
     DCCTimer::getSimulatedMacAddress(mac);
     DIAG(F("Ethernet got MAC address"));
   #ifdef IP_ADDRESS
-    if (Ethernet.begin(IP_ADDRESS) == 0)
-  #else
     if (Ethernet.begin(mac, IP_ADDRESS) == 0)
+  #else
+    if (Ethernet.begin(mac) == 0)
   #endif
     {
         DIAG(F("Ethernet.begin FAILED"));
