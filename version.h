@@ -3,14 +3,17 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.20"
+#define VERSION "5.2.20ethCdf"
 // 5.2.20 - Check return of Ethernet.begin()
 // 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
+//       df - I2C DFPlayper capability
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//        C - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 

@@ -41,8 +41,11 @@ void EthernetInterface::setup()
     DIAG(F("Prog Error!"));
     return;
   }
-  if ((singleton=new EthernetInterface()))
+  DIAG(F("Ethernet Class setup, attempting to instantiate"));
+  if ((singleton=new EthernetInterface())) {
+    DIAG(F("Ethernet Class initialized"));
     return;
+  }
   DIAG(F("Ethernet not initialized"));
 };
 
@@ -55,24 +58,48 @@ void EthernetInterface::setup()
  */
 EthernetInterface::EthernetInterface()
 {
-    byte mac[6];
-    DCCTimer::getSimulatedMacAddress(mac);
     connected=false;
-   
-#ifdef IP_ADDRESS
-    if (Ethernet.begin(mac, IP_ADDRESS) == 0)
-#else
-    if (Ethernet.begin(mac) == 0)
-#endif
+#if defined(STM32_ETHERNET)
+    // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
+    // The default is "lwip", which is **always** set in STM32Ethernet/src/utility/ethernetif.cpp
+    // for some reason. One can edit it to instead read:
+    //      #if LWIP_NETIF_HOSTNAME
+    //      /* Initialize interface hostname */
+    //      if (netif->hostname == NULL)
+    //         netif->hostname = "lwip";
+    //      #endif /* LWIP_NETIF_HOSTNAME */
+    // Which seems more useful! We should propose the patch... so the following line actually works!
+    netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
+  #ifdef IP_ADDRESS
+    if (Ethernet.begin(IP_ADDRESS) == 0)
+  #else
+    if (Ethernet.begin() == 0)
+  #endif // IP_ADDRESS
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
+#else // All other architectures
+    byte mac[6]= { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+    DIAG(F("Ethernet attempting to get MAC address"));
+    DCCTimer::getSimulatedMacAddress(mac);
+    DIAG(F("Ethernet got MAC address"));
+  #ifdef IP_ADDRESS
+    if (Ethernet.begin(mac, IP_ADDRESS) == 0)
+  #else
+    if (Ethernet.begin(mac) == 0)
+  #endif
+    {
+        DIAG(F("Ethernet.begin FAILED"));
+        return;
+    } 
+
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found or W5100"));
     }
-  
-    unsigned long startmilli = millis();
+#endif
+
+    uint32_t startmilli = millis();
     while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
         if (Ethernet.linkStatus() == LinkON)
             break;
@@ -171,17 +198,25 @@ void EthernetInterface::loop2() {
       return;
     }
     // get client from the server
+  #if defined (STM32_ETHERNET)
+    // STM32Ethernet doesn't use accept(), just available()
+    EthernetClient client = server->available();
+  #else
     EthernetClient client = server->accept();
-
+  #endif
     // check for new client
     if (client)
     {
-        if (Diag::ETHERNET) DIAG(F("Ethernet: New client "));
         byte socket;
         for (socket = 0; socket < MAX_SOCK_NUM; socket++)
         {
-            if (!clients[socket])
+          if (clients[socket]) {
+            if (clients[socket] == client)
+              break;
+          }
+          else //if (!clients[socket])
             {
+                if (Diag::ETHERNET) DIAG(F("Ethernet: New client "));
                 // On accept() the EthernetServer doesn't track the client anymore
                 // so we store it in our client array
                 if (Diag::ETHERNET) DIAG(F("Socket %d"),socket);
