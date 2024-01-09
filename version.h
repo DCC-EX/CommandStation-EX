@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.20ethCdf"
+#define VERSION "5.2.21"
+// 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
 // 5.2.20 - Check return of Ethernet.begin()
 // 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
 // 5.2.18 - Display network IP fix
