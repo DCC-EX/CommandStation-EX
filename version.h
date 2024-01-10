@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.0.7"
+#define VERSION "5.0.8"
+// 5.0.8  - Bugfix: Do not crash on turnouts without description
 // 5.0.7  - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
 // 5.0.6  - Bugfix lost TURNOUTL description
 // 5.0.5  - Bugfix version detection logic and better message
