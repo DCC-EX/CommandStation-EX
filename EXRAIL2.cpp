@@ -333,13 +333,15 @@ if (compileFeatures & FEATURE_SIGNAL) {
 }
 
 void RMFT2::setTurnoutHiddenState(Turnout * t) {
-  // turnout descriptions are in low flash F strings 
-  t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+  // turnout descriptions are in low flash F strings
+  const FSH *desc = getTurnoutDescription(t->getId());
+  if (desc) t->setHidden(GETFLASH(desc)==0x01);
 }
 
 #ifndef IO_NO_HAL
 void RMFT2::setTurntableHiddenState(Turntable * tto) {
-  tto->setHidden(GETFLASH(getTurntableDescription(tto->getId()))==0x01);
+  const FSH *desc = getTurntableDescription(tto->getId());
+  if (desc) tto->setHidden(GETFLASH(desc)==0x01);
 }
 #endif
 

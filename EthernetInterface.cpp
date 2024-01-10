@@ -59,15 +59,15 @@ EthernetInterface::EthernetInterface()
     DCCTimer::getSimulatedMacAddress(mac);
     connected=false;
    
-    #ifdef IP_ADDRESS
-    Ethernet.begin(mac, IP_ADDRESS);
-    #else
+#ifdef IP_ADDRESS
+    if (Ethernet.begin(mac, IP_ADDRESS) == 0)
+#else
     if (Ethernet.begin(mac) == 0)
+#endif
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
-    #endif
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found or W5100"));
     }
