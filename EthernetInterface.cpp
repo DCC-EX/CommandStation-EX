@@ -50,6 +50,10 @@ void EthernetInterface::setup()
 };
 
 
+#ifdef IP_ADDRESS
+static IPAddress myIP(IP_ADDRESS);
+#endif
+
 /**
  * @brief Aquire IP Address from DHCP and start server
  * 
@@ -71,33 +75,32 @@ EthernetInterface::EthernetInterface()
     // Which seems more useful! We should propose the patch... so the following line actually works!
     netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
   #ifdef IP_ADDRESS
-    if (Ethernet.begin(IP_ADDRESS) == 0)
+    Ethernet.begin(myIP);
   #else
     if (Ethernet.begin() == 0)
-  #endif // IP_ADDRESS
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
+  #endif // IP_ADDRESS
 #else // All other architectures
     byte mac[6]= { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
     DIAG(F("Ethernet attempting to get MAC address"));
     DCCTimer::getSimulatedMacAddress(mac);
     DIAG(F("Ethernet got MAC address"));
   #ifdef IP_ADDRESS
-    if (Ethernet.begin(mac, IP_ADDRESS) == 0)
+    Ethernet.begin(mac, myIP);
   #else
     if (Ethernet.begin(mac) == 0)
-  #endif
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
-    } 
-
+    }
+  #endif // IP_ADDRESS
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found or W5100"));
     }
-#endif
+#endif STM32_ETHERNET
 
     uint32_t startmilli = millis();
     while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
@@ -163,7 +166,7 @@ bool EthernetInterface::checkLink() {
       DIAG(F("Ethernet cable connected"));
       connected=true;
       #ifdef IP_ADDRESS
-      Ethernet.setLocalIP(IP_ADDRESS);      // for static IP, set it again
+      Ethernet.setLocalIP(myIP);      // for static IP, set it again
       #endif
       IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
