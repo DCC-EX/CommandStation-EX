@@ -66,9 +66,9 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("Real-time clock"); 
   else if (address >= 0x70 && address <= 0x77)
     return F("I2C Mux");
-  else if (address >= 0x90 && address <= 0xAE);  
-  else
-    return F("?");
+  else if (address >= 0x90 && address <= 0xAE)
+    return F("UART");
+  return F("?");
 }
 
 // If not already initialised, initialise I2C
