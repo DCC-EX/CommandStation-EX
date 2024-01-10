@@ -50,8 +50,8 @@ const int16_t HASH_KEYWORD_SPEED28 = -17064;
 const int16_t HASH_KEYWORD_SPEED128 = 25816;
 */
 
-static_assert("MAIN"_hk == 11339);
-static_assert("SLOW"_hk == -17209);
-static_assert("SPEED28"_hk == -17064);
-static_assert("SPEED128"_hk == 25816);
+static_assert("MAIN"_hk == 11339,"Keyword hasher error");
+static_assert("SLOW"_hk == -17209,"Keyword hasher error");
+static_assert("SPEED28"_hk == -17064,"Keyword hasher error");
+static_assert("SPEED128"_hk == 25816,"Keyword hasher error");
 #endif
