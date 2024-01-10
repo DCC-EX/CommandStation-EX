@@ -259,8 +259,9 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 }
 
 void RMFT2::setTurnoutHiddenState(Turnout * t) {
-  // turnout descriptions are in low flash F strings 
-  t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+  // turnout descriptions are in low flash F strings
+  const FSH *desc = getTurnoutDescription(t->getId());
+  if (desc) t->setHidden(GETFLASH(desc)==0x01);
 }
 
 char RMFT2::getRouteType(int16_t id) {
