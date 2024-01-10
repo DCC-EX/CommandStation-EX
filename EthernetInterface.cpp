@@ -100,7 +100,7 @@ EthernetInterface::EthernetInterface()
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
       DIAG(F("Ethernet shield not found or W5100"));
     }
-#endif STM32_ETHERNET
+#endif // STM32_ETHERNET
 
     uint32_t startmilli = millis();
     while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
@@ -166,7 +166,9 @@ bool EthernetInterface::checkLink() {
       DIAG(F("Ethernet cable connected"));
       connected=true;
       #ifdef IP_ADDRESS
+      #ifndef STM32_ETHERNET
       Ethernet.setLocalIP(myIP);      // for static IP, set it again
+      #endif
       #endif
       IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
