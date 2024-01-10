@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.22"
+#define VERSION "5.2.22ethCdf"
 // 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
 // 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
 // 5.2.20 - Check return of Ethernet.begin()
