@@ -134,7 +134,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               return; 
             }
             if (paramCount==2) {  // <JA id>
-              uint16_t id=p[1]; 
+              int16_t id=p[1];
               StringFormatter::send(stream,F("<jA %d %c \"%S\">\n"), 
                 id, getRouteType(id), getRouteDescription(id));
               
