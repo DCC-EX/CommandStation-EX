@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.23"
+#define VERSION "5.2.24"
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
 // 5.2.23 - KeywordHasher _hk (no functional change) 
 // 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
 // 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup

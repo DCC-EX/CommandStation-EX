@@ -74,6 +74,70 @@
 #define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
 #include "myAutomation.h"
 
+// Pass 1d Detect sequence duplicates.
+// This pass generates no runtime data or code 
+#include "EXRAIL2MacroReset.h"
+#undef AUTOMATION
+#define AUTOMATION(id, description) id,
+#undef ROUTE
+#define ROUTE(id, description) id,
+#undef SEQUENCE
+#define SEQUENCE(id) id,
+constexpr int16_t compileTimeSequenceList[]={
+   #include "myAutomation.h"
+   0
+   };
+constexpr int16_t stuffSize=sizeof(compileTimeSequenceList)/sizeof(int16_t) - 1;
+
+
+// Compile time function to check for sequence nos.
+constexpr bool hasseq(const int16_t value, const uint16_t pos=0 ) {
+    return pos>=stuffSize? false :
+          compileTimeSequenceList[pos]==value 
+       || hasseq(value,pos+1); 
+}
+
+// Compile time function to check for duplicate sequence nos.
+constexpr bool hasdup(const int16_t value, const uint16_t pos ) {
+    return pos>=stuffSize? false :
+          compileTimeSequenceList[pos]==value 
+       || hasseq(value,pos+1) 
+       || hasdup(compileTimeSequenceList[pos],pos+1);
+}
+
+
+static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AUTOMATION detected");
+
+//pass 1s static asserts to
+//  - check call and follows etc for existing sequence numbers
+//  - check range on LATCH/UNLATCH
+// This pass generates no runtime data or code 
+#include "EXRAIL2MacroReset.h"
+#undef CALL
+#define CALL(id) static_assert(hasseq(id),"Sequence not found");
+#undef FOLLOW
+#define FOLLOW(id)  static_assert(hasseq(id),"Sequence not found");
+#undef START
+#define START(id)  static_assert(hasseq(id),"Sequence not found");
+#undef SENDLOCO
+#define SENDLOCO(cab,id) static_assert(hasseq(id),"Sequence not found");
+#undef LATCH
+#define LATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#undef UNLATCH
+#define UNLATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#undef RESERVE
+#define RESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#undef FREE
+#define FREE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#undef SPEED
+#define SPEED(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+#undef FWD
+#define FWD(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+#undef REV
+#define REV(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+
+#include "myAutomation.h"
+
 // Pass 1h Implements HAL macro by creating exrailHalSetup function
 // Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
