@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.25"
+#define VERSION "5.2.26"
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
 // 5.2.25 - Fix bug causing <X> after working <D commands 
 // 5.2.24 - Exrail macro asserts to catch 
 //            : duplicate/missing automation/route/sequence/call ids

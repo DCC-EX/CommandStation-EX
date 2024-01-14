@@ -143,8 +143,12 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
-void exrailHalSetup() {
+#undef HAL_IGNORE_DEFAULTS
+#define HAL_IGNORE_DEFAULTS ignore_defaults=true;
+bool exrailHalSetup() {
+   bool ignore_defaults=false;
    #include "myAutomation.h"
+   return ignore_defaults;
 }
 
 // Pass 1c detect compile time featurtes
@@ -460,6 +464,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
 #define HAL(haltype,params...)
+#define HAL_IGNORE_DEFAULTS
 #define IF(sensor_id) OPCODE_IF,V(sensor_id),
 #define IFAMBER(signal_id) OPCODE_IFAMBER,V(signal_id),
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
