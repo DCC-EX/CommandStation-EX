@@ -1,4 +1,4 @@
-/*
+/*  @ 2024 Arkadiusz Hahn 
  *  © 2022-2023 Paul M Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
@@ -32,6 +32,7 @@ unsigned long MotorDriver::globalOverloadStart = 0;
 volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
+volatile portreg_t shadowPORTH;
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, int16_t fault_pin) {
@@ -52,17 +53,17 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
 
   fastSignalPin.shadowinout = NULL;
   if (HAVE_PORTA(fastSignalPin.inout == &PORTA)) {
-    DIAG(F("Found PORTA pin %d"),signalPin);
+    DIAG(F("Found SignalPin PORTA pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTA;
   }
   if (HAVE_PORTB(fastSignalPin.inout == &PORTB)) {
-    DIAG(F("Found PORTB pin %d"),signalPin);
+    DIAG(F("Found SignalPin PORTB pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTB;
   }
   if (HAVE_PORTC(fastSignalPin.inout == &PORTC)) {
-    DIAG(F("Found PORTC pin %d"),signalPin);
+    DIAG(F("Found SignalPin PORTC pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTC;
   }
@@ -75,24 +76,24 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
 
     fastSignalPin2.shadowinout = NULL;
     if (HAVE_PORTA(fastSignalPin2.inout == &PORTA)) {
-      DIAG(F("Found PORTA pin %d"),signalPin2);
+      DIAG(F("Found SignalPin2 PORTA pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTA;
     }
     if (HAVE_PORTB(fastSignalPin2.inout == &PORTB)) {
-      DIAG(F("Found PORTB pin %d"),signalPin2);
+      DIAG(F("Found SignalPin2 PORTB pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTB;
     }
     if (HAVE_PORTC(fastSignalPin2.inout == &PORTC)) {
-      DIAG(F("Found PORTC pin %d"),signalPin2);
+      DIAG(F("Found SignalPin2 PORTC pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTC;
     }
   }
   else dualSignal=false; 
   
-  if (brake_pin!=UNUSED_PIN){
+  if (brake_pin!=UNUSED_PIN) {
     invertBrake=brake_pin < 0;
     if (invertBrake)
       brake_pin = 0-brake_pin;
@@ -102,6 +103,31 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     // if brake is used for railcom  cutout we need to do PORTX register trick here as well
     pinMode(brakePin, OUTPUT);
+    fastBrakePin.shadowinout = NULL;
+
+   //DIAG(F("Found BrakePin %d "), brake_pin);
+    if (HAVE_PORTA(fastBrakePin.inout == &PORTA)) {
+      DIAG(F("Found BrakePin PORTA pin %d"),brakePin);
+      fastBrakePin.shadowinout = fastBrakePin.inout;
+      fastBrakePin.inout = &shadowPORTA;
+    }
+    if (HAVE_PORTB(fastBrakePin.inout == &PORTB)) {
+      DIAG(F("Found BrakePin PORTB pin %d"),brakePin);
+      fastBrakePin.shadowinout = fastBrakePin.inout;
+      fastBrakePin.inout = &shadowPORTB;
+    }
+    if (HAVE_PORTC(fastBrakePin.inout == &PORTC)) {
+      DIAG(F("Found BrakePin PORTC pin %d"),brakePin);
+      fastBrakePin.shadowinout = fastBrakePin.inout;
+      fastBrakePin.inout = &shadowPORTC;
+    }
+    if (HAVE_PORTH(fastBrakePin.inout == &PORTH)) {
+      DIAG(F("Found BrakePin PORTH pin %d"),brakePin);
+      fastBrakePin.shadowinout = fastBrakePin.inout;
+      fastBrakePin.inout = &shadowPORTH;
+    }
+
+    
     setBrake(true);  // start with brake on in case we hace DC stuff going on
   } else {
     brakePin=UNUSED_PIN;
@@ -170,6 +196,9 @@ bool MotorDriver::isPWMCapable() {
     return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
 }
 
+bool MotorDriver::isRailcomCapable() {
+    return (!dualSignal) && (brakePin!=UNUSED_PIN); 
+}
 
 void MotorDriver::setPower(POWERMODE mode) {
   if (powerMode == mode) return;
@@ -195,23 +224,6 @@ void MotorDriver::setPower(POWERMODE mode) {
   powerMode=mode; 
 }
 
-// setBrake applies brake if on == true. So to get
-// voltage from the motor bride one needs to do a
-// setBrake(false).
-// If the brakePin is negative that means the sense
-// of the brake pin on the motor bridge is inverted
-// (HIGH == release brake) and setBrake does
-// compensate for that.
-//
-void MotorDriver::setBrake(bool on, bool interruptContext) {
-  if (brakePin == UNUSED_PIN) return;
-  if (!interruptContext) {noInterrupts();}
-  if (on ^ invertBrake)
-    setHIGH(fastBrakePin);
-  else
-    setLOW(fastBrakePin);
-  if (!interruptContext) {interrupts();}
-}
 
 bool MotorDriver::canMeasureCurrent() {
   return currentPin!=UNUSED_PIN;
@@ -455,7 +467,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
+    //DIAG(F("MotorDriver::getFastPin port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
