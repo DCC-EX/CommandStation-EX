@@ -33,9 +33,9 @@
 
 
 // Number of preamble bits.
-const int   PREAMBLE_BITS_MAIN = 16;
-const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
+const int   PREAMBLE_BITS_MAIN = 16; 
+const int   PREAMBLE_BITS_PROG = 22; 
+const byte  MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
 
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
@@ -52,6 +52,11 @@ class DCCWaveform {
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
+    
+    static bool supportsRailcom;
+    static bool useRailcom;
+    static bool setUseRailcom(bool on); 
+    
     inline void clearRepeats() { transmitRepeats=0; }
 #ifndef ARDUINO_ARCH_ESP32
     inline void clearResets() { sentResetsSincePacket=0; }
@@ -87,6 +92,7 @@ class DCCWaveform {
 #endif
     static void interruptHandler();
     void interrupt2();
+    void railcom2();
     
     bool isMainTrack;
     // Transmission controller

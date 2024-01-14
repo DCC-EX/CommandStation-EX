@@ -1,4 +1,4 @@
-/*
+/*  @ 2024 Arkadiusz Hahn 
  *  © 2022 Chris Harlow
  *  © 2022 Harald Barth
  *  All rights reserved.
@@ -127,10 +127,10 @@ void TrackManager::Setup(const FSH * shieldname,
   FOR_EACH_TRACK(t) {
     for (byte s=t+1;s<=lastTrack;s++) {
       if (track[t]->getFaultPin() != UNUSED_PIN &&
-	  track[t]->getFaultPin() == track[s]->getFaultPin()) {
-	track[t]->setCommonFaultPin();
-	track[s]->setCommonFaultPin();
-	DIAG(F("Common Fault pin tracks %c and %c"), t+'A', s+'A');
+	      track[t]->getFaultPin() == track[s]->getFaultPin()) {
+	      track[t]->setCommonFaultPin();
+	      track[s]->setCommonFaultPin();
+	      DIAG(F("Common Fault pin tracks %c and %c"), t+'A', s+'A');
       }
     }
   }
@@ -140,10 +140,10 @@ void TrackManager::Setup(const FSH * shieldname,
 void TrackManager::addTrack(byte t, MotorDriver* driver) {
      track[t]=driver;
      if (driver) {
-         track[t]->setPower(POWERMODE::OFF);
-         track[t]->setMode(TRACK_MODE_NONE);
-	 track[t]->setTrackLetter('A'+t);
-         lastTrack=t;
+        track[t]->setPower(POWERMODE::OFF);
+        track[t]->setMode(TRACK_MODE_NONE);
+	      track[t]->setTrackLetter('A'+t);
+        lastTrack=t;
      } 
 }
 
@@ -159,10 +159,41 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTC(PORTC=shadowPORTC);
 }
 
-void TrackManager::setCutout( bool on) {
-    (void) on;
-    // TODO Cutout needs fake ports as well
-    // TODO      APPLY_BY_MODE(TRACK_MODE_MAIN,setCutout(on));
+// setCutout() for MAIN track 
+void TrackManager::setCutout( bool on,bool interruptContext) {
+    //(void) on;  //  avoid compiler warning  -Wunused 
+    // Cutout needs fake ports as well
+    HAVE_PORTA(shadowPORTA=PORTA);
+    HAVE_PORTB(shadowPORTB=PORTB);
+    HAVE_PORTC(shadowPORTC=PORTC);
+    HAVE_PORTH(shadowPORTH=PORTH);
+    APPLY_BY_MODE(TRACK_MODE_MAIN,setBrake(on,interruptContext));
+    HAVE_PORTA(PORTA=shadowPORTA);
+    HAVE_PORTB(PORTB=shadowPORTB);
+    HAVE_PORTC(PORTC=shadowPORTC);
+    HAVE_PORTH(PORTH=shadowPORTH);
+}
+
+void TrackManager::setPROGCutout( bool on,bool interruptContext) {
+    HAVE_PORTA(shadowPORTA=PORTA);
+    HAVE_PORTB(shadowPORTB=PORTB);
+    HAVE_PORTC(shadowPORTC=PORTC);
+    HAVE_PORTH(shadowPORTH=PORTH);
+    APPLY_BY_MODE(TRACK_MODE_PROG,setBrake(on,interruptContext));
+    HAVE_PORTA(PORTA=shadowPORTA);
+    HAVE_PORTB(PORTB=shadowPORTB);
+    HAVE_PORTC(PORTC=shadowPORTC);
+    HAVE_PORTH(PORTH=shadowPORTH);
+}
+
+// true when there is any railcom capable MAIN track
+bool TrackManager::isRailcomCapable() {
+  FOR_EACH_TRACK(t) {
+    if((track[t]->getMode()==TRACK_MODE_MAIN) && (track[t]->isRailcomCapable())){
+      return true;
+    }
+  }
+  return false;
 }
 
 // setPROGSignal(), called from interrupt context

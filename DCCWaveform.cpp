@@ -1,4 +1,5 @@
 /*
+ *  @ 2024 Arkadiusz Hahn 
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
@@ -35,6 +36,8 @@
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
+bool DCCWaveform::supportsRailcom=false;
+bool DCCWaveform::useRailcom=false;
 
 // This bitmask has 9 entries as each byte is trasmitted as a zero + 8 bits.
 const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
@@ -62,6 +65,20 @@ const bool signalTransform[]={
    /* WAVE_PENDING (should not happen) -> */ LOW};
 
 void DCCWaveform::begin() {
+  // supportsRailcom depends on hardware capability
+  supportsRailcom = TrackManager::isRailcomCapable();
+  // useRailcom is user switchable at run time. 
+  useRailcom=supportsRailcom;
+  
+  if (useRailcom) {
+    DIAG(F("Railcom is enabled"));
+  } else {
+    DIAG(F("Railcom is disabled"));
+  }
+
+  TrackManager::setCutout(false,false);
+  TrackManager::setPROGCutout(false,false);
+
   DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
@@ -69,13 +86,28 @@ void DCCWaveform::loop() {
  // empty placemarker in case ESP32 needs something here 
 }
 
+
+bool DCCWaveform::setUseRailcom(bool on) {
+  if (!supportsRailcom) return false; 
+  useRailcom=on;
+  if (!on) {
+    // turn off any existing cutout 
+    TrackManager::setCutout(false);
+    TrackManager::setPROGCutout(false);
+  }
+  return true;
+}
+
+
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 void DCCWaveform::interruptHandler() {
+  
+
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
-  byte sigMain=signalTransform[mainTrack.state];
-  byte sigProg=TrackManager::progTrackSyncMain? sigMain : signalTransform[progTrack.state];
+  byte sigMain= signalTransform[mainTrack.state];
+  byte sigProg=TrackManager::progTrackSyncMain?  sigMain : signalTransform[progTrack.state];
   
   // Set the signal state for both tracks
   TrackManager::setDCCSignal(sigMain);
@@ -84,15 +116,24 @@ void DCCWaveform::interruptHandler() {
   // Refresh the values in the ADCee object buffering the values of the ADC HW
   ADCee::scan();
 
+  // WAVE_START is at start of bit where we need to find
+  // out if this is an railcom start or stop time
+  if (useRailcom) {
+    if ((mainTrack.state==WAVE_START) || (mainTrack.state== WAVE_MID_1))  mainTrack.railcom2();
+    if ((progTrack.state==WAVE_START) || (progTrack.state== WAVE_MID_1))  progTrack.railcom2();
+  } 
+
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
-
+  
   // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
-  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
-  else DCCACK::checkAck(progTrack.getResets());
-
+  if ((mainTrack.state==WAVE_PENDING) || (mainTrack.state== WAVE_START))  mainTrack.interrupt2();  
+  if ((progTrack.state==WAVE_PENDING) || (progTrack.state == WAVE_START))  {
+    progTrack.interrupt2();
+  } else {
+    DCCACK::checkAck(progTrack.getResets());
+  } 
 }
 #pragma GCC pop_options
 
@@ -110,10 +151,38 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
   // for the previous packet. 
-  requiredPreambles = preambleBits+1;  
+  requiredPreambles = preambleBits+1; 
+  requiredPreambles <<=1;  // double the number of preamble wave halves
+
+  remainingPreambles=0; 
   bytes_sent = 0;
   bits_sent = 0;
 }
+
+#pragma GCC push_options
+#pragma GCC optimize ("-O3")
+void DCCWaveform::railcom2() {
+  bool cutout;
+  if (remainingPreambles==(requiredPreambles-4)) { 
+    cutout=true;
+  } else if (remainingPreambles==(requiredPreambles-11)) {  
+    cutout=false;
+  } else {
+    return; // neither start or end of cutout, do nothing
+  }
+
+  if (isMainTrack) {
+    if (TrackManager::progTrackSyncMain) {// we are main track and synced so we take care of prog track as well
+        TrackManager::setPROGCutout(cutout,true);
+    }
+    TrackManager::setCutout(cutout,true);
+  } else {
+    if (!TrackManager::progTrackSyncMain) {// we are prog track and not synced so we take care of ourselves
+        TrackManager::setPROGCutout(cutout,true);
+    } 
+  }
+}
+#pragma GCC pop_options
 
 
 
@@ -125,54 +194,59 @@ void DCCWaveform::interrupt2() {
   //        or WAVE_HIGH_0 for a 0 bit.
 
   if (remainingPreambles > 0 ) {
-    state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
+    if (state==WAVE_PENDING) {
+      state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
+    }
     remainingPreambles--;
+  
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
     DCCTimer::updateMinimumFreeMemoryISR(22); 
     return;
   }
+  
+  if (state==WAVE_PENDING) {
+    // Wave has gone HIGH but what happens next depends on the bit to be transmitted
+    // beware OF 9-BIT MASK  generating a zero to start each byte
+    state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
+    bits_sent++;
 
-  // Wave has gone HIGH but what happens next depends on the bit to be transmitted
-  // beware OF 9-BIT MASK  generating a zero to start each byte
-  state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
-  bits_sent++;
-
-  // If this is the last bit of a byte, prepare for the next byte
-
-  if (bits_sent == 9) { // zero followed by 8 bits of a byte
-    //end of Byte
-    bits_sent = 0;
-    bytes_sent++;
-    // if this is the last byte, prepere for next packet
-    if (bytes_sent >= transmitLength) {
-      // end of transmission buffer... repeat or switch to next message
-      bytes_sent = 0;
-      remainingPreambles = requiredPreambles;
-
-      if (transmitRepeats > 0) {
-        transmitRepeats--;
+    // If this is the last bit of a byte, prepare for the next byte
+ 
+    if (bits_sent == 9) { // zero followed by 8 bits of a byte
+      //end of Byte
+      bits_sent = 0;
+      bytes_sent++;
+      // if this is the last byte, prepere for next packet
+      if (bytes_sent >= transmitLength) {
+        // end of transmission buffer... repeat or switch to next message
+        bytes_sent = 0;
+        remainingPreambles = requiredPreambles;
+		
+        if (transmitRepeats > 0) {
+          transmitRepeats--;
+        }
+        else if (packetPending) {
+          // Copy pending packet to transmit packet
+          // a fixed length memcpy is faster than a variable length loop for these small lengths
+          // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+          memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+          
+          transmitLength = pendingLength;
+          transmitRepeats = pendingRepeats;
+          packetPending = false;
+          clearResets();
+        }
+        else {
+          // Fortunately reset and idle packets are the same length
+          memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
+          transmitLength = sizeof(idlePacket);
+          transmitRepeats = 0;
+          if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
+        }
       }
-      else if (packetPending) {
-        // Copy pending packet to transmit packet
-        // a fixed length memcpy is faster than a variable length loop for these small lengths
-        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
-        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
-        
-        transmitLength = pendingLength;
-        transmitRepeats = pendingRepeats;
-        packetPending = false;
-        clearResets();
-      }
-      else {
-        // Fortunately reset and idle packets are the same length
-        memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
-        transmitLength = sizeof(idlePacket);
-        transmitRepeats = 0;
-        if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
-      }
-    }
-  }  
+    }  
+  }
 }
 #pragma GCC pop_options
 

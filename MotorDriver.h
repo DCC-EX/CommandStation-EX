@@ -43,6 +43,7 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define HAVE_PORTA(X) X
 #define HAVE_PORTB(X) X
 #define HAVE_PORTC(X) X
+#define HAVE_PORTH(X) X
 #endif
 #if defined(ARDUINO_AVR_UNO)
 #define HAVE_PORTB(X) X
@@ -74,7 +75,9 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #ifndef HAVE_PORTC
 #define HAVE_PORTC(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
 #endif
-
+#ifndef HAVE_PORTH
+#define HAVE_PORTH(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
 // Virtualised Motor shield 1-track hardware Interface
 
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
@@ -110,6 +113,7 @@ struct FASTPIN {
 extern volatile portreg_t shadowPORTA;
 extern volatile portreg_t shadowPORTB;
 extern volatile portreg_t shadowPORTC;
+extern volatile portreg_t shadowPORTH;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 
@@ -118,35 +122,59 @@ class MotorDriver {
     
     MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, int16_t fault_pin);
+    
     void setPower( POWERMODE mode);
+    
     POWERMODE getPower() { return powerMode;}
+    
     // as the port registers can be shadowed to get syncronized DCC signals
     // we need to take care of that and we have to turn off interrupts if
     // we setSignal() or setBrake() or setPower() during that time as
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
-    void setBrake( bool on, bool interruptContext=false);
-  __attribute__((always_inline)) inline void setSignal( bool high) {
+    
+
+    // setBrake applies brake if on == true. So to get
+    // voltage from the motor bride one needs to do a
+    // setBrake(false).
+    // If the brakePin is negative that means the sense
+    // of the brake pin on the motor bridge is inverted
+    // (HIGH == release brake) and setBrake does
+    // compensate for that.   
+    __attribute__((always_inline)) inline void setBrake(bool on, bool interruptContext=false) {
+      if (brakePin == UNUSED_PIN) return;
+      if (!interruptContext) {noInterrupts();}
+      if (on ^ invertBrake) {
+        setHIGH(fastBrakePin);
+      } else {
+        setLOW(fastBrakePin);
+      }  
+      if (!interruptContext) {interrupts();}
+    };
+
+
+    __attribute__((always_inline)) inline void setSignal( bool high) {
       if (trackPWM) {
-	DCCTimer::setPWM(signalPin,high);
-      }
-      else {
-	if (high) {
-	  setHIGH(fastSignalPin);
-	  if (dualSignal) setLOW(fastSignalPin2);
-	}
-	else {
-	  setLOW(fastSignalPin);
-	  if (dualSignal) setHIGH(fastSignalPin2);
-	}
+	      DCCTimer::setPWM(signalPin,high);
+      } else {
+	    if (high) {
+	      setHIGH(fastSignalPin);
+	      if (dualSignal) setLOW(fastSignalPin2);
+	    } else {
+	      setLOW(fastSignalPin);
+	      if (dualSignal) setHIGH(fastSignalPin2);
+	    }
       }
     };
+    
     inline void enableSignal(bool on) {
-      if (on)
-	pinMode(signalPin, OUTPUT);
-      else
-	pinMode(signalPin, INPUT);
+      if (on) {
+	      pinMode(signalPin, OUTPUT);
+      } else {
+	      pinMode(signalPin, INPUT);
+      }  
     };
+
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
     void setDCSignal(byte speedByte);
     void throttleInrush(bool on);
@@ -178,6 +206,7 @@ class MotorDriver {
 	    return rawCurrentTripValue;
     }
     bool isPWMCapable();
+    bool isRailcomCapable();
     bool canMeasureCurrent();
     bool trackPWM = false; // this track uses PWM timer to generate the DCC waveform
     bool commonFaultPin = false; // This is a stupid motor shield which has only a common fault pin for both outputs
@@ -219,7 +248,7 @@ class MotorDriver {
     bool isProgTrack = false; // tells us if this is a prog track
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     inline void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
-	getFastPin(type, pin, 0, result);
+    	getFastPin(type, pin, 0, result);
     };
     // side effect sets lastCurrent and tripValue
     inline bool checkCurrent(bool useProgLimit) {

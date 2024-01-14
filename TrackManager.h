@@ -51,9 +51,11 @@ class TrackManager {
                  );
     
     static void setDCCSignal( bool on);
-    static void setCutout( bool on);
     static void setPROGSignal( bool on);
     static void setDCSignal(int16_t cab, byte speedbyte);
+    static void setCutout( bool on,bool interruptContext=false);
+    static void setPROGCutout( bool on,bool interruptContext=false);
+    static bool isRailcomCapable();
     static MotorDriver * getProgDriver();
 #ifdef ARDUINO_ARCH_ESP32
   static std::vector<MotorDriver *>getMainDrivers();
