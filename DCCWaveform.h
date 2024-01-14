@@ -92,7 +92,7 @@ class DCCWaveform {
 #endif
     static void interruptHandler();
     void interrupt2();
-    void railcom2();
+    void railcom2(bool starting);
     
     bool isMainTrack;
     // Transmission controller

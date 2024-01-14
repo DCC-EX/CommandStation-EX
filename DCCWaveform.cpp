@@ -119,8 +119,10 @@ void DCCWaveform::interruptHandler() {
   // WAVE_START is at start of bit where we need to find
   // out if this is an railcom start or stop time
   if (useRailcom) {
-    if ((mainTrack.state==WAVE_START) || (mainTrack.state== WAVE_MID_1))  mainTrack.railcom2();
-    if ((progTrack.state==WAVE_START) || (progTrack.state== WAVE_MID_1))  progTrack.railcom2();
+    if (mainTrack.state==WAVE_MID_1) mainTrack.railcom2(true);
+    if (mainTrack.state==WAVE_START) mainTrack.railcom2(false);
+    if (progTrack.state==WAVE_MID_1) progTrack.railcom2(true);
+    if (progTrack.state==WAVE_START) progTrack.railcom2(false);
   } 
 
   // Move on in the state engine
@@ -128,8 +130,8 @@ void DCCWaveform::interruptHandler() {
   progTrack.state=stateTransform[progTrack.state];    
   
   // WAVE_PENDING means we dont yet know what the next bit is
-  if ((mainTrack.state==WAVE_PENDING) || (mainTrack.state== WAVE_START))  mainTrack.interrupt2();  
-  if ((progTrack.state==WAVE_PENDING) || (progTrack.state == WAVE_START))  {
+  if (mainTrack.state==WAVE_PENDING)  mainTrack.interrupt2();  
+  if (progTrack.state==WAVE_PENDING) {
     progTrack.interrupt2();
   } else {
     DCCACK::checkAck(progTrack.getResets());
@@ -152,7 +154,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   // The +1 below is to allow the preamble generator to create the stop bit
   // for the previous packet. 
   requiredPreambles = preambleBits+1; 
-  requiredPreambles <<=1;  // double the number of preamble wave halves
+  //requiredPreambles <<=1;  // double the number of preamble wave halves
 
   remainingPreambles=0; 
   bytes_sent = 0;
@@ -161,11 +163,11 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-void DCCWaveform::railcom2() {
+void DCCWaveform::railcom2(bool starting) {
   bool cutout;
-  if (remainingPreambles==(requiredPreambles-4)) { 
+  if (starting && remainingPreambles==(requiredPreambles-2)) { 
     cutout=true;
-  } else if (remainingPreambles==(requiredPreambles-11)) {  
+  } else if (!starting && remainingPreambles==(requiredPreambles-5)) {  
     cutout=false;
   } else {
     return; // neither start or end of cutout, do nothing
@@ -194,9 +196,7 @@ void DCCWaveform::interrupt2() {
   //        or WAVE_HIGH_0 for a 0 bit.
 
   if (remainingPreambles > 0 ) {
-    if (state==WAVE_PENDING) {
-      state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
-    }
+    state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
   
     // Update free memory diagnostic as we don't have anything else to do this time.
@@ -205,47 +205,45 @@ void DCCWaveform::interrupt2() {
     return;
   }
   
-  if (state==WAVE_PENDING) {
-    // Wave has gone HIGH but what happens next depends on the bit to be transmitted
-    // beware OF 9-BIT MASK  generating a zero to start each byte
-    state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
-    bits_sent++;
-
-    // If this is the last bit of a byte, prepare for the next byte
- 
-    if (bits_sent == 9) { // zero followed by 8 bits of a byte
-      //end of Byte
-      bits_sent = 0;
-      bytes_sent++;
-      // if this is the last byte, prepere for next packet
-      if (bytes_sent >= transmitLength) {
-        // end of transmission buffer... repeat or switch to next message
-        bytes_sent = 0;
-        remainingPreambles = requiredPreambles;
-		
-        if (transmitRepeats > 0) {
-          transmitRepeats--;
-        }
-        else if (packetPending) {
-          // Copy pending packet to transmit packet
-          // a fixed length memcpy is faster than a variable length loop for these small lengths
-          // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
-          memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
-          
-          transmitLength = pendingLength;
-          transmitRepeats = pendingRepeats;
-          packetPending = false;
-          clearResets();
-        }
-        else {
-          // Fortunately reset and idle packets are the same length
-          memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
-          transmitLength = sizeof(idlePacket);
-          transmitRepeats = 0;
-          if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
-        }
+  // Wave has gone HIGH but what happens next depends on the bit to be transmitted
+  // beware OF 9-BIT MASK  generating a zero to start each byte
+  state=(transmitPacket[bytes_sent] & bitMask[bits_sent])? WAVE_MID_1 : WAVE_HIGH_0; 
+  bits_sent++;
+  
+  // If this is the last bit of a byte, prepare for the next byte
+  
+  if (bits_sent == 9) { // zero followed by 8 bits of a byte
+    //end of Byte
+    bits_sent = 0;
+    bytes_sent++;
+    // if this is the last byte, prepere for next packet
+    if (bytes_sent >= transmitLength) {
+      // end of transmission buffer... repeat or switch to next message
+      bytes_sent = 0;
+      remainingPreambles = requiredPreambles;
+      
+      if (transmitRepeats > 0) {
+	transmitRepeats--;
       }
-    }  
+      else if (packetPending) {
+	// Copy pending packet to transmit packet
+	// a fixed length memcpy is faster than a variable length loop for these small lengths
+	// for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+	memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+        
+	transmitLength = pendingLength;
+	transmitRepeats = pendingRepeats;
+	packetPending = false;
+	clearResets();
+      }
+      else {
+	// Fortunately reset and idle packets are the same length
+	memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
+	transmitLength = sizeof(idlePacket);
+	transmitRepeats = 0;
+	if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
+      }
+    }
   }
 }
 #pragma GCC pop_options
