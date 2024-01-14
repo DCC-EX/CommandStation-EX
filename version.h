@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.24"
+#define VERSION "5.2.25"
+// 5.2.25 - Fix bug causing <X> after working <D commands 
 // 5.2.24 - Exrail macro asserts to catch 
 //            : duplicate/missing automation/route/sequence/call ids
 //            : latches and reserves out of range

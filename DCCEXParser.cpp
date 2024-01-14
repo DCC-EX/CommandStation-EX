@@ -1113,11 +1113,11 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
     case "ANOUT"_hk:  // <D ANOUT vpin position [profile]>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
-        break;
+        return true;
 
     case "ANIN"_hk:   // <D ANIN vpin>  Display analogue input value
         DIAG(F("VPIN=%u value=%d"), p[1], IODevice::readAnalogue(p[1]));
-        break;
+        return true;
 
 #if !defined(IO_NO_HAL)
     case "HAL"_hk: 
@@ -1125,12 +1125,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           IODevice::DumpAll();
         else if (p[1] == "RESET"_hk)
           IODevice::reset();
-        break;
+        return true;
 #endif
 
     case "TT"_hk:     // <D TT vpin steps activity>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
-        break;
+        return true;
 
     default: // invalid/unknown
         return parseC(stream, params, p);
