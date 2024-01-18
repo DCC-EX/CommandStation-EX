@@ -1,5 +1,6 @@
 /*
  *  © 2022, Peter Cole. All rights reserved.
+ *  © 2022, Harald Barth. All rights reserved.
  *
  *  This file is part of EX-CommandStation
  *
@@ -101,13 +102,13 @@ private:
               // Not enough space, free any existing buffer and allocate a new one
               if (_digitalPinBytes > 0) free(_digitalInputStates);
               if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
-		_digitalPinBytes = digitalBytesNeeded;
-	      } else {
-		DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
-		_deviceState = DEVSTATE_FAILED;
-		_digitalPinBytes = 0;
-		return;
-	      }
+                _digitalPinBytes = digitalBytesNeeded;
+              } else {
+                DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
+                _deviceState = DEVSTATE_FAILED;
+                _digitalPinBytes = 0;
+                return;
+              }
             }
           }
           
