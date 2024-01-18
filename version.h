@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.26"
+#define VERSION "5.2.27"
+// 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults
 //        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
 // 5.2.25 - Fix bug causing <X> after working <D commands 
