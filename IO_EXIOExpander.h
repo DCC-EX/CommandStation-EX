@@ -100,8 +100,14 @@ private:
             if (_digitalPinBytes < digitalBytesNeeded) {
               // Not enough space, free any existing buffer and allocate a new one
               if (_digitalPinBytes > 0) free(_digitalInputStates);
-              _digitalInputStates = (byte*) calloc(_digitalPinBytes, 1);
-              _digitalPinBytes = digitalBytesNeeded;
+              if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
+		_digitalPinBytes = digitalBytesNeeded;
+	      } else {
+		DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
+		_deviceState = DEVSTATE_FAILED;
+		_digitalPinBytes = 0;
+		return;
+	      }
             }
           }
           
@@ -117,7 +123,16 @@ private:
               _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
               _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
               _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-              _analoguePinBytes = analogueBytesNeeded;
+	      if (_analogueInputStates  != NULL &&
+		  _analogueInputBuffer != NULL &&
+		  _analoguePinMap != NULL) {
+		_analoguePinBytes = analogueBytesNeeded;
+	      } else {
+		DIAG(F("EX-IOExpander I2C:%s ERROR alloc analog pin bytes"), _I2CAddress.toString());
+		_deviceState = DEVSTATE_FAILED;
+		_analoguePinBytes = 0;
+		return;
+	      }
             }
           }
         } else {
@@ -364,14 +379,14 @@ private:
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
 
-  uint8_t* _digitalInputStates;
-  uint8_t* _analogueInputStates;
-  uint8_t* _analogueInputBuffer;  // buffer for I2C input transfers
+  uint8_t* _digitalInputStates  = NULL;
+  uint8_t* _analogueInputStates = NULL;
+  uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
   uint8_t _readCommandBuffer[1];
 
-  uint8_t _digitalPinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
-  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffers (may be longer than needed)
-  uint8_t* _analoguePinMap;
+  uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
+  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
+  uint8_t* _analoguePinMap = NULL;
   I2CRB _i2crb;
 
   enum {RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE};  // Read operation states
