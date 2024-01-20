@@ -1,6 +1,6 @@
 /*
  *  © 2022, Peter Cole. All rights reserved.
- *  © 2022, Harald Barth. All rights reserved.
+ *  © 2024, Harald Barth. All rights reserved.
  *
  *  This file is part of EX-CommandStation
  *
@@ -257,7 +257,7 @@ private:
 
     // If we're not doing anything now, check to see if a new input transfer is due.
     if (_readState == RDS_IDLE) {
-      if (currentMicros - _lastDigitalRead > _digitalRefresh && _numDigitalPins>0) { // Delay for digital read refresh
+      if (_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
         // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
         // be allocated from heap (object state).
         _readCommandBuffer[0] = EXIORDD;
@@ -265,7 +265,7 @@ private:
                                                                 // non-blocking read
         _lastDigitalRead = currentMicros;
         _readState = RDS_DIGITAL;
-      } else if (currentMicros - _lastAnalogueRead > _analogueRefresh && _numAnaloguePins>0) { // Delay for analogue read refresh
+      } else if (_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
         // Issue new read for analogue input states
         _readCommandBuffer[0] = EXIORDAN;
         I2CManager.read(_I2CAddress, _analogueInputBuffer,
