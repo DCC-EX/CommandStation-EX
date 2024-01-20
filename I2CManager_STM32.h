@@ -110,7 +110,7 @@ void I2CManagerClass::I2C_setClock(uint32_t i2cClockSpeed) {
   // Calculate a rise time appropriate to the requested bus speed
   // Use 10x the rise time spec to enable integer divide of 50ns clock period
   uint16_t t_rise;
-  uint32_t ccr_freq;
+  //uint32_t ccr_freq;
 
   while (s->CR1 & I2C_CR1_STOP);  // Prevents lockup by guarding further
                                   // writes to CR1 while STOP is being executed!
