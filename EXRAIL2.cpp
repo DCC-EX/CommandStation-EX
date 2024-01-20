@@ -667,6 +667,43 @@ void RMFT2::loop2() {
       }
       break; 
 
+  case OPCODE_SETFREQ:
+      // Frequency is default 0, or 1, 2,3
+      //if (loco) DCC::setFn(loco,operand,true);
+      switch (operand) {
+        case 0:  // default - all F-s off
+            if (loco) {
+                DCC::setFn(loco,29,false);
+                DCC::setFn(loco,30,false);
+                DCC::setFn(loco,31,false);
+            }
+        break;
+        case 1:
+            //if (loco) DCC::setFn(loco,29,true);
+            if (loco) {
+              DCC::setFn(loco,30,true);
+              DCC::setFn(loco,31,false);
+            }
+        break;
+        case 2:
+            //if (loco) DCC::setFn(loco,30,true);
+            if (loco) {
+              DCC::setFn(loco,30,false);
+              DCC::setFn(loco,31,true);
+            }
+        break;
+        case 3:
+            //if (loco) DCC::setFn(loco,31,true);
+            if (loco) {
+              DCC::setFn(loco,30,true);
+              DCC::setFn(loco,31,true);
+            }
+        break;
+
+      }
+
+      break;
+
   case OPCODE_RESUME:
     pausingTask=NULL;
     driveLoco(speedo);

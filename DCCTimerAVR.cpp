@@ -157,7 +157,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 
     TCCR2A = (TCCR2A & B11111100) | abits; // set WGM0 and WGM1
     TCCR2B = (TCCR2B & B11110000) | bbits; // set WGM2 and 3 bits of prescaler
-    //DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
+    DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
 
   } else { // not timer 9 or 10
     abits = B01;
