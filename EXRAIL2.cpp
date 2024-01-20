@@ -679,27 +679,29 @@ void RMFT2::loop2() {
             }
         break;
         case 1:
-            //if (loco) DCC::setFn(loco,29,true);
             if (loco) {
-              DCC::setFn(loco,30,true);
+	      DCC::setFn(loco,29,true);
+              DCC::setFn(loco,30,false);
               DCC::setFn(loco,31,false);
             }
         break;
         case 2:
-            //if (loco) DCC::setFn(loco,30,true);
             if (loco) {
+	      DCC::setFn(loco,29,false);
+              DCC::setFn(loco,30,true);
+              DCC::setFn(loco,31,false);
+            }
+        break;
+        case 3:
+            if (loco) {
+	      DCC::setFn(loco,29,false);
               DCC::setFn(loco,30,false);
               DCC::setFn(loco,31,true);
             }
         break;
-        case 3:
-            //if (loco) DCC::setFn(loco,31,true);
-            if (loco) {
-              DCC::setFn(loco,30,true);
-              DCC::setFn(loco,31,true);
-            }
-        break;
-
+      default:
+	; // do nothing
+	break;
       }
 
       break;

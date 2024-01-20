@@ -137,22 +137,27 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
       // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
 #endif
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  // Speed mapping is done like this:
+  // No functions buttons:   000  0   -> low          131Hz
+  // Only F29 pressed        001  1   -> mid          490Hz
+  // F30 with or w/o F29     01x  2-3 -> high        3400Hz
+  // F31 with or w/o F29/30  1xx  4-7 -> supersonic 62500Hz
   uint8_t abits;
   uint8_t bbits;
   if (pin == 9 || pin == 10) { // timer 2 is different
 
-    if (fbits >= 3)
+    if (fbits >= 4)
       abits = B00000011;
     else
       abits = B00000001;
 
-    if (fbits >= 3)
+    if (fbits >= 4)
       bbits = B0001;
-    else if (fbits == 2)
+    else if (fbits >= 2)
       bbits = B0010;
     else if (fbits == 1)
       bbits = B0100;
-    else
+    else //  fbits == 0
       bbits = B0110;
 
     TCCR2A = (TCCR2A & B11111100) | abits; // set WGM0 and WGM1
@@ -162,9 +167,9 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
   } else { // not timer 9 or 10
     abits = B01;
 
-    if (fbits >= 3)
+    if (fbits >= 4)
       bbits = B1001;
-    else if (fbits == 2)
+    else if (fbits >= 2)
       bbits = B0010;
     else if (fbits == 1)
       bbits = B0011;

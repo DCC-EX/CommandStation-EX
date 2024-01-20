@@ -153,7 +153,7 @@ uint8_t DCC::getThrottleSpeedByte(int cab) {
   return speedTable[reg].speedCode;
 }
 
-// returns 0 to 3 for frequency
+// returns 0 to 7 for frequency
 uint8_t DCC::getThrottleFrequency(int cab) {
 #if defined(ARDUINO_AVR_UNO)
   (void)cab;
@@ -161,10 +161,11 @@ uint8_t DCC::getThrottleFrequency(int cab) {
 #else
   int reg=lookupSpeedTable(cab);
   if (reg<0)
-    return 0; // use default frequency 
-  uint8_t res = (uint8_t)(speedTable[reg].functions >>30);
+    return 0; // use default frequency
+  // shift out first 29 bits so we have the 3 "frequency bits" left
+  uint8_t res = (uint8_t)(speedTable[reg].functions >>29);
   //DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
-  return res; // shift out first 30 bits so we have the "frequency bits" left
+  return res;
 #endif
 }
 
@@ -200,7 +201,9 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
   }
   // We use the reminder table up to 28 for normal functions.
-  // We use 29 to 31 for DC frequency as well.
+  // We use 29 to 31 for DC frequency as well so up to 28
+  // are "real" functions and 29 to 31 are frequency bits
+  // controlled by function buttons
   if (functionNumber > 31)
     return true;
   

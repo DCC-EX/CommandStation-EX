@@ -260,9 +260,13 @@ void DCCTimer::reset() {
 void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   if (f >= 16)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
-  else if (f >= 3)
+  else if (f == 7)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
-  else if (f == 2)
+  else if (f >= 4)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
+  else if (f >= 3)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
+  else if (f >= 2)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
   else if (f == 1)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
