@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.0.8"
+#define VERSION "5.0.9"
+// 5.0.9  - EX-IOExpander bug fix for memory allocation
+//        - EX-IOExpander bug fix to allow for devices with no analogue or no digital pins
 // 5.0.8  - Bugfix: Do not crash on turnouts without description
 // 5.0.7  - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
 // 5.0.6  - Bugfix lost TURNOUTL description
