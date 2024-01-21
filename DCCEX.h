@@ -49,6 +49,7 @@
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"    
+#include "KeywordHasher.h"
 #include "EXRAIL.h"
     
 #endif

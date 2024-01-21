@@ -67,6 +67,7 @@
 #undef FWD 
 #undef GREEN
 #undef HAL
+#undef HAL_IGNORE_DEFAULTS
 #undef IF 
 #undef IFAMBER
 #undef IFCLOSED
@@ -218,6 +219,7 @@
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
+#define HAL_IGNORE_DEFAULTS
 #define IF(sensor_id) 
 #define IFAMBER(signal_id)
 #define IFCLOSED(turnout_id) 

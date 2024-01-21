@@ -1,5 +1,6 @@
 /*
  *  © 2022, Peter Cole. All rights reserved.
+ *  © 2024, Harald Barth. All rights reserved.
  *
  *  This file is part of EX-CommandStation
  *
@@ -100,8 +101,14 @@ private:
             if (_digitalPinBytes < digitalBytesNeeded) {
               // Not enough space, free any existing buffer and allocate a new one
               if (_digitalPinBytes > 0) free(_digitalInputStates);
-              _digitalInputStates = (byte*) calloc(_digitalPinBytes, 1);
-              _digitalPinBytes = digitalBytesNeeded;
+              if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
+                _digitalPinBytes = digitalBytesNeeded;
+              } else {
+                DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
+                _deviceState = DEVSTATE_FAILED;
+                _digitalPinBytes = 0;
+                return;
+              }
             }
           }
           
@@ -117,7 +124,16 @@ private:
               _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
               _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
               _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-              _analoguePinBytes = analogueBytesNeeded;
+	      if (_analogueInputStates  != NULL &&
+		  _analogueInputBuffer != NULL &&
+		  _analoguePinMap != NULL) {
+		_analoguePinBytes = analogueBytesNeeded;
+	      } else {
+		DIAG(F("EX-IOExpander I2C:%s ERROR alloc analog pin bytes"), _I2CAddress.toString());
+		_deviceState = DEVSTATE_FAILED;
+		_analoguePinBytes = 0;
+		return;
+	      }
             }
           }
         } else {
@@ -241,7 +257,7 @@ private:
 
     // If we're not doing anything now, check to see if a new input transfer is due.
     if (_readState == RDS_IDLE) {
-      if (currentMicros - _lastDigitalRead > _digitalRefresh && _numDigitalPins>0) { // Delay for digital read refresh
+      if (_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
         // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
         // be allocated from heap (object state).
         _readCommandBuffer[0] = EXIORDD;
@@ -249,7 +265,7 @@ private:
                                                                 // non-blocking read
         _lastDigitalRead = currentMicros;
         _readState = RDS_DIGITAL;
-      } else if (currentMicros - _lastAnalogueRead > _analogueRefresh && _numAnaloguePins>0) { // Delay for analogue read refresh
+      } else if (_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
         // Issue new read for analogue input states
         _readCommandBuffer[0] = EXIORDAN;
         I2CManager.read(_I2CAddress, _analogueInputBuffer,
@@ -364,14 +380,14 @@ private:
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
 
-  uint8_t* _digitalInputStates;
-  uint8_t* _analogueInputStates;
-  uint8_t* _analogueInputBuffer;  // buffer for I2C input transfers
+  uint8_t* _digitalInputStates  = NULL;
+  uint8_t* _analogueInputStates = NULL;
+  uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
   uint8_t _readCommandBuffer[1];
 
-  uint8_t _digitalPinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
-  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffers (may be longer than needed)
-  uint8_t* _analoguePinMap;
+  uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
+  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
+  uint8_t* _analoguePinMap = NULL;
   I2CRB _i2crb;
 
   enum {RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE};  // Read operation states

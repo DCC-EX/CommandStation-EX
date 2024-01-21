@@ -3,7 +3,16 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.22ethCdf"
+#define VERSION "5.2.27stm32EC"
+// 5.2.27 - Bugfix: IOExpander memory allocation
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
+// 5.2.25 - Fix bug causing <X> after working <D commands 
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
+// 5.2.23 - KeywordHasher _hk (no functional change) 
 // 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
 // 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
 // 5.2.20 - Check return of Ethernet.begin()
