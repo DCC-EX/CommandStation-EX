@@ -71,8 +71,9 @@ Stream * WifiInterface::wifiStream;
 #elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) \
     || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG) \
     || defined(ARDUINO_NUCLEO_F439ZI)
-#define NUM_SERIAL 2
+#define NUM_SERIAL 3
 #define SERIAL1 Serial6
+#define SERIAL3 Serial2
 #else
 #warning This variant of Nucleo not yet explicitly supported
 #endif
