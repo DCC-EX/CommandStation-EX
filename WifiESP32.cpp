@@ -164,6 +164,8 @@ bool WifiESP::setup(const char *SSid,
   if (haveSSID && havePassword && !forceAP) {
     WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
     WiFi.mode(WIFI_STA);
+    WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
+                                               // (default in Wifi library is first match)
 #ifdef SERIAL_BT_COMMANDS
     WiFi.setSleep(true);
 #else
@@ -204,7 +206,7 @@ bool WifiESP::setup(const char *SSid,
   if (!haveSSID || forceAP) {
     // prepare all strings
     String strSSID(forceAP ? SSid : "DCCEX_");
-    String strPass(forceAP ? password : "PASS_");
+    String strPass( (forceAP && havePassword) ? password : "PASS_");
     if (!forceAP) {
       String strMac = WiFi.macAddress();
       strMac.remove(0,9);
@@ -228,7 +230,8 @@ bool WifiESP::setup(const char *SSid,
       // DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       DIAG(F("Wifi in AP mode"));
       LCD(5, F("Wifi: %s"), strSSID.c_str());
-      LCD(6, F("PASS: %s"),havePassword ? password : strPass.c_str());
+      if (!havePassword)
+	LCD(6, F("PASS: %s"),strPass.c_str());
       // DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
       LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
       wifiUp = true;
