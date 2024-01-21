@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.27"
+#define VERSION "5.2.28"
+// 5.2.28 - ESP32: Can all Wifi channels.
+//        - ESP32: Only write Wifi password to display if it is a well known one
 // 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults
 //        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
