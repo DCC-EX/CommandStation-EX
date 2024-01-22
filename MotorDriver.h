@@ -187,7 +187,7 @@ class MotorDriver {
       }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
-    void setDCSignal(byte speedByte);
+    void setDCSignal(byte speedByte, uint8_t frequency=0);
     void throttleInrush(bool on);
     inline void detachDCSignal() {
 #if defined(__arm__)

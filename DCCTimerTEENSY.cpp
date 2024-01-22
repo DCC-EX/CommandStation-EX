@@ -141,6 +141,11 @@ void DCCTimer::reset() {
   SCB_AIRCR = 0x05FA0004;
 }
 
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
+}
+
 int16_t ADCee::ADCmax() {
   return 4095;
 }

@@ -325,49 +325,23 @@ uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     220, 196, 175, 165 };
 #endif
 #endif
-void MotorDriver::setDCSignal(byte speedcode) {
+void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) {
   if (brakePin == UNUSED_PIN)
     return;
-  switch(brakePin) {
-#if defined(ARDUINO_AVR_UNO)
-    // Not worth doin something here as:
-    // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
-    // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.
-    // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
-#endif
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  case 9:
-  case 10:
-    // Timer2 (is differnet)
-    TCCR2A = (TCCR2A & B11111100) | B00000001; // set WGM1=0 and WGM0=1 phase correct PWM
-    TCCR2B = (TCCR2B & B11110000) | B00000110; // set WGM2=0 ; set divisor on timer 2 to 1/256 for 122.55Hz
-    //DIAG(F("2 A=%x B=%x"), TCCR2A, TCCR2B);
-    break;
-  case 6:
-  case 7:
-  case 8:
-    // Timer4
-    TCCR4A = (TCCR4A & B11111100) | B00000001; // set WGM0=1 and WGM1=0 for normal PWM 8-bit
-    TCCR4B = (TCCR4B & B11100000) | B00000100; // set WGM2=0 and WGM3=0 for normal PWM 8 bit and div 1/256 for 122.55Hz
-    break;
-  case 46:
-  case 45:
-  case 44:
-    // Timer5
-    TCCR5A = (TCCR5A & B11111100) | B00000001; // set WGM0=1 and WGM1=0 for normal PWM 8-bit
-    TCCR5B = (TCCR5B & B11100000) | B00000100; // set WGM2=0 and WGM3=0 for normal PWM 8 bit and div 1/256 for 122.55Hz
-    break;
-#endif
-  default:
-    break;
-  }
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
   byte brake;
+
+  if (tSpeed <= 1) brake = 255;
+  else if (tSpeed >= 127) brake = 0;
+  else  brake = 2 * (128-tSpeed);
+  if (invertBrake)
+    brake=255-brake;
+
+  { // new block because of variable f
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
-  {
-    int f = 131;
+    int f = frequency;
 #ifdef VARIABLE_TONES
     if (tSpeed > 2) {
       if (tSpeed <= 58) {
@@ -375,19 +349,15 @@ void MotorDriver::setDCSignal(byte speedcode) {
       }
     }
 #endif
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
+    //DIAG(F("Brake pin %d freqency %d"), brakePin, f);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
+    DCCTimer::DCCEXanalogWrite(brakePin,brake);
+#else // all AVR here
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
+    analogWrite(brakePin,brake);
+#endif
   }
-#endif
-  if (tSpeed <= 1) brake = 255;
-  else if (tSpeed >= 127) brake = 0;
-  else  brake = 2 * (128-tSpeed);
-  if (invertBrake)
-    brake=255-brake;
-#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
-  DCCTimer::DCCEXanalogWrite(brakePin,brake);
-#else
-  analogWrite(brakePin,brake);
-#endif
+
   //DIAG(F("DCSignal %d"), speedcode);
   if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
     noInterrupts();
@@ -436,58 +406,26 @@ void MotorDriver::throttleInrush(bool on) {
     return;
   if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT)))
     return;
-  byte duty = on ? 208 : 0;
+  byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
   if (invertBrake)
     duty = 255-duty;
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
     DCCTimer::DCCEXanalogWrite(brakePin,duty);
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 62500);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
   } else {
     ledcDetachPin(brakePin);
   }
 #elif defined(ARDUINO_ARCH_STM32)
   if(on) {
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 62500);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
     DCCTimer::DCCEXanalogWrite(brakePin,duty);
   } else {
     pinMode(brakePin, OUTPUT);
   }
-#else
+#else // all AVR here
   if(on){
-    switch(brakePin) {
-#if defined(ARDUINO_AVR_UNO)
-      // Not worth doin something here as:
-      // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
-      // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.
-      // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
-#endif
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-    case 9:
-    case 10:
-      // Timer2 (is different)
-      TCCR2A = (TCCR2A & B11111100) | B00000011; // set WGM0=1 and WGM1=1 for fast PWM
-      TCCR2B = (TCCR2B & B11110000) | B00000001; // set WGM2=0 and prescaler div=1 (max)
-      DIAG(F("2 A=%x B=%x"), TCCR2A, TCCR2B);
-      break;
-    case 6:
-    case 7:
-    case 8:
-      // Timer4
-      TCCR4A = (TCCR4A & B11111100) | B00000001; // set WGM0=1 and WGM1=0 for fast PWM 8-bit
-      TCCR4B = (TCCR4B & B11100000) | B00001001; // set WGM2=1 and WGM3=0 for fast PWM 8 bit and div=1 (max)
-      break;
-    case 46:
-    case 45:
-    case 44:
-      // Timer5
-      TCCR5A = (TCCR5A & B11111100) | B00000001; // set WGM0=1 and WGM1=0 for fast PWM 8-bit
-      TCCR5B = (TCCR5B & B11100000) | B00001001; // set WGM2=1 and WGM3=0 for fast PWM 8 bit and div=1 (max)
-      break;
-#endif
-    default:
-      break;
-    }
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
   }
   analogWrite(brakePin,duty);
 #endif

@@ -257,6 +257,23 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  if (f >= 16)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+  else if (f == 7)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+  else if (f >= 4)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
+  else if (f >= 3)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
+  else if (f >= 2)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+  else if (f == 1)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
+  else
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 131);
+}
+
 // TODO: rationalise the size of these... could really use sparse arrays etc.
 static HardwareTimer * pin_timer[100] = {0};
 static uint32_t channel_frequency[100] = {0};
@@ -267,7 +284,7 @@ static uint32_t pin_channel[100] = {0};
 // sophisticated about detecting any clash between the timer we'd like to use for PWM and the ones
 // currently used for HA so they don't interfere with one another. For now we'll just make PWM
 // work well... then work backwards to integrate with HA mode if we can.
-void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency)
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency)
 {
   if (pin_timer[pin] == NULL) {
     // Automatically retrieve TIM instance and channel associated to pin

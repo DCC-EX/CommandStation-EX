@@ -153,6 +153,22 @@ uint8_t DCC::getThrottleSpeedByte(int cab) {
   return speedTable[reg].speedCode;
 }
 
+// returns 0 to 7 for frequency
+uint8_t DCC::getThrottleFrequency(int cab) {
+#if defined(ARDUINO_AVR_UNO)
+  (void)cab;
+  return 0;
+#else
+  int reg=lookupSpeedTable(cab);
+  if (reg<0)
+    return 0; // use default frequency
+  // shift out first 29 bits so we have the 3 "frequency bits" left
+  uint8_t res = (uint8_t)(speedTable[reg].functions >>29);
+  //DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
+  return res;
+#endif
+}
+
 // returns direction on loco
 // or true/forward on "loco not found"
 bool DCC::getThrottleDirection(int cab) {
@@ -183,43 +199,54 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
-    return true;
   }
-
+  // We use the reminder table up to 28 for normal functions.
+  // We use 29 to 31 for DC frequency as well so up to 28
+  // are "real" functions and 29 to 31 are frequency bits
+  // controlled by function buttons
+  if (functionNumber > 31)
+    return true;
+  
   int reg = lookupSpeedTable(cab);
   if (reg<0) return false;
 
   // Take care of functions:
   // Set state of function
-  unsigned long previous=speedTable[reg].functions;
-  unsigned long funcmask = (1UL<<functionNumber);
+  uint32_t previous=speedTable[reg].functions;
+  uint32_t funcmask = (1UL<<functionNumber);
   if (on) {
       speedTable[reg].functions |= funcmask;
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  if (speedTable[reg].functions != previous) {
+  if (speedTable[reg].functions != previous && functionNumber <= 28) {
     updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }
   return true;
 }
 
-// Flip function state
+// Flip function state (used from withrottle protocol)
 void DCC::changeFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return;
+  if (cab<=0 || functionNumber>31) return;
   int reg = lookupSpeedTable(cab);
   if (reg<0) return;
   unsigned long funcmask = (1UL<<functionNumber);
   speedTable[reg].functions ^= funcmask;
-  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  CommandDistributor::broadcastLoco(reg);
+  if (functionNumber <= 28) {
+    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+    CommandDistributor::broadcastLoco(reg);
+  }
 }
 
-int DCC::getFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return -1;  // unknown
+// Report function state (used from withrottle protocol)
+// returns 0 false, 1 true or -1 for do not know
+int8_t DCC::getFn( int cab, int16_t functionNumber) {
+  if (cab<=0 || functionNumber>28)
+    return -1;  // unknown
   int reg = lookupSpeedTable(cab);
-  if (reg<0) return -1;
+  if (reg<0)
+    return -1;
 
   unsigned long funcmask = (1UL<<functionNumber);
   return  (speedTable[reg].functions & funcmask)? 1 : 0;

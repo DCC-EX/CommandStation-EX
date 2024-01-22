@@ -618,7 +618,7 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
 #endif
 	
 	for(int fKey=0; fKey<fkeys; fKey++) { 
-      int fstate=DCC::getFn(locoid,fKey);
+      int8_t fstate=DCC::getFn(locoid,fKey);
       if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),myLocos[loco].throttle,LorS(locoid),locoid,fstate,fKey);                     
 	}
 }

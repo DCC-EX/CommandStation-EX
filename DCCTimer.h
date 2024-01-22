@@ -85,6 +85,7 @@ class DCCTimer {
   static void reset();
   
 private:
+  static void DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency);
   static int freeMemory();
   static volatile int minimum_free_memory;
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
