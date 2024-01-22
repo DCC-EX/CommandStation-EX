@@ -22,7 +22,8 @@
 #define iodevice_h
 
 // Define symbol DIAG_IO to enable diagnostic output
-//#define DIAG_IO Y
+//#define DIAG_IO
+
 
 // Define symbol DIAG_LOOPTIMES to enable CS loop execution time to be reported
 //#define DIAG_LOOPTIMES
@@ -166,7 +167,8 @@ public:
   void setGPIOInterruptPin(int16_t pinNumber);
 
   // Method to check if pins will overlap before creating new device. 
-  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, I2CAddress i2cAddress=0);
+  static bool checkNoOverlap(VPIN firstPin, uint8_t nPins=1, 
+                  I2CAddress i2cAddress=0, bool silent=false);
 
   // Method used by IODevice filters to locate slave pins that may be overlayed by their own
   // pin range.  

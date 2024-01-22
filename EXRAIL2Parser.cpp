@@ -28,25 +28,7 @@
 #include "defines.h"
 #include "EXRAIL2.h"
 #include "DCC.h"
-// Command parsing keywords
-const int16_t HASH_KEYWORD_EXRAIL=15435;    
-const int16_t HASH_KEYWORD_ON = 2657;
-const int16_t HASH_KEYWORD_START=23232;
-const int16_t HASH_KEYWORD_RESERVE=11392;
-const int16_t HASH_KEYWORD_FREE=-23052;
-const int16_t HASH_KEYWORD_LATCH=1618;  
-const int16_t HASH_KEYWORD_UNLATCH=1353;
-const int16_t HASH_KEYWORD_PAUSE=-4142;
-const int16_t HASH_KEYWORD_RESUME=27609;
-const int16_t HASH_KEYWORD_KILL=5218;
-const int16_t HASH_KEYWORD_ALL=3457;
-const int16_t HASH_KEYWORD_ROUTES=-3702;
-const int16_t HASH_KEYWORD_RED=26099;
-const int16_t HASH_KEYWORD_AMBER=18713;
-const int16_t HASH_KEYWORD_GREEN=-31493;
-const int16_t HASH_KEYWORD_A='A';   
-const int16_t HASH_KEYWORD_M='M';
-
+#include "KeywordHasher.h"
 
 // This filter intercepts <> commands to do the following:
 // - Implement RMFT specific commands/diagnostics
@@ -58,8 +40,8 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
   switch(opcode) {
     
   case 'D':
-    if (p[0]==HASH_KEYWORD_EXRAIL) { // <D EXRAIL ON/OFF>
-      diag = paramCount==2 && (p[1]==HASH_KEYWORD_ON || p[1]==1);
+    if (p[0]=="EXRAIL"_hk) { // <D EXRAIL ON/OFF>
+      diag = paramCount==2 && (p[1]=="ON"_hk || p[1]==1);
       opcode=0;
     }
     break;
@@ -125,7 +107,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     case 'J':  // throttle info commands
         if (paramCount<1) return; 
         switch(p[0]) {
-          case HASH_KEYWORD_A: // <JA> returns automations/routes
+          case "A"_hk: // <JA> returns automations/routes
             if (paramCount==1) {// <JA>
               StringFormatter::send(stream, F("<jA"));
               routeLookup->stream(stream);
@@ -134,7 +116,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               return; 
             }
             if (paramCount==2) {  // <JA id>
-              uint16_t id=p[1]; 
+              int16_t id=p[1];
               StringFormatter::send(stream,F("<jA %d %c \"%S\">\n"), 
                 id, getRouteType(id), getRouteDescription(id));
               
@@ -152,7 +134,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               return;
             }
             break;
-        case HASH_KEYWORD_M:
+        case "M"_hk:
             // NOTE: we only need to handle valid calls here because 
             // DCCEXParser has to have code to handle the <J<> cases where
             // exrail isnt involved anyway. 
@@ -236,13 +218,13 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     return true;
   }
   switch (p[0]) {
-  case HASH_KEYWORD_PAUSE: // </ PAUSE>
+  case "PAUSE"_hk: // </ PAUSE>
     if (paramCount!=1) return false;
     DCC::setThrottle(0,1,true);  // pause all locos on the track
     pausingTask=(RMFT2 *)1; // Impossible task address
     return true;
     
-  case HASH_KEYWORD_RESUME: // </ RESUME>
+  case "RESUME"_hk: // </ RESUME>
     if (paramCount!=1) return false;
     pausingTask=NULL;
     {
@@ -256,7 +238,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     return true;
     
     
-  case HASH_KEYWORD_START: // </ START [cab] route >
+  case "START"_hk: // </ START [cab] route >
     if (paramCount<2 || paramCount>3) return false;
     {
       int route=(paramCount==2) ? p[1] : p[2];
@@ -273,7 +255,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   }
 
   // check KILL ALL here, otherwise the next validation confuses ALL with a flag  
-  if (p[0]==HASH_KEYWORD_KILL && p[1]==HASH_KEYWORD_ALL) {
+  if (p[0]=="KILL"_hk && p[1]=="ALL"_hk) {
     while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
     return true;   
   }
@@ -282,7 +264,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   if (paramCount!=2 ) return false;
   
   switch (p[0]) {
-  case HASH_KEYWORD_KILL: // Kill taskid|ALL
+  case "KILL"_hk: // Kill taskid|ALL
     {
     if ( p[1]<0  || p[1]>=MAX_FLAGS) return false;
     RMFT2 * task=loopTask;
@@ -297,27 +279,27 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     }
     return false;
     
-  case HASH_KEYWORD_RESERVE:  // force reserve a section
+  case "RESERVE"_hk:  // force reserve a section
     return setFlag(p[1],SECTION_FLAG);
     
-  case HASH_KEYWORD_FREE:  // force free a section
+  case "FREE"_hk:  // force free a section
     return setFlag(p[1],0,SECTION_FLAG);
     
-  case HASH_KEYWORD_LATCH:
+  case "LATCH"_hk:
     return setFlag(p[1], LATCH_FLAG);
     
-  case HASH_KEYWORD_UNLATCH:
+  case "UNLATCH"_hk:
     return setFlag(p[1], 0, LATCH_FLAG);
  
-  case HASH_KEYWORD_RED:
+  case "RED"_hk:
     doSignal(p[1],SIGNAL_RED);
     return true;
  
-  case HASH_KEYWORD_AMBER:
+  case "AMBER"_hk:
     doSignal(p[1],SIGNAL_AMBER);
     return true;
  
-  case HASH_KEYWORD_GREEN:
+  case "GREEN"_hk:
     doSignal(p[1],SIGNAL_GREEN);
     return true;
     

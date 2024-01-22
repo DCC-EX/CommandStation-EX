@@ -76,6 +76,12 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
+// If user has defined a startup delay, delay here before starting IO
+#if defined(STARTUP_DELAY)
+  DIAG(F("Delaying startup for %dms"), STARTUP_DELAY);
+  delay(STARTUP_DELAY);
+#endif
+
 // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
 

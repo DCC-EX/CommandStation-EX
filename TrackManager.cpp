@@ -29,6 +29,7 @@
 #include "DIAG.h"
 #include "CommandDistributor.h"
 #include "DCCEXParser.h"
+#include "KeywordHasher.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
     
@@ -36,21 +37,6 @@
         FOR_EACH_TRACK(t) \
 	    if (track[t]->getMode()==findmode)	\
                 track[t]->function;
-#ifndef DISABLE_PROG
-const int16_t HASH_KEYWORD_PROG = -29718;
-#endif
-const int16_t HASH_KEYWORD_MAIN = 11339;
-const int16_t HASH_KEYWORD_OFF = 22479;  
-const int16_t HASH_KEYWORD_NONE = -26550;
-const int16_t HASH_KEYWORD_DC = 2183;  
-const int16_t HASH_KEYWORD_DCX = 6463; // DC reversed polarity 
-const int16_t HASH_KEYWORD_EXT = 8201; // External DCC signal
-const int16_t HASH_KEYWORD_A = 65; // parser makes single chars the ascii.   
-const int16_t HASH_KEYWORD_AUTO = -5457;
-#ifdef BOOSTER_INPUT
-const int16_t HASH_KEYWORD_BOOST = 11269;
-#endif
-const int16_t HASH_KEYWORD_INV = 11857;
 
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackDCAddr[MAX_TRACKS];
@@ -363,38 +349,38 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
         
     }
     
-    p[0]-=HASH_KEYWORD_A;  // convert A... to 0.... 
+    p[0]-="A"_hk;  // convert A... to 0.... 
 
     if (params>1 && (p[0]<0 || p[0]>=MAX_TRACKS)) 
         return false;
     
-    if (params==2  && p[1]==HASH_KEYWORD_MAIN) // <= id MAIN>
+    if (params==2  && p[1]=="MAIN"_hk) // <= id MAIN>
         return setTrackMode(p[0],TRACK_MODE_MAIN);
     
 #ifndef DISABLE_PROG
-    if (params==2  && p[1]==HASH_KEYWORD_PROG) // <= id PROG>
+    if (params==2  && p[1]=="PROG"_hk) // <= id PROG>
         return setTrackMode(p[0],TRACK_MODE_PROG);
 #endif
     
-    if (params==2  && (p[1]==HASH_KEYWORD_OFF || p[1]==HASH_KEYWORD_NONE)) // <= id OFF> <= id NONE>
+    if (params==2  && (p[1]=="OFF"_hk || p[1]=="NONE"_hk)) // <= id OFF> <= id NONE>
         return setTrackMode(p[0],TRACK_MODE_NONE);
 
-    if (params==2  && p[1]==HASH_KEYWORD_EXT) // <= id EXT>
+    if (params==2  && p[1]=="EXT"_hk) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
 #ifdef BOOSTER_INPUT
-    if (params==2  && p[1]==HASH_KEYWORD_BOOST) // <= id BOOST>
+    if (params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
 #endif
-    if (params==2  && p[1]==HASH_KEYWORD_AUTO) // <= id AUTO>
+    if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
 
-    if (params==2  && p[1]==HASH_KEYWORD_INV) // <= id AUTO>
+    if (params==2  && p[1]=="INV"_hk) // <= id AUTO>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_INV);
 
-    if (params==3  && p[1]==HASH_KEYWORD_DC && p[2]>0) // <= id DC cab>
+    if (params==3  && p[1]=="DC"_hk && p[2]>0) // <= id DC cab>
         return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
     
-    if (params==3  && p[1]==HASH_KEYWORD_DCX && p[2]>0) // <= id DCX cab>
+    if (params==3  && p[1]=="DCX"_hk && p[2]>0) // <= id DCX cab>
         return setTrackMode(p[0],TRACK_MODE_DC|TRACK_MODE_INV,p[2]);
 
     return false;

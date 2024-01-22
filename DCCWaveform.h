@@ -2,7 +2,7 @@
  *  © 2021 M Steve Todd
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *  
@@ -33,9 +33,9 @@
 
 
 // Number of preamble bits.
-const int   PREAMBLE_BITS_MAIN = 16;
-const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
+const byte PREAMBLE_BITS_MAIN = 16;
+const byte PREAMBLE_BITS_PROG = 22;
+const byte MAX_PACKET_SIZE = 5;     // NMRA standard extended packets, payload size WITHOUT checksum.
 
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic

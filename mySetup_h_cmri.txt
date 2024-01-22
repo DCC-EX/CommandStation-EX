@@ -1,0 +1,128 @@
+// mySetup.h
+// defining CMRI accessories
+// CMRI connections defined in myHal.cpp
+//
+// this is for testing.
+SETUP("D CMD 1");
+//  Turnouts defined in myAutomation.h can include descriptions which will appear in Engine Driver
+//  Sensors and digital outputs do not require pre-definition for use in EXRAIL automation
+//
+// SMINI emulation node 24-input/48-outputs
+// the sketch I use
+// 16 or 24 input pins
+// 32 or 48 output pins 
+//
+// Define 16 input pins 1000-1015
+SETUP("S 1000 1000 1");
+SETUP("S 1001 1001 1");
+SETUP("S 1002 1002 1");
+SETUP("S 1003 1003 1");
+SETUP("S 1004 1004 1");
+SETUP("S 1005 1005 1");
+SETUP("S 1006 1006 1");
+SETUP("S 1007 1007 1");
+SETUP("S 1008 1008 1");
+SETUP("S 1009 1009 1");
+SETUP("S 1010 1010 1");
+SETUP("S 1011 1011 1");
+SETUP("S 1012 1012 1");
+SETUP("S 1013 1013 1");
+SETUP("S 1014 1014 1");
+SETUP("S 1015 1015 1");
+//
+//  define 16 turnouts using VPIN (for Throw/Close commands via CMRI)
+SETUP("T 1024 VPIN 1024");
+SETUP("T 1025 VPIN 1025");
+SETUP("T 1026 VPIN 1026");
+SETUP("T 1027 VPIN 1027");
+SETUP("T 1028 VPIN 1028");
+SETUP("T 1029 VPIN 1029");
+SETUP("T 1030 VPIN 1030");
+SETUP("T 1031 VPIN 1031");
+SETUP("T 1032 VPIN 1032");
+SETUP("T 1033 VPIN 1033");
+SETUP("T 1034 VPIN 1034");
+SETUP("T 1035 VPIN 1035");
+SETUP("T 1036 VPIN 1036");
+SETUP("T 1037 VPIN 1037");
+SETUP("T 1038 VPIN 1038");
+SETUP("T 1039 VPIN 1039");
+//
+//  define 16 pins for digital outputs
+SETUP("Z 1040 1040 0");
+SETUP("Z 1041 1041 0");
+SETUP("Z 1042 1042 0");
+SETUP("Z 1043 1043 0");
+SETUP("Z 1044 1044 0");
+SETUP("Z 1045 1045 0");
+SETUP("Z 1046 1046 0");
+SETUP("Z 1047 1047 0");
+SETUP("Z 1048 1048 0");
+SETUP("Z 1049 1049 0");
+SETUP("Z 1050 1050 0");
+SETUP("Z 1051 1051 0");
+SETUP("Z 1052 1052 0");
+SETUP("Z 1053 1053 0");
+SETUP("Z 1054 1054 0");
+SETUP("Z 1055 1055 0");
+//
+//  additional 16 outputs available 1056-1071
+//SETUP("Z 1056 1056 0");
+//
+//  CMRI sketch used for testing available here
+//  https://www.trainboard.com/highball/index.php?threads/24-in-48-out-card-for-jmri.116454/page-2#post-1141569
+//
+
+// Define 16 input pins 900-915
+SETUP("S 900 900 1");
+SETUP("S 901 901 1");
+SETUP("S 902 902 1");
+SETUP("S 903 903 1");
+SETUP("S 904 904 1");
+SETUP("S 905 905 1");
+SETUP("S 906 906 1");
+SETUP("S 907 907 1");
+SETUP("S 908 908 1");
+SETUP("S 909 909 1");
+SETUP("S 910 910 1");
+SETUP("S 911 911 1");
+SETUP("S 912 912 1");
+SETUP("S 913 913 1");
+SETUP("S 914 914 1");
+SETUP("S 915 915 1");
+//
+//  define 16 turnouts using VPIN (for Throw/Close commands via CMRI)
+SETUP("T 924 VPIN 924");
+SETUP("T 925 VPIN 925");
+SETUP("T 926 VPIN 926");
+SETUP("T 927 VPIN 927");
+SETUP("T 928 VPIN 928");
+SETUP("T 929 VPIN 929");
+SETUP("T 930 VPIN 930");
+SETUP("T 931 VPIN 931");
+SETUP("T 932 VPIN 932");
+SETUP("T 933 VPIN 933");
+SETUP("T 934 VPIN 934");
+SETUP("T 935 VPIN 935");
+SETUP("T 936 VPIN 936");
+SETUP("T 937 VPIN 937");
+SETUP("T 938 VPIN 938");
+SETUP("T 939 VPIN 939");
+//
+//  define 16 pins for digital outputs
+SETUP("Z 940 940 0");
+SETUP("Z 941 941 0");
+SETUP("Z 942 942 0");
+SETUP("Z 943 943 0");
+SETUP("Z 944 944 0");
+SETUP("Z 945 945 0");
+SETUP("Z 946 946 0");
+SETUP("Z 947 947 0");
+SETUP("Z 948 948 0");
+SETUP("Z 949 949 0");
+SETUP("Z 950 950 0");
+SETUP("Z 951 951 0");
+SETUP("Z 952 952 0");
+SETUP("Z 953 953 0");
+SETUP("Z 954 954 0");
+SETUP("Z 955 955 0");

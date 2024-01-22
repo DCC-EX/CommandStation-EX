@@ -3,13 +3,29 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.XX"
+#define VERSION "5.2.27stm32ECvf"
 // 5.2.XX - Variable frequency for DC mode
+// 5.2.27 - Bugfix: IOExpander memory allocation
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
+// 5.2.25 - Fix bug causing <X> after working <D commands 
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
+// 5.2.23 - KeywordHasher _hk (no functional change) 
+// 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
+// 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
+// 5.2.20 - Check return of Ethernet.begin()
+// 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
+//       df - I2C DFPlayper capability
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//        C - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
