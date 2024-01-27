@@ -238,29 +238,26 @@ void EthernetInterface::loop2() {
     // check for incoming data from all possible clients
     for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
     {
-        if (clients[socket]) {
+      if (clients[socket]) {
+	if (!clients[socket].connected()) { // stop any clients which disconnect
+	  CommandDistributor::forget(socket);
+	  clients[socket].stop();
+	  //if (Diag::ETHERNET)
+	  DIAG(F("Ethernet: disconnect %d "), socket);
+	}
         
-        int available=clients[socket].available();
-        if (available > 0) {
-            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
-            // read bytes from a client
-            int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
-            buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
-            // execute with data going directly back
-            CommandDistributor::parse(socket,buffer,outboundRing);
-            return; // limit the amount of processing that takes place within 1 loop() cycle. 
-          }
-        }
-    }
-
-    // stop any clients which disconnect
-   for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
-     if (clients[socket] && !clients[socket].connected()) {
-      clients[socket].stop();
-      CommandDistributor::forget(socket);          
-      if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
-     }
+	int available=clients[socket].available();
+	if (available > 0) {
+	  if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
+	  // read bytes from a client
+	  int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
+	  buffer[count] = '\0'; // terminate the string properly
+	  if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
+	  // execute with data going directly back
+	  CommandDistributor::parse(socket,buffer,outboundRing);
+	  return; // limit the amount of processing that takes place within 1 loop() cycle.
+	}
+      }
     }
 
     WiThrottle::loop(outboundRing);
