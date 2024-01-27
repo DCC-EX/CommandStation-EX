@@ -213,21 +213,24 @@ void EthernetInterface::loop2() {
     if (client)
     {
         byte socket;
-        for (socket = 0; socket < MAX_SOCK_NUM; socket++)
-        {
-          if (clients[socket]) {
-            if (clients[socket] == client)
-              break;
+	bool sockfound = false;
+        for (socket = 0; socket < MAX_SOCK_NUM; socket++) {
+          if (clients[socket] && (clients[socket] == client)) {
+	    sockfound = true;
+	    if (Diag::ETHERNET) DIAG(F("Ethernet: Old client socket %d"),socket);
+	    break;
           }
-          else //if (!clients[socket])
-            {
-                if (Diag::ETHERNET) DIAG(F("Ethernet: New client "));
-                // On accept() the EthernetServer doesn't track the client anymore
-                // so we store it in our client array
-                if (Diag::ETHERNET) DIAG(F("Socket %d"),socket);
-                clients[socket] = client;
-                break;
+	}
+	if (!sockfound) { // new client
+	  for (socket = 0; socket < MAX_SOCK_NUM; socket++) {
+	    if (!clients[socket]) {
+	      // On accept() the EthernetServer doesn't track the client anymore
+	      // so we store it in our client array
+	      clients[socket] = client;
+	      if (Diag::ETHERNET) DIAG(F("Ethernet: New client socket %d"),socket);
+	      break;
             }
+	  }
         }
         if (socket==MAX_SOCK_NUM) DIAG(F("new Ethernet OVERFLOW")); 
     }
