@@ -52,6 +52,10 @@
 #include "DCCEX.h"
 #include "Display_Implementation.h"
 
+#ifdef OTA_ENABLED
+  #include <ArduinoOTA.h>
+#endif // OTA_ENABLED
+
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
 #endif
@@ -76,7 +80,7 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+// Initialise HAL layer before reading EEprom or setting up MotorDrivers
   IODevice::begin();
 
   // As the setup of a motor shield may require a read of the current sense input from the ADC,
@@ -101,12 +105,22 @@ void setup()
 #else
   // ESP32 needs wifi on always
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+
+  // Start OTA if enabled
+  #ifdef OTA_ENABLED
+    ArduinoOTA.setHostname(WIFI_HOSTNAME);
+    #ifdef OTA_AUTH
+      ArduinoOTA.setPassword(OTA_AUTH);
+    #endif // OTA_AUTH
+    ArduinoOTA.begin();
+  #endif // OTA_ENABLED
+
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
-  
+
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
 
@@ -150,6 +164,9 @@ void loop()
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
 #endif
+  #ifdef OTA_ENABLED
+    ArduinoOTA.handle();
+  #endif // OTA_ENABLED
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
