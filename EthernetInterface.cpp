@@ -242,8 +242,10 @@ void EthernetInterface::loop2() {
 	if (!clients[socket].connected()) { // stop any clients which disconnect
 	  CommandDistributor::forget(socket);
 	  clients[socket].stop();
+	  clients[socket]=NULL;
 	  //if (Diag::ETHERNET)
 	  DIAG(F("Ethernet: disconnect %d "), socket);
+	  return; // Trick: So that we do not continue in this loop with client that is NULL
 	}
         
 	int available=clients[socket].available();
