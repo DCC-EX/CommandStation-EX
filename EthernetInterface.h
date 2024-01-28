@@ -46,7 +46,7 @@
  #define MAX_SOCK_NUM 10
 #else
  #include "Ethernet.h"
- #define MAX_SOCK_NUM 4
+//  #define MAX_SOCK_NUM 4
 #endif
 #include "RingStream.h"
 

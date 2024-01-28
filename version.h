@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.27stm32ECvf"
+#define VERSION "5.2.27stm32ECvfmdns"
+// 5.2.XX - MDNS Generic library integration for Ethernet
 // 5.2.XX - Variable frequency for DC mode
 // 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults

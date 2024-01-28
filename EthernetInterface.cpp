@@ -29,6 +29,10 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
+#include "MDNS_Generic.h"
+
+EthernetUDP udp;
+MDNS mdns(udp);
 
 EthernetInterface * EthernetInterface::singleton=NULL;
 /**
@@ -175,6 +179,8 @@ bool EthernetInterface::checkLink() {
       server->begin();
       LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
       LCD(5,F("Port:%d"), IP_PORT);
+      mdns.begin(Ethernet.localIP(), "dccex"); // hostname
+      mdns.addServiceRecord("dccex._withrottle", 2560, MDNSServiceTCP);
       // only create a outboundRing it none exists, this may happen if the cable
       // gets disconnected and connected again
       if(!outboundRing)
@@ -242,7 +248,11 @@ void EthernetInterface::loop2() {
 	if (!clients[socket].connected()) { // stop any clients which disconnect
 	  CommandDistributor::forget(socket);
 	  clients[socket].stop();
+  #if defined(ARDUINO_ARCH_AVR)
 	  clients[socket]=NULL;
+  #else
+	  clients[socket]=(EthernetClient)nullptr;
+  #endif
 	  //if (Diag::ETHERNET)
 	  DIAG(F("Ethernet: disconnect %d "), socket);
 	  return; // Trick: So that we do not continue in this loop with client that is NULL
@@ -261,6 +271,8 @@ void EthernetInterface::loop2() {
 	}
       }
     }
+
+    mdns.run();
 
     WiThrottle::loop(outboundRing);
     
