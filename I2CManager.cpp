@@ -48,6 +48,10 @@
 static const FSH * guessI2CDeviceType(uint8_t address) {
   if (address >= 0x20 && address <= 0x26)
     return F("GPIO Expander");
+#ifdef FAST_CLOCK_I2C
+  else if (address == FAST_CLOCK_I2C)
+    return F("Fast Clock");
+#endif
   else if (address == 0x27)
     return F("GPIO Expander or LCD Display");
   else if (address == 0x29)

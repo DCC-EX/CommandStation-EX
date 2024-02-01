@@ -1,3 +1,7 @@
+# My (FranziHH) DCC++ Ex Hardware
+<img src="/images/IMG_5870_1.jpg" height="400px" title="DCC++ Ex Hardware">
+
+
 # What is DCC++ EX?
 DCC++ EX is the organization maintaining several codebases that together represent a fully open source DCC system. Currently, this includes the following:
 

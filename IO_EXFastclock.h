@@ -56,12 +56,12 @@ static void create(I2CAddress i2cAddress) {
   // XXXX change thistosave2 bytes
   if (_checkforclock == 0) {
       FAST_CLOCK_EXISTS = true;
-      //DIAG(F("I2C Fast Clock found at %s"), i2cAddress.toString());
+      DIAG(F("I2C Fast Clock found at %s"), i2cAddress.toString());
       new EXFastClock(i2cAddress); 
     }
     else {
       FAST_CLOCK_EXISTS = false;
-      //DIAG(F("No Fast Clock found"));
+      DIAG(F("No Fast Clock found"));
       LCD(6,F("CLOCK NOT FOUND"));
     }
     
@@ -95,7 +95,8 @@ void _loop(unsigned long currentMicros) override{
   if (FAST_CLOCK_EXISTS==true) {
       uint8_t readBuffer[3];
       byte a,b;
-      #ifdef EXRAIL_ACTIVE
+      // I would like to use the FastClock without EXRAIL
+      // #ifdef EXRAIL_ACTIVE
         I2CManager.read(_I2CAddress, readBuffer, 3);
         // XXXX change this to save a few bytes
         a = readBuffer[0];
@@ -110,7 +111,7 @@ void _loop(unsigned long currentMicros) override{
         // Clock interval is 60/ clockspeed i.e 60/b seconds
         delayUntil(currentMicros + ((60/b) * 1000000));  
      
-      #endif
+      // #endif
     
   }
 }
