@@ -1,4 +1,6 @@
 /*
+ *  © 2024 Morten "Doc" Nielsen
+ *  © 2023-2024 Paul M. Antoine
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
@@ -174,9 +176,15 @@ bool EthernetInterface::checkLink() {
       Ethernet.setLocalIP(myIP);      // for static IP, set it again
       #endif
       #endif
-      IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
       server->begin();
+      IPAddress ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
+      if (ip[0] == 0)
+        LCD(4,F("Awaiting DHCP..."));
+      while (ip[0] == 0) {        // wait until we are given an IP address from the DHCP server
+        // LCD(4,F("."));
+        ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
+      }
       LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
       LCD(5,F("Port:%d"), IP_PORT);
       mdns.begin(Ethernet.localIP(), "dccex"); // hostname
@@ -184,21 +192,23 @@ bool EthernetInterface::checkLink() {
       // only create a outboundRing it none exists, this may happen if the cable
       // gets disconnected and connected again
       if(!outboundRing)
-	outboundRing=new RingStream(OUTBOUND_RING_SIZE);
+      	outboundRing=new RingStream(OUTBOUND_RING_SIZE);
     }
     return true;
-  } else { // connected
-    DIAG(F("Ethernet cable disconnected"));
-    connected=false;
-    //clean up any client
-    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++) {
-      if(clients[socket].connected())
-	clients[socket].stop();
+  } else { // LinkOFF
+    if (connected) {
+      DIAG(F("Ethernet cable disconnected"));
+      connected=false;
+      //clean up any client
+      for (byte socket = 0; socket < MAX_SOCK_NUM; socket++) {
+        if(clients[socket].connected())
+          clients[socket].stop();
+      }
+      // tear down server
+      delete server;
+      server = nullptr;
+      LCD(4,F("IP: None"));
     }
-    // tear down server
-    delete server;
-    server = nullptr;
-    LCD(4,F("IP: None"));
   }
   return false;
 }

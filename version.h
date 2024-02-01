@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.2.27stm32ECvfmdns"
+// 5.2.XX - Fix Ethernet cable disconnected message, wait for DHCP
 // 5.2.XX - MDNS Generic library integration for Ethernet
 // 5.2.XX - Variable frequency for DC mode
 // 5.2.27 - Bugfix: IOExpander memory allocation
