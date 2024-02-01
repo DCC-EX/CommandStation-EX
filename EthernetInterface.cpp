@@ -187,8 +187,8 @@ bool EthernetInterface::checkLink() {
       }
       LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
       LCD(5,F("Port:%d"), IP_PORT);
-      mdns.begin(Ethernet.localIP(), "dccex"); // hostname
-      mdns.addServiceRecord("dccex._withrottle", 2560, MDNSServiceTCP);
+      mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
+      mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
       // only create a outboundRing it none exists, this may happen if the cable
       // gets disconnected and connected again
       if(!outboundRing)
@@ -196,7 +196,7 @@ bool EthernetInterface::checkLink() {
     }
     return true;
   } else { // LinkOFF
-    if (connected) {
+    if (connected) {  // Were connected, but no longer without a LINK!
       DIAG(F("Ethernet cable disconnected"));
       connected=false;
       //clean up any client
@@ -204,6 +204,7 @@ bool EthernetInterface::checkLink() {
         if(clients[socket].connected())
           clients[socket].stop();
       }
+      mdns.removeServiceRecord(IP_PORT, MDNSServiceTCP);
       // tear down server
       delete server;
       server = nullptr;
