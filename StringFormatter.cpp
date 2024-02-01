@@ -1,6 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -26,10 +26,11 @@ bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
+bool Diag::OTA=false;
 
- 
+
 void StringFormatter::diag( const FSH* input...) {
- USB_SERIAL.print(F("<* "));   
+ USB_SERIAL.print(F("<* "));
   va_list args;
   va_start(args, input);
   send2(&USB_SERIAL,input,args);
@@ -44,8 +45,8 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
   va_start(args, input);
   send2(&USB_SERIAL,input,args);
   send(&USB_SERIAL,F(" *>\n"));
-  
-  DisplayInterface::setRow(row);    
+
+  DisplayInterface::setRow(row);
   va_start(args, input);
   send2(DisplayInterface::getDisplayHandler(),input,args);
 }
@@ -53,7 +54,7 @@ void StringFormatter::lcd(byte row, const FSH* input...) {
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
 
-  DisplayInterface::setRow(display, row);    
+  DisplayInterface::setRow(display, row);
   va_start(args, input);
   send2(DisplayInterface::getDisplayHandler(),input,args);
 }
@@ -71,7 +72,7 @@ void StringFormatter::send(Print & stream, const FSH* input...) {
 }
 
 void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
-    
+
   // thanks to Jan Turoň  https://arduino.stackexchange.com/questions/56517/formatting-strings-in-arduino-for-output
 
   char* flash=(char*)format;
@@ -82,9 +83,9 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
 
     bool formatContinues=false;
     byte formatWidth=0;
-    bool formatLeft=false; 
+    bool formatLeft=false;
   do {
-    
+
     formatContinues=false;
     i++;
     c=GETFLASH(flash+i);
@@ -95,16 +96,16 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
       case 'E': printEscapes(stream,(const FSH*)va_arg(args, char*)); break;
       case 'S':
-      { 
+      {
         const FSH*  flash= (const FSH*)va_arg(args, char*);
 
 #if WIFI_ON | ETHERNET_ON
         // RingStream has special logic to handle flash strings
         // but is not implemented unless wifi or ethernet are enabled.
-        // The define prevents RingStream code being added unnecessariliy.        
+        // The define prevents RingStream code being added unnecessariliy.
         if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM)
               ((RingStream *)stream)->printFlash(flash);
-              else 
+              else
 #endif
         stream->print(flash);
         break;
@@ -137,20 +138,20 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       break;
       //case 'f': stream->print(va_arg(args, double), 2); break;
       //format width prefix
-      case '-': 
+      case '-':
             formatLeft=true;
             formatContinues=true;
-            break; 
-      case '0': 
-      case '1': 
-      case '2': 
-      case '3': 
-      case '4': 
-      case '5': 
-      case '6': 
-      case '7': 
-      case '8': 
-      case '9': 
+            break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
             formatWidth=formatWidth * 10 + (c-'0');
             formatContinues=true;
             break;
@@ -170,7 +171,7 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
 }
 
 void StringFormatter::printEscapes(Print * stream, const FSH * input) {
- 
+
  if (!stream) return;
  char* flash=(char*)input;
  for(int i=0; ; ++i) {
@@ -187,35 +188,35 @@ void StringFormatter::printEscape( char c) {
 void StringFormatter::printEscape(Print * stream, char c) {
   if (!stream) return;
   switch(c) {
-     case '\n': stream->print(F("\\n")); break; 
-     case '\r': stream->print(F("\\r")); break; 
-     case '\0': stream->print(F("\\0")); return; 
+     case '\n': stream->print(F("\\n")); break;
+     case '\r': stream->print(F("\\r")); break;
+     case '\0': stream->print(F("\\0")); return;
      case '\t': stream->print(F("\\t")); break;
      case '\\': stream->print(F("\\\\")); break;
      default: stream->write(c);
   }
  }
 
- 
+
 void StringFormatter::printPadded(Print* stream, long value, byte width, bool formatLeft) {
   if (width==0) {
     stream->print(value, DEC);
     return;
   }
-  
+
     int digits=(value <= 0)? 1: 0;  // zero and negative need extra digot
     long v=value;
     while (v) {
         v /= 10;
         digits++;
     }
-    
+
     if (formatLeft) stream->print(value, DEC);
     while(digits<width) {
       stream->print(' ');
       digits++;
     }
-    if (!formatLeft) stream->print(value, DEC);    
+    if (!formatLeft) stream->print(value, DEC);
   }
 
- 
+

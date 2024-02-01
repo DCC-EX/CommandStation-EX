@@ -52,9 +52,9 @@
 #include "DCCEX.h"
 #include "Display_Implementation.h"
 
-#ifdef OTA_ENABLED
+#ifdef ARDUINO_ARCH_ESP32
   #include <ArduinoOTA.h>
-#endif // OTA_ENABLED
+#endif // ARDUINO_ARCH_ESP32
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -105,16 +105,9 @@ void setup()
 #else
   // ESP32 needs wifi on always
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-
-  // Start OTA if enabled
-  #ifdef OTA_ENABLED
-    ArduinoOTA.setHostname(WIFI_HOSTNAME);
-    #ifdef OTA_AUTH
-      ArduinoOTA.setPassword(OTA_AUTH);
-    #endif // OTA_AUTH
-    ArduinoOTA.begin();
-  #endif // OTA_ENABLED
-
+  #if OTA_AUTO_INIT
+    Diag::OTA = true;
+  #endif // OTA_AUTO_INIT
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
@@ -164,9 +157,24 @@ void loop()
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
 #endif
-  #ifdef OTA_ENABLED
-    ArduinoOTA.handle();
-  #endif // OTA_ENABLED
+  // Responsibility 4: Optionally handle Arduino OTA updates
+  if (Diag::OTA) {
+    static bool otaInitialised = false;
+    // Initialise OTA if not already done
+    if (!otaInitialised) {
+      ArduinoOTA.setHostname(WIFI_HOSTNAME);
+      // Set OTA password if defined
+      #ifdef OTA_AUTH
+        ArduinoOTA.setPassword(OTA_AUTH);
+      #endif // OTA_AUTH
+      ArduinoOTA.begin();
+      otaInitialised = true;
+    }
+    // Handle OTA if initialised
+    else {
+      ArduinoOTA.handle();
+    }
+  }
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
