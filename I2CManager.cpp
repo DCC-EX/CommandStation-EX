@@ -54,6 +54,8 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("Time-of-flight sensor");
   else if (address >= 0x3c && address <= 0x3d)
     return F("OLED Display");
+  else if (address >= 0x48 && address <= 0x57) // SC16IS752x UART detection
+    return F("SC16IS75x UART");
   else if (address >= 0x48 && address <= 0x4f)
     return F("Analogue Inputs or PWM");
   else if (address >= 0x40 && address <= 0x4f)

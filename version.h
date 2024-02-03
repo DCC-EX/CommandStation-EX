@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.28"
+#define VERSION "5.2.29"
+// 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
+//        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
+//        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
+//        - Added UART detection to I2CManager.cpp
 // 5.2.28 - ESP32: Can all Wifi channels.
 //        - ESP32: Only write Wifi password to display if it is a well known one
 // 5.2.27 - Bugfix: IOExpander memory allocation
