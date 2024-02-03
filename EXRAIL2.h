@@ -26,6 +26,7 @@
 #include "IODevice.h"
 #include "Turnouts.h"
 #include "Turntables.h"
+#include "IO_I2CDFPLayer.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
 // Each instruction is normally 3 bytes long with an operation code followed by a parameter.
