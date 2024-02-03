@@ -238,11 +238,9 @@ void halSetup() {
   //=======================================================================
   // Play mp3 files from a Micro-SD card, using a DFPlayer MP3 Module on a SC16IS750/SC16IS752 I2C UART
   //=======================================================================
-  // DFPlayer via NXP SC16IS752 I2C Dual UART. Each device has 2 UARTs on a single I2C address
-  // Total nr of devices on an I2C bus is 16, with 2 UARTs on each address making a total of 32 UARTs per I2C bus
+  // DFPlayer via NXP SC16IS752 I2C Dual UART.
   // I2C address range 0x48 - 0x57
   // 
-  // audioMixer can be 1 when connected to audio mixer 1, 2 when connected to audio mixer 2, 0 will default to 1
   // Generic format: 
   // I2CDFPlayer::create(1st vPin, vPins, I2C address, xtal);
   // Parameters:
