@@ -56,9 +56,9 @@ HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5 - F446RE
       defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
-HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
-#if !defined(ARDUINO_NUCLEO_F412ZG)
-  HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART5
+HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART2
+#if !defined(ARDUINO_NUCLEO_F412ZG)  // F412ZG does not have UART5
+  HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
 #endif  
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
@@ -257,6 +257,23 @@ void DCCTimer::reset() {
     while(true) {};
 }
 
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  if (f >= 16)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+  else if (f == 7)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+  else if (f >= 4)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
+  else if (f >= 3)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
+  else if (f >= 2)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+  else if (f == 1)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
+  else
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 131);
+}
+
 // TODO: rationalise the size of these... could really use sparse arrays etc.
 static HardwareTimer * pin_timer[100] = {0};
 static uint32_t channel_frequency[100] = {0};
@@ -267,7 +284,7 @@ static uint32_t pin_channel[100] = {0};
 // sophisticated about detecting any clash between the timer we'd like to use for PWM and the ones
 // currently used for HA so they don't interfere with one another. For now we'll just make PWM
 // work well... then work backwards to integrate with HA mode if we can.
-void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency)
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency)
 {
   if (pin_timer[pin] == NULL) {
     // Automatically retrieve TIM instance and channel associated to pin

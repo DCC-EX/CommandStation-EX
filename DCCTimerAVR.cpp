@@ -29,6 +29,7 @@
 #include <avr/boot.h> 
 #include <avr/wdt.h>
 #include "DCCTimer.h"
+#include "DIAG.h"
 #ifdef DEBUG_ADC
 #include "TrackManager.h"
 #endif
@@ -123,6 +124,81 @@ void DCCTimer::reset() {
   wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
   delay(50);            // wait for the prescaller time to expire
 
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
+#if defined(ARDUINO_AVR_UNO)
+      // Not worth doin something here as:
+      // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
+      // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.
+      // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
+#endif
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  // Speed mapping is done like this:
+  // No functions buttons:   000  0   -> low          131Hz
+  // Only F29 pressed        001  1   -> mid          490Hz
+  // F30 with or w/o F29     01x  2-3 -> high        3400Hz
+  // F31 with or w/o F29/30  1xx  4-7 -> supersonic 62500Hz
+  uint8_t abits;
+  uint8_t bbits;
+  if (pin == 9 || pin == 10) { // timer 2 is different
+
+    if (fbits >= 4)
+      abits = B00000011;
+    else
+      abits = B00000001;
+
+    if (fbits >= 4)
+      bbits = B0001;
+    else if (fbits >= 2)
+      bbits = B0010;
+    else if (fbits == 1)
+      bbits = B0100;
+    else //  fbits == 0
+      bbits = B0110;
+
+    TCCR2A = (TCCR2A & B11111100) | abits; // set WGM0 and WGM1
+    TCCR2B = (TCCR2B & B11110000) | bbits; // set WGM2 and 3 bits of prescaler
+    DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
+
+  } else { // not timer 9 or 10
+    abits = B01;
+
+    if (fbits >= 4)
+      bbits = B1001;
+    else if (fbits >= 2)
+      bbits = B0010;
+    else if (fbits == 1)
+      bbits = B0011;
+    else
+      bbits = B0100;
+
+    switch (pin) {
+      // case 9 and 10 taken care of above by if()
+    case 6:
+    case 7:
+    case 8:
+      // Timer4
+      TCCR4A = (TCCR4A & B11111100) | abits; // set WGM0 and WGM1
+      TCCR4B = (TCCR4B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
+      //DIAG(F("Timer 4 A=%x B=%x"), TCCR4A, TCCR4B);
+      break;
+    case 46:
+    case 45:
+    case 44:
+      // Timer5
+      TCCR5A = (TCCR5A & B11111100) | abits; // set WGM0 and WGM1
+      TCCR5B = (TCCR5B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
+      //DIAG(F("Timer 5 A=%x B=%x"), TCCR5A, TCCR5B);
+      break;
+    default:
+      break;
+    }
+  }
+#endif
 }
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)

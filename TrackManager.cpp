@@ -19,6 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #include "TrackManager.h"
 #include "FSH.h"
 #include "DCCWaveform.h"
@@ -188,7 +189,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   FOR_EACH_TRACK(t) {
     if (trackDCAddr[t]!=cab && cab != 0) continue;
     if (track[t]->getMode() & TRACK_MODE_DC)
-      track[t]->setDCSignal(speedbyte);
+      track[t]->setDCSignal(speedbyte, DCC::getThrottleFrequency(trackDCAddr[t]));
   }
 }    
 
@@ -334,8 +335,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-  uint8_t speedByte=DCC::getThrottleSpeedByte(trackDCAddr[t]);
-  track[t]->setDCSignal(speedByte);
+  track[t]->setDCSignal(DCC::getThrottleSpeedByte(trackDCAddr[t]),
+			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 
 bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
@@ -560,14 +561,17 @@ bool TrackManager::getPower(byte t, char s[]) {
   return false;
 }
 
-
 void TrackManager::reportObsoleteCurrent(Print* stream) {
   // This function is for backward JMRI compatibility only
   // It reports the first track only, as main, regardless of track settings.
   //  <c MeterName value C/V unit min max res warn>
+#ifdef HAS_ENOUGH_MEMORY
   int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
   StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 
-            track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);                  
+            track[0]->raw2mA(track[0]->getCurrentRaw(false)), maxCurrent, maxCurrent);
+#else
+  (void)stream;
+#endif
 }
 
 void TrackManager::reportCurrent(Print* stream) {

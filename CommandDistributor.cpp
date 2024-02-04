@@ -209,7 +209,9 @@ int16_t CommandDistributor::retClockTime() {
 
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];
-  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,sp->functions);
+  uint32_t func = sp->functions;
+  func = func & 0x1fffffff; // mask out bits 0-28
+  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,func);
 #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
     static uint8_t rampingmode = 0;
