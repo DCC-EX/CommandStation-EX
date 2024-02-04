@@ -3,10 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.27stm32ECvfmdns"
-// 5.2.XX - Fix Ethernet cable disconnected message, wait for DHCP
-// 5.2.XX - MDNS Generic library integration for Ethernet
-// 5.2.XX - Variable frequency for DC mode
+#define VERSION "5.3.4"
+// 5.3.4  - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.3.3  - Fix Ethernet cable disconnected message, wait for DHCP
+// 5.3.2  - MDNS Generic library integration for Ethernet
+// 5.3.1  - Variable frequency for DC mode
 // 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults
 //        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 

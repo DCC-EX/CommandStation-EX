@@ -1,1 +1,1 @@
-#define GITHUB_SHA "devel-stm32EC 202401280047Z"
+#define GITHUB_SHA "devel-stm32EC 202402041220Z"
