@@ -23,23 +23,28 @@
  * This driver is a modified version of the IO_DFPlayer.h file
  * *********************************************************************************************
  * 
- * 2023, Added NXP SC16IS752 I2C Dual UART to enable the DFPlayer connection over the I2C bus
+ * Dec 2023, Added NXP SC16IS752 I2C Dual UART to enable the DFPlayer connection over the I2C bus
  * The SC16IS752 has 64 bytes TX & RX FIFO buffer
  * First version without interrupts from I2C UART and only RX/TX are used, interrupts may not be
  * needed as the RX Fifo holds the reply 
  * 
+ * Jan 2024, Issue with using both UARTs simultaniously, the secod uart seems to work  but the first transmit 
+ * corrupt data. This need more analysis and experimenatation. 
+ * Will push this driver to the dev branch with the uart fixed to 0 
+ * Both SC16IS750 (single uart) and SC16IS752 (dual uart, but only uart 0 is enable)
+ * 
  * myHall.cpp configuration syntax:
  * 
- * I2CDFPlayer::create(1st vPin, vPins, I2C address, UART ch, AM);
+ * I2CDFPlayer::create(1st vPin, vPins, I2C address, xtal);
  * 
  * Parameters:
  * 1st vPin     : First virtual pin that EX-Rail can control to play a sound, use PLAYSOUND command (alias of ANOUT)
- * vPins        : Total number of virtual pins allocated (only 1 vPin is supported)
- * I2C Address  : I2C address of the serial controller, in 0x format,
- * UART ch      : Indicating UART 0 or UART 1, values 0 or 1
- * AM           : audio mixer, values: 1 or 2 to select an audio amplifier, no effect if AM is not installed
+ * vPins        : Total number of virtual pins allocated (2 vPins are supported, one for each UART)
+ *                1st vPin for UART 0, 2nd for UART 1
+ * I2C Address  : I2C address of the serial controller, in 0x format
+ * xtal         : 0 for 1,8432Mhz, 1 for 14,7456Mhz
  * 
- * The vPin is also an pin that can be read, it indicated if the DFPlayer has finished playing a track
+ * The vPin is also a pin that can be read, it indicate if the DFPlayer has finished playing a track
  *
  */
 
@@ -75,7 +80,7 @@ private:
   // SC16IS752 defines
   I2CAddress _I2CAddress;
   I2CRB _rb;
-  uint8_t _UART_CH;  
+  uint8_t _UART_CH=0x00;  // Fix uart ch to 0 for now
   // Communication parameters for the DFPlayer are fixed at 8 bit, No parity, 1 stopbit
   uint8_t WORD_LEN = 0x03;    // Value LCR bit 0,1
   uint8_t STOP_BIT = 0x00;    // Value LCR bit 2 
@@ -96,33 +101,36 @@ private:
   bool _stopplayCmd = false;
   bool _resetCmd = false;
   bool _eqCmd = false;
-  uint8_t _requestedEQValue = NORMAL;
-  uint8_t _currentEQvalue = NORMAL; // start equalizer value
+  uint8_t _requestedEQValue = DF_NORMAL;
+  uint8_t _currentEQvalue = DF_NORMAL; // start equalizer value
   bool _daconCmd = false;
   uint8_t _audioMixer = 0x01; // Default to output amplifier 1
   bool _setamCmd = false; // Set the Audio mixer channel
   uint8_t _outbuffer [11]; // DFPlayer command is 10 bytes + 1 byte register address & UART channel
   uint8_t _inbuffer[10]; // expected DFPlayer return 10 bytes
- 
-  //unsigned long SC16IS752_XTAL_FREQ = 1843200; // To support cheap eBay/AliExpress SC16IS752 boards
-  unsigned long SC16IS752_XTAL_FREQ = 14745600; // Support for higher baud rates, standard for modular EX-IO system
-
+   
+  unsigned long _sc16is752_xtal_freq;
+  unsigned long SC16IS752_XTAL_FREQ_LOW = 1843200; // To support cheap eBay/AliExpress SC16IS752 boards
+  unsigned long SC16IS752_XTAL_FREQ_HIGH = 14745600; // Support for higher baud rates, standard for modular EX-IO system
    
 public:
   // Constructor
-  I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM){
+   I2CDFPlayer(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t xtal){
     _firstVpin = firstVpin;
     _nPins = nPins;
     _I2CAddress = i2cAddress;
-    _UART_CH = UART_CH;
-    _audioMixer = AM;  
+    if (xtal == 0){
+      _sc16is752_xtal_freq = SC16IS752_XTAL_FREQ_LOW;
+    } else { // should be 1
+        _sc16is752_xtal_freq = SC16IS752_XTAL_FREQ_HIGH;
+      }
     addDevice(this);
    } 
   
 public:
-   static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t UART_CH, uint8_t AM) {
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new I2CDFPlayer(firstVpin, nPins, i2cAddress, UART_CH, AM);
-  }
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t xtal) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new I2CDFPlayer(firstVpin, nPins, i2cAddress, xtal); 
+    }
 
   void _begin() override {
     // check if SC16IS752 exist first, initialize and then resume DFPlayer init via SC16IS752
@@ -426,18 +434,18 @@ public:
        //case NONE:
        // DFPlayerCmd = cmd;
        // break;
-       case PLAY:
+       case DF_PLAY:
         _playCmd = true;
         _volCmd = true;        
         _requestedSong = value;
         _requestedVolumeLevel = volume; 
         _playing = true;        
         break;
-        case VOL:
+        case DF_VOL:
           _volCmd = true;          
           _requestedVolumeLevel = volume;
         break;
-       case FOLDER:
+       case DF_FOLDER:
         _folderCmd = true;
         if (volume <= 0 || volume > 99){ // Range checking, valid values 1-99, else default to 1
           _requestedFolder = 0x01; // if outside range, default to folder 01  
@@ -445,7 +453,7 @@ public:
           _requestedFolder = volume;
         }        
         break;
-       case REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
+       case DF_REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
         if (_repeat == false) {
            #ifdef DIAG_I2CDFplayer_playing
               DIAG(F("I2CDFPlayer: WriteAnalog Repeat: _repeat: 0x0%x, value: %d _repeatCmd: 0x%x"), _repeat, value, _repeatCmd);
@@ -456,30 +464,30 @@ public:
           _playing = true;         
         }
         break;
-       case STOPPLAY:
+       case DF_STOPPLAY:
         _stopplayCmd = true;        
         break;
-       case EQ:
+       case DF_EQ:
         #ifdef DIAG_I2CDFplayer_playing
           DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
         #endif
         _eqCmd = true;        
         if (volume <= 0 || volume > 5) { // If out of range, default to NORMAL
-          _requestedEQValue = NORMAL;            
+          _requestedEQValue = DF_NORMAL;            
         } else { // Valid EQ parameter range
           _requestedEQValue = volume;     
           }
         break;        
-       case RESET:
+       case DF_RESET:
         _resetCmd = true;      
         break; 
-       case DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
+       case DF_DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
         #ifdef DIAG_I2CDFplayer_playing
           DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
         #endif
         _daconCmd = true;
         break;
-        case SETAM: // Set the audio mixer channel to 1 or 2
+        case DF_SETAM: // Set the audio mixer channel to 1 or 2
           _setamCmd = true;
           #ifdef DIAG_I2CDFplayer_playing
             DIAG(F("I2CDFPlayer: WrtieAnalog SETAM: cmd: 0x%x"), cmd);
@@ -604,7 +612,8 @@ private:
     #ifdef DIAG_I2CDFplayer
       DIAG(F("SC16IS752: Initialize I2C: %s , UART Ch: 0x%x"), _I2CAddress.toString(),  _UART_CH);      
     #endif
-    uint16_t _divisor = (SC16IS752_XTAL_FREQ / PRESCALER) / (BAUD_RATE * 16);
+    //uint16_t _divisor = (SC16IS752_XTAL_FREQ / PRESCALER) / (BAUD_RATE * 16);
+    uint16_t _divisor = (_sc16is752_xtal_freq/PRESCALER)/(BAUD_RATE * 16);  // Calculate _divisor for baudrate
     TEMP_REG_VAL = 0x08; // UART Software reset
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
     TEMP_REG_VAL = 0x00; // Set pins to GPIO mode
@@ -770,23 +779,25 @@ enum : uint8_t{
     REG_XOFF2     = 0x07, // R/W
   };
 
+
 // DFPlayer commands and values
+// Declared in this scope
 enum  : uint8_t{
-    PLAY          = 0x0F,
-    VOL           = 0x06,
-    FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
-    REPEATPLAY    = 0x08,
-    STOPPLAY      = 0x16,
-    EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
-    RESET         = 0x0C,
-    DACON         = 0x1A,
-    SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
-    NORMAL        = 0x00, // Equalizer parameters
-    POP           = 0x01,
-    ROCK          = 0x02,
-    JAZZ          = 0x03,
-    CLASSIC       = 0x04,
-    BASS          = 0x05,    
+    DF_PLAY          = 0x0F,
+    DF_VOL           = 0x06,
+    DF_FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
+    DF_REPEATPLAY    = 0x08,
+    DF_STOPPLAY      = 0x16,
+    DF_EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
+    DF_RESET         = 0x0C,
+    DF_DACON         = 0x1A,
+    DF_SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
+    DF_NORMAL        = 0x00, // Equalizer parameters
+    DF_POP           = 0x01,
+    DF_ROCK          = 0x02,
+    DF_JAZZ          = 0x03,
+    DF_CLASSIC       = 0x04,
+    DF_BASS          = 0x05,    
   };
 
 };

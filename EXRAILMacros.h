@@ -59,6 +59,10 @@
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
+// PLAYSOUND is alias of ANOUT to make the user experience of a Conductor beter for
+// playing sounds with IO_I2CDFPlayer
+#define PLAYSOUND ANOUT
+
 // helper macro to strip leading zeros off time inputs
 // (10#mins)%100)
 #define STRIP_ZERO(value) 10##value%100
