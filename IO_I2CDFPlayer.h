@@ -101,8 +101,8 @@ private:
   bool _stopplayCmd = false;
   bool _resetCmd = false;
   bool _eqCmd = false;
-  uint8_t _requestedEQValue = NORMAL;
-  uint8_t _currentEQvalue = NORMAL; // start equalizer value
+  uint8_t _requestedEQValue = DF_NORMAL;
+  uint8_t _currentEQvalue = DF_NORMAL; // start equalizer value
   bool _daconCmd = false;
   uint8_t _audioMixer = 0x01; // Default to output amplifier 1
   bool _setamCmd = false; // Set the Audio mixer channel
@@ -434,18 +434,18 @@ public:
        //case NONE:
        // DFPlayerCmd = cmd;
        // break;
-       case PLAY:
+       case DF_PLAY:
         _playCmd = true;
         _volCmd = true;        
         _requestedSong = value;
         _requestedVolumeLevel = volume; 
         _playing = true;        
         break;
-        case VOL:
+        case DF_VOL:
           _volCmd = true;          
           _requestedVolumeLevel = volume;
         break;
-       case FOLDER:
+       case DF_FOLDER:
         _folderCmd = true;
         if (volume <= 0 || volume > 99){ // Range checking, valid values 1-99, else default to 1
           _requestedFolder = 0x01; // if outside range, default to folder 01  
@@ -453,7 +453,7 @@ public:
           _requestedFolder = volume;
         }        
         break;
-       case REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
+       case DF_REPEATPLAY: // Need to check if _repeat == true, if so do nothing        
         if (_repeat == false) {
            #ifdef DIAG_I2CDFplayer_playing
               DIAG(F("I2CDFPlayer: WriteAnalog Repeat: _repeat: 0x0%x, value: %d _repeatCmd: 0x%x"), _repeat, value, _repeatCmd);
@@ -464,30 +464,30 @@ public:
           _playing = true;         
         }
         break;
-       case STOPPLAY:
+       case DF_STOPPLAY:
         _stopplayCmd = true;        
         break;
-       case EQ:
+       case DF_EQ:
         #ifdef DIAG_I2CDFplayer_playing
           DIAG(F("I2CDFPlayer: WriteAnalog EQ: cmd: 0x%x, EQ value: 0x%x"), cmd, volume);
         #endif
         _eqCmd = true;        
         if (volume <= 0 || volume > 5) { // If out of range, default to NORMAL
-          _requestedEQValue = NORMAL;            
+          _requestedEQValue = DF_NORMAL;            
         } else { // Valid EQ parameter range
           _requestedEQValue = volume;     
           }
         break;        
-       case RESET:
+       case DF_RESET:
         _resetCmd = true;      
         break; 
-       case DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
+       case DF_DACON: // Works, but without the DACOFF command limited value, except when not relying on DFPlayer default to turn the DAC on
         #ifdef DIAG_I2CDFplayer_playing
           DIAG(F("I2CDFPlayer: WrtieAnalog DACON: cmd: 0x%x"), cmd);
         #endif
         _daconCmd = true;
         break;
-        case SETAM: // Set the audio mixer channel to 1 or 2
+        case DF_SETAM: // Set the audio mixer channel to 1 or 2
           _setamCmd = true;
           #ifdef DIAG_I2CDFplayer_playing
             DIAG(F("I2CDFPlayer: WrtieAnalog SETAM: cmd: 0x%x"), cmd);
@@ -779,23 +779,25 @@ enum : uint8_t{
     REG_XOFF2     = 0x07, // R/W
   };
 
+
 // DFPlayer commands and values
+// Declared in this scope
 enum  : uint8_t{
-    PLAY          = 0x0F,
-    VOL           = 0x06,
-    FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
-    REPEATPLAY    = 0x08,
-    STOPPLAY      = 0x16,
-    EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
-    RESET         = 0x0C,
-    DACON         = 0x1A,
-    SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
-    NORMAL        = 0x00, // Equalizer parameters
-    POP           = 0x01,
-    ROCK          = 0x02,
-    JAZZ          = 0x03,
-    CLASSIC       = 0x04,
-    BASS          = 0x05,    
+    DF_PLAY          = 0x0F,
+    DF_VOL           = 0x06,
+    DF_FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
+    DF_REPEATPLAY    = 0x08,
+    DF_STOPPLAY      = 0x16,
+    DF_EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
+    DF_RESET         = 0x0C,
+    DF_DACON         = 0x1A,
+    DF_SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
+    DF_NORMAL        = 0x00, // Equalizer parameters
+    DF_POP           = 0x01,
+    DF_ROCK          = 0x02,
+    DF_JAZZ          = 0x03,
+    DF_CLASSIC       = 0x04,
+    DF_BASS          = 0x05,    
   };
 
 };
