@@ -182,11 +182,15 @@ bool EthernetInterface::checkLink() {
       if (ip[0] == 0)
         LCD(4,F("Awaiting DHCP..."));
       while (ip[0] == 0) {        // wait until we are given an IP address from the DHCP server
-        // LCD(4,F("."));
         ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
       }
-      LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-      LCD(5,F("Port:%d"), IP_PORT);
+      if (MAX_MSG_SIZE < 20) {
+        LCD(4,F("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+        LCD(5,F("Port:%d  Eth"), IP_PORT);
+      } else {
+        LCD(4,F("Ethernet UP"));
+        LCD(5,F("%d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);
+      }
       mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
       mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
       // only create a outboundRing it none exists, this may happen if the cable
@@ -208,7 +212,8 @@ bool EthernetInterface::checkLink() {
       // tear down server
       delete server;
       server = nullptr;
-      LCD(4,F("IP: None"));
+      LCD(4,F("Ethernet DOWN"));
+      LCD(5,F(" "));
     }
   }
   return false;
