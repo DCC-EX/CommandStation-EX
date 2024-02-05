@@ -183,8 +183,8 @@ bool WifiESP::setup(const char *SSid,
       DIAG(F("Wifi in STA mode"));
       //
       if (MAX_MSG_SIZE < 20) {
-        LCD(4, F("IP: %s"), WiFi.localIP().toString().c_str());
-        LCD(5,F("PORT=%d  WiFi"), IP_PORT);
+        LCD(4, F("%s"), WiFi.localIP().toString().c_str());
+        LCD(5,F("Port: %d"), IP_PORT);
       } else {
         LCD(4, F("%s:%d"), WiFi.localIP().toString().c_str(), IP_PORT);
       }  
@@ -235,10 +235,15 @@ bool WifiESP::setup(const char *SSid,
 		    channel, false, 8)) {
       // DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       DIAG(F("WiFi in AP mode"));
-      LCD(4, F("WiFi: %s"), strSSID.c_str());
-      LCD(5, F("%s:%d"),WiFi.softAPIP().toString().c_str(), IP_PORT);
+      if (MAX_MSG_SIZE < 20) {
+        LCD(4, F("%s"), WiFi.softAPIP().toString().c_str());
+        LCD(5, F("Port: %d"), IP_PORT);
+      } else {
+        LCD(4, F("%s:%d"), WiFi.softAPIP().toString().c_str(), IP_PORT);
+      }
+      LCD(6, F("WiFi: %s"), strSSID.c_str());
       if (!havePassword)
-	      LCD(6, F("PASS: %s"),strPass.c_str());
+	      LCD(7, F("Pass: %s"),strPass.c_str());
       // DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
       wifiUp = true;
       APmode = true;

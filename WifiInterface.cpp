@@ -368,7 +368,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     }
     if (MAX_MSG_SIZE < 20) {
       LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this
-      LCD(5,F("PORT=%d  WiFi"),port);
+      LCD(5,F("Port: %d"),port);
     } else {
       LCD(4,F("%s:%d"), ipString, port);
     }        

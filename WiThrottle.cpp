@@ -134,7 +134,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
         StringFormatter::send(stream,F("*%d\nHMConnected\n"),HEARTBEAT_SECONDS);
 
     }
-  }
+  }  else sendIntro(stream);
   
   while (cmd[0]) {
     switch (cmd[0]) {
