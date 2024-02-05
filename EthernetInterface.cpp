@@ -188,8 +188,7 @@ bool EthernetInterface::checkLink() {
         LCD(4,F("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
         LCD(5,F("Port:%d  Eth"), IP_PORT);
       } else {
-        LCD(4,F("Ethernet UP"));
-        LCD(5,F("%d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);
+        LCD(4,F("%d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);
       }
       mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
       mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
@@ -213,7 +212,6 @@ bool EthernetInterface::checkLink() {
       delete server;
       server = nullptr;
       LCD(4,F("Ethernet DOWN"));
-      LCD(5,F(" "));
     }
   }
   return false;

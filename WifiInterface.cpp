@@ -370,8 +370,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this
       LCD(5,F("PORT=%d  WiFi"),port);
     } else {
-      LCD(4,F("WiFi UP"));
-      LCD(5,F("%s:%d"), ipString, port);
+      LCD(4,F("%s:%d"), ipString, port);
     }        
   } 
   if (!checkForOK(1000, true, false)) return WIFI_DISCONNECTED;

@@ -186,8 +186,7 @@ bool WifiESP::setup(const char *SSid,
         LCD(4, F("IP: %s"), WiFi.localIP().toString().c_str());
         LCD(5,F("PORT=%d  WiFi"), IP_PORT);
       } else {
-        LCD(4, F("WiFi UP"));
-        LCD(5, F("%s:%d"), WiFi.localIP().toString().c_str(), IP_PORT);
+        LCD(4, F("%s:%d"), WiFi.localIP().toString().c_str(), IP_PORT);
       }  
       wifiUp = true;
     } else {
