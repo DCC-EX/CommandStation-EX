@@ -8,6 +8,13 @@
 // 5.3.3  - Fix Ethernet cable disconnected message, wait for DHCP
 // 5.3.2  - MDNS Generic library integration for Ethernet
 // 5.3.1  - Variable frequency for DC mode
+// 5.2.40 - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
+//        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
+//        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
+//        - Added UART detection to I2CManager.cpp
+// 5.2.28 - ESP32: Can all Wifi channels.
+//        - ESP32: Only write Wifi password to display if it is a well known one
 // 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults
 //        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
@@ -24,7 +31,7 @@
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
-//       df - I2C DFPlayper capability
+//       df - I2C DFPlayper capability in stm32 branch
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
 // 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
