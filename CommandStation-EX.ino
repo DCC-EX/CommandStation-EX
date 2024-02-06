@@ -172,6 +172,22 @@ void loop()
         TrackManager::setProgPower(POWERMODE::OFF);
         // Broadcast power status
         CommandDistributor::broadcastPower();
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("In progress..."));
+        );
+      });
+      ArduinoOTA.onEnd([]() {
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("Complete"));
+        );
+      });
+      ArduinoOTA.onError([](ota_error_t error) {
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("Error: %d"), error);
+        );
       });
       // Set OTA password if defined
       #ifdef OTA_AUTH
