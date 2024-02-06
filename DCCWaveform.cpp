@@ -115,8 +115,19 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   bytes_sent = 0;
   bits_sent = 0;
 }
+    
+volatile bool DCCWaveform::railcomActive=false;     // switched on by user
 
-
+bool DCCWaveform::setRailcom(bool on) {
+  if (on) {
+    // TODO check possible
+    railcomActive=true;
+  }
+  else {
+    railcomActive=false;
+  } 
+  return railcomActive;
+}
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
@@ -124,16 +135,16 @@ void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
-
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
-
+  
     // As we get to the end of the preambles, open the reminder window.
     // This delays any reminder insertion until the last moment so
     // that the reminder doesn't block a more urgent packet. 
     reminderWindowOpen=transmitRepeats==0 && remainingPreambles<4 && remainingPreambles>1;
     if (remainingPreambles==1) promotePendingPacket();
+    else if (remainingPreambles==10 && isMainTrack && railcomActive) DCCTimer::ackRailcomTimer();
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
     else DCCTimer::updateMinimumFreeMemoryISR(22); 
@@ -157,6 +168,12 @@ void DCCWaveform::interrupt2() {
       bytes_sent = 0;
       // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
+      
+      // set the railcom coundown to trigger half way 
+      // through the first preamble bit.
+      // Note.. we are still sending the last packet bit
+      //    and we then have to allow for the packet end bit
+      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(9);
       }
   }  
 }
@@ -208,7 +225,9 @@ void DCCWaveform::promotePendingPacket() {
       
       // nothing to do, just send idles or resets
       // Fortunately reset and idle packets are the same length
-      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
+  // TEMPORARY DEBUG FOR RAILCOM
+  //      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
+        memcpy( transmitPacket, resetPacket, sizeof(idlePacket));
       transmitLength = sizeof(idlePacket);
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)

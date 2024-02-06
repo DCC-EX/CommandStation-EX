@@ -1035,7 +1035,13 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
         DCC::setGlobalSpeedsteps(128);
 	DIAG(F("128 Speedsteps"));
         return true;
-
+    case "RAILCOM"_hk:
+        {
+        bool onOff = (params > 1) && (p[1] == 1 || p[1] == "ON"_hk); // dont care if other stuff or missing... just means off
+        DIAG(F("Railcom %S")
+            ,DCCWaveform::setRailcom(onOff)?F("ON"):F("OFF"));
+        return true;     
+        }
 #ifndef DISABLE_PROG
     case "ACK"_hk: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
