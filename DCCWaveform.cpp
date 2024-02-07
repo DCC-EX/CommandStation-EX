@@ -117,14 +117,17 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 }
     
 volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
 
-bool DCCWaveform::setRailcom(bool on) {
+bool DCCWaveform::setRailcom(bool on, bool debug) {
   if (on) {
     // TODO check possible
     railcomActive=true;
+    railcomDebug=debug;
   }
   else {
     railcomActive=false;
+    railcomDebug=false;
   } 
   return railcomActive;
 }
@@ -225,9 +228,11 @@ void DCCWaveform::promotePendingPacket() {
       
       // nothing to do, just send idles or resets
       // Fortunately reset and idle packets are the same length
-  // TEMPORARY DEBUG FOR RAILCOM
-  //      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
-        memcpy( transmitPacket, resetPacket, sizeof(idlePacket));
+      // Note: If railcomDebug is on, then we send resets to the main
+      //       track instead of idles. This means that all data will be zeros
+      //       and only the porersets will be ones, making it much
+      //       easier to read on a logic analyser.
+      memcpy( transmitPacket, (isMainTrack && (!railcomDebug)) ? idlePacket : resetPacket, sizeof(idlePacket));
       transmitLength = sizeof(idlePacket);
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
@@ -316,4 +321,10 @@ bool DCCWaveform::isReminderWindowOpen() {
 void IRAM_ATTR DCCWaveform::loop() {
   DCCACK::checkAck(progTrack.getResets());
 }
+
+bool DCCWaveform::setRailcom(bool on, bool debug) {
+  // TODO... ESP32 railcom waveform
+  return false;
+}
+
 #endif

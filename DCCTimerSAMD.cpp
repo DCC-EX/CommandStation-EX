@@ -76,6 +76,14 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
 // Timer IRQ handlers replace the dummy handlers (in cortex_handlers)
 // copied from rf24 branch
 void TCC0_Handler() {

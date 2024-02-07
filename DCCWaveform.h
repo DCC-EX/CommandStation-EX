@@ -85,7 +85,7 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();
     void promotePendingPacket();
-    static bool setRailcom(bool on);
+    static bool setRailcom(bool on, bool debug);
     static bool isRailcom() {return railcomActive;}
     
   private:
@@ -113,6 +113,7 @@ class DCCWaveform {
     byte pendingLength;
     byte pendingRepeats;
     static volatile bool railcomActive;     // switched on by user
+    static volatile bool railcomDebug;     // switched on by user
     
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;

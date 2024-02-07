@@ -80,6 +80,14 @@ extern char *__malloc_heap_start;
     interruptHandler();
   }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
   bool DCCTimer::isPWMPin(byte pin) {
        (void) pin; 
        return false;  // TODO what are the relevant pins? 
