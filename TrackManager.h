@@ -57,7 +57,6 @@ class TrackManager {
                  );
     
     static void setDCCSignal( bool on);
-    static void setCutout( bool on);
     static void setPROGSignal( bool on);
     static void setDCSignal(int16_t cab, byte speedbyte);
     static MotorDriver * getProgDriver();

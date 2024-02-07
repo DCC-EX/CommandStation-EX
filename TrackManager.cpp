@@ -157,11 +157,6 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTF(PORTF=shadowPORTF);
 }
 
-// Called by interrupt context
-void TrackManager::setCutout( bool on) {
-    APPLY_BY_MODE(TRACK_MODE_MAIN,setBrake(on,true));
-}
-
 // setPROGSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setPROGSignal( bool on) {

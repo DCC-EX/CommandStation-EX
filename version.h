@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.28"
+#define VERSION "5.2.28-Railcom"
 // 5.2.28 - ESP32: Can all Wifi channels.
 //        - ESP32: Only write Wifi password to display if it is a well known one
 // 5.2.27 - Bugfix: IOExpander memory allocation
