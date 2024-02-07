@@ -153,6 +153,7 @@
 #undef SET_TRACK
 #undef SET_POWER
 #undef SETLOCO 
+#undef SETFREQ
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED 
@@ -306,6 +307,7 @@
 #define SET_TRACK(track,mode)
 #define SET_POWER(track,onoff)
 #define SETLOCO(loco) 
+#define SETFREQ(loco,freq)
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
