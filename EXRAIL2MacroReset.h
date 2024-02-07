@@ -84,6 +84,7 @@
 #undef IFTTPOSITION
 #undef IFRE
 #undef INVERT_DIRECTION 
+#undef JMRI_SENSOR
 #undef JOIN 
 #undef KILLALL
 #undef LATCH 
@@ -236,6 +237,7 @@
 #define IFTTPOSITION(turntable_id,position)
 #define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
+#define JMRI_SENSOR(vpin,count...)
 #define JOIN 
 #define KILLALL
 #define LATCH(sensor_id)

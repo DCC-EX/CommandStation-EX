@@ -149,6 +149,8 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 #define HAL(haltype,params...)  haltype::create(params);
 #undef HAL_IGNORE_DEFAULTS
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
+#undef JMRI_SENSOR
+#define JMRI_SENSOR(vpin,count...) Sensor::createMultiple(vpin,##count);
 bool exrailHalSetup() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
@@ -487,6 +489,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define JMRI_SENSOR(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
