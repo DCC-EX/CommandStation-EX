@@ -75,22 +75,22 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
        (there will be 7 DCC timer1 ticks in which to do this.)
     
     */
-  const int cutoutDuration = 436; // Desired interval in microseconds
+  const int cutoutDuration = 430; // Desired interval in microseconds
   
   // Set up Timer2 for CTC mode (Clear Timer on Compare Match)
   TCCR2A = 0; // Clear Timer2 control register A
   TCCR2B = 0; // Clear Timer2 control register B
   TCNT2 = 0;  // Initialize Timer2 counter value to 0
    // Configure Phase and Frequency Correct PWM mode
-//TCCR2A = (1 << COM2B1) | (1 << WGM20) | (1 << WGM21);
+   TCCR2A =  (1 << COM2B1); // enable pwm on pin 9
+   TCCR2A |= (1 << WGM20);
   
-  // Set Fast PWM mode with non-inverted output on OC2B (pin 9)
-  TCCR2A = (1 << WGM21) | (1 << WGM20) | (1 << COM2B1);
+   
   // Set Timer 2 prescaler to 32
   TCCR2B = (1 << CS21) | (1 << CS20); // 32 prescaler
 
   // Set the compare match value for desired interval
-  OCR2A = (F_CPU / 1000000) * cutoutDuration / 32 - 1;
+  OCR2A = (F_CPU / 1000000) * cutoutDuration / 64 - 1;
 
   // Calculate the compare match value for desired duty cycle
   OCR2B = OCR2A+1;  // set duty cycle to 100%= OCR2A)
@@ -98,10 +98,23 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
   // Enable Timer2 output on pin 9 (OC2B)
   DDRB |= (1 << DDB1);
   // TODO Fudge TCNT2 to sync with last tcnt1 tick + 28uS
+
+ // Previous TIMER1 Tick was at rising end-of-packet bit
+ // Cutout starts half way through first preamble
+ // that is 2.5 * 58uS later.
+ // TCNT1 ticks 8 times / microsecond
+ // auto microsendsToFirstRailcomTick=(58+58+29)-(TCNT1/8);
+  // set the railcom timer counter allowing for phase-correct
+
+  // CHris's NOTE: 
+  // I dont kniow quite how this calculation works out but
+  // it does seems to get a good answer. 
+
+  TCNT2=193 + (ICR1 - TCNT1)/8;
 }
 
 void DCCTimer::ackRailcomTimer() {
-  OCR2B= 0x00;  // brfake pin pwm duty cycle 0 at next tick
+  OCR2B= 0x00;  // brake pin pwm duty cycle 0 at next tick
 }
 
 
