@@ -39,9 +39,15 @@
 #include "soc/timer_group_reg.h"
 void feedTheDog0(){
   // feed dog 0
+#ifdef ARDUINO_ESP32S3_DEV
+  TIMERG0.wdtwprotect.wdt_wkey=0x50D83AA1; //MWDT_LL_WKEY_VALUE? write enable
+  TIMERG0.wdtfeed.wdt_feed=1;              // feed dog
+  TIMERG0.wdtwprotect.wdt_wkey=0;          // write protect
+#else
   TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
   TIMERG0.wdt_feed=1;                       // feed dog
   TIMERG0.wdt_wprotect=0;                   // write protect
+#endif
   // feed dog 1
   //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
   //TIMERG1.wdt_feed=1;                       // feed dog

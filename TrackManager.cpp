@@ -221,13 +221,20 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       gpio_reset_pin((gpio_num_t)p.invpin);
     }
 #ifdef BOOSTER_INPUT
+
+#ifdef ARDUINO_ESP32S3_DEV
+#define LOOP_IDX SIG_IN_FUNC212_IDX //pads 208 to 212 available as loopback
+#else
+#define LOOP_IDX SIG_IN_FUNC228_IDX //pads 224 to 228 available as loopback
+#endif
+
     if (mode & TRACK_MODE_BOOST) {
       //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
       pinMode(BOOSTER_INPUT, INPUT);
-      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
-      gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
+      gpio_matrix_in(26, LOOP_IDX, false);
+      gpio_matrix_out(p.pin, LOOP_IDX, false, false);
       if (p.invpin != UNUSED_PIN) {
-	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
+	gpio_matrix_out(p.invpin, LOOP_IDX, true /*inverted*/, false);
       }
     } else // elseif clause continues
 #endif

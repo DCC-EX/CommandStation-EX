@@ -83,18 +83,26 @@ int DCCTimer::freeMemory() {
 #include <soc/sens_struct.h>
 #undef ADC_INPUT_MAX_VALUE
 #define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
+
+#ifdef ARDUINO_ESP32S3_DEV
+#define pinToADC1Channel(X) (adc1_channel_t)((X)-1)
+#define MY_SAR_REG sar_meas1_ctrl2
+#else
 #define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
+#define MY_SAR_REG sar_meas_start1
+#endif
 
 int IRAM_ATTR local_adc1_get_raw(int channel) {
   uint16_t adc_value;
-  SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
+  SENS.MY_SAR_REG.sar1_en_pad = (1 << channel); // only one channel is selected
   while (SENS.sar_slave_addr1.meas_status != 0);
-  SENS.sar_meas_start1.meas1_start_sar = 0;
-  SENS.sar_meas_start1.meas1_start_sar = 1;
-  while (SENS.sar_meas_start1.meas1_done_sar == 0);
-  adc_value = SENS.sar_meas_start1.meas1_data_sar;
+  SENS.MY_SAR_REG.meas1_start_sar = 0;
+  SENS.MY_SAR_REG.meas1_start_sar = 1;
+  while (SENS.MY_SAR_REG.meas1_done_sar == 0);
+  adc_value = SENS.MY_SAR_REG.meas1_data_sar;
   return adc_value;
 }
+#undef MY_SAR_REG
 
 #include "DCCTimer.h"
 INTERRUPT_CALLBACK interruptHandler=0;
