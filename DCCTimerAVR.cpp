@@ -75,6 +75,7 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
        (there will be 7 DCC timer1 ticks in which to do this.)
     
     */
+  (void) brakePin; // Ignored... works on pin 9 only 
   const int cutoutDuration = 430; // Desired interval in microseconds
   
   // Set up Timer2 for CTC mode (Clear Timer on Compare Match)
