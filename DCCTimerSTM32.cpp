@@ -201,6 +201,14 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
 bool DCCTimer::isPWMPin(byte pin) {
   //TODO: STM32 whilst this call to digitalPinHasPWM will reveal which pins can do PWM,
   //      there's no support yet for High Accuracy, so for now return false

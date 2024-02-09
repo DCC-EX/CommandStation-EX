@@ -157,12 +157,6 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTF(PORTF=shadowPORTF);
 }
 
-void TrackManager::setCutout( bool on) {
-    (void) on;
-    // TODO Cutout needs fake ports as well
-    // TODO      APPLY_BY_MODE(TRACK_MODE_MAIN,setCutout(on));
-}
-
 // setPROGSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setPROGSignal( bool on) {

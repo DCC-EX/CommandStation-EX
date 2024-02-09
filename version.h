@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.31"
+#define VERSION "5.2.32"
+// 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
 // 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
 // 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
 // 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
