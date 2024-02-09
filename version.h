@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.32"
+#define VERSION "5.2.33"
+// 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 // 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
 // 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
 // 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well

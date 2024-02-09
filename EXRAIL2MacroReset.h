@@ -42,6 +42,7 @@
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLOSE 
+#undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
 #undef DCC_TURNTABLE
 #undef DEACTIVATE
@@ -194,7 +195,8 @@
 #define CALL(route)
 #define CLEAR_STASH(id)
 #define CLEAR_ALL_STASH(id)
-#define CLOSE(id) 
+#define CLOSE(id)
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 #define DCC_SIGNAL(id,add,subaddr)
 #define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)

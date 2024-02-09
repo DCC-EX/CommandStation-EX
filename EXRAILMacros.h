@@ -151,6 +151,8 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) Sensor::createMultiple(vpin,##count);
+#undef  CONFIGURE_SERVO
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 bool exrailHalSetup() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
@@ -441,6 +443,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
 #endif
