@@ -4,8 +4,8 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.2.31"
-// 5.2.31 - Exrail JMRI_SENSORS(vpin [,count]) creates <S> types.  
-// 5.2.40 - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
+// 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
 // 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
 //        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
 //        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
