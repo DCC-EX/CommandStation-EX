@@ -1035,6 +1035,7 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
         DCC::setGlobalSpeedsteps(128);
 	DIAG(F("128 Speedsteps"));
         return true;
+#if defined(HAS_ENOUGH_MEMORY) && !defined(ARDUINO_ARCH_UNO)
     case "RAILCOM"_hk:
         {   // <C RAILCOM ON|OFF|DEBUG >
             if (params<2) return false;
@@ -1059,6 +1060,7 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
             ,DCCWaveform::setRailcom(on,debug)?F("ON"):F("OFF"));
         return true;     
         }
+#endif
 #ifndef DISABLE_PROG
     case "ACK"_hk: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
