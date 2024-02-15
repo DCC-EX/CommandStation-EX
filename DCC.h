@@ -71,6 +71,7 @@ public:
   static uint32_t getFunctionMap(int cab);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
+  static void setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
   static bool writeTextPacket(byte *b, int nBytes);
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1

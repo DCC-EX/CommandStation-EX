@@ -278,6 +278,22 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   }
 }
 
+void DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
+
+  // format is 10AAAAAA, 0AAA0AA1, 000XXXXX 
+  if (address != (address & 0x7F)) return;
+  if (value != (value & 0x1F)) return;
+    
+  byte b[3];
+  b[0]= 0x80 | ((address & 0x7FF)>>5);
+  b[1]= 0x01 | ((address & 0x1c)<<2) | (address & 0x03)<<1;
+  b[2]=value & 0x1F;
+  DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);      // Repeat on packet three times
+#if defined(EXRAIL_ACTIVE)
+ // TODO RMFT2::activateExtendedEvent(address,value);
+#endif
+}
+
 //
 // writeCVByteMain: Write a byte with PoM on main. This writes
 // the 5 byte sized packet to implement this DCC function
