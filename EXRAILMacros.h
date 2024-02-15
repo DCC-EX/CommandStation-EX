@@ -117,6 +117,9 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 //  - check range on LATCH/UNLATCH
 // This pass generates no runtime data or code 
 #include "EXRAIL2MacroReset.h"
+#undef ASPECT
+#define ASPECT(address,value) static_assert((address & 0x7ff)== address, "invalid Address"); \
+                              static_assert((value & 0x1F)== value, "Invalid value");
 #undef CALL
 #define CALL(id) static_assert(hasseq(id),"Sequence not found");
 #undef FOLLOW
@@ -432,6 +435,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
+#define ASPECT(address,value) OPCODE_ASPECT,V((address<<5) | (value & 0x1F)),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  

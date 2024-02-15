@@ -800,6 +800,11 @@ void RMFT2::loop2() {
     DCC::setAccessory(addr,subaddr,active);
     break;
   }
+   case OPCODE_ASPECT: {
+    // operand is address<<5 |  value
+    DCC::setExtendedAccessory(operand>>5, operand & 0x1F);
+    break;
+  }
     
   case OPCODE_FOLLOW:
     progCounter=routeLookup->find(operand);

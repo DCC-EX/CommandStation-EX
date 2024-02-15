@@ -31,6 +31,7 @@
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
+#undef ASPECT
 #undef AT
 #undef ATGTE
 #undef ATLT
@@ -186,6 +187,7 @@
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)
 #define AT(sensor_id)
+#define ASPECT(address,value)
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
