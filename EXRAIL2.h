@@ -158,6 +158,7 @@ class LookList {
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
+    static const int16_t DCCX_SIGNAL_FLAG=0x3000;
     static const int16_t SIGNAL_ID_MASK=0x0FFF;
  // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;

@@ -45,6 +45,7 @@
 #undef CLOSE 
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
+#undef DCCX_SIGNAL
 #undef DCC_TURNTABLE
 #undef DEACTIVATE
 #undef DEACTIVATEL
@@ -200,6 +201,7 @@
 #define CLOSE(id)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)

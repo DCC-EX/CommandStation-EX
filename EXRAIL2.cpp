@@ -1066,7 +1066,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
-  // Thjis will work even without a signal definition. 
+  // This will work even without a signal definition. 
   if (rag==SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
   else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
   else onAmberLookup->handleEvent(F("AMBER"),id);
@@ -1102,6 +1102,16 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     DCC::setAccessory(redpin,amberpin, rag!=SIGNAL_RED);
     return; 
   }
+
+ if (sigtype== DCCX_SIGNAL_FLAG) {
+    // redpin,amberpin,greenpin are the 3 aspects
+    byte value=redpin;
+    if (rag==SIGNAL_AMBER) value=amberpin;
+    if (rag==SIGNAL_GREEN) value=greenpin; 
+    DCC::setExtendedAccessory(sigid & SIGNAL_ID_MASK,value);
+    return; 
+  }
+
 
   // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
   // If amberpin is zero, synthesise amber from red+green

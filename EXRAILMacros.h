@@ -172,6 +172,8 @@ bool exrailHalSetup() {
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
 
@@ -401,6 +403,8 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr) id | RMFT2::DCC_SIGNAL_FLAG,addr,subaddr,0,
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
@@ -457,6 +461,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
