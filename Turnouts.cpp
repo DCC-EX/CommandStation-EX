@@ -38,6 +38,10 @@
 #include "DIAG.h"
 #endif
 
+#ifndef IO_NO_HAL
+#include "IO_ScheduledPin.h"
+#endif
+
   /* 
    * Protected static data
    */ 
@@ -186,6 +190,10 @@
       case TURNOUT_VPIN:
         // VPIN turnout
         tt = VpinTurnout::load(&turnoutData);
+        break;
+      case TURNOUT_HBRIDGE:
+        // HBRIDGE turnout
+        tt = HBridgeTurnout::load(&turnoutData);
         break;
       default:
         // If we find anything else, then we don't know what it is or how long it is, 
@@ -477,6 +485,102 @@
 #endif
   }
 
+/*************************************************************************************
+ * HBridgeTurnout - Turnout controlled through a pair of HAL pins.
+ * Typically connected to Motor H-Bridge. Delay is used to quickly turn on/off power.
+ *************************************************************************************/
+
+  // Constructor
+  HBridgeTurnout::HBridgeTurnout(uint16_t id, VPIN pin1, VPIN pin2, uint16_t millisDelay, bool closed) :
+    Turnout(id, TURNOUT_HBRIDGE, closed)
+  {
+    _hbridgeTurnoutData.pin1 = pin1;
+    _hbridgeTurnoutData.pin2 = pin2;
+    _hbridgeTurnoutData.millisDelay = millisDelay;
+#ifndef IO_NO_HAL
+    // HARD LIMIT to maximum 0.5 second to avoid burning the coil
+    // Also note 1000x multiplier because ScheduledPin works with microSeconds.
+    ScheduledPin::create(pin1, LOW, 1000*min(millisDelay, 500));
+    ScheduledPin::create(pin2, LOW, 1000*min(millisDelay, 500));
+#else
+    DIAG(F("H-Brdige Turnout %d will be disabled because HAL is off"), id);
+#endif
+  }
+
+  // Create function
+  /* static */ Turnout *HBridgeTurnout::create(uint16_t id, VPIN pin1, VPIN pin2, uint16_t millisDelay, bool closed) {
+    Turnout *tt = get(id);
+    if (tt) {
+      // Object already exists, check if it is usable
+      if (tt->isType(TURNOUT_HBRIDGE)) {
+        // Yes, so set parameters
+        HBridgeTurnout *hbt = (HBridgeTurnout *)tt;
+        hbt->_hbridgeTurnoutData.pin1 = pin1;
+        hbt->_hbridgeTurnoutData.pin2 = pin2;
+        hbt->_hbridgeTurnoutData.millisDelay = millisDelay;
+        // Don't touch the _closed parameter, retain the original value.
+        return tt;
+      } else {
+        // Incompatible object, delete and recreate
+        remove(id);
+      }
+    }
+    tt = (Turnout *)new HBridgeTurnout(id, pin1, pin2, millisDelay, closed);
+    return tt;
+  }
+
+  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  /* static */ Turnout *HBridgeTurnout::load(struct TurnoutData *turnoutData) {
+#ifndef DISABLE_EEPROM
+    HBridgeTurnoutData hbridgeTurnoutData;
+    // Read class-specific data from EEPROM
+    EEPROM.get(EEStore::pointer(), hbridgeTurnoutData);
+    EEStore::advance(sizeof(hbridgeTurnoutData));
+
+    // Create new object
+    HBridgeTurnout *tt = new HBridgeTurnout(turnoutData->id, hbridgeTurnoutData.pin1,
+      hbridgeTurnoutData.pin2, hbridgeTurnoutData.millisDelay, turnoutData->closed);
+
+    return tt;
+#else
+    (void)turnoutData;
+    return NULL;
+#endif
+  }
+
+  // Report 1 for thrown, 0 for closed.
+  void HBridgeTurnout::print(Print *stream) {
+    StringFormatter::send(stream, F("<H %d HBRIDGE %d %d %d>\n"), _turnoutData.id, _hbridgeTurnoutData.pin1, _hbridgeTurnoutData.pin2,
+      !_turnoutData.closed);
+  }
+
+  void HBridgeTurnout::turnUpDown(VPIN pin) {
+    // HBridge turnouts require very small, prescribed time to keep pin1 or pin2 in HIGH state.
+    // Otherwise internal coil of the turnout will burn.
+    // If HAL is disabled (and therefore SchedulePin class), we can not turn this on,
+    // otherwise coil will burn and device will be lost.
+#ifndef IO_NO_HAL
+    IODevice::write(pin, HIGH);
+#endif
+  }
+
+  bool HBridgeTurnout::setClosedInternal(bool close) {
+    turnUpDown(close ? _hbridgeTurnoutData.pin2 : _hbridgeTurnoutData.pin1);
+    _turnoutData.closed = close;
+    return true;
+  }
+
+  void HBridgeTurnout::save() {
+#ifndef DISABLE_EEPROM
+    // Write turnout definition and current position to EEPROM
+    // First write common servo data, then
+    // write the servo-specific data
+    EEPROM.put(EEStore::pointer(), _turnoutData);
+    EEStore::advance(sizeof(_turnoutData));
+    EEPROM.put(EEStore::pointer(), _hbridgeTurnoutData);
+    EEStore::advance(sizeof(_hbridgeTurnoutData));
+#endif
+  }
 
 /*************************************************************************************
  * LCNTurnout - Turnout controlled by Loconet

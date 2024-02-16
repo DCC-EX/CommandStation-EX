@@ -36,6 +36,11 @@ const unsigned long LOOP_TIMEOUT = 2000;
 bool WifiInterface::connected = false;
 Stream * WifiInterface::wifiStream;
 
+#ifndef WIFI_AT_CHECK_TIMEOUT
+// Some ESP32 AT firmware versions take time to initialize and do not respond to AT commands right away.
+#define WIFI_AT_CHECK_TIMEOUT 2000
+#endif
+
 #ifndef WIFI_CONNECT_TIMEOUT
 // Tested how long it takes to FAIL an unknown SSID on firmware 1.7.4.
 // The ES should fail a connect in 15 seconds, we don't want to fail BEFORE that
@@ -192,7 +197,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   }
 
   StringFormatter::send(wifiStream, F("AT\r\n"));   // Is something here that understands AT?
-  if(!checkForOK(200, true))
+  if(!checkForOK(WIFI_AT_CHECK_TIMEOUT, true))
     return WIFI_NOAT;                               // No AT compatible WiFi module here
 
   StringFormatter::send(wifiStream, F("ATE1\r\n")); // Turn on the echo, se we can see what's happening
