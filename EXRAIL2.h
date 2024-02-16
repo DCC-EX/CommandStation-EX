@@ -155,6 +155,7 @@ class LookList {
     static void clockEvent(int16_t clocktime, bool change);
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
+    static bool signalAspectEvent(int16_t address, byte aspect );    
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
@@ -173,7 +174,7 @@ class LookList {
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
-      
+
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
