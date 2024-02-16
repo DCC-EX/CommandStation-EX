@@ -45,7 +45,7 @@ Once a new OPCODE is decided upon, update this list.
   0, Track power off
   1, Track power on
   a, DCC accessory control
-  A,
+  A, DCC extended accessory control
   b, Write CV bit on main
   B, Write CV bit
   c, Request current command
