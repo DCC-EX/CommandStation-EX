@@ -802,7 +802,10 @@ void RMFT2::loop2() {
   }
    case OPCODE_ASPECT: {
     // operand is address<<5 |  value
-    DCC::setExtendedAccessory(operand>>5, operand & 0x1F);
+    int16_t address=operand>>5;
+    byte aspect=operand & 0x1f;
+    if (!signalAspectEvent(address,aspect))
+      DCC::setExtendedAccessory(address,aspect);
     break;
   }
     

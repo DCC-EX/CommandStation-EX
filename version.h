@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.33"
+#define VERSION "5.2.34"
+// 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
+//        - Exrail ASPECT(address,aspect) for above.
+//        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
+//        - Exrail intercept <A ...> for DCC Signals. 
 // 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 // 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
 // 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  

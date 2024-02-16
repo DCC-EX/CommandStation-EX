@@ -387,16 +387,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     
     case 'A': // EXTENDED ACCESSORY <A address value>
         { 
+          // Note: if this happens to match a defined EXRAIL 
+          // DCCX_SIGNAL, then EXRAIL will have intercepted
+          // this command alrerady.   
           if (params!=2) break; 
           if (p[0] != (p[0] & 0x7F)) break;
           if (p[1] != (p[1] & 0x1F)) break; 
-#ifdef EXRAIL_ACTIVE 
-          // Ask exrail if this is just changing the aspect on a 
-          // predefined DCCX_SIGNAL. Because this will handle all 
-          // the IFRED and ONRED type issues at the same time.  
-          if (RMFT2::signalAspectEvent(p[0],p[1])) return;
-#endif                   
-          DCC::setExtendedAccessory(p[0],p[1],3);
+          DCC::setExtendedAccessory(p[0],p[1]);
         }
         return;
      
