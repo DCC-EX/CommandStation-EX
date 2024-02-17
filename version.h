@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.34"
+#define VERSION "5.2.35"
+// 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
 // 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
 //        - Exrail ASPECT(address,aspect) for above.
 //        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
