@@ -385,17 +385,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         return;
     
-    case 'A': // EXTENDED ACCESSORY <A address value>
-        { 
-          // Note: if this happens to match a defined EXRAIL 
-          // DCCX_SIGNAL, then EXRAIL will have intercepted
-          // this command alrerady.   
-          if (params!=2) break; 
-          if (p[0] != (p[0] & 0x7F)) break;
-          if (p[1] != (p[1] & 0x1F)) break; 
-          DCC::setExtendedAccessory(p[0],p[1]);
-        }
-        return;
+    case 'A': // EXTENDED ACCESSORY <A address value> 
+        // Note: if this happens to match a defined EXRAIL 
+        // DCCX_SIGNAL, then EXRAIL will have intercepted
+        // this command alrerady.   
+        if (params==2 && DCC::setExtendedAccessory(p[0],p[1])) return;
+        break;
      
     case 'T': // TURNOUT  <T ...>
         if (parseT(stream, params, p))

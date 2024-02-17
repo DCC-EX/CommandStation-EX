@@ -278,21 +278,39 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   }
 }
 
-void DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
+bool DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
 
-  // format is 10AAAAAA, 0AAA0AA1, 000XXXXX 
-  if (address != (address & 0x7F)) return;
-  if (value != (value & 0x1F)) return;
+/* From https://www.nmra.org/sites/default/files/s-9.2.1_2012_07.pdf
+
+The Extended Accessory Decoder Control Packet is included for the purpose of transmitting aspect control to signal 
+decoders or data bytes to more complex accessory decoders. Each signal head can display one aspect at a time. 
+{preamble} 0 10AAAAAA 0 0AAA0AA1 0 000XXXXX 0 EEEEEEEE 1
+
+XXXXX is for a single head. A value of 00000 for XXXXX indicates the absolute stop aspect. All other aspects 
+represented by the values for XXXXX are determined by the signaling system used and the prototype being 
+modeled.
+*/
+/* CAH Notes: 
+Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
+
+Note that the Basic accessory format mentions 
+"By convention these bits (bits 4-6 of the second data byte) are in ones complement"
+but this note is absent from the advanced packet description.
+The (~address) construct below applies this because this appears to be 
+required.  
+
+*/
+  if (address != (address & 0x7FF)) return false; // 11 bits
+  if (value != (value & 0x1F)) return false;      // 5 bits 
+
     
   byte b[3];
-  b[0]= 0x80 | ((address & 0x7FF)>>5);
-  b[1]= 0x01 | ((address & 0x1c)<<2) | (address & 0x03)<<1;
-  b[2]=value & 0x1F;
+  b[0]= 0x80 | (address>>5);
+  b[1]= 0x01 | (((~address) & 0x1c)<<2) | ((address & 0x03)<<1);
+  b[2]=value;
   DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);      // Repeat on packet three times
-#if defined(EXRAIL_ACTIVE)
- // TODO RMFT2::activateExtendedEvent(address,value);
-#endif
-}
+  return true;
+  }
 
 //
 // writeCVByteMain: Write a byte with PoM on main. This writes
