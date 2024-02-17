@@ -52,6 +52,10 @@
 #include "DCCEX.h"
 #include "Display_Implementation.h"
 
+#ifdef ARDUINO_ARCH_ESP32
+  #include <ArduinoOTA.h>
+#endif // ARDUINO_ARCH_ESP32
+
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
 #endif
@@ -76,7 +80,7 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+// Initialise HAL layer before reading EEprom or setting up MotorDrivers
   IODevice::begin();
 
   // As the setup of a motor shield may require a read of the current sense input from the ADC,
@@ -101,12 +105,15 @@ void setup()
 #else
   // ESP32 needs wifi on always
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+  #if OTA_AUTO_INIT
+    Diag::OTA = true;
+  #endif // OTA_AUTO_INIT
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
-  
+
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
 
@@ -150,6 +157,50 @@ void loop()
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
 #endif
+  // Responsibility 4: Optionally handle Arduino OTA updates
+  if (Diag::OTA) {
+    static bool otaInitialised = false;
+    // Initialise OTA if not already done
+    if (!otaInitialised) {
+      ArduinoOTA.setHostname(WIFI_HOSTNAME);
+      // Prevent locos from moving during OTA
+      ArduinoOTA.onStart([]() {
+        // Emergency stop all locos
+        DCC::setThrottle(0,1,1);
+        // Disable tracks power
+        TrackManager::setMainPower(POWERMODE::OFF);
+        TrackManager::setProgPower(POWERMODE::OFF);
+        // Broadcast power status
+        CommandDistributor::broadcastPower();
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("In progress..."));
+        );
+      });
+      ArduinoOTA.onEnd([]() {
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("Complete"));
+        );
+      });
+      ArduinoOTA.onError([](ota_error_t error) {
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("Error: %d"), error);
+        );
+      });
+      // Set OTA password if defined
+      #ifdef OTA_AUTH
+        ArduinoOTA.setPassword(OTA_AUTH);
+      #endif // OTA_AUTH
+      ArduinoOTA.begin();
+      otaInitialised = true;
+    }
+    // Handle OTA if initialised
+    else {
+      ArduinoOTA.handle();
+    }
+  }
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
