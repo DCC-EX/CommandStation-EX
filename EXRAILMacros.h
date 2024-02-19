@@ -118,8 +118,8 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 // This pass generates no runtime data or code 
 #include "EXRAIL2MacroReset.h"
 #undef ASPECT
-#define ASPECT(address,value) static_assert((address & 0x7ff)== address, "invalid Address"); \
-                              static_assert((value & 0x1F)== value, "Invalid value");
+#define ASPECT(address,value) static_assert(address <=2044, "invalid Address"); \
+                              static_assert(address>=-3, "Invalid value");
 #undef CALL
 #define CALL(id) static_assert(hasseq(id),"Sequence not found");
 #undef FOLLOW
