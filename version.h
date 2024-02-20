@@ -33,7 +33,6 @@
 // 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
 // 5.2.20 - Check return of Ethernet.begin()
 // 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
->>>>>>> devel
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
