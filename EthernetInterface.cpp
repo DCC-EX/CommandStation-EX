@@ -47,9 +47,9 @@ void EthernetInterface::setup()
     DIAG(F("Prog Error!"));
     return;
   }
-  DIAG(F("Ethernet Class setup, attempting to instantiate"));
+  DIAG(F("Ethernet starting... please be patient, especially if no cable is connected!"));
   if ((singleton=new EthernetInterface())) {
-    DIAG(F("Ethernet Class initialized"));
+    // DIAG(F("Ethernet Class initialized"));
     return;
   }
   DIAG(F("Ethernet not initialized"));
@@ -83,11 +83,7 @@ EthernetInterface::EthernetInterface()
   #ifdef IP_ADDRESS
     Ethernet.begin(myIP);
   #else
-    if (Ethernet.begin() == 0)
-    {
-        DIAG(F("Ethernet.begin FAILED"));
-        return;
-    } 
+    Ethernet.begin();
   #endif // IP_ADDRESS
 #else // All other architectures
     byte mac[6]= { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -112,15 +108,22 @@ EthernetInterface::EthernetInterface()
     while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
         if (Ethernet.linkStatus() == LinkON)
             break;
-        DIAG(F("Ethernet waiting for link (1sec) "));
+        DIAG(F("Ethernet cable connected? Waiting for link (1sec) "));
         delay(1000);
     }
-    // now we either do have link of we have a W5100
-    // where we do not know if we have link. That's
-    // the reason to now run checkLink.
-    // CheckLinks sets up outboundRing if it does
-    // not exist yet as well.
-    checkLink();
+    // Now we either do have link or we have a W5100 where we do not know if we have link.
+    // So now run checkLink() which also sets up outboundRing if it does not exist.
+    // A false returned means we know we booted without an Ethernet cable, or perhaps there
+    // is no W5100 and we should say so
+    if (!checkLink())
+    {
+      #if defined(STM32_ETHERNET)
+      DIAG(F("Ethernet cable disconnected!"));
+      #else
+      DIAG(F("Ethernet cable disconnected, or W5100 hardware not present"));
+      #endif
+      LCD(4,F("Ethernet DOWN"));
+    }
 }
 
 /**
@@ -176,14 +179,30 @@ bool EthernetInterface::checkLink() {
       Ethernet.setLocalIP(myIP);      // for static IP, set it again
       #endif
       #endif
+      #if defined (STM32_ETHERNET)
+      netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
+      #ifdef IP_ADDRESS
+      Ethernet.begin(myIP);
+      #else
+      Ethernet.begin();
+      #endif // IP_ADDRESS
+      #endif // STM32_ETHERNET
+
       server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
       server->begin();
+      #ifndef IP_ADDRESS
+      LCD(4,F("Awaiting DHCP..."));
       IPAddress ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
-      if (ip[0] == 0)
-        LCD(4,F("Awaiting DHCP..."));
+      if (ip[0] == 0) {
+        DIAG(F("Awaiting DHCP... ip was %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+      }
       while (ip[0] == 0) {        // wait until we are given an IP address from the DHCP server
+        DIAG(F("Awaiting DHCP... ip was %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
         ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
       }
+      #else
+      IPAddress ip = Ethernet.localIP(); // look what IP was obtained (dynamic or static)
+      #endif
       if (MAX_MSG_SIZE < 20) {
         LCD(4,F("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
         LCD(5,F("Port:%d  Eth"), IP_PORT);

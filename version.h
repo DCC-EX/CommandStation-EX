@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.3.5"
+#define VERSION "5.3.5e"
+// 5.3.5e - Fixes to ethernet cable handling, and STM32 related handling as well
 // 5.3.5  - Exrail JMRI_SENSORS(vpin [,count]) creates <S> types.
 // 5.3.4  - Bugfix: WiThrottle sendIntro after initial N message as well
 // 5.3.3  - Fix Ethernet cable disconnected message, wait for DHCP
