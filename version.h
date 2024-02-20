@@ -3,8 +3,37 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.XX"
-// 5.2.XX - Variable frequency for DC mode
+#define VERSION "5.2.36"
+// 5.2.36 - Variable frequency for DC mode
+// 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
+// 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
+//        - Exrail ASPECT(address,aspect) for above.
+//        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
+//        - Exrail intercept <A ...> for DCC Signals. 
+// 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
+// 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
+// 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
+//        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
+//        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
+//        - Added UART detection to I2CManager.cpp
+// 5.2.28 - ESP32: Can all Wifi channels.
+//        - ESP32: Only write Wifi password to display if it is a well known one
+// 5.2.27 - Bugfix: IOExpander memory allocation
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
+// 5.2.25 - Fix bug causing <X> after working <D commands 
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
+// 5.2.23 - KeywordHasher _hk (no functional change) 
+// 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
+// 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
+// 5.2.20 - Check return of Ethernet.begin()
+// 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
+>>>>>>> devel
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins

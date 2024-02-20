@@ -31,6 +31,7 @@
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
+#undef ASPECT
 #undef AT
 #undef ATGTE
 #undef ATLT
@@ -42,7 +43,9 @@
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLOSE 
+#undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
+#undef DCCX_SIGNAL
 #undef DCC_TURNTABLE
 #undef DEACTIVATE
 #undef DEACTIVATEL
@@ -67,6 +70,7 @@
 #undef FWD 
 #undef GREEN
 #undef HAL
+#undef HAL_IGNORE_DEFAULTS
 #undef IF 
 #undef IFAMBER
 #undef IFCLOSED
@@ -83,6 +87,7 @@
 #undef IFTTPOSITION
 #undef IFRE
 #undef INVERT_DIRECTION 
+#undef JMRI_SENSOR
 #undef JOIN 
 #undef KILLALL
 #undef LATCH 
@@ -184,6 +189,7 @@
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)
 #define AT(sensor_id)
+#define ASPECT(address,value)
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
@@ -193,8 +199,10 @@
 #define CALL(route)
 #define CLEAR_STASH(id)
 #define CLEAR_ALL_STASH(id)
-#define CLOSE(id) 
+#define CLOSE(id)
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
@@ -219,6 +227,7 @@
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
+#define HAL_IGNORE_DEFAULTS
 #define IF(sensor_id) 
 #define IFAMBER(signal_id)
 #define IFCLOSED(turnout_id) 
@@ -235,6 +244,7 @@
 #define IFTTPOSITION(turntable_id,position)
 #define IFRE(sensor_id,value)
 #define INVERT_DIRECTION 
+#define JMRI_SENSOR(vpin,count...)
 #define JOIN 
 #define KILLALL
 #define LATCH(sensor_id)

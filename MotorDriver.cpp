@@ -204,7 +204,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
 }
 
 bool MotorDriver::isPWMCapable() {
-    return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
+    return (!dualSignal) && DCCTimer::isPWMPin(signalPin);
 }
 
 

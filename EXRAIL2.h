@@ -54,7 +54,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_START,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
              OPCODE_PAUSE, OPCODE_RESUME,OPCODE_POWEROFF,OPCODE_POWERON,
              OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
-             OPCODE_PRINT,OPCODE_DCCACTIVATE,
+             OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
              OPCODE_ONACTIVATE,OPCODE_ONDEACTIVATE,
              OPCODE_ROSTER,OPCODE_KILLALL,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,
@@ -155,9 +155,11 @@ class LookList {
     static void clockEvent(int16_t clocktime, bool change);
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
+    static bool signalAspectEvent(int16_t address, byte aspect );    
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
+    static const int16_t DCCX_SIGNAL_FLAG=0x3000;
     static const int16_t SIGNAL_ID_MASK=0x0FFF;
  // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
@@ -172,7 +174,7 @@ class LookList {
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
-      
+
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -257,5 +259,24 @@ private:
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
+
+// IO_I2CDFPlayer commands and values
+enum  : uint8_t{
+    DF_PLAY          = 0x0F,
+    DF_VOL           = 0x06,
+    DF_FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
+    DF_REPEATPLAY    = 0x08,
+    DF_STOPPLAY      = 0x16,
+    DF_EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
+    DF_RESET         = 0x0C,
+    DF_DACON         = 0x1A,
+    DF_SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
+    DF_NORMAL        = 0x00, // Equalizer parameters
+    DF_POP           = 0x01,
+    DF_ROCK          = 0x02,
+    DF_JAZZ          = 0x03,
+    DF_CLASSIC       = 0x04,
+    DF_BASS          = 0x05,
+  };
 
 #endif

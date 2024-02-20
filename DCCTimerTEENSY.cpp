@@ -39,6 +39,15 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
   }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+  (void) brakePin; 
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
 bool DCCTimer::isPWMPin(byte pin) {
        //Teensy: digitalPinHasPWM, todo
       (void) pin;

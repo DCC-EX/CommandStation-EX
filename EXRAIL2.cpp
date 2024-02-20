@@ -333,13 +333,15 @@ if (compileFeatures & FEATURE_SIGNAL) {
 }
 
 void RMFT2::setTurnoutHiddenState(Turnout * t) {
-  // turnout descriptions are in low flash F strings 
-  t->setHidden(GETFLASH(getTurnoutDescription(t->getId()))==0x01);     
+  // turnout descriptions are in low flash F strings
+  const FSH *desc = getTurnoutDescription(t->getId());
+  if (desc) t->setHidden(GETFLASH(desc)==0x01);
 }
 
 #ifndef IO_NO_HAL
 void RMFT2::setTurntableHiddenState(Turntable * tto) {
-  tto->setHidden(GETFLASH(getTurntableDescription(tto->getId()))==0x01);
+  const FSH *desc = getTurntableDescription(tto->getId());
+  if (desc) tto->setHidden(GETFLASH(desc)==0x01);
 }
 #endif
 
@@ -837,6 +839,14 @@ void RMFT2::loop2() {
     DCC::setAccessory(addr,subaddr,active);
     break;
   }
+   case OPCODE_ASPECT: {
+    // operand is address<<5 |  value
+    int16_t address=operand>>5;
+    byte aspect=operand & 0x1f;
+    if (!signalAspectEvent(address,aspect))
+      DCC::setExtendedAccessory(address,aspect);
+    break;
+  }
     
   case OPCODE_FOLLOW:
     progCounter=routeLookup->find(operand);
@@ -1098,7 +1108,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
-  // Thjis will work even without a signal definition. 
+  // This will work even without a signal definition. 
   if (rag==SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
   else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
   else onAmberLookup->handleEvent(F("AMBER"),id);
@@ -1135,6 +1145,16 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     return; 
   }
 
+ if (sigtype== DCCX_SIGNAL_FLAG) {
+    // redpin,amberpin,greenpin are the 3 aspects
+    byte value=redpin;
+    if (rag==SIGNAL_AMBER) value=amberpin;
+    if (rag==SIGNAL_GREEN) value=greenpin; 
+    DCC::setExtendedAccessory(sigid & SIGNAL_ID_MASK,value);
+    return; 
+  }
+
+
   // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
   // If amberpin is zero, synthesise amber from red+green
   const byte SIMAMBER=0x00;
@@ -1166,6 +1186,38 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   int16_t sigslot=getSignalSlot(id);
   if (sigslot<0) return false; 
   return (flags[sigslot] & SIGNAL_MASK) == rag;
+}
+
+
+// signalAspectEvent returns true if the aspect is destined
+// for a defined DCCX_SIGNAL which will handle all the RAG flags
+// and ON* handlers.
+// Otherwise false so the parser should send the command directly 
+bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
+  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
+  int16_t sigslot=getSignalSlot(address);
+  if (sigslot<0) return false;  // this is not a defined signal 
+  int16_t sigpos=sigslot*8; 
+  VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
+  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
+  if (sigtype!=DCCX_SIGNAL_FLAG) return false; // not a DCCX signal
+  // Turn an aspect change into a RED/AMBER/GREEN setting
+  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2)) {
+      doSignal(sigid,SIGNAL_RED);
+      return true;
+  }
+  
+  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4)) {
+      doSignal(sigid,SIGNAL_AMBER);
+      return true;
+  }
+  
+  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6)) {
+      doSignal(sigid,SIGNAL_GREEN);
+      return true;
+  }
+
+  return false;  // aspect is not a defined one    
 }
 
 void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
