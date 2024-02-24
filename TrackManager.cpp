@@ -219,7 +219,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode & TRACK_MODE_BOOST) {
       //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
       pinMode(BOOSTER_INPUT, INPUT);
-      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
+      gpio_matrix_in(BOOSTER_INPUT, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
       gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
       if (p.invpin != UNUSED_PIN) {
 	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
