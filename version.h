@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.36"
+#define VERSION "5.2.36i2c"
+// 5.2.36i2c - Add various I2C drivers, including TCA8418 and Adafruit NeoPixel Driver initially
 // 5.2.36 - Variable frequency for DC mode
 // 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
 // 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories

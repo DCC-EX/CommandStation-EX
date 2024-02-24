@@ -547,6 +547,7 @@ protected:
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
 #include "IO_trainbrains.h"
+#include "IO_TCA8418.h"
 
 
 #endif // iodevice_h
