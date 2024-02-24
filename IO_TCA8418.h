@@ -40,6 +40,7 @@ class TCA8418 : public GPIOBase<uint64_t> {
 public:
   static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
     if (checkNoOverlap(vpin, nPins, i2cAddress))
+      // temporarily use the simple 18-pin GPIO mode - we'll switch to 8x8 matrix once this works
       new TCA8418(vpin, (nPins = (nPins > 18) ? 18 : nPins), i2cAddress, interruptPin);
   }
 
@@ -118,6 +119,7 @@ private:
   }
 
   void _setupDevice() override {
+    DIAG(F("TCA8418 setupDevice() called"));
     // IOCON is set MIRROR=1, ODR=1 (open drain shared interrupt pin)
     // I2CManager.write(_I2CAddress, 2, REG_IOCON, 0x44);
     _writePortModes();
