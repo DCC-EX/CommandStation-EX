@@ -83,6 +83,7 @@ void EXTurntable::_loop(unsigned long currentMicros) {
 // Read returns status as obtained in our loop.
 // Return false if our status value is invalid.
 int EXTurntable::_read(VPIN vpin) {
+  (void)vpin; // surpress warning
   if (_deviceState == DEVSTATE_FAILED) return 0;
   if (_stepperStatus > 1) {
     return false;
@@ -127,6 +128,8 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
     vpin, value, activity, duration);
   DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
     _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
+#else
+  (void)duration;
 #endif
   if (activity < 4) _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
   _previousStatus = _stepperStatus;
