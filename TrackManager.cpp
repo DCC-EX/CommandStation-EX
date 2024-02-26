@@ -362,7 +362,8 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]=="EXT"_hk) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
 #ifdef BOOSTER_INPUT
-    if (params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
+    if (TRACK_MODE_BOOST != 0 &&        // compile time optimization
+	params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
 #endif
     if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
@@ -401,11 +402,11 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
     modename=F("EXT");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      modename=F("B A");
+      modename=F("BOOST A");
     else if (tm & TRACK_MODE_INV)
-      modename=F("B I");
+      modename=F("BOOST I");
     else
-      modename=F("B");
+      modename=F("BOOST");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
