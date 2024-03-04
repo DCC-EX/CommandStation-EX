@@ -350,6 +350,8 @@ const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
 #define TT_ADDPOSITION(turntable_id,position,value,home,description...) T_DESC(turntable_id,position,description)
 
 const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
+  (void)turntableId;
+  (void)positionId;
    #include "myAutomation.h"
    return NULL;
 }
