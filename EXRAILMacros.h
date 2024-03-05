@@ -95,14 +95,14 @@ constexpr int16_t stuffSize=sizeof(compileTimeSequenceList)/sizeof(int16_t) - 1;
 
 
 // Compile time function to check for sequence nos.
-constexpr bool hasseq(const int16_t value, const uint16_t pos=0 ) {
+constexpr bool hasseq(const int16_t value, const int16_t pos=0 ) {
     return pos>=stuffSize? false :
           compileTimeSequenceList[pos]==value 
        || hasseq(value,pos+1); 
 }
 
 // Compile time function to check for duplicate sequence nos.
-constexpr bool hasdup(const int16_t value, const uint16_t pos ) {
+constexpr bool hasdup(const int16_t value, const int16_t pos ) {
     return pos>=stuffSize? false :
           compileTimeSequenceList[pos]==value 
        || hasseq(value,pos+1) 
