@@ -1334,6 +1334,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
        break;  
     case thrunge_parse:
     case thrunge_broadcast:
+    case thrunge_message: 
     case thrunge_lcd:
     default:    // thrunge_lcd+1, ...
          if (!buffer) buffer=new StringBuffer();
@@ -1370,6 +1371,9 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
       break;
     case thrunge_withrottle:
       CommandDistributor::broadcastRaw(CommandDistributor::WITHROTTLE_TYPE,buffer->getString());
+      break;
+    case thrunge_message:
+      CommandDistributor::broadcastMessage(buffer->getString());
       break;
     case thrunge_lcd:
          LCD(id,F("%s"),buffer->getString());

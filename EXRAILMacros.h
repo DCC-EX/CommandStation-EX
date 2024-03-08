@@ -253,6 +253,9 @@ const int StringMacroTracker1=__COUNTER__;
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
 #define LCN(msg)   THRUNGE(msg,thrunge_lcn)
+#undef MESSAGE
+#define MESSAGE(msg) THRUNGE(msg,thrunge_message)
+
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) \
 case (__COUNTER__ - StringMacroTracker1) : {\
@@ -516,6 +519,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
 #define LCN(msg) PRINT(msg)
+#define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),

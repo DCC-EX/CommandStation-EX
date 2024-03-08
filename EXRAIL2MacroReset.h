@@ -97,6 +97,7 @@
 #undef LCCX 
 #undef LCN 
 #undef MOVETT
+#undef MESSAGE
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONAMBER
@@ -253,6 +254,7 @@
 #define LCD(row,msg)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
+#define MESSAGE(msg)
 #define MOVETT(id,steps,activity)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)

@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.37"
+#define VERSION "5.2.38"
+// 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
+//          connected throttles (uses <m "text"> and  withrottle Hmtext.
 // 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
 // 5.2.36 - Variable frequency for DC mode
 // 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213

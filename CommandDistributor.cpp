@@ -312,6 +312,11 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
 }
 
+void CommandDistributor::broadcastMessage(char * message) {
+  broadcastReply(COMMAND_TYPE, F("<m \"%s\">\n"),message);
+  broadcastReply(WITHROTTLE_TYPE, F("Hm%s\n"),message);
+}
+
 void CommandDistributor::broadcastTrackState(const FSH* format, byte trackLetter, const FSH *modename, int16_t dcAddr) {
   broadcastReply(COMMAND_TYPE, format, trackLetter, modename, dcAddr);
 }

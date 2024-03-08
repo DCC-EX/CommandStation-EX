@@ -94,7 +94,7 @@ enum thrunger: byte {
   thrunge_serial,thrunge_parse,
   thrunge_serial1, thrunge_serial2, thrunge_serial3,
   thrunge_serial4, thrunge_serial5, thrunge_serial6,
-  thrunge_lcn, 
+  thrunge_lcn,thrunge_message,
   thrunge_lcd,  // Must be last!!
   };
 
