@@ -45,7 +45,7 @@ Once a new OPCODE is decided upon, update this list.
   0, Track power off
   1, Track power on
   a, DCC accessory control
-  A,
+  A, DCC extended accessory control
   b, Write CV bit on main
   B, Write CV bit
   c, Request current command
@@ -384,6 +384,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
         }
         return;
+    
+    case 'A': // EXTENDED ACCESSORY <A address value> 
+        // Note: if this happens to match a defined EXRAIL 
+        // DCCX_SIGNAL, then EXRAIL will have intercepted
+        // this command alrerady.   
+        if (params==2 && DCC::setExtendedAccessory(p[0],p[1])) return;
+        break;
      
     case 'T': // TURNOUT  <T ...>
         if (parseT(stream, params, p))
@@ -1036,7 +1043,32 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
         DCC::setGlobalSpeedsteps(128);
 	DIAG(F("128 Speedsteps"));
         return true;
-
+#if defined(HAS_ENOUGH_MEMORY) && !defined(ARDUINO_ARCH_UNO)
+    case "RAILCOM"_hk:
+        {   // <C RAILCOM ON|OFF|DEBUG >
+            if (params<2) return false;
+            bool on=false;
+            bool debug=false;
+            switch (p[1]) {
+                case "ON"_hk:
+                case 1:
+                    on=true;
+                    break;
+                case "DEBUG"_hk:
+                    on=true;
+                    debug=true;
+                    break;
+                case "OFF"_hk:
+                case 0:
+                     break;
+                default:
+                 return false;
+            }              
+        DIAG(F("Railcom %S")
+            ,DCCWaveform::setRailcom(on,debug)?F("ON"):F("OFF"));
+        return true;     
+        }
+#endif
 #ifndef DISABLE_PROG
     case "ACK"_hk: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {

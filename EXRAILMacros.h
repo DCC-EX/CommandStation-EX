@@ -95,14 +95,14 @@ constexpr int16_t stuffSize=sizeof(compileTimeSequenceList)/sizeof(int16_t) - 1;
 
 
 // Compile time function to check for sequence nos.
-constexpr bool hasseq(const int16_t value, const uint16_t pos=0 ) {
+constexpr bool hasseq(const int16_t value, const int16_t pos=0 ) {
     return pos>=stuffSize? false :
           compileTimeSequenceList[pos]==value 
        || hasseq(value,pos+1); 
 }
 
 // Compile time function to check for duplicate sequence nos.
-constexpr bool hasdup(const int16_t value, const uint16_t pos ) {
+constexpr bool hasdup(const int16_t value, const int16_t pos ) {
     return pos>=stuffSize? false :
           compileTimeSequenceList[pos]==value 
        || hasseq(value,pos+1) 
@@ -117,6 +117,9 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 //  - check range on LATCH/UNLATCH
 // This pass generates no runtime data or code 
 #include "EXRAIL2MacroReset.h"
+#undef ASPECT
+#define ASPECT(address,value) static_assert(address <=2044, "invalid Address"); \
+                              static_assert(address>=-3, "Invalid value");
 #undef CALL
 #define CALL(id) static_assert(hasseq(id),"Sequence not found");
 #undef FOLLOW
@@ -151,6 +154,8 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) Sensor::createMultiple(vpin,##count);
+#undef  CONFIGURE_SERVO
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 bool exrailHalSetup() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
@@ -167,6 +172,8 @@ bool exrailHalSetup() {
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
 
@@ -246,6 +253,9 @@ const int StringMacroTracker1=__COUNTER__;
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
 #undef LCN
 #define LCN(msg)   THRUNGE(msg,thrunge_lcn)
+#undef MESSAGE
+#define MESSAGE(msg) THRUNGE(msg,thrunge_message)
+
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) \
 case (__COUNTER__ - StringMacroTracker1) : {\
@@ -343,6 +353,8 @@ const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
 #define TT_ADDPOSITION(turntable_id,position,value,home,description...) T_DESC(turntable_id,position,description)
 
 const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
+  (void)turntableId;
+  (void)positionId;
    #include "myAutomation.h"
    return NULL;
 }
@@ -396,6 +408,8 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr) id | RMFT2::DCC_SIGNAL_FLAG,addr,subaddr,0,
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
@@ -430,6 +444,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
+#define ASPECT(address,value) OPCODE_ASPECT,V((address<<5) | (value & 0x1F)),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
@@ -441,6 +456,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
 #endif
@@ -450,6 +466,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
@@ -502,6 +519,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
 #define LCN(msg) PRINT(msg)
+#define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),

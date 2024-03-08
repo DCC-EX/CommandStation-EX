@@ -158,12 +158,6 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTF(PORTF=shadowPORTF);
 }
 
-void TrackManager::setCutout( bool on) {
-    (void) on;
-    // TODO Cutout needs fake ports as well
-    // TODO      APPLY_BY_MODE(TRACK_MODE_MAIN,setCutout(on));
-}
-
 // setPROGSignal(), called from interrupt context
 // does assume ports are shadowed if they can be
 void TrackManager::setPROGSignal( bool on) {
@@ -225,7 +219,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode & TRACK_MODE_BOOST) {
       //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
       pinMode(BOOSTER_INPUT, INPUT);
-      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
+      gpio_matrix_in(BOOSTER_INPUT, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
       gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
       if (p.invpin != UNUSED_PIN) {
 	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
@@ -368,7 +362,8 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]=="EXT"_hk) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
 #ifdef BOOSTER_INPUT
-    if (params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
+    if (TRACK_MODE_BOOST != 0 &&        // compile time optimization
+	params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
 #endif
     if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
@@ -407,11 +402,11 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
     modename=F("EXT");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      modename=F("B A");
+      modename=F("BOOST A");
     else if (tm & TRACK_MODE_INV)
-      modename=F("B I");
+      modename=F("BOOST I");
     else
-      modename=F("B");
+      modename=F("BOOST");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)

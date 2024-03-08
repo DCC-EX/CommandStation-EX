@@ -31,6 +31,7 @@
 #undef ALIAS
 #undef AMBER
 #undef ANOUT
+#undef ASPECT
 #undef AT
 #undef ATGTE
 #undef ATLT
@@ -42,7 +43,9 @@
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLOSE 
+#undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
+#undef DCCX_SIGNAL
 #undef DCC_TURNTABLE
 #undef DEACTIVATE
 #undef DEACTIVATEL
@@ -94,6 +97,7 @@
 #undef LCCX 
 #undef LCN 
 #undef MOVETT
+#undef MESSAGE
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONAMBER
@@ -186,6 +190,7 @@
 #define AMBER(signal_id)
 #define ANOUT(vpin,value,param1,param2)
 #define AT(sensor_id)
+#define ASPECT(address,value)
 #define ATGTE(sensor_id,value) 
 #define ATLT(sensor_id,value) 
 #define ATTIMEOUT(sensor_id,timeout_ms)
@@ -195,8 +200,10 @@
 #define CALL(route)
 #define CLEAR_STASH(id)
 #define CLEAR_ALL_STASH(id)
-#define CLOSE(id) 
+#define CLOSE(id)
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 #define DCC_SIGNAL(id,add,subaddr)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DCC_TURNTABLE(id,home,description)
 #define DEACTIVATE(addr,subaddr)
 #define DEACTIVATEL(addr)
@@ -247,6 +254,7 @@
 #define LCD(row,msg)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
+#define MESSAGE(msg)
 #define MOVETT(id,steps,activity)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)

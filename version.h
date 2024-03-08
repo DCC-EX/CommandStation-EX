@@ -3,7 +3,22 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.3.5e"
+#define VERSION "5.3.6"
+// 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
+//          connected throttles (uses <m "text"> and  withrottle Hmtext.
+// 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
+// 5.2.36 - Variable frequency for DC mode
+// 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
+// 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
+//        - Exrail ASPECT(address,aspect) for above.
+//        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
+//        - Exrail intercept <A ...> for DCC Signals. 
+// 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
+// 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
+// 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
+//
+//
 // 5.3.5e - Fixes to ethernet cable handling, and STM32 related handling as well
 // 5.3.5  - Exrail JMRI_SENSORS(vpin [,count]) creates <S> types.
 // 5.3.4  - Bugfix: WiThrottle sendIntro after initial N message as well
@@ -12,6 +27,7 @@
 // 5.3.1  - Variable frequency for DC mode
 // 5.2.40 - Bugfix: WiThrottle sendIntro after initial N message as well
 // 5.2.31 - included in stm32EC as 5.3.5  
+//  -- some duplicates in above list
 // 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
 //        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
 //        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h

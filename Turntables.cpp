@@ -247,22 +247,23 @@ DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
     StringFormatter::send(stream, F("<i %d DCCTURNTABLE>\n"), _turntableData.id);
   }
 
-  // EX-Turntable specific code for moving to the specified position
-  bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
+// EX-Turntable specific code for moving to the specified position
+bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
+  (void) activity;
 #ifndef IO_NO_HAL
-    int16_t value = getPositionValue(position);
-    if (position == 0 || !value) return false; // Return false if it's not a valid position
-    // Set position via device driver
-    int16_t addr=value>>3;
-    int16_t subaddr=(value>>1) & 0x03;
-    bool active=value & 0x01;
-    _previousPosition = _turntableData.position;
-    _turntableData.position = position;
-    DCC::setAccessory(addr, subaddr, active);
+  int16_t value = getPositionValue(position);
+  if (position == 0 || !value) return false; // Return false if it's not a valid position
+  // Set position via device driver
+  int16_t addr=value>>3;
+  int16_t subaddr=(value>>1) & 0x03;
+  bool active=value & 0x01;
+  _previousPosition = _turntableData.position;
+  _turntableData.position = position;
+  DCC::setAccessory(addr, subaddr, active);
 #else
-    (void)position;
+  (void)position;
 #endif
-    return true;
-  }
+  return true;
+}
 
 #endif

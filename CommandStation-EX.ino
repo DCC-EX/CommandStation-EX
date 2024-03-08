@@ -65,6 +65,9 @@
 #ifdef EXRAIL_WARNING
 #warning You have myAutomation.h but your hardware has not enough memory to do that, so EX-RAIL DISABLED
 #endif
+// compile time check, passwords 1 to 7 chars do not work, so do not try to compile with them at all
+// remember trailing '\0', sizeof("") == 1.
+#define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")
 
 void setup()
 {
@@ -102,10 +105,12 @@ void setup()
   // Start Ethernet if it exists
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
+  PASSWDCHECK(WIFI_PASSWORD); // compile time check
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // WIFI_ON
 #else
   // ESP32 needs wifi on always
+  PASSWDCHECK(WIFI_PASSWORD); // compile time check
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // ARDUINO_ARCH_ESP32
 

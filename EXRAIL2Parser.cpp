@@ -51,6 +51,14 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     opcode=0;
     break;
   
+  case 'A': //  <A address aspect>
+    if (paramCount!=2) break; 
+    // Ask exrail if this is just changing the aspect on a 
+    // predefined DCCX_SIGNAL. Because this will handle all 
+    // the IFRED and ONRED type issues at the same time.  
+    if (signalAspectEvent(p[0],p[1])) opcode=0; // all done 
+    break;
+
   case 'L':
     // This entire code block is compiled out if LLC macros not used 
     if (!(compileFeatures & FEATURE_LCC)) return;

@@ -305,6 +305,57 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   }
 }
 
+bool DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
+
+/* From https://www.nmra.org/sites/default/files/s-9.2.1_2012_07.pdf
+
+The Extended Accessory Decoder Control Packet is included for the purpose of transmitting aspect control to signal 
+decoders or data bytes to more complex accessory decoders. Each signal head can display one aspect at a time. 
+{preamble} 0 10AAAAAA 0 0AAA0AA1 0 000XXXXX 0 EEEEEEEE 1
+
+XXXXX is for a single head. A value of 00000 for XXXXX indicates the absolute stop aspect. All other aspects 
+represented by the values for XXXXX are determined by the signaling system used and the prototype being 
+modeled.
+
+From https://normen.railcommunity.de/RCN-213.pdf:
+
+More information is in RCN-213 about how the address bits are organized.
+preamble -0- 1 0 A7 A6 A5 A4 A3 A2 -0- 0 ^A10 ^A9 ^A8 0 A1 A0 1 -0- ....
+
+Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
+
+Die Adresse für den ersten erweiterten Zubehördecoder ist wie bei den einfachen
+Zubehördecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
+Anwenderdialogen als Adresse 1 dargestellt.
+
+This means that the first address shown to the user as "1" is mapped
+to internal address 4.
+
+Note that the Basic accessory format mentions "By convention these
+bits (bits 4-6 of the second data byte) are in ones complement" but
+this note is absent from the advanced packet description. The
+english translation does not mention that the address format for
+the advanced packet follows the one for the basic packet but
+according to the RCN-213 this is the case.
+
+We allow for addresses from -3 to 2047-3 as that allows to address the
+whole range of the 11 bits sent to track.
+*/
+  if ((address > 2044) || (address < -3)) return false; // 2047-3, 11 bits but offset 3
+  if (value != (value & 0x1F)) return false;            // 5 bits
+
+  address+=3;                        // +3 offset according to RCN-213
+  byte b[3];
+  b[0]= 0x80                         // bits always on
+    | ((address>>2) & 0x3F);         // shift out 2, mask out used bits
+  b[1]= 0x01                         // bits always on
+    | (((~(address>>8)) & 0x07)<<4)  // shift out 8, invert, mask 3 bits, shift up 4
+    | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
+  b[2]=value;
+  DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);
+  return true;
+}
+
 //
 // writeCVByteMain: Write a byte with PoM on main. This writes
 // the 5 byte sized packet to implement this DCC function
