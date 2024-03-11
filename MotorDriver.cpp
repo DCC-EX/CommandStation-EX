@@ -4,6 +4,7 @@
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 Chris Harlow
+ *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -26,12 +27,18 @@
 #include "DCCWaveform.h"
 #include "DCCTimer.h"
 #include "DIAG.h"
+#include "EXRAIL2.h"
 
 unsigned long MotorDriver::globalOverloadStart = 0;
 
 volatile portreg_t shadowPORTA;
 volatile portreg_t shadowPORTB;
 volatile portreg_t shadowPORTC;
+#if defined(ARDUINO_ARCH_STM32)
+volatile portreg_t shadowPORTD;
+volatile portreg_t shadowPORTE;
+volatile portreg_t shadowPORTF;
+#endif
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, int16_t fault_pin) {
@@ -66,6 +73,21 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTC;
   }
+  if (HAVE_PORTD(fastSignalPin.inout == &PORTD)) {
+    DIAG(F("Found PORTD pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTD;
+  }
+  if (HAVE_PORTE(fastSignalPin.inout == &PORTE)) {
+    DIAG(F("Found PORTE pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTE;
+  }
+  if (HAVE_PORTF(fastSignalPin.inout == &PORTF)) {
+    DIAG(F("Found PORTF pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTF;
+  }
 
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
@@ -88,6 +110,21 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
       DIAG(F("Found PORTC pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTC;
+    }
+    if (HAVE_PORTD(fastSignalPin2.inout == &PORTD)) {
+      DIAG(F("Found PORTD pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTD;
+    }
+    if (HAVE_PORTE(fastSignalPin2.inout == &PORTE)) {
+      DIAG(F("Found PORTE pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTE;
+    }
+    if (HAVE_PORTF(fastSignalPin2.inout == &PORTF)) {
+      DIAG(F("Found PORTF pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTF;
     }
   }
   else dualSignal=false; 
@@ -167,7 +204,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
 }
 
 bool MotorDriver::isPWMCapable() {
-    return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
+    return (!dualSignal) && DCCTimer::isPWMPin(signalPin);
 }
 
 
@@ -277,7 +314,8 @@ void MotorDriver::startCurrentFromHW() {
 #pragma GCC pop_options
 #endif //ANALOG_READ_INTERRUPT
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
+#ifdef VARIABLE_TONES
 uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     247, 262, 294, 330,
 			     349, 392, 440, 494,
@@ -286,42 +324,40 @@ uint16_t taurustones[28] = { 165, 175, 196, 220,
 			     330, 284, 262, 247,
 			     220, 196, 175, 165 };
 #endif
-void MotorDriver::setDCSignal(byte speedcode) {
+#endif
+void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) {
   if (brakePin == UNUSED_PIN)
     return;
-#if defined(ARDUINO_AVR_UNO)
-  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
-#endif
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  TCCR2B = (TCCR2B & B11111000) | B00000110; // set divisor on timer 2 to result in (approx) 122.55Hz
-  TCCR4B = (TCCR4B & B11111000) | B00000100; // same for timer 4 but maxcount and thus divisor differs
-  TCCR5B = (TCCR5B & B11111000) | B00000100; // same for timer 5 which is like timer 4
-#endif
   // spedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
   byte brake;
-#if defined(ARDUINO_ARCH_ESP32)
-  {
-    int f = 131;
-    if (tSpeed > 2) {
-      if (tSpeed <= 58) {
-	f = taurustones[ (tSpeed-2)/2 ] ;
-      }
-    }
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency to 100Hz XXX May move to setup
-  }
-#endif
+
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
   if (invertBrake)
     brake=255-brake;
-#if defined(ARDUINO_ARCH_ESP32)
-  DCCTimer::DCCEXanalogWrite(brakePin,brake);
-#else
-  analogWrite(brakePin,brake);
+
+  { // new block because of variable f
+#if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
+    int f = frequency;
+#ifdef VARIABLE_TONES
+    if (tSpeed > 2) {
+      if (tSpeed <= 58) {
+	f = taurustones[ (tSpeed-2)/2 ] ;
+      }
+    }
 #endif
+    //DIAG(F("Brake pin %d freqency %d"), brakePin, f);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
+    DCCTimer::DCCEXanalogWrite(brakePin,brake);
+#else // all AVR here
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
+    analogWrite(brakePin,brake);
+#endif
+  }
+
   //DIAG(F("DCSignal %d"), speedcode);
   if (HAVE_PORTA(fastSignalPin.shadowinout == &PORTA)) {
     noInterrupts();
@@ -341,13 +377,59 @@ void MotorDriver::setDCSignal(byte speedcode) {
     setSignal(tDir);
     HAVE_PORTC(PORTC=shadowPORTC);
     interrupts();
+  } else if (HAVE_PORTD(fastSignalPin.shadowinout == &PORTD)) {
+    noInterrupts();
+    HAVE_PORTD(shadowPORTD=PORTD);
+    setSignal(tDir);
+    HAVE_PORTD(PORTD=shadowPORTD);
+    interrupts();
+  } else if (HAVE_PORTE(fastSignalPin.shadowinout == &PORTE)) {
+    noInterrupts();
+    HAVE_PORTE(shadowPORTE=PORTE);
+    setSignal(tDir);
+    HAVE_PORTE(PORTE=shadowPORTE);
+    interrupts();
+  } else if (HAVE_PORTF(fastSignalPin.shadowinout == &PORTF)) {
+    noInterrupts();
+    HAVE_PORTF(shadowPORTF=PORTF);
+    setSignal(tDir);
+    HAVE_PORTF(PORTF=shadowPORTF);
+    interrupts();
   } else {
     noInterrupts();
     setSignal(tDir);
     interrupts();
   }
 }
-
+void MotorDriver::throttleInrush(bool on) {
+  if (brakePin == UNUSED_PIN)
+    return;
+  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT)))
+    return;
+  byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
+  if (invertBrake)
+    duty = 255-duty;
+#if defined(ARDUINO_ARCH_ESP32)
+  if(on) {
+    DCCTimer::DCCEXanalogWrite(brakePin,duty);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+  } else {
+    ledcDetachPin(brakePin);
+  }
+#elif defined(ARDUINO_ARCH_STM32)
+  if(on) {
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+    DCCTimer::DCCEXanalogWrite(brakePin,duty);
+  } else {
+    pinMode(brakePin, OUTPUT);
+  }
+#else // all AVR here
+  if(on){
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+  }
+  analogWrite(brakePin,duty);
+#endif
+}
 unsigned int MotorDriver::raw2mA( int raw) {
   //DIAG(F("%d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);
   return (int32_t)raw * senseFactorInternal / senseScale;
@@ -461,6 +543,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	DIAG(F("TRACK %c ALERT FAULT"), trackno + 'A');
       }
       setPower(POWERMODE::ALERT);
+      if ((trackMode & TRACK_MODE_AUTOINV) && (trackMode & (TRACK_MODE_MAIN|TRACK_MODE_EXT|TRACK_MODE_BOOST))){
+	DIAG(F("TRACK %c INVERT"), trackno + 'A');
+	invertOutput();
+      }
       break;
     }
     // all well
@@ -473,29 +559,31 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
   case POWERMODE::ALERT: {
     // set local flags that handle how much is output to diag (do not output duplicates)
     bool notFromOverload = (lastPowerMode != POWERMODE::OVERLOAD);
-    bool newPowerMode = (powerMode != lastPowerMode);
+    bool powerModeChange = (powerMode != lastPowerMode);
     unsigned long now = micros();
-    if (newPowerMode)
+    if (powerModeChange)
       lastBadSample = now;
     lastPowerMode = POWERMODE::ALERT;
     // check how long we have been in this state
     unsigned long mslpc = microsSinceLastPowerChange(POWERMODE::ALERT);
     if(checkFault()) {
+      throttleInrush(true);
       lastBadSample = now;
       unsigned long timeout = checkCurrent(useProgLimit) ? POWER_SAMPLE_IGNORE_FAULT_HIGH : POWER_SAMPLE_IGNORE_FAULT_LOW;
       if ( mslpc < timeout) {
-	if (newPowerMode)
+	if (powerModeChange)
 	  DIAG(F("TRACK %c FAULT PIN (%M ignore)"), trackno + 'A', timeout);
 	break;
       }
       DIAG(F("TRACK %c FAULT PIN detected after %4M. Pause %4M)"), trackno + 'A', mslpc, power_sample_overload_wait);
+      throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
       break;
     }
     if (checkCurrent(useProgLimit)) {
       lastBadSample = now;
       if (mslpc < POWER_SAMPLE_IGNORE_CURRENT) {
-	if (newPowerMode) {
+	if (powerModeChange) {
 	  unsigned int mA=raw2mA(lastCurrent);
 	  DIAG(F("TRACK %c CURRENT (%M ignore) %dmA"), trackno + 'A', POWER_SAMPLE_IGNORE_CURRENT, mA);
 	}
@@ -505,6 +593,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       unsigned int maxmA=raw2mA(tripValue);
       DIAG(F("TRACK %c POWER OVERLOAD %4dmA (max %4dmA) detected after %4M. Pause %4M"),
 	   trackno + 'A', mA, maxmA, mslpc, power_sample_overload_wait);
+      throttleInrush(false);
       setPower(POWERMODE::OVERLOAD);
       break;
     }
@@ -515,6 +604,7 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
 	unsigned int mA=raw2mA(lastCurrent);
 	DIAG(F("TRACK %c NORMAL (after %M/%M) %dmA"), trackno + 'A', goodtime, mslpc, mA);
       }
+      throttleInrush(false);
       setPower(POWERMODE::ON);
     }
     break;
@@ -527,7 +617,11 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       // adjust next wait time
       power_sample_overload_wait *= 2;
       if (power_sample_overload_wait > POWER_SAMPLE_RETRY_MAX)
-	power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+	      power_sample_overload_wait = POWER_SAMPLE_RETRY_MAX;
+  #ifdef EXRAIL_ACTIVE
+      DIAG(F("Calling EXRAIL"));
+      RMFT2::powerEvent(trackno, true); // Tell EXRAIL we have an overload
+  #endif
       // power on test
       DIAG(F("TRACK %c POWER RESTORE (after %4M)"), trackno + 'A', mslpc);
       setPower(POWERMODE::ALERT);

@@ -76,6 +76,15 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+  (void) brakePin; 
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
 // Timer IRQ handlers replace the dummy handlers (in cortex_handlers)
 // copied from rf24 branch
 void TCC0_Handler() {
@@ -154,6 +163,11 @@ void DCCTimer::reset() {
    __disable_irq();
     NVIC_SystemReset();
     while(true) {};
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 }
 
 #define NUM_ADC_INPUTS NUM_ANALOG_INPUTS

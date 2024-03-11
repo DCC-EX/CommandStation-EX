@@ -24,6 +24,8 @@
 //#include "IO_TouchKeypad.h  // Touch keypad with 16 keys
 //#include "IO_EXTurntable.h"   // Turntable-EX turntable controller
 //#include "IO_EXFastClock.h"  // FastClock driver
+//#include "IO_PCA9555.h"     // 16-bit I/O expander (NXP & Texas Instruments).
+//#include "IO_I2CDFPlayer.h" // DFPlayer over I2C
 
 //==========================================================================
 // The function halSetup() is invoked from CS if it exists within the build.
@@ -51,7 +53,7 @@ void halSetup() {
   // Create a 20x4 LCD display device as display number 2 
   // (line 0 is written by EX-RAIL 'SCREEN(2, 0, "text")').
 
-  // HALDisplay<LiquidCrystal>(2, 0x27, 20, 4);
+  // HALDisplay<LiquidCrystal>::create(2, 0x27, 20, 4);
 
 
   //=======================================================================
@@ -231,6 +233,31 @@ void halSetup() {
   //      FOLLOW(1)         // Go back to start
 
   // DFPlayer::create(10000, 10, Serial1);
+
+
+  //=======================================================================
+  // Play mp3 files from a Micro-SD card, using a DFPlayer MP3 Module on a SC16IS750/SC16IS752 I2C UART
+  //=======================================================================
+  // DFPlayer via NXP SC16IS752 I2C Dual UART.
+  // I2C address range 0x48 - 0x57
+  // 
+  // Generic format: 
+  // I2CDFPlayer::create(1st vPin, vPins, I2C address, xtal);
+  // Parameters:
+  // 1st vPin     : First virtual pin that EX-Rail can control to play a sound, use PLAYSOUND command (alias of ANOUT)
+  // vPins        : Total number of virtual pins allocated (1 vPin is supported currently)
+  //                1st vPin for UART 0
+  // I2C Address  : I2C address of the serial controller, in 0x format
+  // xtal         : 0 for 1.8432Mhz, 1 for 14.7456Mhz
+  //
+  // The vPin is also a pin that can be read with the WAITFOR(vPin) command indicating if the DFPlayer has finished playing a track
+  //
+  
+  // I2CDFPlayer::create(10000,  1, 0x48, 1);
+  //
+  // Configuration example on a multiplexer
+  // I2CDFPlayer::create(10000, 1, {I2CMux_0, SubBus_0, 0x48}, 1);
+
 
 
   //=======================================================================

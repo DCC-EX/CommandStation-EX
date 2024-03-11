@@ -76,6 +76,7 @@ public:
   static void store();
 #endif
   static Sensor *create(int id, VPIN vpin, int pullUp);
+  static void createMultiple(VPIN firstPin, byte count=1);
   static Sensor* get(int id);  
   static bool remove(int id);  
   static void checkAll();

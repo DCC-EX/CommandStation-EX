@@ -230,6 +230,13 @@ Sensor *Sensor::create(int snum, VPIN pin, int pullUp){
   return tt;
 }
 
+// Creet multiple eponymous sensors based on vpin alone. 
+void Sensor::createMultiple(VPIN firstPin, byte count) {
+  for (byte i=0;i<count;i++) {
+    create(firstPin+i,firstPin+i,1); 
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Object method to directly change the input state, for sensors such as LCN which are updated
 //  by means other than by polling an input.

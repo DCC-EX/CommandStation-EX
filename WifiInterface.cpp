@@ -60,7 +60,7 @@ Stream * WifiInterface::wifiStream;
 #if defined(ARDUINO_ARCH_STM32)
 // Handle serial ports availability on STM32 for variants!
 // #undef NUM_SERIAL
-#if defined(ARDUINO_NUCLEO_F411RE)
+#if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE)
 #define NUM_SERIAL 3
 #define SERIAL1 Serial1
 #define SERIAL3 Serial6
@@ -68,9 +68,13 @@ Stream * WifiInterface::wifiStream;
 #define NUM_SERIAL 3
 #define SERIAL1 Serial3
 #define SERIAL3 Serial5
-#elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+#elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) \
+    || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG) \
+    || defined(ARDUINO_NUCLEO_F439ZI)
 #define NUM_SERIAL 2
 #define SERIAL1 Serial6
+#else
+#warning This variant of Nucleo not yet explicitly supported
 #endif
 #endif
 
@@ -198,7 +202,23 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
   // Display the AT version information
   StringFormatter::send(wifiStream, F("AT+GMR\r\n")); 
-  checkForOK(2000, true, false);      // Makes this visible on the console
+  if (checkForOK(2000, F("AT version:"), true, false)) {
+    char version[] = "0.0.0.0-xxx";
+    for (int i=0; i<11;i++) {
+      while(!wifiStream->available());
+      version[i]=wifiStream->read();
+      StringFormatter::printEscape(version[i]);
+    }
+    if ((version[0] == '0') ||
+	(version[0] == '2' && version[2] == '0') ||
+	(version[0] == '2' && version[2] == '2' && version[4] == '0' && version[6] == '0'
+	 && version[7] == '-' && version[8] == 'd' && version[9] == 'e' && version[10] == 'v')) {
+      DIAG(F("You need to up/downgrade the ESP firmware"));
+      SSid = F("UPDATE_ESP_FIRMWARE");
+      forceAP = true;
+    }
+  }
+  checkForOK(2000, true, false);
 
 #ifdef DONT_TOUCH_WIFI_CONF
   DIAG(F("DONT_TOUCH_WIFI_CONF was set: Using existing config"));

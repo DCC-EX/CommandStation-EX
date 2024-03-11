@@ -151,9 +151,25 @@ void DCCTimer::reset() {
    ESP.restart();
 }
 
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  if (f >= 16)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+  else if (f == 7)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+  else if (f >= 4)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
+  else if (f >= 3)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
+  else if (f >= 2)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+  else if (f == 1)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
+  else
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 131);
+}
+
 #include "esp32-hal.h"
 #include "soc/soc_caps.h"
-
 
 #ifdef SOC_LEDC_SUPPORT_HS_MODE
 #define LEDC_CHANNELS           (SOC_LEDC_CHANNEL_NUM<<1)
@@ -164,7 +180,7 @@ void DCCTimer::reset() {
 static int8_t pin_to_channel[SOC_GPIO_PIN_COUNT] = { 0 };
 static int cnt_channel = LEDC_CHANNELS;
 
-void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency) {
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency) {
   if (pin < SOC_GPIO_PIN_COUNT) {
     if (pin_to_channel[pin] != 0) {
       ledcSetup(pin_to_channel[pin], frequency, 8);
@@ -180,8 +196,8 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
           return;
       }
       pin_to_channel[pin] = --cnt_channel;
-      ledcAttachPin(pin, cnt_channel);
       ledcSetup(cnt_channel, 1000, 8);
+      ledcAttachPin(pin, cnt_channel);
     } else {
       ledcAttachPin(pin, pin_to_channel[pin]);
     }

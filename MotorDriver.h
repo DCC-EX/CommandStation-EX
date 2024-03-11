@@ -1,9 +1,9 @@
 /*
- *  © 2022 Paul M Antoine
+ *  © 2022-2023 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
- *  © 2022 Harald Barth
+ *  © 2022,2023 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -26,6 +26,23 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "DCCTimer.h"
+
+// use powers of two so we can do logical and/or on the track modes in if clauses.
+// RACK_MODE_DCX is (TRACK_MODE_DC|TRACK_MODE_INV)
+template<class T> inline T operator~ (T a) { return (T)~(int)a; }
+template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
+template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
+template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
+enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
+                        TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16,
+#ifdef ARDUINO_ARCH_ESP32
+			TRACK_MODE_BOOST = 32,
+#else
+			TRACK_MODE_BOOST = 0,
+#endif
+                        TRACK_MODE_ALL = TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_EXT|TRACK_MODE_BOOST,
+                        TRACK_MODE_INV = 64,
+			TRACK_MODE_DCX = TRACK_MODE_DC|TRACK_MODE_INV, TRACK_MODE_AUTOINV = 128};
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
@@ -56,6 +73,16 @@
 #define HAVE_PORTB(X) X
 #define PORTC GPIOC->ODR
 #define HAVE_PORTC(X) X
+#define PORTD GPIOD->ODR
+#define HAVE_PORTD(X) X
+#if defined(GPIOE)
+#define PORTE GPIOE->ODR
+#define HAVE_PORTE(X) X
+#endif
+#if defined(GPIOF)
+#define PORTF GPIOF->ODR
+#define HAVE_PORTF(X) X
+#endif
 #endif
 
 // if macros not defined as pass-through we define
@@ -69,6 +96,15 @@
 #endif
 #ifndef HAVE_PORTC
 #define HAVE_PORTC(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTD
+#define HAVE_PORTD(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTE
+#define HAVE_PORTE(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTF
+#define HAVE_PORTF(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
 #endif
 
 // Virtualised Motor shield 1-track hardware Interface
@@ -106,6 +142,9 @@ struct FASTPIN {
 extern volatile portreg_t shadowPORTA;
 extern volatile portreg_t shadowPORTB;
 extern volatile portreg_t shadowPORTC;
+extern volatile portreg_t shadowPORTD;
+extern volatile portreg_t shadowPORTE;
+extern volatile portreg_t shadowPORTF;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 
@@ -122,7 +161,11 @@ class MotorDriver {
     // otherwise the call from interrupt context can undo whatever we do
     // from outside interrupt
     void setBrake( bool on, bool interruptContext=false);
-  __attribute__((always_inline)) inline void setSignal( bool high) {
+    __attribute__((always_inline)) inline void setSignal( bool high) {
+#ifndef ARDUINO_ARCH_ESP32
+      if (invertPhase)
+	high = !high;
+#endif
       if (trackPWM) {
 	DCCTimer::setPWM(signalPin,high);
       }
@@ -142,9 +185,16 @@ class MotorDriver {
 	pinMode(signalPin, OUTPUT);
       else
 	pinMode(signalPin, INPUT);
+      if (signalPin2 != UNUSED_PIN) {
+	if (on)
+	  pinMode(signalPin2, OUTPUT);
+	else
+	  pinMode(signalPin2, INPUT);
+      }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
-    void setDCSignal(byte speedByte);
+    void setDCSignal(byte speedByte, uint8_t frequency=0);
+    void throttleInrush(bool on);
     inline void detachDCSignal() {
 #if defined(__arm__)
       pinMode(brakePin, OUTPUT);
@@ -158,16 +208,16 @@ class MotorDriver {
     unsigned int raw2mA( int raw);
     unsigned int mA2raw( unsigned int mA);
     inline bool brakeCanPWM() {
-#if defined(ARDUINO_ARCH_ESP32) || defined(__arm__)
-      // TODO: on ARM we can use digitalPinHasPWM, and may wish/need to
-      return true;
-#else
-#ifdef digitalPinToTimer
+#if defined(ARDUINO_ARCH_ESP32)
+      return (brakePin != UNUSED_PIN); // This was just (true) but we probably do need to check for UNUSED_PIN!
+#elif defined(__arm__)
+      // On ARM we can use digitalPinHasPWM
+      return ((brakePin!=UNUSED_PIN) && (digitalPinHasPWM(brakePin)));
+#elif defined(digitalPinToTimer)
       return ((brakePin!=UNUSED_PIN) && (digitalPinToTimer(brakePin)));
 #else
       return (brakePin<14 && brakePin >1);
-#endif //digitalPinToTimer
-#endif //ESP32/ARM
+#endif
     }
     inline int getRawCurrentTripValue() {
 	    return rawCurrentTripValue;
@@ -203,6 +253,38 @@ class MotorDriver {
     bool sampleCurrentFromHW();
     void startCurrentFromHW();
 #endif
+  inline void setMode(TRACK_MODE m) {
+    trackMode = m;
+    invertOutput(trackMode & TRACK_MODE_INV);
+  };
+  inline void invertOutput() {               // toggles output inversion
+    invertPhase = !invertPhase;
+    invertOutput(invertPhase);
+  };
+  inline void invertOutput(bool b) {         // sets output inverted or not
+    if (b)
+      invertPhase = 1;
+    else
+      invertPhase = 0;
+#if defined(ARDUINO_ARCH_ESP32)
+    pinpair p = getSignalPin();
+    uint32_t *outreg = (uint32_t *)(GPIO_FUNC0_OUT_SEL_CFG_REG + 4*p.pin);
+    if (invertPhase) // set or clear the invert bit in the gpio out register
+      *outreg |=  ((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    else
+      *outreg &= ~((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    if (p.invpin != UNUSED_PIN) {
+      outreg = (uint32_t *)(GPIO_FUNC0_OUT_SEL_CFG_REG + 4*p.invpin);
+      if (invertPhase) // clear or set the invert bit in the gpio out register
+	*outreg &= ~((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+      else
+	*outreg |=  ((uint32_t)0x1 << GPIO_FUNC0_OUT_INV_SEL_S);
+    }
+#endif
+  };
+  inline TRACK_MODE getMode() {
+    return trackMode;
+  };
   private:
     char trackLetter = '?';
     bool isProgTrack = false; // tells us if this is a prog track
@@ -230,7 +312,7 @@ class MotorDriver {
     bool invertBrake;       // brake pin passed as negative means pin is inverted
     bool invertPower;       // power pin passed as negative means pin is inverted
     bool invertFault;       // fault pin passed as negative means pin is inverted
-    
+    bool invertPhase = 0;   // phase of out pin is inverted
     // Raw to milliamp conversion factors avoiding float data types.
     // Milliamps=rawADCreading * sensefactorInternal / senseScale
     //
@@ -279,6 +361,7 @@ class MotorDriver {
     static const int TRIP_CURRENT_PROG=250;
     unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
+    TRACK_MODE trackMode = TRACK_MODE_NONE; // we assume track not assigned at startup
 
 };
 #endif

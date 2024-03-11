@@ -62,6 +62,8 @@ class DCCTimer {
   static bool isPWMPin(byte pin);
   static void setPWM(byte pin, bool high);
   static void clearPWM();
+  static void startRailcomTimer(byte brakePin);
+  static void ackRailcomTimer();
   static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
   static void DCCEXanalogWrite(uint8_t pin, int value);
 
@@ -85,6 +87,7 @@ class DCCTimer {
   static void reset();
   
 private:
+  static void DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency);
   static int freeMemory();
   static volatile int minimum_free_memory;
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
@@ -125,8 +128,13 @@ private:
   // On platforms that scan, it is called from waveform ISR
   // only on a regular basis.
   static void scan();
+  #if defined (ARDUINO_ARCH_STM32)
+  // bit array of used pins (max 32)
+  static uint32_t usedpins;
+#else
   // bit array of used pins (max 16)
   static uint16_t usedpins;
+#endif
   static uint8_t highestPin;
   // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;
