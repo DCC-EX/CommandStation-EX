@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.38"
+#define VERSION "5.2.39"
+// 5.2.39 - Functions for DC frequency: Use func up to F31
 // 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
 //          connected throttles (uses <m "text"> and  withrottle Hmtext.
 // 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
