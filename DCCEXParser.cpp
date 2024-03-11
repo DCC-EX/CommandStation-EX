@@ -283,25 +283,22 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
-        if (params==1) {  // <t cab>  display state
-        
-        int16_t slot=DCC::lookupSpeedTable(p[0],false);
-        if (slot>=0) {
-            DCC::LOCO * sp=&DCC::speedTable[slot];
-            StringFormatter::send(stream,F("<l %d %d %d %l>\n"),
-			sp->loco,slot,sp->speedCode,sp->functions);
-            }
-        else // send dummy state speed 0 fwd no functions. 
-            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
-        return; 
-        }
-        
         int16_t cab;
         int16_t tspeed;
         int16_t direction;
-        
+
+        if (params==1) {  // <t cab>  display state
+	  int16_t slot=DCC::lookupSpeedTable(p[0],false);
+	  if (slot>=0)
+	    CommandDistributor::broadcastLoco(slot);
+	  else // send dummy state speed 0 fwd no functions.
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+	  return;
+        }
+
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
+	    // ignore register p[0]
             cab = p[1];
             tspeed = p[2];
             direction = p[3];
