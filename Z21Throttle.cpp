@@ -1,6 +1,6 @@
 /*
  *  © 2023 Thierry Paris / Locoduino
- *  © 2023 Harald Barth
+ *  © 2023,2024 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -385,44 +385,24 @@ void Z21Throttle::notifyLocoInfo(byte inMSB, byte inLSB) {
 	Z21Throttle::replyBuffer[3] = DCC::getThrottleSpeed(locoAddress); // RVVVVVVV  R = forward    VVVVVVV = speed
 	if (DCC::getThrottleDirection(locoAddress)) bitSet(Z21Throttle::replyBuffer[3], 7);
 
-	Z21Throttle::replyBuffer[4] = B00000000; // 0DSLFGHJ  D = double traction    S = Smartsearch   L = F0   F = F4   G = F3   H = F2   J = F1
-	if (DCC::getFn(locoAddress, 0)) bitSet(Z21Throttle::replyBuffer[4], 4);
-	if (DCC::getFn(locoAddress, 1)) bitSet(Z21Throttle::replyBuffer[4], 0);
-	if (DCC::getFn(locoAddress, 2)) bitSet(Z21Throttle::replyBuffer[4], 1);
-	if (DCC::getFn(locoAddress, 3)) bitSet(Z21Throttle::replyBuffer[4], 2);
-	if (DCC::getFn(locoAddress, 4)) bitSet(Z21Throttle::replyBuffer[4], 3);
+	uint32_t functionMap = DCC::getFunctionMap(locoAddress);
 
-	Z21Throttle::replyBuffer[5] = B00000000;	// function F5 to F12    F5 is bit0
-	if (DCC::getFn(locoAddress, 5)) bitSet(Z21Throttle::replyBuffer[5], 0);
-	if (DCC::getFn(locoAddress, 6)) bitSet(Z21Throttle::replyBuffer[5], 1);
-	if (DCC::getFn(locoAddress, 7)) bitSet(Z21Throttle::replyBuffer[5], 2);
-	if (DCC::getFn(locoAddress, 8)) bitSet(Z21Throttle::replyBuffer[5], 3);
-	if (DCC::getFn(locoAddress, 9)) bitSet(Z21Throttle::replyBuffer[5], 4);
-	if (DCC::getFn(locoAddress, 10)) bitSet(Z21Throttle::replyBuffer[5],5);
-	if (DCC::getFn(locoAddress, 11)) bitSet(Z21Throttle::replyBuffer[5],6);
-	if (DCC::getFn(locoAddress, 12)) bitSet(Z21Throttle::replyBuffer[5],7);
+	// Byte 4: 0DSLFGHJ
+	// D = double traction  S = Smartsearch  L = F0  F = F4  G = F3  H = F2  J = F1
+	Z21Throttle::replyBuffer[4] = (functionMap >> 1) & 0xF; // function F1 to F5
+	if (functionMap & 1) // set F0 (Light)
+	  Z21Throttle::replyBuffer[4] += 16;
+	functionMap >>=5; // shift out the 5 bits which are not needed any more
 
-	Z21Throttle::replyBuffer[6] = B00000000;	// function F13 to F20   F13 is bit0
-	if (DCC::getFn(locoAddress, 13)) bitSet(Z21Throttle::replyBuffer[6], 0);
-	if (DCC::getFn(locoAddress, 14)) bitSet(Z21Throttle::replyBuffer[6], 1);
-	if (DCC::getFn(locoAddress, 15)) bitSet(Z21Throttle::replyBuffer[6], 2);
-	if (DCC::getFn(locoAddress, 16)) bitSet(Z21Throttle::replyBuffer[6], 3);
-	if (DCC::getFn(locoAddress, 17)) bitSet(Z21Throttle::replyBuffer[6], 4);
-	if (DCC::getFn(locoAddress, 18)) bitSet(Z21Throttle::replyBuffer[6], 5);
-	if (DCC::getFn(locoAddress, 19)) bitSet(Z21Throttle::replyBuffer[6], 6);
-	if (DCC::getFn(locoAddress, 20)) bitSet(Z21Throttle::replyBuffer[6], 7);
+	Z21Throttle::replyBuffer[5] = functionMap & 0xFF; // function  F5 to F12;  F5 is bit0
+	functionMap >>=8; // shift out 8 more
+	Z21Throttle::replyBuffer[6] = functionMap & 0xFF; // function F13 to F20; F13 is bit0
+	functionMap >>=8; // shift out 8 more
+	Z21Throttle::replyBuffer[7] = functionMap & 0xFF; // function F21 to F28; F21 is bit0
+	functionMap >>=8; // shift out 8 more
+	Z21Throttle::replyBuffer[8] = functionMap & 0xFF; // function F29 to F31; F28 is bit0
 
-	Z21Throttle::replyBuffer[7] = B00000000;	// function F21 to F28   F21 is bit0
-	if (DCC::getFn(locoAddress, 21)) bitSet(Z21Throttle::replyBuffer[7], 0);
-	if (DCC::getFn(locoAddress, 22)) bitSet(Z21Throttle::replyBuffer[7], 1);
-	if (DCC::getFn(locoAddress, 23)) bitSet(Z21Throttle::replyBuffer[7], 2);
-	if (DCC::getFn(locoAddress, 24)) bitSet(Z21Throttle::replyBuffer[7], 3);
-	if (DCC::getFn(locoAddress, 25)) bitSet(Z21Throttle::replyBuffer[7], 4);
-	if (DCC::getFn(locoAddress, 26)) bitSet(Z21Throttle::replyBuffer[7], 5);
-	if (DCC::getFn(locoAddress, 27)) bitSet(Z21Throttle::replyBuffer[7], 6);
-	if (DCC::getFn(locoAddress, 28)) bitSet(Z21Throttle::replyBuffer[7], 7);
-  
-	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_LOCO_INFO, Z21Throttle::replyBuffer, 8, false);
+	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_LOCO_INFO, Z21Throttle::replyBuffer, 9, false);
 }
 
 void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
