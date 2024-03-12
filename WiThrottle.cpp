@@ -571,7 +571,7 @@ void WiThrottle::sendRoutes(Print* stream) {
 
 void WiThrottle::sendFunctions(Print* stream, byte loco) {
   int16_t locoid=myLocos[loco].cab;
-  int fkeys=29;
+  int fkeys=32; // upper limit (send functions 0 to 31)
 	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
         
 #ifdef EXRAIL_ACTIVE
