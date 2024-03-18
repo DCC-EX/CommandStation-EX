@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.39"
+#define VERSION "5.2.40"
+// 5.2.40 - Allow no shield
 // 5.2.39 - Functions for DC frequency: Use func up to F31
 // 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
 //          connected throttles (uses <m "text"> and  withrottle Hmtext.
