@@ -1,6 +1,6 @@
 /*
  *  © 2022 Chris Harlow
- *  © 2022,2023 Harald Barth
+ *  © 2022-2024 Harald Barth
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -41,7 +41,7 @@
 MotorDriver * TrackManager::track[MAX_TRACKS];
 int16_t TrackManager::trackDCAddr[MAX_TRACKS];
 
-byte TrackManager::lastTrack=0;
+int8_t TrackManager::lastTrack=-1;
 bool TrackManager::progTrackSyncMain=false; 
 bool TrackManager::progTrackBoosted=false; 
 int16_t TrackManager::joinRelay=UNUSED_PIN;
@@ -498,7 +498,11 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
 
 // Set track power for this track, inependent of mode
 void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
-  MotorDriver *driver=track[t]; 
+  MotorDriver *driver=track[t];
+  if (driver == NULL) { // track is not defined at all
+    DIAG(F("Error: Track %c does not exist"), t+'A');
+    return;
+  }
   TRACK_MODE trackmode = driver->getMode();
   POWERMODE oldpower = driver->getPower();
   if (trackmode & TRACK_MODE_NONE) {
