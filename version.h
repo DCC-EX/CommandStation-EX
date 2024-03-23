@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.40"
+#define VERSION "5.2.41"
+// 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield
 // 5.2.39 - Functions for DC frequency: Use func up to F31
 // 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
