@@ -3,7 +3,14 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.38"
+#define VERSION "5.X.Y"
+//          Z21: report the (unchanged) loco mode back after every attempted change
+//          Add turnout functionality to Z21
+//          Fix index of DB[] to comply with Roco documentation
+//          add READ_REGISTER name to Z21 parser
+//
+// 5.2.40 - Allow no shield
+// 5.2.39 - Functions for DC frequency: Use func up to F31
 // 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
 //          connected throttles (uses <m "text"> and  withrottle Hmtext.
 // 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
