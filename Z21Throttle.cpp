@@ -852,15 +852,27 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       done = true;
       break;
     case HEADER_LAN_GET_LOCOMODE:
-      if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET LOCOMODE"), this->clientid);
-      notifyLocoMode(Data[0], Data[1]);	// big endian here, but resend the same as received, so no problem.
+    {
+      if (Diag::Z21THROTTLEVERBOSE) {
+	uint16_t addr = (Data[0] << 8) + Data[1];
+	DIAG(F("%d GET LOCOMODE %d"), this->clientid, addr);
+      }
+      notifyLocoMode(Data[0], Data[1]);	// big endian here, but resend the same as received, so no problem.      
       done = true;
-      break;
+    }
+    break;
       
     case HEADER_LAN_SET_LOCOMODE:
-      if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d SET LOCOMODE"), this->clientid);
+    {
+      // as we currently can not change loco mode, nothing to do
+      if (Diag::Z21THROTTLEVERBOSE) {
+	uint16_t addr = (Data[0] << 8) + Data[1];
+	DIAG(F("%d SET LOCOMODE %d"), this->clientid, addr);
+      }
+      notifyLocoMode(Data[0], Data[1]);	// big endian here, but resend the same as received, so no problem.
       done = true;
-      break;
+    }
+    break;
     case HEADER_LAN_GET_HWINFO:
       if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET HWINFO"), this->clientid);
       notifyHWInfo();	// big endian here, but resend the same as received, so no problem.
