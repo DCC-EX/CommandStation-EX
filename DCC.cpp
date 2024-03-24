@@ -219,8 +219,9 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
-  if (speedTable[reg].functions != previous && functionNumber <= 28) {
-    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+  if (speedTable[reg].functions != previous) {
+    if (functionNumber <= 28)
+      updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }
   return true;
@@ -235,14 +236,14 @@ void DCC::changeFn( int cab, int16_t functionNumber) {
   speedTable[reg].functions ^= funcmask;
   if (functionNumber <= 28) {
     updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-    CommandDistributor::broadcastLoco(reg);
   }
+  CommandDistributor::broadcastLoco(reg);
 }
 
 // Report function state (used from withrottle protocol)
 // returns 0 false, 1 true or -1 for do not know
 int8_t DCC::getFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28)
+  if (cab<=0 || functionNumber>31)
     return -1;  // unknown
   int reg = lookupSpeedTable(cab);
   if (reg<0)
