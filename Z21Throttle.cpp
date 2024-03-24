@@ -603,7 +603,13 @@ void diagPacket(byte *networkPacket, int len) {
 bool Z21Throttle::parse(byte *networkPacket, int len) {
 
   bool done = false;
+
+  // same names as in Z21 LAN Protocol Specification
   byte *DB;
+  byte *Data;
+  byte Xheader;
+  int Header;
+
   byte *p = networkPacket;
   int l = len;
 
@@ -632,36 +638,36 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       return false;
     }
     p += 2;
-    int header = GETINT16(p);
-    byte Xheader = 0;
+    Header = GETINT16(p);
     p += 2;
-    DB = p;
-    byte DB0 = 0;
+    // now p is at start of Data, networkPacket + 4
+    Data = p;
+    Xheader = Data[0];
+    DB = Data + 1;
     int nbLocos = CountLocos();
     // set p for next round
     p += lengthData;
-    if (Diag::Z21THROTTLEDATA && DB[1] != LAN_X_DB0_GET_STATUS)
-      DIAG(F("%d <- lengthData:%d  header:0x%02x  : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"),
-	   this->clientid, lengthData, header,
-	   (lengthData > 0)?DB[0]:0,
-	   (lengthData > 1)?DB[1]:0,
-	   (lengthData > 2)?DB[2]:0,
-	   (lengthData > 3)?DB[3]:0,
-	   (lengthData > 4)?DB[4]:0,
-	   (lengthData > 5)?DB[5]:0,
-	   (lengthData > 6)?DB[6]:0,
-	   (lengthData > 7)?DB[7]:0,
-	   (lengthData > 8)?DB[8]:0,
-	   (lengthData > 9)?DB[9]:0);
+    if (Diag::Z21THROTTLEDATA &&
+	!((DB[0] == LAN_X_DB0_GET_STATUS) && (Xheader == LAN_X_HEADER_GENERAL)))
+      DIAG(F("%d <- lengthData:%d  Header:0x%02x  : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"),
+	   this->clientid, lengthData, Header,
+	   (lengthData > 0)?Data[0]:0,
+	   (lengthData > 1)?Data[1]:0,
+	   (lengthData > 2)?Data[2]:0,
+	   (lengthData > 3)?Data[3]:0,
+	   (lengthData > 4)?Data[4]:0,
+	   (lengthData > 5)?Data[5]:0,
+	   (lengthData > 6)?Data[6]:0,
+	   (lengthData > 7)?Data[7]:0,
+	   (lengthData > 8)?Data[8]:0,
+	   (lengthData > 9)?Data[9]:0);
     if (l > 0 && Diag::Z21THROTTLEDATA) DIAG(F("next packet follows"));
     
-    switch (header)	{
+    switch (Header)	{
     case HEADER_LAN_XPRESS_NET:
-      Xheader = DB[0];
       switch (Xheader) {
       case LAN_X_HEADER_GENERAL:
-	DB0 = DB[1];
-	switch (DB0) {
+	switch (DB[0]) {
 	case LAN_X_DB0_GET_VERSION:
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET_VERSION"), this->clientid);
 	  break;
@@ -699,29 +705,28 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	done = true;
 	break;
       case LAN_X_HEADER_SET_LOCO:
-	DB0 = DB[1];
-	switch (DB0) {
+	switch (DB[0]) {
 	case LAN_X_DB0_LOCO_DCC14:
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCO DCC 14 SPEED"), this->clientid);
-	  setSpeed(14, DB[2], DB[3], DB[4]);
+	  setSpeed(14, DB[1], DB[2], DB[3]);
 	  done = true;
 	  break;
 	case LAN_X_DB0_LOCO_DCC28:
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCO DCC 28 SPEED"), this->clientid);
-	  setSpeed(28, DB[2], DB[3], DB[4]);
+	  setSpeed(28, DB[1], DB[2], DB[3]);
 	  done = true;
 	  break;
 	case LAN_X_DB0_LOCO_DCC128:
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCO DCC 128 SPEED"), this->clientid);
-	  setSpeed(128, DB[2], DB[3], DB[4]);
+	  setSpeed(128, DB[1], DB[2], DB[3]);
 	  done = true;
 	  break;
 	case LAN_X_DB0_SET_LOCO_FUNCTION:
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCO DCC FUNCTION"), this->clientid);
-	  setFunction(DB[2], DB[3], DB[4]);
+	  setFunction(DB[1], DB[2], DB[3]);
 	  if (Diag::Z21THROTTLE) {
 	    // Debug capacity to print data...
-	    byte function = DB[4];
+	    byte function = DB[3];
 	    bitClear(function, 6);
 	    bitClear(function, 7);
 	    if (function == 12) { // why not ?
@@ -734,14 +739,15 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	}
 	break;
       case LAN_X_HEADER_GET_LOCO_INFO:
+	// XXX Should we switch(DB[0]) here?
 	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCO INFO: "), this->clientid);
-	notifyLocoInfo(DB[2], DB[3]);
+	notifyLocoInfo(DB[1], DB[2]);
 	done = true;
 	
 	break;
       case LAN_X_HEADER_GET_TURNOUT_INFO:
 	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d TURNOUT INFO  "), this->clientid);
-	notifyTurnoutInfo(DB[1], DB[2]);
+	notifyTurnoutInfo(DB[0], DB[1]);
 	done = true;
 	
 	break;
@@ -754,7 +760,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	if (TrackManager::getProgDriver() != NULL) {
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d CV READ PROG "), this->clientid);
 	  // DB0 should be 0x11
-	  cvReadProg(DB[2], DB[3]);
+	  cvReadProg(DB[1], DB[2]);
 	}
 	else {
 	  //
@@ -764,14 +770,14 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	  // If no prog track, read on the main track !
 	  if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d CV READ MAIN "), this->clientid);
 	  // DB0 should be 0x11
-	  cvReadMain(DB[2], DB[3]);
+	  cvReadMain(DB[1], DB[2]);
 	}
 	done = true;
 	break;
       case LAN_X_HEADER_CV_POM:
 	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d CV READ POM"), this->clientid);
 	// DB0 should be 0x11
-	cvReadPom(DB[2], DB[3], DB[4], DB[5]);
+	cvReadPom(DB[1], DB[2], DB[3], DB[4]);
 	done = true;
 	break;
       case LAN_X_HEADER_CV_WRITE:
@@ -780,13 +786,15 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	done = true;
 	break;
       case LAN_X_HEADER_SET_TURNOUT:
+	// XXX sent when operating a turnout
+	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d SET TURNOUT "), this->clientid);
       case LAN_X_HEADER_READ_REGISTER:
 	break;
       }
       break;
       
     case HEADER_LAN_SET_BROADCASTFLAGS:
-      this->broadcastFlags = int32_t(DB[3] << 24 | DB[2] << 16 | DB[1] << 8 | DB[0]);
+      this->broadcastFlags = int32_t(Data[3] << 24 | Data[2] << 16 | Data[1] << 8 | Data[0]);
       if (Diag::Z21THROTTLEDATA) DIAG(F("BROADCAST FLAGS %d : %s %s %s %s %s %s %s %s %s %s %s"), this->clientid,
 				      (this->broadcastFlags & BROADCAST_BASE)	? "BASE " : "" ,
 				      (this->broadcastFlags & BROADCAST_RBUS)	? "RBUS " : "" ,
@@ -803,7 +811,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       break;
     case HEADER_LAN_GET_LOCOMODE:
       if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d GET LOCOMODE"), this->clientid);
-      notifyLocoMode(DB[0], DB[1]);	// big endian here, but resend the same as received, so no problem.
+      notifyLocoMode(Data[0], Data[1]);	// big endian here, but resend the same as received, so no problem.
       done = true;
       break;
       
@@ -827,6 +835,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       done = true;
       break;
     case HEADER_LAN_GET_SERIAL_NUMBER:
+      // XXX this has been seen, return dummy number
     case HEADER_LAN_GET_BROADCASTFLAGS:
     case HEADER_LAN_GET_TURNOUTMODE:
     case HEADER_LAN_SET_TURNOUTMODE:
@@ -841,7 +850,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
     }
     
     if (!done) {
-      if (Diag::Z21THROTTLE) DIAG(F("Z21 Throttle %d : not treated :  header:%x   Xheader:%x   DB0:%x"), this->clientid, header, Xheader, DB0);
+      if (Diag::Z21THROTTLE) DIAG(F("Z21 Throttle %d : not treated :  Header:%x   Xheader:%x   DB0:%x"), this->clientid, Header, Xheader, DB[0]);
     } else {
       int newNbLocos = CountLocos();
       if (nbLocos != newNbLocos)
