@@ -780,7 +780,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	done = true;
 	break;
       case LAN_X_HEADER_SET_TURNOUT:
-      case 0x22:
+      case LAN_X_HEADER_READ_REGISTER:
 	break;
       }
       break;
