@@ -145,6 +145,7 @@ class Z21Throttle {
 
 		void setSpeed(byte inNbSteps, byte inDB1, byte inDB2, byte inDB3);
 		void setFunction(byte inDB1, byte inDB2, byte inDB3);
+		void setTurnout(byte addrMSB, byte addrLSB, byte command);
 		void cvReadProg(byte inDB1, byte inDB2);
 		void cvWriteProg(byte inDB1, byte inDB2, byte inDB3);
 		void cvReadMain(byte inDB1, byte inDB2);

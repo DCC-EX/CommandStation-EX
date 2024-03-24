@@ -408,7 +408,21 @@ void Z21Throttle::notifyLocoInfo(byte inMSB, byte inLSB) {
 void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
 	Z21Throttle::replyBuffer[0] = inMSB;	// turnout address msb
 	Z21Throttle::replyBuffer[1] = inLSB; // turnout address lsb
-	Z21Throttle::replyBuffer[2] = B00000000; // 000000ZZ	 ZZ : 00 not switched   01 pos1  10 pos2  11 invalid
+	Z21Throttle::replyBuffer[2] = B00000011; // 000000ZZ	 ZZ : 00 not switched   01 pos1  10 pos2  11 invalid
+	char c = '?';
+	uint16_t addr = (inMSB << 8) + inLSB + 1;
+        Turnout *tt = Turnout::get(addr);
+	if (tt) { // if the tt does not exist we fall through with replyBuffer set to invalid
+	  if (tt->isClosed()) {
+	    Z21Throttle::replyBuffer[2] = B00000010;
+	    c = 'c';
+	  } else {
+	    Z21Throttle::replyBuffer[2] = B00000001;
+	    c = 't';
+	  }
+	}
+	if (Diag::Z21THROTTLE)
+	  DIAG(F("Z21 Throttle %d : Turnoutinfo %d %c"), clientid, addr, c);
 	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
 }
 
@@ -466,6 +480,30 @@ void Z21Throttle::setSpeed(byte inNbSteps, byte inDB1, byte inDB2, byte inDB3) {
 
 	if ((this->broadcastFlags & BROADCAST_BASE) != 0)
 		notifyLocoInfo(inDB1, inDB2);
+}
+
+void Z21Throttle::setTurnout(byte addrMSB, byte addrLSB, byte command) {
+  // 1000A00P
+  // A=0 ... Deactivate turnout output
+  // A=1 ... Activate turnout output
+  // P=0 ... Select output 1 of the turnout
+  // P=1 ... Select output 2 of the turnout
+  // Q=0 ... Execute command immediately
+  //         means that the client (app/mouse) does send activate and deactive
+  // Q=1 ... From Z21 FW V1.24: Insert turnout command into the queue of Z21
+  bool queue = (command & B00100000) != 0;
+  bool activate = (command & B00001000) != 0;
+  byte output = command & B00000001;
+
+  uint16_t addr = (addrMSB << 8) + addrLSB + 1;
+  if (Diag::Z21THROTTLE) DIAG(F("Z21 Throttle %d : turnout %d cmd 0x%x"), clientid, addr, command);
+
+  (void)queue; // We probably do not need to care (as we are a CS that maps to internal
+               // turnouts and not to accessory commands) about the difference.
+  if (activate) {
+    Turnout::setClosed(addr, output == 1);
+  } // else ignore the deactivate message
+  notifyTurnoutInfo(addrMSB, addrLSB); // sent for both activate and deactivate
 }
 
 //
@@ -622,12 +660,13 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
     }
     if (l < 0) {
       DIAG(F("ERROR: Xbus data exceeds UDP packet size: l < 0 pos=%d, l=%d"), p-networkPacket, l);
-      diagPacket(networkPacket, len);
+      diagPacket(p, len);
       return false;
     }
     if (l > 0 && lengthData < 4) {
-      DIAG(F("WARNING: Xbus data does not fill UDP packet size: l > 0 pos=%d, l=%d"), p-networkPacket, l);
-      diagPacket(networkPacket, len);
+      DIAG(F("WARNING: Xbus data does not fill UDP packet size: l > 0 pos=%d, l=%d, lengthData=%d"),
+	   p-networkPacket, l, lengthData);
+      diagPacket(p, len);
       return true;
     }
     // length of the data = total length - length of length (!) - length of header
@@ -647,6 +686,7 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
     int nbLocos = CountLocos();
     // set p for next round
     p += lengthData;
+    if (l > 0 && Diag::Z21THROTTLEDATA) DIAG(F("next packet follows at pos=%d"), p-networkPacket);
     if (Diag::Z21THROTTLEDATA &&
 	!((DB[0] == LAN_X_DB0_GET_STATUS) && (Xheader == LAN_X_HEADER_GENERAL)))
       DIAG(F("%d <- lengthData:%d  Header:0x%02x  : 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x"),
@@ -661,7 +701,6 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 	   (lengthData > 7)?Data[7]:0,
 	   (lengthData > 8)?Data[8]:0,
 	   (lengthData > 9)?Data[9]:0);
-    if (l > 0 && Diag::Z21THROTTLEDATA) DIAG(F("next packet follows"));
     
     switch (Header)	{
     case HEADER_LAN_XPRESS_NET:
@@ -788,6 +827,9 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       case LAN_X_HEADER_SET_TURNOUT:
 	// XXX sent when operating a turnout
 	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d SET TURNOUT "), this->clientid);
+	setTurnout(DB[0], DB[1], DB[2]);
+	done = true;
+	break;
       case LAN_X_HEADER_READ_REGISTER:
 	break;
       }
