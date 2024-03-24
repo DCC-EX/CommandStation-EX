@@ -56,9 +56,9 @@ HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5 - F446RE
       defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
-HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
-#if !defined(ARDUINO_NUCLEO_F412ZG)
-  HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART5
+HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART2
+#if !defined(ARDUINO_NUCLEO_F412ZG)  // F412ZG does not have UART5
+  HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
 #endif  
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
