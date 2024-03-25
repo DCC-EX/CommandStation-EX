@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.X.Y"
+//          Z21 add turnout and sensor broadcasts
 //          Z21: report the (unchanged) loco mode back after every attempted change
 //          Add turnout functionality to Z21
 //          Fix index of DB[] to comply with Roco documentation
