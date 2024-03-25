@@ -31,6 +31,7 @@
 #include "DCC.h"
 #include "TrackManager.h"
 #include "StringFormatter.h"
+#include "Z21Throttle.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -149,6 +150,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 // Public broadcast functions below 
 void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
+  Z21Throttle::broadcastNotifySensor(id, on);
   broadcastReply(COMMAND_TYPE, F("<%c %d>\n"), on?'Q':'q', id);
 }
 
@@ -156,6 +158,7 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed;
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
+  Z21Throttle::broadcastNotifyTurnout(id, isClosed);
   broadcastReply(COMMAND_TYPE, F("<H %d %d>\n"),id, !isClosed);
 #ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PTA%c%d\n"), isClosed?'2':'4', id);

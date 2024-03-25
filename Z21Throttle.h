@@ -20,7 +20,7 @@
 #define Z21Throttle_h
 
 //#include "CircularBuffer.hpp"
-#include "WiFiClient.h"
+#include "NetworkClientUDP.h"
 
 #define MAX_MTU 1460
 #define UDPBYTE_SIZE	1500
@@ -48,26 +48,12 @@ struct MYLOCOZ21 {
     uint32_t functionToggles;
 };
 
-class NetworkClientUDP {
-	public:
-	NetworkClientUDP() {
-	};
-	bool ok() {
-		return (inUse);
-	};
-
-	bool inUse = true;
-	bool connected = false;
-	IPAddress remoteIP;
-	int remotePort;
-
-	static WiFiUDP client;
-};
-
 class Z21Throttle {
 	public:  
 		static void loop();
-		static Z21Throttle* getOrAddThrottle(int clientId); 
+		static Z21Throttle* getOrAddThrottle(int clientId);
+		static void broadcastNotifyTurnout(uint16_t addr, bool isClosed);
+		static void broadcastNotifySensor(uint16_t addr, bool state);
 		static void markForBroadcast(int cab);
 		static void forget(byte clientId);
 		static void findUniqThrottle(int id, char *u);
@@ -137,7 +123,10 @@ class Z21Throttle {
 
 		void notifyStatus();
 		void notifyLocoInfo(byte inMSB, byte inLSB);
+		void notifyTurnoutInfo(uint16_t addr, bool isClosed);
 		void notifyTurnoutInfo(byte inMSB, byte inLSB);
+		void notifySensor(uint16_t addr);
+		void notifySensor(uint16_t addr, bool state);
 		void notifyLocoMode(byte inMSB, byte inLSB);
 		void notifyFirmwareVersion();
 		void notifyHWInfo();
@@ -181,6 +170,10 @@ class Z21Throttle {
 #define HEADER_LAN_LOCONET_DETECTOR 0xA4
 
 #define LAN_GET_CONFIG 0x12
+
+#define LAN_LOCONET_TYPE_DIGITRAX 0x80
+#define LAN_LOCONET_TYPE_UHL_REPORTER 0x81
+#define LAN_LOCONET_TYPE_UHL_LISSY 0x82
 
 #define LAN_X_HEADER_GENERAL 0x21
 #define LAN_X_HEADER_READ_REGISTER 0x22

@@ -27,6 +27,7 @@
 #include "DCCWaveform.h"
 #include "StringFormatter.h"
 #include "Turnouts.h"
+#include "Sensors.h"
 #include "DIAG.h"
 #include "GITHUB_SHA.h"
 #include "version.h"
@@ -170,6 +171,17 @@ Z21Throttle* Z21Throttle::getOrAddThrottle(int clientId) {
 	Z21Throttle *p = new Z21Throttle(clientId);
 	printThrottles(false);
 	return p;
+}
+
+void Z21Throttle::broadcastNotifyTurnout(uint16_t addr, bool isClosed) {
+  for (Z21Throttle* wt = firstThrottle; wt != NULL ; wt = wt->nextThrottle)  {
+    wt->notifyTurnoutInfo(addr, isClosed);
+  }
+}
+void Z21Throttle::broadcastNotifySensor(uint16_t addr, bool state) {
+  for (Z21Throttle* wt = firstThrottle; wt != NULL ; wt = wt->nextThrottle)  {
+    wt->notifySensor(addr, state);
+  }
 }
 
 void Z21Throttle::forget( byte clientId) {
@@ -405,6 +417,22 @@ void Z21Throttle::notifyLocoInfo(byte inMSB, byte inLSB) {
 	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_LOCO_INFO, Z21Throttle::replyBuffer, 9, false);
 }
 
+void Z21Throttle::notifyTurnoutInfo(uint16_t addr, bool isClosed) {
+  char c;
+  Z21Throttle::replyBuffer[0] = (byte)(addr >> 8);
+  Z21Throttle::replyBuffer[1] = (byte)(addr & 0xFF);
+  if (isClosed) {
+    Z21Throttle::replyBuffer[2] = B00000010;
+    c = 'c';
+  } else {
+    Z21Throttle::replyBuffer[2] = B00000001;
+    c = 't';
+  }
+  if (Diag::Z21THROTTLE)
+    DIAG(F("Z21 Throttle %d : Turnoutinfo %d %c"), clientid, addr, c);
+  notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
+}
+
 void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
 	Z21Throttle::replyBuffer[0] = inMSB;	// turnout address msb
 	Z21Throttle::replyBuffer[1] = inLSB; // turnout address lsb
@@ -424,6 +452,23 @@ void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
 	if (Diag::Z21THROTTLE)
 	  DIAG(F("Z21 Throttle %d : Turnoutinfo %d %c"), clientid, addr, c);
 	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
+}
+
+void Z21Throttle::notifySensor(uint16_t addr) {
+  Sensor *s = Sensor::get(addr);
+  if (s) {
+    notifySensor(addr, s->active);
+  }
+}
+
+void Z21Throttle::notifySensor(uint16_t addr, bool state) {
+  Z21Throttle::replyBuffer[0] = 0x01; // Status in first info byte
+  Z21Throttle::replyBuffer[1] = (byte)(addr & 0xFF);
+  Z21Throttle::replyBuffer[2] = (byte)(addr >> 8);
+  Z21Throttle::replyBuffer[3] = state;
+  if (Diag::Z21THROTTLE)
+    DIAG(F("Z21 Throttle %d : notifySensor %d 0x%x"), clientid, addr, Z21Throttle::replyBuffer[3]);
+  notify(HEADER_LAN_LOCONET_DETECTOR, Z21Throttle::replyBuffer, 4, false);
 }
 
 void Z21Throttle::notifyLocoMode(byte inMSB, byte inLSB) {
@@ -888,6 +933,23 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
       notifyStatus();	// big endian here, but resend the same as received, so no problem.
       done = true;
       break;
+    case HEADER_LAN_LOCONET_DETECTOR:
+    {
+      switch(Data[0]) {
+      case LAN_LOCONET_TYPE_UHL_REPORTER:
+      {
+	uint16_t addr = (Data[2] << 8) + Data[1];
+	if (Diag::Z21THROTTLEVERBOSE) DIAG(F("%d LOCONET DETECTOR %d"), this->clientid, addr);
+	notifySensor(addr);
+	//done = true;
+	break;
+      }
+      case LAN_LOCONET_TYPE_DIGITRAX:
+      case LAN_LOCONET_TYPE_UHL_LISSY:
+	break;
+      }
+    }
+    break;
     case HEADER_LAN_GET_SERIAL_NUMBER:
       // XXX this has been seen, return dummy number
     case HEADER_LAN_GET_BROADCASTFLAGS:
@@ -899,7 +961,6 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
     case HEADER_LAN_RAILCOM_DATACHANGED:
     case HEADER_LAN_RAILCOM_GETDATA:
     case HEADER_LAN_LOCONET_DISPATCH_ADDR:
-    case HEADER_LAN_LOCONET_DETECTOR:
       break;
     }
     
