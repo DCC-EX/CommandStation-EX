@@ -164,6 +164,7 @@
 #undef START 
 #undef STASH
 #undef STEALTH
+#undef STEALTH_GLOBAL
 #undef STOP 
 #undef THROW
 #undef TT_ADDPOSITION
@@ -322,6 +323,7 @@
 #define START(route)
 #define STASH(id) 
 #define STEALTH(code...)
+#define STEALTH_GLOBAL(code...)
 #define STOP 
 #define THROW(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)

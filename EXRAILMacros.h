@@ -145,6 +145,12 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 
 #include "myAutomation.h"
 
+// Pass 1g Implants STEALTH_GLOBAL in correct place 
+#include "EXRAIL2MacroReset.h"
+#undef STEALTH_GLOBAL
+#define STEALTH_GLOBAL(code...) code
+#include "myAutomation.h"
+
 // Pass 1h Implements HAL macro by creating exrailHalSetup function
 // Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
@@ -518,6 +524,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
+#define STEALTH_GLOBAL(code...) 
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
