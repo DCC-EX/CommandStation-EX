@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.X.Y"
+//          Z21 error fix for turnout feedback
 //          Z21 add turnout and sensor broadcasts
 //          Z21: report the (unchanged) loco mode back after every attempted change
 //          Add turnout functionality to Z21
