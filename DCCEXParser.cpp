@@ -1117,6 +1117,21 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
 #ifdef HAS_ENOUGH_MEMORY
+#ifdef Z21_PROTOCOL
+    case "Z21THROTTLE"_hk: // <D Z21THROTTLE ON/OFF>
+    case "Z21THR"_hk:      // <D Z21THR ON/OFF>
+      Diag::Z21THROTTLE = onOff;
+      return true;
+    case "Z21THROTTLEVERBOSE"_hk: // <D Z21THROTTLEVERBOSE ON/OFF>
+    case "Z21THRV"_hk:            // <D Z21THV ON/OFF>
+      Diag::Z21THROTTLEVERBOSE = onOff;
+      return true;
+    case "Z21THROTTLEDATA"_hk: // <D Z21THROTTLEDATA ON/OFF>
+    case "Z21THRD"_hk:         // <D Z21THD ON/OFF>
+      Diag::Z21THROTTLEDATA = onOff;
+      return true;
+#endif // Z21_PROTOCOL
+
     case "WIFI"_hk: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
         return true;

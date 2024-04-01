@@ -707,27 +707,43 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
 
     int lengthData = GETINT16(p);
     l -= lengthData;
-    if (p == networkPacket && lengthData != len) {
-      diagPacket(networkPacket, len);
-    }
+
+    // This is not an error, just several X bus packets in one UDP packet
+    if (Diag::Z21THROTTLEDATA) // only care if diag is on
+      if (p == networkPacket && lengthData != len) {
+	diagPacket(networkPacket, len);
+      }
+
+    // This is a client error, report always
     if (l < 0) {
       DIAG(F("ERROR: Xbus data exceeds UDP packet size: l < 0 pos=%d, l=%d"), p-networkPacket, l);
       diagPacket(p, len);
       return false;
     }
+
+    // This is kinda client error but not harmful
+    // Report if diag and we are done with parsing this UDP packet
     if (l > 0 && lengthData < 4) {
-      DIAG(F("WARNING: Xbus data does not fill UDP packet size: l > 0 pos=%d, l=%d, lengthData=%d"),
-	   p-networkPacket, l, lengthData);
-      diagPacket(p, len);
+      // The client did send a too long UDP packet which was not filled with X bus packet(s)
+      // The Z21 App does this sometimes
+      if (Diag::Z21THROTTLEDATA) {
+	DIAG(F("WARNING: Xbus data does not fill UDP packet size: l > 0 pos=%d, l=%d, lengthData=%d"),
+	     p-networkPacket, l, lengthData);
+	diagPacket(p, len);
+      }
       return true;
     }
+
     // length of the data = total length - length of length (!) - length of header
+    // Error, this should not happen
     lengthData -= 4;
     if (lengthData < 0) {
       DIAG(F("ERROR: lengthData < 0 SHOULD NOT GET HERE"));
       diagPacket(networkPacket, len);
       return false;
     }
+
+    // All checks done, start looking at packet content
     p += 2;
     Header = GETINT16(p);
     p += 2;
