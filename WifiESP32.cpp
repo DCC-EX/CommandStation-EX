@@ -30,7 +30,10 @@
 #include "RingStream.h"
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
+
+#ifdef Z21_PROTOCOL
 #include "Z21Throttle.h"
+#endif
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -258,10 +261,13 @@ bool WifiESP::setup(const char *SSid,
     DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
 
+  // server for WiThrottle and DCCEX protocol started here
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
-  // server started here
+#ifdef Z21_PROTOCOL
+  // server for Z21 Protocol started here
   Z21Throttle::setup(localIP, Z21_UDPPORT);
+#endif
 
 #ifdef WIFI_TASK_ON_CORE0
   //start loop task
@@ -336,7 +342,9 @@ void WifiESP::loop() {
     } // all clients
 
     WiThrottle::loop(outboundRing);
+#ifdef Z21_PROTOCOL
     Z21Throttle::loop();
+#endif
 
     // something to write out?
     clientId=outboundRing->read();

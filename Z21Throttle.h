@@ -19,6 +19,9 @@
 #ifndef Z21Throttle_h
 #define Z21Throttle_h
 
+#include "defines.h"
+#ifdef Z21_PROTOCOL
+
 //#include "CircularBuffer.hpp"
 #include "NetworkClientUDP.h"
 
@@ -217,4 +220,5 @@ class Z21Throttle {
 #define LAN_X_DB0_CV_NACK 0x13
 
 
+#endif // Z21PROTOCOL
 #endif

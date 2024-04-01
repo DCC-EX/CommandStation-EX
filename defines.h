@@ -157,6 +157,14 @@
   #define CPU_TYPE_ERROR
 #endif
 
+// Only ESP32 does support the Z21 protocol currently
+#ifndef ARDUINO_ARCH_ESP32
+#ifdef Z21_PROTOCOL
+#warning "Z21 protocol can not be used on this platform, disabling"
+#undef Z21_PROTOCOL
+#endif
+#endif
+
 // replace board type if provided by compiler
 #ifdef BOARD_NAME
   #undef ARDUINO_TYPE

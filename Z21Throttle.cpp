@@ -20,6 +20,7 @@
  */
 #include <Arduino.h>
 #include "defines.h"
+#ifdef Z21_PROTOCOL
 #include <WiFi.h>
 #include "Z21Throttle.h"
 #include "DCC.h"
@@ -981,3 +982,4 @@ bool Z21Throttle::parse(byte *networkPacket, int len) {
   // if we get here, we did parse one or several xbus packets inside USB packets
   return true;
 }
+#endif // Z21_PROTOCOL

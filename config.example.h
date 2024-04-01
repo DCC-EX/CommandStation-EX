@@ -300,6 +300,12 @@ The configuration file for DCC-EX Command Station
 //
 //#define BOOSTER_INPUT 26
 
+// Z21 protocol support
+// On ESP32 you have the possibility to use the Z21 app
+// and other devices that use the Z21 protocol over IP/UDP.
+//
+//#define Z21_PROTOCOL
+
 // SABERTOOTH
 //
 // This is a very special option and only useful if you happen to have a
