@@ -125,6 +125,7 @@ class Z21Throttle {
 		void notifyLocoInfo(byte inMSB, byte inLSB);
 		void notifyTurnoutInfo(uint16_t addr, bool isClosed);
 		void notifyTurnoutInfo(byte inMSB, byte inLSB);
+		void notifyTurnoutInfo(byte inMSB, byte inLSB, bool isClosed);
 		void notifySensor(uint16_t addr);
 		void notifySensor(uint16_t addr, bool state);
 		void notifyLocoMode(byte inMSB, byte inLSB);

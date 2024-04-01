@@ -417,41 +417,47 @@ void Z21Throttle::notifyLocoInfo(byte inMSB, byte inLSB) {
 	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_LOCO_INFO, Z21Throttle::replyBuffer, 9, false);
 }
 
+// This variant is called from the broadcast function when turnouts change
+// from the "inside" where we know the turnout state
 void Z21Throttle::notifyTurnoutInfo(uint16_t addr, bool isClosed) {
+  notifyTurnoutInfo((byte)((addr-1) >> 8), (byte)((addr-1) & 0xFF), isClosed);
+}
+
+// This variant is called from the Xnet protocol when the client queries
+// the state of a turnout (which may or may not exist)
+void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
+  uint16_t addr = (inMSB << 8) + inLSB + 1;
+  Turnout *tt = Turnout::get(addr);
+  if (tt) {
+    notifyTurnoutInfo(inMSB, inLSB, tt->isClosed());
+    return;
+  }
+  // if the tt does not exist we fall through with replyBuffer set to invalid
+  Z21Throttle::replyBuffer[0] = inMSB;	   // turnout address msb
+  Z21Throttle::replyBuffer[1] = inLSB;     // turnout address lsb
+  Z21Throttle::replyBuffer[2] = B00000011; //  000000ZZ  ZZ: 00=not-switched 01=pos1 10=pos2 11=invalid
+  if (Diag::Z21THROTTLE)
+    DIAG(F("Z21 Throttle %d : Turnoutinfo %d (invalid)"), clientid, addr);
+  notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
+}
+
+// This variant is called when we know that turnout exists and it's state.
+void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB, bool isClosed) {
+  Z21Throttle::replyBuffer[0] = inMSB;
+  Z21Throttle::replyBuffer[1] = inLSB;
   char c;
-  Z21Throttle::replyBuffer[0] = (byte)(addr >> 8);
-  Z21Throttle::replyBuffer[1] = (byte)(addr & 0xFF);
   if (isClosed) {
-    Z21Throttle::replyBuffer[2] = B00000010;
+    Z21Throttle::replyBuffer[2] = B00000010; // 000000ZZ  ZZ: 00=not-switched 01=pos1 10=pos2 11=invalid
     c = 'c';
   } else {
     Z21Throttle::replyBuffer[2] = B00000001;
     c = 't';
   }
-  if (Diag::Z21THROTTLE)
+  if (Diag::Z21THROTTLE) {
+    uint16_t addr = (inMSB << 8) + inLSB + 1;
     DIAG(F("Z21 Throttle %d : Turnoutinfo %d %c"), clientid, addr, c);
+  }
   notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
-}
-
-void Z21Throttle::notifyTurnoutInfo(byte inMSB, byte inLSB) {
-	Z21Throttle::replyBuffer[0] = inMSB;	// turnout address msb
-	Z21Throttle::replyBuffer[1] = inLSB; // turnout address lsb
-	Z21Throttle::replyBuffer[2] = B00000011; // 000000ZZ	 ZZ : 00 not switched   01 pos1  10 pos2  11 invalid
-	char c = '?';
-	uint16_t addr = (inMSB << 8) + inLSB + 1;
-        Turnout *tt = Turnout::get(addr);
-	if (tt) { // if the tt does not exist we fall through with replyBuffer set to invalid
-	  if (tt->isClosed()) {
-	    Z21Throttle::replyBuffer[2] = B00000010;
-	    c = 'c';
-	  } else {
-	    Z21Throttle::replyBuffer[2] = B00000001;
-	    c = 't';
-	  }
-	}
-	if (Diag::Z21THROTTLE)
-	  DIAG(F("Z21 Throttle %d : Turnoutinfo %d %c"), clientid, addr, c);
-	notify(HEADER_LAN_XPRESS_NET, LAN_X_HEADER_TURNOUT_INFO, Z21Throttle::replyBuffer, 3, false);
 }
 
 void Z21Throttle::notifySensor(uint16_t addr) {
