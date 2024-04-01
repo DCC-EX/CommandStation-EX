@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef Z21_PROTOCOL
 #include <WiFi.h>
 #include <WiFiClient.h>
 
@@ -35,3 +36,4 @@ public:
   
   static WiFiUDP client;
 };
+#endif
