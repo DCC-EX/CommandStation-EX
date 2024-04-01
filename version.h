@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.X.Y"
+//          Make Z21 diag selectable from DCCEXParser
 //          Z21 error fix for turnout feedback
 //          Z21 add turnout and sensor broadcasts
 //          Z21: report the (unchanged) loco mode back after every attempted change
