@@ -66,6 +66,7 @@
 #undef FOLLOW 
 #undef FON 
 #undef FORGET
+#undef FTOGGLE
 #undef FREE 
 #undef FWD 
 #undef GREEN
@@ -181,6 +182,7 @@
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
+#undef XFTOGGLE
 
 #ifndef RMFT2_UNDEF_ONLY
 #define ACTIVATE(addr,subaddr)
@@ -226,6 +228,7 @@
 #define FON(func)
 #define FORGET
 #define FREE(blockid) 
+#define FTOGGLE(func)
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
@@ -340,4 +343,6 @@
 #define WITHROTTLE(msg)
 #define XFOFF(cab,func)
 #define XFON(cab,func)
+#define XFTOGGLE(cab,func)
+
 #endif

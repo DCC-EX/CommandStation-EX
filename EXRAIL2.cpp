@@ -815,6 +815,10 @@ void RMFT2::loop2() {
   case OPCODE_FOFF:
     if (loco) DCC::setFn(loco,operand,false);
     break;
+  
+  case OPCODE_FTOGGLE:
+    if (loco) DCC::changeFn(loco,operand);
+    break;
     
   case OPCODE_DRIVE:
     {
@@ -829,6 +833,10 @@ void RMFT2::loop2() {
     
   case OPCODE_XFOFF:
     DCC::setFn(operand,getOperand(1),false);
+    break;
+
+  case OPCODE_XFTOGGLE:
+    DCC::changeFn(operand,getOperand(1));
     break;
     
   case OPCODE_DCCACTIVATE: {

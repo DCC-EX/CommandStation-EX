@@ -490,6 +490,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FON(func) OPCODE_FON,V(func),
 #define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
+#define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
 #define HAL(haltype,params...)
@@ -618,6 +619,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #endif
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
+#define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

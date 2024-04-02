@@ -36,7 +36,7 @@
 
 void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
   (void)stream; // avoid compiler warning if we don't access this parameter
-  bool reject=false;
+  
   switch(opcode) {
     
   case 'D':
@@ -47,8 +47,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     break;
 	
   case '/':  // New EXRAIL command
-    reject=!parseSlash(stream,paramCount,p);
-    opcode=0;
+    if (parseSlash(stream,paramCount,p)) opcode=0;
     break;
   
   case 'A': //  <A address aspect>
@@ -106,9 +105,11 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     }
     if (paramCount==1) {  // <L eventid> LCC event arrived from adapter
         int16_t eventid=p[0];
-        reject=eventid<0 || eventid>=countLCCLookup;
-        if (!reject)  startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
-        opcode=0;
+        bool reject = eventid<0 || eventid>=countLCCLookup;
+        if (!reject) {
+          startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
+          opcode=0;
+        }
     }
     break; 
     
