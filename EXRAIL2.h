@@ -41,6 +41,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ATGTE,OPCODE_ATLT,
              OPCODE_ATTIMEOUT1,OPCODE_ATTIMEOUT2,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
+             OPCODE_BLINK,
              OPCODE_ENDIF,OPCODE_ELSE,
              OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_DELAYMS,OPCODE_RANDWAIT,
              OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
@@ -99,12 +100,21 @@ enum thrunger: byte {
   thrunge_lcd,  // Must be last!!
   };
 
+
+enum BlinkState: byte {
+    not_blink_task, 
+    blink_low, // blink task running with pin LOW
+    blink_high, // blink task running with pin high 
+    at_timeout  // ATTIMEOUT timed out flag
+    }; 
+
   // Flag bits for compile time features.
   static const byte FEATURE_SIGNAL= 0x80;
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
   static const byte FEATURE_STASH = 0x08;
+  static const byte FEATURE_BLINK = 0x04;
   
  
   // Flag bits for status of hardware and TPL
@@ -193,6 +203,7 @@ private:
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n);
+    static void killBlinkOnVpin(VPIN pin);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
@@ -245,10 +256,10 @@ private:
     union {
       unsigned long waitAfter; // Used by OPCODE_AFTER
       unsigned long timeoutStart; // Used by OPCODE_ATTIMEOUT
+      VPIN blinkPin;  // Used by blink tasks 
     };
-    bool timeoutFlag;
     byte  taskId;
-    
+    BlinkState blinkState; // includes AT_TIMEOUT flag. 
     uint16_t loco;
     bool forward;
     bool invert;

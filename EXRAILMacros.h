@@ -208,6 +208,8 @@ bool exrailHalSetup() {
 #define PICKUP_STASH(id) | FEATURE_STASH
 #undef STASH
 #define STASH(id) | FEATURE_STASH
+#undef BLINK
+#define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -457,6 +459,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
+#define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),

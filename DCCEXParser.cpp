@@ -797,6 +797,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 #endif
 
+    case '/': // implemented in EXRAIL parser
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
 

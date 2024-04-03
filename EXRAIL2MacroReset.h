@@ -38,6 +38,7 @@
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
+#undef BLINK
 #undef BROADCAST
 #undef CALL 
 #undef CLEAR_STASH
@@ -199,6 +200,7 @@
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id,description) 
 #define AUTOSTART
+#define BLINK(vpin,onDuty,offDuty)
 #define BROADCAST(msg)
 #define CALL(route)
 #define CLEAR_STASH(id)

@@ -183,12 +183,20 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     StringFormatter::send(stream, F("<* EXRAIL STATUS"));
     RMFT2 * task=loopTask;
     while(task) {
+      if ((compileFeatures & FEATURE_BLINK)
+       && (task->blinkState==blink_high || task->blinkState==blink_low)) {
+        StringFormatter::send(stream,F("\nID=%d,PC=%d,BLINK=%d"),
+			    (int)(task->taskId),task->progCounter,task->blinkPin
+			    );
+      }
+      else {
       StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d%c,SPEED=%d%c"),
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' ',
 			    task->speedo,
 			    task->forward?'F':'R'
 			    );
+      }
       task=task->next;
       if (task==loopTask) break;
     }
