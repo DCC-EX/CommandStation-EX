@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.42"
+#define VERSION "5.2.43"
+// 5.2.43 - ESP32 rewrite PWM LEDC to use pin mux
 // 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
 // 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield
