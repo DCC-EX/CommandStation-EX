@@ -245,10 +245,10 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
     ledcWrite(pin_to_channel[pin], value);
   }
 }
-void DCCTimer::DCCEXInrushControlOn(uint8_t pin) {
+void DCCTimer::DCCEXInrushControlOn(uint8_t pin, int duty) {
   ledcSetup(0, 62500, 8);
   ledcAttachPin(pin, 0);
-  ledcWrite(0, 207);
+  ledcWrite(0, duty);
 }
 
 int ADCee::init(uint8_t pin) {
