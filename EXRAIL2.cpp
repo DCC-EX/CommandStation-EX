@@ -528,6 +528,10 @@ void RMFT2::loop2() {
     Turnout::setClosed(operand, true);
     break;
 
+  case OPCODE_TOGGLE_TURNOUT:
+    Turnout::setClosed(operand, Turnout::isThrown(operand));
+    break;
+
 #ifndef IO_NO_HAL
   case OPCODE_ROTATE:
     uint8_t activity;

@@ -33,7 +33,7 @@
 // or more OPCODE_PAD instructions with the subsequent parameters. This wastes a byte but makes 
 // searching easier as a parameter can never be confused with an opcode. 
 // 
-enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
+enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,

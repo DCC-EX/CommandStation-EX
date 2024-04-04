@@ -169,6 +169,7 @@
 #undef STEALTH_GLOBAL
 #undef STOP 
 #undef THROW
+#undef TOGGLE_TURNOUT
 #undef TT_ADDPOSITION
 #undef TURNOUT 
 #undef TURNOUTL
@@ -331,6 +332,7 @@
 #define STEALTH_GLOBAL(code...)
 #define STOP 
 #define THROW(id)
+#define TOGGLE_TURNOUT(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 

@@ -606,6 +606,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
+#define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
 #ifndef IO_NO_HAL
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
 #endif
