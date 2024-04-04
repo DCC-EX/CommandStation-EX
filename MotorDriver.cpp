@@ -404,7 +404,7 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
 void MotorDriver::throttleInrush(bool on) {
   if (brakePin == UNUSED_PIN)
     return;
-  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT)))
+  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
   if (invertBrake)
