@@ -252,13 +252,32 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
     track[trackToSet]->setMode(mode);
-    trackDCAddr[trackToSet]=dcAddr;
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
 
     // This can be done BEFORE the PWM-Timer evaluation (methinks)
-    if (!(mode & TRACK_MODE_DC)) {
+    if (mode & TRACK_MODE_DC) {
+      if (trackDCAddr[trackToSet] != dcAddr) {
+	// if we change dcAddr, detach first old signal
+	track[trackToSet]->detachDCSignal();
+#ifdef ARDUINO_ARCH_ESP32
+	int trackfound = -1;
+	FOR_EACH_TRACK(t) {
+	  if ((track[t]->getMode() & TRACK_MODE_DC) && trackDCAddr[t] == dcAddr) {
+	    trackfound = t;
+	    break;
+	  }
+	}
+	if (trackfound > -1) {
+	  DCCTimer::DCCEXanalogCopyChannel(track[trackfound]->getBrakePin(),
+					   track[trackToSet]->getBrakePin());
+	}
+#endif
+      }
+      // set future DC Addr;
+      trackDCAddr[trackToSet]=dcAddr;
+    } else {
       // DCC tracks need to have set the PWM to zero or they will not work.
       track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);

@@ -66,7 +66,9 @@ class DCCTimer {
   static void ackRailcomTimer();
   static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
   static void DCCEXanalogWrite(uint8_t pin, int value);
-
+  static void DCCEXledcDetachPin(uint8_t pin);
+  static void DCCEXanalogCopyChannel(uint8_t frompin, uint8_t topin);
+  static void DCCEXInrushControlOn(uint8_t pin);
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
 // called subroutines.  Must be called with interrupts disabled.

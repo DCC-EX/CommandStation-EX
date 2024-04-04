@@ -411,10 +411,10 @@ void MotorDriver::throttleInrush(bool on) {
     duty = 255-duty;
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
-    DCCTimer::DCCEXanalogWrite(brakePin,duty);
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+    DCCTimer::DCCEXInrushControlOn(brakePin);
   } else {
-    ledcDetachPin(brakePin);
+    ledcDetachPin(brakePin); // not DCCTimer::DCCEXledcDetachPin() as we have not
+                             // registered the pin in the pin to channel array
   }
 #elif defined(ARDUINO_ARCH_STM32)
   if(on) {

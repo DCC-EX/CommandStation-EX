@@ -78,6 +78,7 @@ int DCCTimer::freeMemory() {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef ARDUINO_ARCH_ESP32
+#include "DIAG.h"
 #include <driver/adc.h>
 #include <soc/sens_reg.h>
 #include <soc/sens_struct.h>
@@ -154,8 +155,10 @@ void DCCTimer::reset() {
 void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   if (f >= 16)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
-  else if (f == 7)
+/*
+  else if (f == 7) // not used on ESP32
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+*/
   else if (f >= 4)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
   else if (f >= 3)
@@ -188,21 +191,64 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   }
 }
 
+void DCCTimer::DCCEXledcDetachPin(uint8_t pin) {
+  DIAG(F("Clear pin %d channel"), pin);
+  pin_to_channel[pin] = 0;
+  pinMatrixOutDetach(pin, false, false);
+}
+
+
+void DCCTimer::DCCEXanalogCopyChannel(uint8_t frompin, uint8_t topin) {
+  DIAG(F("Pin %d copied to %d channel %d"), frompin, topin, pin_to_channel[frompin]);
+  pin_to_channel[topin] = pin_to_channel[frompin];
+  ledcAttachPin(topin, pin_to_channel[topin]);
+}
 void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+  // This allocates channels 15, 13, 11, ....
+  // so each channel gets its own timer.
   if (pin < SOC_GPIO_PIN_COUNT) {
     if (pin_to_channel[pin] == 0) {
+      int search_channel;
+      int n;
       if (!cnt_channel) {
           log_e("No more PWM channels available! All %u already used", LEDC_CHANNELS);
           return;
       }
-      pin_to_channel[pin] = --cnt_channel;
-      ledcSetup(cnt_channel, 1000, 8);
-      ledcAttachPin(pin, cnt_channel);
+      // search for free channels top down
+      for (search_channel=LEDC_CHANNELS-1; search_channel >=cnt_channel; search_channel -= 2) {
+	bool chanused = false;
+	for (n=0; n < SOC_GPIO_PIN_COUNT; n++) {
+	  if (pin_to_channel[n] == search_channel) { // current search_channel used
+	    chanused = true;
+	    break;
+	  }
+	}
+	if (chanused)
+	  continue;
+	if (n == SOC_GPIO_PIN_COUNT) // current search_channel unused
+	  break;
+      }
+      if (search_channel >= cnt_channel) {
+	pin_to_channel[pin] = search_channel;
+	DIAG(F("Pin %d assigned to search channel %d"), pin, search_channel);
+      } else {
+	pin_to_channel[pin] = --cnt_channel; // This sets 15, 13, ...
+	DIAG(F("Pin %d assigned to new channel %d"), pin, cnt_channel);
+	--cnt_channel;                       // Now we are at 14, 12, ...
+      }
+      ledcSetup(pin_to_channel[pin], 1000, 8);
+      ledcAttachPin(pin, pin_to_channel[pin]);
     } else {
+      //DIAG(F("Pin %d assigned to old channel %d"), pin, pin_to_channel[pin]);
       ledcAttachPin(pin, pin_to_channel[pin]);
     }
     ledcWrite(pin_to_channel[pin], value);
   }
+}
+void DCCTimer::DCCEXInrushControlOn(uint8_t pin) {
+  ledcSetup(0, 62500, 8);
+  ledcAttachPin(pin, 0);
+  ledcWrite(0, 207);
 }
 
 int ADCee::init(uint8_t pin) {
