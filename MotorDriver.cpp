@@ -347,9 +347,9 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
       }
     }
 #endif
-    //DIAG(F("Brake pin %d freqency %d"), brakePin, f);
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
+    //DIAG(F("Brake pin %d value %d freqency %d"), brakePin, brake, f);
     DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);
+    DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
 #else // all AVR here
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
     analogWrite(brakePin, invertBrake ? 255-brake : brake);
