@@ -413,11 +413,9 @@ void MotorDriver::throttleInrush(bool on) {
                              // registered the pin in the pin to channel array
   }
 #elif defined(ARDUINO_ARCH_STM32)
-  if (invertBrake)
-    duty = 255-duty;
   if(on) {
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
-    DCCTimer::DCCEXanalogWrite(brakePin,duty);
+    DCCTimer::DCCEXanalogWrite(brakePin,duty,invertBrake);
   } else {
     pinMode(brakePin, OUTPUT);
   }
