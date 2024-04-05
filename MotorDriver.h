@@ -193,7 +193,7 @@ class MotorDriver {
       }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
-    inline byte getBrakePin() { return brakePin; };
+    inline int8_t getBrakePinSigned() { return invertBrake ? -brakePin : brakePin; };
     void setDCSignal(byte speedByte, uint8_t frequency=0);
     void throttleInrush(bool on);
     inline void detachDCSignal() {

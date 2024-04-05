@@ -336,8 +336,6 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
-  if (invertBrake)
-    brake=255-brake;
 
   { // new block because of variable f
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
@@ -351,10 +349,10 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
 #endif
     //DIAG(F("Brake pin %d freqency %d"), brakePin, f);
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
-    DCCTimer::DCCEXanalogWrite(brakePin,brake);
+    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);
 #else // all AVR here
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
-    analogWrite(brakePin,brake);
+    analogWrite(brakePin, invertBrake ? 255-brake : brake);
 #endif
   }
 
@@ -407,16 +405,16 @@ void MotorDriver::throttleInrush(bool on) {
   if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
-  if (invertBrake)
-    duty = 255-duty;
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
-    DCCTimer::DCCEXInrushControlOn(brakePin, duty);
+    DCCTimer::DCCEXInrushControlOn(brakePin, duty, invertBrake);
   } else {
     ledcDetachPin(brakePin); // not DCCTimer::DCCEXledcDetachPin() as we have not
                              // registered the pin in the pin to channel array
   }
 #elif defined(ARDUINO_ARCH_STM32)
+  if (invertBrake)
+    duty = 255-duty;
   if(on) {
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
     DCCTimer::DCCEXanalogWrite(brakePin,duty);
@@ -424,6 +422,8 @@ void MotorDriver::throttleInrush(bool on) {
     pinMode(brakePin, OUTPUT);
   }
 #else // all AVR here
+  if (invertBrake)
+    duty = 255-duty;
   if(on){
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
   }

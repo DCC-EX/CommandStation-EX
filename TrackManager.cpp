@@ -264,14 +264,18 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #ifdef ARDUINO_ARCH_ESP32
 	int trackfound = -1;
 	FOR_EACH_TRACK(t) {
-	  if ((track[t]->getMode() & TRACK_MODE_DC) && trackDCAddr[t] == dcAddr) {
+	  //DIAG(F("Checking track %c mode %x dcAddr %d"), 'A'+t, track[t]->getMode(), trackDCAddr[t]);
+	  if (t != trackToSet                          // not our track
+	      && (track[t]->getMode() & TRACK_MODE_DC) // right mode
+	      && trackDCAddr[t] == dcAddr) {           // right addr
+	    //DIAG(F("Found track %c"), 'A'+t);
 	    trackfound = t;
 	    break;
 	  }
 	}
 	if (trackfound > -1) {
-	  DCCTimer::DCCEXanalogCopyChannel(track[trackfound]->getBrakePin(),
-					   track[trackToSet]->getBrakePin());
+	  DCCTimer::DCCEXanalogCopyChannel(track[trackfound]->getBrakePinSigned(),
+					   track[trackToSet]->getBrakePinSigned());
 	}
 #endif
       }
