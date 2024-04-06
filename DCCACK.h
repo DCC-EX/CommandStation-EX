@@ -56,6 +56,8 @@ enum ackOp : byte
   STASHLOCOID,      // keeps current byte value for later
   COMBINELOCOID,    // combines current value with stashed value and returns it
   ITSKIP,           // skip to SKIPTARGET if ack true
+  NAKSKIP,          // skip to SKIPTARGET if ack false
+  COMBINE1920,      // combine cvs 19 and 20 and callback
   SKIPTARGET = 0xFF // jump to target
 };
 

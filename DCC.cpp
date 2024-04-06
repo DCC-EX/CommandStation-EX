@@ -325,8 +325,8 @@ preamble -0- 1 0 A7 A6 A5 A4 A3 A2 -0- 0 ^A10 ^A9 ^A8 0 A1 A0 1 -0- ....
 
 Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
 
-Die Adresse für den ersten erweiterten Zubehördecoder ist wie bei den einfachen
-Zubehördecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
+Die Adresse fï¿½r den ersten erweiterten Zubehï¿½rdecoder ist wie bei den einfachen
+Zubehï¿½rdecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
 Anwenderdialogen als Adresse 1 dargestellt.
 
 This means that the first address shown to the user as "1" is mapped
@@ -500,6 +500,36 @@ const ackOp FLASH READ_CV_PROG[] = {
 
 const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
+      // first check cv20 for extended addressing
+      SETCV, (ackOp)20,     // CV 19 is extended
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITSKIP,     // skip past extended section if cv20 is zero
+      // read cv20 and 19 and merge 
+      STARTMERGE,           // Setup to read cv 20
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      STASHLOCOID,   // keep cv 20 until we have cv19 as well.
+      SETCV, (ackOp)19, 
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // cant recover if cv 19 unreadable
+      COMBINE1920,  // Combile byte with stash and callback
+// end of advanced 20,19 check
+      SKIPTARGET,
       SETCV, (ackOp)19,     // CV 19 is consist setting
       SETBYTE, (ackOp)0,
       VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
@@ -566,6 +596,10 @@ const ackOp FLASH LOCO_ID_PROG[] = {
 
 const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       BASELINE,
+      // Clear consist CV 19,20
+      SETCV,(ackOp)20,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore dedcoder without cv20 support
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
       WB,WACK,     // ignore dedcoder without cv19 support
@@ -583,7 +617,10 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
 
 const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       BASELINE,
-      // Clear consist CV 19
+      // Clear consist CV 19,20
+      SETCV,(ackOp)20,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore dedcoder without cv20 support
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
       WB,WACK,     // ignore decoder without cv19 support
