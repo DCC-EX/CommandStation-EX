@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.44"
-// 5.2.44 - ESP32 fix PWM LEDC inverted pin mode
+#define VERSION "5.2.45"
+// 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
+//          ESP32 fix PWM LEDC inverted pin mode
 //          ESP32 rewrite PWM LEDC to use pin mux
 // 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
 // 5.2.41 - Update rotary encoder default address to 0x67
