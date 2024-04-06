@@ -703,7 +703,7 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
 }
 
 void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
-  if (id<1 || id>10239) { //0x27FF according to standard
+  if (id<0 || id>10239) { //0x27FF according to standard
     callback(-1);
     return;
   }

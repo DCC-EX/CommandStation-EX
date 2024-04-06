@@ -458,7 +458,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::setLocoId(p[0],callback_Wloco);
         else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
             DCC::writeCVByte(p[0], p[1], callback_W4);
-        else if ((params==2 | params==3 ) && p[0]=="CONSIST"_hk ) {
+        else if ((params==2 || params==3 ) && p[0]=="CONSIST"_hk ) {
             DCC::setConsistId(p[1],p[2]=="REVERSE"_hk,callback_Wconsist);
         }    
         else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
