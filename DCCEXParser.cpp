@@ -458,6 +458,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::setLocoId(p[0],callback_Wloco);
         else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
             DCC::writeCVByte(p[0], p[1], callback_W4);
+        else if ((params==2 | params==3 ) && p[0]=="CONSIST"_hk ) {
+            DCC::setConsistId(p[1],p[2]=="REVERSE"_hk,callback_Wconsist);
+        }    
         else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
 	else
@@ -1345,5 +1348,13 @@ void DCCEXParser::callback_Wloco(int16_t result)
 {
     if (result==1) result=stashP[0]; // pick up original requested id from command
     StringFormatter::send(getAsyncReplyStream(), F("<w %d>\n"), result);
+    commitAsyncReplyStream();
+}
+
+void DCCEXParser::callback_Wconsist(int16_t result)
+{
+    if (result==1) result=stashP[1]; // pick up original requested id from command
+    StringFormatter::send(getAsyncReplyStream(), F("<w CONSIST %d%S>\n"),
+     result, stashP[2]=="REVERSE"_hk ? F(" REVERSE") : F(""));
     commitAsyncReplyStream();
 }

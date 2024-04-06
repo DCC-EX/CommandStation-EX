@@ -615,6 +615,19 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       CALLFAIL
 };
 
+// for CONSIST_ID_PROG the 20,19 values are already calculated
+const ackOp FLASH CONSIST_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)20,
+      SETBYTEH,    // high byte to CV 20
+      WB,WACK,     // ignore dedcoder without cv20 support
+      SETCV,(ackOp)19,
+      SETBYTEL,   // low byte of word
+      WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok
+      VB,WACK,ITC1,   // Some decoders do not ack and need verify
+      CALLFAIL
+};
+
 const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       BASELINE,
       // Clear consist CV 19,20
@@ -687,6 +700,26 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
       DCCACK::Setup(id, SHORT_LOCO_ID_PROG, callback);
   else
       DCCACK::Setup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
+}
+
+void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
+  if (id<1 || id>10239) { //0x27FF according to standard
+    callback(-1);
+    return;
+  }
+  byte cv20;
+  byte cv19;
+
+  if (id<=HIGHEST_SHORT_ADDR) {
+    cv19=id;
+    cv20=0;
+  }
+  else {
+    cv20=id/100;
+    cv19=id%100;
+  }
+  if (reverse) cv19|=0x80;
+  DCCACK::Setup((cv20<<8)|cv19, CONSIST_ID_PROG, callback);
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
