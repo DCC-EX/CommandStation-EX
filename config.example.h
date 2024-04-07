@@ -212,6 +212,19 @@ The configuration file for DCC-EX Command Station
 // #define ENABLE_VDPY
 
 /////////////////////////////////////////////////////////////////////////////////////
+// DISABLE / ENABLE DIAG
+//
+// To diagose different errors, you can turn on differnet messages. This costs
+// program memory which we do not have enough on the Uno and Nano, so it is
+// by default DISABLED on those. If you think you can fit it (for example
+// having disabled some of the features above) you can enable it with
+// ENABLE_DIAG. You can even disable it on all other CPUs with
+// DISABLE_DIAG
+//
+// #define DISABLE_DIAG
+// #define ENABLE_DIAG
+
+/////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
 // is 127 and the first long address is 128. There are manufacturers which have
 // another view. Lenz CS for example have considered addresses long from 100. If
