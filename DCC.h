@@ -85,7 +85,7 @@ public:
 
   static void getLocoId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
-
+  static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders

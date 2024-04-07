@@ -71,6 +71,7 @@ struct DCCEXParser
     static void callback_R(int16_t result);
     static void callback_Rloco(int16_t result);
     static void callback_Wloco(int16_t result);
+    static void callback_Wconsist(int16_t result);
     static void callback_Vbit(int16_t result);
     static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;

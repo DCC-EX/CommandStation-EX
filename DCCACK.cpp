@@ -314,8 +314,25 @@ void DCCACK::loop() {
           callback( LONG_ADDR_MARKER | ( ackManagerByte + ((ackManagerStash - 192) << 8)));
           return;
 
+     case COMBINE1920:
+          // ackManagerStash is  cv20, ackManagerByte is CV 19
+          // This will not be called if cv20==0
+          ackManagerByte &= 0x7F;  // ignore direction marker
+          ackManagerByte %=100;    // take last 2 decimal digits 
+          callback( ackManagerStash*100+ackManagerByte);
+          return;
+
      case ITSKIP:
           if (!ackReceived) break;
+          // SKIP opcodes until SKIPTARGET found
+          while (opcode!=SKIPTARGET) {
+            ackManagerProg++;
+            opcode=GETFLASH(ackManagerProg);
+          }
+          break;
+
+     case NAKSKIP:
+          if (ackReceived) break;
           // SKIP opcodes until SKIPTARGET found
           while (opcode!=SKIPTARGET) {
             ackManagerProg++;

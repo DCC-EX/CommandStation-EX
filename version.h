@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.3.7"
+#define VERSION "5.3.8"
+// 5.2.46 - Support for extended consist CV20 in <R> and <W id>
+//        - New cmd <W CONSIST id [REVERSE]> to handle long/short consist ids
+// 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
+//          ESP32 fix PWM LEDC inverted pin mode
+//          ESP32 rewrite PWM LEDC to use pin mux
 // 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield
 // 5.2.39 - Functions for DC frequency: Use func up to F31
