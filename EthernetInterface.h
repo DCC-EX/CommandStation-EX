@@ -35,8 +35,18 @@
 #if defined (ARDUINO_TEENSY41)
  #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
  #include <NativeEthernetUdp.h>   
+ #define MAX_SOCK_NUM 4
+#elif defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI)
+ #include <LwIP.h>
+//  #include "STM32lwipopts.h"
+ #include <STM32Ethernet.h>
+ #include <lwip/netif.h>
+ extern "C" struct netif gnetif;
+ #define STM32_ETHERNET
+ #define MAX_SOCK_NUM 10
 #else
  #include "Ethernet.h"
+//  #define MAX_SOCK_NUM 4
 #endif
 #include "RingStream.h"
 
