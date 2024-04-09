@@ -3,7 +3,13 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.46"
+#define VERSION "5.2.47"
+// 5.2.47 - EXRAIL additions:
+//          STEALTH_GLOBAL
+//          BLINK
+//          TOGGLE_TURNOUT
+//          FTOGGLE, XFTOGGLE
+//          Reduced code-developmenmt DIAG noise
 // 5.2.46 - Support for extended consist CV20 in <R> and <W id>
 //        - New cmd <W CONSIST id [REVERSE]> to handle long/short consist ids
 // 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
