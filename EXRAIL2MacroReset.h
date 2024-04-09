@@ -38,6 +38,7 @@
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
+#undef BLINK
 #undef BROADCAST
 #undef CALL 
 #undef CLEAR_STASH
@@ -66,6 +67,7 @@
 #undef FOLLOW 
 #undef FON 
 #undef FORGET
+#undef FTOGGLE
 #undef FREE 
 #undef FWD 
 #undef GREEN
@@ -164,8 +166,10 @@
 #undef START 
 #undef STASH
 #undef STEALTH
+#undef STEALTH_GLOBAL
 #undef STOP 
 #undef THROW
+#undef TOGGLE_TURNOUT
 #undef TT_ADDPOSITION
 #undef TURNOUT 
 #undef TURNOUTL
@@ -180,6 +184,7 @@
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
+#undef XFTOGGLE
 
 #ifndef RMFT2_UNDEF_ONLY
 #define ACTIVATE(addr,subaddr)
@@ -196,6 +201,7 @@
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id,description) 
 #define AUTOSTART
+#define BLINK(vpin,onDuty,offDuty)
 #define BROADCAST(msg)
 #define CALL(route)
 #define CLEAR_STASH(id)
@@ -225,6 +231,7 @@
 #define FON(func)
 #define FORGET
 #define FREE(blockid) 
+#define FTOGGLE(func)
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
@@ -322,8 +329,10 @@
 #define START(route)
 #define STASH(id) 
 #define STEALTH(code...)
+#define STEALTH_GLOBAL(code...)
 #define STOP 
 #define THROW(id)
+#define TOGGLE_TURNOUT(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
@@ -338,4 +347,6 @@
 #define WITHROTTLE(msg)
 #define XFOFF(cab,func)
 #define XFON(cab,func)
+#define XFTOGGLE(cab,func)
+
 #endif

@@ -373,7 +373,7 @@ RMFT2::RMFT2(int progCtr) {
   speedo=0;
   forward=true;
   invert=false;
-  timeoutFlag=false;
+  blinkState=not_blink_task;
   stackDepth=0;
   onEventStartPosition=-1; // Not handling an ONxxx 
 
@@ -491,6 +491,23 @@ void RMFT2::loop() {
 void RMFT2::loop2() {
   if (delayTime!=0 && millis()-delayStart < delayTime) return;
 
+  // special stand alone blink task
+  if (compileFeatures & FEATURE_BLINK) { 
+    if (blinkState==blink_low) {
+      IODevice::write(blinkPin,HIGH);
+      blinkState=blink_high;
+      delayMe(getOperand(1));
+      return;
+    }
+    if (blinkState==blink_high) {
+      IODevice::write(blinkPin,LOW);
+      blinkState=blink_low;
+      delayMe(getOperand(2));
+      return;
+    }
+  }
+  
+  // Normal progstep following tasks continue here.
   byte opcode = GET_OPCODE;
   int16_t operand =  getOperand(0);
 
@@ -509,6 +526,10 @@ void RMFT2::loop2() {
     
   case OPCODE_CLOSE:
     Turnout::setClosed(operand, true);
+    break;
+
+  case OPCODE_TOGGLE_TURNOUT:
+    Turnout::setClosed(operand, Turnout::isThrown(operand));
     break;
 
 #ifndef IO_NO_HAL
@@ -560,39 +581,39 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_AT:
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (readSensor(operand)) break;
     delayMe(50);
     return;
     
   case OPCODE_ATGTE: // wait for analog sensor>= value
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (IODevice::readAnalogue(operand) >= (int)(getOperand(1))) break;
     delayMe(50);
     return;
     
   case OPCODE_ATLT: // wait for analog sensor < value
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (IODevice::readAnalogue(operand) < (int)(getOperand(1))) break;
     delayMe(50);
     return;
       
   case OPCODE_ATTIMEOUT1:   // ATTIMEOUT(vpin,timeout) part 1
     timeoutStart=millis();
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     break;
     
   case OPCODE_ATTIMEOUT2:
     if (readSensor(operand)) break; // success without timeout
     if (millis()-timeoutStart > 100*getOperand(1)) {
-      timeoutFlag=true;
+      blinkState=at_timeout;
       break; // and drop through
     }
     delayMe(50);
     return;
     
   case OPCODE_IFTIMEOUT: // do next operand if timeout flag set
-    skipIf=!timeoutFlag;
+    skipIf=blinkState!=at_timeout;
     break;
     
   case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
@@ -624,13 +645,25 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_SET:
+    killBlinkOnVpin(operand);
     IODevice::write(operand,true);
     break;
     
   case OPCODE_RESET:
+    killBlinkOnVpin(operand);
     IODevice::write(operand,false);
     break;
-    
+  
+  case OPCODE_BLINK: 
+     // Start a new task to blink this vpin
+     killBlinkOnVpin(operand);
+     {
+      auto newtask=new RMFT2(progCounter);
+      newtask->blinkPin=operand;
+      newtask->blinkState=blink_low; // will go high on first call
+     }
+     break; 
+
   case OPCODE_PAUSE:
     DCC::setThrottle(0,1,true);  // pause all locos on the track
     pausingTask=this;
@@ -815,6 +848,10 @@ void RMFT2::loop2() {
   case OPCODE_FOFF:
     if (loco) DCC::setFn(loco,operand,false);
     break;
+  
+  case OPCODE_FTOGGLE:
+    if (loco) DCC::changeFn(loco,operand);
+    break;
     
   case OPCODE_DRIVE:
     {
@@ -829,6 +866,10 @@ void RMFT2::loop2() {
     
   case OPCODE_XFOFF:
     DCC::setFn(operand,getOperand(1),false);
+    break;
+
+  case OPCODE_XFTOGGLE:
+    DCC::changeFn(operand,getOperand(1));
     break;
     
   case OPCODE_DCCACTIVATE: {
@@ -1167,16 +1208,19 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (redpin) {
     bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
     if (!aHigh) redval=!redval;
+    killBlinkOnVpin(redpin);
     IODevice::write(redpin,redval);
   }
   if (amberpin) {
     bool amberval=(rag==SIGNAL_AMBER);
     if (!aHigh) amberval=!amberval;
+    killBlinkOnVpin(amberpin);
     IODevice::write(amberpin,amberval);
   }
   if (greenpin) {
     bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
     if (!aHigh) greenval=!greenval;
+    killBlinkOnVpin(greenpin);
     IODevice::write(greenpin,greenval);
   }
 }
@@ -1264,6 +1308,25 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
   }
 }
 
+// This function is used when setting pins so that a SET or RESET
+// will cause any blink task on that pin to terminate.
+// It will be compiled out of existence if no BLINK feature is used.
+void RMFT2::killBlinkOnVpin(VPIN pin) {
+   if (!(compileFeatures & FEATURE_BLINK)) return; 
+ 
+  RMFT2 * task=loopTask;
+  while(task) {
+    if (
+      (task->blinkState==blink_high || task->blinkState==blink_low) 
+       && task->blinkPin==pin) {
+        task->kill();
+        return;
+      }
+    task=task->next;
+    if (task==loopTask) return;
+  }
+}
+  
 void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {  
   // Check we dont already have a task running this handler
   RMFT2 * task=loopTask;
