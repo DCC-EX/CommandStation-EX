@@ -145,6 +145,12 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 
 #include "myAutomation.h"
 
+// Pass 1g Implants STEALTH_GLOBAL in correct place 
+#include "EXRAIL2MacroReset.h"
+#undef STEALTH_GLOBAL
+#define STEALTH_GLOBAL(code...) code
+#include "myAutomation.h"
+
 // Pass 1h Implements HAL macro by creating exrailHalSetup function
 // Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
@@ -202,6 +208,8 @@ bool exrailHalSetup() {
 #define PICKUP_STASH(id) | FEATURE_STASH
 #undef STASH
 #define STASH(id) | FEATURE_STASH
+#undef BLINK
+#define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -451,6 +459,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
+#define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
@@ -484,6 +493,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FON(func) OPCODE_FON,V(func),
 #define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
+#define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
 #define HAL(haltype,params...)
@@ -518,6 +528,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
+#define STEALTH_GLOBAL(code...) 
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
@@ -595,6 +606,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
+#define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
 #ifndef IO_NO_HAL
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
 #endif
@@ -611,6 +623,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #endif
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
+#define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
