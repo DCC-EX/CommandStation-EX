@@ -809,7 +809,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         CommandDistributor::setVirtualLCDSerial(stream);
         StringFormatter::send(stream,
             F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
-               "<@ 0 1 \"Lic GPLv3\">\n"));
+               "<@ 0 1 \"Lic GPLv3 \">\n"
+               "<@ 0 8 \"Powered by DCC-EX \">\n"));
         return; 
 #endif
     default: //anything else will diagnose and drop out to <X>
