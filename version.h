@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.47"
+#define VERSION "5.3.9"
 // 5.2.47 - EXRAIL additions:
 //          STEALTH_GLOBAL
 //          BLINK
@@ -15,7 +15,6 @@
 // 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
 //          ESP32 fix PWM LEDC inverted pin mode
 //          ESP32 rewrite PWM LEDC to use pin mux
-// 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
 // 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield
 // 5.2.39 - Functions for DC frequency: Use func up to F31
@@ -32,6 +31,17 @@
 // 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
 // 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
 // 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
+//
+//
+// 5.3.5e - Fixes to ethernet cable handling, and STM32 related handling as well
+// 5.3.5  - Exrail JMRI_SENSORS(vpin [,count]) creates <S> types.
+// 5.3.4  - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.3.3  - Fix Ethernet cable disconnected message, wait for DHCP
+// 5.3.2  - MDNS Generic library integration for Ethernet
+// 5.3.1  - Variable frequency for DC mode
+// 5.2.40 - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.2.31 - included in stm32EC as 5.3.5  
+//  -- some duplicates in above list
 // 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
 //        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
 //        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
@@ -54,8 +64,11 @@
 // 5.2.18 - Display network IP fix
 // 5.2.17 - ESP32 simplify network logic
 // 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
+//       df - I2C DFPlayper capability in stm32 branch
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
+// 5.2.14eth - Initial ethernet code for STM32F429ZI and F439ZI boards
+//        C - CMRI RS485 connection
 // 5.2.14 - Reminder window DCC packet optimization
 //        - Optional #define DISABLE_FUNCTION_REMINDERS 
 // 5.2.13 - EXRAIL STEALTH 
