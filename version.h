@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.47"
+#define VERSION "5.2.48"
+// 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
 // 5.2.47 - EXRAIL additions:
 //          STEALTH_GLOBAL
 //          BLINK
