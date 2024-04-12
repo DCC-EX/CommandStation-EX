@@ -3,7 +3,19 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.42"
+#define VERSION "5.2.48"
+// 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
+// 5.2.47 - EXRAIL additions:
+//          STEALTH_GLOBAL
+//          BLINK
+//          TOGGLE_TURNOUT
+//          FTOGGLE, XFTOGGLE
+//          Reduced code-developmenmt DIAG noise
+// 5.2.46 - Support for extended consist CV20 in <R> and <W id>
+//        - New cmd <W CONSIST id [REVERSE]> to handle long/short consist ids
+// 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
+//          ESP32 fix PWM LEDC inverted pin mode
+//          ESP32 rewrite PWM LEDC to use pin mux
 // 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
 // 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield

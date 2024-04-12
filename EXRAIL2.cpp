@@ -177,7 +177,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
 /* static */ void RMFT2::begin() {
 
-  DIAG(F("EXRAIL RoutCode at =%P"),RouteCode);
+  //DIAG(F("EXRAIL RoutCode at =%P"),RouteCode);
     
   bool saved_diag=diag;
   diag=true;
@@ -418,7 +418,7 @@ void RMFT2::createNewTask(int route, uint16_t cab) {
 
 void RMFT2::driveLoco(byte speed) {
   if (loco<=0) return;  // Prevent broadcast!
-  if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
+  //if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
  /* TODO.....
  power on appropriate track if DC or main if dcc
   if (TrackManager::getMainPowerMode()==POWERMODE::OFF) {
@@ -1074,7 +1074,7 @@ void RMFT2::loop2() {
   case OPCODE_ROUTE:
   case OPCODE_AUTOMATION:
   case OPCODE_SEQUENCE:
-    if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
+    //if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
     break;
     
   case OPCODE_AUTOSTART: // Handled only during begin process
@@ -1156,7 +1156,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
   if (!(compileFeatures & FEATURE_SIGNAL)) return; // dont compile code below
-  if (diag) DIAG(F(" doSignal %d %x"),id,rag);
+  //if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
   // This will work even without a signal definition. 
@@ -1176,7 +1176,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   VPIN redpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2);
   VPIN amberpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4);
   VPIN greenpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6);
-  if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
+  //if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
 
   VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
 
@@ -1184,7 +1184,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     // A servo signal, the pin numbers are actually servo positions
     // Note, setting a signal to a zero position has no effect.
     int16_t servopos= rag==SIGNAL_RED? redpin: (rag==SIGNAL_GREEN? greenpin : amberpin);
-    if (diag) DIAG(F("sigA %d %d"),id,servopos);
+    //if (diag) DIAG(F("sigA %d %d"),id,servopos);
     if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
     return;  
   }
@@ -1302,7 +1302,7 @@ void RMFT2::rotateEvent(int16_t turntableId, bool change) {
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
   if (Diag::CMD)
-   DIAG(F("Looking for clock event at : %d"), clocktime);
+   DIAG(F("clockEvent at : %d"), clocktime);
   if (change) {
     onClockLookup->handleEvent(F("CLOCK"),clocktime);
     onClockLookup->handleEvent(F("CLOCK"),25*60+clocktime%60);
@@ -1312,7 +1312,7 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
 void RMFT2::powerEvent(int16_t track, bool overload) {
   // Hunt for an ONOVERLOAD for this item
   if (Diag::CMD)
-   DIAG(F("Looking for Power event on track : %c"), track);
+   DIAG(F("powerEvent : %c"), track);
   if (overload) {
     onOverloadLookup->handleEvent(F("POWER"),track);
   }

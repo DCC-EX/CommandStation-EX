@@ -193,13 +193,14 @@ class MotorDriver {
       }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
+    inline int8_t getBrakePinSigned() { return invertBrake ? -brakePin : brakePin; };
     void setDCSignal(byte speedByte, uint8_t frequency=0);
     void throttleInrush(bool on);
     inline void detachDCSignal() {
 #if defined(__arm__)
       pinMode(brakePin, OUTPUT);
 #elif defined(ARDUINO_ARCH_ESP32)
-      ledcDetachPin(brakePin);
+      DCCTimer::DCCEXledcDetachPin(brakePin);
 #else
       setDCSignal(128);
 #endif

@@ -38,8 +38,8 @@
 	    if (track[t]->getMode()==findmode)	\
                 track[t]->function;
 
-MotorDriver * TrackManager::track[MAX_TRACKS];
-int16_t TrackManager::trackDCAddr[MAX_TRACKS];
+MotorDriver * TrackManager::track[MAX_TRACKS] = { NULL };
+int16_t TrackManager::trackDCAddr[MAX_TRACKS] = { 0 };
 
 int8_t TrackManager::lastTrack=-1;
 bool TrackManager::progTrackSyncMain=false; 
@@ -251,18 +251,47 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     } else {
       track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
-    track[trackToSet]->setMode(mode);
-    trackDCAddr[trackToSet]=dcAddr;
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
 
     // This can be done BEFORE the PWM-Timer evaluation (methinks)
-    if (!(mode & TRACK_MODE_DC)) {
+    if (mode & TRACK_MODE_DC) {
+      if (trackDCAddr[trackToSet] != dcAddr) {
+	// new or changed DC Addr, run the new setup
+	if (trackDCAddr[trackToSet] != 0) {
+	  // if we change dcAddr and not only
+	  // change from another mode,
+	  // first detach old DC signal
+	  track[trackToSet]->detachDCSignal();
+	}
+#ifdef ARDUINO_ARCH_ESP32
+	int trackfound = -1;
+	FOR_EACH_TRACK(t) {
+	  //DIAG(F("Checking track %c mode %x dcAddr %d"), 'A'+t, track[t]->getMode(), trackDCAddr[t]);
+	  if (t != trackToSet                          // not our track
+	      && (track[t]->getMode() & TRACK_MODE_DC) // right mode
+	      && trackDCAddr[t] == dcAddr) {           // right addr
+	    //DIAG(F("Found track %c"), 'A'+t);
+	    trackfound = t;
+	    break;
+	  }
+	}
+	if (trackfound > -1) {
+	  DCCTimer::DCCEXanalogCopyChannel(track[trackfound]->getBrakePinSigned(),
+					   track[trackToSet]->getBrakePinSigned());
+	}
+#endif
+      }
+      // set future DC Addr;
+      trackDCAddr[trackToSet]=dcAddr;
+    } else {
       // DCC tracks need to have set the PWM to zero or they will not work.
       track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);
+      trackDCAddr[trackToSet]=0; // clear that an addr is set for DC as this is not a DC track
     }
+    track[trackToSet]->setMode(mode);
 
     // BOOST:
     //  Leave it as is

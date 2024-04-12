@@ -333,7 +333,9 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   return;
 }
 
-void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
+    if (invert)
+      value = 255-value;
     // Calculate percentage duty cycle from value given
     uint32_t duty_cycle = (value * 100 / 256) + 1;
     if (pin_timer[pin] != NULL) {

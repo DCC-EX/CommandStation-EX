@@ -78,6 +78,7 @@ int DCCTimer::freeMemory() {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef ARDUINO_ARCH_ESP32
+#include "DIAG.h"
 #include <driver/adc.h>
 #include <soc/sens_reg.h>
 #include <soc/sens_struct.h>
@@ -154,8 +155,10 @@ void DCCTimer::reset() {
 void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   if (f >= 16)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
-  else if (f == 7)
+/*
+  else if (f == 7) // not used on ESP32
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+*/
   else if (f >= 4)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
   else if (f >= 3)
@@ -188,21 +191,102 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   }
 }
 
-void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+void DCCTimer::DCCEXledcDetachPin(uint8_t pin) {
+  DIAG(F("Clear pin %d channel"), pin);
+  pin_to_channel[pin] = 0;
+  pinMatrixOutDetach(pin, false, false);
+}
+
+static byte LEDCToMux[] = {
+  LEDC_HS_SIG_OUT0_IDX,
+  LEDC_HS_SIG_OUT1_IDX,
+  LEDC_HS_SIG_OUT2_IDX,
+  LEDC_HS_SIG_OUT3_IDX,
+  LEDC_HS_SIG_OUT4_IDX,
+  LEDC_HS_SIG_OUT5_IDX,
+  LEDC_HS_SIG_OUT6_IDX,
+  LEDC_HS_SIG_OUT7_IDX,
+  LEDC_LS_SIG_OUT0_IDX,
+  LEDC_LS_SIG_OUT1_IDX,
+  LEDC_LS_SIG_OUT2_IDX,
+  LEDC_LS_SIG_OUT3_IDX,
+  LEDC_LS_SIG_OUT4_IDX,
+  LEDC_LS_SIG_OUT5_IDX,
+  LEDC_LS_SIG_OUT6_IDX,
+  LEDC_LS_SIG_OUT7_IDX,
+};
+
+void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
+  DIAG(F("Attaching pin %d to channel %d %c"), pin, channel, inverted ? 'I' : ' ');
+  ledcAttachPin(pin, channel);
+  if (inverted) // we attach again but with inversion
+    gpio_matrix_out(pin, LEDCToMux[channel], inverted, 0);
+}
+
+void DCCTimer::DCCEXanalogCopyChannel(int8_t frompin, int8_t topin) {
+  // arguments are signed depending on inversion of pins
+  DIAG(F("Pin %d copied to %d"), frompin, topin);
+  bool inverted = false;
+  if (frompin<0)
+    frompin = -frompin;
+  if (topin<0) {
+    inverted = true;
+    topin = -topin;
+  }
+  int channel = pin_to_channel[frompin]; // after abs(frompin)
+  pin_to_channel[topin] = channel;
+  DCCTimer::DCCEXledcAttachPin(topin, channel, inverted);
+}
+
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
+  // This allocates channels 15, 13, 11, ....
+  // so each channel gets its own timer.
   if (pin < SOC_GPIO_PIN_COUNT) {
     if (pin_to_channel[pin] == 0) {
+      int search_channel;
+      int n;
       if (!cnt_channel) {
           log_e("No more PWM channels available! All %u already used", LEDC_CHANNELS);
           return;
       }
-      pin_to_channel[pin] = --cnt_channel;
-      ledcSetup(cnt_channel, 1000, 8);
-      ledcAttachPin(pin, cnt_channel);
+      // search for free channels top down
+      for (search_channel=LEDC_CHANNELS-1; search_channel >=cnt_channel; search_channel -= 2) {
+	bool chanused = false;
+	for (n=0; n < SOC_GPIO_PIN_COUNT; n++) {
+	  if (pin_to_channel[n] == search_channel) { // current search_channel used
+	    chanused = true;
+	    break;
+	  }
+	}
+	if (chanused)
+	  continue;
+	if (n == SOC_GPIO_PIN_COUNT) // current search_channel unused
+	  break;
+      }
+      if (search_channel >= cnt_channel) {
+	pin_to_channel[pin] = search_channel;
+	DIAG(F("Pin %d assigned to search channel %d"), pin, search_channel);
+      } else {
+	pin_to_channel[pin] = --cnt_channel; // This sets 15, 13, ...
+	DIAG(F("Pin %d assigned to new channel %d"), pin, cnt_channel);
+	--cnt_channel;                       // Now we are at 14, 12, ...
+      }
+      ledcSetup(pin_to_channel[pin], 1000, 8);
+      DCCEXledcAttachPin(pin, pin_to_channel[pin], invert);
     } else {
-      ledcAttachPin(pin, pin_to_channel[pin]);
+      // This else is only here so we can enable diag
+      // Pin should be already attached to channel
+      // DIAG(F("Pin %d assigned to old channel %d"), pin, pin_to_channel[pin]);
     }
     ledcWrite(pin_to_channel[pin], value);
   }
+}
+
+void DCCTimer::DCCEXInrushControlOn(uint8_t pin, int duty, bool inverted) {
+  // this uses hardcoded channel 0
+  ledcSetup(0, 62500, 8);
+  DCCEXledcAttachPin(pin, 0, inverted);
+  ledcWrite(0, duty);
 }
 
 int ADCee::init(uint8_t pin) {
