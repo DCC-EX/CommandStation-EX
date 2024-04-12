@@ -54,6 +54,7 @@
 #include "TrackManager.h"
 #include "Turntables.h"
 #include "IODevice.h"
+#include "EXRAILSensor.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -251,6 +252,12 @@ if (compileFeatures & FEATURE_SIGNAL) {
       break;
     }
 
+    case OPCODE_ONSENSOR:
+        new EXRAILSensor(operand,progCounter+3,true );
+        break;
+    case OPCODE_ONBUTTON:
+        new EXRAILSensor(operand,progCounter+3,false );
+        break;
     case OPCODE_TURNOUT: {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
@@ -480,6 +487,7 @@ bool RMFT2::skipIfBlock() {
 }
 
 void RMFT2::loop() {
+  EXRAILSensor::checkAll();
 
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;
@@ -1084,6 +1092,8 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+  case OPCODE_ONBUTTON:
+  case OPCODE_ONSENSOR:
 #ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime

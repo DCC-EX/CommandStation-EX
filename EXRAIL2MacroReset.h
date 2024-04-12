@@ -114,6 +114,8 @@
 #undef ONGREEN
 #undef ONRED
 #undef ONROTATE
+#undef ONBUTTON
+#undef ONSENSOR
 #undef ONTHROW 
 #undef ONCHANGE
 #undef PARSE
@@ -279,6 +281,8 @@
 #define ONROTATE(turntable_id)
 #define ONTHROW(turnout_id) 
 #define ONCHANGE(sensor_id)
+#define ONSENSOR(sensor_id)
+#define ONBUTTON(sensor_id)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
