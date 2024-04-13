@@ -553,6 +553,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
+#define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
+#define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
