@@ -115,6 +115,7 @@ enum BlinkState: byte {
   static const byte FEATURE_ROUTESTATE= 0x10;
   static const byte FEATURE_STASH = 0x08;
   static const byte FEATURE_BLINK = 0x04;
+  static const byte FEATURE_SENSOR = 0x02;
   
  
   // Flag bits for status of hardware and TPL
@@ -185,7 +186,8 @@ class LookList {
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
-
+  static bool readSensor(uint16_t sensorId);
+   
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -208,7 +210,6 @@ private:
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
     void driveLoco(byte speedo);
-    bool readSensor(uint16_t sensorId);
     bool skipIfBlock();
     bool readLoco();
     void loop2();

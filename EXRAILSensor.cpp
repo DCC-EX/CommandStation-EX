@@ -59,7 +59,7 @@ void EXRAILSensor::checkAll() {
 
 bool EXRAILSensor::check() {
   // check for debounced change in this sensor 
-  inputState = IODevice::read(pin);
+  inputState = RMFT2::readSensor(pin);
 
   // Check if changed since last time, and process changes.
   if (inputState == active) {// no change

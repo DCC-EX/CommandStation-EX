@@ -210,6 +210,10 @@ bool exrailHalSetup() {
 #define STASH(id) | FEATURE_STASH
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
+#undef ONBUTTON
+#define ONBUTTON(vpin) | FEATURE_SENSOR
+#undef ONSENSOR
+#define ONSENSOR(vpin) | FEATURE_SENSOR
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"

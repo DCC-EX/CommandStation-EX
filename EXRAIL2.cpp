@@ -253,11 +253,13 @@ if (compileFeatures & FEATURE_SIGNAL) {
     }
 
     case OPCODE_ONSENSOR:
+      if (compileFeatures & FEATURE_SENSOR) 
         new EXRAILSensor(operand,progCounter+3,true );
-        break;
+      break;
     case OPCODE_ONBUTTON:
+      if (compileFeatures & FEATURE_SENSOR) 
         new EXRAILSensor(operand,progCounter+3,false );
-        break;
+      break;
     case OPCODE_TURNOUT: {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
@@ -487,7 +489,8 @@ bool RMFT2::skipIfBlock() {
 }
 
 void RMFT2::loop() {
-  EXRAILSensor::checkAll();
+  if (compileFeatures & FEATURE_SENSOR) 
+      EXRAILSensor::checkAll();
 
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;

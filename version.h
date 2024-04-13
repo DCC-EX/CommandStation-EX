@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.49"
+#define VERSION "5.2.50"
+// 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
 // 5.2.49 - EXRAIL additions:
 //          ONBUTTON, ONSENSOR
 // 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
