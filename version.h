@@ -3,7 +3,7 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.X.Y"
+#define VERSION "5.99.99"
 //          Make Z21 diag selectable from DCCEXParser
 //          Z21 error fix for turnout feedback
 //          Z21 add turnout and sensor broadcasts
