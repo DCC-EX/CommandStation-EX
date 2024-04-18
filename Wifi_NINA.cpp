@@ -53,6 +53,12 @@
   #define SPIWIFI_ACK    7   // a.k.a BUSY or READY pin
   #define ESP32_RESETN   5   // Reset pin
   #define ESP32_GPIO0   -1   // Not connected
+#elif defined(ARDUINO_AVR_MEGA2560)
+  #define SPIWIFI       SPI  // The SPI port
+  #define SPIWIFI_SS    53   // Chip select pin
+  #define ESP32_RESETN  22   // Reset pin
+  #define SPIWIFI_ACK   23   // a.k.a BUSY or READY pin
+  #define ESP32_GPIO0   -1
 #else
 #warning "WiFiNINA has no SPI port or pin allocations for this archiecture yet!"
 #endif
@@ -88,7 +94,8 @@ bool WifiNINA::setup(const char *SSid,
   if (WiFi.status() == WL_NO_MODULE) {
     DIAG(F("Communication with WiFi module failed!"));
     // don't continue for now!
-    while (true);
+    // while (true);
+    return;
   }
 
   // Print firmware version on the module
