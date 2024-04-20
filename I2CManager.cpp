@@ -61,9 +61,13 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
   else if (address >= 0x40 && address <= 0x4f)
     return F("PWM");
   else if (address >= 0x50 && address <= 0x5f) 
-    return F("EEPROM"); 
+    return F("EEPROM");
+  else if (address == 0x60)
+    return F("EX-Turntable");
+  else if (address == 0x65)
+    return F("EX-IOExpander");
   else if (address == 0x68) 
-    return F("Real-time clock"); 
+    return F("Real-time clock or Rotary Encoder"); 
   else if (address >= 0x70 && address <= 0x77)
     return F("I2C Mux");
   else
