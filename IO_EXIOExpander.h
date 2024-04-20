@@ -48,6 +48,45 @@
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
+ * ConfiguredInput class to maintain a cache of configured input pins.
+ * This enables reconfiguring defined input pins when <D HAL RESET> is issued, otherwise all input pins
+ * are left unconfigured after calling _begin, as EXRAIL inputs are only configured at startup.
+ */
+class ConfiguredInput {
+public:
+  ConfiguredInput(VPIN vpin, IODevice::ConfigTypeEnum inputType, uint8_t pullup) :
+    _vpin(vpin), _inputType(inputType), _pullup(pullup) {}
+  
+  int getVpin() {
+    return _vpin;
+  }
+
+  IODevice::ConfigTypeEnum getInputType() {
+    return _inputType;
+  }
+
+  uint8_t getPullup() {
+    return _pullup;
+  }
+
+  void setNext(ConfiguredInput *input) {
+    _next = input;
+  }
+  
+  ConfiguredInput *getNext() {
+    return _next;
+  }
+
+private:
+  VPIN _vpin;
+  IODevice::ConfigTypeEnum _inputType;
+  uint8_t _pullup;
+  ConfiguredInput *_next = nullptr;
+
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
  * IODevice subclass for EX-IOExpander.
  */
 class EXIOExpander : public IODevice {
@@ -75,6 +114,7 @@ private:
     if (nPins > 256) nPins = 256;
     _nPins = nPins;
     _I2CAddress = i2cAddress;
+    _firstInput = nullptr;
     addDevice(this);
   }
 
@@ -170,6 +210,39 @@ private:
       DIAG(F("EX-IOExpander I2C:%s device not found"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;
     }
+    if (status == I2C_STATUS_OK) {
+      if (_firstInput) {
+        for (ConfiguredInput *input = _firstInput; input; input = input->getNext()) {
+          switch (input->getInputType()) {
+            case ConfigTypeEnum::CONFIGURE_INPUT: {
+              int params[1] = {input->getPullup()};
+              _configure(input->getVpin(), input->getInputType(), 1, params);
+              break;
+            }
+
+            case ConfigTypeEnum::CONFIGURE_ANALOGINPUT: {
+              _configureAnalogIn(input->getVpin());
+              break;
+            }
+
+            default:
+              break;
+          }
+        }
+      }
+    }
+  }
+
+  void addConfiguredInput(ConfiguredInput *input) {
+    if (!_firstInput) {
+        _firstInput = input;
+      } else {
+        ConfiguredInput *current = _firstInput;
+        while (current->getNext() != nullptr) {
+          current = current->getNext();
+        }
+        current->setNext(input);
+      }
   }
 
   // Digital input pin configuration, used to enable on EX-IOExpander device and set pullups if requested.
@@ -186,6 +259,7 @@ private:
                                 outBuffer, sizeof(outBuffer));
       if (status == I2C_STATUS_OK) {
         if (responseBuffer[0] == EXIORDY) {
+          addConfiguredInput (new ConfiguredInput(vpin, configType, pullup));
           return true;
         } else {
           DIAG(F("EXIOVpin %u cannot be used as a digital input pin"), (int)vpin);
@@ -212,6 +286,7 @@ private:
                                   commandBuffer, sizeof(commandBuffer));
     if (status == I2C_STATUS_OK) {
       if (responseBuffer[0] == EXIORDY) {
+        addConfiguredInput(new ConfiguredInput(vpin, ConfigTypeEnum::CONFIGURE_ANALOGINPUT, 0));
         return true;
       } else {
         DIAG(F("EX-IOExpander: Vpin %u cannot be used as an analogue input pin"), (int)vpin);
@@ -397,6 +472,8 @@ private:
   unsigned long _lastAnalogueRead = 0;
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
   const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
+
+  ConfiguredInput *_firstInput;
 
   // EX-IOExpander protocol flags
   enum {
