@@ -233,7 +233,20 @@ private:
     }
   }
 
+  bool isConfigured(VPIN vpin) const {
+    ConfiguredInput *current = _firstInput;
+    while (current != nullptr) {
+      if (current->getVpin() == vpin) {
+        return true;
+      }
+      current = current->getNext();
+    }
+    return false;
+  }
+
   void addConfiguredInput(ConfiguredInput *input) {
+    VPIN vpin = input->getVpin();
+    if (isConfigured(vpin)) return;     // Already have this captured, don't create it again
     if (!_firstInput) {
         _firstInput = input;
       } else {
@@ -259,7 +272,7 @@ private:
                                 outBuffer, sizeof(outBuffer));
       if (status == I2C_STATUS_OK) {
         if (responseBuffer[0] == EXIORDY) {
-          addConfiguredInput (new ConfiguredInput(vpin, configType, pullup));
+          addConfiguredInput(new ConfiguredInput(vpin, configType, pullup));
           return true;
         } else {
           DIAG(F("EXIOVpin %u cannot be used as a digital input pin"), (int)vpin);
