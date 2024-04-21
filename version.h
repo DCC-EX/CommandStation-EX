@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.50"
+#define VERSION "5.2.51"
+// 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
 // 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
 // 5.2.49 - EXRAIL additions:
 //          ONBUTTON, ONSENSOR
