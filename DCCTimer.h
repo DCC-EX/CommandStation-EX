@@ -1,5 +1,5 @@
 /*
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
@@ -135,6 +135,8 @@ private:
   #if defined (ARDUINO_ARCH_STM32)
   // bit array of used pins (max 32)
   static uint32_t usedpins;
+  static uint32_t * analogchans;        // Array of channel numbers to be scanned
+  static ADC_TypeDef * * adcchans;      // Array to capture which ADC is each input channel on
 #else
   // bit array of used pins (max 16)
   static uint16_t usedpins;
