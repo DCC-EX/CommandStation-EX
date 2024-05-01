@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.3.9"
+#define VERSION "5.3.10"
+// 5.3.10 - myCMRI.h example  
+
 // 5.2.47 - EXRAIL additions:
 //          STEALTH_GLOBAL
 //          BLINK
