@@ -187,6 +187,7 @@ class LookList {
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
   static bool readSensor(uint16_t sensorId);
+  static bool isSignal(int16_t id,char rag); 
    
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
@@ -196,7 +197,6 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(int16_t id,char rag); 
-    static bool isSignal(int16_t id,char rag); 
     static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
     #ifndef IO_NO_HAL
