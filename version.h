@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.51"
+#define VERSION "5.2.52"
+// 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
+//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
 // 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
 // 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
 // 5.2.49 - EXRAIL additions:
