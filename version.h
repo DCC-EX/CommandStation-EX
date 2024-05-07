@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.55"
+#define VERSION "5.2.56"
+// 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
 // 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call
 // 5.2.54 - Bugfix for EXRAIL signal handling for active high 
 // 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 

@@ -1,4 +1,5 @@
 /*
+ *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
  *  © 2020-2023 Chris Harlow
@@ -1143,20 +1144,25 @@ void RMFT2::kill(const FSH * reason, int operand) {
 }
 
 int16_t RMFT2::getSignalSlot(int16_t id) {
-  for (int sigslot=0;;sigslot++) {
-      int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-      if (sighandle==0) { // end of signal list 
-        DIAG(F("EXRAIL Signal %d not defined"), id);
-        return -1;
-      }
-      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+
+  if (id > 0) {
+    int sigslot = 0;
+    int16_t sighandle = 0;
+    // Trundle down the signal list until we reach the end
+    while ((sighandle = GETHIGHFLASHW(RMFT2::SignalDefinitions, sigslot * 8)) != 0)
+    {
       // sigid is the signal id used in RED/AMBER/GREEN macro
       // for a LED signal it will be same as redpin
-      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
-
-      if (sigid != id) continue; // keep looking
-      return sigslot; // relative slot in signals table
-  }  
+      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set.
+      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+      if (sigid == (VPIN)id)
+        return sigslot; // found it
+      sigslot++;  // keep looking
+    };
+  }
+  // We did not find the signal
+  DIAG(F("EXRAIL Signal %d not defined"), id);
+    return -1;
 }
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
