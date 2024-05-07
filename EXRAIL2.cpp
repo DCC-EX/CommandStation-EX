@@ -1218,7 +1218,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
    
   // Manage invert (HIGH on) pins
-  bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
+  bool aHigh=sighandle & ACTIVE_HIGH_SIGNAL_FLAG;
       
   // set the three pins 
   if (redpin) {

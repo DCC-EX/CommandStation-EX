@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.53"
+#define VERSION "5.2.54"
+// 5.2.54 - Bugfix for EXRAIL signal handling for active high 
 // 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 
 // 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
 //        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
