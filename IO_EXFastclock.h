@@ -51,6 +51,7 @@ static void create(I2CAddress i2cAddress) {
   // Start by assuming we will find the clock
   // Check if specified I2C address is responding (blocking operation)
   // Returns I2C_STATUS_OK (0) if OK, or error code.
+  I2CManager.begin();
   uint8_t _checkforclock = I2CManager.checkAddress(i2cAddress);
   DIAG(F("Clock check result - %d"), _checkforclock);
   // XXXX change thistosave2 bytes
