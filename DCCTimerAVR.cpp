@@ -186,7 +186,7 @@ int DCCTimer::freeMemory() {
 
 void DCCTimer::reset() {
   wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-  delay(50);            // wait for the prescaller time to expire
+  delay(50);              // wait for it to happen
 
 }
 
