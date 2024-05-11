@@ -1145,7 +1145,7 @@ void RMFT2::kill(const FSH * reason, int operand) {
 
 int16_t RMFT2::getSignalSlot(int16_t id) {
 
-  if (id >= 0) {
+  if (id > 0) {
     int sigslot = 0;
     int16_t sighandle = 0;
     // Trundle down the signal list until we reach the end
