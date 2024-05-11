@@ -185,8 +185,10 @@ int DCCTimer::freeMemory() {
 }
 
 void DCCTimer::reset() {
-  wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-  delay(50);              // wait for it to happen
+  // 250ms chosen to circumwent bootloader bug which
+  // hangs at too short timepout (like 15ms)
+  wdt_enable( WDTO_250MS); // set Arduino watchdog timer for 250ms 
+  delay(500);              // wait for it to happen
 
 }
 
