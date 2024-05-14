@@ -102,7 +102,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     getFastPin(F("BRAKE"),brakePin,fastBrakePin);
     // if brake is used for railcom  cutout we need to do PORTX register trick here as well
     pinMode(brakePin, OUTPUT);
-    setBrake(true);  // start with brake on in case we hace DC stuff going on
+    setBrake(true);  // start with brake on in case we have DC stuff going on
   } else {
     brakePin=UNUSED_PIN;
   }
@@ -132,7 +132,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   }
 
   // This conversion performed at compile time so the remainder of the code never needs
-  // float calculations or libraray code. 
+  // float calculations or library code. 
   senseFactorInternal=sense_factor * senseScale; 
   tripMilliamps=trip_milliamps;
 #ifdef MAX_CURRENT
@@ -145,7 +145,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     // This would mean that the values obtained from the ADC never
     // can reach the trip value. So independent of the current, the
     // short circuit protection would never trip. So we adjust the
-    // trip value so that it is tiggered when the ADC reports it's
+    // trip value so that it is triggered when the ADC reports its
     // maximum value instead.
 
     //    DIAG(F("Changing short detection value from %d to %d mA"),
@@ -179,7 +179,7 @@ void MotorDriver::setPower(POWERMODE mode) {
     globalOverloadStart = lastPowerChange[(int)mode];
   bool on=(mode==POWERMODE::ON || mode ==POWERMODE::ALERT);
   if (on) {
-    // when switching a track On, we need to check the crrentOffset with the pin OFF
+    // when switching a track On, we need to check the currentOffset with the pin OFF
     if (powerMode==POWERMODE::OFF && currentPin!=UNUSED_PIN) {
         senseOffset = ADCee::read(currentPin);
         DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
@@ -247,7 +247,7 @@ int MotorDriver::getCurrentRaw(bool fromISR) {
 /*
  * This should only be called in interrupt context
  * Copies current value from HW to cached value in
- * Motordriver.
+ * MotorDriver.
  */
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
@@ -293,7 +293,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
     return;
   switch(brakePin) {
 #if defined(ARDUINO_AVR_UNO)
-    // Not worth doin something here as:
+    // Not worth doing something here as:
     // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
     // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.
     // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
@@ -324,7 +324,7 @@ void MotorDriver::setDCSignal(byte speedcode) {
   default:
     break;
   }
-  // spedcoode is a dcc speed & direction
+  // speedcoode is a dcc speed & direction
   byte tSpeed=speedcode & 0x7F; // DCC Speed with 0,1 stop and speed steps 2 to 127
   byte tDir=speedcode & 0x80;
   byte brake;
@@ -461,7 +461,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
 ///////////////////////////////////////////////////////////////////////////////////////////
 // checkPowerOverload(useProgLimit, trackno)
 // bool useProgLimit: Trackmanager knows if this track is in prog mode or in main mode
-// byte trackno: trackmanager knows it's number (could be skipped?)
+// byte trackno: trackmanager knows its number (could be skipped?)
 //
 // Short ciruit handling strategy:
 //

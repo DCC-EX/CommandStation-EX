@@ -112,7 +112,7 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
   I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, activity);
 }
 
-// Display Turnetable-EX device driver info.
+// Display Turntable-EX device driver info.
 void EXTurntable::_display() {
   DIAG(F("EX-Turntable I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, 
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));

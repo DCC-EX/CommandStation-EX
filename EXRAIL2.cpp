@@ -70,7 +70,7 @@ const int16_t HASH_KEYWORD_RED=26099;
 const int16_t HASH_KEYWORD_AMBER=18713;
 const int16_t HASH_KEYWORD_GREEN=-31493;
 
-// One instance of RMFT clas is used for each "thread" in the automation.
+// One instance of RMFT class is used for each "thread" in the automation.
 // Each thread manages a loco on a journey through the layout, and/or may manage a scenery automation.
 // The threads exist in a ring, each time through loop() the next thread in the ring is serviced.
 
@@ -1145,7 +1145,7 @@ void RMFT2::handleEvent(const FSH* reason,LookList* handlers, int16_t id) {
   int pc= handlers->find(id);
   if (pc<0) return;
   
-  // Check we dont already have a task running this handler
+  // Check we don't already have a task running this handler
   RMFT2 * task=loopTask;
   while(task) {
     if (task->onEventStartPosition==pc) {
@@ -1231,8 +1231,8 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
       stream->write(c);
     }
     #else
-    // UNO/NANO CPUs dont have high memory
-    // 32 bit cpus dont care anyway
+    // UNO/NANO CPUs don't have high memory
+    // 32 bit cpus don't care anyway
     stream->print((FSH *)strfar);
     #endif
 

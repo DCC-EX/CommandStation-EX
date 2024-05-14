@@ -31,11 +31,11 @@ class RingStream : public Print {
     virtual size_t write(uint8_t b);
 
     // This availableForWrite function is subverted from its original intention so that a caller 
-    // can destinguish between a normal stream and a RingStream. 
+    // can distinguish between a normal stream and a RingStream. 
     // The Arduino compiler does not support runtime dynamic cast to perform
-    // an instranceOf check. 
+    // an instanceOf check. 
     // This is necessary since the Print functions are mostly not virtual so 
-    // we cant override the print(__FlashStringHelper *) function.
+    // we can't override the print(__FlashStringHelper *) function.
    virtual int availableForWrite() override;
     using Print::write;
     size_t printFlash(const FSH * flashBuffer);

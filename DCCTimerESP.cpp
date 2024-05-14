@@ -73,7 +73,7 @@ int DCCTimer::getMinimumFreeMemory() {
 int DCCTimer::freeMemory() {
   return ESP.getFreeHeap();
 }
-#endif
+#endif  // ESP8266
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -114,7 +114,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   timerAlarmEnable(timer);
 }
 
-// We do not support to use PWM to make the Waveform on ESP
+// We do not support using PWM to make the Waveform on ESP
 bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
   return false;
 }

@@ -77,12 +77,12 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
   progDriver=TrackManager::getProgDriver();
   if (progDriver==NULL) {
     TrackManager::setJoin(ackManagerRejoin);
-    callback(-3); // we dont have a prog track!
+    callback(-3); // we don't have a prog track!
     return;
   }
   if (!progDriver->canMeasureCurrent()) {
     TrackManager::setJoin(ackManagerRejoin);
-    callback(-2); // our prog track cant measure current
+    callback(-2); // our prog track can't measure current
     return;
   }
 
@@ -117,7 +117,7 @@ void  DCCACK::Setup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
 
-// checkRessets return true if the caller should yield back to loop and try later.
+// checkResets return true if the caller should yield back to loop and try later.
 bool DCCACK::checkResets(uint8_t numResets) {
   return DCCWaveform::progTrack.getResets() < numResets;
 }
@@ -223,7 +223,7 @@ void DCCACK::loop() {
           break;  // we have a genuine ACK result
          }
      case ITC0:
-     case ITC1:   // If True Callback(0 or 1)  (if prevous WACK got an ACK)
+     case ITC1:   // If True Callback(0 or 1)  (if previous WACK got an ACK)
         if (ackReceived) {
             callback(opcode==ITC0?0:1);
             return;
@@ -375,8 +375,8 @@ void DCCACK::callback(int value) {
             if (millis()-callbackStart < 100) break;
             // stable after power maintained for 100mS
 
-            // If we are going to power off anyway, it doesnt matter
-            // but if we will keep the power on, we must off it for 30mS
+            // If we are going to power off anyway, it doesn't matter
+            // but if we will keep the power on, we must turn it off for 30mS
             if (autoPowerOff) callbackState=READY;
             else { // Need to cycle power off and on
                 progDriver->setPower(POWERMODE::OFF);
