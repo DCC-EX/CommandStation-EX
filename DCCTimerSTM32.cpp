@@ -36,7 +36,20 @@
 #include "DIAG.h"
 #include <wiring_private.h>
 
-#if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE)
+#if defined(ARDUINO_NUCLEO_F401RE)
+// Nucleo-64 boards don't have additional serial ports defined by default
+// Serial1 is available on the F401RE, but not hugely convenient.
+// Rx pin on PB7 is useful, but all the Tx pins map to Arduino digital pins, specifically:
+//   PA9 == D8
+//   PB6 == D10
+// of which D8 is needed by the standard and EX8874 motor shields. D10 would be used if a second
+// EX8874 is stacked. So only disable this if using a second motor shield.
+HardwareSerial Serial1(PB7, PB6);  // Rx=PB7, Tx=PB6 -- CN7 pin 17 and CN10 pin 17
+// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+// via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// Let's define Serial6 as an additional serial port (the only other option for the F401RE)
+HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F401RE
+#elif defined(ARDUINO_NUCLEO_F411RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
 HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
@@ -54,7 +67,7 @@ HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
 HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5 - F446RE
 // On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F446ZE) || \
-      defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI)
+      defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F4X9ZI)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5

@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.58"
+#define VERSION "5.2.59"
+// 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
+//        - STM32 add support for ARDUINO_NUCLEO_F4X9ZI type to span F429/F439 in upcoming STM32duino release v2.8 as a result of our PR
 // 5.2.58 - EXRAIL ALIAS allows named pins
 // 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
 // 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
