@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.57"
+#define VERSION "5.2.58"
+// 5.2.58 - EXRAIL ALIAS allows named pins
 // 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
 // 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
 // 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call

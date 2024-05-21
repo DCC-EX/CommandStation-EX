@@ -75,7 +75,7 @@
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
-#define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
+#define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
 // Pass 1d Detect sequence duplicates.
