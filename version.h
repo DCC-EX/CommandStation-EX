@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.59"
+#define VERSION "5.2.60"
+// 5.2.60 - Bugfix: Opcode AFTEROVERLOAD does not have an argument that is a pin and needs to be initialized
+//        - Remove inrush throttle after half good time so that we go to mode overload if problem persists
 // 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
 //        - STM32 add support for ARDUINO_NUCLEO_F4X9ZI type to span F429/F439 in upcoming STM32duino release v2.8 as a result of our PR
 // 5.2.58 - EXRAIL ALIAS allows named pins
