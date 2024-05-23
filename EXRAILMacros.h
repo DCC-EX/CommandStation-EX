@@ -75,7 +75,7 @@
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
-#define ALIAS(name,value...) const int name= 1##value##0 ==10 ? -__COUNTER__  : value##0/10; 
+#define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
 // Pass 1d Detect sequence duplicates.
@@ -210,6 +210,10 @@ bool exrailHalSetup() {
 #define STASH(id) | FEATURE_STASH
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
+#undef ONBUTTON
+#define ONBUTTON(vpin) | FEATURE_SENSOR
+#undef ONSENSOR
+#define ONSENSOR(vpin) | FEATURE_SENSOR
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -553,6 +557,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
+#define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
+#define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),

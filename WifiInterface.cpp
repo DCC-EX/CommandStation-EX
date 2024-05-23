@@ -1,4 +1,5 @@
 /*
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
  *  © 2020-2022 Chris Harlow
@@ -70,7 +71,7 @@ Stream * WifiInterface::wifiStream;
 #define SERIAL3 Serial5
 #elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) \
     || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG) \
-    || defined(ARDUINO_NUCLEO_F439ZI)
+    || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F4X9ZI)
 #define NUM_SERIAL 3
 #define SERIAL1 Serial6
 #define SERIAL3 Serial2

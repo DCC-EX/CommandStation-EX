@@ -3,9 +3,25 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.3.10"
+#define VERSION "5.3.11"
+// 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
+//        - STM32 add support for ARDUINO_NUCLEO_F4X9ZI type to span F429/F439 in upcoming STM32duino release v2.8 as a result of our PR
+// 5.2.58 - EXRAIL ALIAS allows named pins
+// 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
+// 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
+// 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call
+// 5.2.54 - Bugfix for EXRAIL signal handling for active high 
+// 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 
+// 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
+//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
+// 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
+// 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
+// 5.2.49 - EXRAIL additions:
+//          ONBUTTON, ONSENSOR
+// 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
+//
 // 5.3.10 - myCMRI.h example  
-
+//
 // 5.2.47 - EXRAIL additions:
 //          STEALTH_GLOBAL
 //          BLINK

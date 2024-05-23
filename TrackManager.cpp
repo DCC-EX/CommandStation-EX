@@ -35,7 +35,7 @@
     
 #define APPLY_BY_MODE(findmode,function) \
         FOR_EACH_TRACK(t) \
-	    if (track[t]->getMode()==findmode)	\
+	    if (track[t]->getMode() & findmode)	\
                 track[t]->function;
 
 MotorDriver * TrackManager::track[MAX_TRACKS] = { NULL };
@@ -398,7 +398,7 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
 
-    if (params==2  && p[1]=="INV"_hk) // <= id AUTO>
+    if (params==2  && p[1]=="INV"_hk) // <= id INV>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_INV);
 
     if (params==3  && p[1]=="DC"_hk && p[2]>0) // <= id DC cab>

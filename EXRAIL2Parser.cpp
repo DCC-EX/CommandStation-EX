@@ -214,12 +214,13 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
       // do the signals
       // flags[n] represents the state of the nth signal in the table 
       for (int sigslot=0;;sigslot++) {
-        VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-        if (sigid==0) break; // end of signal list 
-        byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
+        int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
+        if (sighandle==0) break; // end of signal list
+	VPIN sigid = sighandle & SIGNAL_ID_MASK;
+	byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
         StringFormatter::send(stream,F("\n%S[%d]"), 
-          (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
-          sigid & SIGNAL_ID_MASK); 
+			      (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
+			      sigid);
       } 
     }
 

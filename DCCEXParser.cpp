@@ -70,8 +70,8 @@ Once a new OPCODE is decided upon, update this list.
   L, Reserved for LCC interface (implemented in EXRAIL)
   m, message to throttles broadcast 
   M, Write DCC packet
-  n,
-  N,
+  n, Reserved for SensorCam
+  N, Reserved for Sensorcam 
   o,
   O, Output broadcast
   p, Broadcast power state
@@ -91,10 +91,10 @@ Once a new OPCODE is decided upon, update this list.
   w, Write CV on main
   W, Write CV
   x,
-  X, Invalid command
-  y,
+  X, Invalid command response
+  y, 
   Y, Output broadcast
-  z,
+  z, Direct output
   Z, Output configuration/control
 */
 

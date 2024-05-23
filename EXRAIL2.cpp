@@ -1,4 +1,5 @@
 /*
+ *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
  *  © 2020-2023 Chris Harlow
@@ -54,6 +55,7 @@
 #include "TrackManager.h"
 #include "Turntables.h"
 #include "IODevice.h"
+#include "EXRAILSensor.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -204,15 +206,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
-if (compileFeatures & FEATURE_SIGNAL) {
-  onRedLookup=LookListLoader(OPCODE_ONRED);
-  onAmberLookup=LookListLoader(OPCODE_ONAMBER);
-  onGreenLookup=LookListLoader(OPCODE_ONGREEN);
-  for (int sigslot=0;;sigslot++) {
-    VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-    if (sigid==0) break;  // end of signal list
-    doSignal(sigid & SIGNAL_ID_MASK, SIGNAL_RED);
-  }
+  if (compileFeatures & FEATURE_SIGNAL) {
+    onRedLookup=LookListLoader(OPCODE_ONRED);
+    onAmberLookup=LookListLoader(OPCODE_ONAMBER);
+    onGreenLookup=LookListLoader(OPCODE_ONGREEN);
+    for (int sigslot=0;;sigslot++) {
+      int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
+      if (sighandle==0) break;  // end of signal list
+      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+      doSignal(sigid, SIGNAL_RED);
+    }
   }
 
   int progCounter;
@@ -251,6 +254,14 @@ if (compileFeatures & FEATURE_SIGNAL) {
       break;
     }
 
+    case OPCODE_ONSENSOR:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,true );
+      break;
+    case OPCODE_ONBUTTON:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,false );
+      break;
     case OPCODE_TURNOUT: {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
@@ -480,6 +491,8 @@ bool RMFT2::skipIfBlock() {
 }
 
 void RMFT2::loop() {
+  if (compileFeatures & FEATURE_SENSOR) 
+      EXRAILSensor::checkAll();
 
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;
@@ -1084,6 +1097,8 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+  case OPCODE_ONBUTTON:
+  case OPCODE_ONSENSOR:
 #ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
@@ -1129,19 +1144,25 @@ void RMFT2::kill(const FSH * reason, int operand) {
 }
 
 int16_t RMFT2::getSignalSlot(int16_t id) {
-  for (int sigslot=0;;sigslot++) {
-      int16_t sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-      if (sigid==0) { // end of signal list 
-        DIAG(F("EXRAIL Signal %d not defined"), id);
-        return -1;
-      }
+
+  if (id > 0) {
+    int sigslot = 0;
+    int16_t sighandle = 0;
+    // Trundle down the signal list until we reach the end
+    while ((sighandle = GETHIGHFLASHW(RMFT2::SignalDefinitions, sigslot * 8)) != 0)
+    {
       // sigid is the signal id used in RED/AMBER/GREEN macro
       // for a LED signal it will be same as redpin
-      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
-
-      if ((sigid & SIGNAL_ID_MASK)!= id) continue; // keep looking
-      return sigslot; // relative slot in signals table
-  }  
+      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set.
+      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+      if (sigid == (VPIN)id) // cast to keep compiler happy but id is positive
+        return sigslot;      // found it
+      sigslot++;             // keep looking
+    };
+  }
+  // If we got here, we did not find the signal
+  DIAG(F("EXRAIL Signal %d not defined"), id);
+  return -1;
 }
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
@@ -1162,13 +1183,14 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
  
   // Correct signal definition found, get the rag values
   int16_t sigpos=sigslot*8; 
-  VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
+  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
   VPIN redpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2);
   VPIN amberpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4);
   VPIN greenpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6);
   //if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
 
-  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
+  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
+  VPIN sigid = sighandle & SIGNAL_ID_MASK;
 
   if (sigtype == SERVO_SIGNAL_FLAG) {
     // A servo signal, the pin numbers are actually servo positions
@@ -1191,7 +1213,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     byte value=redpin;
     if (rag==SIGNAL_AMBER) value=amberpin;
     if (rag==SIGNAL_GREEN) value=greenpin; 
-    DCC::setExtendedAccessory(sigid & SIGNAL_ID_MASK,value);
+    DCC::setExtendedAccessory(sigid, value);
     return; 
   }
 
@@ -1202,7 +1224,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
    
   // Manage invert (HIGH on) pins
-  bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
+  bool aHigh=sighandle & ACTIVE_HIGH_SIGNAL_FLAG;
       
   // set the three pins 
   if (redpin) {
@@ -1242,8 +1264,9 @@ bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
   int16_t sigslot=getSignalSlot(address);
   if (sigslot<0) return false;  // this is not a defined signal 
   int16_t sigpos=sigslot*8; 
-  VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
-  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
+  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
+  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
+  VPIN sigid = sighandle & SIGNAL_ID_MASK;
   if (sigtype!=DCCX_SIGNAL_FLAG) return false; // not a DCCX signal
   // Turn an aspect change into a RED/AMBER/GREEN setting
   if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2)) {

@@ -73,7 +73,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
-
+             OPCODE_ONBUTTON,OPCODE_ONSENSOR,
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
              // see skipIfBlock()
@@ -115,6 +115,7 @@ enum BlinkState: byte {
   static const byte FEATURE_ROUTESTATE= 0x10;
   static const byte FEATURE_STASH = 0x08;
   static const byte FEATURE_BLINK = 0x04;
+  static const byte FEATURE_SENSOR = 0x02;
   
  
   // Flag bits for status of hardware and TPL
@@ -185,7 +186,9 @@ class LookList {
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
-
+  static bool readSensor(uint16_t sensorId);
+  static bool isSignal(int16_t id,char rag); 
+   
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
@@ -194,7 +197,6 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(int16_t id,char rag); 
-    static bool isSignal(int16_t id,char rag); 
     static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
     #ifndef IO_NO_HAL
@@ -208,7 +210,6 @@ private:
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
     void driveLoco(byte speedo);
-    bool readSensor(uint16_t sensorId);
     bool skipIfBlock();
     bool readLoco();
     void loop2();

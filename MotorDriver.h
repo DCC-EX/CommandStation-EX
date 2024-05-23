@@ -1,5 +1,5 @@
 /*
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
@@ -26,6 +26,7 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "DCCTimer.h"
+#include <wiring_private.h>
 
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 // RACK_MODE_DCX is (TRACK_MODE_DC|TRACK_MODE_INV)
@@ -83,6 +84,14 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define PORTF GPIOF->ODR
 #define HAVE_PORTF(X) X
 #endif
+#if defined(GPIOG)
+#define PORTG GPIOG->ODR
+#define HAVE_PORTG(X) X
+#endif
+#if defined(GPIOH)
+#define PORTH GPIOH->ODR
+#define HAVE_PORTH(X) X
+#endif
 #endif
 
 // if macros not defined as pass-through we define
@@ -105,6 +114,12 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #endif
 #ifndef HAVE_PORTF
 #define HAVE_PORTF(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTG
+#define HAVE_PORTG(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTH
+#define HAVE_PORTH(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
 #endif
 
 // Virtualised Motor shield 1-track hardware Interface
@@ -145,6 +160,8 @@ extern volatile portreg_t shadowPORTC;
 extern volatile portreg_t shadowPORTD;
 extern volatile portreg_t shadowPORTE;
 extern volatile portreg_t shadowPORTF;
+extern volatile portreg_t shadowPORTG;
+extern volatile portreg_t shadowPORTH;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 

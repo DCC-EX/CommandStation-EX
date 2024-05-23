@@ -1,3 +1,24 @@
+// 5.2.49 
+
+Which is a more efficient than the AT/AFTER/IF methods 
+of handling buttons and switches, especially on MIMIC panels. 
+
+ONBUTTON(vpin) 
+  handles debounce and starts a task if a button is used to 
+  short a pin to ground. 
+
+  for example:
+     ONBUTTON(30) TOGGLE_TURNOUT(30) DONE
+
+ONSENSOR(vpin) 
+   handles debounce and starts a task if the pin changes.
+   You may want to check the pin state with an IF ...
+
+Note the ONBUTTON and ONSENSOR are not generally useful 
+for track sensors and running trains, because you dont know which
+train triggered the sensor.  
+
+// 5.2.47
 
 BLINK(vpin, onMs,offMs)
 
