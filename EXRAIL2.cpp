@@ -228,7 +228,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_AT:
     case OPCODE_ATTIMEOUT2:
     case OPCODE_AFTER:
-    case OPCODE_AFTEROVERLOAD:
     case OPCODE_IF:
     case OPCODE_IFNOT: {
       int16_t pin = (int16_t)operand;
