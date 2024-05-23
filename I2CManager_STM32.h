@@ -39,7 +39,7 @@
 #if defined(I2C_USE_INTERRUPTS) && defined(ARDUINO_ARCH_STM32)
 #if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_F446RE) \
     || defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) \
-    || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE)
+    || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F446ZE)
 // Assume I2C1 for now - default I2C bus on Nucleo-F411RE and likely all Nucleo-64
 // and Nucleo-144 variants
 I2C_TypeDef *s = I2C1;
@@ -184,7 +184,7 @@ void I2CManagerClass::I2C_init()
   GPIOB->OTYPER |= (1<<8) | (1<<9);           // PB8 and PB9 set to open drain output capability
   GPIOB->OSPEEDR |= (3<<(8*2)) | (3<<(9*2));  // PB8 and PB9 set to High Speed mode
   GPIOB->PUPDR &= ~((3<<(8*2)) | (3<<(9*2))); // Clear all PUPDR bits for PB8 and PB9
-  GPIOB->PUPDR |= (1<<(8*2)) | (1<<(9*2));    // PB8 and PB9 set to pull-up capability
+  // GPIOB->PUPDR |= (1<<(8*2)) | (1<<(9*2));    // PB8 and PB9 set to pull-up capability
   // Alt Function High register routing pins PB8 and PB9 for I2C1:
   // Bits (3:2:1:0) = 0:1:0:0 --> AF4 for pin PB8
   // Bits (7:6:5:4) = 0:1:0:0 --> AF4 for pin PB9
