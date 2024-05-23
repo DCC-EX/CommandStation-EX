@@ -117,6 +117,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "Turntables.h"
 #include "version.h"
 #include "KeywordHasher.h"
+#include "CamParser.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -401,7 +402,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             else IODevice::write(-p[0],LOW);
             return;
         }
-        if (params>=2 && params<=4) { // <z vpin ana;og profile duration> 
+        if (params>=2 && params<=4) { // <z vpin analog profile duration> 
             // unused params default to 0           
             IODevice::writeAnalogue(p[0],p[1],p[2],p[3]);
             return;
@@ -799,7 +800,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 #endif
-
+#ifndef IO_NO_HAL
+    case 'N': // <N  commands for SensorCam
+        if (CamParser::parseN(stream,params,p)) return;
+        break;
+#endif
     case '/': // implemented in EXRAIL parser
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
