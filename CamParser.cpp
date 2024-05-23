@@ -8,12 +8,13 @@ VPIN EXSensorCAM::CAMBaseVpin = 0;
 bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[])
 {
   (void)stream; // probably unused parameter 
- 	
-  if (EXSensorCAM::CAMBaseVpin==0) return false; // no cam found
+ 	// DIAG(F("cam (%d) %c %d %d %d"),paramCount,p[0],p[1],p[2],p[3]);
+
+  //if (EXSensorCAM::CAMBaseVpin==0) return false; // no cam found
 	if (paramCount == 0) return false; 
 	VPIN vpin=EXSensorCAM::CAMBaseVpin;
   byte camop=p[0]; // cam oprerator (F is special) 
-  if (camop!='F') camop=p[0]-0x20; // lower case the oprerator
+  if (camop!='F') camop=p[0]+0x20; // lower case the oprerator
   int16_t param1;
 	int16_t param2;
   
