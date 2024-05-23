@@ -638,6 +638,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       }
       throttleInrush(false);
       setPower(POWERMODE::ON);
+      break;
+    }
+    if (goodtime > POWER_SAMPLE_ALERT_GOOD/2) {
+      throttleInrush(false);
     }
     break;
   }
