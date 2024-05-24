@@ -89,9 +89,26 @@
 
 // EX 8874 based shield connected to a 3.3V system (like ESP32) and 12bit (4096) ADC
 // numbers are GPIO numbers. comments are UNO form factor shield pin numbers
-#define EX8874_SHIELD F("EX8874"),\
+#define EX8874_SHIELD F("EX-8874"),\
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.27, 5000, 36 /*A4*/), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.27, 5000, 39 /*A5*/)
+
+// EX-CSB1 motor shield definition - note it is different from ESPduino32 pins!
+#define EX_CSB1 F("EX-CSB1"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 1.27, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 1.27, 5000, 23)
+
+// EX-CSB1 with EX-8874 stacked on top for 4 outputs
+#define EX_CSB1_STACK F("EX-CSB1 Stacked"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 1.27, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 1.27, 5000, 23), \
+ new MotorDriver(26,  5, UNUSED_PIN,  13, 36, 1.27, 5000, 18), \
+ new MotorDriver(16,  4, UNUSED_PIN,  12, 39, 1.27, 5000, 17)
+
+// BOOSTER PIN INPUT ON ESP32
+// On ESP32 you have the possibility to define a pin as booster input
+// Arduino pin D2 is GPIO 26 on ESPDuino32, and GPIO 32 on EX-CSB1
+#define BOOSTER_INPUT 32
 
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
