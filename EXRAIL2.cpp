@@ -238,7 +238,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       setTurnoutHiddenState(VpinTurnout::create(id,pin));
       break;
     }
-        
+
+    case OPCODE_HBRIDGETURNOUT: {
+      VPIN id=operand;
+      VPIN pin1=getOperand(progCounter, 1);
+      VPIN pin2=getOperand(progCounter, 2);
+      uint16_t delay=getOperand(progCounter, 3);
+      setTurnoutHiddenState(HBridgeTurnout::create(id,pin1, pin2, delay));
+      break;
+    }
+
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
       // Removed if (progCounter>0) check 4.2.31 because 

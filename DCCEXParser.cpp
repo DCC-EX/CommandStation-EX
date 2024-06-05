@@ -162,6 +162,7 @@ const int16_t HASH_KEYWORD_T='T';
 const int16_t HASH_KEYWORD_X='X';
 const int16_t HASH_KEYWORD_LCN = 15137;
 const int16_t HASH_KEYWORD_HAL = 10853;
+const int16_t HASH_KEYWORD_HBRIDGE=-20585;
 const int16_t HASH_KEYWORD_SHOW = -21309;
 const int16_t HASH_KEYWORD_ANIN = -10424;
 const int16_t HASH_KEYWORD_ANOUT = -26399;
@@ -916,7 +917,10 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
       } else 
       if (params == 3 && p[1] == HASH_KEYWORD_VPIN) { // <T id VPIN n>
         if (!VpinTurnout::create(p[0], p[2])) return false;
-      } else 
+      } else
+      if (params == 5 && p[1] == HASH_KEYWORD_HBRIDGE) { // <T id HBRIDGE pin1 pin2 delay>
+        if (!HBridgeTurnout::create(p[0], p[2], p[3], p[4])) return false;
+      } else
       if (params >= 3 && p[1] == HASH_KEYWORD_DCC) {
         // <T id DCC addr subadd>   0<=addr<=511, 0<=subadd<=3 (like <a> command).<T>
         if (params==4 && p[2]>=0 && p[2]<512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
