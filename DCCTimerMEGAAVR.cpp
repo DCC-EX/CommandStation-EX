@@ -80,6 +80,15 @@ extern char *__malloc_heap_start;
     interruptHandler();
   }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+  (void) brakePin; 
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
   bool DCCTimer::isPWMPin(byte pin) {
        (void) pin; 
        return false;  // TODO what are the relevant pins? 
@@ -123,6 +132,11 @@ void DCCTimer::reset() {
   CPU_CCP=0xD8;
   WDT.CTRLA=0x4;
   while(true){}
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 }
 
 int16_t ADCee::ADCmax() {

@@ -39,6 +39,15 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
   }
 
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+  (void) brakePin; 
+}
+
+void DCCTimer::ackRailcomTimer() {
+  // TODO: for intended operation see DCCTimerAVR.cpp
+}
+
 bool DCCTimer::isPWMPin(byte pin) {
        //Teensy: digitalPinHasPWM, todo
       (void) pin;
@@ -139,6 +148,11 @@ int DCCTimer::freeMemory() {
 void DCCTimer::reset() {
   // found at https://forum.pjrc.com/threads/59935-Reboot-Teensy-programmatically
   SCB_AIRCR = 0x05FA0004;
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 }
 
 int16_t ADCee::ADCmax() {

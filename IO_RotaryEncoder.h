@@ -42,9 +42,9 @@
 * Defining in myAutomation.h requires the device driver to be included in addition to the HAL() statement. Examples:
 *
 * #include "IO_RotaryEncoder.h"
-* HAL(RotaryEncoder, 700, 1, 0x70)    // Define single Vpin, no feedback or position sent to rotary encoder software
-* HAL(RotaryEncoder, 700, 2, 0x70)    // Define two Vpins, feedback only sent to rotary encoder software
-* HAL(RotaryEncoder, 700, 3, 0x70)    // Define three Vpins, can send feedback and position update to rotary encoder software
+* HAL(RotaryEncoder, 700, 1, 0x67)    // Define single Vpin, no feedback or position sent to rotary encoder software
+* HAL(RotaryEncoder, 700, 2, 0x67)    // Define two Vpins, feedback only sent to rotary encoder software
+* HAL(RotaryEncoder, 700, 3, 0x67)    // Define three Vpins, can send feedback and position update to rotary encoder software
 *
 * Refer to the documentation for further information including the valid activities and examples.
 */

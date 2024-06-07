@@ -49,10 +49,10 @@ class StringFormatter
     static void lcd2(uint8_t display, byte row, const FSH* input...);
     static void printEscapes(char * input);
     static void printEscape( char c);
+    static void printHex(Print * stream,uint16_t value);
 
     private: 
     static void send2(Print * serial, const FSH* input,va_list args);
     static void printPadded(Print* stream, long value, byte width, bool formatLeft);
-
 };
 #endif
