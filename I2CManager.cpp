@@ -48,12 +48,18 @@
 static const FSH * guessI2CDeviceType(uint8_t address) {
   if (address >= 0x20 && address <= 0x26)
     return F("GPIO Expander");
+#ifdef FAST_CLOCK_I2C
+  else if (address == FAST_CLOCK_I2C)
+    return F("Fast Clock");
+#endif
   else if (address == 0x27)
     return F("GPIO Expander or LCD Display");
   else if (address == 0x29)
     return F("Time-of-flight sensor");
   else if (address >= 0x3c && address <= 0x3d)
     return F("OLED Display");
+  else if (address >= 0x48 && address <= 0x57) // SC16IS752x UART detection
+    return F("SC16IS75x UART");
   else if (address >= 0x48 && address <= 0x4f)
     return F("Analogue Inputs or PWM");
   else if (address >= 0x40 && address <= 0x4f)
@@ -92,7 +98,7 @@ void I2CManagerClass::begin(void) {
     // Probe and list devices.  Use standard mode 
     //  (clock speed 100kHz) for best device compatibility.
     _setClock(100000);
-    unsigned long originalTimeout = _timeout;
+    uint32_t originalTimeout = _timeout;
     setTimeout(1000);       // use 1ms timeout for probes
 
   #if defined(I2C_EXTENDED_ADDRESS)

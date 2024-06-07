@@ -1,7 +1,7 @@
 /*
  *  © 2022-2023 Paul M. Antoine
  *  © 2021 Fred Decker
- *  © 2020-2023 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  (c) 2020 Chris Harlow. All rights reserved.
  *  (c) 2021 Fred Decker.  All rights reserved.
  *  (c) 2020 Harald Barth. All rights reserved.
@@ -56,6 +56,10 @@
 // (*) If the brake_pin is negative that means the sense
 // of the brake pin on the motor bridge is inverted
 // (HIGH == release brake)
+
+// You can have a CS wihout any possibility to do any track signal.
+// That's strange but possible.
+#define NO_SHIELD F("No shield at all")
 
 // Arduino STANDARD Motor Shield, used on different architectures:
 

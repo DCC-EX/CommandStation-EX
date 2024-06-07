@@ -54,7 +54,9 @@
     xxx;  \
     t->refresh();}
 #else
-  #define DISPLAY_START(xxx) {}
+  #define DISPLAY_START(xxx) { \
+  xxx; \
+  }
 
 #endif
 #endif // LCD_Implementation_h

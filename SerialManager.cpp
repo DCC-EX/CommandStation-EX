@@ -111,14 +111,15 @@ void SerialManager::loop2() {
             bufferLength = 0;
             buffer[0] = '\0';
         }
-        else if (ch == '>') {
-            buffer[bufferLength] = '\0';
-            DCCEXParser::parse(serial, buffer, NULL); 
-            inCommandPayload = false;
-            break;
-        }
-        else if (inCommandPayload) {
-            if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) buffer[bufferLength++] = ch;
+        else if  (inCommandPayload) {
+	  if (bufferLength <  (COMMAND_BUFFER_SIZE-1))
+	    buffer[bufferLength++] = ch;
+	  if (ch == '>') {
+	    buffer[bufferLength] = '\0';
+	    DCCEXParser::parse(serial, buffer, NULL); 
+	    inCommandPayload = false;
+	    break;
+	  }
         }
     }
     

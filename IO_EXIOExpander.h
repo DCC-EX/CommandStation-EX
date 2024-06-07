@@ -1,6 +1,7 @@
 /*
  *  © 2022, Peter Cole. All rights reserved.
  *  © 2024, Harald Barth. All rights reserved.
+ *  © 2024, Harald Barth. All rights reserved.
  *
  *  This file is part of EX-CommandStation
  *
@@ -23,13 +24,10 @@
 * This device driver will configure the device on startup, along with
 * interacting with the device for all input/output duties.
 *
-* To create EX-IOExpander devices, these are defined in myHal.cpp:
+* To create EX-IOExpander devices, these are defined in myAutomation.h:
 * (Note the device driver is included by default)
 *
-* void halSetup() {
-*   // EXIOExpander::create(vpin, num_vpins, i2c_address);
-*   EXIOExpander::create(800, 18, 0x65);
-* }
+* HAL(EXIOExpander,800,18,0x65)
 * 
 * All pins on an EX-IOExpander device are allocated according to the pin map for the specific
 * device in use. There is no way for the device driver to sanity check pins are used for the

@@ -144,9 +144,9 @@
     #define DISABLE_EEPROM
   #endif
   // STM32 support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
+  // #ifndef I2C_USE_WIRE
+  // #define I2C_USE_WIRE
+  // #endif
 
 /* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
@@ -212,6 +212,24 @@
 // Currently only devices which can communicate at 115200 are supported.
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
+// The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
+// 
+#if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
+#define IO_NO_HAL // HAL too big whatever you disable otherwise
+
+#ifndef ENABLE_VDPY
+#define DISABLE_VDPY
+#endif
+
+#ifndef ENABLE_DIAG
+#define DISABLE_DIAG
+#endif
+
+#endif
 
 #if __has_include ( "myAutomation.h")
   #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)

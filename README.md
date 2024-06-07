@@ -1,3 +1,7 @@
+# My (FranziHH) DCC++ Ex Hardware
+<img src="/images/IMG_5870_1.jpg" height="400px" title="DCC++ Ex Hardware">
+
+
 # What is DCC-EX?
 DCC-EX is a team of dedicated enthusiasts producing open source DCC & DC solutions for you to run your complete model railroad layout. Our easy to use, do-it-yourself, and free open source products run on off-the-shelf Arduino technology and are supported by numerous third party hardware and apps like JMRI, Engine Driver, wiThrottle, Rocrail and more. 
 

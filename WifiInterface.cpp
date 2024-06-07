@@ -1,4 +1,5 @@
 /*
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
  *  © 2020-2022 Chris Harlow
@@ -68,7 +69,9 @@ Stream * WifiInterface::wifiStream;
 #define NUM_SERIAL 3
 #define SERIAL1 Serial3
 #define SERIAL3 Serial5
-#elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG)
+#elif defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F429ZI) \
+    || defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F412ZG) \
+    || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F4X9ZI)
 #define NUM_SERIAL 2
 #define SERIAL1 Serial6
 #else
@@ -363,11 +366,17 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       }
       ipString[ipLen]=ipChar;
     }
-    LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this      
+    #ifndef PRINT_IP_PORT_SINGLE_LINE
+      LCD(4,F("%s"),ipString);  // There is not enough room on some LCDs to put a title to this    
+    #else
+      LCD(4,F("%s:%d"),ipString,port); // *** Single IP:Port  
+    #endif
   }
   // suck up anything after the IP. 
   if (!checkForOK(1000, true, false)) return WIFI_DISCONNECTED;
-  LCD(5,F("PORT=%d"),port);
+  #ifndef PRINT_IP_PORT_SINGLE_LINE
+    LCD(5,F("PORT=%d"),port);
+  #endif
    
   return WIFI_CONNECTED;
 }

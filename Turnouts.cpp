@@ -123,7 +123,6 @@
     return true;
   }
 
-#define DIAG_IO
   // Static setClosed function is invoked from close(), throw() etc. to perform the 
   //  common parts of the turnout operation.  Code which is specific to a turnout
   //  type should be placed in the virtual function setClosedInternal(bool) which is

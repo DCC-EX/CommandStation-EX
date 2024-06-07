@@ -167,6 +167,9 @@ The configuration file for DCC-EX Command Station
 //  *  #define SCROLLMODE 2 is by row (move up 1 row at a time).
 #define SCROLLMODE 1
 
+// Shows IP and Port on Display in a single line
+// #define PRINT_IP_PORT_SINGLE_LINE
+
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE EEPROM
 //
@@ -192,6 +195,31 @@ The configuration file for DCC-EX Command Station
 // #define DISABLE_PROG
 
 /////////////////////////////////////////////////////////////////////////////////////
+// DISABLE / ENABLE VDPY
+//
+// The Virtual display "VDPY" feature is by default enabled everywhere
+// but on Uno and Nano. If you think you can fit it (for example
+// having disabled some of the features above) you can enable it with
+// ENABLE_VDPY. You can even disable it on all other CPUs with
+// DISABLE_VDPY
+//
+// #define DISABLE_VDPY
+// #define ENABLE_VDPY
+
+/////////////////////////////////////////////////////////////////////////////////////
+// DISABLE / ENABLE DIAG
+//
+// To diagose different errors, you can turn on differnet messages. This costs
+// program memory which we do not have enough on the Uno and Nano, so it is
+// by default DISABLED on those. If you think you can fit it (for example
+// having disabled some of the features above) you can enable it with
+// ENABLE_DIAG. You can even disable it on all other CPUs with
+// DISABLE_DIAG
+//
+// #define DISABLE_DIAG
+// #define ENABLE_DIAG
+
+/////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
 // is 127 and the first long address is 128. There are manufacturers which have
 // another view. Lenz CS for example have considered addresses long from 100. If
@@ -201,6 +229,14 @@ The configuration file for DCC-EX Command Station
 //#define HIGHEST_SHORT_ADDR 0
 // We do not support to use the same address, for example 100(long) and 100(short)
 // at the same time, there must be a border.
+
+/////////////////////////////////////////////////////////////////////////////////////
+// Some newer 32bit microcontrollers boot very quickly, so powering on I2C and other
+// peripheral devices at the same time may result in the CommandStation booting too
+// quickly to detect them.
+// To work around this, uncomment the STARTUP_DELAY line below and set a value in
+// milliseconds that works for your environment, default is 3000 (3 seconds).
+// #define STARTUP_DELAY 3000
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -239,13 +275,27 @@ The configuration file for DCC-EX Command Station
 // SAMD/SAMC and STM32 have up to 6.)
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
-//
+// -------------------------------------
+// For Use with FastClock serial: uncomment the needed serial Port and 
+// FastClock will work, no further actions are needed
+// -------------------------------------
 //#define SERIAL1_COMMANDS
 //#define SERIAL2_COMMANDS
 //#define SERIAL3_COMMANDS
 //#define SERIAL4_COMMANDS
 //#define SERIAL5_COMMANDS
 //#define SERIAL6_COMMANDS
+//
+// -------------------------------------
+// FastClock with I2C
+// uncomment the following Line and Set the used I2C Address
+//#define FAST_CLOCK_I2C 0x55 // default is 0x55
+// -------------------------------------
+//
+// -------------------------------------
+// FastClock in HH:MM on Display
+//#define FASTCLOCK_READABLE
+// -------------------------------------
 //
 // BLUETOOTH SERIAL ON ESP32
 // On ESP32 you have the possibility to use the builtin BT serial to connect to
@@ -265,6 +315,12 @@ The configuration file for DCC-EX Command Station
 //    with your CS.
 //
 //#define SERIAL_BT_COMMANDS
+
+// BOOSTER PIN INPUT ON ESP32
+// On ESP32 you have the possibility to define a pin as booster input
+// Arduio pin D2 is GPIO 26 on ESPDuino32
+//
+//#define BOOSTER_INPUT 26
 
 // SABERTOOTH
 //
