@@ -1,6 +1,7 @@
 /*
  *  © 2022, Peter Cole. All rights reserved.
  *  © 2024, Harald Barth. All rights reserved.
+ *  © 2024, Harald Barth. All rights reserved.
  *
  *  This file is part of EX-CommandStation
  *
@@ -102,16 +103,15 @@ private:
               // Not enough space, free any existing buffer and allocate a new one
               if (_digitalPinBytes > 0) free(_digitalInputStates);
               if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
-                _digitalPinBytes = digitalBytesNeeded;
-              } else {
-                DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
-                _deviceState = DEVSTATE_FAILED;
-                _digitalPinBytes = 0;
-                return;
-              }
+		_digitalPinBytes = digitalBytesNeeded;
+	      } else {
+		DIAG(F("EX-IOExpander I2C:%s ERROR alloc %d bytes"), _I2CAddress.toString(), digitalBytesNeeded);
+		_deviceState = DEVSTATE_FAILED;
+		_digitalPinBytes = 0;
+		return;
+	      }
             }
           }
-          
           if (_numAnaloguePins>0) {
             size_t analogueBytesNeeded = _numAnaloguePins * 2;
             if (_analoguePinBytes < analogueBytesNeeded) {
@@ -134,14 +134,14 @@ private:
 		_analoguePinBytes = 0;
 		return;
 	      }
-            }
-          }
-        } else {
-          DIAG(F("EX-IOExpander I2C:%s ERROR configuring device"), _I2CAddress.toString());
-          _deviceState = DEVSTATE_FAILED;
-          return;
-        }
-      } 
+	    }
+	  }
+	} else {
+	  DIAG(F("EX-IOExpander I2C:%s ERROR configuring device"), _I2CAddress.toString());
+	  _deviceState = DEVSTATE_FAILED;
+	  return;
+	}
+      }
       // We now need to retrieve the analogue pin map if there are analogue pins
       if (status == I2C_STATUS_OK && _numAnaloguePins>0) {
         commandBuffer[0] = EXIOINITA;
