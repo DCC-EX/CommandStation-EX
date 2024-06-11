@@ -97,6 +97,18 @@
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.27, 5000, 36 /*A4*/), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.27, 5000, 39 /*A5*/)
 
+// EX-CSB1 with integrated motor driver definition
+#define EXCSB1 F("EXCSB1"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 2.23, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 2.23, 5000, 23)
+
+// EX-CSB1 with EX-8874 stacked on top for 4 outputs
+#define EXCSB1_WITH_EX8874 F("EXCSB1_WITH_EX8874"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 2.23, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 2.23, 5000, 23), \
+ new MotorDriver(26,  5, UNUSED_PIN,  13, 36, 1.52, 5000, 18), \
+ new MotorDriver(16,  4, UNUSED_PIN,  12, 39, 1.52, 5000, 17)
+
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
 #define STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD"),                                                 \
