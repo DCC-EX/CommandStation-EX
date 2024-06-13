@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.60"
+#define VERSION "5.2.61"
+// 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
+//        - LCC Adapter interface throttled startup,
+//          (Breaking change woith Adapter base code)
 // 5.2.60 - Bugfix: Opcode AFTEROVERLOAD does not have an argument that is a pin and needs to be initialized
 //        - Remove inrush throttle after half good time so that we go to mode overload if problem persists
 // 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
