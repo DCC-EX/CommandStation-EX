@@ -189,6 +189,14 @@ bool exrailHalSetup() {
 #define LCCX(senderid,eventid) | FEATURE_LCC 
 #undef ONLCC
 #define ONLCC(senderid,eventid) | FEATURE_LCC
+#undef ACON
+#define ACON(eventid) | FEATURE_LCC
+#undef ACOF
+#define ACOF(eventid) | FEATURE_LCC
+#undef ONACON
+#define ONACON(eventid) | FEATURE_LCC
+#undef ONACOF
+#define ONACOF(eventid) | FEATURE_LCC
 #undef ROUTE_ACTIVE
 #define ROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
 #undef ROUTE_INACTIVE
@@ -429,10 +437,14 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
     0,0,0,0 };
 
-// Pass 9 ONLCC counter and lookup array
+// Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
 #undef ONLCC
 #define ONLCC(sender,event) +1 
+#undef ONACON
+#define ONACON(event) +1 
+#undef ONACOF
+#define ONACOF(event) +1 
 
 const int RMFT2::countLCCLookup=0
 #include "myAutomation.h"
@@ -529,6 +541,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V((((uint64_t)sender)>>32)&0xFFFF),\
         OPCODE_PAD,V((((uint64_t)sender)>>16)&0xFFFF),\
         OPCODE_PAD,V((((uint64_t)sender)>>0)&0xFFFF),  
+#define ACON(eventid) OPCODE_ACON,V(((uint32_t)eventid >>16) & 0xFFFF),OPCODE_PAD,V(eventid & 0xFFFF),
+#define ACOF(eventid) OPCODE_ACOF,V(((uint32_t)eventid >>16) & 0xFFFF),OPCODE_PAD,V(eventid & 0xFFFF),
+#define ONACON(eventid) OPCODE_ONACON,V((uint32_t)(eventid) >>16),OPCODE_PAD,V(eventid & 0xFFFF),
+#define ONACOF(eventid) OPCODE_ONACOF,V((uint32_t)(eventid) >>16),OPCODE_PAD,V(eventid & 0xFFFF),
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)

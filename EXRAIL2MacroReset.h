@@ -99,6 +99,10 @@
 #undef LCCX 
 #undef LCN 
 #undef MOVETT
+#undef ACON
+#undef ACOF
+#undef ONACON
+#undef ONACOF
 #undef MESSAGE
 #undef ONACTIVATE
 #undef ONACTIVATEL
@@ -265,6 +269,10 @@
 #define LCN(msg) 
 #define MESSAGE(msg)
 #define MOVETT(id,steps,activity)
+#define ACON(eventid)
+#define ACOF(eventid)
+#define ONACON(eventid)
+#define ONACOF(eventid)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONAMBER(signal_id) 

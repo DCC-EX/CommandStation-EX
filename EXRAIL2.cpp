@@ -1000,6 +1000,14 @@ void RMFT2::loop2() {
       if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
           StringFormatter::send(LCCSerial,F("<L x%h>"),(uint16_t)operand);
        break; 
+  
+  case OPCODE_ACON:  // MERG adapter 
+  case OPCODE_ACOF: 
+      if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
+          StringFormatter::send(LCCSerial,F("<L x%c%h%h>"),
+          opcode==OPCODE_ACON?'0':'1',
+          (uint16_t)operand,getOperand(progCounter,1));
+       break; 
 
   case OPCODE_LCCX: // long form LCC
        if ((compileFeatures & FEATURE_LCC) && LCCSerial)
@@ -1088,6 +1096,8 @@ void RMFT2::loop2() {
   case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_ONCLOSE: // Turnout event catchers ignored here
   case OPCODE_ONLCC:   // LCC event catchers ignored here 
+  case OPCODE_ONACON:   // MERG event catchers ignored here 
+  case OPCODE_ONACOF:   // MERG event catchers ignored here 
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
