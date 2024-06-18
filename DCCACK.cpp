@@ -27,8 +27,8 @@
 #include "DCCWaveform.h"
 #include "TrackManager.h"
 
-unsigned int DCCACK::minAckPulseDuration = 2000; // micros
-unsigned int DCCACK::maxAckPulseDuration = 20000; // micros
+unsigned long DCCACK::minAckPulseDuration = 2000; // micros
+unsigned long DCCACK::maxAckPulseDuration = 20000; // micros
   
 MotorDriver *  DCCACK::progDriver=NULL;
 ackOp  const *  DCCACK::ackManagerProg;
@@ -50,8 +50,8 @@ volatile uint8_t DCCACK::numAckSamples=0;
 uint8_t DCCACK::trailingEdgeCounter=0;
 
 
- unsigned int DCCACK::ackPulseDuration;  // micros
- unsigned long DCCACK::ackPulseStart; // micros
+unsigned long DCCACK::ackPulseDuration;  // micros
+unsigned long DCCACK::ackPulseStart; // micros
  volatile bool DCCACK::ackDetected;
  unsigned long DCCACK::ackCheckStart; // millis
  volatile bool DCCACK::ackPending;
@@ -127,7 +127,7 @@ bool DCCACK::checkResets(uint8_t numResets) {
 void DCCACK::setAckBaseline() {
       int baseline=progDriver->getCurrentRaw();
       ackThreshold= baseline + progDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
+      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %lus and %lus"),
 			  baseline,progDriver->raw2mA(baseline),
 			  ackThreshold,progDriver->raw2mA(ackThreshold),
                           minAckPulseDuration, maxAckPulseDuration);
@@ -146,7 +146,7 @@ void DCCACK::setAckPending() {
 
 byte DCCACK::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%uuS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
+      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%luS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
 			  ackMaxCurrent,progDriver->raw2mA(ackMaxCurrent), ackPulseDuration, numAckSamples, numAckGaps);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   

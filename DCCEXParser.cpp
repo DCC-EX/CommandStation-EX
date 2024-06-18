@@ -1073,15 +1073,24 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 #ifndef DISABLE_PROG
     case "ACK"_hk: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
+            long duration;
 	    if (p[1] == "LIMIT"_hk) {
 	      DCCACK::setAckLimit(p[2]);
-	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
+	      LCD(1, F("Ack Limit=%dmA"), p[2]);       // <D ACK LIMIT 42>
 	    } else if (p[1] == "MIN"_hk) {
-	      DCCACK::setMinAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Min=%uus"), p[2]);  //   <D ACK MIN 1500>
+	      if (params == 4 && p[3] == "MS"_hk)
+		duration = p[2] * 1000L;
+	      else
+		duration = p[2];
+	      DCCACK::setMinAckPulseDuration(duration);
+	      LCD(0, F("Ack Min=%lus"), duration);     // <D ACK MIN 1500>
 	    } else if (p[1] == "MAX"_hk) {
-	      DCCACK::setMaxAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Max=%uus"), p[2]);  //   <D ACK MAX 9000>
+	      if (params == 4 && p[3] == "MS"_hk)      // <D ACK MAX 80 MS>
+		duration = p[2] * 1000L;
+	      else
+		duration = p[2];
+	      DCCACK::setMaxAckPulseDuration(duration);
+	      LCD(0, F("Ack Max=%lus"), duration);     // <D ACK MAX 9000>
 	    } else if (p[1] == "RETRY"_hk) {
 	      if (p[2] >255) p[2]=3;
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
