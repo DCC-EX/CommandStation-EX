@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.61"
+#define VERSION "5.2.62"
+// 5.2.62 - Allow acks way longer than standard
 // 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
 //        - LCC Adapter interface throttled startup,
 //          (Breaking change woith Adapter base code)
