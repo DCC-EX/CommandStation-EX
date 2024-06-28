@@ -43,7 +43,7 @@
 // It has no visibility of the hardware, timers, interrupts
 // nor of the waveform issues such as preambles, start bits checksums or cutouts.
 //
-// Nor should it have to deal with JMRI responsess other than the OK/FAIL
+// Nor should it have to deal with JMRI responses other than the OK/FAIL
 // or cv value returned. I will move that back to the JMRI interface later
 //
 // The interface to the waveform generator is narrowed down to merely:
@@ -250,7 +250,7 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // >1 => send both on and off packets.
 
   // An accessory has an address, 4 ports and 2 gates (coils) each. That's how
-  // the initial decoders were orgnized and that influenced how the DCC
+  // the initial decoders were organized and that influenced how the DCC
   // standard was made.
   #ifdef DIAG_IO
   DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, port, gate);
@@ -262,7 +262,7 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
     return;
   byte b[2];
 
-  // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least signifcant bits of accessory address
+  // first byte is of the form 10AAAAAA, where AAAAAA represent 6 least significant bits of accessory address
   // second byte is of the form 1AAACPPG, where C is 1 for on, PP the ports 0 to 3 and G the gate (coil).
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
@@ -365,7 +365,7 @@ const ackOp FLASH READ_BIT_PROG[] = {
 const ackOp FLASH WRITE_BYTE_PROG[] = {
       BASELINE,
       WB,WACK,ITC1,    // Write and callback(1) if ACK
-      // handle decoders that dont ack a write
+      // handle decoders that don't ack a write
       VB,WACK,ITC1,    // validate byte and callback(1) if correct
       CALLFAIL        // callback (-1)
       };
@@ -467,7 +467,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
-      COMBINELOCOID,        // Combile byte with stash to make long locoid and callback
+      COMBINELOCOID,        // Combine byte with stash to make long locoid and callback
 
       // ITSKIP Skips to here if CV 29 bit 5 was zero. so read CV 1 and return that
       SKIPTARGET,
@@ -489,7 +489,7 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
-      WB,WACK,     // ignore dedcoder without cv19 support
+      WB,WACK,     // ignore decoder without cv19 support
       // Turn off long address flag
       SETCV,(ackOp)29,
       SETBIT,(ackOp)5,
@@ -632,12 +632,12 @@ bool DCC::issueReminder(int reg) {
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4)
               setFunctionInternal(loco,222, ((functions>>13)& 0xFF));
-          flags&= ~FN_GROUP_4;  // dont send them again
+          flags&= ~FN_GROUP_4;  // don't send them again
           break;
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
               setFunctionInternal(loco,223, ((functions>>21)& 0xFF));
-          flags&= ~FN_GROUP_5;  // dont send them again
+          flags&= ~FN_GROUP_5;  // don't send them again
           break;
       }
       loopStatus++;
@@ -691,7 +691,7 @@ int DCC::lookupSpeedTable(int locoId, bool autoCreate) {
 void  DCC::updateLocoReminder(int loco, byte speedCode) {
 
   if (loco==0) {
-     // broadcast stop/estop but dont change direction
+     // broadcast stop/estop but don't change direction
      for (int reg = 0; reg <= highestUsedReg; reg++) {
        if (speedTable[reg].loco==0) continue;
        byte newspeed=(speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);

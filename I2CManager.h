@@ -171,7 +171,7 @@ enum I2CSubBus : uint8_t {
   SubBus_7 = 7,
 #endif
 #endif
-  SubBus_No,           // Number of subbuses (highest + 1)
+  SubBus_No,           // Number of sub-buses (highest + 1)
   SubBus_None = 254,   // Disable all sub-buses on selected mux
   SubBus_All = 255,    // Enable all sub-buses (not supported by some multiplexers)
 };
@@ -344,7 +344,7 @@ private:
   void toHex(const uint8_t value, char *buffer);
   void addressWarning() {
     if (!_addressWarningDone) {
-      DIAG(F("WARNIING: Extended I2C address used but not supported in this configuration"));
+      DIAG(F("WARNING: Extended I2C address used but not supported in this configuration"));
       _addressWarningDone = true;
     }
   }    
@@ -430,7 +430,7 @@ public:
   void setClock(uint32_t speed);
   // Force clock speed 
   void forceClock(uint32_t speed);
-  // setTimeout sets the timout value for I2C transactions (milliseconds).
+  // setTimeout sets the timeout value for I2C transactions (milliseconds).
   void setTimeout(unsigned long);
   // Check if specified I2C address is responding.
   uint8_t checkAddress(I2CAddress address);

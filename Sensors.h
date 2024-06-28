@@ -81,7 +81,7 @@ public:
   static void checkAll();
   static void printAll(Print *stream);
   static unsigned long lastReadCycle; // value of micros at start of last read cycle
-  static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microsecs.
+  static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microseconds.
                                                    // should not be less than device scan cycle time.
   static const unsigned int minReadCount = 1; // number of additional scans before acting on change
                                         // E.g. 1 means that a change is ignored for one scan and actioned on the next.

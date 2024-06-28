@@ -67,7 +67,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   ring=stream;
 
   // First check if the client is not known
-  // yet and in that case determinine type
+  // yet and in that case determine type
   // NOTE: First character of transmission determines if this
   // client is using the DCC++ protocol where all commands start
   // with '<'
@@ -98,7 +98,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
       DIAG(F("OUTBOUND FULL processing cmd:%s"),buffer);
     }
   } else {
-    DIAG(F("CD parse: was alredy committed")); //XXX Could have been committed by broadcastClient?!
+    DIAG(F("CD parse: was already committed")); //XXX Could have been committed by broadcastClient?!
   }
 }
 

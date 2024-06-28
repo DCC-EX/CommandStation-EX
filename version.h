@@ -17,7 +17,7 @@
 // 5.0.0  - Make 4.2.69 the 5.0.0 release
 // 4.2.69 - Bugfix: Make <!> work in DC mode
 // 4.2.68 - Rename track mode OFF to NONE
-// 4.2.67 - AVR: Pin specific timer register seting
+// 4.2.67 - AVR: Pin specific timer register setting
 //        - Protect Uno user from choosing DC(X)
 //        - More Nucleo variant defines
 //        - GPIO PCA9555 / TCA9555 support
@@ -68,7 +68,7 @@
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs
 // 4.2.33 - Fix EX-IOExpander non-working analogue inputs
 // 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
-// 4.2.31 - Removes EXRAIL statup from top of file. (BREAKING CHANGE !!)
+// 4.2.31 - Removes EXRAIL startup from top of file. (BREAKING CHANGE !!)
 //          Just add AUTOSTART to the top of your myAutomation.h to restore this function.
 // 4.2.30 - Fixes/enhancements to EX-IOExpander device driver.
 // 4.2.29 - Bugfix Scroll LCD without empty lines and consistent
@@ -189,7 +189,7 @@
 //         EX-RAIL “ROSTER” Engines Id & Function key layout on Engine Driver or WiThrottle
 //         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial monitors
 //       New JMRI feature enhancements; 
-//         Reads DCC++EX EEPROM & automatically uploades any Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
+//         Reads DCC++EX EEPROM & automatically uploads any Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
 //         Turnout class revised to expand turnout capabilities, new commands added.
 //         Provides for multiple additional DCC++EX WiFi connections as accessory controllers or CS for a programming track when Motor Shields are added
 //         Supports Multiple Command Station connections and individual tracking of Send DCC++ Command panes and DCC++ Traffic Monitor panes
@@ -213,7 +213,7 @@
 //       Can define border between long and short addresses
 //       Turnout and accessory states (thrown/closed = 0/1 or 1/0) can be set to match RCN-213
 //       Bugfix: one-off error in CIPSEND drop
-//       Bugfix: disgnostic display of ack pulses >32kus
+//       Bugfix: diagnostic display of ack pulses >32kus
 //       Bugfix: Current read from wrong ADC during interrupt
 // 3.2.0 Development Release Includes all of 3.1.1 thru 3.1.7 enhancements
 // 3.1.7 Bugfix: Unknown locos should have speed forward 

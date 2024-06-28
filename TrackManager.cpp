@@ -76,8 +76,8 @@ void TrackManager::sampleCurrent() {
     if (tr > lastTrack) tr = 0;
     if (lastTrack < 2 || track[tr]->getMode() & TRACK_MODE_PROG) {
       return; // We could continue but for prog track we
-              // rather do it in next interrupt beacuse
-              // that gives us well defined sampling point.
+              // rather do it in next interrupt because
+              // that gives us a well defined sampling point.
               // For other tracks we care less unless we
               // have only few (max 2) tracks.
     }
@@ -231,14 +231,14 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	}
       track[trackToSet]->makeProgTrack(true); // set for prog track special handling
     } else {
-      track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
+      track[trackToSet]->makeProgTrack(false); // only the prog track knows its type
     }
     track[trackToSet]->setMode(mode);
     trackDCAddr[trackToSet]=dcAddr;
     streamTrackState(NULL,trackToSet);
 
     // When a track is switched, we must clear any side effects of its previous 
-    // state, otherwise trains run away or just dont move.
+    // state, otherwise trains run away or just don't move.
 
     // This can be done BEFORE the PWM-Timer evaluation (methinks)
     if (!(mode==TRACK_MODE_DC || mode==TRACK_MODE_DCX)) {
@@ -374,7 +374,7 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
       format=F("<= %c DCX %d>\n");
       break;
   default:
-      break; // unknown, dont care    
+      break; // unknown, don't care
   }
   if (stream) StringFormatter::send(stream,format,'A'+t,trackDCAddr[t]);
   else CommandDistributor::broadcastTrackState(format,'A'+t,trackDCAddr[t]);

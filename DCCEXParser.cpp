@@ -176,7 +176,7 @@ RingStream *DCCEXParser::stashRingStream = NULL;
 byte DCCEXParser::stashTarget=0;
 
 // This is a JMRI command parser.
-// It doesnt know how the string got here, nor how it gets back.
+// It doesn't know how the string got here, nor how it gets back.
 // It knows nothing about hardware or tracks... it just parses strings and
 // calls the corresponding DCC api.
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes.
@@ -625,12 +625,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;       
 
 #ifndef DISABLE_EEPROM
-    case 'E': // STORE EPROM <E>
+    case 'E': // STORE EEPROM <E>
         EEStore::store();
         StringFormatter::send(stream, F("<e %d %d %d>\n"), EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs);
         return;
 
-    case 'e': // CLEAR EPROM <e>
+    case 'e': // CLEAR EEPROM <e>
         EEStore::clear();
         StringFormatter::send(stream, F("<O>\n"));
         return;
@@ -980,7 +980,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
     if (params == 0)
         return false;
-    bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // dont care if other stuff or missing... just means off
+    bool onOff = (params > 0) && (p[1] == 1 || p[1] == HASH_KEYWORD_ON); // don't care if other stuff or missing... just means off
     switch (p[0])
     {
     case HASH_KEYWORD_CABS: // <D CABS>
@@ -1042,7 +1042,7 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 #endif
     case HASH_KEYWORD_RESET:
         DCCTimer::reset();
-        break; // and <X> if we didnt restart 
+        break; // and <X> if we didn't restart 
     
 
 #ifndef DISABLE_EEPROM

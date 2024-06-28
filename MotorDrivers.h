@@ -78,7 +78,7 @@
 
 
 #elif defined(ARDUINO_ARCH_ESP32)
-// STANDARD shield on an ESPDUINO-32 (ESP32 in Uno form factor). The shield must be eiter the
+// STANDARD shield on an ESPDUINO-32 (ESP32 in Uno form factor). The shield must be either the
 // 3.3V compatible R3 version or it has to be modified to not supply more than 3.3V to the
 // analog inputs. Here we use analog inputs A2 and A3 as A0 and A1 are wired in a way so that
 // they are not useable at the same time as WiFi (what a bummer). The numbers below are the
@@ -118,7 +118,7 @@
 // pins 9 and 10 work as "inverted brake" but as we turn on and off the tracks individually
 // via the power pins we above use 9 and 10 as power pins and 4 as "inverted brake" which in this
 // version of the code always will be high. That means this config is not usable for generating
-// a railcom cuotout in the future. For that one must wire the second ^D2 to pin 2 and define
+// a railcom cutout in the future. For that one must wire the second ^D2 to pin 2 and define
 // the motor driver like this:
 //                          new MotorDriver(4, 7, UNUSED_PIN,  -9, A0, 18, 3000, 12)
 //                          new MotorDriver(2, 8, UNUSED_PIN, -10, A1, 18, 3000, 12)
@@ -171,7 +171,7 @@
     new MotorDriver(5, 4, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 1.0, 1100, UNUSED_PIN)
 
 // This is an example how to setup a motor shield definition for a motor shield connected
-// to an NANO EVERY board. You have to make the connectons from the shield to the board
+// to an NANO EVERY board. You have to make the connections from the shield to the board
 // as in this example or adjust the values yourself.
 #define NANOEVERY_EXAMPLE F("NANOEVERY_EXAMPLE"), \
  new MotorDriver(5,  6, UNUSED_PIN, UNUSED_PIN, A0, 2.99, 1500, UNUSED_PIN),\
@@ -180,7 +180,7 @@
 // This is an example how to stack two standard motor shields. The upper shield
 // needs pins 3 8 9 11 12 13 A0 A1 disconnected from the lower shield and
 // jumpered instead like this:  2-3 6-8 7-9 4-13 5-11 10-12 A0-A4 A1-A5
-// Pin assigment table:
+// Pin assignment table:
 // 2 Enable C  jumpered
 // 3 Enable A  direct
 // 4 Dir D     jumpered

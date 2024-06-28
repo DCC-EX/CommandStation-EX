@@ -80,7 +80,7 @@ private:
   // Initiate the device
   void _begin() {
     uint8_t _status;
-    // Attempt to initilalise device
+    // Attempt to initialise device
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
       // Send RE_RDY, must receive RE_RDY to be online

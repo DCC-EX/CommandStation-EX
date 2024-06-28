@@ -6,7 +6,7 @@ Currently, our products include the following:
 * [EX-CommandStation](https://github.com/DCC-EX/CommandStation-EX/releases)
 * [EX-WebThrottle](https://github.com/DCC-EX/exWebThrottle)
 * [EX-Installer](https://github.com/DCC-EX/EX-Installer)
-* [EX-MotoShield8874](https://dcc-ex.com/reference/hardware/motorboards/ex-motor-shield-8874.html#gsc.tab=0)
+* [EX-MotorShield8874](https://dcc-ex.com/reference/hardware/motorboards/ex-motor-shield-8874.html#gsc.tab=0)
 * [EX-DCCInspector](https://github.com/DCC-EX/DCCInspector-EX)
 * [EX-Toolbox](https://github.com/DCC-EX/EX-Toolbox)
 * [EX-Turntable](https://github.com/DCC-EX/EX-Turntable)
@@ -18,7 +18,7 @@ Details of these projects can be found on [our web site](https://dcc-ex.com/).
 
 # What’s in this Repository?
 
-This repository, CommandStation-EX, contains a complete DCC-EX *EX-CommmandStation* sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.
+This repository, CommandStation-EX, contains a complete DCC-EX *EX-CommandStation* sketch designed for compiling and uploading into an Arduino Uno, Mega, or Nano.
 
 To utilize this sketch, you can use the following: 
 

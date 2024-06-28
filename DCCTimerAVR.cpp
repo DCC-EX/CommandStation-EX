@@ -121,7 +121,7 @@ int DCCTimer::freeMemory() {
 
 void DCCTimer::reset() {
   wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-  delay(50);            // wait for the prescaller time to expire
+  delay(50);            // wait for the prescaler time to expire
 
 }
 
@@ -210,7 +210,7 @@ void ADCee::scan() {
     // look for a valid track to sample or until we are around
     while (true) {
       if (mask  & usedpins) {
-	// start new ADC aquire on id
+	// start new ADC acquire on id
 #if defined(ADCSRB) && defined(MUX5)
 	if (ADCusesHighPort) { // if we ever have started to use high pins)
 	  if (id > 7)          // if we use a high ADC pin

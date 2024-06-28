@@ -15,7 +15,7 @@ Track Manger (TM from now on) is an integral part of DCC++EX software that is re
 - Intercepting throttle commands to locos running on DC tracks.
 - Handling user or EXRAIL commands to switch track status.
 
-In the default scenario of a single DCC track and a PROG track, the TM behaves as for the previous versions of DCC++EX so if thats what you want, you dont need to mess with it.
+In the default scenario of a single DCC track and a PROG track, the TM behaves as for the previous versions of DCC++EX so if thats what you want, you don't need to mess with it.
 
 The TM is able to handle up to 8 separate track domains. Each domain requires a hardware driver to supply track voltage. A typical motor driver shield supplies two tracks, which is what we have used in the past as main and prog.
 
@@ -97,7 +97,7 @@ The easiest way to consider the wiring is to treat each track individually (eith
 You will require,for each track, on the Arduino:
 - A GPIO pin (or a HAL vpin perhaps on an I2C extender, code TBA!!!) to switch power.
 - A GPIO pin to switch the signal direction
-- A GPIO pin with PWM capability to switch the Brake (you may omit this if you dont want any DC capability)
+- A GPIO pin with PWM capability to switch the Brake (you may omit this if you don't want any DC capability)
 - Optionally An Analog pin to read the current (unless your hardware cant do that, perhaps its just feeding a booster)
 - Optionally a GPIO fault pin if thats how your hardware works. (NOT recommended as you're going to run out of pins)
 

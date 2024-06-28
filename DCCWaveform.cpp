@@ -36,7 +36,7 @@ DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
-// This bitmask has 9 entries as each byte is trasmitted as a zero + 8 bits.
+// This bitmask has 9 entries as each byte is transmitted as a zero + 8 bits.
 const byte bitMask[] = {0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 const byte idlePacket[] = {0xFF, 0x00, 0xFF};
@@ -88,7 +88,7 @@ void DCCWaveform::interruptHandler() {
   mainTrack.state=stateTransform[mainTrack.state];    
   progTrack.state=stateTransform[progTrack.state];    
 
-  // WAVE_PENDING means we dont yet know what the next bit is
+  // WAVE_PENDING means we don't yet know what the next bit is
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
   else DCCACK::checkAck(progTrack.getResets());
@@ -99,7 +99,7 @@ void DCCWaveform::interruptHandler() {
 // An instance of this class handles the DCC transmissions for one track. (main or prog)
 // Interrupts are marshalled via the statics.
 // A track has a current transmit buffer, and a pending buffer.
-// When the current buffer is exhausted, either the pending buffer (if there is one waiting) or an idle buffer.
+// When the current buffer is exhausted, send either the pending buffer (if there is one waiting) or an idle buffer.
 
 
 
@@ -144,7 +144,7 @@ void DCCWaveform::interrupt2() {
     //end of Byte
     bits_sent = 0;
     bytes_sent++;
-    // if this is the last byte, prepere for next packet
+    // if this is the last byte, prepare for next packet
     if (bytes_sent >= transmitLength) {
       // end of transmission buffer... repeat or switch to next message
       bytes_sent = 0;
@@ -247,7 +247,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   pendingPacket[byteCount] = checksum;
   pendingLength = byteCount + 1;
   pendingRepeats = repeats;
-// DIAG repeated commands (accesories)
+// DIAG repeated commands (accessories)
 //  if (pendingRepeats > 0)
 //    DIAG(F("Repeats=%d on %s track"), pendingRepeats, isMainTrack ? "MAIN" : "PROG");
   // The resets will be zero not only now but as well repeats packets into the future

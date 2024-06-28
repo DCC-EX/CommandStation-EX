@@ -123,10 +123,13 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   config.channel = channel = (rmt_channel_t)ch;
   config.clk_div = RMT_CLOCK_DIVIDER;
   config.gpio_num = (gpio_num_t)pins.pin;
-  config.mem_block_num = 2; // With longest DCC packet 11 inc checksum (future expansion)
-                            // number of bits needed is 22preamble + start +
-                            // 11*9 + extrazero + EOT = 124
-                            // 2 mem block of 64 RMT items should be enough
+
+  // With longest DCC packet (11 bytes, including checksum (future expansion)):
+  // number of bits needed is PREAMBLE_BITS_PROG (22) + start (1) +
+  // data bytes (11*9) + extrazero (1) + EOT (1) = 124
+  //
+  // 2 mem blocks of 64 RMT items should be enough
+  config.mem_block_num = 2;
 
   ESP_ERROR_CHECK(rmt_config(&config));
   addPin(pins.invpin, true);
@@ -166,7 +169,7 @@ const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=0) {
   //int RMTChannel::RMTfillData(dccPacket packet) {
-  // dataReady: Signals to then interrupt routine. It is set when
+  // dataReady: Signals to the interrupt routine. It is set when
   // we have data in the channel buffer which can be copied out
   // to the HW. dataRepeat on the other hand signals back to
   // the caller of this function if the data has been sent enough

@@ -76,7 +76,7 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-// Initialise HAL layer before reading EEprom or setting up MotorDrivers 
+  // Initialise HAL layer before reading EEprom or setting up MotorDrivers
   IODevice::begin();
 
   // As the setup of a motor shield may require a read of the current sense input from the ADC,
@@ -110,7 +110,7 @@ void setup()
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
 
-  // Start RMFT aka EX-RAIL (ignored if no automnation)
+  // Start RMFT aka EX-RAIL (ignored if no automation)
   RMFT::begin();
 
 

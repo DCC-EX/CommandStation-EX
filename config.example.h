@@ -64,7 +64,7 @@ The configuration file for DCC-EX Command Station
 // If you want to restrict the maximum current LOWER than what your
 // motor shield can provide, you can do that here. For example if you
 // have a motor shield that can provide 5A and your power supply can
-// only provide 2.5A then you should restict the maximum current to
+// only provide 2.5A then you should restrict the maximum current to
 // 2.25A (90% of 2.5A) so that DCC-EX does shut off the track before
 // your PS does shut DCC-EX. MAX_CURRENT is in mA so for this example
 // it would be 2250, adjust the number according to your PS. If your
@@ -224,7 +224,7 @@ The configuration file for DCC-EX Command Station
 
 // If you have issues with that the direction of the accessory commands is
 // reversed (for example when converting from another CS to DCC-EX) then
-// you can use this to reverse the sense of all accessory commmands sent
+// you can use this to reverse the sense of all accessory commands sent
 // over DCC++. This #define likewise inverts the behaviour of the <a> command
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
 // DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 

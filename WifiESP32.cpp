@@ -136,7 +136,7 @@ bool WifiESP::setup(const char *SSid,
   // clean start
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(true);
-  // differnet settings that did not improve for haba
+  // different settings that did not improve for haba
   // WiFi.useStaticBuffers(true);
   // WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
   // WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SECURITY);
@@ -376,7 +376,7 @@ void WifiESP::loop() {
   // is not necessarily yielding to a low
   // prio task. On core1 this is not a problem
   // as there the wdt is disabled by the
-  // arduio IDE startup routines.
+  // arduino IDE startup routines.
   if (xPortGetCoreID() == 0)
     feedTheDog0();
   yield();

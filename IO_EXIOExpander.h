@@ -83,7 +83,7 @@ private:
 
   void _begin() {
     uint8_t status;
-    // Initialise EX-IOExander device
+    // Initialise EX-IOExpander device
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)) {
       // Send config, if EXIOPINS returned, we're good, setup pin buffers, otherwise go offline
@@ -252,7 +252,7 @@ private:
           // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
         }
       } else
-        reportError(status, false);   // report eror but don't go offline.
+        reportError(status, false);   // report error but don't go offline.
 
       _readState = RDS_IDLE;
     }

@@ -44,7 +44,7 @@ HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F
 HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
 #elif defined(ARDUINO_NUCLEO_F446RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
-// On the F446RE, Serial1 isn't really useable as it's Rx/Tx pair sit on already used D2/D10 pins
+// On the F446RE, Serial1 isn't really useable as its Rx/Tx pair sit on already used D2/D10 pins
 // HardwareSerial Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
@@ -369,7 +369,7 @@ void ADCee::scan() {
     // look for a valid track to sample or until we are around
     while (true) {
       if (mask  & usedpins) {
-	// start new ADC aquire on id
+	// start new ADC acquire on id
         ADC1->SQR3 = analogchans[id]; //1st conversion in regular sequence
         ADC1->CR2 |= (1 << 30); //Start 1st conversion SWSTART
 #ifdef DEBUG_ADC
