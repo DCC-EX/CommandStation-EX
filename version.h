@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.62"
+#define VERSION "5.2.63"
+// 5.2.63 - Implement WIFI_LED for ESP32, ESPduino32 and EX-CSB1, that is turned on when STA mode connects or AP mode is up
+//        - Add BOOSTER_INPUT definitions for ESPduino32 and EX-CSB1 to config.example.h
+//        - Add WIFI_LED definitions for ESPduino32 and EX-CSB1 to config.example.h
 // 5.2.62 - Allow acks way longer than standard
 // 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
 //        - LCC Adapter interface throttled startup,

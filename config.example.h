@@ -307,11 +307,21 @@ The configuration file for DCC-EX Command Station
 //
 //#define SERIAL_BT_COMMANDS
 
-// BOOSTER PIN INPUT ON ESP32
+// BOOSTER PIN INPUT ON ESP32 CS
 // On ESP32 you have the possibility to define a pin as booster input
-// Arduio pin D2 is GPIO 26 on ESPDuino32
 //
+// Arduino pin D2 is GPIO 26 is Booster Input on ESPDuino32
 //#define BOOSTER_INPUT 26
+//
+// GPIO 32 is Booster Input on EX-CSB1
+//#define BOOSTER_INPUT 32
+
+// ESP32 LED Wifi Indicator
+// GPIO 2 on ESPduino32
+//#define WIFI_LED 2
+//
+// GPIO 33 on EX-CSB1
+//#define WIFI_LED 33
 
 // SABERTOOTH
 //
