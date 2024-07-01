@@ -2,7 +2,7 @@
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2021 Herb Morton
+ *  © 2021-2024 Herb Morton
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
@@ -563,6 +563,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	    }
 #ifndef DISABLE_PROG
             else if (p[0]=="PROG"_hk) { // <0 PROG>
+          TrackManager::setJoin(false);
 	      TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
 	      TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::OFF);
             }
