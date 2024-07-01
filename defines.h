@@ -147,12 +147,8 @@
   #ifndef I2C_USE_WIRE
   #define I2C_USE_WIRE
   #endif
-
-/* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
   #define ARDUINO_TYPE "RP2040"
-*/
-
 #else
   #define CPU_TYPE_ERROR
 #endif
