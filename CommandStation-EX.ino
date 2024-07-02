@@ -69,6 +69,11 @@
 void setup()
 {
   // The main sketch has responsibilities during setup()
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  while(!Serial)
+    delay(100);
 
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor

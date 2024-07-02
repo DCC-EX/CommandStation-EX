@@ -42,11 +42,26 @@ INTERRUPT_CALLBACK interruptHandler=0;
 #define ALARM_NUM 0
 #define ALARM_IRQ TIMER_IRQ_0
 
+static uint32_t dcc_signal_time = 0;
+
+static void alarm_irq(void) {
+    // Clear the alarm irq
+    hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM);
+    // Reload timer
+    uint64_t target = timer_hw->timerawl + dcc_signal_time;
+    timer_hw->alarm[ALARM_NUM] = (uint32_t) target;
+
+    if (interruptHandler)
+      interruptHandler();
+}
+
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+    interruptHandler = callback;
+    dcc_signal_time = DCC_SIGNAL_TIME;
     // Enable the interrupt for our alarm (the timer outputs 4 alarm irqs)
     hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM);
     // Set irq handler for alarm irq
-    irq_set_exclusive_handler(ALARM_IRQ, callback);
+    irq_set_exclusive_handler(ALARM_IRQ, alarm_irq);
     // Enable the alarm irq
     irq_set_enabled(ALARM_IRQ, true);
     // Enable interrupt in block and at processor
@@ -54,7 +69,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     // Alarm is only 32 bits so if trying to delay more
     // than that need to be careful and keep track of the upper
     // bits
-    uint64_t target = timer_hw->timerawl + DCC_SIGNAL_TIME;
+    uint64_t target = timer_hw->timerawl + dcc_signal_time;
 
     // Write the lower 32 bits of the target time to the alarm which
     // will arm it
@@ -148,4 +163,3 @@ void ADCee::begin() {
 }
 
 #endif // RP2040
-

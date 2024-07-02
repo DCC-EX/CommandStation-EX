@@ -91,7 +91,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     }
   }
   else dualSignal=false; 
-  
+
   if (brake_pin!=UNUSED_PIN){
     invertBrake=brake_pin < 0;
     if (invertBrake)
@@ -446,8 +446,6 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     PortGroup *port = digitalPinToPort(pin);
 #elif defined(ARDUINO_ARCH_STM32)
     GPIO_TypeDef *port = digitalPinToPort(pin);
-#elif defined(ARDUINO_ARCH_RP2040)
-    volatile uint32_t port = 0;
 #else
     uint8_t port = digitalPinToPort(pin);
 #endif

@@ -61,6 +61,10 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define PORTC GPIOC->ODR
 #define HAVE_PORTC(X) X
 #endif
+#if defined(ARDUINO_ARCH_RP2040)
+#define HAVE_PORTA(X) X
+#define PORTA (sio_hw->gpio_out)
+#endif
 
 // if macros not defined as pass-through we define
 // them here as someting that is valid as a
