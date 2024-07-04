@@ -70,6 +70,7 @@ public:
   static void changeFn(int cab, int16_t functionNumber);
   static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
+  static void setDCFreq(int cab,byte freq);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
   static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
