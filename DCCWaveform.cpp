@@ -71,10 +71,7 @@ void DCCWaveform::loop() {
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
-static uint32_t blinker = 0;
 void DCCWaveform::interruptHandler() {
-  if (!(blinker++ % 25000))
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
