@@ -642,6 +642,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
         if(params!=3) break; 
+        
+        if (p[1]=="DCFREQ"_hk) { // <F cab DCFREQ 0..3>
+          if (p[2]<0 || p[2]>3) break;
+          DCC::setDCFreq(p[0],p[2]);
+          return;    
+        }
+
         if (Diag::CMD)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         if (DCC::setFn(p[0], p[1], p[2] == 1)) return;

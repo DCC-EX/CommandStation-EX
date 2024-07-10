@@ -620,7 +620,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
 #define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff),OPCODE_PAD, V(TRACK_NUMBER_##track),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
-#define SETFREQ(loco,freq) OPCODE_SETLOCO,V(loco), OPCODE_SETFREQ,V(freq),
+#define SETFREQ(freq) OPCODE_SETFREQ,V(freq),
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),

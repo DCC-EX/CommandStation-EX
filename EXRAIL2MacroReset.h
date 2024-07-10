@@ -334,7 +334,7 @@
 #define SET_TRACK(track,mode)
 #define SET_POWER(track,onoff)
 #define SETLOCO(loco) 
-#define SETFREQ(loco,freq)
+#define SETFREQ(freq)
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 

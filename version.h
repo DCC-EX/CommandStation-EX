@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.65"
+#define VERSION "5.2.66"
+// 5.2.66 - <F cab DCFREQ 0..3>
+//        - EXRAIL SETFREQ drop loco param (breaking since 5.2.28)
 // 5.2.65 - Speedup Exrail SETFREQ 
 // 5.2.64 - Bugfix: <0 PROG> updated to undo JOIN 
 // 5.2.63 - Implement WIFI_LED for ESP32, ESPduino32 and EX-CSB1, that is turned on when STA mode connects or AP mode is up
@@ -12,7 +14,7 @@
 // 5.2.62 - Allow acks way longer than standard
 // 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
 //        - LCC Adapter interface throttled startup,
-//          (Breaking change woith Adapter base code)
+//          (Breaking change with Adapter base code)
 // 5.2.60 - Bugfix: Opcode AFTEROVERLOAD does not have an argument that is a pin and needs to be initialized
 //        - Remove inrush throttle after half good time so that we go to mode overload if problem persists
 // 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
