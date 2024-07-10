@@ -195,7 +195,7 @@
 #ifndef RMFT2_UNDEF_ONLY
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
-#define AFTER(sensor_id)
+#define AFTER(sensor_id,timer...)
 #define AFTEROVERLOAD(track_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)

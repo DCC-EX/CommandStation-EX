@@ -628,14 +628,16 @@ void RMFT2::loop2() {
     skipIf=blinkState!=at_timeout;
     break;
     
-  case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
+  case OPCODE_AFTER: // waits for sensor to hit and then remain off for x mS. 
+    // Note, this must come after an AT operation, which is 
+    // automatically inserted by the AFTER macro. 
     if (readSensor(operand)) {
-      // reset timer to half a second and keep waiting
+      // reset timer and keep waiting
       waitAfter=millis();
       delayMe(50);
       return;
     }
-    if (millis()-waitAfter < 500 ) return;
+    if (millis()-waitAfter < getOperand(1) ) return;
     break;
 
   case OPCODE_AFTEROVERLOAD: // waits for the power to be turned back on - either by power routine or button

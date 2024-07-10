@@ -463,7 +463,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
 #define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1 | 1),
-#define AFTER(sensor_id) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),
+#define AFTER(sensor_id,timer...) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),OPCODE_PAD,V(#timer[0]?timer+0:500),
 #define AFTEROVERLOAD(track_id) OPCODE_AFTEROVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),

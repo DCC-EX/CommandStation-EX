@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.66"
+#define VERSION "5.2.67"
+// 5.2.67 -  EXRAIL AFTER optional debounce time variable (default 500mS)
+//        -  AFTER(42) == AFTER(42,500) sets time sensor must 
+//        -  be continuously off.
 // 5.2.66 - <F cab DCFREQ 0..3>
 //        - EXRAIL SETFREQ drop loco param (breaking since 5.2.28)
 // 5.2.65 - Speedup Exrail SETFREQ 
