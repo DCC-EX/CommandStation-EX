@@ -18,17 +18,14 @@
 */
 
 /*
-* The IO_RocoDriver device driver uses a rotary encoder connected to vpins
+* The IO_EncoderThrottle device driver uses a rotary encoder connected to vpins
 * to drive a loco.
 *  Loco id is selected by writeAnalog.
 */
 
-#ifndef IO_ROCODRIVER_H
-#define IO_ROCODRIVER_H
-
-#include "DCC.h"
 #include "IODevice.h"
 #include "DIAG.h"
+#include "DCC.h"
 
 const byte _DIR_CW = 0x10;  // Clockwise step
 const byte _DIR_CCW = 0x20;  // Counter-clockwise step
@@ -45,21 +42,14 @@ const byte _STATE_MASK = 0x07;
 const byte _DIR_MASK = 0x30;
 
 
-class RocoDriver : public IODevice {
-public:
-  
-  static void create(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch=10) {
-    if (checkNoOverlap(firstVpin)) new RocoDriver(firstVpin, dtPin,clkPin,clickPin,notch);
-  }
 
-private:
-  int _dtPin,_clkPin,_clickPin, _locoid, _notch,_prevpinstate; 
-  enum {xrSTOP,xrFWD,xrREV} _stopState;
-  byte _rocoState;  
+  void EncoderThrottle::create(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch) {
+    if (checkNoOverlap(firstVpin)) new EncoderThrottle(firstVpin, dtPin,clkPin,clickPin,notch);
+  }
 
 
   // Constructor
-  RocoDriver(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch){
+  EncoderThrottle::EncoderThrottle(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch){
     _firstVpin = firstVpin;
     _nPins = 1;
     _I2CAddress = 0;
@@ -80,7 +70,7 @@ private:
 
   
 
-  void _loop(unsigned long currentMicros) override {
+  void EncoderThrottle::_loop(unsigned long currentMicros)  {
     if (_locoid==0) return;  // not in use
     
     // Clicking down on the roco, stops the loco and sets the direction as unknown.
@@ -129,7 +119,7 @@ private:
 
   // Selocoid as analog value to start drive
   // use <z vpin locoid [notch]>
-  void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override {  
+  void EncoderThrottle::_writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2)  {  
     (void) param2;
     _locoid=value;
     if (param1>0) _notch=param1;
@@ -148,10 +138,7 @@ private:
   }
 
   
-  void _display() override {
+  void EncoderThrottle::_display() {
     DIAG(F("DRIVE vpin %d loco %d notch %d"),_firstVpin,_locoid,_notch);
   }
 
- };
-
-#endif

@@ -547,6 +547,6 @@ protected:
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
 #include "IO_trainbrains.h"
-
+#include "IO_EncoderThrottle.h"
 
 #endif // iodevice_h

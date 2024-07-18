@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.69"
+#define VERSION "5.2.70"
+// 5.2.70 -  IO_RocoDriver renamed to IO_EncoderThrottle.
+//        -  and included in IODEvice.h (circular dependency removed) 
 // 5.2.69 -  IO_RocoDriver. Direct drive train with rotary encoder hw.
 // 5.2.68 -  Revert function map to signed (from 5.2.66) to avoid
 //           incompatibilities with ED etc for F31 frequency flag.
