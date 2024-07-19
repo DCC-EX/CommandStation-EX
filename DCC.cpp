@@ -742,11 +742,15 @@ void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
   if (reg>=0) {
     speedTable[reg].loco=0;
     setThrottle2(cab,1); // ESTOP if this loco still on track
+    CommandDistributor::broadcastForgetLoco(cab);
   }
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
   setThrottle2(0,1); // ESTOP all locos still on track
-  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;
+  for (int i=0;i<MAX_LOCOS;i++) {
+    if (speedTable[i].loco) CommandDistributor::broadcastForgetLoco(speedTable[i].loco);
+    speedTable[i].loco=0;
+  }
 }
 
 byte DCC::loopStatus=0;

@@ -47,6 +47,7 @@ private:
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
   static void broadcastLoco(byte slot);
+  static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastTurntable(int16_t id, uint8_t position, bool moving);

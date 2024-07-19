@@ -248,6 +248,10 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 #endif
 }
 
+void  CommandDistributor::broadcastForgetLoco(int16_t loco) {
+  broadcastReply(COMMAND_TYPE, F("<l %d 0 1 0>\n<- %d>\n"), loco,loco);
+}
+
 void  CommandDistributor::broadcastPower() {
   char pstr[] = "? x";
   for(byte t=0; t<TrackManager::MAX_TRACKS; t++)
