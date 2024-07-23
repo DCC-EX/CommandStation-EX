@@ -551,6 +551,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STEALTH_GLOBAL(code...) 
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
+#define MOMENTUM(mspertick) OPCODE_MOMENTUM,V(mspertick),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),

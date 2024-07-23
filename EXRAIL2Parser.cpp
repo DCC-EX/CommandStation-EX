@@ -276,7 +276,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   switch (p[0]) {
   case "PAUSE"_hk: // </ PAUSE>
     if (paramCount!=1) return false;
-    DCC::setThrottle(0,1,true);  // pause all locos on the track
+    DCC::estopAll();  // pause all locos on the track
     pausingTask=(RMFT2 *)1; // Impossible task address
     return true;
     

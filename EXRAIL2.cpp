@@ -566,6 +566,10 @@ void RMFT2::loop2() {
     forward=DCC::getThrottleDirection(loco)^invert;
     driveLoco(operand);
     break;
+  
+  case OPCODE_MOMENTUM:
+    DCC::setMomentum(loco,operand);
+    break;
     
   case OPCODE_FORGET:
     if (loco!=0) {
@@ -679,7 +683,7 @@ void RMFT2::loop2() {
      break; 
 
   case OPCODE_PAUSE:
-    DCC::setThrottle(0,1,true);  // pause all locos on the track
+    DCC::estopAll();  // pause all locos on the track
     pausingTask=this;
     break;
 

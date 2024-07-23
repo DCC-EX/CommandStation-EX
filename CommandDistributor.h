@@ -28,6 +28,7 @@
 #include "StringBuffer.h"
 #include "defines.h"
 #include "EXRAIL2.h"
+#include "DCC.h"
 
 #if WIFI_ON | ETHERNET_ON 
   // Command Distributor must handle a RingStream of clients
@@ -46,7 +47,7 @@ private:
   #endif
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
-  static void broadcastLoco(byte slot);
+  static void broadcastLoco(DCC::LOCO * slot);
   static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);

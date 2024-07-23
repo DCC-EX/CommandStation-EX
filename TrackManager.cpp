@@ -358,7 +358,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-  track[t]->setDCSignal(DCC::getThrottleSpeedByte(trackDCAddr[t]),
+  track[t]->setDCSignal(DCC::getLocoSpeedByte(trackDCAddr[t]),
 			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 
