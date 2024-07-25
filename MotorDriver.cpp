@@ -1,5 +1,6 @@
 /*
  *  © 2022-2024 Paul M Antoine
+ *  © 2024 Herb Morton
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
@@ -98,7 +99,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   if (HAVE_PORTH(fastSignalPin.inout == &PORTH)) {
     DIAG(F("Found PORTH pin %d"),signalPin);
     fastSignalPin.shadowinout = fastSignalPin.inout;
-    fastSignalPin.inout = &shadowPORTF;
+    fastSignalPin.inout = &shadowPORTH;
   }
 
   signalPin2=signal_pin2;

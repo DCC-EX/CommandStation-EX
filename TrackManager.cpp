@@ -1,6 +1,8 @@
 /*
  *  © 2022 Chris Harlow
  *  © 2022-2024 Harald Barth
+ *  © 2023-2024 Paul M. Antoine
+ *  © 2024 Herb Morton
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -149,6 +151,8 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTD(shadowPORTD=PORTD);
   HAVE_PORTE(shadowPORTE=PORTE);
   HAVE_PORTF(shadowPORTF=PORTF);
+  HAVE_PORTF(shadowPORTF=PORTG);
+  HAVE_PORTF(shadowPORTF=PORTH);
   APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
@@ -156,6 +160,8 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
+  HAVE_PORTF(shadowPORTF=PORTG);
+  HAVE_PORTF(shadowPORTF=PORTH);
 }
 
 // setPROGSignal(), called from interrupt context
@@ -167,6 +173,8 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTD(shadowPORTD=PORTD);
   HAVE_PORTE(shadowPORTE=PORTE);
   HAVE_PORTF(shadowPORTF=PORTF);
+  HAVE_PORTF(shadowPORTF=PORTG);
+  HAVE_PORTF(shadowPORTF=PORTH);
   APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
@@ -174,6 +182,8 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
+  HAVE_PORTF(shadowPORTF=PORTG);
+  HAVE_PORTF(shadowPORTF=PORTH);
 }
 
 // setDCSignal(), called from normal context
