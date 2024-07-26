@@ -21,8 +21,25 @@
 #define LiquidCrystal_Parallel_h
 
 #include <Arduino.h>
-#include <LiquidCrystal.h>
 #include "Display.h"
+
+#ifdef PARALLEL_LCD_DRIVER
+// Only use the Arduino library if the driver is actually enabled.
+#include <LiquidCrystal.h>
+#else
+// If the driver is not enabled, use a dummy version instead.
+class LiquidCrystal
+{
+public:
+    LiquidCrystal(uint8_t rs, uint8_t rw, uint8_t enable,
+                  uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7) {};
+    void begin(uint16_t cols, uint16_t rows) {};
+    void noCursor() {};
+    void setCursor(uint16_t col, uint16_t row) {};
+    void clear() {};
+    size_t write(uint8_t val) { return 0; };
+};
+#endif
 
 // Support for an LCD based on the Hitachi HD44780 (or a compatible) chipset
 // as supported by Arduino's LiquidCrystal library.
