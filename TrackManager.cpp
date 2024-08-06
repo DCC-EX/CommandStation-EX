@@ -641,23 +641,25 @@ void TrackManager::setJoinRelayPin(byte joinRelayPin) {
 
 void TrackManager::setJoin(bool joined) {
 #ifdef ARDUINO_ARCH_ESP32
-  if (joined) {
+  if (joined) {                                          // if we go into joined mode (PROG acts as MAIN)
     FOR_EACH_TRACK(t) {
-      if (track[t]->getMode() & TRACK_MODE_PROG) {
-	tempProgTrack = t;
+      if (track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
+	tempProgTrack = t;                               // remember PROG track
 	setTrackMode(t, TRACK_MODE_MAIN);
-	break;
+	track[t]->setPower(POWERMODE::ON);               // if joined, always on
+	break;                                           // there is only one prog track, done
       }
     }
   } else {
     if (tempProgTrack != MAX_TRACKS+1) {
-      // as setTrackMode with TRACK_MODE_PROG defaults to
-      // power off, we will take the current power state
-      // of our track and then preserve that state.
-      POWERMODE tPTmode = track[tempProgTrack]->getPower(); //get current power status of this track
-      setTrackMode(tempProgTrack, TRACK_MODE_PROG);
-      track[tempProgTrack]->setPower(tPTmode);              //set track status as it was before
+      // setTrackMode defaults to power off, so we
+      // need to preserve that state.
+      POWERMODE tPTmode = track[tempProgTrack]->getPower(); // get current power status of this track
+      setTrackMode(tempProgTrack, TRACK_MODE_PROG);         // set track mode back to prog
+      track[tempProgTrack]->setPower(tPTmode);              // set power status as it was before
       tempProgTrack = MAX_TRACKS+1;
+    } else {
+      DIAG(F("Unjoin but no remembered prog track"));
     }
   }
 #endif
