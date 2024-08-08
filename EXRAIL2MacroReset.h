@@ -98,7 +98,6 @@
 #undef LCC 
 #undef LCCX 
 #undef LCN 
-#undef MOMENTUM
 #undef MOVETT
 #undef ACON
 #undef ACOF
@@ -266,7 +265,6 @@
 #define LCC(eventid) 
 #define LCCX(senderid,eventid) 
 #define LCD(row,msg)
-#define MOMENTUM(mspertick)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
 #define MESSAGE(msg)

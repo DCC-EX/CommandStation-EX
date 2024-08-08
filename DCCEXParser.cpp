@@ -68,8 +68,7 @@ Once a new OPCODE is decided upon, update this list.
   K, Reserved for future use - Potentially Railcom
   l, Loco speedbyte/function map broadcast
   L, Reserved for LCC interface (implemented in EXRAIL)
-  m, message to throttles (broadcast output) 
-  m, set momentum  
+  m, message to throttles broadcast 
   M, Write DCC packet
   n, Reserved for SensorCam
   N, Reserved for Sensorcam 
@@ -289,9 +288,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         int16_t direction;
 
         if (params==1) {  // <t cab>  display state
-         if (p[0]<=0) break;
-	     CommandDistributor::broadcastLoco(DCC::lookupSpeedTable(p[0],false));
-	     return;
+	  int16_t slot=DCC::lookupSpeedTable(p[0],false);
+	  if (slot>=0)
+	    CommandDistributor::broadcastLoco(slot);
+	  else // send dummy state speed 0 fwd no functions.
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+	  return;
         }
 
         if (params == 4)
@@ -429,11 +431,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
       DCC::writeCVBitMain(p[0], p[1], p[2], p[3]);
       return;
 #endif
-    
-    case 'm': // <m cabid momentum>
-      if (params!=2) break;
-      if (DCC::setMomentum(p[0],p[1])) return; 
-      break; 
 
     case 'M': // WRITE TRANSPARENT DCC PACKET MAIN <M REG X1 ... X9>
 #ifndef DISABLE_PROG
@@ -583,7 +580,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	}
 
     case '!': // ESTOP ALL  <!>
-        DCC::estopAll(); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
+        DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
         return;
 
 #ifdef HAS_ENOUGH_MEMORY
