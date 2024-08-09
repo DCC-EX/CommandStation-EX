@@ -30,6 +30,8 @@
 #include "WiThrottle.h"
 #include "DCCTimer.h"
 
+extern void looptimer(unsigned long timeout, const FSH* message);
+
 EthernetInterface * EthernetInterface::singleton=NULL;
 /**
  * @brief Setup Ethernet Connection
@@ -125,6 +127,7 @@ void EthernetInterface::loop()
         //nothing happened
         break;
     }
+    looptimer(8000, F("Ethloop after maintain"));
    singleton->loop2();
 }
 
@@ -207,13 +210,14 @@ void EthernetInterface::loop2() {
             // read bytes from a client
             int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
             buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
+            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), count, buffer);
             // execute with data going directly back
             CommandDistributor::parse(socket,buffer,outboundRing);
             return; // limit the amount of processing that takes place within 1 loop() cycle. 
           }
         }
     }
+    looptimer(8000, F("Ethloop2 after incoming"));
 
     // stop any clients which disconnect
    for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
@@ -223,9 +227,11 @@ void EthernetInterface::loop2() {
       if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
      }
     }
+    looptimer(8000, F("Ethloop after disconnectcheck"));
 
     WiThrottle::loop(outboundRing);
-    
+    looptimer(8000, F("Ethloop after Withrottleloop"));
+
     // handle at most 1 outbound transmission 
     int socketOut=outboundRing->read();
     if (socketOut >= MAX_SOCK_NUM) {
@@ -236,5 +242,7 @@ void EthernetInterface::loop2() {
       for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
       clients[socketOut].flush(); //maybe 
     }
+    looptimer(8000, F("Ethloop after outbound"));
+
 }
 #endif
