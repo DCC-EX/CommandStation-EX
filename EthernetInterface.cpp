@@ -209,6 +209,7 @@ void EthernetInterface::loop2() {
             if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
             // read bytes from a client
             int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
+	    looptimer(8000, F("Ethloop2 read"));
             buffer[count] = '\0'; // terminate the string properly
             if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), count, buffer);
             // execute with data going directly back
@@ -239,7 +240,14 @@ void EthernetInterface::loop2() {
     } else if (socketOut >= 0) {
       int count=outboundRing->count();
       if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
-      for(;count>0;count--)  clients[socketOut].write(outboundRing->read());
+      {
+	char buffer[count+1]; // one extra for '\0'
+	for(int i=0;i<count;i++) {
+	  buffer[i] = outboundRing->read();
+	}
+	buffer[count]=0;
+	clients[socketOut].write(buffer,count);
+      }
       clients[socketOut].flush(); //maybe 
     }
     looptimer(8000, F("Ethloop after outbound"));
