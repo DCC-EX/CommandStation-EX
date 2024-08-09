@@ -241,12 +241,12 @@ void EthernetInterface::loop2() {
       int count=outboundRing->count();
       if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
       {
-	char buffer[count+1]; // one extra for '\0'
+	char tmpbuf[count+1]; // one extra for '\0'
 	for(int i=0;i<count;i++) {
-	  buffer[i] = outboundRing->read();
+	  tmpbuf[i] = outboundRing->read();
 	}
-	buffer[count]=0;
-	clients[socketOut].write(buffer,count);
+	tmpbuf[count]=0;
+	clients[socketOut].write(tmpbuf,count);
       }
       clients[socketOut].flush(); //maybe 
     }
