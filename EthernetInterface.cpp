@@ -202,18 +202,18 @@ void EthernetInterface::loop2() {
     // check for incoming data from all possible clients
     for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
     {
-        if (clients[socket]) {
-        
-        int available=clients[socket].available();
-        if (available > 0) {
-            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
-            // read bytes from a client
-            int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
-	    looptimer(8000, F("Ethloop2 read"));
+      if (clients[socket]) {
+	
+	// read bytes from a client
+	int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
+	looptimer(8000, F("Ethloop2 read"));
+        if (count > 0) {
+            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,count=%d"), socket, count);
             buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), count, buffer);
+            if (Diag::ETHERNET) DIAG(F("buffer:%e"), buffer);
             // execute with data going directly back
             CommandDistributor::parse(socket,buffer,outboundRing);
+	    looptimer(2000, F("Ethloop2 parse"));
             return; // limit the amount of processing that takes place within 1 loop() cycle. 
           }
         }
