@@ -248,7 +248,8 @@ void EthernetInterface::loop2() {
 	tmpbuf[count]=0;
 	clients[socketOut].write(tmpbuf,count);
       }
-      clients[socketOut].flush(); //maybe 
+      // do trust write does its thing and not flush
+      // clients[socketOut].flush(); //maybe 
     }
     looptimer(8000, F("Ethloop after outbound"));
 
