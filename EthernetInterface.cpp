@@ -239,13 +239,14 @@ void EthernetInterface::loop2() {
       DIAG(F("Ethernet outboundRing socket=%d error"), socketOut);
     } else if (socketOut >= 0) {
       int count=outboundRing->count();
-      if (Diag::ETHERNET) DIAG(F("Ethernet reply socket=%d, count=:%d"), socketOut,count);
       {
 	char tmpbuf[count+1]; // one extra for '\0'
 	for(int i=0;i<count;i++) {
 	  tmpbuf[i] = outboundRing->read();
 	}
 	tmpbuf[count]=0;
+	if (Diag::ETHERNET)
+	  DIAG(F("Ethernet reply socket=%d, count=%d, buf:%e"), socketOut,count,tmpbuf);
 	clients[socketOut].write(tmpbuf,count);
       }
       // do trust write does its thing and not flush
