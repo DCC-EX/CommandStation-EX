@@ -161,6 +161,10 @@ The configuration file for DCC-EX Command Station
 // Use 132,64 for a SH1106-based I2C device with a 128x64 display.
 // #define OLED_DRIVER 0x3c,128,32
 
+//OR define PARALLEL_LCD_DRIVER COLS,ROWS,RS,RW,ENABLE,D4,D5,D6,D7
+// using Arduino pin numbers for RS,RW,ENABLE,D4,D5,D6,D7
+// #define PARALLEL_LCD_DRIVER 20, 4, 26, 27, 28, 22, 23, 24, 25
+
 // Define scroll mode as 0, 1 or 2
 //  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
 //  *  #define SCROLLMODE 1 is by page (alternate between pages),
