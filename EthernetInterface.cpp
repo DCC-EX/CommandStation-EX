@@ -208,27 +208,23 @@ void EthernetInterface::loop2() {
 	int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
 	looptimer(8000, F("Ethloop2 read"));
         if (count > 0) {
-            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,count=%d"), socket, count);
-            buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F("buffer:%e"), buffer);
-            // execute with data going directly back
-            CommandDistributor::parse(socket,buffer,outboundRing);
-	    looptimer(2000, F("Ethloop2 parse"));
-            return; // limit the amount of processing that takes place within 1 loop() cycle. 
-          }
-        }
+	  if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,count=%d"), socket, count);
+	  buffer[count] = '\0'; // terminate the string properly
+	  if (Diag::ETHERNET) DIAG(F("buffer:%e"), buffer);
+	  // execute with data going directly back
+	  CommandDistributor::parse(socket,buffer,outboundRing);
+	  looptimer(2000, F("Ethloop2 parse"));
+	  return; // limit the amount of processing that takes place within 1 loop() cycle. 
+	} else if (count == 0) {
+	  // The client has disconnected
+	  clients[socket].stop();
+	  CommandDistributor::forget(socket);
+	  if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);
+	}
+	// fall through if count = -1 (no bytes available)
+      }
     }
     looptimer(8000, F("Ethloop2 after incoming"));
-
-    // stop any clients which disconnect
-   for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
-     if (clients[socket] && !clients[socket].connected()) {
-      clients[socket].stop();
-      CommandDistributor::forget(socket);          
-      if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
-     }
-    }
-    looptimer(8000, F("Ethloop after disconnectcheck"));
 
     WiThrottle::loop(outboundRing);
     looptimer(8000, F("Ethloop after Withrottleloop"));
