@@ -32,76 +32,37 @@
 
 extern void looptimer(unsigned long timeout, const FSH* message);
 
-EthernetInterface * EthernetInterface::singleton=NULL;
+bool EthernetInterface::connected=false;
+EthernetServer * EthernetInterface::server= nullptr;
+EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
+uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
+RingStream * EthernetInterface::outboundRing = nullptr;
+
 /**
  * @brief Setup Ethernet Connection
  * 
  */
 void EthernetInterface::setup()
 {
-  if (singleton!=NULL) {
-    DIAG(F("Prog Error!"));
-    return;
-  }
-  if ((singleton=new EthernetInterface()))
-    return;
-  DIAG(F("Ethernet not initialized"));
-};
+    connected=false;
 
-
-#ifdef IP_ADDRESS
-static IPAddress myIP(IP_ADDRESS);
-#endif
-
-/**
- * @brief Aquire IP Address from DHCP and start server
- * 
- * @return true 
- * @return false 
- */
-EthernetInterface::EthernetInterface()
-{
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    connected=false;
-   
-#ifdef IP_ADDRESS
-    Ethernet.begin(mac, myIP);
-#else
+    DIAG(F("Ethernet begin"));
     if (Ethernet.begin(mac) == 0)
     {
         DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
-#endif
-    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      DIAG(F("Ethernet shield not found or W5100"));
-    }
-  
-    unsigned long startmilli = millis();
-    while ((millis() - startmilli) < 5500) { // Loop to give time to check for cable connection
-        if (Ethernet.linkStatus() == LinkON)
-            break;
-        DIAG(F("Ethernet waiting for link (1sec) "));
-        delay(1000);
-    }
-    // now we either do have link of we have a W5100
-    // where we do not know if we have link. That's
-    // the reason to now run checkLink.
-    // CheckLinks sets up outboundRing if it does
-    // not exist yet as well.
-    checkLink();
+    auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
+    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+    server->begin();
+    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+    LCD(5,F("Port:%d"), IP_PORT);
+    outboundRing=new RingStream(OUTBOUND_RING_SIZE);
+    connected=true;
 }
 
-/**
- * @brief Cleanup any resources
- * 
- * @return none
- */
-EthernetInterface::~EthernetInterface() {
-  delete server;
-  delete outboundRing;
-}
 
 /**
  * @brief Main loop for the EthernetInterface
@@ -109,76 +70,28 @@ EthernetInterface::~EthernetInterface() {
  */
 void EthernetInterface::loop()
 {
-    if (!singleton || (!singleton->checkLink()))
-      return;
-    
+    if (!connected) return;
+    //DIAG(F("maintain"));
     switch (Ethernet.maintain()) {
     case 1:
         //renewed fail
         DIAG(F("Ethernet Error: renewed fail"));
-        singleton=NULL;
+        connected=false;
         return;
     case 3:
         //rebind fail
         DIAG(F("Ethernet Error: rebind fail"));
-        singleton=NULL;
+        connected=false;
         return;
     default:
         //nothing happened
+        //DIAG(F("maintained"));
         break;
     }
-    looptimer(8000, F("Ethloop after maintain"));
-   singleton->loop2();
-}
+    // looptimer(8000, F("Ethloop after maintain"));
 
-/**
- * @brief Checks ethernet link cable status and detects when it connects / disconnects
- * 
- * @return true when cable is connected, false otherwise
- */
-bool EthernetInterface::checkLink() {
-  if (Ethernet.linkStatus() != LinkOFF) { // check for not linkOFF instead of linkON as the W5100 does return LinkUnknown
-    //if we are not connected yet, setup a new server
-    if(!connected) {
-      DIAG(F("Ethernet cable connected"));
-      connected=true;
-      #ifdef IP_ADDRESS
-      Ethernet.setLocalIP(myIP);      // for static IP, set it again
-      #endif
-      IPAddress ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
-      server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-      server->begin();
-      LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-      LCD(5,F("Port:%d"), IP_PORT);
-      // only create a outboundRing it none exists, this may happen if the cable
-      // gets disconnected and connected again
-      if(!outboundRing)
-	outboundRing=new RingStream(OUTBOUND_RING_SIZE);
-    }
-    return true;
-  } else { // connected
-    DIAG(F("Ethernet cable disconnected"));
-    connected=false;
-    //clean up any client
-    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++) {
-      if(clients[socket].connected())
-	clients[socket].stop();
-    }
-    // tear down server
-    delete server;
-    server = nullptr;
-    LCD(4,F("IP: None"));
-  }
-  return false;
-}
-
-void EthernetInterface::loop2() {
-    if (!outboundRing) { // no idea to call loop2() if we can't handle outgoing data in it
-      if (Diag::ETHERNET) DIAG(F("No outboundRing"));
-      return;
-    }
     // get client from the server
-    EthernetClient client = server->accept();
+    auto client = server->accept();
 
     // check for new client
     if (client)
@@ -202,53 +115,56 @@ void EthernetInterface::loop2() {
     // check for incoming data from all possible clients
     for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
     {
-      if (clients[socket]) {
+      if (!clients[socket]) continue; // socket is not in use
 	
-	// read bytes from a client
-	int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
-	looptimer(8000, F("Ethloop2 read"));
-        if (count > 0) {
-	  if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,count=%d"), socket, count);
-	  buffer[count] = '\0'; // terminate the string properly
-	  if (Diag::ETHERNET) DIAG(F("buffer:%e"), buffer);
-	  // execute with data going directly back
-	  CommandDistributor::parse(socket,buffer,outboundRing);
-	  looptimer(2000, F("Ethloop2 parse"));
-	  return; // limit the amount of processing that takes place within 1 loop() cycle. 
-	} else if (count == 0) {
-	  // The client has disconnected
-	  clients[socket].stop();
-	  CommandDistributor::forget(socket);
-	  if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);
-	}
-	// fall through if count = -1 (no bytes available)
-      }
-    }
-    looptimer(8000, F("Ethloop2 after incoming"));
+	    // read any bytes from this client
+	    auto count = clients[socket].read(buffer, MAX_ETH_BUFFER);
+      
+      if (count<0) continue;  // -1 indicates nothing to read
+	    
+      if (count > 0) {  // we have incoming data 
+	      buffer[count] = '\0'; // terminate the string properly
+	      if (Diag::ETHERNET) DIAG(F("Ethernet s=%d, c=%d b=:%e"), socket, count, buffer);
+	      // execute with data going directly back
+	      CommandDistributor::parse(socket,buffer,outboundRing);
+	      //looptimer(5000, F("Ethloop2 parse"));
+	      return; // limit the amount of processing that takes place within 1 loop() cycle. 
+	    }
+	    
+      // count=0 The client has disconnected
+	    clients[socket].stop();
+	    CommandDistributor::forget(socket);
+	    if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);
+	  }
+	
+    //looptimer(8000, F("Ethloop2 after incoming"));
 
     WiThrottle::loop(outboundRing);
-    looptimer(8000, F("Ethloop after Withrottleloop"));
+    //looptimer(8000, F("Ethloop after Withrottleloop"));
 
     // handle at most 1 outbound transmission 
-    int socketOut=outboundRing->read();
-    if (socketOut >= MAX_SOCK_NUM) {
-      DIAG(F("Ethernet outboundRing socket=%d error"), socketOut);
-    } else if (socketOut >= 0) {
-      int count=outboundRing->count();
-      {
-	char tmpbuf[count+1]; // one extra for '\0'
-	for(int i=0;i<count;i++) {
-	  tmpbuf[i] = outboundRing->read();
-	}
-	tmpbuf[count]=0;
-	if (Diag::ETHERNET)
-	  DIAG(F("Ethernet reply socket=%d, count=%d, buf:%e"), socketOut,count,tmpbuf);
-	clients[socketOut].write(tmpbuf,count);
-      }
-      // do trust write does its thing and not flush
-      // clients[socketOut].flush(); //maybe 
-    }
-    looptimer(8000, F("Ethloop after outbound"));
+    auto socketOut=outboundRing->read();
+    if (socketOut<0) return;  // no outbound pending
 
+    if (socketOut >= MAX_SOCK_NUM) {
+      // This is a catastrophic code failure and unrecoverable.  
+      DIAG(F("Ethernet outboundRing s=%d error"), socketOut);
+      connected=false;
+      return;
+    } 
+
+    auto count=outboundRing->count();
+    {
+	    char tmpbuf[count+1]; // one extra for '\0'
+	    for(int i=0;i<count;i++) {
+	      tmpbuf[i] = outboundRing->read();
+	    }
+	    tmpbuf[count]=0;
+	    if (Diag::ETHERNET) DIAG(F("Ethernet reply s=%d, c=%d, b:%e"),
+                              socketOut,count,tmpbuf);
+	    clients[socketOut].write(tmpbuf,count);
+    }
+    
+    //looptimer(8000, F("Ethloop after outbound"));
 }
 #endif
