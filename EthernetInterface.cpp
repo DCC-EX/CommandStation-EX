@@ -49,12 +49,21 @@ void EthernetInterface::setup()
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
     DIAG(F("Ethernet begin"));
+#ifdef IP_ADDRESS
+    static IPAddress myIP(IP_ADDRESS);
+    Ethernet.begin(mac, myIP);
+#else
     if (Ethernet.begin(mac) == 0)
     {
-        DIAG(F("Ethernet.begin FAILED"));
-        return;
-    } 
+      LCD(4,F("IP: No DHCP"));
+      return;
+    }
+#endif
     auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
+    if (!ip) {
+      LCD(4,F("IP: None"));
+      return;
+    }
     server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
     server->begin();
     LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
