@@ -49,6 +49,7 @@ void EthernetInterface::setup()
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
     DIAG(F("Ethernet begin"));
+    
 #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac, myIP);
@@ -66,8 +67,21 @@ void EthernetInterface::setup()
     }
     server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
     server->begin();
-    LCD(4,F("IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port:%d"), IP_PORT);
+    #ifdef LCD_DRIVER
+      const byte lcdData[]={LCD_DRIVER};
+      const bool wideDisplay=lcdData[1]>=24; // data[1] is cols. 
+    #else 
+      const bool wideDisplay=true;
+    #endif    
+    if (wideDisplay) {
+      // OLEDS or just usb diag is ok on one line. 
+      LCD(4,F("IP %d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);    
+    } 
+    else { // LCDs generally too narrow, so take 2 lines
+      LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+      LCD(5,F("Port %d"), IP_PORT);
+    }
+ 
     outboundRing=new RingStream(OUTBOUND_RING_SIZE);
     connected=true;
 }
@@ -80,7 +94,22 @@ void EthernetInterface::setup()
 void EthernetInterface::loop()
 {
     if (!connected) return;
-    //DIAG(F("maintain"));
+
+    static bool warnedAboutLink=false;
+    if (Ethernet.linkStatus() == LinkOFF){
+        if (warnedAboutLink) return;
+        DIAG(F("Ethernet link OFF"));
+        warnedAboutLink=true;
+        return;
+    }
+
+    // link status must be ok here 
+    if (warnedAboutLink) {
+      DIAG(F("Ethernet link RESTORED"));
+      warnedAboutLink=false;
+    } 
+    
+    //
     switch (Ethernet.maintain()) {
     case 1:
         //renewed fail
@@ -97,8 +126,7 @@ void EthernetInterface::loop()
         //DIAG(F("maintained"));
         break;
     }
-    // looptimer(8000, F("Ethloop after maintain"));
-
+    
     // get client from the server
     auto client = server->accept();
 
@@ -146,10 +174,7 @@ void EthernetInterface::loop()
 	    if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);
 	  }
 	
-    //looptimer(8000, F("Ethloop2 after incoming"));
-
     WiThrottle::loop(outboundRing);
-    //looptimer(8000, F("Ethloop after Withrottleloop"));
 
     // handle at most 1 outbound transmission 
     auto socketOut=outboundRing->read();
@@ -174,6 +199,5 @@ void EthernetInterface::loop()
 	    clients[socketOut].write(tmpbuf,count);
     }
     
-    //looptimer(8000, F("Ethloop after outbound"));
 }
 #endif
