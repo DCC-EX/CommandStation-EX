@@ -226,7 +226,7 @@ int ioESP32(uint8_t i2cAddr,uint8_t *rBuf,int inbytes,uint8_t *outBuff,int outby
 int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
   int k; 
   int b;
-  int x;
+
  // if (sensorCmd <= '~') DIAG(F("processIncomingPkt %c %d %d %d"),rBuf[0],rBuf[1],rBuf[2],rBuf[3]);
   switch (sensorCmd){
     case '`':      //response to request for digitalInputStates[] table  '@'=>'`'  
@@ -314,7 +314,7 @@ int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
 }
 //*************************											  
 // Write (analogue) 8bit (command) values.  Write the parameters to the sensorCAM
-void _writeAnalogue(VPIN vpin, int16_t param1, uint8_t camop, uint16_t param3) override {
+void _writeAnalogue(VPIN vpin, int param1, uint8_t camop, uint16_t param3) override {
     uint8_t outputBuffer[7];
     int errors=0;
     outputBuffer[0] = camop;  

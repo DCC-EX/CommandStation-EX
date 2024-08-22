@@ -30,7 +30,7 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
     return true; 
   }
   uint8_t camop=p[0]; // cam oprerator 
-  int16_t param1=0;
+  int param1=0;
   int16_t param3=9999;   // =0 could invoke parameter changes. & -1 gives later errors
 
   if(camop=='C'){ 
