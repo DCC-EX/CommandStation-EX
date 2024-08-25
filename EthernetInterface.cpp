@@ -69,19 +69,16 @@ void EthernetInterface::setup()  // STM32 VERSION
     //      #endif /* LWIP_NETIF_HOSTNAME */
     // Which seems more useful! We should propose the patch... so the following line actually works!
     netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
-    #define _MAC_ MacAddressDefault()
-  #else 
+  #endif   
+
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    #define _MAC_ mac
-  #endif   
   
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
-    Ethernet.begin(_MAC_,myIP);
-    setup(false);
+    Ethernet.begin(mac,myIP);
   #else
-    if (Ethernet.begin(_MAC_)==0)
+    if (Ethernet.begin(mac)==0)
   {
     LCD(4,F("IP: No DHCP"));
     return;
@@ -196,14 +193,14 @@ void EthernetInterface::loop()
           if (!clients[socket])
           {
             clients[socket] = client;
-            sockFound=true;
+            sockfound=true;
             if (Diag::ETHERNET)
               DIAG(F("Ethernet: New client socket %d"), socket);
             break;
           }
         }
       }
-      if (!sockFound) DIAG(F("new Ethernet OVERFLOW"));
+      if (!sockfound) DIAG(F("new Ethernet OVERFLOW"));
     }
   
   #else
