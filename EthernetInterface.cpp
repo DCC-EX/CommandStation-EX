@@ -31,13 +31,13 @@
 #include "DCCTimer.h"
 #if __has_include ( "MDNS_Generic.h")
   #include "MDNS_Generic.h"
- // #define DO_MDNS !!!!!!!!!!!!!  breaks mega
+  #define DO_MDNS 
   EthernetUDP udp;
   MDNS mdns(udp);
 #endif
 
 
-//extern void looptimer(unsigned long timeout, const FSH* message);
+extern void looptimer(unsigned long timeout, const FSH* message);
 
 bool EthernetInterface::connected=false;
 EthernetServer * EthernetInterface::server= nullptr;
@@ -52,7 +52,11 @@ RingStream * EthernetInterface::outboundRing = nullptr;
 
 void EthernetInterface::setup()  // STM32 VERSION
 {
-  DIAG(F("Ethernet begin"));
+  DIAG(F("Ethernet begin"
+  #ifdef DO_MDNS
+    " with mDNS"
+  #endif 
+  ));
   
   #ifdef STM32_ETHERNET
     // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
@@ -126,7 +130,8 @@ void EthernetInterface::setup()  // STM32 VERSION
 void EthernetInterface::loop()
 {
     if (!connected) return;
-
+    looptimer(5000, F("E.loop"));
+	      
     static bool warnedAboutLink=false;
     if (Ethernet.linkStatus() == LinkOFF){
         if (warnedAboutLink) return;
@@ -134,7 +139,8 @@ void EthernetInterface::loop()
         warnedAboutLink=true;
         return;
     }
-
+    looptimer(5000, F("E.loop warn"));
+	  
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
@@ -144,6 +150,8 @@ void EthernetInterface::loop()
   #ifdef DO_MDNS
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
+    looptimer(5000, F("E.mdns"));
+	  
   #endif
 
     //
@@ -163,7 +171,8 @@ void EthernetInterface::loop()
         //DIAG(F("maintained"));
         break;
     }
-    
+    looptimer(5000, F("E.maintain"));
+	  
       // get client from the server
   #if defined (STM32_ETHERNET)
     // STM32Ethernet doesn't use accept(), just available()
