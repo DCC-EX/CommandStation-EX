@@ -45,7 +45,7 @@
  * 
  */
 
-#define MAX_ETH_BUFFER 512
+#define MAX_ETH_BUFFER 128
 #define OUTBOUND_RING_SIZE 2048
 
 class EthernetInterface {
