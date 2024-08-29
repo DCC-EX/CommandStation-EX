@@ -68,7 +68,11 @@ void SerialManager::init() {
   new SerialManager(&Serial3);
 #endif
 #ifdef SERIAL2_COMMANDS
+#ifdef ARDUINO_ARCH_ESP32
+  Serial2.begin(115200, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+#else  // not ESP32
   Serial2.begin(115200);
+#endif // ESP32
   new SerialManager(&Serial2);
 #endif
 #ifdef SERIAL1_COMMANDS
@@ -88,7 +92,9 @@ void SerialManager::init() {
   }
 #endif
 #ifdef SABERTOOTH
+#ifdef ARDUINO_ARCH_ESP32
   Serial2.begin(9600, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+#endif
 #endif
 }
 
