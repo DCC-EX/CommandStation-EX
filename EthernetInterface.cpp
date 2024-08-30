@@ -69,12 +69,11 @@ void EthernetInterface::setup()  // STM32 VERSION
     //      #endif /* LWIP_NETIF_HOSTNAME */
     // Which seems more useful! We should propose the patch... so the following line actually works!
     netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
-    #define _MAC_ MacAddressDefault()
-  #else 
+#endif
+
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
     #define _MAC_ mac
-  #endif   
   
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
@@ -180,16 +179,16 @@ void EthernetInterface::loop()
     if (client) {
       // check for new client
       byte socket;
-      bool sockfound = false;
+      bool sockFound = false;
       for (socket = 0; socket < MAX_SOCK_NUM; socket++)
       {
         if (client == clients[socket])
         {
-          sockfound = true;
+          sockFound = true;
           break;
         }
       }
-      if (!sockfound)
+      if (!sockFound)
       { // new client
         for (socket = 0; socket < MAX_SOCK_NUM; socket++)
         {
