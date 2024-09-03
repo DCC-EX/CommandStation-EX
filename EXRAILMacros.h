@@ -71,6 +71,8 @@
 //const byte TRACK_POWER_0=0, TRACK_POWER_OFF=0;    
 //const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
 
+// NEOPIXEL RGB generator 
+#define NeoRGB(red,green,blue) (((red & 0x1F)<<11) | ((green & 0x1F)<<6) | ((blue & 0x1F)<<1) ) 
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -433,7 +435,7 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
 #undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) id | RMFT2::NEOPIXEL_SIGNAL_FLAG,redcolour | NEOPIXEL_FLAG_ON, ambercolour | NEOPIXEL_FLAG_ON, greencolour | NEOPIXEL_FLAG_ON,
+#define NEOPIXEL_SIGNAL(id,redcolour,ambercolour,greencolour) id | RMFT2::NEOPIXEL_SIGNAL_FLAG,redcolour | NEOPIXEL_FLAG_ON, ambercolour | NEOPIXEL_FLAG_ON, greencolour | NEOPIXEL_FLAG_ON,
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
