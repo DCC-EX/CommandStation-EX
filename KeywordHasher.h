@@ -26,7 +26,7 @@
  Thus  "MAIN"_hk  generates exactly the same run time vakue 
  as   const int16_t HASH_KEYWORD_MAIN=11339  
 */
-#ifndef KeywordHAsher_h
+#ifndef KeywordHasher_h
 #define KeywordHasher_h
 
 #include <Arduino.h>

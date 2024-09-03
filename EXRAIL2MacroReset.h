@@ -38,6 +38,7 @@
 #undef ATTIMEOUT
 #undef AUTOMATION 
 #undef AUTOSTART
+#undef BLINK
 #undef BROADCAST
 #undef CALL 
 #undef CLEAR_STASH
@@ -66,6 +67,7 @@
 #undef FOLLOW 
 #undef FON 
 #undef FORGET
+#undef FTOGGLE
 #undef FREE 
 #undef FWD 
 #undef GREEN
@@ -100,6 +102,11 @@
 #undef NEOPIXEL
 #undef NEOPIXEL_OFF
 #undef NEOPIXEL_SIGNAL
+#undef ACON
+#undef ACOF
+#undef ONACON
+#undef ONACOF
+#undef MESSAGE
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONAMBER
@@ -114,6 +121,8 @@
 #undef ONGREEN
 #undef ONRED
 #undef ONROTATE
+#undef ONBUTTON
+#undef ONSENSOR
 #undef ONTHROW 
 #undef ONCHANGE
 #undef PARSE
@@ -166,8 +175,10 @@
 #undef START 
 #undef STASH
 #undef STEALTH
+#undef STEALTH_GLOBAL
 #undef STOP 
 #undef THROW
+#undef TOGGLE_TURNOUT
 #undef TT_ADDPOSITION
 #undef TURNOUT 
 #undef TURNOUTL
@@ -182,11 +193,12 @@
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
+#undef XFTOGGLE
 
 #ifndef RMFT2_UNDEF_ONLY
 #define ACTIVATE(addr,subaddr)
 #define ACTIVATEL(addr)
-#define AFTER(sensor_id)
+#define AFTER(sensor_id,timer...)
 #define AFTEROVERLOAD(track_id)
 #define ALIAS(name,value...)
 #define AMBER(signal_id)
@@ -198,6 +210,7 @@
 #define ATTIMEOUT(sensor_id,timeout_ms)
 #define AUTOMATION(id,description) 
 #define AUTOSTART
+#define BLINK(vpin,onDuty,offDuty)
 #define BROADCAST(msg)
 #define CALL(route)
 #define CLEAR_STASH(id)
@@ -227,6 +240,7 @@
 #define FON(func)
 #define FORGET
 #define FREE(blockid) 
+#define FTOGGLE(func)
 #define FWD(speed) 
 #define GREEN(signal_id)
 #define HAL(haltype,params...)
@@ -256,10 +270,15 @@
 #define LCD(row,msg)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
+#define MESSAGE(msg)
 #define MOVETT(id,steps,activity)
 #define NEOPIXEL(id,colour)
 #define NEOPIXEL_OFF(id,colour)
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+#define ACON(eventid)
+#define ACOF(eventid)
+#define ONACON(eventid)
+#define ONACOF(eventid)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONAMBER(signal_id) 
@@ -276,6 +295,8 @@
 #define ONROTATE(turntable_id)
 #define ONTHROW(turnout_id) 
 #define ONCHANGE(sensor_id)
+#define ONSENSOR(sensor_id)
+#define ONBUTTON(sensor_id)
 #define PAUSE
 #define PIN_TURNOUT(id,pin,description...) 
 #define PRINT(msg) 
@@ -319,15 +340,17 @@
 #define SET_TRACK(track,mode)
 #define SET_POWER(track,onoff)
 #define SETLOCO(loco) 
-#define SETFREQ(loco,freq)
+#define SETFREQ(freq)
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) 
 #define START(route)
 #define STASH(id) 
 #define STEALTH(code...)
+#define STEALTH_GLOBAL(code...)
 #define STOP 
 #define THROW(id)
+#define TOGGLE_TURNOUT(id)
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...) 
 #define TURNOUTL(id,addr,description...) 
@@ -342,4 +365,6 @@
 #define WITHROTTLE(msg)
 #define XFOFF(cab,func)
 #define XFON(cab,func)
+#define XFTOGGLE(cab,func)
+
 #endif

@@ -1,5 +1,5 @@
 /*
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
@@ -65,7 +65,11 @@ class DCCTimer {
   static void startRailcomTimer(byte brakePin);
   static void ackRailcomTimer();
   static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
-  static void DCCEXanalogWrite(uint8_t pin, int value);
+  static void DCCEXanalogWrite(uint8_t pin, int value, bool invert);
+  static void DCCEXledcDetachPin(uint8_t pin);
+  static void DCCEXanalogCopyChannel(int8_t frompin, int8_t topin);
+  static void DCCEXInrushControlOn(uint8_t pin, int duty, bool invert);
+  static void DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted);
 
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
@@ -131,6 +135,8 @@ private:
   #if defined (ARDUINO_ARCH_STM32)
   // bit array of used pins (max 32)
   static uint32_t usedpins;
+  static uint32_t * analogchans;        // Array of channel numbers to be scanned
+  static ADC_TypeDef * * adcchans;      // Array to capture which ADC is each input channel on
 #else
   // bit array of used pins (max 16)
   static uint16_t usedpins;

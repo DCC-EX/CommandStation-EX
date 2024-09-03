@@ -1,5 +1,6 @@
 /*
- *  © 2022-2023 Paul M Antoine
+ *  © 2022-2024 Paul M Antoine
+ *  © 2024 Herb Morton
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
@@ -38,6 +39,8 @@ volatile portreg_t shadowPORTC;
 volatile portreg_t shadowPORTD;
 volatile portreg_t shadowPORTE;
 volatile portreg_t shadowPORTF;
+volatile portreg_t shadowPORTG;
+volatile portreg_t shadowPORTH;
 #endif
 
 MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, int16_t brake_pin,
@@ -88,6 +91,16 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
     fastSignalPin.shadowinout = fastSignalPin.inout;
     fastSignalPin.inout = &shadowPORTF;
   }
+  if (HAVE_PORTG(fastSignalPin.inout == &PORTG)) {
+    DIAG(F("Found PORTG pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTG;
+  }
+  if (HAVE_PORTH(fastSignalPin.inout == &PORTH)) {
+    DIAG(F("Found PORTH pin %d"),signalPin);
+    fastSignalPin.shadowinout = fastSignalPin.inout;
+    fastSignalPin.inout = &shadowPORTH;
+  }
 
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
@@ -125,6 +138,16 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
       DIAG(F("Found PORTF pin %d"),signalPin2);
       fastSignalPin2.shadowinout = fastSignalPin2.inout;
       fastSignalPin2.inout = &shadowPORTF;
+    }
+    if (HAVE_PORTG(fastSignalPin2.inout == &PORTG)) {
+      DIAG(F("Found PORTG pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTG;
+    }
+    if (HAVE_PORTH(fastSignalPin2.inout == &PORTH)) {
+      DIAG(F("Found PORTH pin %d"),signalPin2);
+      fastSignalPin2.shadowinout = fastSignalPin2.inout;
+      fastSignalPin2.inout = &shadowPORTH;
     }
   }
   else dualSignal=false; 
@@ -336,8 +359,6 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
   if (tSpeed <= 1) brake = 255;
   else if (tSpeed >= 127) brake = 0;
   else  brake = 2 * (128-tSpeed);
-  if (invertBrake)
-    brake=255-brake;
 
   { // new block because of variable f
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
@@ -349,12 +370,12 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
       }
     }
 #endif
-    //DIAG(F("Brake pin %d freqency %d"), brakePin, f);
+    //DIAG(F("Brake pin %d value %d freqency %d"), brakePin, brake, f);
+    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
-    DCCTimer::DCCEXanalogWrite(brakePin,brake);
 #else // all AVR here
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
-    analogWrite(brakePin,brake);
+    analogWrite(brakePin, invertBrake ? 255-brake : brake);
 #endif
   }
 
@@ -395,6 +416,18 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
     setSignal(tDir);
     HAVE_PORTF(PORTF=shadowPORTF);
     interrupts();
+  } else if (HAVE_PORTG(fastSignalPin.shadowinout == &PORTG)) {
+    noInterrupts();
+    HAVE_PORTG(shadowPORTG=PORTG);
+    setSignal(tDir);
+    HAVE_PORTG(PORTG=shadowPORTG);
+    interrupts();
+  } else if (HAVE_PORTH(fastSignalPin.shadowinout == &PORTH)) {
+    noInterrupts();
+    HAVE_PORTH(shadowPORTH=PORTH);
+    setSignal(tDir);
+    HAVE_PORTH(PORTH=shadowPORTH);
+    interrupts();
   } else {
     noInterrupts();
     setSignal(tDir);
@@ -404,26 +437,26 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
 void MotorDriver::throttleInrush(bool on) {
   if (brakePin == UNUSED_PIN)
     return;
-  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT)))
+  if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
-  if (invertBrake)
-    duty = 255-duty;
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
-    DCCTimer::DCCEXanalogWrite(brakePin,duty);
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+    DCCTimer::DCCEXInrushControlOn(brakePin, duty, invertBrake);
   } else {
-    ledcDetachPin(brakePin);
+    ledcDetachPin(brakePin); // not DCCTimer::DCCEXledcDetachPin() as we have not
+                             // registered the pin in the pin to channel array
   }
 #elif defined(ARDUINO_ARCH_STM32)
   if(on) {
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
-    DCCTimer::DCCEXanalogWrite(brakePin,duty);
+    DCCTimer::DCCEXanalogWrite(brakePin,duty,invertBrake);
   } else {
     pinMode(brakePin, OUTPUT);
   }
 #else // all AVR here
+  if (invertBrake)
+    duty = 255-duty;
   if(on){
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
   }
@@ -606,6 +639,10 @@ void MotorDriver::checkPowerOverload(bool useProgLimit, byte trackno) {
       }
       throttleInrush(false);
       setPower(POWERMODE::ON);
+      break;
+    }
+    if (goodtime > POWER_SAMPLE_ALERT_GOOD/2) {
+      throttleInrush(false);
     }
     break;
   }

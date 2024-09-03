@@ -294,7 +294,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   // The resets will be zero not only now but as well repeats packets into the future
   clearResets(repeats+1);
   {
-    int ret;
+    int ret = 0;
     do {
       if(isMainTrack) {
 	if (rmtMainChannel != NULL)

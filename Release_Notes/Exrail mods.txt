@@ -1,0 +1,119 @@
+// 5.2.49 
+
+Which is a more efficient than the AT/AFTER/IF methods 
+of handling buttons and switches, especially on MIMIC panels. 
+
+ONBUTTON(vpin) 
+  handles debounce and starts a task if a button is used to 
+  short a pin to ground. 
+
+  for example:
+     ONBUTTON(30) TOGGLE_TURNOUT(30) DONE
+
+ONSENSOR(vpin) 
+   handles debounce and starts a task if the pin changes.
+   You may want to check the pin state with an IF ...
+
+Note the ONBUTTON and ONSENSOR are not generally useful 
+for track sensors and running trains, because you dont know which
+train triggered the sensor.  
+
+// 5.2.47
+
+BLINK(vpin, onMs,offMs)
+
+which will start a vpin blinking until such time as it is SET, RESET or set by a signal operation such as RED, AMBER, GREEN. 
+
+BLINK returns immediately, the blinking is autonomous. 
+
+This means a signal that always blinks amber could be done like this:
+
+SIGNAL(30,31,32)
+ONAMBER(30) BLINK(31,500,500) DONE
+
+The RED or GREEN calls will turn off the amber blink automatically.
+
+Alternatively a signal that has normal AMBER and flashing AMBER could be like this:
+
+#define FLASHAMBER(signal) \
+                AMBER(signal) \
+                BLINK(signal+1,500,500)
+  
+  (Caution: this assumes that the amber pin is redpin+1)
+
+  ==
+
+  FTOGGLE(function)
+   Toggles the current loco function (see FON and FOFF)
+
+  XFTOGGLE(loco,function)
+     Toggles the function on given loco. (See XFON, XFOFF)
+
+  TOGGLE_TURNOUT(id) 
+      Toggles the turnout (see CLOSE, THROW)
+
+  STEALTH_GLOBAL(code) 
+      ADVANCED C++ users only.
+      Inserts code such as static variables and functions that
+      may be utilised by multiple STEALTH operations.
+
+
+// 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories.
+This command sends an extended accessory packet to the track, Normally used to set
+a signal aspect. Aspect numbers are undefined as sdtandards except for 0 which is
+always considered a stop.
+
+//        - Exrail ASPECT(address,aspect) for above.
+     The ASPECT command sents an aspect to a DCC accessory using the same logic as 
+     <A aspect address>.
+     
+//        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
+      This defines a signal (with id same as dcc address) that can be operated
+      by the RED/AMBER/GREEN commands.   In each case the command uses the signal
+      address to refer to the signal and the aspect chosen depends on the use of the RED
+      AMBER or GREEN command sent. Other aspects may be sent but will require the
+      direct use of the ASPECT command.
+      The IFRED/IFAMBER/IFGREEN  and ONRED/ONAMBER/ONGREEN commands contunue to operate
+      as for any other signal type. It is important to be aware that use of the ASPECT
+      or <A> commands will correctly set the IF flags and call the ON handlers if ASPECT
+      is used to set one of the three aspects defined in the DCCX_SIGNAL command. 
+      Direct use of other aspects does not affect the signal flags.
+      ASPECT and <A> can be used withput defining any signal if tyhe flag management or
+      ON event handlers are not required.    
+
+// 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
+   This macro offsers a more convenient way of performing the HAL call in halSetup.h
+    In halSetup.h --- IODevice::configureServo(101,300,400,PCA9685::slow);
+    In myAutomation.h --- CONFIGURE_SERVO(101,300,400,slow)
+
+// 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
+    This cutout will only work on a Mega2560 with a single EX8874 motor shield
+    configured in the normal way with the main track brake pin on pin 9.
+    <C RAILCOM ON>    Turns on the cutout mechanism.
+    <C RAILCOM OFF>   Tirns off the cutout. (This is the default)
+    <C RAILCOM DEBUG> ONLY to be used by developers used for waveform diagnostics.
+       (In DEBUG mode the main track idle packets are replaced with reset packets, This
+       makes it far easier to see the preambles and cutouts on a logic analyser or scope.)
+
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.
+       This Macro causes the creation of JMRI <S> type sensors in a way that is 
+       simpler than repeating lines of <S> commands.
+         JMRI_SENSOR(100)   is equenvelant to <S 100 100 1>
+         JMRI_SENSOR(100,16) will create <S> type sensors for vpins 100-115.
+
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL
+            The HAL_IGNORE_DEFAULTS command, anywhere in myAutomation.h will 
+            prevent the startup code from trying the default I2C sensors/servos.  
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
+            Causes compiler time messages for EXRAIL issues that would normally
+            only be discovered by things going wrong at run time. 
+// 5.2.13 - EXRAIL STEALTH
+            Permits a certain level of C++ code to be embedded as a single step in
+            an exrail sequence. Serious engineers only.
+
+// 5.2.9  - EXRAIL STASH feature 
+//        - Added ROUTE_DISABLED macro in EXRAIL

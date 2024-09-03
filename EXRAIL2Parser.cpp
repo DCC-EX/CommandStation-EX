@@ -36,7 +36,7 @@
 
 void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
   (void)stream; // avoid compiler warning if we don't access this parameter
-  bool reject=false;
+  
   switch(opcode) {
     
   case 'D':
@@ -47,8 +47,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
     break;
 	
   case '/':  // New EXRAIL command
-    reject=!parseSlash(stream,paramCount,p);
-    opcode=0;
+    if (parseSlash(stream,paramCount,p)) opcode=0;
     break;
   
   case 'A': //  <A address aspect>
@@ -62,53 +61,93 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
   case 'L':
     // This entire code block is compiled out if LLC macros not used 
     if (!(compileFeatures & FEATURE_LCC)) return;
-
+    static int lccProgCounter=0;
+    static int lccEventIndex=0;
+      
     if (paramCount==0) {  //<L>  LCC adapter introducing self
       LCCSerial=stream;   // now we know where to send events we raise
+      opcode=0;  // flag command as intercepted
 
-      // loop through all possible sent events 
-      for (int progCounter=0;; SKIPOP) {
-        byte opcode=GET_OPCODE;
-        if (opcode==OPCODE_ENDEXRAIL) break;
-        if (opcode==OPCODE_LCC)  StringFormatter::send(stream,F("<LS x%h>\n"),getOperand(progCounter,0));   
-        if (opcode==OPCODE_LCCX) { // long form LCC
-           StringFormatter::send(stream,F("<LS x%h%h%h%h>\n"),
+      // loop through all possible sent/waited events 
+      for (int progCounter=lccProgCounter;; SKIPOP) {
+        byte exrailOpcode=GET_OPCODE;
+        switch (exrailOpcode) {
+          case OPCODE_ENDEXRAIL:
+               stream->print(F("<LR>\n")); // ready to roll
+               lccProgCounter=0; // allow a second pass
+               lccEventIndex=0;
+               return;
+
+          case OPCODE_LCC:  
+               StringFormatter::send(stream,F("<LS x%h>\n"),getOperand(progCounter,0));
+               SKIPOP;
+               lccProgCounter=progCounter; 
+               return;
+
+          case OPCODE_LCCX:  // long form LCC
+               StringFormatter::send(stream,F("<LS x%h%h%h%h>\n"),
                  getOperand(progCounter,1),
                  getOperand(progCounter,2),
                  getOperand(progCounter,3),
                  getOperand(progCounter,0)
-                 );        
-        }}
+                 );
+               SKIPOP;SKIPOP;SKIPOP;SKIPOP;          
+               lccProgCounter=progCounter; 
+               return;
+
+          case OPCODE_ACON:  // CBUS ACON 
+          case OPCODE_ACOF:  // CBUS ACOF 
+                StringFormatter::send(stream,F("<LS x%c%h%h>\n"),
+                  exrailOpcode==OPCODE_ACOF?'1':'0',
+                  getOperand(progCounter,0),getOperand(progCounter,1)); 
+               SKIPOP;SKIPOP;
+               lccProgCounter=progCounter; 
+               return;
       
       // we stream the hex events we wish to listen to
       // and at the same time build the event index looku.
       
-      
-      int eventIndex=0;
-      for (int progCounter=0;; SKIPOP) {
-        byte opcode=GET_OPCODE;
-        if (opcode==OPCODE_ENDEXRAIL) break;
-        if (opcode==OPCODE_ONLCC) {
-           onLCCLookup[eventIndex]=progCounter; // TODO skip...
+        case OPCODE_ONLCC:
            StringFormatter::send(stream,F("<LL %d x%h%h%h:%h>\n"),
-                 eventIndex,
+                 lccEventIndex,
                  getOperand(progCounter,1),
                  getOperand(progCounter,2),
                  getOperand(progCounter,3),
                  getOperand(progCounter,0)
                  );   
-           eventIndex++;      
-        }
+           SKIPOP;SKIPOP;SKIPOP;SKIPOP;      
+           // start on handler at next      
+           onLCCLookup[lccEventIndex]=progCounter; 
+           lccEventIndex++;        
+           lccProgCounter=progCounter; 
+           return;
+
+        case OPCODE_ONACON:
+        case OPCODE_ONACOF:
+           StringFormatter::send(stream,F("<LL %d x%c%h%h>\n"),
+                 lccEventIndex,
+                 exrailOpcode==OPCODE_ONACOF?'1':'0',
+                 getOperand(progCounter,0),getOperand(progCounter,1)
+                 ); 
+           SKIPOP;SKIPOP;
+           // start on handler at next      
+           onLCCLookup[lccEventIndex]=progCounter; 
+           lccEventIndex++;        
+           lccProgCounter=progCounter; 
+           return;
+           
+         default:
+           break;
+        }  
       }
-      StringFormatter::send(stream,F("<LR>\n")); // Ready to rumble
-      opcode=0;
-      break;
     }
     if (paramCount==1) {  // <L eventid> LCC event arrived from adapter
         int16_t eventid=p[0];
-        reject=eventid<0 || eventid>=countLCCLookup;
-        if (!reject)  startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
-        opcode=0;
+        bool reject = eventid<0 || eventid>=countLCCLookup;
+        if (!reject) {
+          startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
+          opcode=0;
+        }
     }
     break; 
     
@@ -182,12 +221,20 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
     StringFormatter::send(stream, F("<* EXRAIL STATUS"));
     RMFT2 * task=loopTask;
     while(task) {
+      if ((compileFeatures & FEATURE_BLINK)
+       && (task->blinkState==blink_high || task->blinkState==blink_low)) {
+        StringFormatter::send(stream,F("\nID=%d,PC=%d,BLINK=%d"),
+			    (int)(task->taskId),task->progCounter,task->blinkPin
+			    );
+      }
+      else {
       StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d%c,SPEED=%d%c"),
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' ',
 			    task->speedo,
 			    task->forward?'F':'R'
 			    );
+      }
       task=task->next;
       if (task==loopTask) break;
     }
@@ -205,12 +252,13 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
       // do the signals
       // flags[n] represents the state of the nth signal in the table 
       for (int sigslot=0;;sigslot++) {
-        VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-        if (sigid==0) break; // end of signal list 
-        byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
+        int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
+        if (sighandle==0) break; // end of signal list
+	VPIN sigid = sighandle & SIGNAL_ID_MASK;
+	byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this id
         StringFormatter::send(stream,F("\n%S[%d]"), 
-          (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
-          sigid & SIGNAL_ID_MASK); 
+			      (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
+			      sigid);
       } 
     }
 

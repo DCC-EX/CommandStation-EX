@@ -1,5 +1,5 @@
 /*
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
@@ -26,6 +26,7 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "DCCTimer.h"
+#include <wiring_private.h>
 
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 // RACK_MODE_DCX is (TRACK_MODE_DC|TRACK_MODE_INV)
@@ -34,9 +35,15 @@ template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
 template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
 template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
 enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
-                        TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16, TRACK_MODE_BOOST = 32,
-                        TRACK_MODE_ALL = 62, // only to operate all tracks
-                        TRACK_MODE_INV = 64, TRACK_MODE_DCX = 72 /*DC + INV*/, TRACK_MODE_AUTOINV = 128};
+                        TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16,
+#ifdef ARDUINO_ARCH_ESP32
+			TRACK_MODE_BOOST = 32,
+#else
+			TRACK_MODE_BOOST = 0,
+#endif
+                        TRACK_MODE_ALL = TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_EXT|TRACK_MODE_BOOST,
+                        TRACK_MODE_INV = 64,
+			TRACK_MODE_DCX = TRACK_MODE_DC|TRACK_MODE_INV, TRACK_MODE_AUTOINV = 128};
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
@@ -77,6 +84,14 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define PORTF GPIOF->ODR
 #define HAVE_PORTF(X) X
 #endif
+#if defined(GPIOG)
+#define PORTG GPIOG->ODR
+#define HAVE_PORTG(X) X
+#endif
+#if defined(GPIOH)
+#define PORTH GPIOH->ODR
+#define HAVE_PORTH(X) X
+#endif
 #endif
 
 // if macros not defined as pass-through we define
@@ -99,6 +114,12 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #endif
 #ifndef HAVE_PORTF
 #define HAVE_PORTF(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTG
+#define HAVE_PORTG(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
+#endif
+#ifndef HAVE_PORTH
+#define HAVE_PORTH(X) byte TOKENPASTE2(Unique_, __LINE__) __attribute__((unused)) =0
 #endif
 
 // Virtualised Motor shield 1-track hardware Interface
@@ -139,6 +160,8 @@ extern volatile portreg_t shadowPORTC;
 extern volatile portreg_t shadowPORTD;
 extern volatile portreg_t shadowPORTE;
 extern volatile portreg_t shadowPORTF;
+extern volatile portreg_t shadowPORTG;
+extern volatile portreg_t shadowPORTH;
 
 enum class POWERMODE : byte { OFF, ON, OVERLOAD, ALERT };
 
@@ -187,13 +210,14 @@ class MotorDriver {
       }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
+    inline int8_t getBrakePinSigned() { return invertBrake ? -brakePin : brakePin; };
     void setDCSignal(byte speedByte, uint8_t frequency=0);
     void throttleInrush(bool on);
     inline void detachDCSignal() {
 #if defined(__arm__)
       pinMode(brakePin, OUTPUT);
 #elif defined(ARDUINO_ARCH_ESP32)
-      ledcDetachPin(brakePin);
+      DCCTimer::DCCEXledcDetachPin(brakePin);
 #else
       setDCSignal(128);
 #endif

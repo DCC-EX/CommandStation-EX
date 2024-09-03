@@ -1,4 +1,5 @@
 /*
+ *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
  *  © 2020-2023 Chris Harlow
@@ -54,6 +55,7 @@
 #include "TrackManager.h"
 #include "Turntables.h"
 #include "IODevice.h"
+#include "EXRAILSensor.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -176,7 +178,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
 /* static */ void RMFT2::begin() {
 
-  DIAG(F("EXRAIL RoutCode at =%P"),RouteCode);
+  //DIAG(F("EXRAIL RoutCode at =%P"),RouteCode);
     
   bool saved_diag=diag;
   diag=true;
@@ -204,15 +206,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
-if (compileFeatures & FEATURE_SIGNAL) {
-  onRedLookup=LookListLoader(OPCODE_ONRED);
-  onAmberLookup=LookListLoader(OPCODE_ONAMBER);
-  onGreenLookup=LookListLoader(OPCODE_ONGREEN);
-  for (int sigslot=0;;sigslot++) {
-    VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-    if (sigid==0) break;  // end of signal list
-    doSignal(sigid & SIGNAL_ID_MASK, SIGNAL_RED);
-  }
+  if (compileFeatures & FEATURE_SIGNAL) {
+    onRedLookup=LookListLoader(OPCODE_ONRED);
+    onAmberLookup=LookListLoader(OPCODE_ONAMBER);
+    onGreenLookup=LookListLoader(OPCODE_ONGREEN);
+    for (int sigslot=0;;sigslot++) {
+      int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
+      if (sighandle==0) break;  // end of signal list
+      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+      doSignal(sigid, SIGNAL_RED);
+    }
   }
 
   int progCounter;
@@ -225,7 +228,6 @@ if (compileFeatures & FEATURE_SIGNAL) {
     case OPCODE_AT:
     case OPCODE_ATTIMEOUT2:
     case OPCODE_AFTER:
-    case OPCODE_AFTEROVERLOAD:
     case OPCODE_IF:
     case OPCODE_IFNOT: {
       int16_t pin = (int16_t)operand;
@@ -251,6 +253,14 @@ if (compileFeatures & FEATURE_SIGNAL) {
       break;
     }
 
+    case OPCODE_ONSENSOR:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,true );
+      break;
+    case OPCODE_ONBUTTON:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,false );
+      break;
     case OPCODE_TURNOUT: {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
@@ -373,7 +383,7 @@ RMFT2::RMFT2(int progCtr) {
   speedo=0;
   forward=true;
   invert=false;
-  timeoutFlag=false;
+  blinkState=not_blink_task;
   stackDepth=0;
   onEventStartPosition=-1; // Not handling an ONxxx 
 
@@ -411,7 +421,7 @@ void RMFT2::createNewTask(int route, uint16_t cab) {
 
 void RMFT2::driveLoco(byte speed) {
   if (loco<=0) return;  // Prevent broadcast!
-  if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
+  //if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
  /* TODO.....
  power on appropriate track if DC or main if dcc
   if (TrackManager::getMainPowerMode()==POWERMODE::OFF) {
@@ -480,6 +490,8 @@ bool RMFT2::skipIfBlock() {
 }
 
 void RMFT2::loop() {
+  if (compileFeatures & FEATURE_SENSOR) 
+      EXRAILSensor::checkAll();
 
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;
@@ -491,6 +503,23 @@ void RMFT2::loop() {
 void RMFT2::loop2() {
   if (delayTime!=0 && millis()-delayStart < delayTime) return;
 
+  // special stand alone blink task
+  if (compileFeatures & FEATURE_BLINK) { 
+    if (blinkState==blink_low) {
+      IODevice::write(blinkPin,HIGH);
+      blinkState=blink_high;
+      delayMe(getOperand(1));
+      return;
+    }
+    if (blinkState==blink_high) {
+      IODevice::write(blinkPin,LOW);
+      blinkState=blink_low;
+      delayMe(getOperand(2));
+      return;
+    }
+  }
+  
+  // Normal progstep following tasks continue here.
   byte opcode = GET_OPCODE;
   int16_t operand =  getOperand(0);
 
@@ -509,6 +538,10 @@ void RMFT2::loop2() {
     
   case OPCODE_CLOSE:
     Turnout::setClosed(operand, true);
+    break;
+
+  case OPCODE_TOGGLE_TURNOUT:
+    Turnout::setClosed(operand, Turnout::isThrown(operand));
     break;
 
 #ifndef IO_NO_HAL
@@ -560,49 +593,51 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_AT:
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (readSensor(operand)) break;
     delayMe(50);
     return;
     
   case OPCODE_ATGTE: // wait for analog sensor>= value
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (IODevice::readAnalogue(operand) >= (int)(getOperand(1))) break;
     delayMe(50);
     return;
     
   case OPCODE_ATLT: // wait for analog sensor < value
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     if (IODevice::readAnalogue(operand) < (int)(getOperand(1))) break;
     delayMe(50);
     return;
       
   case OPCODE_ATTIMEOUT1:   // ATTIMEOUT(vpin,timeout) part 1
     timeoutStart=millis();
-    timeoutFlag=false;
+    blinkState=not_blink_task;
     break;
     
   case OPCODE_ATTIMEOUT2:
     if (readSensor(operand)) break; // success without timeout
     if (millis()-timeoutStart > 100*getOperand(1)) {
-      timeoutFlag=true;
+      blinkState=at_timeout;
       break; // and drop through
     }
     delayMe(50);
     return;
     
   case OPCODE_IFTIMEOUT: // do next operand if timeout flag set
-    skipIf=!timeoutFlag;
+    skipIf=blinkState!=at_timeout;
     break;
     
-  case OPCODE_AFTER: // waits for sensor to hit and then remain off for 0.5 seconds. (must come after an AT operation)
+  case OPCODE_AFTER: // waits for sensor to hit and then remain off for x mS. 
+    // Note, this must come after an AT operation, which is 
+    // automatically inserted by the AFTER macro. 
     if (readSensor(operand)) {
-      // reset timer to half a second and keep waiting
+      // reset timer and keep waiting
       waitAfter=millis();
       delayMe(50);
       return;
     }
-    if (millis()-waitAfter < 500 ) return;
+    if (millis()-waitAfter < getOperand(1) ) return;
     break;
 
   case OPCODE_AFTEROVERLOAD: // waits for the power to be turned back on - either by power routine or button
@@ -624,13 +659,25 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_SET:
+    killBlinkOnVpin(operand);
     IODevice::write(operand,true);
     break;
     
   case OPCODE_RESET:
+    killBlinkOnVpin(operand);
     IODevice::write(operand,false);
     break;
-    
+  
+  case OPCODE_BLINK: 
+     // Start a new task to blink this vpin
+     killBlinkOnVpin(operand);
+     {
+      auto newtask=new RMFT2(progCounter);
+      newtask->blinkPin=operand;
+      newtask->blinkState=blink_low; // will go high on first call
+     }
+     break; 
+
   case OPCODE_PAUSE:
     DCC::setThrottle(0,1,true);  // pause all locos on the track
     pausingTask=this;
@@ -671,41 +718,7 @@ void RMFT2::loop2() {
 
   case OPCODE_SETFREQ:
       // Frequency is default 0, or 1, 2,3
-      //if (loco) DCC::setFn(loco,operand,true);
-      switch (operand) {
-        case 0:  // default - all F-s off
-            if (loco) {
-                DCC::setFn(loco,29,false);
-                DCC::setFn(loco,30,false);
-                DCC::setFn(loco,31,false);
-            }
-        break;
-        case 1:
-            if (loco) {
-	      DCC::setFn(loco,29,true);
-              DCC::setFn(loco,30,false);
-              DCC::setFn(loco,31,false);
-            }
-        break;
-        case 2:
-            if (loco) {
-	      DCC::setFn(loco,29,false);
-              DCC::setFn(loco,30,true);
-              DCC::setFn(loco,31,false);
-            }
-        break;
-        case 3:
-            if (loco) {
-	      DCC::setFn(loco,29,false);
-              DCC::setFn(loco,30,false);
-              DCC::setFn(loco,31,true);
-            }
-        break;
-      default:
-	; // do nothing
-	break;
-      }
-
+      DCC::setDCFreq(loco,operand);
       break;
 
   case OPCODE_RESUME:
@@ -815,6 +828,10 @@ void RMFT2::loop2() {
   case OPCODE_FOFF:
     if (loco) DCC::setFn(loco,operand,false);
     break;
+  
+  case OPCODE_FTOGGLE:
+    if (loco) DCC::changeFn(loco,operand);
+    break;
     
   case OPCODE_DRIVE:
     {
@@ -829,6 +846,10 @@ void RMFT2::loop2() {
     
   case OPCODE_XFOFF:
     DCC::setFn(operand,getOperand(1),false);
+    break;
+
+  case OPCODE_XFTOGGLE:
+    DCC::changeFn(operand,getOperand(1));
     break;
     
   case OPCODE_DCCACTIVATE: {
@@ -947,6 +968,14 @@ void RMFT2::loop2() {
       if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
           StringFormatter::send(LCCSerial,F("<L x%h>"),(uint16_t)operand);
        break; 
+  
+  case OPCODE_ACON:  // MERG adapter 
+  case OPCODE_ACOF: 
+      if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
+          StringFormatter::send(LCCSerial,F("<L x%c%h%h>"),
+          opcode==OPCODE_ACON?'0':'1',
+          (uint16_t)operand,getOperand(progCounter,1));
+       break; 
 
   case OPCODE_LCCX: // long form LCC
        if ((compileFeatures & FEATURE_LCC) && LCCSerial)
@@ -1029,7 +1058,7 @@ void RMFT2::loop2() {
   case OPCODE_ROUTE:
   case OPCODE_AUTOMATION:
   case OPCODE_SEQUENCE:
-    if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
+    //if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
     break;
     
   case OPCODE_AUTOSTART: // Handled only during begin process
@@ -1039,6 +1068,8 @@ void RMFT2::loop2() {
   case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_ONCLOSE: // Turnout event catchers ignored here
   case OPCODE_ONLCC:   // LCC event catchers ignored here 
+  case OPCODE_ONACON:   // MERG event catchers ignored here 
+  case OPCODE_ONACOF:   // MERG event catchers ignored here 
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
@@ -1047,6 +1078,8 @@ void RMFT2::loop2() {
   case OPCODE_ONGREEN:
   case OPCODE_ONCHANGE:
   case OPCODE_ONTIME:
+  case OPCODE_ONBUTTON:
+  case OPCODE_ONSENSOR:
 #ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
@@ -1092,24 +1125,30 @@ void RMFT2::kill(const FSH * reason, int operand) {
 }
 
 int16_t RMFT2::getSignalSlot(int16_t id) {
-  for (int sigslot=0;;sigslot++) {
-      int16_t sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-      if (sigid==0) { // end of signal list 
-        DIAG(F("EXRAIL Signal %d not defined"), id);
-        return -1;
-      }
+
+  if (id > 0) {
+    int sigslot = 0;
+    int16_t sighandle = 0;
+    // Trundle down the signal list until we reach the end
+    while ((sighandle = GETHIGHFLASHW(RMFT2::SignalDefinitions, sigslot * 8)) != 0)
+    {
       // sigid is the signal id used in RED/AMBER/GREEN macro
       // for a LED signal it will be same as redpin
-      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set. 
-
-      if ((sigid & SIGNAL_ID_MASK)!= id) continue; // keep looking
-      return sigslot; // relative slot in signals table
-  }  
+      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set.
+      VPIN sigid = sighandle & SIGNAL_ID_MASK;
+      if (sigid == (VPIN)id) // cast to keep compiler happy but id is positive
+        return sigslot;      // found it
+      sigslot++;             // keep looking
+    };
+  }
+  // If we got here, we did not find the signal
+  DIAG(F("EXRAIL Signal %d not defined"), id);
+  return -1;
 }
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
   if (!(compileFeatures & FEATURE_SIGNAL)) return; // dont compile code below
-  if (diag) DIAG(F(" doSignal %d %x"),id,rag);
+  //if (diag) DIAG(F(" doSignal %d %x"),id,rag);
   
   // Schedule any event handler for this signal change.
   // This will work even without a signal definition. 
@@ -1125,19 +1164,20 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
  
   // Correct signal definition found, get the rag values
   int16_t sigpos=sigslot*8; 
-  VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
+  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
   VPIN redpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2);
   VPIN amberpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4);
   VPIN greenpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6);
-  if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
+  //if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
 
-  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
+  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
+  VPIN sigid = sighandle & SIGNAL_ID_MASK;
 
   if (sigtype == SERVO_SIGNAL_FLAG) {
     // A servo signal, the pin numbers are actually servo positions
     // Note, setting a signal to a zero position has no effect.
     int16_t servopos= rag==SIGNAL_RED? redpin: (rag==SIGNAL_GREEN? greenpin : amberpin);
-    if (diag) DIAG(F("sigA %d %d"),id,servopos);
+    //if (diag) DIAG(F("sigA %d %d"),id,servopos);
     if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
     return;  
   }
@@ -1154,7 +1194,7 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     byte value=redpin;
     if (rag==SIGNAL_AMBER) value=amberpin;
     if (rag==SIGNAL_GREEN) value=greenpin; 
-    DCC::setExtendedAccessory(sigid & SIGNAL_ID_MASK,value);
+    DCC::setExtendedAccessory(sigid, value);
     return; 
   }
 
@@ -1174,22 +1214,25 @@ if (sigtype== NEOPIXEL_SIGNAL_FLAG) {
   if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
    
   // Manage invert (HIGH on) pins
-  bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
+  bool aHigh=sighandle & ACTIVE_HIGH_SIGNAL_FLAG;
       
   // set the three pins 
   if (redpin) {
     bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
     if (!aHigh) redval=!redval;
+    killBlinkOnVpin(redpin);
     IODevice::write(redpin,redval);
   }
   if (amberpin) {
     bool amberval=(rag==SIGNAL_AMBER);
     if (!aHigh) amberval=!amberval;
+    killBlinkOnVpin(amberpin);
     IODevice::write(amberpin,amberval);
   }
   if (greenpin) {
     bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
     if (!aHigh) greenval=!greenval;
+    killBlinkOnVpin(greenpin);
     IODevice::write(greenpin,greenval);
   }
 }
@@ -1211,8 +1254,9 @@ bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
   int16_t sigslot=getSignalSlot(address);
   if (sigslot<0) return false;  // this is not a defined signal 
   int16_t sigpos=sigslot*8; 
-  VPIN sigid=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
-  VPIN sigtype=sigid & ~SIGNAL_ID_MASK;
+  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
+  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
+  VPIN sigid = sighandle & SIGNAL_ID_MASK;
   if (sigtype!=DCCX_SIGNAL_FLAG) return false; // not a DCCX signal
   // Turn an aspect change into a RED/AMBER/GREEN setting
   if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2)) {
@@ -1261,7 +1305,7 @@ void RMFT2::rotateEvent(int16_t turntableId, bool change) {
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time
   if (Diag::CMD)
-   DIAG(F("Looking for clock event at : %d"), clocktime);
+   DIAG(F("clockEvent at : %d"), clocktime);
   if (change) {
     onClockLookup->handleEvent(F("CLOCK"),clocktime);
     onClockLookup->handleEvent(F("CLOCK"),25*60+clocktime%60);
@@ -1271,12 +1315,31 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
 void RMFT2::powerEvent(int16_t track, bool overload) {
   // Hunt for an ONOVERLOAD for this item
   if (Diag::CMD)
-   DIAG(F("Looking for Power event on track : %c"), track);
+   DIAG(F("powerEvent : %c"), track);
   if (overload) {
     onOverloadLookup->handleEvent(F("POWER"),track);
   }
 }
 
+// This function is used when setting pins so that a SET or RESET
+// will cause any blink task on that pin to terminate.
+// It will be compiled out of existence if no BLINK feature is used.
+void RMFT2::killBlinkOnVpin(VPIN pin) {
+   if (!(compileFeatures & FEATURE_BLINK)) return; 
+ 
+  RMFT2 * task=loopTask;
+  while(task) {
+    if (
+      (task->blinkState==blink_high || task->blinkState==blink_low) 
+       && task->blinkPin==pin) {
+        task->kill();
+        return;
+      }
+    task=task->next;
+    if (task==loopTask) return;
+  }
+}
+  
 void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {  
   // Check we dont already have a task running this handler
   RMFT2 * task=loopTask;
@@ -1347,6 +1410,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
        break;  
     case thrunge_parse:
     case thrunge_broadcast:
+    case thrunge_message: 
     case thrunge_lcd:
     default:    // thrunge_lcd+1, ...
          if (!buffer) buffer=new StringBuffer();
@@ -1383,6 +1447,9 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
       break;
     case thrunge_withrottle:
       CommandDistributor::broadcastRaw(CommandDistributor::WITHROTTLE_TYPE,buffer->getString());
+      break;
+    case thrunge_message:
+      CommandDistributor::broadcastMessage(buffer->getString());
       break;
     case thrunge_lcd:
          LCD(id,F("%s"),buffer->getString());

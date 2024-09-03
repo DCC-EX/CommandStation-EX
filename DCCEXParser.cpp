@@ -2,7 +2,7 @@
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2021 Herb Morton
+ *  © 2021-2024 Herb Morton
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
@@ -68,10 +68,10 @@ Once a new OPCODE is decided upon, update this list.
   K, Reserved for future use - Potentially Railcom
   l, Loco speedbyte/function map broadcast
   L, Reserved for LCC interface (implemented in EXRAIL)
-  m,
+  m, message to throttles broadcast 
   M, Write DCC packet
-  n,
-  N,
+  n, Reserved for SensorCam
+  N, Reserved for Sensorcam 
   o,
   O, Output broadcast
   p, Broadcast power state
@@ -91,10 +91,10 @@ Once a new OPCODE is decided upon, update this list.
   w, Write CV on main
   W, Write CV
   x,
-  X, Invalid command
-  y,
+  X, Invalid command response
+  y, 
   Y, Output broadcast
-  z,
+  z, Direct output
   Z, Output configuration/control
 */
 
@@ -283,25 +283,22 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return; // filterCallback asked us to ignore
     case 't':   // THROTTLE <t [REGISTER] CAB SPEED DIRECTION>
     {
-        if (params==1) {  // <t cab>  display state
-        
-        int16_t slot=DCC::lookupSpeedTable(p[0],false);
-        if (slot>=0) {
-            DCC::LOCO * sp=&DCC::speedTable[slot];
-            StringFormatter::send(stream,F("<l %d %d %d %l>\n"),
-			sp->loco,slot,sp->speedCode,sp->functions);
-            }
-        else // send dummy state speed 0 fwd no functions. 
-            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
-        return; 
-        }
-        
         int16_t cab;
         int16_t tspeed;
         int16_t direction;
-        
+
+        if (params==1) {  // <t cab>  display state
+	  int16_t slot=DCC::lookupSpeedTable(p[0],false);
+	  if (slot>=0)
+	    CommandDistributor::broadcastLoco(slot);
+	  else // send dummy state speed 0 fwd no functions.
+            StringFormatter::send(stream,F("<l %d -1 128 0>\n"),p[0]);
+	  return;
+        }
+
         if (params == 4)
         { // <t REGISTER CAB SPEED DIRECTION>
+	    // ignore register p[0]
             cab = p[1];
             tspeed = p[2];
             direction = p[3];
@@ -461,6 +458,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::setLocoId(p[0],callback_Wloco);
         else if (params == 4)  // WRITE CV ON PROG <W CV VALUE [CALLBACKNUM] [CALLBACKSUB]>
             DCC::writeCVByte(p[0], p[1], callback_W4);
+        else if ((params==2 || params==3 ) && p[0]=="CONSIST"_hk ) {
+            DCC::setConsistId(p[1],p[2]=="REVERSE"_hk,callback_Wconsist);
+        }    
         else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
 	else
@@ -563,6 +563,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	    }
 #ifndef DISABLE_PROG
             else if (p[0]=="PROG"_hk) { // <0 PROG>
+          TrackManager::setJoin(false);
 	      TrackManager::progTrackBoosted=false;  // Prog track boost mode will not outlive prog track off
 	      TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::OFF);
             }
@@ -641,6 +642,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
         if(params!=3) break; 
+        
+        if (p[1]=="DCFREQ"_hk) { // <F cab DCFREQ 0..3>
+          if (p[2]<0 || p[2]>3) break;
+          DCC::setDCFreq(p[0],p[2]);
+          return;    
+        }
+
         if (Diag::CMD)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         if (DCC::setFn(p[0], p[1], p[2] == 1)) return;
@@ -800,6 +808,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 #endif
 
+    case '/': // implemented in EXRAIL parser
     case 'L': // LCC interface implemented in EXRAIL parser
         break; // Will <X> if not intercepted by EXRAIL 
 
@@ -1072,15 +1081,24 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 #ifndef DISABLE_PROG
     case "ACK"_hk: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX|RETRY] Value>
 	if (params >= 3) {
+            long duration;
 	    if (p[1] == "LIMIT"_hk) {
 	      DCCACK::setAckLimit(p[2]);
-	      LCD(1, F("Ack Limit=%dmA"), p[2]);  // <D ACK LIMIT 42>
+	      LCD(1, F("Ack Limit=%dmA"), p[2]);       // <D ACK LIMIT 42>
 	    } else if (p[1] == "MIN"_hk) {
-	      DCCACK::setMinAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Min=%uus"), p[2]);  //   <D ACK MIN 1500>
+	      if (params == 4 && p[3] == "MS"_hk)
+		duration = p[2] * 1000L;
+	      else
+		duration = p[2];
+	      DCCACK::setMinAckPulseDuration(duration);
+	      LCD(0, F("Ack Min=%lus"), duration);     // <D ACK MIN 1500>
 	    } else if (p[1] == "MAX"_hk) {
-	      DCCACK::setMaxAckPulseDuration(p[2]);
-	      LCD(0, F("Ack Max=%uus"), p[2]);  //   <D ACK MAX 9000>
+	      if (params == 4 && p[3] == "MS"_hk)      // <D ACK MAX 80 MS>
+		duration = p[2] * 1000L;
+	      else
+		duration = p[2];
+	      DCCACK::setMaxAckPulseDuration(duration);
+	      LCD(0, F("Ack Max=%lus"), duration);     // <D ACK MAX 9000>
 	    } else if (p[1] == "RETRY"_hk) {
 	      if (p[2] >255) p[2]=3;
 	      LCD(0, F("Ack Retry=%d Sum=%d"), p[2], DCCACK::setAckRetry(p[2]));  //   <D ACK RETRY 2>
@@ -1348,5 +1366,13 @@ void DCCEXParser::callback_Wloco(int16_t result)
 {
     if (result==1) result=stashP[0]; // pick up original requested id from command
     StringFormatter::send(getAsyncReplyStream(), F("<w %d>\n"), result);
+    commitAsyncReplyStream();
+}
+
+void DCCEXParser::callback_Wconsist(int16_t result)
+{
+    if (result==1) result=stashP[1]; // pick up original requested id from command
+    StringFormatter::send(getAsyncReplyStream(), F("<w CONSIST %d%S>\n"),
+     result, stashP[2]=="REVERSE"_hk ? F(" REVERSE") : F(""));
     commitAsyncReplyStream();
 }

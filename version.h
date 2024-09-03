@@ -3,8 +3,67 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.36i2c"
-// 5.2.36i2c - Add various I2C drivers, including TCA8418 and Adafruit NeoPixel Driver initially
+#define VERSION "5.2.75i2c"
+// 5.2.75i2c - Add various I2C drivers, including TCA8418 and Adafruit NeoPixel Driver initially
+// 5.2.75 - Bugfix: Serial lines 4 to 6 OK
+// 5.2.74 - Bugfix: ESP32 turn on the joined prog (as main) again after a prog operation
+// 5.2.73 - Bugfix: STM32 further fixes to shadowPORT entries in TrackManager.cpp for PORTG and PORTH
+// 5.2.72 - Bugfix: added shadowPORT entries in TrackManager.cpp for PORTG and PORTH on STM32, fixed typo in MotorDriver.cpp
+// 5.2.71 -  Broadcasts of loco forgets. 
+// 5.2.70 -  IO_RocoDriver renamed to IO_EncoderThrottle.
+//        -  and included in IODEvice.h (circular dependency removed) 
+// 5.2.69 -  IO_RocoDriver. Direct drive train with rotary encoder hw.
+// 5.2.68 -  Revert function map to signed (from 5.2.66) to avoid
+//           incompatibilities with ED etc for F31 frequency flag.
+// 5.2.67 -  EXRAIL AFTER optional debounce time variable (default 500mS)
+//        -  AFTER(42) == AFTER(42,500) sets time sensor must 
+//        -  be continuously off.
+// 5.2.66 - <F cab DCFREQ 0..3>
+//        - EXRAIL SETFREQ drop loco param (breaking since 5.2.28)
+// 5.2.65 - Speedup Exrail SETFREQ 
+// 5.2.64 - Bugfix: <0 PROG> updated to undo JOIN 
+// 5.2.63 - Implement WIFI_LED for ESP32, ESPduino32 and EX-CSB1, that is turned on when STA mode connects or AP mode is up
+//        - Add BOOSTER_INPUT definitions for ESPduino32 and EX-CSB1 to config.example.h
+//        - Add WIFI_LED definitions for ESPduino32 and EX-CSB1 to config.example.h
+// 5.2.62 - Allow acks way longer than standard
+// 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
+//        - LCC Adapter interface throttled startup,
+//          (Breaking change with Adapter base code)
+// 5.2.60 - Bugfix: Opcode AFTEROVERLOAD does not have an argument that is a pin and needs to be initialized
+//        - Remove inrush throttle after half good time so that we go to mode overload if problem persists
+// 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
+//        - STM32 add support for ARDUINO_NUCLEO_F4X9ZI type to span F429/F439 in upcoming STM32duino release v2.8 as a result of our PR
+// 5.2.58 - EXRAIL ALIAS allows named pins
+// 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
+// 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
+// 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call
+// 5.2.54 - Bugfix for EXRAIL signal handling for active high 
+// 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 
+// 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
+//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
+// 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
+// 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
+// 5.2.49 - EXRAIL additions:
+//          ONBUTTON, ONSENSOR
+// 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
+// 5.2.47 - EXRAIL additions:
+//          STEALTH_GLOBAL
+//          BLINK
+//          TOGGLE_TURNOUT
+//          FTOGGLE, XFTOGGLE
+//          Reduced code-developmenmt DIAG noise
+// 5.2.46 - Support for extended consist CV20 in <R> and <W id>
+//        - New cmd <W CONSIST id [REVERSE]> to handle long/short consist ids
+// 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
+//          ESP32 fix PWM LEDC inverted pin mode
+//          ESP32 rewrite PWM LEDC to use pin mux
+// 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
+// 5.2.41 - Update rotary encoder default address to 0x67
+// 5.2.40 - Allow no shield
+// 5.2.39 - Functions for DC frequency: Use func up to F31
+// 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
+//          connected throttles (uses <m "text"> and  withrottle Hmtext.
+// 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
 // 5.2.36 - Variable frequency for DC mode
 // 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
 // 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories

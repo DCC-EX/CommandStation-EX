@@ -1,6 +1,8 @@
 /*
  *  © 2022 Chris Harlow
- *  © 2022,2023 Harald Barth
+ *  © 2022-2024 Harald Barth
+ *  © 2023-2024 Paul M. Antoine
+ *  © 2024 Herb Morton
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -35,13 +37,13 @@
     
 #define APPLY_BY_MODE(findmode,function) \
         FOR_EACH_TRACK(t) \
-	    if (track[t]->getMode()==findmode)	\
+	    if (track[t]->getMode() & findmode)	\
                 track[t]->function;
 
-MotorDriver * TrackManager::track[MAX_TRACKS];
-int16_t TrackManager::trackDCAddr[MAX_TRACKS];
+MotorDriver * TrackManager::track[MAX_TRACKS] = { NULL };
+int16_t TrackManager::trackDCAddr[MAX_TRACKS] = { 0 };
 
-byte TrackManager::lastTrack=0;
+int8_t TrackManager::lastTrack=-1;
 bool TrackManager::progTrackSyncMain=false; 
 bool TrackManager::progTrackBoosted=false; 
 int16_t TrackManager::joinRelay=UNUSED_PIN;
@@ -149,6 +151,8 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTD(shadowPORTD=PORTD);
   HAVE_PORTE(shadowPORTE=PORTE);
   HAVE_PORTF(shadowPORTF=PORTF);
+  HAVE_PORTG(shadowPORTF=PORTG);
+  HAVE_PORTH(shadowPORTF=PORTH);
   APPLY_BY_MODE(TRACK_MODE_MAIN,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
@@ -156,6 +160,8 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
+  HAVE_PORTG(shadowPORTF=PORTG);
+  HAVE_PORTH(shadowPORTF=PORTH);
 }
 
 // setPROGSignal(), called from interrupt context
@@ -167,6 +173,8 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTD(shadowPORTD=PORTD);
   HAVE_PORTE(shadowPORTE=PORTE);
   HAVE_PORTF(shadowPORTF=PORTF);
+  HAVE_PORTG(shadowPORTF=PORTG);
+  HAVE_PORTH(shadowPORTF=PORTH);
   APPLY_BY_MODE(TRACK_MODE_PROG,setSignal(on));
   HAVE_PORTA(PORTA=shadowPORTA);
   HAVE_PORTB(PORTB=shadowPORTB);
@@ -174,6 +182,8 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
+  HAVE_PORTG(shadowPORTF=PORTG);
+  HAVE_PORTH(shadowPORTF=PORTH);
 }
 
 // setDCSignal(), called from normal context
@@ -219,7 +229,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode & TRACK_MODE_BOOST) {
       //DIAG(F("Track=%c mode boost pin %d"),trackToSet+'A', p.pin);
       pinMode(BOOSTER_INPUT, INPUT);
-      gpio_matrix_in(26, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
+      gpio_matrix_in(BOOSTER_INPUT, SIG_IN_FUNC228_IDX, false); //pads 224 to 228 available as loopback
       gpio_matrix_out(p.pin, SIG_IN_FUNC228_IDX, false, false);
       if (p.invpin != UNUSED_PIN) {
 	gpio_matrix_out(p.invpin, SIG_IN_FUNC228_IDX, true /*inverted*/, false);
@@ -251,18 +261,47 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     } else {
       track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
-    track[trackToSet]->setMode(mode);
-    trackDCAddr[trackToSet]=dcAddr;
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
 
     // This can be done BEFORE the PWM-Timer evaluation (methinks)
-    if (!(mode & TRACK_MODE_DC)) {
+    if (mode & TRACK_MODE_DC) {
+      if (trackDCAddr[trackToSet] != dcAddr) {
+	// new or changed DC Addr, run the new setup
+	if (trackDCAddr[trackToSet] != 0) {
+	  // if we change dcAddr and not only
+	  // change from another mode,
+	  // first detach old DC signal
+	  track[trackToSet]->detachDCSignal();
+	}
+#ifdef ARDUINO_ARCH_ESP32
+	int trackfound = -1;
+	FOR_EACH_TRACK(t) {
+	  //DIAG(F("Checking track %c mode %x dcAddr %d"), 'A'+t, track[t]->getMode(), trackDCAddr[t]);
+	  if (t != trackToSet                          // not our track
+	      && (track[t]->getMode() & TRACK_MODE_DC) // right mode
+	      && trackDCAddr[t] == dcAddr) {           // right addr
+	    //DIAG(F("Found track %c"), 'A'+t);
+	    trackfound = t;
+	    break;
+	  }
+	}
+	if (trackfound > -1) {
+	  DCCTimer::DCCEXanalogCopyChannel(track[trackfound]->getBrakePinSigned(),
+					   track[trackToSet]->getBrakePinSigned());
+	}
+#endif
+      }
+      // set future DC Addr;
+      trackDCAddr[trackToSet]=dcAddr;
+    } else {
       // DCC tracks need to have set the PWM to zero or they will not work.
       track[trackToSet]->detachDCSignal();
       track[trackToSet]->setBrake(false);
+      trackDCAddr[trackToSet]=0; // clear that an addr is set for DC as this is not a DC track
     }
+    track[trackToSet]->setMode(mode);
 
     // BOOST:
     //  Leave it as is
@@ -362,13 +401,14 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     if (params==2  && p[1]=="EXT"_hk) // <= id EXT>
         return setTrackMode(p[0],TRACK_MODE_EXT);
 #ifdef BOOSTER_INPUT
-    if (params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
+    if (TRACK_MODE_BOOST != 0 &&        // compile time optimization
+	params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
 #endif
     if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
 
-    if (params==2  && p[1]=="INV"_hk) // <= id AUTO>
+    if (params==2  && p[1]=="INV"_hk) // <= id INV>
       return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_INV);
 
     if (params==3  && p[1]=="DC"_hk && p[2]>0) // <= id DC cab>
@@ -401,11 +441,11 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
     modename=F("EXT");
   else if(tm & TRACK_MODE_BOOST) {
         if(tm & TRACK_MODE_AUTOINV)
-      modename=F("B A");
+      modename=F("BOOST A");
     else if (tm & TRACK_MODE_INV)
-      modename=F("B I");
+      modename=F("BOOST I");
     else
-      modename=F("B");
+      modename=F("BOOST");
   }
   else if (tm & TRACK_MODE_DC) {
     if (tm & TRACK_MODE_INV)
@@ -497,7 +537,11 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
 
 // Set track power for this track, inependent of mode
 void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
-  MotorDriver *driver=track[t]; 
+  MotorDriver *driver=track[t];
+  if (driver == NULL) { // track is not defined at all
+    DIAG(F("Error: Track %c does not exist"), t+'A');
+    return;
+  }
   TRACK_MODE trackmode = driver->getMode();
   POWERMODE oldpower = driver->getPower();
   if (trackmode & TRACK_MODE_NONE) {
@@ -597,23 +641,25 @@ void TrackManager::setJoinRelayPin(byte joinRelayPin) {
 
 void TrackManager::setJoin(bool joined) {
 #ifdef ARDUINO_ARCH_ESP32
-  if (joined) {
+  if (joined) {                                          // if we go into joined mode (PROG acts as MAIN)
     FOR_EACH_TRACK(t) {
-      if (track[t]->getMode() & TRACK_MODE_PROG) {
-	tempProgTrack = t;
+      if (track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
+	tempProgTrack = t;                               // remember PROG track
 	setTrackMode(t, TRACK_MODE_MAIN);
-	break;
+	track[t]->setPower(POWERMODE::ON);               // if joined, always on
+	break;                                           // there is only one prog track, done
       }
     }
   } else {
     if (tempProgTrack != MAX_TRACKS+1) {
-      // as setTrackMode with TRACK_MODE_PROG defaults to
-      // power off, we will take the current power state
-      // of our track and then preserve that state.
-      POWERMODE tPTmode = track[tempProgTrack]->getPower(); //get current power status of this track
-      setTrackMode(tempProgTrack, TRACK_MODE_PROG);
-      track[tempProgTrack]->setPower(tPTmode);              //set track status as it was before
+      // setTrackMode defaults to power off, so we
+      // need to preserve that state.
+      POWERMODE tPTmode = track[tempProgTrack]->getPower(); // get current power status of this track
+      setTrackMode(tempProgTrack, TRACK_MODE_PROG);         // set track mode back to prog
+      track[tempProgTrack]->setPower(tPTmode);              // set power status as it was before
       tempProgTrack = MAX_TRACKS+1;
+    } else {
+      DIAG(F("Unjoin but no remembered prog track"));
     }
   }
 #endif

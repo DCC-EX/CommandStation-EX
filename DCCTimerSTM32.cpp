@@ -1,6 +1,6 @@
 /*
  *  © 2023 Neil McKechnie
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
@@ -34,8 +34,22 @@
 #include "TrackManager.h"
 #endif
 #include "DIAG.h"
+#include <wiring_private.h>
 
-#if defined(ARDUINO_NUCLEO_F401RE) || defined(ARDUINO_NUCLEO_F411RE)
+#if defined(ARDUINO_NUCLEO_F401RE)
+// Nucleo-64 boards don't have additional serial ports defined by default
+// Serial1 is available on the F401RE, but not hugely convenient.
+// Rx pin on PB7 is useful, but all the Tx pins map to Arduino digital pins, specifically:
+//   PA9 == D8
+//   PB6 == D10
+// of which D8 is needed by the standard and EX8874 motor shields. D10 would be used if a second
+// EX8874 is stacked. So only disable this if using a second motor shield.
+HardwareSerial Serial1(PB7, PB6);  // Rx=PB7, Tx=PB6 -- CN7 pin 17 and CN10 pin 17
+// Serial2 is defined to use USART2 by default, but is in fact used as the diag console
+// via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
+// Let's define Serial6 as an additional serial port (the only other option for the F401RE)
+HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F401RE
+#elif defined(ARDUINO_NUCLEO_F411RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
 HardwareSerial Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
@@ -53,7 +67,7 @@ HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
 HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5 - F446RE
 // On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F446ZE) || \
-      defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI)
+      defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F4X9ZI)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
@@ -333,7 +347,9 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   return;
 }
 
-void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
+    if (invert)
+      value = 255-value;
     // Calculate percentage duty cycle from value given
     uint32_t duty_cycle = (value * 100 / 256) + 1;
     if (pin_timer[pin] != NULL) {
@@ -361,9 +377,9 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value) {
 uint32_t ADCee::usedpins = 0;         // Max of 32 ADC input channels!
 uint8_t ADCee::highestPin = 0;        // Highest pin to scan
 int * ADCee::analogvals = NULL;       // Array of analog values last captured
-uint32_t * analogchans = NULL;        // Array of channel numbers to be scanned
+uint32_t * ADCee::analogchans = NULL;        // Array of channel numbers to be scanned
 // bool adc1configured = false;
-ADC_TypeDef * * adcchans = NULL;      // Array to capture which ADC is each input channel on
+ADC_TypeDef * * ADCee::adcchans = NULL;      // Array to capture which ADC is each input channel on
 
 int16_t ADCee::ADCmax()
 {
@@ -381,9 +397,10 @@ int ADCee::init(uint8_t pin) {
   uint32_t adcchan =  STM_PIN_CHANNEL(pinmap_function(stmpin, PinMap_ADC)); // find ADC input channel
   ADC_TypeDef *adc = (ADC_TypeDef *)pinmap_find_peripheral(stmpin, PinMap_ADC); // find which ADC this pin is on ADC1/2/3 etc.
   int adcnum = 1;
+  // All variants have ADC1
   if (adc == ADC1)
     DIAG(F("ADCee::init(): found pin %d on ADC1"), pin);
-// Checking for ADC2 and ADC3 being defined helps cater for more variants later
+  // Checking for ADC2 and ADC3 being defined helps cater for more variants
 #if defined(ADC2)
   else if (adc == ADC2)
   {
@@ -429,6 +446,18 @@ int ADCee::init(uint8_t pin) {
     case 0x05:
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN; //Power up PORTF
         gpioBase = GPIOF;
+        break;
+#endif
+#if defined(GPIOG)
+    case 0x06:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN; //Power up PORTG
+        gpioBase = GPIOG;
+        break;
+#endif
+#if defined(GPIOH)
+    case 0x07:
+        RCC->AHB1ENR |= RCC_AHB1ENR_GPIOHEN; //Power up PORTH
+        gpioBase = GPIOH;
         break;
 #endif
     default:

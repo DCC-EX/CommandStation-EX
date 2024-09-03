@@ -37,7 +37,7 @@ int16_t lastclocktime;
 int8_t lastclockrate;
 
 
-#if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS)
+#if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
 StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
 template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
@@ -209,9 +209,7 @@ int16_t CommandDistributor::retClockTime() {
 
 void  CommandDistributor::broadcastLoco(byte slot) {
   DCC::LOCO * sp=&DCC::speedTable[slot];
-  uint32_t func = sp->functions;
-  func = func & 0x1fffffff; // mask out bits 0-28
-  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,func);
+  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,sp->functions);
 #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
     static uint8_t rampingmode = 0;
@@ -248,6 +246,10 @@ void  CommandDistributor::broadcastLoco(byte slot) {
 #ifdef CD_HANDLE_RING
   WiThrottle::markForBroadcast(sp->loco);
 #endif
+}
+
+void  CommandDistributor::broadcastForgetLoco(int16_t loco) {
+  broadcastReply(COMMAND_TYPE, F("<l %d 0 1 0>\n<- %d>\n"), loco,loco);
 }
 
 void  CommandDistributor::broadcastPower() {
@@ -310,6 +312,11 @@ void  CommandDistributor::broadcastPower() {
 
 void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
+}
+
+void CommandDistributor::broadcastMessage(char * message) {
+  broadcastReply(COMMAND_TYPE, F("<m \"%s\">\n"),message);
+  broadcastReply(WITHROTTLE_TYPE, F("Hm%s\n"),message);
 }
 
 void CommandDistributor::broadcastTrackState(const FSH* format, byte trackLetter, const FSH *modename, int16_t dcAddr) {

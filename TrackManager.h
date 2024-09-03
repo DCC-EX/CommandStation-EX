@@ -1,6 +1,6 @@
 /*
  *  © 2022 Chris Harlow
- *  © 2022 Harald Barth
+ *  © 2022-2024 Harald Barth
  *  © 2023 Colin Murdoch
  * 
  *  All rights reserved.
@@ -46,7 +46,7 @@ const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;
 class TrackManager {
   public:
     static void Setup(const FSH * shieldName,
-                MotorDriver * track0,
+                 MotorDriver * track0=NULL,
                  MotorDriver * track1=NULL,
                  MotorDriver * track2=NULL,
                  MotorDriver * track3=NULL,
@@ -108,7 +108,7 @@ class TrackManager {
 
   private:
     static void addTrack(byte t, MotorDriver* driver);
-    static byte lastTrack;
+    static int8_t lastTrack;
     static byte nextCycleTrack;
     static void applyDCSpeed(byte t);
 

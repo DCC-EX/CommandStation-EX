@@ -1,7 +1,9 @@
 /*
- *  © 2023, Neil McKechnie. All rights reserved.
+ *  © 2024, Paul Antoine
+ *  © 2023, Neil McKechnie
+ *  All rights reserved.
  *  
- *  This file is part of DCC++EX API
+ *  This file is part of DCC-EX API
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -112,12 +114,13 @@ protected:
     // Fill buffer with spaces
     memset(_buffer, ' ', _numCols*_numRows);
 
-    _displayDriver->clearNative();
-
     // Add device to list of HAL devices (not necessary but allows
     // status to be displayed using <D HAL SHOW> and device to be
     // reinitialised using <D HAL RESET>).
     IODevice::addDevice(this);
+
+    // Moved after addDevice() to ensure I2CManager.begin() has been called fisrt
+    _displayDriver->clearNative();
 
     // Also add this display to list of display handlers
     DisplayInterface::addDisplay(displayNo);

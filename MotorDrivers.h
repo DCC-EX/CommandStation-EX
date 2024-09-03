@@ -1,7 +1,7 @@
 /*
  *  © 2022-2023 Paul M. Antoine
  *  © 2021 Fred Decker
- *  © 2020-2023 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  (c) 2020 Chris Harlow. All rights reserved.
  *  (c) 2021 Fred Decker.  All rights reserved.
  *  (c) 2020 Harald Barth. All rights reserved.
@@ -57,6 +57,10 @@
 // of the brake pin on the motor bridge is inverted
 // (HIGH == release brake)
 
+// You can have a CS wihout any possibility to do any track signal.
+// That's strange but possible.
+#define NO_SHIELD F("No shield at all")
+
 // Arduino STANDARD Motor Shield, used on different architectures:
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
@@ -92,6 +96,18 @@
 #define EX8874_SHIELD F("EX8874"),\
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.27, 5000, 36 /*A4*/), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.27, 5000, 39 /*A5*/)
+
+// EX-CSB1 with integrated motor driver definition
+#define EXCSB1 F("EXCSB1"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 2.23, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 2.23, 5000, 23)
+
+// EX-CSB1 with EX-8874 stacked on top for 4 outputs
+#define EXCSB1_WITH_EX8874 F("EXCSB1_WITH_EX8874"),\
+ new MotorDriver(25,  0, UNUSED_PIN, -14, 34, 2.23, 5000, 19), \
+ new MotorDriver(27, 15, UNUSED_PIN,  -2, 35, 2.23, 5000, 23), \
+ new MotorDriver(26,  5, UNUSED_PIN,  13, 36, 1.52, 5000, 18), \
+ new MotorDriver(16,  4, UNUSED_PIN,  12, 39, 1.52, 5000, 17)
 
 #else
 // STANDARD shield on any Arduino Uno or Mega compatible with the original specification.
