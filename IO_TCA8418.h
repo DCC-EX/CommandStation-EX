@@ -71,6 +71,7 @@ private:
     // Set pullups only for in-use pins.  This prevents pullup being set for a pin that
     //  is intended for use as an output but hasn't been written to yet.
     uint32_t temp = _portPullup & _portInUse;
+    (void)temp; // Chris did this so he could see warnings that mattered
     // I2CManager.write(_I2CAddress, 3, REG_GPPUA, temp, temp>>8);  
   }
   void _writePortModes() override {
