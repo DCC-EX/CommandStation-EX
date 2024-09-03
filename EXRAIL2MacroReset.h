@@ -97,6 +97,9 @@
 #undef LCCX 
 #undef LCN 
 #undef MOVETT
+#undef NEOPIXEL
+#undef NEOPIXEL_OFF
+#undef NEOPIXEL_SIGNAL
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONAMBER
@@ -254,6 +257,9 @@
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
 #define MOVETT(id,steps,activity)
+#define NEOPIXEL(id,colour)
+#define NEOPIXEL_OFF(id,colour)
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
 #define ONACTIVATE(addr,subaddr)
 #define ONACTIVATEL(linear)
 #define ONAMBER(signal_id) 

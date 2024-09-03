@@ -71,7 +71,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
-
+             OPCODE_NEOPIXEL,
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
              // see skipIfBlock()
@@ -160,7 +160,10 @@ class LookList {
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;
     static const int16_t DCCX_SIGNAL_FLAG=0x3000;
+    static const int16_t NEOPIXEL_SIGNAL_FLAG=0x5000;
     static const int16_t SIGNAL_ID_MASK=0x0FFF;
+    // Neopixel has last bit 1 for colour on, otherwise black (to allow for blinking etc with SET/RESET)
+    static const int16_t NEOPIXEL_FLAG_ON=0x0001;
  // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
   static const int16_t HIGHFLASH routeIdList[];

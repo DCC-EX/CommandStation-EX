@@ -969,6 +969,10 @@ void RMFT2::loop2() {
     }
     break;
 
+  case OPCODE_NEOPIXEL: // OPCODE_NEOPIXEL,V(vpin),OPCODE_PAD,V(rgbcolour)
+    IODevice::writeAnalogue(operand,getOperand(1));
+    break;
+  
 #ifndef IO_NO_HAL
   case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
     if (Turntable::ttMoving(operand)) {
@@ -1151,6 +1155,15 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     if (rag==SIGNAL_AMBER) value=amberpin;
     if (rag==SIGNAL_GREEN) value=greenpin; 
     DCC::setExtendedAccessory(sigid & SIGNAL_ID_MASK,value);
+    return; 
+  }
+
+if (sigtype== NEOPIXEL_SIGNAL_FLAG) {
+    // redpin,amberpin,greenpin are the 3 rgbs
+    VPIN colour=redpin;
+    if (rag==SIGNAL_AMBER) colour=amberpin;
+    if (rag==SIGNAL_GREEN) colour=greenpin; 
+    IODevice::writeAnalogue(sigid, colour);
     return; 
   }
 

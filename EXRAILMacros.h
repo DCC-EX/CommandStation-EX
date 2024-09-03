@@ -174,6 +174,7 @@ bool exrailHalSetup() {
 #define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) | FEATURE_SIGNAL
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
 
@@ -405,6 +406,8 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define DCC_SIGNAL(id,addr,subaddr) id | RMFT2::DCC_SIGNAL_FLAG,addr,subaddr,0,
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
+#undef NEOPIXEL_SIGNAL
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) id | RMFT2::NEOPIXEL_SIGNAL_FLAG,redcolour | NEOPIXEL_FLAG_ON, ambercolour | NEOPIXEL_FLAG_ON, greencolour | NEOPIXEL_FLAG_ON,
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
@@ -515,6 +518,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STEALTH(code...) PRINT(dummy)
 #define LCN(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
+#define NEOPIXEL(id,colour) OPCODE_NEOPIXEL,V(id),OPCODE_PAD,V(colour| NEOPIXEL_FLAG_ON), 
+#define NEOPIXEL_OFF(id,colour) OPCODE_NEOPIXEL,V(id),OPCODE_PAD,V(colour& ^NEOPIXEL_FLAG_ON), 
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
