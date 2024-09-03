@@ -174,6 +174,7 @@ bool exrailHalSetup() {
 #define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
+#undef NEOPIXEL_SIGNAL
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) | FEATURE_SIGNAL
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
