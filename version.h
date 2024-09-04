@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.75"
+#define VERSION "5.2.76"
+// 5.2.76 - Bugfix: EXRAIL: Catch CV read errors in the callback
 // 5.2.75 - Bugfix: Serial lines 4 to 6 OK
 // 5.2.74 - Bugfix: ESP32 turn on the joined prog (as main) again after a prog operation
 // 5.2.73 - Bugfix: STM32 further fixes to shadowPORT entries in TrackManager.cpp for PORTG and PORTH
