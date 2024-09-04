@@ -478,10 +478,15 @@ bool RMFT2::skipIfBlock() {
 
 
 /* static */ void RMFT2::readLocoCallback(int16_t cv) {
+  if (cv <= 0) {
+    DIAG(F("CV read error"));
+    progtrackLocoId = -1;
+    return;
+  }
   if (cv & LONG_ADDR_MARKER) {               // maker bit indicates long addr
     progtrackLocoId = cv ^ LONG_ADDR_MARKER; // remove marker bit to get real long addr
     if (progtrackLocoId <= HIGHEST_SHORT_ADDR ) {     // out of range for long addr
-      DIAG(F("Long addr %d <= %d unsupported\n"), progtrackLocoId, HIGHEST_SHORT_ADDR);
+      DIAG(F("Long addr %d <= %d unsupported"), progtrackLocoId, HIGHEST_SHORT_ADDR);
       progtrackLocoId = -1;
     }
   } else {
