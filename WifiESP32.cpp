@@ -265,7 +265,7 @@ bool WifiESP::setup(const char *SSid,
   if(!MDNS.begin(hostname)) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
-  if(!MDNS.addService("withrottle", "tcp", 2560)) {
+  if(!MDNS.addService("withrottle", "tcp", port)) {
     DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
 
