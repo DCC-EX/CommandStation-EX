@@ -128,7 +128,7 @@
 class NeoPixel : public IODevice {
 public:
   
-  static void create(VPIN vpin, int nPins, uint16_t mode, I2CAddress i2cAddress) {
+  static void create(VPIN vpin, int nPins, uint16_t mode=(NEO_GRB | NEO_KHZ800), I2CAddress i2cAddress=0x60) {
     if (checkNoOverlap(vpin, nPins, mode, i2cAddress)) new NeoPixel(vpin, nPins, mode, i2cAddress);
   }
 
@@ -142,12 +142,17 @@ private:
   static const byte SEESAW_NEOPIXEL_BUF_LENGTH = 0x03;
   static const byte SEESAW_NEOPIXEL_BUF=0x04;
   static const byte SEESAW_NEOPIXEL_SHOW=0x05;
+
+  // all adafruit examples say this pin. Presumably its hard wired 
+  // in the adapter anyway. 
+  static const byte SEESAW_PIN15 = 15;
   
   // Constructor
   NeoPixel(VPIN firstVpin, int nPins, uint16_t mode, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
+    _nPins=nPins;
     _I2CAddress = i2cAddress;
-    _brightness=2; // 0,1,2,3 
+    _brightness=2; // TODO 0,1,2,3 
     _redOffset=mode >> 4 & 0x03;
     _greenOffset=mode >> 2 & 0x03; 
     _blueOffset=mode & 0x03; 
@@ -165,14 +170,20 @@ private:
       _deviceState = DEVSTATE_FAILED;
       return;
     }
-
-    byte setbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_BUF_LENGTH,
-                  (byte)(_bytesPerPixel >> 8), (byte)(_bytesPerPixel & 0xFF)};
-    I2CManager.write(_I2CAddress, setbuffer, sizeof(setbuffer));
+    
     byte speedBuffer[]={SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_SPEED,_kHz800};
     I2CManager.write(_I2CAddress, speedBuffer, sizeof(speedBuffer));
     
-
+    // In the driver there are 3 of 4 byts per pixel
+    auto numBytes=_bytesPerPixel * _nPins; 
+    byte setbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_BUF_LENGTH,
+                  (byte)(numBytes >> 8), (byte)(numBytes & 0xFF)};
+    I2CManager.write(_I2CAddress, setbuffer, sizeof(setbuffer));
+    
+    const byte pinbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_PIN,SEESAW_PIN15};
+    I2CManager.write(_I2CAddress, pinbuffer, sizeof(pinbuffer));
+    
+    // but in dccex there are only 2 bytes per pixel
     pixelBuffer=(uint16_t *) calloc(_nPins,sizeof(uint16_t)); // all pixels off  
      _display();
   }
@@ -236,8 +247,7 @@ private:
   }
 
   
-  void transmit(uint16_t pin) {
-    
+  void transmit(uint16_t pin, bool show=true) { 
     byte buffer[8]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
     uint16_t offset= pin * _bytesPerPixel;
     buffer[2]=(byte)(offset>>8);
@@ -251,8 +261,14 @@ private:
     
     // Transmit pixel to driver
     I2CManager.write(_I2CAddress,buffer,4 +_bytesPerPixel);
-    buffer[1]=SEESAW_NEOPIXEL_SHOW;
-    I2CManager.write(_I2CAddress,buffer,2);  
+    
+    if (show) {
+      // Show, but only if after previous 300uS
+      while((micros() - lastShowTime) < 300L);
+      byte showBuffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_SHOW};
+      I2CManager.write(_I2CAddress,showBuffer,sizeof(showBuffer));
+      lastShowTime=micros();
+    }  
   }
   uint16_t*  pixelBuffer = nullptr;
   byte _brightness;
@@ -260,6 +276,7 @@ private:
   byte _redOffset;
   byte _greenOffset;
   byte _blueOffset;
+  unsigned long lastShowTime=0;
   bool _kHz800; 
 };
 
