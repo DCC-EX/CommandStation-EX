@@ -52,6 +52,7 @@ typedef __FlashStringHelper FSH;
 #define STRNCPY_P strncpy_P
 #define STRNCMP_P strncmp_P
 #define STRLEN_P strlen_P
+#define STRCHR_P strchr_P
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
 // AVR_MEGA memory deliberately placed at end of link may need _far functions
@@ -92,5 +93,6 @@ typedef char FSH;
 #define STRNCPY_P strncpy
 #define STRNCMP_P strncmp
 #define STRLEN_P strlen
+#define STRCHR_P strchr
 #endif
 #endif
