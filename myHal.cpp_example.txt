@@ -36,7 +36,7 @@
 
 void halSetup() {
 
-  //I2CManager.setClock(100000);							  
+  I2CManager.setClock(100000);							  
 
   //=======================================================================
   // The following directives define auxiliary display devices.

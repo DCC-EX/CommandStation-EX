@@ -53,12 +53,13 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
       // send UPPER case to sensorCAM to flag binary data from a DCCEX-CS parser  
   switch(paramCount) {    
     case 1:                          //<N ver> produces '^' 
-      if (strchr_P((const char *)F("EFGMRVW^"),camop) == nullptr) return false;
+      if (STRCHR_P((const char *)F("EFGMQRVW^"),camop) == nullptr) return false;
       if (camop=='F') camop=']';     //<NF> for Reset/Finish webCAM.
+      if (camop=='Q') param3=10;     //<NQ> for activation state of all 10 banks of sensors
       break;    // Coded as ']' else conflicts with <Nf %%>
     
     case 2:                          //<N camop p1>  
-      if (strchr_P((const char *)F("ABFILMNOPRSTUV^"),camop)==nullptr) return false;
+      if (STRCHR_P((const char *)F("ABFILMNOPQRSTUV^"),camop)==nullptr) return false;
       param1=p[1];
       break;
     
@@ -69,7 +70,7 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
         if (p[2]>316 || p[2]<0) return false;     //column
         camop=0x80;      // special 'a' case for IO_SensorCAM
         vpin = p[0];
-      }else if (strchr_P((const char *)F("IJMNT"),camop) == nullptr) return false; 
+      }else if (STRCHR_P((const char *)F("IJMNT"),camop) == nullptr) return false; 
       param1 = p[1];  
       param3 = p[2];
       break;

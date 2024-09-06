@@ -17,8 +17,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define driverVer 301 
-// v301 improved 'f' and 'p' code and driver version calc. Correct bsNo calc. for 'a'							 
+#define driverVer 303
+// v301 improved 'f','p'&'q' code and driver version calc. Correct bsNo calc. for 'a'							 
 // v300 stripped & revised without expander functionality. Needs sensorCAM.h v300 AND CamParser.cpp
 // v222 uses '@'for EXIORDD read.  handles <NB $> and <NN $ ##>
 // v216 includes 'j' command and uses CamParser rather than myFilter.h Incompatible with v203 senorCAM
@@ -49,8 +49,7 @@
 # define DIGITALREFRESH 20000UL      // min uSec delay between digital reads of digitalInputStates
 #ifndef IO_EX_EXSENSORCAM_H
 #define IO_EX_EXSENSORCAM_H
-
-#define Sp Serial.print
+#define SEND StringFormatter::send
 
 #include "IODevice.h"
 #include "I2CManager.h"
@@ -83,7 +82,7 @@ class EXSensorCAM : public IODevice {
       addDevice(this);
     }
 //*************************
-
+  uint8_t oldb0;
 void _begin() {
     uint8_t status;
     // Initialise EX-SensorCAM device
@@ -148,9 +147,9 @@ void _loop(unsigned long currentMicros) override {
         if ((_CAMresponseBuff[0] & 0x60) >= 0x60) {   //Buff[0] seems to have ascii cmd header (bit6 high) (o06)    
             int error = processIncomingPkt( _CAMresponseBuff, _CAMresponseBuff[0]);   // '~' 'i' 'm' 'n' 't' etc
               if (error>0) DIAG(F("CAM packet header(0x%x) not recognised"),_CAMresponseBuff[0]);                   
-        }else{ // Header not valid - typically replaced by bank 0 data!  To avoid any bad response set S06 to 0  
-               // versions of sensorCAM.h after v300 should return header of '@'(0x40) (not 0xE6) followed by 
-               // digitalInputStates sensor state array
+        }else{ // Header not valid - typically replaced by bank 0 data!  To avoid any bad responses set S06 to 0  
+               // Versions of sensorCAM.h after v300 should return header for '@' of '`'(0x60) (not 0xE6)  
+               // followed by digitalInputStates sensor state array
         }
       }else   reportError(status, false);   // report i2c eror but don't go offline.
       _readState = RDS_IDLE;
@@ -202,7 +201,7 @@ void _write(VPIN vpin, int value) override {
 }
 //*************************
 // i2cAddr of ESP32 CAM
-// rBuff   buffer for return packet 
+// rBuf   buffer for return packet 
 // inbytes number of bytes to request from CAM
 // outBuff holds outbytes to be sent to CAM  
 int ioESP32(uint8_t i2cAddr,uint8_t *rBuf,int inbytes,uint8_t *outBuff,int outbytes) {
@@ -226,12 +225,14 @@ int ioESP32(uint8_t i2cAddr,uint8_t *rBuf,int inbytes,uint8_t *outBuff,int outby
 int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
   int k; 
   int b;
-
+  char str[] = "11111111";
  // if (sensorCmd <= '~') DIAG(F("processIncomingPkt %c %d %d %d"),rBuf[0],rBuf[1],rBuf[2],rBuf[3]);
   switch (sensorCmd){
     case '`':      //response to request for digitalInputStates[] table  '@'=>'`'  
       memcpy(_digitalInputStates, rBuf+1, digitalBytesNeeded);
-      break;
+      if ( _digitalInputStates[0]!=oldb0) { oldb0=_digitalInputStates[0];  //debug
+        for (k=0;k<5;k++) {Serial.print(" ");Serial.print(_digitalInputStates[k],HEX);}
+      }break;                                                 
 
     case EXIORDY:  //some commands give back acknowledgement only
       break;
@@ -262,45 +263,48 @@ int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
                                        ,rBuf[4],rBuf[2],rBuf[3],rBuf[5]);                                                               
       break;
 
+    case 'q':
+      for (int i =0; i<8; i++) str[i] = ((rBuf[2] << i) & 0x80 ? '1' : '0');
+      DIAG(F("(q $) Query bank %c ENABLED sensors(S%c7-%c0): %s "), rBuf[1], rBuf[1], rBuf[1], str);
+      break;
+
     case 'f':
-      DIAG(F("(f %%%%) frame header 'f' for 0%o - showing Quarter sample (1 row) only"), rBuf[1]);  
-      /*if(rBuf[2]==0)*/ { Sp("<n  bsNo "); Sp(rBuf[1]/8);Sp("/");Sp(rBuf[1]%8);Sp("\n"); }
-      Sp("<n  row:"); Sp(rBuf[2]);Sp(" Ref bytes" );
-      for(k=3;k<15;k++) { Sp(" "); Sp(rBuf[k]>>4,HEX); Sp(rBuf[k]&15,HEX); if(k%3==2)Sp(" "); }
-      Sp(" latest grab ->"); 
-      for(k=16;k<28;k++){ Sp(" "); Sp(rBuf[k]>>4,HEX); Sp(rBuf[k]&15,HEX); if(k%3==0)Sp(" "); } 
-      Sp("  n>\n");
+      DIAG(F("(f %%%%) frame header 'f' for bsNo %d/%d - showing Quarter sample (1 row) only"), rBuf[1]/8,rBuf[1]%8);  
+      SEND(&USB_SERIAL,F("<n  row: %d  Ref bytes: "),rBuf[2]);
+      for(k=3;k<15;k++)
+        SEND(&USB_SERIAL,F("%x%x%s"), rBuf[k]>>4, rBuf[k]&15, k%3==2 ? "  " : " "); 
+      Serial.print(" latest grab: "); 
+      for(k=16;k<28;k++)
+        SEND(&USB_SERIAL,F("%x%x%s"), rBuf[k]>>4, rBuf[k]&15, (k%3==0) ? "  " : " ");
+      Serial.print(" n>\n");
       break; 
 
     case 'p':
-      b=rBuf[1]-2;
-      if(b<4) { Sp("<n (p%%) Bank empty  n>\n"); break; }
-      Sp("<n (p%%) Bank:"); Sp((0x7F&rBuf[2])/8); Sp(" ");
-      for (int j=2; j<b; j+=3) { 
-        if(0x7F&rBuf[j] < 8) Sp(" S[0"); else Sp(" S[");
-        Sp(0x7F&rBuf[j],OCT);Sp("]: r=");Sp(rBuf[j+1]);Sp(" x=");Sp(rBuf[j+2] + 2*(rBuf[j] & 0x80)); 
-      } 
-      Sp("  n>\n");
+      b=rBuf[1]-2;  
+      if(b<4) { Serial.print("<n (p%%) Bank empty  n>\n"); break; }
+      SEND(&USB_SERIAL,F("<n (p%%) Bank: %d "),(0x7F&rBuf[2])/8);
+      for (int j=2; j<b; j+=3)  
+        SEND(&USB_SERIAL,F(" S[%d%d]: r=%d x=%d"),0x7F&rBuf[j]/8,0x7F&rBuf[j]%8,rBuf[j+1],rBuf[j+2]+2*(rBuf[j]&0x80));
+      Serial.print("  n>\n");
       break;
 
     case 't':      //threshold etc. from t##           //bad pkt if 't' FF's
-      if(rBuf[1]==0xFF) {Serial.println("<n bad CAM 't' packet: 74 FF  n>");_savedCmd[2] +=1; return 0;} 
-      Sp("<n (t[##[,%%]]) Threshold:");Sp(rBuf[1]);Sp(" sensor S00:");Sp("-");k=rBuf[2]&0x7F;if(k>99)k=99;Sp(k);
-      if(rBuf[2]>127) Sp("##* "); 
+      if(rBuf[1]==0xFF) {Serial.println("<n bad CAM 't' packet: 74 FF  n>");_savedCmd[2] +=1; return 0;}
+      SEND(&USB_SERIAL,F("<n (t[##[,%%]]) Threshold:%d sensor S00:-%d"),rBuf[1],min(rBuf[2]&0x7F,99));
+      if(rBuf[2]>127) Serial.print("##* "); 
       else{ 
-        if(rBuf[2]>rBuf[1]) Sp("-?* "); 
-        else Sp("--* ");
+        if(rBuf[2]>rBuf[1]) Serial.print("-?* "); 
+        else Serial.print("--* ");
       }
       for(int i=3;i<31;i+=2){
         uint8_t valu=rBuf[i];        //get bsn
         if(valu==80) break;          //80 = end flag
-        else{  
-          if((valu&0x7F)<8) Sp("0"); Sp(valu&0x7F,OCT);Sp(':');
-          if(valu>=128) Sp("?-"); 
-          else {if(rBuf[i+1]>=128) Sp("oo");else Sp("--");}
-          valu=rBuf[i+1]; k=valu&0x7F; 
-          if(k>99) k=99; Sp(k); 
-          if(valu<128) Sp("--* "); else Sp("##* ");
+        else{ 
+          SEND(&USB_SERIAL,F("%d%d:"), (valu&0x7F)/8,(valu&0x7F)%8);
+          if(valu>=128) Serial.print("?-"); 
+          else {if(rBuf[i+1]>=128) Serial.print("oo");else Serial.print("--");}
+          valu=rBuf[i+1]; 
+          SEND(&USB_SERIAL,F("%d%s"),min(valu&0x7F,99),(valu<128) ? "--* ":"##* ");
         }
       } 
       Serial.print(" >\n");
@@ -324,7 +328,7 @@ void _writeAnalogue(VPIN vpin, int param1, uint8_t camop, uint16_t param3) overr
       camop=param1;        //put row (0-236) in expected place 
       param1=param3;        //put column in expected place
       outputBuffer[0] = 'A';
-      pin = (pin/8)*10 + pin%8;   //restore bsNo.
+      pin = (pin/8)*10 + pin%8;   //restore bsNo. as integer
     }   
     if (_deviceState == DEVSTATE_FAILED) return;
    
@@ -335,13 +339,20 @@ void _writeAnalogue(VPIN vpin, int param1, uint8_t camop, uint16_t param3) overr
     outputBuffer[5] = param3 & 0xFF;
     outputBuffer[6] = param3 >> 8;
 
+    int count=param1+1;
+    if(camop=='Q'){
+      if(param3<=10) {count=param3; camop='B';}
+      //if(param1<10) outputBuffer[2] = param1*10;
+    }
     if(camop=='B'){   //then 'b'(b%) cmd - can totally deal with that here. (but can't do b%,# (brightSF))
       if(param1>97) return;
       if(param1>9) param1 = param1/10;  //accept a bsNo
-      uint8_t b=_digitalInputStates[param1];
-      char str[] = "11111111";
-      for (int i=0;i<8;i++) if(((b<<i)&0x80) == 0) str[i]='0';
-      DIAG(F("(b $) Bank: %d occupancy status byte: 0x%x%x (sensors S%d7->0) %s"), param1,b>>4,b&15,param1,str ); 
+      for(param1;param1<count;param1++) {
+        uint8_t b=_digitalInputStates[param1];
+        char str[] = "11111111";
+        for (int i=0;i<8;i++) if(((b<<i)&0x80) == 0) str[i]='0';
+        DIAG(F("(b $) Bank: %d activated byte: 0x%x%x (sensors S%d7->%d0) %s"), param1,b>>4,b&15,param1,param1,str ); 
+      }
       return;
     } 
     if (outputBuffer[4]=='T') {   //then 't' cmd
