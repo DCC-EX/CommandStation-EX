@@ -153,12 +153,15 @@ private:
     _nPins=nPins;
     _I2CAddress = i2cAddress;
     _brightness=2; // TODO 0,1,2,3 
-    _redOffset=mode >> 4 & 0x03;
-    _greenOffset=mode >> 2 & 0x03; 
-    _blueOffset=mode & 0x03; 
-    if ((mode >>6 & 0x03) == _redOffset) _bytesPerPixel=3; 
+    _redOffset=4+(mode >> 4 & 0x03);
+    _greenOffset=4+(mode >> 2 & 0x03); 
+    _blueOffset=4+(mode & 0x03); 
+    if (4+(mode >>6 & 0x03) == _redOffset) _bytesPerPixel=3; 
     else _bytesPerPixel=4; // string has a white byte.
     _kHz800=(mode & NEO_KHZ400)==0;
+    _showPendimg=false;
+    // In dccex there are only 2 bytes per pixel
+    pixelBuffer=(uint16_t *) calloc(_nPins,sizeof(uint16_t)); // all pixels off  
     addDevice(this);
   }
 
@@ -183,12 +186,18 @@ private:
     const byte pinbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_PIN,SEESAW_PIN15};
     I2CManager.write(_I2CAddress, pinbuffer, sizeof(pinbuffer));
     
-    // but in dccex there are only 2 bytes per pixel
-    pixelBuffer=(uint16_t *) calloc(_nPins,sizeof(uint16_t)); // all pixels off  
+    for (auto pin=0;pin<_nPins;pin++) transmit(pin);
      _display();
   }
   
-
+ // loop called by HAL supervisor 
+  void _loop(unsigned long currentMicros) override {
+    if (!_showPendimg) return;
+    byte showBuffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_SHOW};
+    I2CManager.write(_I2CAddress,showBuffer,sizeof(showBuffer));
+    _showPendimg=false;
+  }  
+  
   // read back pixel colour (rarely needed I suspect)
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
@@ -222,12 +231,12 @@ private:
   void _writeAnalogue(VPIN vpin, int colour, uint8_t ignore1, uint16_t ignore2) override {
     (void) ignore1;
     (void) ignore2;
-    auto newColour=(uint16_t)colour;
     if (_deviceState == DEVSTATE_FAILED) return;
+    auto newColour=(uint16_t)colour;
     auto pin=vpin-_firstVpin;
     if (pixelBuffer[pin]==newColour) return;
-      pixelBuffer[pin]=newColour;
-      transmit(pin);  
+    pixelBuffer[pin]=newColour;
+    transmit(pin);  
   }
 
   // Display device information and status.
@@ -248,10 +257,10 @@ private:
 
   
   void transmit(uint16_t pin, bool show=true) { 
-    byte buffer[8]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
+    byte buffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
     uint16_t offset= pin * _bytesPerPixel;
     buffer[2]=(byte)(offset>>8);
-    buffer[3]=(byte)(offset &0xFF);
+    buffer[3]=(byte)(offset & 0xFF);
     auto colour=pixelBuffer[pin];    
     if (colour & NEOPIXEL_ON_FLAG) {
       buffer[_redOffset]=(colour>>11 & 0x1F) <<_brightness;
@@ -261,14 +270,8 @@ private:
     
     // Transmit pixel to driver
     I2CManager.write(_I2CAddress,buffer,4 +_bytesPerPixel);
-    
-    if (show) {
-      // Show, but only if after previous 300uS
-      while((micros() - lastShowTime) < 300L);
-      byte showBuffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_SHOW};
-      I2CManager.write(_I2CAddress,showBuffer,sizeof(showBuffer));
-      lastShowTime=micros();
-    }  
+    _showPendimg=true;
+  
   }
   uint16_t*  pixelBuffer = nullptr;
   byte _brightness;
@@ -276,7 +279,7 @@ private:
   byte _redOffset;
   byte _greenOffset;
   byte _blueOffset;
-  unsigned long lastShowTime=0;
+  bool _showPendimg;
   bool _kHz800; 
 };
 
