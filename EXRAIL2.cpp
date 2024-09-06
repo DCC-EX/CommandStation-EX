@@ -926,11 +926,10 @@ void RMFT2::loop2() {
       delayMe(100);
       return; // still waiting for callback
     }
-    if (progtrackLocoId<0) {
-      kill(F("No Loco Found"),progtrackLocoId);
-      return; // still waiting for callback
-    }
     
+    // At failed read will result in loco == -1
+    // which is intended so it can be checked
+    // from within EXRAIL
     loco=progtrackLocoId;
     speedo=0;
     forward=true;
