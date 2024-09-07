@@ -94,6 +94,8 @@ void SerialManager::init() {
 #ifdef SABERTOOTH
 #ifdef ARDUINO_ARCH_ESP32
   Serial2.begin(9600, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+#else
+  Serial2.begin(9600);
 #endif
 #endif
 }
