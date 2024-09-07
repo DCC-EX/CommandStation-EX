@@ -405,16 +405,18 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
           }
           if (params==2) {  // <o [-]vpin count> 
-            for (auto pix=vpin;pix<=vpin+p[1];pix++)  IODevice::write(pix,setON);
+            for (auto pix=vpin;pix<vpin+p[1];pix++)  IODevice::write(pix,setON);
             return;
           }
-          if (params==4 || params==5) { // <z [-]vpin r g b [count]> 
-            uint16_t colourcode=((p[1] & 0x1F)<<11) |
-                                ((p[2] & 0x1F)<<6)  |
-                                ((p[3] & 0x1F)<<1);
-            if (setON) colourcode |= 0x0001; 
-            // driver treats count 0 as 1
-            for (auto pix=vpin;pix<=vpin+p[4];pix++) IODevice::writeAnalogue(pix,colourcode,0,0);
+          if (params==4 || params==5) { // <z [-]vpin r g b [count]>
+             auto count=p[4]?p[4]:1;  
+             if (p[1]<0 || p[1]>0xFF) break;  
+            if (p[2]<0 || p[2]>0xFF) break;  
+            if (p[3]<0 || p[3]>0xFF) break;  
+            // strange parameter mangling... see IO_NeoPixel.h NeoPixel::_writeAnalogue
+            int colour_RG=(p[1]<<8)  | p[2];
+            uint16_t colour_B=p[3];
+            for (auto pix=vpin;pix<vpin+count;pix++) IODevice::writeAnalogue(pix,colour_RG,setON,colour_B);
             return;
             }
         }

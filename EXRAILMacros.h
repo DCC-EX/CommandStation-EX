@@ -71,8 +71,8 @@
 //const byte TRACK_POWER_0=0, TRACK_POWER_OFF=0;    
 //const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
 
-// NEOPIXEL RGB generator 
-#define NeoRGB(red,green,blue) (((red & 0x1F)<<11) | ((green & 0x1F)<<6) | ((blue & 0x1F)<<1) ) 
+// NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
+#define NeoRG(red,green) ((red & 0xff)<<8) | (green & 0xff) 
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -435,7 +435,7 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
 #undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(id,redcolour,ambercolour,greencolour) id | RMFT2::NEOPIXEL_SIGNAL_FLAG,redcolour | NEOPIXEL_FLAG_ON, ambercolour | NEOPIXEL_FLAG_ON, greencolour | NEOPIXEL_FLAG_ON,
+#define NEOPIXEL_SIGNAL(id,redcolour,ambercolour,greencolour) id | RMFT2::NEOPIXEL_SIGNAL_FLAG,redcolour, ambercolour, greencolour,
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) id,0,0,0,
 
@@ -558,8 +558,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(id,colour) OPCODE_NEOPIXEL,V(id),OPCODE_PAD,V(colour| NEOPIXEL_FLAG_ON), 
-#define NEOPIXEL_OFF(id,colour) OPCODE_NEOPIXEL,V(id),OPCODE_PAD,V(colour& ^NEOPIXEL_FLAG_ON), 
+#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
+        OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
+        OPCODE_PAD,V((b & 0xff)),\
+        OPCODE_PAD,V(#count[0]?(count+0):1),
+         
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),

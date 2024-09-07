@@ -998,8 +998,14 @@ void RMFT2::loop2() {
     }
     break;
 
-  case OPCODE_NEOPIXEL: // OPCODE_NEOPIXEL,V(vpin),OPCODE_PAD,V(rgbcolour)
-    IODevice::writeAnalogue(operand,getOperand(1));
+  case OPCODE_NEOPIXEL: 
+    // OPCODE_NEOPIXEL,V([-]vpin),OPCODE_PAD,V(colour_RG),OPCODE_PAD,V(colour_B),OPCODE_PAD,V(count)
+    { 
+      VPIN vpin=operand>0?operand:-operand;
+      auto count=getOperand(3);
+      for (auto pix=vpin;pix<vpin+count;pix++)
+         IODevice::writeAnalogue(pix,getOperand(1),operand>0,getOperand(2));
+    }
     break;
   
 #ifndef IO_NO_HAL
@@ -1199,11 +1205,11 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   }
 
 if (sigtype== NEOPIXEL_SIGNAL_FLAG) {
-    // redpin,amberpin,greenpin are the 3 rgbs
-    VPIN colour=redpin;
-    if (rag==SIGNAL_AMBER) colour=amberpin;
-    if (rag==SIGNAL_GREEN) colour=greenpin; 
-    IODevice::writeAnalogue(sigid, colour);
+    // redpin,amberpin,greenpin are the 3 RG values but with no blue permitted. . (code limitation hack) 
+    int colour_RG=redpin;
+    if (rag==SIGNAL_AMBER) colour_RG=amberpin;
+    if (rag==SIGNAL_GREEN) colour_RG=greenpin; 
+    IODevice::writeAnalogue(sigid, colour_RG,true,0);
     return; 
   }
 
