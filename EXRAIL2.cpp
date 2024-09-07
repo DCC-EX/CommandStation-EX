@@ -478,10 +478,15 @@ bool RMFT2::skipIfBlock() {
 
 
 /* static */ void RMFT2::readLocoCallback(int16_t cv) {
+  if (cv <= 0) {
+    DIAG(F("CV read error"));
+    progtrackLocoId = -1;
+    return;
+  }
   if (cv & LONG_ADDR_MARKER) {               // maker bit indicates long addr
     progtrackLocoId = cv ^ LONG_ADDR_MARKER; // remove marker bit to get real long addr
     if (progtrackLocoId <= HIGHEST_SHORT_ADDR ) {     // out of range for long addr
-      DIAG(F("Long addr %d <= %d unsupported\n"), progtrackLocoId, HIGHEST_SHORT_ADDR);
+      DIAG(F("Long addr %d <= %d unsupported"), progtrackLocoId, HIGHEST_SHORT_ADDR);
       progtrackLocoId = -1;
     }
   } else {
@@ -921,11 +926,10 @@ void RMFT2::loop2() {
       delayMe(100);
       return; // still waiting for callback
     }
-    if (progtrackLocoId<0) {
-      kill(F("No Loco Found"),progtrackLocoId);
-      return; // still waiting for callback
-    }
     
+    // At failed read will result in loco == -1
+    // which is intended so it can be checked
+    // from within EXRAIL
     loco=progtrackLocoId;
     speedo=0;
     forward=true;
