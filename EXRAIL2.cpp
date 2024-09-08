@@ -1001,18 +1001,20 @@ void RMFT2::loop2() {
       return;
     }
     break;
-
+    
+#ifndef IO_NO_HAL
   case OPCODE_NEOPIXEL: 
     // OPCODE_NEOPIXEL,V([-]vpin),OPCODE_PAD,V(colour_RG),OPCODE_PAD,V(colour_B),OPCODE_PAD,V(count)
     { 
       VPIN vpin=operand>0?operand:-operand;
       auto count=getOperand(3);
-      for (auto pix=vpin;pix<vpin+count;pix++)
-         IODevice::writeAnalogue(pix,getOperand(1),operand>0,getOperand(2));
+      for (auto pix=vpin;pix<vpin+count;pix++) {
+        killBlinkOnVpin(pix);
+        IODevice::writeAnalogue(pix,getOperand(1),operand>0,getOperand(2));
+      }
     }
     break;
   
-#ifndef IO_NO_HAL
   case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
     if (Turntable::ttMoving(operand)) {
       delayMe(100);
