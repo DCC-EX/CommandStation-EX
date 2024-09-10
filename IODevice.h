@@ -546,7 +546,8 @@ protected:
 #include "IO_PCA9555.h"
 #include "IO_duinoNodes.h"
 #include "IO_EXIOExpander.h"
-#include "IO_trainbrains.h"
+#include "IO_trainbrains.h
 #include "IO_EncoderThrottle.h"
+#include "IO_EXSensorCAM.h
 
 #endif // iodevice_h

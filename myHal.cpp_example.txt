@@ -26,6 +26,7 @@
 //#include "IO_EXFastClock.h"  // FastClock driver
 //#include "IO_PCA9555.h"     // 16-bit I/O expander (NXP & Texas Instruments).
 //#include "IO_I2CDFPlayer.h" // DFPlayer over I2C
+#include "IO_EXSensorCAM.h"   // sensorCAM driver
 
 //==========================================================================
 // The function halSetup() is invoked from CS if it exists within the build.
@@ -34,6 +35,8 @@
 //==========================================================================
 
 void halSetup() {
+
+  I2CManager.setClock(100000);							  
 
   //=======================================================================
   // The following directives define auxiliary display devices.
@@ -303,7 +306,14 @@ void halSetup() {
   // Note that the I2C address is defined in the EX-IOExpander code, and 0x65 is the default.
   // The example is for an Arduino Nano.
 
+										 
+
   //EXIOExpander::create(800, 18, 0x65);
+											  
+											   
+												
+											   
+											   
 
 
   //=======================================================================
@@ -332,7 +342,23 @@ void halSetup() {
 
  
   //   EXFastClock::create(0x55);
-
+  
+  //=======================================================================
+  // The following directive defines an ESP32-CAM instance.
+  //=======================================================================
+  // EXSensorCAM::create(VPIN, Number of VPINs, I2C Address)
+  //
+  // The parameters are:
+  //   VPIN=an available Vpin as start of block of consecutive sensors (up to 80)
+  //       #define SENSORCAM_VPIN0 #00 in config.h if not using 700. 
+  //   Number of VPINs=pin count (must not exceed 80)
+  //   I2C address=an available I2C address (default 0x11) 
+  //       #define ESP32CAP 0x13 in config.h to raise allowable ESP32 range of addresses
+  //       Note that the I2C address (0x11) is the default in the sensorCAM code       
+  //
+  // EXSensorCAM::create(700, 80, 0x11);
+EXSensorCAM::create(700, 80, 0x11);  //preference is now to use HAL(700 80 0x11) in myAutomation.h
+//EXSensorCAM::create(600, 80, 0x12);  //alternate or second CAM device address creation
 }
 
 #endif
