@@ -548,6 +548,6 @@ protected:
 #include "IO_EXIOExpander.h"
 #include "IO_trainbrains.h
 #include "IO_EncoderThrottle.h"
-#include "IO_EXSensorCAM.h
+#include "IO_EXSensorCAM.h"
 
 #endif // iodevice_h
