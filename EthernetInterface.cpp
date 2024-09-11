@@ -29,6 +29,13 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
+#if __has_include ( "MDNS_Generic.h")
+  #include "MDNS_Generic.h"
+  #define DO_MDNS 
+  EthernetUDP udp;
+  MDNS mdns(udp);
+#endif
+
 
 extern void looptimer(unsigned long timeout, const FSH* message);
 
@@ -42,48 +49,76 @@ RingStream * EthernetInterface::outboundRing = nullptr;
  * @brief Setup Ethernet Connection
  * 
  */
-void EthernetInterface::setup()
+
+void EthernetInterface::setup()  // STM32 VERSION
 {
-    connected=false;
+  DIAG(F("Ethernet begin"
+  #ifdef DO_MDNS
+    " with mDNS"
+  #endif 
+  ));
+  
+  #ifdef STM32_ETHERNET
+    // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
+    // The default is "lwip", which is **always** set in STM32Ethernet/src/utility/ethernetif.cpp
+    // for some reason. One can edit it to instead read:
+    //      #if LWIP_NETIF_HOSTNAME
+    //      /* Initialize interface hostname */
+    //      if (netif->hostname == NULL)
+    //         netif->hostname = "lwip";
+    //      #endif /* LWIP_NETIF_HOSTNAME */
+    // Which seems more useful! We should propose the patch... so the following line actually works!
+    netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
+#endif
 
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    DIAG(F("Ethernet begin"));
-    
-#ifdef IP_ADDRESS
+    #define _MAC_ mac
+  
+  #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
-    Ethernet.begin(mac, myIP);
-#else
-    if (Ethernet.begin(mac) == 0)
-    {
-      LCD(4,F("IP: No DHCP"));
-      return;
-    }
-#endif
-    auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
-    if (!ip) {
-      LCD(4,F("IP: None"));
-      return;
-    }
-    server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-    server->begin();
-    #ifdef LCD_DRIVER
-      const byte lcdData[]={LCD_DRIVER};
-      const bool wideDisplay=lcdData[1]>=24; // data[1] is cols. 
-    #else 
-      const bool wideDisplay=true;
-    #endif    
-    if (wideDisplay) {
-      // OLEDS or just usb diag is ok on one line. 
-      LCD(4,F("IP %d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);    
-    } 
-    else { // LCDs generally too narrow, so take 2 lines
-      LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-      LCD(5,F("Port %d"), IP_PORT);
-    }
+    Ethernet.begin(_MAC_,myIP);
+    setup(false);
+  #else
+    if (Ethernet.begin(_MAC_)==0)
+  {
+    LCD(4,F("IP: No DHCP"));
+    return;
+  }
+  #endif
+
+  auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
+  if (!ip) {
+    LCD(4,F("IP: None"));
+    return;
+  }
+  server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+  server->begin();
+
+  // Arrange display of IP address and port
+  #ifdef LCD_DRIVER
+    const byte lcdData[]={LCD_DRIVER};
+    const bool wideDisplay=lcdData[1]>=24; // data[1] is cols. 
+  #else 
+    const bool wideDisplay=true;
+  #endif    
+  if (wideDisplay) {
+    // OLEDS or just usb diag is ok on one line. 
+    LCD(4,F("IP %d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);    
+  } 
+  else { // LCDs generally too narrow, so take 2 lines
+    LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+    LCD(5,F("Port %d"), IP_PORT);
+  }
  
-    outboundRing=new RingStream(OUTBOUND_RING_SIZE);
-    connected=true;
+  outboundRing=new RingStream(OUTBOUND_RING_SIZE);
+  #ifdef DO_MDNS
+    mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
+    mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
+  // Not sure if we need to run it once, but just in case!
+    mdns.run();
+  #endif  
+  connected=true;    
 }
 
 
@@ -94,7 +129,8 @@ void EthernetInterface::setup()
 void EthernetInterface::loop()
 {
     if (!connected) return;
-
+    looptimer(5000, F("E.loop"));
+	      
     static bool warnedAboutLink=false;
     if (Ethernet.linkStatus() == LinkOFF){
         if (warnedAboutLink) return;
@@ -102,13 +138,21 @@ void EthernetInterface::loop()
         warnedAboutLink=true;
         return;
     }
-
+    looptimer(5000, F("E.loop warn"));
+	  
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
       warnedAboutLink=false;
     } 
     
+  #ifdef DO_MDNS
+    // Always do this because we don't want traffic to intefere with being found!
+    mdns.run();
+    looptimer(5000, F("E.mdns"));
+	  
+  #endif
+
     //
     switch (Ethernet.maintain()) {
     case 1:
@@ -126,28 +170,46 @@ void EthernetInterface::loop()
         //DIAG(F("maintained"));
         break;
     }
-    
-    // get client from the server
-    auto client = server->accept();
-
-    // check for new client
-    if (client)
-    {
-        if (Diag::ETHERNET) DIAG(F("Ethernet: New client "));
-        byte socket;
+    looptimer(5000, F("E.maintain"));
+	  
+      // get client from the server
+  #if defined (STM32_ETHERNET)
+    // STM32Ethernet doesn't use accept(), just available()
+    auto client = server->available();
+    if (client) {
+      // check for new client
+      byte socket;
+      bool sockFound = false;
+      for (socket = 0; socket < MAX_SOCK_NUM; socket++)
+      {
+        if (client == clients[socket])
+        {
+          sockFound = true;
+          break;
+        }
+      }
+      if (!sockFound)
+      { // new client
         for (socket = 0; socket < MAX_SOCK_NUM; socket++)
         {
-            if (!clients[socket])
-            {
-                // On accept() the EthernetServer doesn't track the client anymore
-                // so we store it in our client array
-                if (Diag::ETHERNET) DIAG(F("Socket %d"),socket);
-                clients[socket] = client;
-                break;
-            }
+          if (!clients[socket])
+          {
+            clients[socket] = client;
+            sockFound=true;
+            if (Diag::ETHERNET)
+              DIAG(F("Ethernet: New client socket %d"), socket);
+            break;
+          }
         }
-        if (socket==MAX_SOCK_NUM) DIAG(F("new Ethernet OVERFLOW")); 
+      }
+      if (!sockFound) DIAG(F("new Ethernet OVERFLOW"));
     }
+  
+  #else
+    auto client = server->accept();
+    if (client) clients[client.getSocketNumber()]=client;
+  #endif
+    
 
     // check for incoming data from all possible clients
     for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
