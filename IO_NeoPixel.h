@@ -233,7 +233,17 @@ private:
      }
      transmit(pixel);
   }
-
+   
+  VPIN _writeRange(VPIN vpin,int value, int count) {
+    // using write range cuts out the constant vpin to driver lookup so
+    // we can update multiple pixels much faster.
+    VPIN nextVpin=vpin +  (count>_nPins ? _nPins : count);
+    if (_deviceState != DEVSTATE_FAILED) while(vpin<nextVpin) {
+      _write(vpin,value);
+      vpin++;
+    }
+    return nextVpin;  // next pin we cant 
+  }  
   // Write analogue value.
   // The convoluted parameter mashing here is to allow passing the RGB and on/off
   // information through the generic HAL _writeAnalog interface which was originally
@@ -248,7 +258,16 @@ private:
     pixelBuffer[pixel]=newColour;
     transmit(pixel);
   }
-
+ VPIN _writeAnalogueRange(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B, int count) override {
+    // using write range cuts out the constant vpin to driver lookup so
+    VPIN nextVpin=vpin +  (count>_nPins ? _nPins : count); 
+    if (_deviceState != DEVSTATE_FAILED) while(vpin<nextVpin) {
+      _writeAnalogue(vpin,colour_RG, onoff,colour_B);
+      vpin++;
+    }
+    return nextVpin;  // next pin we cant 
+ }
+ 
   // Display device information and status.
   void _display() override {
     DIAG(F("NeoPixel I2C:%s Vpins %u-%u %S"),

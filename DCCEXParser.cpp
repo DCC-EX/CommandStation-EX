@@ -405,7 +405,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
           }
           if (params==2) {  // <o [-]vpin count> 
-            for (auto pix=vpin;pix<vpin+p[1];pix++)  IODevice::write(pix,setON);
+            IODevice::writeRange(vpin,setON,p[1]);
             return;
           }
           if (params==4 || params==5) { // <z [-]vpin r g b [count]>
@@ -416,7 +416,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             // strange parameter mangling... see IO_NeoPixel.h NeoPixel::_writeAnalogue
             int colour_RG=(p[1]<<8)  | p[2];
             uint16_t colour_B=p[3];
-            for (auto pix=vpin;pix<vpin+count;pix++) IODevice::writeAnalogue(pix,colour_RG,setON,colour_B);
+            IODevice::writeAnalogueRange(vpin,colour_RG,setON,colour_B,count);
             return;
             }
         }
