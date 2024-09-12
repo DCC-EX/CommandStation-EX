@@ -322,6 +322,15 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
       }
       break;  
     }
+  case 'f': // Function key set, force function variant
+    {
+      bool pressed=aval[1]=='1';
+      int fKey = getInt(aval+2);
+      LOOPLOCOS(throttleChar, cab) {
+	DCC::setFn(myLocos[loco].cab,fKey, pressed);
+      }
+      break;
+    }
   case 'q':
     if (aval[1]=='V' || aval[1]=='R' ) {   //qV or qR
       // just flag the loco for broadcast and it will happen.
