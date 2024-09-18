@@ -54,8 +54,24 @@ The IO_NeoPixel.h driver supports the adafruit neopixel seesaw board. It turns e
     For signals with 1 pixel, the NEOPIXEL_SIGNAL macro will create a signal 
     NEOPIXEL_SIGNAL(vpin,redfx,amberfx,greenfx)
 
-    *** This is experimental and may change****
-    In order to fit the existing signal code, the fx colours above are restricted to the red and green pixel values (ie no blue channel) 
-    The fx values above can be created by the NeoRG macro so a bright red would be NeoRG(255,0)  bright green Ng(0,255) and amber something like NeoRG(128,128)
+    ** Changed... ****
+    The fx values above can be created by the NeoRGB macro so a bright red would be NeoRGB(255,0,0)  bright green NeoRGB(0,255,0) and amber something like NeoRGB(255,100,0)
+    NeoRGB creates a single int32_t value so it can be used in several ways as convenient.
+
+// create 1-lamp signal with NeoRGB colours
+NEOPIXEL_SIGNAL(1000,NeoRGB(255,0,0),NeoRGB(255,100,0),NeoRGB(0,255,0))
+
+// Create 1-lamp signal with named colours.
+// This is better if you have multiple signals.
+// (Note: ALIAS is not suitable due to word length defaults) 
+#define REDLAMP NeoRGB(255,0,0)
+#define AMBERLAMP NeoRGB(255,100,0)
+#define GREENLAMP NeoRGB(0,255,0)
+NEOPIXEL_SIGNAL(1001,REDLAMP,AMBERLAMP,GREENLAMP)
+
+// Create 1-lamp signal with web type RGB colours 
+// (Using blue for the amber  signal , just testing) 
+NEOPIXEL_SIGNAL(1002,0xFF0000,0x0000FF,0x00FF00)
+
       
   

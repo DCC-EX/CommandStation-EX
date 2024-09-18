@@ -110,6 +110,23 @@ enum BlinkState: byte {
     blink_high, // blink task running with pin high 
     at_timeout  // ATTIMEOUT timed out flag
     }; 
+enum SignalType {
+       sigtypeVIRTUAL,
+       sigtypeSIGNAL, 
+       sigtypeSIGNALH, 
+       sigtypeDCC,
+       sigtypeDCCX,
+       sigtypeSERVO,
+       sigtypeNEOPIXEL,
+       sigtypeContinuation,  // neopixels require a second line
+       sigtypeNoMoreSignals
+       }; 
+
+  struct SIGNAL_DEFINITION {
+       SignalType type;
+       VPIN id;  
+       VPIN  redpin,amberpin,greenpin; 
+  };
 
   // Flag bits for compile time features.
   static const byte FEATURE_SIGNAL= 0x80;
@@ -171,15 +188,7 @@ class LookList {
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
     static bool signalAspectEvent(int16_t address, byte aspect );    
-    static const int16_t SERVO_SIGNAL_FLAG=0x4000;
-    static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
-    static const int16_t DCC_SIGNAL_FLAG=0x1000;
-    static const int16_t DCCX_SIGNAL_FLAG=0x3000;
-    static const int16_t NEOPIXEL_SIGNAL_FLAG=0x5000;
-    static const int16_t SIGNAL_ID_MASK=0x0FFF;
-    // Neopixel has last bit 1 for colour on, otherwise black (to allow for blinking etc with SET/RESET)
-    static const int16_t NEOPIXEL_FLAG_ON=0x0001;
- // Throttle Info Access functions built by exrail macros 
+    // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
   static const int16_t HIGHFLASH routeIdList[];
   static const int16_t HIGHFLASH automationIdList[];
@@ -193,7 +202,8 @@ class LookList {
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
   static bool readSensor(uint16_t sensorId);
-  static bool isSignal(int16_t id,char rag); 
+  static bool isSignal(int16_t id,char rag);
+  static SIGNAL_DEFINITION getSignalSlot(int16_t slotno); 
    
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
@@ -203,7 +213,6 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void doSignal(int16_t id,char rag); 
-    static int16_t getSignalSlot(int16_t id);
     static void setTurnoutHiddenState(Turnout * t);
     #ifndef IO_NO_HAL
     static void setTurntableHiddenState(Turntable * tto);
@@ -227,10 +236,11 @@ private:
     
    static bool diag;
    static const  HIGHFLASH3  byte RouteCode[];
-   static const  HIGHFLASH  int16_t SignalDefinitions[];
+   static const  HIGHFLASH  SIGNAL_DEFINITION SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static Print * LCCSerial;
    static LookList * routeLookup;
+   static LookList * signalLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;

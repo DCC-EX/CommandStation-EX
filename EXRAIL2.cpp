@@ -73,6 +73,7 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
 byte RMFT2::flags[MAX_FLAGS];
 Print * RMFT2::LCCSerial=0;
 LookList *  RMFT2::routeLookup=NULL;
+LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
@@ -207,16 +208,28 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
   if (compileFeatures & FEATURE_SIGNAL) {
+    
     onRedLookup=LookListLoader(OPCODE_ONRED);
     onAmberLookup=LookListLoader(OPCODE_ONAMBER);
     onGreenLookup=LookListLoader(OPCODE_ONGREEN);
-    for (int sigslot=0;;sigslot++) {
-      int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigslot*8);
-      if (sighandle==0) break;  // end of signal list
-      VPIN sigid = sighandle & SIGNAL_ID_MASK;
-      doSignal(sigid, SIGNAL_RED);
-    }
-  }
+    // Load the signal lookup with slot numbers in the signal table
+    int signalCount=0; 
+    for (int16_t slot=0;;slot++) {
+        SIGNAL_DEFINITION signal=getSignalSlot(slot);
+        DIAG(F("Signal s=%d id=%d t=%d"),slot,signal.id,signal.type);
+        if (signal.type==sigtypeNoMoreSignals) break;
+        if (signal.type==sigtypeContinuation) continue;
+        signalCount++;
+    }    
+    signalLookup=new LookList(signalCount);
+    for (int16_t slot=0;;slot++) {
+        SIGNAL_DEFINITION signal=getSignalSlot(slot);
+        if (signal.type==sigtypeNoMoreSignals) break;
+        if (signal.type==sigtypeContinuation) continue;
+        signalLookup->add(signal.id,slot);
+        doSignal(signal.id, SIGNAL_RED);
+    }    
+   }
 
   int progCounter;
   for (progCounter=0;; SKIPOP){
@@ -1136,26 +1149,11 @@ void RMFT2::kill(const FSH * reason, int operand) {
   delete this;
 }
 
-int16_t RMFT2::getSignalSlot(int16_t id) {
 
-  if (id > 0) {
-    int sigslot = 0;
-    int16_t sighandle = 0;
-    // Trundle down the signal list until we reach the end
-    while ((sighandle = GETHIGHFLASHW(RMFT2::SignalDefinitions, sigslot * 8)) != 0)
-    {
-      // sigid is the signal id used in RED/AMBER/GREEN macro
-      // for a LED signal it will be same as redpin
-      // but for a servo signal it will also have SERVO_SIGNAL_FLAG set.
-      VPIN sigid = sighandle & SIGNAL_ID_MASK;
-      if (sigid == (VPIN)id) // cast to keep compiler happy but id is positive
-        return sigslot;      // found it
-      sigslot++;             // keep looking
-    };
-  }
-  // If we got here, we did not find the signal
-  DIAG(F("EXRAIL Signal %d not defined"), id);
-  return -1;
+SIGNAL_DEFINITION RMFT2::getSignalSlot(int16_t slot) {
+  SIGNAL_DEFINITION signal;
+  COPYHIGHFLASH(&signal,SignalDefinitions,slot*sizeof(SIGNAL_DEFINITION),sizeof(SIGNAL_DEFINITION));
+  return signal;
 }
 
 /* static */ void RMFT2::doSignal(int16_t id,char rag) {
@@ -1168,90 +1166,97 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
   else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
   else onAmberLookup->handleEvent(F("AMBER"),id);
   
-  int16_t sigslot=getSignalSlot(id);
+  auto sigslot=signalLookup->find(id);
   if (sigslot<0) return; 
   
   // keep track of signal state 
   setFlag(sigslot,rag,SIGNAL_MASK);
  
   // Correct signal definition found, get the rag values
-  int16_t sigpos=sigslot*8; 
-  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
-  VPIN redpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2);
-  VPIN amberpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4);
-  VPIN greenpin=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6);
-  //if (diag) DIAG(F("signal %d %d %d %d %d"),sigid,id,redpin,amberpin,greenpin);
-
-  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
-  VPIN sigid = sighandle & SIGNAL_ID_MASK;
-
-  if (sigtype == SERVO_SIGNAL_FLAG) {
-    // A servo signal, the pin numbers are actually servo positions
-    // Note, setting a signal to a zero position has no effect.
-    int16_t servopos= rag==SIGNAL_RED? redpin: (rag==SIGNAL_GREEN? greenpin : amberpin);
+  auto signal=getSignalSlot(sigslot);
+  
+  switch (signal.type) {
+  case sigtypeSERVO: 
+    { 
+    auto servopos = rag==SIGNAL_RED? signal.redpin: (rag==SIGNAL_GREEN? signal.greenpin : signal.amberpin);
     //if (diag) DIAG(F("sigA %d %d"),id,servopos);
     if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
     return;  
-  }
+   }
 
-  
-  if (sigtype== DCC_SIGNAL_FLAG) {
+  case sigtypeDCC:
+   {
     // redpin,amberpin are the DCC addr,subaddr 
-    DCC::setAccessory(redpin,amberpin, rag!=SIGNAL_RED);
+    DCC::setAccessory(signal.redpin,signal.amberpin, rag!=SIGNAL_RED);
     return; 
   }
 
- if (sigtype== DCCX_SIGNAL_FLAG) {
+ case sigtypeDCCX:
+  {
     // redpin,amberpin,greenpin are the 3 aspects
-    byte value=redpin;
-    if (rag==SIGNAL_AMBER) value=amberpin;
-    if (rag==SIGNAL_GREEN) value=greenpin; 
-    DCC::setExtendedAccessory(sigid, value);
+    auto value=signal.redpin;
+    if (rag==SIGNAL_AMBER) value=signal.amberpin;
+    if (rag==SIGNAL_GREEN) value=signal.greenpin; 
+    DCC::setExtendedAccessory(id, value);
     return; 
   }
 
-if (sigtype== NEOPIXEL_SIGNAL_FLAG) {
+case sigtypeNEOPIXEL: 
+  {
     // redpin,amberpin,greenpin are the 3 RG values but with no blue permitted. . (code limitation hack) 
-    int colour_RG=redpin;
-    if (rag==SIGNAL_AMBER) colour_RG=amberpin;
-    if (rag==SIGNAL_GREEN) colour_RG=greenpin; 
-    IODevice::writeAnalogue(sigid, colour_RG,true,0);
+    auto colour_RG=signal.redpin;
+    if (rag==SIGNAL_AMBER) colour_RG=signal.amberpin;
+    if (rag==SIGNAL_GREEN) colour_RG=signal.greenpin; 
+
+    // blue channel is in followng signal slot (a continuation)
+    auto signal2=getSignalSlot(sigslot+1);
+    auto colour_B=signal2.redpin;
+    if (rag==SIGNAL_AMBER) colour_B=signal2.amberpin;
+    if (rag==SIGNAL_GREEN) colour_B=signal2.greenpin; 
+    IODevice::writeAnalogue(id, colour_RG,true,colour_B);
     return; 
   }
-
-
+  
+  case sigtypeSIGNAL:
+  case sigtypeSIGNALH:
+  {
   // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
   // If amberpin is zero, synthesise amber from red+green
   const byte SIMAMBER=0x00;
-  if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
+  if (rag==SIGNAL_AMBER && (signal.amberpin==0)) rag=SIMAMBER; // special case this func only
    
   // Manage invert (HIGH on) pins
-  bool aHigh=sighandle & ACTIVE_HIGH_SIGNAL_FLAG;
+  bool aHigh=signal.type==sigtypeSIGNALH;
       
   // set the three pins 
-  if (redpin) {
+  if (signal.redpin) {
     bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
     if (!aHigh) redval=!redval;
-    killBlinkOnVpin(redpin);
-    IODevice::write(redpin,redval);
+    killBlinkOnVpin(signal.redpin);
+    IODevice::write(signal.redpin,redval);
   }
-  if (amberpin) {
+  if (signal.amberpin) {
     bool amberval=(rag==SIGNAL_AMBER);
     if (!aHigh) amberval=!amberval;
-    killBlinkOnVpin(amberpin);
-    IODevice::write(amberpin,amberval);
+    killBlinkOnVpin(signal.amberpin);
+    IODevice::write(signal.amberpin,amberval);
   }
-  if (greenpin) {
+  if (signal.greenpin) {
     bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
     if (!aHigh) greenval=!greenval;
-    killBlinkOnVpin(greenpin);
-    IODevice::write(greenpin,greenval);
+    killBlinkOnVpin(signal.greenpin);
+    IODevice::write(signal.greenpin,greenval);
+  }
+}
+  case sigtypeVIRTUAL: break;
+  case sigtypeContinuation: break;
+  case sigtypeNoMoreSignals: break;
   }
 }
 
 /* static */ bool RMFT2::isSignal(int16_t id,char rag) {
   if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  int16_t sigslot=getSignalSlot(id);
+  int16_t sigslot=signalLookup->find(id);
   if (sigslot<0) return false; 
   return (flags[sigslot] & SIGNAL_MASK) == rag;
 }
@@ -1263,26 +1268,23 @@ if (sigtype== NEOPIXEL_SIGNAL_FLAG) {
 // Otherwise false so the parser should send the command directly 
 bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
   if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  int16_t sigslot=getSignalSlot(address);
+  auto sigslot=signalLookup->find(address);
   if (sigslot<0) return false;  // this is not a defined signal 
-  int16_t sigpos=sigslot*8; 
-  int16_t sighandle=GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos);
-  VPIN sigtype=sighandle & ~SIGNAL_ID_MASK;
-  VPIN sigid = sighandle & SIGNAL_ID_MASK;
-  if (sigtype!=DCCX_SIGNAL_FLAG) return false; // not a DCCX signal
+  auto signal=getSignalSlot(sigslot);
+  if (signal.type!=sigtypeDCCX) return false; // not a DCCX signal
   // Turn an aspect change into a RED/AMBER/GREEN setting
-  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+2)) {
-      doSignal(sigid,SIGNAL_RED);
+  if (aspect==signal.redpin) {
+      doSignal(address,SIGNAL_RED);
       return true;
   }
   
-  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+4)) {
-      doSignal(sigid,SIGNAL_AMBER);
+  if (aspect==signal.amberpin) {
+      doSignal(address,SIGNAL_AMBER);
       return true;
   }
   
-  if (aspect==GETHIGHFLASHW(RMFT2::SignalDefinitions,sigpos+6)) {
-      doSignal(sigid,SIGNAL_GREEN);
+  if (aspect==signal.greenpin) {
+      doSignal(address,SIGNAL_GREEN);
       return true;
   }
 
