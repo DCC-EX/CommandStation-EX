@@ -40,8 +40,10 @@ private:
   PCA9554(VPIN vpin, uint8_t nPins, I2CAddress I2CAddress, int interruptPin=-1) 
     : GPIOBase<uint8_t>((FSH *)F("PCA9554"), vpin, nPins, I2CAddress, interruptPin) 
   {
-    if (nPins > 8)
+    if (nPins > 8) {
       DIAG(F("PCA9554 nPins %d larger than allowed!"));
+      nPins = 8;
+    }
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
                                   outputBuffer, sizeof(outputBuffer));
     outputBuffer[0] = REG_INPUT_P0;
@@ -81,8 +83,12 @@ private:
   }
   // This function is invoked when an I/O operation on the requestBlock completes.
   void _processCompletion(uint8_t status) override {
-    if (status == I2C_STATUS_OK) 
-      _portInputState = inputBuffer[0];
+    if (status == I2C_STATUS_OK)
+    {
+      if (_portInputState != (inputBuffer[0] | _portMode))
+        DIAG(F("PCA9554 inputs changed, value now %x"), inputBuffer[0]);
+      _portInputState = inputBuffer[0] | _portMode;
+    }
     else  
       _portInputState = 0xff;
   }
