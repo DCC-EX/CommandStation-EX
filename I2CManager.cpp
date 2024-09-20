@@ -49,34 +49,34 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
   if (address == 0x1A)
     // 0x09-0x18 selectable, but for now handle the default
     return F("Piicodev 865/915MHz Transceiver");
-  else if (address == 0x1C)
+  if (address == 0x1C)
     return F("QMC6310 Magnetometer");
-  else if (address >= 0x20 && address <= 0x26)
+  if (address >= 0x20 && address <= 0x26)
     return F("GPIO Expander");
-  else if (address == 0x27)
+  if (address == 0x27)
     return F("GPIO Expander or LCD Display");
-  else if (address == 0x29)
+  if (address == 0x29)
     return F("Time-of-flight sensor");
-  else if (address == 0x34)
+  if (address == 0x34)
     return F("TCA8418 keypad scanner");
-  else if (address >= 0x3c && address <= 0x3d)
+  if (address >= 0x3c && address <= 0x3d)
     // 0x3c can also be an HMC883L magnetometer
     return F("OLED Display or HMC583L Magnetometer");
-  else if (address >= 0x48 && address <= 0x57) // SC16IS752x UART detection
+  if (address >= 0x48 && address <= 0x57) // SC16IS752x UART detection
     return F("SC16IS75x UART");
-  else if (address >= 0x48 && address <= 0x4f)
+  if (address >= 0x48 && address <= 0x4f)
     return F("Analogue Inputs or PWM");
-  else if (address >= 0x40 && address <= 0x4f)
+  if (address >= 0x40 && address <= 0x4f)
     return F("PWM");
-  else if (address >= 0x50 && address <= 0x5f) 
+  if (address >= 0x50 && address <= 0x5f) 
     return F("EEPROM"); 
-  else if (address == 0x60) 
+  if (address >= 0x60 && address <= 0x68) 
     return F("Adafruit NeoPixel Driver"); 
-  else if (address == 0x68) 
+  if (address == 0x68) 
     return F("Real-time clock"); 
-  else if (address >= 0x70 && address <= 0x77)
+  if (address >= 0x70 && address <= 0x77)
     return F("I2C Mux");
-  else
+  // Unknown type
     return F("?");
 }
 

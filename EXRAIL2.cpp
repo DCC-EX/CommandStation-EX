@@ -1021,10 +1021,8 @@ void RMFT2::loop2() {
     { 
       VPIN vpin=operand>0?operand:-operand;
       auto count=getOperand(3);
-      for (auto pix=vpin;pix<vpin+count;pix++) {
-        killBlinkOnVpin(pix);
-        IODevice::writeAnalogue(pix,getOperand(1),operand>0,getOperand(2));
-      }
+      killBlinkOnVpin(vpin,count);
+      IODevice::writeAnalogueRange(vpin,getOperand(1),operand>0,getOperand(2),count);
     }
     break;
   
@@ -1338,19 +1336,24 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
 // This function is used when setting pins so that a SET or RESET
 // will cause any blink task on that pin to terminate.
 // It will be compiled out of existence if no BLINK feature is used.
-void RMFT2::killBlinkOnVpin(VPIN pin) {
+void RMFT2::killBlinkOnVpin(VPIN pin, uint16_t count) {
    if (!(compileFeatures & FEATURE_BLINK)) return; 
  
+  RMFT2 * stoptask=loopTask; // stop when we get back to here
   RMFT2 * task=loopTask;
+  VPIN lastPin=pin+count-1;
   while(task) {
+    auto nextTask=task->next;
     if (
       (task->blinkState==blink_high || task->blinkState==blink_low) 
-       && task->blinkPin==pin) {
+       && task->blinkPin>=pin
+       && task->blinkPin<=lastPin
+       )    {
+        if (diag)  DIAG(F("kill blink %d"),task->blinkPin,lastPin);
         task->kill();
-        return;
-      }
-    task=task->next;
-    if (task==loopTask) return;
+       }
+    task=nextTask;
+    if (task==stoptask) return;
   }
 }
   

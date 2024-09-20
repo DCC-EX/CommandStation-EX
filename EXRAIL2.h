@@ -220,7 +220,7 @@ private:
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n);
-    static void killBlinkOnVpin(VPIN pin);
+    static void killBlinkOnVpin(VPIN pin,uint16_t count=1);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
