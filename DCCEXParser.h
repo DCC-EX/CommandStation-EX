@@ -43,7 +43,7 @@ struct DCCEXParser
    private:
   
     static const int16_t MAX_BUFFER=50;  // longest command sent in
-    static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], const byte * command, bool usehex);
+    static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
      
     static bool parseT(Print * stream, int16_t params, int16_t p[]);
     static bool parseZ(Print * stream, int16_t params, int16_t p[]);

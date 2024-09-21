@@ -23,13 +23,13 @@
 #include <vector>
 #include "defines.h"
 #include "ESPmDNS.h"
-#include <WiFi.h>
 #include "esp_wifi.h"
 #include "WifiESP32.h"
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
+#include "DCC.h"
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -109,10 +109,13 @@ private:
   bool inUse;
 };
 
+// file scope variables
 static std::vector<NetworkClient> clients; // a list to hold all clients
-static WiFiServer *server = NULL;
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
+// init of static class scope variables
+bool WifiESP::wifiUp = false;
+WiFiServer *WifiESP::server = NULL;
 
 #ifdef WIFI_TASK_ON_CORE0
 void wifiLoop(void *){
@@ -128,6 +131,30 @@ char asciitolower(char in) {
   return in;
 }
 
+void WifiESP::teardown() {
+  // stop all locos
+  DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
+  // terminate all clients connections
+  while (!clients.empty()) {
+    // pop_back() should invoke destructor which does stop()
+    // on the underlying TCP connction
+    clients.pop_back();
+  }
+  // stop server
+  if (server != NULL) {
+    server->stop();
+    server->close();
+    server->end();
+    DIAG(F("server stop, close, end"));
+  }
+  // terminate MDNS anouncement
+  mdns_service_remove_all();
+  mdns_free();
+  // stop WiFi
+  WiFi.disconnect(true);
+  wifiUp = false;
+}
+
 bool WifiESP::setup(const char *SSid,
                     const char *password,
                     const char *hostname,
@@ -136,8 +163,10 @@ bool WifiESP::setup(const char *SSid,
                     const bool forceAP) {
   bool havePassword = true;
   bool haveSSID = true;
-  bool wifiUp = false;
+//  bool wifiUp = false;
   uint8_t tries = 40;
+  if (wifiUp)
+    teardown();
 
   //#ifdef SERIAL_BT_COMMANDS
   //return false;
