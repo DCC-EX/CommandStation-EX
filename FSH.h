@@ -60,6 +60,8 @@ typedef __FlashStringHelper FSH;
 #define GETFARPTR(data) pgm_get_far_address(data)
 #define GETHIGHFLASH(data,offset) pgm_read_byte_far(GETFARPTR(data)+offset)
 #define GETHIGHFLASHW(data,offset) pgm_read_word_far(GETFARPTR(data)+offset)
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy_PF(target,GETFARPTR(base) + offset,length)  
 #else
 // AVR_UNO/NANO runtime does not support _far functions so just use _near equivalent
 // as there is no progmem above 32kb anyway.
@@ -68,6 +70,8 @@ typedef __FlashStringHelper FSH;
 #define GETFARPTR(data) ((uint32_t)(data))
 #define GETHIGHFLASH(data,offset) pgm_read_byte_near(GETFARPTR(data)+(offset))
 #define GETHIGHFLASHW(data,offset) pgm_read_word_near(GETFARPTR(data)+(offset))
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy_P(target,(byte *)base + offset,length)  
 #endif
 
 #else 
@@ -87,6 +91,8 @@ typedef char FSH;
 #define GETFLASH(addr) (*(const byte *)(addr))
 #define GETHIGHFLASH(data,offset)  (*(const byte *)(GETFARPTR(data)+offset))
 #define GETHIGHFLASHW(data,offset) (*(const uint16_t *)(GETFARPTR(data)+offset))
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy(target,(byte *)&base + offset,length)  
 #define STRCPY_P strcpy
 #define STRCMP_P strcmp
 #define STRNCPY_P strncpy

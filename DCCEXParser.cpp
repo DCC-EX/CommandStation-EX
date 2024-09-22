@@ -72,7 +72,7 @@ Once a new OPCODE is decided upon, update this list.
   M, Write DCC packet
   n, Reserved for SensorCam
   N, Reserved for Sensorcam 
-  o,
+  o, Neopixel driver (see also IO_NeoPixel.h)
   O, Output broadcast
   p, Broadcast power state
   P, Write DCC packet
@@ -394,7 +394,36 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 
-    case 'z':  // direct pin manipulation
+#ifndef IO_NO_HAL
+    case 'o':  // Neopixel pin manipulation
+        if (p[0]==0) break;
+        {  
+          VPIN vpin=p[0]>0 ? p[0]:-p[0];
+          bool setON=p[0]>0;
+          if (params==1) {  // <o [-]vpin> 
+            IODevice::write(vpin,setON);
+            return;
+          }
+          if (params==2) {  // <o [-]vpin count> 
+            IODevice::writeRange(vpin,setON,p[1]);
+            return;
+          }
+          if (params==4 || params==5) { // <z [-]vpin r g b [count]>
+             auto count=p[4]?p[4]:1;  
+             if (p[1]<0 || p[1]>0xFF) break;  
+            if (p[2]<0 || p[2]>0xFF) break;  
+            if (p[3]<0 || p[3]>0xFF) break;  
+            // strange parameter mangling... see IO_NeoPixel.h NeoPixel::_writeAnalogue
+            int colour_RG=(p[1]<<8)  | p[2];
+            uint16_t colour_B=p[3];
+            IODevice::writeAnalogueRange(vpin,colour_RG,setON,colour_B,count);
+            return;
+            }
+        }
+        break;
+#endif        
+
+  case 'z':  // direct pin manipulation
         if (p[0]==0) break; 
         if (params==1) {  // <z vpin | -vpin> 
             if (p[0]>0) IODevice::write(p[0],HIGH);

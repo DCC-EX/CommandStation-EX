@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.77"
+#define VERSION "5.2.78"
+// 5.2.78 - NeoPixel support.
+//        - <o command
+//        - HAL driver 
+//        - EXRAIL NEOPIXEL and NEOPIXEL_SIGNAL   
 // 5.2.77 - Withrottle: Implement "force function" subcommand "f"
 // 5.2.76 - Bugfix: EXRAIL: Catch CV read errors in the callback
 // 5.2.75 - Bugfix: Serial lines 4 to 6 OK

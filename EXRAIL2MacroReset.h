@@ -99,6 +99,9 @@
 #undef LCCX 
 #undef LCN 
 #undef MOVETT
+#undef NEOPIXEL
+#undef NEOPIXEL_OFF
+#undef NEOPIXEL_SIGNAL
 #undef ACON
 #undef ACOF
 #undef ONACON
@@ -269,6 +272,8 @@
 #define LCN(msg) 
 #define MESSAGE(msg)
 #define MOVETT(id,steps,activity)
+#define NEOPIXEL(id,r,g,b,count...)
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
 #define ACON(eventid)
 #define ACOF(eventid)
 #define ONACON(eventid)

@@ -128,9 +128,11 @@ public:
 
   // write invokes the IODevice instance's _write method.
   static void write(VPIN vpin, int value);
+  static void writeRange(VPIN vpin, int value,int count);
 
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
   static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
+  static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
@@ -177,10 +179,28 @@ public:
   virtual void _write(VPIN vpin, int value) {
     (void)vpin; (void)value;
   };
+ 
+ // Method to write new state (optionally implemented within device class)
+ // This will, by default just write to one vpin and return whet to do next.
+ // the real power comes where a single driver can update many vpins in one call.
+  virtual VPIN _writeRange(VPIN vpin, int value, int count) {
+    (void)count;
+    _write(vpin,value); 
+    return vpin+1; // try next vpin 
+  };
 
   // Method to write an 'analogue' value (optionally implemented within device class)
   virtual void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) {
     (void)vpin; (void)value; (void) param1; (void)param2;
+  };
+  
+  // Method to write an 'analogue' value to a VPIN range (optionally implemented within device class)
+  // This will, by default just write to one vpin and return whet to do next.
+  // the real power comes where a single driver can update many vpins in one call.
+  virtual VPIN _writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2, int count) {
+    (void) count;
+    _writeAnalogue(vpin, value,  param1, param2);
+    return vpin+1; 
   };
 
   // Method to read digital pin state (optionally implemented within device class)
@@ -548,5 +568,8 @@ protected:
 #include "IO_EXIOExpander.h"
 #include "IO_trainbrains.h"
 #include "IO_EncoderThrottle.h"
+#include "IO_TCA8418.h"
+#include "IO_NeoPixel.h"
+
 
 #endif // iodevice_h

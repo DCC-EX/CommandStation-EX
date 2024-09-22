@@ -71,6 +71,8 @@
 //const byte TRACK_POWER_0=0, TRACK_POWER_OFF=0;    
 //const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
 
+// NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
+#define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -180,6 +182,8 @@ bool exrailHalSetup() {
 #define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
+#undef NEOPIXEL_SIGNAL
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) | FEATURE_SIGNAL
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
 
@@ -421,21 +425,26 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 // Pass 8 Signal definitions
 #include "EXRAIL2MacroReset.h"
 #undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) redpin,redpin,amberpin,greenpin, 
+#define SIGNAL(redpin,amberpin,greenpin) {sigtypeSIGNAL,redpin,redpin,amberpin,greenpin}, 
 #undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) redpin | RMFT2::ACTIVE_HIGH_SIGNAL_FLAG,redpin,amberpin,greenpin, 
+#define SIGNALH(redpin,amberpin,greenpin) {sigtypeSIGNALH,redpin,redpin,amberpin,greenpin}, 
 #undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
+#define SERVO_SIGNAL(vpin,redval,amberval,greenval) {sigtypeSERVO,vpin,redval,amberval,greenval}, 
 #undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) id | RMFT2::DCC_SIGNAL_FLAG,addr,subaddr,0,
+#define DCC_SIGNAL(id,addr,subaddr) {sigtypeDCC,id,addr,subaddr,0},
 #undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) id | RMFT2::DCCX_SIGNAL_FLAG,redAspect,amberAspect,greenAspect,
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) {sigtypeDCCX,id,redAspect,amberAspect,greenAspect},
+#undef NEOPIXEL_SIGNAL
+#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB) \
+        {sigtypeNEOPIXEL,id,((VPIN)((redRGB)>>8)), ((VPIN)((amberRGB)>>8)), ((VPIN)((greenRGB)>>8))},\
+        {sigtypeContinuation,id,((VPIN)((redRGB) & 0xff)), ((VPIN)((amberRGB) & 0xFF)), ((VPIN)((greenRGB) & 0xFF))},
 #undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) id,0,0,0,
+#define VIRTUAL_SIGNAL(id) {sigtypeVIRTUAL,id,0,0,0},
 
-const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
+const  HIGHFLASH  SIGNAL_DEFINITION RMFT2::SignalDefinitions[] = {
     #include "myAutomation.h"
-    0,0,0,0 };
+     {sigtypeNoMoreSignals,0,0,0,0}
+    };
 
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
@@ -552,6 +561,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
+#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
+        OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
+        OPCODE_PAD,V((b & 0xff)),\
+        OPCODE_PAD,V(#count[0]?(count+0):1),
+         
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),

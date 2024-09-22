@@ -251,6 +251,26 @@ void IODevice::write(VPIN vpin, int value) {
 #endif
 }
 
+// Write value to count virtual pin(s).
+// these may be within one driver or separated over several drivers 
+void IODevice::writeRange(VPIN vpin, int value, int count) {  
+  
+  while(count) {  
+    auto dev = findDevice(vpin);
+    if (dev) {
+      auto vpinBefore=vpin; 
+      // write to driver, driver will return next vpin it cant handle
+      vpin=dev->_writeRange(vpin, value,count);
+      count-= vpin-vpinBefore;  // decrement by number of vpins changed
+    }
+    else {
+      // skip a vpin if no device handler
+      vpin++;
+      count--;
+    }
+  }
+}
+
 // Write analogue value to virtual pin(s).  If multiple devices are allocated
 // the same pin then only the first one found will be used.
 //
@@ -268,6 +288,24 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t para
 #ifdef DIAG_IO
   DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
 #endif
+}
+
+//
+void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count) {
+  while(count) {  
+    auto dev = findDevice(vpin);
+    if (dev) {
+      auto vpinBefore=vpin; 
+      // write to driver, driver will return next vpin it cant handle
+      vpin=dev->_writeAnalogueRange(vpin, value, param1, param2,count);
+      count-= vpin-vpinBefore;  // decrement by number of vpins changed
+    }
+    else {
+      // skip a vpin if no device handler
+      vpin++;
+      count--;
+    }
+  }
 }
 
 // isBusy, when called for a device pin is always a digital output or analogue output,
