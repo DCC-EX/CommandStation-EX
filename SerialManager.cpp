@@ -1,7 +1,7 @@
  /*
  *  © 2022 Paul M. Antoine
  *  © 2021 Chris Harlow
- *  © 2022 Harald Barth
+ *  © 2022 2024 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of DCC++EX
@@ -23,6 +23,7 @@
 #include "SerialManager.h"
 #include "DCCEXParser.h"
 #include "StringFormatter.h"
+#include "DIAG.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 #ifdef SERIAL_BT_COMMANDS
@@ -36,6 +37,10 @@ BluetoothSerial SerialBT;
 #endif //COMMANDS
 #endif //ESP32
 
+static const byte PAYLOAD_FALSE = 0;
+static const byte PAYLOAD_NORMAL = 1;
+static const byte PAYLOAD_STRING = 2;
+
 SerialManager * SerialManager::first=NULL;
 
 SerialManager::SerialManager(Stream * myserial) {
@@ -43,7 +48,7 @@ SerialManager::SerialManager(Stream * myserial) {
   next=first;
   first=this;
   bufferLength=0;
-  inCommandPayload=false; 
+  inCommandPayload=PAYLOAD_FALSE; 
 } 
 
 void SerialManager::init() {
@@ -112,23 +117,39 @@ void SerialManager::loop() {
 }
 
 void SerialManager::loop2() {
-    while (serial->available()) {
-        char ch = serial->read();
-        if (ch == '<') {
-            inCommandPayload = true;
-            bufferLength = 0;
-            buffer[0] = '\0';
+  while (serial->available()) {
+    char ch = serial->read();
+    if (!inCommandPayload) {
+      if (ch == '<') {
+        inCommandPayload = PAYLOAD_NORMAL;
+        bufferLength = 0;
+        buffer[0] = '\0';
+      }
+    } else { // if (inCommandPayload)
+      if (bufferLength <  (COMMAND_BUFFER_SIZE-1))
+        buffer[bufferLength++] = ch;
+      if (inCommandPayload > PAYLOAD_NORMAL) {
+        if (inCommandPayload > 32 + 2) {    // String way too long
+          ch = '>';                         // we end this nonsense
+          inCommandPayload = PAYLOAD_NORMAL;
+          DIAG(F("Parse error: Unbalanced string"));
+          // fall through to ending parsing below
+        } else if (ch == '"') {               // String end
+          inCommandPayload = PAYLOAD_NORMAL;
+          continue; // do not fall through
+        } else
+          inCommandPayload++;
+      }
+      if (inCommandPayload == PAYLOAD_NORMAL) {
+        if (ch == '>') {
+          buffer[bufferLength] = '\0';
+          DCCEXParser::parse(serial, buffer, NULL); 
+          inCommandPayload = PAYLOAD_FALSE;
+          break;
+        } else if (ch == '"') {
+          inCommandPayload = PAYLOAD_STRING;
         }
-        else if  (inCommandPayload) {
-	  if (bufferLength <  (COMMAND_BUFFER_SIZE-1))
-	    buffer[bufferLength++] = ch;
-	  if (ch == '>') {
-	    buffer[bufferLength] = '\0';
-	    DCCEXParser::parse(serial, buffer, NULL); 
-	    inCommandPayload = false;
-	    break;
-	  }
-        }
+      }
     }
-    
+  }
 }

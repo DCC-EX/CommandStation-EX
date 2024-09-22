@@ -44,6 +44,6 @@ private:
   SerialManager * next;
   byte bufferLength;
   byte buffer[COMMAND_BUFFER_SIZE]; 
-  bool inCommandPayload;
+  byte inCommandPayload;
 };
 #endif

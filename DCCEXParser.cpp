@@ -117,6 +117,9 @@ Once a new OPCODE is decided upon, update this list.
 #include "Turntables.h"
 #include "version.h"
 #include "KeywordHasher.h"
+#ifdef ARDUINO_ARCH_ESP32
+#include "WifiESP32.h"
+#endif
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
@@ -140,12 +143,12 @@ byte DCCEXParser::stashTarget=0;
 // Non-DCC things like turnouts, pins and sensors are handled in additional JMRI interface classes.
 
 
-int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte *cmd, bool usehex)
+int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, bool usehex)
 {
     byte state = 1;
     byte parameterCount = 0;
     int16_t runningValue = 0;
-    const byte *remainingCmd = cmd + 1; // skips the opcode
+    byte *remainingCmd = cmd + 1; // skips the opcode
     bool signNegative = false;
 
     // clear all parameters in case not enough found
@@ -155,7 +158,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
     while (parameterCount < MAX_COMMAND_PARAMS)
     {
         byte hot = *remainingCmd;
-
         switch (state)
         {
 
@@ -169,7 +171,22 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
             state = 2;
             continue;
 
-        case 2: // checking sign
+        case 2: // checking sign or quoted string
+#ifdef HAS_ENOUGH_MEMORY
+	    if (hot == '"') {
+	      // this inserts an extra parameter 0x7777 in front
+	      // of each string parameter as a marker that can
+	      // be checked that a string parameter follows
+	      // This clashes of course with the real value
+	      // 0x7777 which we hope is used seldom
+	      result[parameterCount] = (int16_t)0x7777;
+	      parameterCount++;
+	      result[parameterCount] = (int16_t)(remainingCmd - cmd + 1);
+	      parameterCount++;
+	      state = 4;
+	      break;
+	    }
+#endif
             signNegative = false;
             runningValue = 0;
             state = 3;
@@ -200,6 +217,16 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], const byte 
             parameterCount++;
             state = 1;
             continue;
+#ifdef HAS_ENOUGH_MEMORY
+	case 4: // skipover text
+	  if (hot == '\0')        // We did run to end of buffer without finding the "
+	    return -1;
+	  if (hot == '"') {
+	    *remainingCmd = '\0'; // overwrite " in command buffer with the end-of-string
+	    state = 1;
+	  }
+	  break;
+#endif
         }
         remainingCmd++;
     }
@@ -645,9 +672,22 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         StringFormatter::send(stream, F("\n"));
         return;
     case 'C': // CONFIG <C [params]>
-        if (parseC(stream, params, p))
-            return;
-        break;
+#if defined(ARDUINO_ARCH_ESP32)
+// currently this only works on ESP32
+#if defined(HAS_ENOUGH_MEMORY)
+      if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
+	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD
+	  break;
+	if (p[1] == 0x7777 && p[3] == 0x7777) {
+	  WifiESP::setup((const char*)(com + p[2]), (const char*)(com + p[4]), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+	}
+	return;
+      }
+#endif
+#endif //ESP32
+      if (parseC(stream, params, p))
+	return;
+      break;
 #ifndef DISABLE_DIAG
     case 'D': // DIAG <D [params]>
         if (parseD(stream, params, p))
@@ -1140,8 +1180,7 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 	}
         return true;
 #endif
-
-default: // invalid/unknown
+    default: // invalid/unknown
       break;
     }
     return false;
