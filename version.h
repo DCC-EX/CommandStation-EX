@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.79"
+#define VERSION "5.2.80"
+// 5.2.80 - EthernetInterface upgrade
 // 5.2.79 - serial manager loop that handles quoted strings
 //        - WiFiESP32 reconfig
 // 5.2.78 - NeoPixel support.

@@ -141,6 +141,7 @@ void setup()
   CommandDistributor::broadcastPower();
 }
 
+/**************** for future reference
 void looptimer(unsigned long timeout, const FSH* message)
 {
   static unsigned long lasttimestamp = 0;
@@ -156,58 +157,46 @@ void looptimer(unsigned long timeout, const FSH* message)
   }
   lasttimestamp = now;
 }
-
+*********************************************/
 void loop()
 {
   // The main sketch has responsibilities during loop()
 
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)
-  looptimer(0, F(""));
   DCC::loop();
-  looptimer(5000, F("DCC")); // got warnings up to 3884 during prog track read
-
+ 
   // Responsibility 2: handle any incoming commands on USB connection
   SerialManager::loop();
-  looptimer(2000, F("Serial")); // got warnings up to 1900 during start
-
+ 
   // Responsibility 3: Optionally handle any incoming WiFi traffic
 #ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
   WifiInterface::loop();
-  looptimer(9000, F("Wifi")); // got warnings up to 8000
-
+ 
 #endif //WIFI_ON
 #else  //ARDUINO_ARCH_ESP32
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
-  looptimer(1000, F("WifiESP"));
-
 #endif
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
-  looptimer(10000, F("Ethernet"));
 #endif
 
   RMFT::loop();  // ignored if no automation
-  looptimer(1000, F("RMFT"));
 
   #if defined(LCN_SERIAL)
   LCN::loop();
-  looptimer(1000, F("LCN"));
   #endif
 
   // Display refresh
   DisplayInterface::loop();
-  looptimer(2000, F("Display")); // got warnings around 1150
 
   // Handle/update IO devices.
   IODevice::loop();
-  looptimer(1000, F("IODevice"));
 
   Sensor::checkAll(); // Update and print changes
-  looptimer(1000, F("Sensor"));
 
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop

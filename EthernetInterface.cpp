@@ -36,9 +36,6 @@
   MDNS mdns(udp);
 #endif
 
-
-extern void looptimer(unsigned long timeout, const FSH* message);
-
 bool EthernetInterface::connected=false;
 EthernetServer * EthernetInterface::server= nullptr;
 EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
@@ -127,8 +124,7 @@ void EthernetInterface::setup()  // STM32 VERSION
 void EthernetInterface::loop()
 {
     if (!connected) return;
-    looptimer(5000, F("E.loop"));
-	      
+        
     static bool warnedAboutLink=false;
     if (Ethernet.linkStatus() == LinkOFF){
         if (warnedAboutLink) return;
@@ -136,8 +132,7 @@ void EthernetInterface::loop()
         warnedAboutLink=true;
         return;
     }
-    looptimer(5000, F("E.loop warn"));
-	  
+    
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
@@ -147,8 +142,6 @@ void EthernetInterface::loop()
   #ifdef DO_MDNS
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
-    looptimer(5000, F("E.mdns"));
-	  
   #endif
 
     //
@@ -168,8 +161,7 @@ void EthernetInterface::loop()
         //DIAG(F("maintained"));
         break;
     }
-    looptimer(5000, F("E.maintain"));
-	  
+    
       // get client from the server
   #if defined (STM32_ETHERNET)
     // STM32Ethernet doesn't use accept(), just available()
@@ -224,7 +216,6 @@ void EthernetInterface::loop()
 	      if (Diag::ETHERNET) DIAG(F("Ethernet s=%d, c=%d b=:%e"), socket, count, buffer);
 	      // execute with data going directly back
 	      CommandDistributor::parse(socket,buffer,outboundRing);
-	      //looptimer(5000, F("Ethloop2 parse"));
 	      return; // limit the amount of processing that takes place within 1 loop() cycle. 
 	    }
 	    
