@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = '../../.pio/build/mega2560/firmware.hex'
+elf = '../../.pio/build/mega2560/firmware.elf'
