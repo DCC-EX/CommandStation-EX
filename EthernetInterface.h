@@ -1,8 +1,10 @@
 /*
+ *  © 2023-2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2022 Harald Barth
+ *  © 2020-2024 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
  *  
@@ -35,6 +37,7 @@
 #if defined (ARDUINO_TEENSY41)
  #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
  #include <NativeEthernetUdp.h>   
+ #define MAX_SOCK_NUM 4
 #elif defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
  #include <LwIP.h>
 //  #include "STM32lwipopts.h"
@@ -67,8 +70,12 @@ class EthernetInterface {
     static bool connected;
     static EthernetServer * server;
     static EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
+    static bool inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     static uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
     static RingStream * outboundRing;
+    static void acceptClient();
+    static void dropClient(byte socketnum);
+    
 };
 
 #endif

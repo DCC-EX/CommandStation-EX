@@ -1,8 +1,10 @@
 /*
+ *  © 2024 Morten "Doc" Nielsen
+ *  © 2023-2024 Paul M. Antoine
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2024 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
  *  
@@ -36,9 +38,14 @@
   MDNS mdns(udp);
 #endif
 
+
+//extern void looptimer(unsigned long timeout, const FSH* message);
+#define looptimer(a,b)
+
 bool EthernetInterface::connected=false;
 EthernetServer * EthernetInterface::server= nullptr;
 EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
+bool EthernetInterface::inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
 RingStream * EthernetInterface::outboundRing = nullptr;
 
@@ -47,12 +54,13 @@ RingStream * EthernetInterface::outboundRing = nullptr;
  * 
  */
 
-void EthernetInterface::setup()  // STM32 VERSION
+void EthernetInterface::setup() 
 {
-  DIAG(F("Ethernet begin"
+  DIAG(F("Ethernet starting"
   #ifdef DO_MDNS
-    " with mDNS"
+    " (with mDNS)"
   #endif 
+    " Please be patient, especially if no cable is connected!"
   ));
   
   #ifdef STM32_ETHERNET
@@ -116,6 +124,47 @@ void EthernetInterface::setup()  // STM32 VERSION
   connected=true;    
 }
 
+#if defined (STM32_ETHERNET)
+void EthernetInterface::acceptClient() { // STM32 version
+  auto client=server->available();
+  if (!client) return;
+  // check for existing client
+  for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
+    if (inUse[socket] && client == clients[socket]) return;
+      
+  // new client
+  for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
+  {
+    if (!inUse[socket])
+    {
+      clients[socket] = client;
+      inUse[socket]=true;
+      if (Diag::ETHERNET)
+        DIAG(F("Ethernet: New client socket %d"), socket);
+      return;
+    }
+  }
+  DIAG(F("Ethernet OVERFLOW"));
+}
+#else
+void EthernetInterface::acceptClient() { // non-STM32 version
+  auto client=server->accept();
+  if (!client) return;
+  auto socket=client.getSocketNumber();
+  clients[socket]=client;
+  inUse[socket]=true;
+  if (Diag::ETHERNET)
+    DIAG(F("Ethernet: New client socket %d"), socket);
+}
+#endif
+
+void EthernetInterface::dropClient(byte socket) 
+{ 
+  clients[socket].stop();
+  inUse[socket]=false;
+  CommandDistributor::forget(socket);
+	if (Diag::ETHERNET)  DIAG(F("Ethernet: Disconnect %d "), socket);  
+}
 
 /**
  * @brief Main loop for the EthernetInterface
@@ -124,7 +173,8 @@ void EthernetInterface::setup()  // STM32 VERSION
 void EthernetInterface::loop()
 {
     if (!connected) return;
-        
+    looptimer(5000, F("E.loop"));
+	      
     static bool warnedAboutLink=false;
     if (Ethernet.linkStatus() == LinkOFF){
         if (warnedAboutLink) return;
@@ -132,7 +182,8 @@ void EthernetInterface::loop()
         warnedAboutLink=true;
         return;
     }
-    
+    looptimer(5000, F("E.loop warn"));
+	  
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
@@ -142,6 +193,8 @@ void EthernetInterface::loop()
   #ifdef DO_MDNS
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
+    looptimer(5000, F("E.mdns"));
+	  
   #endif
 
     //
@@ -161,50 +214,22 @@ void EthernetInterface::loop()
         //DIAG(F("maintained"));
         break;
     }
+    looptimer(5000, F("E.maintain"));
+	  
+    // get client from the server
+    acceptClient();
     
-      // get client from the server
-  #if defined (STM32_ETHERNET)
-    // STM32Ethernet doesn't use accept(), just available()
-    auto client = server->available();
-    if (client) {
-      // check for new client
-      byte socket;
-      bool sockfound = false;
-      for (socket = 0; socket < MAX_SOCK_NUM; socket++)
-      {
-        if (client == clients[socket])
-        {
-          sockfound = true;
-          break;
-        }
-      }
-      if (!sockfound)
-      { // new client
-        for (socket = 0; socket < MAX_SOCK_NUM; socket++)
-        {
-          if (!clients[socket])
-          {
-            clients[socket] = client;
-            sockfound=true;
-            if (Diag::ETHERNET)
-              DIAG(F("Ethernet: New client socket %d"), socket);
-            break;
-          }
-        }
-      }
-      if (!sockfound) DIAG(F("new Ethernet OVERFLOW"));
-    }
-  
-  #else
-    auto client = server->accept();
-    if (client) clients[client.getSocketNumber()]=client;
-  #endif
-    
+    // handle disconnected sockets because STM32 library doesnt
+    // do the read==0 response.
+    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
+    {
+      if (inUse[socket] && !clients[socket].connected()) dropClient(socket);
+    }  
 
     // check for incoming data from all possible clients
     for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
     {
-      if (!clients[socket]) continue; // socket is not in use
+      if (!inUse[socket]) continue; // socket is not in use
 	
 	    // read any bytes from this client
 	    auto count = clients[socket].read(buffer, MAX_ETH_BUFFER);
@@ -216,14 +241,13 @@ void EthernetInterface::loop()
 	      if (Diag::ETHERNET) DIAG(F("Ethernet s=%d, c=%d b=:%e"), socket, count, buffer);
 	      // execute with data going directly back
 	      CommandDistributor::parse(socket,buffer,outboundRing);
+	      //looptimer(5000, F("Ethloop2 parse"));
 	      return; // limit the amount of processing that takes place within 1 loop() cycle. 
 	    }
 	    
       // count=0 The client has disconnected
-	    clients[socket].stop();
-	    CommandDistributor::forget(socket);
-	    if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);
-	  }
+	    dropClient(socket);
+    }
 	
     WiThrottle::loop(outboundRing);
 
@@ -245,9 +269,11 @@ void EthernetInterface::loop()
 	      tmpbuf[i] = outboundRing->read();
 	    }
 	    tmpbuf[count]=0;
-	    if (Diag::ETHERNET) DIAG(F("Ethernet reply s=%d, c=%d, b:%e"),
+      if (inUse[socketOut]) {
+  	    if (Diag::ETHERNET) DIAG(F("Ethernet reply s=%d, c=%d, b:%e"),
                               socketOut,count,tmpbuf);
-	    clients[socketOut].write(tmpbuf,count);
+	      clients[socketOut].write(tmpbuf,count);
+      }
     }
     
 }

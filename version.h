@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.80"
-// 5.2.80 - EthernetInterface upgrade
+#define VERSION "5.2.81"
+// 5.2.81 - STM32 Ethernet boards support, also now have specific EX8874 motor driver definition
+// 5.2.80 - EthernetInterface upgrade, including STM32 Ethernet support
 // 5.2.79 - serial manager loop that handles quoted strings
 //        - WiFiESP32 reconfig
 // 5.2.78 - NeoPixel support.
