@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.82"
+#define VERSION "5.2.83"
+// 5.2.83 - Various STM32 related fixes for serial ports, I2C pullups now turned off, and shadowing of PORTG/PORTH for TrackManager now correct
 // 5.2.82 - TrackManager and EXRAIL: Introduce more consistent names for <= ...> and SET_TRACK
 // 5.2.81 - STM32 Ethernet boards support, also now have specific EX8874 motor driver definition
 // 5.2.80 - EthernetInterface upgrade, including STM32 Ethernet support
