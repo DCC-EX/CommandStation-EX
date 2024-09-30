@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.81"
+#define VERSION "5.2.82"
+// 5.2.82 - TrackManager and EXRAIL: Introduce more consistent names for <= ...> and SET_TRACK
 // 5.2.81 - STM32 Ethernet boards support, also now have specific EX8874 motor driver definition
 // 5.2.80 - EthernetInterface upgrade, including STM32 Ethernet support
 // 5.2.79 - serial manager loop that handles quoted strings
