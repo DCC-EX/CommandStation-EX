@@ -57,16 +57,16 @@ private:
       
   }
   void _writePortModes() override {
-    // Write 0 to REG_CONF_P0 & REG_CONF_P1 for in-use pins that are outputs, 1 for others.
+    // Write 0 to REG_CONF_P0 for in-use pins that are outputs, 1 for inputs.
     // PCA9554 & TCA9555, Interrupt is always enabled for raising and falling edge
-    uint16_t temp = ~(_portMode & _portInUse);
+    uint8_t temp = ~(_portMode & _portInUse);
     I2CManager.write(_I2CAddress, 2, REG_CONF_P0, temp);    
   }
   void _readGpioPort(bool immediate) override {
     if (immediate) {
       uint8_t buffer[2];
       I2CManager.read(_I2CAddress, buffer, 1, 1, REG_INPUT_P0);
-      _portInputState = buffer[0];
+      _portInputState = buffer[0] | _portMode;
       /* PCA9554 Int bug fix, from PCA9554 datasheet: "must change command byte to something besides 00h 
        * after a Read operation to the PCA9554 device or before reading from 
        * another device"
