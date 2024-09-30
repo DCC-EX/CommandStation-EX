@@ -29,21 +29,33 @@
 #include <wiring_private.h>
 
 // use powers of two so we can do logical and/or on the track modes in if clauses.
-// RACK_MODE_DCX is (TRACK_MODE_DC|TRACK_MODE_INV)
+// For example TRACK_MODE_DC_INV is (TRACK_MODE_DC|TRACK_MODIFIER_INV)
 template<class T> inline T operator~ (T a) { return (T)~(int)a; }
 template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
 template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
 template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
-enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
-                        TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16,
+enum TRACK_MODE : byte {
+  // main modes
+  TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
+  TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16,
+  // modifiers
+  TRACK_MODIFIER_INV = 64, TRACK_MODIFIER_AUTO = 128,
 #ifdef ARDUINO_ARCH_ESP32
-			TRACK_MODE_BOOST = 32,
+  TRACK_MODE_BOOST = 32,
+  TRACK_MODE_BOOST_INV = TRACK_MODE_BOOST|TRACK_MODIFIER_INV,
+  TRACK_MODE_BOOST_AUTO = TRACK_MODE_BOOST|TRACK_MODIFIER_AUTO,
 #else
-			TRACK_MODE_BOOST = 0,
+  TRACK_MODE_BOOST = 0,
+  TRACK_MODE_BOOST_INV = 0,
+  TRACK_MODE_BOOST_AUTO = 0,
 #endif
-                        TRACK_MODE_ALL = TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_EXT|TRACK_MODE_BOOST,
-                        TRACK_MODE_INV = 64,
-			TRACK_MODE_DCX = TRACK_MODE_DC|TRACK_MODE_INV, TRACK_MODE_AUTOINV = 128};
+  // derived modes; TRACK_ALL is calles that so it does not match TRACK_MODE_*
+  TRACK_ALL = TRACK_MODE_MAIN|TRACK_MODE_PROG|TRACK_MODE_DC|TRACK_MODE_EXT|TRACK_MODE_BOOST,
+  TRACK_MODE_MAIN_INV  =  TRACK_MODE_MAIN|TRACK_MODIFIER_INV,
+  TRACK_MODE_MAIN_AUTO =  TRACK_MODE_MAIN|TRACK_MODIFIER_AUTO,
+  TRACK_MODE_DC_INV =  TRACK_MODE_DC|TRACK_MODIFIER_INV,
+  TRACK_MODE_DCX = TRACK_MODE_DC_INV // DCX is other name for historical reasons
+};
 
 #define setHIGH(fastpin)  *fastpin.inout |= fastpin.maskHIGH
 #define setLOW(fastpin)   *fastpin.inout &= fastpin.maskLOW
@@ -273,7 +285,7 @@ class MotorDriver {
 #endif
   inline void setMode(TRACK_MODE m) {
     trackMode = m;
-    invertOutput(trackMode & TRACK_MODE_INV);
+    invertOutput(trackMode & TRACK_MODIFIER_INV);
   };
   inline void invertOutput() {               // toggles output inversion
     invertPhase = !invertPhase;

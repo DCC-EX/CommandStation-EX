@@ -387,11 +387,15 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     if (params>1 && (p[0]<0 || p[0]>=MAX_TRACKS)) 
         return false;
     
-    if (params==2  && p[1]=="MAIN"_hk) // <= id MAIN>
+    if (params==2  && p[1]=="MAIN"_hk)                     // <= id MAIN>
         return setTrackMode(p[0],TRACK_MODE_MAIN);
+    if (params==2  && p[1]=="MAIN_INV"_hk)                 // <= id MAIN_INV>
+        return setTrackMode(p[0],TRACK_MODE_MAIN_INV);
+    if (params==2  && p[1]=="MAIN_AUTO"_hk)                // <= id MAIN_AUTO>
+        return setTrackMode(p[0],TRACK_MODE_MAIN_AUTO);
     
 #ifndef DISABLE_PROG
-    if (params==2  && p[1]=="PROG"_hk) // <= id PROG>
+    if (params==2  && p[1]=="PROG"_hk)                     // <= id PROG>
         return setTrackMode(p[0],TRACK_MODE_PROG);
 #endif
     
@@ -402,20 +406,27 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
         return setTrackMode(p[0],TRACK_MODE_EXT);
 #ifdef BOOSTER_INPUT
     if (TRACK_MODE_BOOST != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST"_hk) // <= id BOOST>
+	params==2  && p[1]=="BOOST"_hk)                    // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
+    if (TRACK_MODE_BOOST_INV != 0 &&        // compile time optimization
+	params==2  && p[1]=="BOOST_INV"_hk)                // <= id BOOST_INV>
+        return setTrackMode(p[0],TRACK_MODE_BOOST_INV);
+    if (TRACK_MODE_BOOST_AUTO != 0 &&        // compile time optimization
+	params==2  && p[1]=="BOOST_AUTO"_hk)               // <= id BOOST_AUTO>
+        return setTrackMode(p[0],TRACK_MODE_BOOST_AUTO);
 #endif
-    if (params==2  && p[1]=="AUTO"_hk) // <= id AUTO>
-      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_AUTOINV);
+    if (params==2  && p[1]=="AUTO"_hk)                     // <= id AUTO>
+      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODIFIER_AUTO);
 
-    if (params==2  && p[1]=="INV"_hk) // <= id INV>
-      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODE_INV);
+    if (params==2  && p[1]=="INV"_hk)                      // <= id INV>
+      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODIFIER_INV);
 
-    if (params==3  && p[1]=="DC"_hk && p[2]>0) // <= id DC cab>
+    if (params==3  && p[1]=="DC"_hk && p[2]>0)             // <= id DC cab>
         return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
     
-    if (params==3  && p[1]=="DCX"_hk && p[2]>0) // <= id DCX cab>
-        return setTrackMode(p[0],TRACK_MODE_DC|TRACK_MODE_INV,p[2]);
+    if (params==3  && (p[1]=="DC_INV"_hk ||                // <= id DC_INV cab>
+		       p[1]=="DCX"_hk) && p[2]>0)          // <= id DCX cab>
+        return setTrackMode(p[0],TRACK_MODE_DC_INV,p[2]);
 
     return false;
 }
@@ -424,9 +435,9 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
   const FSH *modename=F("---");
   
   if (tm & TRACK_MODE_MAIN) {
-    if(tm & TRACK_MODE_AUTOINV)
+    if(tm & TRACK_MODIFIER_AUTO)
       modename=F("MAIN A");
-    else if (tm & TRACK_MODE_INV)
+    else if (tm & TRACK_MODIFIER_INV)
       modename=F("MAIN I>\n");
     else
       modename=F("MAIN");
@@ -440,15 +451,15 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
   else if(tm & TRACK_MODE_EXT)
     modename=F("EXT");
   else if(tm & TRACK_MODE_BOOST) {
-        if(tm & TRACK_MODE_AUTOINV)
+        if(tm & TRACK_MODIFIER_AUTO)
       modename=F("BOOST A");
-    else if (tm & TRACK_MODE_INV)
+    else if (tm & TRACK_MODIFIER_INV)
       modename=F("BOOST I");
     else
       modename=F("BOOST");
   }
   else if (tm & TRACK_MODE_DC) {
-    if (tm & TRACK_MODE_INV)
+    if (tm & TRACK_MODIFIER_INV)
       modename=F("DCX");
     else
       modename=F("DC");

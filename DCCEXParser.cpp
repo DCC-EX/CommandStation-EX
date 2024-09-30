@@ -577,7 +577,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         {
 	  if (params > 1) break;
 	  if (params==0) { // All
-	    TrackManager::setTrackPower(TRACK_MODE_ALL, POWERMODE::ON);
+	    TrackManager::setTrackPower(TRACK_ALL, POWERMODE::ON);
 	  }
 	  if (params==1) {
 	    if (p[0]=="MAIN"_hk) { // <1 MAIN>
@@ -610,7 +610,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	  if (params > 1) break;
 	  if (params==0) { // All
 	    TrackManager::setJoin(false);
-	    TrackManager::setTrackPower(TRACK_MODE_ALL, POWERMODE::OFF);
+	    TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
 	  }
 	  if (params==1) {
 	    if (p[0]=="MAIN"_hk) { // <0 MAIN>
