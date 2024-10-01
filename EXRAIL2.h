@@ -130,6 +130,7 @@ class LookList {
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
     static void clockEvent(int16_t clocktime, bool change);
+    static const int16_t SIGNAL_USE_ALT_MAP_FLAG=0x8000;
     static const int16_t SERVO_SIGNAL_FLAG=0x4000;
     static const int16_t ACTIVE_HIGH_SIGNAL_FLAG=0x2000;
     static const int16_t DCC_SIGNAL_FLAG=0x1000;

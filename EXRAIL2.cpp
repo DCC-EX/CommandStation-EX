@@ -1074,37 +1074,41 @@ int16_t RMFT2::getSignalSlot(int16_t id) {
     return;  
   }
 
-  
   if (sigtype== DCC_SIGNAL_FLAG) {
     // redpin,amberpin are the DCC addr,subaddr 
     DCC::setAccessory(redpin,amberpin, rag!=SIGNAL_RED);
     return; 
   }
 
-  // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
-  // If amberpin is zero, synthesise amber from red+green
-  const byte SIMAMBER=0x00;
-  if (rag==SIGNAL_AMBER && (amberpin==0)) rag=SIMAMBER; // special case this func only
-   
-  // Manage invert (HIGH on) pins
-  bool aHigh=sigid & ACTIVE_HIGH_SIGNAL_FLAG;
-      
-  // set the three pins 
-  if (redpin) {
-    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
-    if (!aHigh) redval=!redval;
-    IODevice::write(redpin,redval);
+  // we duck out early for a virtual signal
+  if (!(redpin | amberpin | greenpin)) return;
+
+  // at this point we have some kind of LED signal, so we're going to do everything by manipulation of the aspect map
+  int16_t aspect_map = (sigid & SIGNAL_USE_ALT_MAP_FLAG) ? SIGNAL_ALT_ASPECT : SIGNAL_MAIN_ASPECT;
+
+  // in the case of red and green available and amber not, synthesise SIGNAL_AMBER from red
+  // and green aspects, leaving the other bits of the aspect untouched
+  if (redpin && greenpin && !amberpin)
+    aspect_map = (aspect_map & 0707) | ((aspect_map & 0700) >> 3) | ((aspect_map & 07) << 3);
+
+  // invert the aspect map if HIGH is "off"
+  if (sigid & ACTIVE_HIGH_SIGNAL_FLAG)
+    aspect_map = 0777 - (aspect_map & 0777)
+
+  int8_t pin_map = 0;
+
+  switch (rag) {
+    case SIGNAL_RED:
+      pin_map = (aspect_map & 0700) >> 6; break;
+    case SIGNAL_AMBER:
+      pin_map = (aspect_map & 070) >> 3; break;
+    case SIGNAL_GREEN:
+      pin_map = aspect_map & 07; break;
   }
-  if (amberpin) {
-    bool amberval=(rag==SIGNAL_AMBER);
-    if (!aHigh) amberval=!amberval;
-    IODevice::write(amberpin,amberval);
-  }
-  if (greenpin) {
-    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
-    if (!aHigh) greenval=!greenval;
-    IODevice::write(greenpin,greenval);
-  }
+
+  if (redpin) IODevice::write(redpin, !!(pin_map & 04));
+  if (amberpin) IODevice::write(amberpin, !!(pin_map & 02));
+  if (greenpin) IODevice::write(greenpin, !!(pin_map & 01));
 }
 
 /* static */ bool RMFT2::isSignal(int16_t id,char rag) {

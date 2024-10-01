@@ -261,7 +261,7 @@ The configuration file for DCC-EX Command Station
 // 2. The app will be bigger that 1.2MB, so the default partition scheme will not
 //    work any more. You need to choose a partition scheme with 2MB (or bigger).
 //    For example "NO OTA (2MB APP, 2MB SPIFFS)" in the Arduino IDE.
-// 3. There is no securuity (PIN) implemented. Everyone in radio range can pair
+// 3. There is no security (PIN) implemented. Everyone in radio range can pair
 //    with your CS.
 //
 //#define SERIAL_BT_COMMANDS
@@ -278,3 +278,15 @@ The configuration file for DCC-EX Command Station
 //#define SABERTOOTH 1
 
 /////////////////////////////////////////////////////////////////////////////////////
+// don't change this, this defines the main aspect as RED -> red pin, AMBER -> amber
+// pin, and GREEN -> green pin
+// these are octal int16_t types defining aspect and pin map:
+//   -----------N/A-----------   ---RED---   --AMBER--   --GREEN--
+//                               r   a   g   r   a   g   r   a   g
+// | f | e | d | c | b | a | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+//
+#define SIGNAL_MAIN_ASPECT 0421
+// this defines an alternate aspect (eg. here, the Deutsche Bahn RED -> red pin,
+// AMBER -> amber pin and green pin, GREEN -> green pin)
+// These can be selected with the SIGNALA and SIGNALAH automations in myAutomation.h
+#define SIGNAL_ALT_ASPECT 0431

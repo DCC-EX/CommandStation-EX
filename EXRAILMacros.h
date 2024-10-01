@@ -234,6 +234,11 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define SIGNAL(redpin,amberpin,greenpin) redpin,redpin,amberpin,greenpin, 
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin) redpin | RMFT2::ACTIVE_HIGH_SIGNAL_FLAG,redpin,amberpin,greenpin, 
+#undef SIGNALA
+#define SIGNALA(redpin,amberpin,greenpin) redpin | RMFT2::SIGNAL_USE_ALT_MAP_FLAG,redpin,amberpin,greenpin, 
+#undef SIGNALAH
+#define SIGNALAH(redpin,amberpin,greenpin) redpin | RMFT2::ACTIVE_HIGH_SIGNAL_FLAG | RMFT2::SIGNAL_USE_ALT_MAP_FLAG, \
+    redpin,amberpin,greenpin, 
 #undef SERVO_SIGNAL
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) vpin | RMFT2::SERVO_SIGNAL_FLAG,redval,amberval,greenval, 
 #undef DCC_SIGNAL
