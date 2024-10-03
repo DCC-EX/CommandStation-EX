@@ -160,8 +160,8 @@ void TrackManager::setDCCSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
-  HAVE_PORTG(shadowPORTG=PORTG);
-  HAVE_PORTH(shadowPORTH=PORTH);
+  HAVE_PORTG(PORTG=shadowPORTG);
+  HAVE_PORTH(PORTH=shadowPORTH);
 }
 
 // setPROGSignal(), called from interrupt context
@@ -182,8 +182,8 @@ void TrackManager::setPROGSignal( bool on) {
   HAVE_PORTD(PORTD=shadowPORTD);
   HAVE_PORTE(PORTE=shadowPORTE);
   HAVE_PORTF(PORTF=shadowPORTF);
-  HAVE_PORTG(shadowPORTG=PORTG);
-  HAVE_PORTH(shadowPORTH=PORTH);
+  HAVE_PORTG(PORTG=shadowPORTG);
+  HAVE_PORTH(PORTH=shadowPORTH);
 }
 
 // setDCSignal(), called from normal context
