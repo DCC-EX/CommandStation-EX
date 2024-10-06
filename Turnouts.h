@@ -37,6 +37,7 @@ enum {
   TURNOUT_SERVO = 2,
   TURNOUT_VPIN = 3,
   TURNOUT_LCN = 4,
+  TURNOUT_HBRIDGE = 5,
 };
 
 /*************************************************************************************
@@ -284,6 +285,41 @@ protected:
 
 };
 
+/*************************************************************************************
+ * HBridgeTurnout - Turnout controlled through a pair of HAL pins.
+ *
+ * Hard limited to maximum 0.5 second to avoid burning the coil
+ * Typical millisDelay should be within between 50 and 100
+ *************************************************************************************/
+class HBridgeTurnout : public Turnout {
+private:
+  // HBridgeTurnoutData contains data specific to this subclass that is
+  // written to EEPROM when the turnout is saved.
+  struct HBridgeTurnoutData {
+    VPIN pin1;
+    VPIN pin2;
+    uint16_t millisDelay;
+  } _hbridgeTurnoutData; // 6 bytes
+
+  // Constructor
+ HBridgeTurnout(uint16_t id, VPIN pin1, VPIN pin2, uint16_t millisDelay, bool closed);
+
+public:
+  // Create function
+  static Turnout *create(uint16_t id, VPIN pin1, VPIN pin2, uint16_t millisDelay, bool closed=true);
+
+  // Load a HBRIDGE turnout definition from EEPROM.  The common Turnout data has already been read at this point.
+  static Turnout *load(struct TurnoutData *turnoutData);
+  void print(Print *stream) override;
+
+protected:
+  bool setClosedInternal(bool close) override;
+  void save() override;
+
+private:
+  void turnUpDown(VPIN pin);
+
+};
 
 /*************************************************************************************
  * LCNTurnout - Turnout controlled by Loconet

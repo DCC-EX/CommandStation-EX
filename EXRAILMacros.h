@@ -174,6 +174,8 @@ void  RMFT2::printMessage(uint16_t id) {
 #define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
 #undef TURNOUTL
 #define TURNOUTL(id,addr,description...) O_DESC(id,description)
+#undef HBRIDGE_TURNOUT
+#define HBRIDGE_TURNOUT(id,pin1,pin2,delay_ms,description...) O_DESC(id,description)
 #undef PIN_TURNOUT
 #define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
 #undef SERVO_TURNOUT
@@ -293,6 +295,7 @@ const  HIGHFLASH  int16_t RMFT2::SignalDefinitions[] = {
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
 #define HAL(haltype,params...)
+#define HBRIDGE_TURNOUT(id,pin1,pin2,delay,description...) OPCODE_HBRIDGETURNOUT,V(id),OPCODE_PAD,V(pin1),OPCODE_PAD,V(pin2),OPCODE_PAD,V(delay),
 #define IF(sensor_id) OPCODE_IF,V(sensor_id),
 #define IFAMBER(signal_id) OPCODE_IFAMBER,V(signal_id),
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
