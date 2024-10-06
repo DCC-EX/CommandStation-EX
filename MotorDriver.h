@@ -61,6 +61,10 @@ enum TRACK_MODE : byte {TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PRO
 #define PORTC GPIOC->ODR
 #define HAVE_PORTC(X) X
 #endif
+#if defined(ARDUINO_ARCH_RP2040)
+#define HAVE_PORTA(X) X
+#define PORTA (sio_hw->gpio_out)
+#endif
 
 // if macros not defined as pass-through we define
 // them here as someting that is valid as a
@@ -92,7 +96,7 @@ public:
   byte invpin = UNUSED_PIN;
 };
 
-#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
+#if defined(__IMXRT1062__) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_RP2040)
 typedef uint32_t portreg_t;
 #else
 typedef uint8_t portreg_t;

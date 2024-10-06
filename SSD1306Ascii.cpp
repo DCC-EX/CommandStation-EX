@@ -159,7 +159,14 @@ SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height) {
 
 bool SSD1306AsciiWire::begin() {
   I2CManager.begin();
-  I2CManager.setClock(400000L);  // Set max supported I2C speede
+  I2CManager.setClock(400000L);  // Set max supported I2C speed
+
+#if defined(OLED_HAS_RESET_PIN)
+  pinMode(OLED_HAS_RESET_PIN, OUTPUT);
+  digitalWrite(OLED_HAS_RESET_PIN, LOW);
+  delay(1);
+  digitalWrite(OLED_HAS_RESET_PIN, HIGH);
+#endif
 
   if (m_i2cAddr == 0) {
     // Probe for I2C device on 0x3c and 0x3d.

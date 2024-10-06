@@ -59,7 +59,21 @@
 
 // Arduino STANDARD Motor Shield, used on different architectures:
 
-#if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_RP2040)
+// Standard Motor Shield definition for RP2040
+// This setup is for the iLabs Challenger NB RP2040 WiFi board. Other boards likely need
+// a separate setup.
+#define STANDARD_MOTOR_SHIELD "STANDARD_MOTOR_SHIELD", \
+                              new MotorDriver(D17, D16, UNUSED_PIN, D15, A0, 0.488, 1500, UNUSED_PIN), \
+                              new MotorDriver(D14, D13, UNUSED_PIN, D12, A1, 0.488, 1500, UNUSED_PIN)
+#define RP2040_STANDARD_MOTOR_SHIELD STANDARD_MOTOR_SHIELD
+
+// EX 8874 based shield connected to a 3V3 system with 12-bit (4096) ADC
+#define EX8874_SHIELD "EX8874", \
+ new MotorDriver(D17, D16, UNUSED_PIN, D15, A0, 1.27, 5000, A4), \
+ new MotorDriver(D14, D13, UNUSED_PIN, D12, A1, 1.27, 5000, A5)
+
+#elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
 // Standard Motor Shield definition for 3v3 processors (other than the ESP32)
 // Setup for SAMD21 Sparkfun DEV board MUST use Arduino Motor Shield R3 (MUST be R3
 // for 3v3 compatibility!!) senseFactor for 3.3v systems is 1.95 as calculated when using

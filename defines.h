@@ -147,12 +147,8 @@
   #ifndef I2C_USE_WIRE
   #define I2C_USE_WIRE
   #endif
-
-/* TODO when ready 
 #elif defined(ARDUINO_ARCH_RP2040)
   #define ARDUINO_TYPE "RP2040"
-*/
-
 #else
   #define CPU_TYPE_ERROR
 #endif
@@ -212,6 +208,7 @@
 // Currently only devices which can communicate at 115200 are supported.
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
+#define WIFI_SERIAL_PORT Serial2
 
 #if __has_include ( "myAutomation.h")
   #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)
