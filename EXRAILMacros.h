@@ -63,6 +63,10 @@
 // playing sounds with IO_I2CDFPlayer
 #define PLAYSOUND ANOUT
 
+// SEG7 is a helper to create ANOUT from a 7-segment requets
+#define SEG7(vpin,value,format) \
+   ANOUT(vpin,(value & 0xFFFF),TM1638::DF_##format,((uint32_t)value)>>16)
+
 // helper macro to strip leading zeros off time inputs
 // (10#mins)%100)
 #define STRIP_ZERO(value) 10##value%100
