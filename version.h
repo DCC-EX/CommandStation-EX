@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.84"
+#define VERSION "5.2.85"
+// 5.2.85 - IO_TM1638 driver, SEG7 Exrail macro and _s7 segment pattern generator.
 // 5.2.84 - Fix TrackManager setDCCSignal and setPROGSignal for STM32 shadowing of PORTG/PORTH - this time it really is correct!
 // 5.2.83 - Various STM32 related fixes for serial ports, I2C pullups now turned off, and shadowing of PORTG/PORTH for TrackManager now correct
 // 5.2.82 - TrackManager and EXRAIL: Introduce more consistent names for <= ...> and SET_TRACK

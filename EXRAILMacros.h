@@ -63,7 +63,7 @@
 // playing sounds with IO_I2CDFPlayer
 #define PLAYSOUND ANOUT
 
-// SEG7 is a helper to create ANOUT from a 7-segment requets
+// SEG7 is a helper to create ANOUT from a 7-segment request
 #define SEG7(vpin,value,format) \
    ANOUT(vpin,(value & 0xFFFF),TM1638::DF_##format,((uint32_t)value)>>16)
 
