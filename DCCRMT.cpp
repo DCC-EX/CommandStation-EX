@@ -17,6 +17,25 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/*
+ * RMT has "channels" which us FIFO RAM where you place what you want to send
+ * or receive. Channels can be merged to get more words per channel.
+ *
+ * WROOM: 8 channels total of 512 words, 64 words per channel. We use currently
+ * channel 0+1 for 128 words for DCC MAIN and 2+3 for DCC PROG.
+ *
+ * S3: 8 channels total of 384 words. 4 channels dedicated for TX and 4 channels
+ * dedicated for RX. 48 words per channel. So for TX there are 4 channels and we
+ * could use them with 96 words for MAIN and PROG if DCC data does fit in there.
+ *
+ * C3: 4 channels total of 192 words. As we do not use RX we can use all for TX
+ * so the situation is the same as for the -S3
+ *
+ * C6, H2: 4 channels total of 192 words. 2 channels dedictaed for TX and
+ * 2 channels dedicated for RX. Half RMT capacity compared to the C3.
+ *
+ */
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include "DIAG.h"
