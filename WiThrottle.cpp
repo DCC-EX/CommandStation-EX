@@ -1,7 +1,7 @@
 /*
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2020-2022 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
@@ -97,12 +97,18 @@ WiThrottle::WiThrottle( int wificlientid) {
    nextThrottle=firstThrottle;
    firstThrottle= this;
    clientid=wificlientid;
+#ifdef HEARTBEAT_CRITICAL
+   heartBeatEnable=true;  // do not run without heartbeat
+#else
    heartBeatEnable=false; // until client turns it on
+#endif
    mostRecentCab=0;                
    for (int loco=0;loco<MAX_MY_LOCO; loco++) myLocos[loco].throttle='\0';
 }
 
 WiThrottle::~WiThrottle() {
+  // emergency stop any loco that was controlled from this throttle
+  eStop();
   if (Diag::WITHROTTLE) DIAG(F("Deleting WiThrottle client %d"),this->clientid);
   if (firstThrottle== this) {
     firstThrottle=this->nextThrottle;
@@ -140,7 +146,12 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
     switch (cmd[0]) {
     case '*':  // heartbeat control
       if (cmd[1]=='+') heartBeatEnable=true;
-      else if (cmd[1]=='-') heartBeatEnable=false;
+      else if (cmd[1]=='-') {
+#ifdef HEARTBEAT_CRITICAL
+	eStop();
+#endif
+	heartBeatEnable=false;
+      }
       break;
     case 'P':  
       if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
@@ -303,10 +314,14 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
   switch (aval[0]) {
   case 'V':  // Vspeed
     { 
-      int witSpeed=getInt(aval+1);
+      uint8_t dccSpeed = WiTToDCCSpeed(getInt(aval+1));
+#ifdef HEARTBEAT_CRITICAL
+      if (heartBeatEnable == false) // if there is no heartBeat, keep throttle at
+	dccSpeed = 1;               // emegency stop (dccSpeed 1)
+#endif
       LOOPLOCOS(throttleChar, cab) {
 	mostRecentCab=myLocos[loco].cab;
-	DCC::setThrottle(myLocos[loco].cab, WiTToDCCSpeed(witSpeed), DCC::getThrottleDirection(myLocos[loco].cab));
+	DCC::setThrottle(myLocos[loco].cab, dccSpeed, DCC::getThrottleDirection(myLocos[loco].cab));
 	// SetThrottle will cause speed change broadcast
       }
     } 
@@ -394,19 +409,28 @@ void WiThrottle::loop(RingStream * stream) {
     wt->checkHeartbeat(stream);
 }
 
+void WiThrottle::eStop() {
+  LOOPLOCOS('*', -1) { 
+    if (myLocos[loco].throttle!='\0') {
+      if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d"),millis(),myLocos[loco].cab);
+      DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
+    }
+  }
+}
+
 void WiThrottle::checkHeartbeat(RingStream * stream) {
   // if eStop time passed... eStop any locos still assigned to this client and then drop the connection
   if(heartBeatEnable && (millis()-heartBeat > ESTOP_SECONDS*1000)) {
-    if (Diag::WITHROTTLE)  DIAG(F("%l WiThrottle(%d) eStop(%ds) timeout, drop connection"), millis(), clientid, ESTOP_SECONDS);
-    LOOPLOCOS('*', -1) { 
-      if (myLocos[loco].throttle!='\0') {
-        if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d"),millis(),myLocos[loco].cab);
-        DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
-	heartBeat=millis(); // We have just stopped everyting, we don't need to do that again at next loop.
-      }
+    if (Diag::WITHROTTLE)  DIAG(F("%l WiThrottle(%d) eStop(%ds) timeout"), millis(), clientid, ESTOP_SECONDS);
+    if (missedHeartbeatCounter++ > 10) {
+      if (Diag::WITHROTTLE)  DIAG(F("Too many missed heartbeats, drop connection"));
+      delete this;
+      return;
     }
-    // if it does come back, the throttle should re-acquire 
-    delete this;
+    eStop();
+    heartBeat=millis(); // We have just stopped everyting, we don't need to do that again at next loop.
+    // Destructor will take care of estop. If it does come back, the throttle should re-acquire 
+    // delete this;
     return;
   }
    

@@ -1,6 +1,7 @@
 /*
  *  © 2021 Mike S
  *  © 2020-2021 Chris Harlow
+ *  © 2024 Harald Barth
  *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -20,7 +21,7 @@
  */
 #ifndef WiThrottle_h
 #define WiThrottle_h
-
+#include "defines.h"
 #include "RingStream.h"
 
 struct MYLOCO {
@@ -45,9 +46,15 @@ class WiThrottle {
     ~WiThrottle();
    
       static const int MAX_MY_LOCO=10;      // maximum number of locos assigned to a single client
+#ifdef HEARTBEAT_CRITICAL
+      static const int HEARTBEAT_SECONDS=1;
+      static const int HEARTBEAT_PRELOAD=2;
+      static const int ESTOP_SECONDS=3;
+#else
       static const int HEARTBEAT_SECONDS=10; // heartbeat at 10 secs to provide messaging transport
       static const int HEARTBEAT_PRELOAD=2; // request fast callback when connecting multiple messages
-      static const int ESTOP_SECONDS=20;     // eStop if no incoming messages for more than 8secs
+      static const int ESTOP_SECONDS=20;     // eStop if no incoming messages for more than 20secs
+#endif
       static WiThrottle* firstThrottle;
       static int getInt(byte * cmd);
       static int getLocoId(byte * cmd);
@@ -62,6 +69,7 @@ class WiThrottle {
       MYLOCO myLocos[MAX_MY_LOCO];   
       bool heartBeatEnable;
       unsigned long heartBeat;
+      uint8_t missedHeartbeatCounter = 0;
       bool introSent=false; 
       bool turnoutsSent=false; 
       bool rosterSent=false; 
@@ -75,6 +83,7 @@ class WiThrottle {
       void multithrottle(RingStream * stream, byte * cmd);
       void locoAction(RingStream * stream, byte* aval, char throttleChar, int cab);
       void accessory(RingStream *, byte* cmd);
+      void eStop();
       void checkHeartbeat(RingStream * stream); 
       void markForBroadcast2(int cab);
       void sendIntro(Print * stream);
