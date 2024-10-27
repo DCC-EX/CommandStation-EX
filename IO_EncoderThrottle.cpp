@@ -141,4 +141,3 @@ const byte _DIR_MASK = 0x30;
   void EncoderThrottle::_display() {
     DIAG(F("DRIVE vpin %d loco %d notch %d"),_firstVpin,_locoid,_notch);
   }
-

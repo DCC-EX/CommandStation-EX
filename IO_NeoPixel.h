@@ -206,6 +206,7 @@ private:
   
  // loop called by HAL supervisor 
   void _loop(unsigned long currentMicros) override {
+    (void)currentMicros;
     if (!_showPendimg) return;
     byte showBuffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_SHOW};
     I2CManager.write(_I2CAddress,showBuffer,sizeof(showBuffer));
@@ -291,7 +292,7 @@ private:
   }
 
   
-  void transmit(uint16_t pixel, bool show=true) { 
+  void transmit(uint16_t pixel) { 
     byte buffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
     uint16_t offset= pixel * _bytesPerPixel;
     buffer[2]=(byte)(offset>>8);

@@ -377,4 +377,3 @@ void CommandDistributor::setVirtualLCDSerial(Print * stream) {
 Print* CommandDistributor::virtualLCDSerial=&USB_SERIAL;
 byte CommandDistributor::virtualLCDClient=0xFF;
 byte CommandDistributor::rememberVLCDClient=0;
-

@@ -483,4 +483,3 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
     }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
-

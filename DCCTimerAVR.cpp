@@ -197,6 +197,8 @@ void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
 }
 void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
 #if defined(ARDUINO_AVR_UNO)
+      (void)fbits;
+      (void) pin;
       // Not worth doin something here as:
       // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
       // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.

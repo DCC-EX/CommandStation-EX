@@ -527,4 +527,3 @@
     StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
     !_turnoutData.closed); 
   }
-
