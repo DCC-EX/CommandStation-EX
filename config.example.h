@@ -333,5 +333,19 @@ The configuration file for DCC-EX Command Station
 // to the sabertooth controller _as_well_. Default: Undefined.
 //
 //#define SABERTOOTH 1
-
+//
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// SENSORCAM
+// ESP32-CAM based video sensors require #define to use appropriate base vpin number.
+//#define SENSORCAM_VPIN 700
+// To bypass vPin number, define CAM for ex-rail use e.g. AT(CAM 012) for S12 etc.
+//#define CAM SENSORCAM_VPIN+
+//
+//#define SENSORCAM2_VPIN 600   //define other CAM's if installed.
+//#define CAM2 SENSORCAM2_VPIN+ //for EX-RAIL commands e.g. IFLT(CAM2 020,1)
+//
+// For smoother power-up, define a STARTUP_DELAY to allow CAM to initialise ref images
+//#define STARTUP_DELAY 5000    // up to 20sec. CS delay
+//
 /////////////////////////////////////////////////////////////////////////////////////

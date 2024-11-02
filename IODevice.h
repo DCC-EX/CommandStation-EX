@@ -571,5 +571,6 @@ protected:
 #include "IO_TCA8418.h"
 #include "IO_NeoPixel.h"
 #include "IO_TM1638.h"
+#include "IO_EXSensorCAM.h"
 
 #endif // iodevice_h
