@@ -144,7 +144,9 @@ void EthernetInterface::acceptClient() { // STM32 version
       return;
     }
   }
-  DIAG(F("Ethernet OVERFLOW"));
+  // reached here only if more than MAX_SOCK_NUM clients want to connect
+  DIAG(F("Ethernet more than %d clients, not accepting new connection"), MAX_SOCK_NUM);
+  client.stop();
 }
 #else
 void EthernetInterface::acceptClient() { // non-STM32 version
