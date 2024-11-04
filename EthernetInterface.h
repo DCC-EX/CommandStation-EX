@@ -45,7 +45,7 @@
  #include <lwip/netif.h>
  extern "C" struct netif gnetif;
  #define STM32_ETHERNET
- #define MAX_SOCK_NUM 8
+ #define MAX_SOCK_NUM MAX_NUM_TCP_CLIENTS
 #else
  #include "Ethernet.h"
 #endif

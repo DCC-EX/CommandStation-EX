@@ -239,4 +239,19 @@
   #endif
 #endif
 
+#if defined(ARDUINO_ARCH_STM32)
+// Allow override of MAX_NUM_TCP_CLIENTS but default is 10
+ #ifndef MAX_NUM_TCP_CLIENTS
+  #define MAX_NUM_TCP_CLIENTS 10
+ #endif
+#else
+ #if defined(ARDUINO_ARCH_ESP32)
+// Espressif LWIP stack
+  #define MAX_NUM_TCP_CLIENTS 10
+ #else
+// Wifi shields etc
+  #define MAX_NUM_TCP_CLIENTS 8
+ #endif
 #endif
+
+#endif //DEFINES_H

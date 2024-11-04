@@ -36,13 +36,13 @@
 
 class CommandDistributor {
 public:
-  enum clientType: byte {NONE_TYPE,COMMAND_TYPE,WITHROTTLE_TYPE};
+  enum clientType: byte {NONE_TYPE=0,COMMAND_TYPE,WITHROTTLE_TYPE};
 private:
   static void broadcastToClients(clientType type);
   static StringBuffer * broadcastBufferWriter;
   #ifdef CD_HANDLE_RING
     static RingStream * ring;
-    static clientType clients[8];
+    static clientType clients[MAX_NUM_TCP_CLIENTS];
   #endif
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);

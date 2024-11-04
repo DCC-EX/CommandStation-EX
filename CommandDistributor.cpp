@@ -56,8 +56,7 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
 #ifdef CD_HANDLE_RING
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
-  CommandDistributor::clientType  CommandDistributor::clients[8]={
-    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
+CommandDistributor::clientType  CommandDistributor::clients[MAX_NUM_TCP_CLIENTS]={ NONE_TYPE }; // 0 is and must be NONE_TYPE
 
 // Parse is called by Withrottle or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex

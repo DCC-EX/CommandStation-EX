@@ -137,6 +137,13 @@ The configuration file for DCC-EX Command Station
 //
 //#define ENABLE_ETHERNET true
 
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// MAX_NUM_TCP_CLIENTS: If you on STM32 Ethernet (and only there) want more than
+// 10 TCP clients, enable this here **AND** follow the instructions in STM32lwiopts.h
+//
+//#define MAX_NUM_TCP_CLIENTS 20
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
