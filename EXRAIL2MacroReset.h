@@ -309,7 +309,7 @@
 #define READ_LOCO 
 #define RED(signal_id) 
 #define RESERVE(blockid) 
-#define RESET(pin) 
+#define RESET(pin,count...) 
 #define RESUME 
 #define RETURN 
 #define REV(speed) 
@@ -335,7 +335,7 @@
 #define SERVO2(id,position,duration) 
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
-#define SET(pin) 
+#define SET(pin,count...) 
 #define SET_TRACK(track,mode)
 #define SET_POWER(track,onoff)
 #define SETLOCO(loco) 

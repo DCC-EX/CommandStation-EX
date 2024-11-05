@@ -607,7 +607,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
-#define RESET(pin) OPCODE_RESET,V(pin),
+#define RESET(pin,count...) OPCODE_RESET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define RESUME OPCODE_RESUME,0,0,
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
@@ -635,7 +635,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
-#define SET(pin) OPCODE_SET,V(pin),
+#define SET(pin,count...) OPCODE_SET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
 #define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff),OPCODE_PAD, V(TRACK_NUMBER_##track),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
