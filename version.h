@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.2.88"
+#define VERSION "5.2.89"
+// 5.2.89 - EXRAIL SET(vpin[,npins]) RESET(vpin,[,npins]) pin range manipulation 
 // 5.2.88 - Fix bug where EX-Turntable objects return incorrect angle for home with <JP x>
 // 5.2.87 - CamParser and IO_EXSensorCam driver
 // 5.2.86 - IO_TCA8418 driver for keypad matrix input now fully functioning, including being able to use an interrupt pin
