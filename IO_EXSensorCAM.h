@@ -121,6 +121,7 @@ void _begin() {
 // Configuration isn't done frequently so we can use blocking I2C calls here, and so buffers can
 // be allocated from the stack to reduce RAM allocation.
 bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override { 
+  (void)configType; (void)params; // unused
   if(_verPrint) DIAG(F("_configure() driver IO_EXSensorCAM v0.%d.%d vpin: %d "), driverVer/100,driverVer%100,vpin);
   _verPrint=false;           //only give driver versions once
   if (paramCount != 1) return false;

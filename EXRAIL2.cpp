@@ -680,7 +680,7 @@ void RMFT2::loop2() {
   case OPCODE_RESET:
     { 
       auto count=getOperand(1);
-      for (int i=0;i<count;i++) {
+      for (uint16_t i=0;i<count;i++) {
         killBlinkOnVpin(operand+i);
         IODevice::write(operand+i,opcode==OPCODE_SET);
       }
