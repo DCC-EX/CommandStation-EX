@@ -252,8 +252,12 @@ The STM32F4x7 allows computing and verifying the IP, UDP, TCP and ICMP checksums
   * an operating system. */
 //#define ETH_INPUT_USE_IT 1
 
-#define LWIP_MDNS_RESPONDER             1
+// We don't need this as we do not need to respond - we only announce
+//#define LWIP_MDNS_RESPONDER             1
+//#define LWIP_NUM_NETIF_CLIENT_DATA      1 // MDNS needs at least one
 #define LWIP_IGMP                       1
+#define SO_REUSE 1
+#define SO_REUSE_RXTOALL 1
 #warning testing this
 
 #endif /* __STM32LWIPOPTS_H__ */

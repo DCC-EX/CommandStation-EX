@@ -36,8 +36,16 @@
   #define DO_MDNS 
   EthernetUDP udp;
   MDNS mdns(udp);
+void serviceFound(const char* type, MDNSServiceProtocol /*proto*/, const char* name, IPAddress ip,
+                  unsigned short port, const char* txtContent)
+{
+  if (name == NULL) {
+    DIAG("End service discovery of %s", type);
+    return;
+  }
+  DIAG("Got %s of type %s", name, type);
+}
 #endif
-
 
 //extern void looptimer(unsigned long timeout, const FSH* message);
 #define looptimer(a,b)
@@ -117,7 +125,10 @@ void EthernetInterface::setup()
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
   #ifdef DO_MDNS
     mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
+    udp.begin(IPAddress(224, 0, 0, 251), 5353, true);
     mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
+//    mdns.setServiceFoundCallback(serviceFound);
+//    mdns.startDiscoveringService("_withrottle", MDNSServiceTCP, 0);
   // Not sure if we need to run it once, but just in case!
     mdns.run();
   #endif  
