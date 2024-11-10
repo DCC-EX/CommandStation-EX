@@ -57,8 +57,8 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEM_SIZE                (10*1024)
 
 // Could be better or worse, needs more tests
-//#define MEM_LIBC_MALLOC         1
-//#define MEMP_MEM_MALLOC         1
+#define MEM_LIBC_MALLOC         1       // critical, fixes heap trashing
+#define MEMP_MEM_MALLOC         1       // uses malloc which means no pools which means slower but not mean 32KB up front
 
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this

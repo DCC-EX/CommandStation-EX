@@ -31,7 +31,13 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
-#if __has_include ( "MDNS_Generic.h")
+
+#include "EXmDNS.h"
+#define DO_MDNS
+EthernetUDP udp;
+MDNS mdns(udp);
+
+#if 0 //#if __has_include ( "MDNS_Generic.h")
   #include "MDNS_Generic.h"
   #define DO_MDNS 
   EthernetUDP udp;
@@ -124,11 +130,9 @@ void EthernetInterface::setup()
  
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
   #ifdef DO_MDNS
-    mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
-    udp.begin(IPAddress(224, 0, 0, 251), 5353, true);
-    mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
-//    mdns.setServiceFoundCallback(serviceFound);
-//    mdns.startDiscoveringService("_withrottle", MDNSServiceTCP, 0);
+    if (!mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME))
+      DIAG("mdns.begin fail"); // hostname
+    mdns.addServiceRecord(WIFI_HOSTNAME, IP_PORT, MDNSServiceTCP);
   // Not sure if we need to run it once, but just in case!
     mdns.run();
   #endif  
