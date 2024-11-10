@@ -31,13 +31,16 @@
 #define EthernetInterface_h
 
 #include "defines.h"
+#if ETHERNET_ON == true
 #include "DCCEXParser.h"
 #include <Arduino.h>
 //#include <avr/pgmspace.h>
 #if defined (ARDUINO_TEENSY41)
  #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
  #include <NativeEthernetUdp.h>   
+ #ifndef MAX_SOCK_NUM
  #define MAX_SOCK_NUM 4
+ #endif
 #elif defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
  #include <LwIP.h>
 //  #include "STM32lwipopts.h"
@@ -46,6 +49,7 @@
  extern "C" struct netif gnetif;
  #define STM32_ETHERNET
  #define MAX_SOCK_NUM MAX_NUM_TCP_CLIENTS
+ #define DO_MDNS
 #else
  #include "Ethernet.h"
 #endif
@@ -77,5 +81,5 @@ class EthernetInterface {
     static void dropClient(byte socketnum);
     
 };
-
+#endif // ETHERNET_ON
 #endif

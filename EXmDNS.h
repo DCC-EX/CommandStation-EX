@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#ifdef DO_MDNS
 #define BROADCASTTIME 15 //seconds
 
 typedef enum _MDNSServiceProtocol_t 
@@ -41,3 +41,4 @@ private:
   char* _serviceProto;
   int _servicePort;
 };
+#endif //DO_MDNS

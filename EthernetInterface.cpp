@@ -32,10 +32,11 @@
 #include "WiThrottle.h"
 #include "DCCTimer.h"
 
+#ifdef DO_MDNS
 #include "EXmDNS.h"
-#define DO_MDNS
 EthernetUDP udp;
 MDNS mdns(udp);
+#endif
 
 //extern void looptimer(unsigned long timeout, const FSH* message);
 #define looptimer(a,b)

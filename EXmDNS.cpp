@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 #include "EthernetInterface.h"
+#ifdef DO_MDNS
 #include "EXmDNS.h"
 
 // fixed values for mDNS
@@ -193,3 +194,4 @@ void MDNS::run() {
   _udp->flush();
   // 
 }
+#endif //DO_MDNS
