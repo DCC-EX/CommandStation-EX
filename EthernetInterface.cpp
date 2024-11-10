@@ -37,22 +37,6 @@
 EthernetUDP udp;
 MDNS mdns(udp);
 
-#if 0 //#if __has_include ( "MDNS_Generic.h")
-  #include "MDNS_Generic.h"
-  #define DO_MDNS 
-  EthernetUDP udp;
-  MDNS mdns(udp);
-void serviceFound(const char* type, MDNSServiceProtocol /*proto*/, const char* name, IPAddress ip,
-                  unsigned short port, const char* txtContent)
-{
-  if (name == NULL) {
-    DIAG("End service discovery of %s", type);
-    return;
-  }
-  DIAG("Got %s of type %s", name, type);
-}
-#endif
-
 //extern void looptimer(unsigned long timeout, const FSH* message);
 #define looptimer(a,b)
 
