@@ -1,3 +1,6 @@
+
+#define BROADCASTTIME 15 //seconds
+
 typedef enum _MDNSServiceProtocol_t 
 {
   MDNSServiceTCP,
@@ -16,5 +19,6 @@ private:
   IPAddress _ipAddress;
   char* _name;
   char* _serviceName;
+  char* _serviceProto;
   int _servicePort;
 };

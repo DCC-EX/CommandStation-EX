@@ -132,9 +132,8 @@ void EthernetInterface::setup()
   #ifdef DO_MDNS
     if (!mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME))
       DIAG("mdns.begin fail"); // hostname
-    mdns.addServiceRecord(WIFI_HOSTNAME, IP_PORT, MDNSServiceTCP);
-  // Not sure if we need to run it once, but just in case!
-    mdns.run();
+    mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
+    mdns.run(); // run it right away to get out info ASAP
   #endif  
   connected=true;    
 }
