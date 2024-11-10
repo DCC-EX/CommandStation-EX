@@ -99,7 +99,7 @@ int MDNS::addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_
 }
 
 static char dns_rr_services[]   = "\x09_services\x07_dns-sd\x04_udp\x05local";
-static char *dns_rr_tcplocal    = "\x04_tcp\x05local"; 
+static char dns_rr_tcplocal[]   = "\x04_tcp\x05local"; 
 static char *dns_rr_local       = dns_rr_tcplocal + dns_rr_tcplocal[0] + 1;
 
 typedef struct _DNSHeader_t 
