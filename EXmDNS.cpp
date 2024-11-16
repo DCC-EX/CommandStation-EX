@@ -75,7 +75,7 @@ int MDNS::begin(const IPAddress& ip, char* name) {
   //  delay(100);
   
   _ipAddress = ip;
-  _name = (char *)malloc(strlen(name +2));
+  _name = (char *)malloc(strlen(name)+2);
   byte n;
   for(n = 0; n<strlen(name); n++)
     _name[n+1] = name[n];
@@ -87,7 +87,7 @@ int MDNS::begin(const IPAddress& ip, char* name) {
 
 int MDNS::addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto) {
   // we ignore proto, assume TCP
-  _serviceName = (char *)malloc(strlen(name +2));
+  _serviceName = (char *)malloc(strlen(name)+2);
   byte n;
   for(n = 0; n<strlen(name); n++)
     _serviceName[n+1] = name[n];
