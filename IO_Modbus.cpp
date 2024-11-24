@@ -522,8 +522,8 @@ void Modbus::_loop(unsigned long currentMicros) {
     // If we're between read/write cycles then don't do anything else.
     if (_currentMicros - _cycleStartTime < _cycleTime) return;
     // ... otherwise start processing the first node in the list
-  DIAG(F("Modbusnode: 138  _nodeListEnd:%d "),  _nodeListEnd);    
-  DIAG(F("Modbusnode: 139  _currentNode:%d "),  _currentNode);        
+  DIAG(F("Modbusnode: End  _nodeListEnd:%d "),  _nodeListEnd);    
+  DIAG(F("Modbusnode: Cur  _currentNode:%d "),  _currentNode);        
     _currentNode = _nodeListStart;
   DIAG(F("Modbusnode: 141  _currentNode:%d "),  _currentNode);    
     _cycleStartTime = _currentMicros;
@@ -532,10 +532,10 @@ void Modbus::_loop(unsigned long currentMicros) {
 
   uint8_t error;
   error = modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
-  if (error != 0) DIAG(F("%02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+  if (error != 0) DIAG(F("Modbus: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
   error = modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDisInputs());
-  if (error != 0) DIAG(F("%02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDisInputs(), errorStrings[error]);
+  if (error != 0) DIAG(F("Modbus: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDisInputs(), errorStrings[error]);
 }
 
 // Link to chain of CMRI bus instances
