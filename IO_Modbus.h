@@ -238,7 +238,7 @@ public:
 
   void _write(VPIN vpin, int value) {
     // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin - numCoils;
+    uint16_t pin = vpin - _firstVpin - numDiscreteInputs;
     if (pin < numCoils) {
       if (value)
         coils[pin] = value;
