@@ -129,7 +129,7 @@ class NeoPixel : public IODevice {
 public:
   
   static void create(VPIN vpin, int nPins, uint16_t mode=(NEO_GRB | NEO_KHZ800), I2CAddress i2cAddress=0x60) {
-    if (checkNoOverlap(vpin, nPins, mode, i2cAddress)) new NeoPixel(vpin, nPins, mode, i2cAddress);
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new NeoPixel(vpin, nPins, mode, i2cAddress);
   }
 
 private:
