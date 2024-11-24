@@ -322,8 +322,9 @@ public:
   const char* errorStrings[];
   // Device-specific initialisation
   void _begin() override {
+    ModbusRTUMaster modbusmaster(*_serial, _transmitEnablePin);
     _serial->begin(_baud, SERIAL_8N1);
-    modbusmaster->begin(_baud);
+    modbusmaster.begin(_baud);
   #if defined(DIAG_IO)
     _display();
   #endif

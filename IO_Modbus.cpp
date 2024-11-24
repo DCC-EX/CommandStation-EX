@@ -493,11 +493,11 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   _serial = &serial;
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
   _transmitEnablePin = transmitEnablePin;
-  if (_transmitEnablePin != VPIN_NONE) {
-    pinMode(_transmitEnablePin, OUTPUT);
-    ArduinoPins::fastWriteDigital(_transmitEnablePin, 0); // transmitter initially off
-  }
-  ModbusRTUMaster modbusmaster(*_serial, _transmitEnablePin);
+  //if (_transmitEnablePin != VPIN_NONE) {
+    //pinMode(_transmitEnablePin, OUTPUT);
+    //ArduinoPins::fastWriteDigital(_transmitEnablePin, 0); // transmitter initially off
+  //}
+  
   
   // Add device to HAL device chain
   IODevice::addDevice(this);
@@ -521,12 +521,6 @@ void Modbus::_loop(unsigned long currentMicros) {
   if (_currentNode == NULL) {
     // If we're between read/write cycles then don't do anything else.
     if (_currentMicros - _cycleStartTime < _cycleTime) return;
-    // ... otherwise start processing the first node in the list
-  DIAG(F("Modbusnode: End  _nodeListEnd:%d "),  _nodeListEnd);    
-  DIAG(F("Modbusnode: Cur  _currentNode:%d "),  _currentNode);        
-    _currentNode = _nodeListStart;
-  DIAG(F("Modbusnode: 141  _currentNode:%d "),  _currentNode);    
-    _cycleStartTime = _currentMicros;
   }
   if (_currentNode == NULL) return;
 
