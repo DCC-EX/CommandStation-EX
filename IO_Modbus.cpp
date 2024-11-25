@@ -505,7 +505,6 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   // Add bus to CMRIbus chain.
   _nextBus = _busList;
   _busList = this;
-  const char* errorStrings[] = {"success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity"};
 }
 
 
@@ -524,7 +523,7 @@ void Modbus::_loop(unsigned long currentMicros) {
   }
   _cycleStartTime = _currentMicros;
   if (_currentNode == NULL) return;
-
+  const char* errorStrings[] = {"success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity"};
   uint8_t error;
   error = modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
   if (error != 0) DIAG(F("ModbusHR: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), &errorStrings[error]);
