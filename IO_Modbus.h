@@ -345,7 +345,6 @@ public:
   HardwareSerial *_serial;
   ModbusRTUMaster *modbusmaster;
 
-  const char* errorStrings[];
   // Device-specific initialisation
   void _begin() override {
     ModbusRTUMaster modbusmaster(*_serial, _transmitEnablePin);
