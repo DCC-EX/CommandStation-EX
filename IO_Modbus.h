@@ -191,14 +191,18 @@ private:
   bool _initialised = false;
   uint8_t numCoils;
   uint8_t numDiscreteInputs;
+  uint8_t numHoldingRegisters;
+  uint8_t numInputRegisters;
 
 public:
-  static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0) {
-    if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs);
+  static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0, uint8_t numHoldingRegisters=0, uint8_t numInputRegisters=0) {
+    if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
   }
-  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0);
+  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0, uint8_t numHoldingRegisters=0, uint8_t numInputRegisters=0);
   bool *coils;
   bool *discreteInputs;
+  uint16_t *holdingRegisters;
+  uint16_t *inputRegisters;
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -209,7 +213,12 @@ public:
   uint8_t getNumDisInputs() {
     return numDiscreteInputs;
   }
-  
+  uint8_t getNumHoldingRegisters() {
+    return numHoldingRegisters;
+  }
+  uint8_t getNumInputRegisters() {
+    return numInputRegisters;
+  }
   Modbusnode *getNext() {
     return _next;
   }
@@ -227,7 +236,7 @@ public:
     _initialised = false;
   }
 
-  int _read(VPIN vpin) {
+  int _read(VPIN vpin) override {
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
     if (pin < numDiscreteInputs) {
@@ -236,7 +245,13 @@ public:
       return 0;
   }
 
-  void _write(VPIN vpin, int value) {
+  int _readAnalogue(VPIN vpin) override {
+    // Return acquired data value, e.g.
+    int pin = vpin - _firstVpin;
+    return inputRegisters[pin];
+  }
+
+  void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
     uint16_t pin = vpin - _firstVpin - numDiscreteInputs;
     if (pin < numCoils) {
@@ -244,6 +259,16 @@ public:
         coils[pin] = value;
       else
         coils[pin];
+    }
+  }
+
+  void writeAnalogue(VPIN vpin, int value) {
+    uint16_t pin = vpin - _firstVpin - numInputRegisters;
+    if (pin < numHoldingRegisters) {
+      if (value)
+        holdingRegisters[pin] = value;
+      else
+        holdingRegisters[pin];
     }
   }
 
@@ -300,7 +325,7 @@ private:
   int16_t _transmitEnablePin = VPIN_NONE;
   Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   Modbusnode *_currentNode = NULL;
-
+  
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   Modbus *_nextBus = NULL;  // Pointer to next bus instance in list.
   unsigned long _cycleStartTime = 0;
@@ -319,6 +344,7 @@ public:
   }
   HardwareSerial *_serial;
   ModbusRTUMaster *modbusmaster;
+
   const char* errorStrings[];
   // Device-specific initialisation
   void _begin() override {

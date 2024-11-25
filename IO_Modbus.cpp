@@ -522,14 +522,21 @@ void Modbus::_loop(unsigned long currentMicros) {
     // If we're between read/write cycles then don't do anything else.
     if (_currentMicros - _cycleStartTime < _cycleTime) return;
   }
+  _cycleStartTime = _currentMicros;
   if (_currentNode == NULL) return;
 
   uint8_t error;
+  error = modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  if (error != 0) DIAG(F("ModbusHR: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+
   error = modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
-  if (error != 0) DIAG(F("Modbus: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+  if (error != 0) DIAG(F("ModbusMC: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
   error = modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDisInputs());
-  if (error != 0) DIAG(F("Modbus: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDisInputs(), errorStrings[error]);
+  if (error != 0) DIAG(F("ModbusDI: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDisInputs(), errorStrings[error]);
+
+  error = modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+  if (error != 0) DIAG(F("ModbusIR: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
 }
 
 // Link to chain of CMRI bus instances
@@ -541,13 +548,15 @@ Modbus *Modbus::_busList = NULL;
  ************************************************************/
 
 // Constructor for Modbusnode object
-Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,  uint8_t numCoils, uint8_t numDiscreteInputs) {
+Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,  uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _busNo = busNo;
   _nodeID = nodeID;
   coils[numCoils];
   discreteInputs[numDiscreteInputs];
+  holdingRegisters[numHoldingRegisters];
+  inputRegisters[numInputRegisters];
   
   if ((unsigned int)_nPins < numDiscreteInputs + numCoils)
     DIAG(F("Modbusnode: bus:%d nodeID:%d WARNING number of Vpins does not cover all inputs and outputs"), _busNo, _nodeID);
