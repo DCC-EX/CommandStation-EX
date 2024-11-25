@@ -538,7 +538,7 @@ void Modbus::_loop(unsigned long currentMicros) {
   if (error != 0) DIAG(F("ModbusIR: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), &errorStrings[error]);
 }
 
-// Link to chain of CMRI bus instances
+// Link to chain of Modbus instances
 Modbus *Modbus::_busList = NULL;
 
 
