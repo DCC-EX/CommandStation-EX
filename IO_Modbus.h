@@ -247,13 +247,13 @@ public:
 
   int _readAnalogue(VPIN vpin) override {
     // Return acquired data value, e.g.
-    int pin = vpin - _firstVpin;
+    int pin = vpin - _firstVpin - numDiscreteInputs;
     return inputRegisters[pin];
   }
 
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin - numDiscreteInputs;
+    uint16_t pin = vpin - _firstVpin - numDiscreteInputs - numInputRegisters;
     if (pin < numCoils) {
       if (value)
         coils[pin] = value;
@@ -263,7 +263,7 @@ public:
   }
 
   void writeAnalogue(VPIN vpin, int value) {
-    uint16_t pin = vpin - _firstVpin - numInputRegisters;
+    uint16_t pin = vpin - _firstVpin - numDiscreteInputs - numInputRegisters - numCoils;
     if (pin < numHoldingRegisters) {
       if (value)
         holdingRegisters[pin] = value;
