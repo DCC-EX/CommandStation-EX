@@ -210,7 +210,7 @@ public:
   uint8_t getNumCoils() {
     return numCoils;
   }
-  uint8_t getNumDisInputs() {
+  uint8_t getNumDiscreteInputs() {
     return numDiscreteInputs;
   }
   uint8_t getNumHoldingRegisters() {

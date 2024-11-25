@@ -531,8 +531,8 @@ void Modbus::_loop(unsigned long currentMicros) {
   error = modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
   if (error != 0) DIAG(F("ModbusMC: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), &errorStrings[error]);
 
-  error = modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDisInputs());
-  if (error != 0) DIAG(F("ModbusDI: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDisInputs(), &errorStrings[error]);
+  error = modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+  if (error != 0) DIAG(F("ModbusDI: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), &errorStrings[error]);
 
   error = modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
   if (error != 0) DIAG(F("ModbusIR: %02d %04d %04d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), &errorStrings[error]);
