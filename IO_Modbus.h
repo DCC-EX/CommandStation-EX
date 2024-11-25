@@ -339,21 +339,14 @@ private:
   static Modbus *_busList; // linked list of defined bus instances
 
 public:
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int16_t transmitEnablePin=VPIN_NONE) {
+  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int16_t transmitEnablePin=51) {
     new Modbus(busNo, serial, baud, cycleTimeMS, transmitEnablePin);
   }
   HardwareSerial *_serial;
-  ModbusRTUMaster *modbusmaster;
+  ModbusRTUMaster *_modbusmaster;
 
   // Device-specific initialisation
-  void _begin() override {
-    ModbusRTUMaster modbusmaster(*_serial, _transmitEnablePin);
-    _serial->begin(_baud, SERIAL_8N1);
-    modbusmaster.begin(_baud);
-  #if defined(DIAG_IO)
-    _display();
-  #endif
-  }
+  void _begin() override;
 
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;

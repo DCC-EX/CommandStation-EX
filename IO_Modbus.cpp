@@ -253,7 +253,7 @@ void ModbusRTUComm::writeAdu(ModbusADU& adu) {
   if (_rePin >= 0) digitalWrite(_rePin, HIGH);
   _serial.write(adu.rtu, adu.getRtuLen());
   _serial.flush();
-  delayMicroseconds(_postDelay);
+  ///delayMicroseconds(_postDelay);
   if (_dePin >= 0) digitalWrite(_dePin, LOW);
   if (_rePin >= 0) digitalWrite(_rePin, LOW);
 }
@@ -498,7 +498,9 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
     //ArduinoPins::fastWriteDigital(_transmitEnablePin, 0); // transmitter initially off
   //}
   
-  
+  //_serial->begin(baud);
+  //_modbusmaster.begin(baud);
+  //DIAG(F("ModbusInit: %d %d"), _transmitEnablePin, _baud);
   // Add device to HAL device chain
   IODevice::addDevice(this);
 
@@ -507,8 +509,16 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   _busList = this;
 }
 
+void Modbus::_begin() {
+  ModbusRTUMaster _modbusmaster(*_serial, _transmitEnablePin, -1);
+  _serial->begin(_baud);
+  _modbusmaster.begin(_baud);
+#if defined(DIAG_IO)
+  _display();
+#endif
+}
 
-// Main loop function for CMRIbus.
+// Main loop function for Modbus.
 // Work through list of nodes.  For each node, in separate loop entries
 // send initialisation message (once only);  then send
 // output message;  then send prompt for input data, and 
@@ -517,27 +527,30 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
 void Modbus::_loop(unsigned long currentMicros) {
   
   _currentMicros = currentMicros;
-  if (_currentNode == NULL) {
-    // If we're between read/write cycles then don't do anything else.
-    if (_currentMicros - _cycleStartTime < _cycleTime) return;
-    _currentNode = _nodeListStart;
-  }
-  _cycleStartTime = _currentMicros;
+  
+  //if (_currentNode == NULL) {
+    //_currentNode = _nodeListStart;
+    
+  //}
+  if (_currentMicros - _cycleStartTime < _cycleTime) return;
   if (_currentNode == NULL) return;
+  
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
-  error = modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  if (error != 0) DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+  //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  //if (error != 0) DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  error = modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
+  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
   if (error != 0) DIAG(F("ModbusMC: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
-  error = modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+  error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   if (error != 0) DIAG(F("ModbusDI: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
-  error = modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  if (error != 0) DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+  //if (error != 0) DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  //delayUntil(_currentMicros + _cycleTime * 1000UL);
+  _cycleStartTime = _currentMicros;
 }
 
 // Link to chain of Modbus instances
