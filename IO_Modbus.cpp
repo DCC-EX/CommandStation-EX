@@ -206,11 +206,11 @@ void ModbusRTUComm::begin(unsigned long baud, uint32_t config) {
   #endif
   if (_dePin >= 0) {
     pinMode(_dePin, OUTPUT);
-    digitalWrite(_dePin, LOW);
+    ArduinoPins::fastWriteDigital(_dePin, LOW);
   }
   if (_rePin >= 0) {
     pinMode(_rePin, OUTPUT);
-    digitalWrite(_rePin, LOW);
+    ArduinoPins::fastWriteDigital(_rePin, LOW);
   }
   clearRxBuffer();
 }
@@ -249,13 +249,13 @@ ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
 
 void ModbusRTUComm::writeAdu(ModbusADU& adu) {
   adu.updateCrc();
-  if (_dePin >= 0) digitalWrite(_dePin, HIGH);
-  if (_rePin >= 0) digitalWrite(_rePin, HIGH);
+  if (_dePin >= 0) ArduinoPins::fastWriteDigital(_dePin, HIGH);
+  if (_rePin >= 0) ArduinoPins::fastWriteDigital(_rePin, HIGH);
   _serial.write(adu.rtu, adu.getRtuLen());
   _serial.flush();
   ///delayMicroseconds(_postDelay);
-  if (_dePin >= 0) digitalWrite(_dePin, LOW);
-  if (_rePin >= 0) digitalWrite(_rePin, LOW);
+  if (_dePin >= 0) ArduinoPins::fastWriteDigital(_dePin, LOW);
+  if (_rePin >= 0) ArduinoPins::fastWriteDigital(_rePin, LOW);
 }
 
 void ModbusRTUComm::clearRxBuffer() {
@@ -487,10 +487,10 @@ ModbusRTUMasterError ModbusRTUMaster::_translateCommError(ModbusRTUCommError com
  ************************************************************/
 
 // Constructor for Modbus
-Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int16_t transmitEnablePin) {
+Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t transmitEnablePin) {
   _busNo = busNo;
   _baud = baud;
-  _serial = &serial;
+  _serialD = &serial;
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
   _transmitEnablePin = transmitEnablePin;
   //if (_transmitEnablePin != VPIN_NONE) {
@@ -503,19 +503,10 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   //DIAG(F("ModbusInit: %d %d"), _transmitEnablePin, _baud);
   // Add device to HAL device chain
   IODevice::addDevice(this);
-
+  
   // Add bus to CMRIbus chain.
   _nextBus = _busList;
   _busList = this;
-}
-
-void Modbus::_begin() {
-  ModbusRTUMaster _modbusmaster(*_serial, _transmitEnablePin, -1);
-  _serial->begin(_baud);
-  _modbusmaster.begin(_baud);
-#if defined(DIAG_IO)
-  _display();
-#endif
 }
 
 // Main loop function for Modbus.
@@ -528,30 +519,35 @@ void Modbus::_loop(unsigned long currentMicros) {
   
   _currentMicros = currentMicros;
   
-  //if (_currentNode == NULL) {
-    //_currentNode = _nodeListStart;
+  if (_currentNode == NULL) {
+    _currentNode = _nodeListStart;
     
-  //}
+  }
+  //DIAG(F("Modbus Loop: %d : %d :: %d"), _currentMicros, _cycleStartTime, _currentNode);
   if (_currentMicros - _cycleStartTime < _cycleTime) return;
+  _cycleStartTime = _currentMicros;
+  DIAG(F("Tick"));
   if (_currentNode == NULL) return;
   
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
   //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  //if (error != 0) DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+  //DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
-  if (error != 0) DIAG(F("ModbusMC: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
-
+  //error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
+  DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+  if (error == MODBUS_RTU_MASTER_EXCEPTION_RESPONSE) {
+    DIAG(F(": %s"), _modbusmaster->getExceptionResponse());
+  }
   error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
-  if (error != 0) DIAG(F("ModbusDI: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
+  DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
   //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  //if (error != 0) DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  //DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  _currentNode = _currentNode->getNext();
   //delayUntil(_currentMicros + _cycleTime * 1000UL);
-  _cycleStartTime = _currentMicros;
-}
+  }
 
 // Link to chain of Modbus instances
 Modbus *Modbus::_busList = NULL;
@@ -567,10 +563,14 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,
   _nPins = nPins;
   _busNo = busNo;
   _nodeID = nodeID;
-  coils[numCoils];
-  discreteInputs[numDiscreteInputs];
-  holdingRegisters[numHoldingRegisters];
-  inputRegisters[numInputRegisters];
+  _numCoils = numCoils;
+  _numDiscreteInputs = numDiscreteInputs;
+  _numHoldingRegisters = numHoldingRegisters;
+  _numInputRegisters = numInputRegisters;
+  coils[_numCoils];
+  discreteInputs[_numDiscreteInputs];
+  holdingRegisters[_numHoldingRegisters];
+  inputRegisters[_numInputRegisters];
   
   if ((unsigned int)_nPins < numDiscreteInputs + numCoils)
     DIAG(F("Modbusnode: bus:%d nodeID:%d WARNING number of Vpins does not cover all inputs and outputs"), _busNo, _nodeID);
@@ -582,11 +582,12 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,
 
   // Add this device to HAL device list
   IODevice::addDevice(this);
-
+  _display();
   // Add Modbusnode to Modbus object.
   Modbus *bus = Modbus::findBus(_busNo);
   if (bus != NULL) {
     bus->addNode(this);
     return;
   }
+  
 }

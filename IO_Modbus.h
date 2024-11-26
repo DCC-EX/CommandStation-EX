@@ -189,16 +189,16 @@ private:
   char _type;
   Modbusnode *_next = NULL;
   bool _initialised = false;
-  uint8_t numCoils;
-  uint8_t numDiscreteInputs;
-  uint8_t numHoldingRegisters;
-  uint8_t numInputRegisters;
+  uint8_t _numCoils;
+  uint8_t _numDiscreteInputs;
+  uint8_t _numHoldingRegisters;
+  uint8_t _numInputRegisters;
 
 public:
   static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0, uint8_t numHoldingRegisters=0, uint8_t numInputRegisters=0) {
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
   }
-  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0, uint8_t numHoldingRegisters=0, uint8_t numInputRegisters=0);
+  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters);
   bool *coils;
   bool *discreteInputs;
   uint16_t *holdingRegisters;
@@ -208,16 +208,16 @@ public:
     return _nodeID;
   }
   uint8_t getNumCoils() {
-    return numCoils;
+    return _numCoils;
   }
   uint8_t getNumDiscreteInputs() {
-    return numDiscreteInputs;
+    return _numDiscreteInputs;
   }
   uint8_t getNumHoldingRegisters() {
-    return numHoldingRegisters;
+    return _numHoldingRegisters;
   }
   uint8_t getNumInputRegisters() {
-    return numInputRegisters;
+    return _numInputRegisters;
   }
   Modbusnode *getNext() {
     return _next;
@@ -232,14 +232,14 @@ public:
     _initialised = true;
   }
 
-  void _begin() {
+  void _begin() override {
     _initialised = false;
   }
 
   int _read(VPIN vpin) override {
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
-    if (pin < numDiscreteInputs) {
+    if (pin < _numDiscreteInputs) {
       return discreteInputs[pin];
     } else
       return 0;
@@ -247,14 +247,14 @@ public:
 
   int _readAnalogue(VPIN vpin) override {
     // Return acquired data value, e.g.
-    int pin = vpin - _firstVpin - numDiscreteInputs;
+    int pin = vpin - _firstVpin - _numDiscreteInputs;
     return inputRegisters[pin];
   }
 
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin - numDiscreteInputs - numInputRegisters;
-    if (pin < numCoils) {
+    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters;
+    if (pin < _numCoils) {
       if (value)
         coils[pin] = value;
       else
@@ -262,9 +262,9 @@ public:
     }
   }
 
-  void writeAnalogue(VPIN vpin, int value) {
-    uint16_t pin = vpin - _firstVpin - numDiscreteInputs - numInputRegisters - numCoils;
-    if (pin < numHoldingRegisters) {
+  void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) override {
+    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters - _numCoils;
+    if (pin < _numHoldingRegisters) {
       if (value)
         holdingRegisters[pin] = value;
       else
@@ -273,23 +273,23 @@ public:
   }
 
   void saveIncomingData(uint8_t index, uint8_t data) {
-    if (index < numDiscreteInputs)
+    if (index < _numDiscreteInputs)
       discreteInputs[index] = data;
   }
 
   uint8_t getOutputStates(uint8_t index) {
-    if (index < numCoils)
+    if (index < _numCoils)
       return coils[index];
     else
       return 0;
   }
 
   uint16_t getNumInputs() {
-    return numDiscreteInputs;
+    return _numDiscreteInputs;
   }
 
   uint16_t getNumOutputs() {
-    return numCoils;
+    return _numCoils;
   }
 
   char getType() {
@@ -301,9 +301,9 @@ public:
   }
 
   void _display() override {
-    DIAG(F("Modbusnode type:'%c' configured on bus:%d nodeID:%d VPINs:%u-%u (in) %u-%u (out)"),
-      _type, _busNo, _nodeID, _firstVpin, _firstVpin+numDiscreteInputs-1,
-      _firstVpin+numDiscreteInputs, _firstVpin+numDiscreteInputs+numCoils-1);
+    DIAG(F("Modbusnode configured on bus:%d nodeID:%d VPINs:%u-%u (in) %u-%u (out)"),
+      _busNo, _nodeID, _firstVpin, _firstVpin+_numDiscreteInputs-1,
+      _firstVpin+_numDiscreteInputs, _firstVpin+_numDiscreteInputs+_numCoils-1);
   }
 
 };
@@ -322,7 +322,7 @@ private:
   uint8_t _busNo;
 
   unsigned long _baud;
-  int16_t _transmitEnablePin = VPIN_NONE;
+  int8_t _transmitEnablePin;
   Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   Modbusnode *_currentNode = NULL;
   
@@ -339,21 +339,29 @@ private:
   static Modbus *_busList; // linked list of defined bus instances
 
 public:
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int16_t transmitEnablePin=51) {
+  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t transmitEnablePin=0) {
     new Modbus(busNo, serial, baud, cycleTimeMS, transmitEnablePin);
   }
-  HardwareSerial *_serial;
+  HardwareSerial *_serialD;
   ModbusRTUMaster *_modbusmaster;
 
   // Device-specific initialisation
-  void _begin() override;
+  void _begin() override {
+    ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
+    _serialD->begin(_baud);
+    _modbusmaster.begin(_baud);
+  #if defined(DIAG_IO)
+    _display();
+  #endif
+  }
 
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;
 
   // Display information about the device
   void _display() override {
-    DIAG(F("Modbus %d configured, speed=%d baud, cycle=%d ms"), _busNo, _baud, _cycleTime/1000);
+    DIAG(F("Modbus Configured on %d Vpins:%d-%d %S"), _transmitEnablePin, _firstVpin, _firstVpin+_nPins-1,
+      _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F("OK"));
   }
 
   // Locate Modbusnode object with specified nodeID.
@@ -373,11 +381,11 @@ public:
       _nodeListEnd = newNode;
     else
       _nodeListEnd->setNext(newNode);
-  DIAG(F("bus: 260h nodeID: _nodeListStart:%d _nodeListEnd:%d"), _nodeListStart, _nodeListEnd);
+  //DIAG(F("Modbus: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
 
 protected:
-  Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int16_t transmitEnablePin);
+  Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t transmitEnablePin);
 
 public:
   
