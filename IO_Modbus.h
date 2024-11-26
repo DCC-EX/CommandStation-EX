@@ -149,14 +149,14 @@ class ModbusRTUMaster {
     void setTimeout(unsigned long timeout);
     void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
 
-    ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity);
-    ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity);
+    ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+    ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
     ModbusRTUMasterError readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
     ModbusRTUMasterError readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
 
-    ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, bool value);
+    ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, char value);
     ModbusRTUMasterError writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value);
-    ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity);
+    ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
     ModbusRTUMasterError writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
 
     uint8_t getExceptionResponse();
@@ -165,7 +165,7 @@ class ModbusRTUMaster {
     ModbusRTUComm _rtuComm;
     uint8_t _exceptionResponse = 0;
 
-    ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, bool buf[], uint16_t quantity);
+    ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity);
     ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
     ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
 
@@ -199,10 +199,10 @@ public:
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
   }
   Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters);
-  bool *coils;
-  bool *discreteInputs;
-  uint16_t *holdingRegisters;
-  uint16_t *inputRegisters;
+  char *coils[100];
+  char *discreteInputs[100];
+  uint16_t *holdingRegisters[100];
+  uint16_t *inputRegisters[100];
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -240,7 +240,7 @@ public:
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
     if (pin < _numDiscreteInputs) {
-      return discreteInputs[pin];
+      return discreteInputs[pin]? 1:0;
     } else
       return 0;
   }
@@ -248,7 +248,7 @@ public:
   int _readAnalogue(VPIN vpin) override {
     // Return acquired data value, e.g.
     int pin = vpin - _firstVpin - _numDiscreteInputs;
-    return inputRegisters[pin];
+    return (int) inputRegisters[pin];
   }
 
   void _write(VPIN vpin, int value) override {
@@ -256,7 +256,9 @@ public:
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters;
     if (pin < _numCoils) {
       if (value)
-        coils[pin] = value;
+        if (value == 1) coils[pin] = (char*) 0x1;
+        if (value == 0) coils[pin] = (char*) 0x0;
+        //coils[pin] = value;
       else
         coils[pin];
     }
@@ -266,30 +268,10 @@ public:
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters - _numCoils;
     if (pin < _numHoldingRegisters) {
       if (value)
-        holdingRegisters[pin] = value;
+        holdingRegisters[pin] = (uint16_t*) value;
       else
         holdingRegisters[pin];
     }
-  }
-
-  void saveIncomingData(uint8_t index, uint8_t data) {
-    if (index < _numDiscreteInputs)
-      discreteInputs[index] = data;
-  }
-
-  uint8_t getOutputStates(uint8_t index) {
-    if (index < _numCoils)
-      return coils[index];
-    else
-      return 0;
-  }
-
-  uint16_t getNumInputs() {
-    return _numDiscreteInputs;
-  }
-
-  uint16_t getNumOutputs() {
-    return _numCoils;
   }
 
   char getType() {
@@ -348,8 +330,9 @@ public:
   // Device-specific initialisation
   void _begin() override {
     ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
-    _serialD->begin(_baud);
-    _modbusmaster.begin(_baud);
+    _serialD->begin(_baud, SERIAL_8N1);
+    //_serialD->println("test");
+    _modbusmaster.begin(_baud, SERIAL_8N1);
   #if defined(DIAG_IO)
     _display();
   #endif

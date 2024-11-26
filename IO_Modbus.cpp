@@ -282,11 +282,11 @@ void ModbusRTUMaster::begin(unsigned long baud, uint32_t config) {
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::readCoils(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity) {
+ModbusRTUMasterError ModbusRTUMaster::readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   return _readValues(id, 1, startAddress, buf, quantity);
 }
 
-ModbusRTUMasterError ModbusRTUMaster::readDiscreteInputs(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity) {
+ModbusRTUMasterError ModbusRTUMaster::readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   return _readValues(id, 2, startAddress, buf, quantity);
 }
 
@@ -300,7 +300,7 @@ ModbusRTUMasterError ModbusRTUMaster::readInputRegisters(uint8_t id, uint16_t st
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::writeSingleCoil(uint8_t id, uint16_t address, bool value) {
+ModbusRTUMasterError ModbusRTUMaster::writeSingleCoil(uint8_t id, uint16_t address, char value) {
   return _writeSingleValue(id, 5, address, ((value) ? 0xFF00 : 0x0000));
 }
 
@@ -310,7 +310,7 @@ ModbusRTUMasterError ModbusRTUMaster::writeSingleHoldingRegister(uint8_t id, uin
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::writeMultipleCoils(uint8_t id, uint16_t startAddress, bool buf[], uint16_t quantity) {
+ModbusRTUMasterError ModbusRTUMaster::writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   const uint8_t functionCode = 15;
   if (id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
@@ -385,7 +385,7 @@ uint8_t ModbusRTUMaster::getExceptionResponse() {
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, bool buf[], uint16_t quantity) {
+ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity) {
   if (id < 1 || id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
   if (quantity == 0 || quantity > 2000) return MODBUS_RTU_MASTER_INVALID_QUANTITY;
@@ -526,25 +526,22 @@ void Modbus::_loop(unsigned long currentMicros) {
   //DIAG(F("Modbus Loop: %d : %d :: %d"), _currentMicros, _cycleStartTime, _currentNode);
   if (_currentMicros - _cycleStartTime < _cycleTime) return;
   _cycleStartTime = _currentMicros;
-  DIAG(F("Tick"));
   if (_currentNode == NULL) return;
   
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
-  error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
   DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  //error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
+  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
   DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
-  if (error == MODBUS_RTU_MASTER_EXCEPTION_RESPONSE) {
-    DIAG(F(": %s"), _modbusmaster->getExceptionResponse());
-  }
-  //error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+
+  error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
-  //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  //DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+  DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
   _currentNode = _currentNode->getNext();
   //delayUntil(_currentMicros + _cycleTime * 1000UL);
   }
@@ -567,10 +564,7 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,
   _numDiscreteInputs = numDiscreteInputs;
   _numHoldingRegisters = numHoldingRegisters;
   _numInputRegisters = numInputRegisters;
-  coils[_numCoils];
-  discreteInputs[_numDiscreteInputs];
-  holdingRegisters[_numHoldingRegisters];
-  inputRegisters[_numInputRegisters];
+  
   
   if ((unsigned int)_nPins < numDiscreteInputs + numCoils)
     DIAG(F("Modbusnode: bus:%d nodeID:%d WARNING number of Vpins does not cover all inputs and outputs"), _busNo, _nodeID);
