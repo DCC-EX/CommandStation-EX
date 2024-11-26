@@ -532,15 +532,15 @@ void Modbus::_loop(unsigned long currentMicros) {
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
-  //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  //DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+  error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
   //error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, _currentNode->coils, _currentNode->getNumCoils());
   DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
   if (error == MODBUS_RTU_MASTER_EXCEPTION_RESPONSE) {
     DIAG(F(": %s"), _modbusmaster->getExceptionResponse());
   }
-  error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+  //error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
   //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
