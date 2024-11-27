@@ -96,7 +96,7 @@ void I2CManagerClass::begin(void) {
     setTimeout(1000);       // use 1ms timeout for probes
 
   #if defined(I2C_EXTENDED_ADDRESS)
-    // First count the multiplexers and switch off all subbuses
+    // First count the multiplexers and switch off all subBuses
     _muxCount = 0;
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
       if (I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None})==I2C_STATUS_OK)
@@ -117,8 +117,8 @@ void I2CManagerClass::begin(void) {
     // Enumerate all I2C devices that are connected via multiplexer, 
     // i.e. that respond when only one multiplexer has one subBus enabled
     // and the device doesn't respond when the mux subBus is disabled.
-    // If any probes time out, then assume that the subbus is dead and
-    // don't do any more on that subbus.
+    // If any probes time out, then assume that the subBus is dead and
+    // don't do any more on that subBus.
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
       uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
       if (exists(muxAddr)) {
@@ -131,8 +131,8 @@ void I2CManagerClass::begin(void) {
               // De-select subbus
               muxSelectSubBus({(I2CMux)muxNo, SubBus_None});
               if (!exists(addr)) {
-                // Device responds when subbus selected but not when
-                // subbus disabled - ergo it must be on subbus!
+                // Device responds when subBus selected but not when
+                // subbus disabled - ergo it must be on subBus!
                 found = true; 
                 DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,0x%x}, %S?"), 
                   muxNo, subBus, addr, guessI2CDeviceType(addr));

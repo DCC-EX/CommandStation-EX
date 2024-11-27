@@ -44,7 +44,7 @@
  *  Other shields may be jumpered to PWM pins or run directly using the software interrupt.
  *  
  *  Because the PWM-based waveform is effectively set half a cycle after the software version,
- *  it is not acceptable to drive the two tracks on different methiods or it would cause
+ *  it is not acceptable to drive the two tracks on different methods or it would cause
  *  problems for <1 JOIN> etc.
  *  
  */
@@ -98,7 +98,7 @@ private:
 
 // Class ADCee implements caching of the ADC value for platforms which
 // have a too slow ADC read to wait for. On these platforms the ADC is
-// scanned continiously in the background from an ISR. On such
+// scanned continuously in the background from an ISR. On such
 // architectures that use the analog read during DCC waveform with
 // specially configured ADC, for example AVR, init must be called
 // PRIOR to the start of the waveform. It returns the current value so

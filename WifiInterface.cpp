@@ -120,7 +120,7 @@ bool WifiInterface::setup(long serial_link_speed,
 #endif
 #endif
 
-// We guess here that in all architctures that have a Serial3
+// We guess here that in all architectures that have a Serial3
 // we can use it for our purpose.
 #if NUM_SERIAL > 2 && !defined(SERIAL3_COMMANDS)
   if (wifiUp == WIFI_NOAT)
@@ -255,7 +255,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       } else {
       // later version supports CWJAP_CUR
         StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-      	checkForOK(2000, true); // dont care if not supported
+      	checkForOK(2000, true); // don't care if not supported
       
         StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
         ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, true);
@@ -340,7 +340,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   if(!oldCmd) {                                                                    // no idea to test this on old firmware
     StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S\",\"withrottle\",%d\r\n"),
 			  hostname, port);                                         // mDNS responder
-    checkForOK(1000, true);                                                        // dont care if not supported
+    checkForOK(1000, true);                                                        // don't care if not supported
   }
 
   StringFormatter::send(wifiStream, F("AT+CIPSERVER=1,%d\r\n"), port); // turn on server on port
@@ -379,7 +379,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 // This function is used to allow users to enter <+ commands> through the DCCEXParser
 // <+command>  sends AT+command to the ES and returns to the caller.
 // Once the user has made whatever changes to the AT commands, a <+X> command can be used
-// to force on the connectd flag so that the loop will start picking up wifi traffic.
+// to force on the connected flag so that the loop will start picking up wifi traffic.
 // If the settings are corrupted <+RST> will clear this and then you must restart the arduino.
 
 // Using the <+> command with no command string causes the code to enter an echo loop so that all
@@ -410,7 +410,7 @@ void WifiInterface::ATCommand(HardwareSerial * stream,const byte * command) {
   
   if (*command=='X') {
     connected = true;
-    DIAG(F("++++++ Wifi Connction forced on ++++++++"));
+    DIAG(F("++++++ Wifi Connection forced on ++++++++"));
   }
   else {
     StringFormatter::  send(wifiStream, F("AT+%s\r\n"), command);

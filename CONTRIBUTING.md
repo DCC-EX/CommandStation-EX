@@ -33,7 +33,7 @@ For more information just check our code or read https://google.github.io/styleg
 
 1. Clone the repository on your local machine
 2. Create a working branch using the format "username-featurename" ex: "git branch -b frightrisk-turnouts"
-3. Commit offen, ex: "git add ." and then "git commit -m "description of your changes"
+3. Commit often, ex: "git add ." and then "git commit -m "description of your changes"
 4. Push your changes to our repository "git push"
 5. When you are ready, issue a pull request for your changes to be merged into the main branch
 
@@ -51,7 +51,7 @@ Contributors who do not follow the be nice rule in good faith may face temporary
 
 ## How Can I Contribute?
 
-The DCC-EX Team has several projects and sub teams where you can help donate your epertise. See the sections below for the project or projects you are interested in.
+The DCC-EX Team has several projects and sub teams where you can help donate your expertise. See the sections below for the project or projects you are interested in.
 
 ### Development
 ### Documentation

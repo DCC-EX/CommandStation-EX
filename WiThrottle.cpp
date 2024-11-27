@@ -393,7 +393,7 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
       if (myLocos[loco].throttle!='\0') {
         if (Diag::WITHROTTLE) DIAG(F("%l  eStopping cab %d"),millis(),myLocos[loco].cab);
         DCC::setThrottle(myLocos[loco].cab, 1, DCC::getThrottleDirection(myLocos[loco].cab)); // speed 1 is eStop
-	heartBeat=millis(); // We have just stopped everyting, we don't need to do that again at next loop.
+	heartBeat=millis(); // We have just stopped everything, we don't need to do that again at next loop.
       }
     }
     // if it does come back, the throttle should re-acquire 
@@ -419,7 +419,7 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
       StringFormatter::send(stream,F("M%cA%c%d<;>R%d\n"), 
 			    throttle, lors , cab, DCC::getThrottleDirection(cab));
       
-      // compare the DCC functionmap with the local copy and send changes  
+      // compare the DCC function map with the local copy and send changes  
       uint32_t dccFunctionMap=DCC::getFunctionMap(cab);
       uint32_t myFunctionMap=myLocos[loco].functionMap;
       myLocos[loco].functionMap=dccFunctionMap;

@@ -329,7 +329,7 @@ IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
 }
 
 // Private helper function to check for vpin overlap. Run during setup only.
-// returns true if pins DONT overlap with existing device
+// returns true if pins DO NOT overlap with existing device
 // TODO: Move the I2C address reservation and checks into the I2CManager code.
 // That will enable non-HAL devices to reserve I2C addresses too.
 bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddress) {

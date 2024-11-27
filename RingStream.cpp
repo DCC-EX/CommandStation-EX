@@ -21,7 +21,7 @@
 
 // NOTE: The use of a marker byte without an escape algorithm means
 // RingStream is unsuitable for binary data. Should binary data need to be 
-// streamed it will be necessary to implementr an escape strategy to handle the 
+// streamed it will be necessary to implement an escape strategy to handle the 
 // marker char when embedded in data. 
 
 #include "RingStream.h"
