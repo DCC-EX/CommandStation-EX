@@ -206,11 +206,11 @@ void ModbusRTUComm::begin(unsigned long baud, uint32_t config) {
   #endif
   if (_dePin >= 0) {
     pinMode(_dePin, OUTPUT);
-    ArduinoPins::fastWriteDigital(_dePin, LOW);
+    digitalWrite(_dePin, LOW);
   }
   if (_rePin >= 0) {
     pinMode(_rePin, OUTPUT);
-    ArduinoPins::fastWriteDigital(_rePin, LOW);
+    digitalWrite(_rePin, LOW);
   }
   clearRxBuffer();
 }
@@ -249,13 +249,13 @@ ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
 
 void ModbusRTUComm::writeAdu(ModbusADU& adu) {
   adu.updateCrc();
-  if (_dePin >= 0) ArduinoPins::fastWriteDigital(_dePin, HIGH);
-  if (_rePin >= 0) ArduinoPins::fastWriteDigital(_rePin, HIGH);
+  if (_dePin >= 0) digitalWrite(_dePin, HIGH);
+  if (_rePin >= 0) digitalWrite(_rePin, HIGH);
   _serial.write(adu.rtu, adu.getRtuLen());
   _serial.flush();
   ///delayMicroseconds(_postDelay);
-  if (_dePin >= 0) ArduinoPins::fastWriteDigital(_dePin, LOW);
-  if (_rePin >= 0) ArduinoPins::fastWriteDigital(_rePin, LOW);
+  if (_dePin >= 0) digitalWrite(_dePin, LOW);
+  if (_rePin >= 0) digitalWrite(_rePin, LOW);
 }
 
 void ModbusRTUComm::clearRxBuffer() {
@@ -323,7 +323,7 @@ ModbusRTUMasterError ModbusRTUMaster::writeMultipleCoils(uint8_t id, uint16_t st
   adu.setDataRegister(2, quantity);
   adu.data[4] = byteCount;
   for (uint16_t i = 0; i < quantity; i++) {
-    bitWrite(adu.data[5 + (i >> 3)], i & 7, buf[i]);
+    bitWrite(adu.data[5 + (i >> 3)], i & 7, (bool) buf[i]);
   }
   for (uint16_t i = quantity; i < (byteCount * 8); i++) {
     bitClear(adu.data[5 + (i >> 3)], i & 7);
@@ -408,7 +408,7 @@ ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCo
   if (adu.getDataLen() != (1 + byteCount)) return MODBUS_RTU_MASTER_UNEXPECTED_LENGTH;
   if (adu.data[0] != byteCount) return MODBUS_RTU_MASTER_UNEXPECTED_BYTE_COUNT;
   for (uint16_t i = 0; i < quantity; i++) {
-    buf[i] = bitRead(adu.data[1 + (i >> 3)], i & 7);
+    buf[i] = (char) bitRead(adu.data[1 + (i >> 3)], i & 7);
   }
   return MODBUS_RTU_MASTER_SUCCESS;
 }
@@ -531,16 +531,16 @@ void Modbus::_loop(unsigned long currentMicros) {
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
-  error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
   DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
+  //error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
   DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
   error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
-  error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+  //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
   DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
   _currentNode = _currentNode->getNext();
   //delayUntil(_currentMicros + _cycleTime * 1000UL);

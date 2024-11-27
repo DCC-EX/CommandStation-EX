@@ -240,7 +240,7 @@ public:
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
     if (pin < _numDiscreteInputs) {
-      return discreteInputs[pin]? 1:0;
+      return (int) discreteInputs[pin];
     } else
       return 0;
   }
