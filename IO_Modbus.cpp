@@ -486,13 +486,16 @@ ModbusRTUMasterError ModbusRTUMaster::_translateCommError(ModbusRTUCommError com
  * Modbus implementation
  ************************************************************/
 
+
 // Constructor for Modbus
-Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t transmitEnablePin) {
-  _busNo = busNo;
+Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t _dePin) {
+  
+  //serial.write("\002\004",2);
+  ModbusRTUMaster _modbusmaster(serial, _dePin);
   _baud = baud;
   _serialD = &serial;
+  _busNo = busNo;
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
-  _transmitEnablePin = transmitEnablePin;
   //if (_transmitEnablePin != VPIN_NONE) {
     //pinMode(_transmitEnablePin, OUTPUT);
     //ArduinoPins::fastWriteDigital(_transmitEnablePin, 0); // transmitter initially off
@@ -502,8 +505,9 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   //_modbusmaster.begin(baud);
   //DIAG(F("ModbusInit: %d %d"), _transmitEnablePin, _baud);
   // Add device to HAL device chain
+  serial.begin(baud, SERIAL_8N1);
   IODevice::addDevice(this);
-  
+  _modbusmaster.begin(baud, SERIAL_8N1);
   // Add bus to CMRIbus chain.
   _nextBus = _busList;
   _busList = this;
@@ -516,7 +520,6 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
 // process any response data received.
 // When the slot time has finished, move on to the next device.
 void Modbus::_loop(unsigned long currentMicros) {
-  
   _currentMicros = currentMicros;
   
   if (_currentNode == NULL) {
@@ -532,16 +535,18 @@ void Modbus::_loop(unsigned long currentMicros) {
   
   uint8_t error;
   //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  DIAG(F("ModbusHR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+  DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  //error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
+  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
   DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
-  error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+  //error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
   //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  DIAG(F("ModbusIR: %d %d %d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+
+
   _currentNode = _currentNode->getNext();
   //delayUntil(_currentMicros + _cycleTime * 1000UL);
   }

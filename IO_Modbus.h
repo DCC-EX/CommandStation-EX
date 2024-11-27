@@ -199,10 +199,10 @@ public:
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
   }
   Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters);
-  char *coils[100];
-  char *discreteInputs[100];
-  uint16_t *holdingRegisters[100];
-  uint16_t *inputRegisters[100];
+  char *coils[1968];
+  char *discreteInputs[2000];
+  uint16_t *holdingRegisters[123];
+  uint16_t *inputRegisters[125];
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -304,7 +304,6 @@ private:
   uint8_t _busNo;
 
   unsigned long _baud;
-  int8_t _transmitEnablePin;
   Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   Modbusnode *_currentNode = NULL;
   
@@ -319,20 +318,21 @@ private:
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
 
   static Modbus *_busList; // linked list of defined bus instances
-
+  
 public:
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t transmitEnablePin=0) {
-    new Modbus(busNo, serial, baud, cycleTimeMS, transmitEnablePin);
+  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t _dePin=0) {
+    new Modbus(busNo, serial, baud, cycleTimeMS, _dePin);
   }
-  HardwareSerial *_serialD;
+  HardwareSerial *_serialD = nullptr;
   ModbusRTUMaster *_modbusmaster;
-
+  
   // Device-specific initialisation
   void _begin() override {
-    ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
-    _serialD->begin(_baud, SERIAL_8N1);
+    //ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
+    
+    
     //_serialD->println("test");
-    _modbusmaster.begin(_baud, SERIAL_8N1);
+    
   #if defined(DIAG_IO)
     _display();
   #endif
@@ -343,7 +343,7 @@ public:
 
   // Display information about the device
   void _display() override {
-    DIAG(F("Modbus Configured on %d Vpins:%d-%d %S"), _transmitEnablePin, _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("Modbus Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F("OK"));
   }
 
@@ -368,7 +368,7 @@ public:
   }
 
 protected:
-  Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t transmitEnablePin);
+  Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t _dePin);
 
 public:
   
