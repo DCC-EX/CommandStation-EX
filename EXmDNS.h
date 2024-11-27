@@ -1,5 +1,6 @@
 /*
  *  © 2024 Harald Barth
+ *  © 2024 Paul M. Antoine
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -19,6 +20,11 @@
  */
 #ifdef DO_MDNS
 #define BROADCASTTIME 15 //seconds
+
+// We do this ourselves because every library is different and/or broken...
+#define HTONS(x) ((uint16_t)(((x) << 8) | (((x) >> 8) & 0xFF)))
+#define HTONL(x) ( ((uint32_t)(x) << 24) | (((uint32_t)(x) << 8) & 0xFF0000) | \
+                  (((uint32_t)(x) >> 8) & 0xFF00) | ((uint32_t)(x) >> 24) )
 
 typedef enum _MDNSServiceProtocol_t 
 {

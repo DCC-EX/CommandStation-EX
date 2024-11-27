@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2022 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  © 2020-2024 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
@@ -41,9 +41,10 @@
  #ifndef MAX_SOCK_NUM
  #define MAX_SOCK_NUM 4
  #endif
+ // can't use our MDNS because of a namespace clash with Teensy's NativeEthernet library!
+ // #define DO_MDNS
 #elif defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
  #include <LwIP.h>
-//  #include "STM32lwipopts.h"
  #include <STM32Ethernet.h>
  #include <lwip/netif.h>
  extern "C" struct netif gnetif;
@@ -52,7 +53,10 @@
  #define DO_MDNS
 #else
  #include "Ethernet.h"
+ #define DO_MDNS
 #endif
+
+
 #include "RingStream.h"
 
 /**

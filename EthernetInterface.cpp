@@ -116,7 +116,7 @@ void EthernetInterface::setup()
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
   #ifdef DO_MDNS
     if (!mdns.begin(Ethernet.localIP(), (char *)WIFI_HOSTNAME))
-      DIAG("mdns.begin fail"); // hostname
+      DIAG(F("mdns.begin fail")); // hostname
     mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
     mdns.run(); // run it right away to get out info ASAP
   #endif  

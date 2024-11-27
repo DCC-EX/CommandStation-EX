@@ -1,5 +1,6 @@
 /*
  *  © 2024 Harald Barth
+ *  © 2024 Paul M. Antoine
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -87,7 +88,8 @@ int MDNS::begin(const IPAddress& ip, char* name) {
 
 int MDNS::addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto) {
   // we ignore proto, assume TCP
-  _serviceName = (char *)malloc(strlen(name)+2);
+  (void)proto;
+  _serviceName = (char *)malloc(strlen(name) + 2);
   byte n;
   for(n = 0; n<strlen(name); n++)
     _serviceName[n+1] = name[n];
@@ -125,13 +127,14 @@ void MDNS::run() {
     return;
   }
   lastrun = now;
-  DNSHeader_t dnsHeader = { 0 };
+  DNSHeader_t dnsHeader = {0, 0, 0, 0, 0, 0};
+  // DNSHeader_t dnsHeader = { 0 };
 
   _udp->beginPacket(mdnsMulticastIPAddr, MDNS_SERVER_PORT);
 
   // dns header
-  dnsHeader.flags = lwip_htons(0x8400); // Response, authorative
-  dnsHeader.answerCount = lwip_htons(4 /*5 if TXT but we do not do that */);
+  dnsHeader.flags = HTONS((uint16_t)0x8400); // Response, authorative
+  dnsHeader.answerCount = HTONS(4 /*5 if TXT but we do not do that */);
   _udp->write((uint8_t*)&dnsHeader, sizeof(DNSHeader_t));
 
   // rr #1, the PTR record from generic _services.x.local to service.x.local
@@ -142,8 +145,8 @@ void MDNS::run() {
   buf[1] = 0x0c;                           //PTR
   buf[2] = 0x00;
   buf[3] = 0x01;                           //IN
-  *((uint32_t*)(buf+4)) = lwip_htonl(120); //TTL in sec
-  *((uint16_t*)(buf+8)) = lwip_htons( _serviceProto[0] + 1 + strlen(dns_rr_tcplocal) + 1);
+  *((uint32_t*)(buf+4)) = HTONL(120); //TTL in sec
+  *((uint16_t*)(buf+8)) = HTONS( _serviceProto[0] + 1 + strlen(dns_rr_tcplocal) + 1);
   _udp->write(buf, 10);
 
   _udp->write(_serviceProto,_serviceProto[0]+1);
@@ -152,7 +155,7 @@ void MDNS::run() {
   // rr #2, the PTR record from proto.x to name.proto.x
   _udp->write(_serviceProto,_serviceProto[0]+1);
   _udp->write(dns_rr_tcplocal, strlen(dns_rr_tcplocal)+1);
-  *((uint16_t*)(buf+8)) = lwip_htons(strlen(_serviceName) + strlen(dns_rr_tcplocal) + 1); // recycle most of buf
+  *((uint16_t*)(buf+8)) = HTONS(strlen(_serviceName) + strlen(dns_rr_tcplocal) + 1); // recycle most of buf
   _udp->write(buf, 10);
 
   _udp->write(_serviceName, strlen(_serviceName));
@@ -163,14 +166,14 @@ void MDNS::run() {
 
   buf[1] = 0x21;                                  // recycle most of buf but here SRV
   buf[2] = 0x80;                                  // cache flush
-  *((uint16_t*)(buf+8)) = lwip_htons(strlen(_name) + strlen(dns_rr_local) + 1 + 6);
+  *((uint16_t*)(buf+8)) = HTONS(strlen(_name) + strlen(dns_rr_local) + 1 + 6);
   _udp->write(buf, 10);
 
   byte srv[6];
   // priority and weight
   srv[0] = srv[1] = srv[2] = srv[3] = 0;
   // port
-  *((uint16_t*)(srv+4)) = lwip_htons(_servicePort);
+  *((uint16_t*)(srv+4)) = HTONS(_servicePort);
   _udp->write(srv, 6);
   // target
   _udp->write(_name, _name[0]+1);
@@ -181,7 +184,7 @@ void MDNS::run() {
   _udp->write(dns_rr_local, strlen(dns_rr_local)+1);
   
   buf[1] = 0x01;                                  // recycle most of buf but here A
-  *((uint16_t*)(buf+8)) = lwip_htons(4);
+  *((uint16_t*)(buf+8)) = HTONS(4);
   _udp->write(buf, 10);
   byte ip[4];
   ip[0] = _ipAddress[0];
