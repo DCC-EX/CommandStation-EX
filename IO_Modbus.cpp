@@ -171,7 +171,7 @@ uint16_t div8RndUp(uint16_t value) {
   return (value + 7) >> 3;
 }
 
-ModbusRTUComm::ModbusRTUComm(Stream& serial, int8_t dePin, int8_t rePin) : _serial(serial) {
+ModbusRTUComm::ModbusRTUComm(Stream& serial, VPIN dePin, VPIN rePin) : _serial(serial) {
   _dePin = dePin;
   _rePin = rePin;
 }
@@ -204,13 +204,13 @@ void ModbusRTUComm::begin(unsigned long baud, uint32_t config) {
   #if defined(ARDUINO_UNOR4_MINIMA) || defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_GIGA) || (defined(ARDUINO_NANO_RP2040_CONNECT) && defined(ARDUINO_ARCH_MBED))
   _postDelay = ((bitsPerChar * 1000000) / baud) + 2;
   #endif
-  if (_dePin >= 0) {
+  if (_dePin != VPIN_NONE) {
     pinMode(_dePin, OUTPUT);
-    digitalWrite(_dePin, LOW);
+    ArduinoPins::fastWriteDigital(_dePin, LOW);
   }
-  if (_rePin >= 0) {
+  if (_rePin != VPIN_NONE) {
     pinMode(_rePin, OUTPUT);
-    digitalWrite(_rePin, LOW);
+    ArduinoPins::fastWriteDigital(_rePin, LOW);
   }
   clearRxBuffer();
 }
@@ -249,13 +249,13 @@ ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
 
 void ModbusRTUComm::writeAdu(ModbusADU& adu) {
   adu.updateCrc();
-  if (_dePin >= 0) digitalWrite(_dePin, HIGH);
-  if (_rePin >= 0) digitalWrite(_rePin, HIGH);
+  if (_dePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_dePin, HIGH);
+  if (_rePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_rePin, HIGH);
   _serial.write(adu.rtu, adu.getRtuLen());
   _serial.flush();
-  ///delayMicroseconds(_postDelay);
-  if (_dePin >= 0) digitalWrite(_dePin, LOW);
-  if (_rePin >= 0) digitalWrite(_rePin, LOW);
+  //delayMicroseconds(_postDelay);
+  if (_dePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_dePin, LOW);
+  if (_rePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_rePin, LOW);
 }
 
 void ModbusRTUComm::clearRxBuffer() {
@@ -268,49 +268,43 @@ void ModbusRTUComm::clearRxBuffer() {
   } while (micros() - startMicros < _frameTimeout);
 }
 
-ModbusRTUMaster::ModbusRTUMaster(Stream& serial, int8_t dePin, int8_t rePin) : _rtuComm(serial, dePin, rePin) {
-  _rtuComm.setTimeout(500);
-}
 
-void ModbusRTUMaster::setTimeout(unsigned long timeout) {
+void Modbus::setTimeout(unsigned long timeout) {
   _rtuComm.setTimeout(timeout);
 }
 
-void ModbusRTUMaster::begin(unsigned long baud, uint32_t config) {
-  _rtuComm.begin(baud, config);
-}
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   return _readValues(id, 1, startAddress, buf, quantity);
 }
 
-ModbusRTUMasterError ModbusRTUMaster::readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   return _readValues(id, 2, startAddress, buf, quantity);
 }
 
-ModbusRTUMasterError ModbusRTUMaster::readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
   return _readValues(id, 3, startAddress, buf, quantity);
 }
 
-ModbusRTUMasterError ModbusRTUMaster::readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
   return _readValues(id, 4, startAddress, buf, quantity);
 }
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::writeSingleCoil(uint8_t id, uint16_t address, char value) {
+ModbusRTUMasterError Modbus::writeSingleCoil(uint8_t id, uint16_t address, char value) {
   return _writeSingleValue(id, 5, address, ((value) ? 0xFF00 : 0x0000));
 }
 
-ModbusRTUMasterError ModbusRTUMaster::writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value) {
+ModbusRTUMasterError Modbus::writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value) {
   return _writeSingleValue(id, 6, address, value);
 }
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity) {
   const uint8_t functionCode = 15;
   if (id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
@@ -345,7 +339,7 @@ ModbusRTUMasterError ModbusRTUMaster::writeMultipleCoils(uint8_t id, uint16_t st
   return MODBUS_RTU_MASTER_SUCCESS;
 }
 
-ModbusRTUMasterError ModbusRTUMaster::writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
   uint8_t functionCode = 16;
   if (id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
@@ -379,13 +373,13 @@ ModbusRTUMasterError ModbusRTUMaster::writeMultipleHoldingRegisters(uint8_t id, 
 
 
 
-uint8_t ModbusRTUMaster::getExceptionResponse() {
+uint8_t Modbus::getExceptionResponse() {
   return _exceptionResponse;
 }
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity) {
   if (id < 1 || id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
   if (quantity == 0 || quantity > 2000) return MODBUS_RTU_MASTER_INVALID_QUANTITY;
@@ -413,7 +407,7 @@ ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCo
   return MODBUS_RTU_MASTER_SUCCESS;
 }
 
-ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
+ModbusRTUMasterError Modbus::_readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity) {
   if (id < 1 || id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   if (!buf) return MODBUS_RTU_MASTER_INVALID_BUFFER;
   if (quantity == 0 || quantity > 125) return MODBUS_RTU_MASTER_INVALID_QUANTITY;
@@ -441,7 +435,7 @@ ModbusRTUMasterError ModbusRTUMaster::_readValues(uint8_t id, uint8_t functionCo
   return MODBUS_RTU_MASTER_SUCCESS;
 }
 
-ModbusRTUMasterError ModbusRTUMaster::_writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value) {
+ModbusRTUMasterError Modbus::_writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value) {
   if (id > 247) return MODBUS_RTU_MASTER_INVALID_ID;
   ModbusADU adu;
   adu.setUnitId(id);
@@ -467,7 +461,7 @@ ModbusRTUMasterError ModbusRTUMaster::_writeSingleValue(uint8_t id, uint8_t func
 
 
 
-ModbusRTUMasterError ModbusRTUMaster::_translateCommError(ModbusRTUCommError commError) {
+ModbusRTUMasterError Modbus::_translateCommError(ModbusRTUCommError commError) {
   switch (commError) {
     case MODBUS_RTU_COMM_SUCCESS:
       return MODBUS_RTU_MASTER_SUCCESS;
@@ -488,12 +482,13 @@ ModbusRTUMasterError ModbusRTUMaster::_translateCommError(ModbusRTUCommError com
 
 
 // Constructor for Modbus
-Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t _dePin) {
-  
-  //serial.write("\002\004",2);
-  ModbusRTUMaster _modbusmaster(serial, _dePin);
+Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin) : _rtuComm(serial, txPin) {
   _baud = baud;
   _serialD = &serial;
+  _txPin = txPin;
+  _rtuComm.setTimeout(500);
+  
+  
   _busNo = busNo;
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
   //if (_transmitEnablePin != VPIN_NONE) {
@@ -505,9 +500,9 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_
   //_modbusmaster.begin(baud);
   //DIAG(F("ModbusInit: %d %d"), _transmitEnablePin, _baud);
   // Add device to HAL device chain
-  serial.begin(baud, SERIAL_8N1);
+  
   IODevice::addDevice(this);
-  _modbusmaster.begin(baud, SERIAL_8N1);
+  
   // Add bus to CMRIbus chain.
   _nextBus = _busList;
   _busList = this;
@@ -534,16 +529,16 @@ void Modbus::_loop(unsigned long currentMicros) {
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
   uint8_t error;
-  //error = _modbusmaster->writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+  error = writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
   DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 
-  error = _modbusmaster->writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
+  error = writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
   DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 
-  //error = _modbusmaster->readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+  error = readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
   DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 
-  //error = _modbusmaster->readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+  error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
   DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
 
 

@@ -107,17 +107,17 @@ enum ModbusRTUCommError : uint8_t {
 
 class ModbusRTUComm {
   public:
-    ModbusRTUComm(Stream& serial, int8_t dePin = -1, int8_t rePin = -1);
+    ModbusRTUComm(Stream& serial, VPIN dePin = VPIN_NONE, VPIN rePin = VPIN_NONE);
     void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
     void setTimeout(unsigned long timeout);
     ModbusRTUCommError readAdu(ModbusADU& adu);
     void writeAdu(ModbusADU& adu);
     void clearRxBuffer();
-
-  private:
     Stream& _serial;
-    int8_t _dePin;
-    int8_t _rePin;
+    VPIN _dePin;
+    VPIN _rePin;
+  private:
+    
     unsigned long _charTimeout;
     unsigned long _frameTimeout;
     unsigned long _postDelay = 0;
@@ -145,32 +145,16 @@ enum ModbusRTUMasterError : uint8_t {
 
 class ModbusRTUMaster {
   public:
-    ModbusRTUMaster(Stream& serial, int8_t dePin = -1, int8_t rePin = -1);
-    void setTimeout(unsigned long timeout);
+    ModbusRTUMaster(Stream& serial, VPIN dePin = VPIN_NONE, VPIN rePin = VPIN_NONE);
+    
     void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
 
-    ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
-    ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
-    ModbusRTUMasterError readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
-    ModbusRTUMasterError readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
+    
 
-    ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, char value);
-    ModbusRTUMasterError writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value);
-    ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
-    ModbusRTUMasterError writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
-
-    uint8_t getExceptionResponse();
+    
 
   private:
-    ModbusRTUComm _rtuComm;
-    uint8_t _exceptionResponse = 0;
-
-    ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity);
-    ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
-    ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
-
-    ModbusRTUMasterError _translateCommError(ModbusRTUCommError commError);
-
+    
 };
 
 
@@ -304,11 +288,14 @@ private:
   uint8_t _busNo;
 
   unsigned long _baud;
+  int8_t _txPin;
   Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   Modbusnode *_currentNode = NULL;
-  
+  uint8_t _exceptionResponse = 0;
+  uint8_t getExceptionResponse();
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   Modbus *_nextBus = NULL;  // Pointer to next bus instance in list.
+  void setTimeout(unsigned long timeout);
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
@@ -318,26 +305,39 @@ private:
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
 
   static Modbus *_busList; // linked list of defined bus instances
-  
+  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
+  ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
 public:
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t _dePin=0) {
-    new Modbus(busNo, serial, baud, cycleTimeMS, _dePin);
+  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1) {
+    new Modbus(busNo, serial, baud, cycleTimeMS, txPin);
   }
-  HardwareSerial *_serialD = nullptr;
-  ModbusRTUMaster *_modbusmaster;
-  
+  HardwareSerial *_serialD;
+  //ModbusRTUMaster *_modbusmaster;
+  ModbusRTUComm _rtuComm;
   // Device-specific initialisation
   void _begin() override {
     //ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
-    
-    
+    _serialD->begin(_baud, SERIAL_8N1);
+    //ModbusRTUMaster _modbusmaster(*_serialD, _txPin, -1);
+    _rtuComm.begin(_baud, SERIAL_8N1);
+  
     //_serialD->println("test");
     
   #if defined(DIAG_IO)
     _display();
   #endif
   }
+  ModbusRTUMasterError _translateCommError(ModbusRTUCommError commError);
+  ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
+  ModbusRTUMasterError readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
 
+  ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, char value);
+  ModbusRTUMasterError writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value);
+  ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;
 
@@ -368,7 +368,7 @@ public:
   }
 
 protected:
-  Modbus(uint8_t busNo, HardwareSerial serial, unsigned long baud, uint16_t cycleTimeMS, int8_t _dePin);
+  Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin);
 
 public:
   
