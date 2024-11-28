@@ -229,15 +229,10 @@ public:
       return 0;
   }
 
-  int _readAnalogue(VPIN vpin) override {
-    // Return acquired data value, e.g.
-    int pin = vpin - _firstVpin - _numDiscreteInputs;
-    return (int) inputRegisters[pin];
-  }
-
+  
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters;
+    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs;
     if (pin < _numCoils) {
       if (value)
         if (value == 1) coils[pin] = (char*) 0x1;
@@ -248,8 +243,14 @@ public:
     }
   }
 
+  int _readAnalogue(VPIN vpin) override {
+    // Return acquired data value, e.g.
+    int pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils;
+    return (int) inputRegisters[pin];
+  }
+  
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) override {
-    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numInputRegisters - _numCoils;
+    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils - _numInputRegisters;
     if (pin < _numHoldingRegisters) {
       if (value)
         holdingRegisters[pin] = (uint16_t*) value;
@@ -258,18 +259,50 @@ public:
     }
   }
 
-  char getType() {
-    return _type; 
-  }
-
   uint8_t getBusNumber() {
     return _busNo;
   }
+  uint8_t getNumBinaryInputsVPINsMin() {
+    if (_numDiscreteInputs > 0) return _firstVpin;
+    else return 0;
+  }
+  uint8_t getNumBinaryInputsVPINsMax() {
+    if (_numDiscreteInputs > 0) return _firstVpin+_numDiscreteInputs-1;
+    else return 0;
+  }
 
+  uint8_t getNumBinaryOutputsVPINsMin() {
+    if (_numCoils > 0) return _firstVpin+_numDiscreteInputs;
+    else return 0;
+  }
+  uint8_t getNumBinaryOutputsVPINsMax() {
+    if (_numCoils > 0) return _firstVpin+_numDiscreteInputs+_numCoils-1;
+    else return 0;
+  }
+
+  uint8_t getNumAnalogInputsVPINsMin() {
+    if (_numInputRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils;
+    else return 0;
+  }
+  uint8_t getNumAnalogInputsVPINsMax() {
+    if (_numInputRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters-1;
+    else return 0;
+  }
+
+  uint8_t getNumAnalogOutputsVPINsMin() {
+    if (_numHoldingRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters;
+    else return 0;
+  }
+  uint8_t getNumAnalogOutputsVPINsMax() {
+    if (_numHoldingRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters+_numHoldingRegisters-1;
+    else return 0;
+  }
   void _display() override {
-    DIAG(F("Modbusnode configured on bus:%d nodeID:%d VPINs:%u-%u (in) %u-%u (out)"),
-      _busNo, _nodeID, _firstVpin, _firstVpin+_numDiscreteInputs-1,
-      _firstVpin+_numDiscreteInputs, _firstVpin+_numDiscreteInputs+_numCoils-1);
+    DIAG(F("Modbusnode configured on bus:%d nodeID:%d VPINs:%u-%u (B In) %u-%u (B Out) %u-%u (A In) %u-%u (A Out)"),
+      _busNo, _nodeID, getNumBinaryInputsVPINsMin(), getNumBinaryInputsVPINsMax(),
+      getNumBinaryOutputsVPINsMin(), getNumBinaryOutputsVPINsMax(),
+      getNumAnalogInputsVPINsMin(), getNumAnalogInputsVPINsMax(),
+      getNumAnalogOutputsVPINsMin(), getNumAnalogOutputsVPINsMax());
   }
 
 };
@@ -313,17 +346,12 @@ public:
     new Modbus(busNo, serial, baud, cycleTimeMS, txPin);
   }
   HardwareSerial *_serialD;
-  //ModbusRTUMaster *_modbusmaster;
   ModbusRTUComm _rtuComm;
   // Device-specific initialisation
   void _begin() override {
-    //ModbusRTUMaster _modbusmaster(*_serialD, _transmitEnablePin, -1);
     _serialD->begin(_baud, SERIAL_8N1);
-    //ModbusRTUMaster _modbusmaster(*_serialD, _txPin, -1);
     _rtuComm.begin(_baud, SERIAL_8N1);
-  
-    //_serialD->println("test");
-    
+      
   #if defined(DIAG_IO)
     _display();
   #endif
