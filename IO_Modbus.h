@@ -219,10 +219,11 @@ public:
     // Update current state for this device, in preparation the bus transmission
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs;
     if (pin < _numCoils) {
-      if (value)
+      if (value){
         if (value == 1) coils[pin] = (char*) 0x1;
         if (value == 0) coils[pin] = (char*) 0x0;
         //coils[pin] = value;
+      }
       else
         coils[pin];
     }
@@ -231,16 +232,16 @@ public:
   int _readAnalogue(VPIN vpin) override {
     // Return acquired data value, e.g.
     int pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils;
-    return (int) inputRegisters[pin];
+    return (int) inputRegisters[pin-1];
   }
   
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) override {
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils - _numInputRegisters;
     if (pin < _numHoldingRegisters) {
       if (value)
-        holdingRegisters[pin] = (uint16_t*) value;
+        holdingRegisters[pin-1] = (uint16_t*) value;
       else
-        holdingRegisters[pin];
+        holdingRegisters[pin-1];
     }
   }
 
@@ -336,14 +337,19 @@ public:
   void _begin() override {
     _serialD->begin(_baud, SERIAL_8N1);
     _rtuComm.begin(_baud, SERIAL_8N1);
-  #if defined(MODBUS_STM_OK) && defined(MODBUS_STM_FAIL) && defined(MODBUS_STM_TICK)
+  #if defined(MODBUS_STM_OK)
     pinMode(MODBUS_STM_OK, OUTPUT);
-    pinMode(MODBUS_STM_FAIL, OUTPUT);
-    pinMode(MODBUS_STM_TICK, OUTPUT);
     ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
-    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
-    ArduinoPins::fastWriteDigital(MODBUS_STM_TICK,LOW);
   #endif
+  #if defined(MODBUS_STM_FAIL)
+    pinMode(MODBUS_STM_FAIL, OUTPUT);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
+  #endif
+  #if defined(MODBUS_STM_COMM)
+    pinMode(MODBUS_STM_COMM, OUTPUT);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,LOW);
+  #endif
+  
   #if defined(DIAG_IO)
     _display();
   #endif
