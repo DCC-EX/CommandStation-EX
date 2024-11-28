@@ -143,21 +143,6 @@ enum ModbusRTUMasterError : uint8_t {
   MODBUS_RTU_MASTER_UNEXPECTED_QUANTITY = 15
 };
 
-class ModbusRTUMaster {
-  public:
-    ModbusRTUMaster(Stream& serial, VPIN dePin = VPIN_NONE, VPIN rePin = VPIN_NONE);
-    
-    void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
-
-    
-
-    
-
-  private:
-    
-};
-
-
 
 /**********************************************************************
  * Modbusnode class
