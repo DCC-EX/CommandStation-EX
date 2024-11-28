@@ -168,10 +168,10 @@ public:
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
   }
   Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters);
-  char *coils[1968];
-  char *discreteInputs[2000];
-  uint16_t *holdingRegisters[123];
-  uint16_t *inputRegisters[125];
+  int *coils[100];
+  int *discreteInputs[100];
+  uint16_t *holdingRegisters[100];
+  uint16_t *inputRegisters[100];
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -215,8 +215,8 @@ public:
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs;
-    if (value == 1) coils[pin] = (char*) 0x1;
-    if (value == 0) coils[pin] = (char*) 0x0;
+    if (value == 1) coils[pin] = (int*) 0x1;
+    if (value == 0) coils[pin] = (int*) 0x0;
   }
 
   int _readAnalogue(VPIN vpin) {
@@ -309,7 +309,7 @@ private:
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
 
   static Modbus *_busList; // linked list of defined bus instances
-  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, int buf[], uint16_t quantity);
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
 public:
@@ -340,14 +340,14 @@ public:
   #endif
   }
   ModbusRTUMasterError _translateCommError(ModbusRTUCommError commError);
-  ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
-  ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
+  ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
   ModbusRTUMasterError readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   ModbusRTUMasterError readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
 
-  ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, char value);
+  ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, int value);
   ModbusRTUMasterError writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value);
-  ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, char buf[], uint16_t quantity);
+  ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
   ModbusRTUMasterError writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;
