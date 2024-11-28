@@ -317,7 +317,7 @@ ModbusRTUMasterError Modbus::writeMultipleCoils(uint8_t id, uint16_t startAddres
   adu.setDataRegister(2, quantity);
   adu.data[4] = byteCount;
   for (uint16_t i = 0; i < quantity; i++) {
-    bitWrite(adu.data[5 + (i >> 3)], i & 7, (bool) buf[i]);
+    bitWrite(adu.data[5 + (i >> 3)], i & 7, buf[i]);
   }
   for (uint16_t i = quantity; i < (byteCount * 8); i++) {
     bitClear(adu.data[5 + (i >> 3)], i & 7);

@@ -208,41 +208,26 @@ public:
   int _read(VPIN vpin) override {
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
-    if (pin < _numDiscreteInputs) {
-      return (int) discreteInputs[pin];
-    } else
-      return 0;
+    return (int) discreteInputs[pin];
   }
 
   
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs;
-    if (pin < _numCoils) {
-      if (value){
-        if (value == 1) coils[pin] = (char*) 0x1;
-        if (value == 0) coils[pin] = (char*) 0x0;
-        //coils[pin] = value;
-      }
-      else
-        coils[pin];
-    }
+    if (value == 1) coils[pin] = (char*) 0x1;
+    if (value == 0) coils[pin] = (char*) 0x0;
   }
 
-  int _readAnalogue(VPIN vpin) override {
+  int _readAnalogue(VPIN vpin) {
     // Return acquired data value, e.g.
     int pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils;
-    return (int) inputRegisters[pin-1];
+    return (int) inputRegisters[pin];
   }
   
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) override {
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils - _numInputRegisters;
-    if (pin < _numHoldingRegisters) {
-      if (value)
-        holdingRegisters[pin-1] = (uint16_t*) value;
-      else
-        holdingRegisters[pin-1];
-    }
+    holdingRegisters[pin] = (uint16_t*) value;
   }
 
   uint8_t getBusNumber() {
