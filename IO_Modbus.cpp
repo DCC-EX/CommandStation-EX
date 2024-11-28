@@ -515,29 +515,48 @@ void Modbus::_loop(unsigned long currentMicros) {
   
   const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
   
+  bool flagOK = false;
+#if defined(MODBUS_STM_OK) && defined(MODBUS_STM_FAIL) && defined(MODBUS_STM_TICK)
+  ArduinoPins::fastWriteDigital(MODBUS_STM_TICK,HIGH);
+#endif
+
   uint8_t error;
   // send reads and writes, DIAG on errors other than 0 (Success), or 3 (Invalid Quantity)
   error = writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  if (error != 0 || error != 3) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+  if (error != 0 && error != 3) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
 #ifdef DIAG_IO
   if (error == 0) DIAG(F("ModbusHR: T%d Success!"), _currentNode->getNodeID());
 #endif
+  if (error == 0 || error == 3) flagOK = true;
   error = writeMultipleCoils(_currentNode->getNodeID(), 0, (char*) _currentNode->coils, _currentNode->getNumCoils());
-  if (error != 0 || error != 3) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+  if (error != 0 && error != 3) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
 #ifdef DIAG_IO
   if (error == 0) DIAG(F("ModbusMC: T%d Success!"), _currentNode->getNodeID());
 #endif
+  if (error == 0 || error == 3) flagOK = true;
   error = readDiscreteInputs(_currentNode->getNodeID(), 0, (char*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
-  if (error != 0 || error != 3) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
+  if (error != 0 && error != 3) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
 #ifdef DIAG_IO
   if (error == 0) DIAG(F("ModbusDI: T%d Success!"), _currentNode->getNodeID());
 #endif
+  if (error == 0 || error == 3) flagOK = true;
   error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  if (error != 0 || error != 3) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+  if (error != 0 && error != 3) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
 #ifdef DIAG_IO
   if (error == 0) DIAG(F("ModbusIR: T%d Success!"), _currentNode->getNodeID());
 #endif
+  if (error == 0 || error == 3) flagOK = true;
 
+#if defined(MODBUS_STM_OK) && defined(MODBUS_STM_FAIL) && defined(MODBUS_STM_TICK)
+  if (flagOK == true) {
+    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,HIGH);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
+  } else {
+    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,HIGH);
+  }
+  ArduinoPins::fastWriteDigital(MODBUS_STM_TICK,LOW);
+#endif
   _currentNode = _currentNode->getNext();
   }
 

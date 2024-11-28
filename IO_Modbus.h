@@ -336,7 +336,14 @@ public:
   void _begin() override {
     _serialD->begin(_baud, SERIAL_8N1);
     _rtuComm.begin(_baud, SERIAL_8N1);
-      
+  #if defined(MODBUS_STM_OK) && defined(MODBUS_STM_FAIL) && defined(MODBUS_STM_TICK)
+    pinMode(MODBUS_STM_OK, OUTPUT);
+    pinMode(MODBUS_STM_FAIL, OUTPUT);
+    pinMode(MODBUS_STM_TICK, OUTPUT);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
+    ArduinoPins::fastWriteDigital(MODBUS_STM_TICK,LOW);
+  #endif
   #if defined(DIAG_IO)
     _display();
   #endif
