@@ -253,7 +253,7 @@ void ModbusRTUComm::writeAdu(ModbusADU& adu) {
   if (_rePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_rePin, HIGH);
   _serial.write(adu.rtu, adu.getRtuLen());
   _serial.flush();
-  delayMicroseconds(_postDelay);
+  ///delayMicroseconds(_postDelay); // TJF: Commented out as Mbed platforms are not supported
   if (_dePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_dePin, LOW);
   if (_rePin != VPIN_NONE) ArduinoPins::fastWriteDigital(_rePin, LOW);
 }
