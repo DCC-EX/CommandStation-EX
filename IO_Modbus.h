@@ -315,6 +315,10 @@ private:
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, int buf[], uint16_t quantity);
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
+  int _waitCounter = 0;
+  void _resetWaiting() {
+    _rtuComm._waiting_for_read = false;
+  }
 public:
   static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1) {
     new Modbus(busNo, serial, baud, cycleTimeMS, txPin);

@@ -226,6 +226,7 @@ ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
     //if (millis() - startMillis >= _readTimeout) return MODBUS_RTU_COMM_TIMEOUT;
     _waiting_for_read = true;
     if (millis() - startMillis >= _readTimeout) {
+      //_serial.flush();
       return MODBUS_RTU_COMM_TIMEOUT;
     } else {
       return MODBUS_RTU_COMM_WAITING;
@@ -534,24 +535,34 @@ void Modbus::_loop(unsigned long currentMicros) {
   switch (_operationCount) {
     case 0:
       error = writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-      if (error != 0 && error != 3) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
-      if (error != 0 && error != 3) flagOK = false;
+      if (error != 0 && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+      if (error != 0 && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
     case 1:
       error = writeMultipleCoils(_currentNode->getNodeID(), 0, (int*) _currentNode->coils, _currentNode->getNumCoils());
-      if (error != 0 && error != 3) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
-      if (error != 0 && error != 3) flagOK = false;
+      if (error != 0 && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+      if (error != 0 && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
     case 2:
       error = readDiscreteInputs(_currentNode->getNodeID(), 0, (int*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
-      if (error != 0 && error != 3) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
-      if (error != 0 && error != 3) flagOK = false;
+      if (error != 0 && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
+      if (error != 0 && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
     case 3:
       error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-      if (error != 0 && error != 3) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
-      if (error != 0 && error != 3) flagOK = false;
+      if (error != 0 && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+      if (error != 0 && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
+  }
+  if (error == MODBUS_RTU_MASTER_WAITING) {
+    if (_waitCounter > 10) {
+      _resetWaiting();
+      _waitCounter = 0;
+    } else {
+      _waitCounter++;
+    }
+  } else {
+    _waitCounter = 0;
   }
   if (error != MODBUS_RTU_MASTER_WAITING) {
     if (_operationCount < 3) {
