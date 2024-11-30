@@ -228,7 +228,7 @@ public:
     return (int) inputRegisters[pin];
   }
   
-  void _writeAnalogue(VPIN vpin, int value, uint8_t param1=0, uint16_t param2=0) override {
+  void _writeAnalogue(VPIN vpin, int value) {
     uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils - _numInputRegisters;
     holdingRegisters[pin] = (uint16_t*) value;
   }
@@ -317,7 +317,7 @@ private:
   ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
   int _waitCounter = 0;
   int _waitCounterB = 0;
-  
+
   void _resetWaiting() {
     _rtuComm._waiting_for_read = false;
   }
