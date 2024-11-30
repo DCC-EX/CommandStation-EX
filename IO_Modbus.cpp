@@ -222,9 +222,17 @@ void ModbusRTUComm::setTimeout(unsigned long timeout) {
 ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
   adu.setRtuLen(0);
   unsigned long startMillis = millis();
-  while (!_serial.available()) {
-    if (millis() - startMillis >= _readTimeout) return MODBUS_RTU_COMM_TIMEOUT;
+  if (!_serial.available()) {
+    //if (millis() - startMillis >= _readTimeout) return MODBUS_RTU_COMM_TIMEOUT;
+    _waiting_for_read = true;
+    if (millis() - startMillis >= _readTimeout) {
+      return MODBUS_RTU_COMM_TIMEOUT;
+    } else {
+      return MODBUS_RTU_COMM_WAITING;
+    }
+    
   }
+  _waiting_for_read = false;
   uint16_t len = 0;
   unsigned long startMicros = micros();
   do {
@@ -323,7 +331,7 @@ ModbusRTUMasterError Modbus::writeMultipleCoils(uint8_t id, uint16_t startAddres
     bitClear(adu.data[5 + (i >> 3)], i & 7);
   }
   adu.setDataLen(5 + byteCount);
-  _rtuComm.writeAdu(adu);
+  if (_rtuComm._waiting_for_read == false) _rtuComm.writeAdu(adu);
   if (id == 0) return MODBUS_RTU_MASTER_SUCCESS;
   ModbusRTUCommError commError = _rtuComm.readAdu(adu);
   if (commError) return _translateCommError(commError);
@@ -355,7 +363,7 @@ ModbusRTUMasterError Modbus::writeMultipleHoldingRegisters(uint8_t id, uint16_t 
     adu.setDataRegister(5 + (i * 2), buf[i]);
   }
   adu.setDataLen(5 + byteCount);
-  _rtuComm.writeAdu(adu);
+  if (_rtuComm._waiting_for_read == false) _rtuComm.writeAdu(adu);
   if (id == 0) return MODBUS_RTU_MASTER_SUCCESS;
   ModbusRTUCommError commError = _rtuComm.readAdu(adu);
   if (commError) return _translateCommError(commError);
@@ -389,7 +397,7 @@ ModbusRTUMasterError Modbus::_readValues(uint8_t id, uint8_t functionCode, uint1
   adu.setDataRegister(0, startAddress);
   adu.setDataRegister(2, quantity);
   adu.setDataLen(4);
-  _rtuComm.writeAdu(adu);
+  if (_rtuComm._waiting_for_read == false) _rtuComm.writeAdu(adu);
   ModbusRTUCommError commError = _rtuComm.readAdu(adu);
   if (commError) return _translateCommError(commError);
   if (adu.getUnitId() != id) return MODBUS_RTU_MASTER_UNEXPECTED_ID;
@@ -417,7 +425,7 @@ ModbusRTUMasterError Modbus::_readValues(uint8_t id, uint8_t functionCode, uint1
   adu.setDataRegister(0, startAddress);
   adu.setDataRegister(2, quantity);
   adu.setDataLen(4);
-  _rtuComm.writeAdu(adu);
+  if (_rtuComm._waiting_for_read == false) _rtuComm.writeAdu(adu);
   ModbusRTUCommError commError = _rtuComm.readAdu(adu);
   if (commError) return _translateCommError(commError);
   if (adu.getUnitId() != id) return MODBUS_RTU_MASTER_UNEXPECTED_ID;
@@ -443,7 +451,7 @@ ModbusRTUMasterError Modbus::_writeSingleValue(uint8_t id, uint8_t functionCode,
   adu.setDataRegister(0, address);
   adu.setDataRegister(2, value);
   adu.setDataLen(4);
-  _rtuComm.writeAdu(adu);
+  if (_rtuComm._waiting_for_read == false) _rtuComm.writeAdu(adu);
   if (id == 0) return MODBUS_RTU_MASTER_SUCCESS;
   ModbusRTUCommError commError = _rtuComm.readAdu(adu);
   if (commError) return _translateCommError(commError);
@@ -471,6 +479,8 @@ ModbusRTUMasterError Modbus::_translateCommError(ModbusRTUCommError commError) {
       return MODBUS_RTU_MASTER_FRAME_ERROR;
     case MODBUS_RTU_COMM_CRC_ERROR:
       return MODBUS_RTU_MASTER_CRC_ERROR;
+    case MODBUS_RTU_COMM_WAITING:
+      return MODBUS_RTU_MASTER_WAITING;
     default:
       return MODBUS_RTU_MASTER_UNKNOWN_COMM_ERROR;
   }
@@ -521,31 +531,36 @@ void Modbus::_loop(unsigned long currentMicros) {
 #endif
   uint8_t error;
   // send reads and writes, DIAG on errors other than 0 (Success), or 3 (Invalid Quantity)
-  error = writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
-  if (error != 0 && error != 3) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
-#ifdef DIAG_IO
-  if (error == 0) DIAG(F("ModbusHR: T%d Success!"), _currentNode->getNodeID());
-#endif
-  if (error != 0 && error != 3) flagOK = false;
-  error = writeMultipleCoils(_currentNode->getNodeID(), 0, (int*) _currentNode->coils, _currentNode->getNumCoils());
-  if (error != 0 && error != 3) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
-#ifdef DIAG_IO
-  if (error == 0) DIAG(F("ModbusMC: T%d Success!"), _currentNode->getNodeID());
-#endif
-  if (error != 0 && error != 3) flagOK = false;
-  error = readDiscreteInputs(_currentNode->getNodeID(), 0, (int*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
-  if (error != 0 && error != 3) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
-#ifdef DIAG_IO
-  if (error == 0) DIAG(F("ModbusDI: T%d Success!"), _currentNode->getNodeID());
-#endif
-  if (error != 0 && error != 3) flagOK = false;
-  error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-  if (error != 0 && error != 3) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
-#ifdef DIAG_IO
-  if (error == 0) DIAG(F("ModbusIR: T%d Success!"), _currentNode->getNodeID());
-#endif
-  if (error != 0 && error != 3) flagOK = false;
-
+  switch (_operationCount) {
+    case 0:
+      error = writeMultipleHoldingRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->holdingRegisters, _currentNode->getNumHoldingRegisters());
+      if (error != 0 && error != 3) DIAG(F("ModbusHR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumHoldingRegisters(), errorStrings[error]);
+      if (error != 0 && error != 3) flagOK = false;
+      break;
+    case 1:
+      error = writeMultipleCoils(_currentNode->getNodeID(), 0, (int*) _currentNode->coils, _currentNode->getNumCoils());
+      if (error != 0 && error != 3) DIAG(F("ModbusMC: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumCoils(), errorStrings[error]);
+      if (error != 0 && error != 3) flagOK = false;
+      break;
+    case 2:
+      error = readDiscreteInputs(_currentNode->getNodeID(), 0, (int*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+      if (error != 0 && error != 3) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
+      if (error != 0 && error != 3) flagOK = false;
+      break;
+    case 3:
+      error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+      if (error != 0 && error != 3) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+      if (error != 0 && error != 3) flagOK = false;
+      break;
+  }
+  if (error != MODBUS_RTU_MASTER_WAITING) {
+    if (_operationCount < 3) {
+      _operationCount++;
+    } else {
+      _operationCount = 0;
+      _currentNode = _currentNode->getNext();
+    }
+  }
 #if defined(MODBUS_STM_OK)
   if (flagOK == true) {
     ArduinoPins::fastWriteDigital(MODBUS_STM_OK,HIGH);
@@ -563,7 +578,7 @@ void Modbus::_loop(unsigned long currentMicros) {
 #if defined(MODBUS_STM_COMM)
   ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,LOW);
 #endif
-  _currentNode = _currentNode->getNext();
+  
   }
 
 // Link to chain of Modbus instances

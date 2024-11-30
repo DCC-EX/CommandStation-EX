@@ -102,7 +102,8 @@ enum ModbusRTUCommError : uint8_t {
   MODBUS_RTU_COMM_SUCCESS = 0,
   MODBUS_RTU_COMM_TIMEOUT = 1,
   MODBUS_RTU_COMM_FRAME_ERROR = 2,
-  MODBUS_RTU_COMM_CRC_ERROR = 3
+  MODBUS_RTU_COMM_CRC_ERROR = 3,
+  MODBUS_RTU_COMM_WAITING = 4
 };
 
 class ModbusRTUComm {
@@ -111,6 +112,7 @@ class ModbusRTUComm {
     void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
     void setTimeout(unsigned long timeout);
     ModbusRTUCommError readAdu(ModbusADU& adu);
+    bool _waiting_for_read = false;
     void writeAdu(ModbusADU& adu);
     void clearRxBuffer();
     Stream& _serial;
@@ -140,7 +142,8 @@ enum ModbusRTUMasterError : uint8_t {
   MODBUS_RTU_MASTER_UNEXPECTED_BYTE_COUNT = 12,
   MODBUS_RTU_MASTER_UNEXPECTED_ADDRESS = 13,
   MODBUS_RTU_MASTER_UNEXPECTED_VALUE = 14,
-  MODBUS_RTU_MASTER_UNEXPECTED_QUANTITY = 15
+  MODBUS_RTU_MASTER_UNEXPECTED_QUANTITY = 15,
+  MODBUS_RTU_MASTER_WAITING = 16
 };
 
 
@@ -307,7 +310,7 @@ private:
   unsigned long _currentMicros;  // last value of micros() from _loop function.
   unsigned long _postDelay; // delay time after transmission before switching off transmitter (in us)
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
-
+  int _operationCount = 0;
   static Modbus *_busList; // linked list of defined bus instances
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, int buf[], uint16_t quantity);
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
