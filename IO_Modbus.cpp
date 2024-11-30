@@ -555,15 +555,24 @@ void Modbus::_loop(unsigned long currentMicros) {
       break;
   }
   if (error == MODBUS_RTU_MASTER_WAITING) {
-    if (_waitCounter > 10) {
+    if (_waitCounter > 10) { // retry after 10 cycles of waiting.
       _resetWaiting();
       _waitCounter = 0;
+      _waitCounterB++;
     } else {
       _waitCounter++;
     }
+    if (_waitCounterB > 10) { // move on to next node if fails 10 times.
+      _waitCounter = 0;
+      _waitCounterB = 0;
+      _operationCount = 0;
+      _currentNode = _currentNode->getNext();
+    }
   } else {
     _waitCounter = 0;
+    _waitCounterB = 0;
   }
+  
   if (error != MODBUS_RTU_MASTER_WAITING) {
     if (_operationCount < 3) {
       _operationCount++;

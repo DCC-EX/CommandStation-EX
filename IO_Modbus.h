@@ -316,6 +316,8 @@ private:
   ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
   int _waitCounter = 0;
+  int _waitCounterB = 0;
+  
   void _resetWaiting() {
     _rtuComm._waiting_for_read = false;
   }
