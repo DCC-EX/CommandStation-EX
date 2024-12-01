@@ -602,7 +602,7 @@ void Modbus::_loop(unsigned long currentMicros) {
   ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,LOW);
 #endif
   
-  }
+}
 
 // Link to chain of Modbus instances
 Modbus *Modbus::_busList = NULL;
