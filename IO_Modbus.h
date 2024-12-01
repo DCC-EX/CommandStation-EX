@@ -122,8 +122,9 @@ class ModbusRTUComm {
     
     unsigned long _charTimeout;
     unsigned long _frameTimeout;
-    unsigned long _postDelay = 0;
-    unsigned long _readTimeout = 0;
+    unsigned long _postDelay = 0UL;
+    unsigned long _readTimeout = 0UL;
+    unsigned long _startTimeout = 0UL;
 };
 
 enum ModbusRTUMasterError : uint8_t {
@@ -317,13 +318,15 @@ private:
   ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
   int _waitCounter = 0;
   int _waitCounterB = 0;
+  int _waitA;
+  int _waitB;
 
   void _resetWaiting() {
     _rtuComm._waiting_for_read = false;
   }
 public:
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1) {
-    new Modbus(busNo, serial, baud, cycleTimeMS, txPin);
+  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10, int waitB=10) {
+    new Modbus(busNo, serial, baud, cycleTimeMS, txPin, waitA, waitB);
   }
   HardwareSerial *_serialD;
   ModbusRTUComm _rtuComm;
@@ -388,7 +391,7 @@ public:
   }
 
 protected:
-  Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin);
+  Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB);
 
 public:
   

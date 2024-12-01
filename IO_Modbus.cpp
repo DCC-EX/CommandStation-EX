@@ -222,10 +222,11 @@ void ModbusRTUComm::setTimeout(unsigned long timeout) {
 ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
   adu.setRtuLen(0);
   unsigned long startMillis = millis();
+  if (_startTimeout == 0UL) _startTimeout = startMillis;
   if (!_serial.available()) {
     //if (millis() - startMillis >= _readTimeout) return MODBUS_RTU_COMM_TIMEOUT;
     _waiting_for_read = true;
-    if (millis() - startMillis >= _readTimeout) {
+    if (millis() - _startTimeout >= _readTimeout) {
       //_serial.flush();
       return MODBUS_RTU_COMM_TIMEOUT;
     } else {
@@ -234,6 +235,7 @@ ModbusRTUCommError ModbusRTUComm::readAdu(ModbusADU& adu) {
     
   }
   _waiting_for_read = false;
+  _startTimeout = 0UL;
   uint16_t len = 0;
   unsigned long startMicros = micros();
   do {
@@ -493,14 +495,15 @@ ModbusRTUMasterError Modbus::_translateCommError(ModbusRTUCommError commError) {
 
 
 // Constructor for Modbus
-Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin) : _rtuComm(serial, txPin) {
+Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB) : _rtuComm(serial, txPin) {
   _baud = baud;
   _serialD = &serial;
   _txPin = txPin;
   _rtuComm.setTimeout(500);
   _busNo = busNo;
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
-  
+  _waitA = waitA;
+  _waitB = waitB;
   // Add device to HAL device chain
   IODevice::addDevice(this);
   
@@ -555,14 +558,14 @@ void Modbus::_loop(unsigned long currentMicros) {
       break;
   }
   if (error == MODBUS_RTU_MASTER_WAITING) {
-    if (_waitCounter > 10) { // retry after 10 cycles of waiting.
-      _resetWaiting();
+    if (_waitCounter > _waitA) { // retry after 10 cycles of waiting, or user setting waitA.
+      _resetWaiting(); // reset Waiting flag so it retries.
       _waitCounter = 0;
       _waitCounterB++;
     } else {
       _waitCounter++;
     }
-    if (_waitCounterB > 10) { // move on to next node if fails 10 times.
+    if (_waitCounterB > _waitB) { // move on to next node if fails 10 times, or user setting waitB.
       _waitCounter = 0;
       _waitCounterB = 0;
       _operationCount = 0;
@@ -573,9 +576,9 @@ void Modbus::_loop(unsigned long currentMicros) {
     _waitCounterB = 0;
   }
   
-  if (error != MODBUS_RTU_MASTER_WAITING) {
-    if (_operationCount < 3) {
-      _operationCount++;
+  if (error == MODBUS_RTU_MASTER_SUCCESS) { // should have the effect of retrying same opperation until success
+    if (_operationCount < 3) { //              unless it fails waitB and moves on to next node. may even
+      _operationCount++; //                    improve error recovery...
     } else {
       _operationCount = 0;
       _currentNode = _currentNode->getNext();
