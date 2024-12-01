@@ -50,7 +50,7 @@
 
 #ifndef IO_MODBUS_H
 #define IO_MODBUS_H
-
+#if defined(MBEXPERIMENTAL) || defined(ARDUINO_ARCH_STM32)
 #include "IODevice.h"
 class ModbusADU {
   public:
@@ -406,5 +406,7 @@ public:
     return NULL;
   }
 };
-
+#else
+#error "You have included IO_Modbus on an unsupported board!"
+#endif
 #endif // IO_MODBUS_H

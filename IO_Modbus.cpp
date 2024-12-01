@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#if defined(MBEXPERIMENTAL) || defined(ARDUINO_ARCH_STM32)
 #include "IO_Modbus.h"
 #include "defines.h"
 void ModbusADU::setTransactionId(uint16_t transactionId) {
@@ -504,6 +504,8 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16
   _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
   _waitA = waitA;
   _waitB = waitB;
+  if (_waitA < 3) _waitA = 3;
+  if (_waitB < 2) _waitB = 2;
   // Add device to HAL device chain
   IODevice::addDevice(this);
   
@@ -643,3 +645,4 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,
   }
   
 }
+#endif
