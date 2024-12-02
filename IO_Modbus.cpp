@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#if defined(MBEXPERIMENTAL) || defined(ARDUINO_ARCH_STM32)
+
 #include "IO_Modbus.h"
 #include "defines.h"
 void ModbusADU::setTransactionId(uint16_t transactionId) {
@@ -646,4 +646,3 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,
   }
   
 }
-#endif
