@@ -1,5 +1,6 @@
 /*
  *  © 2024, Travis Farmer. All rights reserved.
+ *  © 2024, Chris Bulliner. All rights reserved. https://github.com/CMB27
  *  
  *  This file is part of DCC++EX API
  *

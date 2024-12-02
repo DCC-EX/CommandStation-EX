@@ -1,6 +1,7 @@
 /*
  *  © 2024, Travis Farmer. All rights reserved.
- *  
+ *  © 2024, Chris Bulliner. All rights reserved. https://github.com/CMB27
+ *   
  *  This file is part of DCC++EX API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -406,7 +407,6 @@ public:
     return NULL;
   }
 };
-#else
-#error "You have included IO_Modbus on an unsupported board!"
+
 #endif
 #endif // IO_MODBUS_H
