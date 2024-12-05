@@ -20,6 +20,10 @@
 //
 // Rewrite of the STM32lwipopts.h file from STM
 // To be copied into where lwipopts_default.h resides
+// typically into STM32Ethernet/src/STM32lwipopts.h
+// or STM32Ethernet\src\STM32lwipopts.h
+// search for `lwipopts_default.h` and copy this file into the
+// same directory but name it STM32lwipopts.h
 //
 #ifndef __STM32LWIPOPTS_H__
 #define __STM32LWIPOPTS_H__
