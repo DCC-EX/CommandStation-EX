@@ -29,7 +29,15 @@
 
 // we can not include our "defines.h" here
 // so we need to duplicate that define
-#define MAX_NUM_TCP_CLIENTS 20
+#define MAX_NUM_TCP_CLIENTS_HERE 9
+
+#ifdef MAX_NUM_TCP_CLIENTS
+ #if MAX_NUM_TCP_CLIENTS != MAX_NUM_TCP_CLIENTS_HERE
+  #error MAX_NUM_TCP_CLIENTS and MAX_NUM_TCP_CLIENTS_HERE must be same
+ #endif
+#else
+ #define MAX_NUM_TCP_CLIENTS MAX_NUM_TCP_CLIENTS_HERE
+#endif
 
 // increase ARP cache
 #undef  MEMP_NUM_APR_QUEUE

@@ -140,7 +140,10 @@ The configuration file for DCC-EX Command Station
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // MAX_NUM_TCP_CLIENTS: If you on STM32 Ethernet (and only there) want more than
-// 10 TCP clients, enable this here **AND** follow the instructions in STM32lwiopts.h
+// 9 (*) TCP clients, change this number to for example 20 here **AND** in
+// STM32lwiopts.h and follow the instructions in STM32lwiopts.h
+//
+// (*) It would be 10 if there would not be a bug in LwIP by STM32duino.
 //
 //#define MAX_NUM_TCP_CLIENTS 20
 
