@@ -550,13 +550,13 @@ void Modbus::_loop(unsigned long currentMicros) {
       if (error != MODBUS_RTU_MASTER_SUCCESS && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
     case 2:
-      error = readDiscreteInputs(_currentNode->getNodeID(), 0, (int*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
-      if (error != MODBUS_RTU_MASTER_SUCCESS && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
+      error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
+      if (error != MODBUS_RTU_MASTER_SUCCESS && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
       if (error != MODBUS_RTU_MASTER_SUCCESS && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
     case 3:
-      error = readInputRegisters(_currentNode->getNodeID(), 0, (uint16_t*) _currentNode->inputRegisters, _currentNode->getNumInputRegisters());
-      if (error != MODBUS_RTU_MASTER_SUCCESS && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusIR: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumInputRegisters(), errorStrings[error]);
+      error = readDiscreteInputs(_currentNode->getNodeID(), 0, (int*) _currentNode->discreteInputs, _currentNode->getNumDiscreteInputs());
+      if (error != MODBUS_RTU_MASTER_SUCCESS && error != MODBUS_RTU_MASTER_WAITING) DIAG(F("ModbusDI: T%d F%d N%d %s"), _currentNode->getNodeID(), 0, _currentNode->getNumDiscreteInputs(), errorStrings[error]);
       if (error != MODBUS_RTU_MASTER_SUCCESS && (error != MODBUS_RTU_MASTER_WAITING || _waitCounter > 2)) flagOK = false;
       break;
   }
@@ -572,6 +572,7 @@ void Modbus::_loop(unsigned long currentMicros) {
       _waitCounter = 0;
       _waitCounterB = 0;
       _operationCount = 0;
+      
       _currentNode = _currentNode->getNext();
     }
   } else {
@@ -584,6 +585,7 @@ void Modbus::_loop(unsigned long currentMicros) {
       _operationCount++; //                    improve error recovery...
     } else {
       _operationCount = 0;
+      _currentNode->procData();
       _currentNode = _currentNode->getNext();
     }
   }
@@ -616,25 +618,12 @@ Modbus *Modbus::_busList = NULL;
  ************************************************************/
 
 // Constructor for Modbusnode object
-Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID,  uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters) {
+Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _busNo = busNo;
   _nodeID = nodeID;
-  _numCoils = numCoils;
-  _numDiscreteInputs = numDiscreteInputs;
-  _numHoldingRegisters = numHoldingRegisters;
-  _numInputRegisters = numInputRegisters;
   
-  
-  if ((unsigned int)_nPins < numDiscreteInputs + numCoils)
-    DIAG(F("Modbusnode: bus:%d nodeID:%d WARNING number of Vpins does not cover all inputs and outputs"), _busNo, _nodeID);
-
-  if (!discreteInputs || !coils) {
-    DIAG(F("Modbusnode: ERROR insufficient memory"));
-    return;
-  }
-
   // Add this device to HAL device list
   IODevice::addDevice(this);
   _display();

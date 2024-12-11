@@ -163,20 +163,76 @@ private:
   char _type;
   Modbusnode *_next = NULL;
   bool _initialised = false;
-  uint8_t _numCoils;
-  uint8_t _numDiscreteInputs;
-  uint8_t _numHoldingRegisters;
-  uint8_t _numInputRegisters;
-
-public:
-  static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils=0, uint8_t numDiscreteInputs=0, uint8_t numHoldingRegisters=0, uint8_t numInputRegisters=0) {
-    if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID, numCoils, numDiscreteInputs, numHoldingRegisters, numInputRegisters);
+  static const uint8_t _numCoils=100;
+  static const uint8_t _numDiscreteInputs=100;
+  static const uint8_t _numHoldingRegisters=100;
+  static const uint8_t _numInputRegisters=100;
+  uint8_t _numBO=0;
+  uint8_t _numBI=0;
+  uint8_t _numAO=0;
+  uint8_t _numAI=0;
+  int dataBO[16];
+  int dataBI[16];
+  int dataAO[84];
+  int dataAI[84];
+  int capePinsBI[16];
+  int capePinsBO[16];
+  int capePinsPU[16];
+  int capePinsAO[16];
+  int capePinsAI[16];
+  int configBPinsO[16];
+  int configBPinsI[16];
+  int configBPinsPU[16];
+  int configAPinsO[16];
+  int configAPinsI[16];
+  
+  void resetInit() {
+    for (int i = 0; i < 16; i++) {
+      capePinsBI[i] = 0;
+      capePinsBO[i] = 0;
+      capePinsPU[i] = 0;
+      capePinsAO[i] = 0;
+      capePinsAI[i] = 0;
+      configBPinsO[i] = 0;
+      configBPinsI[i] = 0;
+      configBPinsPU[i] = 0;
+      configAPinsO[i] = 0;
+      configAPinsI[i] = 0;
+    }
   }
-  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID, uint8_t numCoils, uint8_t numDiscreteInputs, uint8_t numHoldingRegisters, uint8_t numInputRegisters);
-  int *coils[100];
-  int *discreteInputs[100];
-  uint16_t *holdingRegisters[100];
-  uint16_t *inputRegisters[100];
+
+  
+
+  void spitError(int pin) {
+    bool isBI = false;
+    bool isBO = false;
+    bool isPU = false;
+    bool isAI = false;
+    bool isAO = false;
+    int configPinNum = pin / 16;
+    int configPinBit = pin % 16;
+    if (bitRead(configBPinsI[configPinNum],configPinBit) == true) isBI = true;
+    if (bitRead(configBPinsO[configPinNum],configPinBit) == true) isBO = true;
+    if (bitRead(configBPinsPU[configPinNum],configPinBit) == true) isPU = true;
+    if (bitRead(configAPinsI[configPinNum],configPinBit) == true) isAI = true;
+    if (bitRead(configAPinsO[configPinNum],configPinBit) == true) isAO = true;
+    if (isBI && isPU) DIAG(F("IO_Modbus config eror: Bool Input with pull-up, pin: %d"),pin);
+    if (isBI && !isPU) DIAG(F("IO_Modbus config eror: Bool Input without pull-up, pin: %d"),pin);
+    if (isBO) DIAG(F("IO_Modbus config eror: Bool Output, pin: %d"),pin);
+    if (isAI) DIAG(F("IO_Modbus config eror: Analog Input, pin: %d"),pin);
+    if (isAO) DIAG(F("IO_Modbus config eror: Analog Output, pin: %d"),pin);
+    
+  }
+  
+public:
+  static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
+    if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID);
+  }
+  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID);
+  int *coils[_numCoils];
+  int *discreteInputs[_numDiscreteInputs];
+  uint16_t *holdingRegisters[_numHoldingRegisters];
+  uint16_t *inputRegisters[_numInputRegisters];
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -193,6 +249,8 @@ public:
   uint8_t getNumInputRegisters() {
     return _numInputRegisters;
   }
+
+  
   Modbusnode *getNext() {
     return _next;
   }
@@ -206,33 +264,181 @@ public:
     _initialised = true;
   }
 
+  bool addPinBI(VPIN vpin, bool inputPullup) {
+    int configPinNum = vpin / 16;
+    int configPinBit = vpin % 16;
+    bitSet(configBPinsI[configPinNum],configPinBit); // input
+    bitWrite(configBPinsPU[configPinNum],configPinBit,inputPullup);
+    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
+      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
+      return true;
+    }
+    _numBI++;
+    return false;
+  }
+  
+  bool addPinBO(VPIN vpin) {
+    int configPinNum = vpin / 16;
+    int configPinBit = vpin % 16;
+    bitSet(configBPinsO[configPinNum],configPinBit); // input
+    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
+      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
+      return true;
+    }
+    _numBO++;
+    return false;
+  }
+  
+  bool addPinAI(VPIN vpin) {
+    int configPinNum = vpin / 6;
+    int configPinBit = vpin % 16;
+    bitSet(configAPinsI[configPinNum],configPinBit); // input
+    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
+      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
+      return true;
+    }
+    _numAI++;
+    return false;
+  }
+  
+  bool addPinAO(VPIN vpin) {
+    int configPinNum = vpin / 6;
+    int configPinBit = vpin % 16;
+    bitSet(configAPinsO[configPinNum],configPinBit); // input
+    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
+      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
+      return true;
+    }
+    _numBI++;
+    return false;
+  }
+  
+  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
+    byte arduinoPin = params[1];
+    if (paramCount != 1) return false;
+    int pin = vpin - _firstVpin;
+    if (configType == CONFIGURE_INPUT) {
+      bool inputPullup = false;
+      if (params[2] == 1) inputPullup = true;
+      bool status = addPinBI(vpin,inputPullup);
+      if (status == false) {
+        return true;
+      } else
+        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a digital input pin"), (int)vpin, arduinoPin);
+    } else if (configType == CONFIGURE_OUTPUT) {
+      bool status = addPinBO(vpin);
+      if (status == false) {
+        return true;
+      } else
+        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a digital Output pin"), (int)vpin, arduinoPin);
+    } else if (configType == CONFIGURE_SERVO) {
+      //blah
+    } else if (configType == CONFIGURE_ANALOGOUTPUT) {
+      bool status = addPinAO(vpin);
+      if (status == false) {
+        return true;
+      } else
+        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a analog Output pin"), (int)vpin, arduinoPin);
+    } else if (configType == CONFIGURE_ANALOGINPUT) {
+      bool status = addPinAI(vpin);
+      if (status == false) {
+        return true;
+      } else
+        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a analog Input pin"), (int)vpin, arduinoPin);
+    }
+    return false;
+  }
+
   void _begin() override {
+    resetInit();
+    coils[0] = (int*) 1; // set config mode
+    coils[1] = (int*) 1; // set pull capabilities
+    
     _initialised = false;
+  }
+
+  
+
+  void procData() {
+    if (isInitialised()) { // read/write data
+      for (int i = 0; i < 16; i++) {
+        holdingRegisters[i] = (uint16_t*) dataBO[i];
+        dataBI[i] = (int) inputRegisters[i];
+      }
+      for (int i = 16; i < 84; i++) {
+        holdingRegisters[i] = (uint16_t*) dataAO[i];
+        dataAI[i] = (int) inputRegisters[i];
+      }
+    } else { // read/write config
+      if (discreteInputs[0] == (int*) 1 && discreteInputs[1] == (int*) 1){ // get capabilities
+        for (int i = 0; i < 16; i++) { // read capabilities params
+          capePinsBI[i] = (int) inputRegisters[i];
+          capePinsBO[i] = (int) inputRegisters[i+16];
+          capePinsPU[i] = (int) inputRegisters[i+32];
+          capePinsAI[i] = (int) inputRegisters[i+48];
+          capePinsAO[i] = (int) inputRegisters[i+64];
+        }
+        coils[0] = (int*) 1; // config mode
+        coils[1] = (int*) 0; // exit cape mode
+        for (int i = 0; i < 16; i++) { // load config params
+          holdingRegisters[i] = (uint16_t*) configBPinsI[i];
+          holdingRegisters[i+16] = (uint16_t*) configBPinsO[i];
+          holdingRegisters[i+32] = (uint16_t*) configBPinsPU[i];
+          holdingRegisters[i+48] = (uint16_t*) configAPinsI[i];
+          holdingRegisters[i+64] = (uint16_t*) configAPinsO[i];
+        }
+      } else if (discreteInputs[0] == (int*) 1 && discreteInputs[1] == (int*) 0) {
+        for (int i = 0; i < 16; i++) {
+          if (configBPinsI[i] != (int) inputRegisters[i]) spitError(i);
+          if (configBPinsO[i] != (int) inputRegisters[i+16]) spitError(i+16);
+          if (configBPinsPU[i] != (int) inputRegisters[i+32]) spitError(i+32);
+          if (configAPinsI[i] != (int) inputRegisters[i+48]) spitError(i+48);
+          if (configAPinsO[i] != (int) inputRegisters[i+64]) spitError(i+64);
+        }
+        // todo error checking and set failure mode
+        // for now, assume everything is fine, sort this out later if needed
+        coils[0] = (int*) 0; // exit config mode
+        coils[1] = (int*) 0; // not in cape mode
+        setInitialised();
+      }
+    }
   }
 
   int _read(VPIN vpin) override {
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
-    return (int) discreteInputs[pin];
+    int PinNum = pin / 16;
+    int PinBit = pin % 16;
+    if (bitRead(configAPinsI[PinNum],PinBit) == true) return bitRead(dataBI[PinNum],PinBit)? 1:0;
+    else return 0;
   }
 
   
   void _write(VPIN vpin, int value) override {
     // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs;
-    if (value == 1) coils[pin] = (int*) 0x1;
-    if (value == 0) coils[pin] = (int*) 0x0;
+    uint16_t pin = vpin - _firstVpin;
+    int PinNum = pin / 16;
+    int PinBit = pin % 16;
+    if (bitRead(configAPinsO[PinNum], PinBit) == true) {
+      if (value == 1) bitSet(dataBO[PinNum], PinBit);
+      else bitClear(dataBO[PinNum], PinBit);
+    }
   }
 
   int _readAnalogue(VPIN vpin) {
     // Return acquired data value, e.g.
-    int pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils;
-    return (int) inputRegisters[pin];
+    uint16_t pin = vpin - _firstVpin;
+    int PinNum = pin / 16;
+    int PinBit = pin % 16;
+    if (bitRead(configAPinsI[PinNum],PinBit) == true) return dataAI[pin];
+    else return 0;
   }
   
   void _writeAnalogue(VPIN vpin, int value) {
-    uint16_t pin = vpin - _firstVpin - _numDiscreteInputs - _numCoils - _numInputRegisters;
-    holdingRegisters[pin] = (uint16_t*) value;
+    uint16_t pin = vpin - _firstVpin;
+    int PinNum = pin / 16;
+    int PinBit = pin % 16;
+    if (bitRead(configAPinsI[PinNum],PinBit) == true) dataAO[pin] = value;
   }
 
   uint8_t getBusNumber() {
@@ -380,6 +586,7 @@ public:
     return NULL;
   }
 
+  
   // Add new Modbusnode to the list of nodes for this bus.
   void addNode(Modbusnode *newNode) {
     if (!_nodeListStart)
