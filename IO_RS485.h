@@ -19,10 +19,10 @@
  */
 
 /*
- * Modbus
+ * RS485
  * =======
- * To define a Modbus, example syntax:
- *    Modbus::create(bus, serial, baud[, cycletime[, pin]]);
+ * To define a RS485, example syntax:
+ *    RS485::create(bus, serial, baud[, cycletime[, pin]]);
  * 
  * bus = 0-255
  * serial = serial port to be used (e.g. Serial3)
@@ -32,7 +32,7 @@
  * 
  * Each bus must use a different serial port.
  * 
- * ModbusNode
+ * RS485Node
  * ========
  * To define a CMRI node and associate it with a CMRI bus,
  *    CMRInode::create(firstVPIN, numVPINs, bus, nodeID, type [, inputs, outputs]);
@@ -41,56 +41,29 @@
  * numVPINs = number of vpins (e.g. 72 for an SMINI node)
  * bus = 0-255
  * nodeID = 0-127
- * numDiscreteInputs = number of discrete inputs
- * numCoils = number of coils
- * 
- * Reference: "LCS-9.10.1
- *             Layout Control Specification: CMRInet Protocol
- *             Version 1.1 December 2014."
  */
 
-#ifndef IO_MODBUS_H
-#define IO_MODBUS_H
+#ifndef IO_RS485_H
+#define IO_RS485_H
 
 #include "IODevice.h"
 uint16_t  div8RndUp(uint16_t value);
 
 /**********************************************************************
- * Modbusnode class
+ * RS485node class
  * 
- * This encapsulates the state associated with a single Modbus node, 
+ * This encapsulates the state associated with a single RS485 node, 
  * which includes the nodeID, number of discrete inputs and coils, and
  * the states of the discrete inputs and coils.
  **********************************************************************/
-class Modbusnode : public IODevice {
+class RS485node : public IODevice {
 private:
   uint8_t _busNo;
   uint8_t _nodeID;
   char _type;
-  Modbusnode *_next = NULL;
+  RS485node *_next = NULL;
   bool _initialised = false;
-  static const uint8_t _numCoils=100;
-  static const uint8_t _numDiscreteInputs=100;
-  static const uint8_t _numHoldingRegisters=100;
-  static const uint8_t _numInputRegisters=100;
-  uint8_t _numBO=0;
-  uint8_t _numBI=0;
-  uint8_t _numAO=0;
-  uint8_t _numAI=0;
-  int dataBO[16];
-  int dataBI[16];
-  int dataAO[84];
-  int dataAI[84];
-  int capePinsBI[16];
-  int capePinsBO[16];
-  int capePinsPU[16];
-  int capePinsAO[16];
-  int capePinsAI[16];
-  int configBPinsO[16];
-  int configBPinsI[16];
-  int configBPinsPU[16];
-  int configAPinsO[16];
-  int configAPinsI[16];
+
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -106,43 +79,6 @@ private:
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  void resetInit() {
-    for (int i = 0; i < 16; i++) {
-      capePinsBI[i] = 0;
-      capePinsBO[i] = 0;
-      capePinsPU[i] = 0;
-      capePinsAO[i] = 0;
-      capePinsAI[i] = 0;
-      configBPinsO[i] = 0;
-      configBPinsI[i] = 0;
-      configBPinsPU[i] = 0;
-      configAPinsO[i] = 0;
-      configAPinsI[i] = 0;
-    }
-  }
-
-  
-
-  void spitError(int pin) {
-    bool isBI = false;
-    bool isBO = false;
-    bool isPU = false;
-    bool isAI = false;
-    bool isAO = false;
-    int configPinNum = pin / 16;
-    int configPinBit = pin % 16;
-    if (bitRead(configBPinsI[configPinNum],configPinBit) == true) isBI = true;
-    if (bitRead(configBPinsO[configPinNum],configPinBit) == true) isBO = true;
-    if (bitRead(configBPinsPU[configPinNum],configPinBit) == true) isPU = true;
-    if (bitRead(configAPinsI[configPinNum],configPinBit) == true) isAI = true;
-    if (bitRead(configAPinsO[configPinNum],configPinBit) == true) isAO = true;
-    if (isBI && isPU) DIAG(F("IO_Modbus config eror: Bool Input with pull-up, pin: %d"),pin);
-    if (isBI && !isPU) DIAG(F("IO_Modbus config eror: Bool Input without pull-up, pin: %d"),pin);
-    if (isBO) DIAG(F("IO_Modbus config eror: Bool Output, pin: %d"),pin);
-    if (isAI) DIAG(F("IO_Modbus config eror: Analog Input, pin: %d"),pin);
-    if (isAO) DIAG(F("IO_Modbus config eror: Analog Output, pin: %d"),pin);
-    
-  }
   
 public:
   enum ProfileType : int {
@@ -172,35 +108,18 @@ public:
   uint8_t* _analoguePinMap = NULL;
 
   static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
-    if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID);
+    if (checkNoOverlap(firstVpin, nPins)) new RS485node(firstVpin, nPins, busNo, nodeID);
   }
-  Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID);
-  int *coils[_numCoils];
-  int *discreteInputs[_numDiscreteInputs];
-  uint16_t *holdingRegisters[_numHoldingRegisters];
-  uint16_t *inputRegisters[_numInputRegisters];
+  RS485node(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID);
 
   uint8_t getNodeID() {
     return _nodeID;
   }
-  uint8_t getNumCoils() {
-    return _numCoils;
-  }
-  uint8_t getNumDiscreteInputs() {
-    return _numDiscreteInputs;
-  }
-  uint8_t getNumHoldingRegisters() {
-    return _numHoldingRegisters;
-  }
-  uint8_t getNumInputRegisters() {
-    return _numInputRegisters;
-  }
-
   
-  Modbusnode *getNext() {
+  RS485node *getNext() {
     return _next;
   }
-  void setNext(Modbusnode *node) {
+  void setNext(RS485node *node) {
     _next = node;
   }
   bool isInitialised() {
@@ -209,61 +128,12 @@ public:
   void setInitialised() {
     _initialised = true;
   }
-
-  bool addPinBI(VPIN vpin, bool inputPullup) {
-    int configPinNum = vpin / 16;
-    int configPinBit = vpin % 16;
-    bitSet(configBPinsI[configPinNum],configPinBit); // input
-    bitWrite(configBPinsPU[configPinNum],configPinBit,inputPullup);
-    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
-      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
-      return true;
-    }
-    _numBI++;
-    return false;
-  }
-  
-  bool addPinBO(VPIN vpin) {
-    int configPinNum = vpin / 16;
-    int configPinBit = vpin % 16;
-    bitSet(configBPinsO[configPinNum],configPinBit); // input
-    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
-      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
-      return true;
-    }
-    _numBO++;
-    return false;
-  }
-  
-  bool addPinAI(VPIN vpin) {
-    int configPinNum = vpin / 6;
-    int configPinBit = vpin % 16;
-    bitSet(configAPinsI[configPinNum],configPinBit); // input
-    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
-      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
-      return true;
-    }
-    _numAI++;
-    return false;
-  }
-  
-  bool addPinAO(VPIN vpin) {
-    int configPinNum = vpin / 6;
-    int configPinBit = vpin % 16;
-    bitSet(configAPinsO[configPinNum],configPinBit); // input
-    if (_numBI + _numBO + _numAI + _numAO > _nPins) {
-      DIAG(F("IO_Modbus config error: Too many I/O pins vs VPINs: %d"),_numBI + _numBO + _numAI + _numAO);
-      return true;
-    }
-    _numBI++;
-    return false;
-  }
   
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     int pin = vpin - _firstVpin;
-    Modbus* mb = Modbus::findBus(0);
+    RS485* mb = RS485::findBus(0);
     int* param[] = {(int*)pin, (int*)configType, (int*)paramCount, (int*)params[0]};
     mb->addTask(_nodeID, 3, 4, param);
 
@@ -271,7 +141,7 @@ public:
 
   int _configureAnalogIn(VPIN vpin) override {
     int pin = vpin - _firstVpin;
-    Modbus* mb = Modbus::findBus(0);
+    RS485* mb = RS485::findBus(0);
     int* params[] = {(int*)pin};
     mb->addTask(_nodeID, 3, 1, params);
 
@@ -279,7 +149,7 @@ public:
   }
 
   void _begin() override {
-    Modbus* mb = Modbus::findBus(0);
+    RS485* mb = RS485::findBus(0);
     if (mb->_txPin != VPIN_NONE) {
       pinMode(mb->_txPin, OUTPUT);
       ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
@@ -429,7 +299,7 @@ public:
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    Modbus* mb = Modbus::findBus(0);
+    RS485* mb = RS485::findBus(0);
     int* params[] = {(int*)pin, (int*)value};
     mb->addTask(_nodeID, 3, 2, params);
   }
@@ -453,7 +323,7 @@ public:
 
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    Modbus* mb = Modbus::findBus(0);
+    RS485* mb = RS485::findBus(0);
     int* params[] = {(int*)pin, (int*)value, (int*)profile, (int*)duration};
     mb->addTask(_nodeID, 3, 4, params);
   }
@@ -461,62 +331,23 @@ public:
   uint8_t getBusNumber() {
     return _busNo;
   }
-  uint8_t getNumBinaryInputsVPINsMin() {
-    if (_numDiscreteInputs > 0) return _firstVpin;
-    else return 0;
-  }
-  uint8_t getNumBinaryInputsVPINsMax() {
-    if (_numDiscreteInputs > 0) return _firstVpin+_numDiscreteInputs-1;
-    else return 0;
-  }
-
-  uint8_t getNumBinaryOutputsVPINsMin() {
-    if (_numCoils > 0) return _firstVpin+_numDiscreteInputs;
-    else return 0;
-  }
-  uint8_t getNumBinaryOutputsVPINsMax() {
-    if (_numCoils > 0) return _firstVpin+_numDiscreteInputs+_numCoils-1;
-    else return 0;
-  }
-
-  uint8_t getNumAnalogInputsVPINsMin() {
-    if (_numInputRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils;
-    else return 0;
-  }
-  uint8_t getNumAnalogInputsVPINsMax() {
-    if (_numInputRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters-1;
-    else return 0;
-  }
-
-  uint8_t getNumAnalogOutputsVPINsMin() {
-    if (_numHoldingRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters;
-    else return 0;
-  }
-  uint8_t getNumAnalogOutputsVPINsMax() {
-    if (_numHoldingRegisters > 0) return _firstVpin+_numDiscreteInputs+_numCoils+_numInputRegisters+_numHoldingRegisters-1;
-    else return 0;
-  }
+ 
   void _display() override {
-    DIAG(F("Modbusnode configured on bus:%d nodeID:%d VPINs:%u-%u (B In) %u-%u (B Out) %u-%u (A In) %u-%u (A Out)"),
-      _busNo, _nodeID, getNumBinaryInputsVPINsMin(), getNumBinaryInputsVPINsMax(),
-      getNumBinaryOutputsVPINsMin(), getNumBinaryOutputsVPINsMax(),
-      getNumAnalogInputsVPINsMin(), getNumAnalogInputsVPINsMax(),
-      getNumAnalogOutputsVPINsMin(), getNumAnalogOutputsVPINsMax());
+    DIAG(F("EX-IOExpander node:%d v%d.%d.%d Vpins %u-%u %S"), _nodeID, _majorVer, _minorVer, _patchVer, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
-
   
 
 };
 
 /**********************************************************************
- * Modbus class
+ * RS485 class
  * 
  * This encapsulates the properties state of the bus and the
- * transmission and reception of data across that bus.  Each Modbus
- * object owns a set of Modbusnode objects which represent the nodes
+ * transmission and reception of data across that bus.  Each RS485
+ * object owns a set of RS485node objects which represent the nodes
  * attached to that bus.
  **********************************************************************/
-class Modbus : public IODevice {
+class RS485 : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
@@ -526,12 +357,12 @@ private:
   void _setRegister(uint8_t *buf, uint16_t index, uint16_t value);
   unsigned long _baud;
   
-  Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
-  Modbusnode *_currentNode = NULL;
+  RS485node *_nodeListStart = NULL, *_nodeListEnd = NULL;
+  RS485node *_currentNode = NULL;
   uint8_t _exceptionResponse = 0;
   uint8_t getExceptionResponse();
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
-  Modbus *_nextBus = NULL;  // Pointer to next bus instance in list.
+  RS485 *_nextBus = NULL;  // Pointer to next bus instance in list.
   void setTimeout(unsigned long timeout);
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
@@ -542,7 +373,7 @@ private:
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
   int _operationCount = 0;
 
-  static Modbus *_busList; // linked list of defined bus instances
+  static RS485 *_busList; // linked list of defined bus instances
   bool waitReceive = false;
   int _waitCounter = 0;
   int _waitCounterB = 0;
@@ -673,7 +504,7 @@ public:
   uint16_t getDataLen();
   void clearRxBuffer();
   static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10, int waitB=10) {
-    new Modbus(busNo, serial, baud, cycleTimeMS, txPin, waitA, waitB);
+    new RS485(busNo, serial, baud, cycleTimeMS, txPin, waitA, waitB);
   }
   HardwareSerial *_serialD;
   // Device-specific initialisation
@@ -689,17 +520,17 @@ public:
       _frameTimeout = (bitsPerChar * 1000000) / _baud + 1750;
     }
     clearRxBuffer();
-  #if defined(MODBUS_STM_OK)
-    pinMode(MODBUS_STM_OK, OUTPUT);
-    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
+  #if defined(RS485_STM_OK)
+    pinMode(RS485_STM_OK, OUTPUT);
+    ArduinoPins::fastWriteDigital(RS485_STM_OK,LOW);
   #endif
-  #if defined(MODBUS_STM_FAIL)
-    pinMode(MODBUS_STM_FAIL, OUTPUT);
-    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
+  #if defined(RS485_STM_FAIL)
+    pinMode(RS485_STM_FAIL, OUTPUT);
+    ArduinoPins::fastWriteDigital(RS485_STM_FAIL,LOW);
   #endif
-  #if defined(MODBUS_STM_COMM)
-    pinMode(MODBUS_STM_COMM, OUTPUT);
-    ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,LOW);
+  #if defined(RS485_STM_COMM)
+    pinMode(RS485_STM_COMM, OUTPUT);
+    ArduinoPins::fastWriteDigital(RS485_STM_COMM,LOW);
   #endif
   
   #if defined(DIAG_IO)
@@ -716,13 +547,13 @@ public:
 
   // Display information about the device
   void _display() override {
-    DIAG(F("Modbus Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("RS485 Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F("OK"));
   }
 
-  // Locate Modbusnode object with specified nodeID.
-  Modbusnode *findNode(uint8_t nodeID) {
-    for (Modbusnode *node = _nodeListStart; node != NULL; node = node->getNext()) {
+  // Locate RS485node object with specified nodeID.
+  RS485node *findNode(uint8_t nodeID) {
+    for (RS485node *node = _nodeListStart; node != NULL; node = node->getNext()) {
       if (node->getNodeID() == nodeID) 
         return node;
     }
@@ -730,19 +561,19 @@ public:
   }
 
   
-  // Add new Modbusnode to the list of nodes for this bus.
-  void addNode(Modbusnode *newNode) {
+  // Add new RS485node to the list of nodes for this bus.
+  void addNode(RS485node *newNode) {
     if (!_nodeListStart)
       _nodeListStart = newNode;
     if (!_nodeListEnd) 
       _nodeListEnd = newNode;
     else
       _nodeListEnd->setNext(newNode);
-  //DIAG(F("Modbus: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
+  //DIAG(F("RS485: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
 
 protected:
-  Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB);
+  RS485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB);
 
 public:
   
@@ -750,8 +581,8 @@ public:
     return _busNo;
   }
 
-  static Modbus *findBus(uint8_t busNo) {
-    for (Modbus *bus=_busList; bus!=NULL; bus=bus->_nextBus) {
+  static RS485 *findBus(uint8_t busNo) {
+    for (RS485 *bus=_busList; bus!=NULL; bus=bus->_nextBus) {
       if (bus->_busNo == busNo) return bus;
     }
     return NULL;
@@ -759,4 +590,4 @@ public:
 };
 
 
-#endif // IO_MODBUS_H
+#endif // IO_RS485_H

@@ -18,101 +18,101 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "IO_Modbus.h"
+#include "IO_RS485.h"
 #include "defines.h"
 
-void Modbus::setTransactionId(uint16_t transactionId) {
+void RS485::setTransactionId(uint16_t transactionId) {
   _setRegister(tcp, 0, transactionId);
 }
 
-void Modbus::setProtocolId(uint16_t protocolId) {
+void RS485::setProtocolId(uint16_t protocolId) {
   _setRegister(tcp, 2, protocolId);
 }
 
-void Modbus::setLength(uint16_t length) {
+void RS485::setLength(uint16_t length) {
   if (length < 3 || length > 254) _setRegister(tcp, 4, 0);
   else _setRegister(tcp, 4, length);
 }
 
-void Modbus::setUnitId(uint8_t unitId) {
+void RS485::setUnitId(uint8_t unitId) {
   tcp[6] = unitId;
 }
 
-void Modbus::setFunctionCode(uint8_t functionCode) {
+void RS485::setFunctionCode(uint8_t functionCode) {
   pdu[0] = functionCode;
 }
 
-void Modbus::setDataRegister(uint8_t index, uint16_t value) {
+void RS485::setDataRegister(uint8_t index, uint16_t value) {
   _setRegister(data, index, value);
 }
 
 
 
-void Modbus::setRtuLen(uint16_t rtuLen) {
+void RS485::setRtuLen(uint16_t rtuLen) {
   setLength(rtuLen - 2);
 }
 
-void Modbus::setTcpLen(uint16_t tcpLen) {
+void RS485::setTcpLen(uint16_t tcpLen) {
   setLength(tcpLen - 6);
 }
 
-void Modbus::setPduLen(uint16_t pduLen) {
+void RS485::setPduLen(uint16_t pduLen) {
   setLength(pduLen + 1);
 }
 
-void Modbus::setDataLen(uint16_t dataLen) {
+void RS485::setDataLen(uint16_t dataLen) {
   setLength(dataLen + 2);
 }
 
 
 
-uint16_t Modbus::getTransactionId() {
+uint16_t RS485::getTransactionId() {
   return _getRegister(tcp, 0);
 }
 
-uint16_t Modbus::getProtocolId() {
+uint16_t RS485::getProtocolId() {
   return _getRegister(tcp, 2);
 }
 
-uint16_t Modbus::getLength() {
+uint16_t RS485::getLength() {
   uint16_t length = _getRegister(tcp, 4);
   if (length < 3 || length > 254) return 0;
   else return length;
 }
 
-uint8_t Modbus::getUnitId() {
+uint8_t RS485::getUnitId() {
   return tcp[6];
 }
 
-uint8_t Modbus::getFunctionCode() {
+uint8_t RS485::getFunctionCode() {
   return pdu[0];
 }
 
-uint16_t Modbus::getDataRegister(uint8_t index) {
+uint16_t RS485::getDataRegister(uint8_t index) {
   return _getRegister(data, index);
 }
 
 
 
-uint16_t Modbus::getRtuLen() {
+uint16_t RS485::getRtuLen() {
   uint16_t len = getLength();
   if (len == 0) return 0;
   else return len + 2;
 }
 
-uint16_t Modbus::getTcpLen() {
+uint16_t RS485::getTcpLen() {
   uint16_t len = getLength();
   if (len == 0) return 0;
   else return len + 6;
 }
 
-uint16_t Modbus::getPduLen() {
+uint16_t RS485::getPduLen() {
   uint16_t len = getLength();
   if (len == 0) return 0;
   else return len - 1;
 }
 
-uint16_t Modbus::getDataLen() {
+uint16_t RS485::getDataLen() {
   uint16_t len = getLength();
   if (len == 0) return 0;
   else return len - 2;
@@ -120,29 +120,29 @@ uint16_t Modbus::getDataLen() {
 
 
 
-void Modbus::updateCrc(uint8_t *buf, uint16_t len) {
+void RS485::updateCrc(uint8_t *buf, uint16_t len) {
   uint16_t crc = _calculateCrc(buf, len);
   buf[len] = lowByte(crc);
   buf[len + 1] = highByte(crc);
 }
 
-bool Modbus::crcGood(uint8_t *buf, uint16_t len) {
+bool RS485::crcGood(uint8_t *buf, uint16_t len) {
   uint16_t aduCrc = buf[len] | (buf[len + 1] << 8);
   uint16_t calculatedCrc = _calculateCrc(buf, len);
   if (aduCrc == calculatedCrc) return true;
   else return false;
 }
 
-void Modbus::_setRegister(uint8_t *buf, uint16_t index, uint16_t value) {
+void RS485::_setRegister(uint8_t *buf, uint16_t index, uint16_t value) {
   buf[index] = highByte(value);
   buf[index + 1] = lowByte(value);
 }
 
-uint16_t Modbus::_getRegister(uint8_t *buf, uint16_t index) {
+uint16_t RS485::_getRegister(uint8_t *buf, uint16_t index) {
   return (buf[index] << 8) | buf[index + 1];
 }
 
-uint16_t Modbus::_calculateCrc(uint8_t *buf, uint16_t len) {
+uint16_t RS485::_calculateCrc(uint8_t *buf, uint16_t len) {
   uint16_t value = 0xFFFF;
   for (uint16_t i = 0; i < len; i++) {
     value ^= (uint16_t)buf[i];
@@ -161,7 +161,7 @@ uint16_t div8RndUp(uint16_t value) {
   return (value + 7) >> 3;
 }
 
-void Modbus::clearRxBuffer() {
+void RS485::clearRxBuffer() {
   unsigned long startMicros = micros();
   do {
     if (_serialD->available() > 0) {
@@ -173,12 +173,12 @@ void Modbus::clearRxBuffer() {
 
 
 /************************************************************
- * Modbus implementation
+ * RS485 implementation
  ************************************************************/
 
 
-// Constructor for Modbus
-Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB) {
+// Constructor for RS485
+RS485::RS485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB) {
   _baud = baud;
   _serialD = &serial;
   _txPin = txPin;
@@ -191,15 +191,15 @@ Modbus::Modbus(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16
   // Add device to HAL device chain
   IODevice::addDevice(this);
   
-  // Add bus to Modbus chain.
+  // Add bus to RS485 chain.
   _nextBus = _busList;
   _busList = this;
 }
 
-// Main loop function for Modbus.
+// Main loop function for RS485.
 // Work through list of nodes.  For each node, in separate loop entries
 // When the slot time has finished, move on to the next device.
-void Modbus::_loop(unsigned long currentMicros) {
+void RS485::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
   
   if (_currentNode == NULL) {
@@ -212,8 +212,8 @@ void Modbus::_loop(unsigned long currentMicros) {
   if (_currentNode == NULL) return;
 
   bool flagOK = true;
-#if defined(MODBUS_STM_COMM)
-  ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,HIGH);
+#if defined(RS485_STM_COMM)
+  ArduinoPins::fastWriteDigital(RS485_STM_COMM,HIGH);
 #endif
 
 if (taskCnt > 0) {
@@ -443,36 +443,36 @@ if (taskCnt > 0) {
   _currentNode = _currentNode->getNext();
 }
 
-#if defined(MODBUS_STM_OK)
+#if defined(RS485_STM_OK)
   if (flagOK == true) {
-    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,HIGH);
+    ArduinoPins::fastWriteDigital(RS485_STM_OK,HIGH);
   } else {
-    ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
+    ArduinoPins::fastWriteDigital(RS485_STM_OK,LOW);
   }
 #endif
-#if defined(MODBUS_STM_FAIL)
+#if defined(RS485_STM_FAIL)
   if (flagOK == false) {
-    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,HIGH);
+    ArduinoPins::fastWriteDigital(RS485_STM_FAIL,HIGH);
   } else {
-    ArduinoPins::fastWriteDigital(MODBUS_STM_FAIL,LOW);
+    ArduinoPins::fastWriteDigital(RS485_STM_FAIL,LOW);
   }
 #endif
-#if defined(MODBUS_STM_COMM)
-  ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,LOW);
+#if defined(RS485_STM_COMM)
+  ArduinoPins::fastWriteDigital(RS485_STM_COMM,LOW);
 #endif
   
 }
 
-// Link to chain of Modbus instances
-Modbus *Modbus::_busList = NULL;
+// Link to chain of RS485 instances
+RS485 *RS485::_busList = NULL;
 
 
 /************************************************************
- * Modbusnode implementation
+ * RS485node implementation
  ************************************************************/
 
-// Constructor for Modbusnode object
-Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
+// Constructor for RS485node object
+RS485node::RS485node(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _busNo = busNo;
@@ -482,8 +482,8 @@ Modbusnode::Modbusnode(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID)
   // Add this device to HAL device list
   IODevice::addDevice(this);
   _display();
-  // Add Modbusnode to Modbus object.
-  Modbus *bus = Modbus::findBus(_busNo);
+  // Add RS485node to RS485 object.
+  RS485 *bus = RS485::findBus(_busNo);
   if (bus != NULL) {
     bus->addNode(this);
     return;
