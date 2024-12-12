@@ -53,100 +53,8 @@
 #define IO_MODBUS_H
 
 #include "IODevice.h"
-class ModbusADU {
-  public:
-    uint8_t *rtu = _adu + 6;
-    uint8_t *tcp = _adu;
-    uint8_t *pdu = _adu + 7;
-    uint8_t *data = _adu + 8;
-
-    void setTransactionId(uint16_t transactionId);
-    void setProtocolId(uint16_t protocolId);
-    void setLength(uint16_t length);
-    void setUnitId(uint8_t unitId);
-    void setFunctionCode(uint8_t functionCode);
-    void setDataRegister(uint8_t index, uint16_t value);
-
-    void setRtuLen(uint16_t rtuLen);
-    void setTcpLen(uint16_t tcpLen);
-    void setPduLen(uint16_t pduLen);
-    void setDataLen(uint16_t dataLen);
-
-    uint16_t getTransactionId();
-    uint16_t getProtocolId();
-    uint16_t getLength();
-    uint8_t getUnitId();
-    uint8_t getFunctionCode();
-    uint16_t getDataRegister(uint8_t index);
-
-    uint16_t getRtuLen();
-    uint16_t getTcpLen();
-    uint16_t getPduLen();
-    uint16_t getDataLen();
-
-    void updateCrc();
-    bool crcGood();
-
-    void prepareExceptionResponse(uint8_t exceptionCode);
-
-  private:
-    uint8_t _adu[262];
-    void _setRegister(uint8_t *buf, uint16_t index, uint16_t value);
-    uint16_t _getRegister(uint8_t *buf, uint16_t index);
-    uint16_t _calculateCrc(uint16_t len);
-    
-};
-
+#include <vector>
 uint16_t  div8RndUp(uint16_t value);
-
-enum ModbusRTUCommError : uint8_t {
-  MODBUS_RTU_COMM_SUCCESS = 0,
-  MODBUS_RTU_COMM_TIMEOUT = 1,
-  MODBUS_RTU_COMM_FRAME_ERROR = 2,
-  MODBUS_RTU_COMM_CRC_ERROR = 3,
-  MODBUS_RTU_COMM_WAITING = 4
-};
-
-class ModbusRTUComm {
-  public:
-    ModbusRTUComm(Stream& serial, VPIN dePin = VPIN_NONE, VPIN rePin = VPIN_NONE);
-    void begin(unsigned long baud, uint32_t config = SERIAL_8N1);
-    void setTimeout(unsigned long timeout);
-    ModbusRTUCommError readAdu(ModbusADU& adu);
-    bool _waiting_for_read = false;
-    void writeAdu(ModbusADU& adu);
-    void clearRxBuffer();
-    Stream& _serial;
-    VPIN _dePin;
-    VPIN _rePin;
-  private:
-    
-    unsigned long _charTimeout;
-    unsigned long _frameTimeout;
-    unsigned long _postDelay = 0UL;
-    unsigned long _readTimeout = 0UL;
-    unsigned long _startTimeout = 0UL;
-};
-
-enum ModbusRTUMasterError : uint8_t {
-  MODBUS_RTU_MASTER_SUCCESS = 0,
-  MODBUS_RTU_MASTER_INVALID_ID = 1,
-  MODBUS_RTU_MASTER_INVALID_BUFFER = 2,
-  MODBUS_RTU_MASTER_INVALID_QUANTITY = 3,
-  MODBUS_RTU_MASTER_RESPONSE_TIMEOUT = 4,
-  MODBUS_RTU_MASTER_FRAME_ERROR = 5,
-  MODBUS_RTU_MASTER_CRC_ERROR = 6,
-  MODBUS_RTU_MASTER_UNKNOWN_COMM_ERROR = 7,
-  MODBUS_RTU_MASTER_UNEXPECTED_ID = 8,
-  MODBUS_RTU_MASTER_EXCEPTION_RESPONSE = 9,
-  MODBUS_RTU_MASTER_UNEXPECTED_FUNCTION_CODE = 10,
-  MODBUS_RTU_MASTER_UNEXPECTED_LENGTH = 11,
-  MODBUS_RTU_MASTER_UNEXPECTED_BYTE_COUNT = 12,
-  MODBUS_RTU_MASTER_UNEXPECTED_ADDRESS = 13,
-  MODBUS_RTU_MASTER_UNEXPECTED_VALUE = 14,
-  MODBUS_RTU_MASTER_UNEXPECTED_QUANTITY = 15,
-  MODBUS_RTU_MASTER_WAITING = 16
-};
 
 
 /**********************************************************************
@@ -185,7 +93,21 @@ private:
   int configBPinsPU[16];
   int configAPinsO[16];
   int configAPinsI[16];
-  
+  // EX-IOExpander protocol flags
+  enum {
+    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
+    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
+    EXIOVER = 0xE3,     // Flag to get version
+    EXIORDAN = 0xE4,    // Flag to read an analogue input
+    EXIOWRD = 0xE5,     // Flag for digital write
+    EXIORDD = 0xE6,     // Flag to read digital input
+    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
+    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
+    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
+    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOERR = 0xEF,     // Flag we've received an error
+  };
   void resetInit() {
     for (int i = 0; i < 16; i++) {
       capePinsBI[i] = 0;
@@ -225,6 +147,32 @@ private:
   }
   
 public:
+  enum ProfileType : int {
+    Instant = 0,  // Moves immediately between positions (if duration not specified)
+    UseDuration = 0, // Use specified duration
+    Fast = 1,     // Takes around 500ms end-to-end
+    Medium = 2,   // 1 second end-to-end
+    Slow = 3,     // 2 seconds end-to-end
+    Bounce = 4,   // For semaphores/turnouts with a bit of bounce!!
+    NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
+  };
+
+  uint8_t _numDigitalPins = 0;
+  uint8_t _numAnaloguePins = 0;
+
+  uint8_t _majorVer = 0;
+  uint8_t _minorVer = 0;
+  uint8_t _patchVer = 0;
+
+  uint8_t* _digitalInputStates  = NULL;
+  uint8_t* _analogueInputStates = NULL;
+  uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
+  uint8_t _readCommandBuffer[1];
+
+  uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
+  uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
+  uint8_t* _analoguePinMap = NULL;
+  I2CRB _i2crb;
   static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID);
   }
@@ -314,96 +262,173 @@ public:
   }
   
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
-    byte arduinoPin = params[1];
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     if (configType == CONFIGURE_INPUT) {
-      bool inputPullup = false;
-      if (params[2] == 1) inputPullup = true;
-      bool status = addPinBI(vpin,inputPullup);
-      if (status == false) {
-        return true;
-      } else
-        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a digital input pin"), (int)vpin, arduinoPin);
-    } else if (configType == CONFIGURE_OUTPUT) {
-      bool status = addPinBO(vpin);
-      if (status == false) {
-        return true;
-      } else
-        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a digital Output pin"), (int)vpin, arduinoPin);
-    } else if (configType == CONFIGURE_SERVO) {
-      //blah
-    } else if (configType == CONFIGURE_ANALOGOUTPUT) {
-      bool status = addPinAO(vpin);
-      if (status == false) {
-        return true;
-      } else
-        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a analog Output pin"), (int)vpin, arduinoPin);
+      Modbus* mb = Modbus::findBus(0);
+       mb->_CommMode = 2;
+       mb->_pullup = params[0];
+       mb->_pin = pin;
+       mb->_opperation = 1;
     } else if (configType == CONFIGURE_ANALOGINPUT) {
-      bool status = addPinAI(vpin);
-      if (status == false) {
-        return true;
-      } else
-        DIAG(F("IO_Modbus Vpin %u, Arduino Pin %d, cannot be used as a analog Input pin"), (int)vpin, arduinoPin);
+      // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
+      // from IODevice class definition.  Not urgent, but each virtual function defined
+      // means increasing the RAM requirement of every HAL device driver, whether it's relevant
+      // to the driver or not.
+      return false;
     }
     return false;
   }
 
-  void _begin() override {
-    resetInit();
-    coils[0] = (int*) 1; // set config mode
-    coils[1] = (int*) 1; // set pull capabilities
+  int _configureAnalogIn(VPIN vpin) override {
+    int pin = vpin - _firstVpin;
+    Modbus* mb = Modbus::findBus(0);
+    mb->_CommMode = 2;
+    mb->_pin = pin;
+    mb ->_opperation = 2;
     
+    return false;
+  }
+
+  void _begin() override {
+    Modbus* mb = Modbus::findBus(0);
+    if (mb->_txPin != VPIN_NONE) {
+      pinMode(mb->_txPin, OUTPUT);
+      ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    }
+    uint8_t receiveBuffer[5];
+    uint8_t commandBuffer[7] = {EXIOINIT, _nodeID, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+     if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
+    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
+    mb->_serialD->flush();
+    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    unsigned long startMillis = millis();
+    while (!mb->_serialD->available()) {
+      if (millis() - startMillis >= 500) return;
+    }
+    uint16_t len = 0;
+    unsigned long startMicros = micros();
+    do {
+      if (mb->_serialD->available()) {
+        startMicros = micros();
+        receiveBuffer[len] = mb->_serialD->read();
+        len++;
+      }
+    } while (micros() - startMicros <= 500 && len < 256);
+    if (receiveBuffer[0] == EXIOPINS && mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+      _numDigitalPins = receiveBuffer[1];
+      _numAnaloguePins = receiveBuffer[2];
+
+      // See if we already have suitable buffers assigned
+      if (_numDigitalPins>0) {
+        size_t digitalBytesNeeded = (_numDigitalPins + 7) / 8;
+        if (_digitalPinBytes < digitalBytesNeeded) {
+          // Not enough space, free any existing buffer and allocate a new one
+          if (_digitalPinBytes > 0) free(_digitalInputStates);
+          if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
+            _digitalPinBytes = digitalBytesNeeded;
+          } else {
+            DIAG(F("EX-IOExpanderMB node:%d ERROR alloc %d bytes"), _nodeID, digitalBytesNeeded);
+            _deviceState = DEVSTATE_FAILED;
+            _digitalPinBytes = 0;
+            return;
+          }
+        }
+      }
+      
+      if (_numAnaloguePins>0) {
+        size_t analogueBytesNeeded = _numAnaloguePins * 2;
+        if (_analoguePinBytes < analogueBytesNeeded) {
+          // Free any existing buffers and allocate new ones.
+          if (_analoguePinBytes > 0) {
+            free(_analogueInputBuffer);
+            free(_analogueInputStates);
+            free(_analoguePinMap);
+          }
+          _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
+          _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
+          _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
+          if (_analogueInputStates  != NULL &&
+            _analogueInputBuffer != NULL &&
+            _analoguePinMap != NULL) {
+            _analoguePinBytes = analogueBytesNeeded;
+          } else {
+            DIAG(F("EX-IOExpanderMB node:%d ERROR alloc analog pin bytes"), _nodeID);
+            _deviceState = DEVSTATE_FAILED;
+            _analoguePinBytes = 0;
+            return;
+          }
+        }
+      }
+    } else {
+      DIAG(F("EX-IOExpanderMB node:%d ERROR configuring device (CRC: %s)"), _nodeID, mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)? "PASS":"FAIL");
+      _deviceState = DEVSTATE_FAILED;
+      return;
+    }
+    commandBuffer[0] = EXIOINITA;
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
+    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
+    mb->_serialD->flush();
+    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    startMillis = millis();
+    while (!mb->_serialD->available()) {
+      if (millis() - startMillis >= 500) return;
+    }
+    uint16_t len = 0;
+    unsigned long startMicros = micros();
+    do {
+      if (mb->_serialD->available()) {
+        startMicros = micros();
+        receiveBuffer[len] = mb->_serialD->read();
+        len++;
+      }
+    } while (micros() - startMicros <= 500 && len < 256);
+    if (mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+      for (int i = 0; i < _numAnaloguePins; i++) {
+        _analoguePinMap[i] = receiveBuffer[i];
+      }
+    }
+    uint8_t versionBuffer[5];
+    commandBuffer[0] = EXIOVER;
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
+    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
+    mb->_serialD->flush();
+    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    startMillis = millis();
+    while (!mb->_serialD->available()) {
+      if (millis() - startMillis >= 500) return;
+    }
+    uint16_t len = 0;
+    unsigned long startMicros = micros();
+    do {
+      if (mb->_serialD->available()) {
+        startMicros = micros();
+        versionBuffer[len] = mb->_serialD->read();
+        len++;
+      }
+    } while (micros() - startMicros <= 500 && len < 256);
+    if (mb->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
+      _majorVer = versionBuffer[0];
+      _minorVer = versionBuffer[1];
+      _patchVer = versionBuffer[2];
+      DIAG(F("EX-IOExpander device found, node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
+    }
+
+
+
+
+
+
+#ifdef DIAG_IO
+    _display();
+#endif
     _initialised = false;
   }
 
   
-
-  void procData() {
-    if (isInitialised()) { // read/write data
-      for (int i = 0; i < 16; i++) {
-        holdingRegisters[i] = (uint16_t*) dataBO[i];
-        dataBI[i] = (int) inputRegisters[i];
-      }
-      for (int i = 16; i < 84; i++) {
-        holdingRegisters[i] = (uint16_t*) dataAO[i];
-        dataAI[i] = (int) inputRegisters[i];
-      }
-    } else { // read/write config
-      if (discreteInputs[0] == (int*) 1 && discreteInputs[1] == (int*) 1){ // get capabilities
-        for (int i = 0; i < 16; i++) { // read capabilities params
-          capePinsBI[i] = (int) inputRegisters[i];
-          capePinsBO[i] = (int) inputRegisters[i+16];
-          capePinsPU[i] = (int) inputRegisters[i+32];
-          capePinsAI[i] = (int) inputRegisters[i+48];
-          capePinsAO[i] = (int) inputRegisters[i+64];
-        }
-        coils[0] = (int*) 1; // config mode
-        coils[1] = (int*) 0; // exit cape mode
-        for (int i = 0; i < 16; i++) { // load config params
-          holdingRegisters[i] = (uint16_t*) configBPinsI[i];
-          holdingRegisters[i+16] = (uint16_t*) configBPinsO[i];
-          holdingRegisters[i+32] = (uint16_t*) configBPinsPU[i];
-          holdingRegisters[i+48] = (uint16_t*) configAPinsI[i];
-          holdingRegisters[i+64] = (uint16_t*) configAPinsO[i];
-        }
-      } else if (discreteInputs[0] == (int*) 1 && discreteInputs[1] == (int*) 0) {
-        for (int i = 0; i < 16; i++) {
-          if (configBPinsI[i] != (int) inputRegisters[i]) spitError(i);
-          if (configBPinsO[i] != (int) inputRegisters[i+16]) spitError(i+16);
-          if (configBPinsPU[i] != (int) inputRegisters[i+32]) spitError(i+32);
-          if (configAPinsI[i] != (int) inputRegisters[i+48]) spitError(i+48);
-          if (configAPinsO[i] != (int) inputRegisters[i+64]) spitError(i+64);
-        }
-        // todo error checking and set failure mode
-        // for now, assume everything is fine, sort this out later if needed
-        coils[0] = (int*) 0; // exit config mode
-        coils[1] = (int*) 0; // not in cape mode
-        setInitialised();
-      }
-    }
-  }
-
   int _read(VPIN vpin) override {
     // Return current state from this device
     uint16_t pin = vpin - _firstVpin;
@@ -487,6 +512,8 @@ public:
       getNumAnalogOutputsVPINsMin(), getNumAnalogOutputsVPINsMax());
   }
 
+  
+
 };
 
 /**********************************************************************
@@ -501,9 +528,12 @@ class Modbus : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
-
+  uint8_t _adu[262];
+  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
+  uint16_t _getRegister(uint8_t *buf, uint16_t index);
+  void _setRegister(uint8_t *buf, uint16_t index, uint16_t value);
   unsigned long _baud;
-  int8_t _txPin;
+  
   Modbusnode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   Modbusnode *_currentNode = NULL;
   uint8_t _exceptionResponse = 0;
@@ -519,28 +549,117 @@ private:
   unsigned long _postDelay; // delay time after transmission before switching off transmitter (in us)
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
   int _operationCount = 0;
+
   static Modbus *_busList; // linked list of defined bus instances
-  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, int buf[], uint16_t quantity);
-  ModbusRTUMasterError _readValues(uint8_t id, uint8_t functionCode, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
-  ModbusRTUMasterError _writeSingleValue(uint8_t id, uint8_t functionCode, uint16_t address, uint16_t value);
+
   int _waitCounter = 0;
   int _waitCounterB = 0;
   int _waitA;
   int _waitB;
-
-  void _resetWaiting() {
-    _rtuComm._waiting_for_read = false;
+// Helper function for error handling
+  void reportError(uint8_t status, bool fail=true) {
+    DIAG(F("EX-IOExpanderMB Node:%d Error"), _currentNode->getNodeID());
+    if (fail)
+    _deviceState = DEVSTATE_FAILED;
   }
+
+  
+  unsigned long _charTimeout;
+  unsigned long _frameTimeout;
+  enum {RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE};  // Read operation states
+  uint8_t _readState = RDS_IDLE;
+  
+  unsigned long _lastDigitalRead = 0;
+  unsigned long _lastAnalogueRead = 0;
+  const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
+  const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
+
+  // EX-IOExpander protocol flags
+  enum {
+    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
+    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
+    EXIOVER = 0xE3,     // Flag to get version
+    EXIORDAN = 0xE4,    // Flag to read an analogue input
+    EXIOWRD = 0xE5,     // Flag for digital write
+    EXIORDD = 0xE6,     // Flag to read digital input
+    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
+    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
+    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
+    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOERR = 0xEF,     // Flag we've received an error
+  };
+  int tasks[255][25];
+  int taskCnt = 0;
 public:
+  void addTask(int taskNum, int paranCnt, int *param[]) {
+    tasks[taskCnt][0] = taskNum;
+    switch(taskNum) {
+      case 0: // configure pin
+        tasks[taskNum][1] = param[0]; // pin
+        tasks[taskNum][2] = param[1]; // configtype
+        tasks[taskNum][3] = param[2]; // paramcount
+        for (int i=0; i < param[2]; i++) {
+          tasks[taskNum][i+4] = param[i+3]; // params
+        }
+        break;
+      case 1: // configure analog in
+        tasks[taskNum][1] = param[0]; // pin
+        break;
+      
+
+    }
+  }
+
+  int8_t _txPin;
+  uint8_t *rtu = _adu + 6;
+  uint8_t *tcp = _adu;
+  uint8_t *pdu = _adu + 7;
+  uint8_t *data = _adu + 8;
+  void updateCrc(uint8_t *buf, uint16_t len);
+  bool crcGood(uint8_t *buf, uint16_t len);
+  uint16_t getLength();
+  void setTransactionId(uint16_t transactionId);
+  void setProtocolId(uint16_t protocolId);
+  void setLength(uint16_t length);
+  void setUnitId(uint8_t unitId);
+  void setFunctionCode(uint8_t functionCode);
+  void setDataRegister(uint8_t index, uint16_t value);
+
+  void setRtuLen(uint16_t rtuLen);
+  void setTcpLen(uint16_t tcpLen);
+  void setPduLen(uint16_t pduLen);
+  void setDataLen(uint16_t dataLen);
+
+  uint16_t getTransactionId();
+  uint16_t getProtocolId();
+  
+  uint8_t getUnitId();
+  uint8_t getFunctionCode();
+  uint16_t getDataRegister(uint8_t index);
+
+  uint16_t getRtuLen();
+  uint16_t getTcpLen();
+  uint16_t getPduLen();
+  uint16_t getDataLen();
+  void clearRxBuffer();
   static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10, int waitB=10) {
     new Modbus(busNo, serial, baud, cycleTimeMS, txPin, waitA, waitB);
   }
   HardwareSerial *_serialD;
-  ModbusRTUComm _rtuComm;
   // Device-specific initialisation
   void _begin() override {
     _serialD->begin(_baud, SERIAL_8N1);
-    _rtuComm.begin(_baud, SERIAL_8N1);
+    unsigned long bitsPerChar = 10;
+    if (_baud <= 19200) {
+      _charTimeout = (bitsPerChar * 2500000) / _baud;
+      _frameTimeout = (bitsPerChar * 4500000) / _baud;
+    }
+    else {
+      _charTimeout = (bitsPerChar * 1000000) / _baud + 750;
+      _frameTimeout = (bitsPerChar * 1000000) / _baud + 1750;
+    }
+    clearRxBuffer();
   #if defined(MODBUS_STM_OK)
     pinMode(MODBUS_STM_OK, OUTPUT);
     ArduinoPins::fastWriteDigital(MODBUS_STM_OK,LOW);
@@ -558,16 +677,11 @@ public:
     _display();
   #endif
   }
-  ModbusRTUMasterError _translateCommError(ModbusRTUCommError commError);
-  ModbusRTUMasterError readCoils(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
-  ModbusRTUMasterError readDiscreteInputs(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
-  ModbusRTUMasterError readHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
-  ModbusRTUMasterError readInputRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
+  int _CommMode = 0;
+  int _opperation = 0;
+  uint16_t _pullup;
+  uint16_t _pin;
 
-  ModbusRTUMasterError writeSingleCoil(uint8_t id, uint16_t address, int value);
-  ModbusRTUMasterError writeSingleHoldingRegister(uint8_t id, uint16_t address, uint16_t value);
-  ModbusRTUMasterError writeMultipleCoils(uint8_t id, uint16_t startAddress, int buf[], uint16_t quantity);
-  ModbusRTUMasterError writeMultipleHoldingRegisters(uint8_t id, uint16_t startAddress, uint16_t buf[], uint16_t quantity);
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;
 
