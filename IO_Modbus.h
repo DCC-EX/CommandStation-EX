@@ -55,46 +55,6 @@
 #include "IODevice.h"
 uint16_t  div8RndUp(uint16_t value);
 
-// Class defining a request context for an I2C operation.
-class MBRB {
-public:
-  volatile uint8_t status; // Completion status, or pending flag (updated from IRC)
-  volatile uint8_t nBytes; // Number of bytes read (updated from IRC)
-
-  inline MBRB() { status = I2C_STATUS_OK; };
-  uint8_t wait();
-  bool isBusy();
-
-  void setReadParams(int nodeID, uint8_t *readBuffer, uint8_t readLen);
-  void setRequestParams(int nodeID, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
-  void setWriteParams(int nodeID, const uint8_t *writeBuffer, uint8_t writeLen);
-  void suppressRetries(bool suppress);
-
-  uint8_t writeLen;
-  uint8_t readLen;
-  uint8_t operation;
-  int nodeID;
-  uint8_t *readBuffer;
-  const uint8_t *writeBuffer;
-  MBRB *nextRequest;
-};
-
-enum : uint8_t {
-  // Codes used by Wire and by native drivers
-  MB_STATUS_OK=0,
-  MB_STATUS_TRUNCATED=1,
-  MB_STATUS_NEGATIVE_ACKNOWLEDGE=2,
-  MB_STATUS_TRANSMIT_ERROR=3,
-  MB_STATUS_TIMEOUT=5,
-  // Code used by Wire only
-  MB_STATUS_OTHER_TWI_ERROR=4, // catch-all error
-  // Codes used by native drivers only
-  MB_STATUS_ARBITRATION_LOST=6,
-  MB_STATUS_BUS_ERROR=7,
-  MB_STATUS_UNEXPECTED_ERROR=8,
-  MB_STATUS_PENDING=253,
-};
-
 /**********************************************************************
  * Modbusnode class
  * 
@@ -210,7 +170,7 @@ public:
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
-  I2CRB _i2crb;
+
   static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new Modbusnode(firstVpin, nPins, busNo, nodeID);
   }
@@ -302,29 +262,19 @@ public:
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
-    if (configType == CONFIGURE_INPUT) {
-      Modbus* mb = Modbus::findBus(0);
-       mb->_CommMode = 2;
-       mb->_pullup = params[0];
-       mb->_pin = pin;
-       mb->_opperation = 1;
-    } else if (configType == CONFIGURE_ANALOGINPUT) {
-      // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
-      // from IODevice class definition.  Not urgent, but each virtual function defined
-      // means increasing the RAM requirement of every HAL device driver, whether it's relevant
-      // to the driver or not.
-      return false;
-    }
-    return false;
+    int pin = vpin - _firstVpin;
+    Modbus* mb = Modbus::findBus(0);
+    int* param[] = {(int*)pin, (int*)configType, (int*)paramCount, (int*)params[0]};
+    mb->addTask(_nodeID, 3, 4, param);
+
   }
 
   int _configureAnalogIn(VPIN vpin) override {
     int pin = vpin - _firstVpin;
     Modbus* mb = Modbus::findBus(0);
-    mb->_CommMode = 2;
-    mb->_pin = pin;
-    mb ->_opperation = 2;
-    
+    int* params[] = {(int*)pin};
+    mb->addTask(_nodeID, 3, 1, params);
+
     return false;
   }
 
@@ -468,40 +418,44 @@ public:
 
   
   int _read(VPIN vpin) override {
-    // Return current state from this device
-    uint16_t pin = vpin - _firstVpin;
-    int PinNum = pin / 16;
-    int PinBit = pin % 16;
-    if (bitRead(configAPinsI[PinNum],PinBit) == true) return bitRead(dataBI[PinNum],PinBit)? 1:0;
-    else return 0;
+    if (_deviceState == DEVSTATE_FAILED) return 0;
+    int pin = vpin - _firstVpin;
+    uint8_t pinByte = pin / 8;
+    bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
+    return value;
   }
 
   
   void _write(VPIN vpin, int value) override {
-    // Update current state for this device, in preparation the bus transmission
-    uint16_t pin = vpin - _firstVpin;
-    int PinNum = pin / 16;
-    int PinBit = pin % 16;
-    if (bitRead(configAPinsO[PinNum], PinBit) == true) {
-      if (value == 1) bitSet(dataBO[PinNum], PinBit);
-      else bitClear(dataBO[PinNum], PinBit);
-    }
+    if (_deviceState == DEVSTATE_FAILED) return;
+    int pin = vpin - _firstVpin;
+    Modbus* mb = Modbus::findBus(0);
+    int* params[] = {(int*)pin, (int*)value};
+    mb->addTask(_nodeID, 3, 2, params);
   }
 
-  int _readAnalogue(VPIN vpin) {
-    // Return acquired data value, e.g.
-    uint16_t pin = vpin - _firstVpin;
-    int PinNum = pin / 16;
-    int PinBit = pin % 16;
-    if (bitRead(configAPinsI[PinNum],PinBit) == true) return dataAI[pin];
-    else return 0;
+  int _readAnalogue(VPIN vpin) override {
+    if (_deviceState == DEVSTATE_FAILED) return 0;
+    int pin = vpin - _firstVpin;
+    for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
+      if (_analoguePinMap[aPin] == pin) {
+        uint8_t _pinLSBByte = aPin * 2;
+        uint8_t _pinMSBByte = _pinLSBByte + 1;
+        return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
+      }
+    }
+    return -1;  // pin not found in table
   }
   
-  void _writeAnalogue(VPIN vpin, int value) {
-    uint16_t pin = vpin - _firstVpin;
-    int PinNum = pin / 16;
-    int PinBit = pin % 16;
-    if (bitRead(configAPinsI[PinNum],PinBit) == true) dataAO[pin] = value;
+  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+    uint8_t servoBuffer[7];
+    uint8_t responseBuffer[1];
+
+    if (_deviceState == DEVSTATE_FAILED) return;
+    int pin = vpin - _firstVpin;
+    Modbus* mb = Modbus::findBus(0);
+    int* params[] = {(int*)pin, (int*)value, (int*)profile, (int*)duration};
+    mb->addTask(_nodeID, 3, 4, params);
   }
 
   uint8_t getBusNumber() {
@@ -611,7 +565,7 @@ private:
   unsigned long _lastAnalogueRead = 0;
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
   const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
-  MBRB _mbrb;
+
 
   // EX-IOExpander protocol flags
   enum {

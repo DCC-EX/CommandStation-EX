@@ -21,51 +21,6 @@
 #include "IO_Modbus.h"
 #include "defines.h"
 
-uint8_t MBRB::wait() {
-  while (status==MB_STATUS_PENDING) {
-    // may as well whistle or something
-  };
-  return status;
-}
-bool MBRB::isBusy() {
-  if (status==MB_STATUS_PENDING) {
-    return true;
-  } else
-    return false;
-}
-void MBRB::setReadParams(int nodeID, uint8_t *readBuffer, uint8_t readLen) {
-  this->nodeID = nodeID;
-  this->writeLen = 0;
-  this->readBuffer = readBuffer;
-  this->readLen = readLen;
-  this->operation = OPERATION_READ;
-  this->status = MB_STATUS_OK;
-}
-
-void MBRB::setRequestParams(int nodeID, uint8_t *readBuffer, uint8_t readLen, 
-    const uint8_t *writeBuffer, uint8_t writeLen) {
-  this->nodeID = nodeID;
-  this->writeBuffer = writeBuffer;
-  this->writeLen = writeLen;
-  this->readBuffer = readBuffer;
-  this->readLen = readLen;
-  this->operation = OPERATION_REQUEST;
-  this->status = MB_STATUS_OK;
-}
-void MBRB::setWriteParams(int nodeID, const uint8_t *writeBuffer, uint8_t writeLen) {
-  this->nodeID = nodeID;
-  this->writeBuffer = writeBuffer;
-  this->writeLen = writeLen;
-  this->readLen = 0;
-  this->operation = OPERATION_SEND;
-  this->status = MB_STATUS_OK;
-}
-void MBRB::suppressRetries(bool suppress) {
-  if (suppress)
-    this->operation |= OPERATION_NORETRY;
-  else
-    this->operation &= ~OPERATION_NORETRY;
-}
 void Modbus::setTransactionId(uint16_t transactionId) {
   _setRegister(tcp, 0, transactionId);
 }
@@ -424,32 +379,8 @@ if (taskCnt > 0) {
       }
   }
 } else {
-  // receive states
-  if (_readState != RDS_IDLE) {
-    if (_mbrb.isBusy()) return;                // If I2C operation still in progress, return
+  memcpy(_currentNode->_analogueInputStates, _currentNode->_analogueInputBuffer, _currentNode->_analoguePinBytes); // Copy I2C input buffer to states
 
-    uint8_t status = _mbrb.status;
-    if (status == I2C_STATUS_OK) {             // If device request ok, read input data
-
-      // First check if we need to process received data
-      if (_readState == RDS_ANALOGUE) {
-        // Read of analogue values was in progress, so process received values
-        // Here we need to copy the values from input buffer to the analogue value array.  We need to 
-        // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
-        // while the value is being read).
-        memcpy(_currentNode->_analogueInputStates, _currentNode->_analogueInputBuffer, _currentNode->_analoguePinBytes); // Copy I2C input buffer to states
-
-      } else if (_readState == RDS_DIGITAL) {
-        // Read of digital states was in progress, so process received values 
-        // The received digital states are placed directly into the digital buffer on receipt, 
-        // so don't need any further processing at this point (unless we want to check for
-        // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
-      }
-    } else
-      reportError(status, false);   // report eror but don't go offline.
-
-    _readState = RDS_IDLE;
-  }
   if (_currentNode->_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
   // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
   // be allocated from heap (object state).
