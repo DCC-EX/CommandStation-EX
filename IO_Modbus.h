@@ -55,6 +55,45 @@
 #include "IODevice.h"
 uint16_t  div8RndUp(uint16_t value);
 
+// Class defining a request context for an I2C operation.
+class MBRB {
+public:
+  volatile uint8_t status; // Completion status, or pending flag (updated from IRC)
+  volatile uint8_t nBytes; // Number of bytes read (updated from IRC)
+
+  inline MBRB() { status = I2C_STATUS_OK; };
+  uint8_t wait();
+  bool isBusy();
+
+  void setReadParams(int nodeID, uint8_t *readBuffer, uint8_t readLen);
+  void setRequestParams(int nodeID, uint8_t *readBuffer, uint8_t readLen, const uint8_t *writeBuffer, uint8_t writeLen);
+  void setWriteParams(int nodeID, const uint8_t *writeBuffer, uint8_t writeLen);
+  void suppressRetries(bool suppress);
+
+  uint8_t writeLen;
+  uint8_t readLen;
+  uint8_t operation;
+  int nodeID;
+  uint8_t *readBuffer;
+  const uint8_t *writeBuffer;
+  MBRB *nextRequest;
+};
+
+enum : uint8_t {
+  // Codes used by Wire and by native drivers
+  MB_STATUS_OK=0,
+  MB_STATUS_TRUNCATED=1,
+  MB_STATUS_NEGATIVE_ACKNOWLEDGE=2,
+  MB_STATUS_TRANSMIT_ERROR=3,
+  MB_STATUS_TIMEOUT=5,
+  // Code used by Wire only
+  MB_STATUS_OTHER_TWI_ERROR=4, // catch-all error
+  // Codes used by native drivers only
+  MB_STATUS_ARBITRATION_LOST=6,
+  MB_STATUS_BUS_ERROR=7,
+  MB_STATUS_UNEXPECTED_ERROR=8,
+  MB_STATUS_PENDING=253,
+};
 
 /**********************************************************************
  * Modbusnode class
@@ -572,6 +611,7 @@ private:
   unsigned long _lastAnalogueRead = 0;
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
   const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
+  MBRB _mbrb;
 
   // EX-IOExpander protocol flags
   enum {

@@ -21,7 +21,51 @@
 #include "IO_Modbus.h"
 #include "defines.h"
 
+uint8_t MBRB::wait() {
+  while (status==MB_STATUS_PENDING) {
+    // may as well whistle or something
+  };
+  return status;
+}
+bool MBRB::isBusy() {
+  if (status==MB_STATUS_PENDING) {
+    return true;
+  } else
+    return false;
+}
+void MBRB::setReadParams(int nodeID, uint8_t *readBuffer, uint8_t readLen) {
+  this->nodeID = nodeID;
+  this->writeLen = 0;
+  this->readBuffer = readBuffer;
+  this->readLen = readLen;
+  this->operation = OPERATION_READ;
+  this->status = MB_STATUS_OK;
+}
 
+void MBRB::setRequestParams(int nodeID, uint8_t *readBuffer, uint8_t readLen, 
+    const uint8_t *writeBuffer, uint8_t writeLen) {
+  this->nodeID = nodeID;
+  this->writeBuffer = writeBuffer;
+  this->writeLen = writeLen;
+  this->readBuffer = readBuffer;
+  this->readLen = readLen;
+  this->operation = OPERATION_REQUEST;
+  this->status = MB_STATUS_OK;
+}
+void MBRB::setWriteParams(int nodeID, const uint8_t *writeBuffer, uint8_t writeLen) {
+  this->nodeID = nodeID;
+  this->writeBuffer = writeBuffer;
+  this->writeLen = writeLen;
+  this->readLen = 0;
+  this->operation = OPERATION_SEND;
+  this->status = MB_STATUS_OK;
+}
+void MBRB::suppressRetries(bool suppress) {
+  if (suppress)
+    this->operation |= OPERATION_NORETRY;
+  else
+    this->operation &= ~OPERATION_NORETRY;
+}
 void Modbus::setTransactionId(uint16_t transactionId) {
   _setRegister(tcp, 0, transactionId);
 }
@@ -231,17 +275,19 @@ if (taskCnt > 0) {
         uint8_t outBuffer[6] = {EXIODPUP, (uint8_t) taskData[0], (uint8_t)taskData[3], pullup};
         uint8_t responseBuffer[3];
         updateCrc(outBuffer,sizeof(outBuffer)-2);
-        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-        _serialD->write(outBuffer, sizeof(outBuffer));
-        _serialD->flush();
-        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        if (waitReceive == false) {
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+          _serialD->write(outBuffer, sizeof(outBuffer));
+          _serialD->flush();
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        }
         unsigned long startMillis = millis();
         if (!_serialD->available()) {
           if (waitReceive == true && _waitCounter > _waitA) {
-
-          }
-          if (millis() - startMillis >= 500) return;
+            flagOK = false;
+          } else waitReceive = true;
         }
+        waitReceive = false;
         uint16_t len = 0;
         unsigned long startMicros = micros();
         do {
@@ -254,9 +300,9 @@ if (taskCnt > 0) {
         if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
           if (responseBuffer[0] == EXIORDY) {
           } else {
-            DIAG(F("EXIOMB Vpin %u cannot be used as a digital input pin"), (int)taskData[2]);
+            DIAG(F("EXIOMB Vpin %u cannot be used as a digital input pin"), (int)taskData[3]);
           }
-        }
+        } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
       } else if (taskData[3] == (int*) CONFIGURE_ANALOGINPUT) {
         // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
         // from IODevice class definition.  Not urgent, but each virtual function defined
@@ -268,32 +314,33 @@ if (taskCnt > 0) {
       uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) taskData[0], (uint8_t) taskData[3]};
       uint8_t responseBuffer[3];
       updateCrc(commandBuffer,sizeof(commandBuffer)-2);
-        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-        _serialD->write(commandBuffer, sizeof(commandBuffer));
-        _serialD->flush();
-        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+      if (waitReceive == false) {
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+          _serialD->write(commandBuffer, sizeof(commandBuffer));
+          _serialD->flush();
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        }
         unsigned long startMillis = millis();
         if (!_serialD->available()) {
           if (waitReceive == true && _waitCounter > _waitA) {
-
-          }
-          if (millis() - startMillis >= 500) return;
+            flagOK = false;
+          } else waitReceive = true;
         }
-        uint16_t len = 0;
-        unsigned long startMicros = micros();
-        do {
-          if (_serialD->available()) {
-            startMicros = micros();
-            responseBuffer[len] = _serialD->read();
-            len++;
-          }
-        } while (micros() - startMicros <= 500 && len < 256);
+      uint16_t len = 0;
+      unsigned long startMicros = micros();
+      do {
+        if (_serialD->available()) {
+          startMicros = micros();
+          responseBuffer[len] = _serialD->read();
+          len++;
+        }
+      } while (micros() - startMicros <= 500 && len < 256);
 
       if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
         if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("EX-IOExpanderMB: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[2], (int) taskData[0]);
+          DIAG(F("EX-IOExpanderMB: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[3], (int) taskData[0]);
         }
-      }
+      } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
       break;
     case 3: // write pin
       uint8_t digitalOutBuffer[6];
@@ -301,48 +348,170 @@ if (taskCnt > 0) {
       digitalOutBuffer[0] = EXIOWRD;
       digitalOutBuffer[1] = (uint8_t) taskData[0];
       digitalOutBuffer[2] = (uint8_t) taskData[3];
-      digitalOutBuffer[3] = value;
-      uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, 1, digitalOutBuffer, 3);
-      if (status != I2C_STATUS_OK) {
-        reportError(status);
+      digitalOutBuffer[3] = (uint8_t) taskData[4];
+      updateCrc(digitalOutBuffer,sizeof(digitalOutBuffer)-2);
+      if (waitReceive == false) {
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+          _serialD->write(digitalOutBuffer, sizeof(digitalOutBuffer));
+          _serialD->flush();
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        }
+        unsigned long startMillis = millis();
+        if (!_serialD->available()) {
+          if (waitReceive == true && _waitCounter > _waitA) {
+            flagOK = false;
+          } else waitReceive = true;
+        }
+      uint16_t len = 0;
+      unsigned long startMicros = micros();
+      do {
+        if (_serialD->available()) {
+          startMicros = micros();
+          responseBuffer[len] = _serialD->read();
+          len++;
+        }
+      } while (micros() - startMicros <= 500 && len < 256);
+      if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+        if (responseBuffer[0] != EXIORDY) {
+          DIAG(F("Vpin %u cannot be used as a digital output pin"), (int)taskData[3]);
+        }
+      } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+      break;
+    case 4:
+      uint8_t servoBuffer[10];
+      uint8_t responseBuffer[3];
+#ifdef DIAG_IO
+      DIAG(F("Servo: WriteAnalogue Vpin:%u Value:%d Profile:%d Duration:%d %S"), 
+        vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
+#endif
+      servoBuffer[0] = EXIOWRAN;
+      servoBuffer[1] = (uint8_t) taskData[0];
+      servoBuffer[2] = (uint8_t) taskData[3];
+      servoBuffer[3] = (uint8_t) taskData[4] & 0xFF;
+      servoBuffer[4] = (uint8_t) taskData[4] >> 8;
+      servoBuffer[5] = (uint8_t) taskData[5];
+      servoBuffer[6] = (uint8_t) taskData[6] & 0xFF;
+      servoBuffer[7] = (uint8_t) taskData[6] >> 8;
+      updateCrc(servoBuffer,sizeof(servoBuffer)-2);
+      if (waitReceive == false) {
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+          _serialD->write(servoBuffer, sizeof(servoBuffer));
+          _serialD->flush();
+          if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        }
+        unsigned long startMillis = millis();
+        if (!_serialD->available()) {
+          if (waitReceive == true && _waitCounter > _waitA) {
+            flagOK = false;
+          } else waitReceive = true;
+        }
+      uint16_t len = 0;
+      unsigned long startMicros = micros();
+      do {
+        if (_serialD->available()) {
+          startMicros = micros();
+          responseBuffer[len] = _serialD->read();
+          len++;
+        }
+      } while (micros() - startMicros <= 500 && len < 256);
+      if (!crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+         DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+        _deviceState = DEVSTATE_FAILED;
       } else {
         if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("Vpin %u cannot be used as a digital output pin"), (int)vpin);
+          DIAG(F("Vpin %u cannot be used as a servo/PWM pin"), (int) taskData[3]);
         }
       }
   }
 } else {
   // receive states
+  if (_readState != RDS_IDLE) {
+    if (_mbrb.isBusy()) return;                // If I2C operation still in progress, return
 
+    uint8_t status = _mbrb.status;
+    if (status == I2C_STATUS_OK) {             // If device request ok, read input data
+
+      // First check if we need to process received data
+      if (_readState == RDS_ANALOGUE) {
+        // Read of analogue values was in progress, so process received values
+        // Here we need to copy the values from input buffer to the analogue value array.  We need to 
+        // do this to avoid tearing of the values (i.e. one byte of a two-byte value being changed
+        // while the value is being read).
+        memcpy(_currentNode->_analogueInputStates, _currentNode->_analogueInputBuffer, _currentNode->_analoguePinBytes); // Copy I2C input buffer to states
+
+      } else if (_readState == RDS_DIGITAL) {
+        // Read of digital states was in progress, so process received values 
+        // The received digital states are placed directly into the digital buffer on receipt, 
+        // so don't need any further processing at this point (unless we want to check for
+        // changes and notify them to subscribers, to avoid the need for polling - see IO_GPIOBase.h).
+      }
+    } else
+      reportError(status, false);   // report eror but don't go offline.
+
+    _readState = RDS_IDLE;
+  }
+  if (_currentNode->_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
+  // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
+  // be allocated from heap (object state).
+  _currentNode->_readCommandBuffer[0] = EXIORDD;
+  updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
+  if (waitReceive == false) {
+      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+      _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+      _serialD->flush();
+      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+    }
+    unsigned long startMillis = millis();
+    if (!_serialD->available()) {
+      if (waitReceive == true && _waitCounter > _waitA) {
+        flagOK = false;
+      } else waitReceive = true;
+    }
+  uint16_t len = 0;
+  unsigned long startMicros = micros();
+  do {
+    if (_serialD->available()) {
+      startMicros = micros();
+      _currentNode->_digitalInputStates[len] = _serialD->read();
+      len++;
+    }
+  } while (micros() - startMicros <= 500 && len < (_currentNode->_numDigitalPins+7)/8);
+  if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) DIAG(F("MB CRC error on node %d"), _currentNode->getNodeID());
+  _lastDigitalRead = currentMicros;
+  _readState = RDS_DIGITAL;
+} else if (_currentNode->_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
+  // Issue new read for analogue input states
+  _currentNode->_readCommandBuffer[0] = EXIORDAN;
+  updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
+  if (waitReceive == false) {
+      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+      _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+      _serialD->flush();
+      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+    }
+    unsigned long startMillis = millis();
+    if (!_serialD->available()) {
+      if (waitReceive == true && _waitCounter > _waitA) {
+        flagOK = false;
+      } else waitReceive = true;
+    }
+  uint16_t len = 0;
+  unsigned long startMicros = micros();
+  do {
+    if (_serialD->available()) {
+      startMicros = micros();
+      _currentNode->_analogueInputBuffer[len] = _serialD->read();
+      len++;
+    }
+  } while (micros() - startMicros <= 500 && len < _currentNode->_numAnaloguePins * 2);
+  if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2))  DIAG(F("MB CRC error on node %d"), _currentNode->getNodeID());
+   
+  _lastAnalogueRead = currentMicros;
+  _readState = RDS_ANALOGUE;
+}
+  _currentNode = _currentNode->getNext();
 }
 
-  if (error == MODBUS_RTU_MASTER_WAITING) {
-    if (_waitCounter > _waitA) { // retry after 10 cycles of waiting, or user setting waitA.
-      _waitCounter = 0;
-      _waitCounterB++;
-    } else {
-      _waitCounter++;
-    }
-    if (_waitCounterB > _waitB) { // move on to next node if fails 10 times, or user setting waitB.
-      _waitCounter = 0;
-      _waitCounterB = 0;
-      _operationCount = 0;
-      
-      _currentNode = _currentNode->getNext();
-    }
-  } else {
-    _waitCounter = 0;
-    _waitCounterB = 0;
-  }
-  
-  if (error == MODBUS_RTU_MASTER_SUCCESS) { // should have the effect of retrying same opperation until success
-    if (_operationCount < 3) { //              unless it fails waitB and moves on to next node. may even
-      _operationCount++; //                    improve error recovery...
-    } else {
-      _operationCount = 0;
-      _currentNode = _currentNode->getNext();
-    }
-  }
 #if defined(MODBUS_STM_OK)
   if (flagOK == true) {
     ArduinoPins::fastWriteDigital(MODBUS_STM_OK,HIGH);
