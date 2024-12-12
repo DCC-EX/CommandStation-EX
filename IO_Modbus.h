@@ -53,7 +53,6 @@
 #define IO_MODBUS_H
 
 #include "IODevice.h"
-#include <vector>
 uint16_t  div8RndUp(uint16_t value);
 
 
@@ -298,7 +297,7 @@ public:
     }
     uint8_t receiveBuffer[5];
     uint8_t commandBuffer[7] = {EXIOINIT, _nodeID, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
      if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
     mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
     mb->_serialD->flush();
@@ -367,7 +366,7 @@ public:
       return;
     }
     commandBuffer[0] = EXIOINITA;
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
     if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
     mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
     mb->_serialD->flush();
@@ -392,7 +391,7 @@ public:
     }
     uint8_t versionBuffer[5];
     commandBuffer[0] = EXIOVER;
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer));
+    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
     if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
     mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
     mb->_serialD->flush();
@@ -551,7 +550,7 @@ private:
   int _operationCount = 0;
 
   static Modbus *_busList; // linked list of defined bus instances
-
+  bool waitReceive = false;
   int _waitCounter = 0;
   int _waitCounterB = 0;
   int _waitA;
@@ -590,25 +589,61 @@ private:
     EXIOERR = 0xEF,     // Flag we've received an error
   };
   int tasks[255][25];
-  int taskCnt = 0;
+  
+  void _moveTasks() {
+    // used one in lead, so move forward
+    for (int i = 0; i < taskCnt-1; i++) {
+      for (int j = 0; j < 25; j++) {
+        tasks[i][j] = tasks[i+1][j+1];
+      }
+    }
+    taskCnt--;
+  }
 public:
-  void addTask(int taskNum, int paranCnt, int *param[]) {
-    tasks[taskCnt][0] = taskNum;
+  int taskCnt = 0;
+  void addTask(int nodeID, int taskNum, int paramCnt, int *param[]) {
+    taskCnt++;
+    tasks[taskCnt][0] = nodeID;
+    tasks[taskCnt][1] = taskNum;
+    tasks[taskCnt][2] = paramCnt;
     switch(taskNum) {
-      case 0: // configure pin
-        tasks[taskNum][1] = param[0]; // pin
-        tasks[taskNum][2] = param[1]; // configtype
-        tasks[taskNum][3] = param[2]; // paramcount
-        for (int i=0; i < param[2]; i++) {
-          tasks[taskNum][i+4] = param[i+3]; // params
+      case 0:
+        // empty task
+      case 1: // configure pin
+        tasks[taskCnt][3] = (int) param[0]; // pin
+        tasks[taskCnt][4] = (int) param[1]; // configtype
+        tasks[taskCnt][5] = (int) param[2]; // paramcount
+        for (int i=0; i < (int) param[2]; i++) {
+          tasks[taskCnt][i+6] = (int) param[i+3]; // params
         }
         break;
-      case 1: // configure analog in
-        tasks[taskNum][1] = param[0]; // pin
+      case 2: // configure analog in
+        tasks[taskCnt][3] = (int) param[0]; // pin
         break;
-      
-
+      case 3: // write pin
+        tasks[taskCnt][3] = (int) param[0]; // pin
+        tasks[taskCnt][4] = (int) param[1]; // value
+        break;
+      case 4: // write analog
+        tasks[taskCnt][3] = (int) param[0]; // pin
+        tasks[taskCnt][4] = (int) param[1]; // value
+        tasks[taskCnt][5] = (int) param[2]; // profile
+        tasks[taskCnt][6] = (int) param[3]; // duration
+        break;
     }
+  }
+  
+  int getNextTask(int *buf[]) {
+    int paramCnt = 0;
+    for (int i = 0; i < 25; i++) {
+      if (i == 0) buf[i] = (int*) tasks[0][i]; // NodeID
+      if (i == 1) buf[i] = (int*) tasks[0][i]; // tasknum
+      else if (i == 2) paramCnt = tasks[0][i]; // paramcnt
+      else {
+        buf[i-1] = (int*) tasks[0][i];
+      }
+    }
+    _moveTasks();
   }
 
   int8_t _txPin;

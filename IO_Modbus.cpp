@@ -211,14 +211,110 @@ void Modbus::_loop(unsigned long currentMicros) {
   if (_currentMicros - _cycleStartTime < _cycleTime) return;
   _cycleStartTime = _currentMicros;
   if (_currentNode == NULL) return;
-  const char* errorStrings[16] = { "success", "invalid id", "invalid buffer", "invalid quantity", "response timeout", "frame error", "crc error", "unknown comm error", "unexpected id", "exception response", "unexpected function code", "unexpected response length", "unexpected byte count", "unexpected address", "unexpected value", "unexpected quantity" };
-  
+
   bool flagOK = true;
 #if defined(MODBUS_STM_COMM)
   ArduinoPins::fastWriteDigital(MODBUS_STM_COMM,HIGH);
 #endif
 
+if (taskCnt > 0) {
+  // run through tasks
+  int* taskData[25];
+  getNextTask(taskData);
+  switch((int) taskData[0]) {
+    case 0:
+      // protection for pulling empty task
+      break;
+    case 1: // configure pin
+      if (taskData[4] == (int*) CONFIGURE_INPUT) {
+        uint8_t pullup = (uint8_t) taskData[6];
+        uint8_t outBuffer[6] = {EXIODPUP, (uint8_t) taskData[0], (uint8_t)taskData[3], pullup};
+        uint8_t responseBuffer[3];
+        updateCrc(outBuffer,sizeof(outBuffer)-2);
+        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+        _serialD->write(outBuffer, sizeof(outBuffer));
+        _serialD->flush();
+        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        unsigned long startMillis = millis();
+        if (!_serialD->available()) {
+          if (waitReceive == true && _waitCounter > _waitA) {
 
+          }
+          if (millis() - startMillis >= 500) return;
+        }
+        uint16_t len = 0;
+        unsigned long startMicros = micros();
+        do {
+          if (_serialD->available()) {
+            startMicros = micros();
+            responseBuffer[len] = _serialD->read();
+            len++;
+          }
+        } while (micros() - startMicros <= 500 && len < 256);
+        if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+          if (responseBuffer[0] == EXIORDY) {
+          } else {
+            DIAG(F("EXIOMB Vpin %u cannot be used as a digital input pin"), (int)taskData[2]);
+          }
+        }
+      } else if (taskData[3] == (int*) CONFIGURE_ANALOGINPUT) {
+        // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
+        // from IODevice class definition.  Not urgent, but each virtual function defined
+        // means increasing the RAM requirement of every HAL device driver, whether it's relevant
+        // to the driver or not.
+      }
+      break;
+    case 2: // configure analog in
+      uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) taskData[0], (uint8_t) taskData[3]};
+      uint8_t responseBuffer[3];
+      updateCrc(commandBuffer,sizeof(commandBuffer)-2);
+        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+        _serialD->write(commandBuffer, sizeof(commandBuffer));
+        _serialD->flush();
+        if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+        unsigned long startMillis = millis();
+        if (!_serialD->available()) {
+          if (waitReceive == true && _waitCounter > _waitA) {
+
+          }
+          if (millis() - startMillis >= 500) return;
+        }
+        uint16_t len = 0;
+        unsigned long startMicros = micros();
+        do {
+          if (_serialD->available()) {
+            startMicros = micros();
+            responseBuffer[len] = _serialD->read();
+            len++;
+          }
+        } while (micros() - startMicros <= 500 && len < 256);
+
+      if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+        if (responseBuffer[0] != EXIORDY) {
+          DIAG(F("EX-IOExpanderMB: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[2], (int) taskData[0]);
+        }
+      }
+      break;
+    case 3: // write pin
+      uint8_t digitalOutBuffer[6];
+      uint8_t responseBuffer[3];
+      digitalOutBuffer[0] = EXIOWRD;
+      digitalOutBuffer[1] = (uint8_t) taskData[0];
+      digitalOutBuffer[2] = (uint8_t) taskData[3];
+      digitalOutBuffer[3] = value;
+      uint8_t status = I2CManager.read(_I2CAddress, responseBuffer, 1, digitalOutBuffer, 3);
+      if (status != I2C_STATUS_OK) {
+        reportError(status);
+      } else {
+        if (responseBuffer[0] != EXIORDY) {
+          DIAG(F("Vpin %u cannot be used as a digital output pin"), (int)vpin);
+        }
+      }
+  }
+} else {
+  // receive states
+
+}
 
   if (error == MODBUS_RTU_MASTER_WAITING) {
     if (_waitCounter > _waitA) { // retry after 10 cycles of waiting, or user setting waitA.
