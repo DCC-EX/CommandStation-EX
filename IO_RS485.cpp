@@ -154,7 +154,7 @@ if (taskCnt > 0) {
           }
         } while (micros() - startMicros <= 500 && len < 256);
         if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-          if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+          if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
           if (responseBuffer[0] == EXIORDY) {
           } else {
             DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), (int)taskData[3]);
@@ -197,7 +197,7 @@ if (taskCnt > 0) {
       } while (micros() - startMicros <= 500 && len < 256);
 
       if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (responseBuffer[0] != EXIORDY) {
           DIAG(F("EX-IOExpander485: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[3], (int) taskData[0]);
         }
@@ -236,7 +236,7 @@ if (taskCnt > 0) {
         }
       } while (micros() - startMicros <= 500 && len < 256);
       if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (responseBuffer[0] != EXIORDY) {
           DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital output pin"), (int)taskData[3]);
         }
@@ -287,7 +287,7 @@ if (taskCnt > 0) {
         flagOK = false;
         _deviceState = DEVSTATE_FAILED;
       } else {
-        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (responseBuffer[0] != EXIORDY) {
           DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a servo/PWM pin"), (int) taskData[3]);
         }
@@ -328,7 +328,7 @@ if (taskCnt > 0) {
           DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
           flagOK = false;
         }
-        if (!testAndStripMasterFlag(_currentNode->_digitalInputStates)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+        if (!testAndStripMasterFlag(_currentNode->_digitalInputStates)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (!waitReceive) _refreshOperation++;
         _lastDigitalRead = currentMicros;
         _readState = RDS_DIGITAL;
@@ -365,7 +365,7 @@ if (taskCnt > 0) {
           DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
           flagOK = false;
         }
-        if (!testAndStripMasterFlag(_currentNode->_digitalInputStates)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
+        if (!testAndStripMasterFlag(_currentNode->_digitalInputStates)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (!waitReceive) _refreshOperation = 0;
         _lastAnalogueRead = currentMicros;
         _readState = RDS_ANALOGUE;

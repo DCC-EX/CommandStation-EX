@@ -171,7 +171,7 @@ public:
       }
     } while (micros() - startMicros <= 500 && len < 256);
     if (receiveBuffer[1] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
+      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_nodeID);
       _numDigitalPins = receiveBuffer[1];
       _numAnaloguePins = receiveBuffer[2];
 
@@ -242,7 +242,7 @@ public:
       }
     } while (micros() - startMicros <= 500 && len < 256);
     if (bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
+      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_nodeID);
       for (int i = 0; i < _numAnaloguePins; i++) {
         _analoguePinMap[i] = receiveBuffer[i];
       }
@@ -269,7 +269,7 @@ public:
       }
     } while (micros() - startMicros <= 500 && len < 256);
     if (bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(versionBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
+      if (!bus->testAndStripMasterFlag(versionBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_nodeID);
       _majorVer = versionBuffer[0];
       _minorVer = versionBuffer[1];
       _patchVer = versionBuffer[2];
