@@ -37,7 +37,7 @@
  * 
  * firstVPIN = first vpin in block allocated to this device
  * numVPINs = number of vpins
- * nodeID = 0-255
+ * nodeID = 0-254
  */
 
 #ifndef IO_RS485_H
@@ -170,7 +170,8 @@ public:
         len++;
       }
     } while (micros() - startMicros <= 500 && len < 256);
-    if (receiveBuffer[0] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+    if (receiveBuffer[1] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
       _numDigitalPins = receiveBuffer[1];
       _numAnaloguePins = receiveBuffer[2];
 
@@ -241,6 +242,7 @@ public:
       }
     } while (micros() - startMicros <= 500 && len < 256);
     if (bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
       for (int i = 0; i < _numAnaloguePins; i++) {
         _analoguePinMap[i] = receiveBuffer[i];
       }
@@ -267,6 +269,7 @@ public:
       }
     } while (micros() - startMicros <= 500 && len < 256);
     if (bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
+      if (!bus->testAndStripMasterFlag(versionBuffer)) DIAG(F("Forgen RS485 Device! no master flag from node %d"),_nodeID);
       _majorVer = versionBuffer[0];
       _minorVer = versionBuffer[1];
       _patchVer = versionBuffer[2];
@@ -420,6 +423,11 @@ public:
   int8_t _txPin;
   int taskCnt = 0;
   HardwareSerial *_serialD;
+  bool testAndStripMasterFlag(uint8_t *buf) {
+    if (buf[0] != 0xFF) return false; // why did we not get a master flag? bad node?
+    for (int i = 0; i < sizeof(buf)-1; i++) buf[i] = buf[i+1]; // shift array to begining
+    return true;
+  }
   void addTask(int nodeID, int taskNum, int paramCnt, int *param[]) {
     taskCnt++;
     tasks[taskCnt][0] = nodeID;
