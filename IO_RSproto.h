@@ -59,7 +59,7 @@ private:
   char _type;
   RSprotonode *_next = NULL;
   bool _initialised = false;
-  RSproto* bus = NULL;
+  RSproto *bus = NULL;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
