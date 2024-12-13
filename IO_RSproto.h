@@ -45,6 +45,8 @@
 
 #include "IODevice.h"
 
+class RSproto;
+
 /**********************************************************************
  * RSprotonode class
  * 
@@ -59,7 +61,7 @@ private:
   char _type;
   RSprotonode *_next = NULL;
   bool _initialised = false;
-  RSproto *bus = NULL;
+  RSproto *bus;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -125,329 +127,23 @@ public:
     _initialised = true;
   }
   
-  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
-    if (paramCount != 1) return false;
-    int pin = vpin - _firstVpin;
-    
-    uint16_t pullup = params[0];
-      uint8_t outBuffer[6] = {EXIODPUP, _nodeID, pin, pullup};
-      uint8_t responseBuffer[3];
-      bus->_busy = true;
-      bus->updateCrc(outBuffer,4);
-      if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-      bus->_serialD->write(outBuffer, 6);
-      bus->_serialD->flush();
-      if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-      unsigned long startMillis = millis();
-      while (!bus->_serialD->available()) {
-        if (millis() - startMillis > 500) return false;
-      }
-      uint16_t len = 0;
-      unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
-      bus->_busy = false;
-      if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-        if (responseBuffer[0] == EXIORDY) {
-        } else {
-          DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
-        }
-      } else {
-        DIAG(F("EX-IOExpander485 node %d CRC Error"), _nodeID);
-      }
+  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
 
-  }
+  int _configureAnalogIn(VPIN vpin) override;
 
-  int _configureAnalogIn(VPIN vpin) override {
-    int pin = vpin - _firstVpin;
-    //RSproto *mainrs = RSproto::findBus(_busNo);
-    uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) _nodeID, (uint8_t) pin};
-    uint8_t responseBuffer[3];
-    bus->_busy = true;
-    bus->updateCrc(commandBuffer,3);
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 5);
-    bus->_serialD->flush();
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    unsigned long startMillis = millis();
-    while (!bus->_serialD->available()) {
-      if (millis() - startMillis > 500) return 0;
-    }
-    uint16_t len = 0;
-    unsigned long startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        responseBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    bus->_busy = false;
-    if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-      if (responseBuffer[0] != EXIORDY) {
-        DIAG(F("EX-IOExpander485: Vpin %u on node %d cannot be used as an analogue input pin"), (int) pin, (int) _nodeID);
-      }
-    } else {
-        DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) _nodeID);
-    }
-    return false;
-  }
-
-  void _begin() override {
-    if (bus->_txPin != VPIN_NONE) {
-      pinMode(bus->_txPin, OUTPUT);
-      ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    }
-    uint8_t receiveBuffer[5];
-    uint8_t commandBuffer[7] = {EXIOINIT, _nodeID, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
-    bus->updateCrc(commandBuffer,5);
-     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 7);
-    bus->_serialD->flush();
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    unsigned long startMillis = millis();
-    while (!bus->_serialD->available()) {
-      if (millis() - startMillis >= 500) return;
-    }
-    uint16_t len = 0;
-    unsigned long startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        receiveBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (receiveBuffer[1] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-      _numDigitalPins = receiveBuffer[1];
-      _numAnaloguePins = receiveBuffer[2];
-
-      // See if we already have suitable buffers assigned
-      if (_numDigitalPins>0) {
-        size_t digitalBytesNeeded = (_numDigitalPins + 7) / 8;
-        if (_digitalPinBytes < digitalBytesNeeded) {
-          // Not enough space, free any existing buffer and allocate a new one
-          if (_digitalPinBytes > 0) free(_digitalInputStates);
-          if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
-            _digitalPinBytes = digitalBytesNeeded;
-          } else {
-            DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), _nodeID, digitalBytesNeeded);
-            _deviceState = DEVSTATE_FAILED;
-            _digitalPinBytes = 0;
-            return;
-          }
-        }
-      }
-      
-      if (_numAnaloguePins>0) {
-        size_t analogueBytesNeeded = _numAnaloguePins * 2;
-        if (_analoguePinBytes < analogueBytesNeeded) {
-          // Free any existing buffers and allocate new ones.
-          if (_analoguePinBytes > 0) {
-            free(_analogueInputBuffer);
-            free(_analogueInputStates);
-            free(_analoguePinMap);
-          }
-          _analogueInputStates = (uint8_t*) calloc(analogueBytesNeeded, 1);
-          _analogueInputBuffer = (uint8_t*) calloc(analogueBytesNeeded, 1);
-          _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
-          if (_analogueInputStates  != NULL &&
-            _analogueInputBuffer != NULL &&
-            _analoguePinMap != NULL) {
-            _analoguePinBytes = analogueBytesNeeded;
-          } else {
-            DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), _nodeID);
-            _deviceState = DEVSTATE_FAILED;
-            _analoguePinBytes = 0;
-            return;
-          }
-        }
-      }
-    } else {
-      DIAG(F("EX-IOExpander485 node:%d ERROR configuring device (CRC: %s)"), _nodeID, bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)? "PASS":"FAIL");
-      _deviceState = DEVSTATE_FAILED;
-      return;
-    }
-    commandBuffer[0] = EXIOINITA;
-    commandBuffer[1] = _nodeID;
-    bus->updateCrc(commandBuffer,2);
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 4);
-    bus->_serialD->flush();
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    startMillis = millis();
-    while (!bus->_serialD->available()) {
-      if (millis() - startMillis >= 500) return;
-    }
-    len = 0;
-    startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        receiveBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-      for (int i = 0; i < _numAnaloguePins; i++) {
-        _analoguePinMap[i] = receiveBuffer[i];
-      }
-    }
-    uint8_t versionBuffer[5];
-    commandBuffer[0] = EXIOVER;
-    commandBuffer[1] = _nodeID;
-    bus->updateCrc(commandBuffer,2);
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 4);
-    bus->_serialD->flush();
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    startMillis = millis();
-    while (!bus->_serialD->available()) {
-      if (millis() - startMillis >= 500) return;
-    }
-    len = 0;
-    startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        versionBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
-      if (!bus->testAndStripMasterFlag(versionBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-      _majorVer = versionBuffer[0];
-      _minorVer = versionBuffer[1];
-      _patchVer = versionBuffer[2];
-      DIAG(F("EX-IOExpander485 device found, node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
-    }
-#ifdef DIAG_IO
-    _display();
-#endif
-    _initialised = false;
-  }
+  void _begin() override;
 
   
-  int _read(VPIN vpin) override {
-    if (_deviceState == DEVSTATE_FAILED) return 0;
-    int pin = vpin - _firstVpin;
-    uint8_t pinByte = pin / 8;
-    bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
-    return value;
-  }
+  int _read(VPIN vpin) override;
 
   
-  void _write(VPIN vpin, int value) override {
-    if (_deviceState == DEVSTATE_FAILED) return;
-    int pin = vpin - _firstVpin;
-    uint8_t digitalOutBuffer[6];
-      uint8_t responseBuffer[3];
-      digitalOutBuffer[0] = EXIOWRD;
-      digitalOutBuffer[1] = (uint8_t) _nodeID;
-      digitalOutBuffer[2] = (uint8_t) pin;
-      digitalOutBuffer[3] = (uint8_t) value;
-      bus->_busy = true;
-      bus->updateCrc(digitalOutBuffer,4);
-        if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-        bus->_serialD->write(digitalOutBuffer, 6);
-        bus->_serialD->flush();
-        if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-        unsigned long startMillis = millis();
-        while (!bus->_serialD->available()) {
-          if (millis() - startMillis >= 500) return;
-        }
-      uint16_t len = 0;
-      unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
-      bus->_busy = false;
-      if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-        if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-        if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital output pin"), pin);
-        }
-      } else {
-          DIAG(F("EX-IOExpander485 node %d CRC Error"), _nodeID);
-        }
-  }
+  void _write(VPIN vpin, int value) override;
 
-  bool testAndStripMasterFlag(uint8_t *buf) {
-    if (buf[0] != 0xFF) return false; // why did we not get a master flag? bad node?
-    for (int i = 0; i < sizeof(buf)-1; i++) buf[i] = buf[i+1]; // shift array to begining
-    return true;
-  }
+  bool testAndStripMasterFlag(uint8_t *buf);
 
-  int _readAnalogue(VPIN vpin) override {
-    if (_deviceState == DEVSTATE_FAILED) return 0;
-    int pin = vpin - _firstVpin;
-    for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
-      if (_analoguePinMap[aPin] == pin) {
-        uint8_t _pinLSBByte = aPin * 2;
-        uint8_t _pinMSBByte = _pinLSBByte + 1;
-        return (_analogueInputStates[_pinMSBByte] << 8) + _analogueInputStates[_pinLSBByte];
-      }
-    }
-    return -1;  // pin not found in table
-  }
+  int _readAnalogue(VPIN vpin) override;
   
-  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
-    uint8_t servoBuffer[7];
-    uint8_t responseBuffer[1];
-
-    if (_deviceState == DEVSTATE_FAILED) return;
-    int pin = vpin - _firstVpin;
-    servoBuffer[0] = EXIOWRAN;
-      servoBuffer[1] = (uint8_t) _nodeID;
-      servoBuffer[2] = (uint8_t) pin;
-      servoBuffer[3] = (uint8_t) value & 0xFF;
-      servoBuffer[4] = (uint8_t) value >> 8;
-      servoBuffer[5] = (uint8_t) profile;
-      servoBuffer[6] = (uint8_t) duration & 0xFF;
-      servoBuffer[7] = (uint8_t) duration >> 8;
-      bus->_busy = true;
-      bus->updateCrc(servoBuffer,8);
-        if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-        bus->_serialD->write(servoBuffer, 10);
-        bus->_serialD->flush();
-        if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-        unsigned long startMillis = millis();
-        while (!bus->_serialD->available()) {
-          if (millis() - startMillis >= 500) return;
-        }
-      uint16_t len = 0;
-      unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
-      bus->_busy = false;
-      if (!bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-        DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) _nodeID);
-        //_deviceState = DEVSTATE_FAILED;
-      } else {
-        if (!bus->testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-        if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a servo/PWM pin"), pin);
-        }
-      }
-  }
+  void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override;
 
   uint8_t getBusNumber() {
     return _busNo;
