@@ -285,7 +285,7 @@ if (taskCnt > 0) {
       if (!crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
         DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) taskData[0]);
         flagOK = false;
-        _deviceState = DEVSTATE_FAILED;
+        //_deviceState = DEVSTATE_FAILED;
       } else {
         if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RS485 Device! no master flag from node %d"),_currentNode->getNodeID());
         if (responseBuffer[0] != EXIORDY) {
@@ -372,7 +372,7 @@ if (taskCnt > 0) {
       }
       break;
   }
-  if(flagOK == true) _currentNode = _currentNode->getNext();
+  if(flagOK && !waitReceive) _currentNode = _currentNode->getNext();
 }
 
 #if defined(RS485_STM_OK)
