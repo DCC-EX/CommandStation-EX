@@ -21,111 +21,42 @@
 #include "IO_RS485.h"
 #include "defines.h"
 
-void RS485::setTransactionId(uint16_t transactionId) {
-  _setRegister(tcp, 0, transactionId);
+/************************************************************
+ * RS485 implementation
+ ************************************************************/
+
+// Constructor for RS485
+RS485::RS485(HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA) {
+  _baud = baud;
+  _serialD = &serial;
+  _txPin = txPin;
+  _busNo = 0;
+
+  _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
+  _waitA = waitA;
+  if (_waitA < 3) _waitA = 3;
+  // Add device to HAL device chain
+  IODevice::addDevice(this);
+  
+  // Add bus to RS485 chain.
+  _nextBus = _busList;
+  _busList = this;
 }
 
-void RS485::setProtocolId(uint16_t protocolId) {
-  _setRegister(tcp, 2, protocolId);
-}
-
-void RS485::setLength(uint16_t length) {
-  if (length < 3 || length > 254) _setRegister(tcp, 4, 0);
-  else _setRegister(tcp, 4, length);
-}
-
-void RS485::setUnitId(uint8_t unitId) {
-  tcp[6] = unitId;
-}
-
-void RS485::setFunctionCode(uint8_t functionCode) {
-  pdu[0] = functionCode;
-}
-
-void RS485::setDataRegister(uint8_t index, uint16_t value) {
-  _setRegister(data, index, value);
-}
-
-
-
-void RS485::setRtuLen(uint16_t rtuLen) {
-  setLength(rtuLen - 2);
-}
-
-void RS485::setTcpLen(uint16_t tcpLen) {
-  setLength(tcpLen - 6);
-}
-
-void RS485::setPduLen(uint16_t pduLen) {
-  setLength(pduLen + 1);
-}
-
-void RS485::setDataLen(uint16_t dataLen) {
-  setLength(dataLen + 2);
-}
-
-
-
-uint16_t RS485::getTransactionId() {
-  return _getRegister(tcp, 0);
-}
-
-uint16_t RS485::getProtocolId() {
-  return _getRegister(tcp, 2);
-}
-
-uint16_t RS485::getLength() {
-  uint16_t length = _getRegister(tcp, 4);
-  if (length < 3 || length > 254) return 0;
-  else return length;
-}
-
-uint8_t RS485::getUnitId() {
-  return tcp[6];
-}
-
-uint8_t RS485::getFunctionCode() {
-  return pdu[0];
-}
-
-uint16_t RS485::getDataRegister(uint8_t index) {
-  return _getRegister(data, index);
-}
-
-
-
-uint16_t RS485::getRtuLen() {
-  uint16_t len = getLength();
-  if (len == 0) return 0;
-  else return len + 2;
-}
-
-uint16_t RS485::getTcpLen() {
-  uint16_t len = getLength();
-  if (len == 0) return 0;
-  else return len + 6;
-}
-
-uint16_t RS485::getPduLen() {
-  uint16_t len = getLength();
-  if (len == 0) return 0;
-  else return len - 1;
-}
-
-uint16_t RS485::getDataLen() {
-  uint16_t len = getLength();
-  if (len == 0) return 0;
-  else return len - 2;
-}
-
-
-
+/* -= updateCrc =-
+//
+// add the CRC value from _calculateCrc (2 bytes) to the buffer.
+*/
 void RS485::updateCrc(uint8_t *buf, uint16_t len) {
   uint16_t crc = _calculateCrc(buf, len);
   buf[len] = lowByte(crc);
   buf[len + 1] = highByte(crc);
 }
 
+/* -= crcGood =-
+//
+// return TRUE if CRC matched between buffer copy, and calculated.
+*/
 bool RS485::crcGood(uint8_t *buf, uint16_t len) {
   uint16_t aduCrc = buf[len] | (buf[len + 1] << 8);
   uint16_t calculatedCrc = _calculateCrc(buf, len);
@@ -133,15 +64,10 @@ bool RS485::crcGood(uint8_t *buf, uint16_t len) {
   else return false;
 }
 
-void RS485::_setRegister(uint8_t *buf, uint16_t index, uint16_t value) {
-  buf[index] = highByte(value);
-  buf[index + 1] = lowByte(value);
-}
-
-uint16_t RS485::_getRegister(uint8_t *buf, uint16_t index) {
-  return (buf[index] << 8) | buf[index + 1];
-}
-
+/* -= calculateCrc =-
+//
+// use bitwise XOR to calculate CRC into a 16-bit byte
+*/
 uint16_t RS485::_calculateCrc(uint8_t *buf, uint16_t len) {
   uint16_t value = 0xFFFF;
   for (uint16_t i = 0; i < len; i++) {
@@ -155,12 +81,10 @@ uint16_t RS485::_calculateCrc(uint8_t *buf, uint16_t len) {
   return value;
 }
 
-
-
-uint16_t div8RndUp(uint16_t value) {
-  return (value + 7) >> 3;
-}
-
+/* -= clearRxBuffer =-
+//
+// BLOCKING method to empty stray data in RX buffer
+*/
 void RS485::clearRxBuffer() {
   unsigned long startMicros = micros();
   do {
@@ -171,34 +95,12 @@ void RS485::clearRxBuffer() {
   } while (micros() - startMicros < _frameTimeout);
 }
 
-
-/************************************************************
- * RS485 implementation
- ************************************************************/
-
-
-// Constructor for RS485
-RS485::RS485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB) {
-  _baud = baud;
-  _serialD = &serial;
-  _txPin = txPin;
-  _busNo = busNo;
-  _cycleTime = cycleTimeMS * 1000UL; // convert from milliseconds to microseconds.
-  _waitA = waitA;
-  _waitB = waitB;
-  if (_waitA < 3) _waitA = 3;
-  if (_waitB < 2) _waitB = 2;
-  // Add device to HAL device chain
-  IODevice::addDevice(this);
-  
-  // Add bus to RS485 chain.
-  _nextBus = _busList;
-  _busList = this;
-}
-
+/* -= _loop =-
+//
 // Main loop function for RS485.
 // Work through list of nodes.  For each node, in separate loop entries
 // When the slot time has finished, move on to the next device.
+*/
 void RS485::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
   
@@ -218,8 +120,7 @@ void RS485::_loop(unsigned long currentMicros) {
 
 if (taskCnt > 0) {
   // run through tasks
-  int* taskData[25];
-  getNextTask(taskData);
+  if (!waitReceive) getNextTask(taskData);
   switch((int) taskData[0]) {
     case 0:
       // protection for pulling empty task
@@ -229,10 +130,10 @@ if (taskCnt > 0) {
         uint8_t pullup = (uint8_t) taskData[6];
         uint8_t outBuffer[6] = {EXIODPUP, (uint8_t) taskData[0], (uint8_t)taskData[3], pullup};
         uint8_t responseBuffer[3];
-        updateCrc(outBuffer,sizeof(outBuffer)-2);
+        updateCrc(outBuffer,4);
         if (waitReceive == false) {
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-          _serialD->write(outBuffer, sizeof(outBuffer));
+          _serialD->write(outBuffer, 6);
           _serialD->flush();
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
         }
@@ -255,9 +156,12 @@ if (taskCnt > 0) {
         if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
           if (responseBuffer[0] == EXIORDY) {
           } else {
-            DIAG(F("EXIOMB Vpin %u cannot be used as a digital input pin"), (int)taskData[3]);
+            DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), (int)taskData[3]);
           }
-        } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+        } else {
+          DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) taskData[0]);
+          flagOK = false;
+        }
       } else if (taskData[3] == (int*) CONFIGURE_ANALOGINPUT) {
         // TODO:  Consider moving code from _configureAnalogIn() to here and remove _configureAnalogIn
         // from IODevice class definition.  Not urgent, but each virtual function defined
@@ -268,10 +172,10 @@ if (taskCnt > 0) {
     case 2: // configure analog in
       uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) taskData[0], (uint8_t) taskData[3]};
       uint8_t responseBuffer[3];
-      updateCrc(commandBuffer,sizeof(commandBuffer)-2);
+      updateCrc(commandBuffer,3);
       if (waitReceive == false) {
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-          _serialD->write(commandBuffer, sizeof(commandBuffer));
+          _serialD->write(commandBuffer, 5);
           _serialD->flush();
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
         }
@@ -293,9 +197,12 @@ if (taskCnt > 0) {
 
       if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
         if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("EX-IOExpanderMB: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[3], (int) taskData[0]);
+          DIAG(F("EX-IOExpander485: Vpin %u on node %d cannot be used as an analogue input pin"), (int) taskData[3], (int) taskData[0]);
         }
-      } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+      } else {
+          DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) taskData[0]);
+          flagOK = false;
+        }
       break;
     case 3: // write pin
       uint8_t digitalOutBuffer[6];
@@ -304,10 +211,10 @@ if (taskCnt > 0) {
       digitalOutBuffer[1] = (uint8_t) taskData[0];
       digitalOutBuffer[2] = (uint8_t) taskData[3];
       digitalOutBuffer[3] = (uint8_t) taskData[4];
-      updateCrc(digitalOutBuffer,sizeof(digitalOutBuffer)-2);
+      updateCrc(digitalOutBuffer,4);
       if (waitReceive == false) {
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-          _serialD->write(digitalOutBuffer, sizeof(digitalOutBuffer));
+          _serialD->write(digitalOutBuffer, 6);
           _serialD->flush();
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
         }
@@ -328,15 +235,18 @@ if (taskCnt > 0) {
       } while (micros() - startMicros <= 500 && len < 256);
       if (crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
         if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("Vpin %u cannot be used as a digital output pin"), (int)taskData[3]);
+          DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital output pin"), (int)taskData[3]);
         }
-      } else DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+      } else {
+          DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) taskData[0]);
+          flagOK = false;
+        }
       break;
     case 4:
       uint8_t servoBuffer[10];
       uint8_t responseBuffer[3];
 #ifdef DIAG_IO
-      DIAG(F("Servo: WriteAnalogue Vpin:%u Value:%d Profile:%d Duration:%d %S"), 
+      DIAG(F("EX-IOExpander485 Servo: WriteAnalogue Vpin:%u Value:%d Profile:%d Duration:%d %S"), 
         vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
 #endif
       servoBuffer[0] = EXIOWRAN;
@@ -347,10 +257,10 @@ if (taskCnt > 0) {
       servoBuffer[5] = (uint8_t) taskData[5];
       servoBuffer[6] = (uint8_t) taskData[6] & 0xFF;
       servoBuffer[7] = (uint8_t) taskData[6] >> 8;
-      updateCrc(servoBuffer,sizeof(servoBuffer)-2);
+      updateCrc(servoBuffer,8);
       if (waitReceive == false) {
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-          _serialD->write(servoBuffer, sizeof(servoBuffer));
+          _serialD->write(servoBuffer, 10);
           _serialD->flush();
           if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
         }
@@ -370,77 +280,93 @@ if (taskCnt > 0) {
         }
       } while (micros() - startMicros <= 500 && len < 256);
       if (!crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
-         DIAG(F("EXIOMB node %d CRC Error"), (int) taskData[0]);
+         DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) taskData[0]);
+         flagOK = false;
         _deviceState = DEVSTATE_FAILED;
       } else {
         if (responseBuffer[0] != EXIORDY) {
-          DIAG(F("Vpin %u cannot be used as a servo/PWM pin"), (int) taskData[3]);
+          DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a servo/PWM pin"), (int) taskData[3]);
         }
       }
   }
 } else {
   memcpy(_currentNode->_analogueInputStates, _currentNode->_analogueInputBuffer, _currentNode->_analoguePinBytes); // Copy I2C input buffer to states
-
-  if (_currentNode->_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
-  // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
-  // be allocated from heap (object state).
-  _currentNode->_readCommandBuffer[0] = EXIORDD;
-  updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
-  if (waitReceive == false) {
-      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-      _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
-      _serialD->flush();
-      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
-    }
-    unsigned long startMillis = millis();
-    if (!_serialD->available()) {
-      if (waitReceive == true && _waitCounter > _waitA) {
-        flagOK = false;
-      } else waitReceive = true;
-    }
-  uint16_t len = 0;
-  unsigned long startMicros = micros();
-  do {
-    if (_serialD->available()) {
-      startMicros = micros();
-      _currentNode->_digitalInputStates[len] = _serialD->read();
-      len++;
-    }
-  } while (micros() - startMicros <= 500 && len < (_currentNode->_numDigitalPins+7)/8);
-  if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) DIAG(F("MB CRC error on node %d"), _currentNode->getNodeID());
-  _lastDigitalRead = currentMicros;
-  _readState = RDS_DIGITAL;
-} else if (_currentNode->_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
-  // Issue new read for analogue input states
-  _currentNode->_readCommandBuffer[0] = EXIORDAN;
-  updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
-  if (waitReceive == false) {
-      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
-      _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
-      _serialD->flush();
-      if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
-    }
-    unsigned long startMillis = millis();
-    if (!_serialD->available()) {
-      if (waitReceive == true && _waitCounter > _waitA) {
-        flagOK = false;
-      } else waitReceive = true;
-    }
-  uint16_t len = 0;
-  unsigned long startMicros = micros();
-  do {
-    if (_serialD->available()) {
-      startMicros = micros();
-      _currentNode->_analogueInputBuffer[len] = _serialD->read();
-      len++;
-    }
-  } while (micros() - startMicros <= 500 && len < _currentNode->_numAnaloguePins * 2);
-  if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2))  DIAG(F("MB CRC error on node %d"), _currentNode->getNodeID());
-   
-  _lastAnalogueRead = currentMicros;
-  _readState = RDS_ANALOGUE;
-}
-  _currentNode = _currentNode->getNext();
+  switch (_refreshOperation) {
+    case 0:
+      if (_currentNode->_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
+        // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
+        // be allocated from heap (object state).
+        _currentNode->_readCommandBuffer[0] = EXIORDD;
+        _currentNode->_readCommandBuffer[1] = _currentNode->getNodeID();
+        updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
+        if (waitReceive == false) {
+            if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+            _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+            _serialD->flush();
+            if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+          }
+          unsigned long startMillis = millis();
+          if (!_serialD->available()) {
+            if (waitReceive == true && _waitCounter > _waitA) {
+              flagOK = false;
+            } else waitReceive = true;
+          }
+        uint16_t len = 0;
+        unsigned long startMicros = micros();
+        do {
+          if (_serialD->available()) {
+            startMicros = micros();
+            _currentNode->_digitalInputStates[len] = _serialD->read();
+            len++;
+          }
+        } while (micros() - startMicros <= 500 && len < (_currentNode->_numDigitalPins+7)/8);
+        if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) {
+          DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
+          flagOK = false;
+        }
+        if (!waitReceive) _refreshOperation++;
+        _lastDigitalRead = currentMicros;
+        _readState = RDS_DIGITAL;
+      }
+      break;
+    case 1:
+      if (_currentNode->_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
+        // Issue new read for analogue input states
+        _currentNode->_readCommandBuffer[0] = EXIORDAN;
+        _currentNode->_readCommandBuffer[1] = _currentNode->getNodeID();
+        updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
+        if (waitReceive == false) {
+            if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
+            _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+            _serialD->flush();
+            if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
+          }
+          unsigned long startMillis = millis();
+          if (!_serialD->available()) {
+            if (waitReceive == true && _waitCounter > _waitA) {
+              flagOK = false;
+            } else waitReceive = true;
+          }
+        uint16_t len = 0;
+        unsigned long startMicros = micros();
+        do {
+          if (_serialD->available()) {
+            startMicros = micros();
+            _currentNode->_analogueInputBuffer[len] = _serialD->read();
+            len++;
+          }
+        } while (micros() - startMicros <= 500 && len < _currentNode->_numAnaloguePins * 2);
+        if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) {
+          DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
+          flagOK = false;
+        }
+        if (!waitReceive) _refreshOperation = 0;
+        _lastAnalogueRead = currentMicros;
+        _readState = RDS_ANALOGUE;
+      }
+      break;
+  }
+  if(flagOK == true) _currentNode = _currentNode->getNext();
 }
 
 #if defined(RS485_STM_OK)
@@ -463,7 +389,7 @@ if (taskCnt > 0) {
   
 }
 
-// Link to chain of RS485 instances
+// Link to chain of RS485 instances, left over from RS485 template.
 RS485 *RS485::_busList = NULL;
 
 
@@ -471,11 +397,14 @@ RS485 *RS485::_busList = NULL;
  * RS485node implementation
  ************************************************************/
 
+/* -= RS485node =-
+//
 // Constructor for RS485node object
-RS485node::RS485node(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
+*/
+RS485node::RS485node(VPIN firstVpin, int nPins, uint8_t nodeID) {
   _firstVpin = firstVpin;
   _nPins = nPins;
-  _busNo = busNo;
+  _busNo = 0;
   _nodeID = nodeID;
   if (_nodeID > 255) _nodeID = 255;
 

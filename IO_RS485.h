@@ -22,32 +22,28 @@
  * RS485
  * =======
  * To define a RS485, example syntax:
- *    RS485::create(bus, serial, baud[, cycletime[, pin]]);
+ *    RS485::create(serial, baud[, cycletime[, pin]]);
  * 
- * bus = 0-255
  * serial = serial port to be used (e.g. Serial3)
  * baud = baud rate (9600, 19200, 28800, 57600 or 115200)
  * cycletime = minimum time between successive updates/reads of a node in millisecs (default 500ms)
  * pin = pin number connected to RS485 module's DE and !RE terminals for half-duplex operation (default VPIN_NONE)
- * 
- * Each bus must use a different serial port.
+ *
  * 
  * RS485Node
  * ========
- * To define a CMRI node and associate it with a CMRI bus,
- *    CMRInode::create(firstVPIN, numVPINs, bus, nodeID, type [, inputs, outputs]);
+ * To define a RS485 node and associate it with a RS485 bus,
+ *    RS485node::create(firstVPIN, numVPINs, nodeID);
  * 
  * firstVPIN = first vpin in block allocated to this device
- * numVPINs = number of vpins (e.g. 72 for an SMINI node)
- * bus = 0-255
- * nodeID = 0-127
+ * numVPINs = number of vpins
+ * nodeID = 0-255
  */
 
 #ifndef IO_RS485_H
 #define IO_RS485_H
 
 #include "IODevice.h"
-uint16_t  div8RndUp(uint16_t value);
 
 /**********************************************************************
  * RS485node class
@@ -101,16 +97,16 @@ public:
   uint8_t* _digitalInputStates  = NULL;
   uint8_t* _analogueInputStates = NULL;
   uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
-  uint8_t _readCommandBuffer[1];
+  uint8_t _readCommandBuffer[4];
 
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
 
-  static void create(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID) {
-    if (checkNoOverlap(firstVpin, nPins)) new RS485node(firstVpin, nPins, busNo, nodeID);
+  static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
+    if (checkNoOverlap(firstVpin, nPins)) new RS485node(firstVpin, nPins, nodeID);
   }
-  RS485node(VPIN firstVpin, int nPins, uint8_t busNo, uint8_t nodeID);
+  RS485node(VPIN firstVpin, int nPins, uint8_t nodeID);
 
   uint8_t getNodeID() {
     return _nodeID;
@@ -133,48 +129,48 @@ public:
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     int pin = vpin - _firstVpin;
-    RS485* mb = RS485::findBus(0);
+    RS485 *bus = RS485::findBus(_busNo);
     int* param[] = {(int*)pin, (int*)configType, (int*)paramCount, (int*)params[0]};
-    mb->addTask(_nodeID, 3, 4, param);
+    bus->addTask(_nodeID, 3, 4, param);
 
   }
 
   int _configureAnalogIn(VPIN vpin) override {
     int pin = vpin - _firstVpin;
-    RS485* mb = RS485::findBus(0);
+    RS485 *bus = RS485::findBus(_busNo);
     int* params[] = {(int*)pin};
-    mb->addTask(_nodeID, 3, 1, params);
+    bus->addTask(_nodeID, 3, 1, params);
 
     return false;
   }
 
   void _begin() override {
-    RS485* mb = RS485::findBus(0);
-    if (mb->_txPin != VPIN_NONE) {
-      pinMode(mb->_txPin, OUTPUT);
-      ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    RS485 *bus = RS485::findBus(_busNo);
+    if (bus->_txPin != VPIN_NONE) {
+      pinMode(bus->_txPin, OUTPUT);
+      ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     }
     uint8_t receiveBuffer[5];
     uint8_t commandBuffer[7] = {EXIOINIT, _nodeID, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
-     if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
-    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
-    mb->_serialD->flush();
-    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    bus->updateCrc(commandBuffer,5);
+     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
+    bus->_serialD->write(commandBuffer, 7);
+    bus->_serialD->flush();
+    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     unsigned long startMillis = millis();
-    while (!mb->_serialD->available()) {
+    while (!bus->_serialD->available()) {
       if (millis() - startMillis >= 500) return;
     }
     uint16_t len = 0;
     unsigned long startMicros = micros();
     do {
-      if (mb->_serialD->available()) {
+      if (bus->_serialD->available()) {
         startMicros = micros();
-        receiveBuffer[len] = mb->_serialD->read();
+        receiveBuffer[len] = bus->_serialD->read();
         len++;
       }
     } while (micros() - startMicros <= 500 && len < 256);
-    if (receiveBuffer[0] == EXIOPINS && mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+    if (receiveBuffer[0] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
       _numDigitalPins = receiveBuffer[1];
       _numAnaloguePins = receiveBuffer[2];
 
@@ -187,7 +183,7 @@ public:
           if ((_digitalInputStates = (byte*) calloc(digitalBytesNeeded, 1)) != NULL) {
             _digitalPinBytes = digitalBytesNeeded;
           } else {
-            DIAG(F("EX-IOExpanderMB node:%d ERROR alloc %d bytes"), _nodeID, digitalBytesNeeded);
+            DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), _nodeID, digitalBytesNeeded);
             _deviceState = DEVSTATE_FAILED;
             _digitalPinBytes = 0;
             return;
@@ -212,7 +208,7 @@ public:
             _analoguePinMap != NULL) {
             _analoguePinBytes = analogueBytesNeeded;
           } else {
-            DIAG(F("EX-IOExpanderMB node:%d ERROR alloc analog pin bytes"), _nodeID);
+            DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), _nodeID);
             _deviceState = DEVSTATE_FAILED;
             _analoguePinBytes = 0;
             return;
@@ -220,66 +216,62 @@ public:
         }
       }
     } else {
-      DIAG(F("EX-IOExpanderMB node:%d ERROR configuring device (CRC: %s)"), _nodeID, mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)? "PASS":"FAIL");
+      DIAG(F("EX-IOExpander485 node:%d ERROR configuring device (CRC: %s)"), _nodeID, bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)? "PASS":"FAIL");
       _deviceState = DEVSTATE_FAILED;
       return;
     }
     commandBuffer[0] = EXIOINITA;
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
-    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
-    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
-    mb->_serialD->flush();
-    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    commandBuffer[1] = _nodeID;
+    bus->updateCrc(commandBuffer,2);
+    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
+    bus->_serialD->write(commandBuffer, 4);
+    bus->_serialD->flush();
+    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     startMillis = millis();
-    while (!mb->_serialD->available()) {
+    while (!bus->_serialD->available()) {
       if (millis() - startMillis >= 500) return;
     }
     uint16_t len = 0;
     unsigned long startMicros = micros();
     do {
-      if (mb->_serialD->available()) {
+      if (bus->_serialD->available()) {
         startMicros = micros();
-        receiveBuffer[len] = mb->_serialD->read();
+        receiveBuffer[len] = bus->_serialD->read();
         len++;
       }
     } while (micros() - startMicros <= 500 && len < 256);
-    if (mb->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+    if (bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
       for (int i = 0; i < _numAnaloguePins; i++) {
         _analoguePinMap[i] = receiveBuffer[i];
       }
     }
     uint8_t versionBuffer[5];
     commandBuffer[0] = EXIOVER;
-    mb->updateCrc(commandBuffer,sizeof(commandBuffer)-2);
-    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, HIGH);
-    mb->_serialD->write(commandBuffer, sizeof(commandBuffer));
-    mb->_serialD->flush();
-    if (mb->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(mb->_txPin, LOW);
+    commandBuffer[1] = _nodeID;
+    bus->updateCrc(commandBuffer,2);
+    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
+    bus->_serialD->write(commandBuffer, 4);
+    bus->_serialD->flush();
+    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     startMillis = millis();
-    while (!mb->_serialD->available()) {
+    while (!bus->_serialD->available()) {
       if (millis() - startMillis >= 500) return;
     }
     uint16_t len = 0;
     unsigned long startMicros = micros();
     do {
-      if (mb->_serialD->available()) {
+      if (bus->_serialD->available()) {
         startMicros = micros();
-        versionBuffer[len] = mb->_serialD->read();
+        versionBuffer[len] = bus->_serialD->read();
         len++;
       }
     } while (micros() - startMicros <= 500 && len < 256);
-    if (mb->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
+    if (bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
       _majorVer = versionBuffer[0];
       _minorVer = versionBuffer[1];
       _patchVer = versionBuffer[2];
-      DIAG(F("EX-IOExpander device found, node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
+      DIAG(F("EX-IOExpander485 device found, node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
     }
-
-
-
-
-
-
 #ifdef DIAG_IO
     _display();
 #endif
@@ -299,9 +291,9 @@ public:
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    RS485* mb = RS485::findBus(0);
+    RS485 *bus = RS485::findBus(_busNo);
     int* params[] = {(int*)pin, (int*)value};
-    mb->addTask(_nodeID, 3, 2, params);
+    bus->addTask(_nodeID, 3, 2, params);
   }
 
   int _readAnalogue(VPIN vpin) override {
@@ -323,9 +315,9 @@ public:
 
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    RS485* mb = RS485::findBus(0);
+    RS485 *bus = RS485::findBus(_busNo);
     int* params[] = {(int*)pin, (int*)value, (int*)profile, (int*)duration};
-    mb->addTask(_nodeID, 3, 4, params);
+    bus->addTask(_nodeID, 3, 4, params);
   }
 
   uint8_t getBusNumber() {
@@ -333,7 +325,7 @@ public:
   }
  
   void _display() override {
-    DIAG(F("EX-IOExpander node:%d v%d.%d.%d Vpins %u-%u %S"), _nodeID, _majorVer, _minorVer, _patchVer, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
+    DIAG(F("EX-IOExpander485 node:%d v%d.%d.%d Vpins %u-%u %S"), _nodeID, _majorVer, _minorVer, _patchVer, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
   
 
@@ -351,19 +343,7 @@ class RS485 : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
-  uint8_t _adu[262];
-  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
-  uint16_t _getRegister(uint8_t *buf, uint16_t index);
-  void _setRegister(uint8_t *buf, uint16_t index, uint16_t value);
   unsigned long _baud;
-  
-  RS485node *_nodeListStart = NULL, *_nodeListEnd = NULL;
-  RS485node *_currentNode = NULL;
-  uint8_t _exceptionResponse = 0;
-  uint8_t getExceptionResponse();
-  uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
-  RS485 *_nextBus = NULL;  // Pointer to next bus instance in list.
-  void setTimeout(unsigned long timeout);
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
@@ -372,21 +352,14 @@ private:
   unsigned long _postDelay; // delay time after transmission before switching off transmitter (in us)
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
   int _operationCount = 0;
+  int _refreshOperation = 0;
 
   static RS485 *_busList; // linked list of defined bus instances
   bool waitReceive = false;
   int _waitCounter = 0;
   int _waitCounterB = 0;
   int _waitA;
-  int _waitB;
-// Helper function for error handling
-  void reportError(uint8_t status, bool fail=true) {
-    DIAG(F("EX-IOExpanderMB Node:%d Error"), _currentNode->getNodeID());
-    if (fail)
-    _deviceState = DEVSTATE_FAILED;
-  }
-
-  
+  int* taskData[25];
   unsigned long _charTimeout;
   unsigned long _frameTimeout;
   enum {RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE};  // Read operation states
@@ -396,7 +369,7 @@ private:
   unsigned long _lastAnalogueRead = 0;
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
   const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
-
+  int tasks[255][25];
 
   // EX-IOExpander protocol flags
   enum {
@@ -413,8 +386,23 @@ private:
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  int tasks[255][25];
+  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
   
+  RS485node *_nodeListStart = NULL, *_nodeListEnd = NULL;
+  RS485node *_currentNode = NULL;
+  uint8_t _exceptionResponse = 0;
+  uint8_t getExceptionResponse();
+  uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
+  RS485 *_nextBus = NULL;  // Pointer to next bus instance in list.
+  void setTimeout(unsigned long timeout);
+  
+// Helper function for error handling
+  void reportError(uint8_t status, bool fail=true) {
+    DIAG(F("EX-IOExpander485 Node:%d Error"), _currentNode->getNodeID());
+    if (fail)
+    _deviceState = DEVSTATE_FAILED;
+  }
+
   void _moveTasks() {
     // used one in lead, so move forward
     for (int i = 0; i < taskCnt-1; i++) {
@@ -425,7 +413,13 @@ private:
     taskCnt--;
   }
 public:
+  int _CommMode = 0;
+  int _opperation = 0;
+  uint16_t _pullup;
+  uint16_t _pin;
+  int8_t _txPin;
   int taskCnt = 0;
+  HardwareSerial *_serialD;
   void addTask(int nodeID, int taskNum, int paramCnt, int *param[]) {
     taskCnt++;
     tasks[taskCnt][0] = nodeID;
@@ -471,42 +465,14 @@ public:
     _moveTasks();
   }
 
-  int8_t _txPin;
-  uint8_t *rtu = _adu + 6;
-  uint8_t *tcp = _adu;
-  uint8_t *pdu = _adu + 7;
-  uint8_t *data = _adu + 8;
+  
   void updateCrc(uint8_t *buf, uint16_t len);
   bool crcGood(uint8_t *buf, uint16_t len);
-  uint16_t getLength();
-  void setTransactionId(uint16_t transactionId);
-  void setProtocolId(uint16_t protocolId);
-  void setLength(uint16_t length);
-  void setUnitId(uint8_t unitId);
-  void setFunctionCode(uint8_t functionCode);
-  void setDataRegister(uint8_t index, uint16_t value);
-
-  void setRtuLen(uint16_t rtuLen);
-  void setTcpLen(uint16_t tcpLen);
-  void setPduLen(uint16_t pduLen);
-  void setDataLen(uint16_t dataLen);
-
-  uint16_t getTransactionId();
-  uint16_t getProtocolId();
-  
-  uint8_t getUnitId();
-  uint8_t getFunctionCode();
-  uint16_t getDataRegister(uint8_t index);
-
-  uint16_t getRtuLen();
-  uint16_t getTcpLen();
-  uint16_t getPduLen();
-  uint16_t getDataLen();
   void clearRxBuffer();
-  static void create(uint8_t busNo, HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10, int waitB=10) {
-    new RS485(busNo, serial, baud, cycleTimeMS, txPin, waitA, waitB);
+  static void create(HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10) {
+    new RS485(serial, baud, cycleTimeMS, txPin, waitA);
   }
-  HardwareSerial *_serialD;
+  
   // Device-specific initialisation
   void _begin() override {
     _serialD->begin(_baud, SERIAL_8N1);
@@ -537,17 +503,14 @@ public:
     _display();
   #endif
   }
-  int _CommMode = 0;
-  int _opperation = 0;
-  uint16_t _pullup;
-  uint16_t _pin;
+
 
   // Loop function (overriding IODevice::_loop(unsigned long))
   void _loop(unsigned long currentMicros) override;
 
   // Display information about the device
   void _display() override {
-    DIAG(F("RS485 Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
+    DIAG(F("EX-IOExpander485 Configured on Vpins:%d-%d %S"), _firstVpin, _firstVpin+_nPins-1,
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F("OK"));
   }
 
@@ -573,7 +536,7 @@ public:
   }
 
 protected:
-  RS485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA, int waitB);
+  RS485(HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA);
 
 public:
   
