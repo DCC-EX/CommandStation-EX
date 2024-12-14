@@ -62,6 +62,7 @@ private:
   RSprotonode *_next = NULL;
   bool _initialised = false;
   RSproto *bus;
+  HardwareSerial* _serial;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -104,7 +105,8 @@ public:
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
-
+  uint8_t initBuffer[1] = {0xFE};
+  bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new RSprotonode(firstVpin, nPins, nodeID);
   }
@@ -168,7 +170,7 @@ class RSproto : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
-  unsigned long _baud;
+  
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
@@ -233,11 +235,12 @@ public:
   uint16_t _pin;
   int8_t _txPin;
   bool _busy = false;
-
+  unsigned long _baud;
   int taskCnt = 0;
   HardwareSerial *_serialD;
+  uint8_t initBuffer[1] = {0xFE};
   bool testAndStripMasterFlag(uint8_t *buf) {
-    if (buf[0] != 0xFF) return false; // why did we not get a master flag? bad node?
+    if (buf[0] != 0xFD) return false; // why did we not get a master flag? bad node?
     for (int i = 0; i < sizeof(buf)-1; i++) buf[i] = buf[i+1]; // shift array to begining
     return true;
   }
@@ -252,17 +255,9 @@ public:
   
   // Device-specific initialisation
   void _begin() override {
+
     _serialD->begin(_baud, SERIAL_8N1);
-    unsigned long bitsPerChar = 10;
-    if (_baud <= 19200) {
-      _charTimeout = (bitsPerChar * 2500000) / _baud;
-      _frameTimeout = (bitsPerChar * 4500000) / _baud;
-    }
-    else {
-      _charTimeout = (bitsPerChar * 1000000) / _baud + 750;
-      _frameTimeout = (bitsPerChar * 1000000) / _baud + 1750;
-    }
-    clearRxBuffer();
+    _serialD->flush();
   #if defined(RSproto_STM_OK)
     pinMode(RSproto_STM_OK, OUTPUT);
     ArduinoPins::fastWriteDigital(RSproto_STM_OK,LOW);
@@ -300,7 +295,14 @@ public:
     return NULL;
   }
 
-  
+  bool nodesInitialized() {
+    bool retval = true;
+    for (RSprotonode *node = _nodeListStart; node != NULL; node = node->getNext()) {
+      if (node->_initalized == false) 
+        retval = false;
+    }
+    return retval;
+  }
   // Add new RSprotonode to the list of nodes for this bus.
   void addNode(RSprotonode *newNode) {
     if (!_nodeListStart)

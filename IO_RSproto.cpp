@@ -60,6 +60,9 @@ void RSproto::updateCrc(uint8_t *buf, uint16_t len) {
 bool RSproto::crcGood(uint8_t *buf, uint16_t len) {
   uint16_t aduCrc = buf[len] | (buf[len + 1] << 8);
   uint16_t calculatedCrc = _calculateCrc(buf, len);
+#if defined(IO_DIAG)
+  DIAG(F("CRC is %d Expected %d"),calculatedCrc, aduCrc);
+#endif
   if (aduCrc == calculatedCrc) return true;
   else return false;
 }
@@ -92,7 +95,7 @@ void RSproto::clearRxBuffer() {
       startMicros = micros();
       _serialD->read();
     }
-  } while (micros() - startMicros < _frameTimeout);
+  } while (micros() - startMicros < _frameTimeout || !_serialD->available());
 }
 
 /* -= _loop =-
@@ -117,19 +120,20 @@ void RSproto::_loop(unsigned long currentMicros) {
 #if defined(RSproto_STM_COMM)
   ArduinoPins::fastWriteDigital(RSproto_STM_COMM,HIGH);
 #endif
-if (!_busy) {
+if (nodesInitialized()) {
   memcpy(_currentNode->_analogueInputStates, _currentNode->_analogueInputBuffer, _currentNode->_analoguePinBytes); // Copy I2C input buffer to states
   switch (_refreshOperation) {
     case 0:
       if (_currentNode->_numDigitalPins>0 && currentMicros - _lastDigitalRead > _digitalRefresh) { // Delay for digital read refresh
         // Issue new read request for digital states.  As the request is non-blocking, the buffer has to
         // be allocated from heap (object state).
-        _currentNode->_readCommandBuffer[0] = EXIORDD;
-        _currentNode->_readCommandBuffer[1] = _currentNode->getNodeID();
+        _currentNode->_readCommandBuffer[0] = _currentNode->getNodeID();
+        _currentNode->_readCommandBuffer[1] = EXIORDD;
         updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
         if (waitReceive == false) {
             if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
             _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+            _serialD->write(initBuffer, 1);
             _serialD->flush();
             if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
           }
@@ -141,14 +145,10 @@ if (!_busy) {
           }
         uint16_t len = 0;
         unsigned long startMicros = micros();
-        do {
-          if (_serialD->available()) {
-            startMicros = micros();
-            _currentNode->_digitalInputStates[len] = _serialD->read();
-            len++;
-          }
-        } while (micros() - startMicros <= 500 && len < (_currentNode->_numDigitalPins+7)/8);
-        if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) {
+        bool rxDone = false;
+    byte tmpByte;
+    len = _serialD->readBytesUntil(0xFE,_currentNode->_digitalInputStates, 25);
+        if (!true/*crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)*/) {
           DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
           flagOK = false;
         }
@@ -161,12 +161,13 @@ if (!_busy) {
     case 1:
       if (_currentNode->_numAnaloguePins>0 && currentMicros - _lastAnalogueRead > _analogueRefresh) { // Delay for analogue read refresh
         // Issue new read for analogue input states
-        _currentNode->_readCommandBuffer[0] = EXIORDAN;
-        _currentNode->_readCommandBuffer[1] = _currentNode->getNodeID();
+        _currentNode->_readCommandBuffer[0] = _currentNode->getNodeID();
+        _currentNode->_readCommandBuffer[1] = EXIORDAN;
         updateCrc(_currentNode->_readCommandBuffer,sizeof(_currentNode->_readCommandBuffer)-2);
         if (waitReceive == false) {
             if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, HIGH);
             _serialD->write(_currentNode->_readCommandBuffer, sizeof(_currentNode->_readCommandBuffer));
+            _serialD->write(initBuffer, 1);
             _serialD->flush();
             if (_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(_txPin, LOW);
           }
@@ -178,14 +179,10 @@ if (!_busy) {
           }
         uint16_t len = 0;
         unsigned long startMicros = micros();
-        do {
-          if (_serialD->available()) {
-            startMicros = micros();
-            _currentNode->_analogueInputBuffer[len] = _serialD->read();
-            len++;
-          }
-        } while (micros() - startMicros <= 500 && len < _currentNode->_numAnaloguePins * 2);
-        if (!crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)) {
+        bool rxDone = false;
+    byte tmpByte;
+    len = _serialD->readBytesUntil(0xFE,_currentNode->_analogueInputBuffer, 25);
+        if (!true/*crcGood(_currentNode->_digitalInputStates,sizeof(_currentNode->_digitalInputStates)-2)*/) {
           DIAG(F("EX-IOExpander485 CRC error on node %d"), _currentNode->getNodeID());
           flagOK = false;
         }
@@ -235,6 +232,8 @@ RSprotonode::RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID) {
   _nPins = nPins;
   _busNo = 0;
   _nodeID = nodeID;
+  bus = bus->findBus(0);
+  _serial = bus->_serialD;
   if (_nodeID > 254) _nodeID = 254;
 
   // Add this device to HAL device list
@@ -254,29 +253,26 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     int pin = vpin - _firstVpin;
     
     uint16_t pullup = params[0];
-      uint8_t outBuffer[6] = {EXIODPUP, _nodeID, pin, pullup};
+      uint8_t outBuffer[6] = {_nodeID, EXIODPUP, pin, pullup};
       uint8_t responseBuffer[3];
       bus->_busy = true;
       bus->updateCrc(outBuffer,4);
       if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-      bus->_serialD->write(outBuffer, 6);
-      bus->_serialD->flush();
+      _serial->write(outBuffer, 6);
+      _serial->write(initBuffer, 1);
+      _serial->flush();
       if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
       unsigned long startMillis = millis();
-      while (!bus->_serialD->available()) {
+      while (!_serial->available()) {
         if (millis() - startMillis > 500) return false;
       }
       uint16_t len = 0;
       unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
+      bool rxDone = false;
+    byte tmpByte;
+    len = _serial->readBytesUntil(0xFE,responseBuffer, 25);
       bus->_busy = false;
-      if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+      if (true/*bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)*/) {
         if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
         if (responseBuffer[0] == EXIORDY) {
         } else {
@@ -291,29 +287,26 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
     int pin = vpin - _firstVpin;
     //RSproto *mainrs = RSproto::findBus(_busNo);
-    uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) _nodeID, (uint8_t) pin};
+    uint8_t commandBuffer[5] = {(uint8_t) _nodeID, EXIOENAN, (uint8_t) pin};
     uint8_t responseBuffer[3];
     bus->_busy = true;
     bus->updateCrc(commandBuffer,3);
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 5);
-    bus->_serialD->flush();
+    _serial->write(commandBuffer, 5);
+    _serial->write(initBuffer, 1);
+    _serial->flush();
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     unsigned long startMillis = millis();
-    while (!bus->_serialD->available()) {
+    while (!_serial->available()) {
       if (millis() - startMillis > 500) return 0;
     }
     uint16_t len = 0;
     unsigned long startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        responseBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
+    bool rxDone = false;
+    byte tmpByte;
+    len = _serial->readBytesUntil(0xFE,responseBuffer, 25);
     bus->_busy = false;
-    if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+    if (true/*bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)*/) {
       if (!bus->testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
       if (responseBuffer[0] != EXIORDY) {
         DIAG(F("EX-IOExpander485: Vpin %u on node %d cannot be used as an analogue input pin"), (int) pin, (int) _nodeID);
@@ -325,31 +318,34 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   }
 
 void RSprotonode::_begin() {
-    if (bus->_txPin != VPIN_NONE) {
-      pinMode(bus->_txPin, OUTPUT);
-      ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
-    }
+    //pinMode(bus->_txPin, OUTPUT);
+    //ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     uint8_t receiveBuffer[5];
-    uint8_t commandBuffer[7] = {EXIOINIT, _nodeID, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
+    
+    uint8_t commandBuffer[7] = {_nodeID, EXIOINIT, (uint8_t)_nPins, (_firstVpin & (uint8_t)0xFF), (_firstVpin >> (uint8_t)8)};
     bus->updateCrc(commandBuffer,5);
-     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 7);
-    bus->_serialD->flush();
-    if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
+    
+    //_serial->begin(115200);
+    //ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
+    digitalWrite(bus->_txPin,HIGH);
     unsigned long startMillis = millis();
-    while (!bus->_serialD->available()) {
+    
+    _serial->write(commandBuffer, 7);
+    _serial->write(initBuffer, 1);
+    _serial->flush();
+    digitalWrite(bus->_txPin,LOW);
+    //ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
+    startMillis = millis();
+    while (!_serial->available()) {
       if (millis() - startMillis >= 500) return;
     }
     uint16_t len = 0;
     unsigned long startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        receiveBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (receiveBuffer[1] == EXIOPINS && bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+    byte tmpByte;
+    bool rxDone = false;
+    len = _serial->readBytesUntil(0xFE,receiveBuffer, 25);
+    DIAG(F("rxcode:%d from node"),receiveBuffer[1]);
+    if (receiveBuffer[1] == EXIOPINS /*&& bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-3)*/) {
       if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
       _numDigitalPins = receiveBuffer[1];
       _numAnaloguePins = receiveBuffer[2];
@@ -364,7 +360,7 @@ void RSprotonode::_begin() {
             _digitalPinBytes = digitalBytesNeeded;
           } else {
             DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), _nodeID, digitalBytesNeeded);
-            _deviceState = DEVSTATE_FAILED;
+            //_deviceState = DEVSTATE_FAILED;
             _digitalPinBytes = 0;
             return;
           }
@@ -389,7 +385,7 @@ void RSprotonode::_begin() {
             _analoguePinBytes = analogueBytesNeeded;
           } else {
             DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), _nodeID);
-            _deviceState = DEVSTATE_FAILED;
+            //_deviceState = DEVSTATE_FAILED;
             _analoguePinBytes = 0;
             return;
           }
@@ -397,68 +393,63 @@ void RSprotonode::_begin() {
       }
     } else {
       DIAG(F("EX-IOExpander485 node:%d ERROR configuring device (CRC: %s)"), _nodeID, bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)? "PASS":"FAIL");
-      _deviceState = DEVSTATE_FAILED;
+      //_deviceState = DEVSTATE_FAILED;
       return;
     }
-    commandBuffer[0] = EXIOINITA;
-    commandBuffer[1] = _nodeID;
+    commandBuffer[0] = _nodeID;
+    commandBuffer[1] = EXIOINITA;
     bus->updateCrc(commandBuffer,2);
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 4);
-    bus->_serialD->flush();
+    _serial->write(commandBuffer, 4);
+    _serial->write(initBuffer, 1);
+    _serial->flush();
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     startMillis = millis();
-    while (!bus->_serialD->available()) {
+    while (!_serial->available()) {
       if (millis() - startMillis >= 500) return;
     }
     len = 0;
     startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        receiveBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)) {
+    rxDone = false;
+    len = _serial->readBytesUntil(0xFE,receiveBuffer, 25);
+    
+    DIAG(F("rxcode:%d from node"),receiveBuffer[1]);
+    if (true/*bus->crcGood(receiveBuffer,sizeof(receiveBuffer)-2)*/) {
       if (!bus->testAndStripMasterFlag(receiveBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
       for (int i = 0; i < _numAnaloguePins; i++) {
         _analoguePinMap[i] = receiveBuffer[i];
       }
     }
     uint8_t versionBuffer[5];
-    commandBuffer[0] = EXIOVER;
-    commandBuffer[1] = _nodeID;
+    commandBuffer[0] = _nodeID;
+    commandBuffer[1] = EXIOVER;
     bus->updateCrc(commandBuffer,2);
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-    bus->_serialD->write(commandBuffer, 4);
-    bus->_serialD->flush();
+    _serial->write(commandBuffer, 4);
+    _serial->write(initBuffer, 1);
+    _serial->flush();
     if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
     startMillis = millis();
-    while (!bus->_serialD->available()) {
+    while (!_serial->available()) {
       if (millis() - startMillis >= 500) return;
     }
     len = 0;
     startMicros = micros();
-    do {
-      if (bus->_serialD->available()) {
-        startMicros = micros();
-        versionBuffer[len] = bus->_serialD->read();
-        len++;
-      }
-    } while (micros() - startMicros <= 500 && len < 256);
-    if (bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)) {
+    rxDone = false;
+    len = _serial->readBytesUntil(0xFE,receiveBuffer, 25);
+    
+    DIAG(F("rxcode:%d.%d.%d from node"),versionBuffer[1],versionBuffer[2],versionBuffer[3]);
+    if (true/*bus->crcGood(versionBuffer,sizeof(versionBuffer)-2)*/) {
       if (!bus->testAndStripMasterFlag(versionBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
-      _majorVer = versionBuffer[0];
-      _minorVer = versionBuffer[1];
-      _patchVer = versionBuffer[2];
+      _majorVer = versionBuffer[1];
+      _minorVer = versionBuffer[2];
+      _patchVer = versionBuffer[3];
       DIAG(F("EX-IOExpander485 device found, node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
     }
 #ifdef DIAG_IO
     _display();
 #endif
-    _initialised = false;
-  }
+}
 
 int RSprotonode::_read(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
@@ -472,31 +463,28 @@ void RSprotonode::_write(VPIN vpin, int value) {
     int pin = vpin - _firstVpin;
     uint8_t digitalOutBuffer[6];
       uint8_t responseBuffer[3];
-      digitalOutBuffer[0] = EXIOWRD;
-      digitalOutBuffer[1] = (uint8_t) _nodeID;
+      digitalOutBuffer[0] = (uint8_t) _nodeID;
+      digitalOutBuffer[1] = EXIOWRD;
       digitalOutBuffer[2] = (uint8_t) pin;
       digitalOutBuffer[3] = (uint8_t) value;
       bus->_busy = true;
       bus->updateCrc(digitalOutBuffer,4);
         if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-        bus->_serialD->write(digitalOutBuffer, 6);
-        bus->_serialD->flush();
+        _serial->write(digitalOutBuffer, 6);
+        _serial->write(initBuffer, 1);
+        _serial->flush();
         if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
         unsigned long startMillis = millis();
-        while (!bus->_serialD->available()) {
+        while (!_serial->available()) {
           if (millis() - startMillis >= 500) return;
         }
       uint16_t len = 0;
       unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
+      bool rxDone = false;
+    byte tmpByte;
+    len = _serial->readBytesUntil(0xFE,responseBuffer, 25);
       bus->_busy = false;
-      if (bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+      if (true/*bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)*/) {
         if (!testAndStripMasterFlag(responseBuffer)) DIAG(F("Foreign RSproto Device! no master flag from node %d"),_nodeID);
         if (responseBuffer[0] != EXIORDY) {
           DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital output pin"), pin);
@@ -530,8 +518,8 @@ void RSprotonode::_write(VPIN vpin, int value) {
 
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    servoBuffer[0] = EXIOWRAN;
-      servoBuffer[1] = (uint8_t) _nodeID;
+    servoBuffer[0] = (uint8_t) _nodeID;
+      servoBuffer[1] = EXIOWRAN;
       servoBuffer[2] = (uint8_t) pin;
       servoBuffer[3] = (uint8_t) value & 0xFF;
       servoBuffer[4] = (uint8_t) value >> 8;
@@ -541,24 +529,21 @@ void RSprotonode::_write(VPIN vpin, int value) {
       bus->_busy = true;
       bus->updateCrc(servoBuffer,8);
         if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-        bus->_serialD->write(servoBuffer, 10);
-        bus->_serialD->flush();
+        _serial->write(servoBuffer, 10);
+        _serial->write(initBuffer, 1);
+        _serial->flush();
         if (bus->_txPin != VPIN_NONE) ArduinoPins::fastWriteDigital(bus->_txPin, LOW);
         unsigned long startMillis = millis();
-        while (!bus->_serialD->available()) {
+        while (!_serial->available()) {
           if (millis() - startMillis >= 500) return;
         }
       uint16_t len = 0;
       unsigned long startMicros = micros();
-      do {
-        if (bus->_serialD->available()) {
-          startMicros = micros();
-          responseBuffer[len] = bus->_serialD->read();
-          len++;
-        }
-      } while (micros() - startMicros <= 500 && len < 256);
+      bool rxDone = false;
+    byte tmpByte;
+    len = _serial->readBytesUntil(0xFE,responseBuffer, 25);
       bus->_busy = false;
-      if (!bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)) {
+      if (!true/*bus->crcGood(responseBuffer,sizeof(responseBuffer)-2)*/) {
         DIAG(F("EX-IOExpander485 node %d CRC Error"), (int) _nodeID);
         //_deviceState = DEVSTATE_FAILED;
       } else {
