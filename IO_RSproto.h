@@ -57,7 +57,7 @@ class RSprotonode;
 class taskBuffer
 {
 private:
-static taskBuffer * first;
+static taskBuffer *first;
   RSprotonode *node;
   Stream * serial;
   uint8_t _txPin;
@@ -65,7 +65,7 @@ static taskBuffer * first;
   uint8_t _commandType;
   byte bufferLength;
   byte buffer[COMMAND_BUFFER_SIZE]; 
-  taskBuffer * next;
+  taskBuffer *next;
   uint8_t endChar[1] = {0xFE};
   byte inCommandPayload;
   // EX-IOExpander protocol flags
@@ -99,7 +99,7 @@ public:
   void updateCrc(uint8_t *crcBuf, uint8_t *buf, uint16_t len);
   bool crcGood(uint8_t *buf, uint16_t len);
   static void doCommand(uint8_t *commandBuffer=NULL, int commandSize=0);
-  static void init(unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1);
+  static void init(unsigned long baud, int8_t txPin=-1);
   static void loop();
 };
 
@@ -140,8 +140,9 @@ private:
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  static RSprotonode *_nodeList;
+  
 public:
+  static RSprotonode *_nodeList;
   enum ProfileType : int {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
     UseDuration = 0, // Use specified duration
@@ -182,13 +183,7 @@ public:
   RSprotonode *getNext() {
     return _next;
   }
-  static RSprotonode *findNode(uint8_t nodeID) {
-    for (RSprotonode *node = _nodeList; node != NULL; node = node->getNext()) {
-      if (node->getNodeID() == nodeID) 
-        return node;
-    }
-    return NULL;
-  }
+ 
   void setNext(RSprotonode *node) {
     _next = node;
   }
@@ -285,6 +280,10 @@ private:
   }
 
 public:
+  static void create(unsigned long baud, int8_t txPin=-1) {
+    new RSproto(baud, txPin);
+  }
+
   int _CommMode = 0;
   int _opperation = 0;
   uint16_t _pullup;
@@ -294,19 +293,7 @@ public:
   unsigned long _baud;
   int taskCnt = 0;
   uint8_t initBuffer[1] = {0xFE};
-  bool testAndStripMasterFlag(uint8_t *buf) {
-    if (buf[0] != 0xFD) return false; // why did we not get a master flag? bad node?
-    for (int i = 0; i < sizeof(buf)-1; i++) buf[i] = buf[i+1]; // shift array to begining
-    return true;
-  }
 
-  
-  
-  void clearRxBuffer();
-  static void create(unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10) {
-    new RSproto(baud, cycleTimeMS, txPin, waitA);
-  }
-  
   // Device-specific initialisation
   void _begin() override {
 
@@ -367,7 +354,7 @@ public:
   }
 
 protected:
-  RSproto(unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA);
+  RSproto(unsigned long baud, int8_t txPin);
 
 public:
   
