@@ -88,7 +88,6 @@ static taskBuffer *first;
     STARTBYTE = 0xFD,
     ENDBYTE = 0xFE,
   };
-  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
   void doCommand2(uint8_t *commandBuffer=NULL, int commandSize=0);
   void loop2();
   void parseRx(uint8_t *buf);
@@ -96,8 +95,6 @@ static taskBuffer *first;
 public:
   taskBuffer(Stream * myserial);
   ~taskBuffer();
-  void updateCrc(uint8_t *crcBuf, uint8_t *buf, uint16_t len);
-  bool crcGood(uint8_t *buf, uint16_t len);
   static void doCommand(uint8_t *commandBuffer=NULL, int commandSize=0);
   static void init(unsigned long baud, int8_t txPin=-1);
   static void loop();
@@ -155,21 +152,17 @@ public:
 
   uint8_t _numDigitalPins = 0;
   uint8_t _numAnaloguePins = 0;
-
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
   uint8_t _patchVer = 0;
-
   uint8_t* _digitalInputStates  = NULL;
   uint8_t* _analogueInputStates = NULL;
   uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
   uint8_t _readCommandBuffer[4];
-
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
   int  resFlag = 0;
-
   bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new RSprotonode(firstVpin, nPins, nodeID);
@@ -195,21 +188,11 @@ public:
   }
   
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override;
-
   int _configureAnalogIn(VPIN vpin) override;
-
   void _begin() override;
-
-  
   int _read(VPIN vpin) override;
-
-  
   void _write(VPIN vpin, int value) override;
-
-  bool testAndStripMasterFlag(uint8_t *buf);
-
   int _readAnalogue(VPIN vpin) override;
-  
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override;
 
   uint8_t getBusNumber() {
@@ -220,7 +203,6 @@ public:
     DIAG(F("EX-IOExpander485 node:%d v%d.%d.%d Vpins %u-%u %S"), _nodeID, _majorVer, _minorVer, _patchVer, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
   
-
 };
 
 /**********************************************************************
@@ -266,11 +248,8 @@ private:
   
   RSprotonode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   RSprotonode *_currentNode = NULL;
-  uint8_t _exceptionResponse = 0;
-  uint8_t getExceptionResponse();
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   RSproto *_nextBus = NULL;  // Pointer to next bus instance in list.
-  void setTimeout(unsigned long timeout);
   
 // Helper function for error handling
   void reportError(uint8_t status, bool fail=true) {

@@ -41,48 +41,6 @@ taskBuffer::~taskBuffer()
   // destructor
 }
 
-/* -= updateCrc =-
-//
-// add the CRC value from _calculateCrc (2 bytes) to the buffer.
-*/
-void taskBuffer::updateCrc(uint8_t *crcBuf, uint8_t *buf, uint16_t len) {
-  if (sizeof(crcBuf) != 2) return;
-  uint16_t crc = _calculateCrc(buf, len);
-  crcBuf[0] = lowByte(crc);
-  crcBuf[1] = highByte(crc);
-}
-
-/* -= crcGood =-
-//
-// return TRUE if CRC matched between buffer copy, and calculated.
-*/
-bool taskBuffer::crcGood(uint8_t *buf, uint16_t len) {
-  uint16_t aduCrc = buf[len] | (buf[len + 1] << 8);
-  uint16_t calculatedCrc = _calculateCrc(buf, len);
-#if defined(IO_DIAG)
-  DIAG(F("CRC is %d Expected %d"),calculatedCrc, aduCrc);
-#endif
-  if (aduCrc == calculatedCrc) return true;
-  else return false;
-}
-
-/* -= calculateCrc =-
-//
-// use bitwise XOR to calculate CRC into a 16-bit byte
-*/
-uint16_t taskBuffer::_calculateCrc(uint8_t *buf, uint16_t len) {
-  uint16_t value = 0xFFFF;
-  for (uint16_t i = 0; i < len; i++) {
-    value ^= (uint16_t)buf[i];
-    for (uint8_t j = 0; j < 8; j++) {
-      bool lsb = value & 1;
-      value >>= 1;
-      if (lsb == true) value ^= 0xA001;
-    }
-  }
-  return value;
-}
-
 void taskBuffer::doCommand(uint8_t *commandBuffer, int commandSize) {
   for (taskBuffer * t=first;t;t=t->next) t->doCommand2(commandBuffer,commandSize);
 }
@@ -90,13 +48,10 @@ void taskBuffer::doCommand(uint8_t *commandBuffer, int commandSize) {
 void taskBuffer::doCommand2(uint8_t *commandBuffer, int commandSize) {
   // process commands here to be sent
   uint8_t crcBuffer[2];
-  updateCrc(crcBuffer, commandBuffer, commandSize);
-  
+ 
   //_serial->begin(115200);
   //ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
   digitalWrite(_txPin,HIGH);
-  unsigned long startMillis = millis();
-  
   serial->write(commandBuffer, 7);
   serial->write(endChar, 1);
   serial->flush();
@@ -353,6 +308,7 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
         DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
       }
       resFlag = 0;
+      return false;
   }
 
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
@@ -439,7 +395,6 @@ void RSprotonode::_write(VPIN vpin, int value) {
 
   void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     uint8_t servoBuffer[7];
-    uint8_t responseBuffer[1];
     int pin = vpin - _firstVpin;
     servoBuffer[0] = EXIOWRAN;
     servoBuffer[1] = (uint8_t) pin;
