@@ -46,6 +46,67 @@
 #include "IODevice.h"
 
 class RSproto;
+class RSprotonode;
+
+#ifndef COMMAND_BUFFER_SIZE
+ #define COMMAND_BUFFER_SIZE 100
+#endif
+#ifndef RS485_SERIAL
+ #define RS485_SERIAL Serial1
+#endif
+class taskBuffer
+{
+private:
+static taskBuffer * first;
+  RSprotonode *node;
+  Stream * serial;
+  uint8_t _txPin;
+  uint8_t _nodeID;
+  uint8_t _commandType;
+  byte bufferLength;
+  byte buffer[COMMAND_BUFFER_SIZE]; 
+  taskBuffer * next;
+  uint8_t endChar[1] = {0xFE};
+  byte inCommandPayload;
+  // EX-IOExpander protocol flags
+  enum {
+    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
+    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
+    EXIOVER = 0xE3,     // Flag to get version
+    EXIORDAN = 0xE4,    // Flag to read an analogue input
+    EXIOWRD = 0xE5,     // Flag for digital write
+    EXIORDD = 0xE6,     // Flag to read digital input
+    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
+    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
+    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
+    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOERR = 0xEF,     // Flag we've received an error
+  };
+  // RSproto protocol frame bytes
+  enum {
+    STARTBYTE = 0xFD,
+    ENDBYTE = 0xFE,
+  };
+  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
+  void doCommand2(uint8_t *commandBuffer=NULL, int commandSize=0);
+  void loop2();
+  void parseRx(uint8_t *buf);
+  void parseOne(uint8_t *buf);
+public:
+  taskBuffer(Stream * myserial);
+  ~taskBuffer();
+  void updateCrc(uint8_t *crcBuf, uint8_t *buf, uint16_t len);
+  bool crcGood(uint8_t *buf, uint16_t len);
+  static void doCommand(uint8_t *commandBuffer=NULL, int commandSize=0);
+  static void init(unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1);
+  static void loop();
+};
+
+
+
+
+
 
 /**********************************************************************
  * RSprotonode class
@@ -62,6 +123,7 @@ private:
   RSprotonode *_next = NULL;
   bool _initialised = false;
   RSproto *bus;
+  taskBuffer *task;
   HardwareSerial* _serial;
   // EX-IOExpander protocol flags
   enum {
@@ -78,7 +140,7 @@ private:
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  
+  static RSprotonode *_nodeList;
 public:
   enum ProfileType : int {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
@@ -105,7 +167,8 @@ public:
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
-  uint8_t initBuffer[1] = {0xFE};
+  int  resFlag = 0;
+
   bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new RSprotonode(firstVpin, nPins, nodeID);
@@ -118,6 +181,13 @@ public:
   
   RSprotonode *getNext() {
     return _next;
+  }
+  static RSprotonode *findNode(uint8_t nodeID) {
+    for (RSprotonode *node = _nodeList; node != NULL; node = node->getNext()) {
+      if (node->getNodeID() == nodeID) 
+        return node;
+    }
+    return NULL;
   }
   void setNext(RSprotonode *node) {
     _next = node;
@@ -170,7 +240,7 @@ class RSproto : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
-  
+  taskBuffer *task;
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
@@ -196,22 +266,8 @@ private:
   const unsigned long _digitalRefresh = 10000UL;    // Delay refreshing digital inputs for 10ms
   const unsigned long _analogueRefresh = 50000UL;   // Delay refreshing analogue inputs for 50ms
 
-  // EX-IOExpander protocol flags
-  enum {
-    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
-    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
-    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
-    EXIOVER = 0xE3,     // Flag to get version
-    EXIORDAN = 0xE4,    // Flag to read an analogue input
-    EXIOWRD = 0xE5,     // Flag for digital write
-    EXIORDD = 0xE6,     // Flag to read digital input
-    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
-    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
-    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
-    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
-    EXIOERR = 0xEF,     // Flag we've received an error
-  };
-  uint16_t _calculateCrc(uint8_t *buf, uint16_t len);
+
+  
   
   RSprotonode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   RSprotonode *_currentNode = NULL;
@@ -237,7 +293,6 @@ public:
   bool _busy = false;
   unsigned long _baud;
   int taskCnt = 0;
-  HardwareSerial *_serialD;
   uint8_t initBuffer[1] = {0xFE};
   bool testAndStripMasterFlag(uint8_t *buf) {
     if (buf[0] != 0xFD) return false; // why did we not get a master flag? bad node?
@@ -246,18 +301,15 @@ public:
   }
 
   
-  void updateCrc(uint8_t *buf, uint16_t len);
-  bool crcGood(uint8_t *buf, uint16_t len);
+  
   void clearRxBuffer();
-  static void create(HardwareSerial& serial, unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10) {
-    new RSproto(serial, baud, cycleTimeMS, txPin, waitA);
+  static void create(unsigned long baud, uint16_t cycleTimeMS=500, int8_t txPin=-1, int waitA=10) {
+    new RSproto(baud, cycleTimeMS, txPin, waitA);
   }
   
   // Device-specific initialisation
   void _begin() override {
 
-    _serialD->begin(_baud, SERIAL_8N1);
-    _serialD->flush();
   #if defined(RSproto_STM_OK)
     pinMode(RSproto_STM_OK, OUTPUT);
     ArduinoPins::fastWriteDigital(RSproto_STM_OK,LOW);
@@ -315,7 +367,7 @@ public:
   }
 
 protected:
-  RSproto(HardwareSerial &serial, unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA);
+  RSproto(unsigned long baud, uint16_t cycleTimeMS, int8_t txPin, int waitA);
 
 public:
   
