@@ -1,6 +1,6 @@
 /*
  *  © 2024, Travis Farmer. All rights reserved.
- *  © 2024, Chris Bulliner. All rights reserved. https://github.com/CMB27
+ *  © 2021 Chris Harlow
  *  
  *  This file is part of DCC++EX API
  *
@@ -47,25 +47,22 @@ void taskBuffer::doCommand(uint8_t *commandBuffer, int commandSize) {
 
 void taskBuffer::doCommand2(uint8_t *commandBuffer, int commandSize) {
   // process commands here to be sent
-  uint8_t crcBuffer[2];
  
   //_serial->begin(115200);
   //ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-  digitalWrite(_txPin,HIGH);
+  if (_txPin != -1) digitalWrite(_txPin,HIGH);
   serial->write(commandBuffer, 7);
   serial->write(endChar, 1);
   serial->flush();
-  digitalWrite(_txPin,LOW);
+  if (_txPin != -1) digitalWrite(_txPin,LOW);
 }
 
-void taskBuffer::init(unsigned long baud, int8_t txPin) {
-#ifdef RS485_SERIAL
-  RS485_SERIAL.begin(baud, SERIAL_8N1);
-  new taskBuffer(&RS485_SERIAL);
-#endif
+void taskBuffer::init(HardwareSerial &hwSerial, unsigned long baud, int8_t txPin) {
+  hwSerial.begin(baud, SERIAL_8N1);
+  new taskBuffer(&hwSerial);
   for (taskBuffer * t=first;t;t=t->next) t->_txPin = txPin;
-  pinMode(txPin, OUTPUT);
-  digitalWrite(txPin, LOW);
+  if (txPin != -1) pinMode(txPin, OUTPUT);
+  if (txPin != -1) digitalWrite(txPin, LOW);
 }
 
 void taskBuffer::loop() {
@@ -132,6 +129,7 @@ void taskBuffer::parseOne(uint8_t *buf) {
   uint8_t toNode = buf[0];
   if (toNode != 0) return; // not for master
   uint8_t fromNode = buf[1];
+  if (fromNode == 0) return; // why did out own data come round the ring back to us?
   uint8_t opcode = buf[2];
   RSproto *bus = RSproto::findBus(0);
   RSprotonode *node = bus->findNode(fromNode);
@@ -227,11 +225,12 @@ void taskBuffer::parseOne(uint8_t *buf) {
  ************************************************************/
 
 // Constructor for RSproto
-RSproto::RSproto(unsigned long baud, int8_t txPin) {
+RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin) {
+  _serial = &serial;
   _baud = baud;
   _txPin = txPin;
-  _busNo = 0;
-  task->init(baud, txPin);
+  _busNo = busNo;
+  task->init(serial, baud, txPin);
   if (_waitA < 3) _waitA = 3;
   // Add device to HAL device chain
   IODevice::addDevice(this);
@@ -281,7 +280,8 @@ RSprotonode::RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID) {
   _nodeID = nodeID;
   //bus = bus->findBus(0);
   //_serial = bus->_serialD;
-  if (_nodeID > 254) _nodeID = 254;
+  if (_nodeID > 252) _nodeID = 252; // cannot have a node with the frame flags
+  if (_nodeID < 1) _nodeID = 1; // cannot have a node with the master ID
 
   // Add this device to HAL device list
   IODevice::addDevice(this);
@@ -299,8 +299,8 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     
-    uint16_t pullup = params[0];
-      uint8_t outBuffer[6] = {EXIODPUP, pin, pullup};
+    uint8_t pullup = (uint8_t)params[0];
+      uint8_t outBuffer[6] = {EXIODPUP, (uint8_t)pin, pullup};
       unsigned long startMillis = millis();
       task->doCommand(outBuffer,3);
       while (resFlag == 0 && millis() - startMillis < 500); // blocking for now

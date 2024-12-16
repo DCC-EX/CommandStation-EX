@@ -1,33 +1,35 @@
 /*
- *  © 2024, Travis Farmer. All rights reserved.
- *  © 2024, Chris Bulliner. All rights reserved. https://github.com/CMB27
- *   
- *  This file is part of DCC++EX API
- *
- *  This is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  It is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
- */
+*  © 2024, Travis Farmer. All rights reserved.
+*  © 2021 Chris Harlow
+*   
+*  This file is part of DCC++EX API
+*
+*  This is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 3 of the License, or
+*  (at your option) any later version.
+*
+*  It is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 /*
  * RSproto
  * =======
  * To define a RSproto, example syntax:
- *    RSproto::create(serial, baud[, cycletime[, pin]]);
+ *    RSproto::create(busNo, serial, baud[, pin]);
  * 
+ * busNo = the Bus no of the instance. should = 0, unless more than one bus configured for some reason.
  * serial = serial port to be used (e.g. Serial3)
  * baud = baud rate (9600, 19200, 28800, 57600 or 115200)
  * cycletime = minimum time between successive updates/reads of a node in millisecs (default 500ms)
- * pin = pin number connected to RSproto module's DE and !RE terminals for half-duplex operation (default VPIN_NONE)
+ * pin = pin number connected to RSproto module's DE and !RE terminals for half-duplex operation (default -1)
+ *       if omitted (default), hardware MUST support full-duplex opperation!
  *
  * 
  * RSprotoNode
@@ -37,7 +39,7 @@
  * 
  * firstVPIN = first vpin in block allocated to this device
  * numVPINs = number of vpins
- * nodeID = 0-254
+ * nodeID = 1-252
  */
 
 #ifndef IO_RS485_H
@@ -48,12 +50,32 @@
 class RSproto;
 class RSprotonode;
 
+
+
 #ifndef COMMAND_BUFFER_SIZE
  #define COMMAND_BUFFER_SIZE 100
 #endif
-#ifndef RS485_SERIAL
- #define RS485_SERIAL Serial1
-#endif
+
+/**********************************************************************
+ * taskBuffer class
+ * 
+ * this stores the task list, and processes the data within it for
+ * sending. it also handles the incomming data responce.
+ * Data Frame:
+ * 0xFD : toNode : fromNode : ~data packet~ : 0xFE
+ * Start:   TO   :   FROM   :     DATA      : End
+ * 
+ * Data frame must always start with the Start byte, follow with the
+ * destination (toNode), follow with the Source (fromNode), contain
+ * the data packet, and follow with the End byte.
+ * 
+ * 
+ * Data Packet:
+ * Command Byte : ~Command Params~
+ * 
+ * Data Packet must always precede the parameters with the Command byte.
+ * this way the data is processed by the correct routine.
+ **********************************************************************/
 class taskBuffer
 {
 private:
@@ -96,7 +118,7 @@ public:
   taskBuffer(Stream * myserial);
   ~taskBuffer();
   static void doCommand(uint8_t *commandBuffer=NULL, int commandSize=0);
-  static void init(unsigned long baud, int8_t txPin=-1);
+  static void init(HardwareSerial &hwSerial, unsigned long baud, int8_t txPin=-1);
   static void loop();
 };
 
@@ -259,10 +281,10 @@ private:
   }
 
 public:
-  static void create(unsigned long baud, int8_t txPin=-1) {
-    new RSproto(baud, txPin);
+  static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1) {
+    new RSproto(busNo, serial, baud, txPin);
   }
-
+  HardwareSerial* _serial;
   int _CommMode = 0;
   int _opperation = 0;
   uint16_t _pullup;
@@ -333,7 +355,7 @@ public:
   }
 
 protected:
-  RSproto(unsigned long baud, int8_t txPin);
+  RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin);
 
 public:
   
