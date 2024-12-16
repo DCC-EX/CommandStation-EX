@@ -88,6 +88,7 @@ static taskBuffer *first;
   byte bufferLength;
   byte buffer[COMMAND_BUFFER_SIZE]; 
   taskBuffer *next;
+  uint8_t startChar[1] = {0xFD};
   uint8_t endChar[1] = {0xFE};
   byte inCommandPayload;
   // EX-IOExpander protocol flags

@@ -52,8 +52,7 @@ void taskBuffer::doCommand2(uint8_t *commandBuffer, int commandSize) {
   //ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
   if (_txPin != -1) digitalWrite(_txPin,HIGH);
   serial->write(commandBuffer, 7);
-  serial->write(endChar, 1);
-  serial->flush();
+  //serial->flush();
   if (_txPin != -1) digitalWrite(_txPin,LOW);
 }
 
@@ -300,9 +299,9 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     int pin = vpin - _firstVpin;
     
     uint8_t pullup = (uint8_t)params[0];
-      uint8_t outBuffer[6] = {EXIODPUP, (uint8_t)pin, pullup};
+      uint8_t outBuffer[] = {0xFD, _nodeID, 0, EXIODPUP, (uint8_t)pin, pullup, 0xFE};
       unsigned long startMillis = millis();
-      task->doCommand(outBuffer,3);
+      task->doCommand(outBuffer,7);
       while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
       if (resFlag != 1) {
         DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
@@ -315,9 +314,9 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
     int pin = vpin - _firstVpin;
     //RSproto *mainrs = RSproto::findBus(_busNo);
-    uint8_t commandBuffer[5] = {EXIOENAN, (uint8_t) pin};
+    uint8_t commandBuffer[] = {0xFD, _nodeID, 0, EXIOENAN, (uint8_t) pin, 0xFE};
     unsigned long startMillis = millis();
-    task->doCommand(commandBuffer, 2);
+    task->doCommand(commandBuffer, 6);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
@@ -328,26 +327,34 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   }
 
 void RSprotonode::_begin() {
-  uint8_t commandBuffer[4] = {EXIOINIT, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8)};
+  uint8_t commandBuffer[] = {0xFD, _nodeID, 0, EXIOINIT, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8), 0xFE};
     unsigned long startMillis = millis();
-  task->doCommand(commandBuffer,4);
-  while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
+  task->doCommand(commandBuffer,8);
+  while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINIT"), _nodeID);
   }
   resFlag = 0;
-  commandBuffer[0] = EXIOINITA;
+  commandBuffer[0] = 0xFD;
+  commandBuffer[1] = _nodeID;
+  commandBuffer[2] = 0;
+  commandBuffer[3] = EXIOINITA;
+  commandBuffer[4] = 0xFE;
   startMillis = millis();
-  task->doCommand(commandBuffer,1);
-  while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
+  task->doCommand(commandBuffer,5);
+  while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINITA"), _nodeID);
   }
   resFlag = 0;
-  commandBuffer[0] = EXIOVER;
+  commandBuffer[0] = 0xFD;
+  commandBuffer[1] = _nodeID;
+  commandBuffer[2] = 0;
+  commandBuffer[3] = EXIOVER;
+  commandBuffer[4] = 0xFE;
   startMillis = millis();
-  task->doCommand(commandBuffer,1);
-  while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
+  task->doCommand(commandBuffer,3);
+  while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
   } else DIAG(F("EX-IOExpander device found, Node:%d, Version v%d.%d.%d"), _nodeID, _majorVer, _minorVer, _patchVer);
@@ -369,12 +376,16 @@ int RSprotonode::_read(VPIN vpin) {
 void RSprotonode::_write(VPIN vpin, int value) {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    uint8_t digitalOutBuffer[6];
-    digitalOutBuffer[1] = EXIOWRD;
-    digitalOutBuffer[2] = (uint8_t) pin;
-    digitalOutBuffer[3] = (uint8_t) value;
+    uint8_t digitalOutBuffer[7];
+    digitalOutBuffer[0] = 0xFD;
+    digitalOutBuffer[1] = _nodeID;
+  digitalOutBuffer[2] = 0;
+  digitalOutBuffer[3] = EXIOWRD;
+    digitalOutBuffer[4] = (uint8_t) pin;
+    digitalOutBuffer[5] = (uint8_t) value;
+    digitalOutBuffer[6] = 0xFE;
     unsigned long startMillis = millis();
-    task->doCommand(digitalOutBuffer,3);
+    task->doCommand(digitalOutBuffer,7);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
@@ -396,17 +407,21 @@ void RSprotonode::_write(VPIN vpin, int value) {
   }
 
   void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-    uint8_t servoBuffer[7];
+    uint8_t servoBuffer[11];
     int pin = vpin - _firstVpin;
-    servoBuffer[0] = EXIOWRAN;
-    servoBuffer[1] = (uint8_t) pin;
-    servoBuffer[2] = (uint8_t) value & 0xFF;
-    servoBuffer[3] = (uint8_t) value >> 8;
-    servoBuffer[4] = (uint8_t) profile;
-    servoBuffer[5] = (uint8_t) duration & 0xFF;
-    servoBuffer[6] = (uint8_t) duration >> 8;
+    servoBuffer[0] = 0xFD;
+    servoBuffer[1] = _nodeID;
+    servoBuffer[2] = 0;
+    servoBuffer[3] = EXIOWRAN;
+    servoBuffer[4] = (uint8_t) pin;
+    servoBuffer[5] = (uint8_t) value & 0xFF;
+    servoBuffer[6] = (uint8_t) value >> 8;
+    servoBuffer[7] = (uint8_t) profile;
+    servoBuffer[8] = (uint8_t) duration & 0xFF;
+    servoBuffer[9] = (uint8_t) duration >> 8;
+    servoBuffer[10] = 0xFE;
     unsigned long startMillis = millis();
-    task->doCommand(servoBuffer,7);
+    task->doCommand(servoBuffer,11);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
