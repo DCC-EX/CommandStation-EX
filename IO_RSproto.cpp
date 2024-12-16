@@ -306,9 +306,10 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
       while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
       if (resFlag != 1) {
         DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
+        return false;
       }
       resFlag = 0;
-      return false;
+      return true;
   }
 
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
@@ -320,9 +321,10 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
+      return false;
     }
     resFlag = 0;
-    return false;
+    return true;
   }
 
 void RSprotonode::_begin() {
