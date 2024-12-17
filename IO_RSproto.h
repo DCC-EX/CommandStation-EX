@@ -39,7 +39,7 @@
  * 
  * firstVPIN = first vpin in block allocated to this device
  * numVPINs = number of vpins
- * nodeID = 1-252
+ * nodeID = 1-251
  */
 
 #ifndef IO_RS485_H
@@ -111,14 +111,14 @@ static taskBuffer *first;
     STARTBYTE = 0xFD,
     ENDBYTE = 0xFE,
   };
-  void doCommand2(uint8_t *commandBuffer=NULL, int commandSize=0);
+  void doCommand2(char *commandBuffer, int commandSize=0);
   void loop2();
   void parseRx(uint8_t *buf);
   void parseOne(uint8_t *buf);
 public:
   taskBuffer(Stream * myserial);
   ~taskBuffer();
-  static void doCommand(uint8_t *commandBuffer=NULL, int commandSize=0);
+  static void doCommand(char *commandBuffer, int commandSize=0);
   static void init(HardwareSerial &hwSerial, unsigned long baud, int8_t txPin=-1);
   static void loop();
 };

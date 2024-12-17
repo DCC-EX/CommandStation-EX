@@ -41,19 +41,25 @@ taskBuffer::~taskBuffer()
   // destructor
 }
 
-void taskBuffer::doCommand(uint8_t *commandBuffer, int commandSize) {
+void taskBuffer::doCommand(char *commandBuffer, int commandSize) {
   for (taskBuffer * t=first;t;t=t->next) t->doCommand2(commandBuffer,commandSize);
 }
 
-void taskBuffer::doCommand2(uint8_t *commandBuffer, int commandSize) {
+void taskBuffer::doCommand2(char *commandBuffer, int commandSize) {
   // process commands here to be sent
  
   //_serial->begin(115200);
   //ArduinoPins::fastWriteDigital(bus->_txPin, HIGH);
-  if (_txPin != -1) digitalWrite(_txPin,HIGH);
-  serial->write(commandBuffer, 7);
-  //serial->flush();
-  if (_txPin != -1) digitalWrite(_txPin,LOW);
+  //int counter = 0;
+   //RSproto *bus = RSproto::findBus(0);
+  //RSprotonode *node = bus->findNode(commandSize);
+  //while (node->resFlag == 0 && counter < 5) {
+    if (_txPin != -1) digitalWrite(_txPin,HIGH);
+    serial->print(commandBuffer);
+    if (_txPin != -1) digitalWrite(_txPin,LOW);
+    //counter++;
+  //}
+  
 }
 
 void taskBuffer::init(HardwareSerial &hwSerial, unsigned long baud, int8_t txPin) {
@@ -73,7 +79,7 @@ void taskBuffer::loop2() {
   while (serial->available()) {
     char ch = serial->read();
     if (!inCommandPayload) {
-      if (ch == STARTBYTE) {
+      if (ch == '<') {
         inCommandPayload = PAYLOAD_NORMAL;
         bufferLength = 0;
         buffer[0] = '\0';
@@ -94,7 +100,7 @@ void taskBuffer::loop2() {
           inCommandPayload++;
       }
       if (inCommandPayload == PAYLOAD_NORMAL) {
-        if (ch == ENDBYTE) {
+        if (ch == '>') {
           buffer[bufferLength] = '\0';
           parseRx(buffer); 
           inCommandPayload = PAYLOAD_FALSE;
@@ -125,17 +131,33 @@ void taskBuffer::parseOne(uint8_t *buf) {
   while (buf[0] == '<' || buf[0] == ' ')
     buf++; // strip off any number of < or spaces
   
-  uint8_t toNode = buf[0];
+  char curBuff[10];
+  byte outArray[25];
+  int chrCntr = 0;
+  int byteCntr = 0;
+  for (int i = 0; i< 200; i++) {
+    if (buf[i] == '\n') break;
+    else if (buf[i] == 0x20) {
+      chrCntr = 0;
+      sscanf(curBuff, "%d", &outArray[byteCntr]);
+      byteCntr++;
+    } else {
+      curBuff[chrCntr] = buffer[i];
+      chrCntr++;
+    }
+  }
+
+  uint8_t toNode = outArray[0];
   if (toNode != 0) return; // not for master
-  uint8_t fromNode = buf[1];
+  uint8_t fromNode = outArray[1];
   if (fromNode == 0) return; // why did out own data come round the ring back to us?
-  uint8_t opcode = buf[2];
+  uint8_t opcode = outArray[2];
   RSproto *bus = RSproto::findBus(0);
   RSprotonode *node = bus->findNode(fromNode);
   switch (opcode) {
     case EXIOPINS:
-      {node->_numDigitalPins = buf[3];
-      node->_numAnaloguePins = buf[4];
+      {node->_numDigitalPins = outArray[3];
+      node->_numAnaloguePins = outArray[4];
 
       // See if we already have suitable buffers assigned
       if (node->_numDigitalPins>0) {
@@ -182,15 +204,15 @@ void taskBuffer::parseOne(uint8_t *buf) {
       break;}
     case EXIOINITA: {
       for (int i = 3; i < node->_numAnaloguePins; i++) {
-        node->_analoguePinMap[i] = buf[i];
+        node->_analoguePinMap[i] = outArray[i];
       }
       node->resFlag = 1;
       break;
     }
     case EXIOVER: {
-      node->_majorVer = buf[3];
-      node->_minorVer = buf[4];
-      node->_patchVer = buf[5];
+      node->_majorVer = outArray[3];
+      node->_minorVer = outArray[4];
+      node->_patchVer = outArray[5];
       node->resFlag = 1;
       break;
     }
@@ -204,14 +226,14 @@ void taskBuffer::parseOne(uint8_t *buf) {
     }
     case EXIORDD: {
       for (int i = 3; i < (node->_numDigitalPins+7)/8; i++) {
-        node->_digitalInputStates[i-3] = buf[i];
+        node->_digitalInputStates[i-3] = outArray[i];
       }
       node->resFlag = 1;
       break;
     }
     case EXIORDAN: {
       for (int i = 3; i < node->_numAnaloguePins*2; i++) {
-        node->_analogueInputBuffer[i-3] = buf[i];
+        node->_analogueInputBuffer[i-3] = outArray[i];
       }
       node->resFlag = 1;
       break;
@@ -299,9 +321,10 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     int pin = vpin - _firstVpin;
     
     uint8_t pullup = (uint8_t)params[0];
-      uint8_t outBuffer[] = {0xFD, _nodeID, 0, EXIODPUP, (uint8_t)pin, pullup, 0xFE};
+    char buff[25];
+  sprintf(buff, "<%i %i %i %i %i>", _nodeID, 0, EXIODPUP, pin, pullup);
       unsigned long startMillis = millis();
-      task->doCommand(outBuffer,7);
+      task->doCommand(buff,_nodeID);
       while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
       if (resFlag != 1) {
         DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
@@ -314,9 +337,10 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
     int pin = vpin - _firstVpin;
     //RSproto *mainrs = RSproto::findBus(_busNo);
-    uint8_t commandBuffer[] = {0xFD, _nodeID, 0, EXIOENAN, (uint8_t) pin, 0xFE};
+    char buff[25];
+  sprintf(buff, "<%i %i %i %i %i %i>", _nodeID, 0, EXIOENAN, pin, _firstVpin);
     unsigned long startMillis = millis();
-    task->doCommand(commandBuffer, 6);
+    task->doCommand(buff, _nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Vpin %u cannot be used as a digital input pin"), pin);
@@ -327,33 +351,26 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   }
 
 void RSprotonode::_begin() {
-  uint8_t commandBuffer[] = {0xFD, _nodeID, 0, EXIOINIT, (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8), 0xFE};
+  char buff[25];
+  sprintf(buff, "<%i %i %i %i %i %i %i>", _nodeID, 0, EXIOINIT, _nPins, (_firstVpin & 0xFF), (_firstVpin >> 8));
     unsigned long startMillis = millis();
-  task->doCommand(commandBuffer,8);
+  task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINIT"), _nodeID);
   }
   resFlag = 0;
-  commandBuffer[0] = 0xFD;
-  commandBuffer[1] = _nodeID;
-  commandBuffer[2] = 0;
-  commandBuffer[3] = EXIOINITA;
-  commandBuffer[4] = 0xFE;
+  sprintf(buff, "<%i %i %i>", _nodeID, 0, EXIOINITA);
   startMillis = millis();
-  task->doCommand(commandBuffer,5);
+  task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINITA"), _nodeID);
   }
   resFlag = 0;
-  commandBuffer[0] = 0xFD;
-  commandBuffer[1] = _nodeID;
-  commandBuffer[2] = 0;
-  commandBuffer[3] = EXIOVER;
-  commandBuffer[4] = 0xFE;
+  sprintf(buff, "<%i %i %i>", _nodeID, 0, EXIOVER);
   startMillis = millis();
-  task->doCommand(commandBuffer,3);
+  task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
@@ -376,16 +393,10 @@ int RSprotonode::_read(VPIN vpin) {
 void RSprotonode::_write(VPIN vpin, int value) {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    uint8_t digitalOutBuffer[7];
-    digitalOutBuffer[0] = 0xFD;
-    digitalOutBuffer[1] = _nodeID;
-  digitalOutBuffer[2] = 0;
-  digitalOutBuffer[3] = EXIOWRD;
-    digitalOutBuffer[4] = (uint8_t) pin;
-    digitalOutBuffer[5] = (uint8_t) value;
-    digitalOutBuffer[6] = 0xFE;
+    char buff[25];
+  sprintf(buff, "<%i %i %i %i %i>", _nodeID, 0, EXIOWRD, pin, value);
     unsigned long startMillis = millis();
-    task->doCommand(digitalOutBuffer,7);
+    task->doCommand(buff,_nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
@@ -407,21 +418,11 @@ void RSprotonode::_write(VPIN vpin, int value) {
   }
 
   void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-    uint8_t servoBuffer[11];
     int pin = vpin - _firstVpin;
-    servoBuffer[0] = 0xFD;
-    servoBuffer[1] = _nodeID;
-    servoBuffer[2] = 0;
-    servoBuffer[3] = EXIOWRAN;
-    servoBuffer[4] = (uint8_t) pin;
-    servoBuffer[5] = (uint8_t) value & 0xFF;
-    servoBuffer[6] = (uint8_t) value >> 8;
-    servoBuffer[7] = (uint8_t) profile;
-    servoBuffer[8] = (uint8_t) duration & 0xFF;
-    servoBuffer[9] = (uint8_t) duration >> 8;
-    servoBuffer[10] = 0xFE;
+    char buff[25];
+  sprintf(buff, "<%i %i %i %i %i %i %i>", _nodeID, 0, EXIOWRAN, pin, value, profile, duration);
     unsigned long startMillis = millis();
-    task->doCommand(servoBuffer,11);
+    task->doCommand(buff,_nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
