@@ -246,11 +246,12 @@ void taskBuffer::parseOne(uint8_t *buf) {
  ************************************************************/
 
 // Constructor for RSproto
-RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin) {
+RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime) {
   _serial = &serial;
   _baud = baud;
   _txPin = txPin;
   _busNo = busNo;
+  _cycleTime = cycleTime;
   task->init(serial, baud, txPin);
   if (_waitA < 3) _waitA = 3;
   // Add device to HAL device chain
@@ -275,8 +276,8 @@ void RSproto::_loop(unsigned long currentMicros) {
     
   //}
 
-  //if (_currentMicros - _cycleStartTime < _cycleTime) return;
-  //_cycleStartTime = _currentMicros;
+  if (_currentMicros - _cycleStartTime < _cycleTime) return;
+  _cycleStartTime = _currentMicros;
   //if (_currentNode == NULL) return;
   task->loop();
   
@@ -322,7 +323,7 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     
     uint8_t pullup = (uint8_t)params[0];
     char buff[25];
-  sprintf(buff, "<%i %i %i %i %i>", _nodeID, 0, EXIODPUP, pin, pullup);
+  sprintf(buff, "<5|%i %i %i %i %i>", _nodeID, 0, EXIODPUP, pin, pullup);
       unsigned long startMillis = millis();
       task->doCommand(buff,_nodeID);
       while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
@@ -338,7 +339,7 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     int pin = vpin - _firstVpin;
     //RSproto *mainrs = RSproto::findBus(_busNo);
     char buff[25];
-  sprintf(buff, "<%i %i %i %i %i %i>", _nodeID, 0, EXIOENAN, pin, _firstVpin);
+  sprintf(buff, "<6|%i %i %i %i %i %i>", _nodeID, 0, EXIOENAN, pin, _firstVpin);
     unsigned long startMillis = millis();
     task->doCommand(buff, _nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
@@ -352,7 +353,7 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
 
 void RSprotonode::_begin() {
   char buff[25];
-  sprintf(buff, "<%i %i %i %i %i %i %i>", _nodeID, 0, EXIOINIT, _nPins, (_firstVpin & 0xFF), (_firstVpin >> 8));
+  sprintf(buff, "<6|%i %i %i %i %i %i>", _nodeID, 0, EXIOINIT, _nPins, (_firstVpin & 0xFF), (_firstVpin >> 8));
     unsigned long startMillis = millis();
   task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
@@ -360,7 +361,7 @@ void RSprotonode::_begin() {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINIT"), _nodeID);
   }
   resFlag = 0;
-  sprintf(buff, "<%i %i %i>", _nodeID, 0, EXIOINITA);
+  sprintf(buff, "<3|%i %i %i>", _nodeID, 0, EXIOINITA);
   startMillis = millis();
   task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
@@ -368,7 +369,7 @@ void RSprotonode::_begin() {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINITA"), _nodeID);
   }
   resFlag = 0;
-  sprintf(buff, "<%i %i %i>", _nodeID, 0, EXIOVER);
+  sprintf(buff, "<3|%i %i %i>", _nodeID, 0, EXIOVER);
   startMillis = millis();
   task->doCommand(buff,_nodeID);
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
@@ -394,7 +395,7 @@ void RSprotonode::_write(VPIN vpin, int value) {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
     char buff[25];
-  sprintf(buff, "<%i %i %i %i %i>", _nodeID, 0, EXIOWRD, pin, value);
+  sprintf(buff, "<5|%i %i %i %i %i>", _nodeID, 0, EXIOWRD, pin, value);
     unsigned long startMillis = millis();
     task->doCommand(buff,_nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
@@ -420,7 +421,7 @@ void RSprotonode::_write(VPIN vpin, int value) {
   void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     int pin = vpin - _firstVpin;
     char buff[25];
-  sprintf(buff, "<%i %i %i %i %i %i %i>", _nodeID, 0, EXIOWRAN, pin, value, profile, duration);
+  sprintf(buff, "<7|%i %i %i %i %i %i %i>", _nodeID, 0, EXIOWRAN, pin, value, profile, duration);
     unsigned long startMillis = millis();
     task->doCommand(buff,_nodeID);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now

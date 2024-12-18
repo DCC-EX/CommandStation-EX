@@ -282,8 +282,8 @@ private:
   }
 
 public:
-  static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1) {
-    new RSproto(busNo, serial, baud, txPin);
+  static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1, int cycleTime=500) {
+    new RSproto(busNo, serial, baud, txPin, cycleTime);
   }
   HardwareSerial* _serial;
   int _CommMode = 0;
@@ -356,7 +356,7 @@ public:
   }
 
 protected:
-  RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin);
+  RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
 
 public:
   
