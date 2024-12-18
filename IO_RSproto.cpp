@@ -41,6 +41,65 @@ taskBuffer::~taskBuffer()
   // destructor
 }
 
+int taskBuffer::getCharsRightOfPosition(char* str, char position, char* outStr, int size) {
+  //if (position >= 0 && position < strlen(str)) {
+    int pos;
+    char retStr[size];
+    for (int i = 0; str[i] != '\0'; i++) {
+      if (str[i] == position) {
+        pos = i;
+        break; // Exit the loop once the character is found
+      }
+    }
+    int i;
+    for (i = 0; i < size; i++) {
+      retStr[i] = str[i+pos+1];
+    }
+    memcpy(outStr, retStr, i+pos+1);
+    return i+pos+2;
+  //}
+}
+
+void taskBuffer::getCharsLeft(char *str, char position, char *result) {
+  int pos;
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] == position) {
+      pos = i;
+      break; // Exit the loop once the character is found
+    }
+  }
+  if (pos >= 0 && pos < strlen(str)) {
+    for (int i = 0; i < strlen(str); i++) {
+      if (i < pos) result[i] = str[i];
+    }
+  }
+}
+
+int taskBuffer::getValues(char *buf, int lenBuf, int fieldCnt, int *outArray) {
+  char curBuff[400];
+  memset(curBuff, '\0', 25);
+  int byteCntr = 0;
+  int counter = 0;
+  for (int i = 0; i< lenBuf; i++) {
+
+    if (buf[i] == ' ' || buf[i] == '\0'){
+      //outArray[counter] = 0x00;
+      outArray[byteCntr] = atoi(curBuff);
+      //DIAG(F("byte: %i"),outArray[byteCntr]);
+      byteCntr++;
+      memset(curBuff, '\0', sizeof(curBuff));
+      counter = 0;
+    } else {
+      curBuff[counter] = buf[i];
+      counter++;
+    }
+    if (byteCntr > fieldCnt || buf[i] == '\0') {
+      break;
+    }
+  }
+  return byteCntr;
+}
+
 void taskBuffer::doCommand(char *commandBuffer, int commandSize) {
   for (taskBuffer * t=first;t;t=t->next) t->doCommand2(commandBuffer,commandSize);
 }
@@ -76,88 +135,62 @@ void taskBuffer::loop() {
 
 void taskBuffer::loop2() {
   // process received commands here
+  char ch;
   while (serial->available()) {
-    char ch = serial->read();
+    ch = serial->read();
+    //RS485_SERIAL.write(ch,1); // send round the ring in case not ours
     if (!inCommandPayload) {
       if (ch == '<') {
         inCommandPayload = PAYLOAD_NORMAL;
         bufferLength = 0;
-        buffer[0] = '\0';
+        //tmpBuffer[0] = '\0';
       }
     } else { // if (inCommandPayload)
-      if (bufferLength <  (COMMAND_BUFFER_SIZE-1))
-        buffer[bufferLength++] = ch;
-      if (inCommandPayload > PAYLOAD_NORMAL) {
-        if (inCommandPayload > 32 + 2) {    // String way too long
-          ch = ENDBYTE;                         // we end this nonsense
-          inCommandPayload = PAYLOAD_NORMAL;
-          DIAG(F("Parse error: Unbalanced string"));
-          // fall through to ending parsing below
-        } else if (ch == '"') {               // String end
-          inCommandPayload = PAYLOAD_NORMAL;
-          continue; // do not fall through
-        } else
-          inCommandPayload++;
-      }
       if (inCommandPayload == PAYLOAD_NORMAL) {
         if (ch == '>') {
-          buffer[bufferLength] = '\0';
-          parseRx(buffer); 
+          //tmpBuffer[bufferLength] = '\0';
+          
+          char chrSize[3];
+          getCharsLeft(buffer,'|', chrSize);
+          char chrSend[400];
+          int remainder = getCharsRightOfPosition(buffer,'|',chrSend, sizeof(buffer));
+          DIAG(F("%s:%i:%i"),chrSend, remainder,atoi(chrSize));
+          parseRx(chrSend, remainder, atoi(chrSize));
+          memset(buffer, '\0', sizeof(buffer));
+          bufferLength = 0;
           inCommandPayload = PAYLOAD_FALSE;
-          break;
-        } else if (ch == '"') {
-          inCommandPayload = PAYLOAD_STRING;
+        
         }
+      }
+      if (bufferLength <  (COMMAND_BUFFER_SIZE-1) && inCommandPayload == PAYLOAD_NORMAL) {
+        buffer[bufferLength] = ch;
+        bufferLength++;
       }
     }
   }
 }
 
-void taskBuffer::parseRx(uint8_t *buf) {
+void taskBuffer::parseRx(char * rxbuffer, int rxBufLen, int fieldCnt) {
   // pass on what we got
-  bool found = (buf[0] != STARTBYTE);
-  for (byte *b=buf; b[0] != '\0'; b++) {
-    if (found) {
-      parseOne(b);
-      found=false;
-    }
-    if (b[0] == STARTBYTE)
-      found = true;
-  }
+   int outValues[fieldCnt];
+  memset(outValues, 0, sizeof(outValues));
+  int realCnt = getValues(rxbuffer, rxBufLen, fieldCnt, outValues);
+  parseOne(outValues);
 }
 
-void taskBuffer::parseOne(uint8_t *buf) {
+void taskBuffer::parseOne(int *buf) {
   // finaly, process the darn data
-  while (buf[0] == '<' || buf[0] == ' ')
-    buf++; // strip off any number of < or spaces
-  
-  char curBuff[10];
-  byte outArray[25];
-  int chrCntr = 0;
-  int byteCntr = 0;
-  for (int i = 0; i< 200; i++) {
-    if (buf[i] == '\n') break;
-    else if (buf[i] == 0x20) {
-      chrCntr = 0;
-      sscanf(curBuff, "%d", &outArray[byteCntr]);
-      byteCntr++;
-    } else {
-      curBuff[chrCntr] = buffer[i];
-      chrCntr++;
-    }
-  }
-
-  uint8_t toNode = outArray[0];
+  uint8_t toNode = buf[0];
   if (toNode != 0) return; // not for master
-  uint8_t fromNode = outArray[1];
+  uint8_t fromNode = buf[1];
   if (fromNode == 0) return; // why did out own data come round the ring back to us?
-  uint8_t opcode = outArray[2];
+  uint8_t opcode = buf[2];
   RSproto *bus = RSproto::findBus(0);
   RSprotonode *node = bus->findNode(fromNode);
   switch (opcode) {
     case EXIOPINS:
-      {node->_numDigitalPins = outArray[3];
-      node->_numAnaloguePins = outArray[4];
+      {node->_numDigitalPins = buf[3];
+      node->_numAnaloguePins = buf[4];
 
       // See if we already have suitable buffers assigned
       if (node->_numDigitalPins>0) {
@@ -204,15 +237,15 @@ void taskBuffer::parseOne(uint8_t *buf) {
       break;}
     case EXIOINITA: {
       for (int i = 3; i < node->_numAnaloguePins; i++) {
-        node->_analoguePinMap[i] = outArray[i];
+        node->_analoguePinMap[i] = buf[i];
       }
       node->resFlag = 1;
       break;
     }
     case EXIOVER: {
-      node->_majorVer = outArray[3];
-      node->_minorVer = outArray[4];
-      node->_patchVer = outArray[5];
+      node->_majorVer = buf[3];
+      node->_minorVer = buf[4];
+      node->_patchVer = buf[5];
       node->resFlag = 1;
       break;
     }
@@ -226,14 +259,14 @@ void taskBuffer::parseOne(uint8_t *buf) {
     }
     case EXIORDD: {
       for (int i = 3; i < (node->_numDigitalPins+7)/8; i++) {
-        node->_digitalInputStates[i-3] = outArray[i];
+        node->_digitalInputStates[i-3] = buf[i];
       }
       node->resFlag = 1;
       break;
     }
     case EXIORDAN: {
       for (int i = 3; i < node->_numAnaloguePins*2; i++) {
-        node->_analogueInputBuffer[i-3] = outArray[i];
+        node->_analogueInputBuffer[i-3] = buf[i];
       }
       node->resFlag = 1;
       break;

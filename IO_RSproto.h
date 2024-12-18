@@ -53,7 +53,7 @@ class RSprotonode;
 
 
 #ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 100
+ #define COMMAND_BUFFER_SIZE 400
 #endif
 
 /**********************************************************************
@@ -86,7 +86,7 @@ static taskBuffer *first;
   uint8_t _nodeID;
   uint8_t _commandType;
   byte bufferLength;
-  byte buffer[COMMAND_BUFFER_SIZE]; 
+  char buffer[COMMAND_BUFFER_SIZE]; 
   taskBuffer *next;
   uint8_t startChar[1] = {0xFD};
   uint8_t endChar[1] = {0xFE};
@@ -111,10 +111,13 @@ static taskBuffer *first;
     STARTBYTE = 0xFD,
     ENDBYTE = 0xFE,
   };
+  int getCharsRightOfPosition(char* str, char position, char* outStr, int size);
+  void getCharsLeft(char *str, char position, char *result);
+  int getValues(char *buf, int lenBuf, int fieldCnt, int *outArray);
   void doCommand2(char *commandBuffer, int commandSize=0);
   void loop2();
-  void parseRx(uint8_t *buf);
-  void parseOne(uint8_t *buf);
+  void parseRx(char * rxbuffer, int rxBufLen, int fieldCnt);
+  void parseOne(int *buf);
 public:
   taskBuffer(Stream * myserial);
   ~taskBuffer();
