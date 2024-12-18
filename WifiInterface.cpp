@@ -76,6 +76,11 @@ Stream * WifiInterface::wifiStream;
 #endif
 #endif
 
+#if defined(ARDUINO_ARCH_RP2040)
+#define NUM_SERIAL 2
+#define SERIAL1 Serial2
+#endif
+
 #ifndef NUM_SERIAL
 #define NUM_SERIAL 1
 #define SERIAL1 Serial1
