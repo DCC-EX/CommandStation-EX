@@ -53,7 +53,7 @@ class RSprotonode;
 
 
 #ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 400
+ #define COMMAND_BUFFER_SIZE 900
 #endif
 
 /**********************************************************************
@@ -79,18 +79,26 @@ class RSprotonode;
 class taskBuffer
 {
 private:
-static taskBuffer *first;
+  HardwareSerial * hwSerial;
+  unsigned long _baud;
+  static const int ARRAY_SIZE = 254;
+public:
+  static taskBuffer *first;
+  static taskBuffer *end;
   RSprotonode *node;
+  unsigned long _taskID;
   Stream * serial;
   uint8_t _txPin;
   uint8_t _nodeID;
   uint8_t _commandType;
-  byte bufferLength;
-  char buffer[COMMAND_BUFFER_SIZE]; 
+  unsigned long _cycleTimer = 0ul;
+  
   taskBuffer *next;
   uint8_t startChar[1] = {0xFD};
   uint8_t endChar[1] = {0xFE};
-  byte inCommandPayload;
+
+  int commandArray[ARRAY_SIZE];
+  int _commandSize = 0;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -111,19 +119,34 @@ static taskBuffer *first;
     STARTBYTE = 0xFD,
     ENDBYTE = 0xFE,
   };
-  int getCharsRightOfPosition(char* str, char position, char* outStr, int size);
-  void getCharsLeft(char *str, char position, char *result);
-  int getValues(char *buf, int lenBuf, int fieldCnt, int *outArray);
-  void doCommand2(char *commandBuffer, int commandSize=0);
-  void loop2();
-  void parseRx(char * rxbuffer, int rxBufLen, int fieldCnt);
-  void parseOne(int *buf);
-public:
-  taskBuffer(Stream * myserial);
+  
+  
+
+  unsigned long getTaskID() {
+    return _taskID;
+  }
+  void setTaskID(unsigned long taskID) {
+    _taskID = taskID;
+  }
+  taskBuffer *getNext() {
+    return next;
+  }
+ 
+  void setNext(taskBuffer *task) {
+    next = task;
+  }
+  void addTask(taskBuffer *newTask) {
+    if (!first)
+      first = newTask;
+    if (!end) 
+      end = newTask;
+    else
+      end->setNext(newTask);
+  //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
+  }
+  taskBuffer(unsigned long taskID, int *commandBuffer);
   ~taskBuffer();
-  static void doCommand(char *commandBuffer, int commandSize=0);
-  static void init(HardwareSerial &hwSerial, unsigned long baud, int8_t txPin=-1);
-  static void loop();
+  void doCommand(unsigned long taskID, int *commandBuffer);
 };
 
 
@@ -148,7 +171,6 @@ private:
   RSproto *bus;
   taskBuffer *task;
   HardwareSerial* _serial;
-  // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
     EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
@@ -163,7 +185,7 @@ private:
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  
+  static const int ARRAY_SIZE = 254;
 public:
   static RSprotonode *_nodeList;
   enum ProfileType : int {
@@ -253,7 +275,10 @@ private:
   unsigned long _byteTransmitTime; // time in us for transmission of one byte
   int _operationCount = 0;
   int _refreshOperation = 0;
-
+  byte bufferLength;
+  static const int ARRAY_SIZE = 254;
+  int buffer[ARRAY_SIZE]; 
+    byte inCommandPayload;
   static RSproto *_busList; // linked list of defined bus instances
   bool waitReceive = false;
   int _waitCounter = 0;
@@ -274,6 +299,7 @@ private:
   
   RSprotonode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   RSprotonode *_currentNode = NULL;
+  taskBuffer *_taskListStart = NULL, *_taskListEnd = NULL, *_currentTask=NULL;
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   RSproto *_nextBus = NULL;  // Pointer to next bus instance in list.
   
@@ -283,8 +309,28 @@ private:
     if (fail)
     _deviceState = DEVSTATE_FAILED;
   }
-
+  
 public:
+uint16_t crc16(uint8_t *data, uint16_t length);
+  void remove_nulls(char *str, int len);
+  int getCharsLeft(char *str, char position);
+  void parseRx(int * outArray);
+  void sendInstantCommand(int *buf);
+  // EX-IOExpander protocol flags
+  enum {
+    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
+    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
+    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
+    EXIOVER = 0xE3,     // Flag to get version
+    EXIORDAN = 0xE4,    // Flag to read an analogue input
+    EXIOWRD = 0xE5,     // Flag for digital write
+    EXIORDD = 0xE6,     // Flag to read digital input
+    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
+    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
+    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
+    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOERR = 0xEF,     // Flag we've received an error
+  };
   static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1, int cycleTime=500) {
     new RSproto(busNo, serial, baud, txPin, cycleTime);
   }
@@ -298,10 +344,14 @@ public:
   unsigned long _baud;
   int taskCnt = 0;
   uint8_t initBuffer[1] = {0xFE};
-
+  unsigned long taskCounter=0;
   // Device-specific initialisation
   void _begin() override {
-
+    _serial->begin(_baud, SERIAL_8N1);
+    if (_txPin >0) {
+      pinMode(_txPin, OUTPUT);
+      digitalWrite(_txPin, LOW);
+    }
   #if defined(RSproto_STM_OK)
     pinMode(RSproto_STM_OK, OUTPUT);
     ArduinoPins::fastWriteDigital(RSproto_STM_OK,LOW);
@@ -338,6 +388,13 @@ public:
     }
     return NULL;
   }
+  taskBuffer *findTask(uint8_t taskID) {
+    for (taskBuffer *task = _taskListStart; task != NULL; task = task->getNext()) {
+      if (task->getTaskID() == taskID) 
+        return task;
+    }
+    return NULL;
+  }
 
   bool nodesInitialized() {
     bool retval = true;
@@ -357,7 +414,15 @@ public:
       _nodeListEnd->setNext(newNode);
   //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
-
+void addTask(taskBuffer *newTask) {
+    if (!_taskListStart)
+      _taskListStart = newTask;
+    if (!_nodeListEnd) 
+      _taskListEnd = newTask;
+    else
+      _taskListEnd->setNext(newTask);
+  //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
+  }
 protected:
   RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
 
