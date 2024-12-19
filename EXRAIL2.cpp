@@ -1328,7 +1328,7 @@ void RMFT2::clockEvent(int16_t clocktime, bool change) {
 void RMFT2::powerEvent(int16_t track, bool overload) {
   // Hunt for an ONOVERLOAD for this item
   if (Diag::CMD)
-   DIAG(F("powerEvent : %c"), track);
+   DIAG(F("powerEvent : %c"), track + 'A');
   if (overload) {
     onOverloadLookup->handleEvent(F("POWER"),track);
   }

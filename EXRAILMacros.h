@@ -516,7 +516,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
 #endif
-#define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V(PCA9685::ProfileType::UseDuration|PCA9685::NoPowerOff),OPCODE_PAD,V(ms/100L),
+#define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V((int16_t)PCA9685::ProfileType::UseDuration|(int16_t)PCA9685::ProfileType::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
 #define FON(func) OPCODE_FON,V(func),
