@@ -27,11 +27,12 @@ static const byte PAYLOAD_STRING = 2;
 
 taskBuffer * taskBuffer::first=NULL;
 
-taskBuffer::taskBuffer(unsigned long taskID, int *commandBuffer)
+taskBuffer::taskBuffer(unsigned long taskID, uint8_t *commandBuffer, int byteCount)
 {
   _taskID = taskID;
-  memset(commandArray, 0, ARRAY_SIZE);
-  memcpy(commandArray, commandBuffer, ARRAY_SIZE);
+  _byteCount = byteCount;
+  memset(commandArray, 0, byteCount);
+  memcpy(commandArray, commandBuffer, byteCount);
 
   next=first;
   first=this;
@@ -77,21 +78,21 @@ int RSproto::getCharsLeft(char *str, char position) {
   else return 0;
 }
 
-void taskBuffer::doCommand(unsigned long taskID, int *commandBuffer) {
+void taskBuffer::doCommand(unsigned long taskID, uint8_t *commandBuffer, int byteCount) {
   // add commands here to be sent
-  new taskBuffer(taskID, commandBuffer);
+  new taskBuffer(taskID, commandBuffer, byteCount);
   
 }
 
-void RSproto::parseRx(int * outArray) {
-  int nodeFr = (outArray[3] << 8) | outArray[2];
-  int AddrCode = (outArray[5] << 8) | outArray[4];
-  DIAG(F("From: %i, To: %i"), nodeFr,(outArray[1] << 8) | outArray[0]);
+void RSproto::parseRx(uint8_t * outArray) {
+  int nodeFr = outArray[1];
+  int AddrCode = outArray[2];
+  DIAG(F("From: %i, To: %i"), nodeFr,outArray[0]);
   RSprotonode *node = findNode(nodeFr);
   switch (AddrCode) {
     case EXIOPINS:
-      {node->_numDigitalPins = (outArray[7] << 8) | outArray[6];
-      node->_numAnaloguePins = (outArray[9] << 8) | outArray[8];
+      {node->_numDigitalPins = outArray[3];
+      node->_numAnaloguePins = outArray[4];
 
       // See if we already have suitable buffers assigned
       if (node->_numDigitalPins>0) {
@@ -137,16 +138,16 @@ void RSproto::parseRx(int * outArray) {
       node->resFlag = 1;
       break;}
     case EXIOINITA: {
-      for (int i = 3; i < node->_numAnaloguePins; i++) {
-        node->_analoguePinMap[i] = (outArray[7] << 8) | outArray[6];
+      for (int i = 0; i < node->_numAnaloguePins; i++) {
+        node->_analoguePinMap[i] = outArray[i+3];
       }
       node->resFlag = 1;
       break;
     }
     case EXIOVER: {
-      node->_majorVer = (outArray[7] << 8) | outArray[6];
-      node->_minorVer = (outArray[9] << 8) | outArray[8];
-      node->_patchVer = (outArray[11] << 8) | outArray[10];
+      node->_majorVer = outArray[3];
+      node->_minorVer = outArray[4];
+      node->_patchVer = outArray[5];
       node->resFlag = 1;
       break;
     }
@@ -159,15 +160,15 @@ void RSproto::parseRx(int * outArray) {
       break;
     }
     case EXIORDD: {
-      for (int i = 0; i < (node->_numDigitalPins+7)/8; i=i+2) {
-        node->_digitalInputStates[i-3] = (outArray[i+1] << 8) | outArray[i];
+      for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
+        node->_digitalInputStates[i] = outArray[i+3];
       }
       node->resFlag = 1;
       break;
     }
     case EXIORDAN: {
-      for (int i = 3; i < node->_numAnaloguePins*2; i++) {
-        node->_analogueInputBuffer[i-3] = (outArray[i+1] << 8) | outArray[i];
+      for (int i = 0; i < node->_numAnaloguePins; i++) {
+        node->_analogueInputBuffer[i] = outArray[i+3];
       }
       node->resFlag = 1;
       break;
@@ -220,43 +221,87 @@ uint16_t RSproto::crc16(uint8_t *data, uint16_t length) {
   return crc;
 }
 
-void RSproto::sendInstantCommand(int *buf) {
+void RSproto::sendInstantCommand(uint8_t *buf, int byteCount) {
   // Calculate CRC for response data
-  uint16_t response_crc = crc16((uint8_t*)buf, ARRAY_SIZE);
+  uint16_t response_crc = crc16((uint8_t*)buf, byteCount-1);
   if (_txPin != -1) digitalWrite(_txPin,HIGH);
   // Send response data with CRC
-  for (int i = 0; i < ARRAY_SIZE; i++) {
+  _serial->write(0xFE);
+  _serial->write(0xFE);
+  _serial->write(response_crc >> 8);
+  _serial->write(response_crc & 0xFF);
+  _serial->write(byteCount);
+  for (int i = 0; i < byteCount; i++) {
     _serial->write(buf[i]);
 
   }
-  _serial->write(response_crc >> 8);
-  _serial->write(response_crc & 0xFF);
+  _serial->write(0xFD);
+  _serial->write(0xFD);
   _serial->flush();
   if (_txPin != -1) digitalWrite(_txPin,LOW);
   // delete task command after sending, for now
 
-  DIAG(F("SA: %I"),_serial->available());
-  if (_serial->available() >= ARRAY_SIZE) {
-    int received_data[ARRAY_SIZE];
-
-    // Read data and CRC
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-      received_data[i] = _serial->read();
-    }
-    uint16_t received_crc = (_serial->read() << 8) | _serial->read();
-
-    // Calculate CRC for received data
-    uint16_t calculated_crc = crc16((uint8_t*)received_data, ARRAY_SIZE);
-
-    // Check CRC validity
-    if (calculated_crc == received_crc) {
-      // Data received successfully, process it (e.g., print)
-      int nodeTo = (received_data[1] << 8) | received_data[0];
-      if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
-        parseRx(received_data);
+  //int received_data[ARRAY_SIZE];
+  uint16_t received_crc;
+  while(_serial->available()) {
+    if (_serial->available()) {
+      uint8_t received_data[ARRAY_SIZE];
+    
+      uint16_t calculated_crc;
+      int byteCount = 100;
+      
+      int curByte = _serial->read();
+      
+      if (curByte == 0xFE && flagStart == false) flagStart = true;
+      else if ( curByte == 0xFE && flagStart == true) {
+        byteCounter = 0;
+        flagStarted = true;
+        flagStart = false;
+        flagEnded = false;
+        rxStart = true;
+        rxEnd = false;
+        crcPass = false;
+      }else if (flagStarted) {
+        crc[0] = curByte;
+        byteCounter++;
+        flagStarted = false;
+      } else if (byteCounter == 1) {
+        crc[1] = curByte;
+        received_crc  = (crc[0] << 8) | crc[1];
+        byteCounter++;
+      } else if (byteCounter == 2) {
+        byteCount = curByte;
+        byteCounter++;
+      } else if (flagEnded == false && byteCounter >= 3) {
+        received_data[byteCounter-3] = curByte;
+        byteCounter++;
       }
-    } else {
-      DIAG(F("IO_RSproto: CRC Error!"));
+      if (curByte == 0xFD && flagEnd == false) flagEnd = true;
+      else if ( curByte == 0xFD && flagEnd == true) {
+        flagEnded = true;
+        flagEnd = false;
+        rxEnd = true;
+        byteCount = byteCounter;
+        byteCounter = 0;
+      }
+      if (flagEnded) {
+        calculated_crc = crc16((uint8_t*)received_data, byteCount-6);
+        if (received_crc == calculated_crc) {
+          crcPass = true;
+          DIAG(F("CRC PASS"));
+        }
+        flagEnded = false;
+      }
+      // Check CRC validity
+      if (crcPass) {
+        // Data received successfully, process it (e.g., print)
+        int nodeTo = (received_data[1] << 8) | received_data[0];
+        if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
+          parseRx(received_data);
+        }
+      } else {
+        //DIAG(F("IO_RSproto: CRC Error!"));
+      }
     }
   }
 }
@@ -271,45 +316,88 @@ void RSproto::_loop(unsigned long currentMicros) {
 
   if (_currentMicros - _cycleStartTime < _cycleTime) return;
   _cycleStartTime = _currentMicros;
-  if (_currentTask != NULL && _currentTask->commandArray[0] != 0) {
+  if (_currentTask != NULL && _currentTask->_byteCount > 0) {
     
     // Calculate CRC for response data
-    uint16_t response_crc = crc16((uint8_t*)_currentTask->commandArray, ARRAY_SIZE);
+    
+    uint16_t response_crc = crc16((uint8_t*)_currentTask->commandArray, _currentTask->_byteCount-6);
     if (_txPin != -1) digitalWrite(_txPin,HIGH);
     // Send response data with CRC
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-      _serial->write(_currentTask->commandArray[i]);
-    }
+    _serial->write(0xFE);
+    _serial->write(0xFE);
     _serial->write(response_crc >> 8);
     _serial->write(response_crc & 0xFF);
+    _serial->write(_currentTask->_byteCount);
+    for (int i = 0; i < _currentTask->_byteCount; i++) {
+      _serial->write(_currentTask->commandArray[i]);
+    }
+    _serial->write(0xFD);
+    _serial->write(0xFD);
     _serial->flush();
     if (_txPin != -1) digitalWrite(_txPin,LOW);
     // delete task command after sending, for now
-    memset(_currentTask->commandArray, 0, ARRAY_SIZE);
-    _currentTask->_commandSize = 0;
+    memset(_currentTask->commandArray, 0, _currentTask->_byteCount);
+    _currentTask->_byteCount = 0;
   }
 
-  if (_serial->available() >= ARRAY_SIZE) {
-    int received_data[ARRAY_SIZE];
-
-    // Read data and CRC
-    for (int i = 0; i < ARRAY_SIZE; i++) {
-      received_data[i / sizeof(int)] = _serial->read();
+  if (_serial->available()) {
+    uint8_t received_data[ARRAY_SIZE];
+    
+    uint16_t calculated_crc;
+    int byteCount = 100;
+    
+    uint8_t byte_array[byteCount];
+    int curByte = _serial->read();
+    
+    if (curByte == 0xFE && flagStart == false) flagStart = true;
+    else if ( curByte == 0xFE && flagStart == true) {
+      byteCounter = 0;
+      flagStarted = true;
+      flagStart = false;
+      flagEnded = false;
+      rxStart = true;
+      rxEnd = false;
+      crcPass = false;
+    }else if (flagStarted) {
+      crc[0] = curByte;
+      byteCounter++;
+      flagStarted = false;
+    } else if (byteCounter == 1) {
+      crc[1] = curByte;
+      received_crc  = (crc[0] << 8) | crc[1];
+      byteCounter++;
+    } else if (byteCounter == 2) {
+      byteCount = curByte;
+      byteCounter++;
+    } else if (flagEnded == false && byteCounter >= 3) {
+      received_data[byteCounter-3] = curByte;
+      byteCounter++;
     }
-    uint16_t received_crc = (_serial->read() << 8) | _serial->read();
-
-    // Calculate CRC for received data
-    uint16_t calculated_crc = crc16((uint8_t*)received_data, ARRAY_SIZE);
-
+    if (curByte == 0xFD && flagEnd == false) flagEnd = true;
+    else if ( curByte == 0xFD && flagEnd == true) {
+      flagEnded = true;
+      flagEnd = false;
+      rxEnd = true;
+      byteCount = byteCounter;
+      byteCounter = 0;
+    }
+    if (flagEnded) {
+      calculated_crc = crc16((uint8_t*)received_data, byteCount-6);
+      if (received_crc == calculated_crc) {
+        DIAG(F("CRC PASS"));
+        crcPass = true;
+      }else DIAG(F("CRC Fail %x %x"),received_crc,calculated_crc);
+      flagEnded = false;
+    }
     // Check CRC validity
-    if (calculated_crc == received_crc) {
+    if (crcPass) {
       // Data received successfully, process it (e.g., print)
-      int nodeTo = (received_data[1] << 8) | received_data[0];
+      int nodeTo = received_data[0];
       if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
         parseRx(received_data);
       }
     } else {
-      DIAG(F("IO_RSproto: CRC Error!"));
+      //DIAG(F("IO_RSproto: CRC Error!"));
     }
   }
 
@@ -355,21 +443,16 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     int pin = vpin - _firstVpin;
     
     uint8_t pullup = (uint8_t)params[0];
-    int buff[ARRAY_SIZE];
-    buff[0] = highByte(_nodeID);
-    buff[1] = lowByte(_nodeID);
-    buff[2] = highByte(0);
-    buff[3] = lowByte(0);
-    buff[4] = highByte(EXIODPUP);
-    buff[5] = lowByte(EXIODPUP);
-    buff[6] = highByte(pin);
-    buff[7] = lowByte(pin);
-    buff[8] = highByte(pullup);
-    buff[9] = lowByte(pullup);
+    uint8_t buff[ARRAY_SIZE];
+    buff[0] = (_nodeID);
+    buff[1] = (0);
+    buff[2] = (EXIODPUP);
+    buff[3] = (pin);
+    buff[4] = (pullup);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
     bus->_busy = true;
-    bus->sendInstantCommand(buff);
+    bus->sendInstantCommand(buff, 5);
     bus->_busy = false;
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
@@ -383,21 +466,17 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   int RSprotonode::_configureAnalogIn(VPIN vpin) {
     int pin = vpin - _firstVpin;
     //RSproto *mainrs = RSproto::findBus(_busNo);
-    int buff[ARRAY_SIZE];
-    buff[0] = highByte(_nodeID);
-    buff[1] = lowByte(_nodeID);
-    buff[2] = highByte(0);
-    buff[3] = lowByte(0);
-    buff[4] = highByte(EXIOENAN);
-    buff[5] = lowByte(EXIOENAN);
-    buff[6] = highByte(pin);
-    buff[7] = lowByte(pin);
-    buff[8] = highByte(_firstVpin);
-    buff[9] = lowByte(_firstVpin);
+    uint8_t buff[ARRAY_SIZE];
+    buff[0] = (_nodeID);
+    buff[1] = (0);
+    buff[2] = (EXIOENAN);
+    buff[3] = (pin);
+    buff[4] = highByte(_firstVpin);
+    buff[5] = lowByte(_firstVpin);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
     bus->_busy = true;
-    bus->sendInstantCommand(buff);
+    bus->sendInstantCommand(buff, 6);
     bus->_busy = false;
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
@@ -409,52 +488,42 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   }
 
 void RSprotonode::_begin() {
-  int buff[ARRAY_SIZE];
-  buff[0] = highByte(_nodeID);
-  buff[1] = lowByte(_nodeID);
-  buff[2] = highByte(0);
-  buff[3] = lowByte(0);
-  buff[4] = highByte(EXIOINIT);
-  buff[5] = lowByte(EXIOINIT);
-  buff[6] = highByte(_nPins);
-  buff[7] = lowByte(_nPins);
-  buff[8] = highByte((_firstVpin & 0xFF));
-  buff[9] = lowByte((_firstVpin >> 8));
+  uint8_t buff[ARRAY_SIZE];
+  buff[0] = (_nodeID);
+  buff[1] = (0);
+  buff[2] = (EXIOINIT);
+  buff[3] = (_nPins);
+  buff[4] = ((_firstVpin & 0xFF));
+  buff[5] = ((_firstVpin >> 8));
   unsigned long startMillis = millis();
   RSproto *bus = RSproto::findBus(0);
   bus->_busy = true;
-  bus->sendInstantCommand(buff);
+  bus->sendInstantCommand(buff, 6);
   bus->_busy = false;
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINIT"), _nodeID);
   }
   resFlag = 0;
-  buff[0] = highByte(_nodeID);
-  buff[1] = lowByte(_nodeID);
-  buff[2] = highByte(0);
-  buff[3] = lowByte(0);
-  buff[4] = highByte(EXIOINITA);
-  buff[5] = lowByte(EXIOINITA);
+  buff[0] = (_nodeID);
+  buff[1] = (0);
+  buff[2] = (EXIOINITA);
   startMillis = millis();
   bus->_busy = true;
-      bus->sendInstantCommand(buff);
+      bus->sendInstantCommand(buff,3);
       bus->_busy = false;
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOINITA"), _nodeID);
   }
   resFlag = 0;
-  buff[0] = highByte(_nodeID);
-  buff[1] = lowByte(_nodeID);
-  buff[2] = highByte(0);
-  buff[3] = lowByte(0);
-  buff[4] = highByte(EXIOVER);
-  buff[5] = lowByte(EXIOVER);
+  buff[0] = (_nodeID);
+  buff[1] = (0);
+  buff[2] = (EXIOVER);
   startMillis = millis();
    bus->_busy = true;
-      bus->sendInstantCommand(buff);
-      bus->_busy = false;   task->doCommand(bus->taskCounter++, buff);
+      bus->sendInstantCommand(buff,3);
+      bus->_busy = false;
   while (resFlag == 0 && millis() - startMillis < 1000); // blocking for now
   if (resFlag != 1) {
     DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
@@ -477,20 +546,15 @@ int RSprotonode::_read(VPIN vpin) {
 void RSprotonode::_write(VPIN vpin, int value) {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
-    int buff[ARRAY_SIZE];
-    buff[0] = highByte(_nodeID);
-    buff[1] = lowByte(_nodeID);
-    buff[2] = highByte(0);
-    buff[3] = lowByte(0);
-    buff[4] = highByte(EXIOWRD);
-    buff[5] = lowByte(EXIOWRD);
-    buff[6] = highByte(pin);
-    buff[7] = lowByte(pin);
-    buff[8] = highByte(value);
-    buff[9] = lowByte(value);
+    uint8_t buff[ARRAY_SIZE];
+    buff[0] = (_nodeID);
+    buff[1] = (0);
+    buff[2] = (EXIOWRD);
+    buff[3] = (pin);
+    buff[4] = (value);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-      task->doCommand(bus->taskCounter++, buff);
+      task->doCommand(bus->taskCounter++, buff,5);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);
@@ -513,24 +577,19 @@ void RSprotonode::_write(VPIN vpin, int value) {
 
   void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     int pin = vpin - _firstVpin;
-    int buff[ARRAY_SIZE];
-    buff[0] = highByte(_nodeID);
-    buff[1] = lowByte(_nodeID);
-    buff[2] = highByte(0);
-    buff[3] = lowByte(0);
-    buff[4] = highByte(EXIOWRAN);
-    buff[5] = lowByte(EXIOWRAN);
-    buff[6] = highByte(pin);
-    buff[7] = lowByte(pin);
-    buff[8] = highByte(value);
-    buff[9] = lowByte(value);
-    buff[8] = highByte(profile);
-    buff[9] = lowByte(profile);
-    buff[8] = highByte(duration);
-    buff[9] = lowByte(duration);
+    uint8_t buff[ARRAY_SIZE];
+    buff[0] = (_nodeID);
+    buff[1] = (0);
+    buff[2] = (EXIOWRAN);
+    buff[3] = (pin);
+    buff[4] = highByte(value);
+    buff[5] = lowByte(value);
+    buff[6] = (profile);
+    buff[7] = highByte(duration);
+    buff[8] = lowByte(duration);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-      task->doCommand(bus->taskCounter++, buff);
+      task->doCommand(bus->taskCounter++, buff,9);
     while (resFlag == 0 && millis() - startMillis < 500); // blocking for now
     if (resFlag != 1) {
       DIAG(F("EX-IOExpander485 Node:%d ERROR EXIOVER"), _nodeID);

@@ -98,7 +98,7 @@ public:
   uint8_t endChar[1] = {0xFE};
 
   int commandArray[ARRAY_SIZE];
-  int _commandSize = 0;
+  int _byteCount = 0;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -144,9 +144,9 @@ public:
       end->setNext(newTask);
   //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
-  taskBuffer(unsigned long taskID, int *commandBuffer);
+  taskBuffer(unsigned long taskID, uint8_t *commandBuffer, int byteCount);
   ~taskBuffer();
-  void doCommand(unsigned long taskID, int *commandBuffer);
+  void doCommand(unsigned long taskID, uint8_t *commandBuffer, int byteCount);
 };
 
 
@@ -309,13 +309,22 @@ private:
     if (fail)
     _deviceState = DEVSTATE_FAILED;
   }
-  
+  int byteCounter = 0;
 public:
+bool flagEnd = false;
+bool flagEnded = false;
+bool flagStart = false;
+bool flagStarted = false;
+bool rxStart = false;
+bool rxEnd = false;
+bool crcPass = false;
+uint16_t received_crc;
+uint8_t crc[2];
 uint16_t crc16(uint8_t *data, uint16_t length);
   void remove_nulls(char *str, int len);
   int getCharsLeft(char *str, char position);
-  void parseRx(int * outArray);
-  void sendInstantCommand(int *buf);
+  void parseRx(uint8_t * outArray);
+  void sendInstantCommand(uint8_t *buf, int byteCount);
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
