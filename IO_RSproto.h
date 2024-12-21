@@ -99,6 +99,7 @@ public:
 
   int commandArray[ARRAY_SIZE];
   int _byteCount = 0;
+  uint8_t _retFlag = 0;
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -144,9 +145,9 @@ public:
       end->setNext(newTask);
   //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
-  taskBuffer(unsigned long taskID, uint8_t *commandBuffer, int byteCount);
+  taskBuffer(unsigned long taskID, uint8_t *commandBuffer, int byteCount, uint8_t retFlag);
   ~taskBuffer();
-  void doCommand(unsigned long taskID, uint8_t *commandBuffer, int byteCount);
+  void doCommand(unsigned long taskID, uint8_t *commandBuffer, int byteCount, uint8_t retFlag);
 };
 
 
@@ -210,7 +211,7 @@ public:
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
   uint8_t* _analoguePinMap = NULL;
-  int  resFlag = 0;
+  int  resFlag[255];
   bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
     if (checkNoOverlap(firstVpin, nPins)) new RSprotonode(firstVpin, nPins, nodeID);
@@ -248,7 +249,7 @@ public:
   }
  
   void _display() override {
-    DIAG(F("EX-IOExpander485 node:%d v%d.%d.%d Vpins %u-%u %S"), _nodeID, _majorVer, _minorVer, _patchVer, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
+    DIAG(F("EX-IOExpander485 node:%d Vpins %u-%u %S"), _nodeID, (int)_firstVpin, (int)_firstVpin+_nPins-1, _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
   
 };
@@ -318,13 +319,15 @@ bool flagStarted = false;
 bool rxStart = false;
 bool rxEnd = false;
 bool crcPass = false;
+bool flagProc = false;
+uint8_t received_data[ARRAY_SIZE];
 uint16_t received_crc;
 uint8_t crc[2];
 uint16_t crc16(uint8_t *data, uint16_t length);
   void remove_nulls(char *str, int len);
   int getCharsLeft(char *str, char position);
-  void parseRx(uint8_t * outArray);
-  void sendInstantCommand(uint8_t *buf, int byteCount);
+  void parseRx(uint8_t * outArray, uint8_t retFlag);
+  void sendInstantCommand(uint8_t *buf, int byteCount, uint8_t retFlag);
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
