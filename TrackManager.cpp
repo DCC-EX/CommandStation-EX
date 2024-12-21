@@ -361,6 +361,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       track[trackToSet]->setPower(POWERMODE::OFF);
     streamTrackState(NULL,trackToSet);
 
+#ifndef DISABLE_PROG
+    // If no prog track exists, the join flag should not say that
+    // the prog track is joined either, so clear flag here
+    if (getProgDriver() == NULL) progTrackSyncMain=false;
+#endif
+
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
 }
