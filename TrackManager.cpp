@@ -356,17 +356,24 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         applyDCSpeed(trackToSet);
     }
 
-    // Turn off power if we changed the mode of this track
-    if (mode != oldmode)
-      track[trackToSet]->setPower(POWERMODE::OFF);
-    streamTrackState(NULL,trackToSet);
-
+#ifdef ARDUINO_ARCH_ESP32
 #ifndef DISABLE_PROG
-    // If no prog track exists, the join flag should not say that
-    // the prog track is joined either, so clear flag here
-    if (getProgDriver() == NULL) progTrackSyncMain=false;
+    if (tempProgTrack == trackToSet && oldmode & TRACK_MODE_MAIN && !(mode & TRACK_MODE_PROG)) {
+      // If we just take away the prog track, the join should not
+      // be active either. So do in effect an unjoin
+      //DIAG(F("Unsync"));
+      tempProgTrack = MAX_TRACKS+1;
+      progTrackSyncMain=false;
+      if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,LOW);
+    }
 #endif
+#endif
+    // Turn off power if we changed the mode of this track
+    if (mode != oldmode) {
+      track[trackToSet]->setPower(POWERMODE::OFF);
+    }
 
+    streamTrackState(NULL,trackToSet);
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
 }
