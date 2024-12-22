@@ -37,7 +37,7 @@ RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8
   
   _txPin = txPin;
   _busNo = busNo;
-  _cycleTime = cycleTime;
+  _cycleTime = cycleTime * 1000UL;
   bufferLength=0;
   inCommandPayload=PAYLOAD_FALSE;
   // Add device to HAL device chain
@@ -74,199 +74,233 @@ uint16_t RSproto::crc16(uint8_t *data, uint16_t length) {
 void RSproto::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
   //if (_busy == true) return;
-  if (_currentMicros - _cycleStartTime < _cycleTime) return;
-  _cycleStartTime = _currentMicros;
+ 
   
-  Task currentTask = getNextTask(); 
-  if (currentTask.completed != true) { // Check if a task was found
-    
-    // Calculate CRC for response data
-    if (!currentTask.rxMode) {
-      currentTask.crcPassFail = 0;
-      uint16_t response_crc = crc16((uint8_t*)currentTask.commandArray, currentTask.byteCount-1);
+  if ( hasTasks()){
+    Task* currentTask = getTaskById(getNextTaskId());
+  if (currentTask == nullptr) return;
+    if (!currentTask->rxMode) { // Check if a task was found
+      currentTask->crcPassFail = 0;
+      uint16_t response_crc = crc16((uint8_t*)currentTask->commandArray, currentTask->byteCount-1);
       if (_txPin != -1) digitalWrite(_txPin,HIGH);
       // Send response data with CRC
       _serial->write(0xFE);
       _serial->write(0xFE);
       _serial->write(response_crc >> 8);
       _serial->write(response_crc & 0xFF);
-      _serial->write(currentTask.byteCount);
-      for (int i = 0; i < currentTask.byteCount; i++) {
-        _serial->write(currentTask.commandArray[i]);
+      _serial->write(currentTask->byteCount);
+      for (int i = 0; i < currentTask->byteCount; i++) {
+        _serial->write(currentTask->commandArray[i]);
       }
       _serial->write(0xFD);
       _serial->write(0xFD);
       _serial->flush();
       if (_txPin != -1) digitalWrite(_txPin,LOW);
       // delete task command after sending, for now
-      markTaskCompleted(currentTask.taskID);
-    }
+      currentTask->rxMode = true;
+      
+    } else if (currentTask->rxMode) {
+      if (_serial->available() && currentTask->rxMode) {
+        
+        
+        uint16_t calculated_crc;
+        int byteCount = 100;
+        
+        uint8_t byte_array[byteCount];
+        int curByte = _serial->read();
+        
+        if (curByte == 0xFE && flagStart == false) flagStart = true;
+        else if ( curByte == 0xFE && flagStart == true) {
+          flagProc = false;
+          byteCounter = 0;
+          flagStarted = true;
+          flagStart = false;
+          flagEnded = false;
+          rxStart = true;
+          rxEnd = false;
+          crcPass = false;
+          memset(received_data, 0, ARRAY_SIZE);
+        }else if (flagStarted) {
+          crc[0] = curByte;
+          byteCounter++;
+          flagStarted = false;
+        } else if (byteCounter == 1) {
+          crc[1] = curByte;
+          received_crc  = (crc[0] << 8) | crc[1];
+          byteCounter++;
+        } else if (byteCounter == 2) {
+          byteCount = curByte;
+          byteCounter++;
+        } else if (flagEnded == false && byteCounter >= 3) {
+          received_data[byteCounter-3] = curByte;
+          byteCounter++;
+        }
+        if (curByte == 0xFD && flagEnd == false) flagEnd = true;
+        else if ( curByte == 0xFD && flagEnd == true) {
+          flagEnded = true;
+          flagEnd = false;
+          rxEnd = true;
+          byteCount = byteCounter;
+          byteCounter = 0;
+        }
+        if (flagEnded) {
+          calculated_crc = crc16((uint8_t*)received_data, byteCount-6);
+          if (received_crc == calculated_crc) {
+            //DIAG(F("Loop CRC PASS"));
+            crcPass = true;
+            currentTask->crcPassFail = 1;
+          }else {
+            //DIAG(F("Loop CRC Fail %x %x"),received_crc,calculated_crc);
+            currentTask->processed = true;
 
-    if (_serial->available() && currentTask.rxMode) {
-      
-      
-      uint16_t calculated_crc;
-      int byteCount = 100;
-      
-      uint8_t byte_array[byteCount];
-      int curByte = _serial->read();
-      
-      if (curByte == 0xFE && flagStart == false) flagStart = true;
-      else if ( curByte == 0xFE && flagStart == true) {
-        flagProc = false;
-        byteCounter = 0;
-        flagStarted = true;
-        flagStart = false;
-        flagEnded = false;
-        rxStart = true;
-        rxEnd = false;
-        crcPass = false;
-      }else if (flagStarted) {
-        crc[0] = curByte;
-        byteCounter++;
-        flagStarted = false;
-      } else if (byteCounter == 1) {
-        crc[1] = curByte;
-        received_crc  = (crc[0] << 8) | crc[1];
-        byteCounter++;
-      } else if (byteCounter == 2) {
-        byteCount = curByte;
-        byteCounter++;
-      } else if (flagEnded == false && byteCounter >= 3) {
-        received_data[byteCounter-3] = curByte;
-        byteCounter++;
-      }
-      if (curByte == 0xFD && flagEnd == false) flagEnd = true;
-      else if ( curByte == 0xFD && flagEnd == true) {
-        flagEnded = true;
-        flagEnd = false;
-        rxEnd = true;
-        byteCount = byteCounter;
-        byteCounter = 0;
-      }
-      if (flagEnded) {
-        calculated_crc = crc16((uint8_t*)received_data, byteCount-7);
-        if (received_crc == calculated_crc) {
-          DIAG(F("Loop CRC PASS"));
-          crcPass = true;
-          currentTask.crcPassFail = 1;
-        }else {
-          DIAG(F("Loop CRC Fail %x %x"),received_crc,calculated_crc);
-          currentTask.crcPassFail = -1;
-        } 
-        flagEnded = false;
+            currentTask->crcPassFail = -1;
+          } 
+          flagEnded = false;
         
 
+        }
+        // Check CRC validity
+        if (crcPass) {
+          // Data received successfully, process it (e.g., print)
+          int nodeTo = received_data[0];
+          if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
+            flagProc = true;
+            currentTask->gotCallback = true;
+          
+          }
+          
+        } else {
+          //DIAG(F("IO_RSproto: CRC Error!"));
+        }
       }
-      // Check CRC validity
-      if (crcPass) {
-        // Data received successfully, process it (e.g., print)
+
+      // temp debug
+      
+
+      if (flagProc) {
         int nodeTo = received_data[0];
-        if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
-          flagProc = true;
-          currentTask.gotCallback = true;
+        int nodeFr = received_data[1];
+        RSprotonode *node = findNode(nodeFr);
+        //DIAG(F("Node from %i %i"), nodeFr, node->getNodeID());
+        int AddrCode = received_data[2];
+        //DIAG(F("From: %i, To: %i | %i %i %i %i %i"), nodeFr,nodeTo, received_data[3], received_data[4], received_data[5], received_data[6],received_data[7]);
+        //return;
         
-        }
-        
-      } else {
-        //DIAG(F("IO_RSproto: CRC Error!"));
-      }
-    }
+        switch (AddrCode) {
+          case EXIOPINS:
+            {node->setnumDigitalPins(received_data[3]);
+            node->setnumAnalogPins(received_data[4]);
 
-    // temp debug
-    
-    //end debug
-
-    if (flagProc) {
-      int nodeTo = received_data[0];
-      int nodeFr = received_data[1];
-      int AddrCode = received_data[2];
-      //DIAG(F("From: %i, To: %i | %i %i %i %i %i"), nodeFr,nodeTo, received_data[3], received_data[4], received_data[5], received_data[6],received_data[7]);
-      //return;
-      RSprotonode *node = findNode(nodeFr);
-      switch (AddrCode) {
-        case EXIOPINS:
-          {node->setnumDigitalPins(received_data[3]);
-          node->setnumAnalogPins(received_data[4]);
-
-          // See if we already have suitable buffers assigned
-          if (node->getnumDigialPins()>0) {
-            size_t digitalBytesNeeded = (node->getnumDigialPins() + 7) / 8;
-            if (node->getdigitalPinBytes() < digitalBytesNeeded) {
-              // Not enough space, free any existing buffer and allocate a new one
-              if (node->cleandigitalPinStates(digitalBytesNeeded)) {
-                node->setdigitalPinBytes(digitalBytesNeeded);
-              } else {
-                DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), nodeFr, digitalBytesNeeded);
-                //_deviceState = DEVSTATE_FAILED;
-                node->setdigitalPinBytes(0);
-                return;
+            // See if we already have suitable buffers assigned
+            if (node->getnumDigialPins()>0) {
+              size_t digitalBytesNeeded = (node->getnumDigialPins() + 7) / 8;
+              if (node->getdigitalPinBytes() < digitalBytesNeeded) {
+                // Not enough space, free any existing buffer and allocate a new one
+                if (node->cleandigitalPinStates(digitalBytesNeeded)) {
+                  node->setdigitalPinBytes(digitalBytesNeeded);
+                } else {
+                  DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), nodeFr, digitalBytesNeeded);
+                  //_deviceState = DEVSTATE_FAILED;
+                  node->setdigitalPinBytes(0);
+                }
               }
             }
-          }
-          
-          if (node->getnumAnalogPins()>0) {
-            size_t analogueBytesNeeded = node->getnumAnalogPins() * 2;
-            if (node->getanalogPinBytes() < analogueBytesNeeded) {
-              // Free any existing buffers and allocate new ones.
-              
-              if (node->cleanAnalogStates(analogueBytesNeeded)) {
-                node->setanalogPinBytes(analogueBytesNeeded);
-              } else {
-                DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), nodeFr);
-                //_deviceState = DEVSTATE_FAILED;
-                node->setanalogPinBytes(0);
-                return;
+            
+            if (node->getnumAnalogPins()>0) {
+              size_t analogueBytesNeeded = node->getnumAnalogPins() * 2;
+              if (node->getanalogPinBytes() < analogueBytesNeeded) {
+                // Free any existing buffers and allocate new ones.
+                
+                if (node->cleanAnalogStates(analogueBytesNeeded)) {
+                  node->setanalogPinBytes(analogueBytesNeeded);
+                } else {
+                  DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), nodeFr);
+                  //_deviceState = DEVSTATE_FAILED;
+                  node->setanalogPinBytes(0);
+                }
               }
             }
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;}
+          case EXIOINITA: {
+            for (int i = 0; i < node->getnumAnalogPins(); i++) {
+              node->setanalogPinMap(received_data[i+3], i);
+            }
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;
           }
-          node->resFlag[currentTask.retFlag] = 1;
-          break;}
-        case EXIOINITA: {
-          for (int i = 0; i < node->getnumAnalogPins(); i++) {
-            node->setanalogPinMap(received_data[i+3], i);
+          case EXIOVER: {
+            node->setMajVer(received_data[3]);
+            node->setMinVer(received_data[4]);
+            node->setPatVer(received_data[5]);
+            DIAG(F("EX-IOExpander485: Found node %i v%i.%i.%i"),nodeFr, node->getMajVer(), node->getMinVer(), node->getPatVer());
+            //if (!_currentNode->isInitialised()) {
+              //_currentNode->setInitialised();
+              //DIAG(F("EX-IOExpander485: Initialized  Node:%d "),  nodeFr);         
+            //}
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;
           }
-          node->resFlag[currentTask.retFlag] = 1;
-          break;
-        }
-        case EXIOVER: {
-          node->setMajVer(received_data[3]);
-          node->setMinVer(received_data[4]);
-          node->setPatVer(received_data[5]);
-          DIAG(F("EX-IOExpander485: Found node %i v%i.%i.%i"),node->getNodeID(), node->getMajVer(), node->getMinVer(), node->getPatVer());
-          node->resFlag[currentTask.retFlag] = 1;
-          break;
-        }
-        case EXIORDY: {
-          node->resFlag[currentTask.retFlag] = 1;
-          break;
-        }
-        case EXIOERR: {
-          node->resFlag[currentTask.retFlag] = -1;
-          break;
-        }
-        case EXIORDD: {
-          for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
-            node->setanalogInputStates(received_data[i+3], i);
+          case EXIORDY: {
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;
           }
-          node->resFlag[currentTask.retFlag] = 1;
-          break;
-        }
-        case EXIORDAN: {
-          for (int i = 0; i < node->_numAnaloguePins; i++) {
-            node->setanalogInputBuffer(received_data[i+3], i);
+          case EXIOERR: {
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = -1;
+            DIAG(F("Some sort of error was received... WHAT DID YOU DO!"));
+            break;
           }
-          
-          node->resFlag[currentTask.retFlag] = 1;
-          break;
+          case EXIORDD: {
+            for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
+              node->setanalogInputStates(received_data[i+3], i);
+            }
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;
+          }
+          case EXIORDAN: {
+            for (int i = 0; i < node->_numAnaloguePins; i++) {
+              node->setanalogInputBuffer(received_data[i+3], i);
+            }
+            currentTask->processed = true;
+            node->resFlag[currentTask->retFlag] = 1;
+            break;
+          }
         }
+        
       }
-      
-    }
-    if (currentTask.gotCallback) {
-      
-   }
+      flagProc = false;
 
+    }
+    if (currentTask->processed) {
+      markTaskCompleted(currentTask->taskID);
+    }
+  }
+  
+
+  if (_currentMicros - _cycleStartTime >= _cycleTime/* && _currentNode->isInitialised()*/) {
+    _cycleStartTime = _currentMicros;
+    if (_currentNode == NULL) _currentNode = _nodeListStart;
+    RSproto *bus = RSproto::findBus(0);
+    uint8_t buffB[3];
+    buffB[0] = (_currentNode->getNodeID());
+    buffB[1] = (0);
+    buffB[2] = (EXIORDD);
+    bus->setBusy();
+    bus->addTask(buffB, 3, EXIORDD);
+
+    buffB[0] = (_currentNode->getNodeID());
+    buffB[1] = (0);
+    buffB[2] = (EXIORDD);
+    bus->setBusy();
+    bus->addTask(buffB, 3, EXIORDAN);
+    _currentNode = _currentNode->getNext();
+    //DIAG(F("Polling"));
   }
 }
 
@@ -287,6 +321,7 @@ RSprotonode::RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID) {
   _nPins = nPins;
   _busNo = 0;
   _nodeID = nodeID;
+  _initialised = false;
   memset(resFlag, 0, 255);
   //bus = bus->findBus(0);
   //_serial = bus->_serialD;
@@ -318,9 +353,8 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     buff[4] = (pullup);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-    bus->_busy = true;
-    bus->addTask(bus->taskIDCntr++, buff, 5, EXIODPUP);
-    bus->_busy = false;
+    bus->setBusy();
+    bus->addTask(buff, 5, EXIODPUP);
     
     return true;
   }
@@ -337,11 +371,10 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     buff[5] = lowByte(_firstVpin);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-    bus->_busy = true;
-    bus->addTask(bus->taskIDCntr++, buff, 6, EXIOENAN);
-    bus->_busy = false;
+    bus->setBusy();
+    bus->addTask(buff, 6, EXIOENAN);
     
-    return true;
+    return false;
   }
 
 void RSprotonode::_begin() {
@@ -354,28 +387,26 @@ void RSprotonode::_begin() {
   buff[5] = ((_firstVpin >> 8));
   unsigned long startMillis = millis();
   RSproto *bus = RSproto::findBus(0);
-  bus->_busy = true;
-  bus->addTask(bus->taskIDCntr++, buff, 6, EXIOINIT);
-  bus->_busy = false;
+  bus->initTask();
+  bus->setBusy();
+  bus->addTask(buff, 6, EXIOINIT);
   
   buff[0] = (_nodeID);
   buff[1] = (0);
   buff[2] = (EXIOINITA);
   startMillis = millis();
-  bus->_busy = true;
-  bus->addTask(bus->taskIDCntr++, buff, 3, EXIOINITA);
-  bus->_busy = false;
+  bus->setBusy();
+  bus->addTask(buff, 3, EXIOINITA);
   
   buff[0] = (_nodeID);
   buff[1] = (0);
   buff[2] = (EXIOVER);
   startMillis = millis();
-   bus->_busy = true;
-  bus->addTask(bus->taskIDCntr++, buff, 3, EXIOVER);
-  bus->_busy = false;
+   bus->setBusy();
+  bus->addTask(buff, 3, EXIOVER);
   
 
-
+  setInitialised();
 #ifdef DIAG_IO
   _display();
 #endif
@@ -399,7 +430,8 @@ void RSprotonode::_write(VPIN vpin, int value) {
     buff[4] = (value);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-    bus->addTask(bus->taskIDCntr++, buff, 5, EXIOWRD);
+    bus->setBusy();
+    bus->addTask(buff, 5, EXIOWRD);
     
   }
 
@@ -430,6 +462,7 @@ void RSprotonode::_write(VPIN vpin, int value) {
     buff[8] = lowByte(duration);
     unsigned long startMillis = millis();
     RSproto *bus = RSproto::findBus(0);
-    bus->addTask(bus->taskIDCntr++, buff, 9, EXIOWRAN);
+    bus->setBusy();
+    bus->addTask(buff, 9, EXIOWRAN);
     
   }

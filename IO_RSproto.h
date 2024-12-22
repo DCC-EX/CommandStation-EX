@@ -93,7 +93,7 @@ private:
   uint8_t _nodeID;
   char _type;
   RSprotonode *_next = NULL;
-  bool _initialised = false;
+  bool _initialised;
   RSproto *bus;
   HardwareSerial* _serial;
   enum {
@@ -286,7 +286,7 @@ private:
   int _operationCount = 0;
   int _refreshOperation = 0;
   byte bufferLength;
-  static const int ARRAY_SIZE = 254;
+  static const int ARRAY_SIZE = 75;
   int buffer[ARRAY_SIZE]; 
     byte inCommandPayload;
   static RSproto *_busList; // linked list of defined bus instances
@@ -329,42 +329,82 @@ struct Task {
     bool gotCallback;
     bool rxMode;
     int crcPassFail;
-    bool completed = false;
+    bool completed;
+    bool processed;
   };
+static const int MAX_TASKS = 100;
   int taskIDCntr = 0;
-Task taskBuffer[100]; // Buffer to hold up to 100 tasks
-int taskCount = 0;
-void addTask(int id, const uint8_t* cmd, int byteCount, uint8_t retFlag, bool gotCallBack=false, bool rxMode=false, int crcPassFail=0) {
-  if (taskCount < 100) { // Check if buffer is not full
-    taskBuffer[taskCount].taskID = id;
-    memcpy(taskBuffer[taskCount].commandArray, cmd, ARRAY_SIZE); 
-    taskBuffer[taskCount].commandArray[ARRAY_SIZE] = 0; // Ensure null-termination
-    taskBuffer[taskCount].byteCount = byteCount;
-    taskBuffer[taskCount].retFlag = retFlag;
-    taskBuffer[taskCount].gotCallback = false;
-    taskBuffer[taskCount].rxMode = false;
-    taskBuffer[taskCount].crcPassFail = 0;
-    taskBuffer[taskCount].completed = false;
-    taskCount++;
-  } else {
-    Serial.println("Task buffer overflow!");
+Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
+int currentTaskIndex = 0;
+void initTask() {
+  for (int i = 0; i <MAX_TASKS; i++) {
+    taskBuffer[i].completed = true;
+    taskBuffer[i].processed = false;
+    taskBuffer[i].byteCount = 0;
+    taskBuffer[i].crcPassFail = 0;
+    taskBuffer[i].gotCallback = false;
+    taskBuffer[i].retFlag = 0;
+    taskBuffer[i].rxMode = false;
+    taskBuffer[i].taskID = i;
+    memset(taskBuffer[i].commandArray,0,ARRAY_SIZE);
   }
 }
-Task getNextTask() {
-  for (int i = 0; i < taskCount; i++) {
-    if (!taskBuffer[i].completed) {
-      return taskBuffer[i]; 
+void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
+  // Find an empty slot in the buffer
+  int emptySlot = -1;
+  for (int i = 0; i < MAX_TASKS; i++) {
+    if (taskBuffer[i].completed) {
+      emptySlot = i;
+      break;
     }
   }
-  // Return a default task if no uncompleted tasks found
-  Task emptyTask; 
-  return emptyTask;
+  // If no empty slot found, return (buffer full)
+  if (emptySlot == -1) {
+    DIAG(F("Task Buffer Full!"));
+    return;
+  }
+  for (int i = 0; i < ARRAY_SIZE; i++) taskBuffer[emptySlot].commandArray[i] = cmd[i];
+  taskBuffer[emptySlot].byteCount = byteCount;
+  taskBuffer[emptySlot].retFlag = retFlag;
+  taskBuffer[emptySlot].rxMode = false;
+  taskBuffer[emptySlot].crcPassFail = 0;
+  taskBuffer[emptySlot].gotCallback = false;
+  taskBuffer[emptySlot].completed = false;
+  taskBuffer[emptySlot].processed = false;
+  currentTaskIndex = emptySlot; 
 }
-void markTaskCompleted(int taskID) {
-  for (int i = 0; i < taskCount; i++) {
-    if (taskBuffer[i].taskID == taskID) {
+bool hasTasks() {
+  for (int i = 0; i < MAX_TASKS; i++) {
+    if (!taskBuffer[i].completed) {
+      return true; // At least one task is not completed
+    }
+  }
+  return false; // All tasks are completed
+}
+// Function to get a specific task by ID
+Task* getTaskById(int id) {
+  for (int i = 0; i < MAX_TASKS; i++) {
+    if (taskBuffer[i].taskID == id) {
+      return &taskBuffer[i]; // Return a pointer to the task
+    }
+  }
+  return nullptr; // Task not found
+}
+// Function to get the next task (optional)
+int getNextTaskId() {
+  for (int i = 0; i < MAX_TASKS; i++) {
+    if (!taskBuffer[i].completed) {
+      return taskBuffer[i].taskID; 
+    }
+  }
+  return -1; // No tasks available
+}
+// Function to mark a task as completed
+void markTaskCompleted(int id) {
+  for (int i = 0; i < MAX_TASKS; i++) {
+    if (taskBuffer[i].taskID == id) {
       taskBuffer[i].completed = true;
-      break; 
+      break;
     }
   }
 }
@@ -408,6 +448,15 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   uint16_t _pin;
   int8_t _txPin;
   bool _busy = false;
+  void setBusy() {
+    _busy = true;
+  }
+  void clearBusy() {
+    _busy = false;
+  }
+  bool getBusy() {
+    return _busy;
+  }
   unsigned long _baud;
   int taskCnt = 0;
   uint8_t initBuffer[1] = {0xFE};
@@ -418,6 +467,7 @@ uint16_t crc16(uint8_t *data, uint16_t length);
     if (_txPin >0) {
       pinMode(_txPin, OUTPUT);
       digitalWrite(_txPin, LOW);
+      
     }
   #if defined(RSproto_STM_OK)
     pinMode(RSproto_STM_OK, OUTPUT);
