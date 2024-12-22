@@ -246,9 +246,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #endif
 #ifndef DISABLE_PROG
     if (mode & TRACK_MODE_PROG) {
-#else
-    if (false) {
-#endif
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
 	if ( (track[t]->getMode() & TRACK_MODE_PROG) && t != trackToSet) {
@@ -261,6 +258,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     } else {
       track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
+#endif
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
@@ -362,6 +360,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode != oldmode)
       track[trackToSet]->setPower(POWERMODE::OFF);
     streamTrackState(NULL,trackToSet);
+
+#ifndef DISABLE_PROG
+    // If no prog track exists, the join flag should not say that
+    // the prog track is joined either, so clear flag here
+    if (getProgDriver() == NULL) progTrackSyncMain=false;
+#endif
 
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
