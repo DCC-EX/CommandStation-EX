@@ -76,81 +76,6 @@ class RSprotonode;
  * Data Packet must always precede the parameters with the Command byte.
  * this way the data is processed by the correct routine.
  **********************************************************************/
-class taskBuffer
-{
-private:
-  HardwareSerial * hwSerial;
-  unsigned long _baud;
-  static const int ARRAY_SIZE = 254;
-public:
-  static taskBuffer *first;
-  static taskBuffer *end;
-  RSprotonode *node;
-  unsigned long _taskID;
-  Stream * serial;
-  uint8_t _txPin;
-  uint8_t _nodeID;
-  uint8_t _commandType;
-  unsigned long _cycleTimer = 0ul;
-  
-  taskBuffer *next;
-  uint8_t startChar[1] = {0xFD};
-  uint8_t endChar[1] = {0xFE};
-
-  int commandArray[ARRAY_SIZE];
-  int _byteCount = 0;
-  uint8_t _retFlag = 0;
-  // EX-IOExpander protocol flags
-  enum {
-    EXIOINIT = 0xE0,    // Flag to initialise setup procedure
-    EXIORDY = 0xE1,     // Flag we have completed setup procedure, also for EX-IO to ACK setup
-    EXIODPUP = 0xE2,    // Flag we're sending digital pin pullup configuration
-    EXIOVER = 0xE3,     // Flag to get version
-    EXIORDAN = 0xE4,    // Flag to read an analogue input
-    EXIOWRD = 0xE5,     // Flag for digital write
-    EXIORDD = 0xE6,     // Flag to read digital input
-    EXIOENAN = 0xE7,    // Flag to enable an analogue pin
-    EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
-    EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
-    EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
-    EXIOERR = 0xEF,     // Flag we've received an error
-  };
-  // RSproto protocol frame bytes
-  enum {
-    STARTBYTE = 0xFD,
-    ENDBYTE = 0xFE,
-  };
-  
-  
-
-  unsigned long getTaskID() {
-    return _taskID;
-  }
-  void setTaskID(unsigned long taskID) {
-    _taskID = taskID;
-  }
-  taskBuffer *getNext() {
-    return next;
-  }
- 
-  void setNext(taskBuffer *task) {
-    next = task;
-  }
-  void addTask(taskBuffer *newTask) {
-    if (!first)
-      first = newTask;
-    if (!end) 
-      end = newTask;
-    else
-      end->setNext(newTask);
-  //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
-  }
-  taskBuffer(unsigned long taskID, uint8_t *commandBuffer, int byteCount, uint8_t retFlag);
-  ~taskBuffer();
-  void doCommand(unsigned long taskID, uint8_t *commandBuffer, int byteCount, uint8_t retFlag);
-};
-
-
 
 
 
@@ -170,7 +95,6 @@ private:
   RSprotonode *_next = NULL;
   bool _initialised = false;
   RSproto *bus;
-  taskBuffer *task;
   HardwareSerial* _serial;
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -200,17 +124,103 @@ public:
   };
 
   uint8_t _numDigitalPins = 0;
+  uint8_t getnumDigialPins() {
+    return _numDigitalPins;
+  }
+  void setnumDigitalPins(uint8_t value) {
+    _numDigitalPins = value;
+  }
   uint8_t _numAnaloguePins = 0;
+  uint8_t getnumAnalogPins() {
+    return _numAnaloguePins;
+  }
+  void setnumAnalogPins(uint8_t value) {
+    _numAnaloguePins = value;
+  }
   uint8_t _majorVer = 0;
+  uint8_t getMajVer() {
+    return _majorVer;
+  }
+  void setMajVer(uint8_t value) {
+    _majorVer = value;
+  }
   uint8_t _minorVer = 0;
+  uint8_t getMinVer() {
+    return _minorVer;
+  }
+  void setMinVer(uint8_t value) {
+    _minorVer = value;
+  }
   uint8_t _patchVer = 0;
+  uint8_t getPatVer() {
+    return _patchVer;
+  }
+  void setPatVer(uint8_t value) {
+    _patchVer = value;
+  }
   uint8_t* _digitalInputStates  = NULL;
+  uint8_t getdigitalInputStates(int index) {
+    return _digitalInputStates[index];
+  }
+  void setdigitalInputStates(uint8_t value, int index) {
+    _digitalInputStates[index] = value;
+  }
+  bool cleandigitalPinStates(int size) {
+    if (_digitalPinBytes > 0) free(_digitalInputStates);
+    if ((_digitalInputStates = (byte*) calloc(size, 1)) != NULL) {
+      return true;
+    } else return false;
+  }
   uint8_t* _analogueInputStates = NULL;
+  uint8_t getanalogInputStates(int index) {
+    return _analogueInputStates[index];
+  }
+  void setanalogInputStates(uint8_t value, int index) {
+    _analogueInputStates[index] = value;
+  }
+
   uint8_t* _analogueInputBuffer = NULL;  // buffer for I2C input transfers
-  uint8_t _readCommandBuffer[4];
+  uint8_t getanalogInpuBuffer(int index) {
+    return _analogueInputBuffer[index];
+  }
+  void setanalogInputBuffer(uint8_t value, int index) {
+    _analogueInputBuffer[index] = value;
+    memcpy(_analogueInputStates, _analogueInputBuffer, _analoguePinBytes);
+  }
+  uint8_t _readCommandBuffer[4]; // unused?
   uint8_t _digitalPinBytes = 0;   // Size of allocated memory buffer (may be longer than needed)
+  uint8_t getdigitalPinBytes() {
+    return _digitalPinBytes;
+  }
+  void setdigitalPinBytes(uint8_t value) {
+    _digitalPinBytes = value;
+  }
   uint8_t _analoguePinBytes = 0;  // Size of allocated memory buffer (may be longer than needed)
+  uint8_t getanalogPinBytes() {
+    return _analoguePinBytes;
+  }
+  void setanalogPinBytes(uint8_t value) {
+    _analoguePinBytes = value;
+  }
   uint8_t* _analoguePinMap = NULL;
+  uint8_t getanalogPinMap(int index) {
+    return _analoguePinMap[index];
+  }
+  void setanalogPinMap(uint8_t value, int index) {
+    _analoguePinMap[index] = value;
+  }
+  bool cleanAnalogStates(int size) {
+    if (_analoguePinBytes > 0) {
+      free(_analogueInputBuffer);
+      free(_analogueInputStates);
+      free(_analoguePinMap);
+    }
+    _analogueInputStates = (uint8_t*) calloc(size, 1);
+    _analogueInputBuffer = (uint8_t*) calloc(size, 1);
+    _analoguePinMap = (uint8_t*) calloc(_numAnaloguePins, 1);
+    if (_analogueInputStates  != NULL && _analogueInputBuffer != NULL && _analoguePinMap != NULL) return true;
+    else return false;
+  }
   int  resFlag[255];
   bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
@@ -266,7 +276,6 @@ class RSproto : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
-  taskBuffer *task;
   unsigned long _cycleStartTime = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
@@ -300,7 +309,6 @@ private:
   
   RSprotonode *_nodeListStart = NULL, *_nodeListEnd = NULL;
   RSprotonode *_currentNode = NULL;
-  taskBuffer *_taskListStart = NULL, *_taskListEnd = NULL, *_currentTask=NULL;
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   RSproto *_nextBus = NULL;  // Pointer to next bus instance in list.
   
@@ -312,6 +320,54 @@ private:
   }
   int byteCounter = 0;
 public:
+struct Task {
+    static const int ARRAY_SIZE = 254;
+    int taskID;
+    uint8_t commandArray[ARRAY_SIZE];
+    int byteCount;
+    uint8_t retFlag;
+    bool gotCallback;
+    bool rxMode;
+    int crcPassFail;
+    bool completed = false;
+  };
+  int taskIDCntr = 0;
+Task taskBuffer[100]; // Buffer to hold up to 100 tasks
+int taskCount = 0;
+void addTask(int id, const uint8_t* cmd, int byteCount, uint8_t retFlag, bool gotCallBack=false, bool rxMode=false, int crcPassFail=0) {
+  if (taskCount < 100) { // Check if buffer is not full
+    taskBuffer[taskCount].taskID = id;
+    memcpy(taskBuffer[taskCount].commandArray, cmd, ARRAY_SIZE); 
+    taskBuffer[taskCount].commandArray[ARRAY_SIZE] = 0; // Ensure null-termination
+    taskBuffer[taskCount].byteCount = byteCount;
+    taskBuffer[taskCount].retFlag = retFlag;
+    taskBuffer[taskCount].gotCallback = false;
+    taskBuffer[taskCount].rxMode = false;
+    taskBuffer[taskCount].crcPassFail = 0;
+    taskBuffer[taskCount].completed = false;
+    taskCount++;
+  } else {
+    Serial.println("Task buffer overflow!");
+  }
+}
+Task getNextTask() {
+  for (int i = 0; i < taskCount; i++) {
+    if (!taskBuffer[i].completed) {
+      return taskBuffer[i]; 
+    }
+  }
+  // Return a default task if no uncompleted tasks found
+  Task emptyTask; 
+  return emptyTask;
+}
+void markTaskCompleted(int taskID) {
+  for (int i = 0; i < taskCount; i++) {
+    if (taskBuffer[i].taskID == taskID) {
+      taskBuffer[i].completed = true;
+      break; 
+    }
+  }
+}
 bool flagEnd = false;
 bool flagEnded = false;
 bool flagStart = false;
@@ -327,7 +383,6 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   void remove_nulls(char *str, int len);
   int getCharsLeft(char *str, char position);
   void parseRx(uint8_t * outArray, uint8_t retFlag);
-  void sendInstantCommand(uint8_t *buf, int byteCount, uint8_t retFlag);
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -356,7 +411,7 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   unsigned long _baud;
   int taskCnt = 0;
   uint8_t initBuffer[1] = {0xFE};
-  unsigned long taskCounter=0;
+  unsigned long taskCounter=0ul;
   // Device-specific initialisation
   void _begin() override {
     _serial->begin(_baud, SERIAL_8N1);
@@ -400,13 +455,6 @@ uint16_t crc16(uint8_t *data, uint16_t length);
     }
     return NULL;
   }
-  taskBuffer *findTask(uint8_t taskID) {
-    for (taskBuffer *task = _taskListStart; task != NULL; task = task->getNext()) {
-      if (task->getTaskID() == taskID) 
-        return task;
-    }
-    return NULL;
-  }
 
   bool nodesInitialized() {
     bool retval = true;
@@ -426,15 +474,7 @@ uint16_t crc16(uint8_t *data, uint16_t length);
       _nodeListEnd->setNext(newNode);
   //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
-void addTask(taskBuffer *newTask) {
-    if (!_taskListStart)
-      _taskListStart = newTask;
-    if (!_nodeListEnd) 
-      _taskListEnd = newTask;
-    else
-      _taskListEnd->setNext(newTask);
-  //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
-  }
+
 protected:
   RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
 
