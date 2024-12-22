@@ -361,7 +361,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (tempProgTrack == trackToSet && oldmode & TRACK_MODE_MAIN && !(mode & TRACK_MODE_PROG)) {
       // If we just take away the prog track, the join should not
       // be active either. So do in effect an unjoin
-      DIAG(F("Unsync"));
+      //DIAG(F("Unsync"));
       tempProgTrack = MAX_TRACKS+1;
       progTrackSyncMain=false;
       if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,LOW);
