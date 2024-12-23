@@ -122,7 +122,9 @@ public:
     Bounce = 4,   // For semaphores/turnouts with a bit of bounce!!
     NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
-
+  void _pollDigital(unsigned long currentMicros);
+  void _pollAnalog(unsigned long currentMicros);
+  
   uint8_t _numDigitalPins = 0;
   uint8_t getnumDigialPins() {
     return _numDigitalPins;
@@ -277,6 +279,7 @@ private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
   unsigned long _cycleStartTime = 0;
+  unsigned long _cycleStartTimeA = 0;
   unsigned long _timeoutStart = 0;
   unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
   unsigned long _timeoutPeriod; // timeout on read responses, in microseconds.
@@ -286,7 +289,7 @@ private:
   int _operationCount = 0;
   int _refreshOperation = 0;
   byte bufferLength;
-  static const int ARRAY_SIZE = 75;
+  static const int ARRAY_SIZE = 150;
   int buffer[ARRAY_SIZE]; 
     byte inCommandPayload;
   static RSproto *_busList; // linked list of defined bus instances
@@ -321,7 +324,7 @@ private:
   int byteCounter = 0;
 public:
 struct Task {
-    static const int ARRAY_SIZE = 254;
+    static const int ARRAY_SIZE = 150;
     int taskID;
     uint8_t commandArray[ARRAY_SIZE];
     int byteCount;
@@ -332,7 +335,7 @@ struct Task {
     bool completed;
     bool processed;
   };
-static const int MAX_TASKS = 100;
+static const int MAX_TASKS = 50;
   int taskIDCntr = 0;
 Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
 int currentTaskIndex = 0;
@@ -363,7 +366,7 @@ void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
     DIAG(F("Task Buffer Full!"));
     return;
   }
-  for (int i = 0; i < ARRAY_SIZE; i++) taskBuffer[emptySlot].commandArray[i] = cmd[i];
+  for (int i = 0; i < byteCount; i++) taskBuffer[emptySlot].commandArray[i] = cmd[i];
   taskBuffer[emptySlot].byteCount = byteCount;
   taskBuffer[emptySlot].retFlag = retFlag;
   taskBuffer[emptySlot].rxMode = false;
@@ -447,6 +450,9 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   uint16_t _pullup;
   uint16_t _pin;
   int8_t _txPin;
+  int8_t getTxPin() {
+    return _txPin;
+  }
   bool _busy = false;
   void setBusy() {
     _busy = true;
