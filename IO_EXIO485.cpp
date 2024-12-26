@@ -18,7 +18,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "IO_RSproto.h"
+#include "IO_EXIO485.h"
 #include "defines.h"
 
 static const byte PAYLOAD_FALSE = 0;
@@ -27,11 +27,11 @@ static const byte PAYLOAD_STRING = 2;
 
 
 /************************************************************
- * RSproto implementation
+ * EXIO485 implementation
  ************************************************************/
 
-// Constructor for RSproto
-RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime) {
+// Constructor for EXIO485
+EXIO485::EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime) {
   _serial = &serial;
   _baud = baud;
   
@@ -43,20 +43,20 @@ RSproto::RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8
   // Add device to HAL device chain
   IODevice::addDevice(this);
   
-  // Add bus to RSproto chain.
+  // Add bus to EXIO485 chain.
   _nextBus = _busList;
   _busList = this;
 }
 
 /* -= _loop =-
 //
-// Main loop function for RSproto.
+// Main loop function for EXIO485.
 // Work through list of nodes.  For each node, in separate loop entries
 // When the slot time has finished, move on to the next device.
 */
 
 // CRC-16 implementation (replace with your preferred CRC library if needed)
-uint16_t RSproto::crc16(uint8_t *data, uint16_t length) {
+uint16_t EXIO485::crc16(uint8_t *data, uint16_t length) {
   uint16_t crc = 0xFFFF;
   for (uint16_t i = 0; i < length; i++) {
     crc ^= data[i];
@@ -71,18 +71,8 @@ uint16_t RSproto::crc16(uint8_t *data, uint16_t length) {
   return crc;
 }
 
-void RSprotonode::_pollDigital(unsigned long currentMicros) {
-  
-}
-
-void RSprotonode::_pollAnalog(unsigned long currentMicros) {
-  RSproto *bus = RSproto::findBus(0);
-  
-}
-
-void RSproto::_loop(unsigned long currentMicros) {
+void EXIO485::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
-  //if (_busy == true) return;
   if (_currentNode == NULL) _currentNode = _nodeListStart;
   if (!hasTasks() && _currentNode->isInitialised()) {
     _cycleStartTime = _currentMicros;
@@ -96,11 +86,8 @@ void RSproto::_loop(unsigned long currentMicros) {
     buffB[1] = (0);
     buffB[2] = (EXIORDAN);
     addTask(buffB, 3, EXIORDAN);
-    //DIAG(F("Polling node: %i"), _currentNode->getNodeID());
     _currentNode = _currentNode->getNext();
   }
-  
-  //if (currentTask == nullptr) return;
   
   if ( hasTasks() && _currentMicros - _cycleStartTimeA >= _cycleTime){
     _cycleStartTimeA = _currentMicros;
@@ -125,7 +112,6 @@ void RSproto::_loop(unsigned long currentMicros) {
       // delete task command after sending, for now
       currentTask->rxMode = true;
       
-      //DIAG(F("Polling Task: %i"), currentTask->taskID);
       markTaskCompleted(currentTask->taskID);
     }
   }
@@ -174,11 +160,8 @@ void RSproto::_loop(unsigned long currentMicros) {
     if (flagEnded) {
       calculated_crc = crc16((uint8_t*)received_data, byteCount-6);
       if (received_crc == calculated_crc) {
-        //DIAG(F("Loop CRC PASS"));
         crcPass = true;
-      }else {
-        //DIAG(F("Loop CRC Fail %x %x"),received_crc,calculated_crc);
-      } 
+      }
       flagEnded = false;
     
 
@@ -191,18 +174,12 @@ void RSproto::_loop(unsigned long currentMicros) {
         flagProc = true;
       }
       
-    } else {
-      //DIAG(F("IO_RSproto: CRC Error!"));
     }
 
     if (flagProc) {
-      int nodeTo = received_data[0];
       int nodeFr = received_data[1];
-      RSprotonode *node = findNode(nodeFr);
-      //DIAG(F("Node from %i %i"), nodeFr, node->getNodeID());
+      EXIO485node *node = findNode(nodeFr);
       int AddrCode = received_data[2];
-      //DIAG(F("From: %i, To: %i | %i %i %i %i %i"), nodeFr,nodeTo, received_data[3], received_data[4], received_data[5], received_data[6],received_data[7]);
-      //return;
       
       switch (AddrCode) {
         case EXIOPINS:
@@ -218,7 +195,6 @@ void RSproto::_loop(unsigned long currentMicros) {
                 node->setdigitalPinBytes(digitalBytesNeeded);
               } else {
                 DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), nodeFr, digitalBytesNeeded);
-                //_deviceState = DEVSTATE_FAILED;
                 node->setdigitalPinBytes(0);
               }
             }
@@ -233,7 +209,6 @@ void RSproto::_loop(unsigned long currentMicros) {
                 node->setanalogPinBytes(analogueBytesNeeded);
               } else {
                 DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), nodeFr);
-                //_deviceState = DEVSTATE_FAILED;
                 node->setanalogPinBytes(0);
               }
             }
@@ -251,14 +226,13 @@ void RSproto::_loop(unsigned long currentMicros) {
           node->setPatVer(received_data[5]);
           DIAG(F("EX-IOExpander485: Found node %i v%i.%i.%i"),node->getNodeID(), node->getMajVer(), node->getMinVer(), node->getPatVer());
           node->setInitialised();
-          //DIAG(F("EX-IOExpander485: Initialized  Node:%d "),  node->getNodeID());
           break;
         }
         case EXIORDY: {
           break;
         }
         case EXIOERR: {
-          DIAG(F("EX-IOExplorer485: Some sort of error was received... WHAT DID YOU DO!")); // ;-)
+          DIAG(F("EX-IOExplorer485: Some sort of error was received...")); // ;-)
           break;
         }
         case EXIORDAN: {
@@ -288,35 +262,33 @@ void RSproto::_loop(unsigned long currentMicros) {
   
 }
 
-// Link to chain of RSproto instances, left over from RSproto template.
-RSproto *RSproto::_busList = NULL;
+// Link to chain of EXIO485 instances, left over from EXIO485 template.
+EXIO485 *EXIO485::_busList = NULL;
 
 
 /************************************************************
- * RSprotonode implementation
+ * EXIO485node implementation
  ************************************************************/
 
-/* -= RSprotonode =-
+/* -= EXIO485node =-
 //
-// Constructor for RSprotonode object
+// Constructor for EXIO485node object
 */
-RSprotonode::RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID) {
+EXIO485node::EXIO485node(VPIN firstVpin, int nPins, uint8_t nodeID) {
   _firstVpin = firstVpin;
   _nPins = nPins;
   _busNo = 0;
   _nodeID = nodeID;
   _initialised = false;
   memset(resFlag, 0, 255);
-  //bus = bus->findBus(0);
-  //_serial = bus->_serialD;
   if (_nodeID > 252) _nodeID = 252; // cannot have a node with the frame flags
   if (_nodeID < 1) _nodeID = 1; // cannot have a node with the master ID
 
   // Add this device to HAL device list
   IODevice::addDevice(this);
   _display();
-  // Add RSprotonode to RSproto object.
-  RSproto *bus = RSproto::findBus(_busNo);
+  // Add EXIO485node to EXIO485 object.
+  EXIO485 *bus = EXIO485::findBus(_busNo);
   if (bus != NULL) {
     bus->addNode(this);
     return;
@@ -324,7 +296,7 @@ RSprotonode::RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID) {
   
 }
 
-bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
+bool EXIO485node::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
     if (paramCount != 1) return false;
     int pin = vpin - _firstVpin;
     
@@ -335,33 +307,30 @@ bool RSprotonode::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
     buff[2] = (EXIODPUP);
     buff[3] = (pin);
     buff[4] = (pullup);
-    unsigned long startMillis = millis();
-    RSproto *bus = RSproto::findBus(0);
+    EXIO485 *bus = EXIO485::findBus(0);
     bus->setBusy();
     bus->addTask(buff, 5, EXIODPUP);
     
     return true;
   }
 
-  int RSprotonode::_configureAnalogIn(VPIN vpin) {
+  int EXIO485node::_configureAnalogIn(VPIN vpin) {
     int pin = vpin - _firstVpin;
-    //RSproto *mainrs = RSproto::findBus(_busNo);
     uint8_t buff[ARRAY_SIZE];
     buff[0] = (_nodeID);
     buff[1] = (0);
     buff[2] = (EXIOENAN);
     buff[3] = (pin);
-    buff[4] = highByte(_firstVpin);
-    buff[5] = lowByte(_firstVpin);
-    unsigned long startMillis = millis();
-    RSproto *bus = RSproto::findBus(0);
+    buff[4] = lowByte(_firstVpin);
+    buff[5] = highByte(_firstVpin);
+    EXIO485 *bus = EXIO485::findBus(0);
     bus->setBusy();
     bus->addTask(buff, 6, EXIOENAN);
     
     return false;
   }
 
-void RSprotonode::_begin() {
+void EXIO485node::_begin() {
   uint8_t buff[ARRAY_SIZE];
   buff[0] = (_nodeID);
   buff[1] = (0);
@@ -369,8 +338,7 @@ void RSprotonode::_begin() {
   buff[3] = (_nPins);
   buff[4] = ((_firstVpin & 0xFF));
   buff[5] = ((_firstVpin >> 8));
-  unsigned long startMillis = millis();
-  RSproto *bus = RSproto::findBus(0);
+  EXIO485 *bus = EXIO485::findBus(0);
   bus->initTask();
   bus->setBusy();
   bus->addTask(buff, 6, EXIOINIT);
@@ -378,32 +346,28 @@ void RSprotonode::_begin() {
   buff[0] = (_nodeID);
   buff[1] = (0);
   buff[2] = (EXIOINITA);
-  startMillis = millis();
   bus->setBusy();
   bus->addTask(buff, 3, EXIOINITA);
   
   buff[0] = (_nodeID);
   buff[1] = (0);
   buff[2] = (EXIOVER);
-  startMillis = millis();
    bus->setBusy();
   bus->addTask(buff, 3, EXIOVER);
-  
 
-  //setInitialised();
 #ifdef DIAG_IO
   _display();
 #endif
 }
 
-int RSprotonode::_read(VPIN vpin) {
+int EXIO485node::_read(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
     uint8_t pinByte = pin / 8;
     bool value = bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
     return value;
   }
-void RSprotonode::_write(VPIN vpin, int value) {
+void EXIO485node::_write(VPIN vpin, int value) {
     if (_deviceState == DEVSTATE_FAILED) return;
     int pin = vpin - _firstVpin;
     uint8_t buff[ARRAY_SIZE];
@@ -412,14 +376,13 @@ void RSprotonode::_write(VPIN vpin, int value) {
     buff[2] = (EXIOWRD);
     buff[3] = (pin);
     buff[4] = (value);
-    unsigned long startMillis = millis();
-    RSproto *bus = RSproto::findBus(0);
+    EXIO485 *bus = EXIO485::findBus(0);
     bus->setBusy();
     bus->addTask(buff, 5, EXIOWRD);
     
   }
 
-  int RSprotonode::_readAnalogue(VPIN vpin) {
+  int EXIO485node::_readAnalogue(VPIN vpin) {
     if (_deviceState == DEVSTATE_FAILED) return 0;
     int pin = vpin - _firstVpin;
     for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
@@ -432,20 +395,19 @@ void RSprotonode::_write(VPIN vpin, int value) {
     return -1;  // pin not found in table
   }
 
-  void RSprotonode::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
+  void EXIO485node::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
     int pin = vpin - _firstVpin;
     uint8_t buff[ARRAY_SIZE];
     buff[0] = (_nodeID);
     buff[1] = (0);
     buff[2] = (EXIOWRAN);
     buff[3] = (pin);
-    buff[4] = highByte(value);
-    buff[5] = lowByte(value);
+    buff[4] = lowByte(value);
+    buff[5] = highByte(value);
     buff[6] = (profile);
-    buff[7] = highByte(duration);
-    buff[8] = lowByte(duration);
-    unsigned long startMillis = millis();
-    RSproto *bus = RSproto::findBus(0);
+    buff[7] = lowByte(duration);
+    buff[8] = highByte(duration);
+    EXIO485 *bus = EXIO485::findBus(0);
     bus->setBusy();
     bus->addTask(buff, 9, EXIOWRAN);
     

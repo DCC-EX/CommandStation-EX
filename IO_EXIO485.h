@@ -19,36 +19,36 @@
 */
 
 /*
- * RSproto
+ * EXIO485
  * =======
- * To define a RSproto, example syntax:
- *    RSproto::create(busNo, serial, baud[, pin]);
+ * To define a EXIO485, example syntax:
+ *    EXIO485::create(busNo, serial, baud[, pin]);
  * 
  * busNo = the Bus no of the instance. should = 0, unless more than one bus configured for some reason.
  * serial = serial port to be used (e.g. Serial3)
  * baud = baud rate (9600, 19200, 28800, 57600 or 115200)
  * cycletime = minimum time between successive updates/reads of a node in millisecs (default 500ms)
- * pin = pin number connected to RSproto module's DE and !RE terminals for half-duplex operation (default -1)
+ * pin = pin number connected to EXIO485 module's DE and !RE terminals for half-duplex operation (default -1)
  *       if omitted (default), hardware MUST support full-duplex opperation!
  *
  * 
- * RSprotoNode
+ * EXIO485Node
  * ========
- * To define a RSproto node and associate it with a RSproto bus,
- *    RSprotonode::create(firstVPIN, numVPINs, nodeID);
+ * To define a EXIO485 node and associate it with a EXIO485 bus,
+ *    EXIO485node::create(firstVPIN, numVPINs, nodeID);
  * 
  * firstVPIN = first vpin in block allocated to this device
  * numVPINs = number of vpins
  * nodeID = 1-251
  */
 
-#ifndef IO_RS485_H
-#define IO_RS485_H
+#ifndef IO_EXIO485_H
+#define IO_EXIO485_H
 
 #include "IODevice.h"
 
-class RSproto;
-class RSprotonode;
+class EXIO485;
+class EXIO485node;
 
 
 
@@ -57,44 +57,137 @@ class RSprotonode;
 #endif
 
 /**********************************************************************
- * taskBuffer class
+ * Data Structure
  * 
- * this stores the task list, and processes the data within it for
- * sending. it also handles the incomming data responce.
  * Data Frame:
- * 0xFD : toNode : fromNode : ~data packet~ : 0xFE
- * Start:   TO   :   FROM   :     DATA      : End
+ * 0xFE : 0xFE : CRC : CRC : ByteCount : DataPacket : 0xFD : 0xFD
+ * --------------------------------------------------------------
+ * Start Frame : CRC Bytes : Data Size :    Data    : End Frame
  * 
- * Data frame must always start with the Start byte, follow with the
- * destination (toNode), follow with the Source (fromNode), contain
- * the data packet, and follow with the End byte.
+ * Data frame must always start with the Start Frame bytes (two Bytes),
+ * follow with the CRC bytes (two bytes), the data byte count
+ * (one byte), the Data Packet (variable bytes), and the end Frame
+ * Bytes.
  * 
  * 
  * Data Packet:
- * Command Byte : ~Command Params~
+ * NodeTo : NodeFrom : AddrCode : ~Command Params~
+ * -----------------------------------------------
+ * NodeTo = where the packet is destined for.
+ * NodeFrom = where the packet came from.
+ * Address Code = from EXIO enumeration.
+ * Command Params:
  * 
- * Data Packet must always precede the parameters with the Command byte.
- * this way the data is processed by the correct routine.
+ * EXIOINIT:TX CS
+ * --------
+ * nPins : FirstPinL : FirstPinH
+ * -----------------------------
+ * nPins = Number of allocated pins.
+ * FirstPinL = First VPIN lowByte.
+ * FirstPinH = First VPIN highByte.
+ * 
+ * Sends the allocated pins.
+ * 
+ * EXIOINITA: Tx CS
+ * -=no parameters, just a header=-
+ * 
+ * requests the analog pin map from the node.
+ * 
+ * EXIOVER: Tx CS
+ * -=no parameters=-
+ * 
+ * requests the node software version, but as yet to do anything with it
+ * 
+ * EXIODPUP: Tx CS
+ * pin : pullup
+ * 
+ * pin = VPIN number
+ * pullup = 1 - Pullup, 0 - no pullup
+ * configures a digital pin for input
+ * 
+ * EXIOENAN: TX CS
+ * pin : FirstPinL : FirstPinH
+ * 
+ * pin = VPIN number
+ * FirstPinL = first pin lowByte
+ * FirstPinH = first pin highByte
+ * 
+ * EXIOWRD: TX CS
+ * pin : value
+ * 
+ * pin = VPIN number
+ * value = 1 or 0
+ * 
+ * EXIOWRAN: TX CS
+ * pin : valueL : valueH : profile : durationL : durationH
+ * 
+ * pin = VPIN Number
+ * valueL = value lowByte
+ * valueH = value highByte
+ * profile = servo profile
+ * dueationL = duration lowByte
+ * durationH = duration highByte
+ * 
+ * EXIORDD: TX CS
+ * -=No Parameters=-
+ * 
+ * Requests digital pin states.
+ * 
+ * EXIORDAN: TX CS
+ * -=no parameters=-
+ * 
+ * Requests analog pin states.
+ * 
+ * EXIOPINS: TX Node (EXIOINIT)
+ * numDigital : numAnalog
+ * 
+ * numDigital = number of digital capable pins
+ * numAnalog = number of analog capable pins
+ * 
+ * EXIOINITA: TX Node (EXIOINITA)
+ * ~analog pin map~
+ * 
+ * each byte is a analog pin map value, variable length.
+ * 
+ * EXIORDY/EXIOERR: TX Node (EXIODPUP, EXIOWRD, EXIOENAN, EXIOWRAN)
+ * -=no parameters=-
+ * 
+ * Responds EXIORDY for OK, and EXIOERR for FAIL.
+ * 
+ * EXIORDAN: TX Node (EXIORDAN)
+ * ~analog pin states~
+ * 
+ * each byte is a pin state value, perhaps in lowByte/higeByte config.
+ * 
+ * EXIORDD: TX Node (EXIORDD)
+ * ~digital pin states~
+ * 
+ * each byte is a 8-bit grouping of pinstates.
+ * 
+ * EXIOVER: TX Node (EXIOVER)
+ * Major Version : Minor Version : Patch Version
+ * 
+ * each byte represents a numeric version value.
  **********************************************************************/
 
 
 
 
 /**********************************************************************
- * RSprotonode class
+ * EXIO485node class
  * 
- * This encapsulates the state associated with a single RSproto node, 
+ * This encapsulates the state associated with a single EXIO485 node, 
  * which includes the nodeID, number of discrete inputs and coils, and
  * the states of the discrete inputs and coils.
  **********************************************************************/
-class RSprotonode : public IODevice {
+class EXIO485node : public IODevice {
 private:
   uint8_t _busNo;
   uint8_t _nodeID;
   char _type;
-  RSprotonode *_next = NULL;
+  EXIO485node *_next = NULL;
   bool _initialised;
-  RSproto *bus;
+  EXIO485 *bus;
   HardwareSerial* _serial;
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -112,7 +205,7 @@ private:
   };
   static const int ARRAY_SIZE = 254;
 public:
-  static RSprotonode *_nodeList;
+  static EXIO485node *_nodeList;
   enum ProfileType : int {
     Instant = 0,  // Moves immediately between positions (if duration not specified)
     UseDuration = 0, // Use specified duration
@@ -122,9 +215,7 @@ public:
     Bounce = 4,   // For semaphores/turnouts with a bit of bounce!!
     NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
-  void _pollDigital(unsigned long currentMicros);
-  void _pollAnalog(unsigned long currentMicros);
-  
+   
   uint8_t _numDigitalPins = 0;
   uint8_t getnumDigialPins() {
     return _numDigitalPins;
@@ -226,19 +317,19 @@ public:
   int  resFlag[255];
   bool _initalized;
   static void create(VPIN firstVpin, int nPins, uint8_t nodeID) {
-    if (checkNoOverlap(firstVpin, nPins)) new RSprotonode(firstVpin, nPins, nodeID);
+    if (checkNoOverlap(firstVpin, nPins)) new EXIO485node(firstVpin, nPins, nodeID);
   }
-  RSprotonode(VPIN firstVpin, int nPins, uint8_t nodeID);
+  EXIO485node(VPIN firstVpin, int nPins, uint8_t nodeID);
 
   uint8_t getNodeID() {
     return _nodeID;
   }
   
-  RSprotonode *getNext() {
+  EXIO485node *getNext() {
     return _next;
   }
  
-  void setNext(RSprotonode *node) {
+  void setNext(EXIO485node *node) {
     _next = node;
   }
   bool isInitialised() {
@@ -267,14 +358,14 @@ public:
 };
 
 /**********************************************************************
- * RSproto class
+ * EXIO485 class
  * 
  * This encapsulates the properties state of the bus and the
- * transmission and reception of data across that bus.  Each RSproto
- * object owns a set of RSprotonode objects which represent the nodes
+ * transmission and reception of data across that bus.  Each EXIO485
+ * object owns a set of EXIO485node objects which represent the nodes
  * attached to that bus.
  **********************************************************************/
-class RSproto : public IODevice {
+class EXIO485 : public IODevice {
 private:
   // Here we define the device-specific variables.  
   uint8_t _busNo;
@@ -292,7 +383,7 @@ private:
   static const int ARRAY_SIZE = 150;
   int buffer[ARRAY_SIZE]; 
     byte inCommandPayload;
-  static RSproto *_busList; // linked list of defined bus instances
+  static EXIO485 *_busList; // linked list of defined bus instances
   bool waitReceive = false;
   int _waitCounter = 0;
   int _waitCounterB = 0;
@@ -310,10 +401,10 @@ private:
 
   
   
-  RSprotonode *_nodeListStart = NULL, *_nodeListEnd = NULL;
-  RSprotonode *_currentNode = NULL;
+  EXIO485node *_nodeListStart = NULL, *_nodeListEnd = NULL;
+  EXIO485node *_currentNode = NULL;
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
-  RSproto *_nextBus = NULL;  // Pointer to next bus instance in list.
+  EXIO485 *_nextBus = NULL;  // Pointer to next bus instance in list.
   
 // Helper function for error handling
   void reportError(uint8_t status, bool fail=true) {
@@ -442,7 +533,7 @@ uint16_t crc16(uint8_t *data, uint16_t length);
     EXIOERR = 0xEF,     // Flag we've received an error
   };
   static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1, int cycleTime=500) {
-    new RSproto(busNo, serial, baud, txPin, cycleTime);
+    new EXIO485(busNo, serial, baud, txPin, cycleTime);
   }
   HardwareSerial* _serial;
   int _CommMode = 0;
@@ -475,17 +566,17 @@ uint16_t crc16(uint8_t *data, uint16_t length);
       digitalWrite(_txPin, LOW);
       
     }
-  #if defined(RSproto_STM_OK)
-    pinMode(RSproto_STM_OK, OUTPUT);
-    ArduinoPins::fastWriteDigital(RSproto_STM_OK,LOW);
+  #if defined(EXIO485_STM_OK)
+    pinMode(EXIO485_STM_OK, OUTPUT);
+    ArduinoPins::fastWriteDigital(EXIO485_STM_OK,LOW);
   #endif
-  #if defined(RSproto_STM_FAIL)
-    pinMode(RSproto_STM_FAIL, OUTPUT);
-    ArduinoPins::fastWriteDigital(RSproto_STM_FAIL,LOW);
+  #if defined(EXIO485_STM_FAIL)
+    pinMode(EXIO485_STM_FAIL, OUTPUT);
+    ArduinoPins::fastWriteDigital(EXIO485_STM_FAIL,LOW);
   #endif
-  #if defined(RSproto_STM_COMM)
-    pinMode(RSproto_STM_COMM, OUTPUT);
-    ArduinoPins::fastWriteDigital(RSproto_STM_COMM,LOW);
+  #if defined(EXIO485_STM_COMM)
+    pinMode(EXIO485_STM_COMM, OUTPUT);
+    ArduinoPins::fastWriteDigital(EXIO485_STM_COMM,LOW);
   #endif
   
   #if defined(DIAG_IO)
@@ -503,9 +594,9 @@ uint16_t crc16(uint8_t *data, uint16_t length);
       _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F("OK"));
   }
 
-  // Locate RSprotonode object with specified nodeID.
-  RSprotonode *findNode(uint8_t nodeID) {
-    for (RSprotonode *node = _nodeListStart; node != NULL; node = node->getNext()) {
+  // Locate EXIO485node object with specified nodeID.
+  EXIO485node *findNode(uint8_t nodeID) {
+    for (EXIO485node *node = _nodeListStart; node != NULL; node = node->getNext()) {
       if (node->getNodeID() == nodeID) 
         return node;
     }
@@ -514,36 +605,36 @@ uint16_t crc16(uint8_t *data, uint16_t length);
 
   bool nodesInitialized() {
     bool retval = true;
-    for (RSprotonode *node = _nodeListStart; node != NULL; node = node->getNext()) {
+    for (EXIO485node *node = _nodeListStart; node != NULL; node = node->getNext()) {
       if (node->_initalized == false) 
         retval = false;
     }
     return retval;
   }
-  // Add new RSprotonode to the list of nodes for this bus.
-  void addNode(RSprotonode *newNode) {
+  // Add new EXIO485node to the list of nodes for this bus.
+  void addNode(EXIO485node *newNode) {
     if (!_nodeListStart)
       _nodeListStart = newNode;
     if (!_nodeListEnd) 
       _nodeListEnd = newNode;
     else
       _nodeListEnd->setNext(newNode);
-  //DIAG(F("RSproto: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
+  //DIAG(F("EXIO485: 260h nodeID:%d _nodeListStart:%d _nodeListEnd:%d"), newNode, _nodeListStart, _nodeListEnd);
   }
 
 protected:
-  RSproto(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
+  EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
 
 public:
   
   uint8_t getBusNumber() {
     return _busNo;
   }
-  RSproto *getNext() {
+  EXIO485 *getNext() {
     return _nextBus;
   }
-  static RSproto *findBus(uint8_t busNo) {
-    for (RSproto *bus = _busList; bus != NULL; bus = bus->getNext()) {
+  static EXIO485 *findBus(uint8_t busNo) {
+    for (EXIO485 *bus = _busList; bus != NULL; bus = bus->getNext()) {
       if (bus->getBusNumber() == busNo) 
         return bus;
     }
@@ -552,4 +643,4 @@ public:
 };
 
 
-#endif // IO_RSproto_H
+#endif // IO_EXIO485_H
