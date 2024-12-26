@@ -428,6 +428,8 @@ struct Task {
   };
 static const int MAX_TASKS = 50;
   int taskIDCntr = 0;
+  int CurrentTaskID = -1;
+  int taskResendCount = 0;
 Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
 int currentTaskIndex = 0;
 void initTask() {
