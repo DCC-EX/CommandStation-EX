@@ -87,6 +87,7 @@ void EXIO485::_loop(unsigned long currentMicros) {
     buffB[2] = (EXIORDAN);
     addTask(buffB, 3, EXIORDAN);
     _currentNode = _currentNode->getNext();
+    DIAG(F("Polling"));
   }
   
   if ( hasTasks() && _currentMicros - _cycleStartTimeA >= _cycleTime){
@@ -111,7 +112,7 @@ void EXIO485::_loop(unsigned long currentMicros) {
       if (_txPin != -1) digitalWrite(_txPin,LOW);
       // delete task command after sending, for now
       currentTask->rxMode = true;
-      
+      DIAG(F("Task"));
       markTaskCompleted(currentTask->taskID);
     }
   }
