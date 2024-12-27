@@ -28,12 +28,9 @@
 #include "DCCTimer.h"
 #include <wiring_private.h>
 
+#include "TemplateForEnums.h"
 // use powers of two so we can do logical and/or on the track modes in if clauses.
 // For example TRACK_MODE_DC_INV is (TRACK_MODE_DC|TRACK_MODIFIER_INV)
-template<class T> inline T operator~ (T a) { return (T)~(int)a; }
-template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
-template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
-template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
 enum TRACK_MODE : byte {
   // main modes
   TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,

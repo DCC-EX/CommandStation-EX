@@ -246,9 +246,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #endif
 #ifndef DISABLE_PROG
     if (mode & TRACK_MODE_PROG) {
-#else
-    if (false) {
-#endif
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
 	if ( (track[t]->getMode() & TRACK_MODE_PROG) && t != trackToSet) {
@@ -261,6 +258,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     } else {
       track[trackToSet]->makeProgTrack(false); // only the prog track knows it's type
     }
+#endif
 
     // When a track is switched, we must clear any side effects of its previous 
     // state, otherwise trains run away or just dont move.
@@ -360,11 +358,24 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
         applyDCSpeed(trackToSet);
     }
 
+#ifdef ARDUINO_ARCH_ESP32
+#ifndef DISABLE_PROG
+    if (tempProgTrack == trackToSet && oldmode & TRACK_MODE_MAIN && !(mode & TRACK_MODE_PROG)) {
+      // If we just take away the prog track, the join should not
+      // be active either. So do in effect an unjoin
+      //DIAG(F("Unsync"));
+      tempProgTrack = MAX_TRACKS+1;
+      progTrackSyncMain=false;
+      if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,LOW);
+    }
+#endif
+#endif
     // Turn off power if we changed the mode of this track
-    if (mode != oldmode)
+    if (mode != oldmode) {
       track[trackToSet]->setPower(POWERMODE::OFF);
-    streamTrackState(NULL,trackToSet);
+    }
 
+    streamTrackState(NULL,trackToSet);
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
 }

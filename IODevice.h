@@ -38,6 +38,7 @@
 #include "FSH.h"
 #include "I2CManager.h"
 #include "inttypes.h"
+#include "TemplateForEnums.h"
 
 typedef uint16_t VPIN;
 // Limit VPIN number to max 32767.  Above this number, printing often gives negative values.

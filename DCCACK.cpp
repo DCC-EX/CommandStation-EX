@@ -67,16 +67,24 @@ CALLBACK_STATE DCCACK::callbackState=READY;
 ACK_CALLBACK DCCACK::ackManagerCallback;
 
 void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  // On ESP32 the joined track is hidden from sight (it has type MAIN)
+  // and because of that we need first check if track was joined and
+  // then unjoin if necessary. This requires that the joined flag is
+  // cleared when the prog track is removed.
   ackManagerRejoin=TrackManager::isJoined();
+  //DIAG(F("Joined is %d"), ackManagerRejoin);
   if (ackManagerRejoin) {
     // Change from JOIN must zero resets packet.
     TrackManager::setJoin(false);
     DCCWaveform::progTrack.clearResets();
   }
-
   progDriver=TrackManager::getProgDriver();
+  //DIAG(F("Progdriver is %d"), progDriver);
   if (progDriver==NULL) {
-    TrackManager::setJoin(ackManagerRejoin);
+    if (ackManagerRejoin) {
+      DIAG(F("Joined but no Prog track"));
+      TrackManager::setJoin(false);
+    }
     callback(-3); // we dont have a prog track!
     return;
   }
