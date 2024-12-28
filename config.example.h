@@ -269,9 +269,10 @@ The configuration file for DCC-EX Command Station
 // over DCC++. This #define likewise inverts the behaviour of the <a> command
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
 // DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
-// (throw turnout).
+// (throw turnout). This is the same as DCC_ACCESSORY_COMMAND_REVERSE
 //#define DCC_ACCESSORY_RCN_213
-//
+
+
 // HANDLING MULTIPLE SERIAL THROTTLES
 // The command station always operates with the default Serial port.
 // Diagnostics are only emitted on the default serial port and not broadcast.

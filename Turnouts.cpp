@@ -312,12 +312,6 @@
  * 
  *************************************************************************************/
 
-#if defined(DCC_TURNOUTS_RCN_213)
-  const bool DCCTurnout::rcn213Compliant = true;
-#else
-  const bool DCCTurnout::rcn213Compliant = false;
-#endif
-
   // DCCTurnoutData contains data specific to this subclass that is 
   // written to EEPROM when the turnout is saved.
   struct DCCTurnoutData {
@@ -385,7 +379,10 @@
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
-    DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close ^ !rcn213Compliant);
+#if defined(DCC_TURNOUTS_RCN_213)
+    close = !close;
+#endif
+    DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close);
     return true;
   }
 
