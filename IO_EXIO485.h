@@ -419,7 +419,7 @@ struct Task {
     bool completed;
     bool processed;
   };
-  static const int MAX_TASKS = 50;
+  static const int MAX_TASKS = 1000;
   long taskIDCntr = 1;
   long CurrentTaskID = -1;
   int taskResendCount = 0;
