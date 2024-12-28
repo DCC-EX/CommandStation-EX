@@ -22,13 +22,13 @@
  * EXIO485
  * =======
  * To define a EXIO485, example syntax:
- *    EXIO485::create(busNo, serial, baud[, pin]);
+ *    EXIO485::create(busNo, serial, baud[, TxPin]);
  * 
  * busNo = the Bus no of the instance. should = 0, unless more than one bus configured for some reason.
  * serial = serial port to be used (e.g. Serial3)
  * baud = baud rate (9600, 19200, 28800, 57600 or 115200)
  * cycletime = minimum time between successive updates/reads of a node in millisecs (default 500ms)
- * pin = pin number connected to EXIO485 module's DE and !RE terminals for half-duplex operation (default -1)
+ * TxPin = pin number connected to EXIO485 module's DE and !RE terminals for half-duplex operation (default -1)
  *       if omitted (default), hardware MUST support full-duplex opperation!
  *
  * 
@@ -416,7 +416,7 @@ private:
 public:
 struct Task {
     static const int ARRAY_SIZE = 150;
-    int taskID;
+    long taskID;
     uint8_t commandArray[ARRAY_SIZE];
     int byteCount;
     uint8_t retFlag;
@@ -427,8 +427,8 @@ struct Task {
     bool processed;
   };
 static const int MAX_TASKS = 50;
-  int taskIDCntr = 0;
-  int CurrentTaskID = -1;
+  long taskIDCntr = 1;
+  long CurrentTaskID = -1;
   int taskResendCount = 0;
 Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
 int currentTaskIndex = 0;
@@ -467,6 +467,9 @@ void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
   taskBuffer[emptySlot].gotCallback = false;
   taskBuffer[emptySlot].completed = false;
   taskBuffer[emptySlot].processed = false;
+  taskIDCntr++;
+  if (taskIDCntr >= 5000000) taskIDCntr = 1;
+  taskBuffer[emptySlot].taskID = taskIDCntr;
   currentTaskIndex = emptySlot; 
 }
 bool hasTasks() {
@@ -487,7 +490,7 @@ Task* getTaskById(int id) {
   return nullptr; // Task not found
 }
 // Function to get the next task (optional)
-int getNextTaskId() {
+long getNextTaskId() {
   for (int i = 0; i < MAX_TASKS; i++) {
     if (!taskBuffer[i].completed) {
       return taskBuffer[i].taskID; 
@@ -499,7 +502,9 @@ int getNextTaskId() {
 void markTaskCompleted(int id) {
   for (int i = 0; i < MAX_TASKS; i++) {
     if (taskBuffer[i].taskID == id) {
-      taskBuffer[i].completed = true;
+      taskBuffer[i].completed = true; // completed
+      taskBuffer[i].taskID = -1; // unassigned
+      CurrentTaskID = getNextTaskId();
       break;
     }
   }
@@ -512,13 +517,13 @@ bool rxStart = false;
 bool rxEnd = false;
 bool crcPass = false;
 bool flagProc = false;
+uint16_t calculated_crc;
+    int byteCount = 100;
 uint8_t received_data[ARRAY_SIZE];
 uint16_t received_crc;
 uint8_t crc[2];
 uint16_t crc16(uint8_t *data, uint16_t length);
-  void remove_nulls(char *str, int len);
-  int getCharsLeft(char *str, char position);
-  void parseRx(uint8_t * outArray, uint8_t retFlag);
+
   // EX-IOExpander protocol flags
   enum {
     EXIOINIT = 0xE0,    // Flag to initialise setup procedure
@@ -562,6 +567,7 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   unsigned long taskCounter=0ul;
   // Device-specific initialisation
   void _begin() override {
+     //initTask();
     _serial->begin(_baud, SERIAL_8N1);
     if (_txPin >0) {
       pinMode(_txPin, OUTPUT);

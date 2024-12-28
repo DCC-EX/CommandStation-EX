@@ -75,7 +75,6 @@ void EXIO485::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
   if (_currentNode == NULL) _currentNode = _nodeListStart;
   if (!hasTasks() && _currentNode->isInitialised()) {
-    _cycleStartTime = _currentMicros;
     uint8_t buffA[3];
     buffA[0] = (_currentNode->getNodeID());
     buffA[1] = (0);
@@ -87,38 +86,24 @@ void EXIO485::_loop(unsigned long currentMicros) {
     buffB[2] = (EXIORDAN);
     addTask(buffB, 3, EXIORDAN);
     _currentNode = _currentNode->getNext();
-    DIAG(F("Polling"));
+    //DIAG(F("Polling"));
   }
   
   if ( hasTasks()){
     _cycleStartTimeA = _currentMicros;
-    if (CurrentTaskID == -1) {
-      CurrentTaskID = getNextTaskId();
-      
-    }
-    
+    if (CurrentTaskID == -1) CurrentTaskID = getNextTaskId();
+
     Task* currentTask = getTaskById(CurrentTaskID);
-    if (_currentMicros - _cycleStartTime > 1000000UL) { // timout every 1000ms
-      _cycleStartTime = _currentMicros;// reset timout
-      if (taskResendCount >= 2) { // max resends
-        markTaskCompleted(CurrentTaskID); // kill task and move on
-        CurrentTaskID = getNextTaskId(); // move on
-        taskResendCount = 0;
-        DIAG(F("Move on"));
-      } else {
-        currentTask->rxMode = false; // resend
-        taskResendCount++;
-        DIAG(F("Resend"));
-      }
-      
-    }
+    //if (currentTask == nullptr) return;
 
-
+    
 
     if (!currentTask->rxMode) { // Check if a task was found
       currentTask->crcPassFail = 0;
       uint16_t response_crc = crc16((uint8_t*)currentTask->commandArray, currentTask->byteCount-1);
-      if (_txPin != -1) digitalWrite(_txPin,HIGH);
+      //delayUntil(_currentMicros+10000UL);
+      
+      ArduinoPins::fastWriteDigital(_txPin,HIGH);
       // Send response data with CRC
       _serial->write(0xFE);
       _serial->write(0xFE);
@@ -131,18 +116,13 @@ void EXIO485::_loop(unsigned long currentMicros) {
       _serial->write(0xFD);
       _serial->write(0xFD);
       _serial->flush();
-      if (_txPin != -1) digitalWrite(_txPin,LOW);
+      ArduinoPins::fastWriteDigital(_txPin,LOW);
       // delete task command after sending, for now
       currentTask->rxMode = true;
-      DIAG(F("Task"));
+      //DIAG(F("Task %d"), currentTask->taskID);
       
     } else {
       if ( _serial->available()) {
-    
-        
-        uint16_t calculated_crc;
-        int byteCount = 100;
-        
         int curByte = _serial->read();
         
         if (curByte == 0xFE && flagStart == false) flagStart = true;
@@ -188,99 +168,110 @@ void EXIO485::_loop(unsigned long currentMicros) {
         
 
         }
-        // Check CRC validity
-        if (crcPass) {
-          // Data received successfully, process it (e.g., print)
-          int nodeTo = received_data[0];
-          if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
-            flagProc = true;
-          }
-          
+      }
+      // Check CRC validity
+      if (crcPass) {
+        // Data received successfully, process it (e.g., print)
+        int nodeTo = received_data[0];
+        if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
+          flagProc = true;
         }
+        
+      }
+      
+      if (flagProc) {
+        crcPass = false;
+        int nodeFr = received_data[1];
+        EXIO485node *node = findNode(nodeFr);
+        int AddrCode = received_data[2];
+        
+        switch (AddrCode) {
+          case EXIOPINS:
+            {node->setnumDigitalPins(received_data[3]);
+            node->setnumAnalogPins(received_data[4]);
 
-        if (flagProc) {
-          int nodeFr = received_data[1];
-          EXIO485node *node = findNode(nodeFr);
-          int AddrCode = received_data[2];
-          
-          switch (AddrCode) {
-            case EXIOPINS:
-              {node->setnumDigitalPins(received_data[3]);
-              node->setnumAnalogPins(received_data[4]);
-
-              // See if we already have suitable buffers assigned
-              if (node->getnumDigialPins()>0) {
-                size_t digitalBytesNeeded = (node->getnumDigialPins() + 7) / 8;
-                if (node->getdigitalPinBytes() < digitalBytesNeeded) {
-                  // Not enough space, free any existing buffer and allocate a new one
-                  if (node->cleandigitalPinStates(digitalBytesNeeded)) {
-                    node->setdigitalPinBytes(digitalBytesNeeded);
-                  } else {
-                    DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), nodeFr, digitalBytesNeeded);
-                    node->setdigitalPinBytes(0);
-                  }
+            // See if we already have suitable buffers assigned
+            if (node->getnumDigialPins()>0) {
+              size_t digitalBytesNeeded = (node->getnumDigialPins() + 7) / 8;
+              if (node->getdigitalPinBytes() < digitalBytesNeeded) {
+                // Not enough space, free any existing buffer and allocate a new one
+                if (node->cleandigitalPinStates(digitalBytesNeeded)) {
+                  node->setdigitalPinBytes(digitalBytesNeeded);
+                } else {
+                  DIAG(F("EX-IOExpander485 node:%d ERROR alloc %d bytes"), nodeFr, digitalBytesNeeded);
+                  node->setdigitalPinBytes(0);
                 }
               }
-              
-              if (node->getnumAnalogPins()>0) {
-                size_t analogueBytesNeeded = node->getnumAnalogPins() * 2;
-                if (node->getanalogPinBytes() < analogueBytesNeeded) {
-                  // Free any existing buffers and allocate new ones.
-                  
-                  if (node->cleanAnalogStates(analogueBytesNeeded)) {
-                    node->setanalogPinBytes(analogueBytesNeeded);
-                  } else {
-                    DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), nodeFr);
-                    node->setanalogPinBytes(0);
-                  }
+            }
+            
+            if (node->getnumAnalogPins()>0) {
+              size_t analogueBytesNeeded = node->getnumAnalogPins() * 2;
+              if (node->getanalogPinBytes() < analogueBytesNeeded) {
+                // Free any existing buffers and allocate new ones.
+                
+                if (node->cleanAnalogStates(analogueBytesNeeded)) {
+                  node->setanalogPinBytes(analogueBytesNeeded);
+                } else {
+                  DIAG(F("EX-IOExpander485 node:%d ERROR alloc analog pin bytes"), nodeFr);
+                  node->setanalogPinBytes(0);
                 }
               }
-              markTaskCompleted(currentTask->taskID);
-              break;}
-            case EXIOINITA: {
-              for (int i = 0; i < node->getnumAnalogPins(); i++) {
-                node->setanalogPinMap(received_data[i+3], i);
-              }
-              markTaskCompleted(currentTask->taskID);
-              break;
             }
-            case EXIOVER: {
-              node->setMajVer(received_data[3]);
-              node->setMinVer(received_data[4]);
-              node->setPatVer(received_data[5]);
-              DIAG(F("EX-IOExpander485: Found node %i v%i.%i.%i"),node->getNodeID(), node->getMajVer(), node->getMinVer(), node->getPatVer());
-              node->setInitialised();
-              markTaskCompleted(currentTask->taskID);
-              break;
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
+            break;}
+          case EXIOINITA: {
+            for (int i = 0; i < node->getnumAnalogPins(); i++) {
+              node->setanalogPinMap(received_data[i+3], i);
             }
-            case EXIORDY: {
-              markTaskCompleted(currentTask->taskID);
-              break;
-            }
-            case EXIOERR: {
-              markTaskCompleted(currentTask->taskID);
-              DIAG(F("EX-IOExplorer485: Some sort of error was received...")); // ;-)
-              break;
-            }
-            case EXIORDAN: {
-              for (int i = 0; i < node->_numAnaloguePins; i++) {
-                node->setanalogInputBuffer(received_data[i+3], i);
-              }
-              markTaskCompleted(currentTask->taskID);
-              break;
-            }
-            case EXIORDD: {
-            for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
-              node->setdigitalInputStates(received_data[i+3], i);
-            }
-            markTaskCompleted(currentTask->taskID);
+            
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
             break;
           }
+          case EXIOVER: {
+            node->setMajVer(received_data[3]);
+            node->setMinVer(received_data[4]);
+            node->setPatVer(received_data[5]);
+            DIAG(F("EX-IOExpander485: Found node %d v%d.%d.%d"),node->getNodeID(), node->getMajVer(), node->getMinVer(), node->getPatVer());
+            node->setInitialised();
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
+            break;
           }
-
+          case EXIORDY: {
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
+            break;
+          }
+          case EXIOERR: {
+            markTaskCompleted(CurrentTaskID);
+            DIAG(F("EX-IOExplorer485: Some sort of error was received...")); // ;-)
+            flagProc = false;
+            break;
+          }
+          case EXIORDAN: {
+            for (int i = 0; i < node->_numAnaloguePins; i++) {
+              node->setanalogInputBuffer(received_data[i+3], i);
+            }
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
+            break;
+          }
+          case EXIORDD: {
+          for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
+            node->setdigitalInputStates(received_data[i+3], i);
+          }
+          markTaskCompleted(CurrentTaskID);
+          flagProc = false;
+            break;
+          }
         }
-        flagProc = false;
+        
+        
       }
+        
+      
     }
   }
 }
@@ -362,7 +353,6 @@ void EXIO485node::_begin() {
   buff[4] = ((_firstVpin & 0xFF));
   buff[5] = ((_firstVpin >> 8));
   EXIO485 *bus = EXIO485::findBus(0);
-  bus->initTask();
   bus->setBusy();
   bus->addTask(buff, 6, EXIOINIT);
   
