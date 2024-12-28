@@ -1,6 +1,5 @@
 /*
  *  © 2024, Travis Farmer. All rights reserved.
- *  © 2021 Chris Harlow
  *  
  *  This file is part of DCC++EX API
  *
@@ -48,14 +47,7 @@ EXIO485::EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8
   _busList = this;
 }
 
-/* -= _loop =-
-//
-// Main loop function for EXIO485.
-// Work through list of nodes.  For each node, in separate loop entries
-// When the slot time has finished, move on to the next device.
-*/
-
-// CRC-16 implementation (replace with your preferred CRC library if needed)
+// CRC-16 implementation
 uint16_t EXIO485::crc16(uint8_t *data, uint16_t length) {
   uint16_t crc = 0xFFFF;
   for (uint16_t i = 0; i < length; i++) {
@@ -71,10 +63,18 @@ uint16_t EXIO485::crc16(uint8_t *data, uint16_t length) {
   return crc;
 }
 
+
+/* -= _loop =-
+//
+// Main loop function for EXIO485.
+// Work through list of nodes.  For each node, in separate loop entries
+// When the slot time has finished, move on to the next device.
+*/
+
 void EXIO485::_loop(unsigned long currentMicros) {
   _currentMicros = currentMicros;
   if (_currentNode == NULL) _currentNode = _nodeListStart;
-  if (!hasTasks() && _currentNode->isInitialised()) {
+  if (!hasTasks() && _currentNode->isInitialised()) { // no tasks? lets poll for data
     uint8_t buffA[3];
     buffA[0] = (_currentNode->getNodeID());
     buffA[1] = (0);
@@ -86,24 +86,19 @@ void EXIO485::_loop(unsigned long currentMicros) {
     buffB[2] = (EXIORDAN);
     addTask(buffB, 3, EXIORDAN);
     _currentNode = _currentNode->getNext();
-    //DIAG(F("Polling"));
   }
   
-  if ( hasTasks()){
+  if ( hasTasks()){ // do we have any tasks on the docket
     _cycleStartTimeA = _currentMicros;
     if (CurrentTaskID == -1) CurrentTaskID = getNextTaskId();
 
     Task* currentTask = getTaskById(CurrentTaskID);
-    //if (currentTask == nullptr) return;
 
-    
-
-    if (!currentTask->rxMode) { // Check if a task was found
+    if (!currentTask->rxMode) {
       currentTask->crcPassFail = 0;
       uint16_t response_crc = crc16((uint8_t*)currentTask->commandArray, currentTask->byteCount-1);
-      //delayUntil(_currentMicros+10000UL);
       
-      ArduinoPins::fastWriteDigital(_txPin,HIGH);
+      if (_txPin != -1) ArduinoPins::fastWriteDigital(_txPin,HIGH);
       // Send response data with CRC
       _serial->write(0xFE);
       _serial->write(0xFE);
@@ -116,10 +111,9 @@ void EXIO485::_loop(unsigned long currentMicros) {
       _serial->write(0xFD);
       _serial->write(0xFD);
       _serial->flush();
-      ArduinoPins::fastWriteDigital(_txPin,LOW);
+      if (_txPin != -1) ArduinoPins::fastWriteDigital(_txPin,LOW);
       // delete task command after sending, for now
       currentTask->rxMode = true;
-      //DIAG(F("Task %d"), currentTask->taskID);
       
     } else {
       if ( _serial->available()) {
@@ -165,18 +159,15 @@ void EXIO485::_loop(unsigned long currentMicros) {
             crcPass = true;
           }
           flagEnded = false;
-        
-
         }
       }
       // Check CRC validity
       if (crcPass) {
         // Data received successfully, process it (e.g., print)
         int nodeTo = received_data[0];
-        if (nodeTo == 0) { // for master. master does not retransmit, or a loop will runaway.
+        if (nodeTo == 0) { // for master.
           flagProc = true;
         }
-        
       }
       
       if (flagProc) {
@@ -259,19 +250,15 @@ void EXIO485::_loop(unsigned long currentMicros) {
             break;
           }
           case EXIORDD: {
-          for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
-            node->setdigitalInputStates(received_data[i+3], i);
-          }
-          markTaskCompleted(CurrentTaskID);
-          flagProc = false;
+            for (int i = 0; i < (node->_numDigitalPins+7)/8; i++) {
+              node->setdigitalInputStates(received_data[i+3], i);
+            }
+            markTaskCompleted(CurrentTaskID);
+            flagProc = false;
             break;
           }
         }
-        
-        
       }
-        
-      
     }
   }
 }

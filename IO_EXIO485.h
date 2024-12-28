@@ -1,6 +1,5 @@
 /*
 *  © 2024, Travis Farmer. All rights reserved.
-*  © 2021 Chris Harlow
 *   
 *  This file is part of DCC++EX API
 *
@@ -39,7 +38,7 @@
  * 
  * firstVPIN = first vpin in block allocated to this device
  * numVPINs = number of vpins
- * nodeID = 1-251
+ * nodeID = 1-252
  */
 
 #ifndef IO_EXIO485_H
@@ -382,7 +381,7 @@ private:
   byte bufferLength;
   static const int ARRAY_SIZE = 150;
   int buffer[ARRAY_SIZE]; 
-    byte inCommandPayload;
+  byte inCommandPayload;
   static EXIO485 *_busList; // linked list of defined bus instances
   bool waitReceive = false;
   int _waitCounter = 0;
@@ -406,12 +405,6 @@ private:
   uint16_t _receiveDataIndex = 0;  // Index of next data byte to be received.
   EXIO485 *_nextBus = NULL;  // Pointer to next bus instance in list.
   
-// Helper function for error handling
-  void reportError(uint8_t status, bool fail=true) {
-    DIAG(F("EX-IOExpander485 Node:%d Error"), _currentNode->getNodeID());
-    if (fail)
-    _deviceState = DEVSTATE_FAILED;
-  }
   int byteCounter = 0;
 public:
 struct Task {
@@ -426,103 +419,91 @@ struct Task {
     bool completed;
     bool processed;
   };
-static const int MAX_TASKS = 50;
+  static const int MAX_TASKS = 50;
   long taskIDCntr = 1;
   long CurrentTaskID = -1;
   int taskResendCount = 0;
-Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
-int currentTaskIndex = 0;
-void initTask() {
-  for (int i = 0; i <MAX_TASKS; i++) {
-    taskBuffer[i].completed = true;
-    taskBuffer[i].processed = false;
-    taskBuffer[i].byteCount = 0;
-    taskBuffer[i].crcPassFail = 0;
-    taskBuffer[i].gotCallback = false;
-    taskBuffer[i].retFlag = 0;
-    taskBuffer[i].rxMode = false;
-    taskBuffer[i].taskID = i;
-    memset(taskBuffer[i].commandArray,0,ARRAY_SIZE);
+  Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
+  int currentTaskIndex = 0;
+
+  void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
+    // Find an empty slot in the buffer
+    int emptySlot = -1;
+    for (int i = 0; i < MAX_TASKS; i++) {
+      if (taskBuffer[i].completed) {
+        emptySlot = i;
+        break;
+      }
+    }
+    // If no empty slot found, return (buffer full)
+    if (emptySlot == -1) {
+      DIAG(F("Task Buffer Full!"));
+      return;
+    }
+    for (int i = 0; i < byteCount; i++) taskBuffer[emptySlot].commandArray[i] = cmd[i];
+    taskBuffer[emptySlot].byteCount = byteCount;
+    taskBuffer[emptySlot].retFlag = retFlag;
+    taskBuffer[emptySlot].rxMode = false;
+    taskBuffer[emptySlot].crcPassFail = 0;
+    taskBuffer[emptySlot].gotCallback = false;
+    taskBuffer[emptySlot].completed = false;
+    taskBuffer[emptySlot].processed = false;
+    taskIDCntr++;
+    if (taskIDCntr >= 5000000) taskIDCntr = 1;
+    taskBuffer[emptySlot].taskID = taskIDCntr;
+    currentTaskIndex = emptySlot; 
   }
-}
-void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
-  // Find an empty slot in the buffer
-  int emptySlot = -1;
-  for (int i = 0; i < MAX_TASKS; i++) {
-    if (taskBuffer[i].completed) {
-      emptySlot = i;
-      break;
+  bool hasTasks() {
+    for (int i = 0; i < MAX_TASKS; i++) {
+      if (!taskBuffer[i].completed) {
+        return true; // At least one task is not completed
+      }
+    }
+    return false; // All tasks are completed
+  }
+  // Function to get a specific task by ID
+  Task* getTaskById(int id) {
+    for (int i = 0; i < MAX_TASKS; i++) {
+      if (taskBuffer[i].taskID == id) {
+        return &taskBuffer[i]; // Return a pointer to the task
+      }
+    }
+    return nullptr; // Task not found
+  }
+  // Function to get the next task (optional)
+  long getNextTaskId() {
+    for (int i = 0; i < MAX_TASKS; i++) {
+      if (!taskBuffer[i].completed) {
+        return taskBuffer[i].taskID; 
+      }
+    }
+    return -1; // No tasks available
+  }
+  // Function to mark a task as completed
+  void markTaskCompleted(int id) {
+    for (int i = 0; i < MAX_TASKS; i++) {
+      if (taskBuffer[i].taskID == id) {
+        taskBuffer[i].completed = true; // completed
+        taskBuffer[i].taskID = -1; // unassigned
+        CurrentTaskID = getNextTaskId();
+        break;
+      }
     }
   }
-  // If no empty slot found, return (buffer full)
-  if (emptySlot == -1) {
-    DIAG(F("Task Buffer Full!"));
-    return;
-  }
-  for (int i = 0; i < byteCount; i++) taskBuffer[emptySlot].commandArray[i] = cmd[i];
-  taskBuffer[emptySlot].byteCount = byteCount;
-  taskBuffer[emptySlot].retFlag = retFlag;
-  taskBuffer[emptySlot].rxMode = false;
-  taskBuffer[emptySlot].crcPassFail = 0;
-  taskBuffer[emptySlot].gotCallback = false;
-  taskBuffer[emptySlot].completed = false;
-  taskBuffer[emptySlot].processed = false;
-  taskIDCntr++;
-  if (taskIDCntr >= 5000000) taskIDCntr = 1;
-  taskBuffer[emptySlot].taskID = taskIDCntr;
-  currentTaskIndex = emptySlot; 
-}
-bool hasTasks() {
-  for (int i = 0; i < MAX_TASKS; i++) {
-    if (!taskBuffer[i].completed) {
-      return true; // At least one task is not completed
-    }
-  }
-  return false; // All tasks are completed
-}
-// Function to get a specific task by ID
-Task* getTaskById(int id) {
-  for (int i = 0; i < MAX_TASKS; i++) {
-    if (taskBuffer[i].taskID == id) {
-      return &taskBuffer[i]; // Return a pointer to the task
-    }
-  }
-  return nullptr; // Task not found
-}
-// Function to get the next task (optional)
-long getNextTaskId() {
-  for (int i = 0; i < MAX_TASKS; i++) {
-    if (!taskBuffer[i].completed) {
-      return taskBuffer[i].taskID; 
-    }
-  }
-  return -1; // No tasks available
-}
-// Function to mark a task as completed
-void markTaskCompleted(int id) {
-  for (int i = 0; i < MAX_TASKS; i++) {
-    if (taskBuffer[i].taskID == id) {
-      taskBuffer[i].completed = true; // completed
-      taskBuffer[i].taskID = -1; // unassigned
-      CurrentTaskID = getNextTaskId();
-      break;
-    }
-  }
-}
-bool flagEnd = false;
-bool flagEnded = false;
-bool flagStart = false;
-bool flagStarted = false;
-bool rxStart = false;
-bool rxEnd = false;
-bool crcPass = false;
-bool flagProc = false;
-uint16_t calculated_crc;
-    int byteCount = 100;
-uint8_t received_data[ARRAY_SIZE];
-uint16_t received_crc;
-uint8_t crc[2];
-uint16_t crc16(uint8_t *data, uint16_t length);
+  bool flagEnd = false;
+  bool flagEnded = false;
+  bool flagStart = false;
+  bool flagStarted = false;
+  bool rxStart = false;
+  bool rxEnd = false;
+  bool crcPass = false;
+  bool flagProc = false;
+  uint16_t calculated_crc;
+  int byteCount = 100;
+  uint8_t received_data[ARRAY_SIZE];
+  uint16_t received_crc;
+  uint8_t crc[2];
+  uint16_t crc16(uint8_t *data, uint16_t length);
 
   // EX-IOExpander protocol flags
   enum {
@@ -567,25 +548,12 @@ uint16_t crc16(uint8_t *data, uint16_t length);
   unsigned long taskCounter=0ul;
   // Device-specific initialisation
   void _begin() override {
-     //initTask();
     _serial->begin(_baud, SERIAL_8N1);
     if (_txPin >0) {
       pinMode(_txPin, OUTPUT);
       digitalWrite(_txPin, LOW);
       
     }
-  #if defined(EXIO485_STM_OK)
-    pinMode(EXIO485_STM_OK, OUTPUT);
-    ArduinoPins::fastWriteDigital(EXIO485_STM_OK,LOW);
-  #endif
-  #if defined(EXIO485_STM_FAIL)
-    pinMode(EXIO485_STM_FAIL, OUTPUT);
-    ArduinoPins::fastWriteDigital(EXIO485_STM_FAIL,LOW);
-  #endif
-  #if defined(EXIO485_STM_COMM)
-    pinMode(EXIO485_STM_COMM, OUTPUT);
-    ArduinoPins::fastWriteDigital(EXIO485_STM_COMM,LOW);
-  #endif
   
   #if defined(DIAG_IO)
     _display();
