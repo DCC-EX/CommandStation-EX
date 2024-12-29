@@ -371,7 +371,7 @@ private:
   unsigned long _cycleStartTime = 0;
   unsigned long _cycleStartTimeA = 0;
   unsigned long _timeoutStart = 0;
-  unsigned long _cycleTime; // target time between successive read/write cycles, microseconds
+  unsigned long _retryTime; // target time between successive read/write cycles, microseconds
   unsigned long _timeoutPeriod; // timeout on read responses, in microseconds.
   unsigned long _currentMicros;  // last value of micros() from _loop function.
   unsigned long _postDelay; // delay time after transmission before switching off transmitter (in us)
@@ -418,12 +418,13 @@ struct Task {
     int crcPassFail;
     bool completed;
     bool processed;
+    unsigned long currentRetryTimer;
   };
-  static const int MAX_TASKS = 1000;
+  static const int MAX_TASKS = 100; // we don't want to run out of task slots, but memory?
   long taskIDCntr = 1;
   long CurrentTaskID = -1;
   int taskResendCount = 0;
-  Task taskBuffer[MAX_TASKS]; // Buffer to hold up to 100 tasks
+  Task taskBuffer[MAX_TASKS];
   int currentTaskIndex = 0;
 
   void addTask(const uint8_t* cmd, int byteCount, uint8_t retFlag) {
@@ -448,6 +449,7 @@ struct Task {
     taskBuffer[emptySlot].gotCallback = false;
     taskBuffer[emptySlot].completed = false;
     taskBuffer[emptySlot].processed = false;
+    taskBuffer[emptySlot].currentRetryTimer = 0UL;
     taskIDCntr++;
     if (taskIDCntr >= 5000000) taskIDCntr = 1;
     taskBuffer[emptySlot].taskID = taskIDCntr;
@@ -485,6 +487,7 @@ struct Task {
       if (taskBuffer[i].taskID == id) {
         taskBuffer[i].completed = true; // completed
         taskBuffer[i].taskID = -1; // unassigned
+        taskBuffer[i].currentRetryTimer = 0UL; // stop timer
         CurrentTaskID = getNextTaskId();
         break;
       }
@@ -520,8 +523,8 @@ struct Task {
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
     EXIOERR = 0xEF,     // Flag we've received an error
   };
-  static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1, int cycleTime=500) {
-    new EXIO485(busNo, serial, baud, txPin, cycleTime);
+  static void create(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin=-1) {
+    new EXIO485(busNo, serial, baud, txPin);
   }
   HardwareSerial* _serial;
   int _CommMode = 0;
@@ -599,7 +602,7 @@ struct Task {
   }
 
 protected:
-  EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime);
+  EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin);
 
 public:
   

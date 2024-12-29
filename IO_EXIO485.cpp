@@ -30,13 +30,13 @@ static const byte PAYLOAD_STRING = 2;
  ************************************************************/
 
 // Constructor for EXIO485
-EXIO485::EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin, int cycleTime) {
+EXIO485::EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8_t txPin) {
   _serial = &serial;
   _baud = baud;
   
   _txPin = txPin;
   _busNo = busNo;
-  _cycleTime = cycleTime * 1000UL;
+  _retryTime = 1000000UL; // 1 second
   bufferLength=0;
   inCommandPayload=PAYLOAD_FALSE;
   // Add device to HAL device chain
@@ -89,10 +89,21 @@ void EXIO485::_loop(unsigned long currentMicros) {
   }
   
   if ( hasTasks()){ // do we have any tasks on the docket
-    _cycleStartTimeA = _currentMicros;
+    
     if (CurrentTaskID == -1) CurrentTaskID = getNextTaskId();
-
     Task* currentTask = getTaskById(CurrentTaskID);
+    if (currentTask == nullptr) return; // dead task
+
+    if (!currentTask->completed && _currentMicros - _cycleStartTimeA >= _retryTime) { // after CRC pass, timer is reset
+      
+      if (currentTask->currentRetryTimer == 0UL) { // first trigger
+        currentTask->currentRetryTimer = _currentMicros; // set timer
+      } else if (_currentMicros - currentTask->currentRetryTimer >= _retryTime) {
+        currentTask->currentRetryTimer = _currentMicros; // reset timer
+        currentTask->rxMode = false; // resend data
+        DIAG(F("EX-IOExplorer485: Fail RX, Retry TX. Task: %d"), CurrentTaskID);
+      }
+    }
 
     if (!currentTask->rxMode) {
       currentTask->crcPassFail = 0;
@@ -167,6 +178,7 @@ void EXIO485::_loop(unsigned long currentMicros) {
         int nodeTo = received_data[0];
         if (nodeTo == 0) { // for master.
           flagProc = true;
+          
         }
       }
       
@@ -258,6 +270,7 @@ void EXIO485::_loop(unsigned long currentMicros) {
             break;
           }
         }
+        _cycleStartTimeA = currentMicros; // reset timer so we do not resend data
       }
     }
   }
