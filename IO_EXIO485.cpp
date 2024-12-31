@@ -36,7 +36,7 @@ EXIO485::EXIO485(uint8_t busNo, HardwareSerial &serial, unsigned long baud, int8
   
   _txPin = txPin;
   _busNo = busNo;
-  _retryTime = 1000000UL; // 1 second
+  _retryTime = 2000000UL; // 1 second
   bufferLength=0;
   inCommandPayload=PAYLOAD_FALSE;
   // Add device to HAL device chain
