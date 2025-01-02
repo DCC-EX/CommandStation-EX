@@ -77,6 +77,7 @@ public:
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
   static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
   static bool writeTextPacket(byte *b, int nBytes);
+  static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
   static void readCV(int16_t cv, ACK_CALLBACK callback);

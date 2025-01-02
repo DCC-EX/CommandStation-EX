@@ -185,6 +185,9 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte 
   {
     case 1:
       if (clocktime != lastclocktime){
+        auto difference = clocktime - lastclocktime;
+        if (difference<0) difference+=1440;
+        DCC::setTime(clocktime,clockrate,difference>2);
         // CAH. DIAG removed because LCD does it anyway. 
         LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
         // look for an event for this time
