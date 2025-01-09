@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.0"
+#define VERSION "5.5.0"
+// 5.5.0  - New version on devel
 // 5.4.0  - New version on master
 // 5.2.96 - EXRAIL additions XFWD() and XREV()
 // 5.2.95 - Release candidate for 5.4
