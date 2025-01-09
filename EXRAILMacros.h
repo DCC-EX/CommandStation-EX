@@ -3,6 +3,7 @@
  *  © 2020-2022 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
+ *  © 2025 Morten Nielsen
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -665,6 +666,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 #define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),
+#define XFWD(cab,speed) OPCODE_XFWD,V(cab),OPCODE_PAD,V(speed),
+#define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

@@ -4,6 +4,7 @@
  *  © 2021-2023 Harald Barth
  *  © 2020-2023 Chris Harlow
  *  © 2022-2023 Colin Murdoch
+ *  © 2025 Morten Nielsen
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -871,6 +872,14 @@ void RMFT2::loop2() {
     DCC::changeFn(operand,getOperand(1));
     break;
     
+  case OPCODE_XFWD:
+    DCC::setThrottle(operand,getOperand(1), true);
+    break;
+
+  case OPCODE_XREV:
+    DCC::setThrottle(operand,getOperand(1), false);
+    break;
+
   case OPCODE_DCCACTIVATE: {
     // operand is address<<3 | subaddr<<1 | active
     int16_t addr=operand>>3;
