@@ -2,7 +2,7 @@
  *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2023 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2025 Morten Nielsen
  *  All rights reserved.
@@ -585,6 +585,10 @@ void RMFT2::loop2() {
     forward=DCC::getThrottleDirection(loco)^invert;
     driveLoco(operand);
     break;
+  
+  case OPCODE_MOMENTUM:
+    DCC::setMomentum(loco,operand,getOperand(1));
+    break;
     
   case OPCODE_FORGET:
     if (loco!=0) {
@@ -699,7 +703,7 @@ void RMFT2::loop2() {
      break; 
 
   case OPCODE_PAUSE:
-    DCC::setThrottle(0,1,true);  // pause all locos on the track
+    DCC::estopAll();  // pause all locos on the track
     pausingTask=this;
     break;
 

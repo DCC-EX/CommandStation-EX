@@ -1,5 +1,5 @@
 /*
- *  © 2020-2022 Chris Harlow. All rights reserved.
+ *  © 2020-2025 Chris Harlow. All rights reserved.
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -99,6 +99,7 @@
 #undef LCC 
 #undef LCCX 
 #undef LCN 
+#undef MOMENTUM
 #undef MOVETT
 #undef NEOPIXEL
 #undef NEOPIXEL_OFF
@@ -271,6 +272,7 @@
 #define LCC(eventid) 
 #define LCCX(senderid,eventid) 
 #define LCD(row,msg)
+#define MOMENTUM(accel,decel...)
 #define SCREEN(display,row,msg)
 #define LCN(msg) 
 #define MESSAGE(msg)

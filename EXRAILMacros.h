@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -565,6 +565,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STEALTH_GLOBAL(code...) 
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
+#define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
         OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\

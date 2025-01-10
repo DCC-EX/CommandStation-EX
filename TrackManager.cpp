@@ -1,5 +1,5 @@
 /*
- *  © 2022 Chris Harlow
+ *  © 2022-2025 Chris Harlow
  *  © 2022-2024 Harald Barth
  *  © 2023-2024 Paul M. Antoine
  *  © 2024 Herb Morton
@@ -379,7 +379,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-  track[t]->setDCSignal(DCC::getThrottleSpeedByte(trackDCAddr[t]),
+  track[t]->setDCSignal(DCC::getLocoSpeedByte(trackDCAddr[t]),
 			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 

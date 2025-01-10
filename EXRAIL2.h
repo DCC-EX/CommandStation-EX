@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -36,6 +36,7 @@
 // 
 enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
+             OPCODE_MOMENTUM,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,
              OPCODE_AFTEROVERLOAD,OPCODE_AUTOSTART,
