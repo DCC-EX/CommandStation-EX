@@ -85,6 +85,7 @@ public:
   static void writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
+  static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
 
   static void getLocoId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);

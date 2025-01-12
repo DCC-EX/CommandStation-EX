@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.1"
+#define VERSION "5.5.2"
+// 5.5.2  - DS1307 Real Time clock 
 // 5.5.1  - Momentum 
 // 5.5.0  - New version on devel
 // 5.4.0  - New version on master

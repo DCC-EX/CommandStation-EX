@@ -445,6 +445,44 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
 }
 
+bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
+  /* see rcn-122
+  5 Global commands 
+These commands are sent and begin exclusively with a broadcast address 0 
+always with {synchronous bits} 0 0000-0000 … and end with the checksum 
+... PPPPPPPP 1. Therefore, only the bytes of the commands and not that of 
+shown below whole package shown. The commands can be used by vehicle and 
+accessory decoders alike. 
+
+  5.1 Time command 
+This command is four bytes long and has the format: 
+1100-0001 CCxx-xxxx xxxx-xxxxx xxxx-xxxx 
+CC indicates what data is transmitted in the packet: 
+CC = 00 Model Time 
+1100-0001 00MM-MMMM WWWH-HHHH U0BB-BBBB with: 
+MMMMMM = Minutes, Value range: 0..59 
+WWW =     Day of the Week, Value range: 0 = Monday, 1 = Tuesday, 2 = Wednesday, 
+3 = Thursday, 4 = Friday, 5 = Saturday, 6 = Sunday, 7 = Weekday 
+is not supported. 
+HHHHH =   Hours, value range: 0..23 
+U =         
+Update, i.e. the time has changed suddenly, e.g. by a new one timetable to start.        
+Up to 4 can occur per sudden change commands can be marked like this. 
+BBBBBB =    Acceleration factor, value range 0..63. An acceleration factor of 0 means the  
+model clock has been stopped, a factor of 1 corresponds to real time, at 2 the 
+clock runs twice as fast, at three times as fast as real time, etc. 
+*/
+if (minutes>=1440 || speed>63 ) return false; 
+byte b[5];
+b[0]=0; // broadcast address
+b[1]=0b11000001; // 1100-0001 (model time)
+b[2]=minutes % 60 ;  // MM
+b[3]= 0b11100000 | (minutes/60); // 111H-HHHH weekday not supported
+b[4]= (suddenChange ? 0b10000000 : 0) | speed;
+DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), 2);
+return true; 
+}
+
 FSH* DCC::getMotorShieldName() {
   return shieldName;
 }
