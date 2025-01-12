@@ -25,6 +25,7 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCWaveform.h"
 #include "DCCACK.h"
+#include "TrackManager.h"
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);

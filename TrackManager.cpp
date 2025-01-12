@@ -332,7 +332,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	canDo &= track[t]->trackPWM;
       }
     }
-    if (!canDo) {
+    if (canDo) DIAG(F("HA mode")); 
+    else {
       // if we discover that HA mode was globally impossible
       // we must adjust the trackPWM capabilities
       FOR_EACH_TRACK(t) {
@@ -341,6 +342,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
+    DCCWaveform::setRailcomPossible(canDo);
 #else
     // For ESP32 we just reinitialize the DCC Waveform
     DCCWaveform::begin();

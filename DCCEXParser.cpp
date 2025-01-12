@@ -1223,6 +1223,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
 #ifdef HAS_ENOUGH_MEMORY
+    case "RAILCOM"_hk: // <D RAILCOM ON/OFF>
+        Diag::RAILCOM = onOff;
+        return true;
+
     case "WIFI"_hk: // <D WIFI ON/OFF>
         Diag::WIFI = onOff;
         return true;

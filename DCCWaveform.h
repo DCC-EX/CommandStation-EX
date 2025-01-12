@@ -3,7 +3,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2024 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -23,11 +23,8 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
-
-#include "MotorDriver.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCRMT.h"
-#include "TrackManager.h"
 #endif
 
 
@@ -86,8 +83,30 @@ class DCCWaveform {
     bool isReminderWindowOpen();
     void promotePendingPacket();
     static bool setRailcom(bool on, bool debug);
-    static bool isRailcom() {return railcomActive;}
-    
+    inline static bool isRailcom() {
+      return railcomActive;
+    };
+    inline static byte getRailcomCutoutCounter() {
+      return railcomCutoutCounter;
+    };
+    inline static bool isRailcomSampleWindow() {
+      return railcomSampleWindow;
+    };
+    inline static bool isRailcomPossible() {
+      return railcomPossible;
+    };
+    inline static void setRailcomPossible(bool yes) {
+      railcomPossible=yes;
+      if (!yes) setRailcom(false,false);
+    };
+    inline static uint16_t getRailcomLastLocoAddress() {
+      // first 2 bits 00=short loco, 11=long loco , 01/10 = accessory
+      byte addressType=railcomLastAddressHigh & 0xC0;
+      if (addressType==0xC0) return ((railcomLastAddressHigh & 0x3f)<<8) | railcomLastAddressLow;
+      if (addressType==0x00) return railcomLastAddressHigh & 0x3F;
+      return 0; 
+    }
+
   private:
 #ifndef ARDUINO_ARCH_ESP32
     volatile bool packetPending;
@@ -112,9 +131,13 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte pendingLength;
     byte pendingRepeats;
+    static bool railcomPossible; // High accuracy mode only
     static volatile bool railcomActive;     // switched on by user
     static volatile bool railcomDebug;     // switched on by user
-    
+    static volatile bool railcomSampleWindow; // when safe to sample
+    static volatile byte railcomCutoutCounter; // incremented for each cutout
+    static volatile byte railcomLastAddressHigh,railcomLastAddressLow;
+    static bool cutoutNextTime;   // railcom
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;
   static RMTChannel *rmtProgChannel;
