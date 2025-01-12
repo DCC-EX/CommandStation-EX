@@ -210,6 +210,15 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
         default:
             break;
         }
+	break;
+
+  case 'K': // <K blockid loco>  Block enter
+  case 'k': // <k blockid loco>  Block exit
+        if (paramCount!=2) break;
+        blockEvent(p[0],p[1],opcode=='K');
+        opcode=0;
+        break; 
+  
   default:  // other commands pass through
     break;
   }
@@ -228,11 +237,9 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 			    );
       }
       else {
-      StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d%c,SPEED=%d%c"),
+      StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d %c"),
 			    (int)(task->taskId),task->progCounter,task->loco,
-			    task->invert?'I':' ',
-			    task->speedo,
-			    task->forward?'F':'R'
+			    task->invert?'I':' '
 			    );
       }
       task=task->next;
@@ -276,6 +283,14 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   switch (p[0]) {
   case "PAUSE"_hk: // </ PAUSE>
     if (paramCount!=1) return false;
+    { // pause all tasks 
+      RMFT2 * task=loopTask;
+      while(task) {
+	      task->pause();
+	      task=task->next;
+	      if (task==loopTask) break;
+      }
+    }
     DCC::estopAll();  // pause all locos on the track
     pausingTask=(RMFT2 *)1; // Impossible task address
     return true;
@@ -283,12 +298,12 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
   case "RESUME"_hk: // </ RESUME>
     if (paramCount!=1) return false;
     pausingTask=NULL;
-    {
+    { // resume all tasks
       RMFT2 * task=loopTask;
       while(task) {
-	if (task->loco) task->driveLoco(task->speedo);
-	task=task->next;
-	if (task==loopTask) break;
+	      task->resume();
+	      task=task->next;
+	      if (task==loopTask) break;
       }
     }
     return true;
@@ -301,8 +316,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
       uint16_t cab=(paramCount==2)? 0 : p[1];
       int pc=routeLookup->find(route);
       if (pc<0) return false;
-      RMFT2* task=new RMFT2(pc);
-      task->loco=cab;
+      new RMFT2(pc,cab);
     }
     return true;
     

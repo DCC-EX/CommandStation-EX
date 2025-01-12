@@ -64,8 +64,8 @@ Once a new OPCODE is decided upon, update this list.
   I, Turntable object command, control, and broadcast
   j, Throttle responses
   J, Throttle queries
-  k, Reserved for future use - Potentially Railcom
-  K, Reserved for future use - Potentially Railcom
+  k, Block exit  (Railcom)
+  K, Block enter (Railcom)
   l, Loco speedbyte/function map broadcast
   L, Reserved for LCC interface (implemented in EXRAIL)
   m, message to throttles (broadcast output) 
