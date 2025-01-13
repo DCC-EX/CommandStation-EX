@@ -66,6 +66,8 @@ public:
   static uint8_t getThrottleFrequency(int cab);
   static bool getThrottleDirection(int cab);
   static void writeCVByteMain(int cab, int cv, byte bValue);
+  static void readCVByteMain(int cab, int cv, ACK_CALLBACK callback);
+  
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
@@ -86,7 +88,8 @@ public:
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
-
+  static void setLocoInBlock(int loco, uint16_t blockid, bool exclusive);
+  static void clearBlock(uint16_t blockid);
   static void getLocoId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
   static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
@@ -109,6 +112,7 @@ public:
     uint32_t momentum_base;     // millis() when speed modified under momentum
     byte momentumA, momentumD;
     byte targetSpeed;           // speed set by throttle
+    uint16_t blockOccupied; // railcom detected block 
   };
  static const int16_t MOMENTUM_FACTOR=7;  
  static const byte MOMENTUM_USE_DEFAULT=255;
@@ -139,6 +143,7 @@ private:
   // NMRA codes #
   static const byte SET_SPEED = 0x3f;
   static const byte WRITE_BYTE_MAIN = 0xEC;
+  static const byte READ_BYTE_MAIN = 0xE4;
   static const byte WRITE_BIT_MAIN = 0xE8;
   static const byte WRITE_BYTE = 0x7C;
   static const byte VERIFY_BYTE = 0x74;

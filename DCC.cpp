@@ -37,6 +37,7 @@
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
+#include "Railcom.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -422,6 +423,25 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   b[nB++] = bValue;
 
   DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+}
+
+//
+// readCVByteMain: Read a byte with PoM on main.
+// This requires Railcom active 
+//
+void DCC::readCVByteMain(int cab, int cv, ACK_CALLBACK callback)  {
+  byte b[5];
+  byte nB = 0;
+  if (cab > HIGHEST_SHORT_ADDR)
+    b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
+
+  b[nB++] = lowByte(cab);
+  b[nB++] = cv1(READ_BYTE_MAIN, cv); // any CV>1023 will become modulus(1024) due to bit-mask of 0x03
+  b[nB++] = cv2(cv);
+  b[nB++] = 0;
+
+  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  Railcom::anticipate(cab,cv,callback);
 }
 
 //
@@ -1031,11 +1051,54 @@ void DCC::displayCabList(Print * stream) {
        if (slot->loco==0) break;  // no more locos
        if (slot->loco>0) {
         used ++;
-        StringFormatter::send(stream,F("cab=%d, speed=%d, target=%d momentum=%d/%d\n"),
+        StringFormatter::send(stream,F("cab=%d, speed=%d, target=%d, momentum=%d/%d, block=%d\n"),
            slot->loco,  slot->speedCode, slot->targetSpeed,
-           slot->momentumA, slot->momentumD);
+           slot->momentumA, slot->momentumD, slot->blockOccupied);
        }
      }
      StringFormatter::send(stream,F("Used=%d, max=%d, momentum=%d/%d *>\n"),
                             used,MAX_LOCOS, DCC::defaultMomentumA,DCC::defaultMomentumD);
+}
+
+void DCC::setLocoInBlock(int loco, uint16_t blockid, bool exclusive) {
+  // update block loco is in, tell exrail leaving old block, and entering new.
+
+  // NOTE: The loco table scanning is really inefficient and needs rewriting
+  //   This was done once in the momentum poc.  
+  #ifdef EXRAIL_ACTIVE
+  auto slot=lookupSpeedTable(loco,true);
+  if (!slot) return;
+  auto oldBlock=slot->blockOccupied; 
+  if (oldBlock==blockid) return; 
+  if (oldBlock) RMFT2::blockEvent(oldBlock,loco,false);
+  slot->blockOccupied=blockid;
+  if (blockid) RMFT2::blockEvent(blockid,loco,true);
+
+  if (exclusive) {
+    SLOTLOOP {
+       if (slot->loco==0) break;  // no more locos
+       if (slot->loco>0) {
+          if (slot->loco!=loco &&  slot->blockOccupied==blockid) {
+            RMFT2::blockEvent(blockid,slot->loco,false);
+            slot->blockOccupied=0;
+          }
+      }
+    }
+  }
+  #endif 
+}
+
+void DCC::clearBlock(uint16_t blockid) {
+  // Railcom reports block empty... tell Exrail about all leavers 
+  #ifdef EXRAIL_ACTIVE
+  SLOTLOOP {
+       if (slot->loco==0) break;  // no more locos
+       if (slot->loco>0) {
+        if (slot->blockOccupied==blockid) {
+        RMFT2::blockEvent(blockid,slot->loco,false);
+        slot->blockOccupied=0;
+        }
+      }
+  }
+  #endif 
 }

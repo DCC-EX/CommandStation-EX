@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.4"
+#define VERSION "5.5.5"
+// 5.5.5  - Railcom implementation with IO_I2CRailcom driver
+//        - response analysis and block management.
+//        - <r locoid cv>  POM read using Railcom.
+//        - See Release_notes/Railcom.md
 // 5.5.4  - Split ESP32 from DCCWaveform to DCCWaveformRMT
 //        - Railcom Cutout control (DCCTimerAVR Mega only so far) 
 // 5.5.3  - EXRAIL ESTOPALL,XPOM, 

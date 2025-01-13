@@ -560,18 +560,6 @@ protected:
 
 };
 
-#include "IO_MCP23008.h"
-#include "IO_MCP23017.h"
-#include "IO_PCF8574.h"
-#include "IO_PCF8575.h"
-#include "IO_PCA9555.h"
-#include "IO_duinoNodes.h"
-#include "IO_EXIOExpander.h"
-#include "IO_trainbrains.h"
-#include "IO_EncoderThrottle.h"
-#include "IO_TCA8418.h"
-#include "IO_NeoPixel.h"
-#include "IO_TM1638.h"
-#include "IO_EXSensorCAM.h"
+#include "IODeviceList.h"
 
 #endif // iodevice_h
