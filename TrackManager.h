@@ -1,6 +1,7 @@
 /*
  *  © 2022 Chris Harlow
  *  © 2022-2024 Harald Barth
+ *  © 2025 Herb Morton
  *  © 2023 Colin Murdoch
  * 
  *  All rights reserved.
@@ -87,6 +88,7 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
+    static void reportCurrentLCD(Print* stream);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);

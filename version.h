@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.4"
+#define VERSION "5.5.4 LCD"
+//        - Track power status <JL> LCD
 // 5.5.4  - Split ESP32 from DCCWaveform to DCCWaveformRMT
 //        - Railcom Cutout control (DCCTimerAVR Mega only so far) 
 // 5.5.3  - EXRAIL ESTOPALL,XPOM, 
