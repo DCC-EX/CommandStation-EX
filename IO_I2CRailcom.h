@@ -45,10 +45,7 @@
 
 #ifndef IO_I2CRailcom_h
 #define IO_I2CRailcom_h
-#include "IODevice.h"
-#include "I2CManager.h"
-#include "DIAG.h"
-#include "DCCWaveform.h"
+#include "Arduino.h"
 #include "Railcom.h"
 
 // Debug and diagnostic defines, enable too many will result in slowing the driver
@@ -64,80 +61,13 @@ private:
   Railcom * _channelMonitors[2]; 
 public:
   // Constructor
-   I2CRailcom(VPIN firstVpin, int nPins, I2CAddress i2cAddress){
-    _firstVpin = firstVpin;
-    _nPins = nPins;
-    _I2CAddress = i2cAddress;
-    _channelMonitors[0]=new Railcom(firstVpin);
-    if (nPins>1) _channelMonitors[1]=new Railcom(firstVpin+1);
-    addDevice(this);
-   } 
+  I2CRailcom(VPIN firstVpin, int nPins, I2CAddress i2cAddress);
   
-public:
-  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
-    if (nPins>2) nPins=2;
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) 
-     new I2CRailcom(firstVpin, nPins, i2cAddress); 
-    }
-
-  void _begin() override {
-    I2CManager.setClock(1000000); // TODO do we need this?
-    I2CManager.begin();
-    auto exists=I2CManager.exists(_I2CAddress);
-    DIAG(F("I2CRailcom: %s UART%S detected"), 
-           _I2CAddress.toString(), exists?F(""):F(" NOT"));
-    if (!exists) return;
+  static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) ;
   
-    _UART_CH=0;
-    Init_SC16IS752(); // Initialize UART0    
-    if (_nPins>1) {
-      _UART_CH=1;
-      Init_SC16IS752(); // Initialize UART1
-    }
-    
-    if (_deviceState==DEVSTATE_INITIALISING) _deviceState=DEVSTATE_NORMAL;
-    _display();
-    }
-  
-  
-  void _loop(unsigned long currentMicros) override {
-    // Read responses from device
-    if (_deviceState!=DEVSTATE_NORMAL) return;
-
-    // return if in cutout or cutout very soon.  
-    if (!DCCWaveform::isRailcomSampleWindow()) return; 
-    
-    // IF we have 2 channels, flip channels each loop
-    if (_nPins>1) _UART_CH=_UART_CH?0:1;
-
-    // have we read this cutout already?
-    auto cut=DCCWaveform::getRailcomCutoutCounter();
-    if (cutoutCounter[_UART_CH]==cut) return; 
-    cutoutCounter[_UART_CH]=cut; 
-    
-    // Read incoming raw Railcom data, and process accordingly
-
-    auto inlength = UART_ReadRegister(REG_RXLV);
-    
-    if (inlength> sizeof(_inbuf)) inlength=sizeof(_inbuf); 
-    _inbuf[0]=0;
-    if (inlength>0) {
-      // Read data buffer from UART
-      _outbuf[0]=(byte)(REG_RHR << 3 | _UART_CH << 1);
-      I2CManager.read(_I2CAddress, _inbuf, inlength, _outbuf, 1); 
-    }
-    // HK: Reset FIFO at end of read cycle
-    UART_WriteRegister(REG_FCR, 0x07,false);
-    
-    // Ask Railcom to interpret the raw data
-    _channelMonitors[_UART_CH]->process(_inbuf,inlength);
-  }
-          
- 
-  void _display() override {
-    DIAG(F("I2CRailcom: Configured on Vpins:%u-%u %S"), _firstVpin, _firstVpin+_nPins-1,
-      (_deviceState!=DEVSTATE_NORMAL) ? F("OFFLINE") : F(""));
-  }
+  void _begin() ;
+  void _loop(unsigned long currentMicros) override ;
+  void _display() override ;
   
 private: 
 
@@ -168,115 +98,9 @@ private:
   static const unsigned long SC16IS752_XTAL_FREQ_RAILCOM = 16000000; // Baud rate for Railcom signal
   static const uint16_t _divisor = (SC16IS752_XTAL_FREQ_RAILCOM / PRESCALER) / (BAUD_RATE * 16);  
      
-  void Init_SC16IS752(){ 
-   if (_UART_CH==0) { // HK: Currently fixed on ch 0
-      // only reset on channel 0}
-      UART_WriteRegister(REG_IOCONTROL, 0x08,false); // UART Software reset
-       //_deviceState=DEVSTATE_INITIALISING;  // ignores error during reset which seems normal. // HK: this line is moved to below
-      auto iocontrol_readback = UART_ReadRegister(REG_IOCONTROL);
-      if (iocontrol_readback == 0x00){
-        _deviceState=DEVSTATE_INITIALISING;
-        DIAG(F("I2CRailcom: %s SRESET readback: 0x%x"),_I2CAddress.toString(), iocontrol_readback);
-      } else {
-                DIAG(F("I2CRailcom: %s SRESET: 0x%x"),_I2CAddress.toString(), iocontrol_readback);
-             }
-   } 
-   // HK:
-   // You write 0x08 to the IOCONTROL register, setting bit 3 (SRESET), as per datasheet 8.18:
-   // "Software Reset. A write to this bit will reset the device. Once the
-   // device is reset this bit is automatically set to logic 0"
-   // So you can not readback the val you have written as this has changed.
-   // I've added an extra UART_ReadRegister(REG_IOCONTROL) and check if the return value is 0x00
-   // then set _deviceState=DEVSTATE_INITIALISING;
-   
-  
-    // HK: only do clear FIFO at end of Init_SC16IS752
-    //UART_WriteRegister(REG_FCR, 0x07,false); // Reset FIFO, clear RX & TX FIFO (write only)
-    
-    UART_WriteRegister(REG_MCR, 0x00); // Set MCR to all 0, includes Clock divisor
-    
-    //UART_WriteRegister(REG_LCR, 0x80); // Divisor latch enabled
-    
-    UART_WriteRegister(REG_LCR, 0x80 | WORD_LEN | STOP_BIT | PARITY_ENA | PARITY_TYPE); // Divisor latch enabled and comm parameters set
-    UART_WriteRegister(REG_DLL, (uint8_t)_divisor);  // Write DLL
-    UART_WriteRegister(REG_DLH, (uint8_t)(_divisor >> 8)); // Write DLH
-    auto lcr_readback = UART_ReadRegister(REG_LCR);
-    lcr_readback = lcr_readback & 0x7F;
-    UART_WriteRegister(REG_LCR, lcr_readback); // Divisor latch disabled
-    
-    //UART_WriteRegister(REG_LCR,  WORD_LEN | STOP_BIT | PARITY_ENA | PARITY_TYPE); // Divisor latch disabled
-    
-    UART_WriteRegister(REG_FCR, 0x07,false); // Reset FIFO, clear RX & TX FIFO (write only)
-
-    #ifdef DIAG_I2CRailcom
-    // HK: Test to see if internal loopback works and if REG_RXLV increment to at least 0x01
-    // Set REG_MCR bit 4 to 1, Enable Loopback
-    UART_WriteRegister(REG_MCR, 0x10);
-    UART_WriteRegister(REG_THR, 0x88, false); // Send 0x88
-    auto inlen = UART_ReadRegister(REG_RXLV);
-    if (inlen == 0){
-        DIAG(F("I2CRailcom: Loopback test: %s/%d failed"),_I2CAddress.toString(), _UART_CH);
-        } else {          
-            DIAG(F("Railcom: Loopback test: %s/%d RX Fifo lvl: 0x%x"),_I2CAddress.toString(), _UART_CH, inlen); 
-            _outbuf[0]=(byte)(REG_RHR << 3 | _UART_CH << 1);
-            I2CManager.read(_I2CAddress, _inbuf, inlen, _outbuf, 1); 
-          #ifdef DIAG_I2CRailcom_data
-            DIAG(F("Railcom: Loopback test: %s/%d RX FIFO Data"), _I2CAddress.toString(), _UART_CH);
-            for (int i = 0; i < inlen; i++){
-            DIAG(F("Railcom: Loopback data [0x%x]: 0x%x"), i, _inbuf[i]);
-            //DIAG(F("[0x%x]: 0x%x"), i, _inbuf[i]);  
-            }
-          #endif          
-        }
-    UART_WriteRegister(REG_MCR, 0x00); // Set REG_MCR back to 0x00
-    #endif
-
-    #ifdef DIAG_I2CRailcom
-    // Sent some data to check if UART baudrate is set correctly, check with logic analyzer on TX pin
-    UART_WriteRegister(REG_THR, 9, false);
-    DIAG(F("I2CRailcom: UART %s/%d Test TX = 0x09"),_I2CAddress.toString(), _UART_CH);
-    #endif
-    
-    if (_deviceState==DEVSTATE_INITIALISING) {
-      DIAG(F("I2CRailcom: UART %d init complete"),_UART_CH);
-    }
-   // HK: final FIFO reset 
-   UART_WriteRegister(REG_FCR, 0x07,false); // Reset FIFO, clear RX & TX FIFO (write only)
-  
-  }
-
-  
-  
-
-  void UART_WriteRegister(uint8_t reg, uint8_t val, bool readback=true){
-    _outbuf[0] = (byte)( reg << 3 | _UART_CH << 1);
-    _outbuf[1]=val;
-    auto status=I2CManager.write(_I2CAddress, _outbuf, (uint8_t)2);
-    if(status!=I2C_STATUS_OK) {
-      DIAG(F("I2CRailcom: %s/%d write reg=0x%x,data=0x%x,I2Cstate=%d"),
-       _I2CAddress.toString(), _UART_CH, reg, val, status);
-       _deviceState=DEVSTATE_FAILED;
-    }
-    if (readback) {    // Read it back to cross check
-      auto readback=UART_ReadRegister(reg);
-      if (readback!=val) {
-        DIAG(F("I2CRailcom readback: %s/%d reg:0x%x write=0x%x read=0x%x"),_I2CAddress.toString(),_UART_CH,reg,val,readback);
-      }
-    }
-  }
-
- 
-  uint8_t UART_ReadRegister(uint8_t reg){
-     _outbuf[0] = (byte)(reg << 3 | _UART_CH << 1); // _outbuffer[0] has now UART_REG and UART_CH
-     _inbuf[0]=0;
-     auto status=I2CManager.read(_I2CAddress, _inbuf, 1, _outbuf, 1);    
-    if (status!=I2C_STATUS_OK) {
-       DIAG(F("I2CRailcom read: %s/%d read reg=0x%x,I2Cstate=%d"),
-       _I2CAddress.toString(), _UART_CH, reg, status);  
-       _deviceState=DEVSTATE_FAILED;
-    }
-    return _inbuf[0]; 
-  }
+  void Init_SC16IS752(); 
+  void UART_WriteRegister(uint8_t reg, uint8_t val, bool readback=true);
+  uint8_t UART_ReadRegister(uint8_t reg);
 
 // SC16IS752 General register set (from the datasheet)
 enum : uint8_t {

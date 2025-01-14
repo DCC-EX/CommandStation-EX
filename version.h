@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.5"
+#define VERSION "5.5.6"
+// 5.5.6  - Fix ESP32 build bug caused by include reference loop
 // 5.5.5  - Railcom implementation with IO_I2CRailcom driver
 //        - response analysis and block management.
 //        - <r locoid cv>  POM read using Railcom.

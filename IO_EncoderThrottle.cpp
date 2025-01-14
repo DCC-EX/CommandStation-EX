@@ -24,6 +24,7 @@
 */
 
 #include "IODevice.h"
+#include "IO_EncoderThrottle.h"
 #include "DIAG.h"
 #include "DCC.h"
 

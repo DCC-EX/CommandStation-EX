@@ -32,6 +32,14 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 RMTChannel *DCCWaveform::rmtMainChannel = NULL;
 RMTChannel *DCCWaveform::rmtProgChannel = NULL;
 
+bool DCCWaveform::railcomPossible=false;     // High accuracy only    
+volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
+volatile bool DCCWaveform::railcomSampleWindow=false; // true during packet transmit
+volatile byte DCCWaveform::railcomCutoutCounter=0;    // cyclic cutout
+volatile byte DCCWaveform::railcomLastAddressHigh=0;
+volatile byte DCCWaveform::railcomLastAddressLow=0;
+
 DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   requiredPreambles = preambleBits;

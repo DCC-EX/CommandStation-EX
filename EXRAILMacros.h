@@ -24,6 +24,7 @@
 
 #ifndef EXRAILMacros_H
 #define EXRAILMacros_H
+#include "IODeviceList.h"
 
 // remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
