@@ -88,7 +88,7 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
-    static void reportCurrentLCD(Print* stream);
+    static void reportCurrentLCD(uint8_t display, byte row);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);

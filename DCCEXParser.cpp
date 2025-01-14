@@ -771,9 +771,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;
 
-                case "L"_hk: // <JL> current values
-                    if (params>1) break;
-                    TrackManager::reportCurrentLCD(stream);   // Track power status     
+                case "L"_hk: // <JL display row> track state and mA value on display
+                    if (params<3) break;
+                    TrackManager::reportCurrentLCD(p[1], p[2]);   // Track power status     
                     return;
 
                 case "A"_hk: // <JA> intercepted by EXRAIL// <JA> returns automations/routes

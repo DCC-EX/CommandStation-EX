@@ -646,28 +646,28 @@ void TrackManager::reportCurrent(Print* stream) {
     StringFormatter::send(stream,F(">\n"));    
 }
 
-void TrackManager::reportCurrentLCD(Print* stream) {
+void TrackManager::reportCurrentLCD(uint8_t display, byte row) {
     FOR_EACH_TRACK(t) {
       bool pstate = TrackManager::isPowerOn(t);  // checks if power is on or off
       TRACK_MODE tMode=(TrackManager::getMode(t)); // gets to current power mode
       int16_t DCAddr=(TrackManager::returnDCAddr(t));
-      int16_t tPwr_mA= (track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
-                          track[t]->raw2mA(track[t]->getCurrentRaw(false));
 
         if (pstate) {                                                 // if power is on do this section
+          int16_t tPwr_mA= (track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
+                          track[t]->raw2mA(track[t]->getCurrentRaw(false));
           if (tMode & TRACK_MODE_DC) {    // Test if track is in DC or DCX mode
-            LCD(8+t, F("%c: %S %d ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)),DCAddr, tPwr_mA);
+            SCREEN(display, row+t, F("%c: %S %d ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)),DCAddr, tPwr_mA);
           }
           else {                                                      // formats without DCAddress
-            LCD(8+t, F("%c: %S ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)), tPwr_mA);
+            SCREEN(display, row+t, F("%c: %S ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)), tPwr_mA);
           }
         } 
         else {                                                        // if power is off do this section
           if (tMode & TRACK_MODE_DC) {   // DC / DCX
-            LCD(8+t, F("Track %c: %S %d OFF"), t+'A', (TrackManager::getModeName(tMode)),DCAddr);
+            SCREEN(display, row+t, F("Track %c: %S %d OFF"), t+'A', (TrackManager::getModeName(tMode)),DCAddr);
           }
           else {                                                      // Not DC or DCX
-            LCD(8+t, F("Track %c: %S OFF"), t+'A', (TrackManager::getModeName(tMode)));
+            SCREEN(display, row+t, F("Track %c: %S OFF"), t+'A', (TrackManager::getModeName(tMode)));
           }
         }
     }
