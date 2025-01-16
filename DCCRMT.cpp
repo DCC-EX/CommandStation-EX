@@ -152,7 +152,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   }
   setDCCBit0Long(preamble + plen); // start of packet 0 bit long version
 #else
-  for (byte n=0; n<plen; n++) {
+  for (byte n=0; n<plen; n++)
     setDCCBit1(preamble + n);      // preamble bits
   setDCCBit0(preamble + plen);     // start of packet 0 bit normal version
 #endif
