@@ -309,6 +309,7 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
   if (onoff != 0) {
+    DIAG(F("DCC::setAccessory(%d,%d,%d) ON"), address, port, gate);
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat on packet three times
 #if defined(EXRAIL_ACTIVE)
     RMFT2::activateEvent(address<<2|port,gate);
@@ -316,6 +317,7 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   }
   if (onoff != 1) {
     b[1] &= ~0x08; // set C to 0
+    DIAG(F("DCC::setAccessory(%d,%d,%d) OFF"), address, port, gate);
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
   }
 }

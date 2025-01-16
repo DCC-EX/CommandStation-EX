@@ -39,6 +39,13 @@ class RMTChannel {
   void RMTprefill();
   //int RMTfillData(dccPacket packet);
   int RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
+  inline void waitForDataCopy() {
+    while(1) {
+      if (dataReady == false)
+	break;
+      //DIAG(F("%d %d"), dataReady, dataRepeat);
+    } //do nothing and wait for interrupt to happen
+  };
   inline bool busy() {
     if (dataRepeat > 0) // we have still old work to do
       return true;

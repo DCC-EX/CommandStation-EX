@@ -280,6 +280,13 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
   
   byte checksum = 0;
+  if(isMainTrack) {
+    if (rmtMainChannel != NULL)
+      rmtMainChannel->waitForDataCopy();
+  } else {
+    if (rmtProgChannel != NULL)
+      rmtProgChannel->waitForDataCopy();
+  }
   for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
     pendingPacket[b] = buffer[b];

@@ -86,6 +86,14 @@ void setDCCBit0Long(rmt_item32_t* item) {
   item->duration1 = DCC_0_HALFPERIOD + DCC_0_HALFPERIOD/10;
 }
 
+// special short one to trigger scope
+void setDCCBit1Short(rmt_item32_t* item) {
+  item->level0    = 1;
+  item->duration0 = DCC_1_HALFPERIOD/2;
+  item->level1    = 0;
+  item->duration1 = DCC_1_HALFPERIOD/2;
+}
+
 void setEOT(rmt_item32_t* item) {
   item->val = 0;
 }
@@ -135,11 +143,17 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   // preamble
   preambleLen = plen+2; // plen 1 bits, one 0 bit and one EOF marker
   preamble = (rmt_item32_t*)malloc(preambleLen*sizeof(rmt_item32_t));
-  for (byte n=0; n<plen; n++)
-    setDCCBit1(preamble + n);      // preamble bits
 #ifdef SCOPE
+  for (byte n=0; n<plen; n++) {
+    if (n == 0)
+      setDCCBit1Short(preamble + n); // start of preamble 1 bit short version
+    else
+      setDCCBit1(preamble + n);
+  }
   setDCCBit0Long(preamble + plen); // start of packet 0 bit long version
 #else
+  for (byte n=0; n<plen; n++) {
+    setDCCBit1(preamble + n);      // preamble bits
   setDCCBit0(preamble + plen);     // start of packet 0 bit normal version
 #endif
   setEOT(preamble + plen + 1);     // EOT marker
@@ -204,6 +218,7 @@ void RMTChannel::RMTprefill() {
 const byte transmitMask[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 
 int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCount=0) {
+  int ret = 0;
   //int RMTChannel::RMTfillData(dccPacket packet) {
   // dataReady: Signals to then interrupt routine. It is set when
   // we have data in the channel buffer which can be copied out
@@ -211,9 +226,14 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
   // the caller of this function if the data has been sent enough
   // times (0 to 3 means 1 to 4 times in total).
   if (dataRepeat > 0) // we have still old work to do
-    return dataRepeat;
+    ret = dataRepeat;
   if (dataReady == true) // the packet is not copied out yet
-    return 1000;
+    ret = 1000;
+  if (buffer[0] == 129) {
+    DIAG(F("RMTfillData 129 %d %d"), buffer[1], ret);
+  }
+  if (ret > 0)
+    return ret;
   if (DATA_LEN(byteCount) > maxDataLen) {  // this would overun our allocated memory for data
     DIAG(F("Can not convert DCC bytes # %d to DCC bits %d, buffer too small"), byteCount, maxDataLen);
     return -1;                          // something very broken, can not convert packet
