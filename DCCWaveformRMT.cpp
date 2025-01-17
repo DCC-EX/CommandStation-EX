@@ -70,7 +70,11 @@ void DCCWaveform::begin() {
 
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
+  RMTChannel *rmtchannel = (isMainTrack ? rmtMainChannel : rmtProgChannel);
+  if (rmtchannel == NULL)
+    return; // no idea to prepare packet if we can not send it anyway
   
+  rmtchannel->waitForDataCopy(); // blocking wait so we can write into buffer
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
@@ -88,13 +92,7 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   {
     int ret = 0;
     do {
-      if(isMainTrack) {
-	if (rmtMainChannel != NULL)
-	  ret = rmtMainChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-      } else {
-	if (rmtProgChannel != NULL)
-	  ret = rmtProgChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-      }
+      ret = rmtchannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
     } while(ret > 0);
   }
 }

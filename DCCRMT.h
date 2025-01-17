@@ -44,6 +44,12 @@ class RMTChannel {
       return true;
     return dataReady;
   };
+  inline void waitForDataCopy() {
+    while(1) { // do nothing and wait for interrupt clearing dataReady to happen
+      if (dataReady == false)
+	break;
+    }
+  };
   inline uint32_t packetCount() { return packetCounter; };
   
  private:
