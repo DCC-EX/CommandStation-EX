@@ -37,6 +37,7 @@ struct DCCEXParser
    static void parseOne(Print * stream,  byte * command,  RingStream * ringStream);
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
+   static void setCamParserFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
  
@@ -77,6 +78,7 @@ struct DCCEXParser
     static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;
     static FILTER_CALLBACK  filterRMFTCallback;
+    static FILTER_CALLBACK  filterCamParserCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
     static void sendFlashList(Print * stream,const int16_t flashList[]);

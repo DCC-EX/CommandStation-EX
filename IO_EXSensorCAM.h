@@ -16,7 +16,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-#define driverVer 305
+#define driverVer 306
+// v306 Pass vpin to regeister it in CamParser.
+//      Move base vpin to camparser. 
+//      No more need for config.h settings.
 // v305 less debug & alpha ordered switch
 // v304 static oldb0;  t(##[,%%]; 
 // v303 zipped with CS 5.2.76 and uploaded to repo (with debug)
@@ -35,23 +38,18 @@
  * This device driver will configure the device on startup, along with CamParser.cpp
  * interacting with the sensorCAM device for all input/output duties.
  *
- * #include "CamParser.h"      in DCCEXParser.cpp
- * #include "IO_EXSensorCAM.h" in IODevice.h
- * To create EX-SensorCAM devices, define them in myHal.cpp: with
- * EXSensorCAM::create(baseVpin,num_vpins,i2c_address)  or
- * alternatively use HAL(EXSensorCAM baseVpin numpins i2c_address) in myAutomation.h
- * also #define SENSORCAM_VPIN baseVpin in config.h
- *
- * void halSetup() {
- *   // EXSensorCAM::create(vpin, num_vpins, i2c_address);
- *   EXSensorCAM::create(700, 80, 0x11);
- * }
+ * To create EX-SensorCAM devices, 
+ *  use HAL(EXSensorCAM, baseVpin, numpins, i2c_address) in myAutomation.h
+ * e.g.  
+ *   HAL(EXSensorCAM,700, 80, 0x11)
  * 
- * I2C packet size of 32 bytes (in the Wire library).
+ * or (deprecated) define them in myHal.cpp: with
+ * EXSensorCAM::create(baseVpin,num_vpins,i2c_address);
+ * 
 */
-# define DIGITALREFRESH 20000UL      // min uSec delay between digital reads of digitalInputStates
 #ifndef IO_EX_EXSENSORCAM_H
 #define IO_EX_EXSENSORCAM_H
+#define DIGITALREFRESH 20000UL      // min uSec delay between digital reads of digitalInputStates
 #define SEND StringFormatter::send
 #include "IODevice.h"
 #include "I2CManager.h"
@@ -70,7 +68,7 @@ class EXSensorCAM : public IODevice {
       new EXSensorCAM(vpin, nPins, i2cAddress);
     }
   																
-    static VPIN CAMBaseVpin;					   
+    					   
 
   private:
    // Constructor
@@ -81,6 +79,7 @@ class EXSensorCAM : public IODevice {
       _nPins = nPins;
       _I2CAddress = i2cAddress;
       addDevice(this);
+      CamParser::addVpin(firstVpin); 
     }
 //*************************
 void _begin() {

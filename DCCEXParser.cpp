@@ -238,6 +238,7 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
 extern __attribute__((weak))  void myFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
 FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
+FILTER_CALLBACK DCCEXParser::filterCamParserCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 
 // deprecated
@@ -248,6 +249,10 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 void DCCEXParser::setRMFTFilter(FILTER_CALLBACK filter)
 {
     filterRMFTCallback = filter;
+}
+void DCCEXParser::setCamParserFilter(FILTER_CALLBACK filter)
+{
+    filterCamParserCallback = filter;
 }
 void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
 {
@@ -304,6 +309,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         filterCallback(stream, opcode, params, p);
     if (filterRMFTCallback && opcode!='\0')
         filterRMFTCallback(stream, opcode, params, p);
+    if (filterCamParserCallback && opcode!='\0')
+        filterCamParserCallback(stream, opcode, params, p);
 
     // Functions return from this switch if complete, break from switch implies error <X> to send
     switch (opcode)
@@ -899,14 +906,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         break;
 #endif
-#ifndef IO_NO_HAL
-    case 'N': // <N  commands for SensorCam
-        if (CamParser::parseN(stream,params,p)) return;
-        break;
-#endif
     case '/': // implemented in EXRAIL parser
     case 'L': // LCC interface implemented in EXRAIL parser
-        break; // Will <X> if not intercepted by EXRAIL 
+    case 'N': // interface implemented in CamParser
+        break; // Will <X> if not intercepted by filters
 
 #ifndef DISABLE_VDPY
     case '@': // JMRI saying "give me virtual LCD msgs"
