@@ -511,6 +511,7 @@ public:
       if (pin == 0) { // Do nothing if not vPin 0
         return _playing;
       }
+      return _playing; // fix for compile error: "control reaches end of non-void function [-Wreturn-type]"
     }
 
   void _display() override {
@@ -549,8 +550,8 @@ private:
     setChecksum(out);
 
       // Prepend the DFPlayer command with REG address and UART Channel in _outbuffer
-      _outbuffer[0] = REG_THR << 3 | _UART_CH << 1; //TX FIFO and UART Channel      
-      for ( int i = 1; i < sizeof(out)+1 ; i++){
+      _outbuffer[0] = REG_THR << 3 | _UART_CH << 1; //TX FIFO and UART Channel            
+      for ( uint8_t i = 1; i < sizeof(out)+1 ; i++){
         _outbuffer[i] = out[i-1];
       }
 
@@ -616,6 +617,14 @@ private:
     uint16_t _divisor = (_sc16is752_xtal_freq/PRESCALER)/(BAUD_RATE * 16);  // Calculate _divisor for baudrate
     TEMP_REG_VAL = 0x08; // UART Software reset
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
+
+    // Extra delay when using low frequency xtal after soft reset
+    // Test when using 1.8432 Mhz xtal
+    if(_sc16is752_xtal_freq == SC16IS752_XTAL_FREQ_LOW){
+      _timeoutTime = micros() + 10000UL;  // 10mS timeout      
+      _awaitingResponse = true;
+    }
+
     TEMP_REG_VAL = 0x00; // Set pins to GPIO mode
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
     TEMP_REG_VAL = 0xFF; //Set all pins as output

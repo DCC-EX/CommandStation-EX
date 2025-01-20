@@ -6,6 +6,8 @@
 #define VERSION "5.5.8"
 // 5.5.8  - EXSensorCam clean up to match other filters and
 //        - avoid need for config.h settings
+//        - Test: IO_I2CDFPlayer.h inserted 10mS deleay in Init_SC16IS752() just after soft-reset for board with 1.8432 Mhz xtal
+//        - IO_I2CDFPlayer.h: fixed 2 compiler errors as the compilers are getting stricter
 // 5.5.7  - ESP32 bugfix packet buffer race (as 5.4.1)
 // 5.5.6  - Fix ESP32 build bug caused by include reference loop
 // 5.5.5  - Railcom implementation with IO_I2CRailcom driver
