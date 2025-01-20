@@ -403,7 +403,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	      ) break;
           // Honour the configuration option (config.h) which allows the <a> command to be reversed
 	  // Because of earlier confusion we need to do the same thing under both defines
-#if defined(DCC_ACCESSORY_COMMAND_REVERSE) || defined(DCC_ACCESSORY_RCN_213)
+#if defined(DCC_ACCESSORY_COMMAND_REVERSE)
           DCC::setAccessory(address, subaddress,p[activep]==0,onoff);
 #else
           DCC::setAccessory(address, subaddress,p[activep]==1,onoff);
