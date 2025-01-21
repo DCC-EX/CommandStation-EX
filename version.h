@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.10"
+#define VERSION "5.5.11"
+// 5.5.11 - (5.4.2) accessory command reverse
 // 5.5.10 - CamParser fix
 // 5.5.9  - (5.4.3) fix changeFn for functions 29..31
 // 5.5.8  - EXSensorCam clean up to match other filters and
