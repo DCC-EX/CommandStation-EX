@@ -25,6 +25,9 @@
 // 5.5.2  - DS1307 Real Time clock 
 // 5.5.1  - Momentum 
 // 5.5.0  - New version on devel
+// 5.4.3  - bugfix changeFn for functions 29..31
+// 5.4.2  - Reversed turnout bugfix
+// 5.4.1  - ESP32 bugfix packet buffer race
 // 5.4.0  - New version on master
 // 5.2.96 - EXRAIL additions XFWD() and XREV()
 // 5.2.95 - Release candidate for 5.4

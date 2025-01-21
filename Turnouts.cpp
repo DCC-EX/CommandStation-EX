@@ -379,7 +379,7 @@
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
-#if defined(DCC_TURNOUTS_RCN_213)
+#ifndef DCC_TURNOUTS_RCN_213
     close = !close;
 #endif
     DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close);
