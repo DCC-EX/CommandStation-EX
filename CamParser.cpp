@@ -19,7 +19,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-//sensorCAM parser.cpp version 3.05  Jan 2025
+//sensorCAM parser.cpp version 3.06  Jan 2025
 #include "DCCEXParser.h"
 #include "CamParser.h"
 #include "FSH.h"
@@ -32,7 +32,7 @@ const int16_t ve =2899;
 // the CamParser::addVpin() function.
 // The CAMBaseVpin is the one to be used when commands are given without a vpin. 
 VPIN CamParser::CAMBaseVpin = 0; // no vpins yet known 
-VPIN CamParser::CAMVPINS[] = {0,0,0,0}; // no vpins yet known 
+VPIN CamParser::CAMVPINS[] = {0,0,0,0};  // determines max # CAM's
 int CamParser::vpcount=sizeof(CAMVPINS)/sizeof(CAMVPINS[0]);
 
 void CamParser::parse(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
@@ -42,7 +42,8 @@ void CamParser::parse(Print * stream, byte & opcode, byte & paramCount, int16_t 
 }
      
 bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
-  (void)stream;  // probably unused parameter 
+  (void)stream;  // probably unused parameter   
+  if (CAMBaseVpin==0) CAMBaseVpin=CAMVPINS[0];  // default to CAM 1.
   VPIN vpin=CAMBaseVpin;   //use current CAM selection
 
   if (paramCount==0) { 
@@ -59,21 +60,22 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
 
   if(camop=='C'){ 
     if(p[1]>=100) CAMBaseVpin=p[1];
-    if(p[1]<vpcount)    CAMBaseVpin=CAMVPINS[p[1]];
+    if(p[1]<=vpcount && p[1]>0)    CAMBaseVpin=CAMVPINS[p[1]-1];
     DIAG(F("CAM base Vpin: %c %d "),p[0],CAMBaseVpin);
     return true;
   }
   if (camop<100) {               //switch CAM# if p[1] dictates
-    if(p[1]>=100 && p[1]<(vpcount*100)) {  //limits to CAM# 1 to 3 for now
-      vpin=CAMVPINS[p[1]/100];
+    if(p[1]>=100 && p[1]<=(vpcount*100+99)) {  //limits to CAM# 1 to 4 for now
+      vpin=CAMVPINS[p[1]/100-1];
       CAMBaseVpin=vpin;     
       DIAG(F("switching to CAM %d baseVpin:%d"),p[1]/100,vpin); 
       p[1]=p[1]%100;             //strip off CAM #
     } 
   }
-  if (CAMBaseVpin==0) return false; // no cam defined 
-
-  
+  if (CAMBaseVpin==0) {DIAG(F("<n Error: Invalid CAM selected, default to CAM1>"));
+    return false; // cam not defined
+  }	
+ 
       // send UPPER case to sensorCAM to flag binary data from a DCCEX-CS parser  
   switch(paramCount) {    
     case 1:                          //<N ver> produces '^'
@@ -89,13 +91,13 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
       break;
     
     case 3:              //<N vpin rowY colx > or <N cmd p1 p2>
-      camop=p[0];
       if (p[0]>=100) {   //vpin - i.e. NOT 'A' through 'Z'
         if (p[1]>236 || p[1]<0) return false;     //row
         if (p[2]>316 || p[2]<0) return false;     //column
         camop=0x80;      // special 'a' case for IO_SensorCAM
         vpin = p[0];
       }else if (STRCHR_P((const char *)F("IJMNT"),camop) == nullptr) return false; 
+	  camop=p[0];
       param1 = p[1];  
       param3 = p[2];
       break;

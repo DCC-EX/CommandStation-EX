@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.9"
-// 5.5.9  = (5.4.3) fix changeFn for functions 29..31
+#define VERSION "5.5.10"
+// 5.5.10 - CamParser fix
+// 5.5.9  - (5.4.3) fix changeFn for functions 29..31
 // 5.5.8  - EXSensorCam clean up to match other filters and
 //        - avoid need for config.h settings
 //        - Test: IO_I2CDFPlayer.h inserted 10mS deleay in Init_SC16IS752() just after soft-reset for board with 1.8432 Mhz xtal
