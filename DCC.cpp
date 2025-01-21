@@ -229,15 +229,9 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
 
 // Flip function state (used from withrottle protocol)
 void DCC::changeFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>31) return;
-  int reg = lookupSpeedTable(cab);
-  if (reg<0) return;
-  unsigned long funcmask = (1UL<<functionNumber);
-  speedTable[reg].functions ^= funcmask;
-  if (functionNumber <= 28) {
-    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  }
-  CommandDistributor::broadcastLoco(reg);
+  auto currentValue=getFn(cab,functionNumber);
+  if (currentValue<0) return;  // function not valid for change  
+  setFn(cab,functionNumber, currentValue?false:true);
 }
 
 // Report function state (used from withrottle protocol)

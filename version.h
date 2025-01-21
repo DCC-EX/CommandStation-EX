@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.2"
+#define VERSION "5.4.3"
+// 5.4.3  - bugfix changeFn for functions 29..31
 // 5.4.2  - Reversed turnout bugfix
 // 5.4.1  - ESP32 bugfix packet buffer race
 // 5.4.0  - New version on master
