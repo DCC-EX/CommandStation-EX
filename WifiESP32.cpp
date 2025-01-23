@@ -2,6 +2,8 @@
     © 2023 Paul M. Antoine
     © 2021 Harald Barth
     © 2023 Nathan Kellenicki
+    © 2025 Chris Harlow
+    
 
     This file is part of CommandStation-EX
 
@@ -30,6 +32,7 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCC.h"
+#include "Websockets.h"
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -378,6 +381,8 @@ void WifiESP::loop() {
 
     // something to write out?
     clientId=outboundRing->read();
+    bool useWebsocket=clientId & Websockets::WEBSOCK_CLIENT_MARKER;
+    clientId &= ~ Websockets::WEBSOCK_CLIENT_MARKER;
     if (clientId >= 0) {
       // We have data to send in outboundRing
       // and we have a valid clientId.
@@ -385,19 +390,22 @@ void WifiESP::loop() {
       // and then look if it can be sent because
       // we can not leave it in the ring for ever
       int count=outboundRing->count();
+      auto wsHeaderLen=useWebsocket? Websockets::getOutboundHeaderSize(count) : 0;
       {
-	char buffer[count+1]; // one extra for '\0'
-	for(int i=0;i<count;i++) {
-	  int c = outboundRing->read();
-	  if (c >= 0) // Panic check, should never be false
-	    buffer[i] = (char)c;
-	  else {
-	    DIAG(F("Ringread fail at %d"),i);
-	    break;
-	  }
-	}
-	// buffer filled, end with '\0' so we can use it as C string
-	buffer[count]='\0';
+        byte buffer[wsHeaderLen + count + 1];  // one extra for '\0'
+        if (useWebsocket) Websockets::fillOutboundHeader(count, buffer);
+        for (int i = 0; i < count; i++) {
+          int c = outboundRing->read();
+          if (!c) {
+            DIAG(F("Ringread fail at %d"), i);
+            break;
+          }
+          // websocket implementations at browser end can barf at \n
+          if (useWebsocket && (c == '\n')) c = '\r';
+          buffer[i + wsHeaderLen] = (char)c;
+        }
+        // buffer filled, end with '\0' so we can use it as C string
+	buffer[wsHeaderLen+count]='\0';
 	if((unsigned int)clientId <= clients.size() && clients[clientId].active(clientId)) {
 	  if (Diag::CMD || Diag::WITHROTTLE)
 	    DIAG(F("SEND %d:%s"), clientId, buffer);

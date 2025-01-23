@@ -31,6 +31,7 @@ class Diag {
   static bool ETHERNET;
   static bool LCN;
   static bool RAILCOM;
+  static bool WEBSOCKET;
   
 };
 

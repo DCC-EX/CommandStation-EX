@@ -31,6 +31,7 @@
 #include "DCC.h"
 #include "TrackManager.h"
 #include "StringFormatter.h"
+#include "Websockets.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -44,6 +45,7 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
   broadcastBufferWriter->flush();
   StringFormatter::send(broadcastBufferWriter, msg...);
   broadcastToClients(type);
+  if (type==COMMAND_TYPE) broadcastToClients(WEBSOCKET_TYPE);
 }
 #else
 // on a single USB connection config, write direct to Serial and ignore flush/shove
@@ -56,14 +58,22 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
 #ifdef CD_HANDLE_RING
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
-  CommandDistributor::clientType  CommandDistributor::clients[8]={
-    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
+  CommandDistributor::clientType  CommandDistributor::clients[20]={
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,
+    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
 
-// Parse is called by Withrottle or Ethernet interface to determine which
+// Parse is called by Wifi or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex
 void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
-  if (Diag::WIFI && Diag::CMD)
-    DIAG(F("Parse C=%d T=%d B=%s"),clientId, clients[clientId], buffer);
+  if (clientId>=sizeof (clients)) {
+    // Caution, diag dump of buffer could corrupt ringstream
+    // if headed by websocket bytes. 
+    DIAG(F("::parse invalid client=%d"),clientId);
+    return;
+  }
   ring=stream;
 
   // First check if the client is not known
@@ -72,22 +82,40 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   // client is using the DCC++ protocol where all commands start
   // with '<'
   if (clients[clientId] == NONE_TYPE) {
+    auto websock=Websockets::checkConnectionString(clientId,buffer,stream);
+    if (websock) {
+      clients[clientId]=WEBSOCK_CONNECTING_TYPE;
+      // websockets will have replied already 
+      return;
+    }
     if (buffer[0] == '<')
       clients[clientId]=COMMAND_TYPE;
     else
       clients[clientId]=WITHROTTLE_TYPE;
   }
 
+  // after first inbound transmission the websocket is connected
+  if (clients[clientId]==WEBSOCK_CONNECTING_TYPE)
+      clients[clientId]=WEBSOCKET_TYPE;
+      
+      
   // mark buffer that is sent to parser
-  ring->mark(clientId);
-
   // When type is known, send the string
   // to the right parser
   if (clients[clientId] == COMMAND_TYPE) {
+    ring->mark(clientId);
     DCCEXParser::parse(stream, buffer, ring);
   } else if (clients[clientId] == WITHROTTLE_TYPE) {
+    ring->mark(clientId);
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
   }
+  else if (clients[clientId] == WEBSOCKET_TYPE) {
+    buffer=Websockets::unmask(clientId,ring, buffer);
+    if (!buffer) return; // unmask may have handled it alrerday (ping/pong)
+    // mark ring with client flagged as websocket for transmission later
+    ring->mark(clientId | Websockets::WEBSOCK_CLIENT_MARKER);
+    DCCEXParser::parse(stream, buffer, ring);
+    }
 
   if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {
     // The commit call will either write the length bytes
@@ -131,7 +159,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
     for (byte clientId=0; clientId<sizeof(clients); clientId++) {
       if (clients[clientId]==type)  {
 	//DIAG(F("CD mark client %d"), clientId);
-	ring->mark(clientId);
+	ring->mark(clientId | (type==WEBSOCKET_TYPE? Websockets::WEBSOCK_CLIENT_MARKER : 0));
 	ring->print(broadcastBufferWriter->getString());
 	//DIAG(F("CD commit client %d"), clientId);
 	ring->commit();
@@ -191,7 +219,9 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte 
         // CAH. DIAG removed because LCD does it anyway. 
         LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
         // look for an event for this time
+#ifdef EXRAIL_ACTIVE        
         RMFT2::clockEvent(clocktime,1);
+#endif        
         // Now tell everyone else what the time is.
         CommandDistributor::broadcastClockTime(clocktime, clockrate);
         lastclocktime = clocktime;
