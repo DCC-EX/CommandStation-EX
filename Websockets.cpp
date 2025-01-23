@@ -140,7 +140,7 @@ bool Websockets::checkConnectionString(byte clientId,byte * cmd, RingStream * ou
 byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
  // buffer should have a websocket header
  //byte opcode=buffer[0] & 0x0f;
- if (Diag::WEBSOCKET) DIAG(F("Websock in: %x %x %x %x %x %x %x %x"),
+ if (Diag::WEBSOCKET) DIAG(F("Websock in: %x %x %x %x %x %x %x"),
       buffer[0],buffer[1],buffer[2],buffer[3],
        buffer[4],buffer[5],buffer[6]);
 
