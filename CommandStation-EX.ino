@@ -51,6 +51,7 @@
 
 #include "DCCEX.h"
 #include "Display_Implementation.h"
+#include "DoLater.h"
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -160,7 +161,8 @@ void looptimer(unsigned long timeout, const FSH* message)
 *********************************************/
 void loop()
 {
-  // The main sketch has responsibilities during loop()
+  // watch for any delayed requests
+  DoLater::loop();
 
   // Responsibility 1: Handle DCC background processes
   //                   (loco reminders and power checks)

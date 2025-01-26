@@ -37,6 +37,7 @@
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
+#include "DoLater.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -302,15 +303,19 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // second byte is of the form 1AAACPPG, where C is 1 for on, PP the ports 0 to 3 and G the gate (coil).
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
-  if (onoff != 0) {
+  
+  if (onoff != 0) { // send on if needed 
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat on packet three times
 #if defined(EXRAIL_ACTIVE)
     RMFT2::activateEvent(address<<2|port,gate);
 #endif
   }
-  if (onoff != 1) {
-    b[1] &= ~0x08; // set C to 0
+  b[1] &= ~0x08; // change to off packet set C to 0
+  if (onoff ==0) { // send off only
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
+  }
+  else if (onoff >1) { // send off in 200mS (Approx)
+    DoLater::sendDCCPacket(200,b,2,3);      // Repeat off packet three times
   }
 }
 
