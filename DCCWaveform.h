@@ -84,6 +84,7 @@ class DCCWaveform {
 #endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();
+    bool isPacketPending() { return packetPending;}
     void promotePendingPacket();
     static bool setRailcom(bool on, bool debug);
     static bool isRailcom() {return railcomActive;}

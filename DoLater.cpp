@@ -66,7 +66,7 @@ void DoLater::loop() {
             switch(p->type) {
                 case SEND_DCC:
                     // dont allow this to block, continue will just leave it on the list
-                    if (!DCCWaveform::mainTrack.isReminderWindowOpen()) continue;
+                    if (DCCWaveform::mainTrack.isPacketPending()) continue;
                     DCCWaveform::mainTrack.schedulePacket(p->packet,p->packetLength,p->packetRepeat);  
                     break;
                   
