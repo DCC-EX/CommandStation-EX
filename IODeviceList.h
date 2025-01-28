@@ -1,5 +1,7 @@
 /*
- *  © 2024, Chris Harlow. All rights reserved.
+ *  © 2024, Chris Harlow.
+ *  © 2025 Herb Morton
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -35,4 +37,4 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_EXSensorCAM.h"
 #include "IO_DS1307.h"
 #include "IO_I2CRailcom.h"
-
+#include "IO_HALDisplay.h" 
