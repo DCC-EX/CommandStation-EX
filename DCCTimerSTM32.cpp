@@ -37,11 +37,15 @@
 #include "DIAG.h"
 #include <wiring_private.h>
 
+// DC mode timers enable the PWM signal on select pins.
+// Code added to sync timers which have the same frequency.
 // Function prototypes
 void refreshDCmodeTimers();
 void resetCounterDCmodeTimers();
 
 HardwareTimer *Timer1 = new HardwareTimer(TIM1);
+HardwareTimer *Timer2 = new HardwareTimer(TIM2);
+HardwareTimer *Timer3 = new HardwareTimer(TIM3);
 HardwareTimer *Timer4 = new HardwareTimer(TIM4);
 HardwareTimer *Timer9 = new HardwareTimer(TIM9);
 #if defined(TIM13)
@@ -685,6 +689,8 @@ void ADCee::begin() {
 //    not exact sync, but timers with the same frequency should be in sync
 void refreshDCmodeTimers() {
   Timer1->refresh();
+  Timer2->refresh();
+  Timer3->refresh();
   Timer4->refresh();
   Timer9->refresh();
   #if defined(TIM13)
@@ -696,6 +702,8 @@ void refreshDCmodeTimers() {
 void resetCounterDCmodeTimers() {
     // Reset the counter for all DC mode timers
     TIM1->CNT = 0;
+    TIM2->CNT = 0;
+    TIM3->CNT = 0;
     TIM4->CNT = 0;
     TIM9->CNT = 0;
     #if defined(TIM13)
