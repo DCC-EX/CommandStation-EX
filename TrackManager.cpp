@@ -663,14 +663,14 @@ void TrackManager::reportCurrentLCD(uint8_t display, byte row) {
             SCREEN(display, row+t, F("%c: %S ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)), tPwr_mA[t]>>2);
           }
         } 
-      /*  else {                                                        // if power is off do this section
+        else {                                                        // if power is off do this section
           if (tMode & TRACK_MODE_DC) {   // DC / DCX
             SCREEN(display, row+t, F("Track %c: %S %d OFF"), t+'A', (TrackManager::getModeName(tMode)),DCAddr);
           }
           else {                                                      // Not DC or DCX
             SCREEN(display, row+t, F("Track %c: %S OFF"), t+'A', (TrackManager::getModeName(tMode)));
           }
-        } */
+        }
     }
   } 
 
