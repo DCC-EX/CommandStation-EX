@@ -126,29 +126,33 @@ void SerialManager::loop2() {
         buffer[0] = '\0';
       }
     } else { // if (inCommandPayload)
-      if (bufferLength <  (COMMAND_BUFFER_SIZE-1))
-        buffer[bufferLength++] = ch;
-      if (inCommandPayload > PAYLOAD_NORMAL) {
-        if (inCommandPayload > 32 + 2) {    // String way too long
-          ch = '>';                         // we end this nonsense
-          inCommandPayload = PAYLOAD_NORMAL;
-          DIAG(F("Parse error: Unbalanced string"));
-          // fall through to ending parsing below
-        } else if (ch == '"') {               // String end
-          inCommandPayload = PAYLOAD_NORMAL;
-          continue; // do not fall through
-        } else
-          inCommandPayload++;
-      }
-      if (inCommandPayload == PAYLOAD_NORMAL) {
-        if (ch == '>') {
-          buffer[bufferLength] = '\0';
-          DCCEXParser::parse(serial, buffer, NULL); 
-          inCommandPayload = PAYLOAD_FALSE;
-          break;
-        } else if (ch == '"') {
-          inCommandPayload = PAYLOAD_STRING;
-        }
+      if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) {
+        buffer[bufferLength++] = ch;          // advance bufferLength
+	if (inCommandPayload > PAYLOAD_NORMAL) {
+	  if (inCommandPayload > 32 + 2) {    // String way too long
+	    ch = '>';                         // we end this nonsense
+	    inCommandPayload = PAYLOAD_NORMAL;
+	    DIAG(F("Parse error: Unbalanced string"));
+	    // fall through to ending parsing below
+	  } else if (ch == '"') {               // String end
+	    inCommandPayload = PAYLOAD_NORMAL;
+	    continue; // do not fall through
+	  } else
+	    inCommandPayload++;
+	}
+	if (inCommandPayload == PAYLOAD_NORMAL) {
+	  if (ch == '>') {
+	    buffer[bufferLength] = '\0';               // This \0 is after the '>'
+	    DCCEXParser::parse(serial, buffer, NULL);  // buffer parsed with trailing '>'
+	    inCommandPayload = PAYLOAD_FALSE;
+	    break;
+	  } else if (ch == '"') {
+	    inCommandPayload = PAYLOAD_STRING;
+	  }
+	}
+      } else {
+	DIAG(F("Parse error: input buffer overflow"));
+	inCommandPayload = PAYLOAD_FALSE;
       }
     }
   }
