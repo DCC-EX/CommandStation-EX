@@ -167,8 +167,10 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
                 break;
             if (hot == '\0')
 	      return -1;
-	    if (hot == '>')
+	    if (hot == '>') {
+	      *remainingCmd = '\0';  // terminate the cmd string with 0 instead of '>'
 	      return parameterCount;
+	    }
             state = 2;
             continue;
 
@@ -265,8 +267,9 @@ void DCCEXParser::parse(const FSH * cmd) {
 // See documentation on DCC class for info on this section
 
 void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
-  // This function can get stings of the form "<C OMM AND>" or "C OMM AND"
-  // found is true first after the leading "<" has been passed
+  // This function can get stings of the form "<C OMM AND>" or "C OMM AND>"
+  // found is true first after the leading "<" has been passed which results
+  // in parseOne() getting c="C OMM AND>"
   bool found = (com[0] != '<');
   for (byte *c=com; c[0] != '\0'; c++) {
     if (found) {
