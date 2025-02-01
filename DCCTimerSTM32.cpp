@@ -344,7 +344,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
     if (pin_timer[pin] != NULL)
     {
       pin_timer[pin]->setPWM(pin_channel[pin], pin, frequency, 0); // set frequency in Hertz, 0% dutycycle
-      DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer Channel %d, frequency %d"), pin, pin_channel[pin], frequency);
+      DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer %d Channel %d, frequency %d"), pin, pin_timer[pin], pin_channel[pin], frequency);
       resetCounterDCmodeTimers();
     }
     else
@@ -353,6 +353,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   else
   {
     // Frequency change request
+    //DIAG(F("DCCEXanalogWriteFrequency_356::pin %d frequency %d"), pin, frequency);
     if (frequency != channel_frequency[pin])
     {
       pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!

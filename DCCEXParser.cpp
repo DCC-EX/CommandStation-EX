@@ -631,7 +631,23 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	    else break; // will reply <X>
 	  }
 	  //TrackManager::streamTrackState(NULL,t);
-          
+
+    TrackManager::setTrackPowerF439ZI(0);
+    TrackManager::setTrackPowerF439ZI(1);
+    TrackManager::setTrackPowerF439ZI(2);
+    TrackManager::setTrackPowerF439ZI(3);
+    TrackManager::setTrackPowerF439ZI(4);
+    TrackManager::setTrackPowerF439ZI(5);
+    TrackManager::setTrackPowerF439ZI(6);
+    TrackManager::setTrackPowerF439ZI(7);
+    TrackManager::setTrackPowerF439ZI(0);  // repeated in case the <F29..31 was
+    TrackManager::setTrackPowerF439ZI(1);  // set on a later track than power
+    TrackManager::setTrackPowerF439ZI(2);  // Note: this retains power but prevents
+    TrackManager::setTrackPowerF439ZI(3);  //       speed doubling.
+    TrackManager::setTrackPowerF439ZI(4);
+    TrackManager::setTrackPowerF439ZI(5);
+    TrackManager::setTrackPowerF439ZI(6);
+
 	  return;
 	}
             

@@ -67,6 +67,7 @@ class TrackManager {
   
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
     static void setTrackPower(POWERMODE mode, byte t);
+    static void setTrackPowerF439ZI(byte t);
     static void setTrackPower(TRACK_MODE trackmode, POWERMODE powermode);
     static void setMainPower(POWERMODE mode) {setTrackPower(TRACK_MODE_MAIN, mode);}
     static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
