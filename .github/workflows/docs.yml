@@ -1,0 +1,26 @@
+name: Docs
+
+on:
+  push:
+    branches: [ master-exraildoc ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4.1.1
+      - name: Requirements
+        run: |
+          sudo apt-get install doxygen
+      - name: Build docs
+        run: |
+          cd docs
+          # touch _build/html/.nojekyll
+          doxygen DoxyfileEXRAIL
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages  # The branch the action should deploy to.
+          folder: docs/_build/html  # The folder the action should deploy.

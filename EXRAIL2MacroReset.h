@@ -26,6 +26,19 @@
 
 // Doxygen comments in this file are intended for the EXRAIL end user.
 
+/**
+ * @file EXRAIL2MacroReset.h
+ * @mainpage EXRAIL Language Reference
+ * 
+ * @section introduction Introduction
+ * EXRAIL - Extended Railroad Automation Instruction Language
+ * 
+ * This page is a reference to all EXRAIL commands available with EX-CommandStation.
+ * 
+ * - @ref ACTIVATE
+ * - @ref ACTIVATEL
+ */
+
 // Undefine all RMFT macros
 #undef ACTIVATE
 #undef ACTIVATEL
