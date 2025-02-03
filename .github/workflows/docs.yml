@@ -16,7 +16,7 @@ jobs:
           pip3 install -r requirements.txt
       - name: Build docs
         run: |
-          make github
+          make html
           echo 'dcc-ex.com' > docs/_build/html/CNAME
           touch docs/_build/html/.nojekyll
       - name: Deploy
