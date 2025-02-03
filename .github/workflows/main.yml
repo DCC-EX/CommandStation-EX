@@ -1,19 +1,82 @@
-name: CI
+name: PlatformIO CI
 
 on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Python Wheel
-      run: pip install wheel
-    - name: Install PlatformIO Core
-      run: pip install -U platformio
-    - name: Copy generic config over
-      run: cp config.example.h config.h
-    - name: Compile Command Station (AVR)
-      run: python -m platformio run
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Use sample "config.example.h" for compilations
+        run: mv $GITHUB_WORKSPACE/config.example.h $GITHUB_WORKSPACE/config.h
+
+      - name: Build PlatformIO Project
+        run: pio run
+
+      - name: Copy all firmwares for for packaging
+        run: |
+          mkdir downloads
+          cd .pio/build
+          find . -name '*.bin' | cpio -pdm ../../downloads
+          find . -name '*.hex' | cpio -pdm ../../downloads
+          find . -name '*.uf2' | cpio -pdm ../../downloads
+          cd ../..
+
+      - name: Package and upload all firmwares for download
+        uses: actions/upload-artifact@v3
+        with: 
+          name: all-firmwares-for-download
+          path: downloads
+
+      - name: Test on Arduino MEGA with Wokwi
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: /wokwi/mega # directory with wokwi.toml, relative to repo's root
+          timeout: 10000
+          expect_text: '<* LCD3:Free RAM='
+          fail_text: 'Error'
+#          scenario: 'test-hello-world.yaml' # optional
+
+      - name: Test on Arduino UNO with Wokwi
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: /wokwi/uno # directory with wokwi.toml, relative to repo's root
+          timeout: 10000
+          expect_text: '<* LCD3:Free RAM='
+          fail_text: 'Error'
+#          scenario: 'test-hello-world.yaml' # optional
+
+      - name: Test on Arduino NANO with Wokwi
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: /wokwi/nano # directory with wokwi.toml, relative to repo's root
+          timeout: 10000
+          expect_text: '<* LCD3:Free RAM='
+          fail_text: 'Error'
+#          scenario: 'test-hello-world.yaml' # optional
+      
+      - name: Test on ESP32 with Wokwi
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: /wokwi/esp32 # directory with wokwi.toml, relative to repo's root
+          timeout: 10000
+          expect_text: 'ESP32 / STANDARD_MOTOR_SHIELD'
+          fail_text: 'Error'
+#          scenario: 'test-hello-world.yaml' # optional

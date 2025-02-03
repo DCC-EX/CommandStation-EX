@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "author": "Olivier Chatelain",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-mega", "id": "mega", "top": -249, "left": -147.6, "attrs": {} },
+    { "type": "wokwi-logic-analyzer", "id": "logic1", "top": -374.05, "left": 355.2, "attrs": {} },
+    {
+      "type": "board-ssd1306",
+      "id": "oled1",
+      "top": -409.66,
+      "left": 57.83,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    { "type": "wokwi-gnd", "id": "gnd1", "top": -268.8, "left": 335.4, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd2", "top": -57.6, "left": 239.4, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -476.6,
+      "left": 152.75,
+      "rotate": 270,
+      "attrs": { "value": "1000" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": -476.6,
+      "left": 75.95,
+      "rotate": 270,
+      "attrs": { "value": "1000" }
+    }
+  ],
+  "connections": [
+    [ "mega:GND.1", "oled1:GND", "black", [ "v0" ] ],
+    [ "mega:5V", "oled1:VCC", "red", [ "v-348.3", "h88.55" ] ],
+    [ "gnd1:GND", "logic1:GND", "black", [ "v0" ] ],
+    [ "mega:GND.5", "gnd2:GND", "black", [ "v0" ] ],
+    [ "oled1:SCL", "r2:1", "green", [ "v0" ] ],
+    [ "oled1:SDA", "r1:1", "green", [ "v0" ] ],
+    [ "r2:2", "oled1:VCC", "green", [ "h38.4", "v87.6", "h-38.4" ] ],
+    [ "r2:2", "r1:2", "green", [ "h0" ] ],
+    [ "mega:SCL", "oled1:SCL", "green", [ "v-144", "h172.5" ] ],
+    [ "mega:SDA", "oled1:SDA", "green", [ "v-134.4", "h162.8" ] ]
+  ],
+  "dependencies": {}
+}
