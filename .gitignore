@@ -16,3 +16,5 @@ compile_commands.json
 newcode.txt.old
 UserAddin.txt
 _build
+venv
+.DS_Store
