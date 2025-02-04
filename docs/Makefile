@@ -6,7 +6,15 @@
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
-BUILDDIR      = _build
+# BUILDDIR      = _build
+
+# Determine build directory based on git branch
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+ifeq ($(BRANCH),master-exraildocdev)
+    BUILDDIR = _build/devel
+else
+    BUILDDIR = _build
+endif
 
 # Put it first so that "make" without argument is like "make help".
 help:

@@ -53,7 +53,6 @@ numfig_format = {'figure': 'Figure %s'}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
@@ -88,19 +87,15 @@ html_css_files = [
 
 baseurl_prefix = 'https://dcc-ex.com/CommandStation-EX/'
 
-# Change output directory depending on branch
-if current_branch in ['master-exraildoc', 'master-exraildocdev']:
+# Devel documentation needs to be a different directory
+if current_branch == 'master-exraildocdev':
     # For versioning
-    html_baseurl = f"{baseurl_prefix}{current_branch}/"
-    html_extra_path = ['_build']
-    builddir = os.path.join('_build', current_branch)
+    html_baseurl = f"{baseurl_prefix}devel/"
+    html_build_dir = os.path.abspath(os.path.join('_build', 'devel'))
 else:
     # Main landing page
     html_baseurl = baseurl_prefix
-    builddir = '_build'
-
-# Override default build directory
-sphinx.builders.html.get_outfilename = lambda self, pagename: os.path.join(builddir, pagename + '.html')
+    html_build_dir = os.path.abspath('_build')
 
 # Sphinx sitemap
 html_extra_path = [
