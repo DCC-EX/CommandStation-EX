@@ -1,0 +1,9 @@
+/* Override for the sphinx-design extension classes */
+.sd-card-header {	
+  font-size: 110% !important;
+  font-family: Audiowide,Helvetica,Arial,sans-serif !important;
+  font-weight: 500 !important;  
+  color: #00a3b9ff;
+  text-shadow: 1px 1px 0 #00353dff;
+  margin-bottom: .5rem !important;
+}
