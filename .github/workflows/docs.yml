@@ -14,18 +14,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4.1.1
       - name: Requirements
-        # Allow sphinx-rtd-theme to choose the versions of sphinx & docutils
         run: |
           pip3 install -r requirements.txt
+          sudo apt-get install doxygen
       - name: Build docs
         run: |
           cd docs
-          make github
-          echo 'dcc-ex.com' > docs/_build/html/CNAME
-          touch docs/_build/html/.nojekyll
+          make html
+          touch _build/html/.nojekyll
       - name: Deploy
-        if: github.ref == 'refs/heads/sphinx'
-        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6  # v4.4.1
+        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages  # The branch the action should deploy to.
