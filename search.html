@@ -1,3 +1,4 @@
+<!-- _templates/layout.html -->
 
 
 <!DOCTYPE html>
@@ -15,7 +16,7 @@
 
   
     <link rel="shortcut icon" href="_static/favicon.ico"/>
-    <link rel="canonical" href="https://dcc-ex.com/CommandStation-EX/search.html" />
+    <link rel="canonical" href="https://dcc-ex.com/CommandStation-EX/master-exraildoc/search.html" />
     
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
@@ -50,10 +51,25 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+        </div>
+    <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <!-- Local TOC -->
               <div class="local-toc"></div>
         </div>
+    <div class="sidebar-versions">
+        <div class="version-wrapper">
+            <label for="version-switch">Documentation Version:</label>
+            <select id="version-switch" onchange="window.location.href=this.value">
+                <option value="/exrail language/master-exraildoc/">
+                    Production
+                </option>
+                <option value="/exrail language/master-exraildocdev/">
+                    Development
+                </option>
+            </select>
+        </div>
+    </div>
+
       </div>
     </nav>
 
