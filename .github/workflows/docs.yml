@@ -20,7 +20,7 @@ jobs:
       - name: Build docs
         run: |
           cd docs
-          make html
+          make github
           echo 'dcc-ex.com' > docs/_build/html/CNAME
           touch docs/_build/html/.nojekyll
       - name: Deploy
