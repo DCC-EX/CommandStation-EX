@@ -3,6 +3,9 @@ name: Docs
 on:
   push:
     branches: [ master-exraildoc ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,6 +19,7 @@ jobs:
           pip3 install -r requirements.txt
       - name: Build docs
         run: |
+          cd docs
           make html
           echo 'dcc-ex.com' > docs/_build/html/CNAME
           touch docs/_build/html/.nojekyll
