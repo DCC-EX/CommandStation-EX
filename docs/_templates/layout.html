@@ -1,0 +1,19 @@
+<!-- _templates/layout.html -->
+{% extends "!layout.html" %}
+
+{% block navigation %}
+    {{ super() }}
+    <div class="sidebar-versions">
+        <div class="version-wrapper">
+            <label for="version-switch">Documentation Version:</label>
+            <select id="version-switch" onchange="window.location.href=this.value">
+                <option value="/{{ project|lower }}/master-exraildoc/"{% if version == "main" %} selected{% endif %}>
+                    Production
+                </option>
+                <option value="/{{ project|lower }}/master-exraildocdev/"{% if version == "devel" %} selected{% endif %}>
+                    Development
+                </option>
+            </select>
+        </div>
+    </div>
+{% endblock %}

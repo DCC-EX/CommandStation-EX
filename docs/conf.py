@@ -3,12 +3,18 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# from sphinx.builders.html import StandaloneHTMLBuilder
+import os
 import subprocess
-# import os
+import sphinx.builders.html
 
 # Doxygen
 subprocess.call('doxygen DoxyfileEXRAIL', shell=True)
+
+# Get current version/branch
+try:
+    current_branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').strip()
+except Exception as error:
+    current_branch = 'unknown'
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -64,7 +70,7 @@ html_theme_options = {
     # 'titles_only': True,
     'collapse_navigation': False,
     # 'navigation_depth': 3,
-    'navigation_depth': -1,
+    'navigation_depth': 1,
     'analytics_id': 'G-L5X0KNBF0W',
 }
 
@@ -80,8 +86,23 @@ html_css_files = [
     'css/sphinx_design_overrides.css',
 ]
 
+baseurl_prefix = 'https://dcc-ex.com/CommandStation-EX/'
+
+# Change output directory depending on branch
+if current_branch in ['master-exraildoc', 'master-exraildocdev']:
+    # For versioning
+    html_baseurl = f"{baseurl_prefix}{current_branch}/"
+    html_extra_path = ['_build']
+    builddir = os.path.join('_build', current_branch)
+else:
+    # Main landing page
+    html_baseurl = baseurl_prefix
+    builddir = '_build'
+
+# Override default build directory
+sphinx.builders.html.get_outfilename = lambda self, pagename: os.path.join(builddir, pagename + '.html')
+
 # Sphinx sitemap
-html_baseurl = 'https://dcc-ex.com/CommandStation-EX/'
 html_extra_path = [
   'robots.txt',
 ]

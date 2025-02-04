@@ -1,8 +1,5 @@
-.. EXRAIL2MacroReset documentation master file, created by
-   sphinx-quickstart on DATE.
-
-Welcome to EXRAIL2MacroReset's documentation!
-===============================================
+EXRAIL Language documentation
+=============================
 
 Introduction
 ------------
