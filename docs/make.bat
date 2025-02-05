@@ -8,7 +8,14 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
 set SOURCEDIR=.
-set BUILDDIR=_build
+@REM set BUILDDIR=_build
+
+for /f "tokens=*" %%g in ('git rev-parse --abbrev-ref HEAD') do (set BRANCH=%%g)
+if "%BRANCH%"=="master-exraildocdev" (
+    set BUILDDIR=_build\devel
+) else (
+    set BUILDDIR=_build
+)
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (
