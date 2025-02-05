@@ -12,7 +12,7 @@ set SOURCEDIR=.
 
 for /f "tokens=*" %%g in ('git rev-parse --abbrev-ref HEAD') do (set BRANCH=%%g)
 if "%BRANCH%"=="master-exraildocdev" (
-    set BUILDDIR=_build\devel
+    set BUILDDIR=_build\html\devel
 ) else (
     set BUILDDIR=_build
 )
