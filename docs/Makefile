@@ -11,7 +11,7 @@ SOURCEDIR     = .
 # Determine build directory based on git branch
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 ifeq ($(BRANCH),master-exraildocdev)
-    BUILDDIR = _build/devel
+    BUILDDIR = _build/html/devel
 else
     BUILDDIR = _build
 endif
