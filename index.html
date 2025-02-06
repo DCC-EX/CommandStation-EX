@@ -116,8 +116,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>addr</strong></p></li>
-<li><p><strong>subaddr</strong></p></li>
+<li><p><strong>addr</strong> – DCC short address of accessory </p></li>
+<li><p><strong>subaddr</strong> – DCC sub address </p></li>
 </ul>
 </dd>
 </dl>
@@ -125,12 +125,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ACTIVATEL">
-<span class="target" id="EXRAIL2MacroReset_8h_1ac0612e2f4aa9f2ba0aae65a96f96d292"></span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVATEL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">longaddr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ACTIVATEL" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a2b409f1e4ef03c580d7dbfb7e513fcd4"></span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVATEL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">linearaddr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ACTIVATEL" title="Link to this definition"></a><br /></dt>
 <dd><p>Send DCC Accessory Activate packet (gate on then off) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>longaddr</strong></p></li>
+<li><p><strong>linearaddr</strong> – DCC linear address of accessory </p></li>
 </ul>
 </dd>
 </dl>
@@ -138,12 +138,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.AFTER">
-<span class="target" id="EXRAIL2MacroReset_8h_1a453638a63f596fea9c1c6882a2d149a9"></span><span class="sig-name descname"><span class="n"><span class="pre">AFTER</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">timer...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AFTER" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1ac845d92df85ed9c4fbaecb8b05689960"></span><span class="sig-name descname"><span class="n"><span class="pre">AFTER</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">timer...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AFTER" title="Link to this definition"></a><br /></dt>
 <dd><p>Wait for sensor activated, then decativated for given time. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong> – Virtual Pin number of sensor </p></li>
 <li><p><strong>timer...</strong> – optional wait in mS, default 500 </p></li>
 </ul>
 </dd>
@@ -170,7 +170,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong></p></li>
+<li><p><strong>name</strong> – c++ variable name that can be used throighout the script </p></li>
 <li><p><strong>value...</strong> – if omitted, a large negative value is created automatically </p></li>
 </ul>
 </dd>
@@ -181,6 +181,11 @@
 <dt class="sig sig-object cpp" id="c.AMBER">
 <span class="target" id="EXRAIL2MacroReset_8h_1ae14885354cfce6b96d4b14b7d1e5763b"></span><span class="sig-name descname"><span class="n"><span class="pre">AMBER</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AMBER" title="Link to this definition"></a><br /></dt>
 <dd><p>Sets a signal to amber state. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a491c12e424a9d5517063e664be8a5052"><span class="std std-ref">ONAMBER</span></a></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -208,12 +213,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.AT">
-<span class="target" id="EXRAIL2MacroReset_8h_1a6a9137afa993b6547cef10c792c34dd7"></span><span class="sig-name descname"><span class="n"><span class="pre">AT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AT" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a0203824119c951a0bd94f992a00778b1"></span><span class="sig-name descname"><span class="n"><span class="pre">AT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AT" title="Link to this definition"></a><br /></dt>
 <dd><p>wait intil a sensor becomes active </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong> – Use negative value for sensors that are HIGH when activated </p></li>
+<li><p><strong>vpin</strong> – Virtual pin of sensor. Use negative value for sensors that are HIGH when activated </p></li>
 </ul>
 </dd>
 </dl>
@@ -226,8 +231,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>address</strong></p></li>
-<li><p><strong>value</strong></p></li>
+<li><p><strong>address</strong> – Linear DCC address of device </p></li>
+<li><p><strong>value</strong> – Aspect value (Device dependent) </p></li>
 </ul>
 </dd>
 </dl>
@@ -235,13 +240,13 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ATGTE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a3976159ee4239f09f8d760a16ac787c3"></span><span class="sig-name descname"><span class="n"><span class="pre">ATGTE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATGTE" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a72a90ca0ec5305ed32ed2751cb5f59ab"></span><span class="sig-name descname"><span class="n"><span class="pre">ATGTE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATGTE" title="Link to this definition"></a><br /></dt>
 <dd><p>Wait for analog sensor to be greater than given value. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
-<li><p><strong>value</strong></p></li>
+<li><p><strong>vpin</strong> – Analog pin number </p></li>
+<li><p><strong>value</strong> – integer value to compare against </p></li>
 </ul>
 </dd>
 </dl>
@@ -249,13 +254,13 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ATLT">
-<span class="target" id="EXRAIL2MacroReset_8h_1a5c53411b9d4107efddb0167672dfba87"></span><span class="sig-name descname"><span class="n"><span class="pre">ATLT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATLT" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1af03953b7725f114bb1371b49f24e6bd6"></span><span class="sig-name descname"><span class="n"><span class="pre">ATLT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATLT" title="Link to this definition"></a><br /></dt>
 <dd><p>Wait for analog sensor value to be less than given value. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
-<li><p><strong>value</strong></p></li>
+<li><p><strong>vpin</strong> – Analog pin number </p></li>
+<li><p><strong>value</strong> – integer value to compare against </p></li>
 </ul>
 </dd>
 </dl>
@@ -263,7 +268,7 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ATTIMEOUT">
-<span class="target" id="EXRAIL2MacroReset_8h_1a32b879d548bb568e9c4375b7343840c9"></span><span class="sig-name descname"><span class="n"><span class="pre">ATTIMEOUT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">timeout_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATTIMEOUT" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a1d172ae30bb84f903503cb44e866f55a"></span><span class="sig-name descname"><span class="n"><span class="pre">ATTIMEOUT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">timeout_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ATTIMEOUT" title="Link to this definition"></a><br /></dt>
 <dd><p>Wait for sensor active, with timeout. Use IFTIMEOUT to determine whether the AT was satisfied. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -273,8 +278,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
-<li><p><strong>timeout_ms</strong></p></li>
+<li><p><strong>vpin</strong> – Sensor pin number </p></li>
+<li><p><strong>timeout_ms</strong> – Millseconds to wait before timeout </p></li>
 </ul>
 </dd>
 </dl>
@@ -282,12 +287,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.AUTOMATION">
-<span class="target" id="EXRAIL2MacroReset_8h_1a3063459ba71def1546e2bce054a2c5c9"></span><span class="sig-name descname"><span class="n"><span class="pre">AUTOMATION</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">description</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AUTOMATION" title="Link to this definition"></a><br /></dt>
-<dd><p>Defies starting point of a sequence that will be shown as an Automation by the throttles. Automations are started by the throttle handing over a loco id to be driven. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a8770fb11d96f2817b0b188de0d170816"></span><span class="sig-name descname"><span class="n"><span class="pre">AUTOMATION</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span>, <span class="n"><span class="pre">description</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.AUTOMATION" title="Link to this definition"></a><br /></dt>
+<dd><p>Defines starting point of a sequence that will be shown as an Automation by the throttles. Automations are started by the throttle handing over a loco id to be driven. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – Unique sequence/route/automation id </p></li>
+<li><p><strong>sequence_id</strong> – Unique sequence id value </p></li>
 <li><p><strong>description</strong> – (Quoted text) will be shown on throttle button </p></li>
 </ul>
 </dd>
@@ -307,7 +312,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>vpin</strong></p></li>
+<li><p><strong>vpin</strong> – Pin to blink </p></li>
 <li><p><strong>onDuty</strong> – Milliseconds with LED ON </p></li>
 <li><p><strong>offDuty</strong> – Milliseconds with LED off </p></li>
 </ul>
@@ -335,7 +340,7 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.CALL">
-<span class="target" id="EXRAIL2MacroReset_8h_1a95596cb79650d33b460ec81f8e65887c"></span><span class="sig-name descname"><span class="n"><span class="pre">CALL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">route</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CALL" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1ae375087ca60dd26d16af05f7a9d414ec"></span><span class="sig-name descname"><span class="n"><span class="pre">CALL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CALL" title="Link to this definition"></a><br /></dt>
 <dd><p>transfer control to another sequence with expectation to return </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -345,7 +350,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>route</strong> – Sequence id, sequence must terminate of RETURN </p></li>
+<li><p><strong>sequence_id</strong> – SEQUENCE to jump processing to, must terminate or RETURN </p></li>
 </ul>
 </dd>
 </dl>
@@ -353,12 +358,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.CLEAR_STASH">
-<span class="target" id="EXRAIL2MacroReset_8h_1a3bf0952e3e886e0ad0d0ab351a32e84b"></span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_STASH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CLEAR_STASH" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears loco stash value </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a0ffcb379d9f20d17258479121262b506"></span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_STASH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">stash_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CLEAR_STASH" title="Link to this definition"></a><br /></dt>
+<dd><p>Clears loco value stored in stash </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – which stash to clear. </p></li>
+<li><p><strong>stash_id</strong> – which stash to clear. </p></li>
 </ul>
 </dd>
 </dl>
@@ -366,20 +371,13 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.CLEAR_ALL_STASH">
-<span class="target" id="EXRAIL2MacroReset_8h_1a87656ab0de1ea72533329bf27e0961c3"></span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_ALL_STASH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CLEAR_ALL_STASH" title="Link to this definition"></a><br /></dt>
-<dd><p>??????????????????????????????????????? </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
-</ul>
-</dd>
-</dl>
+<span class="target" id="EXRAIL2MacroReset_8h_1ad88529e6aee8d6ac5fc94939d46033a1"></span><span class="sig-name descname"><span class="n"><span class="pre">CLEAR_ALL_STASH</span></span></span><a class="headerlink" href="#c.CLEAR_ALL_STASH" title="Link to this definition"></a><br /></dt>
+<dd><p>Clears all stashed loco values. </p>
 </dd></dl>
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.CLOSE">
-<span class="target" id="EXRAIL2MacroReset_8h_1aa72974727c01c5aced9e24f083e85ba4"></span><span class="sig-name descname"><span class="n"><span class="pre">CLOSE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CLOSE" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a46e6e920ce7203d563cb0f3ad5375595"></span><span class="sig-name descname"><span class="n"><span class="pre">CLOSE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turnout_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.CLOSE" title="Link to this definition"></a><br /></dt>
 <dd><p>Close turnout by id. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -389,7 +387,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
+<li><p><strong>turnout_id</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -405,7 +403,7 @@
 <li><p><strong>vpin</strong> – must refer to a servo capable pin </p></li>
 <li><p><strong>pos1</strong> – SET position of servo </p></li>
 <li><p><strong>pos2</strong> – RESET position of servo </p></li>
-<li><p><strong>profile</strong> – Movement profile (????????) </p></li>
+<li><p><strong>profile</strong> – Movement profile (Instant, Fast, Medium, Slow, Bounce) </p></li>
 </ul>
 </dd>
 </dl>
@@ -413,13 +411,13 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DCC_SIGNAL">
-<span class="target" id="EXRAIL2MacroReset_8h_1a6d5b52974c1619801777181d17393fc5"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">add</span></span>, <span class="n"><span class="pre">subaddr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_SIGNAL" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a6da1ecf293b0a9a108d09630070e4fd0"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span>, <span class="n"><span class="pre">addr</span></span>, <span class="n"><span class="pre">subaddr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_SIGNAL" title="Link to this definition"></a><br /></dt>
 <dd><p>Define a DCC accessory signal with short address. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – Signal id used for all signal manipulation commands </p></li>
-<li><p><strong>add</strong> – DCC address </p></li>
+<li><p><strong>signal_id</strong> – Id used for all signal manipulation commands </p></li>
+<li><p><strong>addr</strong> – DCC address </p></li>
 <li><p><strong>subaddr</strong> – DCC subaddress </p></li>
 </ul>
 </dd>
@@ -428,12 +426,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DCCX_SIGNAL">
-<span class="target" id="EXRAIL2MacroReset_8h_1ab7e30fb1c3e99423aa257f725d4966bf"></span><span class="sig-name descname"><span class="n"><span class="pre">DCCX_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">redAspect</span></span>, <span class="n"><span class="pre">amberAspect</span></span>, <span class="n"><span class="pre">greenAspect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCCX_SIGNAL" title="Link to this definition"></a><br /></dt>
-<dd><p>DEfine advanced DCC accessory signal with aspects. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1aeaa0c75b37e3747d6e4aeae4c4d05525"></span><span class="sig-name descname"><span class="n"><span class="pre">DCCX_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span>, <span class="n"><span class="pre">redAspect</span></span>, <span class="n"><span class="pre">amberAspect</span></span>, <span class="n"><span class="pre">greenAspect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCCX_SIGNAL" title="Link to this definition"></a><br /></dt>
+<dd><p>Dfeine advanced DCC accessory signal with aspects. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – Signal id used for all signal manipulation commands </p></li>
+<li><p><strong>signal_id</strong> – DCC Linear address AND Id used for all signal manipulation commands </p></li>
 <li><p><strong>redAspect</strong></p></li>
 <li><p><strong>amberAspect</strong></p></li>
 <li><p><strong>greenAspect</strong></p></li>
@@ -444,14 +442,14 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DCC_TURNTABLE">
-<span class="target" id="EXRAIL2MacroReset_8h_1ad29a0a2a20927d9bca265a21ee5b84ef"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_TURNTABLE" title="Link to this definition"></a><br /></dt>
-<dd><p>?????????????????????????????????? </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1aee9555ea8b9a4476e0405cb36a959a6d"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">tuirntable_id</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_TURNTABLE" title="Link to this definition"></a><br /></dt>
+<dd><p>defines a Turntable device </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
-<li><p><strong>home</strong></p></li>
-<li><p><strong>description...</strong></p></li>
+<li><p><strong>turntable_id</strong> – ??? TODO ??? </p></li>
+<li><p><strong>home</strong> – ??? TODO ??? </p></li>
+<li><p><strong>description...</strong> – Quotyed text description of turntable </p></li>
 </ul>
 </dd>
 </dl>
@@ -460,12 +458,12 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DEACTIVATE">
 <span class="target" id="EXRAIL2MacroReset_8h_1af7b530974fe28e1f0ca0096b2403b590"></span><span class="sig-name descname"><span class="n"><span class="pre">DEACTIVATE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">addr</span></span>, <span class="n"><span class="pre">subaddr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DEACTIVATE" title="Link to this definition"></a><br /></dt>
-<dd><p>Sends DCC Deactivate packet (gate on, gate off) to short address. </p>
+<dd><p>Sends DCC Deactivate packet (gate on, gate off) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>addr</strong></p></li>
-<li><p><strong>subaddr</strong></p></li>
+<li><p><strong>addr</strong> – DCC accessory address </p></li>
+<li><p><strong>subaddr</strong> – DCC accessory subaddress </p></li>
 </ul>
 </dd>
 </dl>
@@ -474,11 +472,11 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DEACTIVATEL">
 <span class="target" id="EXRAIL2MacroReset_8h_1a654d690c39c254802b546ee888d52fec"></span><span class="sig-name descname"><span class="n"><span class="pre">DEACTIVATEL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">addr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DEACTIVATEL" title="Link to this definition"></a><br /></dt>
-<dd><p>Sends DCC Deactivate packet (gate on, gate off) to long address. </p>
+<dd><p>Sends DCC Deactivate packet (gate on, gate off) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>addr</strong></p></li>
+<li><p><strong>addr</strong> – DCC Linear accessory address </p></li>
 </ul>
 </dd>
 </dl>
@@ -486,12 +484,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DELAY">
-<span class="target" id="EXRAIL2MacroReset_8h_1a3582e62360f41bf088e21a0e8c3600e6"></span><span class="sig-name descname"><span class="n"><span class="pre">DELAY</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">mindelay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DELAY" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1abc0fb251f71424c9c9a611d7f788d641"></span><span class="sig-name descname"><span class="n"><span class="pre">DELAY</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">delay_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DELAY" title="Link to this definition"></a><br /></dt>
 <dd><p>Waits for given milliseconds delay (This is not blocking) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mindelay</strong> – mS </p></li>
+<li><p><strong>delay_mS</strong> – Delay time in milliseconds </p></li>
 </ul>
 </dd>
 </dl>
@@ -499,12 +497,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DELAYMINS">
-<span class="target" id="EXRAIL2MacroReset_8h_1a6b88ab656d36316547d13ec1443e734d"></span><span class="sig-name descname"><span class="n"><span class="pre">DELAYMINS</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">mindelay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DELAYMINS" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a3e569fa19bf923f543cf10401f89a290"></span><span class="sig-name descname"><span class="n"><span class="pre">DELAYMINS</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">delay_minutes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DELAYMINS" title="Link to this definition"></a><br /></dt>
 <dd><p>Waits for given minutes delay (This is not blocking) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mindelay</strong></p></li>
+<li><p><strong>delay_minutes</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -517,8 +515,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mindelay</strong> – mS </p></li>
-<li><p><strong>maxdelay</strong> – mS </p></li>
+<li><p><strong>mindelay</strong> – minumum delay in mS </p></li>
+<li><p><strong>maxdelay</strong> – maximum delay in mS </p></li>
 </ul>
 </dd>
 </dl>
@@ -547,19 +545,21 @@
 <dt class="sig sig-object cpp" id="c.ELSE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a0a70ee0cbf5b1738be4c9463c529ce72"></span><span class="sig-name descname"><span class="n"><span class="pre">ELSE</span></span></span><a class="headerlink" href="#c.ELSE" title="Link to this definition"></a><br /></dt>
 <dd><p>introduces alternate processing path after any kind of IF </p>
-</dd></dl>
-
-<dl class="cpp macro">
-<dt class="sig sig-object cpp" id="c.ENDEXRAIL">
-<span class="target" id="EXRAIL2MacroReset_8h_1a84b8c08e942ef757946344cf3ae03487"></span><span class="sig-name descname"><span class="n"><span class="pre">ENDEXRAIL</span></span></span><a class="headerlink" href="#c.ENDEXRAIL" title="Link to this definition"></a><br /></dt>
-<dd><p>Obsolete, has no effect. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
 </dd></dl>
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ENDIF">
 <span class="target" id="EXRAIL2MacroReset_8h_1af7039fb6fb9cb00f8e223a05e1ee436b"></span><span class="sig-name descname"><span class="n"><span class="pre">ENDIF</span></span></span><a class="headerlink" href="#c.ENDIF" title="Link to this definition"></a><br /></dt>
-<dd><p>determines end of <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF(any type)</span></a><p>block. IF something ENDIF, or</p>
-<p>IF something ELSE something ENDIF</p>
+<dd><p>determines end of <a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF(any type)</span></a> block. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a> something <a class="reference internal" href="#EXRAIL2MacroReset_8h_1af7039fb6fb9cb00f8e223a05e1ee436b"><span class="std std-ref">ENDIF</span></a>, or <a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a> something <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a0a70ee0cbf5b1738be4c9463c529ce72"><span class="std std-ref">ELSE</span></a> something <a class="reference internal" href="#EXRAIL2MacroReset_8h_1af7039fb6fb9cb00f8e223a05e1ee436b"><span class="std std-ref">ENDIF</span></a></p>
+</div>
 </p>
 </dd></dl>
 
@@ -581,12 +581,6 @@
 </dd></dl>
 
 <dl class="cpp macro">
-<dt class="sig sig-object cpp" id="c.EXRAIL">
-<span class="target" id="EXRAIL2MacroReset_8h_1ade88b476dc27d92754a69a49b9a7c396"></span><span class="sig-name descname"><span class="n"><span class="pre">EXRAIL</span></span></span><a class="headerlink" href="#c.EXRAIL" title="Link to this definition"></a><br /></dt>
-<dd><p>OBSOLETE ignored. </p>
-</dd></dl>
-
-<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.EXTT_TURNTABLE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a1fdca4b7f37698941742674af6a46c36"></span><span class="sig-name descname"><span class="n"><span class="pre">EXTT_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.EXTT_TURNTABLE" title="Link to this definition"></a><br /></dt>
 <dd><p>?????????????????????? </p>
@@ -604,12 +598,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FADE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a7b63d087951e73299ca8c0cef37deb54"></span><span class="sig-name descname"><span class="n"><span class="pre">FADE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">pin</span></span>, <span class="n"><span class="pre">value</span></span>, <span class="n"><span class="pre">ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FADE" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a41a2c075a5f257d30b6530392bab48dc"></span><span class="sig-name descname"><span class="n"><span class="pre">FADE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span>, <span class="n"><span class="pre">ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FADE" title="Link to this definition"></a><br /></dt>
 <dd><p>Modifies analog value slowly taking a given time. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>pin</strong></p></li>
+<li><p><strong>vpin</strong> – Servo virtual pin number </p></li>
 <li><p><strong>value</strong> – new target value </p></li>
 <li><p><strong>ms</strong> – time to reach value </p></li>
 </ul>
@@ -620,7 +614,7 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FOFF">
 <span class="target" id="EXRAIL2MacroReset_8h_1abdd91c227513d7c27086c8764810db5d"></span><span class="sig-name descname"><span class="n"><span class="pre">FOFF</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">func</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FOFF" title="Link to this definition"></a><br /></dt>
-<dd><p>Turns off loco function for current loco. </p>
+<dd><p>Turns off current loco function. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a2737b92d5d09d27f9df833715c1152ed"><span class="std std-ref">FON</span></a></p>
@@ -637,12 +631,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FOLLOW">
-<span class="target" id="EXRAIL2MacroReset_8h_1a9c0e7dd53e0ea6fb76b0b3cbaaa37853"></span><span class="sig-name descname"><span class="n"><span class="pre">FOLLOW</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">route</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FOLLOW" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a5f85579a86a96970ae42fdc0ef26f91a"></span><span class="sig-name descname"><span class="n"><span class="pre">FOLLOW</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FOLLOW" title="Link to this definition"></a><br /></dt>
 <dd><p>Task processing follows given route or sequence (Effectively a GoTo) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>route</strong></p></li>
+<li><p><strong>sequence_id</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -651,7 +645,7 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FON">
 <span class="target" id="EXRAIL2MacroReset_8h_1a2737b92d5d09d27f9df833715c1152ed"></span><span class="sig-name descname"><span class="n"><span class="pre">FON</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">func</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FON" title="Link to this definition"></a><br /></dt>
-<dd><p>Turn on current loc finction. </p>
+<dd><p>Turn on current loco function. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1abdd91c227513d7c27086c8764810db5d"><span class="std std-ref">FOFF</span></a></p>
@@ -674,8 +668,8 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FREE">
-<span class="target" id="EXRAIL2MacroReset_8h_1acc491c9cb857225c0c499de7ba7a937a"></span><span class="sig-name descname"><span class="n"><span class="pre">FREE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">blockid</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FREE" title="Link to this definition"></a><br /></dt>
-<dd><p>Frees logical token for given block. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1aff2016751e00ac29cd2841f4c89e0d0d"></span><span class="sig-name descname"><span class="n"><span class="pre">FREE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">token_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FREE" title="Link to this definition"></a><br /></dt>
+<dd><p>Frees logical token. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ac2072b24e631bc3acdd67fa34e217de5"><span class="std std-ref">RESERVE</span></a></p>
@@ -684,7 +678,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>blockid</strong> – 0..255 </p></li>
+<li><p><strong>token_id</strong> – 0..255 </p></li>
 </ul>
 </dd>
 </dl>
@@ -737,7 +731,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>haltype</strong> – driver name, normally device type </p></li>
-<li><p><strong>params...</strong> – depend on driver </p></li>
+<li><p><strong>params...</strong> – depend on driver. </p></li>
 </ul>
 </dd>
 </dl>
@@ -746,17 +740,17 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.HAL_IGNORE_DEFAULTS">
 <span class="target" id="EXRAIL2MacroReset_8h_1ae8584b644c544c95f8ecab8997a66373"></span><span class="sig-name descname"><span class="n"><span class="pre">HAL_IGNORE_DEFAULTS</span></span></span><a class="headerlink" href="#c.HAL_IGNORE_DEFAULTS" title="Link to this definition"></a><br /></dt>
-<dd><p>System will ignore default HAL settings. </p>
+<dd><p>System will ignore default HAL device mappings. </p>
 </dd></dl>
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IF">
-<span class="target" id="EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"></span><span class="sig-name descname"><span class="n"><span class="pre">IF</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IF" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"></span><span class="sig-name descname"><span class="n"><span class="pre">IF</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IF" title="Link to this definition"></a><br /></dt>
 <dd><p>Checks sensor state, If false jumps to matching nested ELSE or ENDIF. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong> – VPIN of sensor. Negative VPIM will invert sensor state. </p></li>
+<li><p><strong>vpin</strong> – VPIN of sensor. Negative VPIN will invert sensor state. </p></li>
 </ul>
 </dd>
 </dl>
@@ -768,7 +762,7 @@
 <dd><p>Checks if signal is in AMBER state. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -786,7 +780,7 @@
 <dd><p>Checks if given turnout is in close state. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -804,7 +798,7 @@
 <dd><p>Checks if given signal is in GREEN state. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -818,17 +812,17 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFGTE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a91aafa12888a56d9966c3bfba45db91b"></span><span class="sig-name descname"><span class="n"><span class="pre">IFGTE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFGTE" title="Link to this definition"></a><br /></dt>
-<dd><p>Checks if analog sensor &gt;= value. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a9260e77e7954abab211ead2bdbe10b52"></span><span class="sig-name descname"><span class="n"><span class="pre">IFGTE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFGTE" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks if analog vpin sensor &gt;= value. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong></p></li>
 <li><p><strong>value</strong></p></li>
 </ul>
 </dd>
@@ -841,7 +835,7 @@
 <dd><p>Checks if current task loco = loco_id. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -855,17 +849,17 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFLT">
-<span class="target" id="EXRAIL2MacroReset_8h_1acbdea8927a0e9e71ac9a017625460e43"></span><span class="sig-name descname"><span class="n"><span class="pre">IFLT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFLT" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1af9dc6f67b00964e10431984f249b193a"></span><span class="sig-name descname"><span class="n"><span class="pre">IFLT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFLT" title="Link to this definition"></a><br /></dt>
 <dd><p>Checks if analog sensor &lt; value. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong> – Analog vpin of sensor </p></li>
 <li><p><strong>value</strong></p></li>
 </ul>
 </dd>
@@ -874,17 +868,17 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFNOT">
-<span class="target" id="EXRAIL2MacroReset_8h_1a4b0f32ca3122ee36c54256ebee7e5b42"></span><span class="sig-name descname"><span class="n"><span class="pre">IFNOT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFNOT" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a494149dc9109a33116d79e64a6fc4396"></span><span class="sig-name descname"><span class="n"><span class="pre">IFNOT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFNOT" title="Link to this definition"></a><br /></dt>
 <dd><p>Inverse of IF. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -896,7 +890,7 @@
 <dd><p>randomly satisfield IF at given percent probability </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -914,7 +908,7 @@
 <dd><p>Checks if given signal is in RED state. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -932,7 +926,7 @@
 <dd><p>Checks if given turnout is in THROWN state. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -946,17 +940,17 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFRESERVE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a5737c12c58585febecaba35e42e31dff"></span><span class="sig-name descname"><span class="n"><span class="pre">IFRESERVE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">block</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFRESERVE" title="Link to this definition"></a><br /></dt>
-<dd><p>Agttempts to reserve block token and if satisfiled the block remains reserved. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a36ea7733efdf9b1653cbbf1bd43b68ad"></span><span class="sig-name descname"><span class="n"><span class="pre">IFRESERVE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">token_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFRESERVE" title="Link to this definition"></a><br /></dt>
+<dd><p>Attempts to reserve token and if satisfiled the token remains reserved. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1ac2072b24e631bc3acdd67fa34e217de5"><span class="std std-ref">RESERVE</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1aff2016751e00ac29cd2841f4c89e0d0d"><span class="std std-ref">FREE</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>block</strong></p></li>
+<li><p><strong>token_id</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -968,7 +962,7 @@
 <dd><p>Checks TIMEOUT state after an AT/AFTER request with timeout value. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a0203824119c951a0bd94f992a00778b1"><span class="std std-ref">AT</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1ac845d92df85ed9c4fbaecb8b05689960"><span class="std std-ref">AFTER</span></a></p>
 </div>
 </p>
 </dd></dl>
@@ -976,10 +970,10 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFTTPOSITION">
 <span class="target" id="EXRAIL2MacroReset_8h_1a9af3b2d3ffba102abeab145c692aacc1"></span><span class="sig-name descname"><span class="n"><span class="pre">IFTTPOSITION</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFTTPOSITION" title="Link to this definition"></a><br /></dt>
-<dd><p>Checks if GTurntable is in given position. </p>
+<dd><p>Checks if Turntable is in given position. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a690e2a6e6efa3ceb53436810b3abe716"><span class="std std-ref">IF</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -1019,7 +1013,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>vpin</strong></p></li>
+<li><p><strong>vpin</strong> – first vpin number </p></li>
 <li><p><strong>count...</strong> – Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1. </p></li>
 </ul>
 </dd>
@@ -1040,12 +1034,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.LATCH">
-<span class="target" id="EXRAIL2MacroReset_8h_1a536efd8d6904fd270d01c696423f1ddf"></span><span class="sig-name descname"><span class="n"><span class="pre">LATCH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.LATCH" title="Link to this definition"></a><br /></dt>
-<dd><p>Make all AT/AFTER/IF see sensor active without checking hardware. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a8dae7cc2d913d3ee5da28629e8e13fec"></span><span class="sig-name descname"><span class="n"><span class="pre">LATCH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.LATCH" title="Link to this definition"></a><br /></dt>
+<dd><p>Make all AT/AFTER/IF see vpin as HIGH without checking hardware. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong> – Must only be for VPINS 0..255 </p></li>
+<li><p><strong>vpin</strong> – Must only be for VPINS 0..255 </p></li>
 </ul>
 </dd>
 </dl>
@@ -1155,12 +1149,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.NEOPIXEL">
-<span class="target" id="EXRAIL2MacroReset_8h_1a324d13015faa6ed2d875ce7c30d41924"></span><span class="sig-name descname"><span class="n"><span class="pre">NEOPIXEL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">r</span></span>, <span class="n"><span class="pre">g</span></span>, <span class="n"><span class="pre">b</span></span>, <span class="n"><span class="pre">count...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.NEOPIXEL" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1aef2abec1e1072ce67cefe4daf0dabe72"></span><span class="sig-name descname"><span class="n"><span class="pre">NEOPIXEL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">r</span></span>, <span class="n"><span class="pre">g</span></span>, <span class="n"><span class="pre">b</span></span>, <span class="n"><span class="pre">count...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.NEOPIXEL" title="Link to this definition"></a><br /></dt>
 <dd><p>Set a NEOPIXEL vpin to a given red/green/blue colour. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – VPIN of a pixel </p></li>
+<li><p><strong>vpin</strong> – VPIN of a pixel </p></li>
 <li><p><strong>r</strong> – red component 0-255 </p></li>
 <li><p><strong>g</strong> – green component 0-255 </p></li>
 <li><p><strong>b</strong> – blue component 0-255 </p></li>
@@ -1172,15 +1166,20 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.NEOPIXEL_SIGNAL">
-<span class="target" id="EXRAIL2MacroReset_8h_1a5ec327b78a557688df073fedd42708b1"></span><span class="sig-name descname"><span class="n"><span class="pre">NEOPIXEL_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sigid</span></span>, <span class="n"><span class="pre">redcolour</span></span>, <span class="n"><span class="pre">ambercolour</span></span>, <span class="n"><span class="pre">greencolour</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.NEOPIXEL_SIGNAL" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1ab632cf6f5a9c66325a1f52b8593ff05c"></span><span class="sig-name descname"><span class="n"><span class="pre">NEOPIXEL_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">redcolour</span></span>, <span class="n"><span class="pre">ambercolour</span></span>, <span class="n"><span class="pre">greencolour</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.NEOPIXEL_SIGNAL" title="Link to this definition"></a><br /></dt>
 <dd><p>Define a signal that uses a single multi colour pixel. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>NEORGB </p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sigid</strong> – unique signal id </p></li>
-<li><p><strong>redcolour</strong> – RGB colour </p></li>
+<li><p><strong>vpin</strong> – unique signal_id </p></li>
+<li><p><strong>redcolour</strong> – RGB colour use NEORGB(red,green,blue) to create values. </p></li>
 <li><p><strong>ambercolour</strong></p></li>
-<li><p><strong>greencolour</strong> – Use NeoRGB(red,green,blue) to create values for redcolour etc above. </p></li>
+<li><p><strong>greencolour</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -1280,12 +1279,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ONTIME">
-<span class="target" id="EXRAIL2MacroReset_8h_1ad8ea5fef52ffb27ff64f415de4e8fee6"></span><span class="sig-name descname"><span class="n"><span class="pre">ONTIME</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONTIME" title="Link to this definition"></a><br /></dt>
-<dd><p>Start task here when fastclock mins in day=value. </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a69e233670789f50e99d52fa357e13c9e"></span><span class="sig-name descname"><span class="n"><span class="pre">ONTIME</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">minute_in_day</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONTIME" title="Link to this definition"></a><br /></dt>
+<dd><p>Start task here when fastclock matches. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>value</strong></p></li>
+<li><p><strong>minute_in_date</strong> – (0..1439) </p></li>
 </ul>
 </dd>
 </dl>
@@ -1625,7 +1624,7 @@
 <dd><p>Returns to CALL. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a95596cb79650d33b460ec81f8e65887c"><span class="std std-ref">CALL</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae375087ca60dd26d16af05f7a9d414ec"><span class="std std-ref">CALL</span></a></p>
 </div>
 </p>
 </dd></dl>
@@ -1792,11 +1791,11 @@
 <dd><p>Provides a unique label than can be used to call, follow or start. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a95596cb79650d33b460ec81f8e65887c"><span class="std std-ref">CALL</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae375087ca60dd26d16af05f7a9d414ec"><span class="std std-ref">CALL</span></a></p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a9c0e7dd53e0ea6fb76b0b3cbaaa37853"><span class="std std-ref">FOLLOW</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a5f85579a86a96970ae42fdc0ef26f91a"><span class="std std-ref">FOLLOW</span></a></p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
@@ -2235,7 +2234,7 @@ param id </p>
 <dd><p>removes latched on flag </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a536efd8d6904fd270d01c696423f1ddf"><span class="std std-ref">LATCH</span></a></p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a8dae7cc2d913d3ee5da28629e8e13fec"><span class="std std-ref">LATCH</span></a></p>
 </div>
 </p>
 <dl class="field-list simple">
