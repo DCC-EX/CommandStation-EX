@@ -202,23 +202,23 @@
 /**
  * @def ACTIVATE(addr,subaddr)
  * @brief Send DCC Accessory Activate packet (gate on then off)
- * @param addr 
- * @param subaddr 
+ * @param addr DCC short address of accessory
+ * @param subaddr DCC sub address
  */
 #define ACTIVATE(addr,subaddr)
 /**
- * @def ACTIVATEL(longaddr)
+ * @def ACTIVATEL(linearaddr)
  * @brief Send DCC Accessory Activate packet (gate on then off)
- * @param longaddr 
+ * @param linearaddr DCC linear address of accessory
  */
-#define ACTIVATEL(longaddr)
+#define ACTIVATEL(linearaddr)
 /**
- * @def AFTER(sensor_id,timer...)
+ * @def AFTER(vpin,timer...)
  * @brief Wait for sensor activated, then decativated for given time
- * @param sensor_id 
+ * @param vpin Virtual Pin number of sensor
  * @param timer... optional wait in mS, default 500
  */
-#define AFTER(sensor_id,timer...)
+#define AFTER(vpin,timer...)
 /**
  * @def AFTEROVERLOAD(track_id)
  * @brief Wait for overload to be resolved
@@ -228,13 +228,14 @@
 /**
  * @def ALIAS(name,value...)
  * @brief defines a named numeric value.
- * @param name 
+ * @param name c++ variable name that can be used throighout the script
  * @param value...  if omitted, a large negative value is created automatically
  */
 #define ALIAS(name,value...)
 /**
  * @def AMBER(signal_id)
  * @brief Sets a signal to amber state
+ * @see ONAMBER
  * @param signal_id 
  */
 #define AMBER(signal_id)
@@ -249,49 +250,49 @@
  */
 #define ANOUT(vpin,value,param1,param2)
 /**
- * @def AT(sensor_id)
+ * @def AT(vpin)
  * @brief wait intil a sensor becomes active
- * @param sensor_id Use negative value for sensors that are HIGH when activated 
+ * @param vpin Virtual pin of sensor. Use negative value for sensors that are HIGH when activated 
  */
-#define AT(sensor_id)
+#define AT(vpin)
 /**
  * @def ASPECT(address,value)
  * @brief Sends a DCC aspect value to an accessory address.
  *      May also change status of a signal defined using this aspect.
- * @param address 
- * @param value 
+ * @param address Linear DCC address of device 
+ * @param value Aspect value (Device dependent)
  */
 #define ASPECT(address,value)
 /**
- * @def ATGTE(sensor_id,value)
+ * @def ATGTE(vpin,value)
  * @brief Wait for analog sensor to be greater than given value
- * @param sensor_id 
- * @param value 
+ * @param vpin Analog pin number 
+ * @param value integer value to compare against
  */
-#define ATGTE(sensor_id,value) 
+#define ATGTE(vpin,value) 
 /**
- * @def ATLT(sensor_id,value)
+ * @def ATLT(vpin,value)
  * @brief Wait for analog sensor value to be less than given value
- * @param sensor_id 
- * @param value 
+ * @param vpin Analog pin number 
+ * @param value integer value to compare against
  */
-#define ATLT(sensor_id,value) 
+#define ATLT(vpin,value) 
 /**
- * @def ATTIMEOUT(sensor_id,timeout_ms)
+ * @def ATTIMEOUT(vpin,timeout_ms)
  * @brief Wait for sensor active, with timeout. Use IFTIMEOUT to determine whether the AT was satisfied.
  * @see IFTIMEOUT  
- * @param sensor_id 
- * @param timeout_ms 
+ * @param vpin Sensor pin number 
+ * @param timeout_ms Millseconds to wait before timeout
  */
-#define ATTIMEOUT(sensor_id,timeout_ms)
+#define ATTIMEOUT(vpin,timeout_ms)
 /**
- * @def AUTOMATION(id,description)
- * @brief Defies starting point of a sequence that will be shown as an Automation by 
+ * @def AUTOMATION(sequence_id,description)
+ * @brief Defines starting point of a sequence that will be shown as an Automation by 
  * the throttles. Automations are started by the throttle handing over a loco id to be driven.
- * @param id Unique sequence/route/automation id
+ * @param sequence_id Unique sequence id value
  * @param description (Quoted text) will be shown on throttle button
  */
-#define AUTOMATION(id,description)
+#define AUTOMATION(sequence_id,description)
 /**
  * @def AUTOSTART
  * @brief A new task will be created starting from this point at Command Station startup   
@@ -301,7 +302,7 @@
  * @def BLINK(vpin,onDuty,offDuty)
  * @brief Starts a blinking process for a vpin (typically a LED)
  * Stop blink with SET or RESET.
- * @param vpin 
+ * @param vpin Pin to blink
  * @param onDuty Milliseconds with LED ON
  * @param offDuty Milliseconds with LED off 
  */
@@ -314,96 +315,95 @@
  */
 #define BROADCAST(msg)
 /**
- * @def CALL(route)
+ * @def CALL(sequence_id)
  * @brief transfer control to another sequence with expectation to return
  * @see RETURN
- * @param route Sequence id, sequence must terminate of RETURN
+ * @param sequence_id SEQUENCE to jump processing to, must terminate or RETURN
  *  
  */
-#define CALL(route)
+#define CALL(sequence_id)
 /**
- * @def CLEAR_STASH(id)
- * @brief Clears loco stash value  
- * @param id which stash to clear.
+ * @def CLEAR_STASH(stash_id)
+ * @brief Clears loco value stored in stash  
+ * @param stash_id which stash to clear.
  */
-#define CLEAR_STASH(id)
+#define CLEAR_STASH(stash_id)
 /**
- * @def CLEAR_ALL_STASH(id)
- * @brief ???????????????????????????????????????
- * @param id 
+ * @def CLEAR_ALL_STASH
+ * @brief Clears all stashed loco values
  */
-#define CLEAR_ALL_STASH(id)
+#define CLEAR_ALL_STASH
 /**
- * @def CLOSE(id)
+ * @def CLOSE(turnout_id)
  * @brief Close turnout by id
  * @see THROW
- * @param id 
+ * @param turnout_id 
  */
-#define CLOSE(id)
+#define CLOSE(turnout_id)
 /**
  * @def CONFIGURE_SERVO(vpin,pos1,pos2,profile)
  * @brief setup servo movement parameters for non-turnout
  * @param vpin must refer to a servo capable pin
  * @param pos1 SET position of servo
  * @param pos2 RESET position of servo
- * @param profile Movement profile (????????)
+ * @param profile Movement profile (Instant, Fast, Medium, Slow, Bounce)
  */
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 /**
- * @def DCC_SIGNAL(id,add,subaddr)
+ * @def DCC_SIGNAL(signal_id,addr,subaddr)
  * @brief Define a DCC accessory signal with short address
- * @param id Signal id used for all signal manipulation commands
- * @param add DCC address
+ * @param signal_id Id used for all signal manipulation commands
+ * @param addr DCC address
  * @param subaddr DCC subaddress
  */
-#define DCC_SIGNAL(id,add,subaddr)
+#define DCC_SIGNAL(signal_id,addr,subaddr)
 /**
- * @def DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
- * @brief DEfine advanced DCC accessory signal with aspects
- * @param id Signal id used for all signal manipulation commands
+ * @def DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect)
+ * @brief Dfeine advanced DCC accessory signal with aspects
+ * @param signal_id DCC Linear address AND Id used for all signal manipulation commands
  * @param redAspect 
  * @param amberAspect 
  * @param greenAspect 
  */
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
+#define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect)
 /**
- * @def DCC_TURNTABLE(id,home,description...)
- * @brief ??????????????????????????????????
- * @param id 
- * @param home 
- * @param description... 
+ * @def DCC_TURNTABLE(turntable_id,id,home,description...)
+ * @brief defines a Turntable device 
+ * @param turntable_id ??? TODO ??? 
+ * @param home ??? TODO ???
+ * @param description... Quotyed text description of turntable
  */
-#define DCC_TURNTABLE(id,home,description...)
+#define DCC_TURNTABLE(tuirntable_id,home,description...)
 /**
  * @def DEACTIVATE(addr,subaddr)
- * @brief Sends DCC Deactivate packet (gate on, gate off) to short address
- * @param addr 
- * @param subaddr 
+ * @brief Sends DCC Deactivate packet (gate on, gate off) 
+ * @param addr DCC accessory address
+ * @param subaddr DCC accessory subaddress
  */
 #define DEACTIVATE(addr,subaddr)
 /**
  * @def DEACTIVATEL(addr)
- * @brief Sends DCC Deactivate packet (gate on, gate off) to long address
- * @param addr 
+ * @brief Sends DCC Deactivate packet (gate on, gate off) 
+ * @param addr DCC Linear accessory address
  */
 #define DEACTIVATEL(addr)
 /**
- * @def DELAY(mindelay)
+ * @def DELAY(delay_mS)
  * @brief Waits for given milliseconds delay (This is not blocking) 
- * @param mindelay mS
+ * @param delay_mS Delay time in milliseconds
  */
-#define DELAY(mindelay)
+#define DELAY(delay_ms)
 /**
- * @def DELAYMINS(mindelay)
+ * @def DELAYMINS(delay_minutes)
  * @brief Waits for given minutes delay (This is not blocking)
- * @param mindelay 
+ * @param delay_minutes 
  */
-#define DELAYMINS(mindelay)
+#define DELAYMINS(delay_minutes)
 /**
  * @def DELAYRANDOM(mindelay,maxdelay)
  * @brief Waits for random delay between min and max milliseconds (This is not blocking)
- * @param mindelay mS
- * @param maxdelay mS
+ * @param mindelay minumum delay in mS
+ * @param maxdelay maximum delay in mS
  */
 #define DELAYRANDOM(mindelay,maxdelay) 
 /**
@@ -419,17 +419,14 @@
 #define DRIVE(analogpin)
 /**
  * @def ELSE
- * @brief introduces alternate processing path after any kind of IF 
+ * @brief introduces alternate processing path after any kind of IF
+ * @see IF 
  */
 #define ELSE
 /**
- * @def ENDEXRAIL
- * @brief Obsolete, has no effect.
- */
-#define ENDEXRAIL 
-/**
  * @def ENDIF
  * @brief determines end of IF(any type)  block.
+ * @see IF
  * IF something ENDIF, or    
  * IF something ELSE something ENDIF  
  */
@@ -446,11 +443,6 @@
  */
 #define ESTOP 
 /**
- * @def EXRAIL
- * @brief OBSOLETE ignored
- */
-#define EXRAIL
-/**
  * @def EXTT_TURNTABLE(id,vpin,home,description...)
  * @brief ??????????????????????
  * @param id 
@@ -460,29 +452,29 @@
  */
 #define EXTT_TURNTABLE(id,vpin,home,description...)
 /**
- * @def FADE(pin,value,ms)
+ * @def FADE(vpin,value,ms)
  * @brief Modifies analog value slowly taking a given time
- * @param pin 
+ * @param vpin Servo virtual pin number 
  * @param value new target value
  * @param ms time to reach value
  */
-#define FADE(pin,value,ms)
+#define FADE(vpin,value,ms)
 /**
  * @def FOFF(func)
- * @brief Turns off loco function for current loco
+ * @brief Turns off current loco function
  * @see FON
  * @param func 
  */
 #define FOFF(func)
 /**
- * @def FOLLOW(route)
+ * @def FOLLOW(sequence_id)
  * @brief Task processing follows given route or sequence (Effectively a GoTo)
- * @param route 
+ * @param sequence_id 
  */
-#define FOLLOW(route) 
+#define FOLLOW(sequence_id) 
 /**
  * @def FON(func)
- * @brief Turn on current loc finction
+ * @brief Turn on current loco function
  * @see FOFF
  * @param func 
  */
@@ -493,12 +485,12 @@
  */
 #define FORGET
 /**
- * @def FREE(blockid)
- * @brief Frees logical token for given block.
+ * @def FREE(token_id)
+ * @brief Frees logical token 
  * @see RESERVE
- * @param blockid 0..255 
+ * @param token_id 0..255 
  */
-#define FREE(blockid) 
+#define FREE(token_id) 
 /**
  * @def FTOGGLE(func)
  * @brief Toggles function for current loco
@@ -521,20 +513,20 @@
  * @def HAL(haltype,params...)
  * @brief Defines VPIN mapping for specific hardware drivers
  * @param haltype driver name, normally device type
- * @param params... depend on driver
+ * @param params... depend on driver.
  */
 #define HAL(haltype,params...)
 /**
  * @def HAL_IGNORE_DEFAULTS
- * @brief System will ignore default HAL settings 
+ * @brief System will ignore default HAL device mappings 
  */
 #define HAL_IGNORE_DEFAULTS
 /**
- * @def IF(sensor_id)
+ * @def IF(vpin)
  * @brief Checks sensor state, If false jumps to matching nested ELSE or ENDIF
- * @param sensor_id  VPIN of sensor. Negative VPIM will invert sensor state. 
+ * @param vpin  VPIN of sensor. Negative VPIN will invert sensor state. 
  */
-#define IF(sensor_id) 
+#define IF(vpin) 
 /**
  * @def IFAMBER(signal_id)
  * @brief Checks if signal is in AMBER state. 
@@ -557,13 +549,13 @@
  */
 #define IFGREEN(signal_id)
 /**
- * @def IFGTE(sensor_id,value)
- * @brief Checks if analog sensor >= value
+ * @def IFGTE(vpin,value)
+ * @brief Checks if analog vpin sensor >= value
  * @see IF
- * @param sensor_id 
+ * @param vpin 
  * @param value 
  */
-#define IFGTE(sensor_id,value) 
+#define IFGTE(vpin,value) 
 /**
  * @def IFLOCO(loco_id)
  * @brief Checks if current task loco = loco_id
@@ -575,17 +567,17 @@
  * @def IFLT(sensor_id,value)
  * @brief Checks if analog sensor < value
  * @see IF
- * @param sensor_id 
+ * @param vpin  Analog vpin of sensor 
  * @param value 
  */
-#define IFLT(sensor_id,value) 
+#define IFLT(vpin,value) 
 /**
- * @def IFNOT(sensor_id)
+ * @def IFNOT(vpin)
  * @brief Inverse of IF
  * @see IF
- * @param sensor_id 
+ * @param vpin 
  */
-#define IFNOT(sensor_id)
+#define IFNOT(vpin)
 /**
  * @def IFRANDOM(percent)
  * @brief randomly satisfield IF at given percent probability
@@ -608,21 +600,21 @@
  */
 #define IFTHROWN(turnout_id) 
 /**
- * @def IFRESERVE(block)
- * @brief Agttempts to reserve block token and if satisfiled the block remains reserved. 
- * @see IF 
- * @param block 
+ * @def IFRESERVE(token_id)
+ * @brief Attempts to reserve token and if satisfiled the token remains reserved. 
+ * @see IF RESERVE FREE
+ * @param token_id
  */
-#define IFRESERVE(block)
+#define IFRESERVE(token_id)
 /**
  * @def IFTIMEOUT
  * @brief Checks TIMEOUT state after an AT/AFTER request with timeout value.
- * @see IF
+ * @see IF AT AFTER
  */
 #define IFTIMEOUT
 /**
  * @def IFTTPOSITION(turntable_id,position)
- * @brief Checks if GTurntable is in given position
+ * @brief Checks if Turntable is in given position
  * @see IF
  * @param turntable_id 
  * @param position 
@@ -643,7 +635,7 @@
 /**
  * @def JMRI_SENSOR(vpin,count...)
  * @brief DEfines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
- * @param vpin 
+ * @param vpin first vpin number
  * @param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1. 
  */
 #define JMRI_SENSOR(vpin,count...)
@@ -658,11 +650,11 @@
  */
 #define KILLALL
 /**
- * @def LATCH(sensor_id)
- * @brief Make all AT/AFTER/IF see sensor active without checking hardware
- * @param sensor_id Must only be for VPINS 0..255
+ * @def LATCH(vpin)
+ * @brief Make all AT/AFTER/IF see vpin as HIGH without checking hardware
+ * @param vpin Must only be for VPINS 0..255
  */
-#define LATCH(sensor_id)
+#define LATCH(vpin)
 /**
  * @def LCC(eventid)
  * @brief Issue event to LCC 
@@ -714,25 +706,25 @@
  */
 #define MOVETT(id,steps,activity)
 /**
- * @def NEOPIXEL(id,r,g,b,count...)
+ * @def NEOPIXEL(vpin,r,g,b,count...)
  * @brief Set a NEOPIXEL vpin to a given red/green/blue colour
- * @param id VPIN of a pixel
+ * @param vpin VPIN of a pixel
  * @param r red component 0-255 
  * @param g green component 0-255
  * @param b blue component 0-255
  * @param count... Number of consecutive pixels to set, Default 1.
  */
-#define NEOPIXEL(id,r,g,b,count...)
+#define NEOPIXEL(vpin,r,g,b,count...)
 /**
- * @def NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+ * @def NEOPIXEL_SIGNAL(signal_id,redcolour,ambercolour,greencolour)
  * @brief Define a signal that uses a single multi colour pixel
- * @param sigid unique signal id
- * @param redcolour  RGB colour 
+ * @see NEORGB 
+ * @param vpin unique signal_id 
+ * @param redcolour  RGB colour use NEORGB(red,green,blue) to create values.
  * @param ambercolour 
  * @param greencolour 
- * Use NeoRGB(red,green,blue) to create values for redcolour etc above.
  */
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+#define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour)
 /**
  * @def ACON(eventid)
  * @brief Send MERG CBUS ACON to Adapter
@@ -777,11 +769,11 @@
  */
 #define ONAMBER(signal_id) 
 /**
- * @def ONTIME(value)
- * @brief Start task here when fastclock mins in day=value
- * @param value 
+ * @def ONTIME(minute_in_day)
+ * @brief Start task here when fastclock matches
+ * @param minute_in_date (0..1439) 
  */
-#define ONTIME(value)
+#define ONTIME(minute_in_day)
 /**
  * @def ONCLOCKTIME(hours,mins)
  * @brief Start task here when fastclock matches time
