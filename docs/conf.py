@@ -5,16 +5,9 @@
 
 import os
 import subprocess
-import sphinx.builders.html
 
 # Doxygen
 subprocess.call('doxygen DoxyfileEXRAIL', shell=True)
-
-# Get current version/branch
-try:
-    current_branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').strip()
-except Exception as error:
-    current_branch = 'unknown'
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -85,17 +78,7 @@ html_css_files = [
     'css/sphinx_design_overrides.css',
 ]
 
-baseurl_prefix = 'https://dcc-ex.com/CommandStation-EX/'
-
-# Devel documentation needs to be a different directory
-if current_branch == 'master-exraildocdev':
-    # For versioning
-    html_baseurl = f"{baseurl_prefix}devel/"
-    html_build_dir = os.path.abspath(os.path.join('_build', 'devel'))
-else:
-    # Main landing page
-    html_baseurl = baseurl_prefix
-    html_build_dir = os.path.abspath('_build')
+html_baseurl = 'https://dcc-ex.com/CommandStation-EX/'
 
 # Sphinx sitemap
 html_extra_path = [

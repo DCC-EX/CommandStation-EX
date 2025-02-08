@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
-        with:
-          fetch-depth: 0
 
       - name: Install Requirements
         run: |
@@ -24,16 +22,8 @@ jobs:
           pip3 install -r requirements.txt
           sudo apt-get install doxygen
 
-      - name: Build Devel docs
-        run: |
-          git checkout master-exraildocdev
-          cd docs
-          make html
-          cd ..
-
       - name: Build Prod docs
         run: |
-          git checkout master-exraildoc
           cd docs
           make html
           touch _build/html/.nojekyll
