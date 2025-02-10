@@ -882,3 +882,7 @@ html[data-theme='dark'] .new-in-v5 {
     font-size: 80% !important;
   }
 }
+
+html[data-theme='dark'] .rst-content span.descname {
+  color: #dbdd7c !important;
+}
