@@ -634,7 +634,7 @@
 #define INVERT_DIRECTION 
 /**
  * @def JMRI_SENSOR(vpin,count...)
- * @brief DEfines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
+ * @brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
  * @param vpin first vpin number
  * @param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1. 
  */
@@ -687,7 +687,7 @@
 #define SCREEN(display,row,msg)
 /**
  * @def LCN(msg)
- * @brief ??????
+ * @brief Reserved for LCN communication. Refer to their documentation.
  * @param msg 
  */
 #define LCN(msg) 
@@ -758,7 +758,7 @@
 #define ONACTIVATE(addr,subaddr)
 /**
  * @def ONACTIVATEL(linear)
- * @brief Start task here when DCC Activate sent for long address
+ * @brief Start task here when DCC Activate sent for linear address
  * @param linear 
  */
 #define ONACTIVATEL(linear)
@@ -771,7 +771,7 @@
 /**
  * @def ONTIME(minute_in_day)
  * @brief Start task here when fastclock matches
- * @param minute_in_date (0..1439) 
+ * @param minute_in_day (0..1439) 
  */
 #define ONTIME(minute_in_day)
 /**
@@ -814,7 +814,7 @@
 #define ONCLOSE(turnout_id)
 /**
  * @def ONLCC(sender,event)
- * @brief ??????????????????
+ * @brief Start task here when LCC event arrives from sender
  * @param sender 
  * @param event 
  */
@@ -844,9 +844,9 @@
  */
 #define ONTHROW(turnout_id) 
 /**
- * @def ONCHANGE(sensor_id)
- * @brief ???????????????????
- * @param sensor_id 
+ * @def ONCHANGE(vpin)
+ * @brief ??? something strange in RotaryEncoder HAL... 
+ * @param vpin 
  */
 #define ONCHANGE(sensor_id)
 /**
@@ -869,13 +869,13 @@
 #define PAUSE
 /**
  * @def PIN_TURNOUT(id,pin,description...)
- * @brief Defines a tirnout which operates on a signle pin
+ * @brief Defines a turnout which operates on a signle pin
  * @param id 
  * @param pin 
  * @param description... Quoted text (shown to throttles) or HIDDEN 
  
  */
-#define PIN_TURNOUT(id,pin,description...) 
+#define PIN_TURNOUT(id,vpin,description...) 
 /**
  * @def PRINT(msg)
  * @brief prints diagnostic message on USB serial 
@@ -913,7 +913,7 @@
 #define POWERON
 /**
  * @def READ_LOCO
- * @brief Reads loco Id from prog traqck and sets currenmt task loco id.
+ * @brief Reads loco Id from prog track and sets currenmt task loco id.
  */
 #define READ_LOCO 
 /**
@@ -923,18 +923,19 @@
  */
 #define RED(signal_id) 
 /**
- * @def RESERVE(blockid)
+ * @def RESERVE(token_id)
  * @brief Waits for token for block. If not available immediately, current task loco is stopped.
- * @param blockid 
+ * @param token_id 
  */
-#define RESERVE(blockid) 
+#define RESERVE(token_id) 
 /**
- * @def RESET(pin,count...)
- * @brief Sets output puin LOW
- * @param pin 
+ * @def RESET(vpin,count...)
+ * @brief Sets output pin LOW
+ * @see SET
+ * @param vpin 
  * @param count... Number of consecutive pins, default 1
  */
-#define RESET(pin,count...) 
+#define RESET(vpin,count...) 
 /**
  * @def RESUME
  * @brief Resumes PAUSEd tasks 
@@ -974,64 +975,64 @@
  * @brief Describes a loco roster entry visible to throttles
  * @param cab loco DCC address or 0 for default entry
  * @param name Quoted text
- * @param funcmap... Quoted text, optional list of function names separated by / character with momentary fuinctin names prefixed with an *.
+ * @param funcmap... Quoted text, optional list of function names separated by / character with momentary function names prefixed with an *.
  * 
  */
 #define ROSTER(cab,name,funcmap...)
 /**
- * @def ROUTE(id,description)
+ * @def ROUTE(sequence_id,description)
  * @brief DEfines starting point of a sequence that will appear as a route on throttle buttons.
- * @param id 
+ * @param sequence_id 
  * @param description Quoted text, throttle button capotion. 
  */
-#define ROUTE(id,description)
+#define ROUTE(sequence_id,description)
 /**
- * @def ROUTE_ACTIVE(id)
+ * @def ROUTE_ACTIVE(sequence_id)
  * @brief Tells throttle to display the route button as active
- * @param id 
+ * @param sequence_id of ROUTE/AUTOMATION 
  */
-#define ROUTE_ACTIVE(id)
+#define ROUTE_ACTIVE(sequence_id)
 /**
- * @def ROUTE_INACTIVE(id)
+ * @def ROUTE_INACTIVE(sequence_id)
  * @brief Tells throttle to display the route button as inactive
- * @param id 
+ * @param sequence_id of ROUTE/AUTOMATION
  */
-#define ROUTE_INACTIVE(id)
+#define ROUTE_INACTIVE(sequence_id)
 /**
- * @def ROUTE_HIDDEN(id)
+ * @def ROUTE_HIDDEN(sequence_id)
  * @brief Tells throttle to hide the route button
- * @param id 
+ * @param sequence_id of ROUTE/AUTOMATION
  */
-#define ROUTE_HIDDEN(id)
+#define ROUTE_HIDDEN(sequence_id)
 /**
- * @def ROUTE_DISABLED(id)
+ * @def ROUTE_DISABLED(sequence_id)
  * @brief Tells throttle to display the route button as disabled
- * @param id 
+ * @param sequence_id of ROUTE/AUTOMATION 
  */
-#define ROUTE_DISABLED(id)
+#define ROUTE_DISABLED(sequence_id)
 /**
- * @def ROUTE_CAPTION(id,caption)
+ * @def ROUTE_CAPTION(sequence_id,caption)
  * @brief Tells throttle to change thr route button caption
- * @param id 
+ * @param sequence_id of ROUTE/AUTOMATION 
  * @param caption 
  */
-#define ROUTE_CAPTION(id,caption)
+#define ROUTE_CAPTION(sequence_id,caption)
 /**
- * @def SENDLOCO(cab,route)
+ * @def SENDLOCO(cab,sequence_id)
  * @brief Start a new task to drive the loco 
  * @param cab loco to be driven 
- * @param route id of route/automation or sequence to drive
+ * @param route sequence_id of route, automation or sequence to drive
  */
-#define SENDLOCO(cab,route) 
+#define SENDLOCO(cab,sequence_id) 
 /**
- * @def SEQUENCE(id)
+ * @def SEQUENCE(sequence_id)
  * @brief Provides a unique label than can be used to call, follow or start. 
  * @see CALL
  * @see FOLLOW
  * @see START
- * @param id 
+ * @param sequence_id 
  */
-#define SEQUENCE(id) 
+#define SEQUENCE(sequence_id) 
 /**
  * @def SERIAL(msg)
  * @brief Write direct to Serial output
@@ -1075,48 +1076,49 @@
  */
 #define SERIAL6(msg) 
 /**
- * @def SERVO(id,position,profile)
+ * @def SERVO(vpin,position,profile)
  * @brief Move servo to given position
- * @param id VPIN of servo
- * @param position 
- * @param profile ?????????? names ???????????
+ * @param vpin of servo
+ * @param position  servo poisition (values are hardware dependent) 
+ * @param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
  */
-#define SERVO(id,position,profile) 
+#define SERVO(vpin,position,profile) 
 /**
  * @def SERVO2(id,position,duration)
  * @brief Move servo to given position taking time 
- * @param id 
- * @param position 
+ * @param vpin of servo
+ * @param position  servo poisition (values are hardware dependent) 
  * @param duration mS
  */
-#define SERVO2(id,position,duration) 
+#define SERVO2(vpin,position,duration) 
 /**
  * @def SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
  * @brief Dedfine a servo based signal with 3 servo positions
- * @param vpin 
- * @param redpos 
- * @param amberpos 
- * @param greenpos 
+ * @param vpin of servo, acts as signal_id
+ * @param redpos servo poisition (values are hardware dependent) 
+ * @param amberpos servo poisition (values are hardware dependent)
+ * @param greenpos servo poisition (values are hardware dependent)
  */
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 /**
- * @def SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...)
+ * @def SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...)
  * @brief Define a servo driven turnout
- * @param id used by THROW/CLOSE 
- * @param pin VPIN for servo
- * @param activeAngle 
- * @param inactiveAngle 
- * @param profile ??????
+ * @param turnout_id used by THROW/CLOSE 
+ * @param vpin for servo
+ * @param activeAngle servo poisition (values are hardware dependent)
+ * @param inactiveAngle servo poisition (values are hardware dependent)
+ * @param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
  * @param description... Quoted text shown to throttles or HIDDEN keyword to hide turnout button 
  */
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
+#define SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...) 
 /**
- * @def SET(pin,count...)
- * @brief  Set VPIN HIGH  
- * @param pin 
+ * @def SET(vpin,count...)
+ * @brief  Set pin HIGH
+ * @see RESET  
+ * @param vpin 
  * @param count...  Number of sequential vpins to set. Default 1. 
  */
-#define SET(pin,count...) 
+#define SET(vpin,count...) 
 /**
  * @def SET_TRACK(track,mode)
  * @brief Set output track type
@@ -1147,7 +1149,7 @@
  * @def SIGNAL(redpin,amberpin,greenpin)
  * @brief Define a Signal with LOW=on leds (is that common annode???)
  * @see SIGNALH  
- * @param redpin 
+ * @param redpin vpin for RED state, also acts as signal_id
  * @param amberpin 
  * @param greenpin 
  */
@@ -1155,7 +1157,7 @@
 /**
  * @def SIGNALH(redpin,amberpin,greenpin)
  * @brief define a signal with HIGH=ON leds 
- * @param redpin 
+ * @param redpin vpin for RED state, also acts as signal_id
  * @param amberpin 
  * @param greenpin 
  */
@@ -1167,46 +1169,48 @@
  */
 #define SPEED(speed) 
 /**
- * @def START(route)
+ * @def START(sequence_id)
  * @brief Starts a new task at the given route/animation/sequence
- * @param route 
+ * @param sequence_id 
  */
-#define START(route)
+#define START(sequence_id)
 /**
- * @def STASH(id)
+ * @def STASH(stash_id)
  * @brief saves cuttent tasks loco id in the stash array
- * @param id 
+ * @param stash_id  position in stash array to save loco id 
  */
-#define STASH(id) 
+#define STASH(stash_id) 
 /**
  * @def STEALTH(code...)
  * @brief Allows for embedding raw C++ code in context of current task.
- * @param code... 
+ * @param code... c++ code to be executed. This requires intimate understanding of the product acrhitecture.
  */
 #define STEALTH(code...)
 /**
  * @def STEALTH_GLOBAL(code...)
  * @brief Allows for embedding raw c++ code out of context.
- * @param code... 
+ * @param code...  c++ code to be defined. This requires intimate understanding of the product acrhitecture.
  */
 #define STEALTH_GLOBAL(code...)
 /**
  * @def STOP
  * @brief Same as SPEED(0)
+ * @see SPEED
  */
 #define STOP 
 /**
- * @def THROW(id)
+ * @def THROW(turnout_id)
  * @brief Throws given turnout
- * @param id 
+ * @see CLOSE
+ * @param turnout_id 
  */
-#define THROW(id)
+#define THROW(turnout_id)
 /**
- * @def TOGGLE_TURNOUT(id)
+ * @def TOGGLE_TURNOUT(turnout_id)
  * @brief Toggles given turnout
- * @param id 
+ * @param tuirnout_id 
  */
-#define TOGGLE_TURNOUT(id)
+#define TOGGLE_TURNOUT(turnout_id)
 /**
  * @def TT_ADDPOSITION(turntable_id,position,value,angle,description...)
  * @brief Defines a turntable track position
@@ -1218,23 +1222,23 @@
  */
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
 /**
- * @def TURNOUT(id,addr,subaddr,description...)
+ * @def TURNOUT(turnout_id,addr,subaddr,description...)
  * @brief Defines a DCC accessory turnout with legacy address
- * @param id 
- * @param addr 
- * @param subaddr 
+ * @param turnout_id to be used in THROW/CLOSE etc  
+ * @param addr DCC accessory address
+ * @param subaddr DCC accessory subaddress
  * @param description... Quoted text or HIDDEN, appears on throttle buttons
  */
-#define TURNOUT(id,addr,subaddr,description...) 
+#define TURNOUT(turnout_id,addr,subaddr,description...) 
 /**
- * @def TURNOUTL(id,addr,description...)
+ * @def TURNOUTL(turnout_id,addr,description...)
  * @brief Defines a DCC accessory turnout with inear address
- * @param 
- * @param id 
- * @param addr 
- * @param description... 
+ * @see TURNOUT
+ * @param turnout_id to be used in THROW/CLOSE etc  
+ * @param addr DCC accessory linear address
+ * @param description... Quoted text or HIDDEN, appears on throttle buttons
  */
-#define TURNOUTL(id,addr,description...) 
+#define TURNOUTL(tirnout_id,addr,description...) 
 /**
  * @def UNJOIN
  * @brief Disconnects PROG track from MAIN
@@ -1242,35 +1246,35 @@
  */
 #define UNJOIN 
 /**
- * @def UNLATCH(sensor_id)
+ * @def UNLATCH(vpin)
  * @brief removes latched on flag
  * @see LATCH 
- * @param sensor_id 
+ * @param vpin (limited to 0..255) 
  */
-#define UNLATCH(sensor_id) 
+#define UNLATCH(vpin) 
 /**
- * @def VIRTUAL_SIGNAL(id)
+ * @def VIRTUAL_SIGNAL(signal_id)
  * @brief Defines a virtual (no hardware) signal
- * @param id 
+ * @param signal_id  
  */
-#define VIRTUAL_SIGNAL(id) 
+#define VIRTUAL_SIGNAL(signal_id) 
 /**
- * @def VIRTUAL_TURNOUT(id,description...)
+ * @def VIRTUAL_TURNOUT(turnout_id,description...)
  * @brief Defines a virtual (no hardware) turnout
- * @param id 
+ * @param turnout_id 
  * @param description... 
  */
 #define VIRTUAL_TURNOUT(id,description...) 
 /**
- * @def WAITFOR(pin)
- * @brief ???????????????????
- * @param pin 
+ * @def WAITFOR(vpin)
+ * @brief WAits for completion of servo movement
+ * @param vpin 
  */
 #define WAITFOR(pin)
 #ifndef IO_NO_HAL
 /**
  * @def WAITFORTT(turntable_id)
- * @brief 
+ * @brief waits for completion of turntable movement
  * @param turntable_id 
  */
 #define WAITFORTT(turntable_id)
@@ -1278,14 +1282,14 @@
 /**
  * @def WITHROTTLE(msg)
  * @brief Broadcasts a string in Withrottle protocol format to all throttles using this protocol. 
- * @param msg 
+ * @param msg quoted string
  */
 #define WITHROTTLE(msg)
 /**
  * @def XFOFF(cab,func)
  * @brief Turns function off for given loco 
  * @param cab 
- * @param func 
+ * @param func function number
  */
 #define XFOFF(cab,func)
 /**
