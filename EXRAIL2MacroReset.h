@@ -962,16 +962,17 @@
  * @brief Rotates a turntavble top a given position
  * @param turntable_id 
  * @param position_id 
- * @param activity  Turn          // Rotate turntable, maintain phase
-                    Turn_PInvert  // Rotate turntable, invert phase
-                    Home          // Initiate homing
-                    Calibrate     // Initiate calibration sequence
-                    LED_On        // Turn LED on
-                    LED_Slow      // Set LED to a slow blink
-                    LED_Fast      // Set LED to a fast blink
-                    LED_Off       // Turn LED off
-                    Acc_On        // Turn accessory pin on
-                    Acc_Off       // Turn accessory pin off
+ * @param activity
+ * - **Turn**: Rotate turntable, maintain phase
+ * - **Turn_PInvert**: Rotate turntable, invert phase
+ * - **Home**: Initiate homing
+ * - **Calibrate**: Initiate calibration sequence
+ * - **LED_On**: Turn LED on
+ * - **LED_Slow**: Set LED to a slow blink
+ * - **LED_Fast**: Set LED to a fast blink
+ * - **LED_Off**: Turn LED off
+ * - **Acc_On**: Turn accessory pin on
+ * - **Acc_Off**: Turn accessory pin off
  */
 #define ROTATE(turntable_id,position,activity)
 /**
