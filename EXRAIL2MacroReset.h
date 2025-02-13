@@ -367,13 +367,13 @@
  */
 #define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect)
 /**
- * @def DCC_TURNTABLE(turntable_id,id,home,description...)
+ * @def DCC_TURNTABLE(turntable_id,homeAngle,description...)
  * @brief defines a Turntable device 
- * @param turntable_id ??? TODO ??? 
- * @param home ??? TODO ???
- * @param description... Quotyed text description of turntable
+ * @param turntable_id 
+ * @param homeAngle the angle of the home position, valid angles are 0 - 3600
+ * @param description... Quoted text description of turntable
  */
-#define DCC_TURNTABLE(tuirntable_id,home,description...)
+#define DCC_TURNTABLE(turntable_id,home,description...)
 /**
  * @def DEACTIVATE(addr,subaddr)
  * @brief Sends DCC Deactivate packet (gate on, gate off) 
@@ -443,11 +443,11 @@
  */
 #define ESTOP 
 /**
- * @def EXTT_TURNTABLE(id,vpin,home,description...)
- * @brief ??????????????????????
- * @param id 
+ * @def EXTT_TURNTABLE(turntable_id,vpin,homeAngle,description...)
+ * @brief This statement will create the EX‑Turntable turntable/traverser object only, so you will need a separate HAL() statement for an EX‑Turntable device driver.
+ * @param turntable_id
  * @param vpin 
- * @param home 
+ * @param homeAngle  the angle of the home position, valid angles are 0 - 3600
  * @param description... 
  */
 #define EXTT_TURNTABLE(id,vpin,home,description...)
@@ -621,12 +621,12 @@
  */
 #define IFTTPOSITION(turntable_id,position)
 /**
- * @def IFRE(sensor_id,value)
- * @brief ????????????????????????????????????????
- * @param sensor_id 
+ * @def IFRE(vpin,value)
+ * @brief Checks external rotary encoder value 
+ * @param vpin of device driver for rotary encoder  
  * @param value 
  */
-#define IFRE(sensor_id,value)
+#define IFRE(vpin,value)
 /**
  * @def INVERT_DIRECTION
  * @brief Marks current task so that FWD and REV commands are inverted.
@@ -698,13 +698,14 @@
  */
 #define MESSAGE(msg)
 /**
- * @def MOVETT(id,steps,activity)
- * @brief ???????????????????
- * @param id 
- * @param steps 
- * @param activity 
+ * @def MOVETT(turntable_id,steps,activity)
+ * @brief Move Turntable to specific position
+ * @see ROTATE
+ * @param turntable_id
+ * @param steps position to move to 
+ * @param activity see ROTATE
  */
-#define MOVETT(id,steps,activity)
+#define MOVETT(turntable_id,steps,activity)
 /**
  * @def NEOPIXEL(vpin,r,g,b,count...)
  * @brief Set a NEOPIXEL vpin to a given red/green/blue colour
@@ -845,22 +846,22 @@
 #define ONTHROW(turnout_id) 
 /**
  * @def ONCHANGE(vpin)
- * @brief ??? something strange in RotaryEncoder HAL... 
+ * @brief Toratry encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.) 
  * @param vpin 
  */
-#define ONCHANGE(sensor_id)
+#define ONCHANGE(vpin)
 /**
- * @def ONSENSOR(sensor_id)
+ * @def ONSENSOR(vpin)
  * @brief Start task here when sensor changes state (debounced)
- * @param sensor_id 
+ * @param vpin 
  */
-#define ONSENSOR(sensor_id)
+#define ONSENSOR(vpin)
 /**
- * @def ONBUTTON(sensor_id)
+ * @def ONBUTTON(vpin)
  * @brief Start task here when sensor changes HIGH to LOW. 
- * @param sensor_id 
+ * @param vpin 
  */
-#define ONBUTTON(sensor_id)
+#define ONBUTTON(vpin)
 /**
  * @def PAUSE
  * @brief Pauses all EXRAIL tasks except the curremnt one.
@@ -868,10 +869,10 @@
  */
 #define PAUSE
 /**
- * @def PIN_TURNOUT(id,pin,description...)
+ * @def PIN_TURNOUT(turnout_id,vpin,description...)
  * @brief Defines a turnout which operates on a signle pin
- * @param id 
- * @param pin 
+ * @param turnout_id 
+ * @param vpin 
  * @param description... Quoted text (shown to throttles) or HIDDEN 
  
  */
@@ -889,11 +890,12 @@
  */
 #define PARSE(msg)
 /**
- * @def PICKUP_STASH(id)
+ * @def PICKUP_STASH(stash_id)
+ * @see STASH
  * @brief Loads stashed value into current task loco
- * @param id position in stash where a loco id was previously saved.
+ * @param stash_id position in stash where a loco id was previously saved.
  */
-#define PICKUP_STASH(id)
+#define PICKUP_STASH(stash_id)
 /**
  * @def POM(cv,value)
  * @brief Write value to cv on current tasks loco (Program on Main) 
@@ -956,20 +958,29 @@
  */
 #define REV(speed) 
 /**
- * @def ROTATE(turntable_id,position,activity)
- * @brief ????
+ * @def ROTATE(turntable_id,position_id,activity)
+ * @brief Rotates a turntavble top a given position
  * @param turntable_id 
- * @param position 
- * @param activity 
+ * @param position_id 
+ * @param activity  Turn          // Rotate turntable, maintain phase
+                    Turn_PInvert  // Rotate turntable, invert phase
+                    Home          // Initiate homing
+                    Calibrate     // Initiate calibration sequence
+                    LED_On        // Turn LED on
+                    LED_Slow      // Set LED to a slow blink
+                    LED_Fast      // Set LED to a fast blink
+                    LED_Off       // Turn LED off
+                    Acc_On        // Turn accessory pin on
+                    Acc_Off       // Turn accessory pin off
  */
 #define ROTATE(turntable_id,position,activity)
 /**
- * @def ROTATE_DCC(turntable_id,position)
- * @brief ????
+ * @def ROTATE_DCC(turntable_id,position_id)
+ * @brief Rotates turntable to given position using DCC commands
  * @param turntable_id 
- * @param position 
+ * @param position_id 
  */
-#define ROTATE_DCC(turntable_id,position)
+#define ROTATE_DCC(turntable_id,position_id)
 /**
  * @def ROSTER(cab,name,funcmap...)
  * @brief Describes a loco roster entry visible to throttles
@@ -1079,7 +1090,7 @@
  * @def SERVO(vpin,position,profile)
  * @brief Move servo to given position
  * @param vpin of servo
- * @param position  servo poisition (values are hardware dependent) 
+ * @param position  servo position (values are hardware dependent) 
  * @param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
  */
 #define SERVO(vpin,position,profile) 
@@ -1087,7 +1098,7 @@
  * @def SERVO2(id,position,duration)
  * @brief Move servo to given position taking time 
  * @param vpin of servo
- * @param position  servo poisition (values are hardware dependent) 
+ * @param position  servo position (values are hardware dependent) 
  * @param duration mS
  */
 #define SERVO2(vpin,position,duration) 
@@ -1095,9 +1106,9 @@
  * @def SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
  * @brief Dedfine a servo based signal with 3 servo positions
  * @param vpin of servo, acts as signal_id
- * @param redpos servo poisition (values are hardware dependent) 
- * @param amberpos servo poisition (values are hardware dependent)
- * @param greenpos servo poisition (values are hardware dependent)
+ * @param redpos servo position (values are hardware dependent) 
+ * @param amberpos servo position (values are hardware dependent)
+ * @param greenpos servo position (values are hardware dependent)
  */
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 /**
@@ -1105,8 +1116,8 @@
  * @brief Define a servo driven turnout
  * @param turnout_id used by THROW/CLOSE 
  * @param vpin for servo
- * @param activeAngle servo poisition (values are hardware dependent)
- * @param inactiveAngle servo poisition (values are hardware dependent)
+ * @param activeAngle servo position (values are hardware dependent)
+ * @param inactiveAngle servo position (values are hardware dependent)
  * @param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
  * @param description... Quoted text shown to throttles or HIDDEN keyword to hide turnout button 
  */
@@ -1123,14 +1134,14 @@
  * @def SET_TRACK(track,mode)
  * @brief Set output track type
  * @param track A..H
- * @param mode ???names???
+ * @param mode NONE, MAIN, PROG, DC, EXT, BOOST, BOOST_INV, BOOST_AUTO, MAIN_INV, MAIN_AUTO, DC_INV, DCX
  */
 #define SET_TRACK(track,mode)
 /**
  * @def SET_POWER(track,onoff)
  * @brief Set track power mode
  * @param track A..H
- * @param onoff ??? values ???
+ * @param onoff ON or OFF
  */
 #define SET_POWER(track,onoff)
 /**
@@ -1142,12 +1153,12 @@
 /**
  * @def SETFREQ(freq)
  * @brief Sets the DC track PWM frequency 
- * @param freq ??????????? values ??????
+ * @param freq Frequency is default 0, or 1..3
  */
 #define SETFREQ(freq)
 /**
  * @def SIGNAL(redpin,amberpin,greenpin)
- * @brief Define a Signal with LOW=on leds (is that common annode???)
+ * @brief Define a Signal with LOW=on leds 
  * @see SIGNALH  
  * @param redpin vpin for RED state, also acts as signal_id
  * @param amberpin 
@@ -1212,15 +1223,15 @@
  */
 #define TOGGLE_TURNOUT(turnout_id)
 /**
- * @def TT_ADDPOSITION(turntable_id,position,value,angle,description...)
+ * @def TT_ADDPOSITION(turntable_id,position_id,value,angle,description...)
  * @brief Defines a turntable track position
  * @param turntable_id 
- * @param position ??????????
- * @param value 
- * @param angle 
- * @param description... 
+ * @param position_id each position is given an id
+ * @param address DCC accessory address 
+ * @param angle Used only for throttles that may draw a visual representation of the turntable
+ * @param description... quoted text or HIDDEN
  */
-#define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
+#define TT_ADDPOSITION(turntable_id,position_id,value,angle,description...)
 /**
  * @def TURNOUT(turnout_id,addr,subaddr,description...)
  * @brief Defines a DCC accessory turnout with legacy address
@@ -1254,15 +1265,17 @@
 #define UNLATCH(vpin) 
 /**
  * @def VIRTUAL_SIGNAL(signal_id)
- * @brief Defines a virtual (no hardware) signal
+ * @brief Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware
+ * @see SIGNAL ONRED ONAMBER ONGREEN
  * @param signal_id  
  */
 #define VIRTUAL_SIGNAL(signal_id) 
 /**
  * @def VIRTUAL_TURNOUT(turnout_id,description...)
- * @brief Defines a virtual (no hardware) turnout
+ * @brief Defines a virtual (no hardware) turnout, use ONhandlers to simulate hardware
+ * @see TURNOUT ONCLOSE ONTHROW
  * @param turnout_id 
- * @param description... 
+ * @param description... quoted text or HIDDEN
  */
 #define VIRTUAL_TURNOUT(id,description...) 
 /**
