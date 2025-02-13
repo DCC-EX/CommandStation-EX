@@ -426,14 +426,14 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.DCC_TURNTABLE">
-<span class="target" id="EXRAIL2MacroReset_8h_1aee9555ea8b9a4476e0405cb36a959a6d"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">tuirntable_id</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_TURNTABLE" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1aab3f72b172787a079c85a8b60cabc691"></span><span class="sig-name descname"><span class="n"><span class="pre">DCC_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.DCC_TURNTABLE" title="Link to this definition"></a><br /></dt>
 <dd><p>defines a Turntable device </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>turntable_id</strong> – ??? TODO ??? </p></li>
-<li><p><strong>home</strong> – ??? TODO ??? </p></li>
-<li><p><strong>description...</strong> – Quotyed text description of turntable </p></li>
+<li><p><strong>turntable_id</strong></p></li>
+<li><p><strong>homeAngle</strong> – the angle of the home position, valid angles are 0 - 3600 </p></li>
+<li><p><strong>description...</strong> – Quoted text description of turntable </p></li>
 </ul>
 </dd>
 </dl>
@@ -567,13 +567,13 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.EXTT_TURNTABLE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a1fdca4b7f37698941742674af6a46c36"></span><span class="sig-name descname"><span class="n"><span class="pre">EXTT_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.EXTT_TURNTABLE" title="Link to this definition"></a><br /></dt>
-<dd><p>?????????????????????? </p>
+<dd><p>This statement will create the EX‑Turntable turntable/traverser object only, so you will need a separate <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a61060739b28d8e98a08d8ecd72fc2a15"><span class="std std-ref">HAL()</span></a> statement for an EX‑Turntable device driver. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
+<li><p><strong>turntable_id</strong></p></li>
 <li><p><strong>vpin</strong></p></li>
-<li><p><strong>home</strong></p></li>
+<li><p><strong>homeAngle</strong> – the angle of the home position, valid angles are 0 - 3600 </p></li>
 <li><p><strong>description...</strong></p></li>
 </ul>
 </dd>
@@ -972,12 +972,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.IFRE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a9513b8b9ca6c74f7075f7a1d4fcb100e"></span><span class="sig-name descname"><span class="n"><span class="pre">IFRE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFRE" title="Link to this definition"></a><br /></dt>
-<dd><p>???????????????????????????????????????? </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a796d0d2c2e76b29f0b84614f9be8cc33"></span><span class="sig-name descname"><span class="n"><span class="pre">IFRE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFRE" title="Link to this definition"></a><br /></dt>
+<dd><p>Checks external rotary encoder value. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong> – of device driver for rotary encoder </p></li>
 <li><p><strong>value</strong></p></li>
 </ul>
 </dd>
@@ -1118,14 +1118,19 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.MOVETT">
-<span class="target" id="EXRAIL2MacroReset_8h_1a9b479617d5942030fd9c6e535a5e408e"></span><span class="sig-name descname"><span class="n"><span class="pre">MOVETT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">steps</span></span>, <span class="n"><span class="pre">activity</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.MOVETT" title="Link to this definition"></a><br /></dt>
-<dd><p>??????????????????? </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a03cac02dfc5dcc43824ca55304b7759b"></span><span class="sig-name descname"><span class="n"><span class="pre">MOVETT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">steps</span></span>, <span class="n"><span class="pre">activity</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.MOVETT" title="Link to this definition"></a><br /></dt>
+<dd><p>Move Turntable to specific position. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a3652e188edfd920cc3e40a715a740450"><span class="std std-ref">ROTATE</span></a></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
-<li><p><strong>steps</strong></p></li>
-<li><p><strong>activity</strong></p></li>
+<li><p><strong>turntable_id</strong></p></li>
+<li><p><strong>steps</strong> – position to move to </p></li>
+<li><p><strong>activity</strong> – see ROTATE </p></li>
 </ul>
 </dd>
 </dl>
@@ -1422,8 +1427,8 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ONCHANGE">
-<span class="target" id="EXRAIL2MacroReset_8h_1a1e8e60404581f05ed5448ff1f8aae4b5"></span><span class="sig-name descname"><span class="n"><span class="pre">ONCHANGE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONCHANGE" title="Link to this definition"></a><br /></dt>
-<dd><p>??? something strange in RotaryEncoder HAL… </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a1d5ffa5701e2649a8720af0007c1bb9d"></span><span class="sig-name descname"><span class="n"><span class="pre">ONCHANGE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONCHANGE" title="Link to this definition"></a><br /></dt>
+<dd><p>Toratry encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1435,12 +1440,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ONSENSOR">
-<span class="target" id="EXRAIL2MacroReset_8h_1ab2ae04e0120e155d9f6f92e81ddb4065"></span><span class="sig-name descname"><span class="n"><span class="pre">ONSENSOR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONSENSOR" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a59c9a1db10b2450c7753c7712ae41bd6"></span><span class="sig-name descname"><span class="n"><span class="pre">ONSENSOR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONSENSOR" title="Link to this definition"></a><br /></dt>
 <dd><p>Start task here when sensor changes state (debounced) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -1448,12 +1453,12 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ONBUTTON">
-<span class="target" id="EXRAIL2MacroReset_8h_1a8232df833de6b06f70665ee2981ec635"></span><span class="sig-name descname"><span class="n"><span class="pre">ONBUTTON</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sensor_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONBUTTON" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1aa29e1cceec30a34332b712a3edd0d168"></span><span class="sig-name descname"><span class="n"><span class="pre">ONBUTTON</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONBUTTON" title="Link to this definition"></a><br /></dt>
 <dd><p>Start task here when sensor changes HIGH to LOW. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sensor_id</strong></p></li>
+<li><p><strong>vpin</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -1472,8 +1477,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong></p></li>
-<li><p><strong>pin</strong></p></li>
+<li><p><strong>turnout_id</strong></p></li>
+<li><p><strong>vpin</strong></p></li>
 <li><p><strong>description...</strong> – Quoted text (shown to throttles) or HIDDEN </p></li>
 </ul>
 </dd>
@@ -1508,12 +1513,17 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.PICKUP_STASH">
-<span class="target" id="EXRAIL2MacroReset_8h_1a70a2e2ed55ce56b83ea9bc4585551403"></span><span class="sig-name descname"><span class="n"><span class="pre">PICKUP_STASH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.PICKUP_STASH" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1a4a4d883726f818d8e12fadc82c51186a"></span><span class="sig-name descname"><span class="n"><span class="pre">PICKUP_STASH</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">stash_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.PICKUP_STASH" title="Link to this definition"></a><br /></dt>
 <dd><p>Loads stashed value into current task loco. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ad5299481ff55f095adf0a27ab0707e2f"><span class="std std-ref">STASH</span></a></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>id</strong> – position in stash where a loco id was previously saved. </p></li>
+<li><p><strong>stash_id</strong> – position in stash where a loco id was previously saved. </p></li>
 </ul>
 </dd>
 </dl>
@@ -1639,13 +1649,13 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ROTATE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a3652e188edfd920cc3e40a715a740450"></span><span class="sig-name descname"><span class="n"><span class="pre">ROTATE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position</span></span>, <span class="n"><span class="pre">activity</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ROTATE" title="Link to this definition"></a><br /></dt>
-<dd><p>???? </p>
+<dd><p>Rotates a turntavble top a given position. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turntable_id</strong></p></li>
-<li><p><strong>position</strong></p></li>
-<li><p><strong>activity</strong></p></li>
+<li><p><strong>position_id</strong></p></li>
+<li><p><strong>activity</strong> – Turn // Rotate turntable, maintain phase Turn_PInvert // Rotate turntable, invert phase Home // Initiate homing Calibrate // Initiate calibration sequence LED_On // Turn LED on LED_Slow // Set LED to a slow blink LED_Fast // Set LED to a fast blink LED_Off // Turn LED off Acc_On // Turn accessory pin on Acc_Off // Turn accessory pin off </p></li>
 </ul>
 </dd>
 </dl>
@@ -1653,13 +1663,13 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ROTATE_DCC">
-<span class="target" id="EXRAIL2MacroReset_8h_1a05cfc12f11a0e0578c4dc6ba4add7606"></span><span class="sig-name descname"><span class="n"><span class="pre">ROTATE_DCC</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ROTATE_DCC" title="Link to this definition"></a><br /></dt>
-<dd><p>???? </p>
+<span class="target" id="EXRAIL2MacroReset_8h_1a3409c239207cefce8baf92d14fc12014"></span><span class="sig-name descname"><span class="n"><span class="pre">ROTATE_DCC</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ROTATE_DCC" title="Link to this definition"></a><br /></dt>
+<dd><p>Rotates turntable to given position using DCC commands. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turntable_id</strong></p></li>
-<li><p><strong>position</strong></p></li>
+<li><p><strong>position_id</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -1899,7 +1909,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vpin</strong> – of servo </p></li>
-<li><p><strong>position</strong> – servo poisition (values are hardware dependent) </p></li>
+<li><p><strong>position</strong> – servo position (values are hardware dependent) </p></li>
 <li><p><strong>profile</strong> – movement profile (Instant, Fast, Medium, Slow, Bounce) </p></li>
 </ul>
 </dd>
@@ -1914,7 +1924,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vpin</strong> – of servo </p></li>
-<li><p><strong>position</strong> – servo poisition (values are hardware dependent) </p></li>
+<li><p><strong>position</strong> – servo position (values are hardware dependent) </p></li>
 <li><p><strong>duration</strong> – mS </p></li>
 </ul>
 </dd>
@@ -1929,9 +1939,9 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vpin</strong> – of servo, acts as signal_id </p></li>
-<li><p><strong>redpos</strong> – servo poisition (values are hardware dependent) </p></li>
-<li><p><strong>amberpos</strong> – servo poisition (values are hardware dependent) </p></li>
-<li><p><strong>greenpos</strong> – servo poisition (values are hardware dependent) </p></li>
+<li><p><strong>redpos</strong> – servo position (values are hardware dependent) </p></li>
+<li><p><strong>amberpos</strong> – servo position (values are hardware dependent) </p></li>
+<li><p><strong>greenpos</strong> – servo position (values are hardware dependent) </p></li>
 </ul>
 </dd>
 </dl>
@@ -1946,8 +1956,8 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turnout_id</strong> – used by THROW/CLOSE </p></li>
 <li><p><strong>vpin</strong> – for servo </p></li>
-<li><p><strong>activeAngle</strong> – servo poisition (values are hardware dependent) </p></li>
-<li><p><strong>inactiveAngle</strong> – servo poisition (values are hardware dependent) </p></li>
+<li><p><strong>activeAngle</strong> – servo position (values are hardware dependent) </p></li>
+<li><p><strong>inactiveAngle</strong> – servo position (values are hardware dependent) </p></li>
 <li><p><strong>profile</strong> – movement profile (Instant, Fast, Medium, Slow, Bounce) </p></li>
 <li><p><strong>description...</strong> – Quoted text shown to throttles or HIDDEN keyword to hide turnout button </p></li>
 </ul>
@@ -1982,7 +1992,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>track</strong> – A..H </p></li>
-<li><p><strong>mode</strong> – ???names??? </p></li>
+<li><p><strong>mode</strong> – NONE, MAIN, PROG, DC, EXT, BOOST, BOOST_INV, BOOST_AUTO, MAIN_INV, MAIN_AUTO, DC_INV, DCX </p></li>
 </ul>
 </dd>
 </dl>
@@ -1996,7 +2006,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>track</strong> – A..H </p></li>
-<li><p><strong>onoff</strong> – ??? values ??? </p></li>
+<li><p><strong>onoff</strong> – ON or OFF </p></li>
 </ul>
 </dd>
 </dl>
@@ -2022,7 +2032,7 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>freq</strong> – ??????????? values ?????? </p></li>
+<li><p><strong>freq</strong> – Frequency is default 0, or 1..3 </p></li>
 </ul>
 </dd>
 </dl>
@@ -2031,7 +2041,7 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.SIGNAL">
 <span class="target" id="EXRAIL2MacroReset_8h_1a9dc5ab478e7b3e90cf240a4bbdb47fb2"></span><span class="sig-name descname"><span class="n"><span class="pre">SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">redpin</span></span>, <span class="n"><span class="pre">amberpin</span></span>, <span class="n"><span class="pre">greenpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.SIGNAL" title="Link to this definition"></a><br /></dt>
-<dd><p>Define a Signal with LOW=on leds (is that common annode???) </p>
+<dd><p>Define a Signal with LOW=on leds. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a4943c59169d208102931c155765837ab"><span class="std std-ref">SIGNALH</span></a></p>
@@ -2172,16 +2182,16 @@
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.TT_ADDPOSITION">
-<span class="target" id="EXRAIL2MacroReset_8h_1accea64907d3ee777328ce4a424e5d695"></span><span class="sig-name descname"><span class="n"><span class="pre">TT_ADDPOSITION</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position</span></span>, <span class="n"><span class="pre">value</span></span>, <span class="n"><span class="pre">angle</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.TT_ADDPOSITION" title="Link to this definition"></a><br /></dt>
+<span class="target" id="EXRAIL2MacroReset_8h_1ab5d16534e87310ea01c04afc54170b89"></span><span class="sig-name descname"><span class="n"><span class="pre">TT_ADDPOSITION</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">turntable_id</span></span>, <span class="n"><span class="pre">position_id</span></span>, <span class="n"><span class="pre">value</span></span>, <span class="n"><span class="pre">angle</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.TT_ADDPOSITION" title="Link to this definition"></a><br /></dt>
 <dd><p>Defines a turntable track position. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turntable_id</strong></p></li>
-<li><p><strong>position</strong> – ?????????? </p></li>
-<li><p><strong>value</strong></p></li>
-<li><p><strong>angle</strong></p></li>
-<li><p><strong>description...</strong></p></li>
+<li><p><strong>position_id</strong> – each position is given an id </p></li>
+<li><p><strong>address</strong> – DCC accessory address </p></li>
+<li><p><strong>angle</strong> – Used only for throttles that may draw a visual representation of the turntable </p></li>
+<li><p><strong>description...</strong> – quoted text or HIDDEN </p></li>
 </ul>
 </dd>
 </dl>
@@ -2255,7 +2265,12 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.VIRTUAL_SIGNAL">
 <span class="target" id="EXRAIL2MacroReset_8h_1a9c6fbb7e01b99fa632a7421c91e594e3"></span><span class="sig-name descname"><span class="n"><span class="pre">VIRTUAL_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.VIRTUAL_SIGNAL" title="Link to this definition"></a><br /></dt>
-<dd><p>Defines a virtual (no hardware) signal. </p>
+<dd><p>Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a9dc5ab478e7b3e90cf240a4bbdb47fb2"><span class="std std-ref">SIGNAL</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1afcc4c2161bb0de1be05b5a4f0583cc98"><span class="std std-ref">ONRED</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a491c12e424a9d5517063e664be8a5052"><span class="std std-ref">ONAMBER</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a648c217ce4240e2c4ae497b02b785626"><span class="std std-ref">ONGREEN</span></a></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2268,12 +2283,17 @@
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.VIRTUAL_TURNOUT">
 <span class="target" id="EXRAIL2MacroReset_8h_1a72fad6ff07abc23d9caf7601d7d1602c"></span><span class="sig-name descname"><span class="n"><span class="pre">VIRTUAL_TURNOUT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.VIRTUAL_TURNOUT" title="Link to this definition"></a><br /></dt>
-<dd><p>Defines a virtual (no hardware) turnout. </p>
+<dd><p>Defines a virtual (no hardware) turnout, use ONhandlers to simulate hardware. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a8cce4eb9f327414333151d16a798e256"><span class="std std-ref">TURNOUT</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a383f82cb960c25f73c17c0e2088aa12a"><span class="std std-ref">ONCLOSE</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1aeb0109a23f9137762230734c39be2387"><span class="std std-ref">ONTHROW</span></a></p>
+</div>
+</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turnout_id</strong></p></li>
-<li><p><strong>description...</strong></p></li>
+<li><p><strong>description...</strong> – quoted text or HIDDEN </p></li>
 </ul>
 </dd>
 </dl>
