@@ -959,7 +959,7 @@
 #define REV(speed) 
 /**
  * @def ROTATE(turntable_id,position_id,activity)
- * @brief Rotates a turntavble top a given position
+ * @brief Rotates an EX-Turntable to a given position
  * @param turntable_id 
  * @param position_id 
  * @param activity
@@ -977,7 +977,7 @@
 #define ROTATE(turntable_id,position,activity)
 /**
  * @def ROTATE_DCC(turntable_id,position_id)
- * @brief Rotates turntable to given position using DCC commands
+ * @brief Rotates turntable to a given position using DCC commands
  * @param turntable_id 
  * @param position_id 
  */
