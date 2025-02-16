@@ -38,6 +38,7 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "Railcom.h"
+#include "DCCQueue.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -157,8 +158,8 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
     b[nB++] = speedCode; // for encoding see setThrottle
 
   }
-
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  if ((speedCode & 0x7F) == 1) DCCQueue::scheduleEstopPacket(b, nB, 4, cab); // highest priority
+  else DCCQueue::scheduleDCCSpeedPacket( b, nB, 4, cab);
 }
 
 void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
@@ -172,7 +173,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, count);
+  DCCQueue::scheduleDCCPacket(b, nB, count);
 }
 
 // returns speed steps 0 to 127 (1 == emergency stop)
@@ -238,7 +239,7 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
-    DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+    DCCQueue::scheduleDCCPacket(b, nB, 4);
   }
   // We use the reminder table up to 28 for normal functions.
   // We use 29 to 31 for DC frequency as well so up to 28
@@ -339,16 +340,17 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // second byte is of the form 1AAACPPG, where C is 1 for on, PP the ports 0 to 3 and G the gate (coil).
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
-  if (onoff != 0) {
-    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat on packet three times
-#if defined(EXRAIL_ACTIVE)
-    RMFT2::activateEvent(address<<2|port,gate);
-#endif
-  }
-  if (onoff != 1) {
+  if (onoff==0) {   // off packet only
     b[1] &= ~0x08; // set C to 0
-    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
-  }
+    DCCQueue::scheduleDCCPacket(b, 2, 3);
+  } else if (onoff==1) { // on packet only
+    DCCQueue::scheduleDCCPacket(b, 2, 3);
+  } else { // auto timed on then off  
+    DCCQueue::scheduleAccOnOffPacket(b, 2, 3, 100); // On then off after 100mS
+  } 
+#if defined(EXRAIL_ACTIVE)
+  if (onoff !=0) RMFT2::activateEvent(address<<2|port,gate);
+#endif
 }
 
 bool DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
@@ -398,7 +400,7 @@ whole range of the 11 bits sent to track.
     | (((~(address>>8)) & 0x07)<<4)  // shift out 8, invert, mask 3 bits, shift up 4
     | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
   b[2]=value;
-  DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);
+  DCCQueue::scheduleDCCPacket(b, sizeof(b), repeats);
   return true;
 }
 
@@ -417,7 +419,7 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = bValue;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4);
 }
 
 //
@@ -435,7 +437,7 @@ void DCC::readCVByteMain(int cab, int cv, ACK_CALLBACK callback)  {
   b[nB++] = cv2(cv);
   b[nB++] = 0;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4);
   Railcom::anticipate(cab,cv,callback);
 }
 
@@ -457,7 +459,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = WRITE_BIT | (bValue ? BIT_ON : BIT_OFF) | bNum;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4);
 }
 
 bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
@@ -494,7 +496,7 @@ b[1]=0b11000001; // 1100-0001 (model time)
 b[2]=minutes % 60 ;  // MM
 b[3]= 0b11100000 | (minutes/60); // 111H-HHHH weekday not supported
 b[4]= (suddenChange ? 0b10000000 : 0) | speed;
-DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), 2);
+DCCQueue::scheduleDCCPacket(b, sizeof(b), 2);
 return true; 
 }
 
@@ -844,12 +846,17 @@ byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   TrackManager::loop(); // power overload checks
-  issueReminders();
+  if (DCCWaveform::mainTrack.isReminderWindowOpen()) {
+    // Now is a good time to choose a packet to be sent
+    // Either highest priority from the queues or a reminder
+    if (!DCCQueue::scheduleNext()) {
+      issueReminders();
+      DCCQueue::scheduleNext(); // push through any just created reminder
+    }
+  }
 }
 
 void DCC::issueReminders() {
-  // if the main track transmitter still has a pending packet, skip this time around.
-  if (!DCCWaveform::mainTrack.isReminderWindowOpen()) return;
   // Move to next loco slot.  If occupied, send a reminder.
   auto slot = nextLocoReminder;
   if (slot >= &speedTable[MAX_LOCOS]) slot=&speedTable[0];  // Go to start of table
