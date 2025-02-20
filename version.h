@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.4"
+#define VERSION "5.4.5"
+// 5.4.5  - ESP32: Better detection of correct IDF version
+//        - track power is always turned on after setJoin() not by setJoin()
 // 5.4.4  - bugfix in parser, input buffer overrun and trailing > that did break <+>
 // 5.4.3  - bugfix changeFn for functions 29..31
 // 5.4.2  - Reversed turnout bugfix
