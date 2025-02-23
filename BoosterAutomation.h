@@ -1,11 +1,15 @@
-
+// Booster/CS switch automations
+// uses BOOSTER_INPUT from config.h
+// uses sequences BOOSTER_START, BOOSTER_CSMODE, BOOSTER_BOOSTERMODE, BOOSTER_CHANGELOGIC
+// uses latches 200
 #if defined(ARDUINO_ARCH_ESP32)
+#ifndef BOOSTER_INPUT
+#error You need to define BOOSTER_INPUT in config.h
+#endif
 ALIAS(BOOSTER_START)
 ALIAS(BOOSTER_CSMODE)
 ALIAS(BOOSTER_BOOSTERMODE)
-// Booster/CS switch automations
-// uses sequences BOOSTER_START, BOOSTER_CSMODE, BOOSTER_BOOSTERMODE, BOOSTER_CHANGELOGIC
-// uses latches 200
+ALIAS(BOOSTER_CHANGELOGIC)
 AUTOSTART  // remove this if you want manual start
 ROUTE(BOOSTER_START, "BOOSTER/CS auto START")
   PRINT("BOOTER/CS auto mode starting for both tracks")
@@ -14,9 +18,9 @@ FOLLOW(BOOSTER_CHANGELOGIC) // goto automatic mode
 
 ROUTE(BOOSTER_CSMODE, "RUN AS CS")
   SET_TRACK(A, MAIN)
-  SET_POWER(A, ON)
-  SET_TRACK(B, MAIN)
-  SET_POWER(B, ON)
+//  SET_POWER(A, ON)
+  SET_TRACK(B, PROG)
+//  SET_POWER(B, ON)
   PRINT("CS START")
   LATCH(200)
 RETURN
