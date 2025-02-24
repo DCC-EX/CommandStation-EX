@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.5"
+#define VERSION "5.4.6"
+// 5.4.6  - Bugfix: Do not drop further commands in same packet
 // 5.4.5  - ESP32: Better detection of correct IDF version
 //        - track power is always turned on after setJoin() not by setJoin()
 // 5.4.4  - bugfix in parser, input buffer overrun and trailing > that did break <+>
