@@ -270,15 +270,19 @@ void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
   // This function can get stings of the form "<C OMM AND>" or "C OMM AND>"
   // found is true first after the leading "<" has been passed which results
   // in parseOne() getting c="C OMM AND>"
+  byte *cForLater = NULL;
   bool found = (com[0] != '<');
   for (byte *c=com; c[0] != '\0'; c++) {
     if (found) {
-      parseOne(stream, c,  ringStream);
+      cForLater = c;
       found=false;
     }
-    if (c[0] == '<')
+    if (c[0] == '<') {
+      if (cForLater) parseOne(stream, cForLater, ringStream);
       found = true;
+    }
   }
+  if (cForLater) parseOne(stream, cForLater, ringStream);
 }
 
 void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
