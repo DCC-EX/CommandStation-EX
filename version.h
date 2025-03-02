@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.14"
+#define VERSION "5.5.15"
+// 5.5.15 - Support for F429ZI/F329ZI
+//        - Own mDNS support for (wired) Ethernet
 // 5.5.14 - DCC Non-blocking packet queue with priority
 // 5.5.13 - Update STM32duino core to v19.0.0. for updated PeripheralPins.c in preparation for F429/439ZI Ethernet support 
 // 5.5.12 - Websocket support (wifi only) 
