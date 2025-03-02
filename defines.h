@@ -239,4 +239,25 @@
   #endif
 #endif
 
+#if defined(ARDUINO_ARCH_STM32)
+// The LwIP library for the STM32 wired ethernet has by default 10 TCP
+// clients defined but because of a bug in the library #11 is not
+// rejected but kicks out any old connection. By restricting our limit
+// to 9 the #10 will be rejected by our code so that the number can
+// never get to 11 which would kick an existing connection.
+// If you want to change this value, do that in
+// config.h AND in STM32lwipopts.h.
+ #ifndef MAX_NUM_TCP_CLIENTS
+  #define MAX_NUM_TCP_CLIENTS 9
+ #endif
+#else
+ #if defined(ARDUINO_ARCH_ESP32)
+// Espressif LWIP stack
+  #define MAX_NUM_TCP_CLIENTS 10
+ #else
+// Wifi shields etc
+  #define MAX_NUM_TCP_CLIENTS 8
+ #endif
 #endif
+
+#endif //DEFINES_H
