@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.15"
+#define VERSION "5.5.16"
+// 5.5.16 - DOXYGEN comments in EXRAIL2MacroReset.h
 // 5.5.15 - Support for F429ZI/F329ZI
 //        - Own mDNS support for (wired) Ethernet
 // 5.5.14 - DCC Non-blocking packet queue with priority
