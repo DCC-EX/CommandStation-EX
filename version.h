@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.16"
+#define VERSION "5.5.17"
+// 5.5.17 - Add EX8874 shield for F413ZH/F446RE
+//        - Nucleo-F4 timer sync for DC mode
+//        - <JL> command - power state and current by track
 // 5.5.16 - DOXYGEN comments in EXRAIL2MacroReset.h
 // 5.5.15 - Support for F429ZI/F329ZI
 //        - Own mDNS support for (wired) Ethernet

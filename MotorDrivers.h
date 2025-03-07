@@ -82,6 +82,9 @@
 #define EX8874_SHIELD F("EX8874"), \
  new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 1.27, 5000, A4), \
  new MotorDriver( 5, 13, UNUSED_PIN, 6, A1, 1.27, 5000, A5)
+#elif defined(ARDUINO_NUCLEO_F446ZE) || defined(ARDUINO_NUCLEO_F413ZH) 
+ new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 1.27, 5000, A4), \
+ new MotorDriver( 11, 13, UNUSED_PIN, 6, A1, 1.27, 5000, A5)
 #else
 // EX 8874 based shield connected to a 3V3 system with 12-bit (4096) ADC
 #define EX8874_SHIELD F("EX8874"), \
