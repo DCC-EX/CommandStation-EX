@@ -1,6 +1,6 @@
 /*
  *  © 2022-2024 Paul M Antoine
- *  © 2024 Herb Morton
+ *  © 2024-2025 Herb Morton
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2023 Harald Barth
@@ -371,8 +371,10 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
     }
 #endif
     //DIAG(F("Brake pin %d value %d freqency %d"), brakePin, brake, f);
-    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);
+    //DIAG(F("MotorDriver_cpp_374_DCCEXanalogWriteFequency::Pin %d, frequency %d, tSpeed %d"), brakePin, f, tSpeed);
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
+    //DIAG(F("MotorDriver_cpp_375_DCCEXanalogWrite::brakePin %d, frequency %d, invertBrake"), brakePin, brake, invertBrake);
+    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);  // line swapped to set frequency first
 #else // all AVR here
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
     analogWrite(brakePin, invertBrake ? 255-brake : brake);

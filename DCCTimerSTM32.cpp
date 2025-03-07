@@ -1,6 +1,7 @@
 /*
  *  © 2023 Neil McKechnie
  *  © 2022-2024 Paul M. Antoine
+ *  © 2025 Herb Morton
  *  © 2021 Mike S
  *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
@@ -35,6 +36,21 @@
 #endif
 #include "DIAG.h"
 #include <wiring_private.h>
+
+// DC mode timers enable the PWM signal on select pins.
+// Code added to sync timers which have the same frequency.
+// Function prototypes
+void refreshDCmodeTimers();
+void resetCounterDCmodeTimers();
+
+HardwareTimer *Timer1 = new HardwareTimer(TIM1);
+HardwareTimer *Timer2 = new HardwareTimer(TIM2);
+HardwareTimer *Timer3 = new HardwareTimer(TIM3);
+HardwareTimer *Timer4 = new HardwareTimer(TIM4);
+HardwareTimer *Timer9 = new HardwareTimer(TIM9);
+#if defined(TIM13)
+HardwareTimer *Timer13 = new HardwareTimer(TIM13);
+#endif
 
 #if defined(ARDUINO_NUCLEO_F401RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
@@ -290,7 +306,7 @@ void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   else if (f >= 3)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
   else if (f >= 2)
-    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3600);
   else if (f == 1)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
   else
@@ -328,7 +344,8 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
     if (pin_timer[pin] != NULL)
     {
       pin_timer[pin]->setPWM(pin_channel[pin], pin, frequency, 0); // set frequency in Hertz, 0% dutycycle
-      DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer Channel %d, frequency %d"), pin, pin_channel[pin], frequency);
+      DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer %d Channel %d, frequency %d"), pin, pin_timer[pin], pin_channel[pin], frequency);
+      resetCounterDCmodeTimers();
     }
     else
       DIAG(F("DCCEXanalogWriteFrequency::failed to allocate HardwareTimer instance!"));
@@ -336,11 +353,13 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
   else
   {
     // Frequency change request
+    //DIAG(F("DCCEXanalogWriteFrequency_356::pin %d frequency %d"), pin, frequency);
     if (frequency != channel_frequency[pin])
     {
       pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!
       pin_timer[pin]->setOverflow(frequency, HERTZ_FORMAT); // Just change the frequency if it's already running!
       DIAG(F("DCCEXanalogWriteFrequency::setting frequency to %d"), frequency);
+      resetCounterDCmodeTimers();
     }
   }
   channel_frequency[pin] = frequency;
@@ -365,6 +384,9 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
         pin_timer[pin]->setCaptureCompare(pin_channel[pin], duty_cycle, PERCENT_COMPARE_FORMAT); // DCC_EX_PWM_FREQ Hertz, duty_cycle% dutycycle
         DIAG(F("DCCEXanalogWrite::Pin %d, value %d, duty cycle %d"), pin, value, duty_cycle);
       // }
+      
+      refreshDCmodeTimers();
+      resetCounterDCmodeTimers();  
     }
     else
       DIAG(F("DCCEXanalogWrite::Pin %d is not configured for PWM!"), pin);
@@ -659,4 +681,35 @@ void ADCee::begin() {
 #endif
   interrupts();
 }
+
+// NOTE:  additional testing is needed to check the DCC signal 
+//        where the DCC signal pin is a pwm pin on timers 1, 4, 9, 13
+//        or the brake pin is defined on a different timer.
+//        -- example:  F411RE/F446RE - pin 10 on stacked EX8874  
+// lines added to sync timers -- 
+//    not exact sync, but timers with the same frequency should be in sync
+void refreshDCmodeTimers() {
+  Timer1->refresh();
+  Timer2->refresh();
+  Timer3->refresh();
+  Timer4->refresh();
+  Timer9->refresh();
+  #if defined(TIM13)
+  Timer13->refresh();
+  #endif
+}
+
+// Function to synchronize timers - called every time there is powerON commmand for any DC track
+void resetCounterDCmodeTimers() {
+    // Reset the counter for all DC mode timers
+    TIM1->CNT = 0;
+    TIM2->CNT = 0;
+    TIM3->CNT = 0;
+    TIM4->CNT = 0;
+    TIM9->CNT = 0;
+    #if defined(TIM13)
+    TIM13->CNT = 0;
+    #endif
+}
+
 #endif

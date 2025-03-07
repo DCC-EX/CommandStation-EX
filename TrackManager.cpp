@@ -2,7 +2,7 @@
  *  © 2022-2025 Chris Harlow
  *  © 2022-2024 Harald Barth
  *  © 2023-2024 Paul M. Antoine
- *  © 2024 Herb Morton
+ *  © 2024-2025 Herb Morton
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -42,6 +42,7 @@
 
 MotorDriver * TrackManager::track[MAX_TRACKS] = { NULL };
 int16_t TrackManager::trackDCAddr[MAX_TRACKS] = { 0 };
+int16_t TrackManager::tPwr_mA[8]={0,0,0,0,0,0,0,0};
 
 int8_t TrackManager::lastTrack=-1;
 bool TrackManager::progTrackSyncMain=false; 
@@ -646,6 +647,33 @@ void TrackManager::reportCurrent(Print* stream) {
     StringFormatter::send(stream,F(">\n"));    
 }
 
+void TrackManager::reportCurrentLCD(uint8_t display, byte row) {
+    FOR_EACH_TRACK(t) {
+      bool pstate = TrackManager::isPowerOn(t);  // checks if power is on or off
+      TRACK_MODE tMode=(TrackManager::getMode(t)); // gets to current power mode
+      int16_t DCAddr=(TrackManager::returnDCAddr(t));
+
+        if (pstate) {                                                 // if power is on do this section
+          tPwr_mA[t]=(3*tPwr_mA[t]>>2) + ((track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
+                          track[t]->raw2mA(track[t]->getCurrentRaw(false)));
+          if (tMode & TRACK_MODE_DC) {    // Test if track is in DC or DCX mode
+            SCREEN(display, row+t, F("%c: %S %d ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)),DCAddr, tPwr_mA[t]>>2);
+          }
+          else {                                                      // formats without DCAddress
+            SCREEN(display, row+t, F("%c: %S ON  %dmA"), t+'A', (TrackManager::getModeName(tMode)), tPwr_mA[t]>>2);
+          }
+        } 
+        else {                                                        // if power is off do this section
+          if (tMode & TRACK_MODE_DC) {   // DC / DCX
+            SCREEN(display, row+t, F("Track %c: %S %d OFF"), t+'A', (TrackManager::getModeName(tMode)),DCAddr);
+          }
+          else {                                                      // Not DC or DCX
+            SCREEN(display, row+t, F("Track %c: %S OFF"), t+'A', (TrackManager::getModeName(tMode)));
+          }
+        }
+    }
+  } 
+
 void TrackManager::reportGauges(Print* stream) {
     StringFormatter::send(stream,F("<jG"));
     FOR_EACH_TRACK(t) {
@@ -709,4 +737,39 @@ TRACK_MODE TrackManager::getMode(byte t) {
 
 int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
+}
+
+// Set track power for EACH track, independent of mode 
+// This updates the settings so that speed is correct
+// following a frequency change - DC mode
+void TrackManager::setTrackPowerF439ZI(byte t) {
+  MotorDriver *driver=track[t];
+  if (driver == NULL) { // track is not defined at all
+   // DIAG(F("Error: Track %c does not exist"), t+'A');
+    return;
+  }
+  TRACK_MODE trackmode = driver->getMode();
+  POWERMODE powermode = driver->getPower();   // line added to enable processing for DC mode tracks
+  POWERMODE oldpower = driver->getPower();
+  //if (trackmode & TRACK_MODE_NONE) {
+  //  driver->setBrake(true);     // Track is unused. Brake is good to have.
+  //  powermode = POWERMODE::OFF; // Track is unused. Force it to OFF
+  //} else 
+  if (trackmode & TRACK_MODE_DC) { // includes inverted DC (called DCX)
+    if (powermode == POWERMODE::ON) {
+      driver->setBrake(true);   // DC starts with brake on
+      applyDCSpeed(t);          // speed match DCC throttles
+    }
+  } 
+  //else /* MAIN PROG EXT BOOST */ {
+  //  if (powermode == POWERMODE::ON) {
+  //    // toggle brake before turning power on - resets overcurrent error
+  //    // on the Pololu board if brake is wired to ^D2.
+  //    driver->setBrake(true);
+  //    driver->setBrake(false); // DCC runs with brake off
+  //  }
+  //}
+  driver->setPower(powermode);
+  if (oldpower != driver->getPower())
+    CommandDistributor::broadcastPower();
 }
