@@ -565,6 +565,12 @@
 </dd></dl>
 
 <dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ESTOPALL">
+<span class="target" id="EXRAIL2MacroReset_8h_1a5a4368eb9ce5705d83e41d10145236be"></span><span class="sig-name descname"><span class="n"><span class="pre">ESTOPALL</span></span></span><a class="headerlink" href="#c.ESTOPALL" title="Link to this definition"></a><br /></dt>
+<dd><p>Performs emergency stop on all locos. </p>
+</dd></dl>
+
+<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.EXTT_TURNTABLE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a1fdca4b7f37698941742674af6a46c36"></span><span class="sig-name descname"><span class="n"><span class="pre">EXTT_TURNTABLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">id</span></span>, <span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">home</span></span>, <span class="n"><span class="pre">description...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.EXTT_TURNTABLE" title="Link to this definition"></a><br /></dt>
 <dd><p>This statement will create the EX‑Turntable turntable/traverser object only, so you will need a separate <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a61060739b28d8e98a08d8ecd72fc2a15"><span class="std std-ref">HAL()</span></a> statement for an EX‑Turntable device driver. </p>
@@ -1076,6 +1082,20 @@
 </dd></dl>
 
 <dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MOMENTUM">
+<span class="target" id="EXRAIL2MacroReset_8h_1a1c4cb0eeed45c87ed94e9430f94b537b"></span><span class="sig-name descname"><span class="n"><span class="pre">MOMENTUM</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">accel</span></span>, <span class="n"><span class="pre">decel...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.MOMENTUM" title="Link to this definition"></a><br /></dt>
+<dd><p>sets momentum in mS per DCC 127 step for curent loco. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>accel</strong> – Acceleration momentum </p></li>
+<li><p><strong>decel...</strong> – Braking momantum. (=Acceleration of not given) </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.SCREEN">
 <span class="target" id="EXRAIL2MacroReset_8h_1ae6d89a17454e176bd2f421e8a13d538a"></span><span class="sig-name descname"><span class="n"><span class="pre">SCREEN</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">display</span></span>, <span class="n"><span class="pre">row</span></span>, <span class="n"><span class="pre">msg</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.SCREEN" title="Link to this definition"></a><br /></dt>
 <dd><p>Send message to external display hadlers. </p>
@@ -1265,6 +1285,16 @@
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ONBLOCKENTER">
+<span class="target" id="EXRAIL2MacroReset_8h_1ab9485f44a5600a4795dff632d62a8e21"></span><span class="sig-name descname"><span class="n"><span class="pre">ONBLOCKENTER</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">block_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONBLOCKENTER" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ONBLOCKEXIT">
+<span class="target" id="EXRAIL2MacroReset_8h_1adfcc82287a4b5306aec63e14af4dd0a9"></span><span class="sig-name descname"><span class="n"><span class="pre">ONBLOCKEXIT</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">block_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONBLOCKEXIT" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.ONTIME">
@@ -2415,6 +2445,21 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cab</strong></p></li>
 <li><p><strong>speed</strong> – (0..127, 1=ESTOP) </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.XPOM">
+<span class="target" id="EXRAIL2MacroReset_8h_1aa6d761ffc2075b8739e6a1ecf061e7c5"></span><span class="sig-name descname"><span class="n"><span class="pre">XPOM</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">cab</span></span>, <span class="n"><span class="pre">cv</span></span>, <span class="n"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.XPOM" title="Link to this definition"></a><br /></dt>
+<dd><p>Sends DCC speed to loco in reverse direction. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cab</strong> – loco id </p></li>
+<li><p><strong>cv</strong> – to be updated </p></li>
+<li><p><strong>value</strong> – to be written to cv </p></li>
 </ul>
 </dd>
 </dl>
