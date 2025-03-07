@@ -24,7 +24,7 @@ jobs:
 
       - name: Build Prod docs
         run: |
-          # cd docs
+          cd docs
           make html
           touch _build/html/.nojekyll
 
