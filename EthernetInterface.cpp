@@ -31,13 +31,12 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
-#if __has_include ( "MDNS_Generic.h")
-  #include "MDNS_Generic.h"
-  #define DO_MDNS 
-  EthernetUDP udp;
-  MDNS mdns(udp);
-#endif
 
+#ifdef DO_MDNS
+#include "EXmDNS.h"
+EthernetUDP udp;
+MDNS mdns(udp);
+#endif
 
 //extern void looptimer(unsigned long timeout, const FSH* message);
 #define looptimer(a,b)
@@ -116,10 +115,10 @@ void EthernetInterface::setup()
  
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
   #ifdef DO_MDNS
-    mdns.begin(Ethernet.localIP(), WIFI_HOSTNAME); // hostname
+    if (!mdns.begin(Ethernet.localIP(), (char *)WIFI_HOSTNAME))
+      DIAG(F("mdns.begin fail")); // hostname
     mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
-  // Not sure if we need to run it once, but just in case!
-    mdns.run();
+    mdns.run(); // run it right away to get out info ASAP
   #endif  
   connected=true;    
 }
@@ -144,7 +143,9 @@ void EthernetInterface::acceptClient() { // STM32 version
       return;
     }
   }
-  DIAG(F("Ethernet OVERFLOW"));
+  // reached here only if more than MAX_SOCK_NUM clients want to connect
+  DIAG(F("Ethernet more than %d clients, not accepting new connection"), MAX_SOCK_NUM);
+  client.stop();
 }
 #else
 void EthernetInterface::acceptClient() { // non-STM32 version
