@@ -875,7 +875,7 @@
 #define ONTHROW(turnout_id) 
 /**
  * @def ONCHANGE(vpin)
- * @brief Toratry encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.) 
+ * @brief Rotary encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.) 
  * @param vpin 
  */
 #define ONCHANGE(vpin)
