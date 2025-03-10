@@ -53,7 +53,7 @@ constexpr int16_t seqCount(const int16_t value, const int16_t pos=0, const int16
 #define new
 #define MotorDriver(power_pin,signal_pin,signal_pin2, \
    brake_pin,current_pin,senseFactor,tripMilliamps,faultPin) \
-   power_pin,signal_pin,signal_pin2,brake_pin,current_pin,faultPin
+   abs(power_pin),abs(signal_pin),abs(signal_pin2),abs(brake_pin),abs(current_pin),abs(faultPin)
 #ifndef PIN_BLACKLIST 
   #define PIN_BLACKLIST UNUSED_PIN
 #endif 
@@ -128,37 +128,38 @@ constexpr bool unsafePin(const int16_t value, const uint16_t pos=0 ) {
 
 //check speeds
 #undef SPEED
-#define SPEED(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+#define SPEED(speed) static_assert(speed>=0 && speed<128,"\n\nUSER ERROR: Speed out of valid range 0-127\n");
 #undef FWD
-#define FWD(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+#define FWD(speed) static_assert(speed>=0 && speed<128,"\n\nUSER ERROR: Speed out of valid range 0-127\n");
 #undef REV
-#define REV(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
+#define REV(speed) static_assert(speed>=0 && speed<128,"\n\nUSER ERROR: Speed out of valid range 0-127\n");
 
 // check duplicate sequences
 #undef SEQUENCE
-#define SEQUENCE(id) static_assert(seqCount(id)==1,"Duplicate ROUTE/AUTOMATION/SEQUENCE " #id);
+#define SEQUENCE(id) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
 #undef AUTOMATION
-#define AUTOMATION(id,description) static_assert(seqCount(id)==1,"Duplicate ROUTE/AUTOMATION/SEQUENCE " #id);
+#define AUTOMATION(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
 #undef ROUTE
-#define ROUTE(id,description) static_assert(seqCount(id)==1,"Duplicate ROUTE/AUTOMATION/SEQUENCE " #id);
+#define ROUTE(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
 
 // check dangerous pins
+#define _PIN_RESERVED_ "\n\nUSER ERROR: Pin is used by Motor Shield or other critical function.\n"
 #undef SET
-#define SET(vpin) static_assert(!unsafePin(vpin),"SET(" #vpin ") not safe to use in EXRAIL");
+#define SET(vpin) static_assert(!unsafePin(vpin),"SET(" #vpin ")" _PIN_RESERVED_);
 #undef RESET
-#define RESET(vpin) static_assert(!unsafePin(vpin),"RESET(" #vpin ") not safe to use in EXRAIL");
+#define RESET(vpin) static_assert(!unsafePin(vpin),"RESET(" #vpin ")" _PIN_RESERVED_);
 #undef BLINK
-#define BLINK(vpin,onDuty,offDuty) static_assert(!unsafePin(vpin),"BLINK(" #vpin ") not safe to use in EXRAIL");
+#define BLINK(vpin,onDuty,offDuty) static_assert(!unsafePin(vpin),"BLINK(" #vpin ")" _PIN_RESERVED_);
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin) \
-      static_assert(!unsafePin(redpin),"RED " #redpin " not safe to use in EXRAIL"); \
-      static_assert(amberpin==0 ||!unsafePin(amberpin),"AMBER " #amberpin " not safe to use in EXRAIL"); \
-      static_assert(!unsafePin(greenpin),"GREEN " #greenpin " not safe to use in EXRAIL"); 
+      static_assert(!unsafePin(redpin),"Red pin " #redpin _PIN_RESERVED_); \
+      static_assert(amberpin==0 ||!unsafePin(amberpin),"Amber pin " #amberpin _PIN_RESERVED_); \
+      static_assert(!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin) \
-      static_assert(!unsafePin(redpin),"RED " #redpin " not safe to use in EXRAIL"); \
-      static_assert(amberpin==0 ||!unsafePin(amberpin),"AMBER " #amberpin " not safe to use in EXRAIL"); \
-      static_assert(!unsafePin(greenpin),"GREEN " #greenpin " not safe to use in EXRAIL"); 
+      static_assert(!unsafePin(redpin),"Red pin " #redpin _PIN_RESERVED_); \
+      static_assert(amberpin==0 ||!unsafePin(amberpin),"Amber pin " #amberpin _PIN_RESERVED_); \
+      static_assert(!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
 
 // and run the assert pass.       
 #include "myAutomation.h"
