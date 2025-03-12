@@ -181,36 +181,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
               return;
             }
             break;
-        case "M"_hk:
-            // NOTE: we only need to handle valid calls here because 
-            // DCCEXParser has to have code to handle the <J<> cases where
-            // exrail isnt involved anyway. 
-            // This entire code block is compiled out if STASH macros not used 
-          if (!(compileFeatures & FEATURE_STASH)) return;
-          if (paramCount==1) { // <JM>
-              StringFormatter::send(stream,F("<jM %d>\n"),maxStashId);
-              opcode=0;
-              break;
-            } 
-          if (paramCount==2) {  // <JM id>
-              if (p[1]<=0 || p[1]>maxStashId) break;
-              StringFormatter::send(stream,F("<jM %d %d>\n"),
-                    p[1],stashArray[p[1]]);
-               opcode=0;     
-               break;    
-          } 
-          if (paramCount==3) {  // <JM id cab>
-              if (p[1]<=0 || p[1]>maxStashId) break;
-              stashArray[p[1]]=p[2];
-              opcode=0;
-              break;      
-          }
-          break; 
-
-        default:
-            break;
-        }
-	break;
+        
 
   case 'K': // <K blockid loco>  Block enter
   case 'k': // <k blockid loco>  Block exit
@@ -222,6 +193,7 @@ void RMFT2::ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16
   default:  // other commands pass through
     break;
   }
+}
 }
 
 bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
@@ -268,15 +240,6 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 			      slot.id);
       } 
     }
-
-    if (compileFeatures & FEATURE_STASH) {
-      for (int i=1;i<=maxStashId;i++) {
-        if (stashArray[i])
-          StringFormatter::send(stream,F("\nSTASH[%d] Loco=%d"),
-              i, stashArray[i]); 
-      } 
-    }
-    
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }

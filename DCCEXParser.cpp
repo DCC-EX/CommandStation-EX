@@ -119,6 +119,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "version.h"
 #include "KeywordHasher.h"
 #include "CamParser.h"
+#include "Stash.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #endif
@@ -777,7 +778,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     case 'J' : // throttle info access
         {
-            if ((params<1) | (params>3)) break; // <J>
+            if (params<1) break; // <J>
             //if ((params<1) | (params>2)) break; // <J>
             int16_t id=(params==2)?p[1]:0;
             switch(p[0]) {
@@ -801,7 +802,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     return;
 
                 case "L"_hk: // <JL display row> track state and mA value on display
-                    if (params<3) break;
+                    if (params!=3) break;
                     TrackManager::reportCurrentLCD(p[1], p[2]);   // Track power status     
                     return;
 
@@ -810,11 +811,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     StringFormatter::send(stream, F("<jA>\n"));
                     return;
  
-                case "M"_hk: // <JM> intercepted by EXRAIL
-                    if (params>1) break; // invalid cant do
-                    // <JM> requests stash size so say none.
-                    StringFormatter::send(stream,F("<jM 0>\n")); 
-                    return;
+                case "M"_hk: // <JM> Stash management
+                    if (parseJM(stream, params, p))
+                        return;
+                    break;
  
             case "R"_hk: // <JR> returns rosters 
                 StringFormatter::send(stream, F("<jR"));
@@ -1404,6 +1404,40 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
     }
 }
 #endif
+
+bool DCCEXParser::parseJM(Print *stream, int16_t params, int16_t p[]) {
+  switch (params) {
+    case 1: // <JM> list all stashed automations
+        Stash::list(stream);
+        return true; 
+        
+    case 2: // <JM id> get stash value 
+        Stash::list(stream, p[1]);
+        return true;
+
+    case 3: // 
+        if (p[1]=="CLEAR"_hk) {
+            if (p[2]=="ALL"_hk) { // <JM CLEAR ALL>
+                Stash::clearAll();
+                return true;
+            }
+            Stash::clear(p[2]); // <JM CLEAR id>
+            return true;
+        }
+        Stash::set(p[1], p[2]);  // <JM id loco>
+        return true;
+    
+    case 4: // <JM CLEAR ANY id>
+    if (p[1]=="CLEAR"_hk && p[2]=="ANY"_hk) { 
+        // <JM CLEAR ANY id>
+        Stash::clearAny(p[3]);
+        return true;
+    }
+    
+    default: break;
+}
+return false;
+}
 
 // CALLBACKS must be static
 bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream)

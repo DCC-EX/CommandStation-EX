@@ -136,11 +136,11 @@ constexpr bool unsafePin(const int16_t value, const uint16_t pos=0 ) {
 
 // check duplicate sequences
 #undef SEQUENCE
-#define SEQUENCE(id) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
+#define SEQUENCE(id) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id ")\n");
 #undef AUTOMATION
-#define AUTOMATION(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
+#define AUTOMATION(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id ")\n");
 #undef ROUTE
-#define ROUTE(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id")\n");
+#define ROUTE(id,description) static_assert(seqCount(id)==1,"\n\nUSER ERROR: Duplicate ROUTE/AUTOMATION/SEQUENCE(" #id ")\n");
 
 // check dangerous pins
 #define _PIN_RESERVED_ "\n\nUSER ERROR: Pin is used by Motor Shield or other critical function.\n"

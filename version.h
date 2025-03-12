@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.17"
+#define VERSION "5.5.18"
+// 5.5.18 - New STASH internals 
+//        - EXRAIL IFSTASH/CLEAR_ANY_STASH
+//        - <JM CLEAR ANY id> to clear any stash with loco id
+//        - See Release_Notes/Stash.md  
 // 5.5.17 - Extensive new compile time checking in exrail scripts (duplicate sequences etc), no function change 
 // 5.5.16 - DOXYGEN comments in EXRAIL2MacroReset.h
 // 5.5.15 - Support for F429ZI/F329ZI

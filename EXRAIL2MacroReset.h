@@ -46,6 +46,7 @@
 #undef CALL 
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
+#undef CLEAR_ANY_STASH
 #undef CLOSE 
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
@@ -88,6 +89,7 @@
 #undef IFRANDOM 
 #undef IFRED
 #undef IFRESERVE
+#undef IFSTASH
 #undef IFTHROWN
 #undef IFTIMEOUT
 #undef IFTTPOSITION
@@ -338,6 +340,11 @@
  * @brief Clears all stashed loco values
  */
 #define CLEAR_ALL_STASH
+/**
+* @def CLEAR_ANY_STASH
+* @brief Clears loco value from all stash entries
+*/
+#define CLEAR_ANY_STASH
 /**
  * @def CLOSE(turnout_id)
  * @brief Close turnout by id
@@ -602,6 +609,13 @@
  * @param signal_id 
  */
 #define IFRED(signal_id)
+/**
+ * @def IFSTASH(stash_id)
+ * @brief Checks if given stash entry has a non zero value
+ * @see IF
+ * @param stash_id 
+ */
+#define IFSTASH(stash_id) 
 /**
  * @def IFTHROWN(turnout_id)
  * @brief Checks if given turnout is in THROWN state

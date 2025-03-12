@@ -154,14 +154,6 @@ bool exrailHalSetup() {
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
 
-#undef CLEAR_STASH
-#define CLEAR_STASH(id) | FEATURE_STASH
-#undef CLEAR_ALL_STASH
-#define CLEAR_ALL_STASH | FEATURE_STASH
-#undef PICKUP_STASH
-#define PICKUP_STASH(id) | FEATURE_STASH
-#undef STASH
-#define STASH(id) | FEATURE_STASH
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
@@ -435,6 +427,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
+#define CLEAR_ANY_STASH OPCODE_CLEAR_ANY_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #ifndef IO_NO_HAL
@@ -481,6 +474,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
+#define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
 #ifndef IO_NO_HAL
