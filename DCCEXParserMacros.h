@@ -3,18 +3,19 @@
   auto arg=p[_xix]; (void)arg;\
   if ( #arg[0]<='Z' && p[_xix]!=CONCAT(#arg,_hk)) break; \
   _xix++;
-
+ 
 #define FOR_EACH_IMPL_1(x) ZZARG(x)
 #define FOR_EACH_IMPL_2(x, ...) ZZARG(x) FOR_EACH_IMPL_1(__VA_ARGS__)
 #define FOR_EACH_IMPL_3(x, ...) ZZARG(x) FOR_EACH_IMPL_2(__VA_ARGS__)
 #define FOR_EACH_IMPL_4(x, ...) ZZARG(x) FOR_EACH_IMPL_3(__VA_ARGS__)
 #define FOR_EACH_IMPL_5(x, ...) ZZARG(x) FOR_EACH_IMPL_4(__VA_ARGS__)
 #define FOR_EACH_IMPL_6(x, ...) ZZARG(x) FOR_EACH_IMPL_5(__VA_ARGS__)
+#define FOR_EACH_IMPL_7(x, ...) ZZARG(x) FOR_EACH_IMPL_6(__VA_ARGS__)
 // Add more levels if needed...
 
 // Step 1: Count the number of arguments
-#define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, 6, 5, 4, 3, 2, 1)
-#define FOR_EACH_NARG_(_1, _2, _3, _4, _5, _6,N, ...) N
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__,7, 6, 5, 4, 3, 2, 1)
+#define FOR_EACH_NARG_(_1, _2, _3, _4, _5, _6, _7, N, ...) N
 
 // Step 2: Force proper expansion (extra indirection to resolve `##`)
 #define EXPAND(x) x
@@ -33,5 +34,5 @@ if (opcode==#op[0] && params==FOR_EACH_NARG(__VA_ARGS__)) for (auto _xix=0;;) { 
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
 #define CHECK(x) if (!(x)) return false;
-#define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream)
+#define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream))
 

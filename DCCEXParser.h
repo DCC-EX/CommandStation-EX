@@ -45,17 +45,7 @@ struct DCCEXParser
   
     static const int16_t MAX_BUFFER=50;  // longest command sent in
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
-     
-    static bool parseT(Print * stream, int16_t params, int16_t p[]);
-    static bool parseZ(Print * stream, int16_t params, int16_t p[]);
-    static bool parseS(Print * stream, int16_t params, int16_t p[]);
-    static bool parsef(Print * stream, int16_t params, int16_t p[]);
-    static bool parseC(Print * stream, int16_t params, int16_t p[]);
-    static bool parseD(Print * stream, int16_t params, int16_t p[]);
-    static bool parseJM(Print * stream, byte opcode, int16_t params, int16_t p[]);
-#ifndef IO_NO_HAL
-    static bool parseI(Print * stream, int16_t params, int16_t p[]);
-#endif
+    static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[], RingStream * ringStream);
 
     static Print * getAsyncReplyStream();
     static void commitAsyncReplyStream();
@@ -83,6 +73,7 @@ struct DCCEXParser
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
     static void sendFlashList(Print * stream,const int16_t flashList[]);
+    static bool setThrottle(int16_t cab,int16_t tspeed,int16_t direction);
 
 };
 

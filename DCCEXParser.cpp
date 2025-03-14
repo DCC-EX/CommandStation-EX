@@ -302,9 +302,21 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte opcode = com[0];
+
+    if (opcode=='+') {
+        if (atCommandCallback && !ringStream) {
+          TrackManager::setPower(POWERMODE::OFF);
+          atCommandCallback((HardwareSerial *)stream,com);
+        }
+        return; // we cant parse the <+ wifistuff > here
+    }
+
     int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
-    if (splitnum < 0 || splitnum >= MAX_COMMAND_PARAMS) // if arguments are broken, leave but via printing <X>
-      goto out;
+    if (splitnum<- || splitnum>=MAX_COMMAND_PARAMS) {
+        DIAG(F("Too many parameters"));
+        return;
+    }
+    
     // Because of check above we are now inside byte size
     params = splitnum;
 
@@ -315,12 +327,25 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     if (filterCamParserCallback && opcode!='\0')
         filterCamParserCallback(stream, opcode, params, p);
     if (opcode=='\0') return; // filterCallback asked us to ignore
+    
+    // todo, revamp as filter 
+    if (opcode=='=') // TRACK MANAGER CONTROL <= [params]>
+        if (TrackManager::parseEqualSign(stream, params, p))
+            return;
+    
 
-    if (!execute(stream, opcode, params, p)) {
-        if (Diag::CMD)
-            DIAG(F("INVALID:%c"), opcode);
-        StringFormatter::send(stream, F("<X %c>\n"), opcode);
-    }
+    if (execute(com,stream, opcode, params, p, ringStream)) return;
+
+    // TODO magnificent diagnostics 
+    StringFormatter::send(stream, F("<X>\n"), opcode);
+    if (opcode >= ' ' && opcode <= '~') {
+        DIAG(F("Opcode=%c params=%d"), opcode, params);
+        for (int i = 0; i < params; i++)
+            DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
+      } else {
+	        DIAG(F("Unprintable %x"), opcode);
+      }
+    
 }
 
 bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
@@ -338,76 +363,8 @@ bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
      return true; 
 }
 
-bool DCCEXParser::execute(Print * stream, byte opcode, byte params, byte p[]) {
-
-      // This belongs in TrackMAnager reinitialize DC mode timer settings following powerON
-      #ifdef ARDUINO_ARCH_STM32
-        for (uint8_t i = 0; i < 8; i++)  {
-          TrackManager::setTrackPowerF439ZI(i);
-        }
-          // repeated in case the <F29..31 was set on a later track than power
-          // Note:  this retains power but prevents speed doubling
-        for (uint8_t i = 0; i < 7; i++)  {
-            TrackManager::setTrackPowerF439ZI(i);
-        }
-      #endif
-    
-
-#if defined(ARDUINO_ARCH_ESP32)
-// currently this only works on ESP32
-#if defined(HAS_ENOUGH_MEMORY)
-      if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
-	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD
-	  break;
-	if (p[1] == 0x7777 && p[3] == 0x7777) {
-	  WifiESP::setup((const char*)(com + p[2]), (const char*)(com + p[4]), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-	}
-	return;
-      }
-#endif
-#endif //ESP32
-    case '=': // TRACK MANAGER CONTROL <= [params]>
-        if (TrackManager::parseEqualSign(stream, params, p))
-            return;
-        break;
 
 
-  
-#if WIFI_ON
-    case '+': // Complex Wifi interface command (not usual parse)
-        if (atCommandCallback && !ringStream) {
-          TrackManager::setPower(POWERMODE::OFF);
-          atCommandCallback((HardwareSerial *)stream,com);
-          return;
-        }
-        break;
-#endif 
-                
-// No turntables without HAL support
-
-
-    case '/': // implemented in EXRAIL parser
-    case 'L': // LCC interface implemented in EXRAIL parser
-    case 'N': // interface implemented in CamParser
-        break; // Will <X> if not intercepted by filters
-
-
-
-    default: //anything else will diagnose and drop out to <X>
-      if (opcode >= ' ' && opcode <= '~') {
-        DIAG(F("Opcode=%c params=%d"), opcode, params);
-        for (int i = 0; i < params; i++)
-            DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
-      } else {
-	DIAG(F("Unprintable %x"), opcode);
-      }
-      break;
-
-    } // end of opcode switch
-
-out:// Any fallout here sends an <X>
-    StringFormatter::send(stream, F("<X>\n"));
-}
 
 
 //===================================
@@ -421,16 +378,16 @@ bool DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
   return true;
 }
 
-bool DCCEXParser::parseJM(Print *stream, byte opcode,int16_t params, int16_t p[]) {
+bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, int16_t p[], RingStream * ringStream) {
   
 ZZBEGIN
 ZZ(#)                    StringFormatter::send(stream, F("<# %d>\n"), MAX_LOCOS);
 ZZ(t,cab)                CHECK(cab>0) 
                         CommandDistributor::broadcastLoco(DCC::lookupSpeedTable(cab,false));
-ZZ(t,cab,tspeed,direction)        CHECK(setThrottle(cab,speed,direction)) 
-ZZ(t,ignore,cab,tspeed,direction) CHECK(setThrottle(cab,speed,direction)) 
-ZZ(f,cab,byte1)         CHECK(handleFunctionGroup(cab,byte1))
-ZZ(f,cab,group1,group2) CHECK(handleFunctionGroup(cab,byte1,byte2))
+ZZ(t,cab,tspeed,direction)        CHECK(setThrottle(cab,tspeed,direction)) 
+ZZ(t,ignore,cab,tspeed,direction) CHECK(setThrottle(cab,tspeed,direction)) 
+// todo ZZ(f,cab,byte1)         CHECK(handleFunctionGroup(cab,byte1))
+// todo ZZ(f,cab,byte1,byte2) CHECK(handleFunctionGroup(cab,byte1,byte2))
 
 ZZ(T)                    Turnout::printAll(stream); // will <X> if none found
 ZZ(T,id)                 CHECK(Turnout::remove(id)) 
@@ -446,8 +403,9 @@ ZZ(T,id,addr,subadd)     CHECK(DCCTurnout::create(id, addr, subadd))
 ZZ(T,id,pin,low,high)    CHECK(ServoTurnout::create(id, (VPIN)pin,low,high,1)) 
 ZZ(S,id,pin,pullup)      CHECK(Sensor::create(id,pin,pullup)) 
 ZZ(S,id)                 CHECK(Sensor::remove(p[0]))
-ZZ(S)                    for (auto *tt = Sensor::firstSensor; tt; tt = tt->nextSensor) 
-                        StringFormatter::send(stream, F("<Q %d %d %d>\n"), tt->data.snum, tt->data.pin, tt->data.pullUp);    
+ZZ(S)                    for (auto *tt = Sensor::firstSensor; tt; tt = tt->nextSensor) {
+                            StringFormatter::send(stream, F("<Q %d %d %d>\n"), tt->data.snum, tt->data.pin, tt->data.pullUp);
+                         }           
 ZZ(J,M)                  Stash::list(stream);
 ZZ(J,M,stash_id)         Stash::list(stream, stash_id);
 ZZ(J,M,CLEAR,ALL)        Stash::clearAll(); 
@@ -537,7 +495,7 @@ ZZ(I,id,position,activity)
     
 ZZ(I,id,EXTT,vpin,home) // <I id EXTT vpin home> create an EXTT turntable
         auto tto = Turntable::get(id);
-        CHECK(!tto && home >= 0 && home <=> 3600)
+        CHECK(!tto && home >= 0 && home <= 3600)
         CHECK(EXTTTurntable::create(id, (VPIN)vpin))
         tto = Turntable::get(id);
         tto->addPosition(0, 0, home);
@@ -601,8 +559,8 @@ ZZ(D,RAILCOM,ON) Diag::RAILCOM = true;
 ZZ(D,RAILCOM,OFF) Diag::RAILCOM = false;    
 ZZ(D,WIFI,ON) Diag::WIFI = true;
 ZZ(D,WIFI,OFF) Diag::WIFI = false; 
-ZZ(D,ETHERENT,ON) Diag::ETHERENT = true;
-ZZ(D,ETHERENT,OFF) Diag::ETHERENT = false;
+ZZ(D,ETHERNET,ON) Diag::ETHERNET = true;
+ZZ(D,ETHERNET,OFF) Diag::ETHERNET = false;
 ZZ(D,WIT,ON) Diag::WITHROTTLE = true;
 ZZ(D,WIT,OFF) Diag::WITHROTTLE = false;
 ZZ(D,LCN,ON) Diag::LCN = true;
@@ -633,7 +591,7 @@ ZZ(C,RESET)        DCCTimer::reset();
 ZZ(C,SPEED28) DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
 ZZ(C,SPEED128) DCC::setGlobalSpeedsteps(128); DIAG(F("128 Speedsteps"));
 ZZ(C,RAILCOM,ON) DIAG(F("Railcom %S"),DCCWaveform::setRailcom(true,false)?F("ON"):F("OFF"));
-ZZ(C,RAILCOM,OFF) DIAG(F("Railcom OFF")); DCCWaveform::setRailcom(false,false));
+ZZ(C,RAILCOM,OFF) DIAG(F("Railcom OFF")); DCCWaveform::setRailcom(false,false);
 ZZ(C,RAILCOM,DEBUG) DIAG(F("Railcom %S") DCCWaveform::setRailcom(true,true)?F("ON"):F("OFF"));
 
 #ifndef DISABLE_PROG
@@ -643,6 +601,13 @@ ZZ(D,ACK,MIN,value)      DCCACK::setMinAckPulseDuration(value);        LCD(1, F(
 ZZ(D,ACK,MAX,value,MS)   DCCACK::setMaxAckPulseDuration(value*1000L);  LCD(1, F("Ack Max=%dmS"), value);
 ZZ(D,ACK,MAX,value)      DCCACK::setMaxAckPulseDuration(value);        LCD(1, F("Ack Max=%duS"), value); 
 ZZ(D,ACK,RETRY,value)    DCCACK::setAckRetry(value);                   LCD(1, F("Ack Retry=%d"), value);
+#endif
+#if defined(ARDUINO_ARCH_ESP32)
+// currently this only works on ESP32
+ZZ(C,WIFI,marker1,ssid,marker2,password)
+ 	// <C WIFI SSID PASSWORD>
+    CHECK(marker1==0x7777 && marker2==0x7777)
+    WifiESP::setup((const char*)(com + p[2]), (const char*)(com + p[4]), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif
 
 ZZ(o,vpin)              IODevice::write(abs(vpin),vpin>0);
@@ -682,15 +647,15 @@ ZZ(A,address,value)                 DCC::setExtendedAccessory(address,value);
 ZZ(w,cab,cv,value)   DCC::writeCVByteMain(p[0], p[1], p[2]);
 ZZ(r,cab,cv) 
       CHECK(DCCWaveform::isRailcom())
-      EXPECT_CALLBACK)
+      EXPECT_CALLBACK
       DCC::readCVByteMain(cab,cv,callback_r);
  ZZ(b,cab,cv,bit,value)     DCC::writeCVBitMain(cab,cv,bit,value);
  ZZ(m,LINEAR) DCC::linearAcceleration=true;
  ZZ(m,POWER)  DCC::linearAcceleration=false;
- ZZ(m,cab,momentum)  CHECK(DCC::setMomentum(cab,monentum,momentum))
- ZZ(m,cab,momentum,braking)  CHECK(DCC::setMomentum(cab,monentum,braking))
+ ZZ(m,cab,momentum)  CHECK(DCC::setMomentum(cab,momentum,momentum))
+ ZZ(m,cab,momentum,braking)  CHECK(DCC::setMomentum(cab,momentum,braking))
 
- ZZ(W,cv,value,ignore,ignore) EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W4);
+ ZZ(W,cv,value,ignore1,ignore2) EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W4);
 ZZ(W,cab)  EXPECT_CALLBACK DCC::setLocoId(cab,callback_Wloco);
 ZZ(W,CONSIST,cab,REVERSE) EXPECT_CALLBACK DCC::setConsistId(cab,true,callback_Wconsist);
 ZZ(W,CONSIST,cab)        EXPECT_CALLBACK DCC::setConsistId(cab,false,callback_Wconsist);
@@ -700,7 +665,7 @@ ZZ(V,cv,value)        EXPECT_CALLBACK DCC::verifyCVByte(cv,value, callback_Vbyte
 ZZ(V,cv,bit,value)    EXPECT_CALLBACK DCC::verifyCVBit(cv,bit,value,callback_Vbit);  
 
 ZZ(B,cv,bit,value)    EXPECT_CALLBACK DCC::writeCVBit(cv,bit,value,callback_B);
-ZZ(R,cv,ignore,ignore) EXPECT_CALLBACK DCC::readCV(cv,callback_R);
+ZZ(R,cv,ignore1,ignore2) EXPECT_CALLBACK DCC::readCV(cv,callback_R);
 ZZ(R,cv)               EXPECT_CALLBACK DCC::verifyCVByte(cv, 0, callback_Vbyte);
 ZZ(R)              EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
 
@@ -717,16 +682,16 @@ ZZ(F,cab,DCCFREQ,value) CHECK(value>=0 && value<=3) DCC::setDCFreq(cab,value);
 ZZ(F,cab,function,value) CHECK(value==0 || value==1) DCC::setFn(cab,function,value);    
              
 
-ZZ(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={d0,d1,d2,d3,d4,d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(M,ignore,d0,d1,d2,d3,d4) byte packet[]={d0,d1,d2,d3,d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(M,ignore,d0,d1,d2,d3) byte packet[]={d0,d1,d2,d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(M,ignore,d0,d1,d2) byte packet[]={d0,d1,d2}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(M,ignore,d0,d1) byte packet[]={d0,d1}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(P,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={d0,d1,d2,d3,d4,d5}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(P,ignore,d0,d1,d2,d3,d4) byte packet[]={d0,d1,d2,d3,d4}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(P,ignore,d0,d1,d2,d3) byte packet[]={d0,d1,d2,d3}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(P,ignore,d0,d1,d2) byte packet[]={d0,d1,d2}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ(P,ignore,d0,d1) byte packet[]={d0,d1}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(M,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(M,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(M,ignore,d0,d1,d2) byte packet[]={(byte)d0,(byte)d1,(byte)d2}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(M,ignore,d0,d1) byte packet[]={(byte)d0,(byte)d1}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(P,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(P,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(P,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(P,ignore,d0,d1,d2) byte packet[]={(byte)d0,(byte)d1,(byte)d2}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
+ZZ(P,ignore,d0,d1) byte packet[]={(byte)d0,(byte)d1}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
 
 ZZ(J,O) StringFormatter::send(stream, F("<jO"));
                     for (auto tto=Turntable::first(); tto; tto=tto->next()) { 
@@ -740,7 +705,7 @@ ZZ(J,O,id) auto tto=Turntable::get(id);
         todesc = RMFT2::getTurntableDescription(id);
 #endif
         if (todesc == nullptr) todesc = F("");
-        StringFormatter::send(stream, F("<jO %d %d %d %d \"%S\">\n"), id, tto->isEXT(), tto->getPosition(), tto->getPositionCount(), todesc);
+        StringFormatter::send(stream, F("<jO %d %d %d %d \"%S\">\n"), id, tto->isEXTT(), tto->getPosition(), tto->getPositionCount(), todesc);
         
 ZZ(J,P,id) auto tto=Turntable::get(id);
         if (!tto || tto->isHidden()) {StringFormatter::send(stream, F("<jP %d X>\n"), id); return true;}      
