@@ -312,7 +312,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     }
 
     int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
-    if (splitnum<- || splitnum>=MAX_COMMAND_PARAMS) {
+    if (splitnum<0 || splitnum>=MAX_COMMAND_PARAMS) {
         DIAG(F("Too many parameters"));
         return;
     }
@@ -379,7 +379,7 @@ bool DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
 }
 
 bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, int16_t p[], RingStream * ringStream) {
-  
+bool accessoryCommandReverse = false; // TODO  
 ZZBEGIN
 ZZ(#)                    StringFormatter::send(stream, F("<# %d>\n"), MAX_LOCOS);
 ZZ(t,cab)                CHECK(cab>0) 
@@ -480,7 +480,7 @@ ZZ(I,id,position) // <I id position> - rotate a DCC turntable
 ZZ(I,id,DCC,home) 
         auto tto = Turntable::get(id);
         CHECK(tto)
-        CHECK(home >-0 0 && home <= 3600)
+        CHECK(home >=0 && home <= 3600)
         CHECK(DCCTurntable::create(id)) 
         tto = Turntable::get(id);
         CHECK(tto)
@@ -538,7 +538,7 @@ ZZ(Z,id,pin,iflag) // <Z ID PIN IFLAG>
                 CHECK(id > 0 && iflag >= 0 && iflag <= 7 )
                 CHECK(Output::create(id,pin,iflag, 1))
                 StringFormatter::send(stream, F("<O>\n"));
-Z(Z,id)         CHECK(Output::remove(id))
+ZZ(Z,id)         CHECK(Output::remove(id))
                 StringFormatter::send(stream, F("<O>\n"));
 
 ZZ(Z)           // <Z> list Output definitions
@@ -592,7 +592,7 @@ ZZ(C,SPEED28) DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
 ZZ(C,SPEED128) DCC::setGlobalSpeedsteps(128); DIAG(F("128 Speedsteps"));
 ZZ(C,RAILCOM,ON) DIAG(F("Railcom %S"),DCCWaveform::setRailcom(true,false)?F("ON"):F("OFF"));
 ZZ(C,RAILCOM,OFF) DIAG(F("Railcom OFF")); DCCWaveform::setRailcom(false,false);
-ZZ(C,RAILCOM,DEBUG) DIAG(F("Railcom %S") DCCWaveform::setRailcom(true,true)?F("ON"):F("OFF"));
+ZZ(C,RAILCOM,DEBUG) DIAG(F("Railcom %S"), DCCWaveform::setRailcom(true,true)?F("ON"):F("OFF"));
 
 #ifndef DISABLE_PROG
 ZZ(D,ACK,LIMIT,value)    DCCACK::setAckLimit(value);                   LCD(1, F("Ack Limit=%dmA"), value); 
