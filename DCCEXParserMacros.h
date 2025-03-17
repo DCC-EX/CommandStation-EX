@@ -29,5 +29,6 @@
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
 #define CHECK(x) if (!(x)) return false;
+#define REPLY(format,...) StringFormatter::send(stream,F(format), ##__VA_ARGS__);
 #define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream))
 
