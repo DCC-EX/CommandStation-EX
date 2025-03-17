@@ -328,12 +328,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         if (TrackManager::parseEqualSign(stream, params, p))
             return;
     
-
+    matchedCommandFormat = F("none");
+    checkFailedFormat = matchedCommandFormat;
     if (execute(com,stream, opcode, params, p, ringStream)) return;
 
-    // TODO magnificent diagnostics 
-    StringFormatter::send(stream, F("<X>\n"), opcode);
-    if (opcode >= ' ' && opcode <= '~') {
+    // TODO magnificent diagnostics
+    StringFormatter::send(stream, F("<X>\n"));
+     DIAG(F("Command format <%<>  failed CHECK(%S)\n"), matchedCommandFormat, checkFailedFormat);
+     if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
             DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
@@ -373,11 +375,9 @@ bool DCCEXParser::funcmap(int16_t cab, byte value, byte fstart, byte fstop)
   return true;
 }
 
-#ifdef DCC_ACCESSORY_COMMAND_REVERSE
- const bool accessoryCommandReverse = true;
-#else    
- const bool accessoryCommandReverse = false;
-#endif
+const FSH* DCCEXParser::matchedCommandFormat=nullptr;
+const FSH* DCCEXParser::checkFailedFormat=nullptr; 
+
 
 // Having broken the command into opcode and parameters, we now execute the command
 // The actual commands and their parameter mappings are in DCCEXCommands.h

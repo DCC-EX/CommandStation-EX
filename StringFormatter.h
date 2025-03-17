@@ -43,6 +43,7 @@ class StringFormatter
     
     static void printEscapes(Print * serial,char * input);
     static void printEscapes(Print * serial,const FSH* input);
+    static void printCmdFormat(Print * serial,const FSH* input);
     static void printEscape(Print * serial, char c);
 
     // DIAG support

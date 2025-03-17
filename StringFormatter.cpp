@@ -123,6 +123,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       case 's': stream->print(va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
       case 'E': printEscapes(stream,(const FSH*)va_arg(args, char*)); break;
+      case '<': printCmdFormat(stream,(const FSH*)va_arg(args, char*)); break;
       case 'S':
       { 
         const FSH*  flash= (const FSH*)va_arg(args, char*);
@@ -202,15 +203,27 @@ void StringFormatter::printEscapes(Print * stream,char * input) {
 
 void StringFormatter::printEscapes(Print * stream, const FSH * input) {
  
- if (!stream) return;
- char* flash=(char*)input;
- for(int i=0; ; ++i) {
-  char c=GETFLASH(flash+i);
-  printEscape(stream,c);
-  if (c=='\0') return;
+  if (!stream) return;
+  char* flash=(char*)input;
+  for(int i=0; ; ++i) {
+   char c=GETFLASH(flash+i);
+   printEscape(stream,c);
+   if (c=='\0') return;
+  }
  }
-}
 
+ void StringFormatter::printCmdFormat(Print * stream, const FSH * input) {
+ 
+  if (!stream) return;
+  char* flash=(char*)input;
+  for(int i=0; ; ++i) {
+   char c=GETFLASH(flash+i);
+   if (c=='\0') return;
+   if (c==',') c=' ';
+   stream->write(c);
+  }
+ }
+  
 void StringFormatter::printEscape( char c) {
   printEscape(&USB_SERIAL,c);
 }

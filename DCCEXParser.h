@@ -42,7 +42,13 @@ struct DCCEXParser
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
  
    private:
-  
+   static const FSH * matchedCommandFormat;
+   static const FSH * checkFailedFormat;
+   #ifdef DCC_ACCESSORY_COMMAND_REVERSE
+   static const bool accessoryCommandReverse = true;
+  #else    
+   static const bool accessoryCommandReverse = false;
+  #endif
     static const int16_t MAX_BUFFER=50;  // longest command sent in
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
     static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[], RingStream * ringStream);

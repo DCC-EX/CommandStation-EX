@@ -137,7 +137,7 @@ ZZ(T,id,DCC,nn)          CHECK(DCCTurnout::create(id, (nn-1)/4+1, (nn-1)%4))
 ZZ(T,id,addr,subadd)     CHECK(DCCTurnout::create(id, addr, subadd)) 
 ZZ(T,id,pin,low,high)    CHECK(ServoTurnout::create(id, (VPIN)pin,low,high,1)) 
 ZZ(S,id,pin,pullup)      CHECK(Sensor::create(id,pin,pullup)) 
-ZZ(S,id)                 CHECK(Sensor::remove(p[0]))
+ZZ(S,id)                 CHECK(Sensor::remove(id))
 ZZ(S)                    for (auto *tt = Sensor::firstSensor; tt; tt = tt->nextSensor) {
                             REPLY("<Q %d %d %d>\n", tt->data.snum, tt->data.pin, tt->data.pullUp)
                          }           
@@ -238,7 +238,7 @@ ZZ(I,id,EXTT,vpin,home) // <I id EXTT vpin home> create an EXTT turntable
 
 
 ZZ(I,id,ADD,position,value,angle) // <I id ADD position value angle> add a position
-     auto tto = Turntable::get(p[0]);
+     auto tto = Turntable::get(id);
      // tto must exist, no more than 48 positions, angle 0 - 3600
      CHECK(tto && position <= 48 && angle >=0  && angle <= 3600)
      tto->addPosition(id,value,angle);
@@ -342,7 +342,7 @@ ZZ(D,ACK,RETRY,value)    DCCACK::setAckRetry(value);                   LCD(1, F(
 ZZ(C,WIFI,marker1,ssid,marker2,password)
  	// <C WIFI SSID PASSWORD>
     CHECK(marker1==0x7777 && marker2==0x7777)
-    WifiESP::setup((const char*)(com + p[2]), (const char*)(com + p[4]), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+    WifiESP::setup((const char*)(com + ssid), (const char*)(com + password), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif
 
 ZZ(o,vpin)              IODevice::write(abs(vpin),vpin>0);
@@ -379,7 +379,7 @@ ZZ(a,linearaddress,activate)
     DCC::setAccessory((linearaddress - 1) / 4 + 1,(linearaddress - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
 ZZ(A,address,value)                 DCC::setExtendedAccessory(address,value);
 
-ZZ(w,cab,cv,value)   DCC::writeCVByteMain(p[0], p[1], p[2]);
+ZZ(w,cab,cv,value)   DCC::writeCVByteMain(cab,cv,value);
 ZZ(r,cab,cv) 
       CHECK(DCCWaveform::isRailcom())
       EXPECT_CALLBACK
