@@ -323,10 +323,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         filterCamParserCallback(stream, opcode, params, p);
     if (opcode=='\0') return; // filterCallback asked us to ignore
     
-    // todo, revamp as filter 
-    if (opcode=='=') // TRACK MANAGER CONTROL <= [params]>
-        if (TrackManager::parseEqualSign(stream, params, p))
-            return;
     
     matchedCommandFormat = F("none");
     checkFailedFormat = matchedCommandFormat;
@@ -334,7 +330,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
     // TODO magnificent diagnostics
     StringFormatter::send(stream, F("<X>\n"));
-     DIAG(F("Command format <%<>  failed CHECK(%S)\n"), matchedCommandFormat, checkFailedFormat);
+     DIAG(F("Command format <%<> failed CHECK(%S)"), matchedCommandFormat, checkFailedFormat);
      if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)

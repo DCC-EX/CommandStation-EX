@@ -452,5 +452,25 @@ ZZ(J,P,id) auto tto=Turntable::get(id);
             REPLY("<jP %d %d %d \"%S\">\n", id, p, tto->getPositionAngle(p), tpdesc)
         }
 
+// Track manager
+ZZ(=) TrackManager::list(stream); 
+ZZ(=,track,MAIN)      CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
+ZZ(=,track,MAIN_INV)  CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
+ZZ(=,track,MAIN_AUTO) CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
+ZZ(=,track,PROG)      CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
+ZZ(=,track,OFF)       CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE))
+ZZ(=,track,NONE)      CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE)) 
+ZZ(=,track,EXT)       CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
+
+#ifdef BOOSTER_INPUT
+ZZ(=,track,BOOST)      CHECK(TRACK_MODE_BOOST)      CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
+ZZ(=,track,BOOST_INV)  CHECK(TRACK_MODE_BOOST_INV)  CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
+ZZ(=,track,BOOST_AUTO) CHECK(TRACK_MODE_BOOST_AUTO) CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
+#endif
+ZZ(=,track,AUTO)          CHECK(track>='A' && track<='H') CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
+ZZ(=,track,INV)           CHECK(track>='A' && track<='H') CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
+ZZ(=,track,DC,locoid)     CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, locoid))
+ZZ(=,track,DC_INV,locoid) CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
+ZZ(=,track,DCX,locoid)    CHECK(track>='A' && track<='H') CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
 
 ZZEND
