@@ -17,15 +17,16 @@ Enabling the Railcom Cutout requires a `<C RAILCOM ON>` command. This can be add
 Code to calculate the cutout position and provide synchronization for the sampling is in `DCCWaveform.cpp` (not ESP32)
 and in general a global search for "railcom" will show all code changes that have been made to support this.
 
-Code to actually implement the timing of the cutout is hihjly cpu dependent and can be found in gthe various implementations of `DCCTimer.h`. At this time only `DCCTimerAVR.cpp`has implemented this.  
+Code to actually implement the timing of the cutout is highly cpu dependent and can be found in the various implementations of `DCCTimer.h`. At this time only `DCCTimerAVR.cpp`has implemented this.  
 
 
 Reading Railcom data:
-  A new HAL handler (`IO_I2CRailcom.h`)has been added to process input from a 2-block railcom reader (Refer Henk) which operates as a 2 channel UART accessible over I2C. The reader(s) sit between the CS and the track and collect railcom data from locos during the cutout.
-  After the cutout the HAL driver reads the UARTs over I2C and passes the raw data to the CS logic (`Railcom.cpp`)for analysis.
+  A new HAL handler (`IO_I2CRailcom.h`) has been added to process input from a 32-block railcom collecter which operates over I2C. The collector and its readers  sit between the CS and the track and collect railcom data from locos during the cutout.
+  The Collector device removes 99.9% of the railcom traffic and returns just a summary of what has changed since the last cutout.
+  After the cutout the HAL driver reads the Collector summary over I2C and passes the raw data to the CS logic (`Railcom.cpp`) for analysis.
 
-  Each 2-block reader is described in myAutomation like `HAL(I2CRailcom,10000,2,0x48)`  which will assign 2 channels on i2c address 0x48 with vpin numbers 10000 and 10001. If you only use the first channel in the reader, just asign one pin instead of two.
-  (Implementation notes.. potentially other readers are possible with suitable HAL drivers. There are however several touch-points with the code DCC Waveform code which helps the HAL driver to understand when the data is safe to sample, and how to interpret responses when the sender is unknown. )
+  Each 32-block reader is described in myAutomation like `HAL(I2CRailcom,10000,32,0x08)`  which will assign 32 blocks on i2c address 0x08 with vpin numbers 10000 and 10031. If you only use fewer channel in the collector, you can assign fewer pins here.
+  (Implementation notes.. you may have multiple collectors, each one will requite a HAL line to define its i2c address and vpins to represent block numbers.)
 
 Making use of Railcom data
 
@@ -62,14 +63,9 @@ Making use of Railcom data
 
       Railcom allows for the facility to read loco cv values while on the main track. This is considerably faster than PROG track access but depends on the loco being in a Railcom monitored block. 
 
-      To read from prog Track we use `<R cv>` response is `<r value>` 
+      To read from PROG Track we use `<R cv>` response is `<r value>` 
 
-      To read from main track use `<r loco cv>`
+      To read from MAIN track use `<r loco cv>`
         response is `<r loco cv value>`  
 
-
-Additional EXRAIL features in Railcom Branch:
-  - ESTAOPALL  stops all locos immediately
-  - XPOM(cab,cv,value) POM write cv to sepcific loco
-     (POM(cv,value) already writes cv to current loco)
      
