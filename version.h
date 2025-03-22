@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.19"
+#define VERSION "5.5.20"
+// 5.5.20 - EXRAIL SET/RESET assert fix  
 // 5.5.19 - Railcom change to use RailcomCollector device  
 // 5.5.18 - New STASH internals 
 //        - EXRAIL IFSTASH/CLEAR_ANY_STASH
