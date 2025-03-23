@@ -1,7 +1,6 @@
 /*
  *  © 2022 Chris Harlow
  *  © 2022-2024 Harald Barth
- *  © 2025 Herb Morton
  *  © 2023 Colin Murdoch
  * 
  *  All rights reserved.
@@ -67,7 +66,6 @@ class TrackManager {
   
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}
     static void setTrackPower(POWERMODE mode, byte t);
-    static void setTrackPowerF439ZI(byte t);
     static void setTrackPower(TRACK_MODE trackmode, POWERMODE powermode);
     static void setMainPower(POWERMODE mode) {setTrackPower(TRACK_MODE_MAIN, mode);}
     static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
@@ -89,7 +87,6 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
-    static void reportCurrentLCD(uint8_t display, byte row);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
@@ -108,7 +105,6 @@ class TrackManager {
   private:
 #endif
     static MotorDriver* track[MAX_TRACKS];
-    static int16_t tPwr_mA[8];             // for <JL ..> command
 
   private:
     static void addTrack(byte t, MotorDriver* driver);
