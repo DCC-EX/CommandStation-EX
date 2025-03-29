@@ -217,7 +217,7 @@
 #define BROADCAST(msg)
 #define CALL(route)
 #define CLEAR_STASH(id)
-#define CLEAR_ALL_STASH(id)
+#define CLEAR_ALL_STASH
 #define CLOSE(id)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
 #define DCC_SIGNAL(id,add,subaddr)
