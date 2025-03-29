@@ -153,11 +153,11 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
 }
 
 void CommandDistributor::broadcastAccessory(int16_t address, byte port, bool gate, bool on) {
-  broadcastReply(COMMAND_TYPE, F("<y a %d %d %c %c>\n"), address, port, gate?'1':'0', on?'1':'0');
+  broadcastReply(COMMAND_TYPE, F("<y A %d %d %c %c>\n"), address, port, gate?'1':'0', on?'1':'0');
 }
 
 void CommandDistributor::broadcastExtendedAccessory(int16_t address, int16_t value) {
-  broadcastReply(COMMAND_TYPE, F("<y A %d %d>\n"), address, value);
+  broadcastReply(COMMAND_TYPE, F("<y E %d %d>\n"), address, value);
 }
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
