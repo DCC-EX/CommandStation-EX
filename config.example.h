@@ -232,7 +232,7 @@ The configuration file for DCC-EX Command Station
 // DISABLE_DIAG
 //
 // #define DISABLE_DIAG
-// #define ENABLE_DIAG
+// #define ENABLE_DIAG  // Enable for JMRI DecoderPro Programming Stations
 
 /////////////////////////////////////////////////////////////////////////////////////
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
