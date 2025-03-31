@@ -82,12 +82,12 @@ bool DCCDecoder::parse(DCCPacket &p) {
     case 0x40: // 010x-xxxx 28 (or 14 step) speed we assume 28
     case 0x60: // 011x-xxxx
       if ((locoInfoChanged = LocoTable::updateLoco(addr, instr[0] & 0B00111111)) == true) {
-	byte speed = instr[1] & 0B00001111; // first only look at 4 bits
+	byte speed = instr[0] & 0B00001111; // first only look at 4 bits
 	if (speed > 1) {               // neither stop nor emergency stop, recalculate speed
-	  speed = ((instr[1] & 0B00001111) << 1) + bitRead(instr[1], 4); // reshuffle bits
+	  speed = ((instr[0] & 0B00001111) << 1) + bitRead(instr[0], 4); // reshuffle bits
 	  speed = (speed - 3) * 9/2;
 	}
-	byte direction = instr[1] & 0B00100000;
+	byte direction = instr[0] & 0B00100000;
 	DCC::setThrottle(addr, speed, direction);
       }
       break;
@@ -156,8 +156,8 @@ bool DCCDecoder::parse(DCCPacket &p) {
 	byte activate = (instr[0] & 0B00001000) >> 3;
 	byte coil = (instr[0] & 0B00000001);
 	locoInfoChanged = true;
-	(void)addr; (void)port; (void)coil; (void)activate;
-	DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
+	//(void)addr; (void)port; (void)coil; (void)activate;
+	//DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
 	DCC::setAccessory(addr, port, coil, activate);
       } else { // Accessory Extended NMRA spec, do we need to decode this?
 	/*
