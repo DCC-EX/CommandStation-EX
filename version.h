@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.6"
+#define VERSION "5.4.99"
+// 5.4.99 - Special version number for experiments
 // 5.4.6  - Bugfix: Do not drop further commands in same packet
 // 5.4.5  - ESP32: Better detection of correct IDF version
 //        - track power is always turned on after setJoin() not by setJoin()

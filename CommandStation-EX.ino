@@ -51,6 +51,10 @@
 
 #include "DCCEX.h"
 #include "Display_Implementation.h"
+#include "Sniffer.h"
+#include "DCCDecoder.h"
+Sniffer *dccSniffer = NULL;
+DCCDecoder *dccDecoder = NULL;
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -124,6 +128,8 @@ void setup()
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();
 
+  dccSniffer = new Sniffer(BOOSTER_INPUT);
+  dccDecoder = new DCCDecoder();
 
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.
   //  This can be used to create turnouts, outputs, sensors etc. through the normal text commands.
@@ -158,8 +164,45 @@ void looptimer(unsigned long timeout, const FSH* message)
   lasttimestamp = now;
 }
 *********************************************/
+void loopdiag(unsigned long timeout)
+{
+  static unsigned long lasttimestamp = 0;
+  unsigned long now = millis();
+  if (timeout != 0) {
+    unsigned long diff = now - lasttimestamp;
+    if (diff > timeout) {
+      if (dccSniffer){
+	uint64_t val = dccSniffer->getDebug();
+	int n = 64;
+	Serial.print("<* LOOPDIAG ");
+	while (n--) {
+	  Serial.print(val&(1ULL<<n)?"1":"0");
+	}
+	Serial.println(" >\n");
+/*
+	(dccSniffer->fetchPacket()).print(Serial);
+*/
+      }
+      lasttimestamp = millis();
+      return;
+    }
+  }
+//  lasttimestamp = now;
+}
 void loop()
 {
+  // Some debug for sniffer code
+  //loopdiag(937); // Do not use a value that does divide even in 80Mhz ticks
+  if (dccSniffer && dccDecoder) {
+    DCCPacket p = dccSniffer->fetchPacket();
+    if (p.len() != 0) {
+      if (dccDecoder->parse(p)) {
+	p.print(Serial);
+      }
+    }
+  }
+  digitalWrite(2,LOW);
+
   // The main sketch has responsibilities during loop()
 
   // Responsibility 1: Handle DCC background processes
