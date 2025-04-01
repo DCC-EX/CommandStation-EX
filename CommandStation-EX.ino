@@ -147,52 +147,8 @@ void setup()
   CommandDistributor::broadcastPower();
 }
 
-/**************** for future reference
-void looptimer(unsigned long timeout, const FSH* message)
-{
-  static unsigned long lasttimestamp = 0;
-  unsigned long now = micros();
-  if (timeout != 0) {
-    unsigned long diff = now - lasttimestamp;
-    if (diff > timeout) {
-      DIAG(message);
-      DIAG(F("DeltaT=%L"), diff);
-      lasttimestamp = micros();
-      return;
-    }
-  }
-  lasttimestamp = now;
-}
-*********************************************/
-void loopdiag(unsigned long timeout)
-{
-  static unsigned long lasttimestamp = 0;
-  unsigned long now = millis();
-  if (timeout != 0) {
-    unsigned long diff = now - lasttimestamp;
-    if (diff > timeout) {
-      if (dccSniffer){
-	uint64_t val = dccSniffer->getDebug();
-	int n = 64;
-	Serial.print("<* LOOPDIAG ");
-	while (n--) {
-	  Serial.print(val&(1ULL<<n)?"1":"0");
-	}
-	Serial.println(" >\n");
-/*
-	(dccSniffer->fetchPacket()).print(Serial);
-*/
-      }
-      lasttimestamp = millis();
-      return;
-    }
-  }
-//  lasttimestamp = now;
-}
 void loop()
 {
-  // Some debug for sniffer code
-  //loopdiag(937); // Do not use a value that does divide even in 80Mhz ticks
   if (dccSniffer && dccDecoder) {
     DCCPacket p = dccSniffer->fetchPacket();
     if (p.len() != 0) {
@@ -201,7 +157,6 @@ void loop()
       }
     }
   }
-  digitalWrite(2,LOW);
 
   // The main sketch has responsibilities during loop()
 
