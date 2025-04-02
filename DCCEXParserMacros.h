@@ -24,11 +24,11 @@
 #define Z8(op,_1,_2,_3,_4,_5,_6,_7) ZPREP(op,7) ZZZ(0,_1) ZZZ(1,_2) ZZZ(2,_3) ZZZ(3,_4) ZZZ(4,_5) ZZZ(5,_6) ZZZ(6,_7)
 
 #define ZRIP(count) CONCAT(Z,count)
-#define ZZ(...) ZRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__) matchedCommandFormat = F( #__VA_ARGS__);
+#define ZZ(...) ZRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__) DCCEXParser::matchedCommandFormat = F( #__VA_ARGS__);
  
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
-#define CHECK(x) if (!(x)) { checkFailedFormat=F(#x); return false;}
+#define CHECK(x) if (!(x)) { DCCEXParser::checkFailedFormat=F(#x); return false;}
 #define REPLY(format,...) StringFormatter::send(stream,F(format), ##__VA_ARGS__);
 #define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream))
 

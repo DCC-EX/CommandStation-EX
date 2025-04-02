@@ -40,10 +40,10 @@ struct DCCEXParser
    static void setCamParserFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
- 
-   private:
    static const FSH * matchedCommandFormat;
    static const FSH * checkFailedFormat;
+   
+   private:
    #ifdef DCC_ACCESSORY_COMMAND_REVERSE
    static const bool accessoryCommandReverse = true;
   #else    

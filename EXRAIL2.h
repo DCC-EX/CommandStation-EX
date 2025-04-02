@@ -214,8 +214,13 @@ class LookList {
    
 private: 
     static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
+    static bool parseCommands(Print * stream, byte opcode, byte params, int16_t p[]);
     static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
     static void streamFlags(Print* stream);
+    static void streamStatus(Print * stream);
+
+
+    static bool streamLCC(Print * stream);
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
