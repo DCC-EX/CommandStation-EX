@@ -314,7 +314,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     
     // Because of check above we are now inside byte size
     params = splitnum;
-
+    matchedCommandFormat = nullptr;
+    checkFailedFormat = nullptr;
+ 
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
     if (filterRMFTCallback && opcode!='\0')
@@ -324,21 +326,25 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     if (opcode=='\0') return; // filterCallback asked us to ignore
     
     
-    matchedCommandFormat = F("none");
-    checkFailedFormat = matchedCommandFormat;
     if (execute(com,stream, opcode, params, p, ringStream)) return;
 
-    // TODO magnificent diagnostics
-    StringFormatter::send(stream, F("<X>\n"));
-     DIAG(F("Command format <%<> failed CHECK(%S)"), matchedCommandFormat, checkFailedFormat);
-     if (opcode >= ' ' && opcode <= '~') {
-        DIAG(F("Opcode=%c params=%d"), opcode, params);
-        for (int i = 0; i < params; i++)
-            DIAG(F("p[%d]=%d (0x%x)"), i, p[i], p[i]);
-      } else {
-	        DIAG(F("Unprintable %x"), opcode);
-      }
+    StringFormatter::send(stream, F("<X>\n"));  // respond to caller with error
     
+    // Extended diagnostics
+    StringFormatter::send(USB_SERIAL, F("<*"));
+    if (matchedCommandFormat) {
+        // A command format was matched but a check failed
+        StringFormatter::send(USB_SERIAL,F(" Command format <%<> failed CHECK(%S)\n  <"), matchedCommandFormat, checkFailedFormat);
+    }
+    else  {
+        // No command format matched, so we have no idea what the command was
+        StringFormatter::send(USB_SERIAL,F(" Unrecognized command: <"));
+    }
+    if (opcode >= ' ' && opcode <= '~') StringFormatter::send(USB_SERIAL,F( "%c"), opcode);
+        else StringFormatter::send(USB_SERIAL,F("0x%x"), opcode);
+    
+    for (int i = 0; i < params; i++) StringFormatter::send(USB_SERIAL,F(" %d"),p[i]);
+    StringFormatter::send(USB_SERIAL,F("> *>\n"));
 }
 
 bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {

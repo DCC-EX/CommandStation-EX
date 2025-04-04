@@ -170,14 +170,12 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
     ZZ(A,address,aspect) // Aspect may intercept or be left for normal parse
                      return signalAspectEvent(address,aspect);
     ZZ(L)  //LCC adapter introducing self
-          CHECK(streamLCC(stream))
+          CHECK(streamLCC(stream),no LCC/CBUS events)
     ZZ(L,eventid)  // loop through all possible sent/waited events 
         CHECK(eventid>=0 && eventid<countLCCLookup)
         startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
     
-    ZZ(J,A)     REPLY("<jA")
-              routeLookup->stream(stream);
-              REPLY(">\n")
+    ZZ(J,A)     REPLY("<jA") routeLookup->stream(stream); REPLY(">\n")
     ZZ(J,A,id)  REPLY("<jA %d %c \"%S\">\n",id, getRouteType(id), getRouteDescription(id));             
               if (compileFeatures & FEATURE_ROUTESTATE) {
                 // Send any non-default button states or captions
@@ -213,12 +211,12 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
       }
   ZZ(/,START,route)
       auto pc=routeLookup->find(route);
-      CHECK(pc>=0)
+      CHECK(pc>=0,route not found)
       new RMFT2(pc,0); // no cab for route start
 
   ZZ(/,START,cab,route)
       auto pc=routeLookup->find(route);
-      CHECK(pc>=0)
+      CHECK(pc>=0, route not found)
       new RMFT2(pc,cab); // no cab for route start
  
   ZZ(/,KILL,ALL) while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
@@ -236,10 +234,10 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
 	      if (task==loopTask) break;
       }
     CHECK(found);
-  ZZ(/,RESERVE,section)  CHECK(setFlag(section,SECTION_FLAG))
-  ZZ(/,FREE,section)  CHECK(setFlag(section,0,SECTION_FLAG))
-  ZZ(/,LATCH,latch) CHECK(setFlag(latch,LATCH_FLAG))
-  ZZ(/,UNLATCH,latch) CHECK(setFlag(latch,0,LATCH_FLAG))
+  ZZ(/,RESERVE,section)  CHECK(setFlag(section,SECTION_FLAG),invalid section)
+  ZZ(/,FREE,section)  CHECK(setFlag(section,0,SECTION_FLAG),invalid section)
+  ZZ(/,LATCH,latch) CHECK(setFlag(latch,LATCH_FLAG),invalid section)
+  ZZ(/,UNLATCH,latch) CHECK(setFlag(latch,0,LATCH_FLAG),invalid section)
   ZZ(/,RED,signal)   doSignal(signal,SIGNAL_RED);
   ZZ(/,AMBER,signal) doSignal(signal,SIGNAL_AMBER);
   ZZ(/,GREEN,signal) doSignal(signal,SIGNAL_GREEN);

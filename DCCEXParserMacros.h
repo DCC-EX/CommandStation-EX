@@ -28,7 +28,8 @@
  
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
-#define CHECK(x) if (!(x)) { DCCEXParser::checkFailedFormat=F(#x); return false;}
+//#define CHECK(x) if (!(x)) { DCCEXParser::checkFailedFormat=F(#x); return false;}
+#define CHECK(x,...) if (!(x)) { DCCEXParser::checkFailedFormat=#__VA_ARGS__[0]?F(#__VA_ARGS__):F(#x); return false;}
 #define REPLY(format,...) StringFormatter::send(stream,F(format), ##__VA_ARGS__);
 #define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream))
 

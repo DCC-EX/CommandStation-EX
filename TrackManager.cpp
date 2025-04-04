@@ -199,7 +199,8 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
 }    
 
 bool TrackManager::orTrackMode(byte trackToSet, TRACK_MODE mode) {
-   return setTrackMode(trackToSet, track[trackToSet]->getMode() | mode);
+  if (trackToSet>='A' && trackToSet<='H') trackToSet-='A';   
+  return setTrackMode(trackToSet, track[trackToSet]->getMode() | mode);
 }
 
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
