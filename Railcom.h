@@ -1,5 +1,5 @@
 /*
- *  © 2024 Chris Harlow
+ *  © 202 5Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX
@@ -26,28 +26,15 @@ typedef void (*ACK_CALLBACK)(int16_t result);
 
 class Railcom {
   public:
-    Railcom(uint16_t vpin);
-
-    /* Process returns -1: Call again next packet
-                0: No loco on track
-               >0: loco id
-    */
-  void process(uint8_t * inbound,uint8_t length);
-  static void anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback);
-  
+    static void anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback);
+    static void process(int16_t firstVpin,byte * buffer, byte length );
+    static void loop();
   private:
-  static bool hasActiveDetectors;
-  static const unsigned long POM_READ_TIMEOUT=500; // as per spec
-  static uint16_t expectCV,expectLoco;
-  static unsigned long expectWait;
-  static ACK_CALLBACK expectCallback;
-  void noData();
-  uint16_t vpin;
- uint8_t holdoverHigh,holdoverLow;
- bool haveHigh,haveLow; 
- uint8_t packetsWithNoData; 
- uint16_t lastChannel1Loco; 
- static const byte MAX_WAIT_FOR_GLITCH=20; // number of dead or empty packets before assuming loco=0 
+    static const unsigned long POM_READ_TIMEOUT=500; // as per spec
+    static uint16_t expectCV,expectLoco;
+    static unsigned long expectWait;
+    static ACK_CALLBACK expectCallback;
+    static const byte MAX_WAIT_FOR_GLITCH=20; // number of dead or empty packets before assuming loco=0 
 };
 
 #endif

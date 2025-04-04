@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.18"
+#define VERSION "5.5.21"
+// 5.5.21 - Backed out the broken merge with frequency change and 
+// 5.5.20 - EXRAIL SET/RESET assert fix  
+// 5.5.19 - Railcom change to use RailcomCollector device  
 // 5.5.18 - New STASH internals 
 //        - EXRAIL IFSTASH/CLEAR_ANY_STASH
 //        - <JM CLEAR ANY id> to clear any stash with loco id
