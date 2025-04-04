@@ -163,35 +163,41 @@ return true;
 
 bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[]) {
 
-  ZZBEGIN
-    ZZ(D,EXRAIL,ON) diag=1; // <D EXRAIL ON>  - turn on diagnostics
-    ZZ(D,EXRAIL,OFF) diag=0; // <D EXRAIL OFF> - turn off diagnostics 
-    ZZ(D,EXRAIL,onoff) diag=onoff;
-    ZZ(A,address,aspect) // Aspect may intercept or be left for normal parse
-                     return signalAspectEvent(address,aspect);
-    ZZ(L)  //LCC adapter introducing self
-          CHECK(streamLCC(stream),no LCC/CBUS events)
-    ZZ(L,eventid)  // loop through all possible sent/waited events 
-        CHECK(eventid>=0 && eventid<countLCCLookup)
-        startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
-    
-    ZZ(J,A)     REPLY("<jA") routeLookup->stream(stream); REPLY(">\n")
-    ZZ(J,A,id)  REPLY("<jA %d %c \"%S\">\n",id, getRouteType(id), getRouteDescription(id));             
-              if (compileFeatures & FEATURE_ROUTESTATE) {
-                // Send any non-default button states or captions
-                int16_t statePos=routeLookup->findPosition(id);
-                if (statePos>=0) {
-                  if (routeStateArray[statePos]) 
-                    REPLY("<jB %d %d>\n", id, routeStateArray[statePos]);
-                  if (routeCaptionArray[statePos]) 
-                    REPLY("<jB %d \"%S\">\n", id,routeCaptionArray[statePos]);
-                }
-              }
-    ZZ(K,blockid,loco) blockEvent(blockid,loco,true);
-    ZZ(k,blockid,loco) blockEvent(blockid,loco,false);
-    ZZ(/) streamStatus(stream);
-    ZZ(/,PAUSE) 
-      // pause all tasks 
+ZZBEGIN
+ZZ(D,EXRAIL,ON) // EXRAIL diagnostics on
+      diag=1; 
+ZZ(D,EXRAIL,OFF) // EXRAIL doagnostics off
+      diag=0; // <D EXRAIL OFF> - turn off diagnostics 
+
+// This is not documented here because its an override of the one in DCCEXParserCommands.h      
+ZZ_nodoc(A,address,aspect) // Send DCC extended accessory (aspect) and syncronize any signal on this address
+      return signalAspectEvent(address,aspect);
+ZZ(L)  // LCC/CBUS adapter introducing self
+    CHECK(streamLCC(stream),no LCC/CBUS events)
+ZZ(L,eventid)  // LCC incoming event 
+      CHECK(eventid>=0 && eventid<countLCCLookup)
+      startNonRecursiveTask(F("LCC"),eventid,onLCCLookup[eventid]);
+ 
+ZZ(J,A) // List automation ids
+    REPLY("<jA") routeLookup->stream(stream); REPLY(">\n")
+ZZ(J,A,id) // list automation details
+    REPLY("<jA %d %c \"%S\">\n",id, getRouteType(id), getRouteDescription(id));             
+    if (compileFeatures & FEATURE_ROUTESTATE) {
+      // Send any non-default button states or captions
+      int16_t statePos=routeLookup->findPosition(id);
+      if (statePos>=0) {
+        if (routeStateArray[statePos]) REPLY("<jB %d %d>\n", id, routeStateArray[statePos]);
+        if (routeCaptionArray[statePos]) REPLY("<jB %d \"%S\">\n", id,routeCaptionArray[statePos]);
+      }
+    }
+ZZ(K,blockid,loco) //  Loco entering Block
+      blockEvent(blockid,loco,true);
+ZZ(k,blockid,loco) // Loco exiting block
+      blockEvent(blockid,loco,false);
+
+ZZ(/) // Stream EXRAIL status
+      streamStatus(stream);
+ZZ(/,PAUSE) // pause all tasks 
       RMFT2 * task=loopTask;
       while(task) {
 	      task->pause();
@@ -201,7 +207,7 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
       DCC::estopAll();  // pause all locos on the track
       pausingTask=(RMFT2 *)1; // Impossible task address
   
-    ZZ(/,RESUME)
+ZZ(/,RESUME)  // Resume all tasks
       pausingTask=NULL;
       RMFT2 * task=loopTask;
       while(task) {
@@ -209,18 +215,20 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
 	      task=task->next;
 	      if (task==loopTask) break;
       }
-  ZZ(/,START,route)
+
+ZZ(/,START,route)  // Start a route or sequence
       auto pc=routeLookup->find(route);
       CHECK(pc>=0,route not found)
       new RMFT2(pc,0); // no cab for route start
 
-  ZZ(/,START,cab,route)
+ZZ(/,START,loco,route)  // Start an AUTOMATION or sequence with a loco 
       auto pc=routeLookup->find(route);
       CHECK(pc>=0, route not found)
-      new RMFT2(pc,cab); // no cab for route start
+      new RMFT2(pc,loco);
  
-  ZZ(/,KILL,ALL) while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
-  ZZ(/,KILL,taskid) 
+ZZ(/,KILL,ALL) // Kill all exrail tasks
+      while (loopTask) loopTask->kill(F("KILL ALL")); // destructor changes loopTask
+ZZ(/,KILL,taskid) // Kill specific exrail tasks  
     CHECK(taskid>=0 && taskid<MAX_FLAGS)
     auto task=loopTask;
     bool found=false;
@@ -233,13 +241,20 @@ bool RMFT2::parseCommands(Print * stream, byte opcode, byte params, int16_t p[])
 	      task=task->next;
 	      if (task==loopTask) break;
       }
-    CHECK(found);
-  ZZ(/,RESERVE,section)  CHECK(setFlag(section,SECTION_FLAG),invalid section)
-  ZZ(/,FREE,section)  CHECK(setFlag(section,0,SECTION_FLAG),invalid section)
-  ZZ(/,LATCH,latch) CHECK(setFlag(latch,LATCH_FLAG),invalid section)
-  ZZ(/,UNLATCH,latch) CHECK(setFlag(latch,0,LATCH_FLAG),invalid section)
-  ZZ(/,RED,signal)   doSignal(signal,SIGNAL_RED);
-  ZZ(/,AMBER,signal) doSignal(signal,SIGNAL_AMBER);
-  ZZ(/,GREEN,signal) doSignal(signal,SIGNAL_GREEN);
+    CHECK(found, task not found)
+ZZ(/,RESERVE,section) // Flag section as reserved
+    CHECK(setFlag(section,SECTION_FLAG),invalid section)
+ZZ(/,FREE,section) // Free reserve on section
+    CHECK(setFlag(section,0,SECTION_FLAG),invalid section)
+ZZ(/,LATCH,latch) // Set pin latch
+  CHECK(setFlag(latch,LATCH_FLAG),invalid section)
+ZZ(/,UNLATCH,latch) // Removeve pin latch
+  CHECK(setFlag(latch,0,LATCH_FLAG),invalid section)
+ZZ(/,RED,signal) // Set signal to Red 
+   doSignal(signal,SIGNAL_RED);
+ZZ(/,AMBER,signal) // set Signal to Amber
+  doSignal(signal,SIGNAL_AMBER);
+ZZ(/,GREEN,signal) // Set signal to Green  
+  doSignal(signal,SIGNAL_GREEN);
 ZZEND
 }

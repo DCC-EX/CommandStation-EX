@@ -117,8 +117,7 @@ These macros are included into the DCCEXParser::execute function so
 
 // helper macro to check track letter
 #define CHECKTRACK CHECK(track>='A' && track<='H', Invalid track A..H)
-// helper macro to hide command from documentation extractor
-#define ZZ_nodoc ZZ
+
 
 ZZBEGIN
 ZZ(#) // Request number of simultaneously supported locos
