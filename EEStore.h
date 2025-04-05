@@ -4,7 +4,7 @@
  *  © 2020-2021 Harald Barth
  *  © 2020 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -35,15 +35,15 @@ extern ExternalEEPROM EEPROM;
 
 #define EESTORE_ID "DCC++1"
 
-struct EEStoreData{
+struct EEStoreData {
   char id[sizeof(EESTORE_ID)];
   uint16_t nTurnouts;
   uint16_t nSensors;
   uint16_t nOutputs;
 };
 
-struct EEStore{
-  static EEStore *eeStore;
+struct EEStore {
+  static EEStore* eeStore;
   EEStoreData data;
   static int eeAddress;
   static void init();
@@ -56,4 +56,4 @@ struct EEStore{
 };
 
 #endif
-#endif // DISABLE_EEPROM
+#endif  // DISABLE_EEPROM

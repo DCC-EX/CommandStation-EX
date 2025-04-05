@@ -22,7 +22,7 @@
 
 #include <Arduino.h>
 #include "I2CManager.h"
-#include "I2CManager_NonBlocking.h"   // to satisfy intellisense
+#include "I2CManager_NonBlocking.h"  // to satisfy intellisense
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -30,31 +30,31 @@
 /****************************************************************************
   TWI State codes
 ****************************************************************************/
-// General TWI Master staus codes                      
-#define TWI_START                  0x08  // START has been transmitted  
-#define TWI_REP_START              0x10  // Repeated START has been transmitted
-#define TWI_ARB_LOST               0x38  // Arbitration lost
+// General TWI Master staus codes
+#define TWI_START 0x08      // START has been transmitted
+#define TWI_REP_START 0x10  // Repeated START has been transmitted
+#define TWI_ARB_LOST 0x38   // Arbitration lost
 
-// TWI Master Transmitter staus codes                      
-#define TWI_MTX_ADR_ACK            0x18  // SLA+W has been tramsmitted and ACK received
-#define TWI_MTX_ADR_NACK           0x20  // SLA+W has been tramsmitted and NACK received 
-#define TWI_MTX_DATA_ACK           0x28  // Data byte has been tramsmitted and ACK received
-#define TWI_MTX_DATA_NACK          0x30  // Data byte has been tramsmitted and NACK received 
+// TWI Master Transmitter staus codes
+#define TWI_MTX_ADR_ACK 0x18    // SLA+W has been tramsmitted and ACK received
+#define TWI_MTX_ADR_NACK 0x20   // SLA+W has been tramsmitted and NACK received
+#define TWI_MTX_DATA_ACK 0x28   // Data byte has been tramsmitted and ACK received
+#define TWI_MTX_DATA_NACK 0x30  // Data byte has been tramsmitted and NACK received
 
-// TWI Master Receiver staus codes  
-#define TWI_MRX_ADR_ACK            0x40  // SLA+R has been tramsmitted and ACK received
-#define TWI_MRX_ADR_NACK           0x48  // SLA+R has been tramsmitted and NACK received
-#define TWI_MRX_DATA_ACK           0x50  // Data byte has been received and ACK tramsmitted
-#define TWI_MRX_DATA_NACK          0x58  // Data byte has been received and NACK tramsmitted
+// TWI Master Receiver staus codes
+#define TWI_MRX_ADR_ACK 0x40    // SLA+R has been tramsmitted and ACK received
+#define TWI_MRX_ADR_NACK 0x48   // SLA+R has been tramsmitted and NACK received
+#define TWI_MRX_DATA_ACK 0x50   // Data byte has been received and ACK tramsmitted
+#define TWI_MRX_DATA_NACK 0x58  // Data byte has been received and NACK tramsmitted
 
 // TWI Miscellaneous status codes
-#define TWI_NO_STATE               0xF8  // No relevant state information available
-#define TWI_BUS_ERROR              0x00  // Bus error due to an illegal START or STOP condition
+#define TWI_NO_STATE 0xF8   // No relevant state information available
+#define TWI_BUS_ERROR 0x00  // Bus error due to an illegal START or STOP condition
 
-#define TWI_TWBR  ((F_CPU / I2C_FREQ) - 16) / 2 // TWI Bit rate Register setting.
+#define TWI_TWBR ((F_CPU / I2C_FREQ) - 16) / 2  // TWI Bit rate Register setting.
 
 #if defined(I2C_USE_INTERRUPTS)
-#define ENABLE_TWI_INTERRUPT (1<<TWIE)
+#define ENABLE_TWI_INTERRUPT (1 << TWIE)
 #else
 #define ENABLE_TWI_INTERRUPT 0
 #endif
@@ -64,12 +64,12 @@
  ***************************************************************************/
 void I2CManagerClass::I2C_setClock(unsigned long i2cClockSpeed) {
   unsigned long temp = ((F_CPU / i2cClockSpeed) - 16) / 2;
-  for (uint8_t preScaler = 0; preScaler<=3; preScaler++) {
+  for (uint8_t preScaler = 0; preScaler <= 3; preScaler++) {
     if (temp <= 255) {
       TWBR = temp;
       TWSR = (TWSR & 0xfc) | preScaler;
       return;
-    } else 
+    } else
       temp /= 4;
   }
   // Set slowest speed ~= 500 bits/sec
@@ -80,13 +80,12 @@ void I2CManagerClass::I2C_setClock(unsigned long i2cClockSpeed) {
 /***************************************************************************
  *  Initialise I2C registers.
  ***************************************************************************/
-void I2CManagerClass::I2C_init()
-{
+void I2CManagerClass::I2C_init() {
   TWSR = 0;
-  TWBR = TWI_TWBR;                                  // Set bit rate register (Baudrate). Defined in header file.
-  TWDR = 0xFF;                                      // Default content = SDA released.
-  TWCR = (1<<TWINT);                                // Clear interrupt flag
- 
+  TWBR = TWI_TWBR;      // Set bit rate register (Baudrate). Defined in header file.
+  TWDR = 0xFF;          // Default content = SDA released.
+  TWCR = (1 << TWINT);  // Clear interrupt flag
+
   pinMode(SDA, INPUT_PULLUP);
   pinMode(SCL, INPUT_PULLUP);
 }
@@ -100,16 +99,15 @@ void I2CManagerClass::I2C_sendStart() {
   // We may have already triggered a stop bit in the same run as this.  To avoid
   // clearing that bit before the stop bit has been sent, we can either wait for
   // it to complete or we can OR the bit onto the existing bits.
-  TWCR |= (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA)|(1<<TWSTA);  // Send Start
-
+  TWCR |= (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT) | (1 << TWEA) | (1 << TWSTA);  // Send Start
 }
 
 /***************************************************************************
  *  Initiate a stop bit for transmission (does not interrupt)
  ***************************************************************************/
 void I2CManagerClass::I2C_sendStop() {
-  TWDR = 0xff;  // Default condition = SDA released
-  TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWSTO);  // Send Stop
+  TWDR = 0xff;                                       // Default condition = SDA released
+  TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWSTO);  // Send Stop
 }
 
 /***************************************************************************
@@ -117,7 +115,7 @@ void I2CManagerClass::I2C_sendStop() {
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
   // disable TWI
-  TWCR = (1<<TWINT);                 // clear any interrupt and stop twi.
+  TWCR = (1 << TWINT);    // clear any interrupt and stop twi.
   delayMicroseconds(10);  // Wait for things to stabilise (hopefully)
 }
 
@@ -128,10 +126,10 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 
 void I2CManagerClass::I2C_handleInterrupt() {
-  if (!(TWCR & (1<<TWINT))) return;  // Nothing to do.
+  if (!(TWCR & (1 << TWINT)))
+    return;  // Nothing to do.
 
   uint8_t twsr = TWSR & 0xF8;
-
 
   // Main I2C interrupt handler, used for the device communications.
   // The following variables are used:
@@ -141,81 +139,81 @@ void I2CManagerClass::I2C_handleInterrupt() {
   //    sendBuffer, receiveBuffer (R)
   //    operation (R)
   //    state, completionStatus (W)
-  // 
+  //
   // Cases are ordered so that the most frequently used ones are tested first.
   switch (twsr) {
-    case TWI_MTX_DATA_ACK:      // Data byte has been transmitted and ACK received
-    case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
-      if (bytesToSend) {  // Send first.
+    case TWI_MTX_DATA_ACK:  // Data byte has been transmitted and ACK received
+    case TWI_MTX_ADR_ACK:   // SLA+W has been transmitted and ACK received
+      if (bytesToSend) {    // Send first.
         if (operation == OPERATION_SEND_P)
           TWDR = GETFLASH(sendBuffer + (txCount++));
         else
           TWDR = sendBuffer[txCount++];
         bytesToSend--;
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT);
+        TWCR = (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT);
       } else if (bytesToReceive) {  // All sent, anything to receive?
         // Don't need to wait for stop, as the interface won't send the start until
         // any in-progress stop condition from previous interrupts has been sent.
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWSTA);  // Send Start
-      } else {  
-         // Nothing left to send or receive
-        TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
+        TWCR = (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT) | (1 << TWSTA);  // Send Start
+      } else {
+        // Nothing left to send or receive
+        TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA) | (1 << TWSTO);  // Send Stop
         state = I2C_STATE_COMPLETED;
       }
       break;
 
-    case TWI_MRX_DATA_ACK:      // Data byte has been received and ACK transmitted
+    case TWI_MRX_DATA_ACK:  // Data byte has been received and ACK transmitted
       if (bytesToReceive > 0) {
         receiveBuffer[rxCount++] = TWDR;
         bytesToReceive--;
       }
       /* fallthrough */
 
-    case TWI_MRX_ADR_ACK:      // SLA+R has been sent and ACK received
+    case TWI_MRX_ADR_ACK:  // SLA+R has been sent and ACK received
       if (bytesToReceive <= 1) {
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT); // Send NACK after next reception
+        TWCR = (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT);  // Send NACK after next reception
       } else {
         // send ack
-        TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
+        TWCR = (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT) | (1 << TWEA);
       }
       break;
 
-    case TWI_MRX_DATA_NACK:     // Data byte has been received and NACK transmitted
+    case TWI_MRX_DATA_NACK:  // Data byte has been received and NACK transmitted
       if (bytesToReceive > 0) {
         receiveBuffer[rxCount++] = TWDR;
         bytesToReceive--;
       }
-      TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
+      TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA) | (1 << TWSTO);  // Send Stop
       state = I2C_STATE_COMPLETED;
       break;
 
-    case TWI_START:             // START has been transmitted  
-    case TWI_REP_START:         // Repeated START has been transmitted
+    case TWI_START:      // START has been transmitted
+    case TWI_REP_START:  // Repeated START has been transmitted
       // Set up address and R/W
-      if (operation == OPERATION_READ || (operation==OPERATION_REQUEST && !bytesToSend))
-        TWDR = (deviceAddress << 1) | 1; // SLA+R
+      if (operation == OPERATION_READ || (operation == OPERATION_REQUEST && !bytesToSend))
+        TWDR = (deviceAddress << 1) | 1;  // SLA+R
       else
-        TWDR = (deviceAddress << 1) | 0; // SLA+W
-      TWCR = (1<<TWEN)|ENABLE_TWI_INTERRUPT|(1<<TWINT)|(1<<TWEA);
+        TWDR = (deviceAddress << 1) | 0;  // SLA+W
+      TWCR = (1 << TWEN) | ENABLE_TWI_INTERRUPT | (1 << TWINT) | (1 << TWEA);
       break;
 
-    case TWI_MTX_ADR_NACK:      // SLA+W has been transmitted and NACK received
-    case TWI_MRX_ADR_NACK:      // SLA+R has been transmitted and NACK received
-    case TWI_MTX_DATA_NACK:     // Data byte has been transmitted and NACK received
-      TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
+    case TWI_MTX_ADR_NACK:                                             // SLA+W has been transmitted and NACK received
+    case TWI_MRX_ADR_NACK:                                             // SLA+R has been transmitted and NACK received
+    case TWI_MTX_DATA_NACK:                                            // Data byte has been transmitted and NACK received
+      TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA) | (1 << TWSTO);  // Send Stop
       completionStatus = I2C_STATUS_NEGATIVE_ACKNOWLEDGE;
       state = I2C_STATE_COMPLETED;
       break;
 
-    case TWI_ARB_LOST:          // Arbitration lost
+    case TWI_ARB_LOST:  // Arbitration lost
       // Restart transaction from start.
       I2C_sendStart();
       break;
 
-    case TWI_BUS_ERROR:         // Bus error due to an illegal START or STOP condition
+    case TWI_BUS_ERROR:  // Bus error due to an illegal START or STOP condition
     default:
-      TWDR = 0xff;  // Default condition = SDA released
-      TWCR = (1<<TWEN)|(1<<TWINT)|(1<<TWEA)|(1<<TWSTO);  // Send Stop
+      TWDR = 0xff;                                                     // Default condition = SDA released
+      TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA) | (1 << TWSTO);  // Send Stop
       completionStatus = I2C_STATUS_TRANSMIT_ERROR;
       state = I2C_STATE_COMPLETED;
   }

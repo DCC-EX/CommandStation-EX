@@ -24,27 +24,27 @@
 
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE)
-#define MAX_MSG_SIZE 20 
+#define MAX_MSG_SIZE 20
 #endif
 
 // Set default scroll mode (overridable in config.h)
-#if !defined(SCROLLMODE) 
+#if !defined(SCROLLMODE)
 #define SCROLLMODE 1
 #endif
 
 // This class is created in Display_Implementation.h
 
 class Display : public DisplayInterface {
-public:
-  Display(DisplayDevice *deviceDriver);
-#if !defined (MAX_CHARACTER_ROWS)
+ public:
+  Display(DisplayDevice* deviceDriver);
+#if !defined(MAX_CHARACTER_ROWS)
   static const int MAX_CHARACTER_ROWS = 8;
 #endif
   static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
   static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds
 
-private:
-  DisplayDevice *_deviceDriver;
+ private:
+  DisplayDevice* _deviceDriver;
 
   unsigned long lastScrollTime = 0;
   uint8_t hotRow = 0;
@@ -59,21 +59,20 @@ private:
   uint16_t numScreenRows;
   uint16_t numScreenColumns = MAX_CHARACTER_COLS;
 
-  char rowBuffer[MAX_CHARACTER_ROWS][MAX_CHARACTER_COLS+1];
+  char rowBuffer[MAX_CHARACTER_ROWS][MAX_CHARACTER_COLS + 1];
 
-public:
-  void begin() override;  
+ public:
+  void begin() override;
   void _clear() override;
   void _setRow(uint8_t line) override;
   size_t _write(uint8_t b) override;
   void _refresh() override;
   void _displayLoop() override;
-  Display *loop2(bool force);
+  Display* loop2(bool force);
   bool findNonBlankRow();
   bool isCurrentRowBlank();
   void moveToNextRow();
   uint8_t countNonBlankRows();
-
 };
 
 #endif

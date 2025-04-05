@@ -15,39 +15,37 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 /*
-* The IO_EncoderThrottle device driver uses a rotary encoder connected to vpins
-* to drive a loco.
-*  Loco id is selected by writeAnalog.
-*/
+ * The IO_EncoderThrottle device driver uses a rotary encoder connected to vpins
+ * to drive a loco.
+ *  Loco id is selected by writeAnalog.
+ */
 
 #ifndef IO_EncoderThrottle_H
 #define IO_EncoderThrottle_H
 #include "IODevice.h"
 
 class EncoderThrottle : public IODevice {
-public:
-  
-  static void create(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch=10);
- 
-private:
-  int _dtPin,_clkPin,_clickPin, _locoid, _notch,_prevpinstate; 
-  enum {xrSTOP,xrFWD,xrREV} _stopState;
-  byte _rocoState;  
+ public:
+  static void create(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch = 10);
+
+ private:
+  int _dtPin, _clkPin, _clickPin, _locoid, _notch, _prevpinstate;
+  enum { xrSTOP, xrFWD, xrREV } _stopState;
+  byte _rocoState;
 
   // Constructor
   EncoderThrottle(VPIN firstVpin, int dtPin, int clkPin, int clickPin, byte notch);
-  
-  void _loop(unsigned long currentMicros) override ;
+
+  void _loop(unsigned long currentMicros) override;
 
   // Selocoid as analog value to start drive
   // use <z vpin locoid [notch]>
   void _writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) override;
-  
-  void _display() override ;
 
- };
+  void _display() override;
+};
 
 #endif

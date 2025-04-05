@@ -1,6 +1,6 @@
 /*
  *  © 2021, Neil McKechnie. All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -48,20 +48,20 @@
  * Note: The timing accuracy required for measuring the pulse length means that
  * the pins have to be direct Arduino pins; GPIO pins on an IO Extender cannot
  * provide the required accuracy.
- * 
+ *
  * Example configuration:
  *  HCSR04::create(23000, 32, 33, 80, 85);
- * 
+ *
  * Where 23000 is the VPIN allocated,
  *       32 is the pin connected to the HCSR04 trigger terminal,
  *       33 is the pin connected to the HCSR04 echo terminal,
  *       80 is the distance in cm below which pin 23000 will be active,
  *   and 85 is the distance in cm above which pin 23000 will be inactive.
- * 
+ *
  * Alternative configuration, which hogs the processor until the measurement is complete
  * (old behaviour, more accurate but higher impact on other CS tasks):
  *  HCSR04::create(23000, 32, 33, 80, 85, HCSR04::LOOP);
- * 
+ *
  */
 
 #ifndef IO_HCSR04_H
@@ -70,45 +70,44 @@
 #include "IODevice.h"
 
 class HCSR04 : public IODevice {
-
-private:
+ private:
   // pins must be arduino GPIO pins, not extender pins or HAL pins.
   int _trigPin = -1;
   int _echoPin = -1;
   // Thresholds for setting active _state in cm.
-  uint8_t _onThreshold;  // cm
-  uint8_t _offThreshold; // cm
+  uint8_t _onThreshold;   // cm
+  uint8_t _offThreshold;  // cm
   // Last measured distance in cm.
   uint16_t _distance;
-  // Active=1/inactive=0 _state 
+  // Active=1/inactive=0 _state
   uint8_t _value = 0;
   // Factor for calculating the distance (cm) from echo time (us).
   //  Based on a speed of sound of 345 metres/second.
-  const uint16_t factor = 58; // us/cm
+  const uint16_t factor = 58;  // us/cm
   // Limit the time spent looping by dropping out when the expected
   // worst case threshold value is greater than an arbitrary value.
-  const uint16_t maxPermittedLoopTime = 10 * factor; // max in us
+  const uint16_t maxPermittedLoopTime = 10 * factor;  // max in us
   unsigned long _startTime = 0;
   unsigned long _maxTime = 0;
-  enum {DORMANT, MEASURING}; // _state values
+  enum { DORMANT, MEASURING };  // _state values
   uint8_t _state = DORMANT;
   uint8_t _counter = 0;
   uint16_t _options = 0;
 
-public:
+ public:
   enum Options {
     LOOP = 1,  // Option HCSR04::LOOP reinstates old behaviour, i.e. complete measurement in one loop entry.
   };
- 
+
   // Static create function provides alternative way to create object
   static void create(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold, uint16_t options = 0) {
     if (checkNoOverlap(vpin))
-        new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold, options);
+      new HCSR04(vpin, trigPin, echoPin, onThreshold, offThreshold, options);
   }
 
-protected:
+ protected:
   // Constructor performs static initialisation of the device object
-  HCSR04 (VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold, uint16_t options) {
+  HCSR04(VPIN vpin, int trigPin, int echoPin, uint16_t onThreshold, uint16_t offThreshold, uint16_t options) {
     _firstVpin = vpin;
     _nPins = 1;
     _trigPin = trigPin;
@@ -118,7 +117,7 @@ protected:
     _options = options;
     addDevice(this);
   }
- // _begin function called to perform dynamic initialisation of the device
+  // _begin function called to perform dynamic initialisation of the device
   void _begin() override {
     _state = 0;
     pinMode(_trigPin, OUTPUT);
@@ -136,17 +135,18 @@ protected:
   }
 
   int _readAnalogue(VPIN vpin) override {
-    (void)vpin; // avoid compiler warning
+    (void)vpin;  // avoid compiler warning
     return _distance;
   }
 
   // _loop function - read HC-SR04 once every 100 milliseconds.
   void _loop(unsigned long currentMicros) override {
     unsigned long waitTime;
-    switch(_state) {
-      case DORMANT: // Issue pulse
+    switch (_state) {
+      case DORMANT:  // Issue pulse
         // If receive pin is still set on from previous call, do nothing till next entry.
-        if (ArduinoPins::fastReadDigital(_echoPin)) return;
+        if (ArduinoPins::fastReadDigital(_echoPin))
+          return;
 
         // Send 10us pulse to trigger transmitter
         ArduinoPins::fastWriteDigital(_trigPin, 1);
@@ -154,7 +154,7 @@ protected:
         ArduinoPins::fastWriteDigital(_trigPin, 0);
 
         // Wait, with timeout, for echo pin to become set.
-        // Measured time delay is just under 500us, so 
+        // Measured time delay is just under 500us, so
         // wait for max of 1000us.
         _startTime = micros();
         _maxTime = 1000;
@@ -173,16 +173,17 @@ protected:
         _startTime = micros();
         _maxTime = factor * _offThreshold;
         _state = MEASURING;
-        // If maximum measurement time is high, then skip until next loop entry before 
+        // If maximum measurement time is high, then skip until next loop entry before
         // starting to look for pulse end.
-        // This gives better accuracy at shorter distance thresholds but without extending 
+        // This gives better accuracy at shorter distance thresholds but without extending
         // loop execution time for longer thresholds.  If LOOP option is set on, then
         // the entire measurement will be done in one loop entry, i.e. the code will fall
         // through into the measuring phase.
-        if (!(_options & LOOP) && _maxTime > maxPermittedLoopTime) break;
+        if (!(_options & LOOP) && _maxTime > maxPermittedLoopTime)
+          break;
         /* fallthrough */
 
-      case MEASURING: // Check if echo pulse has finished
+      case MEASURING:  // Check if echo pulse has finished
         do {
           waitTime = micros() - _startTime;
           if (!ArduinoPins::fastReadDigital(_echoPin)) {
@@ -194,12 +195,12 @@ protected:
               // But if the new distance value is longer, then it may be erroneously long
               // (because of extended loop times delays), so apply a delay to distance increases.
               uint16_t estimatedDistance = waitTime / factor;
-              if (estimatedDistance < _distance) 
+              if (estimatedDistance < _distance)
                 _distance = estimatedDistance;
               else
                 _distance += 1;  // Just increase distance slowly.
               _counter = 0;
-              //DIAG(F("HCSR04: Pulse Len=%l Distance=%d"), waitTime, _distance);
+              // DIAG(F("HCSR04: Pulse Len=%l Distance=%d"), waitTime, _distance);
             }
             _state = DORMANT;
           } else {
@@ -216,28 +217,26 @@ protected:
                   _counter = 0;
                 }
               }
-              _state = DORMANT; // start again
+              _state = DORMANT;  // start again
             }
           }
           // If there's lots of time remaining before the expected completion time,
           // then exit and wait for next loop entry.  Otherwise, loop until we finish.
           // If option LOOP is set, then we loop until finished anyway.
           uint32_t remainingTime = _maxTime - waitTime;
-          if (!(_options & LOOP) && remainingTime < maxPermittedLoopTime) return;
-        } while (_state == MEASURING) ;
+          if (!(_options & LOOP) && remainingTime < maxPermittedLoopTime)
+            return;
+        } while (_state == MEASURING);
         break;
     }
     // Datasheet recommends a wait of at least 60ms between measurement cycles
     if (_state == DORMANT)
-      delayUntil(currentMicros+60000UL); // wait 60ms till next measurement
-
+      delayUntil(currentMicros + 60000UL);  // wait 60ms till next measurement
   }
 
   void _display() override {
-    DIAG(F("HCSR04 Configured on VPIN:%u TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"),
-      _firstVpin, _trigPin, _echoPin, _onThreshold, _offThreshold);
+    DIAG(F("HCSR04 Configured on VPIN:%u TrigPin:%d EchoPin:%d On:%dcm Off:%dcm"), _firstVpin, _trigPin, _echoPin, _onThreshold, _offThreshold);
   }
-
 };
 
-#endif //IO_HCSR04_H
+#endif  // IO_HCSR04_H

@@ -2,7 +2,7 @@
  *  © 2021 Fred Decker
  *  © 2020 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #define DIAG_h
 
 #include "StringFormatter.h"
-#define DIAG  StringFormatter::diag
-#define LCD   StringFormatter::lcd
-#define SCREEN  StringFormatter::lcd2
+#define DIAG StringFormatter::diag
+#define LCD StringFormatter::lcd
+#define SCREEN StringFormatter::lcd2
 #endif

@@ -39,18 +39,17 @@ void I2CManagerClass::I2C_setClock(unsigned long i2cClockSpeed) {
     TWI0.CTRLA |= TWI_FMPEN_bm;
   else
     TWI0.CTRLA &= ~TWI_FMPEN_bm;
-  
-  uint32_t baud = (F_CPU_CORRECTED / i2cClockSpeed - F_CPU_CORRECTED / 1000 / 1000
-    * t_rise / 1000 - 10) / 2;
-  if (baud > 255) baud = 255;  // ~30kHz
+
+  uint32_t baud = (F_CPU_CORRECTED / i2cClockSpeed - F_CPU_CORRECTED / 1000 / 1000 * t_rise / 1000 - 10) / 2;
+  if (baud > 255)
+    baud = 255;  // ~30kHz
   TWI0.MBAUD = (uint8_t)baud;
 }
 
 /***************************************************************************
  *  Initialise I2C registers.
  ***************************************************************************/
-void I2CManagerClass::I2C_init()
-{ 
+void I2CManagerClass::I2C_init() {
   pinMode(PIN_WIRE_SDA, INPUT_PULLUP);
   pinMode(PIN_WIRE_SCL, INPUT_PULLUP);
   PORTMUX.TWISPIROUTEA |= TWI_MUX;
@@ -89,8 +88,7 @@ void I2CManagerClass::I2C_sendStop() {
  *  Close I2C down
  ***************************************************************************/
 void I2CManagerClass::I2C_close() {
-
-  TWI0.MCTRLA &= ~(TWI_RIEN_bm | TWI_WIEN_bm | TWI_ENABLE_bm);        // Switch off I2C
+  TWI0.MCTRLA &= ~(TWI_RIEN_bm | TWI_WIEN_bm | TWI_ENABLE_bm);  // Switch off I2C
   TWI0.MSTATUS = TWI_BUSSTATE_UNKNOWN_gc;
   delayMicroseconds(10);  // Wait for things to stabilise (hopefully)
 }
@@ -99,18 +97,17 @@ void I2CManagerClass::I2C_close() {
  *  Main state machine for I2C, called from interrupt handler.
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
-  
   uint8_t currentStatus = TWI0.MSTATUS;
 
   if (currentStatus & TWI_ARBLOST_bm) {
     // Arbitration lost, restart
-    TWI0.MSTATUS = currentStatus; // clear all flags
-    I2C_sendStart();   // Reinitiate request
+    TWI0.MSTATUS = currentStatus;  // clear all flags
+    I2C_sendStart();               // Reinitiate request
   } else if (currentStatus & TWI_BUSERR_bm) {
     // Bus error
     completionStatus = I2C_STATUS_BUS_ERROR;
     state = I2C_STATE_COMPLETED;
-    TWI0.MSTATUS = currentStatus; // clear all flags
+    TWI0.MSTATUS = currentStatus;  // clear all flags
   } else if (currentStatus & TWI_WIF_bm) {
     // Master write completed
     if (currentStatus & TWI_RXACK_bm) {
@@ -136,7 +133,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
     if (bytesToReceive) {
       receiveBuffer[rxCount++] = TWI0.MDATA;  // Store received byte
       bytesToReceive--;
-    } 
+    }
     if (bytesToReceive) {
       // More bytes to receive, issue ack and start another read
       TWI0.MCTRLB = TWI_MCMD_RECVTRANS_gc;
@@ -147,7 +144,6 @@ void I2CManagerClass::I2C_handleInterrupt() {
     }
   }
 }
-
 
 /***************************************************************************
  *  Interrupt handler.

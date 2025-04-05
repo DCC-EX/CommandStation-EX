@@ -3,7 +3,7 @@
  *  © 2020-2021 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
  */
 
 // This include is intended to visually simplify the .ino for the end users.
-// If there were any #ifdefs required they are much better handled in here.  
+// If there were any #ifdefs required they are much better handled in here.
 
 #ifndef DCCEX_h
 #define DCCEX_h
@@ -48,8 +48,8 @@
 #include "Outputs.h"
 #include "CommandDistributor.h"
 #include "TrackManager.h"
-#include "DCCTimer.h"    
+#include "DCCTimer.h"
 #include "KeywordHasher.h"
 #include "EXRAIL.h"
-    
+
 #endif

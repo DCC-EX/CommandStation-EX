@@ -2,7 +2,7 @@
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -23,14 +23,15 @@
 #include <Arduino.h>
 
 class LCN {
-  public: 
-    static void init(Stream & lcnstream);
-    static void loop();
-    static void send(char opcode, int id, bool state);
-  private :
-    static bool firstLoop; 
-    static Stream * stream; 
-    static int id;
+ public:
+  static void init(Stream& lcnstream);
+  static void loop();
+  static void send(char opcode, int id, bool state);
+
+ private:
+  static bool firstLoop;
+  static Stream* stream;
+  static int id;
 };
 
 #endif

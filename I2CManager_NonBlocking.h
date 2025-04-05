@@ -26,45 +26,45 @@
 #include "I2CManager.h"
 
 // Support for atomic isolation (i.e. a block with interrupts disabled).
-// E.g. 
+// E.g.
 //       ATOMIC_BLOCK() {
 //         doSomethingWithInterruptsDisabled();
 //       }
 // This has the advantage over simple noInterrupts/Interrupts that the
 // original interrupt state is restored when the block finishes.
 //
-// (This should really be defined in an include file somewhere more global, so 
+// (This should really be defined in an include file somewhere more global, so
 // it can replace use of noInterrupts/interrupts in other parts of DCC-EX.
 //
 static inline uint8_t _deferInterrupts(void) {
   noInterrupts();
   return 1;
 }
-static inline void _conditionalEnableInterrupts(bool *wasEnabled) {
-  if (*wasEnabled) interrupts();
+static inline void _conditionalEnableInterrupts(bool* wasEnabled) {
+  if (*wasEnabled)
+    interrupts();
 }
-#define ATOMIC_BLOCK(x) \
-for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) \
-            =_getInterruptState(),_ToDo=_deferInterrupts(); _ToDo; _ToDo=0)
+#define ATOMIC_BLOCK(x)                                                                                                                      \
+  for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) = _getInterruptState(), _ToDo = _deferInterrupts(); _ToDo; \
+       _ToDo = 0)
 
-#if defined(__AVR__) // Nano, Uno, Mega2580, NanoEvery, etc.
-  static inline bool _getInterruptState(void) {
-    return bitRead(SREG, SREG_I);  // true if enabled, false if disabled
-  }
+#if defined(__AVR__)  // Nano, Uno, Mega2580, NanoEvery, etc.
+static inline bool _getInterruptState(void) {
+  return bitRead(SREG, SREG_I);  // true if enabled, false if disabled
+}
 #elif defined(__arm__)  // STM32, SAMD, Teensy
-  static inline bool _getInterruptState( void ) {
-    uint32_t reg;
-    __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );
-    return !(reg & 1);  // true if interrupts enabled, false otherwise
-  }
+static inline bool _getInterruptState(void) {
+  uint32_t reg;
+  __asm__ __volatile__("MRS %0, primask" : "=r"(reg));
+  return !(reg & 1);  // true if interrupts enabled, false otherwise
+}
 #else
-  #warning "ATOMIC_BLOCK() not defined for this target type, I2C interrupts disabled"
-  #define ATOMIC_BLOCK(x) // expand to nothing.
-  #ifdef I2C_USE_INTERRUPTS
-    #undef I2C_USE_INTERRUPTS
-  #endif
+#warning "ATOMIC_BLOCK() not defined for this target type, I2C interrupts disabled"
+#define ATOMIC_BLOCK(x)  // expand to nothing.
+#ifdef I2C_USE_INTERRUPTS
+#undef I2C_USE_INTERRUPTS
 #endif
-
+#endif
 
 // This module is only compiled if I2C_USE_WIRE is not defined, so undefine it here
 // to get intellisense to work correctly.
@@ -72,19 +72,17 @@ for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) 
 #undef I2C_USE_WIRE
 #endif
 
-enum MuxPhase: uint8_t {
+enum MuxPhase : uint8_t {
   MuxPhase_OFF = 0,
   MuxPhase_PROLOG,
   MuxPhase_PAYLOAD,
   MuxPhase_EPILOG,
-} ;
-
+};
 
 /***************************************************************************
  * Initialise the I2CManagerAsync class.
  ***************************************************************************/
-void I2CManagerClass::_initialise()
-{
+void I2CManagerClass::_initialise() {
   queueHead = queueTail = NULL;
   state = I2C_STATE_FREE;
   I2C_init();
@@ -105,7 +103,7 @@ void I2CManagerClass::_setClock(unsigned long i2cClockSpeed) {
 /***************************************************************************
  * Start an I2C transaction, if the I2C interface is free and
  * there is a queued request to be processed.
- * If there's an I2C clock speed change pending, then implement it before 
+ * If there's an I2C clock speed change pending, then implement it before
  * starting the operation.
  ***************************************************************************/
 void I2CManagerClass::startTransaction() {
@@ -129,16 +127,17 @@ void I2CManagerClass::startTransaction() {
       if (muxNumber != I2CMux_None) {
         muxPhase = MuxPhase_PROLOG;
         uint8_t subBus = currentRequest->i2cAddress.subBus();
-        muxData[0] = (subBus == SubBus_All) ? 0xff :
-                     (subBus == SubBus_None) ? 0x00 :
+        muxData[0] = (subBus == SubBus_All)    ? 0xff
+                     : (subBus == SubBus_None) ? 0x00
+                                               :
 #if defined(I2CMUX_PCA9547)
-                      0x08 | subBus;
+                                               0x08 | subBus;
 #elif defined(I2CMUX_PCA9542) || defined(I2CMUX_PCA9544)
-                      0x04 | subBus;   // NB Only 2 or 4 subbuses respectively
+                                               0x04 | subBus;  // NB Only 2 or 4 subbuses respectively
 #else
-                      // Default behaviour for most MUXs is to use a mask
-                      // with a bit set for the subBus to be enabled
-                      1 << subBus;
+                                               // Default behaviour for most MUXs is to use a mask
+                                               // with a bit set for the subBus to be enabled
+                         1 << subBus;
 #endif
         deviceAddress = I2C_MUX_BASE_ADDRESS + muxNumber;
         sendBuffer = &muxData[0];
@@ -154,7 +153,7 @@ void I2CManagerClass::startTransaction() {
         receiveBuffer = currentRequest->readBuffer;
         bytesToReceive = currentRequest->readLen;
         operation = currentRequest->operation & OPERATION_MASK;
-      } 
+      }
 #else
       deviceAddress = currentRequest->i2cAddress;
       sendBuffer = currentRequest->writeBuffer;
@@ -171,28 +170,25 @@ void I2CManagerClass::startTransaction() {
 /***************************************************************************
  *  Function to queue a request block and initiate operations.
  ***************************************************************************/
-void I2CManagerClass::queueRequest(I2CRB *req) {
-
+void I2CManagerClass::queueRequest(I2CRB* req) {
   if (((req->operation & OPERATION_MASK) == OPERATION_READ) && req->readLen == 0)
     return;  // Ignore null read
 
   req->status = I2C_STATUS_PENDING;
   req->nextRequest = NULL;
   ATOMIC_BLOCK() {
-    if (!queueTail) 
+    if (!queueTail)
       queueHead = queueTail = req;  // Only item on queue
     else
-      queueTail = queueTail->nextRequest = req; // Add to end
+      queueTail = queueTail->nextRequest = req;  // Add to end
     startTransaction();
   }
-
 }
-
 
 /***************************************************************************
  *  Initiate a write to an I2C device (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write(I2CAddress i2cAddress, const uint8_t *writeBuffer, uint8_t writeLen, I2CRB *req) {
+uint8_t I2CManagerClass::write(I2CAddress i2cAddress, const uint8_t* writeBuffer, uint8_t writeLen, I2CRB* req) {
   // Make sure previous request has completed.
   req->wait();
   req->setWriteParams(i2cAddress, writeBuffer, writeLen);
@@ -203,7 +199,7 @@ uint8_t I2CManagerClass::write(I2CAddress i2cAddress, const uint8_t *writeBuffer
 /***************************************************************************
  *  Initiate a write from PROGMEM (flash) to an I2C device (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::write_P(I2CAddress i2cAddress, const uint8_t * writeBuffer, uint8_t writeLen, I2CRB *req) {
+uint8_t I2CManagerClass::write_P(I2CAddress i2cAddress, const uint8_t* writeBuffer, uint8_t writeLen, I2CRB* req) {
   // Make sure previous request has completed.
   req->wait();
   req->setWriteParams(i2cAddress, writeBuffer, writeLen);
@@ -213,12 +209,10 @@ uint8_t I2CManagerClass::write_P(I2CAddress i2cAddress, const uint8_t * writeBuf
 }
 
 /***************************************************************************
- *  Initiate a read from the I2C device, optionally preceded by a write 
+ *  Initiate a read from the I2C device, optionally preceded by a write
  *   (non-blocking operation)
  ***************************************************************************/
-uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_t readLen, 
-    const uint8_t *writeBuffer, uint8_t writeLen, I2CRB *req)
-{
+uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t* readBuffer, uint8_t readLen, const uint8_t* writeBuffer, uint8_t writeLen, I2CRB* req) {
   // Make sure previous request has completed.
   req->wait();
   req->setRequestParams(i2cAddress, readBuffer, readLen, writeBuffer, writeLen);
@@ -231,8 +225,8 @@ uint8_t I2CManagerClass::read(I2CAddress i2cAddress, uint8_t *readBuffer, uint8_
  *   I2CRB request, e.g. where a write+read is performed, the timer is not
  *   reset before the read.
  ***************************************************************************/
-void I2CManagerClass::setTimeout(unsigned long value) { 
-  _timeout = value; 
+void I2CManagerClass::setTimeout(unsigned long value) {
+  _timeout = value;
 };
 
 /***************************************************************************
@@ -242,17 +236,18 @@ void I2CManagerClass::setTimeout(unsigned long value) {
  ***************************************************************************/
 void I2CManagerClass::checkForTimeout() {
   ATOMIC_BLOCK() {
-    I2CRB *t = queueHead;
-    if (state==I2C_STATE_ACTIVE && t!=0 && t==currentRequest && _timeout > 0) {
+    I2CRB* t = queueHead;
+    if (state == I2C_STATE_ACTIVE && t != 0 && t == currentRequest && _timeout > 0) {
       // Check for timeout
       int32_t elapsed = micros() - startTime;
-      if (elapsed > (int32_t)_timeout) { 
+      if (elapsed > (int32_t)_timeout) {
 #ifdef DIAG_IO
-        //DIAG(F("I2CManager Timeout on %s"), t->i2cAddress.toString());
+        // DIAG(F("I2CManager Timeout on %s"), t->i2cAddress.toString());
 #endif
         // Excessive time. Dequeue request
         queueHead = t->nextRequest;
-        if (!queueHead) queueTail = NULL;
+        if (!queueHead)
+          queueTail = NULL;
         currentRequest = NULL;
         bytesToReceive = bytesToSend = 0;
         // Post request as timed out.
@@ -264,18 +259,18 @@ void I2CManagerClass::checkForTimeout() {
         // If SDA is stuck low, issue up to 9 clock pulses to attempt to free it.
         pinMode(SCL, INPUT_PULLUP);
         pinMode(SDA, INPUT_PULLUP);
-        for (int i=0; !digitalRead(SDA) && i<9; i++) {
-          digitalWrite(SCL, 0); 
-          pinMode(SCL, OUTPUT);         // Force clock low
-          delayMicroseconds(10);        // ... for 5us
-          pinMode(SCL, INPUT_PULLUP);   // ... then high
-          delayMicroseconds(10);        // ... for 5us (100kHz Clock)
+        for (int i = 0; !digitalRead(SDA) && i < 9; i++) {
+          digitalWrite(SCL, 0);
+          pinMode(SCL, OUTPUT);        // Force clock low
+          delayMicroseconds(10);       // ... for 5us
+          pinMode(SCL, INPUT_PULLUP);  // ... then high
+          delayMicroseconds(10);       // ... for 5us (100kHz Clock)
         }
         // Whether that's succeeded or not, now try reinitialising.
         I2C_init();
         _setClock(_clockSpeed);
         state = I2C_STATE_FREE;
-        
+
         // Initiate next queued request if any.
         startTransaction();
       }
@@ -299,7 +294,6 @@ void I2CManagerClass::loop() {
  * if completed.
  ***************************************************************************/
 void I2CManagerClass::handleInterrupt() {
-
   // Update hardware state machine
   I2C_handleInterrupt();
 
@@ -307,12 +301,10 @@ void I2CManagerClass::handleInterrupt() {
   // and state isn't active then state contains the completion status of the request.
   if (state == I2C_STATE_COMPLETED && currentRequest != NULL && currentRequest == queueHead) {
     // Operation has completed.
-    if (completionStatus == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES
-      || currentRequest->operation & OPERATION_NORETRY) 
-    {
+    if (completionStatus == I2C_STATUS_OK || ++retryCounter > MAX_I2C_RETRIES || currentRequest->operation & OPERATION_NORETRY) {
       // Status is OK, or has failed and retry count exceeded, or failed and retries disabled.
 #if defined(I2C_EXTENDED_ADDRESS)
-      if (muxPhase == MuxPhase_PROLOG ) {
+      if (muxPhase == MuxPhase_PROLOG) {
         overallStatus = completionStatus;
         uint8_t rbAddress = currentRequest->i2cAddress.deviceAddress();
         if (completionStatus == I2C_STATUS_OK && rbAddress != 0) {
@@ -327,7 +319,7 @@ void I2CManagerClass::handleInterrupt() {
           state = I2C_STATE_ACTIVE;
           I2C_sendStart();
           return;
-        } 
+        }
       } else if (muxPhase == MuxPhase_PAYLOAD) {
         // Application request completed, now send epilogue to mux
         overallStatus = completionStatus;
@@ -356,14 +348,15 @@ void I2CManagerClass::handleInterrupt() {
       overallStatus = completionStatus;
       currentRequest->nBytes = rxCount;
 #endif
-          
+
       // Remove completed request from head of queue
-      I2CRB * t = queueHead;
+      I2CRB* t = queueHead;
       if (t == currentRequest) {
         queueHead = t->nextRequest;
-        if (!queueHead) queueTail = queueHead;
+        if (!queueHead)
+          queueTail = queueHead;
         t->status = overallStatus;
-        
+
         // I2C state machine is now free for next request
         currentRequest = NULL;
         state = I2C_STATE_FREE;
@@ -372,13 +365,13 @@ void I2CManagerClass::handleInterrupt() {
     } else {
       // Status is failed and retry permitted.
       // Retry previous request.
-      state = I2C_STATE_FREE;  
+      state = I2C_STATE_FREE;
     }
   }
 
   if (state == I2C_STATE_FREE && queueHead != NULL) {
     // Allow any pending interrupts before starting the next request.
-    //interrupts();
+    // interrupts();
     // Start next request
     I2CManager.startTransaction();
   }

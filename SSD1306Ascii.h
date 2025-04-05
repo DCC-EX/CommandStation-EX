@@ -30,18 +30,15 @@
 #include "DisplayInterface.h"
 
 // Uncomment to remove lower-case letters to save 108 bytes of flash
-//#define NOLOWERCASE
-
-
+// #define NOLOWERCASE
 
 //------------------------------------------------------------------------------
 // Constructor
 class SSD1306AsciiWire : public DisplayDevice {
  public:
-
   // Constructors
-  SSD1306AsciiWire(int width, int height); // Auto-detects I2C address
-  SSD1306AsciiWire(I2CAddress address, int width, int height);  
+  SSD1306AsciiWire(int width, int height);  // Auto-detects I2C address
+  SSD1306AsciiWire(I2CAddress address, int width, int height);
 
   // Initialize the display controller.
   bool begin();
@@ -51,13 +48,19 @@ class SSD1306AsciiWire : public DisplayDevice {
 
   // Set cursor to start of specified text line
   void setRowNative(byte line) override;
-  
+
   // Write one character to OLED
   size_t writeNative(uint8_t c) override;
 
-  bool isBusy() override { return requestBlock.isBusy(); }
-  uint16_t getNumCols() { return m_charsPerRow; }
-  uint16_t getNumRows() { return m_charsPerColumn; }
+  bool isBusy() override {
+    return requestBlock.isBusy();
+  }
+  uint16_t getNumCols() {
+    return m_charsPerRow;
+  }
+  uint16_t getNumRows() {
+    return m_charsPerColumn;
+  }
 
  private:
   // Cursor column.
@@ -88,7 +91,7 @@ class SSD1306AsciiWire : public DisplayDevice {
   I2CAddress m_i2cAddr = 0;
 
   I2CRB requestBlock;
-  uint8_t outputBuffer[fontWidth+1];
+  uint8_t outputBuffer[fontWidth + 1];
 
   static const uint8_t blankPixels[];
 

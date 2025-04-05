@@ -19,8 +19,8 @@
 // 5.2.93 - Bugfix ESP32: clear progTrackSyncMain (join flag) when prog track is removed
 // 5.2.92 - Bugfix: FADE power off fix, EXRAIL power diagnostic fix.
 // 5.2.91 - Bugfix: Neopixel I2C overlap check
-// 5.2.90 - Bugfix: EXRAIL EXTT_TURNTABLE() now has description as optional in line with ocumentation (also fixed DCC_TURNTABLE) 
-// 5.2.89 - EXRAIL SET(vpin[,npins]) RESET(vpin,[,npins]) pin range manipulation 
+// 5.2.90 - Bugfix: EXRAIL EXTT_TURNTABLE() now has description as optional in line with ocumentation (also fixed DCC_TURNTABLE)
+// 5.2.89 - EXRAIL SET(vpin[,npins]) RESET(vpin,[,npins]) pin range manipulation
 // 5.2.88 - Fix bug where EX-Turntable objects return incorrect angle for home with <JP x>
 // 5.2.87 - CamParser and IO_EXSensorCam driver
 // 5.2.86 - IO_TCA8418 driver for keypad matrix input now fully functioning, including being able to use an interrupt pin
@@ -34,27 +34,27 @@
 //        - WiFiESP32 reconfig
 // 5.2.78 - NeoPixel support.
 //        - <o command
-//        - HAL driver 
-//        - EXRAIL NEOPIXEL and NEOPIXEL_SIGNAL   
+//        - HAL driver
+//        - EXRAIL NEOPIXEL and NEOPIXEL_SIGNAL
 // 5.2.77 - Withrottle: Implement "force function" subcommand "f"
 // 5.2.76 - Bugfix: EXRAIL: Catch CV read errors in the callback
 // 5.2.75 - Bugfix: Serial lines 4 to 6 OK
 // 5.2.74 - Bugfix: ESP32 turn on the joined prog (as main) again after a prog operation
 // 5.2.73 - Bugfix: STM32 further fixes to shadowPORT entries in TrackManager.cpp for PORTG and PORTH
 // 5.2.72 - Bugfix: added shadowPORT entries in TrackManager.cpp for PORTG and PORTH on STM32, fixed typo in MotorDriver.cpp
-// 5.2.71 -  Broadcasts of loco forgets. 
+// 5.2.71 -  Broadcasts of loco forgets.
 // 5.2.70 -  IO_RocoDriver renamed to IO_EncoderThrottle.
-//        -  and included in IODEvice.h (circular dependency removed) 
+//        -  and included in IODEvice.h (circular dependency removed)
 // 5.2.69 -  IO_RocoDriver. Direct drive train with rotary encoder hw.
 // 5.2.68 -  Revert function map to signed (from 5.2.66) to avoid
 //           incompatibilities with ED etc for F31 frequency flag.
 // 5.2.67 -  EXRAIL AFTER optional debounce time variable (default 500mS)
-//        -  AFTER(42) == AFTER(42,500) sets time sensor must 
+//        -  AFTER(42) == AFTER(42,500) sets time sensor must
 //        -  be continuously off.
 // 5.2.66 - <F cab DCFREQ 0..3>
 //        - EXRAIL SETFREQ drop loco param (breaking since 5.2.28)
-// 5.2.65 - Speedup Exrail SETFREQ 
-// 5.2.64 - Bugfix: <0 PROG> updated to undo JOIN 
+// 5.2.65 - Speedup Exrail SETFREQ
+// 5.2.64 - Bugfix: <0 PROG> updated to undo JOIN
 // 5.2.63 - Implement WIFI_LED for ESP32, ESPduino32 and EX-CSB1, that is turned on when STA mode connects or AP mode is up
 //        - Add BOOSTER_INPUT definitions for ESPduino32 and EX-CSB1 to config.example.h
 //        - Add WIFI_LED definitions for ESPduino32 and EX-CSB1 to config.example.h
@@ -70,10 +70,10 @@
 // 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
 // 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
 // 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call
-// 5.2.54 - Bugfix for EXRAIL signal handling for active high 
-// 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 
+// 5.2.54 - Bugfix for EXRAIL signal handling for active high
+// 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address
 // 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
-//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
+//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs
 // 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
 // 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
 // 5.2.49 - EXRAIL additions:
@@ -94,7 +94,7 @@
 // 5.2.41 - Update rotary encoder default address to 0x67
 // 5.2.40 - Allow no shield
 // 5.2.39 - Functions for DC frequency: Use func up to F31
-// 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
+// 5.2.38 - Exrail MESSAGE("text") to send a user message to all
 //          connected throttles (uses <m "text"> and  withrottle Hmtext.
 // 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
 // 5.2.36 - Variable frequency for DC mode
@@ -102,10 +102,10 @@
 // 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
 //        - Exrail ASPECT(address,aspect) for above.
 //        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
-//        - Exrail intercept <A ...> for DCC Signals. 
+//        - Exrail intercept <A ...> for DCC Signals.
 // 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 // 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
-// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.
 // 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
 // 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
 //        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
@@ -115,13 +115,13 @@
 //        - ESP32: Only write Wifi password to display if it is a well known one
 // 5.2.27 - Bugfix: IOExpander memory allocation
 // 5.2.26 - Silently ignore overridden HAL defaults
-//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
-// 5.2.25 - Fix bug causing <X> after working <D commands 
-// 5.2.24 - Exrail macro asserts to catch 
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL
+// 5.2.25 - Fix bug causing <X> after working <D commands
+// 5.2.24 - Exrail macro asserts to catch
 //            : duplicate/missing automation/route/sequence/call ids
 //            : latches and reserves out of range
 //            : speeds out of range
-// 5.2.23 - KeywordHasher _hk (no functional change) 
+// 5.2.23 - KeywordHasher _hk (no functional change)
 // 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
 // 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
 // 5.2.20 - Check return of Ethernet.begin()
@@ -132,16 +132,16 @@
 // 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
 //        - add repeats to function packets that are not reminded in accordance with accessory packets
 // 5.2.14 - Reminder window DCC packet optimization
-//        - Optional #define DISABLE_FUNCTION_REMINDERS 
-// 5.2.13 - EXRAIL STEALTH 
+//        - Optional #define DISABLE_FUNCTION_REMINDERS
+// 5.2.13 - EXRAIL STEALTH
 // 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
 //        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
 //        - STM32 extra UART/USARTs for larger Nucleo models
 // 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
 // 5.2.10 - Include trainbrains.eu block unoccupancy driver
-//        - include IO_PCA9555  
+//        - include IO_PCA9555
 // 5.2.9  - Bugfix LCD startup with no LCD, uses <@
-// 5.2.9  - EXRAIL STASH feature 
+// 5.2.9  - EXRAIL STASH feature
 // 5.2.8  - Bugfix: Do not turn off all tracks on change
 //          give better power messages
 // 5.2.7  - Bugfix: EXRAIL ling segment
@@ -156,7 +156,7 @@
 // 5.2.1  - Trackmanager rework for simpler structure
 // 5.2.0  - ESP32: Autoreverse and booster mode support
 // 5.1.21 - EXRAIL invoke multiple ON handlers for same event
-// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
+// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION
 // 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
 // 5.1.18 - TURNOUTL bugfix
 // 5.1.17 - Divide out C for config and D for diag commands
@@ -221,8 +221,8 @@
 // 4.2.52 - Experimental support for sabertooth motor controller on ESP32
 // 4.2.51 - Add DISABLE_PROG to disable programming to save RAM/Flash
 // 4.2.50 - Fixes: estop all, turnout eeprom, cab ID check
-// 4.2.49 - Exrail SPEED take notice of external direction change 
-// 4.2.48 - BROADCAST/WITHROTTLE Exrail macros 
+// 4.2.49 - Exrail SPEED take notice of external direction change
+// 4.2.48 - BROADCAST/WITHROTTLE Exrail macros
 // 4.2.47 - Correct response to <JA 0>
 // 4.2.46 - Support boards with inverted fault pin
 // 4.2.45 - Add ONCLOCKMINS to FastClock to allow hourly repeat events
@@ -230,7 +230,7 @@
 // 4.2.43 - Fix STM32 set right port mode bits for analog
 // 4.2.42 - Added EXRAIL TURNOUTL Macro definition
 // 4.2.41 - Move HAl startup to ASAP in setup()
-//        - Fix DNOU8 output pin setup to all LOW  
+//        - Fix DNOU8 output pin setup to all LOW
 // 4.2.40 - Automatically detect conflicting default I2C devices and disable
 // 4.2.39 - DFplayer driver now polls device to detect failures and errors.
 // 4.2.38 - Clean up compiler warning when IO_RotaryEncoder.h included
@@ -238,7 +238,7 @@
 //        - Fix diag display of high VPINs within IODevice class.
 // 4.2.36 - do not broadcast a turnout state that has not changed
 //        - Use A2/A3 for current sensing on ESP32 + Motor Shield
-// 4.2.35 - add <z> direct pin manipulation command 
+// 4.2.35 - add <z> direct pin manipulation command
 // 4.2.34 - Completely fix EX-IOExpander analogue inputs
 // 4.2.33 - Fix EX-IOExpander non-working analogue inputs
 // 4.2.32 - Fix LCD/Display bugfixes from 4.2.29
@@ -259,7 +259,7 @@
 // 4.2.22 - Implement broadcast of Track Manager changes
 // 4.2.21 - Implement non-blocking I2C for EX-IOExpander device driver
 // 4.2.20 - <JG> & <JI> commands for multi-track gauges
-//        - Reinstate <c> but remember its a bit useless when TM involved.   
+//        - Reinstate <c> but remember its a bit useless when TM involved.
 // 4.2.19 - Bugfix for analog reading of track current sensor offset.
 // 4.2.18 - I2C Multiplexer support through Extended Addresses,
 //          added for Wire, 4209 and AVR I2C drivers.
@@ -269,19 +269,19 @@
 //        - PCF8575 I2C GPIO driver added.
 //        - EX-RAIL ANOUT function for triggering analogue
 //          HAL drivers (e.g. analogue outputs, DFPlayer, PWM).
-//        - EX-RAIL SCREEN function for writing to screens other 
+//        - EX-RAIL SCREEN function for writing to screens other
 //          than the primary one.
 //        - Installable HALDisplay Driver, with support
 //          for multiple displays.
-//        - Layered HAL Drivers PCA9685pwm and Servo added for 
+//        - Layered HAL Drivers PCA9685pwm and Servo added for
 //          native PWM on PCA9685 module and
 //          for animations of servo movement via PCA9685pwm.
 //          This is intended to support EXIOExpander and also
 //          replace the existing PCA9685 driver.
 //        - Add <D HAL RESET> to reinitialise failed drivers.
-//        - Add UserAddin facility to allow a user-written C++ function to be 
+//        - Add UserAddin facility to allow a user-written C++ function to be
 //          declared in myHal.cpp, to be called at a user-specified frequency.
-//        - Add ability to configure clock speed of PCA9685 drivers 
+//        - Add ability to configure clock speed of PCA9685 drivers
 //          (to allow flicker-free LED control).
 //        - Improve stability of VL53L0X driver when XSHUT pin connected.
 //        - Enable DCC high accuracy mode for STM32 on standard motor shield (pins D12/D13).
@@ -325,11 +325,11 @@
 //       Detects ACK on PROG
 // 4.2.0 Track Manager additions:
 //       Broadcast improvements to separate <> and Withrottle responses
-//       Float eliminated saving >1.5kb PROGMEM and speed. 
+//       Float eliminated saving >1.5kb PROGMEM and speed.
 //       SET_TRACK(track,mode) Functions (A-H, MAIN|PROG|DC|DCX|OFF)
 //       New DC track function and DCX reverse polarity function
-//       TrackManager DCC & DC up to 8 Districts Architecture 
-//       Automatic ALIAS(name) 
+//       TrackManager DCC & DC up to 8 Districts Architecture
+//       Automatic ALIAS(name)
 //       Command Parser now accepts Underscore in Alias Names
 // 4.1.1 Bugfix: preserve turnout format
 //       Bugfix: parse multiple commands in one buffer string correct
@@ -339,21 +339,21 @@
 // 4.0.2 EXRAIL additions:
 //       ACK defaults set to 50mA LIMIT, 2000uS MIN, 20000uS MAX
 //       myFilter automatic detection (no need to call setFilter)
-//       FIX negative route ids in WIthrottle problem. 
+//       FIX negative route ids in WIthrottle problem.
 //       IFRED(signal_id), IFAMBER(signal_id), IFGREEN(signal_id)
 //       </RED signal_id> </AMBER signal_id> </GREEN signal_id> commands
-//       <t cab> command to obtain current throttle settings 
+//       <t cab> command to obtain current throttle settings
 //       JA, JR, JT commands to obtain route, roster and turnout descriptions
 //       HIDDEN turnouts
 //       PARSE <> commands in EXRAIL
 //       VIRTUAL_TURNOUT
-//       </KILL ALL> and KILLALL command to stop all tasks. 
+//       </KILL ALL> and KILLALL command to stop all tasks.
 //       FORGET forgets the current loco in DCC reminder tables.
-//       Servo signals (SERVO_SIGNAL) 
+//       Servo signals (SERVO_SIGNAL)
 //       High-On signal pins (SIGNALH)
-//       Wait for analog value (ATGTE, ATLT)  
+//       Wait for analog value (ATGTE, ATLT)
 // 4.0.1 Small EXRAIL updates
-//       EXRAIL BROADCAST("msg") 
+//       EXRAIL BROADCAST("msg")
 //       EXRAIL POWERON
 // 4.0.0 Major functional and non-functional changes.
 //       Engine Driver "DriveAway" feature enhancement
@@ -362,11 +362,11 @@
 //         EX-Rail Function commands for creating Automation, Route & Sequence Scripts
 //         EX-RAIL “ROSTER” Engines Id & Function key layout on Engine Driver or WiThrottle
 //         EX-RAIL DCC++EX Commands to Control EX-RAIL via JMRI Send pane and IDE Serial monitors
-//       New JMRI feature enhancements; 
+//       New JMRI feature enhancements;
 //         Reads DCC++EX EEPROM & automatically uploades any Signals, DCC Turnouts, Servo Turnouts, Vpin Turnouts , & Output pane
 //         Turnout class revised to expand turnout capabilities, new commands added.
-//         Provides for multiple additional DCC++EX WiFi connections as accessory controllers or CS for a programming track when Motor Shields are added
-//         Supports Multiple Command Station connections and individual tracking of Send DCC++ Command panes and DCC++ Traffic Monitor panes
+//         Provides for multiple additional DCC++EX WiFi connections as accessory controllers or CS for a programming track when Motor Shields are
+//         added Supports Multiple Command Station connections and individual tracking of Send DCC++ Command panes and DCC++ Traffic Monitor panes
 //       New HAL added for I/O (digital and analogue inputs and outputs, servos etc)
 //         Automatically detects & connects to supported devices included in your config.h file
 //         Support for MCP23008, MCP23017 and PCF9584 I2C GPIO Extender modules.
@@ -390,16 +390,16 @@
 //       Bugfix: disgnostic display of ack pulses >32kus
 //       Bugfix: Current read from wrong ADC during interrupt
 // 3.2.0 Development Release Includes all of 3.1.1 thru 3.1.7 enhancements
-// 3.1.7 Bugfix: Unknown locos should have speed forward 
+// 3.1.7 Bugfix: Unknown locos should have speed forward
 // 3.1.6 Make output ID two bytes and guess format/size of registered outputs found in EEPROM
 // 3.1.5 Fix LCD corruption on power-up
 // 3.1.4 Refactor OLED and LCD drivers and remove unused code
 // 3.1.3 Add a loop delay to give more time for sensing an Ethernet cable connection
 // 3.1.2 Eliminate wait after write when prog is joined or prog power is off
 // 3.1.1 SH1106 OLED Display Offset Fix
-// 3.0.16 Ignore CV1 bit 7 read rejected by decoder when identifying loco id.  
+// 3.0.16 Ignore CV1 bit 7 read rejected by decoder when identifying loco id.
 // 3.0.15 only send function commands once, not 4 times
-// 3.0.14 gap in ack tolerant fix,  prog track power management over join fix. 
+// 3.0.14 gap in ack tolerant fix,  prog track power management over join fix.
 // 3.0.13 Functions>127 fix
 // 3.0.12 Fix HOSTNAME function for STA mode for WiFi
 // 3.0.11 28 speedstep support
@@ -414,7 +414,7 @@
 // 3.0.4 Includes:
 // Wifi startup bugfixes
 // 3.0.3 Includes:
-//  <W addr> command to write loco address and clear consist 
+//  <W addr> command to write loco address and clear consist
 //  <R> command will allow for consist address
 //  Startup commands implemented
 

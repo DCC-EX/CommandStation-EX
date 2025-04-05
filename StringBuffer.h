@@ -1,7 +1,7 @@
- /*
+/*
  *  © 2022 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -23,16 +23,17 @@
 #include <Arduino.h>
 
 class StringBuffer : public Print {
-  public:
-    StringBuffer(); 
-    // Override Print default
-    virtual size_t write(uint8_t b);
-    void flush();
-    char * getString();
-  private:
-    static const int  buffer_max=64; // enough for long text msgs to throttles  
-    int16_t _pos_write;
-    char _buffer[buffer_max+2];
+ public:
+  StringBuffer();
+  // Override Print default
+  virtual size_t write(uint8_t b);
+  void flush();
+  char* getString();
+
+ private:
+  static const int buffer_max = 64;  // enough for long text msgs to throttles
+  int16_t _pos_write;
+  char _buffer[buffer_max + 2];
 };
 
 #endif

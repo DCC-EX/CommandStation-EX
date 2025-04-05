@@ -5,7 +5,7 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
  *  © 2023 Nathan Kellenicki
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ The configuration file for DCC-EX Command Station
 // If you want to add your own motor driver definition(s), add them here
 //   For example MY_SHIELD with display name "MINE":
 //   (remove comment start and end marker if you want to edit and use that)
-/* 
+/*
 #define MY_SHIELD F("MINE"), \
  new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 3000, A4), \
  new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 1500, A5)
@@ -92,10 +92,10 @@ The configuration file for DCC-EX Command Station
 // If DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
 // the <+> commands and this sketch will not change anything over
 // AT commands and the other WIFI_* defines below do not have any effect.
-//#define DONT_TOUCH_WIFI_CONF
+// #define DONT_TOUCH_WIFI_CONF
 //
 // WIFI_SSID is the network name IF you want to use your existing home network.
-// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
+// Do NOT change this if you want to use the WiFi in Access Point (AP) mode.
 //
 // If you do NOT set the WIFI_SSID and do NOT set the WIFI_PASSWORD,
 // then the WiFi chip will first try to connect to the previously
@@ -111,7 +111,7 @@ The configuration file for DCC-EX Command Station
 //
 // WIFI_PASSWORD is the network password for your home network or if
 // you want to change the password from default AP mode password
-// to the AP password you want. 
+// to the AP password you want.
 // Your password may not contain ``"'' (double quote, ASCII 0x22).
 #define WIFI_PASSWORD "Your network passwd"
 //
@@ -135,15 +135,13 @@ The configuration file for DCC-EX Command Station
 // on the W5100/W5500 ethernet chip or an STM32 CS with builin ethernet like the F429ZI.
 // This is not for Wifi. You will then need the Arduino Ethernet library as well.
 //
-//#define ENABLE_ETHERNET true
-
+// #define ENABLE_ETHERNET true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
 //
-//#define IP_ADDRESS { 192, 168, 1, 200 }
-
+// #define IP_ADDRESS { 192, 168, 1, 200 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -156,10 +154,10 @@ The configuration file for DCC-EX Command Station
 // define LCD_DRIVER for I2C address 0x27, 16 cols, 2 rows
 // #define LCD_DRIVER  0x27,16,2
 
-//OR define OLED_DRIVER width,height[,address] in pixels (address auto detected if not supplied)
-// 128x32 or 128x64 I2C SSD1306-based devices are supported.
-// Use 132,64 for a SH1106-based I2C device with a 128x64 display.
-// #define OLED_DRIVER 0x3c,128,32
+// OR define OLED_DRIVER width,height[,address] in pixels (address auto detected if not supplied)
+//  128x32 or 128x64 I2C SSD1306-based devices are supported.
+//  Use 132,64 for a SH1106-based I2C device with a 128x64 display.
+//  #define OLED_DRIVER 0x3c,128,32
 
 // Define scroll mode as 0, 1 or 2
 //  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
@@ -172,8 +170,7 @@ The configuration file for DCC-EX Command Station
 // such as TrackManager power states have requested additional rows aware
 // of the warning that this will take extra RAM.  if you wish to include additional rows
 // uncomment the following #define and set the number of lines you need.
-//#define MAX_CHARACTER_ROWS 12
-
+// #define MAX_CHARACTER_ROWS 12
 
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE EEPROM
@@ -194,7 +191,7 @@ The configuration file for DCC-EX Command Station
 // If you do not need programming capability, you can disable all programming related
 // commands. You might want to do that if you are using an Arduino UNO and still want
 // to use EXRAIL automation, as the Uno is lacking in RAM and Flash to run both.
-// 
+//
 // Note this disables all programming functionality, including EXRAIL.
 //
 // #define DISABLE_PROG
@@ -228,10 +225,10 @@ The configuration file for DCC-EX Command Station
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
 // is 127 and the first long address is 128. There are manufacturers which have
 // another view. Lenz CS for example have considered addresses long from 100. If
-// you want to change to that mode, do 
-//#define HIGHEST_SHORT_ADDR 99
-// If you want to run all your locos addressed long format, you could even do a 
-//#define HIGHEST_SHORT_ADDR 0
+// you want to change to that mode, do
+// #define HIGHEST_SHORT_ADDR 99
+// If you want to run all your locos addressed long format, you could even do a
+// #define HIGHEST_SHORT_ADDR 0
 // We do not support to use the same address, for example 100(long) and 100(short)
 // at the same time, there must be a border.
 
@@ -249,29 +246,28 @@ The configuration file for DCC-EX Command Station
 //
 // According to norm RCN-213 a DCC packet with a 1 is closed/straight
 // and one with a 0 is thrown/diverging.  In DCC++ Classic, and in previous
-// versions of DCC++EX, a turnout throw command was implemented in the packet as 
+// versions of DCC++EX, a turnout throw command was implemented in the packet as
 // '1' and a close command as '0'. The #define below makes the states
 // match with the norm.  But we don't want to cause havoc on existent layouts,
 // so we define this only for new installations. If you don't want this,
 // don't add it to your config.h.
-//#define DCC_TURNOUTS_RCN_213
+// #define DCC_TURNOUTS_RCN_213
 
 // By default, the driver which defines a DCC accessory decoder
 // does send out the same state change on the DCC packet as it
 // receives. This means a VPIN state=1 sends D=1 (close turnout
 // or signal green) in the DCC packet. This can be reversed if
 // necessary.
-//#define HAL_ACCESSORY_COMMAND_REVERSE
+// #define HAL_ACCESSORY_COMMAND_REVERSE
 
 // If you have issues with that the direction of the accessory commands is
 // reversed (for example when converting from another CS to DCC-EX) then
 // you can use this to reverse the sense of all accessory commmands sent
 // over DCC++. This #define likewise inverts the behaviour of the <a> command
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
-// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
+// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0
 // (throw turnout).
-//#define DCC_ACCESSORY_COMMAND_REVERSE
-
+// #define DCC_ACCESSORY_COMMAND_REVERSE
 
 // HANDLING MULTIPLE SERIAL THROTTLES
 // The command station always operates with the default Serial port.
@@ -282,12 +278,12 @@ The configuration file for DCC-EX Command Station
 // To monitor a throttle on one or more serial ports, uncomment the defines below.
 // NOTE: do not define here the WiFi shield serial port or your wifi will not work.
 //
-//#define SERIAL1_COMMANDS
-//#define SERIAL2_COMMANDS
-//#define SERIAL3_COMMANDS
-//#define SERIAL4_COMMANDS
-//#define SERIAL5_COMMANDS
-//#define SERIAL6_COMMANDS
+// #define SERIAL1_COMMANDS
+// #define SERIAL2_COMMANDS
+// #define SERIAL3_COMMANDS
+// #define SERIAL4_COMMANDS
+// #define SERIAL5_COMMANDS
+// #define SERIAL6_COMMANDS
 //
 // BLUETOOTH SERIAL ON ESP32
 // On ESP32 you have the possibility to use the builtin BT serial to connect to
@@ -306,23 +302,23 @@ The configuration file for DCC-EX Command Station
 // 3. There is no securuity (PIN) implemented. Everyone in radio range can pair
 //    with your CS.
 //
-//#define SERIAL_BT_COMMANDS
+// #define SERIAL_BT_COMMANDS
 
 // BOOSTER PIN INPUT ON ESP32 CS
 // On ESP32 you have the possibility to define a pin as booster input
 //
 // Arduino pin D2 is GPIO 26 is Booster Input on ESPDuino32
-//#define BOOSTER_INPUT 26
+// #define BOOSTER_INPUT 26
 //
 // GPIO 32 is Booster Input on EX-CSB1
-//#define BOOSTER_INPUT 32
+// #define BOOSTER_INPUT 32
 
 // ESP32 LED Wifi Indicator
 // GPIO 2 on ESPduino32
-//#define WIFI_LED 2
+// #define WIFI_LED 2
 //
 // GPIO 33 on EX-CSB1
-//#define WIFI_LED 33
+// #define WIFI_LED 33
 
 // SABERTOOTH
 //
@@ -333,18 +329,18 @@ The configuration file for DCC-EX Command Station
 // The number defined is the DCC address for which speed controls are sent
 // to the sabertooth controller _as_well_. Default: Undefined.
 //
-//#define SABERTOOTH 1
+// #define SABERTOOTH 1
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // SENSORCAM
 // ESP32-CAM based video sensors require #define to use appropriate base vpin number.
-//#define SENSORCAM_VPIN 700
+// #define SENSORCAM_VPIN 700
 // To bypass vPin number, define CAM for ex-rail use e.g. AT(CAM 012) for S12 etc.
-//#define CAM SENSORCAM_VPIN+
+// #define CAM SENSORCAM_VPIN+
 //
-//#define SENSORCAM2_VPIN 600   //define other CAM's if installed.
-//#define CAM2 SENSORCAM2_VPIN+ //for EX-RAIL commands e.g. IFLT(CAM2 020,1)
+// #define SENSORCAM2_VPIN 600   //define other CAM's if installed.
+// #define CAM2 SENSORCAM2_VPIN+ //for EX-RAIL commands e.g. IFLT(CAM2 020,1)
 //
 // For smoother power-up, when using the CAM, you may need a STARTUP_DELAY.
 // That is described further above.

@@ -1,9 +1,9 @@
- /*
+/*
  *  © 2022 Paul M. Antoine
  *  © 2021 Chris Harlow
  *  © 2022 2024 Harald Barth
  *  All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -28,34 +28,34 @@
 #ifdef ARDUINO_ARCH_ESP32
 #ifdef SERIAL_BT_COMMANDS
 #include <BluetoothSerial.h>
-//#include <BleSerial.h>
+// #include <BleSerial.h>
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error No Bluetooth library available
-#endif //ENABLED
+#endif  // ENABLED
 BluetoothSerial SerialBT;
-//BleSerial SerialBT;
-#endif //COMMANDS
-#endif //ESP32
+// BleSerial SerialBT;
+#endif  // COMMANDS
+#endif  // ESP32
 
 static const byte PAYLOAD_FALSE = 0;
 static const byte PAYLOAD_NORMAL = 1;
 static const byte PAYLOAD_STRING = 2;
 
-SerialManager * SerialManager::first=NULL;
+SerialManager* SerialManager::first = NULL;
 
-SerialManager::SerialManager(Stream * myserial) {
-  serial=myserial;
-  next=first;
-  first=this;
-  bufferLength=0;
-  inCommandPayload=PAYLOAD_FALSE; 
-} 
+SerialManager::SerialManager(Stream* myserial) {
+  serial = myserial;
+  next = first;
+  first = this;
+  bufferLength = 0;
+  inCommandPayload = PAYLOAD_FALSE;
+}
 
 void SerialManager::init() {
   USB_SERIAL.begin(115200);
-  while (!USB_SERIAL && millis() < 5000); // wait max 5s for Serial to start
+  while (!USB_SERIAL && millis() < 5000);  // wait max 5s for Serial to start
   new SerialManager(&USB_SERIAL);
-  
+
 #ifdef SERIAL6_COMMANDS
   Serial6.begin(115200);
   new SerialManager(&Serial6);
@@ -74,10 +74,10 @@ void SerialManager::init() {
 #endif
 #ifdef SERIAL2_COMMANDS
 #ifdef ARDUINO_ARCH_ESP32
-  Serial2.begin(115200, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
-#else  // not ESP32
+  Serial2.begin(115200, SERIAL_8N1, 16, 17);  // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+#else                                         // not ESP32
   Serial2.begin(115200);
-#endif // ESP32
+#endif                                        // ESP32
   new SerialManager(&Serial2);
 #endif
 #ifdef SERIAL1_COMMANDS
@@ -86,11 +86,10 @@ void SerialManager::init() {
 #endif
 #ifdef SERIAL_BT_COMMANDS
   {
-    //SerialBT.setPin("6666"); // choose other pin
+    // SerialBT.setPin("6666"); // choose other pin
     uint64_t chipid = ESP.getEfuseMac();
     char idstr[16] = {0};
-    snprintf(idstr, 15, "DCCEX-%08X",
-	     __builtin_bswap32((uint32_t)(chipid>>16)));
+    snprintf(idstr, 15, "DCCEX-%08X", __builtin_bswap32((uint32_t)(chipid >> 16)));
     SerialBT.begin(idstr);
     new SerialManager(&SerialBT);
     delay(1000);
@@ -98,22 +97,22 @@ void SerialManager::init() {
 #endif
 #ifdef SABERTOOTH
 #ifdef ARDUINO_ARCH_ESP32
-  Serial2.begin(9600, SERIAL_8N1, 16, 17); // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
+  Serial2.begin(9600, SERIAL_8N1, 16, 17);  // GPIO 16 RXD2; GPIO 17 TXD2 on ESP32
 #else
   Serial2.begin(9600);
 #endif
 #endif
 }
 
-void SerialManager::broadcast(char * stringBuffer) {
-    for (SerialManager * s=first;s;s=s->next) s->broadcast2(stringBuffer);
+void SerialManager::broadcast(char* stringBuffer) {
+  for (SerialManager* s = first; s; s = s->next) s->broadcast2(stringBuffer);
 }
-void SerialManager::broadcast2(char * stringBuffer) {
-    serial->print(stringBuffer);
+void SerialManager::broadcast2(char* stringBuffer) {
+  serial->print(stringBuffer);
 }
 
 void SerialManager::loop() {
-    for (SerialManager * s=first;s;s=s->next) s->loop2();
+  for (SerialManager* s = first; s; s = s->next) s->loop2();
 }
 
 void SerialManager::loop2() {
@@ -125,34 +124,34 @@ void SerialManager::loop2() {
         bufferLength = 0;
         buffer[0] = '\0';
       }
-    } else { // if (inCommandPayload)
-      if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) {
-        buffer[bufferLength++] = ch;          // advance bufferLength
-	if (inCommandPayload > PAYLOAD_NORMAL) {
-	  if (inCommandPayload > 32 + 2) {    // String way too long
-	    ch = '>';                         // we end this nonsense
-	    inCommandPayload = PAYLOAD_NORMAL;
-	    DIAG(F("Parse error: Unbalanced string"));
-	    // fall through to ending parsing below
-	  } else if (ch == '"') {               // String end
-	    inCommandPayload = PAYLOAD_NORMAL;
-	    continue; // do not fall through
-	  } else
-	    inCommandPayload++;
-	}
-	if (inCommandPayload == PAYLOAD_NORMAL) {
-	  if (ch == '>') {
-	    buffer[bufferLength] = '\0';               // This \0 is after the '>'
-	    DCCEXParser::parse(serial, buffer, NULL);  // buffer parsed with trailing '>'
-	    inCommandPayload = PAYLOAD_FALSE;
-	    break;
-	  } else if (ch == '"') {
-	    inCommandPayload = PAYLOAD_STRING;
-	  }
-	}
+    } else {  // if (inCommandPayload)
+      if (bufferLength < (COMMAND_BUFFER_SIZE - 1)) {
+        buffer[bufferLength++] = ch;  // advance bufferLength
+        if (inCommandPayload > PAYLOAD_NORMAL) {
+          if (inCommandPayload > 32 + 2) {  // String way too long
+            ch = '>';                       // we end this nonsense
+            inCommandPayload = PAYLOAD_NORMAL;
+            DIAG(F("Parse error: Unbalanced string"));
+            // fall through to ending parsing below
+          } else if (ch == '"') {  // String end
+            inCommandPayload = PAYLOAD_NORMAL;
+            continue;  // do not fall through
+          } else
+            inCommandPayload++;
+        }
+        if (inCommandPayload == PAYLOAD_NORMAL) {
+          if (ch == '>') {
+            buffer[bufferLength] = '\0';               // This \0 is after the '>'
+            DCCEXParser::parse(serial, buffer, NULL);  // buffer parsed with trailing '>'
+            inCommandPayload = PAYLOAD_FALSE;
+            break;
+          } else if (ch == '"') {
+            inCommandPayload = PAYLOAD_STRING;
+          }
+        }
       } else {
-	DIAG(F("Parse error: input buffer overflow"));
-	inCommandPayload = PAYLOAD_FALSE;
+        DIAG(F("Parse error: input buffer overflow"));
+        inCommandPayload = PAYLOAD_FALSE;
       }
     }
   }

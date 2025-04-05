@@ -25,21 +25,15 @@
 #include <WiFi.h>
 #include "FSH.h"
 
-class WifiESP
-{
-
-public:
-  static bool setup(const char *wifiESSID,
-		    const char *wifiPassword,
-		    const char *hostname,
-		    const int port,
-		    const byte channel,
-			const bool forceAP);
+class WifiESP {
+ public:
+  static bool setup(const char* wifiESSID, const char* wifiPassword, const char* hostname, const int port, const byte channel, const bool forceAP);
   static void loop();
-private:
+
+ private:
   static void teardown();
   static bool wifiUp;
-  static WiFiServer *server;
+  static WiFiServer* server;
 };
-#endif //WifiESP8266_h
-#endif //ESP8266
+#endif  // WifiESP8266_h
+#endif  // ESP8266

@@ -55,37 +55,40 @@
 #define BACKPACK_Rw_BIT 1
 #define BACKPACK_En_BIT 2
 #define BACKPACK_BACKLIGHT_BIT 3
-#define BACKPACK_DATA_BITS 4 // Bits 4-7
+#define BACKPACK_DATA_BITS 4  // Bits 4-7
 // Equivalent mask bits
 #define LCD_BACKLIGHT (1 << BACKPACK_BACKLIGHT_BIT)  // Backlight enable
-#define En (1 << BACKPACK_En_BIT)  // Enable bit
-#define Rw (1 << BACKPACK_Rw_BIT)  // Read/Write bit
-#define Rs (1 << BACKPACK_Rs_BIT)  // Register select bit
+#define En (1 << BACKPACK_En_BIT)                    // Enable bit
+#define Rw (1 << BACKPACK_Rw_BIT)                    // Read/Write bit
+#define Rs (1 << BACKPACK_Rs_BIT)                    // Register select bit
 
 class LiquidCrystal_I2C : public DisplayDevice {
-public:
-  LiquidCrystal_I2C(I2CAddress lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
+ public:
+  LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols, uint8_t lcd_rows);
   bool begin() override;
   void clearNative() override;
   void setRowNative(byte line) override;
   size_t writeNative(uint8_t c) override;
   // I/O is synchronous, so if this is called we're not busy!
-  bool isBusy() override; 
-  
+  bool isBusy() override;
+
   void display();
   void noBacklight();
   void backlight();
-  
+
   void command(uint8_t);
-  uint16_t getNumCols() { return lcdCols; }
-  uint16_t getNumRows() { return lcdRows; }
+  uint16_t getNumCols() {
+    return lcdCols;
+  }
+  uint16_t getNumRows() {
+    return lcdRows;
+  }
 
-
-private:
+ private:
   void send(uint8_t, uint8_t);
   void write4bits(uint8_t);
   void expanderWrite(uint8_t);
-  uint8_t lcdCols=0, lcdRows=0;
+  uint8_t lcdCols = 0, lcdRows = 0;
   I2CAddress _Addr;
   uint8_t _displayfunction;
   uint8_t _displaycontrol;

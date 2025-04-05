@@ -4,9 +4,8 @@
 #include "IODevice.h"
 
 class CamParser {
-   public:
-   static bool parseN(Print * stream, byte paramCount, int16_t p[]);
+ public:
+  static bool parseN(Print* stream, byte paramCount, int16_t p[]);
 };
-
 
 #endif

@@ -15,26 +15,26 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 /*
-* The IO_NEOPIXEL.h device driver integrates with one or more Adafruit neopixel drivers.
-* This device driver will configure the device on startup, along with
-* interacting with the device for all input/output duties.
-*
-* To create NEOPIXEL devices, these are defined in myAutomation.h:
-* (Note the device driver is included by default)
-*
-* HAL(NEOPIXEL,first vpin, number of pixels,mode, i2c address) 
-* e.g. HAL(NEOPIXEL,1000,64,NEO_RGB,0x60)
-* This gives each pixel in the chain an individual vpin
-* The number of pixels must match the physical pixels in the chain. 
-* 
-* This driver maintains a colour (rgb value in 5,5,5 bits only) plus an ON bit.
-* This can be written/read with an analog write/read call. 
-* The ON bit can be set on and off with a digital write. This allows for 
-* a pixel to be preset a colour and then turned on and off like any other light. 
-*/
+ * The IO_NEOPIXEL.h device driver integrates with one or more Adafruit neopixel drivers.
+ * This device driver will configure the device on startup, along with
+ * interacting with the device for all input/output duties.
+ *
+ * To create NEOPIXEL devices, these are defined in myAutomation.h:
+ * (Note the device driver is included by default)
+ *
+ * HAL(NEOPIXEL,first vpin, number of pixels,mode, i2c address)
+ * e.g. HAL(NEOPIXEL,1000,64,NEO_RGB,0x60)
+ * This gives each pixel in the chain an individual vpin
+ * The number of pixels must match the physical pixels in the chain.
+ *
+ * This driver maintains a colour (rgb value in 5,5,5 bits only) plus an ON bit.
+ * This can be written/read with an analog write/read call.
+ * The ON bit can be set on and off with a digital write. This allows for
+ * a pixel to be preset a colour and then turned on and off like any other light.
+ */
 
 #ifndef IO_EX_NeoPixel_H
 #define IO_EX_NeoPixel_H
@@ -44,10 +44,9 @@
 #include "DIAG.h"
 #include "FSH.h"
 
-
 // The following macros to define the Neopixel String type
-// have been copied from the Adafruit Seesaw Library under the 
-// terms of the GPL. 
+// have been copied from the Adafruit Seesaw Library under the
+// terms of the GPL.
 // Credit to: https://github.com/adafruit/Adafruit_Seesaw
 
 // The order of primary colors in the NeoPixel data stream can vary
@@ -117,8 +116,8 @@
 // If only 800 KHz is enabled (as is default on ATtiny), an 8-bit value
 // is sufficient to encode pixel color order, saving some space.
 
-#define NEO_KHZ800 0x0000 // 800 KHz datastream
-#define NEO_KHZ400 0x0100 // 400 KHz datastream
+#define NEO_KHZ800 0x0000  // 800 KHz datastream
+#define NEO_KHZ400 0x0100  // 400 KHz datastream
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -126,60 +125,60 @@
  */
 
 class NeoPixel : public IODevice {
-public:
-  
-  static void create(VPIN vpin, int nPins, uint16_t mode=(NEO_GRB | NEO_KHZ800), I2CAddress i2cAddress=0x60) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new NeoPixel(vpin, nPins, mode, i2cAddress);
+ public:
+  static void create(VPIN vpin, int nPins, uint16_t mode = (NEO_GRB | NEO_KHZ800), I2CAddress i2cAddress = 0x60) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress))
+      new NeoPixel(vpin, nPins, mode, i2cAddress);
   }
 
-private:
-  
-  static const byte SEESAW_NEOPIXEL_BASE=0x0E;
+ private:
+  static const byte SEESAW_NEOPIXEL_BASE = 0x0E;
   static const byte SEESAW_NEOPIXEL_STATUS = 0x00;
   static const byte SEESAW_NEOPIXEL_PIN = 0x01;
   static const byte SEESAW_NEOPIXEL_SPEED = 0x02;
   static const byte SEESAW_NEOPIXEL_BUF_LENGTH = 0x03;
-  static const byte SEESAW_NEOPIXEL_BUF=0x04;
-  static const byte SEESAW_NEOPIXEL_SHOW=0x05;
+  static const byte SEESAW_NEOPIXEL_BUF = 0x04;
+  static const byte SEESAW_NEOPIXEL_SHOW = 0x05;
 
-  // all adafruit examples say this pin. Presumably its hard wired 
-  // in the adapter anyway. 
+  // all adafruit examples say this pin. Presumably its hard wired
+  // in the adapter anyway.
   static const byte SEESAW_PIN15 = 15;
-  
+
   // Constructor
   NeoPixel(VPIN firstVpin, int nPins, uint16_t mode, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
-    _nPins=nPins;
+    _nPins = nPins;
     _I2CAddress = i2cAddress;
-    
+
     // calculate the offsets into the seesaw buffer for each colour depending
     // on the pixel strip type passed in mode.
 
-    _redOffset=4+(mode >> 4 & 0x03);
-    _greenOffset=4+(mode >> 2 & 0x03); 
-    _blueOffset=4+(mode & 0x03); 
-    if (4+(mode >>6 & 0x03) == _redOffset) _bytesPerPixel=3; 
-    else _bytesPerPixel=4; // string has a white byte.
-    
-    _kHz800=(mode & NEO_KHZ400)==0;
-    _showPendimg=false;
-    
+    _redOffset = 4 + (mode >> 4 & 0x03);
+    _greenOffset = 4 + (mode >> 2 & 0x03);
+    _blueOffset = 4 + (mode & 0x03);
+    if (4 + (mode >> 6 & 0x03) == _redOffset)
+      _bytesPerPixel = 3;
+    else
+      _bytesPerPixel = 4;  // string has a white byte.
+
+    _kHz800 = (mode & NEO_KHZ400) == 0;
+    _showPendimg = false;
+
     // Each pixel requires 3 bytes RGB memory.
     // Although the driver device can remember this, it cant do off/on without
     // forgetting what the on colour was!
-    pixelBuffer=(RGB *) malloc(_nPins*sizeof(RGB)); 
-    stateBuffer=(byte *) calloc((_nPins+7)/8,sizeof(byte)); // all pixels off  
-    if (pixelBuffer==nullptr || stateBuffer==nullptr) {
+    pixelBuffer = (RGB*)malloc(_nPins * sizeof(RGB));
+    stateBuffer = (byte*)calloc((_nPins + 7) / 8, sizeof(byte));  // all pixels off
+    if (pixelBuffer == nullptr || stateBuffer == nullptr) {
       DIAG(F("NeoPixel I2C:%s not enough RAM"), _I2CAddress.toString());
       return;
     }
     // preset all pins to white so a digital on/off will do something even if no colour set.
-    memset(pixelBuffer,0xFF,_nPins*sizeof(RGB));
+    memset(pixelBuffer, 0xFF, _nPins * sizeof(RGB));
     addDevice(this);
   }
 
   void _begin() {
-    
     // Initialise Neopixel device
     I2CManager.begin();
     if (!I2CManager.exists(_I2CAddress)) {
@@ -187,148 +186,156 @@ private:
       _deviceState = DEVSTATE_FAILED;
       return;
     }
-    
-    byte speedBuffer[]={SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_SPEED,_kHz800};
+
+    byte speedBuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_SPEED, _kHz800};
     I2CManager.write(_I2CAddress, speedBuffer, sizeof(speedBuffer));
-    
+
     // In the driver there are 3 of 4 byts per pixel
-    auto numBytes=_bytesPerPixel * _nPins; 
-    byte setbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_BUF_LENGTH,
-                  (byte)(numBytes >> 8), (byte)(numBytes & 0xFF)};
+    auto numBytes = _bytesPerPixel * _nPins;
+    byte setbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_BUF_LENGTH, (byte)(numBytes >> 8), (byte)(numBytes & 0xFF)};
     I2CManager.write(_I2CAddress, setbuffer, sizeof(setbuffer));
-    
-    const byte pinbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_PIN,SEESAW_PIN15};
+
+    const byte pinbuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_PIN, SEESAW_PIN15};
     I2CManager.write(_I2CAddress, pinbuffer, sizeof(pinbuffer));
-    
-    for (auto pin=0;pin<_nPins;pin++) transmit(pin);
-     _display();
+
+    for (auto pin = 0; pin < _nPins; pin++) transmit(pin);
+    _display();
   }
-  
- // loop called by HAL supervisor 
+
+  // loop called by HAL supervisor
   void _loop(unsigned long currentMicros) override {
     (void)currentMicros;
-    if (!_showPendimg) return;
-    byte showBuffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_SHOW};
-    I2CManager.write(_I2CAddress,showBuffer,sizeof(showBuffer));
-    _showPendimg=false;
-  }  
-  
-  
+    if (!_showPendimg)
+      return;
+    byte showBuffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_SHOW};
+    I2CManager.write(_I2CAddress, showBuffer, sizeof(showBuffer));
+    _showPendimg = false;
+  }
+
   // read back pixel on/off
   int _read(VPIN vpin) override {
-    if (_deviceState == DEVSTATE_FAILED) return 0;
-    return isPixelOn(vpin-_firstVpin);
+    if (_deviceState == DEVSTATE_FAILED)
+      return 0;
+    return isPixelOn(vpin - _firstVpin);
   }
 
   // Write digital value. Sets pixel on or off
   void _write(VPIN vpin, int value) override {
-    if (_deviceState == DEVSTATE_FAILED) return;
-    auto pixel=vpin-_firstVpin;
+    if (_deviceState == DEVSTATE_FAILED)
+      return;
+    auto pixel = vpin - _firstVpin;
     if (value) {
-      if (isPixelOn(pixel)) return;
+      if (isPixelOn(pixel))
+        return;
       setPixelOn(pixel);
-    }
-    else { // set off
-      if (!isPixelOn(pixel)) return;
+    } else {  // set off
+      if (!isPixelOn(pixel))
+        return;
       setPixelOff(pixel);
-     }
-     transmit(pixel);
+    }
+    transmit(pixel);
   }
-   
-  VPIN _writeRange(VPIN vpin,int value, int count) {
+
+  VPIN _writeRange(VPIN vpin, int value, int count) {
     // using write range cuts out the constant vpin to driver lookup so
     // we can update multiple pixels much faster.
-    VPIN nextVpin=vpin +  (count>_nPins ? _nPins : count);
-    if (_deviceState != DEVSTATE_FAILED) while(vpin<nextVpin) {
-      _write(vpin,value);
-      vpin++;
-    }
-    return nextVpin;  // next pin we cant 
-  }  
+    VPIN nextVpin = vpin + (count > _nPins ? _nPins : count);
+    if (_deviceState != DEVSTATE_FAILED)
+      while (vpin < nextVpin) {
+        _write(vpin, value);
+        vpin++;
+      }
+    return nextVpin;  // next pin we cant
+  }
   // Write analogue value.
   // The convoluted parameter mashing here is to allow passing the RGB and on/off
   // information through the generic HAL _writeAnalog interface which was originally
-  // designed for servos and short integers  
+  // designed for servos and short integers
   void _writeAnalogue(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B) override {
-    if (_deviceState == DEVSTATE_FAILED) return;
-    RGB newColour={(byte)((colour_RG>>8) & 0xFF), (byte)(colour_RG & 0xFF), (byte)(colour_B & 0xFF)};
-    auto pixel=vpin-_firstVpin;
-    if (pixelBuffer[pixel]==newColour && isPixelOn(pixel)==(bool)onoff) return; // no change  
-      
-    if (onoff) setPixelOn(pixel); else setPixelOff(pixel);
-    pixelBuffer[pixel]=newColour;
+    if (_deviceState == DEVSTATE_FAILED)
+      return;
+    RGB newColour = {(byte)((colour_RG >> 8) & 0xFF), (byte)(colour_RG & 0xFF), (byte)(colour_B & 0xFF)};
+    auto pixel = vpin - _firstVpin;
+    if (pixelBuffer[pixel] == newColour && isPixelOn(pixel) == (bool)onoff)
+      return;  // no change
+
+    if (onoff)
+      setPixelOn(pixel);
+    else
+      setPixelOff(pixel);
+    pixelBuffer[pixel] = newColour;
     transmit(pixel);
   }
- VPIN _writeAnalogueRange(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B, int count) override {
+  VPIN _writeAnalogueRange(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B, int count) override {
     // using write range cuts out the constant vpin to driver lookup so
-    VPIN nextVpin=vpin +  (count>_nPins ? _nPins : count); 
-    if (_deviceState != DEVSTATE_FAILED) while(vpin<nextVpin) {
-      _writeAnalogue(vpin,colour_RG, onoff,colour_B);
-      vpin++;
-    }
-    return nextVpin;  // next pin we cant 
- }
- 
+    VPIN nextVpin = vpin + (count > _nPins ? _nPins : count);
+    if (_deviceState != DEVSTATE_FAILED)
+      while (vpin < nextVpin) {
+        _writeAnalogue(vpin, colour_RG, onoff, colour_B);
+        vpin++;
+      }
+    return nextVpin;  // next pin we cant
+  }
+
   // Display device information and status.
   void _display() override {
-    DIAG(F("NeoPixel I2C:%s Vpins %u-%u %S"),
-              _I2CAddress.toString(), 
-              (int)_firstVpin, (int)_firstVpin+_nPins-1,
-              _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
+    DIAG(F("NeoPixel I2C:%s Vpins %u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, (int)_firstVpin + _nPins - 1,
+         _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
+  bool isPixelOn(int16_t pixel) {
+    return stateBuffer[pixel / 8] & (0x80 >> (pixel % 8));
+  }
+  void setPixelOn(int16_t pixel) {
+    stateBuffer[pixel / 8] |= (0x80 >> (pixel % 8));
+  }
+  void setPixelOff(int16_t pixel) {
+    stateBuffer[pixel / 8] &= ~(0x80 >> (pixel % 8));
+  }
 
-  
-  bool isPixelOn(int16_t pixel) {return stateBuffer[pixel/8] & (0x80>>(pixel%8));}
-  void setPixelOn(int16_t pixel) {stateBuffer[pixel/8] |= (0x80>>(pixel%8));}
-  void setPixelOff(int16_t pixel) {stateBuffer[pixel/8] &= ~(0x80>>(pixel%8));}
-  
   // Helper function for error handling
-  void reportError(uint8_t status, bool fail=true) {
-    DIAG(F("NeoPixel I2C:%s Error:%d (%S)"), _I2CAddress.toString(), 
-      status, I2CManager.getErrorMessage(status));
+  void reportError(uint8_t status, bool fail = true) {
+    DIAG(F("NeoPixel I2C:%s Error:%d (%S)"), _I2CAddress.toString(), status, I2CManager.getErrorMessage(status));
     if (fail)
-    _deviceState = DEVSTATE_FAILED;
+      _deviceState = DEVSTATE_FAILED;
   }
 
-  
-  void transmit(uint16_t pixel) { 
-    byte buffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
-    uint16_t offset= pixel * _bytesPerPixel;
-    buffer[2]=(byte)(offset>>8);
-    buffer[3]=(byte)(offset & 0xFF);
-    
+  void transmit(uint16_t pixel) {
+    byte buffer[] = {SEESAW_NEOPIXEL_BASE, SEESAW_NEOPIXEL_BUF, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint16_t offset = pixel * _bytesPerPixel;
+    buffer[2] = (byte)(offset >> 8);
+    buffer[3] = (byte)(offset & 0xFF);
+
     if (isPixelOn(pixel)) {
-      auto colour=pixelBuffer[pixel];    
-      buffer[_redOffset]=colour.red;
-      buffer[_greenOffset]=colour.green;
-      buffer[_blueOffset]=colour.blue;
-    } // else leave buffer black (in buffer preset to zeros above)
-    
-    // Transmit pixel to driver
-    I2CManager.write(_I2CAddress,buffer,4 +_bytesPerPixel);
-    _showPendimg=true;
-  
-  }
-  struct RGB { 
-      byte red; 
-      byte green; 
-      byte blue; 
-      bool operator==(const RGB& other) const {
-        return red == other.red && green == other.green && blue == other.blue;
-      }
-    };
+      auto colour = pixelBuffer[pixel];
+      buffer[_redOffset] = colour.red;
+      buffer[_greenOffset] = colour.green;
+      buffer[_blueOffset] = colour.blue;
+    }  // else leave buffer black (in buffer preset to zeros above)
 
-  RGB*   pixelBuffer = nullptr;
-  byte*  stateBuffer = nullptr;  // 1 bit per pixel
+    // Transmit pixel to driver
+    I2CManager.write(_I2CAddress, buffer, 4 + _bytesPerPixel);
+    _showPendimg = true;
+  }
+  struct RGB {
+    byte red;
+    byte green;
+    byte blue;
+    bool operator==(const RGB& other) const {
+      return red == other.red && green == other.green && blue == other.blue;
+    }
+  };
+
+  RGB* pixelBuffer = nullptr;
+  byte* stateBuffer = nullptr;  // 1 bit per pixel
   bool _showPendimg;
-  
+
   // mapping of RGB onto pixel buffer for seesaw.
   byte _bytesPerPixel;
   byte _redOffset;
   byte _greenOffset;
   byte _blueOffset;
-  bool _kHz800; 
+  bool _kHz800;
 };
 
 #endif

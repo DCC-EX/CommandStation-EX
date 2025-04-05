@@ -1,6 +1,6 @@
 /*
  *  © 2020, Chris Harlow. All rights reserved.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -23,36 +23,34 @@
 #include "RingStream.h"
 #include "Display.h"
 class Diag {
-  public:
+ public:
   static bool ACK;
   static bool CMD;
   static bool WIFI;
   static bool WITHROTTLE;
   static bool ETHERNET;
   static bool LCN;
-  
 };
 
-class StringFormatter
-{
-  public:
-    static void send(Print * serial, const FSH* input...);
-    static void send(Print & serial, const FSH* input...);
-    
-    static void printEscapes(Print * serial,char * input);
-    static void printEscapes(Print * serial,const FSH* input);
-    static void printEscape(Print * serial, char c);
+class StringFormatter {
+ public:
+  static void send(Print* serial, const FSH* input...);
+  static void send(Print& serial, const FSH* input...);
 
-    // DIAG support
-    static void diag( const FSH* input...);
-    static void lcd(byte row, const FSH* input...);
-    static void lcd2(uint8_t display, byte row, const FSH* input...);
-    static void printEscapes(char * input);
-    static void printEscape( char c);
-    static void printHex(Print * stream,uint16_t value);
+  static void printEscapes(Print* serial, char* input);
+  static void printEscapes(Print* serial, const FSH* input);
+  static void printEscape(Print* serial, char c);
 
-    private: 
-    static void send2(Print * serial, const FSH* input,va_list args);
-    static void printPadded(Print* stream, long value, byte width, bool formatLeft);
+  // DIAG support
+  static void diag(const FSH* input...);
+  static void lcd(byte row, const FSH* input...);
+  static void lcd2(uint8_t display, byte row, const FSH* input...);
+  static void printEscapes(char* input);
+  static void printEscape(char c);
+  static void printHex(Print* stream, uint16_t value);
+
+ private:
+  static void send2(Print* serial, const FSH* input, va_list args);
+  static void printPadded(Print* stream, long value, byte width, bool formatLeft);
 };
 #endif

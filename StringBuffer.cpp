@@ -1,7 +1,7 @@
 /*
  *  © 2022 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of DCC-EX CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -22,22 +22,23 @@
 #include "DIAG.h"
 
 StringBuffer::StringBuffer() {
-    flush();
+  flush();
 };
 
-char * StringBuffer::getString() { 
-   return _buffer;
+char* StringBuffer::getString() {
+  return _buffer;
 }
 
 void StringBuffer::flush() {
-    _pos_write=0;
-    _buffer[0]='\0';
+  _pos_write = 0;
+  _buffer[0] = '\0';
 }
 
 size_t StringBuffer::write(uint8_t b) {
-  if (_pos_write>=buffer_max) return 0;
+  if (_pos_write >= buffer_max)
+    return 0;
   _buffer[_pos_write] = b;
   ++_pos_write;
-  _buffer[_pos_write]='\0';
+  _buffer[_pos_write] = '\0';
   return 1;
 }

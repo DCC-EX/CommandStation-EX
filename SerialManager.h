@@ -1,7 +1,7 @@
- /*
+/*
  *  © 2021 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -24,26 +24,25 @@
 #include "Arduino.h"
 #include "defines.h"
 
-
 #ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 100
+#define COMMAND_BUFFER_SIZE 100
 #endif
 
 class SerialManager {
-public:
+ public:
   static void init();
   static void loop();
-  static void broadcast(char * stringBuffer);
-  
-private:  
-  static SerialManager * first;
-  SerialManager(Stream * myserial);
+  static void broadcast(char* stringBuffer);
+
+ private:
+  static SerialManager* first;
+  SerialManager(Stream* myserial);
   void loop2();
-  void broadcast2(char * stringBuffer);
-  Stream * serial;
-  SerialManager * next;
+  void broadcast2(char* stringBuffer);
+  Stream* serial;
+  SerialManager* next;
   byte bufferLength;
-  byte buffer[COMMAND_BUFFER_SIZE]; 
+  byte buffer[COMMAND_BUFFER_SIZE];
   byte inCommandPayload;
 };
 #endif

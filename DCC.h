@@ -5,7 +5,7 @@
  *  © 2020-2021 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -39,7 +39,6 @@
 #include "DCCACK.h"
 const uint16_t LONG_ADDR_MARKER = 0x4000;
 
-
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 #if defined(HAS_ENOUGH_MEMORY)
@@ -48,11 +47,10 @@ const byte MAX_LOCOS = 50;
 const byte MAX_LOCOS = 30;
 #endif
 
-class DCC
-{
-public:
-  static inline void setShieldName(const FSH * motorShieldName) {
-    shieldName=(FSH *)motorShieldName;
+class DCC {
+ public:
+  static inline void setShieldName(const FSH* motorShieldName) {
+    shieldName = (FSH*)motorShieldName;
   };
   static void begin();
   static void loop();
@@ -70,45 +68,44 @@ public:
   static void changeFn(int cab, int16_t functionNumber);
   static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
-  static void setDCFreq(int cab,byte freq);
-  static void updateGroupflags(byte &flags, int16_t functionNumber);
+  static void setDCFreq(int cab, byte freq);
+  static void updateGroupflags(byte& flags, int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
-  static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
-  static bool writeTextPacket(byte *b, int nBytes);
-  
+  static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats = 3);
+  static bool writeTextPacket(byte* b, int nBytes);
+
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
   static void readCV(int16_t cv, ACK_CALLBACK callback);
-  static void readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback); // -1 for error
+  static void readCVBit(int16_t cv, byte bitNum, ACK_CALLBACK callback);  // -1 for error
   static void writeCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
 
   static void getLocoId(ACK_CALLBACK callback);
-  static void setLocoId(int id,ACK_CALLBACK callback);
-  static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
+  static void setLocoId(int id, ACK_CALLBACK callback);
+  static void setConsistId(int id, bool reverse, ACK_CALLBACK callback);
   // Enhanced API functions
-  static void forgetLoco(int cab); // removes any speed reminders for this loco
-  static void forgetAllLocos();    // removes all speed reminders
-  static void displayCabList(Print *stream);
-  static FSH *getMotorShieldName();
+  static void forgetLoco(int cab);  // removes any speed reminders for this loco
+  static void forgetAllLocos();     // removes all speed reminders
+  static void displayCabList(Print* stream);
+  static FSH* getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
-  
-  struct LOCO
-  {
+
+  struct LOCO {
     int loco;
     byte speedCode;
     byte groupFlags;
     uint32_t functions;
   };
- static LOCO speedTable[MAX_LOCOS];
- static int lookupSpeedTable(int locoId, bool autoCreate=true);
- static byte cv1(byte opcode, int cv);
- static byte cv2(int cv);
- 
-private:
+  static LOCO speedTable[MAX_LOCOS];
+  static int lookupSpeedTable(int locoId, bool autoCreate = true);
+  static byte cv1(byte opcode, int cv);
+  static byte cv2(int cv);
+
+ private:
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);
@@ -116,13 +113,12 @@ private:
   static bool issueReminder(int reg);
   static int lastLocoReminder;
   static int highestUsedReg;
-  static FSH *shieldName;
+  static FSH* shieldName;
   static byte globalSpeedsteps;
 
   static void issueReminders();
   static void callback(int value);
 
-  
   // NMRA codes #
   static const byte SET_SPEED = 0x3f;
   static const byte WRITE_BYTE_MAIN = 0xEC;

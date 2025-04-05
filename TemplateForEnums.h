@@ -1,6 +1,6 @@
 /*
  *  © 2024, Harald Barth. All rights reserved.
- *  
+ *
  *  This file is part of DCC-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -18,9 +18,20 @@
  */
 #ifndef TemplateForEnums
 #define TemplateForEnums
-template<class T> inline T operator~ (T a) { return (T)~(int)a; }
-template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
-template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
-template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
+template <class T>
+inline T operator~(T a) {
+  return (T) ~(int)a;
+}
+template <class T>
+inline T operator|(T a, T b) {
+  return (T)((int)a | (int)b);
+}
+template <class T>
+inline T operator&(T a, T b) {
+  return (T)((int)a & (int)b);
+}
+template <class T>
+inline T operator^(T a, T b) {
+  return (T)((int)a ^ (int)b);
+}
 #endif
-

@@ -1,7 +1,7 @@
 /*
  *  © 2024 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -19,30 +19,30 @@
  */
 
 #ifndef EXRAILSensor_h
-#define EXRAILSensor_h 
+#define EXRAILSensor_h
 #include "IODevice.h"
 class EXRAILSensor {
-  static EXRAILSensor * firstSensor;
- static EXRAILSensor * readingSensor;
- static unsigned long lastReadCycle;
- 
-  public:
+  static EXRAILSensor* firstSensor;
+  static EXRAILSensor* readingSensor;
+  static unsigned long lastReadCycle;
+
+ public:
   static void checkAll();
-  
+
   EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange);
   bool check();
-  
-  private:
-  static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microsecs.
-                                                   // should not be less than device scan cycle time.
-  static const byte minReadCount = 4; // number of additional scans before acting on change
-                                        // E.g. 1 means that a change is ignored for one scan and actioned on the next.
-                                        // Max value is 63
-  
+
+ private:
+  static const unsigned int cycleInterval = 10000;  // min time between consecutive reads of each sensor in microsecs.
+                                                    // should not be less than device scan cycle time.
+  static const byte minReadCount = 4;               // number of additional scans before acting on change
+                                                    // E.g. 1 means that a change is ignored for one scan and actioned on the next.
+                                                    // Max value is 63
+
   EXRAILSensor* nextSensor;
-  VPIN pin; 
-  int progCounter; 
-  bool active; 
+  VPIN pin;
+  int progCounter;
+  bool active;
   bool inputState;
   bool onChange;
   byte latchDelay;

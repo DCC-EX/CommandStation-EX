@@ -41,15 +41,15 @@ void EEStore::init() {
                        // A pins grounded (0b1010000 = 0x50)
 #endif
 
-  eeStore = (EEStore *)calloc(1, sizeof(EEStore));
+  eeStore = (EEStore*)calloc(1, sizeof(EEStore));
 
   EEPROM.get(0, eeStore->data);  // get eeStore data
 
   // check to see that eeStore contains valid DCC++ ID
-  if (strncmp(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)) != 0) {  
+  if (strncmp(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)) != 0) {
     // if not, create blank eeStore structure (no
-    // turnouts, no sensors) and save it back to EEPROM  
-    strncpy(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)+0);  
+    // turnouts, no sensors) and save it back to EEPROM
+    strncpy(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID) + 0);
     eeStore->data.nTurnouts = 0;
     eeStore->data.nSensors = 0;
     eeStore->data.nOutputs = 0;
@@ -87,14 +87,20 @@ void EEStore::store() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void EEStore::advance(int n) { eeAddress += n; }
+void EEStore::advance(int n) {
+  eeAddress += n;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void EEStore::reset() { eeAddress = sizeof(EEStore); }
+void EEStore::reset() {
+  eeAddress = sizeof(EEStore);
+}
 ///////////////////////////////////////////////////////////////////////////////
 
-int EEStore::pointer() { return (eeAddress); }
+int EEStore::pointer() {
+  return (eeAddress);
+}
 ///////////////////////////////////////////////////////////////////////////////
 
 void EEStore::dump(int num) {
@@ -107,6 +113,6 @@ void EEStore::dump(int num) {
 }
 ///////////////////////////////////////////////////////////////////////////////
 
-EEStore *EEStore::eeStore = NULL;
+EEStore* EEStore::eeStore = NULL;
 int EEStore::eeAddress = 0;
 #endif

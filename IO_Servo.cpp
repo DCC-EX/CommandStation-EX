@@ -1,6 +1,6 @@
 /*
  *  © 2023, Neil McKechnie. All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -28,5 +28,5 @@
 // Note: This has been put into its own .CPP file to ensure that duplicates aren't created
 // if the IO_Servo.h library is #include'd in multiple source files.
 //
-const uint8_t FLASH Servo::_bounceProfile[30] = 
-    {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
+const uint8_t FLASH Servo::_bounceProfile[30] = {0,  2,  3,  7,   13, 33, 50, 83, 100, 83, 75, 70, 65, 60, 60,
+                                                 65, 74, 84, 100, 83, 75, 70, 70, 72,  75, 80, 87, 92, 97, 100};

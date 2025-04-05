@@ -1,27 +1,27 @@
 /**************************************************************************************************
  * This is an example automation file to control EX-Turntable using recommended techniques.
- ************************************************************************************************** 
+ **************************************************************************************************
  * INSTRUCTIONS
- ************************************************************************************************** 
+ **************************************************************************************************
  * To use this example file as the starting point for your layout, there are two options:
- * 
+ *
  * 1. If you don't have an existing "myAutomation.h" file, simply rename "myEX-Turntable.example.h" to
  *    "myAutomation.h".
  * 2. If you have an existing "myAutomation.h" file, rename "myEX-Turntable.example.h" to "myEX-Turntable.h",
  *    and then include it by adding the line below at the end of your existing "myAutomation.h", on a
  *    line of its own:
- * 
+ *
  *    #include "myEX-Turntable.h"
- * 
+ *
  * Note that there are further instructions in the documentation at https://dcc-ex.com/.
  *************************************************************************************************/
 
 /**************************************************************************************************
  * The MOVETT() command below will automatically move your turntable to the defined step position on
  * start up.
- * 
+ *
  * If you do not wish this to occur, simply comment the line out.
- * 
+ *
  * NOTE: If you are including this file at the end of an existing "myAutomation.h" file, you will likely
  * need to move this line to the beginning of your existing "myAutomation.h" file in order for it to
  * be effective.
@@ -37,12 +37,12 @@ DONE
 // This includes RESERVE()/FREE() to protect any automation activities.
 //
 #define EX_TURNTABLE(route_id, reserve_id, vpin, steps, activity, desc) \
-  ROUTE(route_id, desc) \
-    RESERVE(reserve_id) \
-    MOVETT(vpin, steps, activity) \
-    WAITFOR(vpin) \
-    FREE(reserve_id) \
-    DONE
+  ROUTE(route_id, desc)                                                 \
+  RESERVE(reserve_id)                                                   \
+  MOVETT(vpin, steps, activity)                                         \
+  WAITFOR(vpin)                                                         \
+  FREE(reserve_id)                                                      \
+  DONE
 
 /**************************************************************************************************
  * TURNTABLE POSITION DEFINITIONS

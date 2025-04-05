@@ -4,7 +4,7 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
- *  
+ *
  *  This file is part of Asbelos DCC API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -95,22 +95,22 @@ the state of any outputs being monitored or controlled by a separate interface o
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to print all output states to stream in the form "<Y id state>"
 
-void Output::printAll(Print *stream){
-  for (Output *tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
+void Output::printAll(Print* stream) {
+  for (Output* tt = Output::firstOutput; tt != NULL; tt = tt->nextOutput)
     StringFormatter::send(stream, F("<Y %d %d>\n"), tt->data.id, tt->data.active);
-} // Output::printAll
+}  // Output::printAll
 
 ///////////////////////////////////////////////////////////////////////////////
 // Object method to activate / deactivate the Output state.
 
-void  Output::activate(uint16_t s){
-  s = (s>0);  // Make 0 or 1
-  data.active = s;                     // if s>0, set status to active, else inactive
+void Output::activate(uint16_t s) {
+  s = (s > 0);      // Make 0 or 1
+  data.active = s;  // if s>0, set status to active, else inactive
   // set state of output pin to HIGH or LOW depending on whether bit zero of iFlag is set to 0 (ACTIVE=HIGH) or 1 (ACTIVE=LOW)
-  IODevice::write(data.pin, s ^ data.invert);  
+  IODevice::write(data.pin, s ^ data.invert);
 #ifndef DISABLE_EEPROM
-  // Update EEPROM if output has been stored.    
-  if(EEStore::eeStore->data.nOutputs > 0 && num > 0)
+  // Update EEPROM if output has been stored.
+  if (EEStore::eeStore->data.nOutputs > 0 && num > 0)
     EEPROM.put(num, data.oStatus);
 #endif
 }
@@ -119,48 +119,50 @@ void  Output::activate(uint16_t s){
 // Static function to locate Output object specified by ID 'n'.
 //   Return NULL if not found.
 
-Output* Output::get(uint16_t n){
-  Output *tt;
-  for(tt=firstOutput;tt!=NULL && tt->data.id!=n;tt=tt->nextOutput);
-  return(tt);
+Output* Output::get(uint16_t n) {
+  Output* tt;
+  for (tt = firstOutput; tt != NULL && tt->data.id != n; tt = tt->nextOutput);
+  return (tt);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to delete Output object specified by ID 'n'.
 //   Return false if not found.
 
-bool Output::remove(uint16_t n){
-  Output *tt,*pp=NULL;
+bool Output::remove(uint16_t n) {
+  Output *tt, *pp = NULL;
 
-  for(tt=firstOutput;tt!=NULL && tt->data.id!=n;pp=tt,tt=tt->nextOutput);
+  for (tt = firstOutput; tt != NULL && tt->data.id != n; pp = tt, tt = tt->nextOutput);
 
-  if(tt==NULL) return false;
-  
-  if(tt==firstOutput)
-    firstOutput=tt->nextOutput;
+  if (tt == NULL)
+    return false;
+
+  if (tt == firstOutput)
+    firstOutput = tt->nextOutput;
   else
-    pp->nextOutput=tt->nextOutput;
+    pp->nextOutput = tt->nextOutput;
 
   free(tt);
 
   return true;
-  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to load configuration and state of all Outputs from EEPROM
 #ifndef DISABLE_EEPROM
-void Output::load(){
+void Output::load() {
   struct OutputData data;
-  Output *tt;
+  Output* tt;
 
-  for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
-    EEPROM.get(EEStore::pointer(),data);
+  for (uint16_t i = 0; i < EEStore::eeStore->data.nOutputs; i++) {
+    EEPROM.get(EEStore::pointer(), data);
     // Create new object, set current state to default or to saved state from eeprom.
-    tt=create(data.id, data.pin, data.flags);
+    tt = create(data.id, data.pin, data.flags);
     uint8_t state = data.setDefault ? data.defaultValue : data.active;
     tt->activate(state);
 
-    if (tt) tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
+    if (tt)
+      tt->num = EEStore::pointer() + offsetof(OutputData, oStatus);  // Save pointer to flags within EEPROM
     EEStore::advance(sizeof(tt->data));
   }
 }
@@ -168,20 +170,19 @@ void Output::load(){
 ///////////////////////////////////////////////////////////////////////////////
 // Static function to store configuration and state of all Outputs to EEPROM
 
-void Output::store(){
-  Output *tt;
+void Output::store() {
+  Output* tt;
 
-  tt=firstOutput;
-  EEStore::eeStore->data.nOutputs=0;
+  tt = firstOutput;
+  EEStore::eeStore->data.nOutputs = 0;
 
-  while(tt!=NULL){
-    EEPROM.put(EEStore::pointer(),tt->data);
-    tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
+  while (tt != NULL) {
+    EEPROM.put(EEStore::pointer(), tt->data);
+    tt->num = EEStore::pointer() + offsetof(OutputData, oStatus);  // Save pointer to flags within EEPROM
     EEStore::advance(sizeof(tt->data));
-    tt=tt->nextOutput;
+    tt = tt->nextOutput;
     EEStore::eeStore->data.nOutputs++;
   }
-
 }
 #endif
 
@@ -190,40 +191,41 @@ void Output::store(){
 //   The obscurely named parameter 'v' is 0 if called from the load() function
 //   and 1 if called from the <Z> command processing.
 
-Output *Output::create(uint16_t id, VPIN pin, int iFlag, int v){
-  Output *tt;
+Output* Output::create(uint16_t id, VPIN pin, int iFlag, int v) {
+  Output* tt;
 
-  if (pin > VPIN_MAX) return NULL;
-  
-  if(firstOutput==NULL){
-    firstOutput=(Output *)calloc(1,sizeof(Output));
-    tt=firstOutput;
-  } else if((tt=get(id))==NULL){
-    tt=firstOutput;
-    while(tt->nextOutput!=NULL)
-      tt=tt->nextOutput;
-    tt->nextOutput=(Output *)calloc(1,sizeof(Output));
-    tt=tt->nextOutput;
+  if (pin > VPIN_MAX)
+    return NULL;
+
+  if (firstOutput == NULL) {
+    firstOutput = (Output*)calloc(1, sizeof(Output));
+    tt = firstOutput;
+  } else if ((tt = get(id)) == NULL) {
+    tt = firstOutput;
+    while (tt->nextOutput != NULL) tt = tt->nextOutput;
+    tt->nextOutput = (Output*)calloc(1, sizeof(Output));
+    tt = tt->nextOutput;
   }
 
-  if(tt==NULL) return tt;
-  tt->num = 0; // make sure new object doesn't get written to EEPROM until store() command
-  tt->data.id=id;
-  tt->data.pin=pin;
-  tt->data.flags=iFlag;
+  if (tt == NULL)
+    return tt;
+  tt->num = 0;  // make sure new object doesn't get written to EEPROM until store() command
+  tt->data.id = id;
+  tt->data.pin = pin;
+  tt->data.flags = iFlag;
 
-  if(v==1){
+  if (v == 1) {
     // sets status to 0 (INACTIVE) is bit 1 of iFlag=0, otherwise set to value of bit 2 of iFlag
-    if (tt->data.setDefault) 
+    if (tt->data.setDefault)
       tt->data.active = tt->data.defaultValue;
     else
       tt->data.active = 0;
   }
   IODevice::write(tt->data.pin, tt->data.active ^ tt->data.invert);
 
-  return(tt);
+  return (tt);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Output *Output::firstOutput=NULL;
+Output* Output::firstOutput = NULL;

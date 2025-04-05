@@ -85,10 +85,8 @@ static const uint8_t SH1106_PUMP_OFF = 0x8A;
 
 // Sequence of blank pixels, to optimise clearing screen.
 // Send a maximum of 30 pixels per transmission.
-const uint8_t FLASH SSD1306AsciiWire::blankPixels[30] = 
-  {0x40,        // First byte specifies data mode
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-
+const uint8_t FLASH SSD1306AsciiWire::blankPixels[30] = {0x40,  // First byte specifies data mode
+                                                         0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //==============================================================================
 // this section is based on https://github.com/adafruit/Adafruit_SSD1306
@@ -96,56 +94,70 @@ const uint8_t FLASH SSD1306AsciiWire::blankPixels[30] =
 /** Initialization commands for a 128x32 or 128x64 SSD1306 oled display. */
 const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
     // Init sequence for Adafruit 128x32/64 OLED module
-    0x00,                              // Set to command mode
+    0x00,  // Set to command mode
     SSD1306_DISPLAYOFF,
-    SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80 
-    SSD1306_SETMULTIPLEX, 0x3F,        // ratio 64 (initially)
-    SSD1306_SETDISPLAYOFFSET, 0x0,     // no offset
-    SSD1306_SETSTARTLINE | 0x0,        // line #0
-    SSD1306_CHARGEPUMP, 0x14,          // internal vcc
-    SSD1306_MEMORYMODE, 0x02,          // page mode
-    SSD1306_SEGREMAP | 0x1,            // column 127 mapped to SEG0
-    SSD1306_COMSCANDEC,                // column scan direction reversed
-    SSD1306_SETCOMPINS, 0X12,          // set COM pins
-    SSD1306_SETCONTRAST, 0x7F,         // contrast level 127
-    SSD1306_SETPRECHARGE, 0xF1,        // pre-charge period (1, 15)
-    SSD1306_SETVCOMDETECT, 0x40,       // vcomh regulator level
+    SSD1306_SETDISPLAYCLOCKDIV,
+    0x80,  // the suggested ratio 0x80
+    SSD1306_SETMULTIPLEX,
+    0x3F,  // ratio 64 (initially)
+    SSD1306_SETDISPLAYOFFSET,
+    0x0,                         // no offset
+    SSD1306_SETSTARTLINE | 0x0,  // line #0
+    SSD1306_CHARGEPUMP,
+    0x14,  // internal vcc
+    SSD1306_MEMORYMODE,
+    0x02,                    // page mode
+    SSD1306_SEGREMAP | 0x1,  // column 127 mapped to SEG0
+    SSD1306_COMSCANDEC,      // column scan direction reversed
+    SSD1306_SETCOMPINS,
+    0X12,  // set COM pins
+    SSD1306_SETCONTRAST,
+    0x7F,  // contrast level 127
+    SSD1306_SETPRECHARGE,
+    0xF1,  // pre-charge period (1, 15)
+    SSD1306_SETVCOMDETECT,
+    0x40,  // vcomh regulator level
     SSD1306_DISPLAYALLON_RESUME,
     SSD1306_NORMALDISPLAY,
-    SSD1306_DISPLAYON
-};
+    SSD1306_DISPLAYON};
 
 //------------------------------------------------------------------------------
 // This section is based on https://github.com/stanleyhuangyc/MultiLCD
 
 /** Initialization commands for a 128x64 SH1106 oled display. */
-const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
-  0x00,                                  // Set to command mode
-  SSD1306_DISPLAYOFF,
-  SSD1306_SETDISPLAYCLOCKDIV, 0X80,      // set osc division
-  SSD1306_SETMULTIPLEX, 0x3F,            // ratio 64
-  SSD1306_SETDISPLAYOFFSET, 0X00,        // set display offset
-  SSD1306_SETSTARTPAGE | 0X0,            // set page address
-  SSD1306_SETSTARTLINE | 0x0,            // set start line
-  SH1106_SET_PUMP_MODE, SH1106_PUMP_ON,  // set charge pump enable
-  SSD1306_SEGREMAP | 0X1,                // set segment remap
-  SSD1306_COMSCANDEC,                    // Com scan direction
-  SSD1306_SETCOMPINS, 0X12,              // set COM pins
-  SSD1306_SETCONTRAST, 0x80,             // 128
-  SSD1306_SETPRECHARGE, 0X1F,            // set pre-charge period
-  SSD1306_SETVCOMDETECT,  0x40,          // set vcomh
-  SH1106_SET_PUMP_VOLTAGE | 0X2,         // 8.0 volts
-  SSD1306_NORMALDISPLAY,                 // normal / reverse
-  SSD1306_DISPLAYON
-};
+const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {0x00,  // Set to command mode
+                                                             SSD1306_DISPLAYOFF,
+                                                             SSD1306_SETDISPLAYCLOCKDIV,
+                                                             0X80,  // set osc division
+                                                             SSD1306_SETMULTIPLEX,
+                                                             0x3F,  // ratio 64
+                                                             SSD1306_SETDISPLAYOFFSET,
+                                                             0X00,                        // set display offset
+                                                             SSD1306_SETSTARTPAGE | 0X0,  // set page address
+                                                             SSD1306_SETSTARTLINE | 0x0,  // set start line
+                                                             SH1106_SET_PUMP_MODE,
+                                                             SH1106_PUMP_ON,          // set charge pump enable
+                                                             SSD1306_SEGREMAP | 0X1,  // set segment remap
+                                                             SSD1306_COMSCANDEC,      // Com scan direction
+                                                             SSD1306_SETCOMPINS,
+                                                             0X12,  // set COM pins
+                                                             SSD1306_SETCONTRAST,
+                                                             0x80,  // 128
+                                                             SSD1306_SETPRECHARGE,
+                                                             0X1F,  // set pre-charge period
+                                                             SSD1306_SETVCOMDETECT,
+                                                             0x40,                           // set vcomh
+                                                             SH1106_SET_PUMP_VOLTAGE | 0X2,  // 8.0 volts
+                                                             SSD1306_NORMALDISPLAY,          // normal / reverse
+                                                             SSD1306_DISPLAYON};
 
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
- 
+
 // Auto-detect address
-SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) 
-  : SSD1306AsciiWire(0, width, height) { }
+SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) : SSD1306AsciiWire(0, width, height) {
+}
 
 // Constructor with explicit address
 SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height) {
@@ -154,7 +166,7 @@ SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height) {
   m_displayHeight = height;
   // Set size in characters
   m_charsPerColumn = m_displayHeight / fontHeight;
-  m_charsPerRow = (m_displayWidth+fontWidth-1) / fontWidth; // Round up
+  m_charsPerRow = (m_displayWidth + fontWidth - 1) / fontWidth;  // Round up
 }
 
 bool SSD1306AsciiWire::begin() {
@@ -177,17 +189,17 @@ bool SSD1306AsciiWire::begin() {
   m_row = 0;
   m_colOffset = 0;
 
-  if (m_displayWidth==132 && m_displayHeight==64) {
+  if (m_displayWidth == 132 && m_displayHeight == 64) {
     // SH1106 display.  This uses 128x64 centered within a 132x64 OLED.
     m_colOffset = 2;
     I2CManager.write_P(m_i2cAddr, SH1106_132x64init, sizeof(SH1106_132x64init));
-  } else if (m_displayWidth==128 && (m_displayHeight==64 || m_displayHeight==32)) {
+  } else if (m_displayWidth == 128 && (m_displayHeight == 64 || m_displayHeight == 32)) {
     // SSD1306 or SSD1309 128x64 or 128x32
     I2CManager.write_P(m_i2cAddr, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
-    if (m_displayHeight == 32) 
-      I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
-        SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
-        SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
+    if (m_displayHeight == 32)
+      I2CManager.write(m_i2cAddr, 5, 0,             // Set command mode
+                       SSD1306_SETMULTIPLEX, 0x1F,  // ratio 32
+                       SSD1306_SETCOMPINS, 0x02);   // sequential COM pins, disable remap
   } else {
     DIAG(F("OLED configuration option not recognised"));
     return false;
@@ -200,12 +212,13 @@ bool SSD1306AsciiWire::begin() {
 /* Clear screen by writing blank pixels. */
 void SSD1306AsciiWire::clearNative() {
   const int maxBytes = sizeof(blankPixels) - 1;  // max number of pixel columns (bytes) per transmission
-  for (uint8_t r = 0; r <= m_displayHeight/8 - 1; r++) {
-    setRowNative(r);   // Position at start of row to be erased
+  for (uint8_t r = 0; r <= m_displayHeight / 8 - 1; r++) {
+    setRowNative(r);  // Position at start of row to be erased
     for (uint8_t c = 0; c < m_displayWidth; c += maxBytes) {
-      uint8_t len = m_displayWidth-c;  // Number of pixel columns remaining
-      if (len > maxBytes) len = maxBytes;
-      I2CManager.write_P(m_i2cAddr, blankPixels, len+1);  // Write command + 'len' blank columns
+      uint8_t len = m_displayWidth - c;  // Number of pixel columns remaining
+      if (len > maxBytes)
+        len = maxBytes;
+      I2CManager.write_P(m_i2cAddr, blankPixels, len + 1);  // Write command + 'len' blank columns
     }
   }
 }
@@ -215,7 +228,7 @@ void SSD1306AsciiWire::clearNative() {
 // Set cursor position (by text line)
 void SSD1306AsciiWire::setRowNative(uint8_t line) {
   // Calculate pixel position from line number
-  uint8_t row = line*8;
+  uint8_t row = line * 8;
   if (row < m_displayHeight) {
     m_row = row;
     m_col = m_colOffset;
@@ -226,7 +239,7 @@ void SSD1306AsciiWire::setRowNative(uint8_t line) {
     outputBuffer[len++] = 0x00;  // Set to command mode
     outputBuffer[len++] = SSD1306_SETLOWCOLUMN | (m_col & 0XF);
     outputBuffer[len++] = SSD1306_SETHIGHCOLUMN | (m_col >> 4);
-    outputBuffer[len++] = SSD1306_SETSTARTPAGE | (m_row/8);
+    outputBuffer[len++] = SSD1306_SETSTARTPAGE | (m_row / 8);
     I2CManager.write(m_i2cAddr, outputBuffer, len, &requestBlock);
   }
 }
@@ -242,7 +255,7 @@ size_t SSD1306AsciiWire::writeNative(uint8_t ch) {
     if (ch <= 'z')
       ch = ch - 'a' + 'A';  // Capitalise
     else
-      ch -= 26; // Allow for missing lowercase letters
+      ch -= 26;  // Allow for missing lowercase letters
   }
 #endif
   if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount))
@@ -256,11 +269,11 @@ size_t SSD1306AsciiWire::writeNative(uint8_t ch) {
   // Before using buffer, wait for last request to complete
   requestBlock.wait();
   // Build output buffer for I2C
-  outputBuffer[0] = 0x40;     // set SSD1306 controller to data mode
+  outputBuffer[0] = 0x40;  // set SSD1306 controller to data mode
   uint8_t bufferPos = 1;
   // Copy character pixel columns
   for (uint8_t i = 0; i < fontWidth; i++) {
-    if (m_col++ < m_displayWidth) 
+    if (m_col++ < m_displayWidth)
       outputBuffer[bufferPos++] = GETFLASH(base++);
   }
 
@@ -268,7 +281,6 @@ size_t SSD1306AsciiWire::writeNative(uint8_t ch) {
   I2CManager.write(m_i2cAddr, outputBuffer, bufferPos, &requestBlock);
   return 1;
 }
-
 
 //------------------------------------------------------------------------------
 
@@ -378,8 +390,8 @@ const uint8_t FLASH SSD1306AsciiWire::System6x8[] = {
     0x08, 0x08, 0x2A, 0x1C, 0x08, 0x00,  // ->
     0x08, 0x1C, 0x2A, 0x08, 0x08, 0x00,  // <- (127)
 #ifndef NO_EXTENDED_CHARACTERS
-// Extended characters - based on "DOS Western Europe" characters
-//   International characters not yet implemented.
+    // Extended characters - based on "DOS Western Europe" characters
+    //   International characters not yet implemented.
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented 0x80
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
@@ -490,7 +502,7 @@ const uint8_t FLASH SSD1306AsciiWire::System6x8[] = {
 
     0xf0, 0xf0, 0xf0, 0x00, 0x00, 0x00,  // Bottom Left block 0xe0
     0x00, 0x00, 0x00, 0xf0, 0xf0, 0xf0,  // Bottom Right block
-    0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00,  // Top left block 
+    0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00,  // Top left block
     0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0f,  // Top right block 0xe3
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
@@ -512,7 +524,7 @@ const uint8_t FLASH SSD1306AsciiWire::System6x8[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Not implemented
     // Extended character 248
-    0x00, 0x06, 0x09, 0x09, 0x06, 0x00   // degree symbol 0xf8
+    0x00, 0x06, 0x09, 0x09, 0x06, 0x00  // degree symbol 0xf8
 #endif
 };
 

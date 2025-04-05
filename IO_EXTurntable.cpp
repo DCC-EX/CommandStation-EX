@@ -15,18 +15,18 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 /*
-* The IO_EXTurntable device driver is used to control a turntable via an Arduino with a stepper motor over I2C.
-*
-* The EX-Turntable code lives in a separate repo (https://github.com/DCC-EX/EX-Turntable) and contains the stepper motor logic.
-*
-* This device driver sends a step position to EX-Turntable to indicate the step position to move to using either of these commands:
-* <D TT vpin steps activity> in the serial console
-* MOVETT(vpin, steps, activity) in EX-RAIL
-* Refer to the documentation for further information including the valid activities.
-*/
+ * The IO_EXTurntable device driver is used to control a turntable via an Arduino with a stepper motor over I2C.
+ *
+ * The EX-Turntable code lives in a separate repo (https://github.com/DCC-EX/EX-Turntable) and contains the stepper motor logic.
+ *
+ * This device driver sends a step position to EX-Turntable to indicate the step position to move to using either of these commands:
+ * <D TT vpin steps activity> in the serial console
+ * MOVETT(vpin, steps, activity) in EX-RAIL
+ * Refer to the documentation for further information including the valid activities.
+ */
 
 #include "IODevice.h"
 #include "I2CManager.h"
@@ -71,8 +71,8 @@ void EXTurntable::_loop(unsigned long currentMicros) {
   uint8_t readBuffer[1];
   I2CManager.read(_I2CAddress, readBuffer, 1);
   _stepperStatus = readBuffer[0];
-  if (_stepperStatus != _previousStatus && _stepperStatus == 0) { // Broadcast when a rotation finishes
-    if ( _currentActivity < 4) {
+  if (_stepperStatus != _previousStatus && _stepperStatus == 0) {  // Broadcast when a rotation finishes
+    if (_currentActivity < 4) {
       _broadcastStatus(_firstVpin, _stepperStatus, _currentActivity);
     }
     _previousStatus = _stepperStatus;
@@ -83,8 +83,9 @@ void EXTurntable::_loop(unsigned long currentMicros) {
 // Read returns status as obtained in our loop.
 // Return false if our status value is invalid.
 int EXTurntable::_read(VPIN vpin) {
-  (void)vpin; // surpress warning
-  if (_deviceState == DEVSTATE_FAILED) return 0;
+  (void)vpin;  // surpress warning
+  if (_deviceState == DEVSTATE_FAILED)
+    return 0;
   if (_stepperStatus > 1) {
     return false;
   } else {
@@ -93,8 +94,8 @@ int EXTurntable::_read(VPIN vpin) {
 }
 
 // If a status change has occurred for a turntable object, broadcast it
-void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity) {
-  Turntable *tto = Turntable::getByVpin(vpin);
+void EXTurntable::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity) {
+  Turntable* tto = Turntable::getByVpin(vpin);
   if (tto) {
     if (activity < 4) {
       tto->setMoving(status);
@@ -107,7 +108,7 @@ void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity)
 // Sends 3 bytes containing the MSB and LSB of the step count, and activity.
 // value contains the steps, bit shifted to MSB + LSB.
 // activity contains the activity flag as per this list:
-// 
+//
 // Turn = 0,             // Rotate turntable, maintain phase
 // Turn_PInvert = 1,     // Rotate turntable, invert phase
 // Home = 2,             // Initiate homing
@@ -119,29 +120,30 @@ void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity)
 // Acc_On = 8,           // Turn accessory pin on
 // Acc_Off = 9           // Turn accessory pin off
 void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_t duration) {
-  if (_deviceState == DEVSTATE_FAILED) return;
-  if (value < 0) return;
+  if (_deviceState == DEVSTATE_FAILED)
+    return;
+  if (value < 0)
+    return;
   uint8_t stepsMSB = value >> 8;
   uint8_t stepsLSB = value & 0xFF;
 #ifdef DIAG_IO
-  DIAG(F("EX-Turntable WriteAnalogue VPIN:%u Value:%d Activity:%d Duration:%d"),
-    vpin, value, activity, duration);
-  DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
-    _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
+  DIAG(F("EX-Turntable WriteAnalogue VPIN:%u Value:%d Activity:%d Duration:%d"), vpin, value, activity, duration);
+  DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"), _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
 #else
   (void)duration;
 #endif
-  if (activity < 4) _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
+  if (activity < 4)
+    _stepperStatus = 1;  // Tell the device driver Turntable-EX is busy
   _previousStatus = _stepperStatus;
   _currentActivity = activity;
-  _broadcastStatus(vpin, _stepperStatus, activity); // Broadcast when the rotation starts
+  _broadcastStatus(vpin, _stepperStatus, activity);  // Broadcast when the rotation starts
   I2CManager.write(_I2CAddress, 3, stepsMSB, stepsLSB, activity);
 }
 
 // Display Turnetable-EX device driver info.
 void EXTurntable::_display() {
-  DIAG(F("EX-Turntable I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, 
-    (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+  DIAG(F("EX-Turntable I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, (int)_firstVpin + _nPins - 1,
+       (_deviceState == DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
 #endif

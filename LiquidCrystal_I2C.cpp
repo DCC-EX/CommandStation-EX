@@ -41,18 +41,16 @@
 // can't assume that its in that state when a sketch starts (and the
 // LiquidCrystal constructor is called).
 
-LiquidCrystal_I2C::LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols,
-                                     uint8_t lcd_rows) {
+LiquidCrystal_I2C::LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols, uint8_t lcd_rows) {
   _Addr = lcd_Addr;
   lcdRows = lcd_rows;  // Number of character rows (typically 2 or 4).
   lcdCols = lcd_cols;  // Number of character columns (typically 16 or 20)
   _backlightval = 0;
- }
+}
 
 bool LiquidCrystal_I2C::begin() {
-
   I2CManager.begin();
-  I2CManager.setClock(100000L);    // PCF8574 is spec'd to 100kHz.
+  I2CManager.setClock(100000L);  // PCF8574 is spec'd to 100kHz.
 
   if (I2CManager.exists(_Addr)) {
     DIAG(F("%dx%d LCD configured on I2C:%s"), (int)lcdCols, (int)lcdRows, _Addr.toString());
@@ -70,8 +68,7 @@ bool LiquidCrystal_I2C::begin() {
   // according to datasheet, we need at least 40ms after power rises above 2.7V
   // before sending commands. Arduino can turn on way before 4.5V so we'll allow
   // 100 milliseconds after pulling both RS and R/W and backlight pin low
-  expanderWrite(
-      _backlightval);  // reset expander and turn backlight off (Bit 8 =1)
+  expanderWrite(_backlightval);  // reset expander and turn backlight off (Bit 8 =1)
   delay(100);
 
   // put the LCD into 4 bit mode
@@ -144,14 +141,14 @@ size_t LiquidCrystal_I2C::writeNative(uint8_t value) {
   return 1;
 }
 
-bool LiquidCrystal_I2C::isBusy() { 
+bool LiquidCrystal_I2C::isBusy() {
   return rb.isBusy();
 }
 
 /*********** mid level commands, for sending data/cmds */
 
-inline void LiquidCrystal_I2C::command(uint8_t value) { 
-  send(value, 0); 
+inline void LiquidCrystal_I2C::command(uint8_t value) {
+  send(value, 0);
 }
 
 /************ low level data pushing commands **********/
@@ -163,23 +160,23 @@ inline void LiquidCrystal_I2C::command(uint8_t value) {
  *    P7 to P0 to the port register. As the clock line goes HIGH, the 8-bit
  *    data is presented on the port lines after it has been acknowledged by the
  *    PCF8574/74A. [...] The master can then send a STOP or ReSTART condition
- *    or continue sending data. The number of data bytes that can be sent 
+ *    or continue sending data. The number of data bytes that can be sent
  *    successively is not limited and the previous data is overwritten every
  *    time a data byte has been sent and acknowledged."
- * 
+ *
  * This driver takes advantage of this by sending multiple data bytes in succession
  * within a single I2C transmission.  With a fast clock rate of 400kHz, the time
  * between successive updates of the PCF8574 outputs will be at least 2.5us.  With
  * the default clock rate of 100kHz the time between updates will be at least 10us.
- * 
+ *
  * The LCD controller HD44780, according to its datasheet, needs nominally 37us
  * (up to 50us) to execute a command (i.e. write to gdram, reposition, etc.). Each
- * command is sent in a separate I2C transmission here.  The time taken to end a 
+ * command is sent in a separate I2C transmission here.  The time taken to end a
  * transmission and start another one is a stop bit, a start bit, 8 address bits,
  * an ack, 8 data bits and another ack; this is at least 20 bits, i.e. >50us
  * at 400kHz and >200us at 100kHz. Therefore, we don't need additional delay.
- * 
- * Similarly, the Enable must be set/reset for at least 450ns.  This is 
+ *
+ * Similarly, the Enable must be set/reset for at least 450ns.  This is
  * well within the I2C clock cycle time of 2.5us at 400kHz.  Data is clocked in
  * to the HD44780 on the trailing edge of the Enable pin, so we set the Enable
  * as we present the data, then in the next byte we reset Enable without changing
@@ -187,7 +184,7 @@ inline void LiquidCrystal_I2C::command(uint8_t value) {
  */
 
 // write either command or data (8 bits) to the HD44780 LCD controller as
-//  a single I2C transmission. 
+//  a single I2C transmission.
 void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   mode |= _backlightval;
   uint8_t highnib = (((value >> 4) & 0x0f) << BACKPACK_DATA_BITS) | mode;
@@ -195,9 +192,9 @@ void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
   // Send both nibbles
   uint8_t len = 0;
   rb.wait();
-  outputBuffer[len++] = highnib|En;
+  outputBuffer[len++] = highnib | En;
   outputBuffer[len++] = highnib;
-  outputBuffer[len++] = lownib|En;
+  outputBuffer[len++] = lownib | En;
   outputBuffer[len++] = lownib;
   I2CManager.write(_Addr, outputBuffer, len, &rb);  // Write command asynchronously
 }
@@ -210,7 +207,7 @@ void LiquidCrystal_I2C::write4bits(uint8_t value) {
   // HD44780 on the trailing edge of the Enable pin.
   uint8_t len = 0;
   rb.wait();
-  outputBuffer[len++] = _data|En;
+  outputBuffer[len++] = _data | En;
   outputBuffer[len++] = _data;
   I2CManager.write(_Addr, outputBuffer, len, &rb);  // Write command asynchronously
 }

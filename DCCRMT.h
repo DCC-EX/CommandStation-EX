@@ -1,6 +1,6 @@
 /*
  *  © 2021-2022, Harald Barth.
- *  
+ *
  *  This file is part of DCC-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -23,50 +23,51 @@
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 #include "soc/rmt_struct.h"
-#include "MotorDriver.h" // for class pinpair
+#include "MotorDriver.h"  // for class pinpair
 
 // make calculations easy and set up for microseconds
 #define RMT_CLOCK_DIVIDER 80
-#define DCC_1_HALFPERIOD 58  //4640 // 1 / 80000000 * 4640 = 58us
-#define DCC_0_HALFPERIOD 100 //8000
+#define DCC_1_HALFPERIOD 58   // 4640 // 1 / 80000000 * 4640 = 58us
+#define DCC_0_HALFPERIOD 100  // 8000
 
 class RMTChannel {
  public:
   RMTChannel(pinpair pins, bool isMain);
-  bool addPin(byte pin, bool inverted=0);
+  bool addPin(byte pin, bool inverted = 0);
   bool addPin(pinpair pins);
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
-  //int RMTfillData(dccPacket packet);
+  // int RMTfillData(dccPacket packet);
   int RMTfillData(const byte buffer[], byte byteCount, byte repeatCount);
   inline bool busy() {
-    if (dataRepeat > 0) // we have still old work to do
+    if (dataRepeat > 0)  // we have still old work to do
       return true;
     return dataReady;
   };
   inline void waitForDataCopy() {
-    while(1) { // do nothing and wait for interrupt clearing dataReady to happen
+    while (1) {  // do nothing and wait for interrupt clearing dataReady to happen
       if (dataReady == false)
-	break;
+        break;
     }
   };
-  inline uint32_t packetCount() { return packetCounter; };
-  
+  inline uint32_t packetCount() {
+    return packetCounter;
+  };
+
  private:
-    
   rmt_channel_t channel;
   // 3 types of data to send, preamble and then idle or data
   // if this is prog track, idle will contain reset instead
-  rmt_item32_t *idle;
+  rmt_item32_t* idle;
   byte idleLen;
-  rmt_item32_t *preamble;
+  rmt_item32_t* preamble;
   byte preambleLen;
-  rmt_item32_t *data;
+  rmt_item32_t* data;
   byte dataLen;
   byte maxDataLen;
   uint32_t packetCounter = 0;
-  // flags 
-  volatile bool dataReady = false;    // do we have real data available or send idle
+  // flags
+  volatile bool dataReady = false;  // do we have real data available or send idle
   volatile byte dataRepeat = 0;
 };
-#endif //ESP32
+#endif  // ESP32

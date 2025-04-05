@@ -1,6 +1,6 @@
 /*
  *  © 2021, Neil McKechnie. All rights reserved.
- *  
+ *
  *  This file is part of DCC++EX API
  *
  *  This is free software: you can redistribute it and/or modify
@@ -22,40 +22,43 @@
 #include "DIAG.h"
 
 // REGISTER ADDRESSES
-static const byte PCA9685_MODE1=0x00;      // Mode Register 
-static const byte PCA9685_FIRST_SERVO=0x06;  /** low byte first servo register ON*/
-static const byte PCA9685_PRESCALE=0xFE;     /** Prescale register for PWM output frequency */
+static const byte PCA9685_MODE1 = 0x00;       // Mode Register
+static const byte PCA9685_FIRST_SERVO = 0x06; /** low byte first servo register ON*/
+static const byte PCA9685_PRESCALE = 0xFE;    /** Prescale register for PWM output frequency */
 // MODE1 bits
-static const byte MODE1_SLEEP=0x10;   /**< Low power mode. Oscillator off */
-static const byte MODE1_AI=0x20;      /**< Auto-Increment enabled */
-static const byte MODE1_RESTART=0x80; /**< Restart enabled */
+static const byte MODE1_SLEEP = 0x10;   /**< Low power mode. Oscillator off */
+static const byte MODE1_AI = 0x20;      /**< Auto-Increment enabled */
+static const byte MODE1_RESTART = 0x80; /**< Restart enabled */
 
-static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
-static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
+static const float FREQUENCY_OSCILLATOR = 25000000.0; /** Accurate enough for our purposes  */
+static const uint32_t MAX_I2C_SPEED = 1000000L;       // PCA9685 rated up to 1MHz I2C clock speed
 
 // Predeclare helper function
 static void writeRegister(byte address, byte reg, byte value);
 
 // Create device driver instance.
 void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
-  if (checkNoOverlap(firstVpin, nPins,i2cAddress)) new PCA9685(firstVpin, nPins, i2cAddress, frequency);
+  if (checkNoOverlap(firstVpin, nPins, i2cAddress))
+    new PCA9685(firstVpin, nPins, i2cAddress, frequency);
 }
 
 // Configure a port on the PCA9685.
 bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) {
-  if (configType != CONFIGURE_SERVO) return false;
-  if (paramCount != 5) return false;
-  #ifdef DIAG_IO
-  DIAG(F("PCA9685 Configure VPIN:%u Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), 
-    vpin, params[0], params[1], params[2], params[3], params[4]);
-  #endif
+  if (configType != CONFIGURE_SERVO)
+    return false;
+  if (paramCount != 5)
+    return false;
+#ifdef DIAG_IO
+  DIAG(F("PCA9685 Configure VPIN:%u Apos:%d Ipos:%d Profile:%d Duration:%d state:%d"), vpin, params[0], params[1], params[2], params[3], params[4]);
+#endif
 
   int8_t pin = vpin - _firstVpin;
-  struct ServoData *s = _servoData[pin];
-  if (s == NULL) { 
-    _servoData[pin] = (struct ServoData *)calloc(1, sizeof(struct ServoData));
+  struct ServoData* s = _servoData[pin];
+  if (s == NULL) {
+    _servoData[pin] = (struct ServoData*)calloc(1, sizeof(struct ServoData));
     s = _servoData[pin];
-    if (!s) return false; // Check for failed memory allocation
+    if (!s)
+      return false;  // Check for failed memory allocation
   }
 
   s->activePosition = params[0];
@@ -67,23 +70,24 @@ bool PCA9685::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, i
   if (state != -1) {
     // Position servo to initial state
     _writeAnalogue(vpin, state ? s->activePosition : s->inactivePosition, 0, 0);
-  } 
+  }
   return true;
 }
 
 // Constructor
 PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
   _firstVpin = firstVpin;
-    _nPins = (nPins > 16) ? 16 : nPins;
+  _nPins = (nPins > 16) ? 16 : nPins;
   _I2CAddress = i2cAddress;
   // Calculate prescaler value for PWM clock
-  if (frequency > 1526) frequency = 1526;
-  else if (frequency < 24) frequency = 24;
+  if (frequency > 1526)
+    frequency = 1526;
+  else if (frequency < 24)
+    frequency = 24;
   prescaler = FREQUENCY_OSCILLATOR / 4096 / frequency;
   // To save RAM, space for servo configuration is not allocated unless a pin is used.
   // Initialise the pointers to NULL.
-  for (int i=0; i<_nPins; i++)
-    _servoData[i] = NULL;
+  for (int i = 0; i < _nPins; i++) _servoData[i] = NULL;
 
   addDevice(this);
 
@@ -94,43 +98,44 @@ PCA9685::PCA9685(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t freq
 // Device-specific initialisation
 void PCA9685::_begin() {
   I2CManager.begin();
-  I2CManager.setClock(1000000); // Nominally able to run up to 1MHz on I2C
-          // In reality, other devices including the Arduino will limit 
-          // the clock speed to a lower rate.
+  I2CManager.setClock(1000000);  // Nominally able to run up to 1MHz on I2C
+                                 // In reality, other devices including the Arduino will limit
+                                 // the clock speed to a lower rate.
 
   // Initialise I/O module here.
   if (I2CManager.exists(_I2CAddress)) {
-    writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
+    writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);
     writeRegister(_I2CAddress, PCA9685_PRESCALE, prescaler);
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
     writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
     // In theory, we should wait 500us before sending any other commands to each device, to allow
-    // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
+    // the PWM oscillator to get running.  However, we don't do any specific wait, as there's
     // plenty of other stuff to do before we will send a command.
-  #if defined(DIAG_IO)
+#if defined(DIAG_IO)
     _display();
-  #endif
+#endif
   } else
     _deviceState = DEVSTATE_FAILED;
 }
 
-// Device-specific write function, invoked from IODevice::write().  
+// Device-specific write function, invoked from IODevice::write().
 // For this function, the configured profile is used.
 void PCA9685::_write(VPIN vpin, int value) {
-  #ifdef DIAG_IO
+#ifdef DIAG_IO
   DIAG(F("PCA9685 Write VPIN:%u Value:%d"), vpin, value);
-  #endif
+#endif
   int pin = vpin - _firstVpin;
-  if (value) value = 1;
+  if (value)
+    value = 1;
 
-  struct ServoData *s = _servoData[pin];
+  struct ServoData* s = _servoData[pin];
   if (s != NULL) {
     // Use configured parameters
     _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
-  }  else {
-     /* simulate digital pin on PWM */
-      _writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
-      }
+  } else {
+    /* simulate digital pin on PWM */
+    _writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);
+  }
 }
 
 // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
@@ -142,22 +147,26 @@ void PCA9685::_write(VPIN vpin, int value) {
 //             2 (Medium)  Move servo in 1.0 seconds
 //             3 (Slow)    Move servo in 2.0 seconds
 //             4 (Bounce)  Servo 'bounces' at extremes.
-//            
+//
 void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) {
-  #ifdef DIAG_IO
-  DIAG(F("PCA9685 WriteAnalogue VPIN:%u Value:%d Profile:%d Duration:%d %S"), 
-    vpin, value, profile, duration, _deviceState == DEVSTATE_FAILED?F("DEVSTATE_FAILED"):F(""));
-  #endif
-  if (_deviceState == DEVSTATE_FAILED) return;
+#ifdef DIAG_IO
+  DIAG(F("PCA9685 WriteAnalogue VPIN:%u Value:%d Profile:%d Duration:%d %S"), vpin, value, profile, duration,
+       _deviceState == DEVSTATE_FAILED ? F("DEVSTATE_FAILED") : F(""));
+#endif
+  if (_deviceState == DEVSTATE_FAILED)
+    return;
   int pin = vpin - _firstVpin;
-  if (value > 4095) value = 4095;
-  else if (value < 0) value = 0;
+  if (value > 4095)
+    value = 4095;
+  else if (value < 0)
+    value = 0;
 
-  struct ServoData *s = _servoData[pin];
+  struct ServoData* s = _servoData[pin];
   if (s == NULL) {
     // Servo pin not configured, so configure now using defaults
-    s = _servoData[pin] = (struct ServoData *) calloc(sizeof(struct ServoData), 1);
-    if (s == NULL) return;  // Check for memory allocation failure
+    s = _servoData[pin] = (struct ServoData*)calloc(sizeof(struct ServoData), 1);
+    if (s == NULL)
+      return;  // Check for memory allocation failure
     s->activePosition = 4095;
     s->inactivePosition = 0;
     s->currentPosition = value;
@@ -167,30 +176,34 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
   // Animated profile.  Initiate the appropriate action.
   s->currentProfile = profile;
   uint8_t profileValue = profile & ~NoPowerOff;  // Mask off 'don't-power-off' bit.
-  s->numSteps = profileValue==Fast ? 10 :   // 0.5 seconds
-                profileValue==Medium ? 20 : // 1.0 seconds
-                profileValue==Slow ? 40 :   // 2.0 seconds
-                profileValue==Bounce ? sizeof(_bounceProfile)-1 : // ~ 1.5 seconds
-                duration * 2 + 1; // Convert from deciseconds (100ms) to refresh cycles (50ms)
+  s->numSteps = profileValue == Fast ? 10 :      // 0.5 seconds
+                    profileValue == Medium ? 20
+                                           :  // 1.0 seconds
+                    profileValue == Slow ? 40
+                                         :  // 2.0 seconds
+                    profileValue == Bounce ? sizeof(_bounceProfile) - 1
+                                           :  // ~ 1.5 seconds
+                    duration * 2 + 1;         // Convert from deciseconds (100ms) to refresh cycles (50ms)
   s->stepNumber = 0;
   s->toPosition = value;
   s->fromPosition = s->currentPosition;
 }
 
-// _read returns true if the device is currently in executing an animation, 
+// _read returns true if the device is currently in executing an animation,
 //  changing the output over a period of time.
 int PCA9685::_read(VPIN vpin) {
-  if (_deviceState == DEVSTATE_FAILED) return 0;
+  if (_deviceState == DEVSTATE_FAILED)
+    return 0;
   int pin = vpin - _firstVpin;
-  struct ServoData *s = _servoData[pin];
-  if (s == NULL) 
-    return false; // No structure means no animation!
+  struct ServoData* s = _servoData[pin];
+  if (s == NULL)
+    return false;  // No structure means no animation!
   else
     return (s->stepNumber < s->numSteps);
 }
 
 void PCA9685::_loop(unsigned long currentMicros) {
-  for (int pin=0; pin<_nPins; pin++) {
+  for (int pin = 0; pin < _nPins; pin++) {
     updatePosition(pin);
   }
   delayUntil(currentMicros + refreshInterval * 1000UL);
@@ -199,15 +212,17 @@ void PCA9685::_loop(unsigned long currentMicros) {
 // Private function to reposition servo
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void PCA9685::updatePosition(uint8_t pin) {
-  struct ServoData *s = _servoData[pin];
-  
-  if (s == NULL) return; // No pin configuration/state data
+  struct ServoData* s = _servoData[pin];
 
-  if (s->numSteps == 0) return; // No animation in progress
+  if (s == NULL)
+    return;  // No pin configuration/state data
+
+  if (s->numSteps == 0)
+    return;  // No animation in progress
 
   if (s->stepNumber == 0 && s->fromPosition == s->toPosition) {
     // Go straight to end of sequence, output final position.
-    s->stepNumber = s->numSteps-1;
+    s->stepNumber = s->numSteps - 1;
   }
 
   if (s->stepNumber < s->numSteps) {
@@ -226,8 +241,7 @@ void PCA9685::updatePosition(uint8_t pin) {
   } else if (s->stepNumber < s->numSteps + _catchupSteps) {
     // We've finished animation, wait a little to allow servo to catch up
     s->stepNumber++;
-  } else if (s->stepNumber == s->numSteps + _catchupSteps 
-            && s->currentPosition != 0) {
+  } else if (s->stepNumber == s->numSteps + _catchupSteps && s->currentPosition != 0) {
 #ifdef IO_SWITCH_OFF_SERVO
     if ((s->currentProfile & NoPowerOff) == 0) {
       // Wait has finished, so switch off PWM to prevent annoying servo buzz
@@ -241,9 +255,9 @@ void PCA9685::updatePosition(uint8_t pin) {
 // writeDevice takes a pin in range 0 to _nPins-1 within the device, and a value
 // between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%.
 void PCA9685::writeDevice(uint8_t pin, int value) {
-  #ifdef DIAG_IO
+#ifdef DIAG_IO
   DIAG(F("PCA9685 I2C:%s WriteDevice Pin:%d Value:%d"), _I2CAddress.toString(), pin, value);
-  #endif
+#endif
   // Wait for previous request to complete
   uint8_t status = requestBlock.wait();
   if (status != I2C_STATUS_OK) {
@@ -262,8 +276,8 @@ void PCA9685::writeDevice(uint8_t pin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, 
-    (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+  DIAG(F("PCA9685 I2C:%s Configured on Vpins:%u-%u %S"), _I2CAddress.toString(), (int)_firstVpin, (int)_firstVpin + _nPins - 1,
+       (_deviceState == DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
 // Internal helper function for this device
@@ -275,5 +289,5 @@ static void writeRegister(byte address, byte reg, byte value) {
 // The profile below is in the range 0-100% and should be combined with the desired limits
 // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
 // i.e. the bounce is the same on the down action as on the up action.  First entry isn't used.
-const uint8_t FLASH PCA9685::_bounceProfile[30] = 
-    {0,2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100};
+const uint8_t FLASH PCA9685::_bounceProfile[30] = {0,  2,  3,  7,   13, 33, 50, 83, 100, 83, 75, 70, 65, 60, 60,
+                                                   65, 74, 84, 100, 83, 75, 70, 70, 72,  75, 80, 87, 92, 97, 100};
