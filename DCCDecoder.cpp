@@ -16,6 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ARDUINO_ARCH_ESP32
 #include "DCCDecoder.h"
 #include "LocoTable.h"
 #include "DCCEXParser.h"
@@ -23,6 +24,8 @@
 #include "DCC.h"
 
 bool DCCDecoder::parse(DCCPacket &p) {
+  if (!active)
+    return false;
   const byte DECODER_MOBILE = 1;
   const byte DECODER_ACCESSORY = 2;
   byte decoderType = 0; // use 0 as none
@@ -170,3 +173,4 @@ bool DCCDecoder::parse(DCCPacket &p) {
   }
   return false;
 }
+#endif // ARDUINO_ARCH_ESP32

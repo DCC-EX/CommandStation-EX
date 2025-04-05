@@ -16,13 +16,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #include "DCCPacket.h"
 
 class DCCDecoder {
 public:
-  DCCDecoder() {};
-  bool parse(DCCPacket &p);
+  static bool parse(DCCPacket &p);
+  static inline void onoff(bool on) {active = on;};
 private:
+  static bool active;
 };
-
+#endif // ARDUINO_ARCH_ESP32

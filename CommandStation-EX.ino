@@ -51,10 +51,12 @@
 
 #include "DCCEX.h"
 #include "Display_Implementation.h"
+#ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
 Sniffer *dccSniffer = NULL;
-DCCDecoder *dccDecoder = NULL;
+bool DCCDecoder::active = false;
+#endif // ARDUINO_ARCH_ESP32
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -128,8 +130,9 @@ void setup()
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();
 
+#ifdef ARDUINO_ARCH_ESP32
   dccSniffer = new Sniffer(BOOSTER_INPUT);
-  dccDecoder = new DCCDecoder();
+#endif // ARDUINO_ARCH_ESP32
 
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.
   //  This can be used to create turnouts, outputs, sensors etc. through the normal text commands.
@@ -149,14 +152,16 @@ void setup()
 
 void loop()
 {
-  if (dccSniffer && dccDecoder) {
+#ifdef ARDUINO_ARCH_ESP32
+  if (dccSniffer) {
     DCCPacket p = dccSniffer->fetchPacket();
     if (p.len() != 0) {
-      if (dccDecoder->parse(p)) {
+      if (DCCDecoder::parse(p)) {
 	p.print(Serial);
       }
     }
   }
+#endif // ARDUINO_ARCH_ESP32
 
   // The main sketch has responsibilities during loop()
 
