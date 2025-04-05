@@ -186,8 +186,8 @@ ZZ(J,G) // FReport gauge limits
         TrackManager::reportGauges(stream);       
 ZZ(J,I) // Report currents 
         TrackManager::reportCurrent(stream);      
-ZZ(J,L,display,row) // Direct current displays to LCS/OLED
-        TrackManager::reportCurrentLCD(display,row);   // Track power status     
+// TODO... Ask @Ash zz(J,L,display,row) // Direct current displays to LCS/OLED
+//         TrackManager::reportCurrentLCD(display,row);   // Track power status     
 ZZ(J,A) // List Routes
         REPLY( "<jA>\n") 
 ZZ(J,R) // List Roster
