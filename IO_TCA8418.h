@@ -315,7 +315,7 @@ class TCA8418 : public IODevice {
     REG_GPIO_PULL_1 = 0x2C,      // GPIO pull-up disable 1
     REG_GPIO_PULL_2 = 0x2D,      // GPIO pull-up disable 2
     REG_GPIO_PULL_3 = 0x2E,      // GPIO pull-up disable 3
-                             // REG_RESERVED = 0x2F
+                                 // REG_RESERVED = 0x2F
   };
 
   enum tca8418_config_reg_fields {

@@ -1,0 +1,51 @@
+name: Clang Format Check
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache clang-format installation
+        uses: actions/cache@v3
+        with:
+          path: /usr/local/bin/clang-format
+          key: clang-format-v15
+
+      - name: Install clang-format if not cached
+        run: |
+          if ! command -v clang-format &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y clang-format-15
+            sudo ln -sf /usr/bin/clang-format-15 /usr/local/bin/clang-format
+          fi
+
+      - name: Find files to format
+        run: |
+          find . -regex '.*\.\(cpp\|hpp\|c\|h\)' > files.txt
+
+      - name: Run clang-format and check for changes
+        run: |
+          while IFS= read -r file; do
+            clang-format -i "$file"
+          done < files.txt
+
+          CHANGED=$(git diff --name-only | wc -l)
+
+          echo "Files changed by clang-format: $CHANGED"
+
+          if [ "$CHANGED" -gt 0 ]; then
+            echo "Code is not properly formatted. Please run clang-format.sh."
+            if [ "$CHANGED" -lt 10 ]; then
+              git diff
+            else
+              echo "Changes to $CHANGED files are more than we can display."
+            fi
+            exit 1
+          fi
