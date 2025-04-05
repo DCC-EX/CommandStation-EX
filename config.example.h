@@ -350,3 +350,15 @@ The configuration file for DCC-EX Command Station
 // That is described further above.
 //
 /////////////////////////////////////////////////////////////////////////////////////
+
+
+// PrettyOTA Settings for ESP32.
+// See https://github.com/LostInCompilation/PrettyOTA
+// you can md5 the password
+// example:
+// $ echo -n "password"| md5sum -t 
+// 5f4dcc3b5aa765d61d8327deb882cf99  -
+//
+// #define OTA_USERNAME ""
+// #define OTA_PASSWORD ""
+// #define OTA_PASSWORD_IS_MD5_HASH false

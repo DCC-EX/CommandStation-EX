@@ -1,6 +1,7 @@
+
 /*
- *  © 2021 Harald Barth
- *  © 2023 Nathan Kellenicki
+ *  © 2025 Mathew Winters
+ *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -18,25 +19,27 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if defined(ARDUINO_ARCH_ESP32)
-#ifndef WifiESP32_h
-#define WifiESP32_h
+#ifndef PrettyOTA_h
+#define PrettyOTA_h
 
-#include <WiFi.h>
+// installs PrettyOTA https://github.com/LostInCompilation/PrettyOTA
 
-#include "FSH.h"
+#ifdef ARDUINO_ARCH_ESP32
+#include <PrettyOTA.h>
 
-class WifiESP {
- public:
-  static bool setup(const char *wifiESSID, const char *wifiPassword,
-                    const char *hostname, const int port, const byte channel,
-                    const bool forceAP);
-  static void loop();
-
+class ESPPrettyOTA {
  private:
-  static void teardown();
-  static bool wifiUp;
-  static WiFiServer *server;
+  PrettyOTA OTAUpdates;
+  AsyncWebServer webServer;
+
+ public:
+  ESPPrettyOTA() : webServer(80) {}
+  void setup();
+
+  void OnOTAStart(NSPrettyOTA::UPDATE_MODE updateMode);
+  void OnOTAProgress(uint32_t currentSize, uint32_t totalSize);
+  void OnOTAEnd(bool successful);
 };
-#endif  // WifiESP8266_h
-#endif  // ESP8266
+
+#endif
+#endif

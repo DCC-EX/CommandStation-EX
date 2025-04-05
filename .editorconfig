@@ -1,0 +1,13 @@
+{
+  "indent_size": 2,
+  "indent_style": "space",
+  "end_of_line": "lf",
+  "charset": "utf-8",
+  "trim_trailing_whitespace": true,
+  "insert_final_newline": true,
+  "brace_style": "attach",
+  "cpp_standard": "c++11",
+  "header_guard_style": "define"
+  "max_line_length": 150,
+  "allow_short_if_statements_on_single_line": false
+}
