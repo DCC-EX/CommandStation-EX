@@ -115,11 +115,7 @@ The REPLY( format, ...) macro sends a formatted string to the stream.
 These macros are included into the DCCEXParser::execute function so
   stream, ringStream and other DCCEXParser variables are available in context. */
 
-// helper macro to check track letter
-#define CHECKTRACK CHECK(track>='A' && track<='H', Invalid track A..H)
-#define CHECKCV(cv) CHECK(cv>0 && cv<=255, Invalid cv 1..255)
-#define CHECKCVVALUE(value) CHECK(value>=0 && value<=255, Invalid cv value 0..255)
-
+ 
 
 ZZBEGIN
 ZZ(#) // Request number of simultaneously supported locos
@@ -127,7 +123,6 @@ ZZ(#) // Request number of simultaneously supported locos
 ZZ(!)   // Emergency stop all locos
         DCC::estopAll(); 
 ZZ(t,loco) // Request loco status
-        CHECK(loco>0) 
         CommandDistributor::broadcastLoco(DCC::lookupSpeedTable(loco,false));
 ZZ(t,loco,tspeed,direction) // Set throttle speed(0..127) and direction (0=reverse, 1=fwd) 
         CHECK(setThrottle(loco,tspeed,direction)) 
@@ -468,9 +463,7 @@ ZZ(1,JOIN)  // JOIN prog track to MAIN and power
         TrackManager::setJoin(true); TrackManager::setTrackPower(TRACK_MODE_MAIN|TRACK_MODE_PROG, POWERMODE::ON);
 #endif
 ZZ(1,track) // Power on given track
-        CHECKTRACK
         TrackManager::setTrackPower(POWERMODE::ON, (byte)track-'A');
-
 ZZ(0)  // Power off all tracks
         TrackManager::setJoin(false); 
         TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
@@ -483,7 +476,6 @@ ZZ(0,PROG) // Power off PROG track
         // todo move to TrackManager Prog track boost mode will not outlive prog track off
         TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::OFF);
 ZZ(0,track) // Power off given track
-        CHECKTRACK 
         TrackManager::setJoin(false);
 	TrackManager::setTrackPower(POWERMODE::OFF, (byte)track-'a');
 
@@ -504,16 +496,13 @@ ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
         DCC::setExtendedAccessory(address,value);
 
 ZZ(w,loco,cv,value) // POM write cv on main track
-        CHECKCV(cv) CHECKCVVALUE(value) 
         DCC::writeCVByteMain(loco,cv,value);
 ZZ(r,loco,cv) // POM read cv on main track
-        CHECKCV(cv)
         CHECK(DCCWaveform::isRailcom(),Railcom not active)
         EXPECT_CALLBACK
         DCC::readCVByteMain(loco,cv,callback_r);
-ZZ(b,loco,cv,bit,value)  // POM write cv bit on main track
-        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
-        DCC::writeCVBitMain(loco,cv,bit,value);
+ZZ(b,loco,cv,bit,bitvalue)  // POM write cv bit on main track
+        DCC::writeCVBitMain(loco,cv,bit,bitvalue);
  
 ZZ(m,LINEAR) // Set Momentum algorithm to linear acceleration
         DCC::linearAcceleration=true;
@@ -526,35 +515,26 @@ ZZ(m,loco,accelerating,braking) // set momentum for loco
 
         // todo  reorder for more sensible doco. 
 ZZ(W,cv,value,ignore1,ignore2) // (Deprecated) Write cv value on PROG track
-        CHECKCV(cv) CHECKCVVALUE(value) 
         EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);        
-ZZ(W,cab) // Write loco address on PROG track
-        EXPECT_CALLBACK DCC::setLocoId(cab,callback_Wloco);
-ZZ(W,CONSIST,cab,REVERSE) // Write consist address and reverse flag on PROG track 
-        EXPECT_CALLBACK DCC::setConsistId(cab,true,callback_Wconsist);
-ZZ(W,CONSIST,cab) // write consist address on PROG track       
-        EXPECT_CALLBACK DCC::setConsistId(cab,false,callback_Wconsist);
+ZZ(W,loco) // Write loco address on PROG track
+        EXPECT_CALLBACK DCC::setLocoId(loco,callback_Wloco);
+ZZ(W,CONSIST,loco,REVERSE) // Write consist address and reverse flag on PROG track 
+        EXPECT_CALLBACK DCC::setConsistId(loco,true,callback_Wconsist);
+ZZ(W,CONSIST,loco) // write consist address on PROG track       
+        EXPECT_CALLBACK DCC::setConsistId(loco,false,callback_Wconsist);
 ZZ(W,cv,value)   // Write cv value on PROG track
-        CHECKCV(cv) CHECKCVVALUE(value) 
         EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);
-ZZ(W,cv,value,bit) // Write cv bit on prog track
-        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
-        EXPECT_CALLBACK DCC::writeCVBit(cv,value,bit,callback_W);
+ZZ(W,cv,bitvalue,bit) // Write cv bit on prog track
+        EXPECT_CALLBACK DCC::writeCVBit(cv,bitvalue,bit,callback_W);
 ZZ(V,cv,value) // Fast read cv with expected value
-        CHECKCV(cv) CHECKCVVALUE(value)
         EXPECT_CALLBACK DCC::verifyCVByte(cv,value, callback_Vbyte);
-ZZ(V,cv,bit,value) // Fast read bit with expected value
-        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
-        EXPECT_CALLBACK DCC::verifyCVBit(cv,bit,value,callback_Vbit);  
-
-ZZ(B,cv,bit,value)  // Write cv bit
-        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
-        EXPECT_CALLBACK DCC::writeCVBit(cv,bit,value,callback_B);
-ZZ(R,cv,ignore1,ignore2) // (Deprecated) read cv
-        CHECKCV(cv)
+ZZ(V,cv,bit,bitvalue) // Fast read bit with expected value
+        EXPECT_CALLBACK DCC::verifyCVBit(cv,bit,bitvalue,callback_Vbit);  
+ZZ(B,cv,bit,bitvalue)  // Write cv bit
+        EXPECT_CALLBACK DCC::writeCVBit(cv,bit,bitvalue,callback_B);
+ZZ(R,cv,ignore1,ignore2) // (Deprecated) read cv value on PROG track
         EXPECT_CALLBACK DCC::readCV(cv,callback_R);
 ZZ(R,cv) // Read cv
-        CHECKCV(cv)
         EXPECT_CALLBACK DCC::verifyCVByte(cv, 0, callback_Vbyte);
 ZZ(R)   // Read driveable loco id (may be long, short or consist)
         EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
@@ -568,10 +548,10 @@ ZZ(-) // Clear loco state and reminder table
         DCC::forgetAllLocos();
 ZZ(-,loco) // remove loco state amnd reminders
         DCC::forgetLoco(loco);      
-ZZ(F,loco,DCCFREQ,value) // Set DC frequencey for loco   
-        CHECK(value>=0 && value<=3) DCC::setDCFreq(loco,value);
-ZZ(F,loco,function,value) // Set loco function ON/OFF
-        CHECK(value==0 || value==1) DCC::setFn(loco,function,value);    
+ZZ(F,loco,DCCFREQ,freqvalue) // Set DC frequencey for loco   
+        CHECK(freqvalue>=0 && freqvalue<=3) DCC::setDCFreq(loco,freqvalue);
+ZZ(F,loco,function,fvalue) // Set loco function ON/OFF
+        CHECK(fvalue==0 || fvalue==1) DCC::setFn(loco,function,fvalue);    
              
 // ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
@@ -620,34 +600,34 @@ ZZ(J,P,id) // list turntable positions
 ZZ(=) // list track manager states
         TrackManager::list(stream); 
 ZZ(=,track,MAIN) // Set track to MAIN
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
 ZZ(=,track,MAIN_INV) // Set track to MAIN inverted polatity
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
 ZZ(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
 ZZ(=,track,PROG) // Set track to PROG
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
 ZZ(=,track,OFF) // Set track power OFF
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE))
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE))
 ZZ(=,track,NONE) // Set track no output
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE)) 
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE)) 
 ZZ(=,track,EXT)  // Set track to use external sync
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
 
 #ifdef BOOSTER_INPUT
-ZZ_nodoc(=,track,BOOST)      CHECKTRACK   CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
-ZZ_nodoc(=,track,BOOST_INV)  CHECKTRACK   CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
-ZZ_nodoc(=,track,BOOST_AUTO) CHECKTRACK)  CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
+ZZ_nodoc(=,track,BOOST)      CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
+ZZ_nodoc(=,track,BOOST_INV)  CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
+ZZ_nodoc(=,track,BOOST_AUTO) CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
 #endif
 ZZ(=,track,AUTO)  // Update track to auto reverse
-        CHECKTRACK CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
 ZZ(=,track,INV) // Update track to inverse polarity
-        CHECKTRACK CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
 ZZ(=,track,DC,locoid) // Set track to DC
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, locoid))
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, locoid))
 ZZ(=,track,DC_INV,locoid) // Set track to DC with inverted polarity
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
 ZZ(=,track,DCX,locoid) // Set track to DC with inverted polarity
-        CHECKTRACK CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
 
 ZZEND

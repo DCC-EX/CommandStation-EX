@@ -24,14 +24,49 @@
 #define Z8(op,_1,_2,_3,_4,_5,_6,_7) ZPREP(op,7) ZZZ(0,_1) ZZZ(1,_2) ZZZ(2,_3) ZZZ(3,_4) ZZZ(4,_5) ZZZ(5,_6) ZZZ(6,_7)
 
 #define ZRIP(count) CONCAT(Z,count)
-#define ZZ(...) ZRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__) DCCEXParser::matchedCommandFormat = F( #__VA_ARGS__);
+
+#define ZC1(op)                      
+#define ZC2(op,_1)                   ZZCHK(0,_1) 
+#define ZC3(op,_1,_2)                ZZCHK(0,_1) ZZCHK(1,_2)
+#define ZC4(op,_1,_2,_3)             ZZCHK(0,_1) ZZCHK(1,_2) ZZCHK(2,_3)
+#define ZC5(op,_1,_2,_3,_4)          ZZCHK(0,_1) ZZCHK(1,_2) ZZCHK(2,_3) ZZCHK(3,_4)
+#define ZC6(op,_1,_2,_3,_4,_5)       ZZCHK(0,_1) ZZCHK(1,_2) ZZCHK(2,_3) ZZCHK(3,_4) ZZCHK(4,_5)
+#define ZC7(op,_1,_2,_3,_4,_5,_6)    ZZCHK(0,_1) ZZCHK(1,_2) ZZCHK(2,_3) ZZCHK(3,_4) ZZCHK(4,_5) ZZCHK(5,_6)
+#define ZC8(op,_1,_2,_3,_4,_5,_6,_7) ZZCHK(0,_1) ZZCHK(1,_2) ZZCHK(2,_3) ZZCHK(3,_4) ZZCHK(4,_5) ZZCHK(5,_6) ZZCHK(6,_7)
+#define ZCRIP(count) CONCAT(ZC,count)
+
+#define ZZ(...) \
+  ZRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__) \
+  DCCEXParser::matchedCommandFormat = F( #__VA_ARGS__); \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+  
+
  
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
-//#define CHECK(x) if (!(x)) { DCCEXParser::checkFailedFormat=F(#x); return false;}
 #define CHECK(x,...) if (!(x)) { DCCEXParser::checkFailedFormat=#__VA_ARGS__[0]?F(#__VA_ARGS__):F(#x); return false;}
 #define REPLY(format,...) StringFormatter::send(stream,F(format), ##__VA_ARGS__);
 #define EXPECT_CALLBACK CHECK(stashCallback(stream, p, ringStream))
 // helper macro to hide command from documentation extractor
 #define ZZ_nodoc ZZ
+
+#define ZCHECK(_checkname,_index,_pname,_min,_max) \
+  if (CONCAT(#_pname,_hk) == CONCAT(#_checkname,_hk) \
+        && (p[_index]<_min || p[_index]>_max)) CHECK(false,_checkname _min .. _max) 
+
+// Automatic range checks based on name of inserted parameter
+#define ZZCHK(_index,_pname)\
+ZCHECK(loco,_index,_pname,0,10239) \
+ZCHECK(track,_index,_pname,'A','H') \
+ZCHECK(cv,_index,_pname,1,255) \
+ZCHECK(value,_index,_pname,0,255) \
+ZCHECK(bit,_index,_pname,0,7) \
+ZCHECK(bitvalue,_index,_pname,0,1) \ 
+ZCHECK(crapvalue,_index,_pname,99,100) \ 
+
+
+
+
+  
+
 
