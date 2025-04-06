@@ -117,6 +117,8 @@ These macros are included into the DCCEXParser::execute function so
 
 // helper macro to check track letter
 #define CHECKTRACK CHECK(track>='A' && track<='H', Invalid track A..H)
+#define CHECKCV(cv) CHECK(cv>0 && cv<=255, Invalid cv 1..255)
+#define CHECKCVVALUE(value) CHECK(value>=0 && value<=255, Invalid cv value 0..255)
 
 
 ZZBEGIN
@@ -131,9 +133,23 @@ ZZ(t,loco,tspeed,direction) // Set throttle speed(0..127) and direction (0=rever
         CHECK(setThrottle(loco,tspeed,direction)) 
 ZZ(t,ignore,loco,tspeed,direction) // (Deprecated) Set throttle speed and direction
         CHECK(setThrottle(loco,tspeed,direction)) 
-// todo ZZ(f,cab,byte1)         CHECK(handleFunctionGroup(cab,byte1))
-// todo ZZ(f,cab,byte1,byte2) CHECK(handleFunctionGroup(cab,byte1,byte2))
-
+ZZ(f,loco,byte1)  // (Deprecated use F) Set loco function group 
+    switch ( byte1 & 0b11110000) { // 1111 0000
+        case 0b11100000: // 111x xxxx Function group 1 F0..F4
+        case 0b11110000: 
+          // Shuffle bits from order F0 F4 F3 F2 F1 to F4 F3 F2 F1 F0
+          return (funcmap(loco, (byte1 << 1 & 0x1e) | (byte1 >> 4 & 0x01), 0, 4));
+        case 0b10110000: // 1011 xxxx Function group 2 F5..F8
+          return (funcmap(loco, byte1, 5, 8));
+        case 0b10100000: // 1010 xxxx Function group 3 F9..F12
+          return (funcmap(loco, byte1, 9, 12));
+        default: 
+          CHECK(false,Invalid function group)
+    }
+ZZ(f,loco,group,byte2) // (Deprecated use F) Set loco function group 
+   if (group == 222)  return (funcmap(loco, byte2, 13, 20));
+   if (group == 223)  return (funcmap(loco, byte2, 21, 28));
+   CHECK(false,Invalid function group)
 ZZ(T)  // List all turnouts
         Turnout::printAll(stream); // will <X> if none found
 ZZ(T,id) // Delete turnout
@@ -488,13 +504,15 @@ ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
         DCC::setExtendedAccessory(address,value);
 
 ZZ(w,loco,cv,value) // POM write cv on main track
+        CHECKCV(cv) CHECKCVVALUE(value) 
         DCC::writeCVByteMain(loco,cv,value);
 ZZ(r,loco,cv) // POM read cv on main track
+        CHECKCV(cv)
         CHECK(DCCWaveform::isRailcom(),Railcom not active)
         EXPECT_CALLBACK
         DCC::readCVByteMain(loco,cv,callback_r);
 ZZ(b,loco,cv,bit,value)  // POM write cv bit on main track
- // todo check values
+        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
         DCC::writeCVBitMain(loco,cv,bit,value);
  
 ZZ(m,LINEAR) // Set Momentum algorithm to linear acceleration
@@ -506,9 +524,10 @@ ZZ(m,loco,momentum)  // set momentum for loco (accel and braking)
 ZZ(m,loco,accelerating,braking) // set momentum for loco
         CHECK(DCC::setMomentum(loco,accelerating,braking))
 
-        // todo check cv values on prog track commands and reorder for more sensible doco. 
+        // todo  reorder for more sensible doco. 
 ZZ(W,cv,value,ignore1,ignore2) // (Deprecated) Write cv value on PROG track
-        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W4);
+        CHECKCV(cv) CHECKCVVALUE(value) 
+        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);        
 ZZ(W,cab) // Write loco address on PROG track
         EXPECT_CALLBACK DCC::setLocoId(cab,callback_Wloco);
 ZZ(W,CONSIST,cab,REVERSE) // Write consist address and reverse flag on PROG track 
@@ -516,19 +535,26 @@ ZZ(W,CONSIST,cab,REVERSE) // Write consist address and reverse flag on PROG trac
 ZZ(W,CONSIST,cab) // write consist address on PROG track       
         EXPECT_CALLBACK DCC::setConsistId(cab,false,callback_Wconsist);
 ZZ(W,cv,value)   // Write cv value on PROG track
+        CHECKCV(cv) CHECKCVVALUE(value) 
         EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);
 ZZ(W,cv,value,bit) // Write cv bit on prog track
+        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
         EXPECT_CALLBACK DCC::writeCVBit(cv,value,bit,callback_W);
 ZZ(V,cv,value) // Fast read cv with expected value
+        CHECKCV(cv) CHECKCVVALUE(value)
         EXPECT_CALLBACK DCC::verifyCVByte(cv,value, callback_Vbyte);
 ZZ(V,cv,bit,value) // Fast read bit with expected value
+        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
         EXPECT_CALLBACK DCC::verifyCVBit(cv,bit,value,callback_Vbit);  
 
 ZZ(B,cv,bit,value)  // Write cv bit
+        CHECKCV(cv) CHECK(value==0 || value==1) CHECK(bit>=0 && bit<=7,Invalid bit 0..7)
         EXPECT_CALLBACK DCC::writeCVBit(cv,bit,value,callback_B);
 ZZ(R,cv,ignore1,ignore2) // (Deprecated) read cv
+        CHECKCV(cv)
         EXPECT_CALLBACK DCC::readCV(cv,callback_R);
 ZZ(R,cv) // Read cv
+        CHECKCV(cv)
         EXPECT_CALLBACK DCC::verifyCVByte(cv, 0, callback_Vbyte);
 ZZ(R)   // Read driveable loco id (may be long, short or consist)
         EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
