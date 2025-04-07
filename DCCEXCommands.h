@@ -110,6 +110,7 @@ e.g.
 
 Use of the CHECK() macro validates a condition to be true.
 If the condition is false an error is genarated, resulting in an <X> reply.
+Commonly known parameters such as loco, cv bitvalue etc are range checked automatically.
 The REPLY( format, ...) macro sends a formatted string to the stream. 
  
 These macros are included into the DCCEXParser::execute function so
@@ -550,8 +551,8 @@ ZZ(-,loco) // remove loco state amnd reminders
         DCC::forgetLoco(loco);      
 ZZ(F,loco,DCCFREQ,freqvalue) // Set DC frequencey for loco   
         CHECK(freqvalue>=0 && freqvalue<=3) DCC::setDCFreq(loco,freqvalue);
-ZZ(F,loco,function,fvalue) // Set loco function ON/OFF
-        CHECK(fvalue==0 || fvalue==1) DCC::setFn(loco,function,fvalue);    
+ZZ(F,loco,function,onoff) // Set loco function ON/OFF
+        CHECK(onoff==0 || onoff==1) DCC::setFn(loco,function,onoff);    
              
 // ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
@@ -623,11 +624,11 @@ ZZ(=,track,AUTO)  // Update track to auto reverse
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
 ZZ(=,track,INV) // Update track to inverse polarity
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
-ZZ(=,track,DC,locoid) // Set track to DC
-        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, locoid))
-ZZ(=,track,DC_INV,locoid) // Set track to DC with inverted polarity
-        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
-ZZ(=,track,DCX,locoid) // Set track to DC with inverted polarity
-        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, locoid))
+ZZ(=,track,DC,loco) // Set track to DC
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, loco))
+ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
+ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
+        CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
 
 ZZEND

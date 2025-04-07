@@ -1,3 +1,22 @@
+/*
+ *  © 2025 Chris Harlow
+ *  All rights reserved.
+ *  
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 // Count the number of arguments
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_HELPER(__VA_ARGS__,8,7, 6,5,4, 3, 2, 1, 0)
@@ -61,8 +80,7 @@ ZCHECK(track,_index,_pname,'A','H') \
 ZCHECK(cv,_index,_pname,1,255) \
 ZCHECK(value,_index,_pname,0,255) \
 ZCHECK(bit,_index,_pname,0,7) \
-ZCHECK(bitvalue,_index,_pname,0,1) \ 
-ZCHECK(crapvalue,_index,_pname,99,100) \ 
+ZCHECK(bitvalue,_index,_pname,0,1) 
 
 
 
