@@ -33,6 +33,8 @@
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "Websockets.h"
+#include "ESPPrettyOTA.h"
+
 /*
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
@@ -119,6 +121,7 @@ static bool APmode = false;
 // init of static class scope variables
 bool WifiESP::wifiUp = false;
 WiFiServer *WifiESP::server = NULL;
+ESPPrettyOTA OTAUpdates;
 
 #ifdef WIFI_TASK_ON_CORE0
 void wifiLoop(void *){
@@ -304,6 +307,9 @@ bool WifiESP::setup(const char *SSid,
   server = new WiFiServer(port); // start listening on tcp port
   server->begin();
   // server started here
+
+  // start OTA
+  OTAUpdates.setup();
 
 #ifdef WIFI_TASK_ON_CORE0
   //start loop task
