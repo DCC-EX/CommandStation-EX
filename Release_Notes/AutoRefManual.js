@@ -1,3 +1,4 @@
+/* file created by DCCEXCommands.awk */
 ZZ('#','Request number of simultaneously supported locos');
 ZZ('!','Emergency stop all locos');
 ZZ('t loco','Request loco status');
