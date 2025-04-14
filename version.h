@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.7"
+#define VERSION "5.4.8"
+// 5.4.8  - Bugfix: Insert idle packet at end of speed reminder loop; treat all function groups equal
 // 5.4.7  - Bugfix: EXRAIL fix CLEAR_ALL_STASH
 // 5.4.6  - Bugfix: Do not drop further commands in same packet
 // 5.4.5  - ESP32: Better detection of correct IDF version
