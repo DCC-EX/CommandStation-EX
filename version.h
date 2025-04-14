@@ -7,7 +7,6 @@
 // 5.4.99 - Special version number for experiments
 // 5.4.8  - Bugfix: Insert idle packet at end of speed reminder loop; treat all function groups equal
 // 5.4.7  - Bugfix: EXRAIL fix CLEAR_ALL_STASH
->>>>>>> master
 // 5.4.6  - Bugfix: Do not drop further commands in same packet
 // 5.4.5  - ESP32: Better detection of correct IDF version
 //        - track power is always turned on after setJoin() not by setJoin()
