@@ -788,40 +788,23 @@ bool DCC::issueReminder(int reg) {
          break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1)
-#ifndef DISABLE_FUNCTION_REMINDERS
 	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),0); // 100D DDDD
-#else
-	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),2);
-          flags&= ~FN_GROUP_1;  // dont send them again
-#endif
           break;
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2)
-#ifndef DISABLE_FUNCTION_REMINDERS
   	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),0);                           // 1011 DDDD
-#else
-	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),2);
-          flags&= ~FN_GROUP_2;  // dont send them again
-#endif
           break;
        case 3: // remind function group 3 F9-F12
           if (flags & FN_GROUP_3)
-#ifndef DISABLE_FUNCTION_REMINDERS
 	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),0);                           // 1010 DDDD
-#else
-	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),2);
-          flags&= ~FN_GROUP_3;  // dont send them again
-#endif
           break;
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4)
-	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),2);
-          flags&= ~FN_GROUP_4;  // dont send them again
+	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),0);
           break;
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
-	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),2);
-          flags&= ~FN_GROUP_5;  // dont send them again
+	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),0);
           break;
       }
       loopStatus++;
