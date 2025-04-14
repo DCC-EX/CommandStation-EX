@@ -759,7 +759,15 @@ void DCC::issueReminders() {
   if (!DCCWaveform::mainTrack.isReminderWindowOpen()) return;
   // Move to next loco slot.  If occupied, send a reminder.
   int reg = lastLocoReminder+1;
-  if (reg > highestUsedReg) reg = 0;  // Go to start of table
+  if (reg > highestUsedReg) {
+    if (loopStatus == 0 /*only needed if numLocos == 1 but we do not have a counter*/) {
+      // insert idle packet in the speed packet loop to fullfill the *censored*
+      // >5ms between packets to same decoder rule
+      const byte idlepacket[] = {0xFF, 0x00, 0xFF};
+      DCCWaveform::mainTrack.schedulePacket(idlepacket, 3, 0);
+    }
+    reg = 0;  // Go to start of table
+  }
   if (speedTable[reg].loco > 0) {
     // have found loco to remind
     if (issueReminder(reg))
