@@ -56,6 +56,8 @@ enum ackOp : byte
   STASHLOCOID,      // keeps current byte value for later
   COMBINELOCOID,    // combines current value with stashed value and returns it
   ITSKIP,           // skip to SKIPTARGET if ack true
+  NAKSKIP,          // skip to SKIPTARGET if ack false
+  COMBINE1920,      // combine cvs 19 and 20 and callback
   SKIPTARGET = 0xFF // jump to target
 };
 
@@ -77,10 +79,10 @@ class DCCACK {
     static inline void setAckLimit(int mA) {
 	ackLimitmA = mA;
     }
-    static inline void setMinAckPulseDuration(unsigned int i) {
+    static inline void setMinAckPulseDuration(unsigned long i) {
 	minAckPulseDuration = i;
     }
-    static inline void setMaxAckPulseDuration(unsigned int i) {
+    static inline void setMaxAckPulseDuration(unsigned long i) {
 	maxAckPulseDuration = i;
     }
 
@@ -124,11 +126,11 @@ class DCCACK {
     static unsigned long ackCheckStart; // millis
     static unsigned int ackCheckDuration; // millis       
     
-    static unsigned int ackPulseDuration;  // micros
+    static unsigned long ackPulseDuration;  // micros
     static unsigned long ackPulseStart; // micros
 
-    static unsigned int minAckPulseDuration ; // micros
-    static unsigned int maxAckPulseDuration ; // micros
+    static unsigned long minAckPulseDuration ; // micros
+    static unsigned long maxAckPulseDuration ; // micros
     static MotorDriver* progDriver;
     static volatile uint8_t numAckGaps;
     static volatile uint8_t numAckSamples;

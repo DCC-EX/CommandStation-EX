@@ -2,7 +2,7 @@
  *  © 2021 M Steve Todd
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2024 Harald Barth
  *  © 2020-2021 Chris Harlow
  *  All rights reserved.
  *  
@@ -33,14 +33,21 @@
 
 
 // Number of preamble bits.
-const int   PREAMBLE_BITS_MAIN = 16;
-const int   PREAMBLE_BITS_PROG = 22;
-const byte   MAX_PACKET_SIZE = 5;  // NMRA standard extended packets, payload size WITHOUT checksum.
+const byte PREAMBLE_BITS_MAIN = 16;
+const byte PREAMBLE_BITS_PROG = 22;
+const byte MAX_PACKET_SIZE = 5;     // NMRA standard extended packets, payload size WITHOUT checksum.
 
 
 // The WAVE_STATE enum is deliberately numbered because a change of order would be catastrophic
 // to the transform array.
-enum  WAVE_STATE : byte {WAVE_START=0,WAVE_MID_1=1,WAVE_HIGH_0=2,WAVE_MID_0=3,WAVE_LOW_0=4,WAVE_PENDING=5};
+enum  WAVE_STATE : byte {
+  WAVE_START=0,  // wave going high at start of bit 
+  WAVE_MID_1=1,  // middle of 1 bit 
+  WAVE_HIGH_0=2, // first part of 0 bit high
+  WAVE_MID_0=3,  // middle of 0 bit
+  WAVE_LOW_0=4,  // first part of 0 bit low
+  WAVE_PENDING=5 // next bit not yet known
+  };
 
 // NOTE: static functions are used for the overall controller, then
 // one instance is created for each track.
@@ -76,11 +83,15 @@ class DCCWaveform {
     };
 #endif
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
-    bool getPacketPending();
+    bool isReminderWindowOpen();
+    void promotePendingPacket();
+    static bool setRailcom(bool on, bool debug);
+    static bool isRailcom() {return railcomActive;}
     
   private:
 #ifndef ARDUINO_ARCH_ESP32
     volatile bool packetPending;
+    volatile bool reminderWindowOpen;
     volatile byte sentResetsSincePacket;
 #else
     volatile uint32_t resetPacketBase;
@@ -101,6 +112,9 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte pendingLength;
     byte pendingRepeats;
+    static volatile bool railcomActive;     // switched on by user
+    static volatile bool railcomDebug;     // switched on by user
+    
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;
   static RMTChannel *rmtProgChannel;

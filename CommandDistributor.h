@@ -47,17 +47,30 @@ private:
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
   static void broadcastLoco(byte slot);
+  static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
+  static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);
   static void setClockTime(int16_t time, int8_t rate, byte opt);
   static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastRaw(clientType type,char * msg);
-  static void broadcastTrackState(const FSH* format,byte trackLetter,int16_t dcAddr);
+  static void broadcastTrackState(const FSH* format,byte trackLetter, const FSH* modename, int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
+  static void broadcastRouteState(uint16_t routeId,byte state);
+  static void broadcastRouteCaption(uint16_t routeId,const FSH * caption);
+  static void broadcastMessage(char * message);
   
+  // Handling code for virtual LCD receiver.
+  static Print * getVirtualLCDSerial(byte screen, byte row);
+  static void commitVirtualLCDSerial();
+  static void setVirtualLCDSerial(Print * stream); 
+  private:
+    static Print * virtualLCDSerial;
+    static byte virtualLCDClient;
+    static byte rememberVLCDClient;
 };
 
 #endif

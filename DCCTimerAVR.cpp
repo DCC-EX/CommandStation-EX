@@ -29,6 +29,7 @@
 #include <avr/boot.h> 
 #include <avr/wdt.h>
 #include "DCCTimer.h"
+#include "DIAG.h"
 #ifdef DEBUG_ADC
 #include "TrackManager.h"
 #endif
@@ -39,6 +40,9 @@ INTERRUPT_CALLBACK interruptHandler=0;
     #define TIMER1_A_PIN   11
     #define TIMER1_B_PIN   12
     #define TIMER1_C_PIN   13
+    #define TIMER2_A_PIN   10
+    #define TIMER2_B_PIN   9
+    
 #else
    #define TIMER1_A_PIN   9
    #define TIMER1_B_PIN   10
@@ -54,6 +58,67 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     TIMSK1 = _BV(TOIE1); // Enable Software interrupt
     interrupts();
   }
+
+
+void DCCTimer::startRailcomTimer(byte brakePin) {
+  /* The Railcom timer is started in such a way that it 
+     - First triggers 28uS after the last TIMER1 tick. 
+       This provides an accurate offset (in High Accuracy mode)
+       for the start of the Railcom cutout.
+     - Sets the Railcom pin high at first tick, 
+       because its been setup with 100% PWM duty cycle.
+        
+     - Cycles at 436uS so the second tick is the 
+        correct distance from the cutout.
+        
+     - Waveform code is responsible for altering the PWM 
+       duty cycle to 0% any time between the first and last tick.
+       (there will be 7 DCC timer1 ticks in which to do this.)
+    
+    */
+  (void) brakePin; // Ignored... works on pin 9 only 
+  const int cutoutDuration = 430; // Desired interval in microseconds
+  
+  // Set up Timer2 for CTC mode (Clear Timer on Compare Match)
+  TCCR2A = 0; // Clear Timer2 control register A
+  TCCR2B = 0; // Clear Timer2 control register B
+  TCNT2 = 0;  // Initialize Timer2 counter value to 0
+   // Configure Phase and Frequency Correct PWM mode
+   TCCR2A =  (1 << COM2B1); // enable pwm on pin 9
+   TCCR2A |= (1 << WGM20);
+  
+   
+  // Set Timer 2 prescaler to 32
+  TCCR2B = (1 << CS21) | (1 << CS20); // 32 prescaler
+
+  // Set the compare match value for desired interval
+  OCR2A = (F_CPU / 1000000) * cutoutDuration / 64 - 1;
+
+  // Calculate the compare match value for desired duty cycle
+  OCR2B = OCR2A+1;  // set duty cycle to 100%= OCR2A)
+
+  // Enable Timer2 output on pin 9 (OC2B)
+  DDRB |= (1 << DDB1);
+  // TODO Fudge TCNT2 to sync with last tcnt1 tick + 28uS
+
+ // Previous TIMER1 Tick was at rising end-of-packet bit
+ // Cutout starts half way through first preamble
+ // that is 2.5 * 58uS later.
+ // TCNT1 ticks 8 times / microsecond
+ // auto microsendsToFirstRailcomTick=(58+58+29)-(TCNT1/8);
+  // set the railcom timer counter allowing for phase-correct
+
+  // CHris's NOTE: 
+  // I dont kniow quite how this calculation works out but
+  // it does seems to get a good answer. 
+
+  TCNT2=193 + (ICR1 - TCNT1)/8;
+}
+
+void DCCTimer::ackRailcomTimer() {
+  OCR2B= 0x00;  // brake pin pwm duty cycle 0 at next tick
+}
+
 
 // ISR called by timer interrupt every 58uS
   ISR(TIMER1_OVF_vect){ interruptHandler(); }
@@ -120,9 +185,88 @@ int DCCTimer::freeMemory() {
 }
 
 void DCCTimer::reset() {
-  wdt_enable( WDTO_15MS); // set Arduino watchdog timer for 15ms 
-  delay(50);            // wait for the prescaller time to expire
+  // 250ms chosen to circumwent bootloader bug which
+  // hangs at too short timepout (like 15ms)
+  wdt_enable( WDTO_250MS); // set Arduino watchdog timer for 250ms 
+  delay(500);              // wait for it to happen
 
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+}
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t fbits) {
+#if defined(ARDUINO_AVR_UNO)
+      (void)fbits;
+      (void) pin;
+      // Not worth doin something here as:
+      // If we are on pin 9 or 10 we are on Timer1 and we can not touch Timer1 as that is our DCC source.
+      // If we are on pin 5 or 6 we are on Timer 0 ad we can not touch Timer0 as that is millis() etc.
+      // We are most likely not on pin 3 or 11 as no known motor shield has that as brake.
+#endif
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  // Speed mapping is done like this:
+  // No functions buttons:   000  0   -> low          131Hz
+  // Only F29 pressed        001  1   -> mid          490Hz
+  // F30 with or w/o F29     01x  2-3 -> high        3400Hz
+  // F31 with or w/o F29/30  1xx  4-7 -> supersonic 62500Hz
+  uint8_t abits;
+  uint8_t bbits;
+  if (pin == 9 || pin == 10) { // timer 2 is different
+
+    if (fbits >= 4)
+      abits = B00000011;
+    else
+      abits = B00000001;
+
+    if (fbits >= 4)
+      bbits = B0001;
+    else if (fbits >= 2)
+      bbits = B0010;
+    else if (fbits == 1)
+      bbits = B0100;
+    else //  fbits == 0
+      bbits = B0110;
+
+    TCCR2A = (TCCR2A & B11111100) | abits; // set WGM0 and WGM1
+    TCCR2B = (TCCR2B & B11110000) | bbits; // set WGM2 and 3 bits of prescaler
+    DIAG(F("Timer 2 A=%x B=%x"), TCCR2A, TCCR2B);
+
+  } else { // not timer 9 or 10
+    abits = B01;
+
+    if (fbits >= 4)
+      bbits = B1001;
+    else if (fbits >= 2)
+      bbits = B0010;
+    else if (fbits == 1)
+      bbits = B0011;
+    else
+      bbits = B0100;
+
+    switch (pin) {
+      // case 9 and 10 taken care of above by if()
+    case 6:
+    case 7:
+    case 8:
+      // Timer4
+      TCCR4A = (TCCR4A & B11111100) | abits; // set WGM0 and WGM1
+      TCCR4B = (TCCR4B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
+      //DIAG(F("Timer 4 A=%x B=%x"), TCCR4A, TCCR4B);
+      break;
+    case 46:
+    case 45:
+    case 44:
+      // Timer5
+      TCCR5A = (TCCR5A & B11111100) | abits; // set WGM0 and WGM1
+      TCCR5B = (TCCR5B & B11100000) | bbits; // set WGM2 and WGM3 and divisor
+      //DIAG(F("Timer 5 A=%x B=%x"), TCCR5A, TCCR5B);
+      break;
+    default:
+      break;
+    }
+  }
+#endif
 }
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)

@@ -123,7 +123,6 @@
     return true;
   }
 
-#define DIAG_IO
   // Static setClosed function is invoked from close(), throw() etc. to perform the 
   //  common parts of the turnout operation.  Code which is specific to a turnout
   //  type should be placed in the virtual function setClosedInternal(bool) which is
@@ -313,12 +312,6 @@
  * 
  *************************************************************************************/
 
-#if defined(DCC_TURNOUTS_RCN_213)
-  const bool DCCTurnout::rcn213Compliant = true;
-#else
-  const bool DCCTurnout::rcn213Compliant = false;
-#endif
-
   // DCCTurnoutData contains data specific to this subclass that is 
   // written to EEPROM when the turnout is saved.
   struct DCCTurnoutData {
@@ -386,7 +379,10 @@
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
-    DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close ^ !rcn213Compliant);
+#ifndef DCC_TURNOUTS_RCN_213
+    close = !close;
+#endif
+    DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close);
     return true;
   }
 
@@ -528,4 +524,3 @@
     StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
     !_turnoutData.closed); 
   }
-

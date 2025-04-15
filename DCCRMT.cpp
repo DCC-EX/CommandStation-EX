@@ -1,5 +1,5 @@
 /*
- *  © 2021-2022, Harald Barth.
+ *  © 2021-2024, Harald Barth.
  *  
  *  This file is part of DCC-EX
  *
@@ -17,6 +17,25 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/*
+ * RMT has "channels" which us FIFO RAM where you place what you want to send
+ * or receive. Channels can be merged to get more words per channel.
+ *
+ * WROOM: 8 channels total of 512 words, 64 words per channel. We use currently
+ * channel 0+1 for 128 words for DCC MAIN and 2+3 for DCC PROG.
+ *
+ * S3: 8 channels total of 384 words. 4 channels dedicated for TX and 4 channels
+ * dedicated for RX. 48 words per channel. So for TX there are 4 channels and we
+ * could use them with 96 words for MAIN and PROG if DCC data does fit in there.
+ *
+ * C3: 4 channels total of 192 words. As we do not use RX we can use all for TX
+ * so the situation is the same as for the -S3
+ *
+ * C6, H2: 4 channels total of 192 words. 2 channels dedictaed for TX and
+ * 2 channels dedicated for RX. Half RMT capacity compared to the C3.
+ *
+ */
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include "DIAG.h"
@@ -24,6 +43,18 @@
 #include "DCCTimer.h"
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE
 #include "soc/gpio_sig_map.h"
+
+// check for right type of ESP32
+#include "soc/soc_caps.h"
+#ifndef SOC_RMT_MEM_WORDS_PER_CHANNEL
+#error This symobol should be defined
+#endif
+#if SOC_RMT_MEM_WORDS_PER_CHANNEL < 64
+#warning This is not an ESP32-WROOM but some other unsupported variant
+#warning You are outside of the DCC-EX supported hardware
+#endif
+
+static const byte RMT_CHAN_PER_DCC_CHAN = 2;
 
 // Number of bits resulting out of X bytes of DCC payload data
 // Each byte has one bit extra and at the end we have one EOF marker
@@ -75,12 +106,30 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
 RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   byte ch;
   byte plen;
+
+  // Below we check if the DCC packet actually fits into the RMT hardware
+  // Currently MAX_PACKET_SIZE = 5 so with checksum there are
+  // MAX_PACKET_SIZE+1 data packets. Each need DATA_LEN (9) bits.
+  // To that we add the preamble length, the fencepost DCC end bit
+  // and the RMT EOF marker.
+  // SOC_RMT_MEM_WORDS_PER_CHANNEL is either 64 (original WROOM) or
+  // 48 (all other ESP32 like the -C3 or -S2
+  // The formula to get the possible MAX_PACKET_SIZE is
+  //
+  // ALLOCATED = RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL
+  // MAX_PACKET_SIZE = floor((ALLOCATED - PREAMBLE_LEN - 2)/9 - 1)
+  //
+
   if (isMain) {
     ch = 0;
     plen = PREAMBLE_BITS_MAIN;
+    static_assert (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_MAIN + 2 <= RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL,
+		  "Number of DCC packet bits greater than ESP32 RMT memory available");
   } else {
-    ch = 2;
+    ch = RMT_CHAN_PER_DCC_CHAN; // number == offset
     plen = PREAMBLE_BITS_PROG;
+    static_assert (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_PROG + 2 <= RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL,
+		   "Number of DCC packet bits greater than ESP32 RMT memory available");
   }
     
   // preamble
@@ -115,7 +164,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   // data: max packet size today is 5 + checksum
   maxDataLen = DATA_LEN(MAX_PACKET_SIZE+1);  // plus checksum
   data = (rmt_item32_t*)malloc(maxDataLen*sizeof(rmt_item32_t));
-  
+
   rmt_config_t config;
   // Configure the RMT channel for TX
   bzero(&config, sizeof(rmt_config_t));
@@ -123,20 +172,10 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   config.channel = channel = (rmt_channel_t)ch;
   config.clk_div = RMT_CLOCK_DIVIDER;
   config.gpio_num = (gpio_num_t)pins.pin;
-  config.mem_block_num = 2; // With longest DCC packet 11 inc checksum (future expansion)
-                            // number of bits needed is 22preamble + start +
-                            // 11*9 + extrazero + EOT = 124
-                            // 2 mem block of 64 RMT items should be enough
-
+  config.mem_block_num = RMT_CHAN_PER_DCC_CHAN;
+  // use config
   ESP_ERROR_CHECK(rmt_config(&config));
   addPin(pins.invpin, true);
-  /*
-  // test: config another gpio pin
-  gpio_num_t gpioNum = (gpio_num_t)(pin-1);
-  PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
-  gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
-  gpio_matrix_out(gpioNum, RMT_SIG_OUT0_IDX, 0, 0);
-  */
   
   // NOTE: ESP_INTR_FLAG_IRAM is *NOT* included in this bitmask
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, ESP_INTR_FLAG_LOWMED|ESP_INTR_FLAG_SHARED));

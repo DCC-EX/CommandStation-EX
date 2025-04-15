@@ -33,7 +33,7 @@
 
 // Link to halSetup function.  If not defined, the function reference will be NULL.
 extern __attribute__((weak)) void halSetup();
-extern __attribute__((weak)) void exrailHalSetup();
+extern __attribute__((weak)) bool exrailHalSetup();
 
 //==================================================================================================================
 // Static methods
@@ -60,34 +60,31 @@ void IODevice::begin() {
     halSetup();
 
   // include any HAL devices defined in exrail. 
+  bool ignoreDefaults=false;
   if (exrailHalSetup)
-    exrailHalSetup();
-
+    ignoreDefaults=exrailHalSetup();
+  if (ignoreDefaults) return;
+  
   // Predefine two PCA9685 modules 0x40-0x41 if no conflicts
   // Allocates 32 pins 100-131
-  if (checkNoOverlap(100, 16, 0x40)) {
+  const bool silent=true; // no message if these conflict
+  if (checkNoOverlap(100, 16, 0x40, silent)) {
     PCA9685::create(100, 16, 0x40);
-  } else {
-    DIAG(F("Default PCA9685 at I2C 0x40 disabled due to configured user device"));
-  }
-  if (checkNoOverlap(116, 16, 0x41)) {
+  } 
+
+  if (checkNoOverlap(116, 16, 0x41, silent)) {
     PCA9685::create(116, 16, 0x41);
-  } else {
-    DIAG(F("Default PCA9685 at I2C 0x41 disabled due to configured user device"));
-  }
+  } 
   
   // Predefine two MCP23017 module 0x20/0x21 if no conflicts
   // Allocates 32 pins 164-195
-  if (checkNoOverlap(164, 16, 0x20)) {
+  if (checkNoOverlap(164, 16, 0x20, silent)) {
     MCP23017::create(164, 16, 0x20);
-  } else {
-    DIAG(F("Default MCP23017 at I2C 0x20 disabled due to configured user device"));
-  }
-  if (checkNoOverlap(180, 16, 0x21)) {
+  } 
+
+  if (checkNoOverlap(180, 16, 0x21, silent)) {
     MCP23017::create(180, 16, 0x21);
-  } else {
-    DIAG(F("Default MCP23017 at I2C 0x21 disabled due to configured user device"));
-  }
+  } 
 }
 
 // reset() function to reinitialise all devices
@@ -176,6 +173,13 @@ bool IODevice::exists(VPIN vpin) {
   return findDevice(vpin) != NULL;
 }
 
+// Return the status of the device att vpin.
+uint8_t IODevice::getStatus(VPIN vpin) {
+  IODevice *dev = findDevice(vpin);
+  if (!dev) return false;
+  return dev->_deviceState;
+}
+
 // check whether the pin supports notification.  If so, then regular _read calls are not required.
 bool IODevice::hasCallback(VPIN vpin) {
   IODevice *dev = findDevice(vpin);
@@ -247,6 +251,26 @@ void IODevice::write(VPIN vpin, int value) {
 #endif
 }
 
+// Write value to count virtual pin(s).
+// these may be within one driver or separated over several drivers 
+void IODevice::writeRange(VPIN vpin, int value, int count) {  
+  
+  while(count) {  
+    auto dev = findDevice(vpin);
+    if (dev) {
+      auto vpinBefore=vpin; 
+      // write to driver, driver will return next vpin it cant handle
+      vpin=dev->_writeRange(vpin, value,count);
+      count-= vpin-vpinBefore;  // decrement by number of vpins changed
+    }
+    else {
+      // skip a vpin if no device handler
+      vpin++;
+      count--;
+    }
+  }
+}
+
 // Write analogue value to virtual pin(s).  If multiple devices are allocated
 // the same pin then only the first one found will be used.
 //
@@ -264,6 +288,24 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t para
 #ifdef DIAG_IO
   DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
 #endif
+}
+
+//
+void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count) {
+  while(count) {  
+    auto dev = findDevice(vpin);
+    if (dev) {
+      auto vpinBefore=vpin; 
+      // write to driver, driver will return next vpin it cant handle
+      vpin=dev->_writeAnalogueRange(vpin, value, param1, param2,count);
+      count-= vpin-vpinBefore;  // decrement by number of vpins changed
+    }
+    else {
+      // skip a vpin if no device handler
+      vpin++;
+      count--;
+    }
+  }
 }
 
 // isBusy, when called for a device pin is always a digital output or analogue output,
@@ -332,7 +374,10 @@ IODevice *IODevice::findDeviceFollowing(VPIN vpin) {
 // returns true if pins DONT overlap with existing device
 // TODO: Move the I2C address reservation and checks into the I2CManager code.
 // That will enable non-HAL devices to reserve I2C addresses too.
-bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddress) {
+// Silent is used by the default setup so that there is no message if the default 
+// device has already been handled by the user setup.
+bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, 
+      I2CAddress i2cAddress, bool silent) {
 #ifdef DIAG_IO
   DIAG(F("Check no overlap %u %u %s"), firstPin,nPins,i2cAddress.toString());
 #endif
@@ -345,14 +390,14 @@ bool IODevice::checkNoOverlap(VPIN firstPin, uint8_t nPins, I2CAddress i2cAddres
       VPIN lastDevPin=firstDevPin+dev->_nPins-1;
       bool noOverlap= firstPin>lastDevPin || lastPin<firstDevPin;
       if (!noOverlap) {
-          DIAG(F("WARNING HAL Overlap, redefinition of Vpins %u to %u ignored."),
+          if (!silent) DIAG(F("WARNING HAL Overlap, redefinition of Vpins %u to %u ignored."),
               firstPin, lastPin);
           return false;
       } 
     }
     // Check for overlapping I2C address
     if (i2cAddress && dev->_I2CAddress==i2cAddress) {
-      DIAG(F("WARNING HAL Overlap. i2c Addr %s ignored."),i2cAddress.toString());
+      if (!silent) DIAG(F("WARNING HAL Overlap. i2c Addr %s ignored."),i2cAddress.toString());
       return false;
     } 
   }
@@ -582,4 +627,3 @@ bool ArduinoPins::fastReadDigital(uint8_t pin) {
 #endif
   return result;
 }
-

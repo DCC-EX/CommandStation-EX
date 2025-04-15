@@ -52,20 +52,27 @@ typedef __FlashStringHelper FSH;
 #define STRNCPY_P strncpy_P
 #define STRNCMP_P strncmp_P
 #define STRLEN_P strlen_P
+#define STRCHR_P strchr_P 
 
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
 // AVR_MEGA memory deliberately placed at end of link may need _far functions
 #define HIGHFLASH __attribute__((section(".fini2")))
+#define HIGHFLASH3 __attribute__((section(".fini3")))
 #define GETFARPTR(data) pgm_get_far_address(data)
 #define GETHIGHFLASH(data,offset) pgm_read_byte_far(GETFARPTR(data)+offset)
 #define GETHIGHFLASHW(data,offset) pgm_read_word_far(GETFARPTR(data)+offset)
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy_PF(target,GETFARPTR(base) + offset,length)  
 #else
 // AVR_UNO/NANO runtime does not support _far functions so just use _near equivalent
 // as there is no progmem above 32kb anyway.
 #define HIGHFLASH PROGMEM
+#define HIGHFLASH3 PROGMEM
 #define GETFARPTR(data) ((uint32_t)(data))
 #define GETHIGHFLASH(data,offset) pgm_read_byte_near(GETFARPTR(data)+(offset))
 #define GETHIGHFLASHW(data,offset) pgm_read_word_near(GETFARPTR(data)+(offset))
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy_P(target,(byte *)base + offset,length)  
 #endif
 
 #else 
@@ -80,14 +87,18 @@ typedef __FlashStringHelper FSH;
 typedef char FSH; 
 #define FLASH
 #define HIGHFLASH
+#define HIGHFLASH3
 #define GETFARPTR(data) ((uint32_t)(data))
 #define GETFLASH(addr) (*(const byte *)(addr))
 #define GETHIGHFLASH(data,offset)  (*(const byte *)(GETFARPTR(data)+offset))
 #define GETHIGHFLASHW(data,offset) (*(const uint16_t *)(GETFARPTR(data)+offset))
+#define COPYHIGHFLASH(target,base,offset,length) \
+  memcpy(target,(byte *)&base + offset,length)  
 #define STRCPY_P strcpy
 #define STRCMP_P strcmp
 #define STRNCPY_P strncpy
 #define STRNCMP_P strncmp
 #define STRLEN_P strlen
+#define STRCHR_P strchr
 #endif
 #endif

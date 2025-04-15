@@ -65,4 +65,3 @@ void DCCAccessoryDecoder::_display() {
   DIAG(F("DCCAccessoryDecoder Configured on Vpins:%u-%u Addresses %d/%d-%d/%d)"), _firstVpin, _firstVpin+_nPins-1,
       ADDRESS(_packedAddress), SUBADDRESS(_packedAddress), ADDRESS(endAddress), SUBADDRESS(endAddress));
 }
-

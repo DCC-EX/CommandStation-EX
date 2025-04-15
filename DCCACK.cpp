@@ -27,8 +27,8 @@
 #include "DCCWaveform.h"
 #include "TrackManager.h"
 
-unsigned int DCCACK::minAckPulseDuration = 2000; // micros
-unsigned int DCCACK::maxAckPulseDuration = 20000; // micros
+unsigned long DCCACK::minAckPulseDuration = 2000; // micros
+unsigned long DCCACK::maxAckPulseDuration = 20000; // micros
   
 MotorDriver *  DCCACK::progDriver=NULL;
 ackOp  const *  DCCACK::ackManagerProg;
@@ -50,8 +50,8 @@ volatile uint8_t DCCACK::numAckSamples=0;
 uint8_t DCCACK::trailingEdgeCounter=0;
 
 
- unsigned int DCCACK::ackPulseDuration;  // micros
- unsigned long DCCACK::ackPulseStart; // micros
+unsigned long DCCACK::ackPulseDuration;  // micros
+unsigned long DCCACK::ackPulseStart; // micros
  volatile bool DCCACK::ackDetected;
  unsigned long DCCACK::ackCheckStart; // millis
  volatile bool DCCACK::ackPending;
@@ -67,16 +67,24 @@ CALLBACK_STATE DCCACK::callbackState=READY;
 ACK_CALLBACK DCCACK::ackManagerCallback;
 
 void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  // On ESP32 the joined track is hidden from sight (it has type MAIN)
+  // and because of that we need first check if track was joined and
+  // then unjoin if necessary. This requires that the joined flag is
+  // cleared when the prog track is removed.
   ackManagerRejoin=TrackManager::isJoined();
+  //DIAG(F("Joined is %d"), ackManagerRejoin);
   if (ackManagerRejoin) {
     // Change from JOIN must zero resets packet.
     TrackManager::setJoin(false);
     DCCWaveform::progTrack.clearResets();
   }
-
   progDriver=TrackManager::getProgDriver();
+  //DIAG(F("Progdriver is %d"), progDriver);
   if (progDriver==NULL) {
-    TrackManager::setJoin(ackManagerRejoin);
+    if (ackManagerRejoin) {
+      DIAG(F("Joined but no Prog track"));
+      TrackManager::setJoin(false);
+    }
     callback(-3); // we dont have a prog track!
     return;
   }
@@ -127,7 +135,7 @@ bool DCCACK::checkResets(uint8_t numResets) {
 void DCCACK::setAckBaseline() {
       int baseline=progDriver->getCurrentRaw();
       ackThreshold= baseline + progDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %uus and %uus"),
+      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %lus and %lus"),
 			  baseline,progDriver->raw2mA(baseline),
 			  ackThreshold,progDriver->raw2mA(ackThreshold),
                           minAckPulseDuration, maxAckPulseDuration);
@@ -146,7 +154,7 @@ void DCCACK::setAckPending() {
 
 byte DCCACK::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%uuS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
+      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%luS samples=%d gaps=%d"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration,
 			  ackMaxCurrent,progDriver->raw2mA(ackMaxCurrent), ackPulseDuration, numAckSamples, numAckGaps);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   
@@ -314,8 +322,25 @@ void DCCACK::loop() {
           callback( LONG_ADDR_MARKER | ( ackManagerByte + ((ackManagerStash - 192) << 8)));
           return;
 
+     case COMBINE1920:
+          // ackManagerStash is  cv20, ackManagerByte is CV 19
+          // This will not be called if cv20==0
+          ackManagerByte &= 0x7F;  // ignore direction marker
+          ackManagerByte %=100;    // take last 2 decimal digits 
+          callback( ackManagerStash*100+ackManagerByte);
+          return;
+
      case ITSKIP:
           if (!ackReceived) break;
+          // SKIP opcodes until SKIPTARGET found
+          while (opcode!=SKIPTARGET) {
+            ackManagerProg++;
+            opcode=GETFLASH(ackManagerProg);
+          }
+          break;
+
+     case NAKSKIP:
+          if (ackReceived) break;
           // SKIP opcodes until SKIPTARGET found
           while (opcode!=SKIPTARGET) {
             ackManagerProg++;
@@ -466,4 +491,3 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
     }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
-

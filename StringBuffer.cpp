@@ -41,5 +41,3 @@ size_t StringBuffer::write(uint8_t b) {
   _buffer[_pos_write]='\0';
   return 1;
 }
-
-

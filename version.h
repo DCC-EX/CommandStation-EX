@@ -3,16 +3,191 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.0.9"
-// 5.0.9  - EX-IOExpander bug fix for memory allocation
-//        - EX-IOExpander bug fix to allow for devices with no analogue or no digital pins
-// 5.0.8  - Bugfix: Do not crash on turnouts without description
-// 5.0.7  - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
-// 5.0.6  - Bugfix lost TURNOUTL description
-// 5.0.5  - Bugfix version detection logic and better message
-// 5.0.4  - Bugfix: <JR> misses default roster. 
-// 5.0.3  - Check bad AT firmware version
-// 5.0.2  - Bugfix: ESP32 30ms off time
+#define VERSION "5.4.8"
+// 5.4.8  - Bugfix: Insert idle packet at end of speed reminder loop; treat all function groups equal
+// 5.4.7  - Bugfix: EXRAIL fix CLEAR_ALL_STASH
+// 5.4.6  - Bugfix: Do not drop further commands in same packet
+// 5.4.5  - ESP32: Better detection of correct IDF version
+//        - track power is always turned on after setJoin() not by setJoin()
+// 5.4.4  - bugfix in parser, input buffer overrun and trailing > that did break <+>
+// 5.4.3  - bugfix changeFn for functions 29..31
+// 5.4.2  - Reversed turnout bugfix
+// 5.4.1  - ESP32 bugfix packet buffer race
+// 5.4.0  - New version on master
+// 5.2.96 - EXRAIL additions XFWD() and XREV()
+// 5.2.95 - Release candidate for 5.4
+// 5.2.94 - Bugfix: Less confusion and simpler code around the RCN213 defines
+// 5.2.93 - Bugfix ESP32: clear progTrackSyncMain (join flag) when prog track is removed
+// 5.2.92 - Bugfix: FADE power off fix, EXRAIL power diagnostic fix.
+// 5.2.91 - Bugfix: Neopixel I2C overlap check
+// 5.2.90 - Bugfix: EXRAIL EXTT_TURNTABLE() now has description as optional in line with ocumentation (also fixed DCC_TURNTABLE) 
+// 5.2.89 - EXRAIL SET(vpin[,npins]) RESET(vpin,[,npins]) pin range manipulation 
+// 5.2.88 - Fix bug where EX-Turntable objects return incorrect angle for home with <JP x>
+// 5.2.87 - CamParser and IO_EXSensorCam driver
+// 5.2.86 - IO_TCA8418 driver for keypad matrix input now fully functioning, including being able to use an interrupt pin
+// 5.2.85 - IO_TM1638 driver, SEG7 Exrail macro and _s7 segment pattern generator.
+// 5.2.84 - Fix TrackManager setDCCSignal and setPROGSignal for STM32 shadowing of PORTG/PORTH - this time it really is correct!
+// 5.2.83 - Various STM32 related fixes for serial ports, I2C pullups now turned off, and shadowing of PORTG/PORTH for TrackManager now correct
+// 5.2.82 - TrackManager and EXRAIL: Introduce more consistent names for <= ...> and SET_TRACK
+// 5.2.81 - STM32 Ethernet boards support, also now have specific EX8874 motor driver definition
+// 5.2.80 - EthernetInterface upgrade, including STM32 Ethernet support
+// 5.2.79 - serial manager loop that handles quoted strings
+//        - WiFiESP32 reconfig
+// 5.2.78 - NeoPixel support.
+//        - <o command
+//        - HAL driver 
+//        - EXRAIL NEOPIXEL and NEOPIXEL_SIGNAL   
+// 5.2.77 - Withrottle: Implement "force function" subcommand "f"
+// 5.2.76 - Bugfix: EXRAIL: Catch CV read errors in the callback
+// 5.2.75 - Bugfix: Serial lines 4 to 6 OK
+// 5.2.74 - Bugfix: ESP32 turn on the joined prog (as main) again after a prog operation
+// 5.2.73 - Bugfix: STM32 further fixes to shadowPORT entries in TrackManager.cpp for PORTG and PORTH
+// 5.2.72 - Bugfix: added shadowPORT entries in TrackManager.cpp for PORTG and PORTH on STM32, fixed typo in MotorDriver.cpp
+// 5.2.71 -  Broadcasts of loco forgets. 
+// 5.2.70 -  IO_RocoDriver renamed to IO_EncoderThrottle.
+//        -  and included in IODEvice.h (circular dependency removed) 
+// 5.2.69 -  IO_RocoDriver. Direct drive train with rotary encoder hw.
+// 5.2.68 -  Revert function map to signed (from 5.2.66) to avoid
+//           incompatibilities with ED etc for F31 frequency flag.
+// 5.2.67 -  EXRAIL AFTER optional debounce time variable (default 500mS)
+//        -  AFTER(42) == AFTER(42,500) sets time sensor must 
+//        -  be continuously off.
+// 5.2.66 - <F cab DCFREQ 0..3>
+//        - EXRAIL SETFREQ drop loco param (breaking since 5.2.28)
+// 5.2.65 - Speedup Exrail SETFREQ 
+// 5.2.64 - Bugfix: <0 PROG> updated to undo JOIN 
+// 5.2.63 - Implement WIFI_LED for ESP32, ESPduino32 and EX-CSB1, that is turned on when STA mode connects or AP mode is up
+//        - Add BOOSTER_INPUT definitions for ESPduino32 and EX-CSB1 to config.example.h
+//        - Add WIFI_LED definitions for ESPduino32 and EX-CSB1 to config.example.h
+// 5.2.62 - Allow acks way longer than standard
+// 5.2.61 - Merg CBUS  ACON/ACOF/ONACON/ONACOF Adapter interface.
+//        - LCC Adapter interface throttled startup,
+//          (Breaking change with Adapter base code)
+// 5.2.60 - Bugfix: Opcode AFTEROVERLOAD does not have an argument that is a pin and needs to be initialized
+//        - Remove inrush throttle after half good time so that we go to mode overload if problem persists
+// 5.2.59 - STM32 bugfix correct Serial1 definition for Nucleo-F401RE
+//        - STM32 add support for ARDUINO_NUCLEO_F4X9ZI type to span F429/F439 in upcoming STM32duino release v2.8 as a result of our PR
+// 5.2.58 - EXRAIL ALIAS allows named pins
+// 5.2.57 - Bugfix autoreverse: Apply mode by binart bit match and not by equality
+// 5.2.56 - Bugfix and refactor for EXRAIL getSignalSlot
+// 5.2.55 - Move EXRAIL isSignal() to public to allow use in STEALTH call
+// 5.2.54 - Bugfix for EXRAIL signal handling for active high 
+// 5.2.53 - Bugfix for EX-Fastclock, call I2CManager.begin() before checking I2C address 
+// 5.2.52 - Bugfix for ADCee() to handle ADC2 and ADC3 channel inputs on F446ZE and others
+//        - Add support for ports G and H on STM32 for ADCee() and MotorDriver pins/shadow regs 
+// 5.2.51 - Bugfix for SIGNAL: Distinguish between sighandle and sigid
+// 5.2.50 - EXRAIL ONBUTTON/ONSENSOR observe LATCH
+// 5.2.49 - EXRAIL additions:
+//          ONBUTTON, ONSENSOR
+// 5.2.48 - Bugfix: HALDisplay was generating I2C traffic prior to I2C being initialised
+// 5.2.47 - EXRAIL additions:
+//          STEALTH_GLOBAL
+//          BLINK
+//          TOGGLE_TURNOUT
+//          FTOGGLE, XFTOGGLE
+//          Reduced code-developmenmt DIAG noise
+// 5.2.46 - Support for extended consist CV20 in <R> and <W id>
+//        - New cmd <W CONSIST id [REVERSE]> to handle long/short consist ids
+// 5.2.45 - ESP32 Trackmanager reset cab number to 0 when track is not DC
+//          ESP32 fix PWM LEDC inverted pin mode
+//          ESP32 rewrite PWM LEDC to use pin mux
+// 5.2.42 - ESP32 Bugfix: Uninitialized stack variable
+// 5.2.41 - Update rotary encoder default address to 0x67
+// 5.2.40 - Allow no shield
+// 5.2.39 - Functions for DC frequency: Use func up to F31
+// 5.2.38 - Exrail MESSAGE("text") to send a user message to all 
+//          connected throttles (uses <m "text"> and  withrottle Hmtext.
+// 5.2.37 - Bugfix ESP32: Use BOOSTER_INPUT define
+// 5.2.36 - Variable frequency for DC mode
+// 5.2.35 - Bugfix: Make DCC Extended Accessories follow RCN-213
+// 5.2.34 - <A address aspect> Command fopr DCC Extended Accessories
+//        - Exrail ASPECT(address,aspect) for above.
+//        - EXRAIL DCCX_SIGNAL(Address,redAspect,amberAspect,greenAspect)
+//        - Exrail intercept <A ...> for DCC Signals. 
+// 5.2.33 - Exrail CONFIGURE_SERVO(vpin,pos1,pos2,profile)
+// 5.2.32 - Railcom Cutout (Initial trial Mega2560 only)
+// 5.2.31 - Exrail JMRI_SENSOR(vpin [,count]) creates <S> types.  
+// 5.2.30 - Bugfix: WiThrottle sendIntro after initial N message as well
+// 5.2.29 - Added IO_I2CDFPlayer.h to support DFPLayer over I2C connected to NXP SC16IS750/SC16IS752 (currently only single UART for SC16IS752)
+//        - Added enhanced IO_I2CDFPLayer enum commands to EXRAIL2.h
+//        - Added PLAYSOUND alias of ANOUT to EXRAILMacros.h
+//        - Added UART detection to I2CManager.cpp
+// 5.2.28 - ESP32: Can all Wifi channels.
+//        - ESP32: Only write Wifi password to display if it is a well known one
+// 5.2.27 - Bugfix: IOExpander memory allocation
+// 5.2.26 - Silently ignore overridden HAL defaults
+//        - include HAL_IGNORE_DEFAULTS macro in EXRAIL 
+// 5.2.25 - Fix bug causing <X> after working <D commands 
+// 5.2.24 - Exrail macro asserts to catch 
+//            : duplicate/missing automation/route/sequence/call ids
+//            : latches and reserves out of range
+//            : speeds out of range
+// 5.2.23 - KeywordHasher _hk (no functional change) 
+// 5.2.22 - Bugfixes: Empty turnout descriptions ok; negative route numbers valid.
+// 5.2.21 - Add STARTUP_DELAY config option to delay CS bootup
+// 5.2.20 - Check return of Ethernet.begin()
+// 5.2.19 - ESP32: Determine if the RMT hardware can handle DCC
+// 5.2.18 - Display network IP fix
+// 5.2.17 - ESP32 simplify network logic
+// 5.2.16 - Bugfix to allow for devices using the EX-IOExpander protocol to have no analogue or no digital pins
+// 5.2.15 - move call to CommandDistributor::broadcastPower() into the TrackManager::setTrackPower(*) functions
+//        - add repeats to function packets that are not reminded in accordance with accessory packets
+// 5.2.14 - Reminder window DCC packet optimization
+//        - Optional #define DISABLE_FUNCTION_REMINDERS 
+// 5.2.13 - EXRAIL STEALTH 
+// 5.2.12 - ESP32 add AP mode LCD messages with SSID/PW for
+//        - STM32 change to UID_BASE constants in DCCTimerSTM32 rather than raw hex addresses for UID registers
+//        - STM32 extra UART/USARTs for larger Nucleo models
+// 5.2.11 - Change from TrackManager::returnMode to TrackManager::getMode
+// 5.2.10 - Include trainbrains.eu block unoccupancy driver
+//        - include IO_PCA9555  
+// 5.2.9  - Bugfix LCD startup with no LCD, uses <@
+// 5.2.9  - EXRAIL STASH feature 
+// 5.2.8  - Bugfix: Do not turn off all tracks on change
+//          give better power messages
+// 5.2.7  - Bugfix: EXRAIL ling segment
+//        - Bugfix: Back out wrongly added const
+//        - Bugfix ESP32: Do not inverse DCX direction signal twice
+// 5.2.6  - Trackmanager broadcast power state on track mode change
+// 5.2.5  - Trackmanager: Do not treat TRACK_MODE_ALL as TRACK_MODE_DC
+// 5.2.4  - LCD macro will not do diag if that duplicates @ to same target.
+//        - Added ROUTE_DISABLED macro in EXRAIL
+// 5.2.3  - Bugfix: Catch stange input to parser
+// 5.2.2  - Added option to allow MAX_CHARACTER_ROWS to be defined in config.h
+// 5.2.1  - Trackmanager rework for simpler structure
+// 5.2.0  - ESP32: Autoreverse and booster mode support
+// 5.1.21 - EXRAIL invoke multiple ON handlers for same event
+// 5.1.20 - EXRAIL Tidy and ROUTE_STATE, ROUTE_CAPTION 
+// 5.1.19 - Only flag 2.2.0.0-dev as broken, not 2.2.0.0
+// 5.1.18 - TURNOUTL bugfix
+// 5.1.17 - Divide out C for config and D for diag commands
+// 5.1.16 - Remove I2C address from EXTT_TURNTABLE macro to work with MUX, requires separate HAL macro to create
+// 5.1.15 - LCC/Adapter support and Exrail feature-compile-out.
+// 5.1.14 - Fixed IFTTPOSITION
+// 5.1.13 - Changed turntable broadcast from i to I due to server string conflict
+// 5.1.12 - Added Power commands <0 A> & <1 A> etc. and update to <=>
+//          Added EXRAIL SET_POWER(track, ON/OFF)
+//          Fixed a problem whereby <1 MAIN> also powered on PROG track
+//          Added functions to TrackManager.cpp to allow UserAddin code for power display on OLED/LCD
+//          Added - returnMode(byte t), returnDCAddr(byte t) & getModeName(byte Mode)
+// 5.1.11 - STM32F4xx revised I2C clock setup, no correctly sets clock and has fully variable frequency selection
+// 5.1.10 - STM32F4xx DCCEXanalogWrite to handle PWM generation for TrackManager DC/DCX
+//        - STM32F4xx DCC 58uS timer now using non-PWM output timers where possible
+//        - ESP32 brakeCanPWM check now detects UNUSED_PIN
+//        - ARM architecture brakeCanPWM now uses digitalPinHasPWM()
+//        - STM32F4xx shadowpin extensions to handle pins on ports D, E and F
+// 5.1.9  - Fixed IO_PCA9555'h to work with PCA9548 mux, tested OK
+// 5.1.8  - STM32Fxx ADCee extension to support ADCs #2 and #3
+// 5.1.7  - Fix turntable broadcasts for non-movement activities and <JP> result
+// 5.1.6  - STM32F4xx native I2C driver added
+// 5.1.5  - Added turntable object and EXRAIL commands
+//        - <I ...>, <JO ...>, <JP ...> - turntable commands
+//        - DCC_TURNTABLE, EXTT_TURNTABLE, IFTTPOSITION, ONROTATE, ROTATE, ROTATE_DCC, TT_ADDPOSITION, WAITFORTT EXRAIL
+// 5.1.4  - Added ONOVERLOAD & AFTEROVERLOAD to EXRAIL
+// 5.1.3  - Make parser more fool proof
+// 5.1.2  - Bugfix: ESP32 30ms off time
+// 5.1.1  - Check bad AT firmware version
+//        - Update IO_PCA9555.h reflecting IO_MCP23017.h changes to support PCA9548 mux
 // 5.0.1  - Bugfix: execute 30ms off time before rejoin
 // 5.0.0  - Make 4.2.69 the 5.0.0 release
 // 4.2.69 - Bugfix: Make <!> work in DC mode

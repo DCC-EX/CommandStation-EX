@@ -30,20 +30,19 @@
  
 class PCA9555 : public GPIOBase<uint16_t> {
 public:
-  static void create(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) {
-    new PCA9555(vpin, min(nPins,16), I2CAddress, interruptPin);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new PCA9555(vpin,nPins, i2cAddress, interruptPin);
   }
-  
+
+private:  
   // Constructor
-  PCA9555(VPIN vpin, int nPins, uint8_t I2CAddress, int interruptPin=-1) 
+  PCA9555(VPIN vpin, uint8_t nPins, I2CAddress I2CAddress, int interruptPin=-1) 
     : GPIOBase<uint16_t>((FSH *)F("PCA9555"), vpin, nPins, I2CAddress, interruptPin) 
   {
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
       outputBuffer, sizeof(outputBuffer));
     outputBuffer[0] = REG_INPUT_P0;
   }
-
-private:
   void _writeGpioPort() override {
     I2CManager.write(_I2CAddress, 3, REG_OUTPUT_P0, _portOutputState, _portOutputState>>8);
   }

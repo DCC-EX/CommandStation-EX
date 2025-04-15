@@ -1,5 +1,5 @@
 /*
- *  © 2022-2023 Paul M. Antoine
+ *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
  *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
@@ -62,8 +62,14 @@ class DCCTimer {
   static bool isPWMPin(byte pin);
   static void setPWM(byte pin, bool high);
   static void clearPWM();
+  static void startRailcomTimer(byte brakePin);
+  static void ackRailcomTimer();
   static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
-  static void DCCEXanalogWrite(uint8_t pin, int value);
+  static void DCCEXanalogWrite(uint8_t pin, int value, bool invert);
+  static void DCCEXledcDetachPin(uint8_t pin);
+  static void DCCEXanalogCopyChannel(int8_t frompin, int8_t topin);
+  static void DCCEXInrushControlOn(uint8_t pin, int duty, bool invert);
+  static void DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted);
 
 // Update low ram level.  Allow for extra bytes to be specified
 // by estimation or inspection, that may be used by other 
@@ -85,6 +91,7 @@ class DCCTimer {
   static void reset();
   
 private:
+  static void DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency);
   static int freeMemory();
   static volatile int minimum_free_memory;
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
@@ -125,8 +132,15 @@ private:
   // On platforms that scan, it is called from waveform ISR
   // only on a regular basis.
   static void scan();
+  #if defined (ARDUINO_ARCH_STM32)
+  // bit array of used pins (max 32)
+  static uint32_t usedpins;
+  static uint32_t * analogchans;        // Array of channel numbers to be scanned
+  static ADC_TypeDef * * adcchans;      // Array to capture which ADC is each input channel on
+#else
   // bit array of used pins (max 16)
   static uint16_t usedpins;
+#endif
   static uint8_t highestPin;
   // cached analog values (malloc:ed to actual number of ADC channels)
   static int *analogvals;

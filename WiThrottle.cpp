@@ -150,7 +150,6 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 	  DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
 */
 
-	CommandDistributor::broadcastPower();
       }
 #if defined(EXRAIL_ACTIVE)
       else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
@@ -188,6 +187,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       break;
     case 'N':  // Heartbeat (2), only send if connection completed by 'HU' message
+      sendIntro(stream);
       StringFormatter::send(stream, F("*%d\n"), heartrateSent ? HEARTBEAT_SECONDS : HEARTBEAT_PRELOAD); // return timeout value
       break;
     case 'M': // multithrottle
@@ -195,7 +195,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       break;
     case 'H': // send initial connection info after receiving "HU" message
       if (cmd[1] == 'U') {    
-      sendIntro(stream);	
+	sendIntro(stream);
       }
       break;           
     case 'Q': // 
@@ -321,6 +321,15 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
 	else if (pressed)  DCC::changeFn(myLocos[loco].cab, fKey);
       }
       break;  
+    }
+  case 'f': // Function key set, force function variant
+    {
+      bool pressed=aval[1]=='1';
+      int fKey = getInt(aval+2);
+      LOOPLOCOS(throttleChar, cab) {
+	DCC::setFn(myLocos[loco].cab,fKey, pressed);
+      }
+      break;
     }
   case 'q':
     if (aval[1]=='V' || aval[1]=='R' ) {   //qV or qR
@@ -491,21 +500,22 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   char addcmd[20]={'M',stashThrottleChar,'+', addrchar};
   itoa(locoid,addcmd+4,10);
   stashInstance->multithrottle(stashStream, (byte *)addcmd);
+  TrackManager::setJoin(true);          // <1 JOIN> so we can drive loco away
   TrackManager::setMainPower(POWERMODE::ON);
   TrackManager::setProgPower(POWERMODE::ON);
-  TrackManager::setJoin(true);          // <1 JOIN> so we can drive loco away
   DIAG(F("LocoCallback commit success"));
   stashStream->commit();
-  CommandDistributor::broadcastPower();
 }
 
 void WiThrottle::sendIntro(Print* stream) {
+  if (introSent) // sendIntro only once
+    return;
   introSent=true; 
   StringFormatter::send(stream,F("VN2.0\nHTDCC-EX\nRL0\n"));
-	StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-	StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
-	StringFormatter::send(stream,F("PPA%x\n"),TrackManager::getMainPower()==POWERMODE::ON);     
-	// set heartbeat to 2 seconds because we need to sync the metadata (1 second is too short!)
+  StringFormatter::send(stream,F("HtDCC-EX v%S, %S, %S, %S\n"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+  StringFormatter::send(stream,F("PTT]\\[Turnouts}|{Turnout]\\[THROW}|{2]\\[CLOSE}|{4\n"));
+  StringFormatter::send(stream,F("PPA%x\n"),TrackManager::getMainPower()==POWERMODE::ON);
+  // set heartbeat to 2 seconds because we need to sync the metadata (1 second is too short!)
   StringFormatter::send(stream,F("*%d\nHMConnecting..\n"), HEARTBEAT_PRELOAD);
 }
 
@@ -570,7 +580,7 @@ void WiThrottle::sendRoutes(Print* stream) {
 
 void WiThrottle::sendFunctions(Print* stream, byte loco) {
   int16_t locoid=myLocos[loco].cab;
-  int fkeys=29;
+  int fkeys=32; // upper limit (send functions 0 to 31)
 	myLocos[loco].functionToggles=1<<2; // F2 (HORN)  is a non-toggle
         
 #ifdef EXRAIL_ACTIVE
@@ -620,7 +630,7 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
 #endif
 	
 	for(int fKey=0; fKey<fkeys; fKey++) { 
-      int fstate=DCC::getFn(locoid,fKey);
+      int8_t fstate=DCC::getFn(locoid,fKey);
       if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),myLocos[loco].throttle,LorS(locoid),locoid,fstate,fKey);                     
 	}
 }

@@ -106,6 +106,7 @@ void DCCWaveform::interruptHandler() {
 DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   isMainTrack = isMain;
   packetPending = false;
+  reminderWindowOpen = false;
   memcpy(transmitPacket, idlePacket, sizeof(idlePacket));
   state = WAVE_START;
   // The +1 below is to allow the preamble generator to create the stop bit
@@ -114,8 +115,22 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   bytes_sent = 0;
   bits_sent = 0;
 }
+    
+volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
 
-
+bool DCCWaveform::setRailcom(bool on, bool debug) {
+  if (on) {
+    // TODO check possible
+    railcomActive=true;
+    railcomDebug=debug;
+  }
+  else {
+    railcomActive=false;
+    railcomDebug=false;
+  } 
+  return railcomActive;
+}
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
@@ -123,13 +138,19 @@ void DCCWaveform::interrupt2() {
   // calculate the next bit to be sent:
   // set state WAVE_MID_1  for a 1=bit
   //        or WAVE_HIGH_0 for a 0 bit.
-
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
     remainingPreambles--;
+  
+    // As we get to the end of the preambles, open the reminder window.
+    // This delays any reminder insertion until the last moment so
+    // that the reminder doesn't block a more urgent packet. 
+    reminderWindowOpen=transmitRepeats==0 && remainingPreambles<4 && remainingPreambles>1;
+    if (remainingPreambles==1) promotePendingPacket();
+    else if (remainingPreambles==10 && isMainTrack && railcomActive) DCCTimer::ackRailcomTimer();
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
-    DCCTimer::updateMinimumFreeMemoryISR(22); 
+    else DCCTimer::updateMinimumFreeMemoryISR(22); 
     return;
   }
 
@@ -148,30 +169,15 @@ void DCCWaveform::interrupt2() {
     if (bytes_sent >= transmitLength) {
       // end of transmission buffer... repeat or switch to next message
       bytes_sent = 0;
+      // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
-
-      if (transmitRepeats > 0) {
-        transmitRepeats--;
+      
+      // set the railcom coundown to trigger half way 
+      // through the first preamble bit.
+      // Note.. we are still sending the last packet bit
+      //    and we then have to allow for the packet end bit
+      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(9);
       }
-      else if (packetPending) {
-        // Copy pending packet to transmit packet
-        // a fixed length memcpy is faster than a variable length loop for these small lengths
-        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
-        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
-        
-        transmitLength = pendingLength;
-        transmitRepeats = pendingRepeats;
-        packetPending = false;
-        clearResets();
-      }
-      else {
-        // Fortunately reset and idle packets are the same length
-        memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
-        transmitLength = sizeof(idlePacket);
-        transmitRepeats = 0;
-        if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
-      }
-    }
   }  
 }
 #pragma GCC pop_options
@@ -193,8 +199,43 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   packetPending = true;
   clearResets();
 }
-bool DCCWaveform::getPacketPending() {
-  return packetPending;
+
+bool DCCWaveform::isReminderWindowOpen() {
+  return reminderWindowOpen && ! packetPending;
+}
+
+void DCCWaveform::promotePendingPacket() {
+    // fill the transmission packet from the pending packet
+    
+    // Just keep going if repeating  
+    if (transmitRepeats > 0) {
+        transmitRepeats--;
+        return;
+      }
+
+    if (packetPending) {
+        // Copy pending packet to transmit packet
+        // a fixed length memcpy is faster than a variable length loop for these small lengths
+        // for (int b = 0; b < pendingLength; b++) transmitPacket[b] = pendingPacket[b];
+        memcpy( transmitPacket, pendingPacket, sizeof(pendingPacket));
+        
+        transmitLength = pendingLength;
+        transmitRepeats = pendingRepeats;
+        packetPending = false;
+        clearResets();
+        return;
+      }
+      
+      // nothing to do, just send idles or resets
+      // Fortunately reset and idle packets are the same length
+      // Note: If railcomDebug is on, then we send resets to the main
+      //       track instead of idles. This means that all data will be zeros
+      //       and only the porersets will be ones, making it much
+      //       easier to read on a logic analyser.
+      memcpy( transmitPacket, (isMainTrack && (!railcomDebug)) ? idlePacket : resetPacket, sizeof(idlePacket));
+      transmitLength = sizeof(idlePacket);
+      transmitRepeats = 0;
+      if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
 #endif
 
@@ -237,7 +278,11 @@ void DCCWaveform::begin() {
 
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
   if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
-  
+  RMTChannel *rmtchannel = (isMainTrack ? rmtMainChannel : rmtProgChannel);
+  if (rmtchannel == NULL)
+    return; // no idea to prepare packet if we can not send it anyway
+
+  rmtchannel->waitForDataCopy(); // blocking wait so we can write into buffer
   byte checksum = 0;
   for (byte b = 0; b < byteCount; b++) {
     checksum ^= buffer[b];
@@ -253,31 +298,31 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
   // The resets will be zero not only now but as well repeats packets into the future
   clearResets(repeats+1);
   {
-    int ret;
+    int ret = 0;
     do {
-      if(isMainTrack) {
-	if (rmtMainChannel != NULL)
-	  ret = rmtMainChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-      } else {
-	if (rmtProgChannel != NULL)
-	  ret = rmtProgChannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-      }
+      ret = rmtchannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
     } while(ret > 0);
   }
 }
 
-bool DCCWaveform::getPacketPending() {
+bool DCCWaveform::isReminderWindowOpen() {
   if(isMainTrack) {
     if (rmtMainChannel == NULL)
-      return true;
-    return rmtMainChannel->busy();
+      return false;
+    return !rmtMainChannel->busy();
   } else {
     if (rmtProgChannel == NULL)
-      return true;
-    return rmtProgChannel->busy();
+      return false;
+    return !rmtProgChannel->busy();
   }
 }
 void IRAM_ATTR DCCWaveform::loop() {
   DCCACK::checkAck(progTrack.getResets());
 }
+
+bool DCCWaveform::setRailcom(bool on, bool debug) {
+  // TODO... ESP32 railcom waveform
+  return false;
+}
+
 #endif

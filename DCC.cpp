@@ -122,7 +122,7 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
   DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
 }
 
-void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
+void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
   // DIAG(F("setFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
@@ -133,7 +133,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  DCCWaveform::mainTrack.schedulePacket(b, nB, count);
 }
 
 // returns speed steps 0 to 127 (1 == emergency stop)
@@ -151,6 +151,22 @@ uint8_t DCC::getThrottleSpeedByte(int cab) {
   if (reg<0)
     return 128;
   return speedTable[reg].speedCode;
+}
+
+// returns 0 to 7 for frequency
+uint8_t DCC::getThrottleFrequency(int cab) {
+#if defined(ARDUINO_AVR_UNO)
+  (void)cab;
+  return 0;
+#else
+  int reg=lookupSpeedTable(cab);
+  if (reg<0)
+    return 0; // use default frequency
+  // shift out first 29 bits so we have the 3 "frequency bits" left
+  uint8_t res = (uint8_t)(speedTable[reg].functions >>29);
+  //DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
+  return res;
+#endif
 }
 
 // returns direction on loco
@@ -183,43 +199,49 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
     DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
-    return true;
   }
-
+  // We use the reminder table up to 28 for normal functions.
+  // We use 29 to 31 for DC frequency as well so up to 28
+  // are "real" functions and 29 to 31 are frequency bits
+  // controlled by function buttons
+  if (functionNumber > 31)
+    return true;
+  
   int reg = lookupSpeedTable(cab);
   if (reg<0) return false;
 
   // Take care of functions:
   // Set state of function
-  unsigned long previous=speedTable[reg].functions;
-  unsigned long funcmask = (1UL<<functionNumber);
+  uint32_t previous=speedTable[reg].functions;
+  uint32_t funcmask = (1UL<<functionNumber);
   if (on) {
       speedTable[reg].functions |= funcmask;
   } else {
       speedTable[reg].functions &= ~funcmask;
   }
   if (speedTable[reg].functions != previous) {
-    updateGroupflags(speedTable[reg].groupFlags, functionNumber);
+    if (functionNumber <= 28)
+      updateGroupflags(speedTable[reg].groupFlags, functionNumber);
     CommandDistributor::broadcastLoco(reg);
   }
   return true;
 }
 
-// Flip function state
+// Flip function state (used from withrottle protocol)
 void DCC::changeFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return;
-  int reg = lookupSpeedTable(cab);
-  if (reg<0) return;
-  unsigned long funcmask = (1UL<<functionNumber);
-  speedTable[reg].functions ^= funcmask;
-  updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-  CommandDistributor::broadcastLoco(reg);
+  auto currentValue=getFn(cab,functionNumber);
+  if (currentValue<0) return;  // function not valid for change  
+  setFn(cab,functionNumber, currentValue?false:true);
 }
 
-int DCC::getFn( int cab, int16_t functionNumber) {
-  if (cab<=0 || functionNumber>28) return -1;  // unknown
+// Report function state (used from withrottle protocol)
+// returns 0 false, 1 true or -1 for do not know
+int8_t DCC::getFn( int cab, int16_t functionNumber) {
+  if (cab<=0 || functionNumber>31)
+    return -1;  // unknown
   int reg = lookupSpeedTable(cab);
-  if (reg<0) return -1;
+  if (reg<0)
+    return -1;
 
   unsigned long funcmask = (1UL<<functionNumber);
   return  (speedTable[reg].functions & funcmask)? 1 : 0;
@@ -241,6 +263,20 @@ uint32_t DCC::getFunctionMap(int cab) {
   if (cab<=0) return 0;  // unknown pretend all functions off
   int reg = lookupSpeedTable(cab);
   return (reg<0)?0:speedTable[reg].functions;
+}
+
+// saves DC frequency (0..3) in spare functions 29,30,31
+void DCC::setDCFreq(int cab,byte freq) {
+  if (cab==0 || freq>3) return;
+  auto reg=lookupSpeedTable(cab,true);
+  // drop and replace F29,30,31 (top 3 bits) 
+  auto newFunctions=speedTable[reg].functions & 0x1FFFFFFFUL;
+  if (freq==1)      newFunctions |= (1UL<<29); // F29
+  else if (freq==2) newFunctions |= (1UL<<30); // F30
+  else if (freq==3) newFunctions |= (1UL<<31); // F31
+  if (newFunctions==speedTable[reg].functions) return; // no change 
+  speedTable[reg].functions=newFunctions;
+  CommandDistributor::broadcastLoco(reg);
 }
 
 void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
@@ -276,6 +312,57 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
     b[1] &= ~0x08; // set C to 0
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
   }
+}
+
+bool DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
+
+/* From https://www.nmra.org/sites/default/files/s-9.2.1_2012_07.pdf
+
+The Extended Accessory Decoder Control Packet is included for the purpose of transmitting aspect control to signal 
+decoders or data bytes to more complex accessory decoders. Each signal head can display one aspect at a time. 
+{preamble} 0 10AAAAAA 0 0AAA0AA1 0 000XXXXX 0 EEEEEEEE 1
+
+XXXXX is for a single head. A value of 00000 for XXXXX indicates the absolute stop aspect. All other aspects 
+represented by the values for XXXXX are determined by the signaling system used and the prototype being 
+modeled.
+
+From https://normen.railcommunity.de/RCN-213.pdf:
+
+More information is in RCN-213 about how the address bits are organized.
+preamble -0- 1 0 A7 A6 A5 A4 A3 A2 -0- 0 ^A10 ^A9 ^A8 0 A1 A0 1 -0- ....
+
+Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
+
+Die Adresse f�r den ersten erweiterten Zubeh�rdecoder ist wie bei den einfachen
+Zubeh�rdecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
+Anwenderdialogen als Adresse 1 dargestellt.
+
+This means that the first address shown to the user as "1" is mapped
+to internal address 4.
+
+Note that the Basic accessory format mentions "By convention these
+bits (bits 4-6 of the second data byte) are in ones complement" but
+this note is absent from the advanced packet description. The
+english translation does not mention that the address format for
+the advanced packet follows the one for the basic packet but
+according to the RCN-213 this is the case.
+
+We allow for addresses from -3 to 2047-3 as that allows to address the
+whole range of the 11 bits sent to track.
+*/
+  if ((address > 2044) || (address < -3)) return false; // 2047-3, 11 bits but offset 3
+  if (value != (value & 0x1F)) return false;            // 5 bits
+
+  address+=3;                        // +3 offset according to RCN-213
+  byte b[3];
+  b[0]= 0x80                         // bits always on
+    | ((address>>2) & 0x3F);         // shift out 2, mask out used bits
+  b[1]= 0x01                         // bits always on
+    | (((~(address>>8)) & 0x07)<<4)  // shift out 8, invert, mask 3 bits, shift up 4
+    | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
+  b[2]=value;
+  DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);
+  return true;
 }
 
 //
@@ -421,6 +508,36 @@ const ackOp FLASH READ_CV_PROG[] = {
 
 const ackOp FLASH LOCO_ID_PROG[] = {
       BASELINE,
+      // first check cv20 for extended addressing
+      SETCV, (ackOp)20,     // CV 19 is extended
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITSKIP,     // skip past extended section if cv20 is zero
+      // read cv20 and 19 and merge 
+      STARTMERGE,           // Setup to read cv 20
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      STASHLOCOID,   // keep cv 20 until we have cv19 as well.
+      SETCV, (ackOp)19, 
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // cant recover if cv 19 unreadable
+      COMBINE1920,  // Combile byte with stash and callback
+// end of advanced 20,19 check
+      SKIPTARGET,
       SETCV, (ackOp)19,     // CV 19 is consist setting
       SETBYTE, (ackOp)0,
       VB, WACK, ITSKIP,     // ignore consist if cv19 is zero (no consist)
@@ -487,6 +604,10 @@ const ackOp FLASH LOCO_ID_PROG[] = {
 
 const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       BASELINE,
+      // Clear consist CV 19,20
+      SETCV,(ackOp)20,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore dedcoder without cv20 support
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
       WB,WACK,     // ignore dedcoder without cv19 support
@@ -502,9 +623,25 @@ const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
       CALLFAIL
 };
 
+// for CONSIST_ID_PROG the 20,19 values are already calculated
+const ackOp FLASH CONSIST_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)20,
+      SETBYTEH,    // high byte to CV 20
+      WB,WACK,     // ignore dedcoder without cv20 support
+      SETCV,(ackOp)19,
+      SETBYTEL,   // low byte of word
+      WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok
+      VB,WACK,ITC1,   // Some decoders do not ack and need verify
+      CALLFAIL
+};
+
 const ackOp FLASH LONG_LOCO_ID_PROG[] = {
       BASELINE,
-      // Clear consist CV 19
+      // Clear consist CV 19,20
+      SETCV,(ackOp)20,
+      SETBYTE, (ackOp)0,
+      WB,WACK,     // ignore dedcoder without cv20 support
       SETCV,(ackOp)19,
       SETBYTE, (ackOp)0,
       WB,WACK,     // ignore decoder without cv19 support
@@ -573,17 +710,41 @@ void DCC::setLocoId(int id,ACK_CALLBACK callback) {
       DCCACK::Setup(id | 0xc000,LONG_LOCO_ID_PROG, callback);
 }
 
+void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
+  if (id<0 || id>10239) { //0x27FF according to standard
+    callback(-1);
+    return;
+  }
+  byte cv20;
+  byte cv19;
+
+  if (id<=HIGHEST_SHORT_ADDR) {
+    cv19=id;
+    cv20=0;
+  }
+  else {
+    cv20=id/100;
+    cv19=id%100;
+  }
+  if (reverse) cv19|=0x80;
+  DCCACK::Setup((cv20<<8)|cv19, CONSIST_ID_PROG, callback);
+}
+
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
   setThrottle2(cab,1); // ESTOP this loco if still on track
   int reg=lookupSpeedTable(cab, false);
   if (reg>=0) {
     speedTable[reg].loco=0;
     setThrottle2(cab,1); // ESTOP if this loco still on track
+    CommandDistributor::broadcastForgetLoco(cab);
   }
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
   setThrottle2(0,1); // ESTOP all locos still on track
-  for (int i=0;i<MAX_LOCOS;i++) speedTable[i].loco=0;
+  for (int i=0;i<MAX_LOCOS;i++) {
+    if (speedTable[i].loco) CommandDistributor::broadcastForgetLoco(speedTable[i].loco);
+    speedTable[i].loco=0;
+  }
 }
 
 byte DCC::loopStatus=0;
@@ -595,10 +756,18 @@ void DCC::loop()  {
 
 void DCC::issueReminders() {
   // if the main track transmitter still has a pending packet, skip this time around.
-  if ( DCCWaveform::mainTrack.getPacketPending()) return;
+  if (!DCCWaveform::mainTrack.isReminderWindowOpen()) return;
   // Move to next loco slot.  If occupied, send a reminder.
   int reg = lastLocoReminder+1;
-  if (reg > highestUsedReg) reg = 0;  // Go to start of table
+  if (reg > highestUsedReg) {
+    if (loopStatus == 0 /*only needed if numLocos == 1 but we do not have a counter*/) {
+      // insert idle packet in the speed packet loop to fullfill the *censored*
+      // >5ms between packets to same decoder rule
+      const byte idlepacket[] = {0xFF, 0x00, 0xFF};
+      DCCWaveform::mainTrack.schedulePacket(idlepacket, 3, 0);
+    }
+    reg = 0;  // Go to start of table
+  }
   if (speedTable[reg].loco > 0) {
     // have found loco to remind
     if (issueReminder(reg))
@@ -619,25 +788,23 @@ bool DCC::issueReminder(int reg) {
          break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1)
-              setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
+	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),0); // 100D DDDD
           break;
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2)
-              setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));                           // 1011 DDDD
+  	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),0);                           // 1011 DDDD
           break;
        case 3: // remind function group 3 F9-F12
           if (flags & FN_GROUP_3)
-              setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));                           // 1010 DDDD
+	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),0);                           // 1010 DDDD
           break;
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4)
-              setFunctionInternal(loco,222, ((functions>>13)& 0xFF));
-          flags&= ~FN_GROUP_4;  // dont send them again
+	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),0);
           break;
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
-              setFunctionInternal(loco,223, ((functions>>21)& 0xFF));
-          flags&= ~FN_GROUP_5;  // dont send them again
+	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),0);
           break;
       }
       loopStatus++;

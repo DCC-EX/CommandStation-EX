@@ -22,6 +22,7 @@
 #ifndef WifiESP32_h
 #define WifiESP32_h
 
+#include <WiFi.h>
 #include "FSH.h"
 
 class WifiESP
@@ -36,6 +37,9 @@ public:
 			const bool forceAP);
   static void loop();
 private:
+  static void teardown();
+  static bool wifiUp;
+  static WiFiServer *server;
 };
 #endif //WifiESP8266_h
 #endif //ESP8266

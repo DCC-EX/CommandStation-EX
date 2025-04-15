@@ -61,16 +61,19 @@ public:
   static void setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
   static int8_t getThrottleSpeed(int cab);
   static uint8_t getThrottleSpeedByte(int cab);
+  static uint8_t getThrottleFrequency(int cab);
   static bool getThrottleDirection(int cab);
   static void writeCVByteMain(int cab, int cv, byte bValue);
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
   static void changeFn(int cab, int16_t functionNumber);
-  static int  getFn(int cab, int16_t functionNumber);
+  static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
+  static void setDCFreq(int cab,byte freq);
   static void updateGroupflags(byte &flags, int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
+  static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
   static bool writeTextPacket(byte *b, int nBytes);
   
   // ACKable progtrack calls  bitresults callback 0,0 or -1, cv returns value or -1
@@ -83,7 +86,7 @@ public:
 
   static void getLocoId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
-
+  static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders
@@ -98,7 +101,7 @@ public:
     int loco;
     byte speedCode;
     byte groupFlags;
-    unsigned long functions;
+    uint32_t functions;
   };
  static LOCO speedTable[MAX_LOCOS];
  static int lookupSpeedTable(int locoId, bool autoCreate=true);
@@ -109,7 +112,7 @@ private:
   static byte loopStatus;
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void updateLocoReminder(int loco, byte speedCode);
-  static void setFunctionInternal(int cab, byte fByte, byte eByte);
+  static void setFunctionInternal(int cab, byte fByte, byte eByte, byte count);
   static bool issueReminder(int reg);
   static int lastLocoReminder;
   static int highestUsedReg;
