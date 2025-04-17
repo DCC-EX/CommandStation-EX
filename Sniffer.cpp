@@ -103,9 +103,10 @@ Sniffer::Sniffer(byte snifferpin) {
   ESP_ERROR_CHECK(mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, &MCPWM_cap_config));
 }
 
+#define SNIFFER_TIMEOUT 100L // 100 Milliseconds
 bool Sniffer::inputActive(){
   unsigned long now = millis();
-  return ((now - lastendofpacket) < 1000);
+  return ((now - lastendofpacket) < SNIFFER_TIMEOUT);
 }
 
 #define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
