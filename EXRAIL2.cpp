@@ -1359,10 +1359,13 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
 void RMFT2::railsyncEvent(bool on) {
   if (Diag::CMD)
    DIAG(F("railsyncEvent : %d"), on);
-  if (on)
-    onRailSyncOnLookup->handleEvent(F("RAILSYNCON"), 0);
-  else
-    onRailSyncOffLookup->handleEvent(F("RAILSYNCOFF"), 0);
+  if (on) {
+    if (onRailSyncOnLookup)
+      onRailSyncOnLookup->handleEvent(F("RAILSYNCON"), 0);
+  } else {
+    if (onRailSyncOffLookup)
+      onRailSyncOffLookup->handleEvent(F("RAILSYNCOFF"), 0);
+  }
 }
 #endif
 // This function is used when setting pins so that a SET or RESET
