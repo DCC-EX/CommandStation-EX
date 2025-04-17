@@ -131,7 +131,9 @@ void setup()
   RMFT::begin();
 
 #ifdef ARDUINO_ARCH_ESP32
+#ifdef BOOSTER_INPUT
   dccSniffer = new Sniffer(BOOSTER_INPUT);
+#endif // BOOSTER_INPUT
 #endif // ARDUINO_ARCH_ESP32
 
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.

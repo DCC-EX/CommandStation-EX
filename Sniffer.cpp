@@ -112,12 +112,7 @@ bool Sniffer::inputActive(){
 #define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
 #define DCC_ONE_LIMIT 6400L // 6400 ticks are 80usec
 
-volatile int fakecounter = 0;
-
 void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
-  if (fakecounter >= 64)
-    fakecounter = 0;
-  fakecounter++;
   byte bit = 0;
   diffticks = capticks - lastticks;
   if (lastedge != posedge) {
@@ -128,12 +123,7 @@ void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
       bit = 1;
     } else {
       bit = 0;
-    }/*
-    if (fakecounter == 7 || fakecounter == 34 ||  fakecounter == 62 || fakecounter == 63) {
-      bit = 0;
-    } else {
-      bit = 1;
-      }*/
+    }
     // update state variables for next round
     lastticks = capticks;
     lastedge = posedge;

@@ -64,12 +64,8 @@ public:
     return (bcmp(_data, right._data, _len) == 0);
   };
   void print(HardwareSerial &s) {
-    s.print("<* DCCPAKET ");
+    s.print("<* DCCPACKET ");
     for (byte n = 0; n< _len; n++) {
-//      byte b = 8;
-//      while (b--) {
-//	s.print(_data[n]&(1<<b)?"1":"0");
-//      }
       s.print(_data[n], HEX);
       s.print(" ");
     }
