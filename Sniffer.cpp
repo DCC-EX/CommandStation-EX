@@ -103,6 +103,11 @@ Sniffer::Sniffer(byte snifferpin) {
   ESP_ERROR_CHECK(mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, &MCPWM_cap_config));
 }
 
+bool Sniffer::inputActive(){
+  unsigned long now = millis();
+  return ((now - lastendofpacket) < 1000);
+}
+
 #define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
 #define DCC_ONE_LIMIT 6400L // 6400 ticks are 80usec
 
@@ -191,6 +196,7 @@ void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
               // blink_diag(1);
 	      packeterror(); // or better?
 	    }
+	    lastendofpacket = millis();
 	    DCCPacket temppacket(dccbytes, dcclen);
 	    if (!(temppacket == prevpacket)) {
 	      // we have something new to offer to the fetch routine

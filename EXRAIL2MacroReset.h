@@ -119,6 +119,8 @@
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
 #undef ONOVERLOAD
+#undef ONRAILSYNCON
+#undef ONRAILSYNCOFF
 #undef ONGREEN
 #undef ONRED
 #undef ONROTATE
@@ -288,6 +290,8 @@
 #define ONCLOCKTIME(hours,mins)
 #define ONCLOCKMINS(mins)
 #define ONOVERLOAD(track_id)
+#define ONRAILSYNCON
+#define ONRAILSYNCOFF
 #define ONDEACTIVATE(addr,subaddr)
 #define ONDEACTIVATEL(linear) 
 #define ONCLOSE(turnout_id)

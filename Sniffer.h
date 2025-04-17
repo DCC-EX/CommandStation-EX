@@ -57,6 +57,7 @@ public:
     interrupts();
     return p;
   };
+  bool inputActive();
 private:
   // keep these vars in processInterrupt only
   uint64_t bitfield = 0;
@@ -73,5 +74,7 @@ private:
   bool fetchflag = false;
   std::list<DCCPacket> outpacket;
   DCCPacket prevpacket;
+  volatile unsigned long lastendofpacket = 0; // timestamp millis
+
 };
 #endif

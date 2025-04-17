@@ -153,7 +153,14 @@ void setup()
 void loop()
 {
 #ifdef ARDUINO_ARCH_ESP32
+#ifdef BOOSTER_INPUT
+  static bool oldactive = false;
   if (dccSniffer) {
+    bool newactive = dccSniffer->inputActive();
+    if (oldactive != newactive) {
+      RMFT2::railsyncEvent(newactive);
+      oldactive = newactive;
+    }
     DCCPacket p = dccSniffer->fetchPacket();
     if (p.len() != 0) {
       if (DCCDecoder::parse(p)) {
@@ -161,6 +168,7 @@ void loop()
       }
     }
   }
+#endif // BOOSTER_INPUT
 #endif // ARDUINO_ARCH_ESP32
 
   // The main sketch has responsibilities during loop()
