@@ -763,8 +763,8 @@ void DCC::issueReminders() {
     if (loopStatus == 0 /*only needed if numLocos == 1 but we do not have a counter*/) {
       // insert idle packet in the speed packet loop to fullfill the *censored*
       // >5ms between packets to same decoder rule
-      const byte idlepacket[] = {0xFF, 0x00, 0xFF};
-      DCCWaveform::mainTrack.schedulePacket(idlepacket, 3, 0);
+      const byte idlepacket[] = {0xFF, 0x00};
+      DCCWaveform::mainTrack.schedulePacket(idlepacket, 2, 0);
     }
     reg = 0;  // Go to start of table
   }
