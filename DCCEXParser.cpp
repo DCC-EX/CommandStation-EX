@@ -1452,6 +1452,7 @@ void DCCEXParser::callback_Wloco(int16_t result)
 
 void DCCEXParser::callback_Wconsist(int16_t result)
 {
+    if (result==-4) DIAG(F("Long Consist %d not supported by decoder"),stashP[1]);
     if (result==1) result=stashP[1]; // pick up original requested id from command
     StringFormatter::send(getAsyncReplyStream(), F("<w CONSIST %d%S>\n"),
      result, stashP[2]=="REVERSE"_hk ? F(" REVERSE") : F(""));

@@ -523,6 +523,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      BAD20SKIP,     // detect invalid cv20 value and ignore 
       STASHLOCOID,   // keep cv 20 until we have cv19 as well.
       SETCV, (ackOp)19, 
       STARTMERGE,           // Setup to read cv 19
@@ -628,7 +629,9 @@ const ackOp FLASH CONSIST_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)20,
       SETBYTEH,    // high byte to CV 20
-      WB,WACK,     // ignore dedcoder without cv20 support
+      WB,WACK,ITSKIP,
+      FAIL_IF_NONZERO_NAK, // fail if writing long address to decoder that cant support it
+      SKIPTARGET,
       SETCV,(ackOp)19,
       SETBYTEL,   // low byte of word
       WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok

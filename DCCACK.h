@@ -58,6 +58,8 @@ enum ackOp : byte
   ITSKIP,           // skip to SKIPTARGET if ack true
   NAKSKIP,          // skip to SKIPTARGET if ack false
   COMBINE1920,      // combine cvs 19 and 20 and callback
+  BAD20SKIP,        // skip to SKIPTARGET if cv20 is >120 (some decoders respond with 255) 
+  FAIL_IF_NONZERO_NAK, // fail if writing long address to decoder that cant support it
   SKIPTARGET = 0xFF // jump to target
 };
 
