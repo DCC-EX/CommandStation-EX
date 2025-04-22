@@ -347,6 +347,20 @@ void DCCACK::loop() {
             opcode=GETFLASH(ackManagerProg);
           }
           break;
+     case BAD20SKIP:
+          if (ackManagerByte > 120) {
+            // skip to SKIPTARGET if cv20 is >120 (some decoders respond with 255)
+            if (Diag::ACK) DIAG(F("XX cv20=%d "),ackManagerByte);
+            while (opcode!=SKIPTARGET) {
+              ackManagerProg++;
+              opcode=GETFLASH(ackManagerProg);
+            }
+          }
+          break; 
+     case FAIL_IF_NONZERO_NAK: // fail if writing long address to decoder that cant support it
+          if (ackManagerByte==0) break;
+          callback(-4);  
+          return;           
      case SKIPTARGET:
           break;
      default:
