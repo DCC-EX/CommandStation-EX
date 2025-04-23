@@ -934,8 +934,9 @@ void RMFT2::loop2() {
 
 #ifndef DISABLE_PROG
   case OPCODE_JOIN:
-    TrackManager::setPower(POWERMODE::ON);
     TrackManager::setJoin(true);
+    TrackManager::setMainPower(POWERMODE::ON);
+    TrackManager::setProgPower(POWERMODE::ON);
     break;
 
   case OPCODE_UNJOIN:

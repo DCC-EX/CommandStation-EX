@@ -670,7 +670,8 @@ void TrackManager::setJoin(bool joined) {
       if (track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
 	tempProgTrack = t;                               // remember PROG track
 	setTrackMode(t, TRACK_MODE_MAIN);
-	track[t]->setPower(POWERMODE::ON);               // if joined, always on
+	// setPower() of the track called after
+	// seperately after setJoin() instead
 	break;                                           // there is only one prog track, done
       }
     }
@@ -682,8 +683,6 @@ void TrackManager::setJoin(bool joined) {
       setTrackMode(tempProgTrack, TRACK_MODE_PROG);         // set track mode back to prog
       track[tempProgTrack]->setPower(tPTmode);              // set power status as it was before
       tempProgTrack = MAX_TRACKS+1;
-    } else {
-      DIAG(F("Unjoin but no remembered prog track"));
     }
   }
 #endif

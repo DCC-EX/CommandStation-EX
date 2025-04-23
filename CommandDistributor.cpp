@@ -312,6 +312,9 @@ void  CommandDistributor::broadcastPower() {
     state = '1';
   }
 
+  if (state != '2')
+    broadcastReply(COMMAND_TYPE, F("<p%c>\n"),state);
+
   // additional info about MAIN, PROG and JOIN
   bool main=TrackManager::getMainPower()==POWERMODE::ON;
   bool prog=TrackManager::getProgPower()==POWERMODE::ON;
@@ -320,7 +323,7 @@ void  CommandDistributor::broadcastPower() {
   const FSH * reason=F("");
   if (join) {
     reason = F(" JOIN"); // with space at start so we can append without space
-    broadcastReply(COMMAND_TYPE, F("<p1 %S>\n"),reason);
+    broadcastReply(COMMAND_TYPE, F("<p1%S>\n"),reason);
   } else {
     if (main) {
       //reason = F("MAIN");
@@ -331,9 +334,6 @@ void  CommandDistributor::broadcastPower() {
       broadcastReply(COMMAND_TYPE, F("<p1 PROG>\n"));
     }
   }
-
-  if (state != '2')
-    broadcastReply(COMMAND_TYPE, F("<p%c>\n"),state);
 #ifdef CD_HANDLE_RING
   // send '1' if all main are on, otherwise global state (which in that case is '0' or '2')
   broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1': state);
