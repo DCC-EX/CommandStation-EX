@@ -159,10 +159,10 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
 
   }
   if ((speedCode & 0x7F) == 1) DCCQueue::scheduleEstopPacket(b, nB, 4, cab); // highest priority
-  else DCCQueue::scheduleDCCSpeedPacket( b, nB, 4, cab);
+  else DCCQueue::scheduleDCCSpeedPacket( b, nB, 0, cab);
 }
 
-void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
+void DCC::setFunctionInternal(int cab, byte byte1, byte byte2) {
   // DIAG(F("setFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
@@ -173,7 +173,7 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
 
-  DCCQueue::scheduleDCCPacket(b, nB, count);
+  DCCQueue::scheduleDCCPacket(b, nB, 0, cab);
 }
 
 // returns speed steps 0 to 127 (1 == emergency stop)
@@ -239,7 +239,7 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
-    DCCQueue::scheduleDCCPacket(b, nB, 4);
+    DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
   }
   // We use the reminder table up to 28 for normal functions.
   // We use 29 to 31 for DC frequency as well so up to 28
@@ -419,7 +419,7 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = bValue;
 
-  DCCQueue::scheduleDCCPacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
 }
 
 //
@@ -437,7 +437,7 @@ void DCC::readCVByteMain(int cab, int cv, ACK_CALLBACK callback)  {
   b[nB++] = cv2(cv);
   b[nB++] = 0;
 
-  DCCQueue::scheduleDCCPacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
   Railcom::anticipate(cab,cv,callback);
 }
 
@@ -459,7 +459,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = WRITE_BIT | (bValue ? BIT_ON : BIT_OFF) | bNum;
 
-  DCCQueue::scheduleDCCPacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
 }
 
 bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
@@ -619,6 +619,7 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       V0, WACK, MERGE,
       VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      BAD20SKIP,     // detect invalid cv20 value and ignore 
       STASHLOCOID,   // keep cv 20 until we have cv19 as well.
       SETCV, (ackOp)19, 
       STARTMERGE,           // Setup to read cv 19
@@ -724,7 +725,9 @@ const ackOp FLASH CONSIST_ID_PROG[] = {
       BASELINE,
       SETCV,(ackOp)20,
       SETBYTEH,    // high byte to CV 20
-      WB,WACK,     // ignore dedcoder without cv20 support
+      WB,WACK,ITSKIP,
+      FAIL_IF_NONZERO_NAK, // fail if writing long address to decoder that cant support it
+      SKIPTARGET,
       SETCV,(ackOp)19,
       SETBYTEL,   // low byte of word
       WB,WACK,ITC1,   // If ACK, we are done - callback(1) means Ok
@@ -849,10 +852,12 @@ void DCC::loop()  {
   if (DCCWaveform::mainTrack.isReminderWindowOpen()) {
     // Now is a good time to choose a packet to be sent
     // Either highest priority from the queues or a reminder
-    if (!DCCQueue::scheduleNext()) {
+    if (!DCCQueue::scheduleNext(false)) {
+      // none pending, 
       issueReminders();
-      DCCQueue::scheduleNext(); // push through any just created reminder
+      DCCQueue::scheduleNext(true); // send any pending and force an idle if none 
     }
+
   }
 }
 
@@ -921,40 +926,23 @@ bool DCC::issueReminder(LOCO * slot) {
         break;
        case 1: // remind function group 1 (F0-F4)
           if (flags & FN_GROUP_1)
-#ifndef DISABLE_FUNCTION_REMINDERS
-	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),0); // 100D DDDD
-#else
-	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),2);
-          flags&= ~FN_GROUP_1;  // dont send them again
-#endif
+      	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
           break;
        case 2: // remind function group 2 F5-F8
           if (flags & FN_GROUP_2)
-#ifndef DISABLE_FUNCTION_REMINDERS
-  	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),0);                           // 1011 DDDD
-#else
-	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),2);
-          flags&= ~FN_GROUP_2;  // dont send them again
-#endif
+  	        setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));                           // 1011 DDDD
           break;
        case 3: // remind function group 3 F9-F12
           if (flags & FN_GROUP_3)
-#ifndef DISABLE_FUNCTION_REMINDERS
-	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),0);                           // 1010 DDDD
-#else
-	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),2);
-          flags&= ~FN_GROUP_3;  // dont send them again
-#endif
+	          setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));                           // 1010 DDDD
           break;
        case 4: // remind function group 4 F13-F20
           if (flags & FN_GROUP_4)
-	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),2);
-          flags&= ~FN_GROUP_4;  // dont send them again
+	          setFunctionInternal(loco,222, ((functions>>13)& 0xFF));
           break;
        case 5: // remind function group 5 F21-F28
           if (flags & FN_GROUP_5)
-	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),2);
-          flags&= ~FN_GROUP_5;  // dont send them again
+	          setFunctionInternal(loco,223, ((functions>>21)& 0xFF));
           break;
       }
       loopStatus++;

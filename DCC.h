@@ -130,7 +130,7 @@ private:
   static byte defaultMomentumA;  // Accelerating
   static byte defaultMomentumD;  // Accelerating
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
-  static void setFunctionInternal(int cab, byte fByte, byte eByte, byte count);
+  static void setFunctionInternal(int cab, byte fByte, byte eByte);
   static bool issueReminder(LOCO * slot);
   static LOCO* nextLocoReminder;
   static FSH *shieldName;

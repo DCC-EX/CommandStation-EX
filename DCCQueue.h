@@ -23,7 +23,7 @@
 #include "Arduino.h"
 #include "DCCWaveform.h"
 
-enum PendingType:byte {NORMAL_PACKET,ACC_ON_PACKET,ACC_OFF_PACKET,DEAD_PACKET};
+enum PendingType:byte {NORMAL_PACKET,SPEED_PACKET,FUNCTION_PACKET,ACC_ON_PACKET,ACC_OFF_PACKET,DEAD_PACKET};
   struct PendingSlot {
       PendingSlot* next; 
       PendingType type;
@@ -32,8 +32,7 @@ enum PendingType:byte {NORMAL_PACKET,ACC_ON_PACKET,ACC_OFF_PACKET,DEAD_PACKET};
       byte packet[MAX_PACKET_SIZE];
       
       union { // use depends on packet type
-        uint16_t locoId;    // NORMAL_PACKET .. only set >0 for speed change packets 
-                            // so they can be easily discarded if an estop jumps the queue.
+        uint16_t locoId;    // SPEED & FUNCTION packets  
         uint16_t delayOff;  // ACC_ON_PACKET delay to apply between on/off
         uint32_t startTime; // ACC_OFF_PACKET time (mS) to transmit 
       };
@@ -44,7 +43,7 @@ class DCCQueue {
     
     
     // Non-speed packets are queued in the main queue
-    static void scheduleDCCPacket(byte* packet, byte length, byte repeats);
+    static void scheduleDCCPacket(byte* packet, byte length, byte repeats, uint16_t loco=0);
 
     // Speed packets are queued in the high priority queue
     static void scheduleDCCSpeedPacket(byte* packet, byte length, byte repeats, uint16_t loco);
@@ -58,16 +57,16 @@ class DCCQueue {
     static void scheduleAccOnOffPacket(byte* packet, byte length, byte repeats,int16_t delayms);
 
   
-    // Schedules a main track packet from the queues if none pending.  
-    // returns true if a packet was scheduled.
-    static bool scheduleNext(); 
+    // Schedules a main track packet from the queues.
+    static bool scheduleNext(bool force); 
 
   private:
-  
+    bool scheduleNextInternal(); 
   // statics to manage high and low priority queues and recycleing of PENDINGs
     static PendingSlot* recycleList;
     static DCCQueue* highPriorityQueue;
     static DCCQueue* lowPriorityQueue;
+    static uint16_t lastSentPacketLocoId; // used to prevent two packets to the same loco in a row
 
     DCCQueue();
     

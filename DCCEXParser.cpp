@@ -169,8 +169,10 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
                 break;
             if (hot == '\0')
 	      return -1;
-	    if (hot == '>')
+	    if (hot == '>') {
+	      *remainingCmd = '\0';  // terminate the cmd string with 0 instead of '>'
 	      return parameterCount;
+	    }
             state = 2;
             continue;
 
@@ -272,17 +274,22 @@ void DCCEXParser::parse(const FSH * cmd) {
 // See documentation on DCC class for info on this section
 
 void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
-  // This function can get stings of the form "<C OMM AND>" or "C OMM AND"
-  // found is true first after the leading "<" has been passed
+  // This function can get stings of the form "<C OMM AND>" or "C OMM AND>"
+  // found is true first after the leading "<" has been passed which results
+  // in parseOne() getting c="C OMM AND>"
+  byte *cForLater = NULL;
   bool found = (com[0] != '<');
   for (byte *c=com; c[0] != '\0'; c++) {
     if (found) {
-      parseOne(stream, c,  ringStream);
+      cForLater = c;
       found=false;
     }
-    if (c[0] == '<')
+    if (c[0] == '<') {
+      if (cForLater) parseOne(stream, cForLater, ringStream);
       found = true;
+    }
   }
+  if (cForLater) parseOne(stream, cForLater, ringStream);
 }
 
 void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
@@ -1517,6 +1524,7 @@ void DCCEXParser::callback_Wloco(int16_t result)
 
 void DCCEXParser::callback_Wconsist(int16_t result)
 {
+    if (result==-4) DIAG(F("Long Consist %d not supported by decoder"),stashP[1]);
     if (result==1) result=stashP[1]; // pick up original requested id from command
     StringFormatter::send(getAsyncReplyStream(), F("<w CONSIST %d%S>\n"),
      result, stashP[2]=="REVERSE"_hk ? F(" REVERSE") : F(""));
