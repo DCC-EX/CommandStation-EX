@@ -121,7 +121,7 @@ void TrackManager::Setup(const FSH * shieldname,
   // Fault pin config for odd motor boards (example pololu)
   FOR_EACH_TRACK(t) {
     for (byte s=t+1;s<=lastTrack;s++) {
-      if (track[t]->getFaultPin() != UNUSED_PIN &&
+      if (track[t] != NULL && track[t]->getFaultPin() != UNUSED_PIN &&
 	  track[t]->getFaultPin() == track[s]->getFaultPin()) {
 	track[t]->setCommonFaultPin();
 	track[s]->setCommonFaultPin();
@@ -248,7 +248,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (mode & TRACK_MODE_PROG) {
       // only allow 1 track to be prog
       FOR_EACH_TRACK(t)
-	if ( (track[t]->getMode() & TRACK_MODE_PROG) && t != trackToSet) {
+	if (track[t] != NULL && track[t]->getMode()==TRACK_MODE_PROG && t != trackToSet) {
 	  track[t]->setPower(POWERMODE::OFF);
 	  track[t]->setMode(TRACK_MODE_NONE);
 	  track[t]->makeProgTrack(false);     // revoke prog track special handling
@@ -637,19 +637,23 @@ void TrackManager::reportObsoleteCurrent(Print* stream) {
 void TrackManager::reportCurrent(Print* stream) {
     StringFormatter::send(stream,F("<jI"));
     FOR_EACH_TRACK(t) {
+			if (track[t] != NULL) {
          StringFormatter::send(stream, F(" %d"),
          (track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
             track[t]->raw2mA(track[t]->getCurrentRaw(false)));
          }
+			}
     StringFormatter::send(stream,F(">\n"));    
 }
 
 void TrackManager::reportGauges(Print* stream) {
     StringFormatter::send(stream,F("<jG"));
     FOR_EACH_TRACK(t) {
+			if (track[t] != NULL) {
          StringFormatter::send(stream, F(" %d"),
             track[t]->raw2mA(track[t]->getRawCurrentTripValue()));
          }
+		}
     StringFormatter::send(stream,F(">\n"));    
 }
 
@@ -665,7 +669,7 @@ void TrackManager::setJoin(bool joined) {
 #ifdef ARDUINO_ARCH_ESP32
   if (joined) {                                          // if we go into joined mode (PROG acts as MAIN)
     FOR_EACH_TRACK(t) {
-      if (track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
+      if (track[t] != NULL && track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
 	tempProgTrack = t;                               // remember PROG track
 	setTrackMode(t, TRACK_MODE_MAIN);
 	// setPower() of the track called after

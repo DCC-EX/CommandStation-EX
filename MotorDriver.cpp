@@ -192,7 +192,7 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   }
 
   // This conversion performed at compile time so the remainder of the code never needs
-  // float calculations or libraray code. 
+  // float calculations or library code. 
   senseFactorInternal=sense_factor * senseScale; 
   tripMilliamps=trip_milliamps;
 #ifdef MAX_CURRENT
