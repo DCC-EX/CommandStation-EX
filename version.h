@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.5.22"
+//        - CMRI files included
 // 5.5.22 - (5.4.9) Handle non-compliant decoders returning 255 for cv 20 and confusing <R> with bad consist addresses.
 //        - DCC 5mS gap to same loco DCC packet restriction
 //        - Catch up MASTER for ESP32 IDF version check
