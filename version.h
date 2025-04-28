@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.9"
+#define VERSION "5.4.10"
+// 5.4.10 - Bugfix: MEGA DCC waveform starvation (sends too many idles)
 // 5.4.9  - Handle non-compliant decoders returning 255 for cv 20 and confusing <R> with bad consist addresses.
 //        - <W CONSIST longaddr> handles non-compliant decoders which NAK cv 20 writes.
 // 5.4.8  - Bugfix: Insert idle packet at end of speed reminder loop; treat all function groups equal
