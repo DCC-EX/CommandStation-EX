@@ -159,7 +159,7 @@ void DCCWaveform::interrupt2() {
     // As we get to the end of the preambles, open the reminder window.
     // This delays any reminder insertion until the last moment so
     // that the reminder doesn't block a more urgent packet. 
-    reminderWindowOpen=transmitRepeats==0 && remainingPreambles<10 && remainingPreambles>1;
+    reminderWindowOpen=transmitRepeats==0 && remainingPreambles<12 && remainingPreambles>1;
     if (remainingPreambles==1)
       promotePendingPacket();
 

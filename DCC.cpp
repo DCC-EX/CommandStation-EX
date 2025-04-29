@@ -862,15 +862,34 @@ void DCC::loop()  {
 }
 
 void DCC::issueReminders() {
+  while(true) { 
   // Move to next loco slot.  If occupied, send a reminder.
-  auto slot = nextLocoReminder;
-  if (slot >= &speedTable[MAX_LOCOS]) slot=&speedTable[0];  // Go to start of table
-  if (slot->loco > 0) 
-    if (!issueReminder(slot)) 
-      return;
-  // a loco=0 is at the end of the list, a loco <0 is deleted
-  if (slot->loco==0) nextLocoReminder = &speedTable[0];
-  else nextLocoReminder=slot+1;
+  // slot.loco is -1 for deleted locos, 0 for end of list.
+  for (auto slot=nextLocoReminder;slot->loco;slot++) {
+    if (slot->loco<0) continue; // deleted loco, skip it
+    if (issueReminder(slot)) {
+      nextLocoReminder=slot+1; // remember next one to check
+      return; // reminder sent, exit
+      }
+    }
+    // we have reached the end of the table, so we can move on to 
+    // the next loop state and start from the top.
+    // There are 0-9 loop states..  speed,f1,speed,f2,speed,f3,speed,f4,speed,f5
+    loopStatus++;
+    if (loopStatus>9) loopStatus=0; // reset to 0
+
+    // try looking from the start of the table down to where we started last time
+      
+    for (auto slot=&speedTable[0];slot<nextLocoReminder;slot++) {
+      if (slot->loco<0) continue; // deleted loco, skip it
+      if (issueReminder(slot)) {
+        nextLocoReminder=slot+1; // remember next one to check
+        return; // reminder sent, exit
+        }
+      }
+    // if we get here then we can update the loop status and start again
+    if (loopStatus==0) return; // nothing found at all
+  }
 }
 
 int16_t normalize(byte speed) {
@@ -891,7 +910,11 @@ bool DCC::issueReminder(LOCO * slot) {
   byte flags=slot->groupFlags;
 
   switch (loopStatus) {
-        case 0: {
+        case 0:
+        case 2:
+        case 4:
+        case 6:
+        case 8: {
          // calculate any momentum change going on
          auto sc=slot->speedCode;
          if (slot->targetSpeed!=sc) {
@@ -923,34 +946,39 @@ bool DCC::issueReminder(LOCO * slot) {
           // DIAG(F("Reminder %d speed %d"),loco,slot->speedCode);
           setThrottle2(loco, sc);
         }
-        break;
+        return true; // reminder sent
        case 1: // remind function group 1 (F0-F4)
-          if (flags & FN_GROUP_1)
-      	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
+          if (flags & FN_GROUP_1) {
+            setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 2: // remind function group 2 F5-F8
-          if (flags & FN_GROUP_2)
-  	        setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));                           // 1011 DDDD
+       case 3: // remind function group 2 F5-F8
+          if (flags & FN_GROUP_2) {
+  	        setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F));      // 1011 DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 3: // remind function group 3 F9-F12
-          if (flags & FN_GROUP_3)
-	          setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));                           // 1010 DDDD
+       case 5: // remind function group 3 F9-F12
+          if (flags & FN_GROUP_3) {
+	          setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F));    // 1010 DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 4: // remind function group 4 F13-F20
-          if (flags & FN_GROUP_4)
+       case 7: // remind function group 4 F13-F20
+          if (flags & FN_GROUP_4) {
 	          setFunctionInternal(loco,222, ((functions>>13)& 0xFF));
+            return true; 
+          }
           break;
-       case 5: // remind function group 5 F21-F28
-          if (flags & FN_GROUP_5)
+       case 9: // remind function group 5 F21-F28
+          if (flags & FN_GROUP_5) {
 	          setFunctionInternal(loco,223, ((functions>>21)& 0xFF));
+            return true;  // reminder sent
+          }
           break;
       }
-      loopStatus++;
-      // if we reach status 6 then this loco is done so
-      // reset status to 0 for next loco and return true so caller
-      // moves on to next loco.
-      if (loopStatus>5) loopStatus=0;
-      return loopStatus==0;
+      return false; // no reminder sent 
     }
 
 
