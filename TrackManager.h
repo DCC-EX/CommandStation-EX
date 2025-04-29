@@ -1,6 +1,7 @@
 /*
  *  © 2022 Chris Harlow
  *  © 2022-2024 Harald Barth
+ *  © 2025 Herb Morton
  *  © 2023 Colin Murdoch
  * 
  *  All rights reserved.
@@ -69,6 +70,7 @@ class TrackManager {
     static void setTrackPower(TRACK_MODE trackmode, POWERMODE powermode);
     static void setMainPower(POWERMODE mode) {setTrackPower(TRACK_MODE_MAIN, mode);}
     static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
+    static void setTrackPowerF439ZI(byte t);
 
     static const int16_t MAX_TRACKS=8;
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
