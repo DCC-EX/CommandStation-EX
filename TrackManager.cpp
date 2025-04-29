@@ -2,7 +2,7 @@
  *  © 2022-2025 Chris Harlow
  *  © 2022-2024 Harald Barth
  *  © 2023-2024 Paul M. Antoine
- *  © 2024 Herb Morton
+ *  © 2024-2025 Herb Morton
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -557,6 +557,20 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
   }
   if (didChange)
     CommandDistributor::broadcastPower();
+
+  // re-initialize DC mode timer settings following powerON  
+  if (powermode == POWERMODE::ON) {  
+    #ifdef ARDUINO_ARCH_STM32
+//        for (byte i=0;i<=lastTrack;i++)  {
+//          setTrackPowerF439ZI(i);
+//        }
+          // repeated in case the <F29..31 was set on a later track than power
+          // Note:  this retains power but prevents speed doubling
+        for (byte i=0;i<lastTrack;i++)  {
+           setTrackPowerF439ZI(i);
+        }
+      #endif
+  }
 }
 
 // Set track power for this track, inependent of mode
@@ -587,6 +601,20 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   driver->setPower(powermode);
   if (oldpower != driver->getPower())
     CommandDistributor::broadcastPower();
+
+  // re-initialize DC mode timer settings following powerON  
+  if (powermode == POWERMODE::ON) {  
+    #ifdef ARDUINO_ARCH_STM32
+        for (byte i=0;i<=lastTrack;i++)  {
+          setTrackPowerF439ZI(i);
+        }
+          // repeated in case the <F29..31 was set on a later track than power
+          // Note:  this retains power but prevents speed doubling
+        for (byte i=0;i<lastTrack;i++)  {
+           setTrackPowerF439ZI(i);
+        }
+      #endif
+  }
 }
 
 // returns state of the one and only prog track
@@ -708,4 +736,39 @@ TRACK_MODE TrackManager::getMode(byte t) {
 
 int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
+}
+
+// Set track power for EACH track, independent of mode 
+// This updates the settings so that speed is correct
+// following a frequency change - DC mode
+void TrackManager::setTrackPowerF439ZI(byte t) {
+  MotorDriver *driver=track[t];
+  if (driver == NULL) { // track is not defined at all
+   // DIAG(F("Error: Track %c does not exist"), t+'A');
+    return;
+  }
+  TRACK_MODE trackmode = driver->getMode();
+  POWERMODE powermode = driver->getPower();   // line added to enable processing for DC mode tracks
+  POWERMODE oldpower = driver->getPower();
+  //if (trackmode & TRACK_MODE_NONE) {
+  //  driver->setBrake(true);     // Track is unused. Brake is good to have.
+  //  powermode = POWERMODE::OFF; // Track is unused. Force it to OFF
+  //} else 
+  if (trackmode & TRACK_MODE_DC) { // includes inverted DC (called DCX)
+    if (powermode == POWERMODE::ON) {
+      driver->setBrake(true);   // DC starts with brake on
+      applyDCSpeed(t);          // speed match DCC throttles
+    }
+  } 
+  //else /* MAIN PROG EXT BOOST */ {
+  //  if (powermode == POWERMODE::ON) {
+  //    // toggle brake before turning power on - resets overcurrent error
+  //    // on the Pololu board if brake is wired to ^D2.
+  //    driver->setBrake(true);
+  //    driver->setBrake(false); // DCC runs with brake off
+  //  }
+  //}
+  driver->setPower(powermode);
+  if (oldpower != driver->getPower())
+    CommandDistributor::broadcastPower();
 }
