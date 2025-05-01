@@ -46,6 +46,8 @@
 
 // Helper function for listing device types
 static const FSH * guessI2CDeviceType(uint8_t address) {
+  if (address >= 0x10 && address <= 0x17)
+    return F("EX-SensorCAM");
   if (address == 0x1A)
     // 0x09-0x18 selectable, but for now handle the default
     return F("Piicodev 865/915MHz Transceiver");
