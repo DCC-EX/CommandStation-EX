@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.24"
+#define VERSION "5.5.25"
+// 5.2.25 - IO_Bitmap and assicated Exrail macros
 // 5.5.24 - SensorCAM in I2C scan and automatically setClock
 // 5.5.23 - Reminder loop Idle packet optimization
 // 5.5.22 - (5.4.9) Handle non-compliant decoders returning 255 for cv 20 and confusing <R> with bad consist addresses.

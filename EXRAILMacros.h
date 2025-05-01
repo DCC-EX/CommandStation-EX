@@ -160,6 +160,8 @@ bool exrailHalSetup() {
 #define ONBUTTON(vpin) | FEATURE_SENSOR
 #undef ONSENSOR
 #define ONSENSOR(vpin) | FEATURE_SENSOR
+#undef ONBITMAP
+#define ONBITMAP(vpin) | FEATURE_SENSOR
 #undef ONBLOCKENTER
 #define ONBLOCKENTER(blockid) | FEATURE_BLOCK
 #undef ONBLOCKEXIT
@@ -481,6 +483,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
 #endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
+#define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
+#define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JMRI_SENSOR(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,
@@ -533,6 +537,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
+#define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
@@ -595,6 +600,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
+#define BITMAP_AND(vpin,mask) OPCODE_BITMAP_AND,V(vpin),OPCODE_PAD,V(mask),
+#define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),
+#define BITMAP_DEC(vpin) OPCODE_BITMAP_DEC,V(vpin),
+#define BITMAP_OR(vpin,mask) OPCODE_BITMAP_OR,V(vpin),OPCODE_PAD,V(mask),
+#define BITMAP_XOR(vpin,mask) OPCODE_BITMAP_XOR,V(vpin),OPCODE_PAD,V(mask),
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #ifndef IO_NO_HAL

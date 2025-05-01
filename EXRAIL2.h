@@ -78,11 +78,12 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
              OPCODE_CLEAR_ANY_STASH,
-             OPCODE_ONBUTTON,OPCODE_ONSENSOR,
+             OPCODE_ONBUTTON,OPCODE_ONSENSOR,OPCODE_ONVP_SENSOR,
              OPCODE_NEOPIXEL,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
-             // OPcodes below this point are skip-nesting IF operations
+             OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
+              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
              // see skipIfBlock()
             IF_TYPE_OPCODES, // do not move this... 
@@ -96,6 +97,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFLOCO,
              OPCODE_IFTTPOSITION,
              OPCODE_IFSTASH,
+             OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 

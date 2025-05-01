@@ -94,6 +94,8 @@
 #undef IFTIMEOUT
 #undef IFTTPOSITION
 #undef IFRE
+#undef IFBITMAP_ALL
+#undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
 #undef JMRI_SENSOR
 #undef JOIN 
@@ -133,6 +135,7 @@
 #undef ONBUTTON
 #undef ONSENSOR
 #undef ONTHROW 
+#undef ONBITMAP
 #undef ONCHANGE
 #undef PARSE
 #undef PAUSE
@@ -195,6 +198,11 @@
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #ifndef IO_NO_HAL
+#undef BITMAP_AND
+#undef BITMAP_OR
+#undef BITMAP_XOR
+#undef BITMAP_INC
+#undef BITMAP_DEC
 #undef WAITFORTT
 #endif
 #undef WITHROTTLE
@@ -651,6 +659,22 @@
  * @param value 
  */
 #define IFRE(vpin,value)
+/** 
+ * @def IFBITMAP_ALL(vpin,mask)
+ * @briaf Checks if (vpin pseudo-analog value & mask) == mask.
+ * @see IF
+ * @param vpin
+ * @param mask Binary mask applied to vpin value
+ */
+#define IFBITMAP_ALL(vpin,mask)
+/** 
+ * @def IFBITMAP_ANY(vpin,mask)
+ * @briaf Checks if vpin pseudo-analog value & mask is non zero
+ * @see IF
+ * @param vpin
+ * @param mask Binary mask applied to vpin value
+ */
+#define IFBITMAP_ANY(vpin,mask)
 /**
  * @def INVERT_DIRECTION
  * @brief Marks current task so that FWD and REV commands are inverted.
@@ -899,6 +923,12 @@
  * @param vpin 
  */
 #define ONSENSOR(vpin)
+/**
+ * @def ONBITMAP(vpin)
+ * @brief Start task here when bitmap sensor changes state (debounced)
+ * @param vpin 
+ */
+#define ONBITMAP(vpin)
 /**
  * @def ONBUTTON(vpin)
  * @brief Start task here when sensor changes HIGH to LOW. 
@@ -1323,8 +1353,41 @@
  */
 #define VIRTUAL_TURNOUT(id,description...) 
 /**
+ * @def BITMAP_AND(vpin1,mask)
+ * @brief Performs a bitwise AND operation on the given vpin analog value and mask.
+ * @param vpin1
+ * @param mask Binary mask to be ANDed with vpin1 value
+ */
+#define BITMAP_AND(vpin1,mask)
+/**
+ * @def BITMAP_INC(vpin)
+ * @brief Increments poesudo analog value by 1
+ * @param vpin
+ */
+#define BITMAP_INC(vpin)
+/**
+ * @def BITMAP_DEC(vpin)
+ * @brief Decrements poesudo analog value by 1  (to zero)
+ * @param vpin
+ */
+#define BITMAP_DEC(vpin)
+/**
+ * @def BITMAP_OR(vpin1,mask)
+ * @brief Performs a bitwise OR operation on the given vpin analog value and mask.
+ * @param vpin1
+ * @param mask Binary mask to be ORed with vpin1 value
+ */
+#define BITMAP_OR(vpin1,mask)
+/**
+ * @def BITMAP_XOR(vpin1,mask)
+ * @brief Performs a bitwise XOR operation on the given vpin analog value and mask.
+ * @param vpin1
+ * @param mask Binary mask to be XORed with vpin1 value
+ */
+#define BITMAP_XOR(vpin1,mask)
+/**
  * @def WAITFOR(vpin)
- * @brief WAits for completion of servo movement
+ * @brief Waits for completion of servo movement
  * @param vpin 
  */
 #define WAITFOR(pin)

@@ -263,6 +263,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_ATLT:
     case OPCODE_IFGTE:
     case OPCODE_IFLT:
+    case OPCODE_IFBITMAP_ALL:
+    case OPCODE_IFBITMAP_ANY:
     case OPCODE_DRIVE: {
       DIAG(F("EXRAIL analog input VPIN %u"),(VPIN)operand);
       IODevice::configureAnalogIn((VPIN)operand);
@@ -272,6 +274,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_ONSENSOR:
       if (compileFeatures & FEATURE_SENSOR) 
         new EXRAILSensor(operand,progCounter+3,true );
+      break;
+    case OPCODE_ONBITMAP:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,true, true );
       break;
     case OPCODE_ONBUTTON:
       if (compileFeatures & FEATURE_SENSOR) 
@@ -762,6 +768,14 @@ void RMFT2::loop2() {
   case OPCODE_IFLT: // do next operand if sensor< value
     skipIf=IODevice::readAnalogue(operand)>=(int)(getOperand(1));
     break;
+  
+  case OPCODE_IFBITMAP_ALL: // do next operand if sensor & mask == mask
+    skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) != getOperand(1);
+    break;
+  
+  case OPCODE_IFBITMAP_ANY: // do next operand if sensor & mask !=0
+    skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) == 0;
+    break;
     
   case OPCODE_IFLOCO: // do if the loco is the active one
     skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
@@ -1094,7 +1108,27 @@ void RMFT2::loop2() {
   case OPCODE_SEQUENCE:
     //if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
     break;
-    
+  
+  case OPCODE_BITMAP_INC:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand)+1);
+    break;
+  case OPCODE_BITMAP_DEC:
+     { int newval=IODevice::readAnalogue(operand)-1;
+       if (newval<0) newval=0;
+       IODevice::writeAnalogue(operand,newval);
+     }
+    break;
+  
+  case OPCODE_BITMAP_AND:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) & getOperand(1));
+    break;
+  case OPCODE_BITMAP_OR:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) | getOperand(1));
+    break;
+  case OPCODE_BITMAP_XOR:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) ^ getOperand(1));
+    break;
+  
   case OPCODE_AUTOSTART: // Handled only during begin process
   case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
   case OPCODE_TURNOUT: // Turnout definition ignored at runtime
@@ -1114,6 +1148,7 @@ void RMFT2::loop2() {
   case OPCODE_ONTIME:
   case OPCODE_ONBUTTON:
   case OPCODE_ONSENSOR:
+  case OPCODE_ONBITMAP:
 #ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
