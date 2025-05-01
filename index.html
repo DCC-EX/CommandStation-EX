@@ -1015,6 +1015,42 @@
 </dd></dl>
 
 <dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFBITMAP_ALL">
+<span class="target" id="EXRAIL2MacroReset_8h_1a88ff5ea4815a025ed029b0874a99bbe0"></span><span class="sig-name descname"><span class="n"><span class="pre">IFBITMAP_ALL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFBITMAP_ALL" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if (vpin pseudo-analog value &amp; mask) == mask. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin</strong></p></li>
+<li><p><strong>mask</strong> – Binary mask applied to vpin value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFBITMAP_ANY">
+<span class="target" id="EXRAIL2MacroReset_8h_1a463bc67076cf8cd2b226323285aa9658"></span><span class="sig-name descname"><span class="n"><span class="pre">IFBITMAP_ANY</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span>, <span class="n"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFBITMAP_ANY" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if vpin pseudo-analog value &amp; mask is non zero <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin</strong></p></li>
+<li><p><strong>mask</strong> – Binary mask applied to vpin value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.INVERT_DIRECTION">
 <span class="target" id="EXRAIL2MacroReset_8h_1a5a1098c94713ea9dc547068ee042bf62"></span><span class="sig-name descname"><span class="n"><span class="pre">INVERT_DIRECTION</span></span></span><a class="headerlink" href="#c.INVERT_DIRECTION" title="Link to this definition"></a><br /></dt>
 <dd><p>Marks current task so that FWD and REV commands are inverted. </p>
@@ -1496,6 +1532,19 @@
 <dt class="sig sig-object cpp" id="c.ONSENSOR">
 <span class="target" id="EXRAIL2MacroReset_8h_1a59c9a1db10b2450c7753c7712ae41bd6"></span><span class="sig-name descname"><span class="n"><span class="pre">ONSENSOR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONSENSOR" title="Link to this definition"></a><br /></dt>
 <dd><p>Start task here when sensor changes state (debounced) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.ONBITMAP">
+<span class="target" id="EXRAIL2MacroReset_8h_1a6538a4c9d239c5a0926b138c7d91ae05"></span><span class="sig-name descname"><span class="n"><span class="pre">ONBITMAP</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.ONBITMAP" title="Link to this definition"></a><br /></dt>
+<dd><p>Start task here when bitmap sensor changes state (debounced) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2366,9 +2415,77 @@
 </dd></dl>
 
 <dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.BITMAP_AND">
+<span class="target" id="EXRAIL2MacroReset_8h_1af826c2bfb0294a43049e1fe6d2127e73"></span><span class="sig-name descname"><span class="n"><span class="pre">BITMAP_AND</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin1</span></span>, <span class="n"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.BITMAP_AND" title="Link to this definition"></a><br /></dt>
+<dd><p>Performs a bitwise AND operation on the given vpin analog value and mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin1</strong></p></li>
+<li><p><strong>mask</strong> – Binary mask to be ANDed with vpin1 value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.BITMAP_INC">
+<span class="target" id="EXRAIL2MacroReset_8h_1a21086db3822220f43a46aa87c3762162"></span><span class="sig-name descname"><span class="n"><span class="pre">BITMAP_INC</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.BITMAP_INC" title="Link to this definition"></a><br /></dt>
+<dd><p>Increments poesudo analog value by 1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.BITMAP_DEC">
+<span class="target" id="EXRAIL2MacroReset_8h_1adfd63c84689a28299a8e99de4b05a2ad"></span><span class="sig-name descname"><span class="n"><span class="pre">BITMAP_DEC</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.BITMAP_DEC" title="Link to this definition"></a><br /></dt>
+<dd><p>Decrements poesudo analog value by 1 (to zero) </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.BITMAP_OR">
+<span class="target" id="EXRAIL2MacroReset_8h_1ae0f7a221c6821f20aa8bc55c53d7ade5"></span><span class="sig-name descname"><span class="n"><span class="pre">BITMAP_OR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin1</span></span>, <span class="n"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.BITMAP_OR" title="Link to this definition"></a><br /></dt>
+<dd><p>Performs a bitwise OR operation on the given vpin analog value and mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin1</strong></p></li>
+<li><p><strong>mask</strong> – Binary mask to be ORed with vpin1 value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.BITMAP_XOR">
+<span class="target" id="EXRAIL2MacroReset_8h_1a700804cbb8e00ddf13846ddb19463ab1"></span><span class="sig-name descname"><span class="n"><span class="pre">BITMAP_XOR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">vpin1</span></span>, <span class="n"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.BITMAP_XOR" title="Link to this definition"></a><br /></dt>
+<dd><p>Performs a bitwise XOR operation on the given vpin analog value and mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vpin1</strong></p></li>
+<li><p><strong>mask</strong> – Binary mask to be XORed with vpin1 value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.WAITFOR">
 <span class="target" id="EXRAIL2MacroReset_8h_1a984530916c21ac841c79ebc650f43d7f"></span><span class="sig-name descname"><span class="n"><span class="pre">WAITFOR</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">pin</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.WAITFOR" title="Link to this definition"></a><br /></dt>
-<dd><p>WAits for completion of servo movement. </p>
+<dd><p>Waits for completion of servo movement. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
