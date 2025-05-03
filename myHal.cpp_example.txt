@@ -149,8 +149,8 @@ void halSetup() {
   // Alternative form to initialize 8 pins as output
   //  INT pin -1, when INT pin is not used
 
-  //PCF8574::create(200, 8, 0x23, -1, 255);  8 pins High
-  //PCF8574::create(200, 8, 0x23, -1, 0);    8 pins Low
+  //PCF8574::create(200, 8, 0x23, -1, 255); // 8 pins High
+  //PCF8574::create(200, 8, 0x23, -1, 0);   // 8 pins Low
   //PCF8574::create(200, 8, 0x23, -1, 0b11000010);  
   //                       pins listed sequentially from 7 to 0
 
