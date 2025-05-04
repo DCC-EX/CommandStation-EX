@@ -2,6 +2,7 @@
  *  © 2022 Chris Harlow
  *  © 2022-2024 Harald Barth
  *  © 2023 Colin Murdoch
+ *  © 2025 Herb Morton
  * 
  *  All rights reserved.
  *  
@@ -87,6 +88,7 @@ class TrackManager {
     static void sampleCurrent();
     static void reportGauges(Print* stream);
     static void reportCurrent(Print* stream);
+    static void reportCurrentLCD(uint8_t display, byte row);
     static void reportObsoleteCurrent(Print* stream); 
     static void streamTrackState(Print* stream, byte t);
     static bool isPowerOn(byte t);
@@ -113,6 +115,7 @@ class TrackManager {
     static void applyDCSpeed(byte t);
 
     static int16_t trackDCAddr[MAX_TRACKS];  // dc address if TRACK_MODE_DC
+    static int16_t trackPwrMA[MAX_TRACKS];      // for <JL ..> command
 #ifdef ARDUINO_ARCH_ESP32
     static byte tempProgTrack; // holds the prog track number during join
 #endif
