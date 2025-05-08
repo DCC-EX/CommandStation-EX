@@ -5,7 +5,7 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2021 Chris Harlow
  *  © 2023 Nathan Kellenicki
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ The configuration file for DCC-EX Command Station
 // If you want to add your own motor driver definition(s), add them here
 //   For example MY_SHIELD with display name "MINE":
 //   (remove comment start and end marker if you want to edit and use that)
-/* 
+/*
 #define MY_SHIELD F("MINE"), \
  new MotorDriver( 3, 12, UNUSED_PIN, 9, A0, 5.08, 3000, A4), \
  new MotorDriver(11, 13, UNUSED_PIN, 8, A1, 5.08, 1500, A5)
@@ -95,7 +95,7 @@ The configuration file for DCC-EX Command Station
 //#define DONT_TOUCH_WIFI_CONF
 //
 // WIFI_SSID is the network name IF you want to use your existing home network.
-// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
+// Do NOT change this if you want to use the WiFi in Access Point (AP) mode.
 //
 // If you do NOT set the WIFI_SSID and do NOT set the WIFI_PASSWORD,
 // then the WiFi chip will first try to connect to the previously
@@ -111,7 +111,7 @@ The configuration file for DCC-EX Command Station
 //
 // WIFI_PASSWORD is the network password for your home network or if
 // you want to change the password from default AP mode password
-// to the AP password you want. 
+// to the AP password you want.
 // Your password may not contain ``"'' (double quote, ASCII 0x22).
 #define WIFI_PASSWORD "Your network passwd"
 //
@@ -128,6 +128,21 @@ The configuration file for DCC-EX Command Station
 // true. Otherwise it is assumed that you'd like to connect to an existing network
 // with that SSID.
 #define WIFI_FORCE_AP false
+//
+// OTA_AUTO_INIT: Set this to true if you want OTA updates to be initialized
+// automatically upon startup. If set to false, OTA updates will remain
+// unavailable until the "<C OTA 1>" command is executed.
+// Please note that this feature requires the use of ARDUINO_ARCH_ESP32 as your board.
+#define OTA_AUTO_INIT false
+//
+// OTA_AUTH: Set this to your desired password if you wish to secure OTA updates.
+// If not set, OTA updates will be password-free.
+// Note: Upon modifying the OTA password, ensure to update the "upload_flags → --auth"
+// in the relevant environment within the platformio.ini file.
+// To deactivate OTA authorization, comment out the line below and comment out
+// the "upload_flags" line in the platformio.ini file.
+// #define OTA_AUTH "dccex-ota"
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -194,7 +209,7 @@ The configuration file for DCC-EX Command Station
 // If you do not need programming capability, you can disable all programming related
 // commands. You might want to do that if you are using an Arduino UNO and still want
 // to use EXRAIL automation, as the Uno is lacking in RAM and Flash to run both.
-// 
+//
 // Note this disables all programming functionality, including EXRAIL.
 //
 // #define DISABLE_PROG
@@ -228,9 +243,9 @@ The configuration file for DCC-EX Command Station
 // REDEFINE WHERE SHORT/LONG ADDR break is. According to NMRA the last short address
 // is 127 and the first long address is 128. There are manufacturers which have
 // another view. Lenz CS for example have considered addresses long from 100. If
-// you want to change to that mode, do 
+// you want to change to that mode, do
 //#define HIGHEST_SHORT_ADDR 99
-// If you want to run all your locos addressed long format, you could even do a 
+// If you want to run all your locos addressed long format, you could even do a
 //#define HIGHEST_SHORT_ADDR 0
 // We do not support to use the same address, for example 100(long) and 100(short)
 // at the same time, there must be a border.
@@ -249,7 +264,7 @@ The configuration file for DCC-EX Command Station
 //
 // According to norm RCN-213 a DCC packet with a 1 is closed/straight
 // and one with a 0 is thrown/diverging.  In DCC++ Classic, and in previous
-// versions of DCC++EX, a turnout throw command was implemented in the packet as 
+// versions of DCC++EX, a turnout throw command was implemented in the packet as
 // '1' and a close command as '0'. The #define below makes the states
 // match with the norm.  But we don't want to cause havoc on existent layouts,
 // so we define this only for new installations. If you don't want this,
@@ -268,7 +283,7 @@ The configuration file for DCC-EX Command Station
 // you can use this to reverse the sense of all accessory commmands sent
 // over DCC++. This #define likewise inverts the behaviour of the <a> command
 // for triggering DCC Accessory Decoders, so that <a addr subaddr 0> generates a
-// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0 
+// DCC packet with D=1 (close turnout) and <a addr subaddr 1> generates D=0
 // (throw turnout).
 //#define DCC_ACCESSORY_COMMAND_REVERSE
 
