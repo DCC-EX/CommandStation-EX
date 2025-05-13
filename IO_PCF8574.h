@@ -1,4 +1,5 @@
 /*
+ *  © 2025 Herb Morton
  *  © 2022 Paul M Antoine
  *  © 2021, Neil McKechnie. All rights reserved.
  *  
@@ -43,15 +44,21 @@
 
 class PCF8574 : public GPIOBase<uint8_t> {
 public:
-  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
-    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCF8574(firstVpin, nPins, i2cAddress, interruptPin);
+  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1, int initPortState=-1) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) new PCF8574(firstVpin, nPins, i2cAddress, interruptPin, initPortState);
   }
 
 private:
-  PCF8574(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1)
+  PCF8574(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1, int initPortState=-1)
     : GPIOBase<uint8_t>((FSH *)F("PCF8574"), firstVpin, nPins, i2cAddress, interruptPin) 
   {
     requestBlock.setReadParams(_I2CAddress, inputBuffer, 1);
+    if (initPortState>=0) {
+      _portMode = 255;         // set all pins to output mode
+      _portInUse = 255;        // 8 ports in use 
+      _portOutputState = initPortState;  // initialize pins low-high 0-255
+      I2CManager.write(_I2CAddress, 1, initPortState);
+    }
   }
   
   // The PCF8574 handles inputs by applying a weak pull-up when output is driven to '1'.
