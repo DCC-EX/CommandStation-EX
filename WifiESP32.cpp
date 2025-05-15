@@ -81,7 +81,9 @@ public:
       return false;
     if(!wifi.connected()) {
       DIAG(F("Remove client %d"), clientId);
+#ifdef CD_HANDLE_RING
       CommandDistributor::forget(clientId);
+#endif
       wifi.stop();
       inUse = false;
       return false;
@@ -369,7 +371,9 @@ void WifiESP::loop() {
 	    cmd[i]=clients[clientId].wifi.read();
 	  }
 	  cmd[len]=0;
+#ifdef CD_HANDLE_RING
 	  CommandDistributor::parse(clientId,cmd,outboundRing);
+#endif
 	}
       }
     } // all clients

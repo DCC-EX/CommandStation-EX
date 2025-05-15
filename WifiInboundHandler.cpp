@@ -84,7 +84,9 @@ void WifiInboundHandler::loop1() {
          cmd[count]=0;
          if (Diag::WIFI) DIAG(F("%e"),cmd); 
          
+#ifdef CD_HANDLE_RING
          CommandDistributor::parse(clientId,cmd,outboundRing);
+#endif
          return;
       }
    }
@@ -230,7 +232,9 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         if (ch=='C') {
          // got "x C" before CLOSE or CONNECTED, or CONNECT FAILED
          if (runningClientId==clientPendingCIPSEND) purgeCurrentCIPSEND();
+#ifdef CD_HANDLE_RING				 
          else CommandDistributor::forget(runningClientId);
+#endif
         }
         loopState=SKIPTOEND;   
         break;
@@ -245,7 +249,9 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
 
 void WifiInboundHandler::purgeCurrentCIPSEND() {
          // A CIPSEND was sent but errored... or the client closed just toss it away
+#ifdef CD_HANDLE_RING
          CommandDistributor::forget(clientPendingCIPSEND); 
+#endif
          DIAG(F("Wifi: DROPPING CIPSEND=%d,%d"),clientPendingCIPSEND,currentReplySize);
          for (int i=0;i<currentReplySize;i++) outboundRing->read();
          pendingCipsend=false;  
