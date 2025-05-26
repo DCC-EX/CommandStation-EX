@@ -53,7 +53,7 @@ private:
       
   }
   void _writePortModes() override {
-    // Write 0 to REG_CONF_P0 & REG_CONF_P1 for in-use pins that are outputs, 1 for others.
+    // Write 0 to REG_CONF_P0 for in-use pins that are outputs, 1 for others.
     // PCA9554 & TCA9554, Interrupt is always enabled for raising and falling edge
     uint8_t temp = ~(_portMode & _portInUse);
     I2CManager.write(_I2CAddress, 2, REG_CONF_P0, temp);    
