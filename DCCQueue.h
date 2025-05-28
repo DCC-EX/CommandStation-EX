@@ -78,6 +78,6 @@ class DCCQueue {
     static void recycle(PendingSlot* p);
     void addQueue(PendingSlot * p);
     void jumpQueue(PendingSlot * p);
-  
+    void remove(PendingSlot * p);
 };
-#endif
+#endif // DCCQueue_h

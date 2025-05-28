@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.27"
+#define VERSION "5.5.28"
+// 5.5.28 - DCC Queue memory leak fix
 // 5.5.27 - PCF8574 output pin initialization parameter
 // 5.5.26 - PCA9554 and TCA9554/9534 I2C 8-bit GPIO expander drivers
 // 5.2.25 - IO_Bitmap and assicated Exrail macros

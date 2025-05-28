@@ -62,6 +62,21 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
         recycleList=p;
     }
     
+    void DCCQueue::remove(PendingSlot* premove) {
+        PendingSlot* previous=nullptr;
+        for (auto p=head;p;previous=p,p=p->next) {
+            if (p==premove) {
+                // remove this slot from the queue 
+                if (previous) previous->next=p->next;
+                else head=p->next;
+                if (p==tail) tail=previous; // if last packet, update tail
+                return;
+            }
+        }
+        DIAG(F("DCCQueue::remove slot not found"));
+      
+    }
+
     // Packet joins end of low priority queue.
     void DCCQueue::scheduleDCCPacket(byte* packet, byte length, byte repeats, uint16_t loco) {
         lowPriorityQueue->addQueue(getSlot(NORMAL_PACKET,packet,length,repeats,loco));
@@ -73,10 +88,6 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
         for (auto p=highPriorityQueue->head;p;p=p->next) {
             if (p->locoId==loco) {
                 // replace existing packet
-                if (length>sizeof(p->packet)) {
-                    DIAG(F("DCC bad packet length=%d"),length);
-                    length=sizeof(p->packet); // limit to size of packet
-                }
                 memcpy(p->packet,packet,length);
                 p->packetLength=length;
                 p->packetRepeat=repeats;
@@ -98,22 +109,13 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
        
         // kill any existing throttle packets for this loco (or all locos if broadcast)
         // this will also remove any estop packets for this loco (or all locos if broadcast) but they will be replaced
-        PendingSlot * previous=nullptr;
-        auto p=highPriorityQueue->head;
-        while(p) {
+        PendingSlot * pNext;
+        for (auto p=highPriorityQueue->head;p;p=pNext) {
+            auto pNext=p->next; // save next packet in case we recycle this one                
             if (p->type!=ACC_OFF_PACKET && (loco==0 || p->locoId==loco)) {
-                // drop this packet from the highPriority   queue 
-                if (previous) previous->next=p->next;
-                else highPriorityQueue->head=p->next;
-                
+                // remove this slot from the queue or it will interfere with our ESTOP
+                highPriorityQueue->remove(p);
                 recycle(p);  // recycle this slot
-
-                // address next packet
-                p=previous?previous->next : highPriorityQueue->head;
-            }
-            else {
-                previous=p;
-                p=p->next;
             }
         }
         // add the estop packet to the start of the queue
@@ -149,8 +151,8 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
     }
 
     bool DCCQueue::scheduleNextInternal() {
-        PendingSlot* previous=nullptr;
-        for (auto p=head;p;previous=p,p=p->next) {
+
+        for (auto p=head;p;p=p->next) {
             // skip over pending ACC_OFF packets which are still delayed
             if (p->type == ACC_OFF_PACKET && millis()<p->startTime) continue;
             if (p->locoId) {
@@ -171,9 +173,7 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
             }
 
             // remove this slot from the queue 
-            if (previous) previous->next=p->next;
-            else head=p->next;
-            if (!head) tail=nullptr;
+            remove(p);
             
             // special cases handling 
             if (p->type == ACC_ON_PACKET) {
@@ -182,11 +182,8 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
                 p->packet[1]  &= ~0x08; // set C to 0 (gate off) 
                 p->startTime=millis()+p->delayOff;
                 highPriorityQueue->jumpQueue(p);
-                return true;
             }
-             
-            // Recycle packet just consumed
-            recycle(p);     
+            else recycle(p); 
             return true;
         }
         
@@ -209,7 +206,7 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
             for (auto p=lowPriorityQueue->head;p;p=p->next) q2++;
             bool leak=(q1+q2)!=created;
             DIAG(F("New DCC queue slot type=%d length=%d loco=%d q1=%d q2=%d created=%d"),
-                   type,length,loco,q1,q2, created);
+                   (int16_t)type,length,loco,q1,q2, created);
             if (leak) {
                 for (auto p=highPriorityQueue->head;p;p=p->next) DIAG(F("q1 %d %d"),p->type,p->locoId);
                 for (auto p=lowPriorityQueue->head;p;p=p->next) DIAG(F("q2 %d %d"),p->type,p->locoId);
