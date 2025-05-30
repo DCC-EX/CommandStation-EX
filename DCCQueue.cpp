@@ -109,9 +109,9 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
        
         // kill any existing throttle packets for this loco (or all locos if broadcast)
         // this will also remove any estop packets for this loco (or all locos if broadcast) but they will be replaced
-        PendingSlot * pNext;
+        PendingSlot * pNext=nullptr;
         for (auto p=highPriorityQueue->head;p;p=pNext) {
-            auto pNext=p->next; // save next packet in case we recycle this one                
+            pNext=p->next; // save next packet in case we recycle this one                
             if (p->type!=ACC_OFF_PACKET && (loco==0 || p->locoId==loco)) {
                 // remove this slot from the queue or it will interfere with our ESTOP
                 highPriorityQueue->remove(p);

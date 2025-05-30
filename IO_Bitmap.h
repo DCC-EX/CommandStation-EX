@@ -73,6 +73,8 @@ public:
   }
 
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
+    (void)profile; // suppress warning, not used in this function
+    (void)duration; // suppress warning, not used in this function
     int pin=vpin - _firstVpin;
     _pinValues[pin]=value; // this is analog write  
   }

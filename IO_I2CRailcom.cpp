@@ -77,6 +77,7 @@ void I2CRailcom::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
   
   
   void I2CRailcom::_loop(unsigned long currentMicros) {
+    (void)currentMicros; // not used, but needed to match IODevice interface
     // Read responses from device
     if (_deviceState!=DEVSTATE_NORMAL) return;
     

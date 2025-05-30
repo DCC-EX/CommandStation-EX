@@ -72,6 +72,8 @@ const byte _DIR_MASK = 0x30;
   
 
   void EncoderThrottle::_loop(unsigned long currentMicros)  {
+    (void) currentMicros; // suppress warning
+
     if (_locoid==0) return;  // not in use
     
     // Clicking down on the roco, stops the loco and sets the direction as unknown.
@@ -118,9 +120,10 @@ const byte _DIR_MASK = 0x30;
         }
 }
 
-  // Selocoid as analog value to start drive
+  // Set locoid as analog value to start drive
   // use <z vpin locoid [notch]>
   void EncoderThrottle::_writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2)  {  
+    (void)vpin; // not used, but needed to match IODevice interface
     (void) param2;
     _locoid=value;
     if (param1>0) _notch=param1;

@@ -136,6 +136,7 @@ private:
 
   // Return the position sent by the rotary encoder software
   int _readAnalogue(VPIN vpin) override {
+    (void)vpin; // suppress warning, not used in this function
     if (_deviceState == DEVSTATE_FAILED) return 0;
     return _position;
   }
@@ -153,6 +154,8 @@ private:
   // To be valid, must be 0 to 255, and different to the current position
   // If the current position is the same, it was initiated by the rotary encoder
   void _writeAnalogue(VPIN vpin, int position, uint8_t profile, uint16_t duration) override {
+    (void)profile; // suppress warning, not used in this function
+    (void)duration; // suppress warning, not used in this function
     if (vpin == _firstVpin + 2) {
       if (position >= 0 && position <= 255 && position != _position) {
         byte newPosition = position & 0xFF;

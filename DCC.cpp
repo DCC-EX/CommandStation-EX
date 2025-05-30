@@ -1079,6 +1079,9 @@ void DCC::displayCabList(Print * stream) {
 }
 
 void DCC::setLocoInBlock(int loco, uint16_t blockid, bool exclusive) {
+  // avoid unused warnings when EXRAIL not active
+  (void)loco; (void)blockid; (void)exclusive;
+  
   // update block loco is in, tell exrail leaving old block, and entering new.
 
   // NOTE: The loco table scanning is really inefficient and needs rewriting
@@ -1107,7 +1110,8 @@ void DCC::setLocoInBlock(int loco, uint16_t blockid, bool exclusive) {
 }
 
 void DCC::clearBlock(uint16_t blockid) {
-  // Railcom reports block empty... tell Exrail about all leavers 
+  (void)blockid; // avoid unused warning when EXRAIL not active
+  // clear block occupied by loco, tell exrail about all leavers
   #ifdef EXRAIL_ACTIVE
   SLOTLOOP {
        if (slot->loco==0) break;  // no more locos

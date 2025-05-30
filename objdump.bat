@@ -1,5 +1,5 @@
 ECHO ON
-FOR /F "delims=" %%i IN ('dir %TMP%\arduino\sketches\CommandStation-EX.ino.elf /s /b /o-D') DO SET ELF=%%i
+FOR /F "delims=" %%i IN ('dir %TMP%\CommandStation-EX.ino.elf /s /b /o-D') DO SET ELF=%%i
 SET DUMP=%TEMP%\OBJDUMP.txt
 echo Most recent subfolder: %ELF% >%DUMP%
 

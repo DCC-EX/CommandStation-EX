@@ -197,6 +197,7 @@ public:
   // Check for incoming data, and update busy flag and other state accordingly
  
   void processIncoming(unsigned long currentMicros) {
+    (void)currentMicros; // suppress warning, not used in this function
     // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
     RX_fifo_lvl();
     if (FIFO_RX_LEVEL >= 10) {      
@@ -308,7 +309,7 @@ public:
           sendPacket(0x0C,0,0);
           _resetCmd = false;          
       } else if(_volCmd == true) { // do the volme before palying a track
-         if(_requestedVolumeLevel >= 0 && _requestedVolumeLevel <= 30){         
+         if(_requestedVolumeLevel <= 30) {         
          _currentVolume = _requestedVolumeLevel; // If _requestedVolumeLevel is out of range, sent _currentV1olume      
          }
          sendPacket(0x06, 0x00, _currentVolume);
@@ -407,6 +408,9 @@ public:
 
   // Write to a vPin will do nothing
   void _write(VPIN vpin, int value) override {
+    (void)vpin; // suppress warning, not used in this function
+    (void)value; // suppress warning, not used in this function
+    
     if (_deviceState == DEVSTATE_FAILED) return;
       #ifdef DIAG_IO
         DIAG(F("I2CDFPlayer: Writing to any vPin not supported"));
