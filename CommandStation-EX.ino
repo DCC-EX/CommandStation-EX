@@ -31,6 +31,7 @@
  *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
  *  Fred Decker, Gregor Baues, Anthony W - Dayton
  *  © 2023 Nathan Kellenicki
+ *  © 2025 Herb Morton
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -109,9 +110,10 @@ void setup()
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // WIFI_ON
 #else
-  // ESP32 needs wifi on always
-  PASSWDCHECK(WIFI_PASSWORD); // compile time check
+#if WIFI_ON
+  PASSWDCHECK(WIFI_PASSWORD); // compile time check  
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+#endif // WIFI_ON
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
@@ -176,9 +178,11 @@ void loop()
  
 #endif //WIFI_ON
 #else  //ARDUINO_ARCH_ESP32
+#if WIFI_ON
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
 #endif
+#endif //WIFI_ON
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
