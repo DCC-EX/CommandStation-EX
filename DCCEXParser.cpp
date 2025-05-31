@@ -2,7 +2,7 @@
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2021-2024 Herb Morton
+ *  © 2021-2025 Herb Morton
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
@@ -795,6 +795,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     if (params>1) break;
                     TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;
+
+                case "L"_hk: // <JL display row> track state and mA value on display
+                    if (params<3) break;
+                    TrackManager::reportCurrentLCD(p[1], p[2]);   // Track power status     
+                    return;                    
 
                 case "A"_hk: // <JA> intercepted by EXRAIL// <JA> returns automations/routes
                     if (params!=1) break; // <JA>
