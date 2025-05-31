@@ -213,6 +213,27 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' '
 			    );
+                auto progCounter=task->progCounter; // name to satisfy macros below
+          auto operand=task->getOperand(progCounter,0);
+          switch(GET_OPCODE) {
+              case OPCODE_RESERVE:
+                StringFormatter::send(stream,F(" WAIT RESERVE %d"),operand);
+                break;
+              case OPCODE_AT:
+              case OPCODE_ATTIMEOUT2:
+              case OPCODE_AFTER:
+              case OPCODE_ATGTE:
+              case OPCODE_ATLT:
+                StringFormatter::send(stream,F(" WAIT AT/AFTER %d"),operand);
+                break;
+              case OPCODE_DELAY:
+              case OPCODE_DELAYMINS:
+              case OPCODE_DELAYMS:
+              case OPCODE_RANDWAIT:
+                StringFormatter::send(stream,F(" WAIT DELAY"));
+                break; 
+            default: break;
+          }
       }
       task=task->next;
       if (task==loopTask) break;

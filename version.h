@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.29"
-// 5.2.29 - Resolved compiler warnings 
+#define VERSION "5.5.30"
+// 5.5.30 - EXRAIL </> shows why tasks are waiting 
+// 5.5.29 - Resolved compiler warnings 
 // 5.5.28 - DCC Queue memory leak fix
 // 5.5.27 - PCF8574 output pin initialization parameter
 // 5.5.26 - PCA9554 and TCA9554/9534 I2C 8-bit GPIO expander drivers
