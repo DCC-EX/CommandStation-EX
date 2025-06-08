@@ -3,8 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.30"
+#define VERSION "5.5.31"
 // 5.5.31 - <JL screen startRow> track status command
+//        - myTrackStatus.example.h added
 //        - Provide for WiFi false on ESP32
 // 5.5.30 - EXRAIL </> shows why tasks are waiting 
 // 5.5.29 - Resolved compiler warnings 
