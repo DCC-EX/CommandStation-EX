@@ -43,9 +43,9 @@ const uint16_t LONG_ADDR_MARKER = 0x4000;
 // Allocations with memory implications..!
 // Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
 #if defined(HAS_ENOUGH_MEMORY)
-const byte MAX_LOCOS = 50;
-#else
-const byte MAX_LOCOS = 30;
+const byte MAX_LOCOS = 50;  // Default 50 for Mega2560,  Increase for ESP32 and STM32 Nucleo 
+#else                       // Adjust Max Locos as needed.
+const byte MAX_LOCOS = 10;  // Lower Max Loco for Uno CS, Recommended as a JMRI DecoderPro Programming Station 
 #endif
 
 class DCC
