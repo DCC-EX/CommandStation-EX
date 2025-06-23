@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021-2025 Herb Morton
- *  © 2020-2023 Harald Barth
+ *  © 2020-2025 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
  *  © 2020-2025 Chris Harlow
@@ -122,6 +122,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "Stash.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
+#include "DCCDecoder.h"
 #endif
 
 // This macro can't be created easily as a portable function because the
@@ -712,6 +713,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'C': // CONFIG <C [params]>
 #if defined(ARDUINO_ARCH_ESP32)
 // currently this only works on ESP32
+      if (p[0] == "SNIFFER"_hk) { // <C SNIFFER ON|OFF>
+	bool on = false;
+	if (params>1 && p[1] == "ON"_hk) {
+	  on = true;
+	}
+	DCCDecoder::onoff(on);
+	return;
+      }
 #if defined(HAS_ENOUGH_MEMORY)
       if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
 	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD

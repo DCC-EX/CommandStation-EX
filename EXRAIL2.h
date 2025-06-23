@@ -74,6 +74,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
              OPCODE_ONOVERLOAD,
+	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
@@ -195,6 +196,9 @@ class LookList {
     static void clockEvent(int16_t clocktime, bool change);
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
+#ifdef BOOSTER_INPUT
+    static void railsyncEvent(bool on);
+#endif
     static void blockEvent(int16_t block, int16_t loco, bool entering);
     static bool signalAspectEvent(int16_t address, byte aspect );    
     // Throttle Info Access functions built by exrail macros 
@@ -266,6 +270,10 @@ private:
    static LookList * onOverloadLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;
+#ifdef BOOSTER_INPUT
+   static LookList * onRailSyncOnLookup;
+   static LookList * onRailSyncOffLookup;
+#endif
    
    
    static const int countLCCLookup;

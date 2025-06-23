@@ -129,6 +129,8 @@
 #undef ONCLOCKTIME
 #undef ONCLOCKMINS
 #undef ONOVERLOAD
+#undef ONRAILSYNCON
+#undef ONRAILSYNCOFF
 #undef ONGREEN
 #undef ONRED
 #undef ONROTATE
@@ -861,6 +863,16 @@
  * @param track_id A..H
  */
 #define ONOVERLOAD(track_id)
+/**
+ * @def ONRAILSYNCON
+ * @brief Start task here when the railsync (booster) input port get a valid DCC signal
+ */
+#define ONRAILSYNCON
+/**
+ * @def ONRAILSYNCOFF
+ * @brief Start task here when the railsync (booster) input port does not get a valid DCC signal any more
+ */
+#define ONRAILSYNCOFF
 /**
  * @def ONDEACTIVATE(addr,subaddr)
  * @brief Start task here when DCC deactivate packet sent

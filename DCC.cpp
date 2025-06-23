@@ -327,7 +327,7 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // the initial decoders were orgnized and that influenced how the DCC
   // standard was made.
   #ifdef DIAG_IO
-  DIAG(F("DCC::setAccessory(%d,%d,%d)"), address, port, gate);
+  DIAG(F("DCC::setAccessory(%d,%d,%d,%d)"), address, port, gate, onoff);
   #endif
   // use masks to detect wrong values and do nothing
   if(address != (address & 511))
