@@ -42,7 +42,6 @@ bool DCCDecoder::parse(DCCPacket &p) {
   for (byte n = 0; n < p.len(); n++)
     checksum ^= d[n];
   if (checksum) {  // Result should be zero, if not it's an error!
-    digitalWrite(2,HIGH);
     DIAG(F("Checksum error"));
     return false;
   }
