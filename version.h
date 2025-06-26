@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.31"
+#define VERSION "5.5.32"
+// 5.5.32 - Feature: Enable sniffer on CSB-1
 // 5.5.31 - <JL screen startRow> track status command
 //        - myTrackStatus.example.h added
 //        - Provide for WiFi false on ESP32
