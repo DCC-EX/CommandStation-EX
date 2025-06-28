@@ -95,21 +95,29 @@
 #define STEALTH_GLOBAL(code...) code
 #include "myAutomation.h"
 
-// Pass 1h Implements HAL macro by creating exrailHalSetup function
+// Pass 1h Implements HAL macro by creating exrailHalSetup1 function
 // Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
 #undef HAL_IGNORE_DEFAULTS
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
+bool exrailHalSetup1() {
+   bool ignore_defaults=false;
+   #include "myAutomation.h"
+   return ignore_defaults;
+}
+
+// Pass 1s Implements servos by creating exrailHalSetup2
+// TODO Turnout and turntable creation should be moved to here instead of 
+// the first pass from the opcode table. 
+#include "EXRAIL2MacroReset.h"
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) Sensor::createMultiple(vpin,##count);
 #undef  CONFIGURE_SERVO
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
-bool exrailHalSetup() {
-   bool ignore_defaults=false;
+void exrailHalSetup2() {
    #include "myAutomation.h"
-   return ignore_defaults;
 }
 
 // Pass 1c detect compile time featurtes
