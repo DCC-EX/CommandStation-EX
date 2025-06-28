@@ -168,7 +168,7 @@ void loop()
     DCCPacket p = dccSniffer->fetchPacket();
     if (p.len() != 0) {
       if (DCCDecoder::parse(p)) {
-	p.print(Serial);
+	p.print();
       }
     }
   }

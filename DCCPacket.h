@@ -20,6 +20,7 @@
 #ifndef DCCPacket_h
 #define DCCPacket_h
 #include <strings.h>
+#include "defines.h"
 
 class DCCPacket {
 public:
@@ -63,13 +64,15 @@ public:
       return true;
     return (bcmp(_data, right._data, _len) == 0);
   };
-  void print(HardwareSerial &s) {
-    s.print("<* DCCPACKET ");
+  void print() {
+    static const char hexchars[]="0123456789ABCDEF";
+    USB_SERIAL.print(F("<* DCCPACKET "));
     for (byte n = 0; n< _len; n++) {
-      s.print(_data[n], HEX);
-      s.print(" ");
+      USB_SERIAL.print(hexchars[_data[n]>>4]);
+      USB_SERIAL.print(hexchars[_data[n] & 0x0f]);
+      USB_SERIAL.print(' ');
     }
-    s.print("*>\n");
+    USB_SERIAL.print(F("*>\n"));
   };
   inline byte len() {return _len;};
   inline byte *data() {return _data;};
