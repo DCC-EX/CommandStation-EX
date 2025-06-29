@@ -9,7 +9,7 @@
  *  © 2020-2021 Chris Harlow
  *  © 2022 Colin Murdoch
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -68,10 +68,10 @@ Once a new OPCODE is decided upon, update this list.
   K, Reserved for future use - Potentially Railcom
   l, Loco speedbyte/function map broadcast
   L, Reserved for LCC interface (implemented in EXRAIL)
-  m, message to throttles broadcast 
+  m, message to throttles broadcast
   M, Write DCC packet
   n, Reserved for SensorCam
-  N, Reserved for Sensorcam 
+  N, Reserved for Sensorcam
   o, Neopixel driver (see also IO_NeoPixel.h)
   O, Output broadcast
   p, Broadcast power state
@@ -92,7 +92,7 @@ Once a new OPCODE is decided upon, update this list.
   W, Write CV
   x,
   X, Invalid command response
-  y, 
+  y,
   Y, Output broadcast
   z, Direct output
   Z, Output configuration/control
@@ -124,13 +124,13 @@ Once a new OPCODE is decided upon, update this list.
 #endif
 
 // This macro can't be created easily as a portable function because the
-// flashlist requires a far pointer for high flash access. 
+// flashlist requires a far pointer for high flash access.
 #define SENDFLASHLIST(stream,flashList)                 \
     for (int16_t i=0;;i+=sizeof(flashList[0])) {                            \
         int16_t value=GETHIGHFLASHW(flashList,i);       \
         if (value==INT16_MAX) break;                            \
         StringFormatter::send(stream,F(" %d"),value);	\
-    }                                   
+    }
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -256,10 +256,10 @@ void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
     atCommandCallback = callback;
 }
 
-// Parse an F() string 
+// Parse an F() string
 void DCCEXParser::parse(const FSH * cmd) {
       DIAG(F("SETUP(\"%S\")"),cmd);
-      int size=STRLEN_P((char *)cmd)+1; 
+      int size=STRLEN_P((char *)cmd)+1;
       char buffer[size];
       STRCPY_P(buffer,(char *)cmd);
       parse(&USB_SERIAL,(byte *)buffer,NULL);
@@ -377,7 +377,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 
     case 'a': // ACCESSORY <a ADDRESS SUBADDRESS ACTIVATE [ONOFF]> or <a LINEARADDRESS ACTIVATE>
-        { 
+        {
           int address;
           byte subaddress;
           byte activep;
@@ -403,7 +403,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
               onoff=p[3];
           }
           else break; // invalid no of parameters
-          
+
           if (
 	      ((address & 0x01FF) != address)      // invalid address (limit 9 bits)
            || ((subaddress & 0x03) != subaddress)  // invalid subaddress (limit 2 bits)
@@ -418,14 +418,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
         }
         return;
-    
-    case 'A': // EXTENDED ACCESSORY <A address value> 
-        // Note: if this happens to match a defined EXRAIL 
+
+    case 'A': // EXTENDED ACCESSORY <A address value>
+        // Note: if this happens to match a defined EXRAIL
         // DCCX_SIGNAL, then EXRAIL will have intercepted
-        // this command alrerady.   
+        // this command alrerady.
         if (params==2 && DCC::setExtendedAccessory(p[0],p[1])) return;
         break;
-     
+
     case 'T': // TURNOUT  <T ...>
         if (parseT(stream, params, p))
             return;
@@ -434,22 +434,22 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #ifndef IO_NO_HAL
     case 'o':  // Neopixel pin manipulation
         if (p[0]==0) break;
-        {  
+        {
           VPIN vpin=p[0]>0 ? p[0]:-p[0];
           bool setON=p[0]>0;
-          if (params==1) {  // <o [-]vpin> 
+          if (params==1) {  // <o [-]vpin>
             IODevice::write(vpin,setON);
             return;
           }
-          if (params==2) {  // <o [-]vpin count> 
+          if (params==2) {  // <o [-]vpin count>
             IODevice::writeRange(vpin,setON,p[1]);
             return;
           }
           if (params==4 || params==5) { // <z [-]vpin r g b [count]>
-             auto count=p[4]?p[4]:1;  
-             if (p[1]<0 || p[1]>0xFF) break;  
-            if (p[2]<0 || p[2]>0xFF) break;  
-            if (p[3]<0 || p[3]>0xFF) break;  
+             auto count=p[4]?p[4]:1;
+             if (p[1]<0 || p[1]>0xFF) break;
+            if (p[2]<0 || p[2]>0xFF) break;
+            if (p[3]<0 || p[3]>0xFF) break;
             // strange parameter mangling... see IO_NeoPixel.h NeoPixel::_writeAnalogue
             int colour_RG=(p[1]<<8)  | p[2];
             uint16_t colour_B=p[3];
@@ -458,21 +458,21 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             }
         }
         break;
-#endif        
+#endif
 
   case 'z':  // direct pin manipulation
-        if (p[0]==0) break; 
-        if (params==1) {  // <z vpin | -vpin> 
+        if (p[0]==0) break;
+        if (params==1) {  // <z vpin | -vpin>
             if (p[0]>0) IODevice::write(p[0],HIGH);
             else IODevice::write(-p[0],LOW);
             return;
         }
-        if (params>=2 && params<=4) { // <z vpin analog profile duration> 
-            // unused params default to 0           
+        if (params>=2 && params<=4) { // <z vpin analog profile duration>
+            // unused params default to 0
             IODevice::writeAnalogue(p[0],p[1],p[2],p[3]);
             return;
         }
-        break; 
+        break;
 
     case 'Z': // OUTPUT <Z ...>
         if (parseZ(stream, params, p))
@@ -512,10 +512,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             packet[i]=(byte)p[i+1];
             if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)"), i, packet[i], packet[i]);
           }
-          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
+          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);
         }
         return;
-        
+
 #ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
         if (!stashCallback(stream, p, ringStream))
@@ -526,7 +526,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DCC::writeCVByte(p[0], p[1], callback_W4);
         else if ((params==2 || params==3 ) && p[0]=="CONSIST"_hk ) {
             DCC::setConsistId(p[1],p[2]=="REVERSE"_hk,callback_Wconsist);
-        }    
+        }
         else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
 	else
@@ -611,10 +611,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	    else break; // will reply <X>
 	  }
 	  //TrackManager::streamTrackState(NULL,t);
-          
+
 	  return;
 	}
-            
+
     case '0': // POWEROFF <0 [MAIN | PROG] >
         {
 	  if (params > 1) break;
@@ -665,7 +665,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
         Sensor::printAll(stream);  //send all Sensor  states
-        return;       
+        return;
 
 #ifndef DISABLE_EEPROM
     case 'E': // STORE EPROM <E>
@@ -728,12 +728,12 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'F': // New command to call the new Loco Function API <F cab func 1|0>
-        if(params!=3) break; 
-        
+        if(params!=3) break;
+
         if (p[1]=="DCFREQ"_hk) { // <F cab DCFREQ 0..3>
           if (p[2]<0 || p[2]>3) break;
           DCC::setDCFreq(p[0],p[2]);
-          return;    
+          return;
         }
 
         if (Diag::CMD)
@@ -749,7 +749,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
           return;
         }
         break;
-#endif 
+#endif
 
     case 'J' : // throttle info access
         {
@@ -765,29 +765,29 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     }
                     CommandDistributor::setClockTime(p[1], p[2], 1);
                     return;
-                
+
                 case "G"_hk: // <JG> current gauge limits
                     if (params>1) break;
-                    TrackManager::reportGauges(stream);   // <g limit...limit>     
+                    TrackManager::reportGauges(stream);   // <g limit...limit>
                     return;
-                
+
                 case "I"_hk: // <JI> current values
                     if (params>1) break;
-                    TrackManager::reportCurrent(stream);   // <g limit...limit>     
+                    TrackManager::reportCurrent(stream);   // <g limit...limit>
                     return;
 
                 case "A"_hk: // <JA> intercepted by EXRAIL// <JA> returns automations/routes
                     if (params!=1) break; // <JA>
                     StringFormatter::send(stream, F("<jA>\n"));
                     return;
- 
+
                 case "M"_hk: // <JM> intercepted by EXRAIL
                     if (params>1) break; // invalid cant do
                     // <JM> requests stash size so say none.
-                    StringFormatter::send(stream,F("<jM 0>\n")); 
+                    StringFormatter::send(stream,F("<jM 0>\n"));
                     return;
- 
-            case "R"_hk: // <JR> returns rosters 
+
+            case "R"_hk: // <JR> returns rosters
                 StringFormatter::send(stream, F("<jR"));
 #ifdef EXRAIL_ACTIVE
                 if (params==1) {
@@ -800,17 +800,17 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     auto functionNames= RMFT2::getRosterFunctions(id);
                     if (!functionNames) functionNames=RMFT2::getRosterFunctions(0);
                     if (!functionNames) functionNames=F("");
-                    StringFormatter::send(stream,F(" %d \"%S\" \"%S\""), 
+                    StringFormatter::send(stream,F(" %d \"%S\" \"%S\""),
 					                            id, rosterName, functionNames);
                 }
-#endif          
-                StringFormatter::send(stream, F(">\n"));      
-                return; 
-            case "T"_hk: // <JT> returns turnout list 
+#endif
+                StringFormatter::send(stream, F(">\n"));
+                return;
+            case "T"_hk: // <JT> returns turnout list
                 StringFormatter::send(stream, F("<jT"));
                 if (params==1) { // <JT>
-                    for ( Turnout * t=Turnout::first(); t; t=t->next()) { 
-                        if (t->isHidden()) continue;          
+                    for ( Turnout * t=Turnout::first(); t; t=t->next()) {
+                        if (t->isHidden()) continue;
                         StringFormatter::send(stream, F(" %d"),t->getId());
                     }
                 }
@@ -836,8 +836,8 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             case "O"_hk: // <JO returns turntable list
                 StringFormatter::send(stream, F("<jO"));
                 if (params==1) { // <JO>
-                    for (Turntable * tto=Turntable::first(); tto; tto=tto->next()) { 
-                        if (tto->isHidden()) continue;          
+                    for (Turntable * tto=Turntable::first(); tto; tto=tto->next()) {
+                        if (tto->isHidden()) continue;
                         StringFormatter::send(stream, F(" %d"),tto->getId());
                     }
                     StringFormatter::send(stream, F(">\n"));
@@ -882,7 +882,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                 }
                 return;
 #endif
-            default: break;    
+            default: break;
             }  // switch(p[1])
         break; // case J
         }
@@ -901,7 +901,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #endif
     case '/': // implemented in EXRAIL parser
     case 'L': // LCC interface implemented in EXRAIL parser
-        break; // Will <X> if not intercepted by EXRAIL 
+        break; // Will <X> if not intercepted by EXRAIL
 
 #ifndef DISABLE_VDPY
     case '@': // JMRI saying "give me virtual LCD msgs"
@@ -909,7 +909,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         StringFormatter::send(stream,
             F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
                "<@ 0 1 \"Lic GPLv3\">\n"));
-        return; 
+        return;
 #endif
     default: //anything else will diagnose and drop out to <X>
       if (opcode >= ' ' && opcode <= '~') {
@@ -932,7 +932,7 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
 
     switch (params)
     {
-    
+
     case 2: // <Z ID ACTIVATE>
     {
         Output *o = Output::get(p[0]);
@@ -988,14 +988,14 @@ bool DCCEXParser::parsef(Print *stream, int16_t params, int16_t p[])
 	return (funcmap(p[0], p[1], 5, 8));
       else
 	return (funcmap(p[0], p[1], 9, 12));
-    } 
+    }
   }
   if (params == 3) {
     if (p[1] == 222) {
       return (funcmap(p[0], p[2], 13, 20));
     } else if (p[1] == 223) {
       return (funcmap(p[0], p[2], 21, 28));
-    } 
+    }
   }
   (void)stream; // NO RESPONSE
   return false;
@@ -1024,7 +1024,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         StringFormatter::send(stream, F("<O>\n"));
         return true;
 
-    case 2: // <T id 0|1|T|C> 
+    case 2: // <T id 0|1|T|C>
         {
           bool state = false;
           switch (p[1]) {
@@ -1057,10 +1057,10 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
       if (params == 6 && p[1] == "SERVO"_hk) { // <T id SERVO n n n n>
         if (!ServoTurnout::create(p[0], (VPIN)p[2], (uint16_t)p[3], (uint16_t)p[4], (uint8_t)p[5]))
           return false;
-      } else 
+      } else
       if (params == 3 && p[1] == "VPIN"_hk) { // <T id VPIN n>
         if (!VpinTurnout::create(p[0], p[2])) return false;
-      } else 
+      } else
       if (params >= 3 && p[1] == "DCC"_hk) {
         // <T id DCC addr subadd>   0<=addr<=511, 0<=subadd<=3 (like <a> command).<T>
         if (params==4 && p[2]>=0 && p[2]<512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
@@ -1070,14 +1070,14 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
           if (!DCCTurnout::create(p[0], (p[2]-1)/4+1, (p[2]-1)%4)) return false;
         } else
           return false;
-      } else 
+      } else
       if (params==3) { // legacy <T id addr subadd> for DCC accessory
         if (p[1]>=0 && p[1]<512 && p[2]>=0 && p[2]<4) {
           if (!DCCTurnout::create(p[0], p[1], p[2])) return false;
         } else
           return false;
-      } 
-      else 
+      }
+      else
       if (params==4) { // legacy <T id n n n> for Servo
         if (!ServoTurnout::create(p[0], (VPIN)p[1], (uint16_t)p[2], (uint16_t)p[3], 1)) return false;
       } else
@@ -1163,10 +1163,10 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
                      break;
                 default:
                  return false;
-            }              
+            }
         DIAG(F("Railcom %S")
             ,DCCWaveform::setRailcom(on,debug)?F("ON"):F("OFF"));
-        return true;     
+        return true;
         }
 #endif
 #ifndef DISABLE_PROG
@@ -1196,7 +1196,7 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 	    }
 	} else {
       bool onOff = (params > 0) && (p[1] == 1 || p[1] == "ON"_hk); // dont care if other stuff or missing... just means off
-    
+
 	  DIAG(F("Ack diag %S"), onOff ? F("on") : F("off"));
 	  Diag::ACK = onOff;
 	}
@@ -1261,8 +1261,8 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         return true;
 
 #if !defined(IO_NO_HAL)
-    case "HAL"_hk: 
-        if (p[1] == "SHOW"_hk) 
+    case "HAL"_hk:
+        if (p[1] == "SHOW"_hk)
           IODevice::DumpAll();
         else if (p[1] == "RESET"_hk)
           IODevice::reset();
@@ -1271,6 +1271,11 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
     case "TT"_hk:     // <D TT vpin steps activity>
         IODevice::writeAnalogue(p[1], p[2], params>3 ? p[3] : 0);
+        return true;
+
+    case "OTA"_hk:    // <D OTA ON/OFF>
+        Diag::OTA = onOff;
+        DIAG(F("OTA=%S"), onOff ? F("ON") : F("OFF"));
         return true;
 
     default: // invalid/unknown
@@ -1297,7 +1302,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
         return Turntable::printAll(stream);
 
     case 1: // <I id> broadcast type and current position
-        {    
+        {
             Turntable *tto = Turntable::get(p[0]);
             if (tto) {
                 bool type = tto->isEXTT();
@@ -1308,7 +1313,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             }
         }
         return true;
-    
+
     case 2: // <I id position> - rotate a DCC turntable
         {
             Turntable *tto = Turntable::get(p[0]);
@@ -1336,7 +1341,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             }
         }
         return true;
-    
+
     case 4: // <I id EXTT vpin home> create an EXTT turntable
         {
             Turntable *tto = Turntable::get(p[0]);
@@ -1351,7 +1356,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             }
         }
         return true;
-    
+
     case 5: // <I id ADD position value angle> add a position
         {
             Turntable *tto = Turntable::get(p[0]);
@@ -1365,7 +1370,7 @@ bool DCCEXParser::parseI(Print *stream, int16_t params, int16_t p[])
             }
         }
         return true;
-    
+
     default:    // Anything else is invalid
         return false;
     }
@@ -1414,7 +1419,7 @@ void DCCEXParser::callback_W4(int16_t result)
 
 void DCCEXParser::callback_B(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), 
+    StringFormatter::send(getAsyncReplyStream(),
           F("<r%d|%d|%d %d %d>\n"), stashP[3], stashP[4], stashP[0], stashP[1], result == 1 ? stashP[2] : -1);
     commitAsyncReplyStream();
 }
