@@ -17,17 +17,24 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #ifdef ARDUINO_ARCH_ESP32
-#define DIAG_LED 33
 #include "Sniffer.h"
 #include "DIAG.h"
 //extern Sniffer *DCCSniffer;
 
 static void packeterror() {
-  digitalWrite(DIAG_LED,HIGH);
+#ifndef WIFI_LED
+#ifdef SNIFFER_LED
+  digitalWrite(SNIFFER_LED,HIGH);
+#endif
+#endif
 }
 
 static void clear_packeterror() {
-  digitalWrite(DIAG_LED,LOW);
+#ifndef WIFI_LED
+#ifdef SNIFFER_LED
+  digitalWrite(SNIFFER_LED,LOW);
+#endif
+#endif
 }
 
 static bool halfbits2byte(uint16_t b, byte *dccbyte) {
@@ -61,13 +68,17 @@ static bool halfbits2byte(uint16_t b, byte *dccbyte) {
 }
 
 static void IRAM_ATTR blink_diag(int limit) {
+#ifndef WIFI_LED
+#ifdef SNIFFER_LED
   delay(500);
   for (int n=0 ; n<limit; n++) {
-    digitalWrite(DIAG_LED,HIGH);
+    digitalWrite(SNIFFER_LED,HIGH);
     delay(200);
-    digitalWrite(DIAG_LED,LOW);
+    digitalWrite(SNIFFER_LED,LOW);
     delay(200);
   }
+#endif
+#endif
 }
 
 static bool IRAM_ATTR cap_ISR_cb(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t cap_channel, const cap_event_data_t *edata,void *user_data) {
@@ -97,8 +108,12 @@ Sniffer::Sniffer(byte snifferpin) {
     .capture_cb = cap_ISR_cb,                 // user defined ISR/callback
     .user_data = (void *)this                 // user defined argument to callback
   };
-  pinMode(DIAG_LED ,OUTPUT);
-  blink_diag(3); // so that we know we have DIAG_LED
+#ifndef WIFI_LED
+#ifdef SNIFFER_LED
+  pinMode(SNIFFER_LED ,OUTPUT);
+#endif
+#endif
+  blink_diag(3); // so that we know we have SNIFFER_LED
   DIAG(F("Init sniffer on pin %d"), snifferpin);
   ESP_ERROR_CHECK(mcpwm_capture_enable_channel(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, &MCPWM_cap_config));
 }
