@@ -61,6 +61,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 
 
 void DCCTimer::startRailcomTimer(byte brakePin) {
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   /* The Railcom timer is started in such a way that it 
      - First triggers 28uS after the last TIMER1 tick. 
        This provides an accurate offset (in High Accuracy mode)
@@ -113,10 +114,13 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
   // it does seems to get a good answer. 
 
   TCNT2=193 + (ICR1 - TCNT1)/8;
+#endif
 }
 
 void DCCTimer::ackRailcomTimer() {
+#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   OCR2B= 0x00;  // brake pin pwm duty cycle 0 at next tick
+#endif
 }
 
 
