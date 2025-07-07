@@ -1243,6 +1243,9 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
     case "LCN"_hk: // <D LCN ON/OFF>
         Diag::LCN = onOff;
         return true;
+    case "SNIFFER"_hk: // <D SNIFFER ON/OFF>
+        Diag::SNIFFER = onOff;
+        return true;
 #endif
 #ifndef DISABLE_EEPROM
     case "EEPROM"_hk: // <D EEPROM NumEntries>

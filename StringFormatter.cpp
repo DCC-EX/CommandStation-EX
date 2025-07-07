@@ -27,6 +27,7 @@ bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
+bool Diag::SNIFFER=false;
 
  
 void StringFormatter::diag( const FSH* input...) {
