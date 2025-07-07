@@ -1277,6 +1277,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
         Diag::LCN = onOff;
         return true;
 
+    case "SNIFFER"_hk: // <D SNIFFER ON/OFF>
+        Diag::SNIFFER = onOff;
+        return true;
+
     case "WEBSOCKET"_hk: // <D WEBSOCKET ON/OFF>
         Diag::WEBSOCKET = onOff;
         return true;

@@ -32,7 +32,7 @@ class Diag {
   static bool LCN;
   static bool RAILCOM;
   static bool WEBSOCKET;
-  
+  static bool SNIFFER;
 };
 
 class StringFormatter

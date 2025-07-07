@@ -42,8 +42,10 @@ bool DCCDecoder::parse(DCCPacket &p) {
   for (byte n = 0; n < p.len(); n++)
     checksum ^= d[n];
   if (checksum) {  // Result should be zero, if not it's an error!
-    DIAG(F("Checksum error:"));
-    p.print();
+    if (Diag::SNIFFER) {
+      DIAG(F("Checksum error:"));
+      p.print();
+    }
     return false;
   }
 
