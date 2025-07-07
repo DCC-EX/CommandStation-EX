@@ -196,19 +196,25 @@ void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
 	    inpacket = false;
 	    dcclen = currentbyte+1;
 	    debugfield = bitfield;
-	    // put it into the out packet
-	    if (fetchflag) {
-	      // not good, should have been fetched
-              // blink_diag(1);
-	      packeterror(); // or better?
+	    // We have something we want to give to the outpacket queue
+	    // Check length of outpacket queue
+	    if (outpacket.size() > 3) {
+	      // not good, these should have been fetched
+	      // the arbitraty number to check is THREE (see the holy grail)
+              // blink_diag(1); DO NOT DO THIS HERE -> will crash
+	      packeterror(); // or what to do better?
+	      // take emergency action:
+	      while (!outpacket.empty()) {
+		outpacket.pop_front();
+	      }
 	    }
 	    lastendofpacket = millis();
 	    DCCPacket temppacket(dccbytes, dcclen);
 	    if (!(temppacket == prevpacket)) {
 	      // we have something new to offer to the fetch routine
+	      // put it into the outpacket queue
 	      outpacket.push_back(temppacket);
 	      prevpacket = temppacket;
-	      fetchflag = true;
 	    }
 	    return;
 	  }

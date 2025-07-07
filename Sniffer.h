@@ -51,9 +51,6 @@ public:
       p = outpacket.front();
       outpacket.pop_front();
     }
-    if (fetchflag) {
-      fetchflag = false; // (data has been fetched)
-    }
     interrupts();
     return p;
   };
@@ -71,7 +68,6 @@ private:
   bool inpacket = false;
   // these vars are used as interface to other parts of sniffer
   byte halfbitcounter = 0;
-  bool fetchflag = false;
   std::list<DCCPacket> outpacket;
   DCCPacket prevpacket;
   volatile unsigned long lastendofpacket = 0; // timestamp millis
