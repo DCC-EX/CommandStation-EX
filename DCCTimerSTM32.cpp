@@ -30,9 +30,7 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
 #include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
 
@@ -215,68 +213,105 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-// Static variables for Railcom timer shared between functions
-static HardwareTimer *railcomTimer = nullptr;
-static byte railcomBrakePin = 255;
+// Static variables for Railcom timers - separate for main and prog tracks
+static HardwareTimer *railcomMainTimer = nullptr;
+static HardwareTimer *railcomProgTimer = nullptr;
 
-// Timer callback functions
-void railcomEndCallback() {
-  if (railcomBrakePin != 255) {
-    digitalWrite(railcomBrakePin, LOW);
-  }
-  if (railcomTimer) {
-    railcomTimer->pause();
-    railcomTimer->detachInterrupt();
+// Timer callback functions for main track
+void railcomMainEndCallback() {
+  TrackManager::setMainBrake(false, true);
+  if (railcomMainTimer) {
+    railcomMainTimer->pause();
+    railcomMainTimer->detachInterrupt();
   }
 }
 
-void railcomStartCallback() {
-  if (railcomBrakePin != 255) {
-    digitalWrite(railcomBrakePin, HIGH);
-  }
-  if (railcomTimer) {
-    railcomTimer->pause();
-    railcomTimer->detachInterrupt();
+void railcomMainStartCallback() {
+  TrackManager::setMainBrake(true, true);
+  if (railcomMainTimer) {
+    railcomMainTimer->pause();
+    railcomMainTimer->detachInterrupt();
     // Start timer for cutout duration (430us)
-    railcomTimer->setOverflow(430, MICROSEC_FORMAT);
-    railcomTimer->attachInterrupt(railcomEndCallback);
-    railcomTimer->refresh();
-    railcomTimer->resume();
+    railcomMainTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomMainTimer->attachInterrupt(railcomMainEndCallback);
+    railcomMainTimer->refresh();
+    railcomMainTimer->resume();
   }
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  const uint32_t cutoutOffset = 10;  // 26-32 microseconds after last DCC tick minus overhead
+// Timer callback functions for prog track
+void railcomProgEndCallback() {
+  TrackManager::setProgBrake(false, true);
+  if (railcomProgTimer) {
+    railcomProgTimer->pause();
+    railcomProgTimer->detachInterrupt();
+  }
+}
 
-  // Configure brakePin as output
-  pinMode(brakePin, OUTPUT);
-  digitalWrite(brakePin, LOW);
+void railcomProgStartCallback() {
+  TrackManager::setProgBrake(true, true);
+  if (railcomProgTimer) {
+    railcomProgTimer->pause();
+    railcomProgTimer->detachInterrupt();
+    // Start timer for cutout duration (430us)
+    railcomProgTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomProgTimer->attachInterrupt(railcomProgEndCallback);
+    railcomProgTimer->refresh();
+    railcomProgTimer->resume();
+  }
+}
 
-  // Initialize timer if not already done
-  if (!railcomTimer) {
-    railcomTimer = new HardwareTimer(TIM3);
+void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
+  uint32_t cutoutOffset;
+  HardwareTimer *timer = nullptr;
+
+  // We're just starting the last XOR bit, wait for the bit length, terminator bit, and initial cutout delay, minus some overhead
+  if (lastBit) {
+    // 1-bit
+    cutoutOffset = 2 * 58 + 116 + 10;
+  } else {
+    // 0-bit
+    cutoutOffset = 2 * 116 + 116 + 10;
   }
 
-  // Store the brake pin for callbacks
-  railcomBrakePin = brakePin;
+  if (isMain) {
+    TrackManager::setMainBrake(false, true);
+
+    // Initialize main timer if not already done
+    if (!railcomMainTimer) {
+      railcomMainTimer = new HardwareTimer(TIM3);
+    }
+    timer = railcomMainTimer;
+  } else {
+    TrackManager::setProgBrake(false, true);
+
+    // Initialize prog timer if not already done (use TIM4 for prog track)
+    if (!railcomProgTimer) {
+      railcomProgTimer = new HardwareTimer(TIM4);
+    }
+    timer = railcomProgTimer;
+  }
 
   // Start timer for offset
-  railcomTimer->pause();
-  railcomTimer->setPrescaleFactor(1);
-  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
-  railcomTimer->attachInterrupt(railcomStartCallback);
-  railcomTimer->refresh();
-  railcomTimer->resume();
+  timer->pause();
+  timer->setPrescaleFactor(1);
+  timer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+  timer->attachInterrupt(isMain ? railcomMainStartCallback : railcomProgStartCallback);
+  timer->refresh();
+  timer->resume();
 }
 
-void DCCTimer::ackRailcomTimer() {
-  // Immediately end the Railcom cutout: set brake pin LOW and stop timer
-  if (railcomBrakePin != 255) {
-    digitalWrite(railcomBrakePin, LOW);
+void DCCTimer::ackRailcomTimer(bool isMain) {
+  // Immediately end the Railcom cutout
+  if (isMain && railcomMainTimer) {
+    railcomMainTimer->pause();
+    railcomMainTimer->detachInterrupt();
+    TrackManager::setMainBrake(false, true);
   }
-  if (railcomTimer) {
-    railcomTimer->pause();
-    railcomTimer->detachInterrupt();
+  if (!isMain && railcomProgTimer) {
+    railcomProgTimer->pause();
+    railcomProgTimer->detachInterrupt();
+    TrackManager::setProgBrake(false, true);
   }
 }
 

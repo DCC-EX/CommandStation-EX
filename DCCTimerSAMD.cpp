@@ -76,13 +76,15 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+  (void) isMain;
+  (void) lastBit;
 }
 
-void DCCTimer::ackRailcomTimer() {
+void DCCTimer::ackRailcomTimer(bool isMain) {
   // TODO: for intended operation see DCCTimerAVR.cpp
+  (void) isMain;
 }
 
 // Timer IRQ handlers replace the dummy handlers (in cortex_handlers)

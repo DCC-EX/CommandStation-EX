@@ -60,7 +60,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   }
 
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   /* The Railcom timer is started in such a way that it 
      - First triggers 28uS after the last TIMER1 tick. 
@@ -77,9 +77,11 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
        (there will be 7 DCC timer1 ticks in which to do this.)
     
     */
-  (void) brakePin; // Ignored... works on pin 9 only 
+  (void) lastBit; // Ignored
   const int cutoutDuration = 430; // Desired interval in microseconds
   
+  if (!isMain) return;
+
   // Set up Timer2 for CTC mode (Clear Timer on Compare Match)
   TCCR2A = 0; // Clear Timer2 control register A
   TCCR2B = 0; // Clear Timer2 control register B
@@ -117,8 +119,9 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
 #endif
 }
 
-void DCCTimer::ackRailcomTimer() {
+void DCCTimer::ackRailcomTimer(bool isMain) {
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  if (!isMain) return;
   OCR2B= 0x00;  // brake pin pwm duty cycle 0 at next tick
 #endif
 }

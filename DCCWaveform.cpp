@@ -147,7 +147,7 @@ void DCCWaveform::interrupt2() {
     // that the reminder doesn't block a more urgent packet. 
     reminderWindowOpen=transmitRepeats==0 && remainingPreambles<12 && remainingPreambles>1;
     if (remainingPreambles==1) promotePendingPacket();
-    else if (remainingPreambles==10 && isMainTrack && railcomActive) DCCTimer::ackRailcomTimer();
+    else if (remainingPreambles==10 && railcomActive) DCCTimer::ackRailcomTimer(isMainTrack);
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
     else DCCTimer::updateMinimumFreeMemoryISR(22); 
@@ -176,7 +176,7 @@ void DCCWaveform::interrupt2() {
       // through the first preamble bit.
       // Note.. we are still sending the last packet bit
       //    and we then have to allow for the packet end bit
-      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(9);
+      if (railcomActive) DCCTimer::startRailcomTimer(isMainTrack, state == WAVE_MID_1);
       }
   }  
 }
