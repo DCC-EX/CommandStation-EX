@@ -1513,7 +1513,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     }
 }
 
-void RMFT2::manageRouteState(uint16_t id, byte state) {
+void RMFT2::manageRouteState(int16_t id, byte state) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.
     // locate route id in the Routes lookup
@@ -1525,7 +1525,7 @@ void RMFT2::manageRouteState(uint16_t id, byte state) {
     CommandDistributor::broadcastRouteState(id,state);
   }
 }
-void RMFT2::manageRouteCaption(uint16_t id,const FSH* caption) {
+void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.
     // locate route id in the Routes lookup

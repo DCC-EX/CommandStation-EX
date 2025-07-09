@@ -323,11 +323,11 @@ void CommandDistributor::broadcastTrackState(const FSH* format, byte trackLetter
   broadcastReply(COMMAND_TYPE, format, trackLetter, modename, dcAddr);
 }
 
-void  CommandDistributor::broadcastRouteState(uint16_t routeId, byte state ) {
+void  CommandDistributor::broadcastRouteState(int16_t routeId, byte state ) {
   broadcastReply(COMMAND_TYPE, F("<jB %d %d>\n"),routeId,state);
 }
 
-void  CommandDistributor::broadcastRouteCaption(uint16_t routeId, const FSH* caption ) {
+void  CommandDistributor::broadcastRouteCaption(int16_t routeId, const FSH* caption ) {
   broadcastReply(COMMAND_TYPE, F("<jB %d \"%S\">\n"),routeId,caption);
 }
 
