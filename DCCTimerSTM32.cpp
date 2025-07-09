@@ -215,13 +215,69 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
+// Static variables for Railcom timer shared between functions
+static HardwareTimer *railcomTimer = nullptr;
+static byte railcomBrakePin = 255;
+
+// Timer callback functions
+void railcomEndCallback() {
+  if (railcomBrakePin != 255) {
+    digitalWrite(railcomBrakePin, LOW);
+  }
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+  }
+}
+
+void railcomStartCallback() {
+  if (railcomBrakePin != 255) {
+    digitalWrite(railcomBrakePin, HIGH);
+  }
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+    // Start timer for cutout duration (430us)
+    railcomTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomTimer->attachInterrupt(railcomEndCallback);
+    railcomTimer->refresh();
+    railcomTimer->resume();
+  }
+}
+
 void DCCTimer::startRailcomTimer(byte brakePin) {
-  // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+  const uint32_t cutoutOffset = 10;  // 26-32 microseconds after last DCC tick minus overhead
+
+  // Configure brakePin as output
+  pinMode(brakePin, OUTPUT);
+  digitalWrite(brakePin, LOW);
+
+  // Initialize timer if not already done
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM3);
+  }
+
+  // Store the brake pin for callbacks
+  railcomBrakePin = brakePin;
+
+  // Start timer for offset
+  railcomTimer->pause();
+  railcomTimer->setPrescaleFactor(1);
+  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+  railcomTimer->attachInterrupt(railcomStartCallback);
+  railcomTimer->refresh();
+  railcomTimer->resume();
 }
 
 void DCCTimer::ackRailcomTimer() {
-  // TODO: for intended operation see DCCTimerAVR.cpp
+  // Immediately end the Railcom cutout: set brake pin LOW and stop timer
+  if (railcomBrakePin != 255) {
+    digitalWrite(railcomBrakePin, LOW);
+  }
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+  }
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
