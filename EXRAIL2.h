@@ -279,8 +279,8 @@ private:
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
-   static void manageRouteState(uint16_t id, byte state);
-   static void manageRouteCaption(uint16_t id, const FSH* caption);
+   static void manageRouteState(int16_t id, byte state);
+   static void manageRouteCaption(int16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;
    static int16_t * stashArray;
