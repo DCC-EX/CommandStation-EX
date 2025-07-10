@@ -211,9 +211,19 @@ void I2CManagerClass::I2C_init()
 
 #if defined(I2C_USE_INTERRUPTS)
   // Setting NVIC
-  NVIC_SetPriority(I2C1_EV_IRQn, 1);  // Match default priorities
+  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);   // 4 means that we have all bits for preemptive grouping
+  // prio scheme:
+  // systick        : 0
+  // waveform timer : 1
+  // i2c            : 2
+  // one must call NVIC_EncodePriority() to bitshift the priorities
+  // according to the active priority grouping and then use that
+  // value as argument to NVIC_SetPriority().
+  NVIC_SetPriority(I2C1_EV_IRQn,
+		   NVIC_EncodePriority(NVIC_GetPriorityGrouping(),  2, 0));
   NVIC_EnableIRQ(I2C1_EV_IRQn);
-  NVIC_SetPriority(I2C1_ER_IRQn, 1);  // Match default priorities
+  NVIC_SetPriority(I2C1_ER_IRQn,
+		   NVIC_EncodePriority(NVIC_GetPriorityGrouping(),  2, 0));
   NVIC_EnableIRQ(I2C1_ER_IRQn);
 
   // CR2 Interrupt Settings
@@ -305,6 +315,7 @@ void I2CManagerClass::I2C_close() {
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
   volatile uint16_t temp_sr1, temp_sr2;
+  (void) temp_sr2; // only used as target for reads
 
   temp_sr1 = s->SR1;
 
