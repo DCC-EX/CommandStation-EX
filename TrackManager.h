@@ -71,7 +71,7 @@ class TrackManager {
     static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
 
     static void setTrackBrake(TRACK_MODE trackmode, bool on, bool interruptContext=false);
-    static void setMainBrake(bool on, bool interruptContext=false) {setTrackBrake(TRACK_MODE_MAIN, on, interruptContext);}
+    static void setMainBrake(bool on, bool interruptContext=false);
     static void setProgBrake(bool on, bool interruptContext=false) {setTrackBrake(TRACK_MODE_PROG, on, interruptContext);}
 
     static const int16_t MAX_TRACKS=8;
