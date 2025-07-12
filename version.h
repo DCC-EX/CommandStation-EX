@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.34"
+#define VERSION "5.5.35"
+// 5.5.35 - BUGFIX DCC Packet Queue timing leak with single loco
 // 5.5.34 - STM32: Remove I2C interrupt blocking waveform interrupt
 //        - Bugfix: Negative route Ids
 // 5.5.33 - Fix CONFIG_SERVO when default PCA9685 definition used.
