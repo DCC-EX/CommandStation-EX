@@ -39,15 +39,13 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
   }
 
-void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
+void DCCTimer::startRailcomTimer(bool lastBit) {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) isMain;
   (void) lastBit;
 }
 
-void DCCTimer::ackRailcomTimer(bool isMain) {
+void DCCTimer::ackRailcomTimer() {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) isMain;
 }
 
 bool DCCTimer::isPWMPin(byte pin) {

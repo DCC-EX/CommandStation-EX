@@ -213,57 +213,31 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-// Static variables for Railcom timers - separate for main and prog tracks
-static HardwareTimer *railcomMainTimer = nullptr;
-static HardwareTimer *railcomProgTimer = nullptr;
+static HardwareTimer *railcomTimer = nullptr;
 
-// Timer callback functions for main track
-void railcomMainEndCallback() {
+void railcomEndCallback() {
   TrackManager::setMainBrake(false, true);
-  if (railcomMainTimer) {
-    railcomMainTimer->pause();
-    railcomMainTimer->detachInterrupt();
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
   }
 }
 
-void railcomMainStartCallback() {
+void railcomStartCallback() {
   TrackManager::setMainBrake(true, true);
-  if (railcomMainTimer) {
-    railcomMainTimer->pause();
-    railcomMainTimer->detachInterrupt();
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
     // Start timer for cutout duration (430us)
-    railcomMainTimer->setOverflow(430, MICROSEC_FORMAT);
-    railcomMainTimer->attachInterrupt(railcomMainEndCallback);
-    railcomMainTimer->refresh();
-    railcomMainTimer->resume();
+    railcomTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomTimer->attachInterrupt(railcomEndCallback);
+    railcomTimer->refresh();
+    railcomTimer->resume();
   }
 }
 
-// Timer callback functions for prog track
-void railcomProgEndCallback() {
-  TrackManager::setProgBrake(false, true);
-  if (railcomProgTimer) {
-    railcomProgTimer->pause();
-    railcomProgTimer->detachInterrupt();
-  }
-}
-
-void railcomProgStartCallback() {
-  TrackManager::setProgBrake(true, true);
-  if (railcomProgTimer) {
-    railcomProgTimer->pause();
-    railcomProgTimer->detachInterrupt();
-    // Start timer for cutout duration (430us)
-    railcomProgTimer->setOverflow(430, MICROSEC_FORMAT);
-    railcomProgTimer->attachInterrupt(railcomProgEndCallback);
-    railcomProgTimer->refresh();
-    railcomProgTimer->resume();
-  }
-}
-
-void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
+void DCCTimer::startRailcomTimer(bool lastBit) {
   uint32_t cutoutOffset;
-  HardwareTimer *timer = nullptr;
 
   // We're just starting the last XOR bit, wait for the bit length, terminator bit, and initial cutout delay, minus some overhead
   if (lastBit) {
@@ -274,44 +248,33 @@ void DCCTimer::startRailcomTimer(bool isMain, bool lastBit) {
     cutoutOffset = 2 * 116 + 116 + 10;
   }
 
-  if (isMain) {
-    TrackManager::setMainBrake(false, true);
+  TrackManager::setMainBrake(false, true);
 
-    // Initialize main timer if not already done
-    if (!railcomMainTimer) {
-      railcomMainTimer = new HardwareTimer(TIM3);
-    }
-    timer = railcomMainTimer;
-  } else {
-    TrackManager::setProgBrake(false, true);
-
-    // Initialize prog timer if not already done (use TIM4 for prog track)
-    if (!railcomProgTimer) {
-      railcomProgTimer = new HardwareTimer(TIM4);
-    }
-    timer = railcomProgTimer;
+  // Initialize main timer if not already done
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM3);
   }
 
   // Start timer for offset
-  timer->pause();
-  timer->setPrescaleFactor(1);
-  timer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
-  timer->attachInterrupt(isMain ? railcomMainStartCallback : railcomProgStartCallback);
-  timer->refresh();
-  timer->resume();
+  railcomTimer->pause();
+  railcomTimer->setPrescaleFactor(1);
+  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+
+  uint32_t dccTimerCount = dcctimer.getCount();
+  uint32_t alignmentOffset = (DCC_SIGNAL_TIME - dccTimerCount);
+  railcomTimer->setCount(alignmentOffset);
+
+  railcomTimer->attachInterrupt(railcomStartCallback);
+  railcomTimer->refresh();
+  railcomTimer->resume();
 }
 
-void DCCTimer::ackRailcomTimer(bool isMain) {
+void DCCTimer::ackRailcomTimer() {
   // Immediately end the Railcom cutout
-  if (isMain && railcomMainTimer) {
-    railcomMainTimer->pause();
-    railcomMainTimer->detachInterrupt();
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
     TrackManager::setMainBrake(false, true);
-  }
-  if (!isMain && railcomProgTimer) {
-    railcomProgTimer->pause();
-    railcomProgTimer->detachInterrupt();
-    TrackManager::setProgBrake(false, true);
   }
 }
 

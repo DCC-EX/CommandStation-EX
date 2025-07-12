@@ -62,8 +62,8 @@ class DCCTimer {
   static bool isPWMPin(byte pin);
   static void setPWM(byte pin, bool high);
   static void clearPWM();
-  static void startRailcomTimer(bool isMain, bool lastBit);
-  static void ackRailcomTimer(bool isMain);
+  static void startRailcomTimer(bool lastBit);
+  static void ackRailcomTimer();
   static void DCCEXanalogWriteFrequency(uint8_t pin, uint32_t frequency);
   static void DCCEXanalogWrite(uint8_t pin, int value, bool invert);
   static void DCCEXledcDetachPin(uint8_t pin);
