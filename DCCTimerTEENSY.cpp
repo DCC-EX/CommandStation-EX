@@ -39,9 +39,9 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   myDCCTimer.begin(interruptHandler, DCC_SIGNAL_TIME);
   }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer(bool lastBit) {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+  (void) lastBit;
 }
 
 void DCCTimer::ackRailcomTimer() {

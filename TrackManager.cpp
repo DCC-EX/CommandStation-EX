@@ -653,6 +653,21 @@ void TrackManager::reportGauges(Print* stream) {
     StringFormatter::send(stream,F(">\n"));    
 }
 
+void TrackManager::setMainBrake(bool on, bool interruptContext) {
+  setTrackBrake(TRACK_MODE_MAIN, on, interruptContext);
+  if (progTrackSyncMain) {
+    setTrackBrake(TRACK_MODE_PROG, on, interruptContext);
+  }
+}
+
+void TrackManager::setTrackBrake(TRACK_MODE trackmode, bool on, bool interruptContext) {
+  FOR_EACH_TRACK(t) {
+    if (track[t]->getMode() & trackmode) {
+      track[t]->setBrake(on, interruptContext);
+    }
+  }
+}
+
 void TrackManager::setJoinRelayPin(byte joinRelayPin) {
   joinRelay=joinRelayPin;
   if (joinRelay!=UNUSED_PIN) {

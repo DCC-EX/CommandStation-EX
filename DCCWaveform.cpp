@@ -176,7 +176,7 @@ void DCCWaveform::interrupt2() {
       // through the first preamble bit.
       // Note.. we are still sending the last packet bit
       //    and we then have to allow for the packet end bit
-      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(9);
+      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(state == WAVE_MID_1);
       }
   }  
 }

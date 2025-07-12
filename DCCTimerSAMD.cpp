@@ -76,9 +76,9 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer(bool lastBit) {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+  (void) lastBit;
 }
 
 void DCCTimer::ackRailcomTimer() {

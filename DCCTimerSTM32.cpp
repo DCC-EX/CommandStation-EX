@@ -30,9 +30,7 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
 #include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
 
@@ -215,13 +213,69 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+static HardwareTimer *railcomTimer = nullptr;
+
+void railcomEndCallback() {
+  TrackManager::setMainBrake(false, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+  }
+}
+
+void railcomStartCallback() {
+  TrackManager::setMainBrake(true, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+    // Start timer for cutout duration (430us)
+    railcomTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomTimer->attachInterrupt(railcomEndCallback);
+    railcomTimer->refresh();
+    railcomTimer->resume();
+  }
+}
+
+void DCCTimer::startRailcomTimer(bool lastBit) {
+  uint32_t cutoutOffset;
+
+  // We're just starting the last XOR bit, wait for the bit length, terminator bit, and initial cutout delay, minus some overhead
+  if (lastBit) {
+    // 1-bit
+    cutoutOffset = 2 * 58 + 116 + 10;
+  } else {
+    // 0-bit
+    cutoutOffset = 2 * 116 + 116 + 10;
+  }
+
+  TrackManager::setMainBrake(false, true);
+
+  // Initialize main timer if not already done
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM3);
+  }
+
+  // Start timer for offset
+  railcomTimer->pause();
+  railcomTimer->setPrescaleFactor(1);
+  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+
+  uint32_t dccTimerCount = dcctimer.getCount();
+  uint32_t alignmentOffset = (DCC_SIGNAL_TIME - dccTimerCount);
+  railcomTimer->setCount(alignmentOffset);
+
+  railcomTimer->attachInterrupt(railcomStartCallback);
+  railcomTimer->refresh();
+  railcomTimer->resume();
 }
 
 void DCCTimer::ackRailcomTimer() {
-  // TODO: for intended operation see DCCTimerAVR.cpp
+  // Immediately end the Railcom cutout
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+    TrackManager::setMainBrake(false, true);
+  }
 }
 
 bool DCCTimer::isPWMPin(byte pin) {
