@@ -23,7 +23,10 @@
 #include "Arduino.h"
 #include "DCCWaveform.h"
 
-enum PendingType:byte {NORMAL_PACKET,SPEED_PACKET,FUNCTION_PACKET,ACC_ON_PACKET,ACC_OFF_PACKET,DEAD_PACKET};
+enum PendingType:byte {NORMAL_PACKET,
+  FUNCTION1_PACKET, FUNCTION2_PACKET, FUNCTION3_PACKET, FUNCTION4_PACKET, FUNCTION5_PACKET,
+  SPEED_PACKET,ACC_ON_PACKET,ACC_OFF_PACKET,DEAD_PACKET};
+  
   struct PendingSlot {
       PendingSlot* next; 
       PendingType type;
@@ -40,14 +43,16 @@ enum PendingType:byte {NORMAL_PACKET,SPEED_PACKET,FUNCTION_PACKET,ACC_ON_PACKET,
   
 class DCCQueue {
   public:
-    
-    
+      
     // Non-speed packets are queued in the main queue
     static void scheduleDCCPacket(byte* packet, byte length, byte repeats, uint16_t loco=0);
 
     // Speed packets are queued in the high priority queue
     static void scheduleDCCSpeedPacket(byte* packet, byte length, byte repeats, uint16_t loco);
     
+    // Function group packets are queued in the low priority queue
+    static void scheduleDCCFunctionPacket(byte* packet, byte length, uint16_t loco, byte group);
+
     // ESTOP packets jump the high priority queue and discard any outstanding throttle packets for this loco  
     static void scheduleEstopPacket(byte* packet, byte length, byte repeats,uint16_t loco);
 

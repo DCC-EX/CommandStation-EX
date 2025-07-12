@@ -94,9 +94,35 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
                 return;
             }
         }
-        highPriorityQueue->addQueue(getSlot(NORMAL_PACKET,packet,length,repeats,loco));
+        highPriorityQueue->addQueue(getSlot(SPEED_PACKET,packet,length,repeats,loco));
     }
     
+    // Packet replaces existing loco function packet or joins end of high priority queue. 
+    
+    void DCCQueue::scheduleDCCFunctionPacket(byte* packet, byte length, uint16_t loco, byte group) {
+        PendingType type=DEAD_PACKET;
+        switch(group) {
+            case 1: type=FUNCTION1_PACKET; break;
+            case 2: type=FUNCTION2_PACKET; break;
+            case 3: type=FUNCTION3_PACKET; break;
+            case 4: type=FUNCTION4_PACKET; break;
+            case 5: type=FUNCTION5_PACKET; break;
+            default:
+                DIAG(F("DCCQueue::scheduleDCCFunctionPacket invalid group %d"),group);
+                return; // invalid group
+        }
+
+        for (auto p=lowPriorityQueue->head;p;p=p->next) {
+            if (p->locoId==loco && p->type==type) {
+                // replace existing packet for same loco and function group
+                memcpy(p->packet,packet,length);
+                p->packetLength=length;
+                p->packetRepeat=0;
+                return;
+            }
+        }
+        lowPriorityQueue->addQueue(getSlot(type,packet,length,0,loco));
+    }
     
     // ESTOP -  
     // any outstanding throttle packet for this loco (all if loco=0) discarded
@@ -119,7 +145,7 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
             }
         }
         // add the estop packet to the start of the queue
-        highPriorityQueue->jumpQueue(getSlot(NORMAL_PACKET,packet,length,repeats,0));
+        highPriorityQueue->jumpQueue(getSlot(SPEED_PACKET,packet,length,repeats,0));
     }
 
     // Accessory coil-On Packet joins end of queue as normal.
