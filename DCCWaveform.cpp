@@ -94,8 +94,8 @@ void DCCWaveform::interruptHandler() {
   else DCCACK::checkAck(progTrack.getResets());
 
   if (railcomActive && mainTrack.railcomWait == 0) {
-      // Set the railcom countdown to trigger halfway through the first preamble bit.
-      DCCTimer::startRailcomTimer();
+    // It is 58us before the end of the last XOR bit. Start the railcom timer
+    DCCTimer::startRailcomTimer();
   }
   if (mainTrack.railcomWait >= 0) mainTrack.railcomWait--;
 
@@ -178,11 +178,12 @@ void DCCWaveform::interrupt2() {
       // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
       
+      // This is the start of the final XOR bit, prepare to start the railcom timer
       if (isMainTrack && railcomActive) {
         // Trigger the railcom timer to start 58us before the end of this bit
         railcomWait = 1;
         if (state == WAVE_HIGH_0) {
-          // if we are sending a 0 bit, the end of the bit is an extra two ticks later
+          // if we are sending a 0 bit, the end is an extra two 58us ticks later
           railcomWait = 3;
         }
       }
