@@ -249,7 +249,7 @@ void DCCTimer::startRailcomTimer() {
   // Trigger ~116us after the next DCC bit to allow for the packet end bit
   cutoutOffset = dcctimer.getOverflow(MICROSEC_FORMAT) + 116;
 
-  // Start timer for offset
+  // Pause timer for reconfiguring
   railcomTimer->pause();
   railcomTimer->setPrescaleFactor(1);
 
@@ -257,6 +257,7 @@ void DCCTimer::startRailcomTimer() {
   railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
   railcomTimer->setCount(dcctimer.getCount());
 
+  // Restart the timer with the new configuration
   railcomTimer->attachInterrupt(railcomStartCallback);
   railcomTimer->refresh();
   railcomTimer->resume();

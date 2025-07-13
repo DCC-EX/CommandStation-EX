@@ -180,10 +180,10 @@ void DCCWaveform::interrupt2() {
       
       // This is the start of the final XOR bit, prepare to start the railcom timer
       if (isMainTrack && railcomActive) {
-        // Trigger the railcom timer to start 58us before the end of this bit
+        // Cue the railcom timer to be started 58us before the end of this bit
         railcomWait = 1;
         if (state == WAVE_HIGH_0) {
-          // if we are sending a 0 bit, the end is an extra two 58us ticks later
+          // If we are sending a 0 bit, the end is two 58us ticks later
           railcomWait = 3;
         }
       }
