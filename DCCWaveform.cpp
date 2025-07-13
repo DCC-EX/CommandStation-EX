@@ -179,11 +179,10 @@ void DCCWaveform::interrupt2() {
       remainingPreambles = requiredPreambles;
       
       if (isMainTrack && railcomActive) {
-        // Trigger the railcom timer to start at the end of this bit,
-        // on the next halfwave interrupt cycle.
+        // Trigger the railcom timer to start 58us before the end of this bit
         railcomWait = 1;
         if (state == WAVE_HIGH_0) {
-          // if we are sending a 0 bit, then we need to wait for two extra 58us ticks
+          // if we are sending a 0 bit, the end of the bit is an extra two ticks later
           railcomWait = 3;
         }
       }
