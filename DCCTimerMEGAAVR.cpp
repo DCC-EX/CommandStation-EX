@@ -80,9 +80,8 @@ extern char *__malloc_heap_start;
     interruptHandler();
   }
 
-void DCCTimer::startRailcomTimer(bool lastBit) {
+void DCCTimer::startRailcomTimer() {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) lastBit;
 }
 
 void DCCTimer::ackRailcomTimer() {
