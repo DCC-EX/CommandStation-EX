@@ -93,6 +93,12 @@ void DCCWaveform::interruptHandler() {
   if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
   else DCCACK::checkAck(progTrack.getResets());
 
+  if (railcomActive && mainTrack.railcomWait == 0) {
+      // Set the railcom countdown to trigger halfway through the first preamble bit.
+      DCCTimer::startRailcomTimer();
+  }
+  if (mainTrack.railcomWait >= 0) mainTrack.railcomWait--;
+
 }
 #pragma GCC pop_options
 
@@ -172,12 +178,16 @@ void DCCWaveform::interrupt2() {
       // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
       
-      // set the railcom coundown to trigger half way 
-      // through the first preamble bit.
-      // Note.. we are still sending the last packet bit
-      //    and we then have to allow for the packet end bit
-      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(state == WAVE_MID_1);
+      if (isMainTrack && railcomActive) {
+        // Trigger the railcom timer to start at the end of this bit,
+        // on the next halfwave interrupt cycle.
+        railcomWait = 1;
+        if (state == WAVE_HIGH_0) {
+          // if we are sending a 0 bit, then we need to wait for two extra 58us ticks
+          railcomWait = 3;
+        }
       }
+    }
   }  
 }
 #pragma GCC pop_options

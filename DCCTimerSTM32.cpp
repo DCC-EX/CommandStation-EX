@@ -236,17 +236,8 @@ void railcomStartCallback() {
   }
 }
 
-void DCCTimer::startRailcomTimer(bool lastBit) {
+void DCCTimer::startRailcomTimer() {
   uint32_t cutoutOffset;
-
-  // We're just starting the last XOR bit, wait for the bit length, terminator bit, and initial cutout delay, minus some overhead
-  if (lastBit) {
-    // 1-bit
-    cutoutOffset = 2 * 58 + 116 + 10;
-  } else {
-    // 0-bit
-    cutoutOffset = 2 * 116 + 116 + 10;
-  }
 
   TrackManager::setMainBrake(false, true);
 
@@ -255,14 +246,16 @@ void DCCTimer::startRailcomTimer(bool lastBit) {
     railcomTimer = new HardwareTimer(TIM3);
   }
 
+  // Trigger ~116us after the next DCC bit to allow for the packet end bit
+  cutoutOffset = dcctimer.getOverflow(MICROSEC_FORMAT) + 116;
+
   // Start timer for offset
   railcomTimer->pause();
   railcomTimer->setPrescaleFactor(1);
-  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
 
-  uint32_t dccTimerCount = dcctimer.getCount();
-  uint32_t alignmentOffset = (DCC_SIGNAL_TIME - dccTimerCount);
-  railcomTimer->setCount(alignmentOffset);
+  // Sync up with the DCC timer
+  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+  railcomTimer->setCount(dcctimer.getCount());
 
   railcomTimer->attachInterrupt(railcomStartCallback);
   railcomTimer->refresh();
