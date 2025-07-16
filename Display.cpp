@@ -188,6 +188,7 @@ Display *Display::loop2(bool force) {
 #endif
           noMoreRowsToDisplay = false;
           slot = 0;
+          _deviceDriver->setRowNative(slot);  // Set position for display
           lastScrollTime = currentMillis;
           return NULL;
         }
