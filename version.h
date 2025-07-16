@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.35"
+#define VERSION "5.5.36"
+// 5.5.36 - make more diag conditional
+//        - Bugfix: SSD1309 OLED controllers
 // 5.5.35 - BUGFIX DCC Packet Queue timing leak with single loco
 // 5.5.34 - STM32: Remove I2C interrupt blocking waveform interrupt
 //        - Bugfix: Negative route Ids
