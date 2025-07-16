@@ -242,7 +242,7 @@ void MotorDriver::setPower(POWERMODE mode) {
     // when switching a track On, we need to check the crrentOffset with the pin OFF
     if (powerMode==POWERMODE::OFF && currentPin!=UNUSED_PIN) {
         senseOffset = ADCee::read(currentPin);
-        DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
+        if (Diag::ACK) DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
     }
 
     IODevice::write(powerPin,invertPower ? LOW : HIGH);
