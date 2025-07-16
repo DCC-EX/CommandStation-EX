@@ -30,9 +30,7 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
 #include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
 
@@ -215,13 +213,63 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+static HardwareTimer *railcomTimer = nullptr;
+
+void railcomEndCallback() {
+  TrackManager::setMainBrake(false, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+  }
+}
+
+void railcomStartCallback() {
+  TrackManager::setMainBrake(true, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+    // Start timer for cutout duration (430us)
+    railcomTimer->setOverflow(430, MICROSEC_FORMAT);
+    railcomTimer->attachInterrupt(railcomEndCallback);
+    railcomTimer->refresh();
+    railcomTimer->resume();
+  }
+}
+
+void DCCTimer::startRailcomTimer() {
+  uint32_t cutoutOffset;
+
+  TrackManager::setMainBrake(false, true);
+
+  // Initialize main timer if not already done
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM3);
+  }
+
+  // Trigger ~116us after the next DCC bit to allow for the packet end bit
+  cutoutOffset = dcctimer.getOverflow(MICROSEC_FORMAT) + 116;
+
+  // Pause timer for reconfiguring
+  railcomTimer->pause();
+  railcomTimer->setPrescaleFactor(1);
+
+  // Sync up with the DCC timer
+  railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+  railcomTimer->setCount(dcctimer.getCount());
+
+  // Restart the timer with the new configuration
+  railcomTimer->attachInterrupt(railcomStartCallback);
+  railcomTimer->refresh();
+  railcomTimer->resume();
 }
 
 void DCCTimer::ackRailcomTimer() {
-  // TODO: for intended operation see DCCTimerAVR.cpp
+  // Immediately end the Railcom cutout
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->detachInterrupt();
+    TrackManager::setMainBrake(false, true);
+  }
 }
 
 bool DCCTimer::isPWMPin(byte pin) {

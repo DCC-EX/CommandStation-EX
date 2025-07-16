@@ -60,7 +60,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   }
 
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer() {
 #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
   /* The Railcom timer is started in such a way that it 
      - First triggers 28uS after the last TIMER1 tick. 
@@ -77,7 +77,6 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
        (there will be 7 DCC timer1 ticks in which to do this.)
     
     */
-  (void) brakePin; // Ignored... works on pin 9 only 
   const int cutoutDuration = 430; // Desired interval in microseconds
   
   // Set up Timer2 for CTC mode (Clear Timer on Compare Match)

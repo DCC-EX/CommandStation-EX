@@ -87,6 +87,7 @@ class DCCWaveform {
     void promotePendingPacket();
     static bool setRailcom(bool on, bool debug);
     static bool isRailcom() {return railcomActive;}
+    volatile int railcomWait;
     
   private:
 #ifndef ARDUINO_ARCH_ESP32
