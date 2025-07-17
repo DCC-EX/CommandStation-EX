@@ -71,7 +71,7 @@ class TrackManager {
     static void setProgPower(POWERMODE mode) {setTrackPower(TRACK_MODE_PROG, mode);}
 
     static const int16_t MAX_TRACKS=8;
-    static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0);
+    static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0, bool offAtChange=true);
     static bool parseEqualSign(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
     static POWERMODE getMainPower();
