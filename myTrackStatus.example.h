@@ -7,11 +7,12 @@
 
 // myAutomation.h
 // Reporting power status and mA for each track on the LCD
+HAL(Bitmap,8236,1) // create flag 8236
 AUTOSTART DELAY(5000) 
- ROUTE(238, "Resume/Pause JL Display")
-  IF(236) 
-    UNLATCH(236)
-     ROUTE_CAPTION(238, "Paused") ROUTE_INACTIVE(238)
+ ROUTE("TRACKSTATUS"_hk, "Resume/Pause JL Display")
+  IF(8236) 
+    RESET(8236)
+     ROUTE_CAPTION("TRACKSTATUS"_hk, "Paused") ROUTE_INACTIVE("TRACKSTATUS"_hk)
      PRINT("Pause JL Display")
       SCREEN(0, 8, "Track status paused")
       SCREEN(0, 9, "")
@@ -23,14 +24,14 @@ AUTOSTART DELAY(5000)
       SCREEN(0,15, "")
       SCREEN(0,16, "")
     DONE ENDIF
-  LATCH(236) 
-   ROUTE_CAPTION(238, "Running") ROUTE_ACTIVE(238)
+  SET(8236) 
+   ROUTE_CAPTION("TRACKSTATUS"_hk, "Running") ROUTE_ACTIVE("TRACKSTATUS"_hk)
     PRINT("Resume JL Display")
-   FOLLOW(237)
-  SEQUENCE(237)
+   FOLLOW("PAUSETRACKSTATUS"_hk)
+  SEQUENCE("PAUSETRACKSTATUS"_hk)
    PARSE("<JL 0 8>")  // screen 0  start on line 8
     PRINT("\n")
     DELAY(3000)
-  IF(236) FOLLOW(237) ENDIF
+  IF(8236) FOLLOW("PAUSETRACKSTATUS"_hk) ENDIF
   DONE
 // ************ End OLED JL Display Track mA Amperage ************** //
