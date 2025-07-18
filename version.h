@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.36"
+#define VERSION "5.5.37"
+// 5.5.37 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
 // 5.5.36 - make more diag conditional
 //        - Bugfix: SSD1309 OLED controllers
 // 5.5.35 - BUGFIX DCC Packet Queue timing leak with single loco
