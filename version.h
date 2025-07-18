@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.13"
+#define VERSION "5.4.14"
+// 5.4.14 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
 // 5.4.13 - Bugfix: SSD1309 OLED controllers artefatcs
 //        - Less verbose diag by default
 // 5.4.12 - Bugfix: Negative route Ids
