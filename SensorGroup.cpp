@@ -3,7 +3,7 @@
 // called in loop to check sensors
 void SensorGroup::checkAll() {
     #ifdef EXRAIL_ACTIVE
-    doExrailSensorGroup(GroupProcess::CHECK, & USB_SERIAL);
+    doExrailSensorGroup(GroupProcess::check, & USB_SERIAL);
     #endif
 }
 
@@ -11,13 +11,13 @@ void SensorGroup::checkAll() {
 void SensorGroup::printAll(Print * serial) {
     (void)serial; // suppress unused warning
     #ifdef EXRAIL_ACTIVE
-    doExrailSensorGroup(GroupProcess::PRINT,serial);
+    doExrailSensorGroup(GroupProcess::print,serial);
     #endif
 }
 
 void SensorGroup::pullupAll() {
     #ifdef EXRAIL_ACTIVE
-    doExrailSensorGroup(GroupProcess::PULLUP, & USB_SERIAL);
+    doExrailSensorGroup(GroupProcess::pullup, & USB_SERIAL);
     #endif
 }
 
@@ -32,20 +32,20 @@ void SensorGroup::doSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
     byte stateMask=1<<(i%8);
     VPIN vpin= firstVpin+i;
     switch(action) {
-      case GroupProcess::PULLUP:
+      case GroupProcess::pullup:
           IODevice::configureInput(vpin, true);
           __attribute__ ((fallthrough)); // to  check the current state 
     
-      case GroupProcess::CHECK:
+      case GroupProcess::check:
          // check for state change
          if ((bool)(statebits[stateByte]&stateMask) ==IODevice::read(vpin)) break; // no change  
          // flip state bit
          statebits[stateByte]^=stateMask;
-         if (action==GroupProcess::PULLUP) break; 
+         if (action==GroupProcess::pullup) break; 
          // fall through to print the changed value  
         __attribute__ ((fallthrough));
       
-      case GroupProcess::PRINT:
+      case GroupProcess::print:
         StringFormatter::send(serial, F("<%c %d>\n"), 
          (statebits[stateByte]&stateMask)?'Q':'q', firstVpin+i);
          break;

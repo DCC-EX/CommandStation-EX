@@ -9,7 +9,7 @@
 // reference to the optional exrail built function which contains the 
 // calls to SensorGroup::doSensorGroup 
 
-enum GroupProcess:byte {PULLUP,PRINT,CHECK};
+enum GroupProcess:byte {pullup,print,check};
 
 class SensorGroup {
     public:
