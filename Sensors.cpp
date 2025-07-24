@@ -91,6 +91,9 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::checkAll(){
+
+  SensorGroup::checkAll();
+  
   uint16_t sensorCount = 0;
 
 #ifdef USE_NOTIFY
@@ -181,12 +184,13 @@ void Sensor::inputChangeCallback(VPIN vpin, int state) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Sensor::printAll(Print *stream){
-
-  if (stream != NULL) {
-    for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
-      StringFormatter::send(stream, F("<%c %d>\n"), tt->active ? 'Q' : 'q', tt->data.snum);
-    }
-  } // loop over all sensors
+  
+  if (stream == NULL) return; // Nothing to do
+    
+  SensorGroup::printAll(stream);
+  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
+    StringFormatter::send(stream, F("<%c %d>\n"), tt->active ? 'Q' : 'q', tt->data.snum);
+  }
 } // Sensor::printAll
 
 ///////////////////////////////////////////////////////////////////////////////
