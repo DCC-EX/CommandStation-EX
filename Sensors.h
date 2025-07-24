@@ -24,6 +24,7 @@
 
 #include "Arduino.h"
 #include "IODevice.h"
+#include "SensorGroup.h"
 
 // Uncomment the following #define statement to use callback notification
 //  where the driver supports it.

@@ -9,6 +9,7 @@ void SensorGroup::checkAll() {
 
 // called by command to get sensor list   
 void SensorGroup::printAll(Print * serial) {
+    (void)serial; // suppress unused warning
     #ifdef EXRAIL_ACTIVE
     doExrailSensorGroup(GroupProcess::PRINT,serial);
     #endif
