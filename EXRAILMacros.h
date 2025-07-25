@@ -117,12 +117,19 @@ bool exrailHalSetup1() {
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,&USB_SERIAL); \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,&USB_SERIAL,true); \
+  }
+#undef JMRI_SENSOR_NOPULLUP
+#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   static byte state_map[(npins+7)/8]; \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,&USB_SERIAL,false); \
   }
 
 void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
-   (void)   action; // suppress unused warning
-   (void)   stream; // suppress unused warning 
+   (void)   action; // suppress unused warnings if no groups
+   (void)   stream;
    #include "myAutomation.h"
 }
 
@@ -135,7 +142,7 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
 void exrailHalSetup2() {
    #include "myAutomation.h"
    // pullup any group sensors
-   SensorGroup::pullupAll();
+   SensorGroup::prepareAll();
 }
 
 // Pass 1c detect compile time featurtes
@@ -513,6 +520,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JMRI_SENSOR(vpin,count...)
+#define JMRI_SENSOR_NOPULLUP(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),

@@ -1135,12 +1135,7 @@ bool DCCEXParser::parseS(Print *stream, int16_t params, int16_t p[])
         return true;
 
     case 0: // <S> list sensor definitions
-      if (Sensor::firstSensor == NULL)
-        return false;
-      for (Sensor *tt = Sensor::firstSensor; tt != NULL; tt = tt->nextSensor)
-      {
-          StringFormatter::send(stream, F("<Q %d %d %d>\n"), tt->data.snum, tt->data.pin, tt->data.pullUp);
-      }
+      Sensor::dumpAll(stream);
       return true;
 
     default: // invalid number of arguments

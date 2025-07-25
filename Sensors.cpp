@@ -191,7 +191,18 @@ void Sensor::printAll(Print *stream){
   for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
     StringFormatter::send(stream, F("<%c %d>\n"), tt->active ? 'Q' : 'q', tt->data.snum);
   }
-} // Sensor::printAll
+} 
+
+void Sensor::dumpAll(Print *stream){
+  
+  if (stream == NULL) return; // Nothing to do
+    
+  SensorGroup::dumpAll(stream);
+  for(Sensor * tt=firstSensor;tt!=NULL;tt=tt->nextSensor){
+    StringFormatter::send(stream, F("<Q %d %d %d>\n"),
+      tt->data.snum, tt->data.pin,tt->data.pullUp);
+  }
+} // Sensor::dumpAll
 
 ///////////////////////////////////////////////////////////////////////////////
 // Static Function to create/find Sensor object.

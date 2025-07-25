@@ -82,6 +82,8 @@ public:
   static bool remove(int id);  
   static void checkAll();
   static void printAll(Print *stream);
+  static void dumpAll(Print* stream);
+  
   static unsigned long lastReadCycle; // value of micros at start of last read cycle
   static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microsecs.
                                                    // should not be less than device scan cycle time.
