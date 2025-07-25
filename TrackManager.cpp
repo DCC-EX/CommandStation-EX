@@ -703,9 +703,11 @@ void TrackManager::setJoin(bool joined) {
 	setTrackMode(t, TRACK_MODE_MAIN, 0, false);      // 0 = no DC loco; false = do not turn off pwr
 	// then in some cases setPower() is called
 	// seperately after the setJoin() as well
-	break;                                           // there is only one prog track, done
+	goto success;                                    // there is only one prog track, done
       }
     }
+    return;                                              // no prog track found, can not do more
+  success: /* continue here when prog tack found */;
   } else {
     if (tempProgTrack != MAX_TRACKS+1) {
       // setTrackMode defaults to power off, so we
