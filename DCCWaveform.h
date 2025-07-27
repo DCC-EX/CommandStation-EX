@@ -30,7 +30,7 @@
 
 
 // Number of preamble bits.
-const byte PREAMBLE_BITS_MAIN = 16;
+const byte PREAMBLE_BITS_MAIN = 18;
 const byte PREAMBLE_BITS_PROG = 22;
 const byte MAX_PACKET_SIZE = 5;     // NMRA standard extended packets, payload size WITHOUT checksum.
 
