@@ -344,7 +344,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
 #ifdef ARDUINO_ARCH_STM32
-    // High accuracy mode is not yet implemented or really needed to do Railcom on STM32
+    // High accuracy mode is not needed for Railcom on STM32
     DCCWaveform::setRailcomPossible(true);
 #else
     DCCWaveform::setRailcomPossible(canDo);
