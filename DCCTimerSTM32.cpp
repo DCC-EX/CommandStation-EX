@@ -216,12 +216,11 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
 static HardwareTimer *railcomTimer = nullptr;
 
 void DCCTimer::startRailcomTimer() {
-  // Initialize main timer if not already done
   if (!railcomTimer) {
     railcomTimer = new HardwareTimer(TIM3);
   }
 
-  // Start the timer to begin the cutout in ~29us
+  // Start the timer to begin the cutout in ~29+58us
   railcomTimer->resume();
 }
 
