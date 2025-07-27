@@ -232,15 +232,14 @@ void startRailcomCallback() {
 }
 
 void DCCTimer::ackRailcomTimer() {
+  // Immediately end the Railcom cutout and set up the timer for the next
+  // cutout. Setting up the timer here avoids distorting the packet end bit
+  // with delayed interrupts.
+
   // Un-set the track brake
   TrackManager::setMainBrake(false, true);
 
-  // Immediately end the Railcom cutout and set up the timer for the next
-  // cutout. We're in the no-man's land between the end of the cutout window and
-  // the start of the preamble so we can do time-consuming timer configuration
-  // without disrupting the DCC signal.
   if (railcomTimer) {
-    // Arm the timer for the next cutout
     railcomTimer->pause();
     railcomTimer->setPrescaleFactor(1);
     railcomTimer->setOverflow(58+26, MICROSEC_FORMAT);
