@@ -80,9 +80,8 @@ extern char *__malloc_heap_start;
     interruptHandler();
   }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
+void DCCTimer::startRailcomTimer() {
   // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
 }
 
 void DCCTimer::ackRailcomTimer() {

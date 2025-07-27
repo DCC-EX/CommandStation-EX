@@ -30,9 +30,7 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
 #include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
 
@@ -215,13 +213,48 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+static HardwareTimer *railcomTimer = nullptr;
+
+void DCCTimer::startRailcomTimer() {
+  // Initialize main timer if not already done
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM3);
+  }
+
+  // Start the timer to begin the cutout in ~29us
+  railcomTimer->resume();
+}
+
+void startRailcomCallback() {
+  TrackManager::setMainBrake(true, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+  }
 }
 
 void DCCTimer::ackRailcomTimer() {
-  // TODO: for intended operation see DCCTimerAVR.cpp
+  uint32_t cutoutOffset;
+
+  // Un-set the track brake
+  TrackManager::setMainBrake(false, true);
+
+  // Immediately end the Railcom cutout and set up the timer for the next
+  // cutout. We're in the no-man's land between the end of the cutout window and
+  // the start of the preamble so we can do time-consuming timer configuration
+  // without disrupting the DCC signal.
+  if (railcomTimer) {
+    railcomTimer->setPrescaleFactor(1);
+
+    // Sync up with the primary DCC timer.
+    cutoutOffset = dcctimer.getOverflow(MICROSEC_FORMAT) + 26;
+    railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
+    railcomTimer->setCount(dcctimer.getCount());
+
+    // Arm the timer for the next cutout
+    railcomTimer->refresh();
+    railcomTimer->attachInterrupt(startRailcomCallback);
+    railcomTimer->pause();
+  }
 }
 
 bool DCCTimer::isPWMPin(byte pin) {

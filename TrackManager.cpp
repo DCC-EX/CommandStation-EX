@@ -343,7 +343,12 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
+#ifdef ARDUINO_ARCH_STM32
+    // High accuracy mode is not yet implemented or really needed to do Railcom on STM32
+    DCCWaveform::setRailcomPossible(true);
+#else
     DCCWaveform::setRailcomPossible(canDo);
+#endif
 #else
     // For ESP32 we just reinitialize the DCC Waveform
     DCCWaveform::begin();
@@ -684,6 +689,21 @@ void TrackManager::reportGauges(Print* stream) {
             track[t]->raw2mA(track[t]->getRawCurrentTripValue()));
          }
     StringFormatter::send(stream,F(">\n"));    
+}
+
+void TrackManager::setMainBrake(bool on, bool interruptContext) {
+  setTrackBrake(TRACK_MODE_MAIN, on, interruptContext);
+  if (progTrackSyncMain) {
+    setTrackBrake(TRACK_MODE_PROG, on, interruptContext);
+  }
+}
+
+void TrackManager::setTrackBrake(TRACK_MODE trackmode, bool on, bool interruptContext) {
+  FOR_EACH_TRACK(t) {
+    if (track[t]->getMode() & trackmode) {
+      track[t]->setBrake(on, interruptContext);
+    }
+  }
 }
 
 void TrackManager::setJoinRelayPin(byte joinRelayPin) {
