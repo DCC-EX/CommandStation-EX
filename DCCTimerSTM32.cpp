@@ -217,7 +217,7 @@ static HardwareTimer *railcomTimer = nullptr;
 
 void DCCTimer::startRailcomTimer() {
   if (!railcomTimer) {
-    railcomTimer = new HardwareTimer(TIM3);
+    railcomTimer = new HardwareTimer(TIM5);
   }
 
   // Start the timer to begin the cutout in ~29+58us
