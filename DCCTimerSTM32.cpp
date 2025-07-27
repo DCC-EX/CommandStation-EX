@@ -233,8 +233,6 @@ void startRailcomCallback() {
 }
 
 void DCCTimer::ackRailcomTimer() {
-  uint32_t cutoutOffset;
-
   // Un-set the track brake
   TrackManager::setMainBrake(false, true);
 
@@ -243,17 +241,13 @@ void DCCTimer::ackRailcomTimer() {
   // the start of the preamble so we can do time-consuming timer configuration
   // without disrupting the DCC signal.
   if (railcomTimer) {
-    railcomTimer->setPrescaleFactor(1);
-
-    // Sync up with the primary DCC timer.
-    cutoutOffset = dcctimer.getOverflow(MICROSEC_FORMAT) + 26;
-    railcomTimer->setOverflow(cutoutOffset, MICROSEC_FORMAT);
-    railcomTimer->setCount(dcctimer.getCount());
-
     // Arm the timer for the next cutout
+    railcomTimer->pause();
+    railcomTimer->setPrescaleFactor(1);
+    railcomTimer->setOverflow(58+26, MICROSEC_FORMAT);
+    railcomTimer->setCount(0);
     railcomTimer->refresh();
     railcomTimer->attachInterrupt(startRailcomCallback);
-    railcomTimer->pause();
   }
 }
 
