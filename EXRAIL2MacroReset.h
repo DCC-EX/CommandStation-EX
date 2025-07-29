@@ -98,6 +98,7 @@
 #undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
 #undef JMRI_SENSOR
+#undef JMRI_SENSOR_NOPULLUP
 #undef JOIN 
 #undef KILLALL
 #undef LATCH 
@@ -684,11 +685,18 @@
 #define INVERT_DIRECTION 
 /**
  * @def JMRI_SENSOR(vpin,count...)
- * @brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
+ * @brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
  * @param vpin first vpin number
  * @param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1. 
  */
 #define JMRI_SENSOR(vpin,count...)
+/**
+ * @def JMRI_SENSOR_NOPULLUP(vpin,count...)
+ * @brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
+ * @param vpin first vpin number
+ * @param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1. 
+ */
+#define JMRI_SENSOR_NOPULLUP(vpin,count...)
 /**
  * @def JOIN
  * @brief Switches PROG track to receive MAIN track DCC packets. (Drive on PROG track)
