@@ -447,6 +447,11 @@
  */
 #define ELSE
 /**
+ * @def ENDEXRAIL
+ * @brief obsolete.. no longer needed. Does nothing.
+ */
+#define ENDEXRAIL
+/**
  * @def ENDIF
  * @brief determines end of IF(any type)  block.
  * @see IF
@@ -470,6 +475,11 @@
  * @brief Performs emergency stop on all locos
  */
 #define ESTOPALL
+/**
+ * @def EXRAIL
+ * @brief obsolete.. no longer needed. Does nothing.
+ */
+#define EXRAIL
 /**
  * @def EXTT_TURNTABLE(turntable_id,vpin,homeAngle,description...)
  * @brief This statement will create the EX‑Turntable turntable/traverser object only, so you will need a separate HAL() statement for an EX‑Turntable device driver.
