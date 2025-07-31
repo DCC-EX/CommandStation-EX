@@ -26,6 +26,7 @@ void SensorGroup::dumpAll(Print * stream) {
 void SensorGroup::checkAll() {}
 void SensorGroup::printAll(Print * serial) {(void)serial;}
 void SensorGroup::prepareAll() {}
+void SensorGroup::dumpAll(Print * stream) {(void)stream;}
 #endif 
 
 // called by EXRAIL constructed doExrailSensorGroup for each group 
