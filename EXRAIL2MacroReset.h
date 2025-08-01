@@ -215,6 +215,7 @@
 #undef XPOM
 #undef XREV
 #undef XFWD
+#undef ZTEST
 
 #ifndef RMFT2_UNDEF_ONLY
 /**
@@ -1472,10 +1473,17 @@
 #define XREV(cab,speed)
 /**
  * @def XPOM(cab,cv,value)
- * @brief Sends DCC speed to loco in reverse direction
+ * @brief Sends DCC Program on Main command to loco
+ * @see POM
  * @param cab loco id
  * @param cv  to be updated
  * @param value to be written to cv
  */
 #define XPOM(cab,cv,value)
+
+/**
+ * @def ZTEST(command,testcode
+ * @brief Internal Unit testing. Do not use 
+ */
+#define ZTEST(command,testcode)
 #endif

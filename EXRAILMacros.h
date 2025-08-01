@@ -295,6 +295,14 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
+#undef ZTEST
+#define ZTEST(command,code...) case (__COUNTER__ - StringMacroTracker1) : \
+      { \
+         DCCEXParser::parse(F(command)); \
+         if (code) return; \
+         StringFormatter::send(USB_SERIAL, F("!!ZTEST(" command ")\n")); \
+         return; \
+      }
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -652,6 +660,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define XFWD(cab,speed) OPCODE_XFWD,V(cab),OPCODE_PAD,V(speed),
 #define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
 #define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
+#define ZTEST(command,code...) PRINT(command)
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
