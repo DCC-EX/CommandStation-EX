@@ -79,7 +79,7 @@ void DCCWaveform::interruptHandler() {
     cutoutNextTime=false;
     railcomSampleWindow=false; // about to cutout, stop reading railcom data.
     railcomCutoutCounter++;
-    DCCTimer::startRailcomTimer(9);
+    DCCTimer::startRailcomTimer();
   }
   #endif
   byte sigMain=signalTransform[mainTrack.state];
@@ -177,7 +177,7 @@ void DCCWaveform::interrupt2() {
         railcomLastAddressHigh=transmitPacket[0];
         railcomLastAddressLow =transmitPacket[1];
         railcomSampleWindow=true;
-      } else if (remainingPreambles==(requiredPreambles-3)) {
+      } else if (remainingPreambles==(requiredPreambles-6)) {
         // cutout can be ended when read
         // see above for requiredPreambles
         DCCTimer::ackRailcomTimer();
