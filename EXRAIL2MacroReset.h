@@ -216,6 +216,8 @@
 #undef XREV
 #undef XFWD
 #undef ZTEST
+#undef ZTEST2
+#undef ZTEST3
 
 #ifndef RMFT2_UNDEF_ONLY
 /**
@@ -1485,5 +1487,15 @@
  * @def ZTEST(command,testcode
  * @brief Internal Unit testing. Do not use 
  */
-#define ZTEST(command,testcode)
+#define ZTEST(command,testcode...)
+/**
+ * @def ZTEST2(command,reply)
+ * @brief Internal Unit testing. Do not use 
+ */
+#define ZTEST2(command,reply)
+/**
+ * @def ZTEST3(command,reply,testcode)
+ * @brief Internal Unit testing. Do not use 
+ */
+#define ZTEST3(command,reply,testcode...)
 #endif

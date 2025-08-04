@@ -25,6 +25,7 @@
 #ifndef EXRAILMacros_H
 #define EXRAILMacros_H
 #include "IODeviceList.h"
+#include "Ztest.h"
 
 // remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
@@ -297,12 +298,16 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
 #undef ZTEST
 #define ZTEST(command,code...) case (__COUNTER__ - StringMacroTracker1) : \
-      { \
-         DCCEXParser::parse(F(command)); \
-         if (code) return; \
-         StringFormatter::send(USB_SERIAL, F("!!ZTEST(" command ")\n")); \
-         return; \
-      }
+   Ztest::parse(F(command),nullptr,[]() -> bool { return (code);}); \
+   return;
+#undef ZTEST2
+#define ZTEST2(command,response) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),nullptr); \
+   return;
+#undef ZTEST3
+#define ZTEST3(command,response,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),[]() -> bool { return (code);}); \
+   return;
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -661,6 +666,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
 #define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
 #define ZTEST(command,code...) PRINT(command)
+#define ZTEST2(command,response) PRINT(command)
+#define ZTEST3(command,response,code...) PRINT(command)
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
