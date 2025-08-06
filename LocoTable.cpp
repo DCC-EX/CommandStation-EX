@@ -21,25 +21,28 @@ int LocoTable::highestUsedReg = 0;
 
 int LocoTable::lookupSpeedTable(int locoId, bool autoCreate) {
   // determine speed reg for this loco
-  int firstEmpty = MAX_LOCOS;
+  const int UNUSED = -1;
+  int firstEmpty = UNUSED;
   int reg;
   for (reg = 0; reg < MAX_LOCOS; reg++) {
     if (speedTable[reg].loco == locoId) break;
-    if (speedTable[reg].loco == 0 && firstEmpty == MAX_LOCOS) firstEmpty = reg;
+    if (speedTable[reg].loco == 0 && firstEmpty == UNUSED) firstEmpty = reg;
   }
 
-  // return -1 if not found and not auto creating
-  if (reg == MAX_LOCOS && !autoCreate) return -1; 
-  if (reg == MAX_LOCOS) reg = firstEmpty;
-  if (reg >= MAX_LOCOS) {
-    //DIAG(F("Too many locos"));
+  if (reg == MAX_LOCOS && !autoCreate)            // not found and not auto creating
     return -1;
-  }
-  if (reg==firstEmpty){
-        speedTable[reg].loco = locoId;
-        speedTable[reg].speedCode=128;  // default direction forward
-        speedTable[reg].groupFlags=0;
-        speedTable[reg].functions=0;
+  if (reg == MAX_LOCOS) {
+    if (firstEmpty == UNUSED) {                   // did not find empty slot
+      DIAG(F("Can not add id %d to full sniffer table (total > %d)"), locoId, MAX_LOCOS);
+      return -1;
+    } else {                                      // populate empty slot
+      reg = firstEmpty;
+      //DIAG(F("LocoTable SNIFFER: Create loco %d in slot %d"), locoId, reg);
+      speedTable[reg].loco = locoId;
+      speedTable[reg].speedCode=128;              // default direction forward
+      speedTable[reg].groupFlags=0;
+      speedTable[reg].functions=0;
+    }
   }
   if (reg > highestUsedReg) highestUsedReg = reg;
   return reg;
@@ -64,6 +67,7 @@ bool LocoTable::updateLoco(int loco, byte speedCode) {
 
   // determine speed reg for this loco
   int reg=lookupSpeedTable(loco, false);
+
   if (reg>=0) {
     speedTable[reg].speedcounter++;
     if (speedTable[reg].speedCode!=speedCode) {
@@ -73,10 +77,14 @@ bool LocoTable::updateLoco(int loco, byte speedCode) {
       return false;
     }
   } else {
-    // new
+    // need to make new entry
     reg=lookupSpeedTable(loco, true);
-    if(reg >=0) speedTable[reg].speedCode = speedCode;
-    return true;
+    if(reg >=0) {
+      speedTable[reg].speedCode = speedCode;
+      return true;
+    } else { // as no loco was added, nothing changed
+      return false;
+    }
   }
 }
 
@@ -88,6 +96,8 @@ bool LocoTable::updateFunc(int loco, byte func, int shift) {
   if (reg < 0) { // not found
     retval = true;
     reg = lookupSpeedTable(loco, true);
+    if (reg < 0) // could not create new entry, nothing changed
+      return false;
     newfunc = previous = 0;
   } else {
     newfunc = previous = speedTable[reg].functions;
