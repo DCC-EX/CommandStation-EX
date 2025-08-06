@@ -105,8 +105,11 @@ void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
     }
   } 
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
-  LOCO * slot=lookupSpeedTable(cab);
-  if (slot->targetSpeed==speedCode) return; 
+  LOCO * slot=lookupSpeedTable(cab, true);
+  if (slot == nullptr)              // table full
+    return;
+  if (slot->targetSpeed==speedCode) // speed has been reached
+    return;
   slot->targetSpeed=speedCode;
   byte momentum=getMomentum(slot);
   if (momentum && tSpeed!=1) { // not ESTOP
@@ -203,8 +206,9 @@ uint8_t DCC::getThrottleFrequency(int cab) {
   (void)cab;
   return 0;
 #else
-  LOCO* slot=lookupSpeedTable(cab);
-  if (!slot)  return 0; // use default frequency
+  LOCO* slot=lookupSpeedTable(cab, true);
+  if (slot == nullptr)  // speed table full, can not do anything
+    return 0;           // return value for default frequency
   // shift out first 29 bits so we have the 3 "frequency bits" left
   uint8_t res = (uint8_t)(slot->functions >>29);
   //DIAG(F("Speed table %d functions %l shifted %d"), reg, slot->functions, res);
@@ -248,7 +252,9 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
   if (functionNumber > 31)
     return true;
   
-  LOCO * slot = lookupSpeedTable(cab);
+  LOCO * slot = lookupSpeedTable(cab, true);
+  if (slot == nullptr)        // could not find or add loco
+    return false;
   
   // Take care of functions:
   // Set state of function
@@ -279,8 +285,9 @@ void DCC::changeFn( int cab, int16_t functionNumber) {
 int8_t DCC::getFn( int cab, int16_t functionNumber) {
   if (cab<=0 || functionNumber>31)
     return -1;  // unknown
-  auto slot = lookupSpeedTable(cab);
-  
+  LOCO * slot = lookupSpeedTable(cab, false);
+  if (slot == nullptr) // not found
+    return -1;
   unsigned long funcmask = (1UL<<functionNumber);
   return  (slot->functions & funcmask)? 1 : 0;
 }
@@ -299,14 +306,16 @@ void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
 
 uint32_t DCC::getFunctionMap(int cab) {
   if (cab<=0) return 0;  // unknown pretend all functions off
-  auto slot = lookupSpeedTable(cab,false);
+  LOCO * slot = lookupSpeedTable(cab,false);
   return slot?slot->functions:0;
 }
 
 // saves DC frequency (0..3) in spare functions 29,30,31
 void DCC::setDCFreq(int cab,byte freq) {
   if (cab==0 || freq>3) return;
-  auto slot=lookupSpeedTable(cab,true);
+  LOCO * slot=lookupSpeedTable(cab,true);
+  if (slot == nullptr) // speed table full
+    return;
   // drop and replace F29,30,31 (top 3 bits) 
   auto newFunctions=slot->functions & 0x1FFFFFFFUL;
   if (freq==1)      newFunctions |= (1UL<<29); // F29
@@ -831,7 +840,7 @@ void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
   setThrottle2(cab,1); // ESTOP this loco if still on track
-  auto slot=lookupSpeedTable(cab, false);
+  LOCO * slot=lookupSpeedTable(cab, false);
   if (slot) {
     slot->loco=-1;  // no longer used but not end of world
     CommandDistributor::broadcastForgetLoco(cab);
@@ -1005,11 +1014,12 @@ DCC::LOCO *  DCC::lookupSpeedTable(int locoId, bool autoCreate) {
   }
   if (!autoCreate) return nullptr;
   if (firstEmpty==nullptr) { 
-    // return last slot if full
-    DIAG(F("Too many locos, reusing last slot"));
-    firstEmpty=&speedTable[MAX_LOCOS-1];
+    // table full, send diag message and give up
+    DIAG(F("Can not add id %d to full reminder table (total > %d)"), locoId, MAX_LOCOS);
+    return nullptr;
   }
   // fill first empty slot with new entry
+  //DIAG(F("SpeedTable REMINDER: Create loco %d in slot %d"), locoId, firstEmpty - speedTable);
   firstEmpty->loco = locoId;
   firstEmpty->speedCode=128;  // default direction forward
   firstEmpty->targetSpeed=128;  // default direction forward

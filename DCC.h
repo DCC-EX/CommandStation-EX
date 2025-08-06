@@ -120,7 +120,7 @@ public:
  static byte getMomentum(LOCO * slot);
  
  static LOCO speedTable[MAX_LOCOS];
- static LOCO * lookupSpeedTable(int locoId, bool autoCreate=true);
+ static LOCO * lookupSpeedTable(int locoId, bool autoCreate);
  static byte cv1(byte opcode, int cv);
  static byte cv2(int cv);
  static bool setMomentum(int locoId,int16_t accelerating, int16_t decelerating);
