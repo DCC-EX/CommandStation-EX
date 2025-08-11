@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.14"
+#define VERSION "5.4.15"
+// 5.4.15 - Bugfix: Speedtable overflow fix
+//        - Remove unused EX-CommandStation-installer.exe
 // 5.4.14 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
 // 5.4.13 - Bugfix: SSD1309 OLED controllers artefatcs
 //        - Less verbose diag by default
