@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.38"
+#define VERSION "5.5.39"
+// 5.5.39 - Remove of unused EX-CommandStation-installer.exe
+//        - Bugfix: Sniffer and reminder table overflow
 // 5.5.38 - Bugfix: restore EXRAIL/ENDEXRAIL obsolete macros as no-operations
 //        - RAM Saver feature: JMRI_SENSOR and JMRI_SENSOR_NOPULLUP
 // 5.5.37 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
