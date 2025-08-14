@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.39"
+#define VERSION "5.5.40"
+// 5.5.40 - Bugfix: EXSensorCAM.h use check byte for i2c error detection
 // 5.5.39 - Remove of unused EX-CommandStation-installer.exe
 //        - Bugfix: Sniffer and reminder table overflow
 // 5.5.38 - Bugfix: restore EXRAIL/ENDEXRAIL obsolete macros as no-operations
