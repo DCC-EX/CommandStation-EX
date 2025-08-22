@@ -28,7 +28,7 @@
 
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
+ *  © 2020-2025 Chris Harlow, Harald Barth, David Cutting,
  *  Fred Decker, Gregor Baues, Anthony W - Dayton
  *  © 2023 Nathan Kellenicki
  *  © 2025 Herb Morton
@@ -58,6 +58,10 @@
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
+
+#define QWRAP_(x) QWRAP__(x)
+#define QWRAP__(x) #x
+static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOCOS) " must be >1 and <256");
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h

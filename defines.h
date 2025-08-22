@@ -4,7 +4,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *
  *  This file is part of CommandStation-EX
  *
@@ -26,7 +26,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 // defines.h relies on macros defined in config.h
-// but it may have already been included (for cosmetic convenence) by the .ino
+// but it may have already been included (for cosmetic convenience) by the .ino
 #ifndef MOTOR_SHIELD_TYPE
   #if __has_include ( "config.h")
     #include "config.h"
@@ -45,17 +45,21 @@
 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
+#define DEFAULT_MAX_LOCOS 50
 
 #if defined(ARDUINO_AVR_UNO)
   #define ARDUINO_TYPE "UNO"
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
+
 #elif defined(ARDUINO_AVR_NANO)
   #define ARDUINO_TYPE "NANO"
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
 #elif defined(ARDUINO_AVR_MEGA)
   #define ARDUINO_TYPE "MEGA"
 #elif defined(ARDUINO_AVR_MEGA2560)
@@ -65,6 +69,7 @@
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
 #elif defined(ARDUINO_TEENSY31)
   #define ARDUINO_TYPE "TEENSY3132"
   #undef USB_SERIAL
@@ -259,5 +264,11 @@
   #define MAX_NUM_TCP_CLIENTS 8
  #endif
 #endif
+
+
+// Default MAX_LOCOS if not found in config.h
+#ifndef MAX_LOCOS 
+   #define MAX_LOCOS DEFAULT_MAX_LOCOS
+#endif   
 
 #endif //DEFINES_H

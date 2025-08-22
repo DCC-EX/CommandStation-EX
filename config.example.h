@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2020-2025 Harald Barth
  *  © 2020-2021 Fred Decker
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2023 Nathan Kellenicki
  *  
  *  This file is part of CommandStation-EX
@@ -244,6 +244,15 @@ The configuration file for DCC-EX Command Station
 //#define HIGHEST_SHORT_ADDR 0
 // We do not support to use the same address, for example 100(long) and 100(short)
 // at the same time, there must be a border.
+
+/////////////////////////////////////////////////////////////////////////////////////
+// REDEFINE locomotive state table size.
+// This is the maximum number of locos that can be controlled at the same time.
+// This defaults to 50 (8 on a UNO/NANO).
+// If you have enough free memory you can increase this to a maximum of 255.
+// If you are short of memory (typically a Mega with WiFi and lots of accessories)
+// you can decrease it (minimum 2)   
+//#define MAX_LOCOS 100
 
 /////////////////////////////////////////////////////////////////////////////////////
 // Some newer 32bit microcontrollers boot very quickly, so powering on I2C and other
