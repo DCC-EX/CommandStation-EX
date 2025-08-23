@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.40"
+#define VERSION "5.5.41"
+// 5.5.41 - Bugfix: Toolbox not showing sensors
+//        - MAX_LOCOS can be defined in config.h
 // 5.5.40 - Bugfix: EXSensorCAM.h use check byte for i2c error detection
 // 5.5.39 - Remove of unused EX-CommandStation-installer.exe
 //        - Bugfix: Sniffer and reminder table overflow
