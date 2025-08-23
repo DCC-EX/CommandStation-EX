@@ -117,14 +117,14 @@ bool exrailHalSetup1() {
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,&USB_SERIAL,true); \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,true); \
   }
 #undef JMRI_SENSOR_NOPULLUP
 #define JMRI_SENSOR_NOPULLUP(vpin,count...) \
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,&USB_SERIAL,false); \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,false); \
   }
 
 void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {

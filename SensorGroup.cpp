@@ -1,4 +1,5 @@
 #include "SensorGroup.h"
+#include "CommandDistributor.h"
 
 #ifdef EXRAIL_ACTIVE
 
@@ -42,16 +43,16 @@ void SensorGroup::doSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
     switch(action) {
       case GroupProcess::prepare:
           IODevice::configureInput(vpin, pullup);
-          __attribute__ ((fallthrough)); // to  check the current state 
+          if (IODevice::read(vpin))  statebits[stateByte]|=stateMask;
+          break; 
     
       case GroupProcess::check:
-         // check for state change
-         if ((bool)(statebits[stateByte]&stateMask) ==IODevice::read(vpin)) break; // no change  
+         // check for state unchanged
+         if ((bool)(statebits[stateByte]&stateMask) == IODevice::read(vpin)) break; // no change  
          // flip state bit
          statebits[stateByte]^=stateMask;
-         if (action==GroupProcess::prepare) break; 
-         // fall through to print the changed value  
-        __attribute__ ((fallthrough));
+         CommandDistributor::broadcastSensor(vpin,statebits[stateByte]&stateMask);
+         break;
       
       case GroupProcess::print:
         StringFormatter::send(serial, F("<%c %d>\n"), 
