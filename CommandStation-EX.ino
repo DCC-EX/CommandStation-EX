@@ -10,20 +10,17 @@
 //
 // If you used the automatic installer program, config.h will have been created automatically.
 //
-// To obtain a starting copy of config.h please copy the file config.example.h which is
-// shipped with the code and may be updated as new features are added.
-//
-// If config.h is not found, config.example.h will be used with all defaults.
+// If config.h is not found, the command station will build with no motor shield.
 ////////////////////////////////////////////////////////////////////////////////////
 
 #if __has_include ( "config.h")
   #include "config.h"
-  #ifndef MOTOR_SHIELD_TYPE
-  #error Your config.h must include a MOTOR_SHIELD_TYPE definition. If you see this warning in spite not having a config.h, you have a buggy preprocessor and must copy config.example.h to config.h
-  #endif
-#else
-  #warning config.h not found. Using defaults from config.example.h
-  #include "config.example.h"
+#else 
+  #warning config.h not found.
+#endif 
+#ifndef MOTOR_SHIELD_TYPE
+  #warning MOTOR_SHIELD_TYPE not found. Building with no motor shield
+  #define MOTOR_SHIELD_TYPE NO_SHIELD 
 #endif
 
 /*

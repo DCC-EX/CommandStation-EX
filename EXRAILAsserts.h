@@ -73,7 +73,7 @@ constexpr int16_t pbSize=sizeof(compileTimePinBlackList)/sizeof(int16_t) - 1;
 #undef MotorDriver
 
 // Compile time function to check for dangerous pins.
-constexpr bool unsafePin(const int16_t value, const uint16_t pos=0 ) {
+constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
    return pos>=pbSize? false :
       compileTimePinBlackList[pos]==value 
       || unsafePin(value,pos+1); 

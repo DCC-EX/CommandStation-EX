@@ -27,13 +27,15 @@
 #define DEFINES_H
 // defines.h relies on macros defined in config.h
 // but it may have already been included (for cosmetic convenience) by the .ino
-#ifndef MOTOR_SHIELD_TYPE
-  #if __has_include ( "config.h")
+
+#if __has_include ( "config.h")
     #include "config.h"
-  #else
-    #include "config.example.h"
-  #endif
 #endif
+
+#ifndef MOTOR_SHIELD_TYPE
+  #define MOTOR_SHIELD_TYPE NO_SHIELD
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create a cpu type we can share and 
@@ -270,5 +272,27 @@
 #ifndef MAX_LOCOS 
    #define MAX_LOCOS DEFAULT_MAX_LOCOS
 #endif   
+
+// Default IP_PORT if not found in config.h
+#ifndef IP_PORT
+    #define IP_PORT 2560
+#endif
+
+// Default WIFI_SSID if not found in config.h
+#ifndef WIFI_SSID
+    #define WIFI_SSID ""
+ 
+#endif
+
+// Default WIFI_PASSWORD if not found in config.h
+#ifndef WIFI_PASSWORD
+    #define WIFI_PASSWORD "Your network passwd"
+#endif
+
+// Default WIFI_HOSTNAME if not found in config.h
+#ifndef WIFI_HOSTNAME
+    #define WIFI_HOSTNAME ""
+#endif
+
 
 #endif //DEFINES_H
