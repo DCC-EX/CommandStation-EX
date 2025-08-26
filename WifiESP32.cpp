@@ -234,23 +234,34 @@ bool WifiESP::setup(const char *SSid,
 	wifiUp = true;
       } else {
 	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
-	haveSSID=false;
+	wifiUp=false;
       }
     }
   }
-  if (!haveSSID || forceAP) {
+  if (!wifiUp || forceAP) {
     // prepare all strings
-    String strSSID(forceAP ? SSid : "DCCEX_");
-    String strPass( (forceAP && havePassword) ? password : "PASS_");
-    if (!forceAP) {
-      String strMac = WiFi.macAddress();
+    String strMac;
+    if (!haveSSID || !havePassword) {
+      strMac = WiFi.macAddress();
       strMac.remove(0,9);
       strMac.replace(":","");
       strMac.replace(":","");
       // convert mac addr hex chars to lower case to be compatible with AT software
       std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
+    }
+    String strSSID;
+    if (!haveSSID) {
+      strSSID.concat("DCCEX_");
       strSSID.concat(strMac);
+    } else {
+      strSSID.concat(SSid);
+    }
+    String strPass;
+    if (!havePassword) {
+      strPass.concat("PASS_");
       strPass.concat(strMac);
+    } else {
+      strPass.concat(password);
     }
 
     WiFi.mode(WIFI_AP);
