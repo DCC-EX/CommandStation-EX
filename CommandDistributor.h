@@ -49,6 +49,8 @@ public :
   static void broadcastLoco(byte slot);
   static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);
+  static void broadcastAccessory(int16_t address, byte port, bool gate, bool on);
+  static void broadcastExtendedAccessory(int16_t address, int16_t value);
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);

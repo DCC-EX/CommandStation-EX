@@ -308,10 +308,12 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
 #if defined(EXRAIL_ACTIVE)
     RMFT2::activateEvent(address<<2|port,gate);
 #endif
+    CommandDistributor::broadcastAccessory(address, port, gate, true);
   }
   if (onoff != 1) {
     b[1] &= ~0x08; // set C to 0
     DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
+    CommandDistributor::broadcastAccessory(address, port, gate, false);
   }
 }
 
@@ -363,6 +365,7 @@ whole range of the 11 bits sent to track.
     | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
   b[2]=value;
   DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);
+  CommandDistributor::broadcastExtendedAccessory(address, value);
   return true;
 }
 
