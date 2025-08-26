@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.41"
+#define VERSION "5.5.42"
+// 5.5.42 - Bugfix: ESP32 WIFI AP mode was not always selected when wanted
 // 5.5.41 - Bugfix: Toolbox not showing sensors
 //        - MAX_LOCOS can be defined in config.h
 // 5.5.40 - Bugfix: EXSensorCAM.h use check byte for i2c error detection
