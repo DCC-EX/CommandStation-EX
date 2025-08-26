@@ -87,8 +87,8 @@ class EXSensorCAM : public IODevice {
 void _begin() {
     uint8_t status;
     // Initialise EX-SensorCAM device
-    I2CManager.setClock(100000);  // Set speed for I2C operations
     I2CManager.begin();
+    I2CManager.setClock(100000);  // Set speed for I2C operations
     if (!I2CManager.exists(_I2CAddress)) {
       DIAG(F("EX-SensorCAM I2C:%s device not found"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;

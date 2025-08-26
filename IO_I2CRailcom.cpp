@@ -64,8 +64,8 @@ void I2CRailcom::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     }
 
   void I2CRailcom::_begin() {
-    I2CManager.setClock(1000000); // TODO do we need this?
     I2CManager.begin();
+    I2CManager.setClock(1000000); // TODO do we need this?
     auto exists=I2CManager.exists(_I2CAddress);
     DIAG(F("I2CRailcom: %s RailcomCollector %S detected"), 
            _I2CAddress.toString(), exists?F(""):F(" NOT"));
