@@ -136,6 +136,8 @@ The configuration file for DCC-EX Command Station
 // This is not for Wifi. You will then need the Arduino Ethernet library as well.
 //
 //#define ENABLE_ETHERNET true
+// define an alternate CS pin
+//#define ETHERNET_CS 53
 
 
 /////////////////////////////////////////////////////////////////////////////////////
