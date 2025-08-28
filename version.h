@@ -4,7 +4,8 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.4.16"
-// 5.4.16 - Bugfix: ESP32 WIFI AP mode was not always selected when wanted
+// 5.4.16 - Update SensorCAM from version 305 to 308
+//          Bugfix: ESP32 WIFI AP mode was not always selected when wanted
 // 5.4.15 - Bugfix: Speedtable overflow fix
 //        - Remove unused EX-CommandStation-installer.exe
 // 5.4.14 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
