@@ -16,17 +16,17 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-#define driverVer 305
+#define driverVer 308  //f Prod only. (needs latest sensorCAM v320+)
+// v308 allows v0 to give version without using '^'. CAM address identifier added to 'm'
+//   "   added check in Pkt[31] & shared inputBuf[32] "ACK OK" & case:'v'. Shows <> formats
+//   "   added setClock as per 307 devel version  Note: v308 for 5.4.6+ Prod. only with CAM v320+
+// v305b fix to 'p' cmd
 // v305 less debug & alpha ordered switch
-// v304 static oldb0;  t(##[,%%]; 
+// v304 static oldb0;  t(##[,%%]); 
 // v303 zipped with CS 5.2.76 and uploaded to repo (with debug)
 // v302 SEND=StringFormatter::send, remove Sp(), add 'q', memcpy( .8) -> .7); 
 // v301 improved 'f','p'&'q' code and driver version calc. Correct bsNo calc. for 'a'							 
 // v300 stripped & revised without expander functionality. Needs sensorCAM.h v300 AND CamParser.cpp
-// v222 uses '@'for EXIORDD read.  handles <NB $> and <NN $ ##>
-// v216 includes 'j' command and uses CamParser rather than myFilter.h Incompatible with v203 senorCAM
-// v203 added pvtThreshold to 'i' output
-// v201 deleted code for compatibility with CAM pre v171. Needs CAM ver201 with o06 only
 // v200 rewrite reduces need for double reads of ESP32 slave CAM. Deleted ESP32CAP. 
 //  Inompatible with pre-v170 sensorCAM, unless set S06 to 0 and S07 to 1 (o06 & l07 say)
 /*
@@ -37,19 +37,19 @@
  *
  * #include "CamParser.h"      in DCCEXParser.cpp
  * #include "IO_EXSensorCAM.h" in IODevice.h
- * To create EX-SensorCAM devices, define them in myHal.cpp: with
- * EXSensorCAM::create(baseVpin,num_vpins,i2c_address)  or
- * alternatively use HAL(EXSensorCAM baseVpin numpins i2c_address) in myAutomation.h
- * also #define SENSORCAM_VPIN baseVpin in config.h
- *
- * void halSetup() {
- *   // EXSensorCAM::create(vpin, num_vpins, i2c_address);
- *   EXSensorCAM::create(700, 80, 0x11);
- * }
+ 
+ * includes not required with devel 5.5.15+												 
+ * To create EX-SensorCAM devices, 
+ *  use HAL(EXSensorCAM, baseVpin, numpins, i2c_address) in myAutomation.h
+ * e.g.  
+ *   HAL(EXSensorCAM,700, 80, 0x11)
+ * 
+ * or (deprecated) define them in myHal.cpp: with
+ * EXSensorCAM::create(baseVpin,num_vpins,i2c_address);
  * 
  * I2C packet size of 32 bytes (in the Wire library).
 */
-# define DIGITALREFRESH 20000UL      // min uSec delay between digital reads of digitalInputStates
+#define DIGITALREFRESH 20000UL      // min uSec delay between digital reads of digitalInputStates
 #ifndef IO_EX_EXSENSORCAM_H
 #define IO_EX_EXSENSORCAM_H
 #define SEND StringFormatter::send
@@ -86,6 +86,7 @@ class EXSensorCAM : public IODevice {
 void _begin() {
     uint8_t status;
     // Initialise EX-SensorCAM device
+    I2CManager.setClock(100000);  // Set speed for I2C operations
     I2CManager.begin();
     if (!I2CManager.exists(_I2CAddress)) {
       DIAG(F("EX-SensorCAM I2C:%s device not found"), _I2CAddress.toString());
@@ -130,7 +131,7 @@ bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params
 //*************************															 
 // Analogue input pin configuration, used to enable an EX-IOExpander device.
 int _configureAnalogIn(VPIN vpin) override { 
-  DIAG(F("_configureAnalogIn() IO_EXSensorCAM vpin %d"),vpin); 
+  (void)vpin;  //  DIAG(F("_configureAnalogIn() IO_EXSensorCAM vpin %d"),vpin); 
   return true;     // NOTE: use of EXRAIL IFGTE() etc use "analog" reads.
 }
 //*************************
@@ -144,10 +145,10 @@ void _loop(unsigned long currentMicros) override {
       uint8_t status = _i2crb.status;
       if (status == I2C_STATUS_OK) {               // If device request ok, read input data
         //apparently the above checks do not guarantee a good packet! error rate about 1 pkt per 1000
-        //there should be a packet in _CAMresponseBuff[32]            
-        if ((_CAMresponseBuff[0] & 0x60) >= 0x60) {   //Buff[0] seems to have ascii cmd header (bit6 high) (o06)    
-            int error = processIncomingPkt( _CAMresponseBuff, _CAMresponseBuff[0]);   // '~' 'i' 'm' 'n' 't' etc
-              if (error>0) DIAG(F("CAM packet header(0x%x) not recognised"),_CAMresponseBuff[0]);                   
+        //there should be a packet in _inputBuf[32]            
+        if ((_inputBuf[0] & 0x60) >= 0x60) {   //Buff[0] seems to have ascii cmd header (bit6 high) (o06)    
+            int error = processIncomingPkt( _inputBuf, _inputBuf[0]);   // '~' 'i' 'm' 'n' 't' etc
+              if (error>0) DIAG(F("CAM packet header(0x%x) not recognised"),_inputBuf[0]);                   
         }else{ // Header not valid - typically replaced by bank 0 data!  To avoid any bad responses set S06 to 0  
                // Versions of sensorCAM.h after v300 should return header for '@' of '`'(0x60) (not 0xE6)  
                // followed by digitalInputStates sensor state array
@@ -162,7 +163,7 @@ void _loop(unsigned long currentMicros) override {
         // Issue new read request for digital states.  
              
         _readCommandBuffer[0] = '@';  //start new read of digitalInputStates Table     // non-blocking read 
-        I2CManager.read(_I2CAddress,_CAMresponseBuff, 32,_readCommandBuffer, 1, &_i2crb);     
+        I2CManager.read(_I2CAddress,_inputBuf, sizeof(_inputBuf),_readCommandBuffer, 1, &_i2crb);     
         _lastDigitalRead = currentMicros;
         _readState = RDS_DIGITAL;
         
@@ -170,11 +171,11 @@ void _loop(unsigned long currentMicros) override {
         if (currentMicros - _lasttStateRead > _tStateRefresh)  // Delay for "analog" command repetitions
          if (_savedCmd[2]>1) {   //repeat a 't' command         
           for (int i=0;i<7;i++)  _readCommandBuffer[i] =_savedCmd[i];
-          int errors = ioESP32(_I2CAddress, _CAMresponseBuff, 32, _readCommandBuffer, 7);    
+          int errors = ioESP32(_I2CAddress, _inputBuf, sizeof(_inputBuf), _readCommandBuffer, 7);    
           _lasttStateRead = currentMicros;
           _savedCmd[2] -= 1;     //decrement repeats                  
           if (errors==0) return;
-          DIAG(F("ioESP32 error %d header 0x%x"),errors,_CAMresponseBuff[0]);  
+          DIAG(F("ioESP32 error %d header 0x%x"),errors,_inputBuf[0]);  
           _readState = RDS_TSTATE;  //this should stop further cmd requests until packet read (or timeout)
         }
       }   //end repeat 't'
@@ -221,37 +222,44 @@ int ioESP32(uint8_t i2cAddr,uint8_t *rBuf,int inbytes,uint8_t *outBuff,int outby
 //*************************
 //function to interpret packet from sensorCAM.ino
 //i2cAddr to identify CAM# (if # >1)
-//rBuf contains packet of up to 32 bytes usually with (ascii) cmd header in rBuf[0]
+//rBuf contains packet of up to 32 bytes usually with (ascii) cmd header in rBuf[0] & check byte in [31]
 //sensorCmd command header byte from CAM (in rBuf[0]?)
 int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
 //static uint8_t oldb0;   //for debug only
   int k; 
   int b;
   char str[] = "11111111";
- // if (sensorCmd <= '~') DIAG(F("processIncomingPkt %c %d %d %d"),rBuf[0],rBuf[1],rBuf[2],rBuf[3]);
+
+//
+  if(sensorCmd != (rBuf[31] | 0x20)) {
+#ifdef BADPKTS
+    Serial.print("mismatch31: "); Serial.print((char)sensorCmd);Serial.println(rBuf[31],HEX); 
+#endif
+    return 0;
+  }
+
   switch (sensorCmd){
     case '`':      //response to request for digitalInputStates[] table  '@'=>'`'  
       memcpy(_digitalInputStates, rBuf+1, digitalBytesNeeded);
-//      if ( _digitalInputStates[0]!=oldb0) { oldb0=_digitalInputStates[0];  //debug
-//        for (k=0;k<5;k++) {Serial.print(" ");Serial.print(_digitalInputStates[k],HEX);}
-//      }
       break;                                                 
 
     case EXIORDY:  //some commands give back acknowledgement only
+      SEND(&USB_SERIAL,F("<n ACK OK n>\n"));
       break;
 
     case CAMERR:   //cmd format error code from CAM
       DIAG(F("CAM cmd error 0xFE 0x%x"),rBuf[1]); 
       break;
 
-    case '~':      //information from '^' version request <N v[er]>
+    case 'v':
+    case '~':      //information from 'v/^' version request <N v[er]>
       DIAG(F("EX-SensorCAM device found, I2C:%s,CAM Version v%d.%d.%d vpins %u-%u"),
               _I2CAddress.toString(), rBuf[1]/10, rBuf[1]%10, rBuf[2],(int) _firstVpin, (int) _firstVpin +_nPins-1);
       DIAG(F("IO_EXSensorCAM driver  v0.%d.%d vpin: %d "), driverVer/100,driverVer%100,_firstVpin);
       break;
  
     case 'f':
-      DIAG(F("(f %%%%) frame header 'f' for bsNo %d/%d - showing Quarter sample (1 row) only"), rBuf[1]/8,rBuf[1]%8);  
+      DIAG(F("<Nf %%%%> frame header 'f' for bsNo %d/%d - showing Quarter sample (1 row) only"), rBuf[1]/8,rBuf[1]%8);  
       SEND(&USB_SERIAL,F("<n  row: %d  Ref bytes: "),rBuf[2]);
       for(k=3;k<15;k++)
         SEND(&USB_SERIAL,F("%x%x%s"), rBuf[k]>>4, rBuf[k]&15, k%3==2 ? "  " : " "); 
@@ -263,37 +271,37 @@ int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
 
     case 'i':      //information from i%%
       k=256*rBuf[5]+rBuf[4];
-      DIAG(F("(i%%%%[,$$]) Info: Sensor 0%o(%d) enabled:%d status:%d row=%d x=%d Twin=0%o pvtThreshold=%d A~%d")
+      DIAG(F("<Ni %%%%[ $$]> Info: Sensor 0%o(%d) enabled:%d status:%d row=%d x=%d Twin=0%o pvtThreshold=%d A~%d")
               ,rBuf[1],rBuf[1],rBuf[3],rBuf[2],rBuf[6],k,rBuf[7],rBuf[9],int(rBuf[8])*16);	 
       break;
 
     case 'm':
-      DIAG(F("(m$[,##]) Min/max: $ frames min2flip (trip) %d, maxSensors 0%o, minSensors 0%o, nLED %d,"
-              " threshold %d, TWOIMAGE_MAXBS 0%o"),rBuf[1],rBuf[3],rBuf[2],rBuf[4],rBuf[5],rBuf[6]);
+      DIAG(F("%s<Nm $[ ##]> Min/max: $ frames min2flip (trip) %d, maxSensors 0%o, minSensors 0%o, nLED %d, thres"
+            "hold %d, TWOIMAGE_MAXBS 0%o"),_I2CAddress.toString(),rBuf[1],rBuf[3],rBuf[2],rBuf[4],rBuf[5],rBuf[6]);
       break;
 
     case 'n':
-      DIAG(F("(n$[,##]) Nominate: $ nLED %d, ## minSensors 0%o (maxSensors 0%o threshold %d)")
+      DIAG(F("<Nn $[ ##]> Numerate: $ nLED %d, ## minSensors 0%o (maxSensors 0%o threshold %d)")
                                        ,rBuf[4],rBuf[2],rBuf[3],rBuf[5]);                                                               
       break;
 
     case 'p':
       b=rBuf[1]-2;  
-      if(b<4) { Serial.print("<n (p%%) Bank empty  n>\n"); break; }
-      SEND(&USB_SERIAL,F("<n (p%%) Bank: %d "),(0x7F&rBuf[2])/8);
+      if(b<4) { Serial.print("<n <Np %%> Bank empty  n>\n"); break; }
+      SEND(&USB_SERIAL,F("<n <Np %%> Bank: %d "),(0x7F&rBuf[2])/8);
       for (int j=2; j<b; j+=3)  
-        SEND(&USB_SERIAL,F(" S[%d%d]: r=%d x=%d"),0x7F&rBuf[j]/8,0x7F&rBuf[j]%8,rBuf[j+1],rBuf[j+2]+2*(rBuf[j]&0x80));
+        SEND(&USB_SERIAL,F(" S%d%d: r=%d x=%d"),(0x7F&rBuf[j])/8,(0x7F&rBuf[j])%8,rBuf[j+1],rBuf[j+2]+2*(rBuf[j]&0x80));
       Serial.print("  n>\n");
       break;
 
     case 'q':
       for (int i =0; i<8; i++) str[i] = ((rBuf[2] << i) & 0x80 ? '1' : '0');
-      DIAG(F("(q $) Query bank %c ENABLED sensors(S%c7-%c0): %s "), rBuf[1], rBuf[1], rBuf[1], str);
+      DIAG(F("<Nq $> Query bank %c ENABLED sensors(S%c7-%c0): %s "), rBuf[1], rBuf[1], rBuf[1], str);
       break;
 
     case 't':      //threshold etc. from t##           //bad pkt if 't' FF's
       if(rBuf[1]==0xFF) {Serial.println("<n bad CAM 't' packet: 74 FF  n>");_savedCmd[2] +=1; return 0;}
-      SEND(&USB_SERIAL,F("<n (t[##[,%%%%]]) Threshold:%d sensor S00:-%d"),rBuf[1],min(rBuf[2]&0x7F,99));
+      SEND(&USB_SERIAL,F("<n <Nt[ ##[ %%%%]]> Threshold:%d sensor S00:-%d"),rBuf[1],min(rBuf[2]&0x7F,99));
       if(rBuf[2]>127) Serial.print("##* "); 
       else{ 
         if(rBuf[2]>rBuf[1]) Serial.print("-?* "); 
@@ -310,7 +318,7 @@ int processIncomingPkt(uint8_t *rBuf,uint8_t sensorCmd) {
           SEND(&USB_SERIAL,F("%d%s"),min(valu&0x7F,99),(valu<128) ? "--* ":"##* ");
         }
       } 
-      Serial.print(" >\n");
+      Serial.print(" n>\n");
       break;
 
     default:        //header not a recognised cmd character
@@ -354,7 +362,7 @@ void _writeAnalogue(VPIN vpin, int param1, uint8_t camop, uint16_t param3) overr
         uint8_t b=_digitalInputStates[bnk];
         char str[] = "11111111";
         for (int i=0;i<8;i++) if(((b<<i)&0x80) == 0) str[i]='0';
-        DIAG(F("(b $) Bank: %d activated byte: 0x%x%x (sensors S%d7->%d0) %s"), bnk,b>>4,b&15,bnk,bnk,str ); 
+        DIAG(F("<Nb $> Bank: %d activated byte: 0x%x%x (sensors S%d7->%d0) %s"), bnk,b>>4,b&15,bnk,bnk,str ); 
       }
       return;
     } 
@@ -367,10 +375,10 @@ void _writeAnalogue(VPIN vpin, int param1, uint8_t camop, uint16_t param3) overr
   
     _lasttStateRead = micros();    //don't repeat until _tStateRefresh mSec
 
-    errors = ioESP32(_I2CAddress, _CAMresponseBuff, 32 , outputBuffer, 7);  //send to esp32-CAM
+    errors = ioESP32(_I2CAddress, _inputBuf, sizeof(_inputBuf) , outputBuffer, 7);  //send to esp32-CAM
     if (errors==0) return;
-    else {    //       if (_CAMresponseBuff[0] != EXIORDY)   //can't be sure what is inBuff[0] !
-      DIAG(F("ioESP32 i2c error %d header 0x%x"),errors,_CAMresponseBuff[0]);  
+    else {    //       if (_inputBuf[0] != EXIORDY)   //can't be sure what is inBuff[0] !
+      DIAG(F("ioESP32 i2c error %d header 0x%x"),errors,_inputBuf[0]);  
     }
 }
 //*************************
@@ -391,7 +399,7 @@ void reportError(uint8_t status, bool fail=true) {
 //************************* 
   uint8_t _numDigitalPins = 80;   
   size_t  digitalBytesNeeded=10;
-  uint8_t _CAMresponseBuff[34];
+  uint8_t _inputBuf[32];
   
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
@@ -399,7 +407,7 @@ void reportError(uint8_t status, bool fail=true) {
 
   uint8_t _digitalInputStates[10];
   I2CRB _i2crb;
-  uint8_t _inputBuf[12];
+ 
   byte _outputBuffer[8];
 
   bool    _verPrint=true;
