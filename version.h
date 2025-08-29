@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.42"
+#define VERSION "5.5.43"
+// 5.5.43 - Upgraded Trainbrains HAL driver 
 // 5.5.42 - Bugfix: ESP32 WIFI AP mode was not always selected when wanted
 // 5.5.41 - Bugfix: Toolbox not showing sensors
 //        - MAX_LOCOS can be defined in config.h
