@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.43"
+#define VERSION "5.5.44"
+// 5.5.44 - Config simplification (default obvious values)
+//        - Config will no longer include config.example.h
+//        - Bugfix: DS1307 serial when clock not set
+//        - Bugfix: I2C speed set in some drivers
 // 5.5.43 - Upgraded Trainbrains HAL driver 
 // 5.5.42 - Bugfix: ESP32 WIFI AP mode was not always selected when wanted
 // 5.5.41 - Bugfix: Toolbox not showing sensors
