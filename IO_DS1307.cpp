@@ -98,13 +98,18 @@ void DS1307::_begin()  {
 
 // Processing loop to obtain clock time.
 // This self-synchronizes to the next minute tickover
-void DS1307::_loop(unsigned long currentMicros) { 
+void DS1307::_loop(unsigned long currentMicros) {
+    byte ss=0; 
     auto time=getTime();
     if (_deviceState==DEVSTATE_NORMAL) {
-       byte ss=time%60;
+       ss=time%60;
        CommandDistributor::setClockTime(time/60, 1, 1);      
-       delayUntil(currentMicros + ((60-ss) * 1000000));  
     }
+
+    // delay until next expected minute tickover,
+    // or 1 minute if clock not running
+    delayUntil(currentMicros + ((60-ss) * 1000000));  
+
 }
 
 
