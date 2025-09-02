@@ -721,7 +721,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	DCCDecoder::onoff(on);
 	return;
       }
-#if defined(HAS_ENOUGH_MEMORY)
+#if ENABLE_WIFI
       if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
 	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD
 	  break;
