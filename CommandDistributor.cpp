@@ -342,8 +342,11 @@ void  CommandDistributor::broadcastPower() {
     // send '1' if all main are on, otherwise global state (which in that case is '0' or '2')
     broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1': state);
 #endif
-
+#if defined(HAS_ENOUGH_MEMORY)
     LCD(2,F("PWR %s%S"),state=='1'? "On" : ( state=='0'? "Off" : trackLetter ),reason);
+#else
+    LCD(2,F("PWR %s%S"),trackLetter ,reason);
+#endif
   }
 }
 
