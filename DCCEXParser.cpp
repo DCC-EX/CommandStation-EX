@@ -38,7 +38,7 @@ Once a new OPCODE is decided upon, update this list.
   -, Remove from reminder table
   =, |TM| configuration
   !, Emergency stop
-  @, Reserved for future use - LCD messages to JMRI
+  @, LCD messages to/from JMRI
   #, Request number of supported cabs/locos; heartbeat
   +, WiFi AT commands
   ?, Reserved for future use
@@ -932,15 +932,24 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'N': // interface implemented in CamParser
         break; // Will <X> if not intercepted by filters
 
+    case '@': 
 #ifndef DISABLE_VDPY
-    case '@': // JMRI saying "give me virtual LCD msgs"
+      if (params==0) {  // <@> JMRI saying "give me virtual LCD msgs"
         CommandDistributor::setVirtualLCDSerial(stream);
         StringFormatter::send(stream,
             F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
                "<@ 0 1 \"Lic GPLv3\">\n"));
-        return; 
-#endif
-    default: //anything else will diagnose and drop out to <X>
+            return;   
+            }
+#endif            
+        if (params==4 && p[2]==0x7777) { // <@ x  y "string">
+            // p[2] will be 0x7777 string marker. 
+            StringFormatter::lcd2(p[0],p[1], F("%s"),(const char*)(com + p[3]));
+            return; 
+        }
+        break; // will <X>    
+ 
+default: //anything else will diagnose and drop out to <X>
       if (opcode >= ' ' && opcode <= '~') {
         DIAG(F("Opcode=%c params=%d"), opcode, params);
         for (int i = 0; i < params; i++)
