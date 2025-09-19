@@ -109,7 +109,7 @@ e.g.
 
 
 Use of the CHECK() macro validates a condition to be true.
-If the condition is false an error is genarated, resulting in an <X> reply.
+If the condition is false an error is generated, resulting in an <X> reply.
 Commonly known parameters such as loco, cv bitvalue etc are range checked automatically.
 The REPLY( format, ...) macro sends a formatted string to the stream. 
  
@@ -543,8 +543,9 @@ ZZ(R)   // Read driveable loco id (may be long, short or consist)
 #ifndef DISABLE_VDPY
 ZZ_nodoc(@)   CommandDistributor::setVirtualLCDSerial(stream);
         REPLY( "<@ 0 0 \"DCC-EX v" VERSION "\">\n<@ 0 1 \"Lic GPLv3\">\n")
-#endif 
-               
+#endif
+ZZ(@,display,row,string1) // Display string1 on line row (0 or 1) of LCD
+  StringFormatter::lcd2(display,row,F("%s"),ZGETSTRING(string1));               
 ZZ(-) // Clear loco state and reminder table
         DCC::forgetAllLocos();
 ZZ(-,loco) // remove loco state amnd reminders

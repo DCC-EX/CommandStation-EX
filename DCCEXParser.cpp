@@ -178,14 +178,13 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
 
         case 2: // checking sign or quoted string
 	    if (hot == '"') {
-	      // this inserts an extra parameter 0x7777 in front
-	      // of each string parameter as a marker that can
-	      // be checked that a string parameter follows
-	      // This clashes of course with the real value
-	      // 0x7777 which we hope is used seldom
-	      result[parameterCount] = (int16_t)0x7777;
-	      parameterCount++;
-	      result[parameterCount] = (int16_t)(remainingCmd - cmd + 1);
+	      // this inserts a parameter 0x77zz which indicates a
+	      // string parameter starting at offset zz in the command buffer.
+	      // This clashes of course with the real values
+	      // 0x77.. which we hope is used seldom and not in same context as
+          // an expected string.
+          // The string is terminated by the next " in the command buffer.
+	      result[parameterCount] = 0x7700 | (int16_t)(remainingCmd - cmd + 1);
 	      parameterCount++;
 	      state = 4;
 	      break;
