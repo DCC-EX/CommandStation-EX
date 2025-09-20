@@ -428,18 +428,13 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-  // Dirty definition tricks because the executed check needs quote separation markers 
-  // that should be invisible to the doc extractor.
-  // The equivalent documentation will be extracted from the commented line below 
-  // and the matchedFormat is hand modified to the correct format which includes quotes.
-
-// (documented version) ZZ(C,WIFI,"ssid","password") // reconfigure stored wifi credentials 
-ZZ_nodoc(C,WIFI,ssid,password) 
-        CHECK(false, ssid and password must be in "quotes")
-ZZ_nodoc(C,WIFI,marker1,ssid,marker2,password)
-        DCCEXParser::matchedCommandFormat=F("C,WIFI,\"ssid\",\"password\""); // for error reporting
-        CHECK(marker1==0x7777 && marker2==0x7777, ssid and password must be in "quotes")
-        WifiESP::setup((const char*)(com + ssid), (const char*)(com + password), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
+ZZ(C,WIFI,ssid,password) // set Wifi ssid and password (in quotes)
+  CHECK((ssid & 0x7700)==0x7700, ssid must be in "quotes")
+  ssid &= 0x00FF;
+  CHECK((password & 0x7700)==0x7700, password must be in "quotes")
+  password &= 0x00FF;
+  // TODO... can we do it on a AT command shield.
+  WifiESP::setup((const char*)(com + ssid), (const char*)(com + password), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
@@ -541,7 +536,8 @@ ZZ(R)   // Read driveable loco id (may be long, short or consist)
         EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
 
 #ifndef DISABLE_VDPY
-ZZ_nodoc(@)   CommandDistributor::setVirtualLCDSerial(stream);
+ZZ_nodoc(@)
+        CommandDistributor::setVirtualLCDSerial(stream);
         REPLY( "<@ 0 0 \"DCC-EX v" VERSION "\">\n<@ 0 1 \"Lic GPLv3\">\n")
 #endif
 ZZ(@,display,row,string1) // Display string1 on line row (0 or 1) of LCD

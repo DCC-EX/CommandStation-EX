@@ -73,10 +73,6 @@
   if (CONCAT(#_pname,_hk) == CONCAT(#_checkname,_hk) \
         && (p[_index]<_min || p[_index]>_max)) CHECK(false,_checkname _min .. _max) 
 
-#define ZCHECK_STRING(_checkname,_index,_pname) \
-  if (CONCAT(#_pname,_hk) == CONCAT(#_checkname,_hk) \
-        && ((p[_index] &0xFF00) != 0x7700 )) CHECK(false,_checkname string) 
-
 // Automatic range checks based on name of inserted parameter
 #define ZZCHK(_index,_pname)\
 ZCHECK(loco,_index,_pname,0,10239) \
@@ -84,9 +80,7 @@ ZCHECK(track,_index,_pname,'A','H') \
 ZCHECK(cv,_index,_pname,1,255) \
 ZCHECK(value,_index,_pname,0,255) \
 ZCHECK(bit,_index,_pname,0,7) \
-ZCHECK(bitvalue,_index,_pname,0,1) \
-ZCHECK_STRING(string1,_index,_pname) \
-ZCHECK_STRING(string2,_index,_pname)
+ZCHECK(bitvalue,_index,_pname,0,1)
 
 #define ZGETSTRING(p) ((char *)(com+ (p & 0x00FF)))
 
