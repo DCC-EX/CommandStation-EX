@@ -381,8 +381,8 @@ preamble -0- 1 0 A7 A6 A5 A4 A3 A2 -0- 0 ^A10 ^A9 ^A8 0 A1 A0 1 -0- ....
 
 Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
 
-Die Adresse f�r den ersten erweiterten Zubeh�rdecoder ist wie bei den einfachen
-Zubeh�rdecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
+Die Adresse für den ersten erweiterten Zubehördecoder ist wie bei den einfachen
+Zubehördecodern die Adresse 4 = 1000-0001 0111-0001. Diese Adresse wird in
 Anwenderdialogen als Adresse 1 dargestellt.
 
 This means that the first address shown to the user as "1" is mapped
