@@ -829,6 +829,10 @@ void RMFT2::loop2() {
   case OPCODE_IFSTASH:
     skipIf=Stash::get(operand)==0;
     break;
+  
+  case OPCODE_IFSTASHED_HERE:
+    skipIf=(Stash::get(operand) & 0x7FFF)!=loco;
+    break;
 
 #ifndef IO_NO_HAL
   case OPCODE_IFTTPOSITION: // do block if turntable at this position

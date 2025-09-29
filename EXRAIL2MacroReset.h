@@ -90,6 +90,7 @@
 #undef IFRED
 #undef IFRESERVE
 #undef IFSTASH
+#undef IFSTASHED_HERE
 #undef IFTHROWN
 #undef IFTIMEOUT
 #undef IFTTPOSITION
@@ -637,6 +638,13 @@
  * @param stash_id 
  */
 #define IFSTASH(stash_id) 
+/**
+ * @def IFSTASHED_HERE(stash_id)
+ * @brief Checks if given stash entry has the current loco
+ * @see IF
+ * @param stash_id 
+ */
+#define IFSTASHED_HERE(stash_id) 
 /**
  * @def IFTHROWN(turnout_id)
  * @brief Checks if given turnout is in THROWN state
