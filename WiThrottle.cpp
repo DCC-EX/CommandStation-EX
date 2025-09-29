@@ -254,7 +254,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
       stashThrottleChar=throttleChar;
       stashInstance=this;
       // ask DCC to call us back when the loco id has been read
-      DCC::getLocoId(getLocoCallback); // will remove any previous join                    
+      DCC::getDriveawayLocoId(getLocoCallback); // will remove any previous join                    
       return; // return nothing in stream as response is sent later in the callback 
     }
     //return error if address zero requested

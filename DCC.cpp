@@ -610,8 +610,8 @@ const ackOp FLASH READ_CV_PROG[] = {
       VB, WACK, ITCB,  // verify merged byte and return it if acked ok
       CALLFAIL };          // verification failed
 
-
-const ackOp FLASH LOCO_ID_PROG[] = {
+// returns loco id or consist id or -1 on failure
+const ackOp FLASH LOCO_DRIVEAWAY_PROG[] = {
       BASELINE,
       // first check cv20 for extended addressing
       SETCV, (ackOp)20,     // CV 19 is extended
@@ -706,6 +706,108 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and callback
       CALLFAIL
+      };
+
+// returns loco id regardless of consist 
+const ackOp FLASH LOCO_READ_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
+
+      // Long locoid
+      SETCV, (ackOp)17,       // CV 17 is part of locoid
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      STASHLOCOID,         // keep stashed cv 17 for later
+      // Read 2nd part from CV 18
+      SETCV, (ackOp)18,
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      COMBINELOCOID,        // Combile byte with stash to make long locoid and callback
+
+      // ITSKIP Skips to here if CV 29 bit 5 was zero. so read CV 1 and return that
+      SKIPTARGET,
+      SETCV, (ackOp)1,
+      STARTMERGE,
+      SETBIT, (ackOp)6,  // skip over first bit as we know its a zero
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB,  // verify merged byte and callback
+      CALLFAIL
+      };
+
+// returns consist id or -1 on failure
+const ackOp FLASH LOCO_READ_CONSIST_PROG[] = {
+      BASELINE,
+      // first check cv20 for extended addressing
+      SETCV, (ackOp)20,     // CV 19 is extended
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITSKIP,     // skip past extended section if cv20 is zero
+      // read cv20 and 19 and merge 
+      STARTMERGE,           // Setup to read cv 20
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      BAD20SKIP,     // detect invalid cv20 value and ignore 
+      STASHLOCOID,   // keep cv 20 until we have cv19 as well.
+      SETCV, (ackOp)19, 
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // cant recover if cv 19 unreadable
+      COMBINE1920,  // Combile byte with stash and callback
+// end of advanced 20,19 check
+      SKIPTARGET,
+      SETCV, (ackOp)19,     // CV 19 is consist setting
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITC0,     // rerturn 0 if cv19 is zero (no consist)
+      SETBYTE, (ackOp)128,
+      VB, WACK, ITC0,     // return 0 if cv19 is 128 (no consist, direction bit set)
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB7,  // return 7 bits only, No_ACK means CV19 not supported so ignore it
+      CALLFAIL // return -1 if cv19 wont verify
       };
 
 const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
@@ -803,8 +905,16 @@ void DCC::readCV(int16_t cv, ACK_CALLBACK callback)  {
   DCCACK::Setup(cv, 0,READ_CV_PROG, callback);
 }
 
+void DCC::getDriveawayLocoId(ACK_CALLBACK callback) {
+  DCCACK::Setup(0,0, LOCO_DRIVEAWAY_PROG, callback);
+}
+
 void DCC::getLocoId(ACK_CALLBACK callback) {
-  DCCACK::Setup(0,0, LOCO_ID_PROG, callback);
+  DCCACK::Setup(0,0, LOCO_READ_ID_PROG, callback);
+}
+
+void DCC::getConsistId(ACK_CALLBACK callback) {
+  DCCACK::Setup(0,0, LOCO_READ_CONSIST_PROG, callback);
 }
 
 void DCC::setLocoId(int id,ACK_CALLBACK callback) {

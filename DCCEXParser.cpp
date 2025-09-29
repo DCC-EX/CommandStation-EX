@@ -593,10 +593,18 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         return;
 
     case 'R': // READ CV ON PROG
-        if (params == 1)
-        { // <R CV> -- uses verify callback
-            if (!stashCallback(stream, p, ringStream))
-                break;
+        if (params == 1) {
+            if (!stashCallback(stream, p, ringStream)) break;
+            if (p[0]=="LOCOID"_hk) { // <R LOCOID> read consist id
+                DCC::getLocoId(callback_Rloco);
+                return;
+            }
+            if (p[0]=="CONSIST"_hk) { // <R CONSIST> read consist id
+                DCC::getConsistId(callback_Rloco);
+                return;
+            }
+            
+            // <R CV> -- uses verify callback
             DCC::verifyCVByte(p[0], 0, callback_Vbyte);
             return;
         }
@@ -608,10 +616,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             return;
         }
         if (params == 0)
-        { // <R> New read loco id
+        { // <R> New read driveaway loco id
             if (!stashCallback(stream, p, ringStream))
                 break;
-            DCC::getLocoId(callback_Rloco);
+            DCC::getDriveawayLocoId(callback_Rloco);
             return;
         }
         break;

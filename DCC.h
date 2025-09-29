@@ -84,7 +84,9 @@ public:
   static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
   static void setLocoInBlock(int loco, uint16_t blockid, bool exclusive);
   static void clearBlock(uint16_t blockid);
+  static void getDriveawayLocoId(ACK_CALLBACK callback);
   static void getLocoId(ACK_CALLBACK callback);
+  static void getConsistId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
   static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
   // Enhanced API functions

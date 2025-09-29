@@ -967,7 +967,7 @@ void RMFT2::loop2() {
 
   case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
     progtrackLocoId=LOCO_ID_WAITING;  // Nothing found yet
-    DCC::getLocoId(readLocoCallback);
+    DCC::getDriveawayLocoId(readLocoCallback);
     break;
     
   case OPCODE_READ_LOCO2:
