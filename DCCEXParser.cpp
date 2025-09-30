@@ -1534,19 +1534,29 @@ void DCCEXParser::callback_r(int16_t result)
 }
 
 void DCCEXParser::callback_Rloco(int16_t result) {
+  // determine type of <R command from stashP[0]
+  const FSH * typetag;
+  if (stashP[0]=="LOCOID"_hk) {
+    typetag=F("LOCOID ");
+  } else if (stashP[0]=="CONSIST"_hk) {
+    typetag=F("CONSIST ");
+  } else {
+    typetag=F("");
+  }
+
   const FSH * detail;
   if (result<=0) {
-    detail=F("<r %d>\n");
+    detail=F("<r %S%d>\n");
   } else {
     bool longAddr=result & LONG_ADDR_MARKER;        //long addr
     if (longAddr)
       result = result^LONG_ADDR_MARKER;
     if (longAddr && result <= HIGHEST_SHORT_ADDR)
-      detail=F("<r LONG %d UNSUPPORTED>\n");
+      detail=F("<r LONG %S%d UNSUPPORTED>\n");
     else
-      detail=F("<r %d>\n");
+      detail=F("<r %S%d>\n");
   }
-  StringFormatter::send(getAsyncReplyStream(), detail, result);
+  StringFormatter::send(getAsyncReplyStream(), detail, typetag,result);
   commitAsyncReplyStream();
 }
 
