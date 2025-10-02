@@ -37,10 +37,8 @@
 #endif
 #endif
 #include "DCCACK.h"
+#include "LocoSlot.h"
 const uint16_t LONG_ADDR_MARKER = 0x4000;
-
-
-// MAX_LOCOS moved to defines.h
 
 class DCC
 {
@@ -69,7 +67,7 @@ public:
   static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
   static void setDCFreq(int cab,byte freq);
-  static void updateGroupflags(byte &flags, int16_t functionNumber);
+  static void updateGroupflags(LocoSlot * slot , int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
   static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
   static bool writeTextPacket(byte *b, int nBytes);
@@ -82,7 +80,7 @@ public:
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
-  static void setLocoInBlock(int loco, uint16_t blockid, bool exclusive);
+  static void setLocoInBlock(uint16_t loco, uint16_t blockid, bool exclusive);
   static void clearBlock(uint16_t blockid);
   static void getDriveawayLocoId(ACK_CALLBACK callback);
   static void getLocoId(ACK_CALLBACK callback);
@@ -98,37 +96,26 @@ public:
     globalSpeedsteps = s;
   };
   
-  struct LOCO
-  {
-    int loco;
-    byte speedCode;
-    byte groupFlags;
-    uint32_t functions;
-    // Momentum management variables
-    uint32_t momentum_base;     // millis() when speed modified under momentum
-    byte momentumA, momentumD;
-    byte targetSpeed;           // speed set by throttle
-    uint16_t blockOccupied; // railcom detected block 
+  static inline byte getGlobalSpeedsteps() {
+    return globalSpeedsteps;
   };
+
  static const int16_t MOMENTUM_FACTOR=7;  
- static const byte MOMENTUM_USE_DEFAULT=255;
- static bool linearAcceleration;  
- static byte getMomentum(LOCO * slot);
  
- static LOCO speedTable[MAX_LOCOS];
- static LOCO * lookupSpeedTable(int locoId, bool autoCreate);
+ static bool linearAcceleration;  
+ 
  static byte cv1(byte opcode, int cv);
  static byte cv2(int cv);
  static bool setMomentum(int locoId,int16_t accelerating, int16_t decelerating);
- 
+ static byte getMomentum(LocoSlot * slot);
 private:
   static byte loopStatus;
   static byte defaultMomentumA;  // Accelerating
   static byte defaultMomentumD;  // Accelerating
   static void setThrottle2(uint16_t cab, uint8_t speedCode);
   static void setFunctionInternal(int cab, byte group, byte fByte, byte eByte);
-  static bool issueReminder(LOCO * slot);
-  static LOCO* nextLocoReminder;
+  static bool issueReminder(LocoSlot  * slot);
+  static LocoSlot * nextLocoReminder;
   static FSH *shieldName;
   static byte globalSpeedsteps;
 

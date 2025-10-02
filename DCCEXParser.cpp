@@ -335,7 +335,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         if (params==1) {  // <t cab>  display state
           if (p[0]<0 || p[0]>10239) break; // beyond DCC range
           // send current state of this cab
-	      auto slot=DCC::lookupSpeedTable(p[0],false);
+	      auto slot=LocoSlot::getSlot(p[0],false);
 	      if (slot)
 	        CommandDistributor::broadcastLoco(slot);
 	      else // send dummy state speed 0 fwd no functions.

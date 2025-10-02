@@ -32,6 +32,7 @@
 #include "TrackManager.h"
 #include "StringFormatter.h"
 #include "Websockets.h"
+#include "LocoSlot.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -235,18 +236,19 @@ int16_t CommandDistributor::retClockTime() {
   return lastclocktime;
 }
 
-void  CommandDistributor::broadcastLoco(DCC::LOCO*  sp) {
+void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
   if (!sp) {
     broadcastReply(COMMAND_TYPE,F("<l 0 -1 128 0>\n"));
     return;
 	}
   broadcastReply(COMMAND_TYPE, F("<l %d 0 %d %l>\n"), 
-    sp->loco,sp->targetSpeed,sp->functions);
+    sp->getLoco(),sp->getTargetSpeed(),sp->getFunctions());
 #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
     static uint8_t rampingmode = 0;
-    bool direction = (sp->speedCode & 0x80) !=0; // true for forward
-    int32_t speed = sp->speedCode & 0x7f;
+    auto speedCode=sp->getSpeedCode();
+    bool direction = (speedCode & 0x80) !=0; // true for forward
+    int32_t speed = speedCode & 0x7f;
     if (speed == 1) { // emergency stop
       if (rampingmode != 1) {
 	rampingmode = 1;
@@ -276,7 +278,7 @@ void  CommandDistributor::broadcastLoco(DCC::LOCO*  sp) {
   }
 #endif
 #ifdef CD_HANDLE_RING
-  WiThrottle::markForBroadcast(sp->loco);
+  WiThrottle::markForBroadcast(sp->getLoco());
 #endif
 }
 

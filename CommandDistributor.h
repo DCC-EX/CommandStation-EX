@@ -47,7 +47,7 @@ private:
   #endif
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
-  static void broadcastLoco(DCC::LOCO * slot);
+  static void broadcastLoco(LocoSlot * slot);
   static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);
   static void broadcastTurnout(int16_t id, bool isClosed);
