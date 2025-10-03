@@ -182,7 +182,6 @@ bool DCCDecoder::updateLoco(uint16_t loco, byte speedCode) {
   
   // determine speed reg for this loco
   auto slot=LocoSlot::getSlot(loco, true);
-  slot->incrementSnifferSpeedcounter();
   if (speedCode == slot->getSnifferSpeedCode()) {
     return false; // nothing changed
   }
@@ -197,7 +196,6 @@ bool DCCDecoder::updateFunc(uint16_t loco, byte func, int shift) {
   unsigned long newfunc;
   auto slot= LocoSlot::getSlot(loco, true);
   previous=slot->getSnifferFunctions();
-  slot->incrementSnifferFunccounter();
   newfunc=previous;
   if(shift == 1) { // special case for light
     newfunc &= ~1UL;

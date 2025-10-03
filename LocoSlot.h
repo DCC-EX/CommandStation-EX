@@ -31,37 +31,34 @@ private:
   
   static LocoSlot* firstSlot;
   static LocoSlot* recycler;
-  LocoSlot* next;
-  
-  // DCC data for this loco 
-  uint16_t loco;
-  byte speedCode;
-  byte groupFlags;
-  uint32_t functions;
 
-  // Momentum management variables
-  uint32_t momentum_base;     // millis() when speed modified under momentum
-  byte momentumA, momentumD;
-  byte targetSpeed;           // speed set by throttle
+  // Member veriables here are arranged to reduce padding waste
+  LocoSlot* next;
+  uint32_t functions;        // DCC function map
+  uint32_t snifferFunctions; // sniffer function map
+  uint32_t momentum_base;    // millis() when speed modified under momentum
+
+  // DCC data for this loco 
+  uint16_t loco;             // DCC loco id
+  uint16_t blockOccupied;    // railcom detected block 
   
-  // RAILCOM block occupancy flag
-  uint16_t blockOccupied; // railcom detected block 
+  byte targetSpeed;       // speed set by throttle
+  byte speedCode;         // current speed and direction
+  byte snifferSpeedCode;  // sniffer speed and direction
+  byte momentumA;        // momentum accelerating
+  byte momentumD;       // momentum decelerating
+  byte groupFlags;        // function groups acivated
+  byte snifferGroupFlags;
   
-  // SNIFFER data for this loco.
-  // This exists to allow sniffer to detect and ignore 
+  // SNIFFER data for each loco exists to allow sniffer to detect and ignore 
   // sniffed reminders for locos that have been taken over
   // by DCCEX.
-
-  byte snifferSpeedCode;
-  byte snifferGroupFlags;
-  unsigned long snifferFunctions;
-
-  // sniffer statistics 
-  uint16_t snifferFunccounter;
-  uint16_t snifferSpeedcounter;
   
 public: 
-
+  // set chainModified true when the chain of locos is modified
+  // so that reminders can restart from the beginning.
+  static bool chainModified;
+  
   static LocoSlot * getFirst(){return firstSlot;}
   static void forgetAll();
  
@@ -73,16 +70,10 @@ public:
   byte getSnifferSpeedCode() { return snifferSpeedCode; }
   byte getSnifferGroupFlags() { return snifferGroupFlags; }
   unsigned long getSnifferFunctions() { return snifferFunctions; }
-  uint16_t getSnifferFunccounter() { return snifferFunccounter; }
-  uint16_t getSnifferSpeedcounter() { return snifferSpeedcounter; }
   void setSnifferSpeedCode(byte v) { snifferSpeedCode=v; }
   void setSnifferGroupFlags(byte v) { snifferGroupFlags=v; }
   void setSnifferFunctions(unsigned long v) { snifferFunctions=v; }
-  void setSnifferFunccounter(unsigned int v) { snifferFunccounter=v; }
-  void setSnifferSpeedcounter(unsigned int v) { snifferSpeedcounter=v; }  
-  void incrementSnifferFunccounter() { snifferFunccounter++; }
-  void incrementSnifferSpeedcounter() { snifferSpeedcounter++; }  
-  
+
   
   byte getMomentumA() { return momentumA; }
   byte getMomentumD() { return momentumD; }

@@ -982,7 +982,12 @@ void DCC::loop()  {
 }
 
 void DCC::issueReminders() {
-  if (nextLocoReminder==nullptr) {
+
+  // note, chainModified is set whenever a loco is added or removed
+  // so we dont accidentally follow a stale pointer.
+  
+  if (LocoSlot::chainModified || nextLocoReminder==nullptr) {
+    LocoSlot::chainModified=false;
     nextLocoReminder=LocoSlot::getFirst(); // start at the beginning
     if (nextLocoReminder==nullptr) return; // no locos at all
     // we have reached the end of the table, so we can move on to 

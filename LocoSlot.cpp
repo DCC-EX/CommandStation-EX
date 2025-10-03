@@ -1,5 +1,5 @@
 /* Copyright (c) 2023 Harald Barth
- *
+ * Copyright (c) 2025 Chris Harlow
  * This source is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -18,6 +18,8 @@
 #include "StringFormatter.h"
 LocoSlot * LocoSlot::firstSlot = nullptr;
 LocoSlot * LocoSlot::recycler = nullptr;
+bool LocoSlot::chainModified = false;
+
 void LocoSlot::prepare(uint16_t locoId) {
     loco = locoId;
     speedCode=128; // default direction forward
@@ -32,12 +34,11 @@ void LocoSlot::prepare(uint16_t locoId) {
     snifferSpeedCode=128; // default direction forward
     snifferGroupFlags=0;
     snifferFunctions=0;
-    snifferFunccounter=0;
-    snifferSpeedcounter=0;
 
     // Add to start of list
     next = firstSlot;
     firstSlot = this;
+    chainModified=true;
 };
 
 /* static */ LocoSlot *  LocoSlot::getSlot(uint16_t locoId, bool autoCreate) {
@@ -70,6 +71,7 @@ void LocoSlot::forget() {
   // add to recycler
   next=recycler;
   recycler=this;
+  chainModified=true;
 }
 
 /* static */ void LocoSlot::forgetAll() {
@@ -87,17 +89,21 @@ void LocoSlot::forget() {
     delete(slot);
   }
   recycler=nullptr;
+  chainModified=true;
 }
 
-
-
-void LocoSlot::dumpTable(Print * output) {
-  output->print(F("\n<*   Loco Speed Functions\n"));
+/* static */ void LocoSlot::dumpTable(Print * output) {
+  StringFormatter::send(output, F("\n<* LocoSlot size=%d\n"),sizeof(LocoSlot));
   for (auto slot=firstSlot; slot; slot=slot->next) {
-    StringFormatter::send(output, F("\nDCC %5d   %3d %11l" ),
-      slot->loco,slot->speedCode,slot->functions);
-    StringFormatter::send(output, F("\nSnf      %3d %11l" ),
+    StringFormatter::send(output, 
+      F("\n Loco=%-5d  s=%-3d f=%-11l t=%-3d mA=%-3d mD=%-3d b=%d"),
+      slot->loco,slot->speedCode,slot->functions,
+      slot->targetSpeed,slot->momentumA,slot->momentumD,
+      slot->blockOccupied);
+#ifdef ARDUINO_ARCH_ESP32
+    StringFormatter::send(output, F(" Ss=%3d Sf=%11l"),
       slot->snifferSpeedCode,slot->snifferFunctions);
+#endif      
     }
   output->print(F("\n*>\n"));
   }
