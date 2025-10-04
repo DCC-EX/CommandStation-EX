@@ -31,6 +31,8 @@ private:
   
   static LocoSlot* firstSlot;
   static LocoSlot* recycler;
+  static uint16_t slotCount;
+
 
   // Member veriables here are arranged to reduce padding waste
   LocoSlot* next;

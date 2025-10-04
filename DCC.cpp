@@ -106,7 +106,7 @@ void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   } 
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
   auto slot=LocoSlot::getSlot(cab, true);
-  
+  if (!slot) return; // speed table full, can not do anything
   if (slot->getTargetSpeed()==speedCode) // speed has been reached
     return;
   slot->setTargetSpeed(speedCode);
@@ -254,6 +254,7 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
     return true;
   
    auto slot=LocoSlot::getSlot(cab,true);
+   if (!slot) return false; // speed table full, can not do anything
 
    // Take care of functions:
   // Set state of function
@@ -315,6 +316,8 @@ uint32_t DCC::getFunctionMap(int cab) {
 void DCC::setDCFreq(int cab,byte freq) {
   if (cab==0 || freq>3) return;
   auto slot=LocoSlot::getSlot(cab,true);
+  if (!slot) return; // speed table full, can not do anything
+  
   // drop and replace F29,30,31 (top 3 bits) 
   auto newFunctions=slot->getFunctions() & 0x1FFFFFFFUL;
   if (freq==1)      newFunctions |= (1UL<<29); // F29
@@ -985,7 +988,7 @@ void DCC::issueReminders() {
 
   // note, chainModified is set whenever a loco is added or removed
   // so we dont accidentally follow a stale pointer.
-  
+
   if (LocoSlot::chainModified || nextLocoReminder==nullptr) {
     LocoSlot::chainModified=false;
     nextLocoReminder=LocoSlot::getFirst(); // start at the beginning
@@ -1132,6 +1135,8 @@ bool DCC::setMomentum(int locoId,int16_t accelerating, int16_t decelerating) {
   // This is to keep the values in a byte rather than int16
   // thus saving 2 bytes RAM per loco slot.   
   auto slot=LocoSlot::getSlot(locoId,true);
+  if (!slot) return false; // speed table full, can not do anything
+  
   slot->setMomentumA((accelerating<0)? MOMENTUM_USE_DEFAULT: (accelerating/MOMENTUM_FACTOR));
   slot->setMomentumD((decelerating<0)? MOMENTUM_USE_DEFAULT: (decelerating/MOMENTUM_FACTOR));
   return true; 
@@ -1171,6 +1176,8 @@ void DCC::setLocoInBlock(uint16_t loco, uint16_t blockid, bool exclusive) {
   //   This was done once in the momentum poc.  
   #ifdef EXRAIL_ACTIVE
   auto slot=LocoSlot::getSlot(loco,true);
+  if (!slot) return; // loco not known, nothing to do
+  
   auto oldBlock=slot->getBlockOccupied(); 
   if (oldBlock==blockid) return; 
   if (oldBlock) RMFT2::blockEvent(oldBlock,loco,false);

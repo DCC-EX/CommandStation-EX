@@ -47,7 +47,7 @@
 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
-#define DEFAULT_MAX_LOCOS 50
+#define DEFAULT_MAX_LOCOS 120
 
 #if defined(ARDUINO_AVR_UNO)
   #define ARDUINO_TYPE "UNO"
@@ -64,8 +64,10 @@
   #define DEFAULT_MAX_LOCOS 8
 #elif defined(ARDUINO_AVR_MEGA)
   #define ARDUINO_TYPE "MEGA"
+  #define DEFAULT_MAX_LOCOS 50
 #elif defined(ARDUINO_AVR_MEGA2560)
   #define ARDUINO_TYPE "MEGA"
+  #define DEFAULT_MAX_LOCOS 50
 #elif defined(ARDUINO_ARCH_MEGAAVR)
   #define ARDUINO_TYPE "MEGAAVR"
   #undef HAS_ENOUGH_MEMORY

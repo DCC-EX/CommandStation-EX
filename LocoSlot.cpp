@@ -16,9 +16,11 @@
  */
 #include "LocoSlot.h"
 #include "StringFormatter.h"
+#include "DIAG.h"
 LocoSlot * LocoSlot::firstSlot = nullptr;
 LocoSlot * LocoSlot::recycler = nullptr;
 bool LocoSlot::chainModified = false;
+uint16_t LocoSlot::slotCount = 0;
 
 void LocoSlot::prepare(uint16_t locoId) {
     loco = locoId;
@@ -52,8 +54,13 @@ void LocoSlot::prepare(uint16_t locoId) {
     recycler=recycler->next;
     // slot will be rechained into list in prepare()
   } else {
+    if (slotCount>=MAX_LOCOS) {
+      DIAG(F("<* MAX_LOCOS %d EXCEEDED *>"),MAX_LOCOS);
+      return nullptr; // Too many locos
+    }
     slot=new LocoSlot();
     if (!slot) return nullptr; // allocation failure
+    slotCount++;
   }
   slot->prepare(locoId);
   return slot;
@@ -90,18 +97,20 @@ void LocoSlot::forget() {
   }
   recycler=nullptr;
   chainModified=true;
+  slotCount=0;
 }
 
 /* static */ void LocoSlot::dumpTable(Print * output) {
-  StringFormatter::send(output, F("\n<* LocoSlot size=%d\n"),sizeof(LocoSlot));
+  StringFormatter::send(output, F("\n<* LocoSlots %d/%d size=%db"),
+    slotCount,MAX_LOCOS,sizeof(LocoSlot));
   for (auto slot=firstSlot; slot; slot=slot->next) {
     StringFormatter::send(output, 
-      F("\n Loco=%-5d  s=%-3d f=%-11l t=%-3d mA=%-3d mD=%-3d b=%d"),
+      F("\n Loco=%-5d s=%-3d f=%-11l t=%-3d mA=%-3d mD=%-3d b=%-5d"),
       slot->loco,slot->speedCode,slot->functions,
       slot->targetSpeed,slot->momentumA,slot->momentumD,
       slot->blockOccupied);
 #ifdef ARDUINO_ARCH_ESP32
-    StringFormatter::send(output, F(" Ss=%3d Sf=%11l"),
+    StringFormatter::send(output, F(" Ss=%-3d Sf=%-11l"),
       slot->snifferSpeedCode,slot->snifferFunctions);
 #endif      
     }
