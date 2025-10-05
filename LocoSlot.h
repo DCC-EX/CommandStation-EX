@@ -35,26 +35,25 @@ private:
 
 
   // Member veriables here are arranged to reduce padding waste
-  LocoSlot* next;
   uint32_t functions;        // DCC function map
   uint32_t snifferFunctions; // sniffer function map
   uint32_t momentum_base;    // millis() when speed modified under momentum
-
+  LocoSlot* next;
+  
   // DCC data for this loco 
   uint16_t loco;             // DCC loco id
   uint16_t blockOccupied;    // railcom detected block 
   
   byte targetSpeed;       // speed set by throttle
-  byte speedCode;         // current speed and direction
+  byte speedCode;         // current DCC speed and direction
   byte snifferSpeedCode;  // sniffer speed and direction
-  byte momentumA;        // momentum accelerating
-  byte momentumD;       // momentum decelerating
+  byte momentumA;         // momentum accelerating
+  byte momentumD;         // momentum decelerating
   byte groupFlags;        // function groups acivated
-  byte snifferGroupFlags;
   
   // SNIFFER data for each loco exists to allow sniffer to detect and ignore 
   // sniffed reminders for locos that have been taken over
-  // by DCCEX.
+  // by DCCEX. These bytes will be dropped on a Mega.
   
 public: 
   // set chainModified true when the chain of locos is modified
@@ -70,10 +69,8 @@ public:
   LocoSlot * getNext() {return next;}
   uint16_t getLoco() { return loco; }
   byte getSnifferSpeedCode() { return snifferSpeedCode; }
-  byte getSnifferGroupFlags() { return snifferGroupFlags; }
   unsigned long getSnifferFunctions() { return snifferFunctions; }
   void setSnifferSpeedCode(byte v) { snifferSpeedCode=v; }
-  void setSnifferGroupFlags(byte v) { snifferGroupFlags=v; }
   void setSnifferFunctions(unsigned long v) { snifferFunctions=v; }
 
   

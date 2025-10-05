@@ -34,7 +34,6 @@ void LocoSlot::prepare(uint16_t locoId) {
     blockOccupied=0;
 
     snifferSpeedCode=128; // default direction forward
-    snifferGroupFlags=0;
     snifferFunctions=0;
 
     // Add to start of list
