@@ -97,18 +97,18 @@ byte DCC::getMomentum(LocoSlot * slot) {
    return (slot->getMomentumD() == MOMENTUM_USE_DEFAULT) ? defaultMomentumD : slot->getMomentumD();
 }
 
-void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   if (tSpeed==1) {
     if (cab==0) {
       estopAll(); // ESTOP broadcast fix 
-      return;
+      return true;
     }
   } 
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
   auto slot=LocoSlot::getSlot(cab, true);
-  if (!slot) return; // speed table full, can not do anything
+  if (!slot) return false; // speed table full, can not do anything
   if (slot->getTargetSpeed()==speedCode) // speed has been reached
-    return;
+    return true;
   slot->setTargetSpeed(speedCode);
   byte momentum=getMomentum(slot);
   if (momentum && tSpeed!=1) { // not ESTOP
@@ -121,6 +121,7 @@ void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
     TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
   }
   CommandDistributor::broadcastLoco(slot);
+  return true;
 }
 
 void DCC::setThrottle2( uint16_t cab, byte speedCode)  {

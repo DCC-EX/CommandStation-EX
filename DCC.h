@@ -50,7 +50,7 @@ public:
   static void loop();
 
   // Public DCC API functions
-  static void setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
+  static bool setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
   static void estopAll();
   static int8_t getThrottleSpeed(int cab);
   static uint8_t getThrottleSpeedByte(int cab);

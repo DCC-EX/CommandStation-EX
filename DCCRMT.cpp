@@ -210,8 +210,11 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
   // to the HW. dataRepeat on the other hand signals back to
   // the caller of this function if the data has been sent enough
   // times (0 to 3 means 1 to 4 times in total).
-  if (dataRepeat > 0) // we have still old work to do
-    return dataRepeat;
+  {
+    volatile byte dr = dataRepeat; // copy to test variable, not to be optimezed away
+    if (dr > 0) // we have still old work to do
+      return dr;
+  }
   if (dataReady == true) // the packet is not copied out yet
     return 1000;
   if (DATA_LEN(byteCount) > maxDataLen) {  // this would overun our allocated memory for data
