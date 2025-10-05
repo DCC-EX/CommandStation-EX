@@ -376,11 +376,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	if (cab > 10239 || cab < 0)
 	    break; // beyond DCC range
 
-        DCC::setThrottle(cab, tspeed, direction);
-        if (params == 4) // send obsolete format T response
+        if (DCC::setThrottle(cab, tspeed, direction)) {
+	  if (params == 4) // send obsolete format T response
             StringFormatter::send(stream, F("<T %d %d %d>\n"), p[0], p[2], p[3]);
-        // speed change will be broadcast anyway in new <l > format
-        return;
+	  // speed change will be broadcast anyway in new <l > format
+	  return;
+	} else {
+	  break; // setThrottle() failed means slot table was full.
+	}
     }
     case 'f': // FUNCTION <f CAB BYTE1 [BYTE2]>
         if (parsef(stream, params, p))
