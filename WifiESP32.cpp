@@ -170,7 +170,11 @@ bool WifiESP::setup(const char *SSid,
   uint8_t tries = 40;
   if (wifiUp)
     teardown();
-
+  if (strcmp("OFF", SSid) == 0) {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    return false; // debatable if that is true (success) or false (no network)
+  }
   //#ifdef SERIAL_BT_COMMANDS
   //return false;
   //#endif
