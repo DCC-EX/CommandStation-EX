@@ -763,7 +763,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 
     case '#': // NUMBER OF LOCOSLOTS <#>
-        StringFormatter::send(stream, F("<# %d>\n"), MAX_LOCOS);
+        {
+	  int free = DCCTimer::getMinimumFreeMemory();
+	  int freeSlotGuess = free/sizeof(LocoSlot);
+	  freeSlotGuess = freeSlotGuess - 2; // be conservative
+	  if (freeSlotGuess > MAX_LOCOS)
+	    freeSlotGuess = MAX_LOCOS;
+	  if (freeSlotGuess < 0)
+	    freeSlotGuess = 0;
+	  StringFormatter::send(stream, F("<# %d>\n"), freeSlotGuess);
+	}
         return;
 
     case '-': // Forget Loco <- [cab]>
