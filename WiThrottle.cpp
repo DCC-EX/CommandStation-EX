@@ -267,6 +267,11 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
       StringFormatter::send(stream, F("HMLength '%c' not valid for %d!\n"), cmd[3] ,locoid);                    
       return;
     }
+    //return error if loco slots or ram full
+    if (!LocoSlot::getSlot(locoid,true)) { 
+      StringFormatter::send(stream, F("HMUnable to create loco %d slot\n"), locoid);                    
+      return;
+    }
     //use first empty "slot" on this client's list, will be added to DCC registration list
     for (int loco=0;loco<MAX_MY_LOCO;loco++) {
       if (myLocos[loco].throttle=='\0') {
