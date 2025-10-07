@@ -737,7 +737,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	DCCDecoder::onoff(on);
 	return;
       }
-#if ENABLE_WIFI
+#if WIFI_ON
       if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
 	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD
 	  break;
@@ -763,7 +763,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break;
 
     case '#': // NUMBER OF LOCOSLOTS <#>
-        StringFormatter::send(stream, F("<# %d>\n"), MAX_LOCOS);
+        {
+	  int free = DCCTimer::getMinimumFreeMemory();
+	  int freeSlotGuess = free/sizeof(LocoSlot);
+	  freeSlotGuess = freeSlotGuess - 2; // be conservative
+	  if (freeSlotGuess > MAX_LOCOS)
+	    freeSlotGuess = MAX_LOCOS;
+	  if (freeSlotGuess < 0)
+	    freeSlotGuess = 0;
+	  StringFormatter::send(stream, F("<# %d>\n"), freeSlotGuess);
+	}
         return;
 
     case '-': // Forget Loco <- [cab]>
