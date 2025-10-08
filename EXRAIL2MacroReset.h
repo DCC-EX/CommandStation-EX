@@ -186,7 +186,9 @@
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED 
-#undef START 
+#undef START
+#undef START_LOCO_S
+#undef START_LOCO_X 
 #undef STASH
 #undef STEALTH
 #undef STEALTH_GLOBAL
@@ -1298,11 +1300,23 @@
  */
 #define START(sequence_id)
 /**
+ * @def START_LOCO_S(sequence_id)
+ * @brief Starts a new task at the given route/animation/sequence an share current loco with it
+ * @param sequence_id 
+ */
+#define START_LOCO_S(sequence_id)
+/**
+ * @def START_LOCO_X(sequence_id)
+ * @brief Starts a new task at the given route/animation/sequence an send current loco to it. Remove loco from current task.
+ * @param sequence_id 
+ */
+#define START_LOCO_X(sequence_id)
+/**
  * @def STASH(stash_id)
  * @brief saves cuttent tasks loco id in the stash array
  * @param stash_id  position in stash array to save loco id 
  */
-#define STASH(stash_id) 
+ #define STASH(stash_id) 
 /**
  * @def STEALTH(code...)
  * @brief Allows for embedding raw C++ code in context of current task.
