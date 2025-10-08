@@ -1000,6 +1000,23 @@ void RMFT2::loop2() {
       new RMFT2(newPc);
     }
     break;
+
+  case OPCODE_START_LOCO_S:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco); // create new task and share loco
+    }
+    break;
+
+  case OPCODE_START_LOCO_X:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco); // create new task and send loco exclusive
+      loco = 0;
+    }
+    break;
     
   case OPCODE_SENDLOCO:  // cab, route
     {
