@@ -602,6 +602,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
 #define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
 #define ROUTE_CAPTION(id,caption) PRINT(caption)
+#define SAVESPEED,0,0,
+#define RESTORESPEED,0,0,
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)

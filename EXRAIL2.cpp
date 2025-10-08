@@ -607,7 +607,15 @@ void RMFT2::loop2() {
   case OPCODE_INVERT_DIRECTION:
     invert= !invert;
     break;
-    
+
+  case OPCODE_SAVESPEED:
+    if (loco) saveSpeed = DCC::getThrottleSpeedByte(loco);
+    break;
+
+  case OPCODE_RESTORESPEED:
+    if (loco) DCC::setThrottle(loco,saveSpeed,DCC::getThrottleDirection(loco));
+    break;
+
   case OPCODE_RESERVE:
     if (getFlag(operand,SECTION_FLAG)) {
       if (loco) DCC::setThrottle(loco,1,DCC::getThrottleDirection(loco));
