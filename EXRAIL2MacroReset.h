@@ -186,7 +186,9 @@
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED 
-#undef START 
+#undef START
+#undef START_SHARED
+#undef START_SEND
 #undef STASH
 #undef STEALTH
 #undef STEALTH_GLOBAL
@@ -1297,6 +1299,18 @@
  * @param sequence_id 
  */
 #define START(sequence_id)
+/**
+ * @def START_SHARED(sequence_id)
+ * @brief Starts a new task at the given route/animation/sequence an share current loco with it
+ * @param sequence_id 
+ */
+#define START_SHARED(sequence_id)
+/**
+ * @def START_SEND(sequence_id)
+ * @brief Starts a new task at the given route/animation/sequence an send current loco to it. Remove loco from current task.
+ * @param sequence_id 
+ */
+#define START_SEND(sequence_id)
 /**
  * @def STASH(stash_id)
  * @brief saves cuttent tasks loco id in the stash array
