@@ -1316,7 +1316,7 @@
  * @brief saves cuttent tasks loco id in the stash array
  * @param stash_id  position in stash array to save loco id 
  */
- #define STASH(stash_id) 
+#define STASH(stash_id) 
 /**
  * @def STEALTH(code...)
  * @brief Allows for embedding raw C++ code in context of current task.
