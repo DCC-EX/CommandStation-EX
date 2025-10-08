@@ -1001,7 +1001,7 @@ void RMFT2::loop2() {
     }
     break;
 
-  case OPCODE_START_LOCO_S:
+  case OPCODE_START_SHARED:
     {
       int newPc=routeLookup->find(operand);
       if (newPc<0) break;
@@ -1009,7 +1009,7 @@ void RMFT2::loop2() {
     }
     break;
 
-  case OPCODE_START_LOCO_X:
+  case OPCODE_START_SEND:
     {
       int newPc=routeLookup->find(operand);
       if (newPc<0) break;
