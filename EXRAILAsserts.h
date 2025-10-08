@@ -101,6 +101,10 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 #define FOLLOW(id)  static_assert(seqCount(id)>0,"Sequence not found");
 #undef START
 #define START(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#undef START_LOCO_S
+#define START_LOCO_S(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#undef START_LOCO_X
+#define START_LOCO_X(id)  static_assert(seqCount(id)>0,"Sequence not found");
 #undef SENDLOCO
 #define SENDLOCO(cab,id) static_assert(seqCount(id)>0,"Sequence not found");
 #undef ROUTE_ACTIVE
