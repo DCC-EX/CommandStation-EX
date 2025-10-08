@@ -613,7 +613,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_RESTORESPEED:
-    if (loco) DCC::setThrottle(loco,saveSpeed,DCC::getThrottleDirection(loco));
+    if (loco) DCC::setThrottle(loco,saveSpeed,invert);
     break;
 
   case OPCODE_RESERVE:
