@@ -35,7 +35,7 @@
 // searching easier as a parameter can never be confused with an opcode. 
 // 
 enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
-             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
+             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,OPCODE_SAVESPEED,OPCODE_RESTORESPEED,
              OPCODE_MOMENTUM,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,
@@ -302,6 +302,7 @@ private:
     uint16_t loco;
     bool invert;
     byte pauseSpeed;
+    byte saveSpeed;
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];

@@ -153,6 +153,7 @@
 #undef RED 
 #undef RESERVE 
 #undef RESET 
+#undef RESTORESPEED
 #undef RESUME 
 #undef RETURN 
 #undef REV
@@ -165,6 +166,7 @@
 #undef ROUTE_HIDDEN
 #undef ROUTE_DISABLED
 #undef ROUTE_CAPTION
+#undef SAVESPEED
 #undef SENDLOCO 
 #undef SEQUENCE 
 #undef SERIAL 
@@ -1050,6 +1052,12 @@
  */
 #define RESET(vpin,count...) 
 /**
+ * @def RESTORESPEED
+ * @brief Restore current loco speed
+ * @see SAVESPEED
+ */
+#define RESTORESPEED
+/**
  * @def RESUME
  * @brief Resumes PAUSEd tasks 
  * @see PAUSE
@@ -1140,6 +1148,12 @@
  * @param caption 
  */
 #define ROUTE_CAPTION(sequence_id,caption)
+/**
+ * @def SAVESPEED
+ * @brief Save current loco speed
+ * @see RESTORESPEED
+ */
+#define SAVESPEED
 /**
  * @def SENDLOCO(cab,sequence_id)
  * @brief Start a new task to drive the loco 
