@@ -201,19 +201,18 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
 #endif
 }
 
-void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte opt) {
-  // opt - case 1 save the latest time if changed
-  //       case 2 broadcast the time when requested
-  //       case 3 display latest time
-  switch (opt)
-  {
-    case 1:
+void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
+  // save the latest time if changed
       if (clocktime != lastclocktime){
         auto difference = clocktime - lastclocktime;
         if (difference<0) difference+=1440;
         DCC::setTime(clocktime,clockrate,difference>2);
-        // CAH. DIAG removed because LCD does it anyway. 
-        LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
+        byte hh=clocktime/60;
+        byte mm=clocktime%60;
+        if (hh>23) hh=0;
+        LCD(6,clockrate<=1?F("Time %d%d:%d%d"):F("Time %d%d:%d%d (%d)"),
+             hh/10, hh%10, mm/10, mm%10, clockrate);
+
         // look for an event for this time
 #ifdef EXRAIL_ACTIVE        
         RMFT2::clockEvent(clocktime,1);
@@ -223,14 +222,7 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte 
         lastclocktime = clocktime;
         lastclockrate = clockrate;
       }
-      return;
-
-    case 2:
-      CommandDistributor::broadcastClockTime(lastclocktime, lastclockrate);
-      return;
-  }
- 
-}
+    }
 
 int16_t CommandDistributor::retClockTime() {
   return lastclocktime;
