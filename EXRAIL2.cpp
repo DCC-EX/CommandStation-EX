@@ -609,11 +609,19 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_SAVESPEED:
-    if (loco) saveSpeed = DCC::getThrottleSpeedByte(loco);
+    if (loco) {
+      auto slot=LocoSlot::getSlot(loco,false);
+      if (slot) {
+        slot->saveSpeed();
+      }
+    }
     break;
 
   case OPCODE_RESTORESPEED:
-    if (loco) DCC::setThrottle(loco,saveSpeed,invert);
+    if (loco) {
+      auto slot=LocoSlot::getSlot(loco,false);
+      if (slot) DCC::setThrottle(loco,slot->getSavedSpeed(),invert);
+    }
     break;
 
   case OPCODE_RESERVE:

@@ -45,6 +45,7 @@ private:
   uint16_t blockOccupied;    // railcom detected block 
   
   byte targetSpeed;       // speed set by throttle
+  byte savedSpeed;
   byte speedCode;         // current DCC speed and direction
   byte snifferSpeedCode;  // sniffer speed and direction
   byte momentumA;         // momentum accelerating
@@ -82,6 +83,8 @@ public:
   void setMomentumBase(uint32_t v) { momentum_base=v; } 
   byte getTargetSpeed() { return targetSpeed; }
   void setTargetSpeed(byte v) { targetSpeed=v; }  
+  byte getSavedSpeed() { return savedSpeed; }
+  void setSavedSpeed(byte v) { savedSpeed=v; }
 
   byte getSpeedCode() { return speedCode; }
   void setSpeedCode(byte v) { speedCode=v; }
@@ -92,6 +95,7 @@ public:
   uint16_t getBlockOccupied() { return blockOccupied; }
   void setBlockOccupied(uint16_t v) { blockOccupied=v; }
   void forget();
+  void saveSpeed();
 
 };
 #endif

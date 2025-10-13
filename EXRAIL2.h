@@ -302,7 +302,6 @@ private:
     uint16_t loco;
     bool invert;
     byte pauseSpeed;
-    byte saveSpeed;
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];

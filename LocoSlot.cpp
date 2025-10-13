@@ -31,6 +31,7 @@ void LocoSlot::prepare(uint16_t locoId) {
     momentumA=MOMENTUM_USE_DEFAULT;
     momentumD=MOMENTUM_USE_DEFAULT;
     targetSpeed=128;
+    savedSpeed=128;
     blockOccupied=0;
 
     snifferSpeedCode=128; // default direction forward
@@ -78,6 +79,11 @@ void LocoSlot::forget() {
   next=recycler;
   recycler=this;
   chainModified=true;
+}
+
+void LocoSlot::saveSpeed() {
+  // targetSpeed should eventually to be the speed we want to reach and save
+  savedSpeed=targetSpeed;
 }
 
 /* static */ void LocoSlot::forgetAll() {
