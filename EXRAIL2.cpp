@@ -620,7 +620,7 @@ void RMFT2::loop2() {
   case OPCODE_RESTORESPEED:
     if (loco) {
       auto slot=LocoSlot::getSlot(loco,false);
-      if (slot) DCC::setThrottle(loco,slot->getSavedSpeed(),invert);
+      if (slot) DCC::setThrottle(loco,slot->getSavedSpeed(),DCC::getThrottleDirection(loco));
     }
     break;
 
