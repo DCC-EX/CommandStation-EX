@@ -133,6 +133,14 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 #define FWD(speed) static_assert(speed>=0 && speed<128,"\n\nUSER ERROR: Speed out of valid range 0-127\n");
 #undef REV
 #define REV(speed) static_assert(speed>=0 && speed<128,"\n\nUSER ERROR: Speed out of valid range 0-127\n");
+#undef SPEEDUP
+#define SPEEDUP(speedstep) static_assert(speedstep>=0 && speedstep<128,"\n\nUSER ERROR: Speed step out of valid range 0-127\n");
+#undef SPEEDUP_REL
+#define SPEEDUP_REL(rel) OPCODE_SPEEDUP_REL,V(rel), static_assert(rel>0 && rel<10000,"\n\nUSER ERROR: Speed out of valid range 1-10000 %\n");
+#undef SLOWDOWN
+#define SLOWDOWN(speedstep) static_assert(speedstep>=0 && speedstep<128,"\n\nUSER ERROR: Speed step out of valid range 0-127\n");
+#undef SLOWDOWN_REL
+#define SLOWDOWN_REL(rel) OPCODE_SLOWDOWN_REL,V(rel), static_assert(rel>0 && rel<10000,"\n\nUSER ERROR: Speed out of valid range 1-10000 %\n");
 
 // check duplicate sequences
 #undef SEQUENCE

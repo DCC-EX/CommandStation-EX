@@ -185,7 +185,11 @@
 #undef SETFREQ
 #undef SIGNAL 
 #undef SIGNALH 
-#undef SPEED 
+#undef SPEED
+#undef SPEEDUP
+#undef SPEEDUP_REL
+#undef SLOWDOWN
+#undef SLOWDOWN_REL 
 #undef START 
 #undef STASH
 #undef STEALTH
@@ -1290,7 +1294,31 @@
  * @brief Changes current tasks loco speed without changing direction
  * @param speed 0..127 (1=ESTOP)
  */
-#define SPEED(speed) 
+#define SPEED(speed)
+/**
+ * @def SPEEDUP(speedstep)
+ * @brief Increases current tasks loco speed by given amount
+ * @param speed 0..127
+ */
+#define SPEEDUP(speedstep)
+/**
+ * @def SLOWDOWN(speedstep)
+ * @brief Decreases current tasks loco speed by given amount
+ * @param speed 0..127
+ */
+#define SLOWDOWN(speedstep)
+/**
+ * @def SPEEDUP_REL(rel)
+ * @brief Increases current tasks loco speed by given relative % amount
+ * @param rel 1..10000 
+ */
+#define SPEEDUP_REL(rel)
+/**
+ * @def SLOWDOWN_REL(rel)
+ * @brief Decreases current tasks loco speed by given relative % amount
+ * @param rel 1..10000 
+ */
+#define SLOWDOWN_REL(rel)
 /**
  * @def START(sequence_id)
  * @brief Starts a new task at the given route/animation/sequence
