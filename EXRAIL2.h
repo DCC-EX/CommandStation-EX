@@ -187,7 +187,7 @@ class LookList {
    public:
     static void begin();
     static void loop();
-    RMFT2(int progCounter, int16_t cab=0);
+    RMFT2(int progCounter, int16_t cab=0, bool invert=false);
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
