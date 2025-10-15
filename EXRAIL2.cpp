@@ -591,7 +591,7 @@ void RMFT2::loop2() {
   
   case OPCODE_SPEEDUP:
     if (loco) {
-      byte speed=DCC::getThrottleSpeed(loco);
+      int8_t   speed=DCC::getThrottleSpeed(loco);
 
       // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
       if ((speed != 1) && (speed != -1))
@@ -612,7 +612,7 @@ void RMFT2::loop2() {
 
   case OPCODE_SPEEDUP_REL:
     if (loco) {
-      byte speed=DCC::getThrottleSpeed(loco);
+      int8_t  speed=DCC::getThrottleSpeed(loco);
 
       // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
       if ((speed != 1) && (speed != -1))
@@ -633,7 +633,7 @@ void RMFT2::loop2() {
 
   case OPCODE_SLOWDOWN:
     if (loco) {
-      byte speed=DCC::getThrottleSpeed(loco);
+      int8_t  speed=DCC::getThrottleSpeed(loco);
 
       // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
       if ((speed != 1) && (speed != -1))
@@ -652,7 +652,7 @@ void RMFT2::loop2() {
 
   case OPCODE_SLOWDOWN_REL:
     if (loco) {
-      byte speed=DCC::getThrottleSpeed(loco);
+      int8_t  speed=DCC::getThrottleSpeed(loco);
 
       // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
       if ((speed != 1) && (speed != -1))
