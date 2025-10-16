@@ -421,12 +421,17 @@ void WifiESP::loop() {
         }
         // buffer filled, end with '\0' so we can use it as C string
 	buffer[wsHeaderLen+count]='\0';
-	if((unsigned int)clientId <= clients.size() && clients[clientId].active(clientId)) {
-	  if (Diag::WIFI) 
-         DIAG(F("SEND%S %d:%s"), useWebsocket?F("ws"):F(""),clientId, buffer+wsHeaderLen);
-	  clients[clientId].wifi.write(buffer,count+wsHeaderLen);
+	if((unsigned int)clientId <= clients.size()) {
+	  if (clients[clientId].active(clientId)) {
+	    if (Diag::WIFI)
+	      DIAG(F("SEND%S %d:%s"), useWebsocket?F("ws"):F(""),clientId, buffer+wsHeaderLen);
+	    clients[clientId].wifi.write(buffer,count+wsHeaderLen);
+	  } else {
+	    // existed but not active
+	    DIAG(F("Unsent(%d): %s"), clientId, buffer+wsHeaderLen);
+	  }
 	} else {
-	  DIAG(F("Unsent(%d): %s"), clientId, buffer+wsHeaderLen);
+	  DIAG(F("Non existent client %d has message: %s"), clientId, buffer+wsHeaderLen);
 	}
       }
     }

@@ -119,7 +119,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     // or the command generated more output than fits in
     // the buffer
     if (!ring->commit()) {
-      DIAG(F("OUTBOUND FULL processing cmd:%s"),buffer);
+      DIAG(F("OUTBOUND FULL for client %d processing cmd:%s"),clientId, buffer);
     }
   } else {
     DIAG(F("CD parse: was alredy committed")); //XXX Could have been committed by broadcastClient?!
