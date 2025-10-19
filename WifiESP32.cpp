@@ -277,9 +277,16 @@ bool WifiESP::setup(const char *SSid,
 #else
     WiFi.setSleep(false);
 #endif
+
+#ifdef WIFI_HIDE_SSID
+ const bool hiddenAP = true;
+#else
+ const bool hiddenAP = false;
+#endif
+
     if (WiFi.softAP(strSSID.c_str(),
 		    havePassword ? password : strPass.c_str(),
-		    channel, false, 8)) {
+		    channel, hiddenAP, 8)) {
       // DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
       DIAG(F("Wifi in AP mode"));
       LCD(5, F("Wifi: %s"), strSSID.c_str());
