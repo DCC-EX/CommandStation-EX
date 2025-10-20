@@ -817,7 +817,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                         StringFormatter::send(stream, F("<jC %d>\n"), x);
                         return;
                     }
-                    CommandDistributor::setClockTime(p[1], p[2], 1);
+                    CommandDistributor::setClockTime(p[1], p[2]);
                     return;
                 
                 case "G"_hk: // <JG> current gauge limits
