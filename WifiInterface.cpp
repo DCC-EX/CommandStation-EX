@@ -309,20 +309,26 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     checkForOK(1000, true, false);  // suck up remainder of AT+CIFSR
   
     i=0;
+#ifdef WIFI_HIDE_SSID
+ const byte hiddenAP = true;
+#else
+ const bool hiddenAP = false;
+#endif
+
     do {
       if (!forceAP) {
         if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
     // unconfigured
-          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4\r\n"),
-                                            oldCmd ? "" : "_CUR", macTail, macTail, channel);
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"PASS_%s\",%d,4,4,%b\r\n"),
+                                            oldCmd ? "" : "_CUR", macTail, macTail, channel,hiddenAP);
         } else {
           // password configured by user
-          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4\r\n"), oldCmd ? "" : "_CUR",
-                                          macTail, password, channel);
+          StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"DCCEX_%s\",\"%S\",%d,4,4,%b\r\n"), oldCmd ? "" : "_CUR",
+                                          macTail, password, channel,hiddenAP);
         }
       } else {
-        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%S\",\"%S\",%d,4\r\n"),
-                                        oldCmd ? "" : "_CUR", SSid, password, channel);
+        StringFormatter::send(wifiStream, F("AT+CWSAP%s=\"%S\",\"%S\",%d,4,4,%b\r\n"),
+                                        oldCmd ? "" : "_CUR", SSid, password, channel,hiddenAP);
       }
     } while (!checkForOK(WIFI_CONNECT_TIMEOUT, true) && i++<2); // do twice if necessary but ignore failure as AP mode may still be ok
     if (i >= 2)
