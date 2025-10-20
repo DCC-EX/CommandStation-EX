@@ -47,7 +47,6 @@
 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
-#define DEFAULT_MAX_LOCOS 120
 
 #if defined(ARDUINO_AVR_UNO)
   #define ARDUINO_TYPE "UNO"
@@ -271,6 +270,9 @@
 
 
 // Default MAX_LOCOS if not found in config.h
+#ifndef DEFAULT_MAX_LOCOS 
+   #define DEFAULT_MAX_LOCOS 120
+#endif   
 #ifndef MAX_LOCOS 
    #define MAX_LOCOS DEFAULT_MAX_LOCOS
 #endif   

@@ -53,7 +53,7 @@ public :
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);
-  static void setClockTime(int16_t time, int8_t rate, byte opt);
+  static void setClockTime(int16_t time, int8_t rate);
   static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastRaw(clientType type,char * msg);

@@ -33,7 +33,7 @@
  
   // TODO - use non-blocking I2C 
   // TODO - support for all-channels sensor read via new command code
-  // TODO - make dump optional (especially for sensors)
+
   
  enum TrackUnoccupancy
 {
@@ -45,8 +45,9 @@
 //   generic class for self-identifying Trainbrains devices
 class Trainbrains : public IODevice {
 public:
-  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new Trainbrains(vpin, nPins, i2cAddress);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress,bool debug=false) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) 
+      new Trainbrains(vpin, nPins, i2cAddress,debug);
   }
 
 private:
@@ -54,14 +55,16 @@ private:
   static const byte DT_Signal=1; 
   static const byte DT_Turnout=2;
   static const byte DT_Power=3; 
-  static const byte DT_Track=4; 
+  static const byte DT_Track=4;
+  bool debugme; 
   byte deviceType=0; // 0=none, 1=signal, 2=turnout, 3=power, 4=track
   uint8_t outputBuffer[10];
   uint8_t inputBuffer[10];
   
   // Constructor
-  Trainbrains(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress) 
+  Trainbrains(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, bool debug) 
   { 
+    debugme=debug;
     _firstVpin = vpin; 
     _nPins = nPins; 
     _I2CAddress=i2cAddress;
@@ -89,17 +92,19 @@ private:
        DIAG(F("Trainbrains I2C:%s Error:%S"), _I2CAddress.toString(), I2CManager.getErrorMessage(status));
        _deviceState = DEVSTATE_FAILED;
      } 
-     else _dumpBuffers();    
+     else {
+      if (debugme) _dumpBuffers();
+     }    
   }
   
   void _dumpBuffers() {
-    StringFormatter::send(&USB_SERIAL,F("<* TB 0x%s\n out:"),_I2CAddress.toString());
+    StringFormatter::send(&USB_SERIAL,F("<* TB %s\n out:"),_I2CAddress.toString());
     for (byte i=0;i<sizeof(outputBuffer);i++) {
-      StringFormatter::send(&USB_SERIAL,F(" %2x"),outputBuffer[i]);
+      StringFormatter::send(&USB_SERIAL,F(" %-2x"),outputBuffer[i]);
     }
-    StringFormatter::send(&USB_SERIAL,F("\n  in:"),_I2CAddress.toString());
+    StringFormatter::send(&USB_SERIAL,F("\n  in:"));
     for (byte i=0;i<sizeof(inputBuffer);i++) {
-      StringFormatter::send(&USB_SERIAL,F(" %2x"),inputBuffer[i]);
+      StringFormatter::send(&USB_SERIAL,F(" %-2x"),inputBuffer[i]);
     }
     StringFormatter::send(&USB_SERIAL,F("\n*>\n"));    
   }
@@ -156,8 +161,8 @@ private:
 // class retained for backward compatibility. Builds the generic class. 
 class Trainbrains02 {
   public:
-  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress) {
-    Trainbrains::create(vpin, nPins, i2cAddress);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, bool debug=false) {
+    Trainbrains::create(vpin, nPins, i2cAddress,debug);
   }
 };
 

@@ -103,7 +103,7 @@ void DS1307::_loop(unsigned long currentMicros) {
     auto time=getTime();
     if (_deviceState==DEVSTATE_NORMAL) {
        ss=time%60;
-       CommandDistributor::setClockTime(time/60, 1, 1);      
+       CommandDistributor::setClockTime(time/60, 1);      
     }
 
     // delay until next expected minute tickover,
