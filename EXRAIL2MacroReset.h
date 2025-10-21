@@ -1308,17 +1308,17 @@
  */
 #define SLOWDOWN(speedstep)
 /**
- * @def SPEEDUP_REL(rel)
+ * @def SPEEDUP_REL(percent)
  * @brief Increases current tasks loco speed by given relative % amount
- * @param rel 1..10000 
+ * @param percent 1..500
  */
-#define SPEEDUP_REL(rel)
+#define SPEEDUP_REL(percent)
 /**
- * @def SLOWDOWN_REL(rel)
+ * @def SLOWDOWN_REL(percent)
  * @brief Decreases current tasks loco speed by given relative % amount
- * @param rel 1..10000 
+ * @param percent 1..500
  */
-#define SLOWDOWN_REL(rel)
+#define SLOWDOWN_REL(percent)
 /**
  * @def START(sequence_id)
  * @brief Starts a new task at the given route/animation/sequence
