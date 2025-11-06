@@ -320,10 +320,8 @@ void DCC::setDCFreq(int cab,byte freq) {
   if (!slot) return; // speed table full, can not do anything
   
   // drop and replace F29,30,31 (top 3 bits) 
-  auto newFunctions=slot->getFunctions() & 0x1FFFFFFFUL;
-  if (freq==1)      newFunctions |= (1UL<<29); // F29
-  else if (freq==2) newFunctions |= (1UL<<30); // F30
-  else if (freq==3) newFunctions |= (1UL<<31); // F31
+  auto newFunctions=slot->getFunctions() & 0x1FFFFFFFUL; // get and clear relevant bits
+  if (freq != 0) newFunctions |= (1UL<<(28 + freq));     // 1->29, 2->30, 3->31
   if (newFunctions==slot->getFunctions()) return; // no change 
   slot->setFunctions(newFunctions);
   CommandDistributor::broadcastLoco(slot);
