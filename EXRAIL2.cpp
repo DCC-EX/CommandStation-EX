@@ -1072,6 +1072,8 @@ void RMFT2::loop2() {
   case OPCODE_PRINT:
     printMessage(operand);
     break;
+
+  // Route state management  
   case OPCODE_ROUTE_HIDDEN:
     manageRouteState(operand,2);
     break;   
@@ -1083,6 +1085,19 @@ void RMFT2::loop2() {
     break;   
   case OPCODE_ROUTE_DISABLED:
     manageRouteState(operand,4);
+    break;   
+// Route state management  
+  case OPCODE_IF_ROUTE_HIDDEN:
+    skipIf=!ifRouteState(operand,2);
+    break;   
+  case OPCODE_IF_ROUTE_INACTIVE:
+    skipIf=!ifRouteState(operand,0);
+    break;   
+  case OPCODE_IF_ROUTE_ACTIVE:
+    skipIf=!ifRouteState(operand,1);
+    break;   
+  case OPCODE_IF_ROUTE_DISABLED:
+    skipIf=!ifRouteState(operand,4);
     break;   
 
   case OPCODE_STASH:
@@ -1573,6 +1588,15 @@ void RMFT2::manageRouteState(int16_t id, byte state) {
     CommandDistributor::broadcastRouteState(id,state);
   }
 }
+bool RMFT2::ifRouteState(int16_t id, byte state) {
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    // Route state must be maintained for when new throttles connect.
+    // locate route id in the Routes lookup
+    int16_t position=routeLookup->findPosition(id);
+    return position>=0 &&  routeStateArray[position]==state;
+  }
+}
+
 void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.

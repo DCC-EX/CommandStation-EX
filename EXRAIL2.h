@@ -100,6 +100,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFSTASH,
              OPCODE_IFSTASHED_HERE,
              OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
+             OPCODE_IF_ROUTE_ACTIVE,OPCODE_IF_ROUTE_INACTIVE,
+             OPCODE_IF_ROUTE_HIDDEN,OPCODE_IF_ROUTE_DISABLED,
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 
@@ -281,6 +283,7 @@ private:
    static int onLCCLookup[];
    static const byte compileFeatures;
    static void manageRouteState(int16_t id, byte state);
+   static bool ifRouteState(int16_t id, byte state);
    static void manageRouteCaption(int16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;

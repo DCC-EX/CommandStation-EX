@@ -95,6 +95,10 @@
 #undef IFTIMEOUT
 #undef IFTTPOSITION
 #undef IFRE
+#undef IFROUTE_ACTIVE
+#undef IFROUTE_INACTIVE
+#undef IFROUTE_HIDDEN
+#undef IFROUTE_DISABLED
 #undef IFBITMAP_ALL
 #undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
@@ -696,6 +700,34 @@
  * @param mask Binary mask applied to vpin value
  */
 #define IFBITMAP_ANY(vpin,mask)
+/** 
+ * @def IFROUTE_ACTIVE(sequence_id)
+ * @briaf Checks if route is active
+ * @see IF
+ * @param sequence_id
+ */
+#define IFROUTE_ACTIVE(sequence_id)
+/** 
+ * @def IFROUTE_INACTIVE(sequence_id)
+ * @briaf Checks if route is inactive
+ * @see IF
+ * @param sequence_id
+ */
+#define IFROUTE_INACTIVE(sequence_id)
+/** 
+ * @def IFROUTE_HIDDEN(sequence_id)
+ * @briaf Checks if route is hidden
+ * @see IF
+ * @param sequence_id
+ */
+#define IFROUTE_HIDDEN(sequence_id)
+/** 
+ * @def IFROUTE_DISABLED(sequence_id)
+ * @briaf Checks if route is disabled
+ * @see IF
+ * @param sequence_id
+ */
+#define IFROUTE_DISABLED(sequence_id)
 /**
  * @def INVERT_DIRECTION
  * @brief Marks current task so that FWD and REV commands are inverted.

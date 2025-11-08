@@ -186,7 +186,14 @@ void exrailHalSetup2() {
 #define ROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
-
+#undef IFROUTE_ACTIVE
+#define IFROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_INACTIVE
+#define IFROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_HIDDEN
+#define IFROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_DISABLED
+#define IFROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
@@ -509,6 +516,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
+#define IFROUTE_ACTIVE(sequence_id) OPCODE_IF_ROUTE_ACTIVE,V(sequence_id),
+#define IFROUTE_INACTIVE(sequence_id) OPCODE_IF_ROUTE_INACTIVE,V(sequence_id),
+#define IFROUTE_HIDDEN(sequence_id) OPCODE_IF_ROUTE_HIDDEN,V(sequence_id),
+#define IFROUTE_DISABLED(sequence_id) OPCODE_IF_ROUTE_DISABLED,V(sequence_id),
 #define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
