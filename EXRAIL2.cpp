@@ -589,6 +589,86 @@ void RMFT2::loop2() {
     if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
     break;
   
+  case OPCODE_SPEEDUP:
+    if (loco) {
+      int8_t   speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle overflow
+        int16_t newspeed = static_cast<int16_t>(speed) + operand;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 2; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_SPEEDUP_REL:
+    if (loco) {
+      int8_t  speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle overflow
+        int16_t newspeed = static_cast<int16_t>(speed) + (speed * operand)/100;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 2; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_SLOWDOWN:
+    if (loco) {
+      int8_t  speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle underflow
+        int16_t newspeed = static_cast<int16_t>(speed) - operand;
+        if (newspeed < 2) {
+            speed = 0; // stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_SLOWDOWN_REL:
+    if (loco) {
+      int8_t  speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle underflow
+        int16_t newspeed = static_cast<int16_t>(speed) - (speed * operand)/100;
+        if (newspeed < 2) {
+            speed = 0; // stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    } 
+    break;
+
   case OPCODE_MOMENTUM:
     DCC::setMomentum(loco,operand,getOperand(1));
     break;
