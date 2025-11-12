@@ -291,7 +291,11 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
       }
     }
     return true;
-    
+      
+  case "FREEALL"_hk:  // force free all
+    if (paramCount!=1) return false;
+    for (int i=0;i<MAX_FLAGS;i++) setFlag(i,0,SECTION_FLAG);
+    return true;
     
   case "START"_hk: // </ START [cab] route >
     if (paramCount<2 || paramCount>3) return false;
