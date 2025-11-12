@@ -73,7 +73,8 @@
 #undef FON 
 #undef FORGET
 #undef FTOGGLE
-#undef FREE 
+#undef FREE
+#undef FREEALL
 #undef FWD 
 #undef GREEN
 #undef HAL
@@ -205,6 +206,7 @@
 #undef VIRTUAL_SIGNAL
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
+#undef WAIT_WHILE_RED
 #ifndef IO_NO_HAL
 #undef BITMAP_AND
 #undef BITMAP_OR
@@ -534,6 +536,12 @@
  * @param token_id 0..255 
  */
 #define FREE(token_id) 
+/**
+ * @def FREEALL
+ * @brief Frees all logical tokens 
+ * @see RESERVE
+ */
+#define FREEALL 
 /**
  * @def FTOGGLE(func)
  * @brief Toggles function for current loco
@@ -1469,6 +1477,13 @@
  */
 #define WAITFORTT(turntable_id)
 #endif
+#define VIRTUAL_SIGNAL(signal_id) 
+/**
+ * @def WAIT_WHILE_RED(signal_id)
+ * @brief Waits while signal is RED
+ * @param signal_id 
+ */
+#define WAIT_WHILE_RED(signal_id)
 /**
  * @def WITHROTTLE(msg)
  * @brief Broadcasts a string in Withrottle protocol format to all throttles using this protocol. 

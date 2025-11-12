@@ -500,6 +500,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FON(func) OPCODE_FON,V(func),
 #define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
+#define FREEALL OPCODE_FREEALL,0,0,
 #define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -658,6 +659,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #ifndef IO_NO_HAL
 #define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
 #endif
+#define WAIT_WHILE_RED(signal_id) OPCODE_WAIT_WHILE_RED,V(signal_id),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 #define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),

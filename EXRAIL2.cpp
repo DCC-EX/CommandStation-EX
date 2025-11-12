@@ -620,7 +620,11 @@ void RMFT2::loop2() {
   case OPCODE_FREE:
     setFlag(operand,0,SECTION_FLAG);
     break;
-    
+  
+  case OPCODE_FREEALL:
+    for (int i=0;i<MAX_FLAGS;i++) setFlag(i,0,SECTION_FLAG);
+    break;
+  
   case OPCODE_AT:
     blinkState=not_blink_task;
     if (readSensor(operand)) break;
@@ -808,6 +812,15 @@ void RMFT2::loop2() {
     
   case OPCODE_IFRED: // do block if signal as expected
     skipIf=!isSignal(operand,SIGNAL_RED);
+    break;
+    
+  case OPCODE_WAIT_WHILE_RED: // do block if signal as expected
+    if (isSignal(operand,SIGNAL_RED)) {
+      if (loco && (DCC::getLocoSpeedByte(loco) & 0x7f)>1) 
+          DCC::setThrottle(loco,0,DCC::getThrottleDirection(loco));
+      delayMe(500);
+      return;
+    }
     break;
     
   case OPCODE_IFAMBER: // do block if signal as expected
@@ -1595,6 +1608,7 @@ bool RMFT2::ifRouteState(int16_t id, byte state) {
     int16_t position=routeLookup->findPosition(id);
     return position>=0 &&  routeStateArray[position]==state;
   }
+  else return false; 
 }
 
 void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
