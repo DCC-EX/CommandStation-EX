@@ -34,6 +34,8 @@ ROUTE(7000, "Route state tests")
   RED(1)
   PRINT("Waiting at signal 1")
   WAIT_WHILE_RED(1) // user do </GREEN 1> to continue
+  PRINT("Tester please set signal 1 GREEN or AMBER to continue")
+  WAIT_WHILE_RED(1)
   SPEED(10)
   PRINT("Resumed at signal 1")
   DONE
