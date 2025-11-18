@@ -3,7 +3,14 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.46"
+#define VERSION "5.5.47"
+// 5.5.47 - Make it possible to turn off max ack duration check
+//        - Wifi: Make it possible to hide the SSID
+//        - New trainbrains debug option
+//        - ESP32: SSID named "OFF" will turn all WIFI off
+//        - DCCEX protocol change: <#> returns <# N> where N is the number of presumably empty slots for mobile decoders
+//        - Bugfix: Race condition with RMTChannel::dataRepeat causes packets to be lost #460
+//        - Handle loco table full
 // 5.5.46 - Major rewrite of loco table 
 // 5.5.45 - Incoming <@ row col "text"> command
 //        - Bugfix: <t cab> for unknown loco

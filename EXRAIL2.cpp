@@ -390,7 +390,7 @@ char RMFT2::getRouteType(int16_t id) {
 }
 
 
-RMFT2::RMFT2(int progCtr, int16_t _loco) {
+RMFT2::RMFT2(int progCtr, int16_t _loco, bool _invert) {
   progCounter=progCtr;
 
   // get an unused  task id from the flags table
@@ -404,7 +404,7 @@ RMFT2::RMFT2(int progCtr, int16_t _loco) {
   }
   delayTime=0;
   loco=_loco;
-  invert=false;
+  invert=_invert;
   blinkState=not_blink_task;
   stackDepth=0;
   onEventStartPosition=-1; // Not handling an ONxxx 
@@ -1011,6 +1011,23 @@ void RMFT2::loop2() {
       int newPc=routeLookup->find(operand);
       if (newPc<0) break;
       new RMFT2(newPc);
+    }
+    break;
+
+  case OPCODE_START_SHARED:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and share loco
+    }
+    break;
+
+  case OPCODE_START_SEND:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and send loco exclusive
+      loco = 0;
     }
     break;
     

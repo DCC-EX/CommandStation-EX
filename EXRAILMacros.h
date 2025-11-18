@@ -636,6 +636,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define START(route) OPCODE_START,V(route), 
+#define START_SHARED(route) OPCODE_START_SHARED,V(route),
+#define START_SEND(route) OPCODE_START_SEND,V(route),
 #define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
