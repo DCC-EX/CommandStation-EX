@@ -693,6 +693,17 @@
 </dd></dl>
 
 <dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.FREEALL">
+<span class="target" id="EXRAIL2MacroReset_8h_1a7e07289c086465254911eb99e7361637"></span><span class="sig-name descname"><span class="n"><span class="pre">FREEALL</span></span></span><a class="headerlink" href="#c.FREEALL" title="Link to this definition"></a><br /></dt>
+<dd><p>Frees all logical tokens. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a49310ca0db8af4a7e4762cfc215c4718"><span class="std std-ref">RESERVE</span></a></p>
+</div>
+</p>
+</dd></dl>
+
+<dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.FTOGGLE">
 <span class="target" id="EXRAIL2MacroReset_8h_1a3f4857539b53cbe918c3d371cf7686a9"></span><span class="sig-name descname"><span class="n"><span class="pre">FTOGGLE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">func</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.FTOGGLE" title="Link to this definition"></a><br /></dt>
 <dd><p>Toggles function for current loco. </p>
@@ -1075,6 +1086,74 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vpin</strong></p></li>
 <li><p><strong>mask</strong> – Binary mask applied to vpin value </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFROUTE_ACTIVE">
+<span class="target" id="EXRAIL2MacroReset_8h_1a9bbc2c8c05f86030823a1fb3ed1941f7"></span><span class="sig-name descname"><span class="n"><span class="pre">IFROUTE_ACTIVE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFROUTE_ACTIVE" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if route is active <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence_id</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFROUTE_INACTIVE">
+<span class="target" id="EXRAIL2MacroReset_8h_1a8501ae7e1d30535fa255ea4d47a84b86"></span><span class="sig-name descname"><span class="n"><span class="pre">IFROUTE_INACTIVE</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFROUTE_INACTIVE" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if route is inactive <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence_id</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFROUTE_HIDDEN">
+<span class="target" id="EXRAIL2MacroReset_8h_1a1ea388a7d340e1239ed59b77031813fd"></span><span class="sig-name descname"><span class="n"><span class="pre">IFROUTE_HIDDEN</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFROUTE_HIDDEN" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if route is hidden <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence_id</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.IFROUTE_DISABLED">
+<span class="target" id="EXRAIL2MacroReset_8h_1a795be4d1e964ea5ea7159b2f52d87807"></span><span class="sig-name descname"><span class="n"><span class="pre">IFROUTE_DISABLED</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">sequence_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.IFROUTE_DISABLED" title="Link to this definition"></a><br /></dt>
+<dd><p>&#64;briaf Checks if route is disabled <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1ae4c1e6ea87ba9cce1d14cc6db5ad3427"><span class="std std-ref">IF</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence_id</strong></p></li>
 </ul>
 </dd>
 </dl>
@@ -2585,6 +2664,37 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>turntable_id</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp">
+<span class="target" id="EXRAIL2MacroReset_8h_1a9c6fbb7e01b99fa632a7421c91e594e3"></span><span class="sig-name descname"><span class="n"><span class="pre">VIRTUAL_SIGNAL</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span><span class="sig-paren">)</span><br /></dt>
+<dd><p>Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#EXRAIL2MacroReset_8h_1a9dc5ab478e7b3e90cf240a4bbdb47fb2"><span class="std std-ref">SIGNAL</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1afcc4c2161bb0de1be05b5a4f0583cc98"><span class="std std-ref">ONRED</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a491c12e424a9d5517063e664be8a5052"><span class="std std-ref">ONAMBER</span></a> <a class="reference internal" href="#EXRAIL2MacroReset_8h_1a648c217ce4240e2c4ae497b02b785626"><span class="std std-ref">ONGREEN</span></a></p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal_id</strong></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.WAIT_WHILE_RED">
+<span class="target" id="EXRAIL2MacroReset_8h_1af1efb73a50a89b8914c8cd40dce86f7f"></span><span class="sig-name descname"><span class="n"><span class="pre">WAIT_WHILE_RED</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">signal_id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.WAIT_WHILE_RED" title="Link to this definition"></a><br /></dt>
+<dd><p>Waits while signal is RED. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal_id</strong></p></li>
 </ul>
 </dd>
 </dl>
