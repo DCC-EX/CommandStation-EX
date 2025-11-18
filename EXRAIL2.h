@@ -55,7 +55,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,
 #endif
              OPCODE_POM,
-             OPCODE_START,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
+             OPCODE_START,OPCODE_START_SHARED,OPCODE_START_SEND,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
              OPCODE_PAUSE, OPCODE_RESUME,OPCODE_POWEROFF,OPCODE_POWERON,
              OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
@@ -187,7 +187,7 @@ class LookList {
    public:
     static void begin();
     static void loop();
-    RMFT2(int progCounter, int16_t cab=0);
+    RMFT2(int progCounter, int16_t cab=0, bool invert=false);
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
