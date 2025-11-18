@@ -32,7 +32,6 @@ ROUTE(7000, "Route state tests")
   SPEED(10)
   RED(1)
   PRINT("7100 Waiting at signal 1")
-  WAIT_WHILE_RED(1) // user do </GREEN 1> to continue
   PRINT("7100 Tester please set signal 1 GREEN or AMBER to continue")
   WAIT_WHILE_RED(1)
   SPEED(10)
@@ -46,7 +45,6 @@ ROUTE(7000, "Route state tests")
   PARSE("</>")
   FREEALL
   PARSE("</>")
-  DONE
 
   IFRESERVE(1)
     PRINT("7200 FREEALL test worked")
