@@ -25,22 +25,22 @@ ROUTE(7000, "Route state tests")
   DONE
 
 
-  VIRTUAL_SIGNAL(1)
-
   // Test WAIT_WHILE_RED
-  ROUTE(7100, "WAIT_WHILE_RED test")
+  VIRTUAL_SIGNAL(1)
+  ROUTE(7100, "7100 WAIT_WHILE_RED test")
   SETLOCO(3)
   SPEED(10)
   RED(1)
-  PRINT("Waiting at signal 1")
+  PRINT("7100 Waiting at signal 1")
   WAIT_WHILE_RED(1) // user do </GREEN 1> to continue
-  PRINT("Tester please set signal 1 GREEN or AMBER to continue")
+  PRINT("7100 Tester please set signal 1 GREEN or AMBER to continue")
   WAIT_WHILE_RED(1)
   SPEED(10)
-  PRINT("Resumed at signal 1")
+  PRINT("7100 Resumed at signal 1")
   DONE
 
-  ROUTE(7200,"Test FREEALL")
+  // TEST new FREEALL command
+  ROUTE(7200,"7200 Test FREEALL")
   RESERVE(1)
   RESERVE(255)
   PARSE("</>")
@@ -48,3 +48,37 @@ ROUTE(7000, "Route state tests")
   PARSE("</>")
   DONE
 
+  IFRESERVE(1)
+    PRINT("7200 FREEALL test worked")
+    ELSE 
+    PRINT("7200 FREEALL test fail")
+    ENDIF
+  DONE
+
+  // Test SEND_LOCO_X and SEND_LOCO_S
+  ROUTE(7300,"7300 Test SEND_LOCO_ variants")
+  SETLOCO(5) 
+  
+  // Share loco and check we doidnt lose it
+  START_SHARED(7301)
+  IFLOCO(5) ELSE PRINT("7300 START_SHARED failed") ENDIF
+
+  // transfer loco and check we do lose it
+  START_SEND(7302)
+  IFLOCO(0) ELSE PRINT("7300 START_SEND failed") ENDIF
+  DONE
+  
+  SEQUENCE(7301)
+    IFLOCO(5)
+      PRINT("7301 START_SHARED received")
+      ELSE 
+      PRINT("7301 START_SHARED failed")
+      ENDIF
+    DONE   
+    SEQUENCE(7302)
+    IFLOCO(5)
+      PRINT("7302 START_SEND received")
+      ELSE 
+      PRINT("7302 START_SEND failed")
+      ENDIF
+    DONE  
