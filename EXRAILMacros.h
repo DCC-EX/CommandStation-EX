@@ -614,6 +614,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
 #define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
 #define ROUTE_CAPTION(id,caption) PRINT(caption)
+#define SAVE_SPEED OPCODE_SAVE_SPEED,V(0),
+#define RESTORE_SPEED OPCODE_RESTORE_SPEED,V(0),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
@@ -668,6 +670,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define XFWD(cab,speed) OPCODE_XFWD,V(cab),OPCODE_PAD,V(speed),
 #define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
 #define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
+#define XSAVE_SPEED(cab) OPCODE_XSAVE_SPEED,V(cab),
+#define XRESTORE_SPEED(cab) OPCODE_XRESTORE_SPEED,V(cab),
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

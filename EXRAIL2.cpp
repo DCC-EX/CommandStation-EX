@@ -589,6 +589,22 @@ void RMFT2::loop2() {
     if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
     break;
   
+  case OPCODE_SAVE_SPEED:
+    if (loco) DCC::saveSpeed(loco);
+    break;
+
+    case OPCODE_RESTORE_SPEED:
+    if (loco) DCC::restoreSpeed(loco);
+    break;
+  
+  case OPCODE_XSAVE_SPEED:
+    DCC::saveSpeed(operand);
+    break;
+
+    case OPCODE_XRESTORE_SPEED:
+    DCC::restoreSpeed(operand);
+    break;
+  
   case OPCODE_MOMENTUM:
     DCC::setMomentum(loco,operand,getOperand(1));
     break;

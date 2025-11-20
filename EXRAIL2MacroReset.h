@@ -158,6 +158,7 @@
 #undef RED 
 #undef RESERVE 
 #undef RESET 
+#undef RESTORE_SPEED
 #undef RESUME 
 #undef RETURN 
 #undef REV
@@ -170,6 +171,7 @@
 #undef ROUTE_HIDDEN
 #undef ROUTE_DISABLED
 #undef ROUTE_CAPTION
+#undef SAVE_SPEED
 #undef SENDLOCO 
 #undef SEQUENCE 
 #undef SERIAL 
@@ -224,6 +226,8 @@
 #undef XPOM
 #undef XREV
 #undef XFWD
+#undef XSAVE_SPEED
+#undef XRESTORE_SPEED
 
 #ifndef RMFT2_UNDEF_ONLY
 /**
@@ -1092,6 +1096,12 @@
  */
 #define RESET(vpin,count...) 
 /**
+ * @def RESTORE_SPEED
+ * @brief Resumes locos saved speed 
+ * @see SAVE_SPEED
+ */
+#define RESTORE_SPEED 
+/**
  * @def RESUME
  * @brief Resumes PAUSEd tasks 
  * @see PAUSE
@@ -1182,6 +1192,12 @@
  * @param caption 
  */
 #define ROUTE_CAPTION(sequence_id,caption)
+/**
+ * @def SAVE_SPEED
+ * @brief Resumes locos saved speed 
+ * @see RESTORE_SPEED
+ */
+#define SAVE_SPEED 
 /**
  * @def SENDLOCO(cab,sequence_id)
  * @brief Start a new task to drive the loco 
@@ -1547,4 +1563,18 @@
  * @param value to be written to cv
  */
 #define XPOM(cab,cv,value)
+/**
+ * @def XRESTORE_SPEED
+ * @brief Resumes locos saved speed 
+ * @param cab loco id
+ * @see XSAVE_SPEED
+ */
+#define XRESTORE_SPEED(cab) 
+/**
+ * @def XSAVE_SPEED
+ * @brief Resumes locos saved speed 
+ * @param cab loco id
+ * @see XRESTORE_SPEED
+ */
+#define XSAVE_SPEED(cab) 
 #endif

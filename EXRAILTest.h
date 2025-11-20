@@ -80,3 +80,20 @@ ROUTE(7000, "Route state tests")
       PRINT("7302 START_SEND failed")
       ENDIF
     DONE  
+
+    SEQUENCE(7400)
+      SETLOCO(3)
+      SPEED(20)
+      SAVE_SPEED
+      SPEED(40)
+      PRINT("7401 Speed changed to 40")
+      RESTORE_SPEED
+      PRINT("7401 Speed restored")
+      XFWD(4,20)
+      XSAVE_SPEED(4)
+      XFWD(4,40)
+      PRINT("7401 Speed 4 changed to 40")
+      XRESTORE_SPEED(4)
+      PRINT("7401 Speed 4 restored")
+      DONE
+      

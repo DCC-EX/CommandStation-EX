@@ -90,6 +90,8 @@ public:
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders
+  static void saveSpeed(int cab);   // saves speed for later restore
+  static void restoreSpeed(int cab); // restores saved speed  
   static void displayCabList(Print *stream);
   static FSH *getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {

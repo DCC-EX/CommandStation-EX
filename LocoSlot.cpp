@@ -32,6 +32,7 @@ void LocoSlot::prepare(uint16_t locoId) {
     momentumD=MOMENTUM_USE_DEFAULT;
     targetSpeed=128;
     blockOccupied=0;
+    savedSpeedCode=0; 
 
     snifferSpeedCode=128; // default direction forward
     snifferFunctions=0;
@@ -116,3 +117,9 @@ void LocoSlot::forget() {
   output->print(F("\n*>\n"));
   }
 
+void LocoSlot::saveSpeed() {
+  savedSpeedCode=targetSpeed;
+}
+byte LocoSlot::getSavedSpeedCode() {
+  return savedSpeedCode;
+}

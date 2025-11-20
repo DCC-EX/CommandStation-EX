@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.48"
+#define VERSION "5.5.49"
+// 5.5.49 - EXRAIL </> displays wait_while_red state
+//        - EXRAIL SAVE_SPEED,RESTORE_SPEED,XSAVE_SPEED,XRESTORE_SPEED macros
 // 5.4.48 - EXRAIL improvements:
 //        - IFROUTE_HIDDEN, IFROUTE_DISABLED, IFROUTE_ACTIVE, IFROUTE_INACTIVE macros
 //        - FREEALL and </FREEALL> to free all reserves

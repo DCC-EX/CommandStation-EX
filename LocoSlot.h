@@ -47,6 +47,7 @@ private:
   byte targetSpeed;       // speed set by throttle
   byte speedCode;         // current DCC speed and direction
   byte snifferSpeedCode;  // sniffer speed and direction
+  byte savedSpeedCode;    // speed code saved by EXRAIL SAVE_SPEED
   byte momentumA;         // momentum accelerating
   byte momentumD;         // momentum decelerating
   byte groupFlags;        // function groups acivated
@@ -92,6 +93,8 @@ public:
   uint16_t getBlockOccupied() { return blockOccupied; }
   void setBlockOccupied(uint16_t v) { blockOccupied=v; }
   void forget();
+  void saveSpeed();
+  byte getSavedSpeedCode() ;
 
 };
 #endif

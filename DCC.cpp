@@ -327,6 +327,21 @@ void DCC::setDCFreq(int cab,byte freq) {
   CommandDistributor::broadcastLoco(slot);
 }
 
+void DCC::saveSpeed(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  if (slot == nullptr)  // speed table full, can not do anything
+    return;
+  slot->saveSpeed();
+}
+
+void DCC::restoreSpeed(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  if (slot == nullptr)  // speed table full, can not do anything
+    return;
+  auto speedCode=slot->getSavedSpeedCode();  
+  setThrottle(cab, speedCode& 0x7f, (speedCode & 0x80)!=0);
+}
+
 void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // onoff is tristate:
   // 0  => send off packet

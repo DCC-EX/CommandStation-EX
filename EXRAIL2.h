@@ -86,6 +86,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
              OPCODE_FREEALL,
              OPCODE_WAIT_WHILE_RED,
+             OPCODE_SAVE_SPEED,OPCODE_RESTORE_SPEED,
+             OPCODE_XSAVE_SPEED,OPCODE_XRESTORE_SPEED,
              
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
