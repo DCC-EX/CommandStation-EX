@@ -154,6 +154,8 @@
 #undef POM
 #undef POWEROFF
 #undef POWERON
+#undef RANDOM_CALL
+#undef RANDOM_FOLLOW
 #undef READ_LOCO 
 #undef RED 
 #undef RESERVE 
@@ -1070,6 +1072,23 @@
  * @brief Powers ON all tracks 
  */
 #define POWERON
+/**
+ * @def RANDOM_CALL(sequence_id...)
+ * @brief CALL to another sequence randomly chosen from list
+ * @see CALL
+ * @param sequence_id.. list of SEQUENCE that may be called, each must terminate or RETURN
+ *  
+ */
+#define RANDOM_CALL(sequence_id...)
+
+/**
+ * @def RANDOM_FOLLOW(sequence_id...)
+ * @brief jump to another sequence randomly chosen from list
+ * @see FOLLOW
+ * @param sequence_id.. list of SEQUENCE that may be followed  
+ */
+#define RANDOM_FOLLOW(sequence_id...)
+
 /**
  * @def READ_LOCO
  * @brief Reads loco Id from prog track and sets currenmt task loco id.

@@ -99,6 +99,14 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 #define CALL(id) static_assert(seqCount(id)>0,"Sequence  not found");
 #undef FOLLOW
 #define FOLLOW(id)  static_assert(seqCount(id)>0,"Sequence not found");
+
+// random call and follow will generate CALL macros here which
+// will check for invalid sequences
+#define RANDOM_CALL(...) \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define RANDOM_FOLLOW(...) \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+
 #undef START
 #define START(id)  static_assert(seqCount(id)>0,"Sequence not found");
 #undef START_SHARED

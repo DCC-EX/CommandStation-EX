@@ -80,6 +80,27 @@
 // NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
 #define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
 
+// Collection of macros to assist variadic exrail macros
+// in particular RANDOMCALL and RANDOMFOLLOW
+// Count the number of arguments
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_HELPER(__VA_ARGS__,8,7, 6,5,4, 3, 2, 1, 0)
+#define FOR_EACH_NARG_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+// Force proper expansion (extra indirection to resolve `##`)
+#define _CONCAT_(a, b) a##b
+#define _EXPAND_(a) a
+
+#define ZC0()                      
+#define ZC1(_1)                      CALL(_1) 
+#define ZC2(_1,_2)                   CALL(_1) CALL(_2)
+#define ZC3(_1,_2,_3)                CALL(_1) CALL(_2) CALL(_3)
+#define ZC4(_1,_2,_3,_4)             CALL(_1) CALL(_2) CALL(_3) CALL(_4)
+#define ZC5(_1,_2,_3,_4,_5)          CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5)
+#define ZC6(_1,_2,_3,_4,_5,_6)       CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6)
+#define ZC7(_1,_2,_3,_4,_5,_6,_7)    CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7)
+#define ZC8(_1,_2,_3,_4,_5,_6,_7,_8) CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7) CALL(_8)
+#define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
+
+
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
@@ -596,6 +617,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
+#define RANDOM_CALL(...) \
+  OPCODE_RANDOM_CALL,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define RANDOM_FOLLOW(...) \
+  OPCODE_RANDOM_FOLLOW,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),

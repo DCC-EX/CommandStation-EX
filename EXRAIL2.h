@@ -88,6 +88,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_WAIT_WHILE_RED,
              OPCODE_SAVE_SPEED,OPCODE_RESTORE_SPEED,
              OPCODE_XSAVE_SPEED,OPCODE_XRESTORE_SPEED,
+             OPCODE_RANDOM_CALL,OPCODE_RANDOM_FOLLOW,
              
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group

@@ -969,7 +969,33 @@ void RMFT2::loop2() {
     progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
-    
+   
+  
+  case OPCODE_RANDOM_FOLLOW:
+    // operand is number to choose from
+    { 
+      auto newroute=getOperand(1+(millis()%operand));
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("RANDOM_FOLLOW unknown"), newroute); 
+    }
+    return;
+	
+	 case OPCODE_RANDOM_CALL:
+    // operand is number to choose from
+    if (stackDepth==MAX_STACK_DEPTH) {
+      kill(F("CALL stack"), stackDepth);
+      return;
+    }
+    {
+      auto newroute=getOperand(1+(millis()%operand));
+      
+      // return position is after the RANDOM_CALL + all its operands
+      callStack[stackDepth++]=progCounter+3*(operand+1);
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("CALL unknown"),newroute);
+    }
+    return;
+  
   case OPCODE_RETURN:
     if (stackDepth==0) {
       kill(F("RETURN stack"));
