@@ -2,7 +2,7 @@
  *  © 2021 M Steve Todd
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2025 Harald Barth
  *  © 2020-2022 Chris Harlow
  *  All rights reserved.
  *  
@@ -364,7 +364,7 @@ void DCCACK::loop() {
      case SKIPTARGET:
           break;
      default:
-          DIAG(F("!! ackOp %d FAULT!!"),opcode);
+          DIAG(F("ackOp %d FAULT"),opcode);
           callback( -1);
           return;
 
@@ -388,13 +388,14 @@ void DCCACK::callback(int value) {
     // Rule 1: If we have written to a decoder we must maintain power for 100mS
     // Rule 2: If we are re-joining the main track we must power off for 30mS
 
+    const FSH *off30ms = F("OFF 30mS");
     switch (callbackState) {
       case AFTER_READ:
          if (ackManagerRejoin && !autoPowerOff) {
                 progDriver->setPower(POWERMODE::OFF);
                 callbackStart=millis();
                 callbackState=WAITING_30;
-                if (Diag::ACK) DIAG(F("OFF 30mS"));
+                if (Diag::ACK) DIAG(off30ms);
         } else {
                callbackState=READY;
         }
@@ -421,7 +422,7 @@ void DCCACK::callback(int value) {
                 progDriver->setPower(POWERMODE::OFF);
                 callbackStart=millis();
                 callbackState=WAITING_30;
-                if (Diag::ACK) DIAG(F("OFF 30mS"));
+                if (Diag::ACK) DIAG(off30ms);
             }
             break;
 
