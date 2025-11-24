@@ -5,6 +5,7 @@
 
 #define VERSION "5.5.50"
 // 5.5.50 - Replace the SC power status with something better
+//        - EXRAIL RANDOM_CALL, RANDOM_FOLLOW
 // 5.5.49 - EXRAIL </> displays wait_while_red state
 //        - EXRAIL SAVE_SPEED,RESTORE_SPEED,XSAVE_SPEED,XRESTORE_SPEED macros
 // 5.4.48 - EXRAIL improvements:
