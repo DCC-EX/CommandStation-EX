@@ -102,8 +102,10 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 
 // random call and follow will generate CALL macros here which
 // will check for invalid sequences
+#undef RANDOM_CALL
 #define RANDOM_CALL(...) \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#undef RANDOM_FOLLOW
 #define RANDOM_FOLLOW(...) \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
 
