@@ -30,12 +30,14 @@
  */
 
 #define ACTIVATE(addr,subaddr)
-///brief Send DCC Accessory Activate packet (gate on then off)///param addr DCC short address of accessory
+///brief Send DCC Accessory Activate packet (gate on then off)
+///param addr DCC short address of accessory
 ///param subaddr DCC sub address
 
 
 #define ACTIVATEL(linearaddr)
-///brief Send DCC Accessory Activate packet (gate on then off)///param linearaddr DCC linear address of accessory
+///brief Send DCC Accessory Activate packet (gate on then off)
+///param linearaddr DCC linear address of accessory
 
 #define AFTER(vpin,timer...)
 ///brief Wait for sensor activated, then decativated for given time
@@ -48,7 +50,7 @@
 
 #define ALIAS(name,value...)
 ///brief defines a named numeric value.
-///param name c++ variable name that can be used throighout the script
+///param name c++ variable name that can be used throughout the script
 ///param value...  if omitted, a large negative value is created automatically
 
 #define AMBER(signal_id)
@@ -57,19 +59,17 @@
 
 #define ANOUT(vpin,value,param1,param2)
 ///brief Writes to the HAL analog output interface of a device driver.
-///         Values and meanings of extra parameters depend on driver.
 ///param vpin Virtual pin number of device 
 ///param value basic analog value
 ///param param1 device dependent 
 ///param param2 device dependent
 
 #define AT(vpin)
-///brief wait intil a sensor becomes active
+///brief Wait until a sensor becomes active
 ///param vpin Virtual pin of sensor. Use negative value for sensors that are HIGH when activated
 
 #define ASPECT(address,value)
-///brief Sends a DCC aspect value to an accessory address.
-///      May also change status of a signal defined using this aspect.
+///brief Sends a DCC aspect value to an accessory address. May also change status of a signal defined using this aspect.
 ///param address Linear DCC address of device 
 ///param value Aspect value (Device dependent)
 
@@ -99,7 +99,7 @@
 ///brief A new task will be created starting from this point at Command Station startup
 
 #define BLINK(vpin,onDuty,offDuty)
-///brief Starts a blinking process for a vpin (typically a LED)///      Stop blink with SET or RESET.
+///brief Starts a blinking process for a vpin (typically a LED). Stop blink with SET or RESET.
 ///param vpin Pin to blink
 ///param onDuty Milliseconds with LED ON
 ///param offDuty Milliseconds with LED off
@@ -167,7 +167,8 @@
 ///brief Waits for given minutes delay (This is not blocking)
 
 #define DELAYRANDOM(mindelay,maxdelay)
-///brief Waits for random delay between min and max milliseconds (This is not blocking)///param mindelay minumum delay in mS
+///brief Waits for random delay between min and max milliseconds (This is not blocking)
+///param mindelay minumum delay in mS
 ///param maxdelay maximum delay in mS
 
 #define DONE
@@ -353,12 +354,12 @@
 ///brief Marks current task so that FWD and REV commands are inverted.
 
 #define JMRI_SENSOR(vpin,count...)
-///brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
+///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
 ///param vpin first vpin number
 ///param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1.
 
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
-///brief Defines multiple JMRI <s> type sensor feedback definitions each with id matching vpin
+///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin
 ///param vpin first vpin number
 ///param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1.
 
@@ -519,8 +520,8 @@
 ///param msg Quoted text
 
 #define PARSE(msg)
-///brief Executes <> command as if entered from serial
-///param msg Quoted text, preferably including <>
+///brief Executes `<>` command as if entered from serial
+///param msg Quoted text, preferably including `<>`
 
 #define PICKUP_STASH(stash_id)
 ///see STASH
@@ -683,13 +684,17 @@
 ///brief Dedfine a servo based signal with 3 servo positions
 ///param vpin of servo, acts as signal_id
 ///param redpos servo position (values are hardware dependent) 
-///param amberpos servo position (values are hardware dependent)///param greenpos servo position (values are hardware dependent)
+///param amberpos servo position (values are hardware dependent)
+///param greenpos servo position (values are hardware dependent)
 
 #define SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...)
 ///brief Define a servo driven turnout
 ///param turnout_id used by THROW/CLOSE 
 ///param vpin for servo
-///param activeAngle servo position (values are hardware dependent)///param inactiveAngle servo position (values are hardware dependent)///param profile movement profile (Instant, Fast, Medium, Slow, Bounce)///param description... Quoted text shown to throttles or HIDDEN keyword to hide turnout button
+///param activeAngle servo position (values are hardware dependent)
+///param inactiveAngle servo position (values are hardware dependent)
+///param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
+///param description... Quoted text shown to throttles or HIDDEN keyword to hide turnout button
 
 #define SET(vpin,count...)
 ///brief  Set pin HIGH
@@ -748,7 +753,7 @@
 ///param code...  c++ code to be defined. This requires intimate understanding of the product acrhitecture.
 
 #define STOP
-///brief Same as SPEED(0)///see SPEED
+///brief Same as SPEED(0)
 
 #define THROW(turnout_id)
 ///brief Throws given turnout
