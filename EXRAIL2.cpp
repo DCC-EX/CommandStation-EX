@@ -330,9 +330,13 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
       int home=getOperand(progCounter,2);
-      setTurntableHiddenState(EXTTTurntable::create(id,pin));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = EXTTTurntable::create(id,pin);
+      if (tto) {
+         setTurntableHiddenState(tto);
+         tto->addPosition(0,0,home);
+      } else {
+         DIAG(F("Create EXTTTURNTABLE %d %d FAILED"), id, pin);
+      }
       break;
     }
 
@@ -342,7 +346,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int value=getOperand(progCounter,2);
       int angle=getOperand(progCounter,3);
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(position,value,angle);
+      if (tto) tto->addPosition(position,value,angle);
       break;
     }
 #endif
