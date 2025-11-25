@@ -287,7 +287,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
       byte subAddr=getOperand(progCounter,2);
-      setTurnoutHiddenState(DCCTurnout::create(id,addr,subAddr));
+      Turnout *t = DCCTurnout::create(id,addr,subAddr);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -297,14 +298,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int activeAngle=getOperand(progCounter,2);
       int inactiveAngle=getOperand(progCounter,3);
       int profile=getOperand(progCounter,4);
-      setTurnoutHiddenState(ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile));
+      Turnout *t = ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
-      setTurnoutHiddenState(VpinTurnout::create(id,pin));
+      Turnout *t = VpinTurnout::create(id,pin);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -312,9 +315,11 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
-      setTurntableHiddenState(DCCTurntable::create(id));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = DCCTurntable::create(id);
+      if (tto) {
+	setTurntableHiddenState(tto);
+	tto->addPosition(0,0,home);
+      }
       break;
     }
 
