@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.17"
+#define VERSION "5.4.18"
+// 5.4.18 - Bugfix: EXRAIL faikled TURNTABLE commands can crash CS 
 // 5.4.17 - Replace the SC power status with something better
 // 5.4.16 - Update SensorCAM from version 305 to 308
 //          Bugfix: ESP32 WIFI AP mode was not always selected when wanted
