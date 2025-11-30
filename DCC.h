@@ -114,7 +114,8 @@ private:
   static byte loopStatus;
   static byte defaultMomentumA;  // Accelerating
   static byte defaultMomentumD;  // Accelerating
-  static void setThrottle2(uint16_t cab, uint8_t speedCode);
+  static void setThrottle2(LocoSlot * slot, uint8_t speedCode);
+  static void setThrottleDCC(uint16_t cab, uint8_t speedCode);
   static void setFunctionInternal(int cab, byte group, byte fByte, byte eByte);
   static bool issueReminder(LocoSlot  * slot);
   static LocoSlot * nextLocoReminder;

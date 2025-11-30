@@ -233,9 +233,35 @@ void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
     broadcastReply(COMMAND_TYPE,F("<l 0 -1 128 0>\n"));
     return;
 	}
-  broadcastReply(COMMAND_TYPE, F("<l %d 0 %d %l>\n"), 
-    sp->getLoco(),sp->getTargetSpeed(),sp->getFunctions());
-#ifdef SABERTOOTH
+
+  // Broadcast the given loco.
+  // If its a consist leader, broadcast all followers too.
+  // A consist follower will only be broadcast because its functions have changed.
+  
+  bool isFollower=sp->isConsistFollower();
+  
+  #ifdef CD_HANDLE_RING
+  // Use the buffer directly to avoid multiple transmits in the case of a consist
+  broadcastBufferWriter->flush();
+  for (auto slot=sp; slot; slot=slot->getConsistNext()) {
+    StringFormatter::send(broadcastBufferWriter, F("<l %d 0 %d %l>"), 
+      slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
+    if (isFollower) break;  // dont follow next chain if original call was for a follower
+  }
+  broadcastBufferWriter->print('\n');
+  broadcastToClients(COMMAND_TYPE);
+  broadcastToClients(WEBSOCKET_TYPE);
+  
+#else
+  // no ring handling, just broadcast each separately
+  for (auto slot=sp; slot; slot=slot->getConsistNext()) {
+    broadcastReply(COMMAND_TYPE, F("<l %d 0 %d %l>\n"), 
+      slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
+    if (isFollower) break;  // dont follow next chain if original call was for a follower
+  }
+  #endif
+
+  #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
     static uint8_t rampingmode = 0;
     auto speedCode=sp->getSpeedCode();

@@ -26,6 +26,7 @@
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "DCCConsist.h"
 #ifndef DISABLE_EEPROM
 #include "EEStore.h"
 #endif
@@ -107,24 +108,44 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
   auto slot=LocoSlot::getSlot(cab, true);
   if (!slot) return false; // speed table full, can not do anything
+
+  // Ignore any throttle command to consist follower.
+  if (slot->isConsistFollower()) return true; 
+  
   if (slot->getTargetSpeed()==speedCode) // speed has been reached
     return true;
   slot->setTargetSpeed(speedCode);
+
+  // copy target speed to consist followers
+  for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
+    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0) );
+  }
+
   byte momentum=getMomentum(slot);
   if (momentum && tSpeed!=1) { // not ESTOP
     // we dont throttle speed, we just let the reminders take it to target
     slot->setMomentumBase(millis());
   } 
   else {  // Momentum not involved, throttle now.
-    slot->setSpeedCode(speedCode);
-    setThrottle2(cab, speedCode);
+    setThrottle2(slot,speedCode);
     TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
   }
   CommandDistributor::broadcastLoco(slot);
   return true;
 }
 
-void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
+// set speedCode directly to DCC and make followers same
+void DCC::setThrottle2( LocoSlot * slot, byte speedCode)  {
+  slot->setSpeedCode(speedCode);
+  setThrottleDCC(slot->getLoco(), speedCode);
+  for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
+    byte followSpeed=speedCode ^ (follower->isConsistReverse() ? 0x80 : 0);
+    follower->setSpeedCode(followSpeed);
+    setThrottleDCC(follower->getLoco(), followSpeed);
+  } 
+}
+
+void DCC::setThrottleDCC( uint16_t cab, byte speedCode)  {
 
   uint8_t b[4];
   uint8_t nB = 0;
@@ -965,20 +986,22 @@ void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
-  setThrottle2(cab,1); // ESTOP this loco if still on track
+  setThrottleDCC(cab,1); // ESTOP this loco if still on track
   auto slot=LocoSlot::getSlot(cab, false);
   if (slot) {
     if (nextLocoReminder==slot) nextLocoReminder=slot->getNext(); // move on if we are about to forget this one
+    if (slot->isConsistLead() || slot->isConsistFollower()) 
+      DCCConsist::deleteAnyConsist(cab); // unchain any consist
     slot->forget(); // no longer used but not end of world
     CommandDistributor::broadcastForgetLoco(cab);
   }
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
-  setThrottle2(0,1); // ESTOP all locos still on track
+  setThrottleDCC(0,1); // ESTOP all locos still on track
   SLOTLOOP {
      CommandDistributor::broadcastForgetLoco(slot->getLoco());
   }
-  LocoSlot::forgetAll();
+  LocoSlot::forgetAll(); // will effectively forget all consist chains 
   nextLocoReminder=nullptr;  
 }
 
@@ -1051,6 +1074,9 @@ bool DCC::issueReminder(LocoSlot * slot) {
         case 4:
         case 6:
         case 8: {
+         // dont remind consist followers here 
+         if (slot->isConsistFollower()) break; 
+
          // calculate any momentum change going on
          auto sc=slot->getSpeedCode();
          if (slot->getTargetSpeed() != sc) {
@@ -1080,7 +1106,7 @@ bool DCC::issueReminder(LocoSlot * slot) {
             }
           }
           // DIAG(F("Reminder %d speed %d"),loco,slot->speedCode);
-          setThrottle2(loco, sc);
+          setThrottle2(slot, sc); // includes consist followers
         }
         return true; // reminder sent
        case 1: // remind function group 1 (F0-F4)
@@ -1158,7 +1184,7 @@ bool DCC::setMomentum(int locoId,int16_t accelerating, int16_t decelerating) {
 
 
 void  DCC::estopAll() {
-  setThrottle2(0,1); // estop all locos
+  setThrottleDCC(0,1); // estop all locos
   TrackManager::setDCSignal(0,1); 
     
   // remind stop/estop but dont change direction

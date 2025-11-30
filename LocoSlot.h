@@ -39,6 +39,8 @@ private:
   uint32_t snifferFunctions; // sniffer function map
   uint32_t momentum_base;    // millis() when speed modified under momentum
   LocoSlot* next;
+  LocoSlot* consistLead;
+  LocoSlot* consistNext;
   
   // DCC data for this loco 
   uint16_t loco;             // DCC loco id
@@ -51,7 +53,8 @@ private:
   byte momentumA;         // momentum accelerating
   byte momentumD;         // momentum decelerating
   byte groupFlags;        // function groups acivated
-  
+  bool consistReverse;   // true if loco is reversed in consist
+
   // SNIFFER data for each loco exists to allow sniffer to detect and ignore 
   // sniffed reminders for locos that have been taken over
   // by DCCEX. These bytes will be dropped on a Mega.
@@ -95,6 +98,13 @@ public:
   void forget();
   void saveSpeed();
   byte getSavedSpeedCode() ;
-
+  LocoSlot * getConsistLead() { return consistLead; }
+  LocoSlot * getConsistNext() { return consistNext; } 
+  void setConsistLead(LocoSlot * lead) { consistLead=lead; }
+  void setConsistNext(LocoSlot * nextInConsist) { consistNext=nextInConsist; }
+  bool isConsistReverse() { return consistReverse; }
+  void setConsistReverse(bool rev) { consistReverse=rev; }
+  bool isConsistLead() {return (consistNext != nullptr) && consistLead==nullptr; }
+  bool isConsistFollower() {return (consistLead != nullptr); }
 };
 #endif

@@ -42,6 +42,7 @@ Once a new OPCODE is decided upon, update this list.
   #, Request number of supported cabs/locos; heartbeat
   +, WiFi AT commands
   ?, Reserved for future use
+  ^, Consist commands
   0, Track power off
   1, Track power on
   a, DCC accessory control
@@ -120,6 +121,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "KeywordHasher.h"
 #include "CamParser.h"
 #include "Stash.h"
+#include "DCCConsist.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #include "DCCDecoder.h"
@@ -794,6 +796,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
             DIAG(F("Setting loco %d F%d %S"), p[0], p[1], p[2] ? F("ON") : F("OFF"));
         if (DCC::setFn(p[0], p[1], p[2] == 1)) return;
 	break;
+
+    case '^': // Consist  <^ [cab0..7]>
+        if (DCCConsist::parse(stream,params,p)) return;
+        break;
 
 #if WIFI_ON
     case '+': // Complex Wifi interface command (not usual parse)
