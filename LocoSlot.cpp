@@ -49,10 +49,10 @@ void LocoSlot::prepare(uint16_t locoId) {
 
 /* static */ LocoSlot *  LocoSlot::getSlot(uint16_t locoId, bool autoCreate) {
   if (locoId==0) {
-    DIAG(F("<* LocoSlot::getSlot called with locoId 0 *>"));
+    DIAG(F("LocoSlot::getSlot called with locoId 0"));
     return nullptr;
   }
-  
+
   auto slot=firstSlot;
   for(;slot;slot=slot->next){
     if (slot->loco==locoId) return slot;
@@ -64,7 +64,7 @@ void LocoSlot::prepare(uint16_t locoId) {
     // slot will be rechained into list in prepare()
   } else {
     if (slotCount>=MAX_LOCOS) {
-      DIAG(F("<* MAX_LOCOS %d EXCEEDED *>"),MAX_LOCOS);
+      DIAG(F("MAX_LOCOS %d EXCEEDED"),MAX_LOCOS);
       return nullptr; // Too many locos
     }
     slot=new LocoSlot();
