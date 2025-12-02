@@ -58,6 +58,7 @@
 #include "IODevice.h"
 #include "EXRAILSensor.h"
 #include "Stash.h"
+#include "DCCConsist.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -627,6 +628,13 @@ void RMFT2::loop2() {
       DCC::forgetLoco(loco);
       loco=0; 
     } 
+    break;
+
+  case OPCODE_CONSIST:
+      if (operand==0) DCCConsist::deleteAnyConsist(loco);
+      else if (!DCCConsist::addLocoToConsist(loco, abs(operand), operand<0)) {
+          DIAG(F("EXRAIL Failed to add Loco %d to consist %d"), abs(operand),loco);
+        }
     break;
 
   case OPCODE_INVERT_DIRECTION:

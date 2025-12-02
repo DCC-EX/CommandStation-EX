@@ -76,3 +76,36 @@ void DCCConsist::deleteAnyConsist(int16_t locoid) {
     } 
 }
 
+bool DCCConsist::addLocoToConsist(uint16_t consistId,uint16_t locoId, bool revesed) {
+    if (consistId<1 || consistId>10239) return false;
+    if (locoId<1 || locoId>10239) return false;
+    if (locoId==consistId) return true; // cant add lead to itself
+    
+    auto leadSlot=LocoSlot::getSlot(consistId,true);
+    if (!leadSlot) return false; // no ram
+    // back up to lead of existing consist
+    while(leadSlot->getConsistLead()) {
+        leadSlot=leadSlot->getConsistLead();
+    }
+
+    // find tail of consist
+    auto tailSlot=leadSlot;
+    while(tailSlot->getConsistNext()) {
+        tailSlot=tailSlot->getConsistNext();
+    }
+
+    auto addSlot=LocoSlot::getSlot(locoId,true);
+    if (!addSlot) return false; // no ram
+    
+    if (addSlot->isConsistLead() || addSlot->isConsistFollower()) {
+        DIAG(F("Loco %d already in a consist"),locoId);
+        return false; // already in consist
+    }
+    
+    // All OK so chain in. (belt and braces prevent self reference loop)
+    addSlot->setConsistReverse(revesed);
+    if (addSlot!=leadSlot) addSlot->setConsistLead(leadSlot);    
+    if (tailSlot!=addSlot) tailSlot->setConsistNext(addSlot);
+    return true;
+}
+ 

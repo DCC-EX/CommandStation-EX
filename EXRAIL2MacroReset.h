@@ -40,6 +40,8 @@
 #undef AUTOMATION 
 #undef AUTOSTART
 #undef BLINK
+#undef BUILD_CONSIST
+#undef BREAK_CONSIST
 #undef BROADCAST
 #undef CALL 
 #undef CLEAR_STASH

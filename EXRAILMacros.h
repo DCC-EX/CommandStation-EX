@@ -486,6 +486,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
+#define BUILD_CONSIST(addloco) OPCODE_CONSIST,V(addloco),
+#define BREAK_CONSIST OPCODE_CONSIST,V(0),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),

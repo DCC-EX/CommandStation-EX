@@ -113,3 +113,14 @@ SEQUENCE(7500)
   SEQUENCE(7512) PRINT("7512 RANDOM_FOLLOW") DONE
   SEQUENCE(7513) PRINT("7513 RANDOM_FOLLOW") DONE
   
+  ROUTE(7600, "7600 Test CONSIST")
+    PARSE("7600 Create 6 77 88 -99")
+    SETLOCO(6)
+    BUILD_CONSIST(77)
+    BUILD_CONSIST(88)
+    BUILD_CONSIST(-99)
+    PARSE("<^>")  // display consists 
+    PRINT("break up") 
+    BREAK_CONSIST
+    PARSE("<^>")  // display consists  
+  DONE

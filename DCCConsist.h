@@ -9,5 +9,9 @@ class DCCConsist {
 
       // deteles any consist chain containing locoid 
       static void deleteAnyConsist(int16_t locoid);
+      
+      //add loco anywhere in consist (may create consist) see EXRAIL.
+      static bool addLocoToConsist(uint16_t consistId,uint16_t locoid, bool revesed);
+
 };
 #endif

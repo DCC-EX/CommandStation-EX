@@ -109,6 +109,13 @@
 ///see WITHROTTLE
 ///param msg  Quoted message
 
+#define BUILD_CONSIST(loco_id)
+//brief Adds a loco to follow the current loco in a consist
+//param loco_id may be negative to indicate loco facing backwards
+
+#define BREAK_CONSIST
+//brief Breaks up any consist involving the current loco
+
 #define CALL(sequence_id)
 ///brief transfer control to another sequence with expectation to return
 ///see RETURN
