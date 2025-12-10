@@ -3,7 +3,7 @@
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
  * the EXRAIL Macro files to be parsed multiple times during compilation.
  * The actual definitions are created in EXRAILMacros.h according to the
  * current pass.
- * 
+ *
  * Triple / Comments in this file are intended for the EXRAIL end user and will
  * be extracted to create documentation. Please maintain formatting.
  */
@@ -59,9 +59,9 @@
 
 #define ANOUT(vpin,value,param1,param2)
 ///brief Writes to the HAL analog output interface of a device driver.
-///param vpin Virtual pin number of device 
+///param vpin Virtual pin number of device
 ///param value basic analog value
-///param param1 device dependent 
+///param param1 device dependent
 ///param param2 device dependent
 
 #define AT(vpin)
@@ -70,27 +70,27 @@
 
 #define ASPECT(address,value)
 ///brief Sends a DCC aspect value to an accessory address. May also change status of a signal defined using this aspect.
-///param address Linear DCC address of device 
+///param address Linear DCC address of device
 ///param value Aspect value (Device dependent)
 
 #define ATGTE(vpin,value)
 ///brief Wait for analog sensor to be greater than given value
-///param vpin Analog pin number 
+///param vpin Analog pin number
 ///param value integer value to compare against
 
-#define ATLT(vpin,value) 
+#define ATLT(vpin,value)
 ///brief Wait for analog sensor value to be less than given value
-///param vpin Analog pin number 
+///param vpin Analog pin number
 ///param value integer value to compare against
 
 #define ATTIMEOUT(vpin,timeout_ms)
 ///brief Wait for sensor active, with timeout. Use IFTIMEOUT to determine whether the AT was satisfied.
-///see IFTIMEOUT  
-///param vpin Sensor pin number 
+///see IFTIMEOUT
+///param vpin Sensor pin number
 ///param timeout_ms Millseconds to wait before timeout
 
 #define AUTOMATION(sequence_id,description)
-///brief Defines starting point of a sequence that will be shown as an Automation by 
+///brief Defines starting point of a sequence that will be shown as an Automation by
 ///      the throttles. Automations are started by the throttle handing over a loco id to be driven.
 ///param sequence_id Unique sequence id value
 ///param description (Quoted text) will be shown on throttle button
@@ -122,7 +122,7 @@
 ///param sequence_id SEQUENCE to jump processing to, must terminate or RETURN
 
 #define CLEAR_STASH(stash_id)
-///brief Clears loco value stored in stash  
+///brief Clears loco value stored in stash
 ///param stash_id which stash to clear.
 
 #define CLEAR_ALL_STASH
@@ -153,21 +153,21 @@
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands
 
 #define DCC_TURNTABLE(turntable_id,home,description...)
-///brief defines a Turntable device 
+///brief defines a Turntable device
 ///param homeAngle the angle of the home position, valid angles are 0 - 3600
 ///param description... Quoted text description of turntable
 
 #define DEACTIVATE(addr,subaddr)
-///brief Sends DCC Deactivate packet (gate on, gate off) 
+///brief Sends DCC Deactivate packet (gate on, gate off)
 ///param addr DCC accessory address
 ///param subaddr DCC accessory subaddress
 
 #define DEACTIVATEL(addr)
-///brief Sends DCC Deactivate packet (gate on, gate off) 
+///brief Sends DCC Deactivate packet (gate on, gate off)
 ///param addr DCC Linear accessory address
 
 #define DELAY(delay_ms)
-///brief Waits for given milliseconds delay (This is not blocking) 
+///brief Waits for given milliseconds delay (This is not blocking)
 ///param delay_mS Delay time in milliseconds
 
 #define DELAYMINS(delay_minutes)
@@ -191,9 +191,9 @@
 #define ENDEXRAIL
 ///brief obsolete.. no longer needed. Does nothing.
 
-#define ENDIF  
+#define ENDIF
 ///brief determines end of IF(any type)  block.
-///      IF something ENDIF, or    
+///      IF something ENDIF, or
 ///      IF something ELSE something ENDIF
 ///see IF
 
@@ -217,7 +217,7 @@
 
 #define FADE(vpin,value,ms)
 ///brief Modifies analog value slowly taking a given time
-///param vpin Servo virtual pin number 
+///param vpin Servo virtual pin number
 ///param value new target value
 ///param ms time to reach value
 
@@ -236,12 +236,12 @@
 ///brief Removes current loco from task and DCC reminders table.
 
 #define FREE(token_id)
-///brief Frees logical token 
+///brief Frees logical token
 ///see RESERVE
 ///param token_id 0..255
 
 #define FREEALL
-///brief Frees all logical tokens 
+///brief Frees all logical tokens
 ///see RESERVE
 
 #define FTOGGLE(func)
@@ -252,7 +252,7 @@
 ///param speed 0..127   (1=ESTOP)
 
 #define GREEN(signal_id)
-///brief Sets signal to green state 
+///brief Sets signal to green state
 
 #define HAL(haltype,params...)
 ///brief Defines VPIN mapping for specific hardware drivers
@@ -267,7 +267,7 @@
 ///param vpin  VPIN of sensor. Negative VPIN will invert sensor state.
 
 #define IFAMBER(signal_id)
-///brief Checks if signal is in AMBER state. 
+///brief Checks if signal is in AMBER state.
 ///see IF
 
 #define IFCLOSED(turnout_id)
@@ -289,7 +289,7 @@
 #define IFLT(vpin,value)
 ///brief Checks if analog sensor < value
 ///see IF
-///param vpin  Analog vpin of sensor 
+///param vpin  Analog vpin of sensor
 
 #define IFNOT(vpin)
 ///brief Inverse of IF
@@ -316,7 +316,7 @@
 ///see IF
 
 #define IFRESERVE(token_id)
-///brief Attempts to reserve token and if satisfiled the token remains reserved. 
+///brief Attempts to reserve token and if satisfiled the token remains reserved.
 ///see IF RESERVE FREE
 
 #define IFTIMEOUT
@@ -328,33 +328,33 @@
 ///see IF
 
 #define IFRE(vpin,value)
-///brief Checks external rotary encoder value 
-///param vpin of device driver for rotary encoder  
+///brief Checks external rotary encoder value
+///param vpin of device driver for rotary encoder
 
 #define IFBITMAP_ALL(vpin,mask)
-///briaf Checks if (vpin pseudo-analog value & mask) == mask.
+///brief Checks if (vpin pseudo-analog value & mask) == mask.
 ///see IF
 ///param mask Binary mask applied to vpin value
 
 #define IFBITMAP_ANY(vpin,mask)
-///briaf Checks if vpin pseudo-analog value & mask is non zero
+///brief Checks if vpin pseudo-analog value & mask is non zero
 ///see IF
 ///param mask Binary mask applied to vpin value
 
 #define IFROUTE_ACTIVE(sequence_id)
-///briaf Checks if route is active
+///brief Checks if route is active
 ///see IF
 
 #define IFROUTE_INACTIVE(sequence_id)
-///briaf Checks if route is inactive
+///brief Checks if route is inactive
 ///see IF
 
 #define IFROUTE_HIDDEN(sequence_id)
-///briaf Checks if route is hidden
+///brief Checks if route is hidden
 ///see IF
 
 #define IFROUTE_DISABLED(sequence_id)
-///briaf Checks if route is disabled
+///brief Checks if route is disabled
 ///see IF
 
 #define INVERT_DIRECTION
@@ -381,25 +381,25 @@
 ///param vpin Must only be for VPINS 0..255
 
 #define LCC(eventid)
-///brief Issue event to LCC 
+///brief Issue event to LCC
 
 #define LCCX(senderid,eventid)
-///brief Issue LCC event while impersonating another sender 
+///brief Issue LCC event while impersonating another sender
 
 #define LCD(row,msg)
 ///brief Write message on row of default configured LCD/OLED
-///see SCREEN 
+///see SCREEN
 ///param msg Quoted text
 
 #define MOMENTUM(accel,decel...)
-///brief sets momentum in mS per DCC 127 step for curent loco. 
-///param accel Acceleration momentum  
+///brief sets momentum in mS per DCC 127 step for curent loco.
+///param accel Acceleration momentum
 ///param decel... Braking momantum. (=Acceleration if not given)
 
 #define SCREEN(display,row,msg)
-///brief Send message to external display hadlers 
+///brief Send message to external display hadlers
 ///param display number, 0=local display, others are handled by external
-///  displays which may have different display numbers on different devices. 
+///  displays which may have different display numbers on different devices.
 ///param msg Quoted text
 
 #define LCN(msg)
@@ -412,21 +412,21 @@
 #define MOVETT(turntable_id,steps,activity)
 ///brief Move Turntable to specific position
 ///see ROTATE
-///param steps position to move to 
+///param steps position to move to
 ///param activity see ROTATE
 
 #define NEOPIXEL(vpin,r,g,b,count...)
 ///brief Set a NEOPIXEL vpin to a given red/green/blue colour
 ///param vpin VPIN of a pixel
-///param r red component 0-255 
+///param r red component 0-255
 ///param g green component 0-255
 ///param b blue component 0-255
 ///param count... Number of consecutive pixels to set, Default 1.
 
 #define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour)
 ///brief Define a signal that uses a single multi colour pixel
-///see NEORGB 
-///param vpin unique signal_id 
+///see NEORGB
+///param vpin unique signal_id
 ///param redcolour  RGB colour use NEORGB(red,green,blue) to create values.
 
 #define ACON(eventid)
@@ -466,7 +466,7 @@
 ///brief Start task here when fastclock matches time
 
 #define ONCLOCKMINS(mins)
-///brief Start task here hourly when fastclock minutes matches 
+///brief Start task here hourly when fastclock minutes matches
 
 #define ONOVERLOAD(track_id)
 ///brief Start task here when given track goes into overload
@@ -481,7 +481,7 @@
 #define ONDEACTIVATE(addr,subaddr)
 ///brief Start task here when DCC deactivate packet sent
 
-#define ONDEACTIVATEL(linear) 
+#define ONDEACTIVATEL(linear)
 ///brief Start task here when DCC deactivate sent to linear address
 
 #define ONCLOSE(turnout_id)
@@ -491,10 +491,10 @@
 ///brief Start task here when LCC event arrives from sender
 
 #define ONGREEN(signal_id)
-///brief Start task here when signal set to GREEN state 
+///brief Start task here when signal set to GREEN state
 
 #define ONRED(signal_id)
-///brief Start task here when signal set to RED state 
+///brief Start task here when signal set to RED state
 
 #define ONROTATE(turntable_id)
 ///brief Start task here when turntable is rotated
@@ -503,7 +503,7 @@
 ///brief Start task here when turnout is Thrown
 
 #define ONCHANGE(vpin)
-///brief Rotary encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.) 
+///brief Rotary encoder change starts task here (This is obscurely different from ONSENSOR which will be merged in a later release.)
 
 #define ONSENSOR(vpin)
 ///brief Start task here when sensor changes state (debounced)
@@ -512,7 +512,7 @@
 ///brief Start task here when bitmap sensor changes state (debounced)
 
 #define ONBUTTON(vpin)
-///brief Start task here when sensor changes HIGH to LOW. 
+///brief Start task here when sensor changes HIGH to LOW.
 
 #define PAUSE
 ///brief Pauses all EXRAIL tasks except the curremnt one.
@@ -523,7 +523,7 @@
 ///param description... Quoted text (shown to throttles) or HIDDEN
 
 #define PRINT(msg)
-///brief prints diagnostic message on USB serial 
+///brief prints diagnostic message on USB serial
 ///param msg Quoted text
 
 #define PARSE(msg)
@@ -536,7 +536,7 @@
 ///param stash_id position in stash where a loco id was previously saved.
 
 #define POM(cv,value)
-///brief Write value to cv on current tasks loco (Program on Main) 
+///brief Write value to cv on current tasks loco (Program on Main)
 
 #define POWEROFF
 ///brief Powers off all tracks
@@ -558,7 +558,7 @@
 ///brief Reads loco Id from prog track and sets currenmt task loco id.
 
 #define RED(signal_id)
-///brief sets signal to RED state 
+///brief sets signal to RED state
 
 #define RESERVE(token_id)
 ///brief Waits for token for block. If not available immediately, current task loco is stopped.
@@ -569,15 +569,15 @@
 ///param count... Number of consecutive pins, default 1
 
 #define RESTORE_SPEED
-///brief Resumes locos saved speed 
+///brief Resumes locos saved speed
 ///see SAVE_SPEED
 
 #define RESUME
-///brief Resumes PAUSEd tasks 
+///brief Resumes PAUSEd tasks
 ///see PAUSE
 
 #define RETURN
-///brief Returns to CALL 
+///brief Returns to CALL
 ///see CALL
 
 #define REV(speed)
@@ -630,19 +630,19 @@
 
 #define ROUTE_CAPTION(sequence_id,caption)
 ///brief Tells throttle to change thr route button caption
-///param sequence_id of ROUTE/AUTOMATION 
+///param sequence_id of ROUTE/AUTOMATION
 
 #define SAVE_SPEED
-///brief Resumes locos saved speed 
+///brief Resumes locos saved speed
 ///see RESTORE_SPEED
 
 #define SENDLOCO(cab,sequence_id)
-///brief Start a new task to drive the loco 
-///param cab loco to be driven 
+///brief Start a new task to drive the loco
+///param cab loco to be driven
 ///param route sequence_id of route, automation or sequence to drive
 
 #define SEQUENCE(sequence_id)
-///brief Provides a unique label than can be used to call, follow or start. 
+///brief Provides a unique label than can be used to call, follow or start.
 ///see CALL
 ///see FOLLOW
 ///see START
@@ -678,25 +678,25 @@
 #define SERVO(vpin,position,profile)
 ///brief Move servo to given position
 ///param vpin of servo
-///param position  servo position (values are hardware dependent) 
+///param position  servo position (values are hardware dependent)
 ///param profile movement profile (Instant, Fast, Medium, Slow, Bounce)
 
 #define SERVO2(vpin,position,duration)
-///brief Move servo to given position taking time 
+///brief Move servo to given position taking time
 ///param vpin of servo
-///param position  servo position (values are hardware dependent) 
+///param position  servo position (values are hardware dependent)
 ///param duration mS
 
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
 ///brief Dedfine a servo based signal with 3 servo positions
 ///param vpin of servo, acts as signal_id
-///param redpos servo position (values are hardware dependent) 
+///param redpos servo position (values are hardware dependent)
 ///param amberpos servo position (values are hardware dependent)
 ///param greenpos servo position (values are hardware dependent)
 
 #define SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...)
 ///brief Define a servo driven turnout
-///param turnout_id used by THROW/CLOSE 
+///param turnout_id used by THROW/CLOSE
 ///param vpin for servo
 ///param activeAngle servo position (values are hardware dependent)
 ///param inactiveAngle servo position (values are hardware dependent)
@@ -705,7 +705,7 @@
 
 #define SET(vpin,count...)
 ///brief  Set pin HIGH
-///see RESET  
+///see RESET
 ///param count...  Number of sequential vpins to set. Default 1.
 
 #define SET_TRACK(track,mode)
@@ -722,16 +722,16 @@
 ///brief Sets the loco being handled by the current task
 
 #define SETFREQ(freq)
-///brief Sets the DC track PWM frequency 
+///brief Sets the DC track PWM frequency
 ///param freq Frequency is default 0, or 1..3
 
 #define SIGNAL(redpin,amberpin,greenpin)
-///brief Define a Signal with LOW=on leds 
-///see SIGNALH  
+///brief Define a Signal with LOW=on leds
+///see SIGNALH
 ///param redpin vpin for RED state, also acts as signal_id
 
 #define SIGNALH(redpin,amberpin,greenpin)
-///brief define a signal with HIGH=ON leds 
+///brief define a signal with HIGH=ON leds
 ///param redpin vpin for RED state, also acts as signal_id
 
 #define SPEED(speed)
@@ -772,13 +772,13 @@
 #define TT_ADDPOSITION(turntable_id,position_id,value,angle,description...)
 ///brief Defines a turntable track position
 ///param position_id each position is given an id
-///param address DCC accessory address 
+///param address DCC accessory address
 ///param angle Used only for throttles that may draw a visual representation of the turntable
 ///param description... quoted text or HIDDEN
 
 #define TURNOUT(turnout_id,addr,subaddr,description...)
 ///brief Defines a DCC accessory turnout with legacy address
-///param turnout_id to be used in THROW/CLOSE etc  
+///param turnout_id to be used in THROW/CLOSE etc
 ///param addr DCC accessory address
 ///param subaddr DCC accessory subaddress
 ///param description... Quoted text or HIDDEN, appears on throttle buttons
@@ -786,7 +786,7 @@
 #define TURNOUTL(tirnout_id,addr,description...)
 ///brief Defines a DCC accessory turnout with inear address
 ///see TURNOUT
-///param turnout_id to be used in THROW/CLOSE etc  
+///param turnout_id to be used in THROW/CLOSE etc
 ///param addr DCC accessory linear address
 ///param description... Quoted text or HIDDEN, appears on throttle buttons
 
@@ -796,7 +796,7 @@
 
 #define UNLATCH(vpin)
 ///brief removes latched on flag
-///see LATCH 
+///see LATCH
 ///param vpin (limited to 0..255)
 
 #define VIRTUAL_SIGNAL(signal_id)
@@ -843,11 +843,11 @@
 ///brief Keeps loco at speed 0 while signal is RED
 
 #define WITHROTTLE(msg)
-///brief Broadcasts a string in Withrottle protocol format to all throttles using this protocol. 
+///brief Broadcasts a string in Withrottle protocol format to all throttles using this protocol.
 ///param msg quoted string
 
 #define XFOFF(cab,func)
-///brief Turns function off for given loco 
+///brief Turns function off for given loco
 ///param func function number
 
 #define XFON(cab,func)
@@ -871,11 +871,11 @@
 ///param value to be written to cv
 
 #define XRESTORE_SPEED(cab)
-///brief Resumes locos saved speed 
+///brief Resumes locos saved speed
 ///param cab loco id
 ///see XSAVE_SPEED
 
 #define XSAVE_SPEED(cab)
-///brief Resumes locos saved speed 
+///brief Resumes locos saved speed
 ///param cab loco id
 ///see XRESTORE_SPEED
