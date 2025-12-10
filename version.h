@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.52"
+#define VERSION "5.5.53"
+// 5.5.53 - Bugfix: EXRAIL Asserts pbSize calculation error for pin blacklist
 // 5.5.52 - Command station consists <^> and EXRAIL BUILD_CONSIST/BREAK_COMNSIST
 // 5.5.51 - Bugfix: EXRAIL failed TURNTABLE create commands (I2C off) can crash CS
 //        - Bugfix: EXRAIL be extra careful not to deref nullptr
