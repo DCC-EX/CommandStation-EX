@@ -224,7 +224,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
               case OPCODE_AFTER:
               case OPCODE_ATGTE:
               case OPCODE_ATLT:
-                StringFormatter::send(stream,F(" WAIT AT/AFTER %d"),operand);
+                StringFormatter::send(stream,F(" WAIT AT/AFTER %d"),(int16_t)operand);
                 break;
               case OPCODE_WAIT_WHILE_RED:
                 StringFormatter::send(stream,F(" WAIT WHILE RED %d"),operand);

@@ -124,3 +124,15 @@ SEQUENCE(7500)
     BREAK_CONSIST
     PARSE("<^>")  // display consists  
   DONE
+
+  HAL(Bitmap,870,10)
+  ROUTE(7700,"Set 870 and wait")
+    SET(870)
+    AT(-870)
+    PRINT("870 reset")
+  DONE
+  ROUTE(7701,"ResetS 870 and wait")
+    RESET(870)
+    AT(870)
+    PRINT("870 set")
+  DONE
