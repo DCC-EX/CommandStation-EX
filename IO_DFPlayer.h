@@ -72,302 +72,74 @@
 
 #ifndef IO_DFPlayer_h
 #define IO_DFPlayer_h
-
-#include "IODevice.h"
+#include "IO_DFPlayerSerial.h"
+#include "IO_DFPlayerI2C.h"
 
 class DFPlayer : public IODevice {
-private: 
-  const uint8_t MAXVOLUME=30;
-  HardwareSerial *_serial;
-  bool _playing = false;
-  uint8_t _inputIndex = 0;
-  unsigned long _commandSendTime; // Time (us) that last transmit took place.
-  unsigned long _timeoutTime;
-  uint8_t _recvCMD;  // Last received command code byte
-  bool _awaitingResponse = false;
-  uint8_t _requestedVolumeLevel = MAXVOLUME;
-  uint8_t _currentVolume = MAXVOLUME;
-  int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
+
+  // This class contains the HAL create calls for DFPlayer devices.
+  // Combinations of parameters determine the actual class to be loaded.
+
+  // NON-ESP32 Serial:
+  //   HAL(DFPlayer, firstVpin, Serialx)          
+  //   HAL(DFPlayer, firstVpin, nPins, Serialx)  - [Deprecated] 
   
+  // ESP32 Serial:
+  //   HAL(DFPlayer, firstVpin, Serialx, rxPin,txPin)  - Requires pins to begin serial
+  //   HAL(DFPlayer, firstVpin, nPins, Serialx, rxPin,txPin)  - [Deprecated]
+
+  // I2C connected via SC16IS752  (TODO second uart) 
+  //   HAL(DFPlayer, firstVpin, I2CAddress)
+  //   HAL(DFPlayer, firstVpin, npins, I2CAddress)  - Reserved for futute use
+
 public:
 
-#ifdef ESP32
-  // ESP32 user must provide serial pins  
-  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial,
-    int8_t rxPin, int8_t txPin) {
-    if (checkNoOverlap(firstVpin,nPins)) {
-      serial.begin(9600, SERIAL_8N1,rxPin,txPin); // 9600baud, no parity, 1 stop bit
-      new DFPlayer(firstVpin, nPins, serial);
-    }
+#ifndef ESP32
+  // NON-ESP32 Serial:
+  //   HAL(DFPlayer, firstVpin, Serialx)  
+  static void create(VPIN firstVpin, HardwareSerial &serial) {
+    create(firstVpin, 1, serial);
   }
- #else
-  // NON-ESP32 knows about serial pins
-  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
+
+  //   HAL(DFPlayer, firstVpin, nPins, Serialx)  - [Deprecated] 
+   static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
     if (checkNoOverlap(firstVpin,nPins)) {
       serial.begin(9600, SERIAL_8N1); // 9600baud, no parity, 1 stop bit
-      new DFPlayer(firstVpin, nPins, serial);
+      new DFPlayerSerial(firstVpin, nPins, serial);
     }
   }
 #endif
 
-protected:
-  // Constructor
-  DFPlayer(VPIN firstVpin, int nPins, HardwareSerial &serial) :
-    IODevice(firstVpin, nPins),
-    _serial(&serial) 
-  {
-    addDevice(this);
+#ifdef ESP32
+  // ESP32 Serial:
+  //   HAL(DFPlayer, firstVpin, Serialx, rxPin,txPin)  - Requires pins to begin serial
+  static void create(VPIN firstVpin,  HardwareSerial &serial, int8_t rxPin, int8_t txPin) {
+    create(firstVpin, 1, serial, rxPin, txPin);
   }
 
-  void _begin() override {
-    // Flush any data in input queue
-    while (_serial->available()) _serial->read();
-    _deviceState = DEVSTATE_INITIALISING;
-
-    // Send a query to the device to see if it responds
-    sendPacket(0x42); 
-    _timeoutTime = micros() + 5000000UL;  // 5 second timeout
-    _awaitingResponse = true;
-  }
-
-  void _loop(unsigned long currentMicros) override {
-
-    // Read responses from device
-    processIncoming();
-
-    // Check if a command sent to device has timed out.  Allow 0.5 second for response
-    if (_awaitingResponse && (int32_t)(currentMicros - _timeoutTime) > 0) {
-      DIAG(F("DFPlayer device not responding on serial port"));
-      _deviceState = DEVSTATE_FAILED;
-      _awaitingResponse = false;
-      _playing = false;
-    }
-
-    // Send any commands that need to go.
-    processOutgoing(currentMicros);
-
-    delayUntil(currentMicros + 10000); // Only enter every 10ms
-  }
-
-  // Check for incoming data on _serial, and update busy flag and other state accordingly
-  void processIncoming() {
-    // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
-    bool ok = false;
-    while (_serial->available()) {
-      int c = _serial->read();
-      switch (_inputIndex) {
-        case 0:
-          if (c == 0x7E) ok = true;
-          break;
-        case 1:
-          if (c == 0xFF) ok = true;
-          break;
-        case 2:
-          if (c== 0x06) ok = true;
-          break;
-        case 3:
-          _recvCMD = c; // CMD byte
-          ok = true;
-          break;
-        case 6:
-          switch (_recvCMD) {
-            case 0x42:
-              // Response to status query
-              _playing = (c != 0);
-              // Mark the device online and cancel timeout
-              if (_deviceState==DEVSTATE_INITIALISING) {
-                _deviceState = DEVSTATE_NORMAL;
-                #ifdef DIAG_IO
-                _display();
-                #endif
-              }
-              _awaitingResponse = false;
-              break;
-            case 0x3d:
-              // End of play
-              if (_playing) {
-                #ifdef DIAG_IO
-                DIAG(F("DFPlayer: Finished"));
-                #endif
-                _playing = false;
-              }
-              break;
-            case 0x40:
-              // Error code
-              DIAG(F("DFPlayer: Error %d returned from device"), c);
-              _playing = false;
-              break;
-          }
-          ok = true;
-          break;
-        case 4: case 5: case 7: case 8: 
-          ok = true;  // Skip over these bytes in message.
-          break;
-        case 9:
-          if (c==0xef) {
-            // Message finished
-          }
-          break;
-        default:
-          break;
-      }
-      if (ok)
-        _inputIndex++;  // character as expected, so increment index
-      else
-        _inputIndex = 0;  // otherwise reset.
+  //   HAL(DFPlayer, firstVpin, nPins, Serialx, rxPin,txPin)  - [Deprecated]
+  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial,
+    int8_t rxPin, int8_t txPin) {
+    if (checkNoOverlap(firstVpin,nPins)) {
+      serial.begin(9600, SERIAL_8N1,rxPin,txPin); // 9600baud, no parity, 1 stop bit
+      new DFPlayerSerial(firstVpin, nPins, serial);
     }
   }
 
-  // Send any commands that need to be sent
-  void processOutgoing(unsigned long currentMicros) {
 
-    // When two commands are sent in quick succession, the device will often fail to 
-    // execute one.  Testing has indicated that a delay of 100ms or more is required
-    // between successive commands to get reliable operation.
-    // If 100ms has elapsed since the last thing sent, then check if there's some output to do.
-    if (((int32_t)currentMicros - _commandSendTime) > 100000) {
-      if (_currentVolume > _requestedVolumeLevel) {
-        // Change volume before changing song if volume is reducing.
-        _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, _currentVolume);
-      } else if (_requestedSong > 0) {
-        // Change song
-        sendPacket(0x03, _requestedSong);
-        _requestedSong = -1;
-      } else if (_requestedSong == 0) {
-        sendPacket(0x16);  // Stop playing
-        _requestedSong = -1;
-      } else if (_currentVolume < _requestedVolumeLevel) {
-        // Change volume after changing song if volume is increasing.
-        _currentVolume = _requestedVolumeLevel;
-        sendPacket(0x06, _currentVolume);
-      } else if ((int32_t)currentMicros - _commandSendTime > 1000000) {
-        // Poll device every second that other commands aren't being sent,
-        // to check if it's still connected and responding.
-        sendPacket(0x42); 
-        if (!_awaitingResponse) {
-          _timeoutTime = currentMicros + 5000000UL;  // Timeout if no response within 5 seconds
-          _awaitingResponse = true;
-        }
-      }
+#endif
+
+  // I2C connected via SC16IS752  (TODO second uart) 
+  //   HAL(DFPlayer, firstVpin, I2CAddress)
+   static void create(VPIN firstVpin, I2CAddress i2cAddress, uint8_t xtal) {
+    create(firstVpin, 1, i2cAddress, xtal); // Default to 1 pins
     }
-  }
 
-  // Write with value 1 starts playing a song.  The relative pin number is the file number.
-  // Write with value 0 stops playing.
-  void _write(VPIN vpin, int value) override {
-    if (_deviceState == DEVSTATE_FAILED) return;
-    int pin = vpin - _firstVpin;
-    if (value) {
-      // Value 1, start playing
-      #ifdef DIAG_IO
-      DIAG(F("DFPlayer: Play %d"), pin+1);
-      #endif
-      _requestedSong = pin+1;
-      _playing = true;
-    } else {
-      // Value 0, stop playing
-      #ifdef DIAG_IO
-      DIAG(F("DFPlayer: Stop"));
-      #endif
-      _requestedSong = 0;  // No song
-      _playing = false;
+   //   HAL(DFPlayer, firstVpin, npins, I2CAddress)
+   static void create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint8_t xtal) {
+    if (checkNoOverlap(firstVpin, nPins, i2cAddress)) 
+      new DFPlayerI2C(firstVpin, nPins, i2cAddress, xtal); 
     }
-  }
 
-  // WriteAnalogue on first pin uses the nominated value as a file number to start playing, if file number > 0.
-  // Volume may be specified as second parameter to writeAnalogue.
-  // If value is zero, the player stops playing.  
-  // WriteAnalogue on second pin sets the output volume.
-  //
-  void _writeAnalogue(VPIN vpin, int value, uint8_t volume=0, uint16_t=0) override { 
-    if (_deviceState == DEVSTATE_FAILED) return;
-    uint8_t pin = vpin - _firstVpin;
- 
-    #ifdef DIAG_IO
-    DIAG(F("DFPlayer: VPIN:%u FileNo:%d Volume:%d"), vpin, value, volume);
-    #endif
-
-    // Validate parameter.
-    if (volume > MAXVOLUME) volume = MAXVOLUME;
-
-    if (pin == 0) {
-      // Play track 
-      if (value > 0) {
-        if (volume > 0)
-          _requestedVolumeLevel = volume;
-        _requestedSong = value;
-        _playing = true;
-      } else {
-        _requestedSong = 0; // stop playing
-        _playing = false;
-      }
-    } else if (pin == 1) {
-      // Set volume (0-30)
-      _requestedVolumeLevel = value;  
-    }
-  }
-
-  // A read on any pin indicates whether the player is still playing.
-  int _read(VPIN) override {
-    if (_deviceState == DEVSTATE_FAILED) return false;
-    return _playing;
-  }
-
-  void _display() override {
-    DIAG(F("DFPlayer Configured on Vpins:%u-%u %S"), _firstVpin, _firstVpin+_nPins-1,
-      (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
-  }
-  
-private:
-  // 7E FF 06 0F 00 01 01 xx xx EF
-  // 0	->	7E is start code
-  // 1	->	FF is version
-  // 2	->	06 is length
-  // 3	->	0F is command
-  // 4	->	00 is no receive
-  // 5~6	->	01 01 is argument
-  // 7~8	->	checksum = 0 - ( FF+06+0F+00+01+01 )
-  // 9	->	EF is end code
-
-  void sendPacket(uint8_t command, uint16_t arg = 0)
-  {
-    uint8_t out[] = { 0x7E,
-        0xFF,
-        06,
-        command,
-        00,
-        static_cast<uint8_t>(arg >> 8),
-        static_cast<uint8_t>(arg & 0x00ff),
-        00,
-        00,
-        0xEF };
-
-    setChecksum(out);
-
-    // Output the command
-    _serial->write(out, sizeof(out));
-
-    _commandSendTime = micros();
-  }
-
-  uint16_t calcChecksum(uint8_t* packet)
-  {
-    uint16_t sum = 0;
-    for (int i = 1; i < 7; i++)
-    {
-      sum += packet[i];
-    }
-    return -sum;
-  }
-
-  void setChecksum(uint8_t* out)
-  {
-    uint16_t sum = calcChecksum(out);
-
-    out[7] = (sum >> 8);
-    out[8] = (sum & 0xff);
-  }
-};
-
+  };
 #endif // IO_DFPlayer_h

@@ -30,7 +30,6 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_EXSensorCAM.h"
 #include "IO_HALDisplay.h"
 #include "IO_HCSR04.h"
-#include "IO_I2CDFPlayer.h"
 #include "IO_I2CRailcom.h"
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
