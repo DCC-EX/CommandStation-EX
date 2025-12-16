@@ -40,9 +40,9 @@
 ///param linearaddr DCC linear address of accessory
 
 #define AFTER(vpin,timer...)
-///brief Wait for sensor activated, then decativated for given time
+///brief Wait for sensor activated, then deactivated for given time
 ///param vpin Virtual Pin number of sensor
-///param timer... optional wait in mS, default 500
+///param timer... optional wait in ms, default 500
 
 #define AFTEROVERLOAD(track_id)
 ///brief Wait for overload to be resolved
@@ -87,7 +87,7 @@
 ///brief Wait for sensor active, with timeout. Use IFTIMEOUT to determine whether the AT was satisfied.
 ///see IFTIMEOUT
 ///param vpin Sensor pin number
-///param timeout_ms Millseconds to wait before timeout
+///param timeout_ms Milliseconds to wait before timeout
 
 #define AUTOMATION(sequence_id,description)
 ///brief Defines starting point of a sequence that will be shown as an Automation by
@@ -110,11 +110,11 @@
 ///param msg  Quoted message
 
 #define BUILD_CONSIST(loco_id)
-//brief Adds a loco to follow the current loco in a consist
-//param loco_id may be negative to indicate loco facing backwards
+///brief Adds a loco to follow the current loco in a consist
+///param loco_id may be negative to indicate loco facing backwards
 
 #define BREAK_CONSIST
-//brief Breaks up any consist involving the current loco
+///brief Breaks up any consist involving the current loco
 
 #define CALL(sequence_id)
 ///brief transfer control to another sequence with expectation to return
@@ -136,7 +136,7 @@
 ///see THROW
 
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
-///brief setup servo movement parameters for non-turnout
+///brief Set up servo movement parameters for non-turnout
 ///param vpin must refer to a servo capable pin
 ///param pos1 SET position of servo
 ///param pos2 RESET position of servo
@@ -149,7 +149,7 @@
 ///param subaddr DCC subaddress
 
 #define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect)
-///brief Dfeine advanced DCC accessory signal with aspects
+///brief Define advanced DCC accessory signal with aspects
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands
 
 #define DCC_TURNTABLE(turntable_id,home,description...)
@@ -175,8 +175,8 @@
 
 #define DELAYRANDOM(mindelay,maxdelay)
 ///brief Waits for random delay between min and max milliseconds (This is not blocking)
-///param mindelay minumum delay in mS
-///param maxdelay maximum delay in mS
+///param mindelay minimum delay in ms
+///param maxdelay maximum delay in ms
 
 #define DONE
 ///brief Stops task loco (if any) and terminates current task
@@ -211,7 +211,7 @@
 ///brief obsolete.. no longer needed. Does nothing.
 
 #define EXTT_TURNTABLE(id,vpin,home,description...)
-///brief This statement will create the EX‑Turntable turntable/traverser object only, so you will need a separate HAL() statement for an EX‑Turntable device driver.
+///brief Defines the EX‑Turntable turntable/traverser object only, so you will need a separate HAL() statement for an EX‑Turntable device driver.
 ///param homeAngle  the angle of the home position, valid angles are 0 - 3600
 ///param quoted description...
 
@@ -296,7 +296,7 @@
 ///see IF
 
 #define IFRANDOM(percent)
-///brief randomly satisfield IF at given percent probability
+///brief randomly satisfied IF at given percent probability
 ///see IF
 
 #define IFRED(signal_id)
@@ -304,7 +304,7 @@
 ///see IF
 
 #define IFSTASH(stash_id)
-///brief Checks if given stash entry has a non zero value
+///brief Checks if given stash entry has a non-zero value
 ///see IF
 
 #define IFSTASHED_HERE(stash_id)
@@ -337,7 +337,7 @@
 ///param mask Binary mask applied to vpin value
 
 #define IFBITMAP_ANY(vpin,mask)
-///brief Checks if vpin pseudo-analog value & mask is non zero
+///brief Checks if vpin pseudo-analog value & mask is non-zero
 ///see IF
 ///param mask Binary mask applied to vpin value
 
@@ -363,18 +363,18 @@
 #define JMRI_SENSOR(vpin,count...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
 ///param vpin first vpin number
-///param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1.
+///param count... Number of consecutive VPINS for which to create JMRI sensor feedbacks. Default 1.
 
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin
 ///param vpin first vpin number
-///param count... Number of consecutine VPINS for which to create JMRI sensor feedbacks. Default 1.
+///param count... Number of consecutive VPINS for which to create JMRI sensor feedbacks. Default 1.
 
 #define JOIN
 ///brief Switches PROG track to receive MAIN track DCC packets. (Drive on PROG track)
 
 #define KILLALL
-///brief Tertminates all running EXRAIL tasks
+///brief Terminates all running EXRAIL tasks
 
 #define LATCH(vpin)
 ///brief Make all AT/AFTER/IF see vpin as HIGH without checking hardware
@@ -392,12 +392,12 @@
 ///param msg Quoted text
 
 #define MOMENTUM(accel,decel...)
-///brief sets momentum in mS per DCC 127 step for curent loco.
+///brief sets momentum in ms per DCC 127 step for current loco.
 ///param accel Acceleration momentum
-///param decel... Braking momantum. (=Acceleration if not given)
+///param decel... Braking momentum. (=Acceleration if not given)
 
 #define SCREEN(display,row,msg)
-///brief Send message to external display hadlers
+///brief Send message to external display handlers
 ///param display number, 0=local display, others are handled by external
 ///  displays which may have different display numbers on different devices.
 ///param msg Quoted text
@@ -436,10 +436,10 @@
 ///brief Send MERG CBUS ACOF to Adapter
 
 #define ONACON(eventid)
-///brief Start task here when ACON for event receied from MERG CBUS
+///brief Start task here when ACON for event received from MERG CBUS
 
 #define ONACOF(eventid)
-///brief Start task here when ACOF for event receied from MERG CBUS
+///brief Start task here when ACOF for event received from MERG CBUS
 
 #define ONACTIVATE(addr,subaddr)
 ///brief Start task here when DCC Activate sent for short address
@@ -515,11 +515,11 @@
 ///brief Start task here when sensor changes HIGH to LOW.
 
 #define PAUSE
-///brief Pauses all EXRAIL tasks except the curremnt one.
+///brief Pauses all EXRAIL tasks except the current one.
 /// Other tasks ESTOP their locos until RESUME issued
 
 #define PIN_TURNOUT(id,vpin,description...)
-///brief Defines a turnout which operates on a signle pin
+///brief Defines a turnout which operates on a single pin
 ///param description... Quoted text (shown to throttles) or HIDDEN
 
 #define PRINT(msg)
@@ -609,8 +609,8 @@
 ///param funcmap... Quoted text, optional list of function names separated by / character with momentary function names prefixed with an *.
 
 #define ROUTE(sequence_id,description)
-///brief DEfines starting point of a sequence that will appear as a route on throttle buttons.
-///param description Quoted text, throttle button capotion.
+///brief Defines starting point of a sequence that will appear as a route on throttle buttons.
+///param description Quoted text, throttle button caption.
 
 #define ROUTE_ACTIVE(sequence_id)
 ///brief Tells throttle to display the route button as active
@@ -642,7 +642,7 @@
 ///param route sequence_id of route, automation or sequence to drive
 
 #define SEQUENCE(sequence_id)
-///brief Provides a unique label than can be used to call, follow or start.
+///brief Provides a unique label that can be used to call, follow or start.
 ///see CALL
 ///see FOLLOW
 ///see START
@@ -742,22 +742,22 @@
 ///brief Starts a new task at the given route/animation/sequence
 
 #define START_SHARED(sequence_id)
-///brief Starts a new task at the given route/animation/sequence an share current loco with it
+///brief Starts a new task at the given route/animation/sequence and share current loco with it
 
 #define START_SEND(sequence_id)
-///brief Starts a new task at the given route/animation/sequence an send current loco to it. Remove loco from current task.
+///brief Starts a new task at the given route/animation/sequence and send current loco to it. Remove loco from current task.
 
 #define STASH(stash_id)
-///brief saves cuttent tasks loco id in the stash array
+///brief saves current task's loco id in the stash array
 ///param stash_id  position in stash array to save loco id
 
 #define STEALTH(code...)
 ///brief Allows for embedding raw C++ code in context of current task.
-///param code... c++ code to be executed. This requires intimate understanding of the product acrhitecture.
+///param code... c++ code to be executed. This requires intimate understanding of the product architecture.
 
 #define STEALTH_GLOBAL(code...)
 ///brief Allows for embedding raw c++ code out of context.
-///param code...  c++ code to be defined. This requires intimate understanding of the product acrhitecture.
+///param code...  c++ code to be defined. This requires intimate understanding of the product architecture.
 
 #define STOP
 ///brief Same as SPEED(0)
@@ -783,8 +783,8 @@
 ///param subaddr DCC accessory subaddress
 ///param description... Quoted text or HIDDEN, appears on throttle buttons
 
-#define TURNOUTL(tirnout_id,addr,description...)
-///brief Defines a DCC accessory turnout with inear address
+#define TURNOUTL(turnout_id,addr,description...)
+///brief Defines a DCC accessory turnout with linear address
 ///see TURNOUT
 ///param turnout_id to be used in THROW/CLOSE etc
 ///param addr DCC accessory linear address
@@ -813,10 +813,10 @@
 ///param mask Binary mask to be ANDed with vpin1 value
 
 #define BITMAP_INC(vpin)
-///brief Increments poesudo analog value by 1
+///brief Increments pseudo analog value by 1
 
 #define BITMAP_DEC(vpin)
-///brief Decrements poesudo analog value by 1  (to zero)
+///brief Decrements pseudo analog value by 1  (to zero)
 
 #define BITMAP_OR(vpin1,mask)
 ///brief Performs a bitwise OR operation on the given vpin analog value and mask.
