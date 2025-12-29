@@ -835,10 +835,6 @@
 ///brief waits for completion of turntable movement
 #endif
 
-#define VIRTUAL_SIGNAL(signal_id)
-///brief Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware
-///see SIGNAL
-
 #define WAIT_WHILE_RED(signal_id)
 ///brief Keeps loco at speed 0 while signal is RED
 
