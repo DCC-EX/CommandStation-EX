@@ -875,3 +875,12 @@
 ///brief Resumes locos saved speed
 ///param cab loco id
 ///see XRESTORE_SPEED
+
+#define ZTEST(command,testcode...)
+///brief Developer Unit testing.  Do not use. 
+
+#define ZTEST2(command,reply)
+///brief Developer Unit testing.  Do not use.
+
+#define ZTEST3(command,reply,testcode...)
+///brief Developer Unit testing.  Do not use. 

@@ -136,3 +136,36 @@ SEQUENCE(7500)
     AT(870)
     PRINT("870 set")
   DONE
+
+  ROUTE(7800, "ZTESTS")
+  PRINT("ZTESTS starting")
+  ZTEST("<t 3 5 1>",DCC::getLocoSpeedByte(3)==(128+6))
+  ZTEST("<t 3 5 0>",DCC::getLocoSpeedByte(3)==(6))
+  ZTEST("<-3>",DCC::getLocoSpeedByte(3)==(128))  
+  ZTEST2("<$>","<X>\n")
+  DONE
+
+ROUTE(7900,"7900 Test IFSTASHED_HERE")
+   SETLOCO(4)  // set loco 4
+   STASH(200)  // stash loco 4 in stash 2
+    
+// loco is 4
+  IFSTASHED_HERE(100) // should be false
+      PRINT("FAIL Loco 4 in stash 100")
+  ELSE
+      PRINT("OK: loco 4 is not in stash 100")   
+  ENDIF
+
+SETLOCO(3)
+IFSTASHED_HERE(200) // should be false
+      PRINT("FAIL Loco 3 in stash 200")
+ELSE
+      PRINT("OK: loco 3 is not in stash 200")   
+ENDIF
+
+IFSTASHED_HERE(100) // should be true
+      PRINT("OK: Loco 3 is in stash 100")
+ELSE
+      PRINT("FAIL: loco 3 not in stash 100")
+ENDIF
+DONE

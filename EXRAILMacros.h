@@ -323,6 +323,20 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
+#undef ZTEST
+#define ZTEST(command,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),nullptr,[]() -> bool { return (code);}); \
+   return;
+#undef ZTEST2
+#define ZTEST2(command,response) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),nullptr); \
+   return;
+#undef ZTEST3
+#define ZTEST3(command,response,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),[]() -> bool { return (code);}); \
+   return;
+
+#include "Ztest.h"
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -701,6 +715,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
 #define XSAVE_SPEED(cab) OPCODE_XSAVE_SPEED,V(cab),
 #define XRESTORE_SPEED(cab) OPCODE_XRESTORE_SPEED,V(cab),
+#define ZTEST(command,code...) PRINT(dummy)
+#define ZTEST2(command,response) PRINT(dummy)
+#define ZTEST3(command,response,code...) PRINT(dummy)
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
