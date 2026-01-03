@@ -151,26 +151,6 @@ public:
 
 };
 
-class IO_DNIN8V {
-public:
-  static void create(VPIN firstVpin, int nPins, VPIN clk, VPIN latch, VPIN data) {
-    static const uint8_t pinmap[8] = {0x80,0x01,0x02,0x04,0x40,0x20,0x10,0x08};
-    if (IODevice::checkNoOverlap(firstVpin, nPins)) {
-      new IO_DNShiftExpander(firstVpin, nPins, clk, latch, data, true, pinmap);
-    }
-  }
-};
-
-class IO_DNOU8V {
-public:
-  static void create(VPIN firstVpin, int nPins, VPIN clk, VPIN latch, VPIN data) {
-    if (IODevice::checkNoOverlap(firstVpin, nPins)) {
-      new IO_DNShiftExpander(firstVpin, nPins, clk, latch, data, false, nullptr);
-    }
-  }
-};
-
-
 class IO_DNIN8K  {
 public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
@@ -187,8 +167,39 @@ public:
   static void create(VPIN firstVpin, int nPins, byte clockPin, byte latchPin, byte dataPin ) 
   {
         if (IODevice::checkNoOverlap(firstVpin,nPins))
-         new IO_duinoNodes( firstVpin,  nPins,  clockPin, latchPin,   dataPin,NULL);
+         new IO_duinoNodes( firstVpin, nPins, clockPin, latchPin, dataPin, NULL);
   }
 
+};
+
+class IO_DNIN8V {
+public:
+  static void create(VPIN firstVpin, int nPins, VPIN clk, VPIN latch, VPIN data) {
+    static const uint8_t pinmap[8] = {0x80,0x01,0x02,0x04,0x40,0x20,0x10,0x08};
+    if (IODevice::checkNoOverlap(firstVpin, nPins)) {
+      new IO_DNShiftExpander(firstVpin, nPins, clk, latch, data, true, pinmap);
+    }
+  }
+};
+
+class IO_DNIN8KV {
+public:
+  static void create(VPIN firstVpin, int nPins, VPIN clk, VPIN latch, VPIN data) {
+    static const uint8_t pinmap[8] = {0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
+
+    if (IODevice::checkNoOverlap(firstVpin, nPins)) {
+      new IO_DNShiftExpander(firstVpin, nPins, clk, latch, data, true, pinmap);
+    }
+  }
+};
+
+
+class IO_DNOU8V {
+public:
+  static void create(VPIN firstVpin, int nPins, VPIN clk, VPIN latch, VPIN data) {
+    if (IODevice::checkNoOverlap(firstVpin, nPins)) {
+      new IO_DNShiftExpander(firstVpin, nPins, clk, latch, data, false, nullptr);
+    }
+  }
 };
 #endif
