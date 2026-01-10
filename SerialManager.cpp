@@ -129,8 +129,8 @@ void SerialManager::loop2() {
       if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) {
         buffer[bufferLength++] = ch;          // advance bufferLength
 	if (inCommandPayload > PAYLOAD_NORMAL) {
-	  if (inCommandPayload > 32 + 2) {    // String way too long
-	    ch = '>';                         // we end this nonsense
+	  if (inCommandPayload > COMMAND_BUFFER_SIZE/2) { // String way too long, see SerialManager.h
+	    ch = '>';                                     // we end this nonsense
 	    inCommandPayload = PAYLOAD_NORMAL;
 	    DIAG(F("Parse error: Unbalanced string"));
 	    // fall through to ending parsing below

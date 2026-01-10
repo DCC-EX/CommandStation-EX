@@ -3,7 +3,28 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.46"
+#define VERSION "5.5.54"
+// 5.5.54 - Bugfix: Allow longer serial payload length in parser on 32 bit arch, save RAM on AVR
+// 5.5.53 - Bugfix: EXRAIL Asserts pbSize calculation error for pin blacklist
+// 5.5.52 - Command station consists <^> and EXRAIL BUILD_CONSIST/BREAK_COMNSIST
+// 5.5.51 - Bugfix: EXRAIL failed TURNTABLE create commands (I2C off) can crash CS
+//        - Bugfix: EXRAIL be extra careful not to deref nullptr
+// 5.5.50 - Replace the SC power status with something better
+//        - EXRAIL RANDOM_CALL, RANDOM_FOLLOW
+// 5.5.49 - EXRAIL </> displays wait_while_red state
+//        - EXRAIL SAVE_SPEED,RESTORE_SPEED,XSAVE_SPEED,XRESTORE_SPEED macros
+// 5.4.48 - EXRAIL improvements:
+//        - IFROUTE_HIDDEN, IFROUTE_DISABLED, IFROUTE_ACTIVE, IFROUTE_INACTIVE macros
+//        - FREEALL and </FREEALL> to free all reserves
+//        - WAIT_WHILE_RED macro to wait at red signals
+//        - START_SHARED nd START_SEND macros to share or transfer locos to new tasks
+// 5.5.47 - Make it possible to turn off max ack duration check
+//        - Wifi: Make it possible to hide the SSID
+//        - New trainbrains debug option
+//        - ESP32: SSID named "OFF" will turn all WIFI off
+//        - DCCEX protocol change: <#> returns <# N> where N is the number of presumably empty slots for mobile decoders
+//        - Bugfix: Race condition with RMTChannel::dataRepeat causes packets to be lost #460
+//        - Handle loco table full
 // 5.5.46 - Major rewrite of loco table 
 // 5.5.45 - Incoming <@ row col "text"> command
 //        - Bugfix: <t cab> for unknown loco

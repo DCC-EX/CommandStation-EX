@@ -32,9 +32,14 @@ void LocoSlot::prepare(uint16_t locoId) {
     momentumD=MOMENTUM_USE_DEFAULT;
     targetSpeed=128;
     blockOccupied=0;
+    savedSpeedCode=0; 
 
     snifferSpeedCode=128; // default direction forward
     snifferFunctions=0;
+
+    consistLead=nullptr;
+    consistNext =nullptr;
+    consistReverse=false;
 
     // Add to start of list
     next = firstSlot;
@@ -43,6 +48,11 @@ void LocoSlot::prepare(uint16_t locoId) {
 };
 
 /* static */ LocoSlot *  LocoSlot::getSlot(uint16_t locoId, bool autoCreate) {
+  if (locoId==0) {
+    DIAG(F("LocoSlot::getSlot called with locoId 0"));
+    return nullptr;
+  }
+
   auto slot=firstSlot;
   for(;slot;slot=slot->next){
     if (slot->loco==locoId) return slot;
@@ -54,7 +64,7 @@ void LocoSlot::prepare(uint16_t locoId) {
     // slot will be rechained into list in prepare()
   } else {
     if (slotCount>=MAX_LOCOS) {
-      DIAG(F("<* MAX_LOCOS %d EXCEEDED *>"),MAX_LOCOS);
+      DIAG(F("MAX_LOCOS %d EXCEEDED"),MAX_LOCOS);
       return nullptr; // Too many locos
     }
     slot=new LocoSlot();
@@ -104,15 +114,30 @@ void LocoSlot::forget() {
     slotCount,MAX_LOCOS,sizeof(LocoSlot));
   for (auto slot=firstSlot; slot; slot=slot->next) {
     StringFormatter::send(output, 
-      F("\n Loco=%-5d s=%-3d f=%-11l t=%-3d mA=%-3d mD=%-3d b=%-5d"),
+      F("\n Loco=%-5d s=%-3d f=%-11l t=%-3d"),
       slot->loco,slot->speedCode,slot->functions,
-      slot->targetSpeed,slot->momentumA,slot->momentumD,
-      slot->blockOccupied);
+      slot->targetSpeed);
+    if (slot->isConsistFollower()) {
+      StringFormatter::send(output, F(" (Follows %d %s)"),
+        slot->getConsistLead()->getLoco(),
+        slot->isConsistReverse() ? "Reversed":"Normal");
+    } 
+    else {
+      StringFormatter::send(output, 
+        F(" mA=%-3d mD=%-3d"),
+        slot->momentumA,slot->momentumD);
 #ifdef ARDUINO_ARCH_ESP32
     StringFormatter::send(output, F(" Ss=%-3d Sf=%-11l"),
       slot->snifferSpeedCode,slot->snifferFunctions);
 #endif      
     }
-  output->print(F("\n*>\n"));
   }
+output->print(F("\n*>\n"));
+}
 
+void LocoSlot::saveSpeed() {
+  savedSpeedCode=targetSpeed;
+}
+byte LocoSlot::getSavedSpeedCode() {
+  return savedSpeedCode;
+}

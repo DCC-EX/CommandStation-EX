@@ -90,6 +90,8 @@ public:
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders
+  static void saveSpeed(int cab);   // saves speed for later restore
+  static void restoreSpeed(int cab); // restores saved speed  
   static void displayCabList(Print *stream);
   static FSH *getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {
@@ -112,7 +114,8 @@ private:
   static byte loopStatus;
   static byte defaultMomentumA;  // Accelerating
   static byte defaultMomentumD;  // Accelerating
-  static void setThrottle2(uint16_t cab, uint8_t speedCode);
+  static void setThrottle2(LocoSlot * slot, uint8_t speedCode);
+  static void setThrottleDCC(uint16_t cab, uint8_t speedCode);
   static void setFunctionInternal(int cab, byte group, byte fByte, byte eByte);
   static bool issueReminder(LocoSlot  * slot);
   static LocoSlot * nextLocoReminder;

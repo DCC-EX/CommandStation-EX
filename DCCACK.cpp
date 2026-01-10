@@ -2,7 +2,7 @@
  *  © 2021 M Steve Todd
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Harald Barth
+ *  © 2020-2025 Harald Barth
  *  © 2020-2022 Chris Harlow
  *  All rights reserved.
  *  
@@ -496,7 +496,8 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
     }
     trailingEdgeCounter = 0;
 
-    if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
+    if (ackPulseDuration>=minAckPulseDuration
+	&& (ackPulseDuration<=maxAckPulseDuration || maxAckPulseDuration == 0)) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;

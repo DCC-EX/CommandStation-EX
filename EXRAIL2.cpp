@@ -58,6 +58,7 @@
 #include "IODevice.h"
 #include "EXRAILSensor.h"
 #include "Stash.h"
+#include "DCCConsist.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -295,7 +296,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
       byte subAddr=getOperand(progCounter,2);
-      setTurnoutHiddenState(DCCTurnout::create(id,addr,subAddr));
+      Turnout *t = DCCTurnout::create(id,addr,subAddr);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -305,14 +307,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int activeAngle=getOperand(progCounter,2);
       int inactiveAngle=getOperand(progCounter,3);
       int profile=getOperand(progCounter,4);
-      setTurnoutHiddenState(ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile));
+      Turnout *t = ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
-      setTurnoutHiddenState(VpinTurnout::create(id,pin));
+      Turnout *t = VpinTurnout::create(id,pin);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -320,9 +324,11 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
-      setTurntableHiddenState(DCCTurntable::create(id));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = DCCTurntable::create(id);
+      if (tto) {
+	setTurntableHiddenState(tto);
+	tto->addPosition(0,0,home);
+      }
       break;
     }
 
@@ -330,9 +336,13 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
       int home=getOperand(progCounter,2);
-      setTurntableHiddenState(EXTTTurntable::create(id,pin));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = EXTTTurntable::create(id,pin);
+      if (tto) {
+         setTurntableHiddenState(tto);
+         tto->addPosition(0,0,home);
+      } else {
+         DIAG(F("Create EXTTTURNTABLE %d %d FAILED"), id, pin);
+      }
       break;
     }
 
@@ -342,7 +352,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int value=getOperand(progCounter,2);
       int angle=getOperand(progCounter,3);
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(position,value,angle);
+      if (tto) tto->addPosition(position,value,angle);
       break;
     }
 #endif
@@ -390,7 +400,7 @@ char RMFT2::getRouteType(int16_t id) {
 }
 
 
-RMFT2::RMFT2(int progCtr, int16_t _loco) {
+RMFT2::RMFT2(int progCtr, int16_t _loco, bool _invert) {
   progCounter=progCtr;
 
   // get an unused  task id from the flags table
@@ -404,7 +414,7 @@ RMFT2::RMFT2(int progCtr, int16_t _loco) {
   }
   delayTime=0;
   loco=_loco;
-  invert=false;
+  invert=_invert;
   blinkState=not_blink_task;
   stackDepth=0;
   onEventStartPosition=-1; // Not handling an ONxxx 
@@ -589,6 +599,22 @@ void RMFT2::loop2() {
     if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
     break;
   
+  case OPCODE_SAVE_SPEED:
+    if (loco) DCC::saveSpeed(loco);
+    break;
+
+    case OPCODE_RESTORE_SPEED:
+    if (loco) DCC::restoreSpeed(loco);
+    break;
+  
+  case OPCODE_XSAVE_SPEED:
+    DCC::saveSpeed(operand);
+    break;
+
+    case OPCODE_XRESTORE_SPEED:
+    DCC::restoreSpeed(operand);
+    break;
+  
   case OPCODE_SPEEDUP:
     if (loco) {
       int8_t   speed=DCC::getThrottleSpeed(loco);
@@ -684,6 +710,13 @@ void RMFT2::loop2() {
     } 
     break;
 
+  case OPCODE_CONSIST:
+      if (operand==0) DCCConsist::deleteAnyConsist(loco);
+      else if (!DCCConsist::addLocoToConsist(loco, abs(operand), operand<0)) {
+          DIAG(F("EXRAIL Failed to add Loco %d to consist %d"), abs(operand),loco);
+        }
+    break;
+
   case OPCODE_INVERT_DIRECTION:
     invert= !invert;
     break;
@@ -700,7 +733,11 @@ void RMFT2::loop2() {
   case OPCODE_FREE:
     setFlag(operand,0,SECTION_FLAG);
     break;
-    
+  
+  case OPCODE_FREEALL:
+    for (int i=0;i<MAX_FLAGS;i++) setFlag(i,0,SECTION_FLAG);
+    break;
+  
   case OPCODE_AT:
     blinkState=not_blink_task;
     if (readSensor(operand)) break;
@@ -890,6 +927,15 @@ void RMFT2::loop2() {
     skipIf=!isSignal(operand,SIGNAL_RED);
     break;
     
+  case OPCODE_WAIT_WHILE_RED: // do block if signal as expected
+    if (isSignal(operand,SIGNAL_RED)) {
+      if (loco && (DCC::getLocoSpeedByte(loco) & 0x7f)>1) 
+          DCC::setThrottle(loco,0,DCC::getThrottleDirection(loco));
+      delayMe(500);
+      return;
+    }
+    break;
+    
   case OPCODE_IFAMBER: // do block if signal as expected
     skipIf=!isSignal(operand,SIGNAL_AMBER);
     break;
@@ -1020,7 +1066,33 @@ void RMFT2::loop2() {
     progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
-    
+   
+  
+  case OPCODE_RANDOM_FOLLOW:
+    // operand is number to choose from
+    { 
+      auto newroute=getOperand(1+(millis()%operand));
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("RANDOM_FOLLOW unknown"), newroute); 
+    }
+    return;
+	
+	 case OPCODE_RANDOM_CALL:
+    // operand is number to choose from
+    if (stackDepth==MAX_STACK_DEPTH) {
+      kill(F("CALL stack"), stackDepth);
+      return;
+    }
+    {
+      auto newroute=getOperand(1+(millis()%operand));
+      
+      // return position is after the RANDOM_CALL + all its operands
+      callStack[stackDepth++]=progCounter+3*(operand+1);
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("CALL unknown"),newroute);
+    }
+    return;
+  
   case OPCODE_RETURN:
     if (stackDepth==0) {
       kill(F("RETURN stack"));
@@ -1078,6 +1150,23 @@ void RMFT2::loop2() {
       int newPc=routeLookup->find(operand);
       if (newPc<0) break;
       new RMFT2(newPc);
+    }
+    break;
+
+  case OPCODE_START_SHARED:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and share loco
+    }
+    break;
+
+  case OPCODE_START_SEND:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and send loco exclusive
+      loco = 0;
     }
     break;
     
@@ -1152,6 +1241,8 @@ void RMFT2::loop2() {
   case OPCODE_PRINT:
     printMessage(operand);
     break;
+
+  // Route state management  
   case OPCODE_ROUTE_HIDDEN:
     manageRouteState(operand,2);
     break;   
@@ -1163,6 +1254,19 @@ void RMFT2::loop2() {
     break;   
   case OPCODE_ROUTE_DISABLED:
     manageRouteState(operand,4);
+    break;   
+// Route state management  
+  case OPCODE_IF_ROUTE_HIDDEN:
+    skipIf=!ifRouteState(operand,2);
+    break;   
+  case OPCODE_IF_ROUTE_INACTIVE:
+    skipIf=!ifRouteState(operand,0);
+    break;   
+  case OPCODE_IF_ROUTE_ACTIVE:
+    skipIf=!ifRouteState(operand,1);
+    break;   
+  case OPCODE_IF_ROUTE_DISABLED:
+    skipIf=!ifRouteState(operand,4);
     break;   
 
   case OPCODE_STASH:
@@ -1653,6 +1757,16 @@ void RMFT2::manageRouteState(int16_t id, byte state) {
     CommandDistributor::broadcastRouteState(id,state);
   }
 }
+bool RMFT2::ifRouteState(int16_t id, byte state) {
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    // Route state must be maintained for when new throttles connect.
+    // locate route id in the Routes lookup
+    int16_t position=routeLookup->findPosition(id);
+    return position>=0 &&  routeStateArray[position]==state;
+  }
+  else return false; 
+}
+
 void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.

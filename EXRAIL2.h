@@ -55,7 +55,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,
 #endif
              OPCODE_POM,
-             OPCODE_START,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
+             OPCODE_START,OPCODE_START_SHARED,OPCODE_START_SEND,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
              OPCODE_PAUSE, OPCODE_RESUME,OPCODE_POWEROFF,OPCODE_POWERON,
              OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
@@ -84,7 +84,14 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
-              // OPcodes below this point are skip-nesting IF operations
+             OPCODE_FREEALL,
+             OPCODE_WAIT_WHILE_RED,
+             OPCODE_SAVE_SPEED,OPCODE_RESTORE_SPEED,
+             OPCODE_XSAVE_SPEED,OPCODE_XRESTORE_SPEED,
+             OPCODE_RANDOM_CALL,OPCODE_RANDOM_FOLLOW,
+             OPCODE_CONSIST,
+             
+             // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
              // see skipIfBlock()
             IF_TYPE_OPCODES, // do not move this... 
@@ -100,6 +107,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFSTASH,
              OPCODE_IFSTASHED_HERE,
              OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
+             OPCODE_IF_ROUTE_ACTIVE,OPCODE_IF_ROUTE_INACTIVE,
+             OPCODE_IF_ROUTE_HIDDEN,OPCODE_IF_ROUTE_DISABLED,
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 
@@ -187,7 +196,7 @@ class LookList {
    public:
     static void begin();
     static void loop();
-    RMFT2(int progCounter, int16_t cab=0);
+    RMFT2(int progCounter, int16_t cab=0, bool invert=false);
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
@@ -281,6 +290,7 @@ private:
    static int onLCCLookup[];
    static const byte compileFeatures;
    static void manageRouteState(int16_t id, byte state);
+   static bool ifRouteState(int16_t id, byte state);
    static void manageRouteCaption(int16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;

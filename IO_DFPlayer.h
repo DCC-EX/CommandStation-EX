@@ -90,10 +90,25 @@ private:
   int _requestedSong = -1;  // -1=none, 0=stop, >0=file number
   
 public:
- 
-  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
-    if (checkNoOverlap(firstVpin,nPins)) new DFPlayer(firstVpin, nPins, serial);
+
+#ifdef ESP32
+  // ESP32 user must provide serial pins  
+  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial,
+    int8_t rxPin, int8_t txPin) {
+    if (checkNoOverlap(firstVpin,nPins)) {
+      serial.begin(9600, SERIAL_8N1,rxPin,txPin); // 9600baud, no parity, 1 stop bit
+      new DFPlayer(firstVpin, nPins, serial);
+    }
   }
+ #else
+  // NON-ESP32 knows about serial pins
+  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
+    if (checkNoOverlap(firstVpin,nPins)) {
+      serial.begin(9600, SERIAL_8N1); // 9600baud, no parity, 1 stop bit
+      new DFPlayer(firstVpin, nPins, serial);
+    }
+  }
+#endif
 
 protected:
   // Constructor
@@ -105,7 +120,6 @@ protected:
   }
 
   void _begin() override {
-    _serial->begin(9600, SERIAL_8N1); // 9600baud, no parity, 1 stop bit
     // Flush any data in input queue
     while (_serial->available()) _serial->read();
     _deviceState = DEVSTATE_INITIALISING;

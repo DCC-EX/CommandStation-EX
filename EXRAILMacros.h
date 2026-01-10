@@ -80,6 +80,27 @@
 // NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
 #define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
 
+// Collection of macros to assist variadic exrail macros
+// in particular RANDOMCALL and RANDOMFOLLOW
+// Count the number of arguments
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_HELPER(__VA_ARGS__,8,7, 6,5,4, 3, 2, 1, 0)
+#define FOR_EACH_NARG_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+// Force proper expansion (extra indirection to resolve `##`)
+#define _CONCAT_(a, b) a##b
+#define _EXPAND_(a) a
+
+#define ZC0()                      
+#define ZC1(_1)                      CALL(_1) 
+#define ZC2(_1,_2)                   CALL(_1) CALL(_2)
+#define ZC3(_1,_2,_3)                CALL(_1) CALL(_2) CALL(_3)
+#define ZC4(_1,_2,_3,_4)             CALL(_1) CALL(_2) CALL(_3) CALL(_4)
+#define ZC5(_1,_2,_3,_4,_5)          CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5)
+#define ZC6(_1,_2,_3,_4,_5,_6)       CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6)
+#define ZC7(_1,_2,_3,_4,_5,_6,_7)    CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7)
+#define ZC8(_1,_2,_3,_4,_5,_6,_7,_8) CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7) CALL(_8)
+#define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
+
+
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
@@ -186,7 +207,14 @@ void exrailHalSetup2() {
 #define ROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
-
+#undef IFROUTE_ACTIVE
+#define IFROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_INACTIVE
+#define IFROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_HIDDEN
+#define IFROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_DISABLED
+#define IFROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
@@ -295,6 +323,20 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
+#undef ZTEST
+#define ZTEST(command,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),nullptr,[]() -> bool { return (code);}); \
+   return;
+#undef ZTEST2
+#define ZTEST2(command,response) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),nullptr); \
+   return;
+#undef ZTEST3
+#define ZTEST3(command,response,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),[]() -> bool { return (code);}); \
+   return;
+
+#include "Ztest.h"
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -458,6 +500,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
+#define BUILD_CONSIST(addloco) OPCODE_CONSIST,V(addloco),
+#define BREAK_CONSIST OPCODE_CONSIST,V(0),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
@@ -493,6 +537,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FON(func) OPCODE_FON,V(func),
 #define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
+#define FREEALL OPCODE_FREEALL,0,0,
 #define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -509,6 +554,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
+#define IFROUTE_ACTIVE(sequence_id) OPCODE_IF_ROUTE_ACTIVE,V(sequence_id),
+#define IFROUTE_INACTIVE(sequence_id) OPCODE_IF_ROUTE_INACTIVE,V(sequence_id),
+#define IFROUTE_HIDDEN(sequence_id) OPCODE_IF_ROUTE_HIDDEN,V(sequence_id),
+#define IFROUTE_DISABLED(sequence_id) OPCODE_IF_ROUTE_DISABLED,V(sequence_id),
 #define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
@@ -584,6 +633,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
+#define RANDOM_CALL(...) \
+  OPCODE_RANDOM_CALL,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define RANDOM_FOLLOW(...) \
+  OPCODE_RANDOM_FOLLOW,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
@@ -602,6 +657,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
 #define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
 #define ROUTE_CAPTION(id,caption) PRINT(caption)
+#define SAVE_SPEED OPCODE_SAVE_SPEED,V(0),
+#define RESTORE_SPEED OPCODE_RESTORE_SPEED,V(0),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
@@ -628,6 +685,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SLOWDOWN(speedstep) OPCODE_SLOWDOWN,V(speedstep),
 #define SLOWDOWN_REL(percent) OPCODE_SLOWDOWN_REL,V(percent),
 #define START(route) OPCODE_START,V(route), 
+#define START_SHARED(route) OPCODE_START_SHARED,V(route),
+#define START_SEND(route) OPCODE_START_SEND,V(route),
 #define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
@@ -651,12 +710,18 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #ifndef IO_NO_HAL
 #define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
 #endif
+#define WAIT_WHILE_RED(signal_id) OPCODE_WAIT_WHILE_RED,V(signal_id),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 #define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),
 #define XFWD(cab,speed) OPCODE_XFWD,V(cab),OPCODE_PAD,V(speed),
 #define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
 #define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
+#define XSAVE_SPEED(cab) OPCODE_XSAVE_SPEED,V(cab),
+#define XRESTORE_SPEED(cab) OPCODE_XRESTORE_SPEED,V(cab),
+#define ZTEST(command,code...) PRINT(dummy)
+#define ZTEST2(command,response) PRINT(dummy)
+#define ZTEST3(command,response,code...) PRINT(dummy)
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;
