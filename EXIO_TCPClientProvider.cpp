@@ -16,7 +16,7 @@ namespace EXIO_TCPClientProvider {
   bool networkReady() {
   #if defined(ARDUINO_ARCH_ESP32)
     // In AP mode, WL_CONNECTED is not guaranteed, so just ensure WiFi isn't off.
-    return WiFi.getMode() != WIFI_OFF;
+    return WiFi.status() == WL_CONNECTED || WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA;
   #elif ETHERNET_ON == true
     // If there is no cable, link will be off; still safe to return false.
     return Ethernet.linkStatus() != LinkOFF;

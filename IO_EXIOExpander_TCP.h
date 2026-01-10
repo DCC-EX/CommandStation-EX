@@ -16,7 +16,7 @@
  *   RCMD = EXIOPINS, RLEN = 3, PAYLOAD = [EXIOPINS][numDigitalPins][numAnaloguePins]
  * (i.e. the first payload byte repeats EXIOPINS as a tag).
  *
- * Usage in myAutomation.h (suggested numeric-only form):
+ * Usage in myAutomation.h:
  *   HAL(EXIOExpander_TCP,800,18,192,168,1,200)          // default port 2560
  *   HAL(EXIOExpander_TCP,800,18,192,168,1,200,2560)     // explicit port
  *
@@ -32,17 +32,19 @@
 #include <Client.h>
 #include "EXIO_TCPClientProvider.h"
 
+#define DIAG_IO
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 class EXIOExpander_TCP : public IODevice {
 public:
   enum ProfileType : uint8_t {
-    Instant    = 0,
-    UseDuration= 0,
-    Fast       = 1,
-    Medium     = 2,
-    Slow       = 3,
-    Bounce     = 4,
-    NoPowerOff = 0x80,
+    Instant     = 0,
+    UseDuration = 0,
+    Fast        = 1,
+    Medium      = 2,
+    Slow        = 3,
+    Bounce      = 4,
+    NoPowerOff  = 0x80,
   };
 
   static EXIOExpander_TCP* findByVpin(VPIN vpin) {
@@ -128,17 +130,27 @@ private:
     _lastConnAttemptMicros = 0;
     _readState = RDS_IDLE;
 
-    // Attempt initial connection+handshake (blocking).
-    if (!_connectAndHandshake(true)) {
+    // If this build can never create a Client, fail permanently.
+    // (ESP-AT / WifiInterface etc.)
+    Client* probe = EXIO_TCPClientProvider::createClient();
+    if (!probe) {
       _deviceState = DEVSTATE_FAILED;
+      DIAG(F("EX-IOExpander TCP: no Client-based network stack in this build"));
       return;
     }
+    delete probe;
 
-    _deviceState = DEVSTATE_NORMAL;
+    // Best-effort initial connect, but do NOT fail permanently if it doesn't work yet.
+    if (_connectAndHandshake(true)) {
+      _deviceState = DEVSTATE_NORMAL;
+    } else {
+      _deviceState = DEVSTATE_NORMAL;   // allow retries in _loop()
+      _state = ST_DISCONNECTED;
+    }
 
-#ifdef DIAG_IO
+  #ifdef DIAG_IO
     _display();
-#endif
+  #endif
   }
 
   // Digital input config
@@ -146,7 +158,7 @@ private:
     if (_deviceState == DEVSTATE_FAILED) return false;
     if (paramCount != 1) return false;
 
-    int pin = vpin - _firstVpin;
+    int pin = (int)(vpin - _firstVpin);
 
     if (configType == CONFIGURE_INPUT) {
       uint8_t pullup = params[0] ? 1 : 0;
@@ -167,7 +179,7 @@ private:
   int _configureAnalogIn(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return false;
 
-    int pin = vpin - _firstVpin;
+    int pin = (int)(vpin - _firstVpin);
     uint8_t payload[1] = { (uint8_t)pin };
     uint8_t resp[1];
 
@@ -182,7 +194,8 @@ private:
   void _loop(unsigned long currentMicros) override {
     if (_deviceState == DEVSTATE_FAILED) return;
 
-    if (!_client || !_client->connected()) {
+    // Reconnect/handshake if disconnected
+    if (!_client || !_client->connected() || _state != ST_CONNECTED) {
       _state = ST_DISCONNECTED;
       _readState = RDS_IDLE;
 
@@ -193,11 +206,13 @@ private:
       return;
     }
 
+    // Finish any pending periodic read
     if (_readState != RDS_IDLE) {
       if (!_tryCompleteRead()) return;
       _readState = RDS_IDLE;
     }
 
+    // Schedule next periodic read
     if (_readState == RDS_IDLE) {
       if (_numDigitalPins > 0 && (currentMicros - _lastDigitalReadMicros) > _digitalRefreshMicros) {
         if (_sendFrame(EXIORDD, nullptr, 0)) {
@@ -227,9 +242,9 @@ private:
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
 
-    int pin = vpin - _firstVpin;
+    int pin = (int)(vpin - _firstVpin);
     for (uint8_t aPin = 0; aPin < _numAnaloguePins; aPin++) {
-      if (_analoguePinMap[aPin] == pin) {
+      if (_analoguePinMap && _analoguePinMap[aPin] == pin) {
         uint8_t lsb = aPin * 2;
         uint8_t msb = lsb + 1;
         return (_analogueInputStates[msb] << 8) + _analogueInputStates[lsb];
@@ -241,16 +256,16 @@ private:
   // Digital read
   int _read(VPIN vpin) override {
     if (_deviceState == DEVSTATE_FAILED) return 0;
-    int pin = vpin - _firstVpin;
-    uint8_t pinByte = pin / 8;
-    return bitRead(_digitalInputStates[pinByte], pin - pinByte * 8);
+    int pin = (int)(vpin - _firstVpin);
+    uint8_t pinByte = (uint8_t)(pin / 8);
+    return bitRead(_digitalInputStates[pinByte], pin - (int)pinByte * 8);
   }
 
   // Digital write
   void _write(VPIN vpin, int value) override {
     if (_deviceState == DEVSTATE_FAILED) return;
 
-    int pin = vpin - _firstVpin;
+    int pin = (int)(vpin - _firstVpin);
     uint8_t payload[2] = { (uint8_t)pin, (uint8_t)value };
     uint8_t resp[1];
 
@@ -267,12 +282,12 @@ private:
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t duration) override {
     if (_deviceState == DEVSTATE_FAILED) return;
 
-    int pin = vpin - _firstVpin;
+    int pin = (int)(vpin - _firstVpin);
 
-#ifdef DIAG_IO
+  #ifdef DIAG_IO
     DIAG(F("EXIO(TCP) WriteAnalogue Vpin:%u Value:%d Profile:%d Duration:%d"),
          vpin, value, profile, duration);
-#endif
+  #endif
 
     uint8_t payload[6];
     payload[0] = (uint8_t)pin;
@@ -325,8 +340,9 @@ private:
   enum { ST_DISCONNECTED, ST_CONNECTED } _state = ST_DISCONNECTED;
   enum { RDS_IDLE, RDS_DIGITAL, RDS_ANALOGUE } _readState = RDS_IDLE;
 
+  // Connection + handshake
   bool _connectAndHandshake(bool blocking) {
-    if (_client && _client->connected()) return true;
+    if (_client && _client->connected() && _state == ST_CONNECTED) return true;
 
     if (!EXIO_TCPClientProvider::networkReady()) {
       if (blocking) DIAG(F("EX-IOExpander TCP: network not ready"));
@@ -344,6 +360,7 @@ private:
       }
     }
 
+    // Connect
     if (!_client->connect(_ip, _port)) {
       if (blocking) {
         DIAG(F("EX-IOExpander TCP:%d.%d.%d.%d:%d connect failed"),
@@ -353,11 +370,11 @@ private:
       return false;
     }
 
-    // Handshake: EXIOINIT -> expect EXIOPINS payload [EXIOPINS][dig][ana]
+    // Handshake: EXIOINIT -> expect payload [EXIOPINS][dig][ana]
     uint8_t initPayload[3] = { (uint8_t)_nPins, (uint8_t)(_firstVpin & 0xFF), (uint8_t)(_firstVpin >> 8) };
 
     uint8_t pinsPayload[3];
-    if (!_rpc(EXIOINIT, initPayload, sizeof(initPayload), pinsPayload, sizeof(pinsPayload))) {
+    if (!_rpcNoConnect(EXIOINIT, initPayload, sizeof(initPayload), pinsPayload, sizeof(pinsPayload))) {
       DIAG(F("EX-IOExpander TCP handshake failed (EXIOINIT)"));
       _markOffline();
       return false;
@@ -368,7 +385,7 @@ private:
       return false;
     }
 
-    _numDigitalPins = pinsPayload[1];
+    _numDigitalPins  = pinsPayload[1];
     _numAnaloguePins = pinsPayload[2];
 
     if (!_allocBuffers()) {
@@ -376,21 +393,53 @@ private:
       return false;
     }
 
+    // Fetch analogue pin map if any
     if (_numAnaloguePins > 0) {
       if (!_sendFrame(EXIOINITA, nullptr, 0)) { _markOffline(); return false; }
 
       uint8_t hdr[2];
       if (!_readHeaderBlocking(hdr, blocking)) { _markOffline(); return false; }
 
+
       uint8_t rcmd = hdr[0];
       uint8_t rlen = hdr[1];
-      if (rcmd != EXIOINITA || rlen != _numAnaloguePins) { _drain(rlen); _markOffline(); return false; }
+
+      if (rcmd != EXIOINITA || rlen != _numAnaloguePins) {
+        #ifdef DIAG_IO
+          DIAG(F("EX-IOExpander TCP handshake FAIL at INITA: got rcmd=0x%02X rlen=%u expected rcmd=0x%02X rlen=%u"),
+              rcmd, rlen, EXIOINITA, _numAnaloguePins);
+        #endif
+
+        // Optional: if rlen is small, dump the bytes we’re about to drain.
+        if (rlen > 0 && rlen <= 16) {
+          #ifdef DIAG_IO
+            DIAG(F("EX-IOExpander TCP INITA unexpected payload (draining %u bytes):"), rlen);
+          #endif
+          for (uint8_t i = 0; i < rlen; i++) {
+            while (_client->connected() && _client->available() == 0) delay(1);
+            if (_client->available()) {
+              uint8_t b = (uint8_t)_client->read();
+              #ifdef DIAG_IO
+                DIAG(F("  [%u]=0x%02X"), i, b);
+              #endif
+            } else break;
+          }
+          _markOffline();
+          return false;
+        }
+
+        _drain(rlen);
+        _markOffline();
+        return false;
+      }
+
 
       if (!_readBytesBlocking(_analoguePinMap, _numAnaloguePins, blocking)) { _markOffline(); return false; }
     }
 
+    // Best-effort version fetch (do not fail handshake if version read fails)
     uint8_t ver[3];
-    if (_rpc(EXIOVER, nullptr, 0, ver, sizeof(ver))) {
+    if (_rpcNoConnect(EXIOVER, nullptr, 0, ver, sizeof(ver))) {
       _majorVer = ver[0];
       _minorVer = ver[1];
       _patchVer = ver[2];
@@ -410,11 +459,13 @@ private:
     _readState = RDS_IDLE;
   }
 
+  // ---- Buffers --------------------------------------------------------------
+
   bool _allocBuffers() {
     if (_numDigitalPins > 0) {
       size_t need = (_numDigitalPins + 7) / 8;
       if (_digitalPinBytes < need) {
-        if (_digitalPinBytes > 0) free(_digitalInputStates);
+        if (_digitalPinBytes > 0 && _digitalInputStates) free(_digitalInputStates);
         _digitalInputStates = (uint8_t*)calloc(need, 1);
         if (!_digitalInputStates) {
           DIAG(F("EX-IOExpander TCP ERROR alloc digital %d bytes"), (int)need);
@@ -429,13 +480,13 @@ private:
       size_t need = _numAnaloguePins * 2;
       if (_analoguePinBytes < need) {
         if (_analoguePinBytes > 0) {
-          free(_analogueInputBuffer);
-          free(_analogueInputStates);
-          free(_analoguePinMap);
+          if (_analogueInputBuffer) free(_analogueInputBuffer);
+          if (_analogueInputStates) free(_analogueInputStates);
+          if (_analoguePinMap) free(_analoguePinMap);
         }
 
-        _analogueInputStates = (uint8_t*)calloc(need, 1);
-        _analogueInputBuffer = (uint8_t*)calloc(need, 1);
+        _analogueInputStates  = (uint8_t*)calloc(need, 1);
+        _analogueInputBuffer  = (uint8_t*)calloc(need, 1);
         _analoguePinMap       = (uint8_t*)calloc(_numAnaloguePins, 1);
 
         if (!_analogueInputStates || !_analogueInputBuffer || !_analoguePinMap) {
@@ -451,7 +502,9 @@ private:
     return true;
   }
 
-  // Frame send: [CMD][LEN][PAYLOAD...]
+  // ---- Framing --------------------------------------------------------------
+
+  // Send frame: [CMD][LEN][PAYLOAD...]
   bool _sendFrame(uint8_t cmd, const uint8_t* payload, uint8_t len) {
     if (!_client || !_client->connected()) return false;
     uint8_t hdr[2] = { cmd, len };
@@ -462,37 +515,78 @@ private:
     return true;
   }
 
-  // Blocking RPC:
+  // Wrapper RPC: ensures connection+handshake, then performs one request/response.
   bool _rpc(uint8_t cmd,
             const uint8_t* payload, uint8_t payloadLen,
             uint8_t* resp, uint8_t respLen) {
-    if (!_connectAndHandshake(true)) return false;
+    if (!_client || !_client->connected() || _state != ST_CONNECTED) {
+      if (!_connectAndHandshake(true)) return false;
+    }
+    return _rpcNoConnect(cmd, payload, payloadLen, resp, respLen);
+  }
 
-    unsigned long t0 = micros();
+  // RPC that assumes we are already connected (and used by _connectAndHandshake()).
+  bool _rpcNoConnect(uint8_t cmd,
+                     const uint8_t* payload, uint8_t payloadLen,
+                     uint8_t* resp, uint8_t respLen) {
+    if (!_client || !_client->connected()) return false;
 
+    #ifdef DIAG_IO
+      DIAG(F("EXIO(TCP) RPC tx cmd=0x%x len=%u"), cmd, payloadLen);
+    #endif
+
+    const unsigned long t0 = micros();
+
+    // Send request
     if (!_sendFrame(cmd, payload, payloadLen)) return false;
 
+    // Read response header
     uint8_t hdr[2];
     if (!_readHeaderBlocking(hdr, true)) return false;
 
-    uint8_t rcmd = hdr[0];
-    uint8_t rlen = hdr[1];
+    const uint8_t rcmd = hdr[0];
+    const uint8_t rlen = hdr[1];
 
-    if (rlen != respLen) {
+    #ifdef DIAG_IO
+      DIAG(F("EXIO(TCP) RPC rx rcmd=0x%x rlen=%u expect=%u"), rcmd, rlen, respLen);
+    #endif
+
+    // If remote signaled error, drain payload and fail
+    if (rcmd == EXIOERR) {
+      #ifdef DIAG_IO
+        DIAG(F("EXIO(TCP) RPC FAIL: remote EXIOERR, draining %u"), rlen);
+      #endif
       _drain(rlen);
       return false;
     }
 
+    // If reply length differs, drain and fail
+    if (rlen != respLen) {
+      #ifdef DIAG_IO
+        DIAG(F("EXIO(TCP) RPC FAIL: length mismatch, draining %u"), rlen);
+      #endif
+      _drain(rlen);
+      return false;
+    }
+
+    // Read payload
     if (respLen && resp) {
-      if (!_readBytesBlocking(resp, respLen, true)) return false;
-    } else {
+      if (!_readBytesBlocking(resp, respLen, true)) {
+        #ifdef DIAG_IO
+          DIAG(F("EXIO(TCP) RPC FAIL: payload read timeout"));
+        #endif
+        return false;
+      }
+      #ifdef DIAG_IO
+        DIAG(F("EXIO(TCP) RPC payload: %02X %02X %02X"), resp[0], respLen > 1 ? resp[1] : 0, respLen > 2 ? resp[2] : 0);
+      #endif
+    } else if (rlen) {
       _drain(rlen);
     }
 
-    if (rcmd == EXIOERR) return false;
 
+    // Track RTT
     _recordRttMicros(t0);
-    (void)rcmd;
     return true;
   }
 
@@ -500,7 +594,12 @@ private:
     unsigned long start = millis();
     while (_client && _client->connected() && _client->available() < 2) {
       if (!blocking) return false;
-      if ((millis() - start) > _responseTimeoutMs) return false;
+      if ((millis() - start) > _responseTimeoutMs) {
+        #ifdef DIAG_IO
+          DIAG(F("EXIO(TCP) header timeout (avail=%d)"), _client ? _client->available() : -1);
+        #endif
+        return false;
+      }
       delay(1);
     }
     if (!_client || !_client->connected()) return false;
@@ -529,6 +628,7 @@ private:
     }
   }
 
+  // Periodic read completion
   bool _tryCompleteRead() {
     unsigned long nowMicros = micros();
     if ((long)(nowMicros - _readDeadlineMicros) > 0) {
@@ -581,8 +681,8 @@ private:
 
   Client* _client = nullptr;
 
-  uint8_t _numDigitalPins = 0;
-  uint8_t _numAnaloguePins = 0;
+  uint8_t _numDigitalPins   = 0;
+  uint8_t _numAnaloguePins  = 0;
 
   uint8_t _majorVer = 0;
   uint8_t _minorVer = 0;
@@ -597,17 +697,17 @@ private:
   uint8_t _analoguePinBytes = 0;
 
   // Poll timing
-  unsigned long _lastDigitalReadMicros = 0;
+  unsigned long _lastDigitalReadMicros  = 0;
   unsigned long _lastAnalogueReadMicros = 0;
-  const unsigned long _digitalRefreshMicros  = 10000UL;   // 10ms
-  const unsigned long _analogueRefreshMicros = 50000UL;   // 50ms
+  const unsigned long _digitalRefreshMicros  = 50000UL;   // 50ms
+  const unsigned long _analogueRefreshMicros = 100000UL;   // 100ms
 
   // Reconnect / timeouts
   unsigned long _lastConnAttemptMicros = 0;
   const unsigned long _reconnectIntervalMicros = 1000000UL; // 1s
   unsigned long _readDeadlineMicros = 0;
-  const unsigned long _responseTimeoutMicros = 200000UL;    // 200ms
-  const unsigned long _responseTimeoutMs = 200;
+  const unsigned long _responseTimeoutMicros = 1000000UL;    // 1000ms
+  const unsigned long _responseTimeoutMs = 1000;
 
   // Pending periodic read
   uint8_t _pendingCmd = 0;
@@ -616,8 +716,8 @@ private:
   unsigned long _pendingStartMicros = 0;
 
   // RTT stats
-  uint16_t _rttLastMs = 0;
-  uint16_t _rttAvgMs  = 0;
+  uint16_t _rttLastMs  = 0;
+  uint16_t _rttAvgMs   = 0;
   uint32_t _rttSamples = 0;
 };
 
