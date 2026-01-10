@@ -535,6 +535,25 @@
 ///brief Loads stashed value into current task loco
 ///param stash_id position in stash where a loco id was previously saved.
 
+///brief Plays a track on a DFPlayer module on repoeat
+///param track number
+///param volume... optional volume 0-30 or use default set below
+
+#define PLAY_RESET(vpin)
+///brief Resets DFPlayer 
+
+#define PLAY_STOP(vpin)
+///brief Stops DFPlayer 
+
+#define PLAY_TRACK(vpin,track,volume...)
+///brief Plays a track on a DFPlayer module
+///param track number
+///param volume... optional volume 0-30 or use default set below
+
+#define PLAY_VOLUME(vpin,volume)
+///brief Sets default volume on a DFPlayer module
+///param volume... volume 0-30
+
 #define POM(cv,value)
 ///brief Write value to cv on current tasks loco (Program on Main)
 

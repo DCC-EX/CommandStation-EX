@@ -628,6 +628,13 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#define PLAY_EQ(vpin,eqnumber)             ANOUT(vpin,0,eqnumber,DFPlayerBase::DF_EQ)
+#define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
+#define PLAY_REPEAT(vpin,track,volume...)  ANOUT(vpin,track,volume+0,DFPlayerBase::DF_REPEATPLAY)
+#define PLAY_RESET(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_RESET)
+#define PLAY_STOP(vpin)                    ANOUT(vpin,0,0,DFPlayerBase::DF_STOPPLAY)
+#define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
+#define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
