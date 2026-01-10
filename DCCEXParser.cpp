@@ -1056,7 +1056,7 @@ bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
     // <y vpin VOL volume>
     // <y vpin EQ eq>
     // <y vpin RESET>
-    // <y vpin DEBUG ON|OFF>
+    // <y vpin DEBUGON|DEBUGOFF>
 
     if (params<2) return false;
 

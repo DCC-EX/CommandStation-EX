@@ -95,7 +95,14 @@ public:
     if (_deviceState == DEVSTATE_FAILED) return false;
     uint8_t lvl_reg = (uint8_t)(REG_RXLVL | _UART_CH_BITS);
     uint8_t avail = 0;
-    if (I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1) == 0 && avail > 0) {
+    auto status=I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1);
+    if (status != I2C_STATUS_OK) {
+        DIAG(F("DFPlayer VPIN %d Error:%d %S"), _firstVpin, status, I2CManager.getErrorMessage(status));
+        _deviceState = DEVSTATE_FAILED;
+        _display();
+        return false;
+    }
+    if (avail > 0) {
       uint8_t rhr_reg = (uint8_t)(REG_RHR | _UART_CH_BITS);
       for (uint8_t i=0; i<avail; i++) { 
           uint8_t b; 
