@@ -318,6 +318,7 @@
 #define IFRESERVE(token_id)
 ///brief Attempts to reserve token and if satisfiled the token remains reserved.
 ///see IF RESERVE FREE
+///param token_id 0..255
 
 #define IFTIMEOUT
 ///brief Checks TIMEOUT state after an AT/AFTER request with timeout value.
@@ -562,9 +563,11 @@
 
 #define RESERVE(token_id)
 ///brief Waits for token for block. If not available immediately, current task loco is stopped.
+///param token_id 0..255
 
 #define RESERVE_NOESTOP(token_id)
 ///brief Reserves token for block without estopping the current task loco if token is already taken.
+///param token_id 0..255
 
 #define RESET(vpin,count...)
 ///brief Sets output pin LOW
