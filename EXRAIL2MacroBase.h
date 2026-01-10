@@ -535,6 +535,14 @@
 ///brief Loads stashed value into current task loco
 ///param stash_id position in stash where a loco id was previously saved.
 
+#define PLAY_EQ(vpin,eqnumber)
+///brief Sets EQ setting on DFPlayer module
+
+#define PLAY_FOLDER(vpin,folder)
+///brief Sets DFPlayer folder to use for tracks 
+///param folder number
+
+#define PLAY_REPEAT(vpin,track,volume...)
 ///brief Plays a track on a DFPlayer module on repoeat
 ///param track number
 ///param volume... optional volume 0-30 or use default set below
