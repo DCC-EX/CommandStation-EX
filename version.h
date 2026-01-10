@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.54"
+#define VERSION "5.5.55"
+// 5.5.55 - Bugfix: Real time clock i2c address recognition
+//        - DFPlayer redesign to amalgamate Serial and i2c drivers
+//        - DFPlayer <y> commands and EXRAIL PLAY_ macros
+//        - EXRAIL Documentation spelling corrections  
 // 5.5.54 - Bugfix: Allow longer serial payload length in parser on 32 bit arch, save RAM on AVR
 // 5.5.53 - Bugfix: EXRAIL Asserts pbSize calculation error for pin blacklist
 // 5.5.52 - Command station consists <^> and EXRAIL BUILD_CONSIST/BREAK_COMNSIST
