@@ -679,8 +679,8 @@ private:
 
   unsigned long _lastDigitalReadMicros  = 0;
   unsigned long _lastAnalogueReadMicros = 0;
-  const unsigned long _digitalRefreshMicros  = 250000UL;
-  const unsigned long _analogueRefreshMicros = 500000UL;
+  const unsigned long _digitalRefreshMicros  = 10000UL;
+  const unsigned long _analogueRefreshMicros = 50000UL;
 
   unsigned long _lastConnAttemptMicros = 0;
   const unsigned long _reconnectIntervalMicros = 1000000UL;
