@@ -563,6 +563,9 @@
 #define RESERVE(token_id)
 ///brief Waits for token for block. If not available immediately, current task loco is stopped.
 
+#define RESERVE_NOESTOP(token_id)
+///brief Reserves token for block without estopping the current task loco if token is already taken.
+
 #define RESET(vpin,count...)
 ///brief Sets output pin LOW
 ///see SET

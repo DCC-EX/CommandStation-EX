@@ -642,6 +642,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
+#define RESERVE_NOESTOP(blockid) OPCODE_RESERVE_NOESTOP,V(blockid),
 #define RESET(pin,count...) OPCODE_RESET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define RESUME OPCODE_RESUME,0,0,
 #define RETURN OPCODE_RETURN,0,0,

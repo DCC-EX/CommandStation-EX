@@ -649,6 +649,14 @@ void RMFT2::loop2() {
     }
     setFlag(operand,SECTION_FLAG);
     break;
+
+  case OPCODE_RESERVE_NOESTOP:
+    if (getFlag(operand,SECTION_FLAG)) {
+      delayMe(500);
+      return;
+    }
+    setFlag(operand,SECTION_FLAG);
+    break;
     
   case OPCODE_FREE:
     setFlag(operand,0,SECTION_FLAG);

@@ -158,7 +158,8 @@
 #undef RANDOM_FOLLOW
 #undef READ_LOCO 
 #undef RED 
-#undef RESERVE 
+#undef RESERVE
+#undef RESERVE_NOESTOP
 #undef RESET 
 #undef RESTORE_SPEED
 #undef RESUME 
