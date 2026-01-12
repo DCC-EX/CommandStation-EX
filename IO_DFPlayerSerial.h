@@ -1,7 +1,7 @@
 /*
- * © 2025, Nicola Malavasi (NicMal). All rights reserved.
+ * © 2025, Nicola Malavasi. All rights reserved.
  * © 2023, Neil McKechnie. All rights reserved.
- * * This file is part of DCC++EX API
+ * * This file is part of DCC-EX API
  *
  * This is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@
  * raw packets directly to the serial UART buffer.
  * 3. Asynchronous Receiving: Implements processIncoming using a non-blocking 
  * while loop to drain the serial RX buffer and feed the base byte parser.
- * 4. Plug-and-Play Integration: Relies on the baud rate initialization (9600) 
- * performed by the DFPlayer wrapper, focusing strictly on data movement.
+ * 4. Integration: Relies on the standard baud rate initialization (9600), 
+ * focusing strictly on high-speed data movement.
  * * TECHNICAL NOTE: 
  * On STM32/Nucleo platforms, ensure the use of a 1k Ohm series resistor on 
  * the DFPlayer RX line to mitigate signal noise and electrical mismatch.

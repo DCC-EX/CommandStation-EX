@@ -1,7 +1,7 @@
 /*
- * © 2025, Nicola Malavasi (NicMal). All rights reserved.
+ * © 2025, Nicola Malavasi. All rights reserved.
  * © 2023, Neil McKechnie. All rights reserved.
- * * This file is part of DCC++EX API
+ * * This file is part of DCC-EX API
  *
  * This is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@
  * to configure UART parameters over the I2C bus.
  * 2. Dual-Channel Support: Uses the _UART_CH_BITS to switch between Channel A and Channel B 
  * on dual-UART bridge chips (like the SC16IS752).
- * 3. Dynamic Baud Rate: Calculates the divisor (DLL/DLH) based on the crystal frequency (xtal) 
- * to lock the output at 9600 baud.
- * 4. Transparent Communication: Overrides transmitCommandBuffer and processIncoming 
- * to wrap standard DFPlayer serial packets into I2C messages.
- * 5. I2C Bus Diagnostics: Monitors device presence on the bus and reports 
- * status (OK/FAILED) via the DIAG console.
+ * 3. Auto-Baud Detection: Automatically probes the bridge crystal frequency 
+ * (1.8MHz or 14.7MHz) to lock the output at 9600 baud without manual configuration.
+ * 4. Transparent Communication: Wraps standard DFPlayer serial packets into 
+ * I2C messages for seamless integration with the base class logic.
+ * 5. I2C Bus Diagnostics: Monitors device presence and reports status (OK/FAILED) 
+ * via the DIAG console, including the detected crystal frequency.
  */
 
 
@@ -50,44 +50,71 @@ class DFPlayerI2C : public DFPlayerBase  {
 private: 
   uint8_t _UART_CH_BITS; 
   unsigned long _xtal_freq;
+  bool _xtal_detected = false;
 
 public:
-  DFPlayerI2C(VPIN v, I2CAddress a, uint8_t x, uint8_t ch) : DFPlayerBase(v) {
+  DFPlayerI2C(VPIN v, I2CAddress a, uint8_t ch) : DFPlayerBase(v) {
     _I2CAddress = a;
-    _UART_CH_BITS = (ch << 1); // 0x00 per Ch A, 0x02 per Ch B
-    _xtal_freq = (x) ? 14745600 : 1843200;
+    _UART_CH_BITS = (ch << 1); 
+    _xtal_freq = 1843200; // Default su 1.8MHz
     addDevice(this);
   } 
 
   void _begin() override {
     I2CManager.begin();
     if (I2CManager.exists(_I2CAddress)){
-      uint16_t div = (uint16_t)(_xtal_freq / (9600 * 16));
-      writeRaw(REG_LCR, 0x83); 
-      writeRaw(REG_DLL, (uint8_t)(div & 0xFF)); 
-      writeRaw(REG_DLH, (uint8_t)(div >> 8));   
-      writeRaw(REG_LCR, 0x03); 
-      writeRaw(REG_FCR, 0x07); 
-      _deviceState = DEVSTATE_NORMAL;
+      // Testiamo prima 1.8MHz (più comune su board 752) poi 14.7MHz
+      unsigned long test_xtals[] = {1843200, 14745600};
+      
+      for (int i=0; i<2; i++) {
+        _xtal_freq = test_xtals[i];
+        uint16_t div = (uint16_t)(_xtal_freq / (9600 * 16));
+        
+        writeRaw(REG_LCR, 0x83); 
+        writeRaw(REG_DLL, (uint8_t)(div & 0xFF)); 
+        writeRaw(REG_DLH, (uint8_t)(div >> 8));   
+        writeRaw(REG_LCR, 0x03); 
+        writeRaw(REG_FCR, 0x07); 
+
+        // Pulizia totale buffer RX
+        uint8_t avail=0, dummy, lvl_reg = (uint8_t)(REG_RXLVL | _UART_CH_BITS), rhr_reg = (uint8_t)(REG_RHR | _UART_CH_BITS);
+        I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1);
+        for(int j=0; j<avail; j++) I2CManager.read(_I2CAddress, &dummy, 1, &rhr_reg, 1);
+
+        // Invio Query Status (0x42) con Checksum corretto
+        uint8_t q[] = {0x7E, 0xFF, 0x06, 0x42, 0x00, 0x00, 0x00, 0xFE, 0xB9, 0xEF};
+        transmitCommandBuffer(q, 10);
+        
+        unsigned long start = millis();
+        while (millis() - start < 400) { 
+          I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1);
+          if (avail > 0) {
+            uint8_t firstByte;
+            I2CManager.read(_I2CAddress, &firstByte, 1, &rhr_reg, 1);
+            // Se il primo byte NON è 0x7E, abbiamo ricevuto spazzatura (baud rate errato)
+            if (firstByte == 0x7E) { _xtal_detected = true; break; }
+          }
+        }
+        if (_xtal_detected) break;
+      }
     } else _deviceState = DEVSTATE_FAILED;
+
     _display();
-    DFPlayerBase::_begin();
+    DFPlayerBase::_begin(); 
   }
 
   void _display() override {
-    DIAG(F("DFPlayer I2C (%s) Ch %c: Vpin %u %S"), 
-         _I2CAddress.toString(), 
-         (_UART_CH_BITS == 0) ? 'A' : 'B', 
-         (unsigned int)_firstVpin, 
-         (_deviceState==DEVSTATE_FAILED) ? F("FAILED") : F("OK"));
+    DIAG(F("DFPlayer I2C (%s) Ch %c: Xtal %S MHz %S - Vpin %u"), 
+         _I2CAddress.toString(), (_UART_CH_BITS == 0) ? 'A' : 'B', 
+         (_xtal_freq > 2000000) ? F("14.7") : F("1.8"),
+         (_xtal_detected) ? F("(AUTO)") : F("(DEFAULT)"),
+         (unsigned int)_firstVpin);
   }
 
   void transmitCommandBuffer(const uint8_t b[], size_t s) override {
     if (_deviceState == DEVSTATE_FAILED) return;
-    uint8_t pkt[s+1];
-    pkt[0] = (uint8_t)(REG_THR | _UART_CH_BITS);
+    uint8_t pkt[s+1]; pkt[0] = (uint8_t)(REG_THR | _UART_CH_BITS);
     for(size_t i=0; i<s; i++) pkt[i+1] = b[i];
-    if (debug) dumpBuffer(F("DFPlayerI2C TX"), pkt, s+1);
     I2CManager.write(_I2CAddress, pkt, s + 1);
   }
 
@@ -95,21 +122,13 @@ public:
     if (_deviceState == DEVSTATE_FAILED) return false;
     uint8_t lvl_reg = (uint8_t)(REG_RXLVL | _UART_CH_BITS);
     uint8_t avail = 0;
-    auto status=I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1);
-    if (status != I2C_STATUS_OK) {
-        DIAG(F("DFPlayer VPIN %d Error:%d %S"), _firstVpin, status, I2CManager.getErrorMessage(status));
-        _deviceState = DEVSTATE_FAILED;
-        _display();
-        return false;
-    }
+    if (I2CManager.read(_I2CAddress, &avail, 1, &lvl_reg, 1) != I2C_STATUS_OK) return false;
     if (avail > 0) {
       uint8_t rhr_reg = (uint8_t)(REG_RHR | _UART_CH_BITS);
       for (uint8_t i=0; i<avail; i++) { 
           uint8_t b; 
           if (I2CManager.read(_I2CAddress, &b, 1, &rhr_reg, 1) == 0) processIncomingByte(b); 
       }
-     // if (debug) dumpBuffer(F("DFPlayerI2C RX"), pkt, s+1);
- 
       return true;
     }
     return false;
@@ -118,8 +137,7 @@ public:
 private:
   void writeRaw(uint8_t r, uint8_t v) { 
       uint8_t reg = (uint8_t)(r | _UART_CH_BITS);
-      uint8_t data[] = {reg, v}; 
-      I2CManager.write(_I2CAddress, data, 2); 
+      uint8_t data[] = {reg, v}; I2CManager.write(_I2CAddress, data, 2); 
   }
 };
 #endif

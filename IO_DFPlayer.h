@@ -1,8 +1,8 @@
 /*
- * © 2026, Nicola Malavasi (NicMal). All rights reserved.
+ * © 2026, Nicola Malavasi. All rights reserved.
  * © 2025-26, Chris Harlow. All rights reserved.
  * © 2023, Neil McKechnie. All rights reserved.
- * * This file is part of DCC++EX API
+ * * This file is part of DCC-EX API
  *
  * This is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,23 +19,18 @@
  */
 
 /*
- * This file defines the Abstract Base Class (DFPlayerBase) for DFPlayer devices.
- * It manages the high-level logic, state machine, and command queuing, 
- * independent of the physical transport layer.
+ * This file acts as the main wrapper for the DFPlayer driver suite.
+ * It provides a unified interface to create Serial or I2C instances.
  * * KEY FEATURES:
- * 1. Command Queue (FIFO): Manages a 4-slot queue to buffer commands, ensuring 
- * a 120ms delay between transmissions to prevent module lock-ups.
- * 2. Protocol Handling: Automatically calculates the 16-bit checksum and 
- * constructs the 10-byte serial frames required by the DFPlayer hardware.
- * 3. State Management: Tracks playback status (_playing), current volume, 
- * active folder, and loop flags.
- * 4. Bidirectional Feedback: Parses incoming bytes from the module to detect 
- * events like "Track Finished" (0x3D), enabling WAITFOR() synchronization.
- * 5. EX-RAIL Integration: Maps DCC++EX internal opcodes (DF_PLAY, DF_VOL, etc.) 
- * to physical hardware commands via the _writeAnalogue override.
+ * 1. Unified Interface: Simplified 'create' method for all transport layers, 
+ * making the driver more user-friendly in myHAL.cpp.
+ * 2. Plug-and-Play (I2C): Eliminates the need for manual crystal frequency 
+ * parameters by leveraging the auto-detection logic in the I2C layer.
+ * 3. Platform Abstraction: Automatically handles hardware differences between 
+ * standard AVR (Mega) and ESP32 (customizable serial pins).
+ * 4. Resource Protection: Prevents VPIN and address conflicts by integrating 
+ * with the DCC-EX IODevice registry.
  */
-
-
 
 
 #ifndef IO_DFPlayer_h
@@ -45,42 +40,34 @@
 
 class DFPlayer : public IODevice {
 public:
-  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, uint8_t xtal) {
+  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress) {
     if (nPins>2) nPins=2;
     if (checkNoOverlap(firstVpin, nPins, i2cAddress)) {
-      // Istanza Canale A
-      new DFPlayerI2C(firstVpin, i2cAddress, xtal, 0);
+      new DFPlayerI2C(firstVpin, i2cAddress, 0);
       if (nPins >= 2) {
-        // Istanza Canale B
-        new DFPlayerI2C(firstVpin + 1, i2cAddress, xtal, 1);
+        new DFPlayerI2C(firstVpin + 1, i2cAddress, 1);
       }
     }
   }
 
   #ifdef ESP32
-  // ESP32 user must provide serial pins
-  static void create(VPIN f, HardwareSerial &s,
-    int8_t rxPin, int8_t txPin) { 
-      create(f, 1, s,rxPin,txPin);
-     }
-  
-  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial,
-    int8_t rxPin, int8_t txPin) {
-    if (checkNoOverlap(firstVpin,nPins)) {
-      serial.begin(9600, SERIAL_8N1,rxPin,txPin); // 9600baud, no parity, 1 stop bit
+  static void create(VPIN f, HardwareSerial &s, int8_t rxPin, int8_t txPin) { 
+      create(f, 1, s, rxPin, txPin);
+  }
+  static void create(VPIN firstVpin, int nPins, HardwareSerial &serial, int8_t rxPin, int8_t txPin) {
+    if (checkNoOverlap(firstVpin, nPins)) {
+      serial.begin(9600, SERIAL_8N1, rxPin, txPin);
       new DFPlayerSerial(firstVpin, nPins, serial);
     }
   }
  #else
-  // NON-ESP32 knows about serial pins
   static void create(VPIN f, HardwareSerial &s) { create(f, 1, s); }
   static void create(VPIN firstVpin, int nPins, HardwareSerial &serial) {
-    if (checkNoOverlap(firstVpin,nPins)) {
-      serial.begin(9600, SERIAL_8N1); // 9600baud, no parity, 1 stop bit
+    if (checkNoOverlap(firstVpin, nPins)) {
+      serial.begin(9600, SERIAL_8N1);
       new DFPlayerSerial(firstVpin, nPins, serial);
     }
   }
   #endif
-
 };
 #endif
