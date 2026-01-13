@@ -1056,8 +1056,7 @@ bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
     // <y vpin VOL volume>
     // <y vpin EQ eq>
     // <y vpin RESET>
-    // <y vpin DEBUGON|DEBUGOFF>
-
+    
     if (params<2) return false;
 
     int16_t v1=0;
@@ -1107,15 +1106,7 @@ bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
       case "EQ"_hk:
         if (params!=3) return false;
         cmd=DFPlayerBase::DF_EQ;
-        v2=p[2]; // volume
-        break;
-    case "DEBUGON"_hk:
-        if (params!=2) return false;
-        cmd=DFPlayerBase::DF_DEBUGON;
-        break;
-    case "DEBUGOFF"_hk:
-        if (params!=2) return false;
-        cmd=DFPlayerBase::DF_DEBUGOFF;
+        v2=p[2]; // EQ type
         break;
         
       default:
