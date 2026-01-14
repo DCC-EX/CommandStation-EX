@@ -51,7 +51,7 @@
  * It is recommended to clear the SD card and copy files in alphabetical order.
  */
 
- 
+
 #ifndef IO_DFPlayerBase_h
 #define IO_DFPlayerBase_h
 
@@ -70,14 +70,12 @@ public:
     static const uint8_t DF_PAUSE      = 0x0E;
     static const uint8_t DF_RESUME     = 0x0D;
 
-    // Equalizer parameters
-    static const uint8_t DF_EQ_NORMAL        = 0x00;
-    static const uint8_t DF_EQ_POP           = 0x01;
-    static const uint8_t DF_EQ_ROCK          = 0x02;
-    static const uint8_t DF_EQ_JAZZ          = 0x03;
-    static const uint8_t DF_EQ_CLASSIC       = 0x04;
-    static const uint8_t DF_EQ_BASS          = 0x05;
-
+    static const uint8_t DF_EQ_NORMAL  = 0;
+    static const uint8_t DF_EQ_POP     = 1;
+    static const uint8_t DF_EQ_ROCK    = 2;
+    static const uint8_t DF_EQ_JAZZ    = 3;
+    static const uint8_t DF_EQ_CLASSIC = 4;
+    static const uint8_t DF_EQ_BASS    = 5;
 
 protected:
     volatile bool _playing = false;
@@ -99,6 +97,7 @@ protected:
     uint8_t _head = 0; uint8_t _tail = 0;  
 
     void queuePacket(uint8_t c, uint8_t a1 = 0, uint8_t a2 = 0) {
+        if (_deviceState == DEVSTATE_FAILED) return;
         uint8_t n = (_head + 1) % Q_SIZE;
         if (n != _tail) { 
             _q[_head] = {c, a1, a2}; 
@@ -114,6 +113,7 @@ protected:
 
 public:
     void _begin() override { 
+        if (_deviceState == DEVSTATE_FAILED) return;
         _deviceState = DEVSTATE_INITIALISING; 
         _initStartTime = millis();
         queuePacket(DF_RESET, 0, 0);
@@ -125,6 +125,8 @@ public:
 
     void _loop(unsigned long currentMicros) override {
         (void)currentMicros;
+        if (_deviceState == DEVSTATE_FAILED) return;
+
         processIncoming(); 
         unsigned long now = millis();
 
@@ -132,23 +134,21 @@ public:
             if (!_xtalChecked) {
                 detectXtal();
                 _xtalChecked = true;
+                _deviceState = DEVSTATE_NORMAL;
+                queuePacket(DF_VOL, 0, _currentVolume);
             }
-            _deviceState = DEVSTATE_NORMAL;
-            queuePacket(DF_VOL, 0, _currentVolume);
         }
 
         if (_repeatTimer > 0 && now > _repeatTimer) {
             _repeatTimer = 0;
             queuePacket(DF_PLAY, _currentFolder, _lastTrack); 
         }
-
         if (_unlockTimer > 0 && now > _unlockTimer) {
             _unlockTimer = 0;
             _playing = false;
             forceUpdate(0); 
         }
 
-        // Reduced transmit delay to 120ms for better responsiveness
         if (_head != _tail && (now - _lastXmit > 120)) {
             uint8_t out[] = {0x7E, 0xFF, 0x06, _q[_tail].cmd, 0x00, _q[_tail].a1, _q[_tail].a2, 0x00, 0x00, 0xEF};
             int16_t sum = 0; for (int i = 1; i < 7; i++) sum -= out[i];
@@ -199,49 +199,35 @@ protected:
             case DF_PLAY:
                 _flagLoop = (cmd == DF_REPEATPLAY);
                 _repeatTimer = 0; _playing = true; _lastTrack = (uint8_t)v1;
-                if (v2 > 0 && v2 <= 30) {
-                    _currentVolume = v2;
-                    queuePacket(DF_VOL, 0x00, _currentVolume);
-                }
+                if (v2 > 0 && v2 <= 30) { _currentVolume = v2; queuePacket(DF_VOL, 0x00, _currentVolume); }
                 queuePacket(DF_PLAY, _currentFolder, _lastTrack); 
                 break;
-
-            case DF_PAUSE:
-                _repeatTimer = 0; 
-                queuePacket(DF_PAUSE, 0, 0);
+            case DF_FOLDER:
+                _flagLoop = false; _playing = true; _currentFolder = (uint8_t)v2; _lastTrack = (uint8_t)v1;
+                queuePacket(DF_FOLDER, _currentFolder, _lastTrack);
                 break;
-
-            case DF_RESUME:
-                _playing = true; 
-                _unlockTimer = 0;
-                // Double transmission for reliable resume on clone modules
-                queuePacket(DF_RESUME, 0, 0);
-                queuePacket(DF_RESUME, 0, 0); 
-                break;
-
             case DF_STOPPLAY:
                 _flagLoop = false; _playing = false; _unlockTimer = 0; _repeatTimer = 0;
-                queuePacket(DF_STOPPLAY, 0, 0); 
-                forceUpdate(0);
+                queuePacket(DF_STOPPLAY, 0, 0); forceUpdate(0);
                 break;
-
-            case DF_FOLDER:
-                _currentFolder = (v2 > 0) ? v2 : 1;
-                break;
-
             case DF_VOL: 
                 _currentVolume = (v2 > 0) ? v2 : 15;
                 queuePacket(DF_VOL, 0x00, _currentVolume);
                 break;
             case DF_EQ:
-                queuePacket(DF_EQ, 0x00, (uint8_t)v1);
+                queuePacket(DF_EQ, 0x00, (uint8_t)v2);
+                break;
+            case DF_PAUSE:
+                _playing = false;
+                queuePacket(DF_PAUSE, 0, 0);
+                break;
+            case DF_RESUME:
+                _playing = true;
+                queuePacket(DF_RESUME, 0, 0);
                 break;
             case DF_RESET:
-                _head = _tail = 0; 
-                queuePacket(DF_RESET, 0, 0);
-                _deviceState = DEVSTATE_INITIALISING;
-                _initStartTime = millis();
-                _xtalChecked = false;
+                _head = _tail = 0; queuePacket(DF_RESET, 0, 0);
+                _deviceState = DEVSTATE_INITIALISING; _initStartTime = millis(); _xtalChecked = false;
                 break;
         }
     }  
