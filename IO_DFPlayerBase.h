@@ -51,7 +51,7 @@
  * It is recommended to clear the SD card and copy files in alphabetical order.
  */
 
-
+ 
 #ifndef IO_DFPlayerBase_h
 #define IO_DFPlayerBase_h
 
@@ -64,13 +64,20 @@ public:
     static const uint8_t DF_STOPPLAY   = 0x16; 
     static const uint8_t DF_REPEATPLAY = 0x11; 
     static const uint8_t DF_FOLDER     = 0x17;
-    static const uint8_t DF_FOLDER_ALT = 43;   
     static const uint8_t DF_VOL        = 0x06;
     static const uint8_t DF_EQ         = 0x07; 
     static const uint8_t DF_RESET      = 0x0C;
-    static const uint8_t DF_DACON      = 0x1A;
-    static const uint8_t DF_DEBUGON    = 0xFD;
-    static const uint8_t DF_DEBUGOFF   = 0xFE;
+    static const uint8_t DF_PAUSE      = 0x0E;
+    static const uint8_t DF_RESUME     = 0x0D;
+
+    // Equalizer parameters
+    static const uint8_t DF_EQ_NORMAL        = 0x00;
+    static const uint8_t DF_EQ_POP           = 0x01;
+    static const uint8_t DF_EQ_ROCK          = 0x02;
+    static const uint8_t DF_EQ_JAZZ          = 0x03;
+    static const uint8_t DF_EQ_CLASSIC       = 0x04;
+    static const uint8_t DF_EQ_BASS          = 0x05;
+
 
 protected:
     volatile bool _playing = false;
@@ -84,6 +91,7 @@ protected:
     unsigned long _initStartTime = 0;
     unsigned long _unlockTimer = 0; 
     unsigned long _repeatTimer = 0;
+    bool _xtalChecked = false;
 
     struct CommandEntry { uint8_t cmd; uint8_t a1; uint8_t a2; };
     static const uint8_t Q_SIZE = 8; 
@@ -113,35 +121,42 @@ public:
 
     virtual void transmitCommandBuffer(const uint8_t buffer[], size_t bytes) = 0; 
     virtual bool processIncoming() = 0; 
+    virtual void detectXtal() { } 
 
     void _loop(unsigned long currentMicros) override {
+        (void)currentMicros;
         processIncoming(); 
+        unsigned long now = millis();
 
-        if (_deviceState == DEVSTATE_INITIALISING && millis() - _initStartTime > 3000) {
+        if (_deviceState == DEVSTATE_INITIALISING && (now - _initStartTime > 3000)) {
+            if (!_xtalChecked) {
+                detectXtal();
+                _xtalChecked = true;
+            }
             _deviceState = DEVSTATE_NORMAL;
             queuePacket(DF_VOL, 0, _currentVolume);
         }
 
-        if (_repeatTimer > 0 && millis() > _repeatTimer) {
+        if (_repeatTimer > 0 && now > _repeatTimer) {
             _repeatTimer = 0;
             queuePacket(DF_PLAY, _currentFolder, _lastTrack); 
         }
 
-        if (_unlockTimer > 0 && millis() > _unlockTimer) {
+        if (_unlockTimer > 0 && now > _unlockTimer) {
             _unlockTimer = 0;
             _playing = false;
             forceUpdate(0); 
         }
 
-        if (millis() - _lastXmit > 200 && _head != _tail) {
+        // Reduced transmit delay to 120ms for better responsiveness
+        if (_head != _tail && (now - _lastXmit > 120)) {
             uint8_t out[] = {0x7E, 0xFF, 0x06, _q[_tail].cmd, 0x00, _q[_tail].a1, _q[_tail].a2, 0x00, 0x00, 0xEF};
             int16_t sum = 0; for (int i = 1; i < 7; i++) sum -= out[i];
             out[7] = (uint8_t)(sum >> 8); out[8] = (uint8_t)(sum & 0xff);
             transmitCommandBuffer(out, 10);
             _tail = (_tail + 1) % Q_SIZE;
-            _lastXmit = millis();
+            _lastXmit = now;
         }
-        delayUntil(currentMicros + 15000); 
     }
 
     void processIncomingByte(byte c) {
@@ -152,11 +167,8 @@ public:
         }
         if (_inputIndex == 3) _recvCMD = c;
         if (_inputIndex == 6 && _recvCMD == 0x3D) { 
-            if (_flagLoop) { 
-                _repeatTimer = millis() + 600; 
-            } else {
-                _unlockTimer = millis() + 150; 
-            }
+            if (_flagLoop) _repeatTimer = millis() + 600; 
+            else _unlockTimer = millis() + 150; 
         }
         _inputIndex++;
         if (_inputIndex >= 10) _inputIndex = 0; 
@@ -165,8 +177,7 @@ public:
     void _write(VPIN vpin, int value) override {
         (void)vpin;
         if (_deviceState != DEVSTATE_NORMAL) return; 
-        _flagLoop = false; 
-        _repeatTimer = 0;
+        _flagLoop = false; _repeatTimer = 0;
         if (value) { 
             _playing = true; 
             _lastTrack = (uint8_t)(vpin - _firstVpin + 1);
@@ -183,21 +194,29 @@ protected:
     void _writeAnalogue(VPIN vpin, int v1, uint8_t v2=0, uint16_t cmd=0) override {
         (void)vpin;
         if (_deviceState != DEVSTATE_NORMAL) return;
-
         switch (cmd){
-            case 8: 
             case DF_REPEATPLAY:
             case DF_PLAY:
-                _flagLoop = (cmd == DF_REPEATPLAY || cmd == 8);
-                _repeatTimer = 0; 
-                _playing = true; 
-                _lastTrack = (uint8_t)v1;
-                
+                _flagLoop = (cmd == DF_REPEATPLAY);
+                _repeatTimer = 0; _playing = true; _lastTrack = (uint8_t)v1;
                 if (v2 > 0 && v2 <= 30) {
                     _currentVolume = v2;
                     queuePacket(DF_VOL, 0x00, _currentVolume);
                 }
                 queuePacket(DF_PLAY, _currentFolder, _lastTrack); 
+                break;
+
+            case DF_PAUSE:
+                _repeatTimer = 0; 
+                queuePacket(DF_PAUSE, 0, 0);
+                break;
+
+            case DF_RESUME:
+                _playing = true; 
+                _unlockTimer = 0;
+                // Double transmission for reliable resume on clone modules
+                queuePacket(DF_RESUME, 0, 0);
+                queuePacket(DF_RESUME, 0, 0); 
                 break;
 
             case DF_STOPPLAY:
@@ -207,24 +226,22 @@ protected:
                 break;
 
             case DF_FOLDER:
-            case DF_FOLDER_ALT:
                 _currentFolder = (v2 > 0) ? v2 : 1;
                 break;
-            
+
             case DF_VOL: 
                 _currentVolume = (v2 > 0) ? v2 : 15;
                 queuePacket(DF_VOL, 0x00, _currentVolume);
                 break;
-
             case DF_EQ:
                 queuePacket(DF_EQ, 0x00, (uint8_t)v1);
                 break;
-
             case DF_RESET:
                 _head = _tail = 0; 
                 queuePacket(DF_RESET, 0, 0);
                 _deviceState = DEVSTATE_INITIALISING;
                 _initStartTime = millis();
+                _xtalChecked = false;
                 break;
         }
     }  

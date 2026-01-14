@@ -1054,6 +1054,8 @@ bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
     // <y vpin FOLDER folder>
     // <y vpin STOP>
     // <y vpin VOL volume>
+    // <y vpin PAUSE>
+    // <y vpin RESUME>
     // <y vpin EQ eq>
     // <y vpin RESET>
     
@@ -1090,6 +1092,16 @@ bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
       case "STOP"_hk:
         if (params!=2) return false;
         cmd=DFPlayerBase::DF_STOPPLAY;
+        break;
+
+      case "PAUSE"_hk:
+        if (params!=2) return false;
+        cmd=DFPlayerBase::DF_PAUSE;
+        break;
+
+      case "RESUME"_hk:
+        if (params!=2) return false;
+        cmd=DFPlayerBase::DF_RESUME;
         break;
 
       case "RESET"_hk:

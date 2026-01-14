@@ -152,8 +152,10 @@
 #undef PIN_TURNOUT
 #undef PLAY_EQ
 #undef PLAY_FOLDER
+#undef PLAY_PAUSE
 #undef PLAY_REPEAT
 #undef PLAY_RESET
+#undef PLAY_RESUME
 #undef PLAY_STOP
 #undef PLAY_TRACK
 #undef PLAY_VOLUME
