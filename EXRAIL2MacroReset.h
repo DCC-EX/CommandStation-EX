@@ -65,6 +65,8 @@
 #undef ENDTASK
 #undef ESTOP
 #undef ESTOPALL
+#undef ESTOP_PAUSE
+#undef ESTOP_RESUME
 #undef EXRAIL
 #undef EXTT_TURNTABLE
 #undef FADE

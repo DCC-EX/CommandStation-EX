@@ -52,6 +52,8 @@ public:
   // Public DCC API functions
   static bool setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
   static void estopAll();
+  static void estopLock(bool lock);
+
   static int8_t getThrottleSpeed(int cab);
   static uint8_t getThrottleSpeedByte(int cab);
   static uint8_t getLocoSpeedByte(int cab); // may lag throttle 
@@ -121,7 +123,7 @@ private:
   static LocoSlot * nextLocoReminder;
   static FSH *shieldName;
   static byte globalSpeedsteps;
-
+  static bool estopIsLocked;
   static void issueReminders();
   static void callback(int value);
 

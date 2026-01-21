@@ -207,6 +207,12 @@
 #define ESTOPALL
 ///brief Performs emergency stop on all locos
 
+#define ESTOP_PAUSE
+///brief Emergency stop, and preventing all movement until resumed
+
+#define ESTOP_RESUME
+///brief Resumes loco speeds after ESTOP_PAUSE
+
 #define EXRAIL
 ///brief obsolete.. no longer needed. Does nothing.
 

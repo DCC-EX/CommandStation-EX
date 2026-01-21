@@ -5,7 +5,7 @@
  *  © 2021 Herb Morton
  *  © 2020-2022 Harald Barth
  *  © 2020-2021 M Steve Todd
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  All rights reserved.
  *
  *  This file is part of DCC-EX
@@ -128,7 +128,7 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   } 
   else {  // Momentum not involved, throttle now.
     setThrottle2(slot,speedCode);
-    TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
+    if (!estopIsLocked) TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
   }
   CommandDistributor::broadcastLoco(slot);
   return true;
@@ -146,7 +146,11 @@ void DCC::setThrottle2( LocoSlot * slot, byte speedCode)  {
 }
 
 void DCC::setThrottleDCC( uint16_t cab, byte speedCode)  {
-
+  // any throttle traffic is blocked when estop is locked
+  if (estopIsLocked) {
+    cab=0;
+    speedCode = 1;
+  }
   uint8_t b[4];
   uint8_t nB = 0;
   // DIAG(F("setSpeedInternal %d %x"),cab,speedCode);
@@ -1101,7 +1105,7 @@ bool DCC::issueReminder(LocoSlot * slot) {
               sc=dccalize(current);
               //DIAG(F("c=%d newsc=%d"),current,sc);
               slot->setSpeedCode(sc);
-              TrackManager::setDCSignal(loco,sc); // in case this is a dcc track on this addr
+              if (!estopIsLocked) TrackManager::setDCSignal(loco,sc); // in case this is a dcc track on this addr
               slot->setMomentumBase(now);  
             }
           }
@@ -1182,6 +1186,18 @@ bool DCC::setMomentum(int locoId,int16_t accelerating, int16_t decelerating) {
   return true; 
 }
 
+// ESTOP functions:
+// estopAll() - estop all locos (broadcast dcc) and set their reminders
+//              to speed 0 with their current direction preserved.
+//              Throttles will be told, but can immediately start driving again.
+// estopLock(true) - estop all locos (broadcast dcc) and lock the estop state. 
+//              While locked, no loco can be moved because any throttle packets will
+//              be blocked at the DCC/DC level and replaced by the estop broadcast packet.
+//              Reminders are unchanged so retain the original speed/direction ready for the restart.
+//              Throttles will show original speed and can be changed to affect the speed that
+//              will be used when the estop is unlocked. 
+// estopLock(false) - unlocks the estop state and all locos will resume their 
+//              previous (or changed since locking) speeds as the reminder loop continues.
 
 void  DCC::estopAll() {
   setThrottleDCC(0,1); // estop all locos
@@ -1194,6 +1210,21 @@ void  DCC::estopAll() {
     slot->setTargetSpeed(newspeed);
     CommandDistributor::broadcastLoco(slot);  
   }
+}
+
+bool DCC::estopIsLocked=false;
+void DCC::estopLock( bool lock) {
+  // see notes above about estop functions. 
+  if (estopIsLocked==lock) return; // no change
+  estopIsLocked=lock;
+  if (lock) {
+    setThrottleDCC(0, 1); // broadcast estop to DCC
+    TrackManager::setDCSignal(0, 1); // stop DCC signal on all tracks
+    CommandDistributor::broadcastMessage((char *)"ESTOP LOCKED"); // tell throttle users
+    DIAG(F("LOCO MOVEMENT LOCKED")); 
+    // but dont broadcast any loco changes, as speed/direction reminders unchanged.
+  }
+  else DIAG(F("LOCO MOVEMENT UNLOCKED"));
 }
 
 
