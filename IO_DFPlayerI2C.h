@@ -99,7 +99,7 @@ private:
     }
 
     void setBaud(unsigned long hz) {
-        uint16_t div = (uint16_t)(hz / (9600 * 16));
+        uint16_t div = (uint16_t)(hz / (9600UL * 16));
         writeRaw(REG_LCR, 0x83);
         writeRaw(REG_DLL, (uint8_t)(div & 0xFF));
         writeRaw(REG_DLH, (uint8_t)(div >> 8));

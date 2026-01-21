@@ -1049,6 +1049,8 @@ bool DCCEXParser::parseZ(Print *stream, int16_t params, int16_t p[])
 
 bool DCCEXParser::parsey(Print *stream, int16_t params, int16_t p[])
 {
+    (void)stream; // unused parameter
+     
     // <y vpin PLAY track [volume]>
     // <y vpin REPEAT track [volume]>
     // <y vpin FOLDER folder>
