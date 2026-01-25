@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.55"
+#define VERSION "5.5.56"
+// 5.5.56 - ESTOP_PAUSE and ESTOP_RESUME functions/commands
+//        - DFPlayerI2C auto detect UART crystal frequency
+//        - DFPlayer PAUSE and RESUME commands, and EQ names
+//        - TCA9555 alias of PCA9555
 // 5.5.55 - Bugfix: Real time clock i2c address recognition
 //        - DFPlayer redesign to amalgamate Serial and i2c drivers
 //        - DFPlayer <y> commands and EXRAIL PLAY_ macros
