@@ -168,7 +168,7 @@ public:
         if (_inputIndex == 3) _recvCMD = c;
         if (_inputIndex == 6 && _recvCMD == 0x3D) { 
             if (_flagLoop) _repeatTimer = millis() + 600; 
-            else _unlockTimer = millis() + 150; 
+            else _unlockTimer = millis() + 2000; 
         }
         _inputIndex++;
         if (_inputIndex >= 10) _inputIndex = 0; 
