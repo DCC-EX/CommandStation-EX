@@ -141,18 +141,31 @@ void SerialUsbLog::webserverLoop() {
     auto client= server.available();
   if (!client) return;
   auto header= client.readStringUntil('\r'); // read the first line of the request
-  if (header.indexOf(" / ")<0) return;
+  if (header.length()==0) return;
+  
   DIAG(F("http:%s"),header.c_str());          // print a message out in the serial port
-  // USB_SERIAL.flush();
+  
+  if (header.indexOf(" / ")<0) {
+    client.println("HTTP/1.1 404 Not Found\r\n" 
+                   "Connection: close\r\n\r\n");
+    client.flush();
+    client.stop();
+    return;
+  }
+
   client.println(
     "HTTP/1.1 200 OK\r\n" 
     "Content-type:text/html\r\n"
     "Connection: close\r\n\r\n"
     "<!DOCTYPE html>\r\n"
     "<html><head><title>DCC-EX Server Log</title></head>"
-    "<body><pre><code>");
+    "<body>"
+    "<pre><code>");
   SerialLog.streamOut(&client);
-  client.println("\r\n</code></pre></body></html>\n");
+  client.println("\r\n</code></pre></body>"
+    "<script>window.scrollTo(0,document.body.scrollHeight)</script>"
+    "</html>\n");
   client.flush();
+  client.stop();
   #endif
 }
