@@ -155,6 +155,8 @@ void setup()
 void loop()
 {
 #ifdef ARDUINO_ARCH_ESP32
+USB_SERIAL.webserverLoop();
+
 #ifdef BOOSTER_INPUT
   static bool oldactive = false;
   if (dccSniffer) {
