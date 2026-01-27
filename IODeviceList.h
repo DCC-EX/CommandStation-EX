@@ -46,4 +46,4 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_trainbrains.h"
 #include "IO_Bitmap.h"
 #include "IO_VL53L0X.h"
-
+#include "IO_XL9535.h"
