@@ -584,6 +584,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
 #define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
+#define ONRAILSYNCON OPCODE_ONRAILSYNCON,0,0,
+#define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,0,0,
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),

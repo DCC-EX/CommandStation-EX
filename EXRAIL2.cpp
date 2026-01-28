@@ -88,6 +88,10 @@ LookList *  RMFT2::onClockLookup=NULL;
 LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
+#ifdef BOOSTER_INPUT
+LookList *  RMFT2::onRailSyncOnLookup=NULL;
+LookList *  RMFT2::onRailSyncOffLookup=NULL;
+#endif
 byte * RMFT2::routeStateArray=nullptr; 
 const FSH  * * RMFT2::routeCaptionArray=nullptr; 
 int16_t * RMFT2::stashArray=nullptr;
@@ -204,6 +208,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 #endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
+#ifdef BOOSTER_INPUT
+  onRailSyncOnLookup=LookListLoader(OPCODE_ONRAILSYNCON);
+  onRailSyncOffLookup=LookListLoader(OPCODE_ONRAILSYNCOFF);
+#endif
   // onLCCLookup is not the same so not loaded here. 
 
   // Second pass startup, define any turnouts or servos, set signals red
@@ -279,7 +287,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       int addr=getOperand(progCounter,1);
       byte subAddr=getOperand(progCounter,2);
-      setTurnoutHiddenState(DCCTurnout::create(id,addr,subAddr));
+      Turnout *t = DCCTurnout::create(id,addr,subAddr);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -289,14 +298,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int activeAngle=getOperand(progCounter,2);
       int inactiveAngle=getOperand(progCounter,3);
       int profile=getOperand(progCounter,4);
-      setTurnoutHiddenState(ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile));
+      Turnout *t = ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
-      setTurnoutHiddenState(VpinTurnout::create(id,pin));
+      Turnout *t = VpinTurnout::create(id,pin);
+      if (t) setTurnoutHiddenState(t);
       break;
     }
 
@@ -304,9 +315,11 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
-      setTurntableHiddenState(DCCTurntable::create(id));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = DCCTurntable::create(id);
+      if (tto) {
+	setTurntableHiddenState(tto);
+	tto->addPosition(0,0,home);
+      }
       break;
     }
 
@@ -314,9 +327,13 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);
       int home=getOperand(progCounter,2);
-      setTurntableHiddenState(EXTTTurntable::create(id,pin));
-      Turntable *tto=Turntable::get(id);
-      tto->addPosition(0,0,home);
+      Turntable *tto = EXTTTurntable::create(id,pin);
+      if (tto) {
+         setTurntableHiddenState(tto);
+         tto->addPosition(0,0,home);
+      } else {
+         DIAG(F("Create EXTTTURNTABLE %d %d FAILED"), id, pin);
+      }
       break;
     }
 
@@ -326,7 +343,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       int value=getOperand(progCounter,2);
       int angle=getOperand(progCounter,3);
       Turntable *tto=Turntable::get(id);
-      tto->addPosition(position,value,angle);
+      if (tto) tto->addPosition(position,value,angle);
       break;
     }
 #endif
@@ -1121,7 +1138,11 @@ void RMFT2::loop2() {
   case OPCODE_ONROTATE:
 #endif
   case OPCODE_ONOVERLOAD:
-  
+#ifdef BOOSTER_INPUT
+  case OPCODE_ONRAILSYNCON:
+  case OPCODE_ONRAILSYNCOFF:
+#endif
+
     break;
     
   default:
@@ -1343,7 +1364,19 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
     onOverloadLookup->handleEvent(F("POWER"),track);
   }
 }
-
+#ifdef BOOSTER_INPUT
+void RMFT2::railsyncEvent(bool on) {
+  if (Diag::CMD)
+   DIAG(F("railsyncEvent : %d"), on);
+  if (on) {
+    if (onRailSyncOnLookup)
+      onRailSyncOnLookup->handleEvent(F("RAILSYNCON"), 0);
+  } else {
+    if (onRailSyncOffLookup)
+      onRailSyncOffLookup->handleEvent(F("RAILSYNCOFF"), 0);
+  }
+}
+#endif
 // This function is used when setting pins so that a SET or RESET
 // will cause any blink task on that pin to terminate.
 // It will be compiled out of existence if no BLINK feature is used.
@@ -1489,7 +1522,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     }
 }
 
-void RMFT2::manageRouteState(uint16_t id, byte state) {
+void RMFT2::manageRouteState(int16_t id, byte state) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.
     // locate route id in the Routes lookup
@@ -1501,7 +1534,7 @@ void RMFT2::manageRouteState(uint16_t id, byte state) {
     CommandDistributor::broadcastRouteState(id,state);
   }
 }
-void RMFT2::manageRouteCaption(uint16_t id,const FSH* caption) {
+void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.
     // locate route id in the Routes lookup

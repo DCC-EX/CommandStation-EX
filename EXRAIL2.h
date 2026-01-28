@@ -73,6 +73,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
              OPCODE_ONOVERLOAD,
+	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
@@ -188,6 +189,9 @@ class LookList {
     static void clockEvent(int16_t clocktime, bool change);
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
+#ifdef BOOSTER_INPUT
+    static void railsyncEvent(bool on);
+#endif
     static bool signalAspectEvent(int16_t address, byte aspect );    
     // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
@@ -255,12 +259,15 @@ private:
    static LookList * onRotateLookup;
 #endif
    static LookList * onOverloadLookup;
-   
+#ifdef BOOSTER_INPUT
+   static LookList * onRailSyncOnLookup;
+   static LookList * onRailSyncOffLookup;
+#endif
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
-   static void manageRouteState(uint16_t id, byte state);
-   static void manageRouteCaption(uint16_t id, const FSH* caption);
+   static void manageRouteState(int16_t id, byte state);
+   static void manageRouteCaption(int16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;
    static int16_t * stashArray;

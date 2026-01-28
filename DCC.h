@@ -104,7 +104,7 @@ public:
     uint32_t functions;
   };
  static LOCO speedTable[MAX_LOCOS];
- static int lookupSpeedTable(int locoId, bool autoCreate=true);
+ static int lookupSpeedTable(int locoId, bool autoCreate);
  static byte cv1(byte opcode, int cv);
  static byte cv2(int cv);
  

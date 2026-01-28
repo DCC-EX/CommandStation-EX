@@ -3,7 +3,19 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.10"
+#define VERSION "5.4.18"
+// 5.4.18 - Bugfix: EXRAIL failed TURNTABLE create commands (I2C off) can crash CS
+//        - Bugfix: EXRAIL be extra careful not to deref nullptr
+// 5.4.17 - Replace the SC power status with something better
+// 5.4.16 - Update SensorCAM from version 305 to 308
+//          Bugfix: ESP32 WIFI AP mode was not always selected when wanted
+// 5.4.15 - Bugfix: Speedtable overflow fix
+//        - Remove unused EX-CommandStation-installer.exe
+// 5.4.14 - Bugfix: Keep power status of track when doing join/unjoin, new keep power option for setTrackMode()
+// 5.4.13 - Bugfix: SSD1309 OLED controllers artefatcs
+//        - Less verbose diag by default
+// 5.4.12 - Bugfix: Negative route Ids
+// 5.4.11 - Feature: Enable sniffer on CSB-1
 // 5.4.10 - Bugfix: MEGA DCC waveform starvation (sends too many idles)
 // 5.4.9  - Handle non-compliant decoders returning 255 for cv 20 and confusing <R> with bad consist addresses.
 //        - <W CONSIST longaddr> handles non-compliant decoders which NAK cv 20 writes.

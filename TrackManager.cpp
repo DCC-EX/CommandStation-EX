@@ -197,7 +197,7 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   }
 }    
 
-bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr) {
+bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr, bool offAtChange) {
     if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
     // Remember track mode we came from for later
@@ -369,10 +369,9 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 #endif
 #endif
     // Turn off power if we changed the mode of this track
-    if (mode != oldmode) {
+    if (mode != oldmode && offAtChange) {
       track[trackToSet]->setPower(POWERMODE::OFF);
     }
-
     streamTrackState(NULL,trackToSet);
     //DIAG(F("TrackMode=%d"),mode);
     return true; 
@@ -667,9 +666,9 @@ void TrackManager::setJoin(bool joined) {
     FOR_EACH_TRACK(t) {
       if (track[t]->getMode() & TRACK_MODE_PROG) {       // find PROG track
 	tempProgTrack = t;                               // remember PROG track
-	setTrackMode(t, TRACK_MODE_MAIN);
-	// setPower() of the track called after
-	// seperately after setJoin() instead
+	setTrackMode(t, TRACK_MODE_MAIN, 0, false);      // 0 = no DC loco; false = do not turn off pwr
+	// then in some cases setPower() is called
+	// seperately after the setJoin() as well
 	break;                                           // there is only one prog track, done
       }
     }
@@ -677,9 +676,7 @@ void TrackManager::setJoin(bool joined) {
     if (tempProgTrack != MAX_TRACKS+1) {
       // setTrackMode defaults to power off, so we
       // need to preserve that state.
-      POWERMODE tPTmode = track[tempProgTrack]->getPower(); // get current power status of this track
-      setTrackMode(tempProgTrack, TRACK_MODE_PROG);         // set track mode back to prog
-      track[tempProgTrack]->setPower(tPTmode);              // set power status as it was before
+      setTrackMode(tempProgTrack, TRACK_MODE_PROG, 0, false); // 0 = no DC loco; false = do not turn off pwr
       tempProgTrack = MAX_TRACKS+1;
     }
   }

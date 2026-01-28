@@ -51,6 +51,12 @@
 
 #include "DCCEX.h"
 #include "Display_Implementation.h"
+#ifdef ARDUINO_ARCH_ESP32
+#include "Sniffer.h"
+#include "DCCDecoder.h"
+Sniffer *dccSniffer = NULL;
+bool DCCDecoder::active = false;
+#endif // ARDUINO_ARCH_ESP32
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -124,6 +130,11 @@ void setup()
   // Start RMFT aka EX-RAIL (ignored if no automnation)
   RMFT::begin();
 
+#ifdef ARDUINO_ARCH_ESP32
+#ifdef BOOSTER_INPUT
+  dccSniffer = new Sniffer(BOOSTER_INPUT);
+#endif // BOOSTER_INPUT
+#endif // ARDUINO_ARCH_ESP32
 
   // Invoke any DCC++EX commands in the form "SETUP("xxxx");"" found in optional file mySetup.h.
   //  This can be used to create turnouts, outputs, sensors etc. through the normal text commands.
@@ -141,25 +152,28 @@ void setup()
   CommandDistributor::broadcastPower();
 }
 
-/**************** for future reference
-void looptimer(unsigned long timeout, const FSH* message)
-{
-  static unsigned long lasttimestamp = 0;
-  unsigned long now = micros();
-  if (timeout != 0) {
-    unsigned long diff = now - lasttimestamp;
-    if (diff > timeout) {
-      DIAG(message);
-      DIAG(F("DeltaT=%L"), diff);
-      lasttimestamp = micros();
-      return;
-    }
-  }
-  lasttimestamp = now;
-}
-*********************************************/
 void loop()
 {
+#ifdef ARDUINO_ARCH_ESP32
+#ifdef BOOSTER_INPUT
+  static bool oldactive = false;
+  if (dccSniffer) {
+    bool newactive = dccSniffer->inputActive();
+    if (oldactive != newactive) {
+      RMFT2::railsyncEvent(newactive);
+      oldactive = newactive;
+    }
+    DCCPacket p = dccSniffer->fetchPacket();
+    if (p.len() != 0) {
+      if (DCCDecoder::parse(p)) {
+	if (Diag::SNIFFER)
+	  p.print();
+      }
+    }
+  }
+#endif // BOOSTER_INPUT
+#endif // ARDUINO_ARCH_ESP32
+
   // The main sketch has responsibilities during loop()
 
   // Responsibility 1: Handle DCC background processes
