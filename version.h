@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.56"
+#define VERSION "5.5.57"
+// 5.5.57 - XL9535 HAL driver
+//        - ESTOP LOCK feedback to throttles
 // 5.5.56 - ESTOP_PAUSE and ESTOP_RESUME functions/commands
 //        - DFPlayerI2C auto detect UART crystal frequency
 //        - DFPlayer PAUSE and RESUME commands, and EQ names
