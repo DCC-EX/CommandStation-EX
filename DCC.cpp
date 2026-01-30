@@ -1219,12 +1219,9 @@ void DCC::estopLock( bool lock) {
   estopIsLocked=lock;
   if (lock) {
     setThrottleDCC(0, 1); // broadcast estop to DCC
-    TrackManager::setDCSignal(0, 1); // stop DCC signal on all tracks
-    CommandDistributor::broadcastMessage((char *)"ESTOP LOCKED"); // tell throttle users
-    DIAG(F("LOCO MOVEMENT LOCKED")); 
-    // but dont broadcast any loco changes, as speed/direction reminders unchanged.
+    TrackManager::setDCSignal(0, 1); // stop DC signal on all tracks
   }
-  else DIAG(F("LOCO MOVEMENT UNLOCKED"));
+  CommandDistributor::broadcastEstopLock(estopIsLocked); // tell throttle users
 }
 
 

@@ -63,6 +63,7 @@ public :
   static void broadcastRouteState(int16_t routeId,byte state);
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);
+  static void broadcastEstopLock(bool locked); 
   
   // Handling code for virtual LCD receiver.
   static Print * getVirtualLCDSerial(byte screen, byte row);

@@ -380,6 +380,16 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
 }
 
+void CommandDistributor::broadcastEstopLock(bool locked) {
+  if (locked) {
+    broadcastReply(COMMAND_TYPE, F("<!PAUSED><m \"ESTOP PAUSED\">\n"));
+    broadcastReply(WITHROTTLE_TYPE, F("HmESTOP PAUSED\n"));
+  } else {
+    broadcastReply(COMMAND_TYPE, F("<!RESUMED><m \"ESTOP RESUMED\">\n"));
+    broadcastReply(WITHROTTLE_TYPE, F("HmESTOP RESUMED\n"));
+  }
+}
+
 void CommandDistributor::broadcastMessage(char * message) {
   broadcastReply(COMMAND_TYPE, F("<m \"%s\">\n"),message);
   broadcastReply(WITHROTTLE_TYPE, F("Hm%s\n"),message);
