@@ -2,6 +2,7 @@
 #define SerialUsbLog_h
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Paul M. Antoine
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX CommandStation-EX
@@ -31,6 +32,9 @@ class SerialUsbLog : public Stream {
     virtual size_t write(uint8_t b);
     using Print::write;
     void streamOut(Print * targetStream);
+    // NEW: incremental streaming support
+    uint32_t getWriteSeq() const;
+    size_t streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t maxBytes, uint32_t& nextSeq);
     bool operator!() const;
     void shoveToBuffer(uint8_t b);
     virtual int available();
@@ -44,6 +48,13 @@ class SerialUsbLog : public Stream {
    bool _overflow;
    byte * _buffer;
    int _bufferSize;
+   // NEW
+   volatile uint32_t _seq_write;
+
+#if defined(ARDUINO_ARCH_ESP32)
+   // protect buffer/seq from concurrent access
+   portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
+#endif
 };
 extern SerialUsbLog SerialLog;
 
