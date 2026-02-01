@@ -386,7 +386,7 @@ void SerialUsbLog::webserverLoop() {
       "Content-Type: text/html; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.html"
+      #include "SerialUsbLog.html.h"
     );
 
     client.stop();
