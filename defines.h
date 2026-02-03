@@ -44,6 +44,7 @@
 #define HAS_ENOUGH_MEMORY
 #undef USB_SERIAL     // Teensy has this defined by default...
 #define USB_SERIAL Serial
+#define USB_SERIAL_WEB 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
 
@@ -140,6 +141,8 @@
     // Replace USB_SERIAL with SerialLog so we can browse it!
     #undef USB_SERIAL
     #define USB_SERIAL SerialLog
+    #undef USB_SERIAL_WEB
+    #define USB_SERIAL_WEB SerialLog.webserverLoop();
     #include "SerialUsbLog.h"
   #endif
 
