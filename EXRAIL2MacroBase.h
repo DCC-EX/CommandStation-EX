@@ -207,6 +207,12 @@
 #define ESTOPALL
 ///brief Performs emergency stop on all locos
 
+#define ESTOP_PAUSE
+///brief Emergency stop, and preventing all movement until resumed
+
+#define ESTOP_RESUME
+///brief Resumes loco speeds after ESTOP_PAUSE
+
 #define EXRAIL
 ///brief obsolete.. no longer needed. Does nothing.
 
@@ -535,6 +541,42 @@
 ///see STASH
 ///brief Loads stashed value into current task loco
 ///param stash_id position in stash where a loco id was previously saved.
+
+#define PLAY_EQ(vpin,eqname)
+///brief Sets EQ setting on DFPlayer module
+///param eqname One of: NORMAL,POP,ROCK,JAZZ,CLASSIC,BASS
+
+#define PLAY_FOLDER(vpin,folder)
+///brief Sets DFPlayer folder to use for tracks 
+///param folder number
+
+#define PLAY_PAUSE(vpin)
+///brief Pauses sound play
+///see PLAY_RESUME
+
+#define PLAY_REPEAT(vpin,track,volume...)
+///brief Plays a track on a DFPlayer module on repoeat
+///param track number
+///param volume... optional volume 0-30 or use default set below
+
+#define PLAY_RESET(vpin)
+///brief Resets DFPlayer 
+
+#define PLAY_RESUME(vpin)
+///brief Resumes playing sound
+///see PLAY_PAUSE 
+
+#define PLAY_STOP(vpin)
+///brief Stops DFPlayer 
+
+#define PLAY_TRACK(vpin,track,volume...)
+///brief Plays a track on a DFPlayer module
+///param track number
+///param volume... optional volume 0-30 or use default set below
+
+#define PLAY_VOLUME(vpin,volume)
+///brief Sets default volume on a DFPlayer module
+///param volume... volume 0-30
 
 #define POM(cv,value)
 ///brief Write value to cv on current tasks loco (Program on Main)

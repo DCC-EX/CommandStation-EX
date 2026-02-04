@@ -65,6 +65,8 @@
 #undef ENDTASK
 #undef ESTOP
 #undef ESTOPALL
+#undef ESTOP_PAUSE
+#undef ESTOP_RESUME
 #undef EXRAIL
 #undef EXTT_TURNTABLE
 #undef FADE
@@ -149,7 +151,16 @@
 #undef PARSE
 #undef PAUSE
 #undef PICKUP_STASH
-#undef PIN_TURNOUT 
+#undef PIN_TURNOUT
+#undef PLAY_EQ
+#undef PLAY_FOLDER
+#undef PLAY_PAUSE
+#undef PLAY_REPEAT
+#undef PLAY_RESET
+#undef PLAY_RESUME
+#undef PLAY_STOP
+#undef PLAY_TRACK
+#undef PLAY_VOLUME
 #undef PRINT
 #undef POM
 #undef POWEROFF

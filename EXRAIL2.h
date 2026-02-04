@@ -320,23 +320,4 @@ private:
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
 
-// IO_I2CDFPlayer commands and values
-enum  : uint8_t{
-    DF_PLAY          = 0x0F,
-    DF_VOL           = 0x06,
-    DF_FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
-    DF_REPEATPLAY    = 0x08,
-    DF_STOPPLAY      = 0x16,
-    DF_EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
-    DF_RESET         = 0x0C,
-    DF_DACON         = 0x1A,
-    DF_SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
-    DF_NORMAL        = 0x00, // Equalizer parameters
-    DF_POP           = 0x01,
-    DF_ROCK          = 0x02,
-    DF_JAZZ          = 0x03,
-    DF_CLASSIC       = 0x04,
-    DF_BASS          = 0x05,
-  };
-
 #endif

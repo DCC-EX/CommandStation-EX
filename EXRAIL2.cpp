@@ -620,7 +620,8 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_ESTOPALL:
-    DCC::setThrottle(0,1,1); // all locos speed=1
+    if(operand==0) DCC::estopAll(); // all locos stop
+    else DCC::estopLock(operand==1); // stop and lock/unlock
     break;
     
   case OPCODE_FORGET:

@@ -49,6 +49,7 @@ struct DCCEXParser
      
     static bool parseT(Print * stream, int16_t params, int16_t p[]);
     static bool parseZ(Print * stream, int16_t params, int16_t p[]);
+    static bool parsey(Print * stream, int16_t params, int16_t p[]);
     static bool parseS(Print * stream, int16_t params, int16_t p[]);
     static bool parsef(Print * stream, int16_t params, int16_t p[]);
     static bool parseC(Print * stream, int16_t params, int16_t p[]);

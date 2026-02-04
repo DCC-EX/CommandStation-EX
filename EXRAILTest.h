@@ -169,3 +169,16 @@ ELSE
       PRINT("FAIL: loco 3 not in stash 100")
 ENDIF
 DONE
+
+ROUTE(8000,"8000 ESTOP_PAUSE test")
+   SETLOCO(3)  // set loco 3
+   FWD(20)    //
+   ESTOP_PAUSE
+   SETLOCO(0)  // prevent DONE stopping it
+   DONE
+ROUTE(8001,"8001 ESTOP_RESUME test")
+   ESTOP_RESUME
+   ZTEST("<D CABS>",DCC::getLocoSpeedByte(3)==(128+20))
+   DONE
+
+   
