@@ -155,6 +155,8 @@ void setup()
 void loop()
 {
 #ifdef ARDUINO_ARCH_ESP32
+USB_SERIAL_WEB     // optional web server loop polling
+
 #ifdef BOOSTER_INPUT
   static bool oldactive = false;
   if (dccSniffer) {
@@ -217,9 +219,19 @@ void loop()
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 
+  #ifdef ARDUINO_ARCH_AVR
+  // count every byte of free RAM on AVR
   int freeNow = DCCTimer::getMinimumFreeMemory();
   if (freeNow < ramLowWatermark) {
     ramLowWatermark = freeNow;
     LCD(3,F("Free RAM=%5db"), ramLowWatermark);
   }
+  #else
+  // on other platforms, just report every 4kb
+  int freeNow = DCCTimer::getMinimumFreeMemory() / 4096;
+  if (freeNow < ramLowWatermark) {
+    ramLowWatermark = freeNow;
+    LCD(3,F("Free RAM=%5dKb"), ramLowWatermark*4);
+  }
+  #endif
 }

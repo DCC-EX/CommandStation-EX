@@ -72,7 +72,7 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("PWM");
   if (address >= 0x50 && address <= 0x5f) 
     return F("EEPROM"); 
-  if (address >= 0x60 && address <= 0x68) 
+  if (address >= 0x60 && address < 0x68) 
     return F("Adafruit NeoPixel Driver"); 
   if (address == 0x68) 
     return F("Real-time clock"); 

@@ -61,9 +61,9 @@
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
-// PLAYSOUND is alias of ANOUT to make the user experience of a Conductor beter for
-// playing sounds with IO_I2CDFPlayer
-#define PLAYSOUND ANOUT
+// PLAYSOUND is deprecated and appears here temporarily so it does not get 
+// extracted into the documentation. 
+#define PLAYSOUND(vpin,v1,v2,code) ANOUT(vpin,v1,v2,DFPLayerBase::code)
 
 // SEG7 is a helper to create ANOUT from a 7-segment request
 #define SEG7(vpin,value,format) \
@@ -526,7 +526,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ENDIF  OPCODE_ENDIF,0,0,
 #define ENDTASK OPCODE_ENDTASK,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
-#define ESTOPALL OPCODE_ESTOPALL,0,0, 
+#define ESTOPALL OPCODE_ESTOPALL,V(0),
+#define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
+#define ESTOP_RESUME OPCODE_ESTOPALL,V(2),
 #define EXRAIL
 #ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
@@ -628,6 +630,15 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
+#define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
+#define PLAY_PAUSE(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_PAUSE)
+#define PLAY_REPEAT(vpin,track,volume...)  ANOUT(vpin,track,volume+0,DFPlayerBase::DF_REPEATPLAY)
+#define PLAY_RESET(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_RESET)
+#define PLAY_RESUME(vpin)                  ANOUT(vpin,0,0,DFPlayerBase::DF_RESUME)
+#define PLAY_STOP(vpin)                    ANOUT(vpin,0,0,DFPlayerBase::DF_STOPPLAY)
+#define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
+#define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
