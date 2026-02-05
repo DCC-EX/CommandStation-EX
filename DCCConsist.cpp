@@ -13,7 +13,7 @@ bool DCCConsist::parse(Print * stream, byte params, int16_t p[]) {
                     cslot->isConsistReverse() ? F(" -%d") : F(" %d"),
                     cslot->getLoco());
               }                 
-              StringFormatter::send(stream,F(" >"));
+              StringFormatter::send(stream,F(" >\n"));
             }
           }
         return true;
