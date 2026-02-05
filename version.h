@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.57"
+#define VERSION "5.5.58"
+// 5.5.58 - Freemem in 4k blocks on 32bit cpus
+//        - newline fix for Engine Driver
 // 5.5.57 - XL9535 HAL driver
 //        - ESTOP LOCK feedback to throttles
 // 5.5.56 - ESTOP_PAUSE and ESTOP_RESUME functions/commands
