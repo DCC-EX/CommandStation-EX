@@ -21,7 +21,9 @@
 #include "StringBuffer.h"
 #include "DIAG.h"
 
-StringBuffer::StringBuffer() {
+StringBuffer::StringBuffer(int16_t size) {
+    _buffer_max=size-2; // max write offset, allowing for null terminator
+    _buffer=new char[size];
     flush();
 };
 
@@ -35,7 +37,7 @@ void StringBuffer::flush() {
 }
 
 size_t StringBuffer::write(uint8_t b) {
-  if (_pos_write>=buffer_max) return 0;
+  if (_pos_write>=_buffer_max) return 0; // max allows for 2 chars.
   _buffer[_pos_write] = b;
   ++_pos_write;
   _buffer[_pos_write]='\0';

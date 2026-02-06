@@ -41,7 +41,7 @@ int8_t lastclockrate;
 
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
-StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
+StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer(256);
 template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
   broadcastBufferWriter->flush();
   StringFormatter::send(broadcastBufferWriter, msg...);
@@ -244,11 +244,10 @@ void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
   // Use the buffer directly to avoid multiple transmits in the case of a consist
   broadcastBufferWriter->flush();
   for (auto slot=sp; slot; slot=slot->getConsistNext()) {
-    StringFormatter::send(broadcastBufferWriter, F("<l %d 0 %d %l>"), 
+    StringFormatter::send(broadcastBufferWriter, F("<l %d 0 %d %l>\n"), 
       slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
     if (isFollower) break;  // dont follow next chain if original call was for a follower
   }
-  broadcastBufferWriter->print('\n');
   broadcastToClients(COMMAND_TYPE);
   broadcastToClients(WEBSOCKET_TYPE);
   
