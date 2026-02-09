@@ -1213,6 +1213,11 @@ void  DCC::estopAll() {
 }
 
 bool DCC::estopIsLocked=false;
+
+bool DCC::isEstopLocked() {
+  return estopIsLocked;
+}
+
 void DCC::estopLock( bool lock) {
   // see notes above about estop functions. 
   if (estopIsLocked==lock) return; // no change

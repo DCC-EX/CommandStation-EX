@@ -381,10 +381,10 @@ void CommandDistributor::broadcastRaw(clientType type, char * msg) {
 
 void CommandDistributor::broadcastEstopLock(bool locked) {
   if (locked) {
-    broadcastReply(COMMAND_TYPE, F("<!PAUSED><m \"ESTOP PAUSED\">\n"));
+    broadcastReply(COMMAND_TYPE, F("<!PAUSED>\n"));
     broadcastReply(WITHROTTLE_TYPE, F("HmESTOP PAUSED\n"));
   } else {
-    broadcastReply(COMMAND_TYPE, F("<!RESUMED><m \"ESTOP RESUMED\">\n"));
+    broadcastReply(COMMAND_TYPE, F("<!RESUMED>\n"));
     broadcastReply(WITHROTTLE_TYPE, F("HmESTOP RESUMED\n"));
   }
 }

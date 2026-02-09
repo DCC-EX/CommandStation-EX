@@ -699,6 +699,9 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case '!': // ESTOPALL  <!>
         if (p[0]=="P"_hk) DCC::estopLock(true); // <!P>
         else if (p[0]=="R"_hk) DCC::estopLock(false); // <!R
+        else if (p[0]=="Q"_hk) StringFormatter::send(stream, 
+                  DCC::isEstopLocked() ? F("<!PAUSED>\n"): F("<!RESUMED>\n")); // <!Q>
+        
         else DCC::estopAll(); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
         return;
 
