@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.58"
+#define VERSION "5.5.59"
+// 5.5.59 - Bugfix buffer size for consist feedback
+//        - <!Q> command to query estop lock status
 // 5.5.58 - Freemem in 4k blocks on 32bit cpus
 //        - newline fix for Engine Driver
 // 5.5.57 - XL9535 HAL driver
