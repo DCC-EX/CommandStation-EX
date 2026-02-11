@@ -311,7 +311,11 @@
 
 // Default WIFI_HOSTNAME if not found in config.h
 #ifndef WIFI_HOSTNAME
-    #define WIFI_HOSTNAME ""
+    #define WIFI_HOSTNAME "DCC-EX"
+#endif
+// Default ETHERNET_HOSTNAME to WIFI_HOSTNAME if not found in config.h (for old EXinstaller compatibility)
+#ifndef ETHERNET_HOSTNAME
+    #define ETHERNET_HOSTNAME WIFI_HOSTNAME
 #endif
 
 
