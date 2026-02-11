@@ -138,13 +138,8 @@
   #define DISABLE_EEPROM
   #endif
   #if ENABLE_WIFI
-    // Replace USB_SERIAL with SerialLog so we can browse it!
-    #undef USB_SERIAL
-    #define USB_SERIAL SerialLog
-    #undef USB_SERIAL_WEB
-    #define USB_SERIAL_WEB SerialLog.webserverLoop();
-    #include "SerialUsbLog.h"
-  #endif
+   #define ENABLE_SERIAL_LOG
+   #endif
 
 #elif defined(ARDUINO_ARCH_SAMD)
   #define ARDUINO_TYPE "SAMD21"
@@ -160,6 +155,10 @@
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
   #endif
+  #if ENABLE_ETHERNET
+    #define ENABLE_SERIAL_LOG
+  #endif
+
   // STM32 support for native I2C is awaiting development 
   // #ifndef I2C_USE_WIRE
   // #define I2C_USE_WIRE
@@ -229,6 +228,14 @@
 // Currently only devices which can communicate at 115200 are supported.
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
+
+// configure serial log browser feature if possible
+#ifdef ENABLE_SERIAL_LOG
+    // Replace USB_SERIAL with SerialLog so we can browse it!
+    #undef USB_SERIAL
+    #include "SerialUsbLog.h"
+    #define USB_SERIAL SerialLog
+  #endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //

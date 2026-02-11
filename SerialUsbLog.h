@@ -1,5 +1,3 @@
-#ifndef SerialUsbLog_h
-#define SerialUsbLog_h
 /*
  *  © 2026 Chris Harlow
  *  © 2026 Paul M. Antoine
@@ -20,6 +18,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef ENABLE_SERIAL_LOG
+#ifndef SerialUsbLog_h
+#define SerialUsbLog_h
 
 #include <Arduino.h>
 #include "FSH.h"
@@ -40,7 +41,7 @@ class SerialUsbLog : public Stream {
     virtual int available();
     virtual int read();
     virtual int peek();
-    void webserverLoop();
+    void loop();
 
  private:
    HardwareSerial * _serialPort;
@@ -59,3 +60,4 @@ class SerialUsbLog : public Stream {
 extern SerialUsbLog SerialLog;
 
 #endif
+#endif // ENABLE_SERIAL_LOG

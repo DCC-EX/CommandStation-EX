@@ -154,8 +154,11 @@ void setup()
 
 void loop()
 {
+  #ifdef ENABLE_SERIAL_LOG
+    SerialLog.loop();
+  #endif
+
 #ifdef ARDUINO_ARCH_ESP32
-USB_SERIAL_WEB     // optional web server loop polling
 
 #ifdef BOOSTER_INPUT
   static bool oldactive = false;

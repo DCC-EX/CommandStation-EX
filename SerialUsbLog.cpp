@@ -28,7 +28,7 @@
  *
  * All output to the serial log is collected in a rolling buffer that can be:
  *  - dumped as a one-shot stream (streamOut)
- *  - streamed incrementally via a lightweight HTTP endpoint on ESP32
+ *  - or streamed incrementally via a lightweight HTTP endpoint
  *
  * ESP32 Web UI improvements:
  *  - Small HTML “console” page at "/" (no giant page reloads)
@@ -38,21 +38,27 @@
  *    Wrap toggle, Clear, Copy, simple Filter.
  *
  * Notes:
- *  - For HTML safety, '<' and '>' are stored as entities in the buffer during write().
- *  - For incremental output, the buffer includes those entities as plain text (so
- *    it will look correct in the HTML console, and also stays safe if you later
- *    choose to render it as HTML).
+ *  - For incremental output, the buffer includes < > & chars as plain text
  */
 
-#include "SerialUsbLog.h"
+#include "defines.h"
+#ifdef ENABLE_SERIAL_LOG
+// This entire file is ignored if ENABLE_SERIAL_LOG is not defined in defines.h.
 #include "Arduino.h"
 #include "DIAG.h"
+#include "SerialUsbLog.h"
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if WIFI_ON
   #include <WiFi.h>
   WiFiServer server(80);
+#else
+  #include <STM32Ethernet.h>
+  EthernetServer server(80);
+#endif
 
-  // Log buffer size on ESP32. You said you have RAM to spare, so feel free to bump this.
+#include "SerialUsbLog.h"
+
+  // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
     #define LOG_BUFFER 8192
@@ -62,21 +68,15 @@
   #ifndef LOG_CHUNK_MAX
     #define LOG_CHUNK_MAX 4096
   #endif
-#else
-  #ifndef LOG_BUFFER
-    #define LOG_BUFFER 1024
-  #endif
-#endif
 
 // Global instance
 SerialUsbLog SerialLog(LOG_BUFFER, &Serial);
 
-#if defined(ARDUINO_ARCH_ESP32)
 // --------------------------- Small helpers (ESP32 only) ---------------------------
 
 static inline bool startsWithNoCase(const String& s, const char* prefix) {
   int n = (int)strlen(prefix);
-  if (s.length() < n) return false;
+  if ((int)s.length() < n) return false;
   for (int i = 0; i < n; i++) {
     char a = s[i];
     char b = prefix[i];
@@ -111,7 +111,7 @@ static int queryParamInt(const String& uri, const char* key, int defaultValue) {
   return v.toInt();
 }
 
-static void drainHttpHeaders(WiFiClient& client) {
+static void drainHttpHeaders(Client& client) {
   // Read until blank line. Keep it short to avoid blocking too long.
   uint32_t start = millis();
   while (client.connected() && (millis() - start) < 50) {
@@ -120,7 +120,6 @@ static void drainHttpHeaders(WiFiClient& client) {
   }
 }
 
-#endif // ARDUINO_ARCH_ESP32
 
 /**
  * Constructor
@@ -140,22 +139,12 @@ SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort) {
 
 /**
  * Write a single byte to the log buffer and to the underlying serial port.
- * HTML unsafe characters are stored as entities in the buffer.
  */
 size_t SerialUsbLog::write(uint8_t b) {
   _serialPort->write(b);
 
   // Store directly (no translation)
   shoveToBuffer(b);
-
-  // // HTML Char entities must be translated (stored as text in the buffer)
-  // if (b == '<') {
-  //   shoveToBuffer('&'); shoveToBuffer('l'); shoveToBuffer('t'); shoveToBuffer(';');
-  // } else if (b == '>') {
-  //   shoveToBuffer('&'); shoveToBuffer('g'); shoveToBuffer('t'); shoveToBuffer(';');
-  // } else {
-  //   shoveToBuffer(b);
-  // }
 
   return 1;
 }
@@ -284,15 +273,15 @@ int SerialUsbLog::peek() {
 }
 
 /**
- * Lightweight HTTP server loop (ESP32 only).
+ * Lightweight HTTP server loop 
  *
  * Endpoints:
  *  - GET /                : HTML log console (polling)
  *  - GET /log?from=N&chunk=M : returns text/plain chunk and X-Next-Seq header
  *  - GET /dump            : full buffer dump as text/plain download
  */
-void SerialUsbLog::webserverLoop() {
-#ifdef ARDUINO_ARCH_ESP32
+void SerialUsbLog::loop() {
+
   static bool started = false;
   if (!started) {
     server.begin();
@@ -300,7 +289,7 @@ void SerialUsbLog::webserverLoop() {
     return;
   }
 
-  WiFiClient client = server.available();
+  auto client = server.available();
   if (!client) return;
 
   // Read request line: "GET /path?... HTTP/1.1"
@@ -399,6 +388,7 @@ void SerialUsbLog::webserverLoop() {
     "Connection: close\r\n\r\n"
   );
   client.stop();
-#endif
+
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
+#endif // ENABLE_SERIAL_LOG
