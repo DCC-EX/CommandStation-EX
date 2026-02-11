@@ -205,7 +205,11 @@
 #undef SETFREQ
 #undef SIGNAL 
 #undef SIGNALH 
-#undef SPEED 
+#undef SPEED
+#undef SPEEDUP
+#undef SPEEDUP_REL
+#undef SLOWDOWN
+#undef SLOWDOWN_REL 
 #undef START
 #undef START_SHARED
 #undef START_SEND
