@@ -23,8 +23,9 @@ void Ztest::parse(const FSH * command, const FSH * expect, bool (*test)() ) {
     ring->commit();
   }
   else {
-    // run without output test
-    DCCEXParser::parseOne(& USB_SERIAL, (byte *)commandBuffer,nullptr);
+    // run command (but not if its just a title) without output test
+    if (commandBuffer[0]=='<') 
+      DCCEXParser::parseOne(& USB_SERIAL, (byte *)commandBuffer,nullptr);
   }
 
   

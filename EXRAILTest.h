@@ -141,8 +141,15 @@ SEQUENCE(7500)
   PRINT("ZTESTS starting")
   ZTEST("<t 3 5 1>",DCC::getLocoSpeedByte(3)==(128+6))
   ZTEST("<t 3 5 0>",DCC::getLocoSpeedByte(3)==(6))
-  ZTEST("<-3>",DCC::getLocoSpeedByte(3)==(128))  
-  ZTEST2("<$>","<X>\n")
+  ZTEST("<-3>",DCC::getLocoSpeedByte(3)==(128))
+  
+  // speed up down and relative speed changes.
+  SETLOCO(3)
+  FWD(20)        ZTEST("FWD(20)",DCC::getLocoSpeedByte(3)==(128+20))
+  SPEEDUP(10)    ZTEST("SPEEDUP(10)",DCC::getLocoSpeedByte(3)==(128+30))
+  SPEED_REL(50)  ZTEST("SPEED_REL(50)",DCC::getLocoSpeedByte(3)==(128+15))
+  SPEED_REL(300) ZTEST("SPEED_REL(300)",DCC::getLocoSpeedByte(3)==(128+45))
+  SLOWDOWN(5)    ZTEST("SLOWDOWN(5)",DCC::getLocoSpeedByte(3)==(128+40))
   DONE
 
 ROUTE(7900,"7900 Test IFSTASHED_HERE")

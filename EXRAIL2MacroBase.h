@@ -788,12 +788,8 @@
 ///brief Decreases current tasks loco speed by given amount
 ///param speedstep 0..127
 
-#define SPEEDUP_REL(percent)
-///brief Increases current tasks loco speed by given relative % amount
-///param percent 1..500
-
-#define SLOWDOWN_REL(percent)
-///brief Decreases current tasks loco speed by given relative % amount
+#define SPEED_REL(percent)
+///brief Sets current tasks loco speed to percentage of current speed
 ///param percent 1..500
 
 #define START(sequence_id)

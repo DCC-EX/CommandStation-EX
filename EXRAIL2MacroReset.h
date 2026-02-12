@@ -207,9 +207,8 @@
 #undef SIGNALH 
 #undef SPEED
 #undef SPEEDUP
-#undef SPEEDUP_REL
+#undef SPEED_REL
 #undef SLOWDOWN
-#undef SLOWDOWN_REL 
 #undef START
 #undef START_SHARED
 #undef START_SEND
