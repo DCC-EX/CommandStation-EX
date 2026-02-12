@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.59"
+#define VERSION "5.5.60"
+// 5.5.60 - EXRAIL SPEEDUP(by) SLOWDOWN(by) SPEED_REL(percent)
+//        - EXRAIL ZTEST diff between cmds and test captions 
+//        - Tuning DFPlayer base timing.  
 // 5.5.59 - Bugfix buffer size for consist feedback
 //        - <!Q> command to query estop lock status
 // 5.5.58 - Freemem in 4k blocks on 32bit cpus
