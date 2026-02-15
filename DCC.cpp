@@ -136,16 +136,18 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
 
 // set speedCode directly to DCC and make followers same
 void DCC::setThrottle2( LocoSlot * slot, byte speedCode)  {
-  slot->setSpeedCode(speedCode);
-  setThrottleDCC(slot->getLoco(), speedCode);
-  for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
-    byte followSpeed=speedCode ^ (follower->isConsistReverse() ? 0x80 : 0);
-    follower->setSpeedCode(followSpeed);
-    setThrottleDCC(follower->getLoco(), followSpeed);
+  for (auto follower=slot; follower; follower=follower->getConsistNext()) {
+    follower->setSpeedCode(speedCode);
+    setThrottleDCC(follower,speedCode);
   } 
 }
 
-void DCC::setThrottleDCC( uint16_t cab, byte speedCode)  {
+void DCC::setThrottleDCC( LocoSlot * slot, byte speedCode)  {
+  uint16_t cab=0;
+  if (slot) {
+    cab=slot->getLoco();
+    if (slot->isConsistReverse()) speedCode^=0x80;
+  }
   // any throttle traffic is blocked when estop is locked
   if (estopIsLocked) {
     cab=0;
@@ -154,7 +156,6 @@ void DCC::setThrottleDCC( uint16_t cab, byte speedCode)  {
   uint8_t b[4];
   uint8_t nB = 0;
   // DIAG(F("setSpeedInternal %d %x"),cab,speedCode);
-
   if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
@@ -990,10 +991,10 @@ void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
-  setThrottleDCC(cab,1); // ESTOP this loco if still on track
   auto slot=LocoSlot::getSlot(cab, false);
   if (slot) {
-    if (nextLocoReminder==slot) nextLocoReminder=slot->getNext(); // move on if we are about to forget this one
+     setThrottleDCC(slot,1); // ESTOP this loco if still on track
+     if (nextLocoReminder==slot) nextLocoReminder=slot->getNext(); // move on if we are about to forget this one
     if (slot->isConsistLead() || slot->isConsistFollower()) 
       DCCConsist::deleteAnyConsist(cab); // unchain any consist
     slot->forget(); // no longer used but not end of world
@@ -1001,7 +1002,7 @@ void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
   }
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
-  setThrottleDCC(0,1); // ESTOP all locos still on track
+  setThrottleDCC(nullptr,1); // ESTOP all locos still on track
   SLOTLOOP {
      CommandDistributor::broadcastForgetLoco(slot->getLoco());
   }
@@ -1200,7 +1201,7 @@ bool DCC::setMomentum(int locoId,int16_t accelerating, int16_t decelerating) {
 //              previous (or changed since locking) speeds as the reminder loop continues.
 
 void  DCC::estopAll() {
-  setThrottleDCC(0,1); // estop all locos
+  setThrottleDCC(nullptr,1); // estop all locos
   TrackManager::setDCSignal(0,1); 
     
   // remind stop/estop but dont change direction
@@ -1223,7 +1224,7 @@ void DCC::estopLock( bool lock) {
   if (estopIsLocked==lock) return; // no change
   estopIsLocked=lock;
   if (lock) {
-    setThrottleDCC(0, 1); // broadcast estop to DCC
+    setThrottleDCC(nullptr, 1); // broadcast estop to DCC
     TrackManager::setDCSignal(0, 1); // stop DC signal on all tracks
   }
   CommandDistributor::broadcastEstopLock(estopIsLocked); // tell throttle users
