@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.60"
+#define VERSION "5.5.61"
+// 5.5.61 - Bugfix: PCA9685 driver did not handle mux I2C addresses for writing registers
 // 5.5.60 - EXRAIL SPEEDUP(by) SLOWDOWN(by) SPEED_REL(percent)
 //        - EXRAIL ZTEST diff between cmds and test captions 
 //        - Tuning DFPlayer base timing.  
