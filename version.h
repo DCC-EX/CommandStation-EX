@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.18"
+#define VERSION "5.4.19"
+// 5.4.19 - Bugfix: PCA9685 driver did not handle mux I2C addresses for writing registers
 // 5.4.18 - Bugfix: EXRAIL failed TURNTABLE create commands (I2C off) can crash CS
 //        - Bugfix: EXRAIL be extra careful not to deref nullptr
 // 5.4.17 - Replace the SC power status with something better

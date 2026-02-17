@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Filip Šilar
  *  © 2021, Neil McKechnie. All rights reserved.
  *  
  *  This file is part of DCC++EX API
@@ -34,7 +35,7 @@ static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our 
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 
 // Predeclare helper function
-static void writeRegister(byte address, byte reg, byte value);
+static void writeRegister(I2CAddress address, byte reg, byte value);
 
 // Create device driver instance.
 void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
@@ -267,7 +268,7 @@ void PCA9685::_display() {
 }
 
 // Internal helper function for this device
-static void writeRegister(byte address, byte reg, byte value) {
+static void writeRegister(I2CAddress address, byte reg, byte value) {
   I2CManager.write(address, 2, reg, value);
 }
 
