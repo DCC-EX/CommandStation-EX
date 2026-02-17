@@ -320,6 +320,7 @@ private:
   void updatePosition(uint8_t pin);
   void writeDevice(uint8_t pin, int value);
   void _display() override;
+  void writeRegister(uint8_t reg, uint8_t value);
   
 
   struct ServoData {
