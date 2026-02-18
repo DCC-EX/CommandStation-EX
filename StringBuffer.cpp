@@ -27,6 +27,8 @@ StringBuffer::StringBuffer(int16_t size) {
     flush();
 };
 
+StringBuffer::~StringBuffer() {
+    delete[] _buffer;
 }
 
 char * StringBuffer::getString() { 

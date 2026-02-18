@@ -326,6 +326,7 @@ void SerialUsbLog::loop() {
     int chunk = queryParamInt(uri, "chunk", 1024);
     if (chunk < 64) chunk = 64;
     if (chunk > LOG_CHUNK_MAX) chunk = LOG_CHUNK_MAX;
+    
     // create a buffering client because we have multiple outputs to send
     StringBuffer dummyClient(chunk+1024);
 
