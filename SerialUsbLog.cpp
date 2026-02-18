@@ -47,6 +47,7 @@
 #include "Arduino.h"
 #include "DIAG.h"
 #include "SerialUsbLog.h"
+#include "StringBuffer.h"
 
 #if WIFI_ON
   #include <WiFi.h>
@@ -325,6 +326,8 @@ void SerialUsbLog::loop() {
     int chunk = queryParamInt(uri, "chunk", 1024);
     if (chunk < 64) chunk = 64;
     if (chunk > LOG_CHUNK_MAX) chunk = LOG_CHUNK_MAX;
+    // create a buffering client because we have multiple outputs to send
+    StringBuffer dummyClient(chunk+1024);
 
     // Compute next seq (for header) using the same logic as streamOutFrom.
     uint32_t writeSeq = SerialLog.getWriteSeq();
@@ -336,24 +339,29 @@ void SerialUsbLog::loop() {
     if (avail > (uint32_t)chunk) avail = (uint32_t)chunk;
     uint32_t next = start + avail;
 
-    client.print(
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n"
+      "X-Next-Seq: "
     );
-    client.printf("X-Next-Seq: %lu\r\n\r\n", (unsigned long)next);
+    dummyClient.print(next);
+    dummyClient.print("\r\n\r\n");
 
     uint32_t nextSeqOut = from;
-    SerialLog.streamOutFrom(&client, from, (size_t)chunk, nextSeqOut);
+    SerialLog.streamOutFrom(&dummyClient, from, (size_t)chunk, nextSeqOut);
 
+    client.print(dummyClient.getString());
     client.stop();
     return;
   }
 
   // --------------------------------- /dump full dump --------------------------------
   if (path == "/dump") {
-    client.print(
+    // create a buffering client because we have multiple outputs to send
+    StringBuffer dummyClient(_bufferSize+1024);
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
@@ -362,8 +370,9 @@ void SerialUsbLog::loop() {
     );
 
     // One-shot dump of current ring snapshot
-    SerialLog.streamOut(&client);
+    SerialLog.streamOut(&dummyClient);
 
+    client.print(dummyClient.getString());
     client.stop();
     return;
   }

@@ -25,6 +25,7 @@
 class StringBuffer : public Print {
   public:
     StringBuffer(int16_t size=64); 
+    ~StringBuffer();
     // Override Print default
     virtual size_t write(uint8_t b);
     void flush();
