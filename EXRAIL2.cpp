@@ -534,6 +534,7 @@ void RMFT2::loop() {
   if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }
 
+bool RMFT2::skipIf;
 
 void RMFT2::loop2() {
   if (delayTime!=0 && millis()-delayStart < delayTime) return;
@@ -559,7 +560,7 @@ void RMFT2::loop2() {
   int16_t operand =  getOperand(0);
 
   // skipIf will get set to indicate a failing IF condition 
-  bool skipIf=false; 
+  skipIf=false; 
 
   // if (diag) DIAG(F("RMFT2 %d %d"),opcode,operand);
   // Attention: Returning from this switch leaves the program counter unchanged.
@@ -882,10 +883,6 @@ void RMFT2::loop2() {
     skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) == 0;
     break;
     
-  case OPCODE_IFLOCO: // do if the loco is the active one
-    skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
-    break;
-
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
@@ -1218,6 +1215,11 @@ void RMFT2::loop2() {
     break;
 #endif
 
+/* IFLOCO and PRINT use code generated in printMessage
+   but IFLOCO is recognized as an IF when doing
+    IF/ELSE/ENDINF skipping */
+
+  case OPCODE_IFLOCO:  
   case OPCODE_PRINT:
     printMessage(operand);
     break;

@@ -260,6 +260,7 @@ private:
     void resume();
     
    static bool diag;
+   static bool skipIf;
    static const  HIGHFLASH3  byte RouteCode[];
    static const  HIGHFLASH  SIGNAL_DEFINITION SignalDefinitions[];
    static byte flags[MAX_FLAGS];

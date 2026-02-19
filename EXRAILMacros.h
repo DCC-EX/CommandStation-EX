@@ -49,7 +49,7 @@
 // can be called to emit a list of routes/automatuions in a form suitable for Withrottle. 
  
 // PRINT(msg), LCD(row,msg) and SCREEN(display,row,msg) are implemented in a separate pass to create 
-// a getMessageText(id) function.  
+// a getMessageText(id) function. (also now IFLOCO).
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
@@ -301,6 +301,18 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define SERIAL5(msg)  THRUNGE(msg,thrunge_serial5)
 #undef SERIAL6
 #define SERIAL6(msg)  THRUNGE(msg,thrunge_serial6)
+#undef IFLOCO
+#define IFLOCO(locolist...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const uint16_t loco_id_list[]={locolist}; \
+   skipIf=true; \
+   for (size_t i=0; i<sizeof(loco_id_list)/sizeof(loco_id_list[0]); i++) { \
+      if (loco==loco_id_list[i]) { skipIf=false; break;} \
+    } \
+    break;\
+  }
+
 #undef LCD
 #define LCD(id,msg)  \
      case (__COUNTER__ - StringMacroTracker1) : {\
@@ -550,7 +562,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
 #define IFGREEN(signal_id) OPCODE_IFGREEN,V(signal_id),
 #define IFGTE(sensor_id,value) OPCODE_IFGTE,V(sensor_id),OPCODE_PAD,V(value),
-#define IFLOCO(loco_id) OPCODE_IFLOCO,V(loco_id),
+#define IFLOCO(loco_list...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),

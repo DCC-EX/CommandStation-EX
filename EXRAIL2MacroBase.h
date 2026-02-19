@@ -288,8 +288,8 @@
 ///brief Checks if analog vpin sensor >= value
 ///see IF
 
-#define IFLOCO(loco_id)
-///brief Checks if current task loco = loco_id
+#define IFLOCO(loco_id_list...)
+///brief Checks if current task loco is in the list of loco ids. List may be comma separated values
 ///see IF
 
 #define IFLT(vpin,value)
