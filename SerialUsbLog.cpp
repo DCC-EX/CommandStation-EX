@@ -392,6 +392,45 @@ void SerialUsbLog::loop() {
     return;
   }
 
+  if (path == "/style.css" ) {
+    client.println(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/css; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.style.css.h"
+    );
+
+    client.stop();
+    return;
+  }
+
+    if (path == "/script1.js" ) {
+    client.println(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/javascript; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.script1.js.h"
+    );
+
+    client.stop();
+    return;
+  }
+  
+  if (path == "/script2.js" ) {
+    client.println(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/javascript; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.script2.js.h"
+    );
+
+    client.stop();
+    return;
+  }
+
   // --------------------------------- 404 ---------------------------------
   client.println(
     "HTTP/1.1 404 Not Found\r\n"
