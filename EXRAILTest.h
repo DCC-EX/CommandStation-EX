@@ -188,9 +188,11 @@ ROUTE(8001,"8001 ESTOP_RESUME test")
    ZTEST("<D CABS>",DCC::getLocoSpeedByte(3)==(128+20))
    DONE
 
+
+#define MYGROUP 1,2,3,4   
 ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")
   SETLOCO(3)
-  IFLOCO(1,2,3,4) 
+  IFLOCO(MYGROUP) 
     PRINT("IFLOCO 3 test passed")
   ELSE
     PRINT("IFLOCO 3 test failed")
