@@ -72,6 +72,7 @@
 
 // Global instance
 SerialUsbLog SerialLog(LOG_BUFFER, &Serial);
+StringBuffer dummyClient(2048); // buffering client for response construction
 
 // --------------------------- Small helpers (ESP32 only) ---------------------------
 
@@ -292,8 +293,6 @@ void SerialUsbLog::loop() {
 
   auto client = server.available();
   if (!client) return;
-
-  StringBuffer dummyClient(2048); // buffering client for response construction
   
   // Read request line: "GET /path?... HTTP/1.1"
   String reqLine = client.readStringUntil('\r');
@@ -309,7 +308,7 @@ void SerialUsbLog::loop() {
 
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
-   
+  dummyClient.flush();
   if (method != "GET") {
     dummyClient.println(
       "HTTP/1.1 405 Method Not Allowed\r\n"
@@ -413,7 +412,10 @@ else {
   );
 }
   auto length=dummyClient.getLength();
-  DIAG(F("http %s %s length=%d"), method.c_str(),path.c_str(), length);
+
+  // browser disgnostics are sent direct to the hardware serial log so
+  // that they dont just show up on the browsers window.
+  StringFormatter::send(_serialPort,F("<* http %s %s length=%d *>\n"), method.c_str(),path.c_str(), length);
   client.print(dummyClient.getString());
   client.stop();
 }
