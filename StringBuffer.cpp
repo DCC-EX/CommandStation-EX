@@ -35,6 +35,10 @@ char * StringBuffer::getString() {
    return _buffer;
 }
 
+int16_t StringBuffer::getLength() { 
+   return _pos_write;
+}
+
 void StringBuffer::flush() {
     _pos_write=0;
     _buffer[0]='\0';

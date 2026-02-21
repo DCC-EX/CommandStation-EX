@@ -67,7 +67,7 @@
 
   // Maximum bytes returned per /log request (upper safety bound)
   #ifndef LOG_CHUNK_MAX
-    #define LOG_CHUNK_MAX 4096
+    #define LOG_CHUNK_MAX 1000
   #endif
 
 // Global instance
@@ -293,6 +293,8 @@ void SerialUsbLog::loop() {
   auto client = server.available();
   if (!client) return;
 
+  StringBuffer dummyClient(2048); // buffering client for response construction
+  
   // Read request line: "GET /path?... HTTP/1.1"
   String reqLine = client.readStringUntil('\r');
   if (reqLine.length() == 0) { client.stop(); return; }
@@ -305,31 +307,24 @@ void SerialUsbLog::loop() {
   String uri    = reqLine.substring(sp1 + 1, sp2);
   String path   = urlPathOnly(uri);
 
-  // DIAG(F("http:%s"), reqLine.c_str());
-
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
-
+   
   if (method != "GET") {
-    client.println(
+    dummyClient.println(
       "HTTP/1.1 405 Method Not Allowed\r\n"
       "Connection: close\r\n\r\n"
     );
-    client.stop();
-    return;
   }
 
   // ----------------------------- /log incremental feed -----------------------------
-  if (path == "/log") {
+  else if (path == "/log") {
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
     int chunk = queryParamInt(uri, "chunk", 1024);
     if (chunk < 64) chunk = 64;
     if (chunk > LOG_CHUNK_MAX) chunk = LOG_CHUNK_MAX;
     
-    // create a buffering client because we have multiple outputs to send
-    StringBuffer dummyClient(chunk+1024);
-
     // Compute next seq (for header) using the same logic as streamOutFrom.
     uint32_t writeSeq = SerialLog.getWriteSeq();
     uint32_t earliest = (writeSeq > (uint32_t)_bufferSize) ? (writeSeq - (uint32_t)_bufferSize) : 0;
@@ -352,16 +347,10 @@ void SerialUsbLog::loop() {
 
     uint32_t nextSeqOut = from;
     SerialLog.streamOutFrom(&dummyClient, from, (size_t)chunk, nextSeqOut);
-
-    client.print(dummyClient.getString());
-    client.stop();
-    return;
   }
 
   // --------------------------------- /dump full dump --------------------------------
-  if (path == "/dump") {
-    // create a buffering client because we have multiple outputs to send
-    StringBuffer dummyClient(_bufferSize+1024);
+  else if (path == "/dump") {
     dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
@@ -372,15 +361,11 @@ void SerialUsbLog::loop() {
 
     // One-shot dump of current ring snapshot
     SerialLog.streamOut(&dummyClient);
-
-    client.print(dummyClient.getString());
-    client.stop();
-    return;
-  }
+}
 
   // --------------------------------- / HTML shell ---------------------------------
-  if (path == "/" ) {
-    client.println(
+else  if (path == "/" ) {
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/html; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
@@ -388,25 +373,20 @@ void SerialUsbLog::loop() {
       #include "SerialUsbLog.html.h"
     );
 
-    client.stop();
-    return;
   }
 
-  if (path == "/style.css" ) {
-    client.println(
+  else if (path == "/style.css" ) {
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/css; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
       #include "SerialUsbLog.style.css.h"
     );
-
-    client.stop();
-    return;
   }
 
-    if (path == "/script1.js" ) {
-    client.println(
+ else if (path == "/script1.js" ) {
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/javascript; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
@@ -414,30 +394,28 @@ void SerialUsbLog::loop() {
       #include "SerialUsbLog.script1.js.h"
     );
 
-    client.stop();
-    return;
   }
   
-  if (path == "/script2.js" ) {
-    client.println(
+  else if (path == "/script2.js" ) {
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/javascript; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
       #include "SerialUsbLog.script2.js.h"
     );
-
-    client.stop();
-    return;
   }
-
+else {
   // --------------------------------- 404 ---------------------------------
-  client.println(
+  dummyClient.print(
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
+}
+  auto length=dummyClient.getLength();
+  DIAG(F("http %s %s length=%d"), method.c_str(),path.c_str(), length);
+  client.print(dummyClient.getString());
   client.stop();
-
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
 #endif // ENABLE_SERIAL_LOG
