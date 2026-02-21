@@ -305,10 +305,10 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define IFLOCO(locolist...) \
   case (__COUNTER__ - StringMacroTracker1) : \
   { \
-   const uint16_t loco_id_list[]={locolist}; \
+   const int16_t loco_id_list[]={locolist}; \
    skipIf=true; \
    for (size_t i=0; i<sizeof(loco_id_list)/sizeof(loco_id_list[0]); i++) { \
-      if (loco==loco_id_list[i]) { skipIf=false; break;} \
+      if (loco==(uint16_t)loco_id_list[i]) { skipIf=false; break;} \
     } \
     break;\
   }

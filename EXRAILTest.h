@@ -197,7 +197,7 @@ ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")
   ELSE
     PRINT("IFLOCO 3 test failed")
   ENDIF
-  IFLOCO(1,2,4) 
+  IFLOCO(1,2,4, -1) 
     PRINT("IFLOCO 1,2,4 test failed")
   ELSE
     PRINT("IFLOCO 1,2,4 test passed")
