@@ -534,6 +534,7 @@ void RMFT2::loop() {
   if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }
 
+bool RMFT2::skipIf;
 
 void RMFT2::loop2() {
   if (delayTime!=0 && millis()-delayStart < delayTime) return;
@@ -559,7 +560,7 @@ void RMFT2::loop2() {
   int16_t operand =  getOperand(0);
 
   // skipIf will get set to indicate a failing IF condition 
-  bool skipIf=false; 
+  skipIf=false; 
 
   // if (diag) DIAG(F("RMFT2 %d %d"),opcode,operand);
   // Attention: Returning from this switch leaves the program counter unchanged.
@@ -615,6 +616,65 @@ void RMFT2::loop2() {
     DCC::restoreSpeed(operand);
     break;
   
+  case OPCODE_SPEEDUP:
+    if (loco) {
+      int8_t   speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle overflow
+        int16_t newspeed = static_cast<int16_t>(speed) + operand;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 2; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_SPEED_REL:
+    {
+      if (!loco) break;
+      auto  speed=DCC::getThrottleSpeed(loco);
+      // do nothing if speed is 0 (stop), 1 (emergency stop) or -1 (loco not found)
+      if (speed<2) break; // cant 
+      // handle overflow
+      auto newspeed = (speed * operand)/100;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 0; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+    }
+    break;
+
+  case OPCODE_SLOWDOWN:
+    if (loco) {
+      int8_t  speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle underflow
+        int16_t newspeed = static_cast<int16_t>(speed) - operand;
+        if (newspeed < 2) {
+            speed = 0; // stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
   case OPCODE_MOMENTUM:
     DCC::setMomentum(loco,operand,getOperand(1));
     break;
@@ -823,10 +883,6 @@ void RMFT2::loop2() {
     skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) == 0;
     break;
     
-  case OPCODE_IFLOCO: // do if the loco is the active one
-    skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
-    break;
-
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
@@ -1159,6 +1215,11 @@ void RMFT2::loop2() {
     break;
 #endif
 
+/* IFLOCO and PRINT use code generated in printMessage
+   but IFLOCO is recognized as an IF when doing
+    IF/ELSE/ENDINF skipping */
+
+  case OPCODE_IFLOCO:  
   case OPCODE_PRINT:
     printMessage(operand);
     break;

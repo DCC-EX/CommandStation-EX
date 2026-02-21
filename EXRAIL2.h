@@ -35,7 +35,8 @@
 // searching easier as a parameter can never be confused with an opcode. 
 // 
 enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
-             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
+             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,
+             OPCODE_SPEEDUP,OPCODE_SLOWDOWN,OPCODE_SPEED_REL,OPCODE_INVERT_DIRECTION,
              OPCODE_MOMENTUM,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,
@@ -259,6 +260,7 @@ private:
     void resume();
     
    static bool diag;
+   static bool skipIf;
    static const  HIGHFLASH3  byte RouteCode[];
    static const  HIGHFLASH  SIGNAL_DEFINITION SignalDefinitions[];
    static byte flags[MAX_FLAGS];

@@ -288,8 +288,8 @@
 ///brief Checks if analog vpin sensor >= value
 ///see IF
 
-#define IFLOCO(loco_id)
-///brief Checks if current task loco = loco_id
+#define IFLOCO(loco_id_list...)
+///brief Checks if current task loco is in the list of loco ids. List may be comma separated values
 ///see IF
 
 #define IFLT(vpin,value)
@@ -779,6 +779,18 @@
 #define SPEED(speed)
 ///brief Changes current tasks loco speed without changing direction
 ///param speed 0..127 (1=ESTOP)
+
+#define SPEEDUP(speedstep)
+///brief Increases current tasks loco speed by given amount
+///param speedstep 0..127
+
+#define SLOWDOWN(speedstep)
+///brief Decreases current tasks loco speed by given amount
+///param speedstep 0..127
+
+#define SPEED_REL(percent)
+///brief Sets current tasks loco speed to percentage of current speed
+///param percent 1..500
 
 #define START(sequence_id)
 ///brief Starts a new task at the given route/animation/sequence
