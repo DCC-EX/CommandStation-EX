@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.62"
+#define VERSION "5.5.64"
+// 5.5.64 - I2C scan included in <D HAL SHOW>
+// 5.5.63 - Bugfix: EXRAIL IFLOCO did not handle -1 (loco not found)
 // 5.5.62 - EXRAIL IFLOCO(list)
 //        - NEOPIXEL automatic WHITE(if available)  when red=green=blue
 // 5.5.61 - Bugfix: PCA9685 driver did not handle mux I2C addresses for writing registers

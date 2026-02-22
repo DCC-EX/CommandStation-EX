@@ -470,6 +470,8 @@ public:
   // need to be printed using FSH.
   static const FSH *getErrorMessage(uint8_t status);
 
+  void scanForDevices(Print * stream);
+
 private:
   bool _beginCompleted = false;
   bool _clockSpeedFixed = false;

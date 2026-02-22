@@ -1432,8 +1432,10 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 
 #if !defined(IO_NO_HAL)
     case "HAL"_hk: 
-        if (p[1] == "SHOW"_hk) 
+        if (p[1] == "SHOW"_hk) {
+          I2CManager.scanForDevices(&USB_SERIAL);
           IODevice::DumpAll();
+        }
         else if (p[1] == "RESET"_hk)
           IODevice::reset();
         return true;

@@ -98,9 +98,14 @@ void I2CManagerClass::begin(void) {
 
     // Now initialise I2C
     _initialise();
+    scanForDevices(&USB_SERIAL);
+  }
+}
 
+  void I2CManagerClass::scanForDevices(Print* stream) {
+    StringFormatter::send(stream, F("<* Scanning I2C bus for devices...\n"));
     #if defined(I2C_USE_WIRE)
-    DIAG(F("I2CManager: Using Wire library"));
+    StringFormatter::send(stream,F("   I2CManager: Using Wire library\n"));
     #endif
 
     // Probe and list devices.  Use standard mode 
@@ -123,7 +128,7 @@ void I2CManagerClass::begin(void) {
     for (uint8_t addr=0x08; addr<0x78; addr++) {
       if (exists(addr)) {
         found = true; 
-        DIAG(F("I2C Device found at 0x%x, %S?"), addr, guessI2CDeviceType(addr));
+        StringFormatter::send(stream,F("  Device found at 0x%x, %S?\n"), addr, guessI2CDeviceType(addr));
       }
     }
 
@@ -148,7 +153,7 @@ void I2CManagerClass::begin(void) {
                 // Device responds when subbus selected but not when
                 // subbus disabled - ergo it must be on subbus!
                 found = true; 
-                DIAG(F("I2C Device found at {I2CMux_%d,SubBus_%d,0x%x}, %S?"), 
+                StringFormatter::send(stream,F("  Device found at {I2CMux_%d,SubBus_%d,0x%x}, %S?\n"), 
                   muxNo, subBus, addr, guessI2CDeviceType(addr));
               }
               // Re-select subbus
@@ -165,11 +170,10 @@ void I2CManagerClass::begin(void) {
       } 
     }
 #endif
-    if (!found) DIAG(F("No I2C Devices found"));
+    StringFormatter::send(stream,found?F("*>\n"):F("  No I2C Devices found\n*>\n"));
     _setClock(_clockSpeed);
     setTimeout(originalTimeout);      // set timeout back to original
   }
-}
 
 // Set clock speed to the lowest requested one. If none requested,
 //  the Wire default is 100kHz.
