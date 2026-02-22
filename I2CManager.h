@@ -251,7 +251,7 @@ public:
       strcpy_P(ptr, (const char*)F("{I2CMux_"));
       ptr += 8;
       *ptr++ = '0' + _muxNumber;
-      strcpy_P(ptr, (const char*)F(",Subbus_"));
+      strcpy_P(ptr, (const char*)F(",SubBus_"));
       ptr += 8;
       if (_subBus == SubBus_None) {
         strcpy_P(ptr, (const char*)F("None"));
