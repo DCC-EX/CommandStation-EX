@@ -2,12 +2,12 @@ R"???(
 function applyFilter(text){
 const f=filterIn.value.trim();
 if(!f) return text;
-return text.split('\\n').filter(l=>l.includes(f)).join('\\n');
+return text.split('\n').filter(l=>l.includes(f)).join('\n');
 }
-filterIn.addEventListener('input',()=>{logEl.textContent=applyFilter(buf); if(followCb.checked&&!userScrolled){logEl.scrollTop=logEl.scrollHeight;}});
+filterIn.addEventListener('input',()=>{logEl.value=applyFilter(buf); if(followCb.checked&&!userScrolled){logEl.scrollTop=logEl.scrollHeight;}});
 async function tick(){
 try{
-if(!paused){
+if(!paused && logEl.selectionStart===logEl.selectionEnd){
   const chunk=2048;
   const r=await fetch('/log?from='+seq+'&chunk='+chunk,{cache:'no-store'});
   if(r.ok){
