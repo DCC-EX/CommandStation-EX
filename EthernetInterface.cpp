@@ -72,7 +72,7 @@ void EthernetInterface::setup()
     //         netif->hostname = "lwip";
     //      #endif /* LWIP_NETIF_HOSTNAME */
     // Which seems more useful! We should propose the patch... so the following line actually works!
-    netif_set_hostname(&gnetif, WIFI_HOSTNAME);   // Should probably be passed in the contructor...
+    netif_set_hostname(&gnetif, ETHERNET_HOSTNAME);   // Should probably be passed in the contructor...
   #endif   
 
     byte mac[6];
@@ -115,9 +115,9 @@ void EthernetInterface::setup()
  
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
   #ifdef DO_MDNS
-    if (!mdns.begin(Ethernet.localIP(), (char *)WIFI_HOSTNAME))
+    if (!mdns.begin(Ethernet.localIP(), (char *)ETHERNET_HOSTNAME))
       DIAG(F("mdns.begin fail")); // hostname
-    mdns.addServiceRecord(WIFI_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
+    mdns.addServiceRecord(ETHERNET_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
     mdns.run(); // run it right away to get out info ASAP
   #endif  
   connected=true;    

@@ -25,10 +25,12 @@
 class StringBuffer : public Print {
   public:
     StringBuffer(int16_t size=64); 
+    ~StringBuffer();
     // Override Print default
     virtual size_t write(uint8_t b);
     void flush();
     char * getString();
+    int16_t getLength();
   private:
     int16_t _buffer_max;
     int16_t _pos_write;

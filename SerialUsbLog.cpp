@@ -28,31 +28,38 @@
  *
  * All output to the serial log is collected in a rolling buffer that can be:
  *  - dumped as a one-shot stream (streamOut)
- *  - streamed incrementally via a lightweight HTTP endpoint on ESP32
+ *  - or streamed incrementally via a lightweight HTTP endpoint
  *
  * ESP32 Web UI improvements:
  *  - Small HTML “console” page at "/" (no giant page reloads)
- *  - Incremental log feed at "/log?from=<seq>&chunk=<n>"
- *  - Full buffer download at "/dump"
+ *  - Incremental log feed at "/log?from=<seq>&chunk=<n>
  *  - Nicer UX: Follow (tail) behaviour only when user is at bottom, Pause/Resume,
  *    Wrap toggle, Clear, Copy, simple Filter.
  *
  * Notes:
- *  - For HTML safety, '<' and '>' are stored as entities in the buffer during write().
- *  - For incremental output, the buffer includes those entities as plain text (so
- *    it will look correct in the HTML console, and also stays safe if you later
- *    choose to render it as HTML).
+ *  - For incremental output, the buffer includes < > & chars as plain text
  */
 
-#include "SerialUsbLog.h"
+#include "defines.h"
+#ifdef ENABLE_SERIAL_LOG
+// This entire file is ignored if ENABLE_SERIAL_LOG is not defined in defines.h.
 #include "Arduino.h"
 #include "DIAG.h"
+#include "SerialUsbLog.h"
+#include "StringBuffer.h"
+#include "DCCEXParser.h"
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if WIFI_ON
   #include <WiFi.h>
   WiFiServer server(80);
+#else
+  #include <STM32Ethernet.h>
+  EthernetServer server(80);
+#endif
 
-  // Log buffer size on ESP32. You said you have RAM to spare, so feel free to bump this.
+#include "SerialUsbLog.h"
+
+  // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
     #define LOG_BUFFER 8192
@@ -60,23 +67,18 @@
 
   // Maximum bytes returned per /log request (upper safety bound)
   #ifndef LOG_CHUNK_MAX
-    #define LOG_CHUNK_MAX 4096
+    #define LOG_CHUNK_MAX 1000
   #endif
-#else
-  #ifndef LOG_BUFFER
-    #define LOG_BUFFER 1024
-  #endif
-#endif
 
 // Global instance
 SerialUsbLog SerialLog(LOG_BUFFER, &Serial);
+StringBuffer dummyClient(2048); // buffering client for response construction
 
-#if defined(ARDUINO_ARCH_ESP32)
 // --------------------------- Small helpers (ESP32 only) ---------------------------
 
 static inline bool startsWithNoCase(const String& s, const char* prefix) {
   int n = (int)strlen(prefix);
-  if (s.length() < n) return false;
+  if ((int)s.length() < n) return false;
   for (int i = 0; i < n; i++) {
     char a = s[i];
     char b = prefix[i];
@@ -92,7 +94,7 @@ static String urlPathOnly(const String& uri) {
   return (q >= 0) ? uri.substring(0, q) : uri;
 }
 
-static int queryParamInt(const String& uri, const char* key, int defaultValue) {
+static String queryParamRaw(const String& uri, const char* key, String defaultValue) {
   int q = uri.indexOf('?');
   if (q < 0) return defaultValue;
 
@@ -108,10 +110,39 @@ static int queryParamInt(const String& uri, const char* key, int defaultValue) {
 
   v.trim();
   if (!v.length()) return defaultValue;
+  return v;
+}
+static int queryParamInt(const String& uri, const char* key, int defaultValue) {
+  String v = queryParamRaw(uri, key, "");
+  if (v.length() == 0) return defaultValue;
   return v.toInt();
 }
 
-static void drainHttpHeaders(WiFiClient& client) {
+static String uriDecode(const String& str) {
+  String result;
+  for (int i = 0; i < str.length(); i++) {
+    if (str[i] == '%' && i + 2 < str.length()) {
+      // hex decode: %20 → space, %2B → +
+      char hex[3] = { str[i+1], str[i+2], 0 };
+      char c = (char)strtol(hex, NULL, 16);
+      result += c;
+      i += 2;
+    } else if (str[i] == '+') {
+      result += ' ';
+    } else {
+      result += str[i];
+    }
+  }
+  return result;
+}
+
+static String queryParamString(const String& uri, const char* key, String defaultValue) {
+  String v = queryParamRaw(uri, key, "");
+  if (v.length() == 0) return defaultValue;
+  return uriDecode(v);
+}
+
+static void drainHttpHeaders(Client& client) {
   // Read until blank line. Keep it short to avoid blocking too long.
   uint32_t start = millis();
   while (client.connected() && (millis() - start) < 50) {
@@ -119,8 +150,6 @@ static void drainHttpHeaders(WiFiClient& client) {
     if (line.length() == 0 || line == "\r") break;
   }
 }
-
-#endif // ARDUINO_ARCH_ESP32
 
 /**
  * Constructor
@@ -140,22 +169,12 @@ SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort) {
 
 /**
  * Write a single byte to the log buffer and to the underlying serial port.
- * HTML unsafe characters are stored as entities in the buffer.
  */
 size_t SerialUsbLog::write(uint8_t b) {
   _serialPort->write(b);
 
   // Store directly (no translation)
   shoveToBuffer(b);
-
-  // // HTML Char entities must be translated (stored as text in the buffer)
-  // if (b == '<') {
-  //   shoveToBuffer('&'); shoveToBuffer('l'); shoveToBuffer('t'); shoveToBuffer(';');
-  // } else if (b == '>') {
-  //   shoveToBuffer('&'); shoveToBuffer('g'); shoveToBuffer('t'); shoveToBuffer(';');
-  // } else {
-  //   shoveToBuffer(b);
-  // }
 
   return 1;
 }
@@ -284,15 +303,14 @@ int SerialUsbLog::peek() {
 }
 
 /**
- * Lightweight HTTP server loop (ESP32 only).
+ * Lightweight HTTP server loop 
  *
  * Endpoints:
  *  - GET /                : HTML log console (polling)
  *  - GET /log?from=N&chunk=M : returns text/plain chunk and X-Next-Seq header
- *  - GET /dump            : full buffer dump as text/plain download
  */
-void SerialUsbLog::webserverLoop() {
-#ifdef ARDUINO_ARCH_ESP32
+void SerialUsbLog::loop() {
+
   static bool started = false;
   if (!started) {
     server.begin();
@@ -300,12 +318,13 @@ void SerialUsbLog::webserverLoop() {
     return;
   }
 
-  WiFiClient client = server.available();
+  auto client = server.available();
   if (!client) return;
-
+  
   // Read request line: "GET /path?... HTTP/1.1"
   String reqLine = client.readStringUntil('\r');
   if (reqLine.length() == 0) { client.stop(); return; }
+  StringFormatter::send(_serialPort,F("<* http request: %s *>\n"), reqLine.c_str());
 
   int sp1 = reqLine.indexOf(' ');
   int sp2 = reqLine.indexOf(' ', sp1 + 1);
@@ -315,28 +334,30 @@ void SerialUsbLog::webserverLoop() {
   String uri    = reqLine.substring(sp1 + 1, sp2);
   String path   = urlPathOnly(uri);
 
-  // DIAG(F("http:%s"), reqLine.c_str());
-
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
+  dummyClient.flush();
 
   if (method != "GET") {
-    client.println(
+    dummyClient.println(
       "HTTP/1.1 405 Method Not Allowed\r\n"
       "Connection: close\r\n\r\n"
     );
-    client.stop();
-    return;
   }
 
   // ----------------------------- /log incremental feed -----------------------------
-  if (path == "/log") {
+  else if (path == "/log") {
+    String cmd= queryParamString(uri, "cmd", "");
+    if (cmd.length()>0) {
+      DCCEXParser::parse(cmd.c_str());
+    }
+
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
     int chunk = queryParamInt(uri, "chunk", 1024);
     if (chunk < 64) chunk = 64;
     if (chunk > LOG_CHUNK_MAX) chunk = LOG_CHUNK_MAX;
-
+    
     // Compute next seq (for header) using the same logic as streamOutFrom.
     uint32_t writeSeq = SerialLog.getWriteSeq();
     uint32_t earliest = (writeSeq > (uint32_t)_bufferSize) ? (writeSeq - (uint32_t)_bufferSize) : 0;
@@ -347,41 +368,23 @@ void SerialUsbLog::webserverLoop() {
     if (avail > (uint32_t)chunk) avail = (uint32_t)chunk;
     uint32_t next = start + avail;
 
-    client.print(
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n"
+      "X-Next-Seq: "
     );
-    client.printf("X-Next-Seq: %lu\r\n\r\n", (unsigned long)next);
+    dummyClient.print(next);
+    dummyClient.print("\r\n\r\n");
 
     uint32_t nextSeqOut = from;
-    SerialLog.streamOutFrom(&client, from, (size_t)chunk, nextSeqOut);
-
-    client.stop();
-    return;
-  }
-
-  // --------------------------------- /dump full dump --------------------------------
-  if (path == "/dump") {
-    client.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/plain; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n"
-      "Content-Disposition: attachment; filename=\"dcc-ex-log.txt\"\r\n\r\n"
-    );
-
-    // One-shot dump of current ring snapshot
-    SerialLog.streamOut(&client);
-
-    client.stop();
-    return;
+    SerialLog.streamOutFrom(&dummyClient, from, (size_t)chunk, nextSeqOut);
   }
 
   // --------------------------------- / HTML shell ---------------------------------
-  if (path == "/" ) {
-    client.println(
+else  if (path == "/" ) {
+    dummyClient.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/html; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
@@ -389,16 +392,47 @@ void SerialUsbLog::webserverLoop() {
       #include "SerialUsbLog.html.h"
     );
 
-    client.stop();
-    return;
   }
 
+  else if (path == "/style.css" ) {
+    dummyClient.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/css; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.style.css.h"
+    );
+  }
+
+ else if (path == "/script1.js" ) {
+    dummyClient.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/javascript; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.script1.js.h"
+    );
+
+  }
+  
+  else if (path == "/script2.js" ) {
+    dummyClient.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/javascript; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+      #include "SerialUsbLog.script2.js.h"
+    );
+  }
+else {
   // --------------------------------- 404 ---------------------------------
-  client.println(
+  dummyClient.print(
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
+}
+  client.print(dummyClient.getString());
   client.stop();
-#endif
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
+#endif // ENABLE_SERIAL_LOG
