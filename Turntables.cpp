@@ -254,8 +254,8 @@ bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
   int16_t value = getPositionValue(position);
   if (position == 0 || !value) return false; // Return false if it's not a valid position
   // Set position via device driver
-  int16_t addr=value>>3;
-  int16_t subaddr=(value>>1) & 0x03;
+  int16_t addr=(value - 1) / 4 + 1;
+  int16_t subaddr=(value - 1)  % 4;
   bool active=value & 0x01;
   _previousPosition = _turntableData.position;
   _turntableData.position = position;
