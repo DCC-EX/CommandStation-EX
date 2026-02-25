@@ -30,6 +30,7 @@
 #include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
+#include "Adafruit_ST7735.h"
   
 
 // Implement the Display shim class as a singleton.
@@ -53,6 +54,14 @@
     t->begin(); \
     xxx;  \
     t->refresh();}
+
+#elif defined(TFT_DRIVER)
+  #define DISPLAY_START(xxx) { \
+    DisplayInterface *t = new Display(new Adafruit_ST7735(TFT_DRIVER)); \
+    t->begin(); \
+    xxx;  \
+    t->refresh();}
+
 #else
   #define DISPLAY_START(xxx) { \
   xxx; \
