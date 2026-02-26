@@ -324,8 +324,9 @@ void SerialUsbLog::loop() {
   // Read request line: "GET /path?... HTTP/1.1"
   String reqLine = client.readStringUntil('\r');
   if (reqLine.length() == 0) { client.stop(); return; }
-  StringFormatter::send(_serialPort,F("<* http request: %s *>\n"), reqLine.c_str());
-
+  if (Diag::WIFI || Diag::ETHERNET) {
+    StringFormatter::send(_serialPort,F("<* http: %s *>\n"), reqLine.c_str());
+  }
   int sp1 = reqLine.indexOf(' ');
   int sp2 = reqLine.indexOf(' ', sp1 + 1);
   if (sp1 < 0 || sp2 < 0) { client.stop(); return; }
@@ -431,6 +432,11 @@ else {
     "Connection: close\r\n\r\n"
   );
 }
+if (Diag::WIFI || Diag::ETHERNET) {
+    StringFormatter::send(_serialPort,F("<* http:replyLength %d *>\n"),
+    dummyClient.getLength());
+  }
+  
   client.print(dummyClient.getString());
   client.stop();
 }
