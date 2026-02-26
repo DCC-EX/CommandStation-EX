@@ -294,7 +294,7 @@ private:
 
   
   void transmit(uint16_t pixel) { 
-    byte buffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00};
+    byte buffer[]={SEESAW_NEOPIXEL_BASE,SEESAW_NEOPIXEL_BUF,0x00,0x00,0x00,0x00,0x00,0x00};
     uint16_t offset= pixel * _bytesPerPixel;
     buffer[2]=(byte)(offset>>8);
     buffer[3]=(byte)(offset & 0xFF);
