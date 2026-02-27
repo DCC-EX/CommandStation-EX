@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.65"
+#define VERSION "5.5.66"
+// 5.5.66 - Bugfix: NeoPixel buffer size for RGBW devices
+//        - <D WIFI/ETHERNET ON> for SerialUsbLog diagnostics
 // 5.5.65 - Enable ETHERNET_HOST_NAME (defaults to WIFI_HOST_NAME)
 //        - SerialUsbLog restructure 
 // 5.5.64 - I2C scan included in <D HAL SHOW>
