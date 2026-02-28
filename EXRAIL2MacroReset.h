@@ -82,6 +82,8 @@
 #undef HAL
 #undef HAL_IGNORE_DEFAULTS
 #undef IF 
+#undef IF_ALL
+#undef IF_ANY
 #undef IFAMBER
 #undef IFCLOSED
 #undef IFGREEN

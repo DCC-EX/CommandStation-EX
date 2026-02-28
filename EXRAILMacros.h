@@ -305,12 +305,30 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define IFLOCO(locolist...) \
   case (__COUNTER__ - StringMacroTracker1) : \
   { \
-   const int16_t loco_id_list[]={locolist}; \
+   const int16_t temp[]={locolist}; \
    skipIf=true; \
-   for (size_t i=0; i<sizeof(loco_id_list)/sizeof(loco_id_list[0]); i++) { \
-      if (loco==(uint16_t)loco_id_list[i]) { skipIf=false; break;} \
+   for (size_t i=0; i<sizeof(temp)/sizeof(temp[0]); i++) { \
+      if (loco==(uint16_t)temp[i]) { skipIf=false; break;} \
     } \
-    break;\
+    return;\
+  }
+
+#undef IF_ALL
+#define IF_ALL(vpinList...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const int16_t temp[]={vpinList}; \
+   ifAllFunc(temp,sizeof(temp)/sizeof(temp[0])); \
+   return;\
+  }
+
+#undef IF_ANY  
+#define IF_ANY(vpinList...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const int16_t temp[]={vpinList}; \
+   ifAnyFunc(temp,sizeof(temp)/sizeof(temp[0])); \
+   return;\
   }
 
 #undef LCD
@@ -563,6 +581,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFGREEN(signal_id) OPCODE_IFGREEN,V(signal_id),
 #define IFGTE(sensor_id,value) OPCODE_IFGTE,V(sensor_id),OPCODE_PAD,V(value),
 #define IFLOCO(loco_list...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
+#define IF_ALL(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
+#define IF_ANY(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),

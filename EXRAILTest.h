@@ -201,5 +201,81 @@ ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")
     PRINT("IFLOCO 1,2,4 test failed")
   ELSE
     PRINT("IFLOCO 1,2,4 test passed")
-  DONE
+  ENDIF
+
+  HAL(Bitmap,1700,10)
+  SET(1702) SET(1703) SET(1704)
   
+  IF_ANY(1700,1701,1702) 
+    PRINT("IF_ANY 0,1,2 test OK")
+  ELSE
+    PRINT("IF_ANY 0,1,2 test failed")
+  ENDIF
+  
+  IF_ANY(1700,1701,1706) 
+    PRINT("IF_ANY 0,1,6 test failed")
+  ELSE
+    PRINT("IF_ANY 0,1,6 test passed")
+  ENDIF
+  
+  IF_ALL(1702,1703,1704) 
+    PRINT("IF_ALL 2,3,4 test OK")
+  ELSE
+    PRINT("IF_ALL 2,3,4 test failed")
+  ENDIF
+  
+  IF_ALL(1702,1703,1706) 
+    PRINT("IF_ALL 2,3,6 test failed")
+  ELSE
+    PRINT("IF_ALL 2,3,6 test passed")
+  ENDIF
+
+  IF_ANY(1701,-1706)
+    PRINT("IF_ANY 1,-1706 test passed")
+  ELSE
+    PRINT("IF_ANY 1,-1706 test failed")
+  ENDIF
+
+  IF_ALL(1701,-1706)
+    PRINT("IF_ALL 1,-1706 test failed")
+  ELSE
+    PRINT("IF_ALL 1,-1706 test passed")
+  ENDIF
+
+    DONE
+  
+
+
+// Speedometer example
+// Track is =TS1===TS2===TS3= timing between S2 and S3.
+
+ALIAS(TS1,181) ALIAS(TS2,182) ALIAS(TS3,183)
+STEALTH_GLOBAL(
+  byte testStartSpeed=2;
+  byte testEndSpeed=100;
+  byte testStep=10;
+  byte testSpeed;
+  unsigned long testStartTime;
+)
+
+AUTOMATION(9000,"Run Speed Test") // speed test setup
+  STEALTH(testSpeed=testStartSpeed;)
+  PRINT("Starting speed test")
+  REV(20) // reverse loco to start point
+
+SEQUENCE(9001)
+  // make sure loco is at start point
+  AT(TS1) ESTOP
+  // drive loco fwd at testSpeed 
+  STEALTH(DCC::setThrottle(loco,testSpeed,true);)
+  // At timing-start sensor(s2) record time
+  AT(TS2) STEALTH(testStartTime=millis();)
+ // at timing-end sensor(s3) stop and calculate and print speed
+ AT(TS3) ESTOP STEALTH(
+    StringFormatter::send(&USB_SERIAL, 
+       F("Speed %d Time %l\n"), testSpeed, millis()-testStartTime);
+    testSpeed+=testStep;
+    if (testSpeed>testEndSpeed) kill(); // test complete =DONE
+    )
+// Reverse back to start, and test again
+REV(127) FOLLOW(9001)

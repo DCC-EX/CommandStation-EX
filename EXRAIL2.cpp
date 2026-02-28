@@ -1761,4 +1761,24 @@ void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
     CommandDistributor::broadcastRouteCaption(id,caption);
   }
 }
+
+void RMFT2::ifAnyFunc(const int16_t * vpinList, int16_t count) {
+  // Sets skipIf if none found
+  skipIf=false; 
+  for (int v=0;v<count;v++) {
+    int16_t vpin=vpinList[v];
+    if (vpin<0 && IODevice::read(-vpin)==0) return;
+    if (IODevice::read(vpin)>0) return;
+  }
+  skipIf=true; // none found 
+}
   
+void RMFT2::ifAllFunc(const int16_t * vpinList, int16_t count) {
+  skipIf=true; // return skipping if any are wrong
+  for (int v=0;v<count;v++) {
+    int16_t vpin=vpinList[v];
+    if (vpin<0 && IODevice::read(-vpin)>0) return;
+    if (IODevice::read(vpin)==0) return;
+  }
+  skipIf=false; // no failures found 
+}
