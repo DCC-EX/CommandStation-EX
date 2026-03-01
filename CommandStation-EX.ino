@@ -121,6 +121,9 @@ void setup()
 #endif // ARDUINO_ARCH_ESP32
 
 #if ETHERNET_ON
+#ifdef ETHERNET_CS
+  Ethernet.init (ETHERNET_CS);
+#endif // ETHERNET_CS
   EthernetInterface::setup();
 #endif // ETHERNET_ON
   
