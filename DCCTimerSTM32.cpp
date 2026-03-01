@@ -30,9 +30,7 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
 #include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
 
@@ -215,13 +213,40 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   interrupts();
 }
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  // TODO: for intended operation see DCCTimerAVR.cpp
-  (void) brakePin; 
+static HardwareTimer *railcomTimer = nullptr;
+
+void DCCTimer::startRailcomTimer() {
+  if (!railcomTimer) {
+    railcomTimer = new HardwareTimer(TIM5);
+  }
+
+  // Start the timer to begin the cutout in ~29+58us
+  railcomTimer->resume();
+}
+
+void startRailcomCallback() {
+  TrackManager::setMainBrake(true, true);
+  if (railcomTimer) {
+    railcomTimer->pause();
+  }
 }
 
 void DCCTimer::ackRailcomTimer() {
-  // TODO: for intended operation see DCCTimerAVR.cpp
+  // Immediately end the Railcom cutout and set up the timer for the next
+  // cutout. Setting up the timer here avoids distorting the packet end bit
+  // with delayed interrupts.
+
+  // Un-set the track brake
+  TrackManager::setMainBrake(false, true);
+
+  if (railcomTimer) {
+    railcomTimer->pause();
+    railcomTimer->setPrescaleFactor(1);
+    railcomTimer->setOverflow(58+26, MICROSEC_FORMAT);
+    railcomTimer->setCount(0);
+    railcomTimer->refresh();
+    railcomTimer->attachInterrupt(startRailcomCallback);
+  }
 }
 
 bool DCCTimer::isPWMPin(byte pin) {

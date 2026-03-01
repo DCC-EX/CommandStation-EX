@@ -61,8 +61,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   }
 
 
-void DCCTimer::startRailcomTimer(byte brakePin) {
-  (void) brakePin; // Ignored... works on pin 9 only 
+void DCCTimer::startRailcomTimer() {
   // diagnostic digitalWrite(4,HIGH);   
 
   /* The Railcom timer is started in such a way that it 
