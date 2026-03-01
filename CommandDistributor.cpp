@@ -152,6 +152,14 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
   broadcastReply(COMMAND_TYPE, F("<%c %d>\n"), on?'Q':'q', id);
 }
 
+void CommandDistributor::broadcastAccessory(int16_t address, byte port, bool gate, bool on) {
+  broadcastReply(COMMAND_TYPE, F("<y A %d %d %c %c>\n"), address, port, gate?'1':'0', on?'1':'0');
+}
+
+void CommandDistributor::broadcastExtendedAccessory(int16_t address, int16_t value) {
+  broadcastReply(COMMAND_TYPE, F("<y E %d %d>\n"), address, value);
+}
+
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed;
   // The string below contains serial and Withrottle protocols which should
