@@ -43,9 +43,7 @@ private:
   LocoSlot* consistNext;
   
   // DCC data for this loco 
-  uint16_t loco;             // DCC loco id
-  uint16_t blockOccupied;    // railcom detected block 
-  
+  uint16_t loco;          // DCC loco id
   byte targetSpeed;       // speed set by throttle
   byte speedCode;         // current DCC speed and direction
   byte snifferSpeedCode;  // sniffer speed and direction
@@ -93,8 +91,6 @@ public:
   void setGroupFlags(byte v) { groupFlags=v; }
   uint32_t getFunctions() { return functions; }
   void setFunctions(uint32_t v) { functions=v; }
-  uint16_t getBlockOccupied() { return blockOccupied; }
-  void setBlockOccupied(uint16_t v) { blockOccupied=v; }
   void forget();
   void saveSpeed();
   byte getSavedSpeedCode() ;

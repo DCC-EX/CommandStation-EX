@@ -83,8 +83,6 @@ public:
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
-  static void setLocoInBlock(uint16_t loco, uint16_t blockid, bool exclusive);
-  static void clearBlock(uint16_t blockid);
   static void getDriveawayLocoId(ACK_CALLBACK callback);
   static void getLocoId(ACK_CALLBACK callback);
   static void getConsistId(ACK_CALLBACK callback);
