@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.66"
+#define VERSION "5.5.67"
+// 5.5.67 - RailCom, AVR: Correct cutout timer calculation
+//        - RailCom: Improved block handling
+//        - EXRAIL: new IF_ALL,IF_ANY
 // 5.5.66 - Bugfix: NeoPixel buffer size for RGBW devices
 //        - <D WIFI/ETHERNET ON> for SerialUsbLog diagnostics
 // 5.5.65 - Enable ETHERNET_HOST_NAME (defaults to WIFI_HOST_NAME)
