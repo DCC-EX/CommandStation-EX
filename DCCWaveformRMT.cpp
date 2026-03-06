@@ -34,11 +34,6 @@ RMTChannel *DCCWaveform::rmtProgChannel = NULL;
 
 bool DCCWaveform::railcomPossible=false;     // High accuracy only    
 volatile bool DCCWaveform::railcomActive=false;     // switched on by user
-volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
-volatile bool DCCWaveform::railcomSampleWindow=false; // true during packet transmit
-volatile byte DCCWaveform::railcomCutoutCounter=0;    // cyclic cutout
-volatile byte DCCWaveform::railcomLastAddressHigh=0;
-volatile byte DCCWaveform::railcomLastAddressLow=0;
 
 DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
   isMainTrack = isMain;
@@ -112,7 +107,7 @@ void IRAM_ATTR DCCWaveform::loop() {
   DCCACK::checkAck(progTrack.getResets());
 }
 
-bool DCCWaveform::setRailcom(bool on, bool debug) {
+bool DCCWaveform::setRailcom(bool on) {
   // TODO... ESP32 railcom waveform
   return false;
 }

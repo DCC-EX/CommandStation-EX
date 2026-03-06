@@ -31,6 +31,8 @@
 #include "EXRAIL2.h"
 
 uint16_t Railcom::expectLoco=0;
+uint16_t Railcom::nextLoco=0;
+
 uint16_t Railcom::expectCV=0;
 unsigned long Railcom::expectWait=0;
 ACK_CALLBACK Railcom::expectCallback=0;
@@ -42,6 +44,17 @@ enum ResponseType: byte {
         CV_VALUE_LIST=0xC0, // list of cv values read from a POM, cv id and 4 values follow
     };
   
+void Railcom::setLoco(byte packet0, byte packet1) {
+    // first 2 bits 00=short loco, 11=long loco , 01/10 = accessory
+      byte addressType=packet0 & 0xC0;
+      if (addressType==0xC0) nextLoco=((packet0 & 0x3f)<<8) | packet1;
+      else if (addressType==0x00) nextLoco=packet0 & 0x3F;
+      else nextLoco=0; 
+}
+
+uint16_t Railcom::getLoco() {
+    return nextLoco; 
+}
 
 // anticipate is used when waiting for a CV read from a railcom loco
 void Railcom::anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback) { 
@@ -75,10 +88,7 @@ void Railcom::process(int16_t firstVpin,byte * buffer, byte length) {
             break;
        case CV_VALUE: { // csv value from POM read
             byte value=buffer[i+1];
-            if (expectCV && DCCWaveform::getRailcomLastLocoAddress()==expectLoco) {
-                if (expectCallback) expectCallback(value);
-                expectCV=0;
-            }
+            if (expectCallback) expectCallback(value);
             i+=2;
         }
          break;
@@ -97,3 +107,8 @@ void Railcom::loop() {
                 expectCV=0;
     }
 }
+
+byte Railcom::cutoutCounter=0;
+void Railcom::incCutout() {cutoutCounter++;};
+byte Railcom::getCutout() {return cutoutCounter;};
+ 

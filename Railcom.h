@@ -28,12 +28,18 @@ class Railcom {
   public:
     static void anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback);
     static void process(int16_t firstVpin,byte * buffer, byte length );
+    static void setLoco(byte packet0,byte packet1);
+    static uint16_t getLoco();
     static void loop();
+    static void incCutout();
+    static byte getCutout();
   private:
     static const unsigned long POM_READ_TIMEOUT=500; // as per spec
-    static uint16_t expectCV,expectLoco;
+    static uint16_t expectCV,expectLoco, nextLoco;
     static unsigned long expectWait;
     static ACK_CALLBACK expectCallback;
+    static byte cutoutCounter;    // cyclic cutout
+ 
     static const byte MAX_WAIT_FOR_GLITCH=20; // number of dead or empty packets before assuming loco=0 
 };
 

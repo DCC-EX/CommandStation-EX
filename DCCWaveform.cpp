@@ -29,6 +29,7 @@
 #include "DCCTimer.h"
 #include "DCCACK.h"
 #include "DIAG.h"
+#include "Railcom.h"
 
 bool DCCWaveform::cutoutNextTime=false;
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
@@ -77,8 +78,7 @@ void DCCWaveform::interruptHandler() {
   #if defined(HAS_ENOUGH_MEMORY)
   if (cutoutNextTime) {
     cutoutNextTime=false;
-    railcomSampleWindow=false; // about to cutout, stop reading railcom data.
-    railcomCutoutCounter++;
+    Railcom::incCutout();
     DCCTimer::startRailcomTimer(9);
   }
   #endif
@@ -126,21 +126,13 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 bool DCCWaveform::railcomPossible=false;     // High accuracy only    
 volatile bool DCCWaveform::railcomActive=false;     // switched on by user
-volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
-volatile bool DCCWaveform::railcomSampleWindow=false; // true during packet transmit
-volatile byte DCCWaveform::railcomCutoutCounter=0;    // cyclic cutout
-volatile byte DCCWaveform::railcomLastAddressHigh=0;
-volatile byte DCCWaveform::railcomLastAddressLow=0;
-
-bool DCCWaveform::setRailcom(bool on, bool debug) {
+ 
+bool DCCWaveform::setRailcom(bool on) {
   if (on && railcomPossible) {
     railcomActive=true;
-    railcomDebug=debug;
   }
   else {
     railcomActive=false;
-    railcomDebug=false;
-    railcomSampleWindow=false;
   } 
   return railcomActive;
 }
@@ -174,9 +166,7 @@ void DCCWaveform::interrupt2() {
         // if preamble length is 16 then this evaluates to 5
         // Remember address bytes of last sent packet so that Railcom can
         // work out where the channel2 data came from.
-        railcomLastAddressHigh=transmitPacket[0];
-        railcomLastAddressLow =transmitPacket[1];
-        railcomSampleWindow=true;
+        Railcom::setLoco(transmitPacket[0],transmitPacket[1]);
       } else if (remainingPreambles==(requiredPreambles-3)) {
         // cutout can be ended when read
         // see above for requiredPreambles
@@ -258,11 +248,7 @@ void DCCWaveform::promotePendingPacket() {
       
       // nothing to do, just send idles or resets
       // Fortunately reset and idle packets are the same length
-      // Note: If railcomDebug is on, then we send resets to the main
-      //       track instead of idles. This means that all data will be zeros
-      //       and only the presets will be ones, making it much
-      //       easier to read on a logic analyser.
-      memcpy( transmitPacket, (isMainTrack && (!railcomDebug)) ? idlePacket : resetPacket, sizeof(idlePacket));
+      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
       transmitLength = sizeof(idlePacket);
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)

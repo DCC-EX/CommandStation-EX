@@ -82,30 +82,18 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();
     void promotePendingPacket();
-    static bool setRailcom(bool on, bool debug);
+    static bool setRailcom(bool on);
     inline static bool isRailcom() {
       return railcomActive;
-    };
-    inline static byte getRailcomCutoutCounter() {
-      return railcomCutoutCounter;
-    };
-    inline static bool isRailcomSampleWindow() {
-      return railcomSampleWindow;
     };
     inline static bool isRailcomPossible() {
       return railcomPossible;
     };
     inline static void setRailcomPossible(bool yes) {
       railcomPossible=yes;
-      if (!yes) setRailcom(false,false);
+      if (!yes) setRailcom(false);
     };
-    inline static uint16_t getRailcomLastLocoAddress() {
-      // first 2 bits 00=short loco, 11=long loco , 01/10 = accessory
-      byte addressType=railcomLastAddressHigh & 0xC0;
-      if (addressType==0xC0) return ((railcomLastAddressHigh & 0x3f)<<8) | railcomLastAddressLow;
-      if (addressType==0x00) return railcomLastAddressHigh & 0x3F;
-      return 0; 
-    }
+    
 
   private:
 #ifndef ARDUINO_ARCH_ESP32
@@ -133,10 +121,6 @@ class DCCWaveform {
     byte pendingRepeats;
     static bool railcomPossible; // High accuracy mode only
     static volatile bool railcomActive;     // switched on by user
-    static volatile bool railcomDebug;     // switched on by user
-    static volatile bool railcomSampleWindow; // when safe to sample
-    static volatile byte railcomCutoutCounter; // incremented for each cutout
-    static volatile byte railcomLastAddressHigh,railcomLastAddressLow;
     static bool cutoutNextTime;   // railcom
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;

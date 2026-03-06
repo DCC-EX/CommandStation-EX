@@ -83,14 +83,15 @@ void I2CRailcom::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     
     // have we read this cutout already?
     // basically we only poll once per packet when railcom cutout is working
-    auto cut=DCCWaveform::getRailcomCutoutCounter();
+    auto cut=Railcom::getCutout();
     if (cutoutCounter==cut) return; 
     cutoutCounter=cut; 
     Railcom::loop(); // in case a csv read has timed out 
     
     // Obtain data length from the collector
     byte inbuf[1];
-    byte queryLength[]={'?'};
+    uint16_t loco=Railcom::getLoco();
+    byte queryLength[]={'?',(byte)(loco >>8) , (byte)(loco & 0xff)};
     auto state=I2CManager.read(_I2CAddress, inbuf, 1,queryLength,sizeof(queryLength)); 
     if (state) {
       DIAG(F("RC ? state=%d"),state);
