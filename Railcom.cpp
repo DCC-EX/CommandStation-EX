@@ -47,7 +47,8 @@ enum ResponseType: byte {
 void Railcom::setLoco(byte packet0, byte packet1) {
     // first 2 bits 00=short loco, 11=long loco , 01/10 = accessory
       byte addressType=packet0 & 0xC0;
-      if (addressType==0xC0) nextLoco=((packet0 & 0x3f)<<8) | packet1;
+      if (packet0==0xff) nextLoco=0;  // idle or estop
+      else if (addressType==0xC0) nextLoco=((packet0 & 0x3f)<<8) | packet1;
       else if (addressType==0x00) nextLoco=packet0 & 0x3F;
       else nextLoco=0; 
 }
@@ -89,6 +90,7 @@ void Railcom::process(int16_t firstVpin,byte * buffer, byte length) {
        case CV_VALUE: { // csv value from POM read
             byte value=buffer[i+1];
             if (expectCallback) expectCallback(value);
+            expectCallback=0;
             i+=2;
         }
          break;
@@ -102,9 +104,9 @@ void Railcom::process(int16_t firstVpin,byte * buffer, byte length) {
 
 // loop() is called to detect timeouts waiting for a POM read result
 void Railcom::loop() {
-    if (expectCV && (millis()-expectWait)> POM_READ_TIMEOUT) { // still waiting 
+    if (expectCallback && (millis()-expectWait)> POM_READ_TIMEOUT) { // still waiting 
                 expectCallback(-1);
-                expectCV=0;
+                expectCallback=0;
     }
 }
 
