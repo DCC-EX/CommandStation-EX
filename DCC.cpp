@@ -488,7 +488,7 @@ void DCC::readCVByteMain(int cab, int cv, ACK_CALLBACK callback)  {
   b[nB++] = cv2(cv);
   b[nB++] = 0;
 
-  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
+  DCCQueue::scheduleDCCPacket(b, nB, 2,cab);
   Railcom::anticipate(cab,cv,callback);
 }
 

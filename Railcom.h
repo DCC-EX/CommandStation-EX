@@ -28,8 +28,6 @@ class Railcom {
   public:
     static void anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback);
     static void process(int16_t firstVpin,byte * buffer, byte length );
-    static void setLoco(byte packet0,byte packet1);
-    static uint16_t getLoco();
     static void loop();
     static void incCutout();
     static byte getCutout();

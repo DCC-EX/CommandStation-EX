@@ -44,19 +44,6 @@ enum ResponseType: byte {
         CV_VALUE_LIST=0xC0, // list of cv values read from a POM, cv id and 4 values follow
     };
   
-void Railcom::setLoco(byte packet0, byte packet1) {
-    // first 2 bits 00=short loco, 11=long loco , 01/10 = accessory
-      byte addressType=packet0 & 0xC0;
-      if (packet0==0xff) nextLoco=0;  // idle or estop
-      else if (addressType==0xC0) nextLoco=((packet0 & 0x3f)<<8) | packet1;
-      else if (addressType==0x00) nextLoco=packet0 & 0x3F;
-      else nextLoco=0; 
-}
-
-uint16_t Railcom::getLoco() {
-    return nextLoco; 
-}
-
 // anticipate is used when waiting for a CV read from a railcom loco
 void Railcom::anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback) { 
     expectLoco=loco;
@@ -87,12 +74,16 @@ void Railcom::process(int16_t firstVpin,byte * buffer, byte length) {
                 i+=3;
             }
             break;
-       case CV_VALUE: { // csv value from POM read
-            byte value=buffer[i+1];
-            if (expectCallback) expectCallback(value);
-            expectCallback=0;
-            i+=2;
-        }
+       case CV_VALUE: 
+            { // loco cv and value from POM read
+              uint16_t locoid= ((uint16_t)buffer[i+1])<<8 | ((uint16_t)buffer[i+2]);
+              uint16_t cv=(buffer[i+3]<<8) | buffer[i+4];
+              byte value=buffer[i+5];
+              DIAG(F("POM Read loco=%d cv=%d value=%d"),locoid,cv,value);
+              if (expectCallback) expectCallback(value);
+              expectCallback=0;
+              i+=6;
+            }
          break;
          default:
           DIAG(F("Unknown RC Collector code 0x%x"),type);

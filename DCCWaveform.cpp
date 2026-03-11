@@ -164,9 +164,6 @@ void DCCWaveform::interrupt2() {
         // cutout has ended so its now possible to poll the railcom detectors
         // requiredPreambles is one higher that preamble length so
         // if preamble length is 16 then this evaluates to 5
-        // Remember address bytes of last sent packet so that Railcom can
-        // work out where the channel2 data came from.
-        Railcom::setLoco(transmitPacket[0],transmitPacket[1]);
       } else if (remainingPreambles==(requiredPreambles-3)) {
         // cutout can be ended when read
         // see above for requiredPreambles

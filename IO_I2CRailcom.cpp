@@ -90,8 +90,7 @@ void I2CRailcom::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     
     // Obtain data length from the collector
     byte inbuf[1];
-    uint16_t loco=Railcom::getLoco();
-    byte queryLength[]={'?',(byte)(loco >>8) , (byte)(loco & 0xff)};
+    byte queryLength[]={'?'};
     auto state=I2CManager.read(_I2CAddress, inbuf, 1,queryLength,sizeof(queryLength)); 
     if (state) {
       DIAG(F("RC ? state=%d"),state);
