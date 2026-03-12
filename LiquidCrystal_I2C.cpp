@@ -42,7 +42,7 @@
 // LiquidCrystal constructor is called).
 
 LiquidCrystal_I2C::LiquidCrystal_I2C(I2CAddress lcd_Addr, uint8_t lcd_cols,
-                                     uint8_t lcd_rows) {
+                                     uint8_t lcd_rows, Orientation orientation) {
   _Addr = lcd_Addr;
   lcdRows = lcd_rows;  // Number of character rows (typically 2 or 4).
   lcdCols = lcd_cols;  // Number of character columns (typically 16 or 20)
