@@ -683,7 +683,7 @@
 ///param sequence_id of ROUTE/AUTOMATION
 
 #define SAVE_SPEED
-///brief Resumes locos saved speed
+///brief Saves loco speed for later restore
 ///see RESTORE_SPEED
 
 #define SENDLOCO(cab,sequence_id)
@@ -923,7 +923,7 @@
 ///param speed (0..127, 1=ESTOP)
 
 #define XPOM(cab,cv,value)
-///brief Sends DCC speed to loco in reverse direction
+///brief updates a cv on a loco using Program on Main.
 ///param cab loco id
 ///param cv  to be updated
 ///param value to be written to cv
@@ -934,7 +934,7 @@
 ///see XSAVE_SPEED
 
 #define XSAVE_SPEED(cab)
-///brief Resumes locos saved speed
+///brief Saves loco speed for later restore
 ///param cab loco id
 ///see XRESTORE_SPEED
 
