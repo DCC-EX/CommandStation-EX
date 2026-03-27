@@ -136,6 +136,8 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 #define UNLATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
 #undef RESERVE
 #define RESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#undef RESERVE_NOESTOP
+#define RESERVE_NOESTOP(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
 #undef FREE
 #define FREE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
 #undef IFRESERVE

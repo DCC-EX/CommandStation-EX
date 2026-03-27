@@ -217,6 +217,7 @@ bool RMFT2::parseSlash(Print * stream, byte & paramCount, int16_t p[]) {
           auto operand=task->getOperand(progCounter,0);
           switch(GET_OPCODE) {
               case OPCODE_RESERVE:
+              case OPCODE_RESERVE_NOESTOP:
                 StringFormatter::send(stream,F(" WAIT RESERVE %d"),operand);
                 break;
               case OPCODE_AT:
