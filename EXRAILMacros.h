@@ -746,6 +746,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),
 #define BITMAP_DEC(vpin) OPCODE_BITMAP_DEC,V(vpin),
 #define BITMAP_OR(vpin,mask) OPCODE_BITMAP_OR,V(vpin),OPCODE_PAD,V(mask),
+#define BITMAP_SET(vpin,value) ANOUT(vpin,value,0,0)
 #define BITMAP_XOR(vpin,mask) OPCODE_BITMAP_XOR,V(vpin),OPCODE_PAD,V(mask),
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),

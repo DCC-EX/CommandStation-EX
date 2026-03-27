@@ -884,6 +884,10 @@
 ///brief Performs a bitwise OR operation on the given vpin analog value and mask.
 ///param mask Binary mask to be ORed with vpin1 value
 
+#define BITMAP_SET(vpin1,value)
+///brief Sets the given vpin analog value
+///param value Value to be set
+
 #define BITMAP_XOR(vpin1,mask)
 ///brief Performs a bitwise XOR operation on the given vpin analog value and mask.
 ///param mask Binary mask to be XORed with vpin1 value

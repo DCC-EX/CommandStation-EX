@@ -232,6 +232,7 @@
 #ifndef IO_NO_HAL
 #undef BITMAP_AND
 #undef BITMAP_OR
+#undef BITMAP_SET
 #undef BITMAP_XOR
 #undef BITMAP_INC
 #undef BITMAP_DEC
