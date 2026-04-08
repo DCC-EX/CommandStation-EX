@@ -27,19 +27,21 @@
 
 class WifiESP
 {
-
 public:
-  static bool setup(const char *wifiESSID,
-		    const char *wifiPassword,
-		    const char *hostname,
-		    const int port,
-		    const byte channel,
-			const bool forceAP);
+  static bool setup();
   static void loop();
 private:
+    static bool setupFromPreferences();
+		static bool setupFromConfig(const char *wifiESSID,
+		    const char *wifiPassword,
+		    const byte channel,
+	 		  const bool forceAP);
   static void teardown();
+  static bool ConnectSTA(const char * SSid, const char * password);
+  static bool ConnectAP(const char * SSid, const char * password, byte channel);
   static bool wifiUp;
   static WiFiServer *server;
+  static int16_t wifiLed;
 };
-#endif //WifiESP8266_h
-#endif //ESP8266
+#endif //WifiESP32_h
+#endif //ESP32

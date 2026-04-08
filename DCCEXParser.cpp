@@ -125,8 +125,8 @@ Once a new OPCODE is decided upon, update this list.
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #include "DCCDecoder.h"
-#endif
-
+#include "WifiPreferences.h"
+#endif    
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
 #define SENDFLASHLIST(stream,flashList)                 \
@@ -738,29 +738,47 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         StringFormatter::send(stream, F("\n"));
         return;
     case 'C': // CONFIG <C [params]>
+       {
 #if defined(ARDUINO_ARCH_ESP32)
-// currently this only works on ESP32
+// curently this only works on ESP32
       if (p[0] == "SNIFFER"_hk) { // <C SNIFFER ON|OFF>
-	bool on = false;
-	if (params>1 && p[1] == "ON"_hk) {
-	  on = true;
-	}
-	DCCDecoder::onoff(on);
-	return;
+	     bool on = false;
+	     if (params>1 && p[1] == "ON"_hk) {
+	        on = true;
+	      }
+	      DCCDecoder::onoff(on);
+	      return;
       }
 #if WIFI_ON
-      if (p[0] == "WIFI"_hk) { 	// <C WIFI SSID PASSWORD>
-	if (params != 5)        // the 5 params 0 to 4 are (kinda): WIFI_hk 0x7777 &SSID 0x7777 &PASSWORD
-	  break;
-	if (p[1] == 0x7777 && p[3] == 0x7777) {
-	  WifiESP::setup((const char*)(com + p[2]), (const char*)(com + p[4]), WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-	}
-	return;
-      }
+    if (p[0] == "WIFI"_hk) {
+        if (params==2 && p[1]=="CLEAR"_hk) { // <C WIFI CLEAR>
+         WifiPreferences::clear();
+         return;
+       	}
+        if (params ==5 && p[1] == 0x7777 && p[3] == 0x7777 ) {
+	        // <C WIFI "ssid "password">
+	        WifiPreferences::save((const char*)(com + p[2]), 
+                              (const char*)(com + p[4]), 
+                              0, // channel irrelevant for STA 
+                              false);  // channel given so force AP
+            stream->print(F("<* Reboot required to activate new WIFI settings *>\n"));                  
+            return;
+        }
+        if ((params ==6 || params==7) && p[1]=="AP"_hk && p[2] == 0x7777 && p[4] == 0x7777 ) {
+	        // <C WIFI AP "ssid" "password" [channel]>
+	        WifiPreferences::save((const char*)(com + p[3]), 
+                              (const char*)(com + p[5]), 
+                              (params==7)?(int)p[6]:11, // channel 11 default 
+                              true);  // AP
+            stream->print(F("<* Reboot required to activate new WIFI settings *>\n"));                  
+            return;
+        }
+    }
 #endif
 #endif //ESP32
       if (parseC(stream, params, p))
 	return;
+}
       break;
 #ifndef DISABLE_DIAG
     case 'D': // DIAG <D [params]>
