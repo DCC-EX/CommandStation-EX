@@ -184,16 +184,13 @@ bool WifiESP::setup() {
   }
 
   server = new WiFiServer(IP_PORT); // start listening on tcp port
-  if (server) {
-    server->begin();
-    // server started here
-    if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
-      DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
-    }
-    DIAG(F("Server has started on port %d"),IP_PORT);
-  } else {
-    return false;
+  if (!server) return false;
+  // server started here
+  server->begin();
+  if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
+    DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
+  DIAG(F("Server has started on port %d"),IP_PORT);
   return true;
 }
 
