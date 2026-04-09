@@ -40,12 +40,21 @@
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
 
 #if defined(OLED_DRIVER)
-  #define DISPLAY_START(xxx) { \
-    DisplayInterface *t = new Display(new SSD1306AsciiWire(OLED_DRIVER)); \
-    t->begin(); \
-    xxx; \
-    t->refresh(); \
-  } 
+  #if defined(FLIP_OLED)
+    #define DISPLAY_START(xxx) { \
+      DisplayInterface *t = new Display(new SSD1306AsciiWire(OLED_DRIVER, Orientation::flipped)); \
+      t->begin(); \
+      xxx; \
+      t->refresh(); \
+    } 
+  #else
+    #define DISPLAY_START(xxx) { \
+      DisplayInterface *t = new Display(new SSD1306AsciiWire(OLED_DRIVER)); \
+      t->begin(); \
+      xxx; \
+      t->refresh(); \
+    } 
+  #endif
   
 #elif defined(LCD_DRIVER)
   #define DISPLAY_START(xxx) { \
