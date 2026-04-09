@@ -1383,6 +1383,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
     if (params == 0)
         return false;
+#ifdef ARDUINO_ARCH_ESP32
+    if (params==2 && p[0]=="WIFI"_hk  && p[1]=="SHOW"_hk ) { // <D WIFI SHOW>
+          WifiPreferences::dump(stream);
+          return true;
+    }
+#endif        
     bool onOff = (params > 0) && (p[1] == 1 || p[1] == "ON"_hk); // dont care if other stuff or missing... just means off
     switch (p[0])
     {

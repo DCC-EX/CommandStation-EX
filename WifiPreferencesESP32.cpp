@@ -20,15 +20,21 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiPreferences.h"
 #include <Preferences.h>
+#include "StringFormatter.h"
+
 Preferences preferences;
 
-void WifiPreferences::load() {
-  preferences.begin("DCCEX-WIFI", true); // read only
+bool WifiPreferences::load() {
+  preferences.begin("DCCEX-WIFI", true);
+  /* experiments with preferences.isKey("ssid") have proved problematic */
+  ssid[0]=0;
   preferences.getString("ssid", ssid, sizeof(ssid));
+  password[0]=0;
   preferences.getString("password", password, sizeof(password));
   channel = preferences.getUChar("channel", 0);
   forceAP = preferences.getBool("forceAP", false);
   preferences.end();
+  return true;
 }
 void WifiPreferences::save(const char *_ssid, const char *_password,  byte _channel, bool _forceAP) {
   preferences.begin("DCCEX-WIFI", false); // read/write
@@ -57,6 +63,14 @@ byte WifiPreferences::getChannel() {
 bool WifiPreferences::getForceAP() {
   return forceAP    ;
 }
+
+void WifiPreferences::dump(Print* stream) {
+  if (forceAP) StringFormatter::send(stream, 
+                 F("<* Wifi AP \"%s\" \"%s\" %d *>\n"), ssid, password, channel);
+  else StringFormatter::send(stream, 
+                 F("<* Wifi \"%s\" \"%s\" *>\n"), ssid, password);
+}
+
 char WifiPreferences::ssid[32] ="";   
 char WifiPreferences::password[32] ="";
 byte WifiPreferences::channel = 0;
