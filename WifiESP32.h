@@ -1,6 +1,7 @@
 /*
  *  © 2021 Harald Barth
  *  © 2023 Nathan Kellenicki
+ *  © 2026 Chris Harlow
  *
  *  This file is part of CommandStation-EX
  *
@@ -31,11 +32,11 @@ public:
   static bool setup();
   static void loop();
 private:
-    static bool setupFromPreferences();
-		static bool setupFromConfig(const char *wifiESSID,
-		    const char *wifiPassword,
-		    const byte channel,
-	 		  const bool forceAP);
+  static bool setupFromPreferences();
+  static bool setupFromConfig(const char *wifiESSID,
+			      const char *wifiPassword,
+			      const byte channel,
+			      const bool forceAP);
   static void teardown();
   static bool ConnectSTA(const char * SSid, const char * password);
   static bool ConnectAP(const char * SSid, const char * password, byte channel);

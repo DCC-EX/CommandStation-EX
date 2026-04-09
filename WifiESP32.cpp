@@ -2,8 +2,7 @@
     © 2023 Paul M. Antoine
     © 2021 Harald Barth
     © 2023 Nathan Kellenicki
-    © 2025 Chris Harlow
-    
+    © 2025, 2026 Chris Harlow
 
     This file is part of CommandStation-EX
 
@@ -120,9 +119,9 @@ static bool APmode = false;
 bool WifiESP::wifiUp = false;
 
 #ifdef WIFI_LED
- int16_t WifiESP::wifiLed = WIFI_LED;
- #else
- int16_t WifiESP::wifiLed = 0;
+int16_t WifiESP::wifiLed = WIFI_LED;
+#else
+int16_t WifiESP::wifiLed = 0;
 #endif
 
 WiFiServer *WifiESP::server = NULL;
@@ -186,7 +185,7 @@ bool WifiESP::setup() {
   // server started here
 
   DIAG(F("Server will be started on port %d"),IP_PORT);
-   // Now Wifi is up, register the mDNS service
+  // Now Wifi is up, register the mDNS service
   if(!MDNS.begin(WIFI_HOSTNAME)) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
@@ -205,18 +204,18 @@ bool WifiESP::setupFromPreferences() {
 }
 
 bool WifiESP::setupFromConfig(const char *SSid,
-                    const char *password,
-                    const byte channel,
-                    const bool forceAP) {
-  
+			      const char *password,
+			      const byte channel,
+			      const bool forceAP) {
+
   // parameters on entry are from config.h
-  
-    if (strcmp("OFF", SSid) == 0) {
+
+  if (strcmp("OFF", SSid) == 0) {
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     return false; // debatable if that is true (success) or false (no network)
   }
- 
+
 
   // clean start
   WiFi.disconnect(true);
@@ -228,9 +227,9 @@ bool WifiESP::setupFromConfig(const char *SSid,
   const char *yourNetwork = "Your network ";
   if (strncmp(yourNetwork, SSid, 13) == 0  || SSid[0]==0) SSid=nullptr;
   if (strncmp(yourNetwork, password, 13) == 0 || password[0]==0) password=nullptr;
-  
+
   if (SSid && password && !forceAP) {
- 
+
     wifiUp=ConnectSTA(SSid, password);
     if (!wifiUp) { 
       DIAG(F("Forcing one more Wifi restart"));
@@ -249,28 +248,28 @@ bool WifiESP::setupFromConfig(const char *SSid,
     // no idea to go on
     return false;
   }
-  
+
   return true;
 }
 
 const char *wlerror[] = {
-			 "WL_IDLE_STATUS",
-			 "WL_NO_SSID_AVAIL",
-			 "WL_SCAN_COMPLETED",
-			 "WL_CONNECTED",
-			 "WL_CONNECT_FAILED",
-			 "WL_CONNECTION_LOST",
-			 "WL_DISCONNECTED"
+  "WL_IDLE_STATUS",
+  "WL_NO_SSID_AVAIL",
+  "WL_SCAN_COMPLETED",
+  "WL_CONNECTED",
+  "WL_CONNECT_FAILED",
+  "WL_CONNECTION_LOST",
+  "WL_DISCONNECTED"
 };
 
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WIFI_HOSTNAME);
   WiFi.mode(WIFI_STA);
-  
+
 #ifdef SERIAL_BT_COMMANDS
-    WiFi.setSleep(true);
+  WiFi.setSleep(true);
 #else
-    WiFi.setSleep(false);
+  WiFi.setSleep(false);
 #endif
   WiFi.setAutoReconnect(true);
   WiFi.begin(SSid, password);
@@ -291,55 +290,55 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
 
 bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel) {
 // prepare all strings
-    String strMac;
-    if (!SSid || !password) {
-      strMac = WiFi.macAddress();
-      strMac.remove(0,9);
-      strMac.replace(":","");
-      strMac.replace(":","");
-      // convert mac addr hex chars to lower case to be compatible with AT software
-      std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    }
-    String strSSID;
-    if (!SSid) {
-      strSSID.concat("DCCEX_");
-      strSSID.concat(strMac);
-    } else {
-      strSSID.concat(SSid);
-    }
-    String strPass;
-    if (!password) {
-      strPass.concat("PASS_");
-      strPass.concat(strMac);
-    } else {
-      strPass.concat(password);
-    }
+  String strMac;
+  if (!SSid || !password) {
+    strMac = WiFi.macAddress();
+    strMac.remove(0,9);
+    strMac.replace(":","");
+    strMac.replace(":","");
+    // convert mac addr hex chars to lower case to be compatible with AT software
+    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
+  }
+  String strSSID;
+  if (!SSid) {
+    strSSID.concat("DCCEX_");
+    strSSID.concat(strMac);
+  } else {
+    strSSID.concat(SSid);
+  }
+  String strPass;
+  if (!password) {
+    strPass.concat("PASS_");
+    strPass.concat(strMac);
+  } else {
+    strPass.concat(password);
+  }
 
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
   WiFi.mode(WIFI_AP);
 #ifdef SERIAL_BT_COMMANDS
-    WiFi.setSleep(true);
+  WiFi.setSleep(true);
 #else
-    WiFi.setSleep(false);
+  WiFi.setSleep(false);
 #endif
 
 #ifdef WIFI_HIDE_SSID
- const bool hiddenAP = true;
+  const bool hiddenAP = true;
 #else
- const bool hiddenAP = false;
+  const bool hiddenAP = false;
 #endif
 
-    if (WiFi.softAP(strSSID.c_str(),strPass.c_str(), channel, hiddenAP, 8)) {
-      DIAG(F("Wifi in AP mode"));
-      LCD(5, F("Wifi: %s"), strSSID.c_str());
-      if (!password) 	LCD(6, F("PASS: %s"),strPass.c_str());
-      LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
-      APmode = true;
-      return true;
-    }
-    DIAG(F("Could not set up AP with Wifi SSID %s"),strSSID.c_str());
-    return false;
+  if (WiFi.softAP(strSSID.c_str(),strPass.c_str(), channel, hiddenAP, 8)) {
+    DIAG(F("Wifi in AP mode"));
+    LCD(5, F("Wifi: %s"), strSSID.c_str());
+    if (!password) 	LCD(6, F("PASS: %s"),strPass.c_str());
+    LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
+    APmode = true;
+    return true;
   }
+  DIAG(F("Could not set up AP with Wifi SSID %s"),strSSID.c_str());
+  return false;
+}
 
 void WifiESP::loop() {
   int clientId; //tmp loop var
