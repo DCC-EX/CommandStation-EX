@@ -176,18 +176,23 @@ bool WifiESP::setup() {
   if (!wifiUp) wifiUp=setupFromConfig(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL, WIFI_FORCE_AP);
   if (wifiLed) digitalWrite(wifiLed, wifiUp);
 
-  if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
-    DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
-  }
+  if (!wifiUp) return false;
 
-  server = new WiFiServer(IP_PORT); // start listening on tcp port
-  server->begin();
-  // server started here
-
-  DIAG(F("Server will be started on port %d"),IP_PORT);
   // Now Wifi is up, register the mDNS service
   if(!MDNS.begin(WIFI_HOSTNAME)) {
     DIAG(F("Wifi setup failed to start mDNS"));
+  }
+
+  server = new WiFiServer(IP_PORT); // start listening on tcp port
+  if (server) {
+    server->begin();
+    // server started here
+    if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
+      DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
+    }
+    DIAG(F("Server has started on port %d"),IP_PORT);
+  } else {
+    return false;
   }
   return true;
 }
