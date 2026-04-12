@@ -51,7 +51,7 @@
 
 #if WIFI_ON
   #include <WiFi.h>
-  #include "WifiEsp32.h"
+  #include "WifiESP32.h"
   WiFiServer server(80);
 #else
   #include <STM32Ethernet.h>
