@@ -51,6 +51,7 @@
 
 #if WIFI_ON
   #include <WiFi.h>
+  #include "WifiEsp32.h"
   WiFiServer server(80);
 #else
   #include <STM32Ethernet.h>
@@ -312,7 +313,11 @@ int SerialUsbLog::peek() {
 void SerialUsbLog::loop() {
 
   static bool started = false;
-  if (!started) {
+  if (!started 
+  #if WIFI_ON  
+     && WifiESP::isUp()
+  #endif
+  ) {
     server.begin();
     started = true;
     return;

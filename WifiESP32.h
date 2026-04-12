@@ -31,6 +31,7 @@ class WifiESP
 public:
   static bool setup();
   static void loop();
+  static bool isUp() { return wifiUp; }
 private:
   static bool setupFromPreferences();
   static bool setupFromConfig(const char *wifiESSID,

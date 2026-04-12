@@ -267,7 +267,8 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
 
 void WifiESP::loop() {
   int clientId; //tmp loop var
-
+  if (!wifiUp) return;
+  
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
