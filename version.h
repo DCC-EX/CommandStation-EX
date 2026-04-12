@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.19"
+#define VERSION "5.4.20"
+// 5.4.20 - Bugfix: STA mode did not work reliably since 5.4.16, fix of fix
 // 5.4.19 - Bugfix: PCA9685 driver did not handle mux I2C addresses for writing registers
 // 5.4.18 - Bugfix: EXRAIL failed TURNTABLE create commands (I2C off) can crash CS
 //        - Bugfix: EXRAIL be extra careful not to deref nullptr
