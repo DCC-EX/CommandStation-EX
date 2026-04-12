@@ -32,10 +32,10 @@
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "Websockets.h"
-/*
+#include "WifiPreferences.h"  
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
-*/
+
 
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"
@@ -50,27 +50,6 @@ void feedTheDog0(){
   //TIMERG1.wdt_wprotect=0;                   // write protect
 }
 
-/*
-void enableCoreWDT(byte core){
-  TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
-  if(idle == NULL){
-    DIAG(F("Get idle rask on core %d failed"),core);
-  } else {
-    if(esp_task_wdt_add(idle) != ESP_OK){
-      DIAG(F("Failed to add Core %d IDLE task to WDT"),core);
-    } else {
-      DIAG(F("Added Core %d IDLE task to WDT"),core);
-    }
-  }
-}
-
-void disableCoreWDT(byte core){
-    TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
-    if(idle == NULL || esp_task_wdt_delete(idle) != ESP_OK){
-      DIAG(F("Failed to remove Core %d IDLE task from WDT"),core);
-    }
-}
-*/
 
 class NetworkClient {
 public:
@@ -126,14 +105,6 @@ int16_t WifiESP::wifiLed = 0;
 
 WiFiServer *WifiESP::server = NULL;
 
-#ifdef WIFI_TASK_ON_CORE0
-void wifiLoop(void *){
-  for(;;){
-    WifiESP::loop();
-  }
-}
-#endif
-
 char asciitolower(char in) {
   if (in <= 'Z' && in >= 'A')
     return in - ('Z' - 'z');
@@ -170,16 +141,13 @@ bool WifiESP::setup() {
     pinMode(wifiLed, OUTPUT);
     digitalWrite(wifiLed, 0);
   }
-
-  // Try the setup from preferences first, then from config, and if both fail, give up
   wifiUp=setupFromPreferences();
-  if (!wifiUp) wifiUp=setupFromConfig(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL, WIFI_FORCE_AP);
   if (wifiLed) digitalWrite(wifiLed, wifiUp);
 
   if (!wifiUp) return false;
 
   // Now Wifi is up, register the mDNS service
-  if(!MDNS.begin(WIFI_HOSTNAME)) {
+  if(!MDNS.begin(WifiPreferences::getHostName())) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
 
@@ -194,64 +162,22 @@ bool WifiESP::setup() {
   return true;
 }
 
-#include "WifiPreferences.h"
 bool WifiESP::setupFromPreferences() {
-  if (!WifiPreferences::load()) return false; // load failed, likely no preferences stored
-  auto ssidptr=WifiPreferences::getSSID();
-  if (ssidptr == nullptr || ssidptr[0] == 0) return false;
-  if (WifiPreferences::getForceAP()) {
-    return ConnectAP(WifiPreferences::getSSID(), WifiPreferences::getPassword(),  WifiPreferences::getChannel());
-  }
-  return ConnectSTA(WifiPreferences::getSSID(), WifiPreferences::getPassword());
-}
-
-bool WifiESP::setupFromConfig(const char *SSid,
-			      const char *password,
-			      const byte channel,
-			      const bool forceAP) {
-
-  // parameters on entry are from config.h
-
-  if (strcmp("OFF", SSid) == 0) {
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    return false; // debatable if that is true (success) or false (no network)
-  }
-
-
-  // clean start
-  WiFi.disconnect(true);
-  // differnet settings that did not improve for haba
-  // WiFi.useStaticBuffers(true);
-  // WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-  // WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SECURITY);
-
-  const char *yourNetwork = "Your network ";
-  if (strncmp(yourNetwork, SSid, 13) == 0  || SSid[0]==0) SSid=nullptr;
-  if (strncmp(yourNetwork, password, 13) == 0 || password[0]==0) password=nullptr;
-
-  if (SSid && password && !forceAP) {
-
-    wifiUp=ConnectSTA(SSid, password);
-    if (!wifiUp) { 
-      DIAG(F("Forcing one more Wifi restart"));
-      esp_wifi_start(); // should this be in the connect function? esp_wifi_stop() is called by WiFi.disconnect(true) above, but that does not seem to be enough to recover from some failure modes. Calling esp_wifi_start() here seems to help with some of those failure modes, but it is not clear why.
-      esp_wifi_connect();
-      wifiUp=ConnectSTA(SSid, password);
-      if (!wifiUp) DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));    
-    }
-  }
-  if (!wifiUp || forceAP) {
-    wifiUp=ConnectAP(SSid, password, channel);
-  }
-
-  if (!wifiUp) {
-    DIAG(F("Wifi setup all fail (STA and AP mode)"));
-    // no idea to go on
+  WifiPreferences::load();
+  if (!WifiPreferences::getEnabled()) {
+    DIAG(F("Wifi OFF in preferences"));
     return false;
   }
 
-  return true;
+  // if we have been given an STA connection, try that first
+  auto ssidptr=WifiPreferences::getSsidSTA();
+  if (ssidptr[0] && ConnectSTA(ssidptr, WifiPreferences::getPasswordSTA())) return true;
+    
+  // Try for a defined AP mode. ConnectAP will fill missing values from mac.
+  if ( ConnectAP(WifiPreferences::getSsidAP(), WifiPreferences::getPasswordAP(), WifiPreferences::getChannelAP()) ) return true;
+  
+  // all a bit of a mystery 
+  return false;
 }
 
 const char *wlerror[] = {
@@ -265,7 +191,7 @@ const char *wlerror[] = {
 };
 
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
-  WiFi.setHostname(WIFI_HOSTNAME);
+  WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
 
 #ifdef SERIAL_BT_COMMANDS
@@ -292,28 +218,25 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
 
 bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel) {
 // prepare all strings
-  String strMac;
-  if (!SSid || !password) {
+  bool password_secret=true;
+  String strSSID; // retain scope in function for c_str() to be valid
+  String strPass;
+  
+  if (!SSid || SSid[0]==0) {
+    String strMac;
     strMac = WiFi.macAddress();
     strMac.remove(0,9);
     strMac.replace(":","");
     strMac.replace(":","");
     // convert mac addr hex chars to lower case to be compatible with AT software
     std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-  }
-  String strSSID;
-  if (!SSid) {
     strSSID.concat("DCCEX_");
     strSSID.concat(strMac);
-  } else {
-    strSSID.concat(SSid);
-  }
-  String strPass;
-  if (!password) {
+    SSid=strSSID.c_str();
     strPass.concat("PASS_");
     strPass.concat(strMac);
-  } else {
-    strPass.concat(password);
+    password=strPass.c_str();
+    password_secret=false;
   }
 
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
@@ -330,15 +253,15 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
   const bool hiddenAP = false;
 #endif
 
-  if (WiFi.softAP(strSSID.c_str(),strPass.c_str(), channel, hiddenAP, 8)) {
+  if (WiFi.softAP(SSid,password, channel, hiddenAP, 8)) {
     DIAG(F("Wifi in AP mode"));
-    LCD(5, F("Wifi: %s"), strSSID.c_str());
-    if (!password) 	LCD(6, F("PASS: %s"),strPass.c_str());
+    LCD(5, F("Wifi: %s"), SSid);
+    if (!password_secret) 	LCD(6, F("PASS: %s"),password);
     LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
     APmode = true;
     return true;
   }
-  DIAG(F("Could not set up AP with Wifi SSID %s"),strSSID.c_str());
+  DIAG(F("Could not set up AP with Wifi SSID %s"),SSid);
   return false;
 }
 

@@ -45,6 +45,7 @@ struct DCCEXParser
    private:
   
     static const int16_t MAX_BUFFER=50;  // longest command sent in
+    static const int16_t STRING_MARKER=0x7777; // used to mark next parameter as a string pointer in the command buffer
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
      
     static bool parseT(Print * stream, int16_t params, int16_t p[]);
@@ -55,6 +56,7 @@ struct DCCEXParser
     static bool parseC(Print * stream, int16_t params, int16_t p[]);
     static bool parseD(Print * stream, int16_t params, int16_t p[]);
     static bool parseJM(Print * stream, int16_t params, int16_t p[]);
+    static bool parseWifi(Print * stream, int16_t params, int16_t p[], const byte * com);
 #ifndef IO_NO_HAL
     static bool parseI(Print * stream, int16_t params, int16_t p[]);
 #endif

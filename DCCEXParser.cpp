@@ -749,32 +749,10 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 	      DCCDecoder::onoff(on);
 	      return;
       }
-#if WIFI_ON
+
     if (p[0] == "WIFI"_hk) {
-        if (params==2 && p[1]=="CLEAR"_hk) { // <C WIFI CLEAR>
-         WifiPreferences::clear();
-         return;
-       	}
-        if (params ==5 && p[1] == 0x7777 && p[3] == 0x7777 ) {
-	        // <C WIFI "ssid "password">
-	        WifiPreferences::save((const char*)(com + p[2]), 
-                              (const char*)(com + p[4]), 
-                              0, // channel irrelevant for STA 
-                              false);  // channel given so force AP
-            stream->print(F("<* Reboot required to activate new WIFI settings *>\n"));                  
-            return;
-        }
-        if ((params ==6 || params==7) && p[1]=="AP"_hk && p[2] == 0x7777 && p[4] == 0x7777 ) {
-	        // <C WIFI AP "ssid" "password" [channel]>
-	        WifiPreferences::save((const char*)(com + p[3]), 
-                              (const char*)(com + p[5]), 
-                              (params==7)?(int)p[6]:11, // channel 11 default 
-                              true);  // AP
-            stream->print(F("<* Reboot required to activate new WIFI settings *>\n"));                  
-            return;
-        }
+        if (parseWifi(stream, params, p,com)) return;
     }
-#endif
 #endif //ESP32
       if (parseC(stream, params, p))
 	return;
@@ -1377,6 +1355,64 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
       break;
     }
     return false;
+}
+
+bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const byte * com) {
+    if (params<2) return false;
+
+    if (params==2 && p[1]=="ON"_hk) { // <C WIFI ON>
+        WifiPreferences::enable(true);
+        WifiESP::setup();
+        return true;
+    }
+
+    if (params==2 && p[1]=="OFF"_hk) { // <C WIFI OFF>
+        WifiPreferences::enable(false);
+        WifiESP::setup();
+        return true;
+    }
+    if (params==4 && p[1]=="HOSTNAME"_hk && p[2]==STRING_MARKER) { // <C WIFI HOSTNAME "xx">
+        auto hostname=(const char*)(com + p[3]);
+        WifiPreferences::saveHostName(hostname);
+        WifiESP::setup();
+        return true;
+    }
+    if (params==2 && p[1]=="DEFAULT"_hk) { // <C WIFI DEFAULT>
+        WifiPreferences::clear();
+        WifiESP::setup();
+        return true;
+    }
+
+    if (params ==5 && p[1] == STRING_MARKER && p[3] == STRING_MARKER ) {
+        // <C WIFI "ssid "password">  sets sticky sta mode credentials
+        auto ssid=(const char*)(com + p[2]);
+        auto password=(const char*)(com + p[4]);
+        if (strlen(password)<8) return false; // minimum password length for WPA2
+        WifiPreferences::saveSTA(ssid,password,true); // save sticky credentials                   
+        WifiESP::setup();
+        return true;
+    }
+    if (params ==6 && p[1]=="TEMP"_hk && p[2] == STRING_MARKER && p[4] == STRING_MARKER ) {
+        // <C WIFI TEMP "ssid "password">  sets non-sticky sta mode credentials
+        auto ssid=(const char*)(com + p[3]);
+        auto password=(const char*)(com + p[5]);
+        if (strlen(password)<8) return false; // minimum password length for WPA2
+        WifiPreferences::saveSTA(ssid,password,false); // save non-sticky credentials                   
+        WifiESP::setup();
+        return true;
+    }
+    if ((params ==6 || params==7) && p[1]=="AP"_hk && p[2] == STRING_MARKER && p[4] == STRING_MARKER ) {
+        // <C WIFI AP "ssid" "password" [channel]>
+        auto ssid=(const char*)(com + p[3]);
+        auto password=(const char*)(com + p[5]);
+        byte channel=(params==7)?p[6]:11;
+        if (strlen(password)<8) return false; // minimum password length for WPA2
+        WifiPreferences::saveAP(ssid,password,channel); 
+        WifiESP::setup();
+        return true;
+    }
+
+    return false; // invalid/unknown
 }
 
 bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
