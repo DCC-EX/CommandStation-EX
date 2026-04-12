@@ -101,13 +101,13 @@ byte WifiPreferences::getChannelAP() {return channelAP;}
 
 void WifiPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
-                 F("<* Wifi %S *>\n"), enabled?F("ON"):F("OFF"));
+                 F("<* C WIFI %S *>\n"), enabled?F("ON"):F("OFF"));
   if (ssidAP[0]) StringFormatter::send(stream, 
-                 F("<* Wifi AP \"%s\" \"%s\" %d *>\n"), ssidAP, passwordAP, channelAP);
+                 F("<* C WIFI AP \"%s\" \"%s\" %d *>\n"), ssidAP, passwordAP, channelAP);
   if (ssidSTA[0]) StringFormatter::send(stream, 
-                 F("<* Wifi \"%s\" \"%s\" *>\n"), ssidSTA, passwordSTA);
+                 F("<* C WIFI \"%s\" \"%s\" *>\n"), ssidSTA, passwordSTA);
   StringFormatter::send(stream, 
-                 F("<* Wifi HOSTNAME \"%s\" *>\n"), hostName);
+                 F("<* C WIFI HOSTNAME \"%s\" *>\n"), hostName);
 }
 
 char WifiPreferences::ssidSTA[32] ="";   

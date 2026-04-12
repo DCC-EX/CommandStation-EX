@@ -1384,7 +1384,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
     }
 
     if (params ==5 && p[1] == STRING_MARKER && p[3] == STRING_MARKER ) {
-        // <C WIFI "ssid "password">  sets sticky sta mode credentials
+        // <C WIFI "ssid" "password">  sets sticky sta mode credentials
         auto ssid=(const char*)(com + p[2]);
         auto password=(const char*)(com + p[4]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
@@ -1393,7 +1393,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         return true;
     }
     if (params ==6 && p[1]=="TEMP"_hk && p[2] == STRING_MARKER && p[4] == STRING_MARKER ) {
-        // <C WIFI TEMP "ssid "password">  sets non-sticky sta mode credentials
+        // <C WIFI TEMP "ssid" "password">  sets non-sticky sta mode credentials
         auto ssid=(const char*)(com + p[3]);
         auto password=(const char*)(com + p[5]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
