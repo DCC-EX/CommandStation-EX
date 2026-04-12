@@ -235,10 +235,6 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   StringFormatter::send(wifiStream, F("AT+CWMODE%s=1\r\n"), oldCmd ? "" : "_CUR"); // configure as "station" = WiFi client
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
 
-  // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
-  StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
-  checkForOK(1000, true);
-
   const char *yourNetwork = "Your network ";
   if (STRNCMP_P(yourNetwork, (const char*)SSid, 13) == 0 || STRNCMP_P("", (const char*)SSid, 13) == 0) {
     if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
@@ -294,6 +290,10 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     } while (!checkForOK(1000+i*500, true) && i++<10);
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
+
+    // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
+    StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
+    checkForOK(1000, true);
 
     // Figure out MAC addr
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
