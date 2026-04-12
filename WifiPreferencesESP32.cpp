@@ -105,7 +105,7 @@ void WifiPreferences::dump(Print* stream) {
   if (ssidAP[0]) StringFormatter::send(stream, 
                  F("<* C WIFI AP \"%s\" \"%s\" %d *>\n"), ssidAP, passwordAP, channelAP);
   if (ssidSTA[0]) StringFormatter::send(stream, 
-                 F("<* C WIFI \"%s\" \"%s\" *>\n"), ssidSTA, passwordSTA);
+                 F("<* C WIFI \"%s\" \"********\" *>\n"), ssidSTA);
   StringFormatter::send(stream, 
                  F("<* C WIFI HOSTNAME \"%s\" *>\n"), hostName);
 }

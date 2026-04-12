@@ -165,7 +165,9 @@ bool WifiESP::setup() {
 bool WifiESP::setupFromPreferences() {
   WifiPreferences::load();
   if (!WifiPreferences::getEnabled()) {
-    DIAG(F("Wifi OFF in preferences"));
+    LCD(5,F("WIFI OFF"));
+    LCD(6,F(""));
+    LCD(7,F(""));
     return false;
   }
 
@@ -209,6 +211,8 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   }
   if (WiFi.status() == WL_CONNECTED) {
     DIAG(F("Wifi in STA mode"));
+    LCD(5,F(""));
+    LCD(6,F(""));
     LCD(7, F("IP: %s"), WiFi.localIP().toString().c_str());
     return true;
   }
@@ -255,8 +259,9 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
 
   if (WiFi.softAP(SSid,password, channel, hiddenAP, 8)) {
     DIAG(F("Wifi in AP mode"));
-    LCD(5, F("Wifi: %s"), SSid);
-    if (!password_secret) 	LCD(6, F("PASS: %s"),password);
+    LCD(5, F("WIFI: %s"), SSid);
+    if (password_secret) LCD(6,F("")); 	
+    else LCD(6, F("PASS: %s"),password);
     LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
     APmode = true;
     return true;
@@ -268,7 +273,7 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
 void WifiESP::loop() {
   int clientId; //tmp loop var
   if (!wifiUp) return;
-  
+
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
