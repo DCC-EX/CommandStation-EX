@@ -1357,6 +1357,7 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
     return false;
 }
 
+#ifdef ARDUINO_ARCH_ESP32
 bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const byte * com) {
     if (params<2) return false;
 
@@ -1414,6 +1415,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
 
     return false; // invalid/unknown
 }
+#endif
 
 bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 {
