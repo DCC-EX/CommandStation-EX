@@ -291,6 +291,10 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
+    // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
+    StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
+    checkForOK(1000, true);
+
     // Figure out MAC addr
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
     // looking fpr mac addr eg +CIFSR:APMAC,"be:dd:c2:5c:6b:b7"
