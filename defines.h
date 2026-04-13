@@ -137,9 +137,8 @@
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
   #endif
-  #if ENABLE_WIFI
-   #define ENABLE_SERIAL_LOG
-   #endif
+  #define ENABLE_WIFI true
+  #define ENABLE_SERIAL_LOG
 
 #elif defined(ARDUINO_ARCH_SAMD)
   #define ARDUINO_TYPE "SAMD21"
