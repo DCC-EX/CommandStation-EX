@@ -42,6 +42,8 @@ bool WifiPreferences::load() {
     strncpy(hostName, "DCC-EX",sizeof(hostName));
   }
   enabled = preferences.getBool("enabled", true);
+  channelAP = preferences.getUChar("channelAP", 11);
+  hiddenAP = preferences.getBool("hiddenAP", false);
   preferences.end();
   return true;
 }
@@ -56,14 +58,16 @@ void WifiPreferences::saveSTA(const char *_ssid, const char *_password,  bool st
   preferences.end();
 }
 
-void WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _channel) {
+void WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _channel, bool _hidden) {
   strncpy(ssidAP, _ssid, sizeof(ssidAP));
   strncpy(passwordAP, _password, sizeof(passwordAP));
   channelAP=_channel;
+  hiddenAP=_hidden;
   preferences.begin("DCCEX-WIFI", false); // read/write
   preferences.putString("ssidAP", ssidAP);
   preferences.putString("passwordAP", passwordAP);
   preferences.putUChar("channelAP",channelAP);
+  preferences.putBool("hiddenAP",hiddenAP);
   preferences.end();
 }
 
@@ -97,13 +101,14 @@ const char *WifiPreferences::getSsidAP() {return ssidAP;}
 const char *WifiPreferences::getPasswordAP() {return passwordAP;}
 const char *WifiPreferences::getHostName() {return hostName;}
 byte WifiPreferences::getChannelAP() {return channelAP;}
-
+bool WifiPreferences::getHiddenAP() {return hiddenAP;}
 
 void WifiPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
                  F("<* C WIFI %S *>\n"), enabled?F("ON"):F("OFF"));
   if (ssidAP[0]) StringFormatter::send(stream, 
-                 F("<* C WIFI AP \"%s\" \"%s\" %d *>\n"), ssidAP, passwordAP, channelAP);
+                 F("<* C WIFI %S \"%s\" \"%s\" %d *>\n"),
+                 hiddenAP?F("HIDDENAP"):F("AP"), ssidAP, passwordAP, channelAP);
   if (ssidSTA[0]) StringFormatter::send(stream, 
                  F("<* C WIFI \"%s\" \"********\" *>\n"), ssidSTA);
   StringFormatter::send(stream, 
@@ -115,6 +120,7 @@ char WifiPreferences::passwordSTA[32] ="";
 char WifiPreferences::ssidAP[32] ="";
 char WifiPreferences::passwordAP[32] ="";
 byte WifiPreferences::channelAP = 0;
+bool WifiPreferences::hiddenAP = false;
 bool WifiPreferences::enabled  = true;
 char WifiPreferences::hostName[32] ="";
 #endif //ARDUINO_ARCH_ESP32

@@ -24,7 +24,7 @@ class WifiPreferences {
 public:
   static bool load();
   static void saveSTA(const char *_ssid, const char *_password, bool sticky);
-  static void saveAP(const char *_ssid, const char *_password, byte _channel);
+  static void saveAP(const char *_ssid, const char *_password, byte _channel, bool _hidden);
   static void saveHostName(const char *_hostname);
   static void clear();
   static void enable(bool enable);
@@ -35,12 +35,14 @@ public:
   static const char *getPasswordAP();
   static const char *getHostName();
   static byte getChannelAP();
+  static bool getHiddenAP();
   static void dump(Print * stream);
 private:
   static bool enabled;
   static char ssidAP[32];
   static char passwordAP[32];
   static byte channelAP;
+  static bool hiddenAP;
   static char ssidSTA[32];
   static char passwordSTA[32];
   static char hostName[32];

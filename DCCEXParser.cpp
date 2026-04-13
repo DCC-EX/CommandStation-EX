@@ -1361,30 +1361,51 @@ bool DCCEXParser::parseC(Print *stream, int16_t params, int16_t p[]) {
 bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const byte * com) {
     if (params<2) return false;
 
-    if (params==2 && p[1]=="ON"_hk) { // <C WIFI ON>
+    /* NOTE: commands checked with stream==&USB_SERIAL 
+      are only allowed from USB serial, not from wifi or other sources. 
+      This is to ensure that a user can only change them if they have
+      access to the USB serial in order to unlock a blocked system such
+      as WIFI OFF or AP mode password forgotten. */
+
+    if (stream!=&USB_SERIAL 
+         && ( p[1]=="OFF"_hk || p[1]=="AP"_hk || p[1]=="HIDDENAP"_hk) ) {
+        StringFormatter::send(stream, F("<* WIFI OFF or AP ignored over WiFi *>\n"));
+        return false;
+    }
+
+    if (params==2 
+        && p[1]=="ON"_hk) { // <C WIFI ON>
         WifiPreferences::enable(true);
         WifiESP::setup();
         return true;
     }
 
-    if (params==2 && p[1]=="OFF"_hk) { // <C WIFI OFF>
+    if (params==2 
+        && p[1]=="OFF"_hk) { // <C WIFI OFF>
         WifiPreferences::enable(false);
         WifiESP::setup();
         return true;
     }
-    if (params==4 && p[1]=="HOSTNAME"_hk && p[2]==STRING_MARKER) { // <C WIFI HOSTNAME "xx">
+
+    if (params==4 
+        && p[1]=="HOSTNAME"_hk 
+        && p[2]==STRING_MARKER) { // <C WIFI HOSTNAME "xx">
         auto hostname=(const char*)(com + p[3]);
         WifiPreferences::saveHostName(hostname);
         WifiESP::setup();
         return true;
     }
-    if (params==2 && p[1]=="DEFAULT"_hk) { // <C WIFI DEFAULT>
+
+    if (params==2 
+        && p[1]=="DEFAULT"_hk) { // <C WIFI DEFAULT>
         WifiPreferences::clear();
         WifiESP::setup();
         return true;
     }
 
-    if (params ==5 && p[1] == STRING_MARKER && p[3] == STRING_MARKER ) {
+    if (params==5 
+        && p[1] == STRING_MARKER 
+        && p[3] == STRING_MARKER ) {
         // <C WIFI "ssid" "password">  sets sticky sta mode credentials
         auto ssid=(const char*)(com + p[2]);
         auto password=(const char*)(com + p[4]);
@@ -1393,7 +1414,11 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         WifiESP::setup();
         return true;
     }
-    if (params ==6 && p[1]=="TEMP"_hk && p[2] == STRING_MARKER && p[4] == STRING_MARKER ) {
+    
+    if (params==6 
+        && p[1]=="TEMP"_hk 
+        && p[2] == STRING_MARKER 
+        && p[4] == STRING_MARKER ) {
         // <C WIFI TEMP "ssid" "password">  sets non-sticky sta mode credentials
         auto ssid=(const char*)(com + p[3]);
         auto password=(const char*)(com + p[5]);
@@ -1402,13 +1427,18 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         WifiESP::setup();
         return true;
     }
-    if ((params ==6 || params==7) && p[1]=="AP"_hk && p[2] == STRING_MARKER && p[4] == STRING_MARKER ) {
+    
+    if ((params ==6 || params==7) 
+        && (p[1]=="AP"_hk || p[1]=="HIDDENAP"_hk)  
+        && p[2] == STRING_MARKER 
+        && p[4] == STRING_MARKER ) {
         // <C WIFI AP "ssid" "password" [channel]>
         auto ssid=(const char*)(com + p[3]);
         auto password=(const char*)(com + p[5]);
         byte channel=(params==7)?p[6]:11;
+        bool hidden=(p[1]=="HIDDENAP"_hk);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        WifiPreferences::saveAP(ssid,password,channel); 
+        WifiPreferences::saveAP(ssid,password,channel,hidden); 
         WifiESP::setup();
         return true;
     }
