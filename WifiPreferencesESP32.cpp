@@ -20,61 +20,61 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiPreferences.h"
 #include <Preferences.h>
-#include "StringFormatter.h"
 
 Preferences preferences;
+WifiPreferences::SavedState WifiPreferences::state;
 
 bool WifiPreferences::load() {
   preferences.begin("DCCEX-WIFI", true);
   /* experiments with preferences.isKey("ssid") have proved problematic */
-  ssidSTA[0]=0;
-  preferences.getString("ssidSTA", ssidSTA, sizeof(ssidSTA));
-  passwordSTA[0]=0;
-  preferences.getString("passwordSTA", passwordSTA, sizeof(passwordSTA));
-  ssidAP[0]=0;
-  preferences.getString("ssidAP", ssidAP, sizeof(ssidAP));
-  passwordAP[0]=0;
-  preferences.getString("passwordAP", passwordAP, sizeof(passwordAP));
-  hostName[0]=0;
-  preferences.getString("hostName", hostName, sizeof(hostName));
-  if (hostName[0]==0) {
+  state.ssidSTA[0]=0;
+  preferences.getString("ssidSTA", state.ssidSTA, sizeof(state.ssidSTA));
+  state.passwordSTA[0]=0;
+  preferences.getString("passwordSTA", state.passwordSTA, sizeof(state.passwordSTA));
+  state.ssidAP[0]=0;
+  preferences.getString("ssidAP", state.ssidAP, sizeof(state.ssidAP));
+  state.passwordAP[0]=0;
+  preferences.getString("passwordAP", state.passwordAP, sizeof(state.passwordAP));
+  state.hostName[0]=0;
+  preferences.getString("hostName", state.hostName, sizeof(state.hostName));
+  if (state.hostName[0]==0) {
     // default host name if not set in preferences
-    strncpy(hostName, "DCC-EX",sizeof(hostName));
+    strncpy(state.hostName, "DCC-EX",sizeof(state.hostName));
   }
-  enabled = preferences.getBool("enabled", true);
-  channelAP = preferences.getUChar("channelAP", 11);
-  hiddenAP = preferences.getBool("hiddenAP", false);
+  state.enabled = preferences.getBool("enabled", true);
+  state.channelAP = preferences.getUChar("channelAP", 11);
+  state.hiddenAP = preferences.getBool("hiddenAP", false);
   preferences.end();
   return true;
 }
 
 void WifiPreferences::saveSTA(const char *_ssid, const char *_password,  bool sticky) {
-  strncpy(ssidSTA, _ssid, sizeof(ssidSTA));
-  strncpy(passwordSTA, _password, sizeof(passwordSTA));
+  strncpy(state.ssidSTA, _ssid, sizeof(state.ssidSTA));
+  strncpy(state.passwordSTA, _password, sizeof(state.passwordSTA));
   if (!sticky) return; // do not save to preferences if not sticky
   preferences.begin("DCCEX-WIFI", false); // read/write
-  preferences.putString("ssidSTA", ssidSTA);
-  preferences.putString("passwordSTA", passwordSTA);  
+  preferences.putString("ssidSTA", state.ssidSTA);
+  preferences.putString("passwordSTA", state.passwordSTA);  
   preferences.end();
 }
 
 void WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _channel, bool _hidden) {
-  strncpy(ssidAP, _ssid, sizeof(ssidAP));
-  strncpy(passwordAP, _password, sizeof(passwordAP));
-  channelAP=_channel;
-  hiddenAP=_hidden;
+  strncpy(state.ssidAP, _ssid, sizeof(state.ssidAP));
+  strncpy(state.passwordAP, _password, sizeof(state.passwordAP));
+  state.channelAP=_channel;
+  state.hiddenAP=_hidden;
   preferences.begin("DCCEX-WIFI", false); // read/write
-  preferences.putString("ssidAP", ssidAP);
-  preferences.putString("passwordAP", passwordAP);
-  preferences.putUChar("channelAP",channelAP);
-  preferences.putBool("hiddenAP",hiddenAP);
+  preferences.putString("ssidAP", state.ssidAP);
+  preferences.putString("passwordAP", state.passwordAP);
+  preferences.putUChar("channelAP",state.channelAP);
+  preferences.putBool("hiddenAP",state.hiddenAP);
   preferences.end();
 }
 
 void WifiPreferences::saveHostName(const char *_hostname) {
-  strncpy(hostName, _hostname, sizeof(hostName));
+  strncpy(state.hostName, _hostname, sizeof(state.hostName));
   preferences.begin("DCCEX-WIFI", false); // read/write
-  preferences.putString("hostName", hostName);
+  preferences.putString("hostName", state.hostName);
   preferences.end();
 }
 
@@ -86,41 +86,11 @@ void WifiPreferences::clear() {
 }
 
 void WifiPreferences::enable(bool enable) {
-  if (enable==enabled) return; 
-  enabled=enable;
+  if (enable==state.enabled) return; 
+  state.enabled=enable;
   preferences.begin("DCCEX-WIFI", false); // read/write
-  preferences.putBool("enabled", enabled);
+  preferences.putBool("enabled", state.enabled);
   preferences.end();
 }
 
-// getters
-bool WifiPreferences::getEnabled() { return enabled;}
-const char *WifiPreferences::getSsidSTA() {return ssidSTA;}
-const char *WifiPreferences::getPasswordSTA() {return passwordSTA;}
-const char *WifiPreferences::getSsidAP() {return ssidAP;}
-const char *WifiPreferences::getPasswordAP() {return passwordAP;}
-const char *WifiPreferences::getHostName() {return hostName;}
-byte WifiPreferences::getChannelAP() {return channelAP;}
-bool WifiPreferences::getHiddenAP() {return hiddenAP;}
-
-void WifiPreferences::dump(Print* stream) {
-  StringFormatter::send(stream, 
-                 F("<* C WIFI %S *>\n"), enabled?F("ON"):F("OFF"));
-  if (ssidAP[0]) StringFormatter::send(stream, 
-                 F("<* C WIFI %S \"%s\" \"%s\" %d *>\n"),
-                 hiddenAP?F("HIDDENAP"):F("AP"), ssidAP, passwordAP, channelAP);
-  if (ssidSTA[0]) StringFormatter::send(stream, 
-                 F("<* C WIFI \"%s\" \"********\" *>\n"), ssidSTA);
-  StringFormatter::send(stream, 
-                 F("<* C WIFI HOSTNAME \"%s\" *>\n"), hostName);
-}
-
-char WifiPreferences::ssidSTA[32] ="";   
-char WifiPreferences::passwordSTA[32] ="";
-char WifiPreferences::ssidAP[32] ="";
-char WifiPreferences::passwordAP[32] ="";
-byte WifiPreferences::channelAP = 0;
-bool WifiPreferences::hiddenAP = false;
-bool WifiPreferences::enabled  = true;
-char WifiPreferences::hostName[32] ="";
 #endif //ARDUINO_ARCH_ESP32

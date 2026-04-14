@@ -20,6 +20,10 @@
 #ifndef WifiPreferences_h
 #define WifiPreferences_h
 #include <Arduino.h>
+#include "StringFormatter.h"
+
+// Note... functions that are not cpu-specific are implemented here in the header file to reduce duplication.
+//         CPU specific functions are implemented in the corresponding WifiPreferencesXXX.cpp file.
 class WifiPreferences {
 public:
   static bool load();
@@ -28,23 +32,40 @@ public:
   static void saveHostName(const char *_hostname);
   static void clear();
   static void enable(bool enable);
-  static bool getEnabled();
-  static const char *getSsidSTA();
-  static const char *getPasswordSTA();
-  static const char *getSsidAP();
-  static const char *getPasswordAP();
-  static const char *getHostName();
-  static byte getChannelAP();
-  static bool getHiddenAP();
-  static void dump(Print * stream);
+  static bool getEnabled() {return state.enabled;};
+  static const char *getSsidSTA() {return state.ssidSTA;};
+  static const char *getPasswordSTA() {return state.passwordSTA;};
+  static const char *getSsidAP() {return state.ssidAP;};
+  static const char *getPasswordAP() {return state.passwordAP;};
+  static const char *getHostName() {return state.hostName;};
+  static byte getChannelAP() {return state.channelAP;};
+  static bool getHiddenAP() {return state.hiddenAP;};
+  static void dump(Print * stream) {
+      StringFormatter::send(stream, 
+                 F("<* C WIFI %S *>\n"), state.enabled?F("ON"):F("OFF"));
+  if (state.ssidAP[0]) StringFormatter::send(stream, 
+                 F("<* C WIFI %S \"%s\" \"%s\" %d *>\n"),
+                 state.hiddenAP?F("HIDDENAP"):F("AP"), state.ssidAP, state.passwordAP, state.channelAP);
+  if (state.ssidSTA[0]) StringFormatter::send(stream, 
+                 F("<* C WIFI \"%s\" \"********\" *>\n"), state.ssidSTA);
+  StringFormatter::send(stream, 
+                 F("<* C WIFI HOSTNAME \"%s\" *>\n"), state.  hostName);
+
+  };
+static const byte MAX_SSID_LENGTH=32;
+static const byte MAX_PASSWORD_LENGTH=64;
+
 private:
-  static bool enabled;
-  static char ssidAP[32];
-  static char passwordAP[32];
-  static byte channelAP;
-  static bool hiddenAP;
-  static char ssidSTA[32];
-  static char passwordSTA[32];
-  static char hostName[32];
+  struct SavedState {
+    bool enabled;
+    char ssidAP[MAX_SSID_LENGTH+1];
+    char passwordAP[MAX_PASSWORD_LENGTH+1];
+    byte channelAP;
+    bool hiddenAP;
+    char ssidSTA[MAX_SSID_LENGTH+1];
+    char passwordSTA[MAX_PASSWORD_LENGTH+1];
+    char hostName[MAX_SSID_LENGTH+1 ];
+  };
+  static SavedState state;
 };
 #endif //WifiPreferences_h
