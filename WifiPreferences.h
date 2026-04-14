@@ -42,6 +42,7 @@ public:
   static const char *getHostName() {return state.hostName;};
   static byte getChannelAP() {return state.channelAP;};
   static bool getHiddenAP() {return state.hiddenAP;};
+  static bool getHideAPPassword() {return state.hideAPPassword;};
   static void dump(Print * stream) {
       StringFormatter::send(stream, 
                  F("<* C WIFI %S *>\n"), state.enabled?F("ON"):F("OFF"));
@@ -69,6 +70,7 @@ private:
     bool enabled;
     byte channelAP;
     bool hiddenAP;
+    bool hideAPPassword;
     char ssidAP[MAX_AP_SSID_LENGTH+1];
     char passwordAP[MAX_AP_PASSWORD_LENGTH+1];
     char ssidSTA[MAX_STA_SSID_LENGTH+1];

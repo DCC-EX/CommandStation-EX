@@ -20,27 +20,55 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiPreferences.h"
 #include <Preferences.h>
+#include <WiFi.h>
 
 Preferences preferences;
 WifiPreferences::SavedState WifiPreferences::state;
 
+
 bool WifiPreferences::load() {
+
+  // create default AP mode SSID and password based on MAC address
+  String strMac = WiFi.macAddress();
+  strMac.remove(0,9);
+  strMac.replace(":","");
+  strMac.replace(":","");
+  // convert mac addr hex chars to lower case to be compatible with AT software
+  std::transform(strMac.begin(), strMac.end(), strMac.begin(),
+      [](char c){
+          if (c <= 'Z' && c >= 'A') c = c - ('Z' - 'z');
+          return c;
+      });
+  
   preferences.begin(EEPROM_FLAG, true);
   /* experiments with preferences.isKey("ssid") have proved problematic */
+  
   state.ssidSTA[0]=0;
   preferences.getString("ssidSTA", state.ssidSTA, sizeof(state.ssidSTA));
+  
   state.passwordSTA[0]=0;
   preferences.getString("passwordSTA", state.passwordSTA, sizeof(state.passwordSTA));
-  state.ssidAP[0]=0;
+  
+  state.ssidAP[0]=0; 
   preferences.getString("ssidAP", state.ssidAP, sizeof(state.ssidAP));
-  state.passwordAP[0]=0;
-  preferences.getString("passwordAP", state.passwordAP, sizeof(state.passwordAP));
-  state.hostName[0]=0;
-  preferences.getString("hostName", state.hostName, sizeof(state.hostName));
-  if (state.hostName[0]==0) {
-    // default host name if not set in preferences
-    strncpy(state.hostName, "DCC-EX",sizeof(state.hostName));
+  if (!state.ssidAP[0]) {
+    // default to AP mode with SSID and password based on MAC address if not set in preferences
+    strncpy(state.ssidAP,"DCCEX_",sizeof(state.ssidAP));
+    strncat(state.ssidAP, strMac.c_str(), sizeof(state.ssidAP) - strlen(state.ssidAP) - 1);
   }
+  
+  state.passwordAP[0]=0;
+  state.hideAPPassword=true; // default to hiding AP password if set in preferences;
+  preferences.getString("passwordAP", state.passwordAP, sizeof(state.passwordAP));
+  if (!state.passwordAP[0]) {
+    strncpy(state.passwordAP,"PASS_",sizeof(state.passwordAP));
+    strncat(state.passwordAP, strMac.c_str(), sizeof(state.passwordAP) - strlen(state.passwordAP) - 1);
+    state.hideAPPassword= false; 
+  }
+
+  strncpy(state.hostName, "DCC-EX",sizeof(state.hostName));
+  preferences.getString("hostName", state.hostName, sizeof(state.hostName));
+  
   state.enabled = preferences.getBool("enabled", true);
   state.channelAP = preferences.getUChar("channelAP", 11);
   state.hiddenAP = preferences.getBool("hiddenAP", false);

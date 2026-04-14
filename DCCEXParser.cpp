@@ -1391,7 +1391,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         && p[1]=="HOSTNAME"_hk 
         && p[2]==STRING_MARKER) { // <C WIFI HOSTNAME "xx">
         auto hostname=(const char*)(com + p[3]);
-        WifiPreferences::saveHostName(hostname);
+        if (!WifiPreferences::saveHostName(hostname)) return false;
         WifiESP::setup();
         return true;
     }
@@ -1410,7 +1410,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         auto ssid=(const char*)(com + p[2]);
         auto password=(const char*)(com + p[4]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        WifiPreferences::saveSTA(ssid,password,true); // save sticky credentials                   
+        if (!WifiPreferences::saveSTA(ssid,password,true)) return false; // save sticky credentials                   
         WifiESP::setup();
         return true;
     }
@@ -1423,7 +1423,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         auto ssid=(const char*)(com + p[3]);
         auto password=(const char*)(com + p[5]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        WifiPreferences::saveSTA(ssid,password,false); // save non-sticky credentials                   
+        if (!WifiPreferences::saveSTA(ssid,password,false)) return false; // save non-sticky credentials                   
         WifiESP::setup();
         return true;
     }
@@ -1438,7 +1438,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         byte channel=(params==7)?p[6]:11;
         bool hidden=(p[1]=="HIDDENAP"_hk);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        WifiPreferences::saveAP(ssid,password,channel,hidden); 
+        if (!WifiPreferences::saveAP(ssid,password,channel,hidden)) return false; // save AP credentials
         WifiESP::setup();
         return true;
     }

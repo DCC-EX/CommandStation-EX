@@ -105,12 +105,6 @@ int16_t WifiESP::wifiLed = 0;
 
 WiFiServer *WifiESP::server = NULL;
 
-char asciitolower(char in) {
-  if (in <= 'Z' && in >= 'A')
-    return in - ('Z' - 'z');
-  return in;
-}
-
 void WifiESP::teardown() {
   // stop all locos
   DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
@@ -222,27 +216,7 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
 
 bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel) {
 // prepare all strings
-  bool password_secret=true;
-  String strSSID; // retain scope in function for c_str() to be valid
-  String strPass;
   
-  if (!SSid || SSid[0]==0) {
-    String strMac;
-    strMac = WiFi.macAddress();
-    strMac.remove(0,9);
-    strMac.replace(":","");
-    strMac.replace(":","");
-    // convert mac addr hex chars to lower case to be compatible with AT software
-    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    strSSID.concat("DCCEX_");
-    strSSID.concat(strMac);
-    SSid=strSSID.c_str();
-    strPass.concat("PASS_");
-    strPass.concat(strMac);
-    password=strPass.c_str();
-    password_secret=false;
-  }
-
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
   WiFi.mode(WIFI_AP);
 #ifdef SERIAL_BT_COMMANDS
@@ -256,7 +230,7 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
   if (WiFi.softAP(SSid,password, channel, hiddenAP, 8)) {
     DIAG(F("Wifi in AP mode"));
     LCD(5, F("WIFI: %s"), SSid);
-    if (password_secret) LCD(6,F("")); 	
+    if (WifiPreferences::getHideAPPassword()) LCD(6,F("")); 	
     else LCD(6, F("PASS: %s"),password);
     LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
     APmode = true;
