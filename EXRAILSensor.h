@@ -29,7 +29,8 @@ class EXRAILSensor {
   public:
   static void checkAll();
   
-  EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange);
+  EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange, bool _useAnalog=false);
+  
   bool check();
   
   private:
@@ -42,9 +43,10 @@ class EXRAILSensor {
   EXRAILSensor* nextSensor;
   VPIN pin; 
   int progCounter; 
-  bool active; 
-  bool inputState;
+  uint16_t active; 
+  uint16_t inputState;
   bool onChange;
+  bool useAnalog;
   byte latchDelay;
 };
 #endif

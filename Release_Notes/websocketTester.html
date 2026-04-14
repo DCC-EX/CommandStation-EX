@@ -1,0 +1,41 @@
+<html>
+  <!-- Minimalist test page for the DCCEX websocket API.-->
+<head>
+  <script>
+  let socket = new WebSocket("ws://192.168.1.242:2560","DCCEX");
+  
+  // send message from the form
+  var sender = function() {
+    var msg=document.getElementById('message').value;
+    socket.send(msg);
+  }
+  // message received - show the message in div#messages
+  socket.onmessage = function(event) {
+    let message = event.data;
+  
+    let messageElem = document.createElement('div');
+    messageElem.textContent = message;
+    document.getElementById('messages').prepend(messageElem);
+  }
+  socket.onerror = function(event) {
+    let message = event.data;
+    let messageElem = document.createElement('div');
+    messageElem.textContent = message;
+    document.getElementById('messages').prepend(messageElem);
+  }
+  </script>
+</head>
+<body>
+  This is a minimalist test page for the DCCEX websocket API.
+   It demonstrates the Websocket connection and how to send
+   or receive websocket traffic.
+   The connection string must be edited to address your command station 
+   correctly.<p>
+<!-- message form -->
+
+  <input type="text" id="message">
+  <input type="button" value="Send" onclick="sender();">
+<!-- div with messages -->
+<div id="messages"></div>
+</body>
+</html>

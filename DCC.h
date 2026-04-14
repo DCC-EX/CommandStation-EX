@@ -3,10 +3,10 @@
  *  © 2021 Fred Decker
  *  © 2021 Herb Morton
  *  © 2020-2021 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  All rights reserved.
  *  
- *  This file is part of Asbelos DCC API
+ *  This file is part of DCC-EX API
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,16 +37,8 @@
 #endif
 #endif
 #include "DCCACK.h"
+#include "LocoSlot.h"
 const uint16_t LONG_ADDR_MARKER = 0x4000;
-
-
-// Allocations with memory implications..!
-// Base system takes approx 900 bytes + 8 per loco. Turnouts, Sensors etc are dynamically created
-#if defined(HAS_ENOUGH_MEMORY)
-const byte MAX_LOCOS = 50;
-#else
-const byte MAX_LOCOS = 30;
-#endif
 
 class DCC
 {
@@ -58,12 +50,19 @@ public:
   static void loop();
 
   // Public DCC API functions
-  static void setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
+  static bool setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
+  static void estopAll();
+  static void estopLock(bool lock);
+  static bool isEstopLocked();
+
   static int8_t getThrottleSpeed(int cab);
   static uint8_t getThrottleSpeedByte(int cab);
+  static uint8_t getLocoSpeedByte(int cab); // may lag throttle 
   static uint8_t getThrottleFrequency(int cab);
   static bool getThrottleDirection(int cab);
   static void writeCVByteMain(int cab, int cv, byte bValue);
+  static void readCVByteMain(int cab, int cv, ACK_CALLBACK callback);
+  
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
@@ -71,7 +70,7 @@ public:
   static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);
   static void setDCFreq(int cab,byte freq);
-  static void updateGroupflags(byte &flags, int16_t functionNumber);
+  static void updateGroupflags(LocoSlot * slot , int16_t functionNumber);
   static void setAccessory(int address, byte port, bool gate, byte onoff = 2);
   static bool setExtendedAccessory(int16_t address, int16_t value, byte repeats=3);
   static bool writeTextPacket(byte *b, int nBytes);
@@ -83,42 +82,47 @@ public:
   static void writeCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
   static void verifyCVByte(int16_t cv, byte byteValue, ACK_CALLBACK callback);
   static void verifyCVBit(int16_t cv, byte bitNum, bool bitValue, ACK_CALLBACK callback);
-
+  static bool setTime(uint16_t minutes,uint8_t speed, bool suddenChange);
+  static void getDriveawayLocoId(ACK_CALLBACK callback);
   static void getLocoId(ACK_CALLBACK callback);
+  static void getConsistId(ACK_CALLBACK callback);
   static void setLocoId(int id,ACK_CALLBACK callback);
   static void setConsistId(int id,bool reverse,ACK_CALLBACK callback);
   // Enhanced API functions
   static void forgetLoco(int cab); // removes any speed reminders for this loco
   static void forgetAllLocos();    // removes all speed reminders
+  static void saveSpeed(int cab);   // saves speed for later restore
+  static void restoreSpeed(int cab); // restores saved speed  
   static void displayCabList(Print *stream);
   static FSH *getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {
     globalSpeedsteps = s;
   };
   
-  struct LOCO
-  {
-    int loco;
-    byte speedCode;
-    byte groupFlags;
-    uint32_t functions;
+  static inline byte getGlobalSpeedsteps() {
+    return globalSpeedsteps;
   };
- static LOCO speedTable[MAX_LOCOS];
- static int lookupSpeedTable(int locoId, bool autoCreate);
+
+ static const int16_t MOMENTUM_FACTOR=7;  
+ 
+ static bool linearAcceleration;  
+ 
  static byte cv1(byte opcode, int cv);
  static byte cv2(int cv);
- 
+ static bool setMomentum(int locoId,int16_t accelerating, int16_t decelerating);
+ static byte getMomentum(LocoSlot * slot);
 private:
   static byte loopStatus;
-  static void setThrottle2(uint16_t cab, uint8_t speedCode);
-  static void updateLocoReminder(int loco, byte speedCode);
-  static void setFunctionInternal(int cab, byte fByte, byte eByte, byte count);
-  static bool issueReminder(int reg);
-  static int lastLocoReminder;
-  static int highestUsedReg;
+  static byte defaultMomentumA;  // Accelerating
+  static byte defaultMomentumD;  // Accelerating
+  static void setThrottle2(LocoSlot * slot, uint8_t speedCode);
+  static void setThrottleDCC(LocoSlot * slot, uint8_t speedCode);
+  static void setFunctionInternal(int cab, byte group, byte fByte, byte eByte);
+  static bool issueReminder(LocoSlot  * slot);
+  static LocoSlot * nextLocoReminder;
   static FSH *shieldName;
   static byte globalSpeedsteps;
-
+  static bool estopIsLocked;
   static void issueReminders();
   static void callback(int value);
 
@@ -126,6 +130,7 @@ private:
   // NMRA codes #
   static const byte SET_SPEED = 0x3f;
   static const byte WRITE_BYTE_MAIN = 0xEC;
+  static const byte READ_BYTE_MAIN = 0xE4;
   static const byte WRITE_BIT_MAIN = 0xE8;
   static const byte WRITE_BYTE = 0x7C;
   static const byte VERIFY_BYTE = 0x74;

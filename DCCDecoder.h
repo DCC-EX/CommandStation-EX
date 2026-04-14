@@ -26,5 +26,7 @@ public:
   static inline void onoff(bool on) {active = on;};
 private:
   static bool active;
+  static bool updateLoco(uint16_t loco, byte speedCode);
+  static bool updateFunc(uint16_t loco, byte func, int shift);
 };
 #endif // ARDUINO_ARCH_ESP32

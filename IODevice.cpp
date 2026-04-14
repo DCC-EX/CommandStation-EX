@@ -33,7 +33,9 @@
 
 // Link to halSetup function.  If not defined, the function reference will be NULL.
 extern __attribute__((weak)) void halSetup();
-extern __attribute__((weak)) bool exrailHalSetup();
+extern __attribute__((weak)) bool exrailHalSetup1();
+extern __attribute__((weak)) bool exrailHalSetup2();
+
 
 //==================================================================================================================
 // Static methods
@@ -59,32 +61,46 @@ void IODevice::begin() {
   if (halSetup)
     halSetup();
 
-  // include any HAL devices defined in exrail. 
+  // Include any HAL devices defined in exrail.
+  // The first pass call only creates HAL devices, 
+  // the second pass will apply servo settings etc which can only be 
+  // done after all devices (including the defaults) are created.
+  // If exrailHalSetup1 is not defined, then it will be NULL and the call
+  // will be ignored.
+  // If it returns true, then the default HAL devices will not be created.
+
   bool ignoreDefaults=false;
-  if (exrailHalSetup)
-    ignoreDefaults=exrailHalSetup();
-  if (ignoreDefaults) return;
+  if (exrailHalSetup1)
+    ignoreDefaults=exrailHalSetup1();
   
-  // Predefine two PCA9685 modules 0x40-0x41 if no conflicts
-  // Allocates 32 pins 100-131
-  const bool silent=true; // no message if these conflict
-  if (checkNoOverlap(100, 16, 0x40, silent)) {
-    PCA9685::create(100, 16, 0x40);
-  } 
-
-  if (checkNoOverlap(116, 16, 0x41, silent)) {
-    PCA9685::create(116, 16, 0x41);
-  } 
+  if (!ignoreDefaults) {
   
-  // Predefine two MCP23017 module 0x20/0x21 if no conflicts
-  // Allocates 32 pins 164-195
-  if (checkNoOverlap(164, 16, 0x20, silent)) {
-    MCP23017::create(164, 16, 0x20);
-  } 
+    // Predefine two PCA9685 modules 0x40-0x41 if no conflicts
+    // Allocates 32 pins 100-131
+    const bool silent=true; // no message if these conflict
+    if (checkNoOverlap(100, 16, 0x40, silent)) {
+      PCA9685::create(100, 16, 0x40);
+    } 
 
-  if (checkNoOverlap(180, 16, 0x21, silent)) {
-    MCP23017::create(180, 16, 0x21);
-  } 
+    if (checkNoOverlap(116, 16, 0x41, silent)) {
+      PCA9685::create(116, 16, 0x41);
+    } 
+    
+    // Predefine two MCP23017 module 0x20/0x21 if no conflicts
+    // Allocates 32 pins 164-195
+    if (checkNoOverlap(164, 16, 0x20, silent)) {
+      MCP23017::create(164, 16, 0x20);
+    } 
+
+    if (checkNoOverlap(180, 16, 0x21, silent)) {
+      MCP23017::create(180, 16, 0x21);
+    } 
+  }
+
+  // apply any second pass HAL setup from EXRAIL.
+  // This will typically set up servo profiles, or create turnouts.
+  if (exrailHalSetup2)
+    exrailHalSetup2();
 }
 
 // reset() function to reinitialise all devices

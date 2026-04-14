@@ -1,7 +1,7 @@
 /*
  *  © 2021 Mike S
  *  © 2021 Fred Decker
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
@@ -37,6 +37,7 @@ struct DCCEXParser
    static void parseOne(Print * stream,  byte * command,  RingStream * ringStream);
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
+   static void setCamParserFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
    static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
@@ -48,10 +49,12 @@ struct DCCEXParser
      
     static bool parseT(Print * stream, int16_t params, int16_t p[]);
     static bool parseZ(Print * stream, int16_t params, int16_t p[]);
+    static bool parsey(Print * stream, int16_t params, int16_t p[]);
     static bool parseS(Print * stream, int16_t params, int16_t p[]);
     static bool parsef(Print * stream, int16_t params, int16_t p[]);
     static bool parseC(Print * stream, int16_t params, int16_t p[]);
     static bool parseD(Print * stream, int16_t params, int16_t p[]);
+    static bool parseJM(Print * stream, int16_t params, int16_t p[]);
 #ifndef IO_NO_HAL
     static bool parseI(Print * stream, int16_t params, int16_t p[]);
 #endif
@@ -69,7 +72,8 @@ struct DCCEXParser
     static void callback_W(int16_t result);
     static void callback_W4(int16_t result);
     static void callback_B(int16_t result);        
-    static void callback_R(int16_t result);
+    static void callback_R(int16_t result); // prog
+    static void callback_r(int16_t result); // main
     static void callback_Rloco(int16_t result);
     static void callback_Wloco(int16_t result);
     static void callback_Wconsist(int16_t result);
@@ -77,6 +81,7 @@ struct DCCEXParser
     static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;
     static FILTER_CALLBACK  filterRMFTCallback;
+    static FILTER_CALLBACK  filterCamParserCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static void sendFlashList(Print * stream,const int16_t flashList[]);
 

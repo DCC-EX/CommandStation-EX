@@ -2,7 +2,7 @@
  *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2023 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2025 Morten Nielsen
  *  All rights reserved.
@@ -57,6 +57,8 @@
 #include "Turntables.h"
 #include "IODevice.h"
 #include "EXRAILSensor.h"
+#include "Stash.h"
+#include "DCCConsist.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -88,14 +90,15 @@ LookList *  RMFT2::onClockLookup=NULL;
 LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
+LookList *  RMFT2::onBlockEnterLookup=NULL;
+LookList *  RMFT2::onBlockExitLookup=NULL;
 #ifdef BOOSTER_INPUT
 LookList *  RMFT2::onRailSyncOnLookup=NULL;
 LookList *  RMFT2::onRailSyncOffLookup=NULL;
 #endif
 byte * RMFT2::routeStateArray=nullptr; 
 const FSH  * * RMFT2::routeCaptionArray=nullptr; 
-int16_t * RMFT2::stashArray=nullptr;
-int16_t RMFT2::maxStashId=0;
+
 
 // getOperand instance version, uses progCounter from instance.
 uint16_t RMFT2::getOperand(byte n) {
@@ -136,11 +139,11 @@ int16_t LookList::find(int16_t value) {
 void LookList::chain(LookList * chain) {
   m_chain=chain;
 }
-void LookList::handleEvent(const FSH* reason,int16_t id) {
+void LookList::handleEvent(const FSH* reason,int16_t id, int16_t loco) {
   // New feature... create multiple ONhandlers
   for (int i=0;i<m_size;i++) 
     if (m_lookupArray[i]==id)
-       RMFT2::startNonRecursiveTask(reason,id,m_resultArray[i]);
+       RMFT2::startNonRecursiveTask(reason,id,m_resultArray[i],loco);
 }
 
 
@@ -208,10 +211,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 #endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
+
+  if (compileFeatures & FEATURE_BLOCK) {
+    onBlockEnterLookup=LookListLoader(OPCODE_ONBLOCKENTER);
+    onBlockExitLookup=LookListLoader(OPCODE_ONBLOCKEXIT);
+  }
 #ifdef BOOSTER_INPUT
   onRailSyncOnLookup=LookListLoader(OPCODE_ONRAILSYNCON);
   onRailSyncOffLookup=LookListLoader(OPCODE_ONRAILSYNCOFF);
 #endif
+
   // onLCCLookup is not the same so not loaded here. 
 
   // Second pass startup, define any turnouts or servos, set signals red
@@ -258,17 +267,13 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       IODevice::configureInput((VPIN)pin,true);
       break;
     }
-    case OPCODE_STASH:
-    case OPCODE_CLEAR_STASH:
-    case OPCODE_PICKUP_STASH: {
-      maxStashId=max(maxStashId,((int16_t)operand));
-      break;
-    }
-
+    
     case OPCODE_ATGTE:
     case OPCODE_ATLT:
     case OPCODE_IFGTE:
     case OPCODE_IFLT:
+    case OPCODE_IFBITMAP_ALL:
+    case OPCODE_IFBITMAP_ANY:
     case OPCODE_DRIVE: {
       DIAG(F("EXRAIL analog input VPIN %u"),(VPIN)operand);
       IODevice::configureAnalogIn((VPIN)operand);
@@ -278,6 +283,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_ONSENSOR:
       if (compileFeatures & FEATURE_SENSOR) 
         new EXRAILSensor(operand,progCounter+3,true );
+      break;
+    case OPCODE_ONBITMAP:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+3,true, true );
       break;
     case OPCODE_ONBUTTON:
       if (compileFeatures & FEATURE_SENSOR) 
@@ -361,13 +370,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   }
   SKIPOP; // include ENDROUTES opcode
   
-  if (compileFeatures & FEATURE_STASH) {
-    // create the stash array from the highest id found
-    if (maxStashId>0) stashArray=(int16_t*)calloc(maxStashId+1, sizeof(int16_t));
-     //TODO check EEPROM and fetch stashArray
-  }
-  
-  DIAG(F("EXRAIL %db, fl=%d, stash=%d"),progCounter,MAX_FLAGS, maxStashId);
+  DIAG(F("EXRAIL %db, fl=%d"),progCounter,MAX_FLAGS);
 
   // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
@@ -397,7 +400,7 @@ char RMFT2::getRouteType(int16_t id) {
 }
 
 
-RMFT2::RMFT2(int progCtr) {
+RMFT2::RMFT2(int progCtr, int16_t _loco, bool _invert) {
   progCounter=progCtr;
 
   // get an unused  task id from the flags table
@@ -410,10 +413,8 @@ RMFT2::RMFT2(int progCtr) {
     }
   }
   delayTime=0;
-  loco=0;
-  speedo=0;
-  forward=true;
-  invert=false;
+  loco=_loco;
+  invert=_invert;
   blinkState=not_blink_task;
   stackDepth=0;
   onEventStartPosition=-1; // Not handling an ONxxx 
@@ -430,7 +431,10 @@ RMFT2::RMFT2(int progCtr) {
 
 
 RMFT2::~RMFT2() {
-  driveLoco(1); // ESTOP my loco if any
+  // estop my loco if this is not an ONevent 
+  // (prevents DONE stopping loco at the end of an
+  //   ONBLOCKENTER or ONBLOCKEXIT )
+  if (loco>0 && this->onEventStartPosition==-1) DCC::setThrottle(loco,1,DCC::getThrottleDirection(loco));
   setFlag(taskId,0,TASK_FLAG); // we are no longer using this id
   if (next==this)
     loopTask=NULL;
@@ -446,23 +450,9 @@ RMFT2::~RMFT2() {
 void RMFT2::createNewTask(int route, uint16_t cab) {
       int pc=routeLookup->find(route);
       if (pc<0) return;
-      RMFT2* task=new RMFT2(pc);
-      task->loco=cab;
+      new RMFT2(pc,cab);
 }
 
-void RMFT2::driveLoco(byte speed) {
-  if (loco<=0) return;  // Prevent broadcast!
-  //if (diag) DIAG(F("EXRAIL drive %d %d %d"),loco,speed,forward^invert);
- /* TODO.....
- power on appropriate track if DC or main if dcc
-  if (TrackManager::getMainPowerMode()==POWERMODE::OFF) {
-    TrackManager::setMainPower(POWERMODE::ON);
-  }
-  **********/
-
-  DCC::setThrottle(loco,speed, forward^invert);
-  speedo=speed;
-}
 
 bool RMFT2::readSensor(uint16_t sensorId) {
   // Exrail operands are unsigned but we need the signed version as inserted by the macros.
@@ -517,12 +507,21 @@ bool RMFT2::skipIfBlock() {
   if (cv & LONG_ADDR_MARKER) {               // maker bit indicates long addr
     progtrackLocoId = cv ^ LONG_ADDR_MARKER; // remove marker bit to get real long addr
     if (progtrackLocoId <= HIGHEST_SHORT_ADDR ) {     // out of range for long addr
-      DIAG(F("Long addr %d <= %d unsupported"), progtrackLocoId, HIGHEST_SHORT_ADDR);
+      DIAG(F("Long addr %d <= %d unsupported\n"), progtrackLocoId, HIGHEST_SHORT_ADDR);
       progtrackLocoId = -1;
     }
   } else {
     progtrackLocoId=cv;
   }
+}
+
+void RMFT2::pause() {
+  if (loco)
+    pauseSpeed=DCC::getThrottleSpeedByte(loco);
+}
+void RMFT2::resume() {
+  if (loco)
+    DCC::setThrottle(loco,pauseSpeed & 0x7f, pauseSpeed & 0x80);
 }
 
 void RMFT2::loop() {
@@ -535,6 +534,7 @@ void RMFT2::loop() {
   if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
 }
 
+bool RMFT2::skipIf;
 
 void RMFT2::loop2() {
   if (delayTime!=0 && millis()-delayStart < delayTime) return;
@@ -560,7 +560,7 @@ void RMFT2::loop2() {
   int16_t operand =  getOperand(0);
 
   // skipIf will get set to indicate a failing IF condition 
-  bool skipIf=false; 
+  skipIf=false; 
 
   // if (diag) DIAG(F("RMFT2 %d %d"),opcode,operand);
   // Attention: Returning from this switch leaves the program counter unchanged.
@@ -589,18 +589,99 @@ void RMFT2::loop2() {
 #endif
 
   case OPCODE_REV:
-    forward = false;
-    driveLoco(operand);
+    if (loco) DCC::setThrottle(loco,operand,invert);
     break;
     
   case OPCODE_FWD:
-      forward = true;
-      driveLoco(operand);
-      break;
+    if (loco) DCC::setThrottle(loco,operand,!invert);
+    break;
       
   case OPCODE_SPEED:
-    forward=DCC::getThrottleDirection(loco)^invert;
-    driveLoco(operand);
+    if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
+    break;
+  
+  case OPCODE_SAVE_SPEED:
+    if (loco) DCC::saveSpeed(loco);
+    break;
+
+    case OPCODE_RESTORE_SPEED:
+    if (loco) DCC::restoreSpeed(loco);
+    break;
+  
+  case OPCODE_XSAVE_SPEED:
+    DCC::saveSpeed(operand);
+    break;
+
+    case OPCODE_XRESTORE_SPEED:
+    DCC::restoreSpeed(operand);
+    break;
+  
+  case OPCODE_SPEEDUP:
+    if (loco) {
+      int8_t   speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle overflow
+        int16_t newspeed = static_cast<int16_t>(speed) + operand;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 2; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_SPEED_REL:
+    {
+      if (!loco) break;
+      auto  speed=DCC::getThrottleSpeed(loco);
+      // do nothing if speed is 0 (stop), 1 (emergency stop) or -1 (loco not found)
+      if (speed<2) break; // cant 
+      // handle overflow
+      auto newspeed = (speed * operand)/100;
+        if (newspeed > 127) {
+            speed = 127;
+        } else if (newspeed == 1) {
+            speed = 0; // skip emergency stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+    }
+    break;
+
+  case OPCODE_SLOWDOWN:
+    if (loco) {
+      int8_t  speed=DCC::getThrottleSpeed(loco);
+
+      // do nothing if speed is 1 (emergency stop) or -1 (loco not found)
+      if ((speed != 1) && (speed != -1))
+      {
+        // handle underflow
+        int16_t newspeed = static_cast<int16_t>(speed) - operand;
+        if (newspeed < 2) {
+            speed = 0; // stop
+        } else {
+            speed = static_cast<int8_t>(newspeed);
+        }
+        DCC::setThrottle(loco,speed,DCC::getThrottleDirection(loco));
+      }
+    }
+    break;
+
+  case OPCODE_MOMENTUM:
+    DCC::setMomentum(loco,operand,getOperand(1));
+    break;
+    
+  case OPCODE_ESTOPALL:
+    if(operand==0) DCC::estopAll(); // all locos stop
+    else DCC::estopLock(operand==1); // stop and lock/unlock
     break;
     
   case OPCODE_FORGET:
@@ -610,14 +691,20 @@ void RMFT2::loop2() {
     } 
     break;
 
+  case OPCODE_CONSIST:
+      if (operand==0) DCCConsist::deleteAnyConsist(loco);
+      else if (!DCCConsist::addLocoToConsist(loco, abs(operand), operand<0)) {
+          DIAG(F("EXRAIL Failed to add Loco %d to consist %d"), abs(operand),loco);
+        }
+    break;
+
   case OPCODE_INVERT_DIRECTION:
     invert= !invert;
-    driveLoco(speedo);
     break;
     
   case OPCODE_RESERVE:
     if (getFlag(operand,SECTION_FLAG)) {
-      driveLoco(0);
+      if (loco) DCC::setThrottle(loco,1,DCC::getThrottleDirection(loco));
       delayMe(500);
       return;
     }
@@ -627,7 +714,11 @@ void RMFT2::loop2() {
   case OPCODE_FREE:
     setFlag(operand,0,SECTION_FLAG);
     break;
-    
+  
+  case OPCODE_FREEALL:
+    for (int i=0;i<MAX_FLAGS;i++) setFlag(i,0,SECTION_FLAG);
+    break;
+  
   case OPCODE_AT:
     blinkState=not_blink_task;
     if (readSensor(operand)) break;
@@ -716,12 +807,16 @@ void RMFT2::loop2() {
      break; 
 
   case OPCODE_PAUSE:
-    DCC::setThrottle(0,1,true);  // pause all locos on the track
+    DCC::estopAll();  // pause all locos on the track
     pausingTask=this;
     break;
 
   case OPCODE_POM:
     if (loco) DCC::writeCVByteMain(loco, operand, getOperand(1));
+    break;
+
+  case OPCODE_XPOM:
+    DCC::writeCVByteMain(operand, getOperand(1), getOperand(2));
     break;
 
   case OPCODE_POWEROFF:
@@ -760,8 +855,8 @@ void RMFT2::loop2() {
 
   case OPCODE_RESUME:
     pausingTask=NULL;
-    driveLoco(speedo);
-    for (RMFT2 * t=next; t!=this;t=t->next) if (t->loco >0) t->driveLoco(t->speedo);
+    resume();
+    for (RMFT2 * t=next; t!=this;t=t->next) t->resume();
     break;
     
   case OPCODE_IF: // do next operand if sensor set
@@ -779,11 +874,15 @@ void RMFT2::loop2() {
   case OPCODE_IFLT: // do next operand if sensor< value
     skipIf=IODevice::readAnalogue(operand)>=(int)(getOperand(1));
     break;
-    
-  case OPCODE_IFLOCO: // do if the loco is the active one
-    skipIf=loco!=(uint16_t)operand; // bad luck if someone enters negative loco numbers into EXRAIL
+  
+  case OPCODE_IFBITMAP_ALL: // do next operand if sensor & mask == mask
+    skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) != getOperand(1);
     break;
-
+  
+  case OPCODE_IFBITMAP_ANY: // do next operand if sensor & mask !=0
+    skipIf=(IODevice::readAnalogue(operand) & getOperand(1)) == 0;
+    break;
+    
   case OPCODE_IFNOT: // do next operand if sensor not set
     skipIf=readSensor(operand);
     break;
@@ -805,6 +904,15 @@ void RMFT2::loop2() {
     skipIf=!isSignal(operand,SIGNAL_RED);
     break;
     
+  case OPCODE_WAIT_WHILE_RED: // do block if signal as expected
+    if (isSignal(operand,SIGNAL_RED)) {
+      if (loco && (DCC::getLocoSpeedByte(loco) & 0x7f)>1) 
+          DCC::setThrottle(loco,0,DCC::getThrottleDirection(loco));
+      delayMe(500);
+      return;
+    }
+    break;
+    
   case OPCODE_IFAMBER: // do block if signal as expected
     skipIf=!isSignal(operand,SIGNAL_AMBER);
     break;
@@ -819,6 +927,14 @@ void RMFT2::loop2() {
     
   case OPCODE_IFCLOSED:
     skipIf=Turnout::isThrown(operand);
+    break;
+    
+  case OPCODE_IFSTASH:
+    skipIf=Stash::get(operand)==0;
+    break;
+  
+  case OPCODE_IFSTASHED_HERE:
+    skipIf=(Stash::get(operand) & 0x7FFF)!=loco;
     break;
 
 #ifndef IO_NO_HAL
@@ -872,8 +988,7 @@ void RMFT2::loop2() {
     
   case OPCODE_DRIVE:
     {
-      byte analogSpeed=IODevice::readAnalogue(operand) *127 / 1024;
-      if (speedo!=analogSpeed) driveLoco(analogSpeed);
+      // Non functional but reserved 
       break;
     }
     
@@ -928,7 +1043,33 @@ void RMFT2::loop2() {
     progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
-    
+   
+  
+  case OPCODE_RANDOM_FOLLOW:
+    // operand is number to choose from
+    { 
+      auto newroute=getOperand(1+(millis()%operand));
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("RANDOM_FOLLOW unknown"), newroute); 
+    }
+    return;
+	
+	 case OPCODE_RANDOM_CALL:
+    // operand is number to choose from
+    if (stackDepth==MAX_STACK_DEPTH) {
+      kill(F("CALL stack"), stackDepth);
+      return;
+    }
+    {
+      auto newroute=getOperand(1+(millis()%operand));
+      
+      // return position is after the RANDOM_CALL + all its operands
+      callStack[stackDepth++]=progCounter+3*(operand+1);
+      progCounter=routeLookup->find(newroute);
+      if (progCounter<0) kill(F("CALL unknown"),newroute);
+    }
+    return;
+  
   case OPCODE_RETURN:
     if (stackDepth==0) {
       kill(F("RETURN stack"));
@@ -959,7 +1100,7 @@ void RMFT2::loop2() {
 
   case OPCODE_READ_LOCO1: // READ_LOCO is implemented as 2 separate opcodes
     progtrackLocoId=LOCO_ID_WAITING;  // Nothing found yet
-    DCC::getLocoId(readLocoCallback);
+    DCC::getDriveawayLocoId(readLocoCallback);
     break;
     
   case OPCODE_READ_LOCO2:
@@ -972,8 +1113,6 @@ void RMFT2::loop2() {
     // which is intended so it can be checked
     // from within EXRAIL
     loco=progtrackLocoId;
-    speedo=0;
-    forward=true;
     invert=false;
     break;
 #endif
@@ -990,21 +1129,35 @@ void RMFT2::loop2() {
       new RMFT2(newPc);
     }
     break;
+
+  case OPCODE_START_SHARED:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and share loco
+    }
+    break;
+
+  case OPCODE_START_SEND:
+    {
+      int newPc=routeLookup->find(operand);
+      if (newPc<0) break;
+      new RMFT2(newPc,loco, invert); // create new task and send loco exclusive
+      loco = 0;
+    }
+    break;
     
   case OPCODE_SENDLOCO:  // cab, route
     {
       int newPc=routeLookup->find(getOperand(1));
       if (newPc<0) break;
-      RMFT2* newtask=new RMFT2(newPc); // create new task
-      newtask->loco=operand;
+      new RMFT2(newPc,operand); // create new task
     }
     break;
     
   case OPCODE_SETLOCO:
     {
       loco=operand;
-      speedo=0;
-      forward=true;
       invert=false;
     }
     break;
@@ -1062,9 +1215,16 @@ void RMFT2::loop2() {
     break;
 #endif
 
+/* IFLOCO and PRINT use code generated in printMessage
+   but IFLOCO is recognized as an IF when doing
+    IF/ELSE/ENDINF skipping */
+
+  case OPCODE_IFLOCO:  
   case OPCODE_PRINT:
     printMessage(operand);
     break;
+
+  // Route state management  
   case OPCODE_ROUTE_HIDDEN:
     manageRouteState(operand,2);
     break;   
@@ -1077,32 +1237,47 @@ void RMFT2::loop2() {
   case OPCODE_ROUTE_DISABLED:
     manageRouteState(operand,4);
     break;   
+// Route state management  
+  case OPCODE_IF_ROUTE_HIDDEN:
+    skipIf=!ifRouteState(operand,2);
+    break;   
+  case OPCODE_IF_ROUTE_INACTIVE:
+    skipIf=!ifRouteState(operand,0);
+    break;   
+  case OPCODE_IF_ROUTE_ACTIVE:
+    skipIf=!ifRouteState(operand,1);
+    break;   
+  case OPCODE_IF_ROUTE_DISABLED:
+    skipIf=!ifRouteState(operand,4);
+    break;   
 
   case OPCODE_STASH:
-    if (compileFeatures & FEATURE_STASH) 
-      stashArray[operand] = invert? -loco : loco;
+    Stash::set(operand,invert? -loco : loco);
     break; 
 
   case OPCODE_CLEAR_STASH:
-    if (compileFeatures & FEATURE_STASH) 
-      stashArray[operand] = 0;
+    Stash::clear(operand);
     break; 
        
   case OPCODE_CLEAR_ALL_STASH:
-    if (compileFeatures & FEATURE_STASH) 
-      for (int i=0;i<=maxStashId;i++) stashArray[operand]=0;
+    Stash::clearAll();
+    break;
+
+  case OPCODE_CLEAR_ANY_STASH:
+    if (loco) Stash::clearAny(loco);
     break;
 
   case OPCODE_PICKUP_STASH:
-    if (compileFeatures & FEATURE_STASH) {
-      int16_t x=stashArray[operand];
-      if (x>=0) {
-        loco=x;
-        invert=false;
-        break;
-      }
-      loco=-x;
-      invert=true;
+      {
+        auto x=Stash::get(operand);
+        if (x>=0) {
+          loco=x;
+          invert=false;
+        }
+        else {
+          loco=-x;
+          invert=true;    
+        }
     }
     break;
   
@@ -1111,7 +1286,27 @@ void RMFT2::loop2() {
   case OPCODE_SEQUENCE:
     //if (diag) DIAG(F("EXRAIL begin(%d)"),operand);
     break;
-    
+  
+  case OPCODE_BITMAP_INC:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand)+1);
+    break;
+  case OPCODE_BITMAP_DEC:
+     { int newval=IODevice::readAnalogue(operand)-1;
+       if (newval<0) newval=0;
+       IODevice::writeAnalogue(operand,newval);
+     }
+    break;
+  
+  case OPCODE_BITMAP_AND:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) & getOperand(1));
+    break;
+  case OPCODE_BITMAP_OR:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) | getOperand(1));
+    break;
+  case OPCODE_BITMAP_XOR:
+    IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) ^ getOperand(1));
+    break;
+  
   case OPCODE_AUTOSTART: // Handled only during begin process
   case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
   case OPCODE_TURNOUT: // Turnout definition ignored at runtime
@@ -1131,6 +1326,7 @@ void RMFT2::loop2() {
   case OPCODE_ONTIME:
   case OPCODE_ONBUTTON:
   case OPCODE_ONSENSOR:
+  case OPCODE_ONBITMAP:
 #ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
@@ -1138,11 +1334,12 @@ void RMFT2::loop2() {
   case OPCODE_ONROTATE:
 #endif
   case OPCODE_ONOVERLOAD:
+  case OPCODE_ONBLOCKENTER:
+  case OPCODE_ONBLOCKEXIT:
 #ifdef BOOSTER_INPUT
   case OPCODE_ONRAILSYNCON:
   case OPCODE_ONRAILSYNCOFF:
 #endif
-
     break;
     
   default:
@@ -1334,6 +1531,14 @@ void RMFT2::activateEvent(int16_t addr, bool activate) {
   else onDeactivateLookup->handleEvent(F("DEACTIVATE"),addr);
 }
 
+void RMFT2::blockEvent(int16_t block, int16_t loco, bool entering) {
+  if (compileFeatures & FEATURE_BLOCK) {
+  // Hunt for an ONBLOCKENTER/ONBLOCKEXIT for this accessory
+  if (entering)  onBlockEnterLookup->handleEvent(F("BLOCKENTER"),block,loco);
+  else onBlockExitLookup->handleEvent(F("BLOCKEXIT"),block,loco);
+  }
+}
+
 void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  onChangeLookup->handleEvent(F("CHANGE"),vpin);
@@ -1401,11 +1606,11 @@ void RMFT2::killBlinkOnVpin(VPIN pin, uint16_t count) {
   }
 }
   
-void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {  
+void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco) {  
   // Check we dont already have a task running this handler
   RMFT2 * task=loopTask;
   while(task) {
-    if (task->onEventStartPosition==pc) {
+    if (task->onEventStartPosition==pc && task->loco==loco) {
       DIAG(F("Recursive ON%S(%d)"),reason, id);
       return;
     }
@@ -1413,7 +1618,7 @@ void RMFT2::startNonRecursiveTask(const FSH* reason, int16_t id,int pc) {
     if (task==loopTask) break;
   }
   
-  task=new RMFT2(pc);  // new task starts at this instruction
+  task=new RMFT2(pc,loco);  // new task starts at this instruction
   task->onEventStartPosition=pc; // flag for recursion detector
 }
 
@@ -1534,6 +1739,16 @@ void RMFT2::manageRouteState(int16_t id, byte state) {
     CommandDistributor::broadcastRouteState(id,state);
   }
 }
+bool RMFT2::ifRouteState(int16_t id, byte state) {
+  if (compileFeatures && FEATURE_ROUTESTATE) {
+    // Route state must be maintained for when new throttles connect.
+    // locate route id in the Routes lookup
+    int16_t position=routeLookup->findPosition(id);
+    return position>=0 &&  routeStateArray[position]==state;
+  }
+  else return false; 
+}
+
 void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
   if (compileFeatures && FEATURE_ROUTESTATE) {
     // Route state must be maintained for when new throttles connect.
@@ -1546,4 +1761,24 @@ void RMFT2::manageRouteCaption(int16_t id,const FSH* caption) {
     CommandDistributor::broadcastRouteCaption(id,caption);
   }
 }
+
+void RMFT2::ifAnyFunc(const int16_t * vpinList, int16_t count) {
+  // Sets skipIf if none found
+  skipIf=false; 
+  for (int v=0;v<count;v++) {
+    int16_t vpin=vpinList[v];
+    if (vpin<0 && IODevice::read(-vpin)==0) return;
+    if (IODevice::read(vpin)>0) return;
+  }
+  skipIf=true; // none found 
+}
   
+void RMFT2::ifAllFunc(const int16_t * vpinList, int16_t count) {
+  skipIf=true; // return skipping if any are wrong
+  for (int v=0;v<count;v++) {
+    int16_t vpin=vpinList[v];
+    if (vpin<0 && IODevice::read(-vpin)>0) return;
+    if (IODevice::read(vpin)==0) return;
+  }
+  skipIf=false; // no failures found 
+}

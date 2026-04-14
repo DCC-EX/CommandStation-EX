@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Paul M. Antoine
  *  © 2026 Filip Šilar
  *  © 2021, Neil McKechnie. All rights reserved.
  *  
@@ -33,9 +34,6 @@ static const byte MODE1_RESTART=0x80; /**< Restart enabled */
 
 static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
-
-// Predeclare helper function
-static void writeRegister(I2CAddress address, byte reg, byte value);
 
 // Create device driver instance.
 void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
@@ -101,10 +99,10 @@ void PCA9685::_begin() {
 
   // Initialise I/O module here.
   if (I2CManager.exists(_I2CAddress)) {
-    writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
-    writeRegister(_I2CAddress, PCA9685_PRESCALE, prescaler);
-    writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
-    writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
+    writeRegister(PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
+    writeRegister(PCA9685_PRESCALE, prescaler);
+    writeRegister(PCA9685_MODE1, MODE1_AI);
+    writeRegister(PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
     // In theory, we should wait 500us before sending any other commands to each device, to allow
     // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
     // plenty of other stuff to do before we will send a command.
@@ -267,9 +265,9 @@ void PCA9685::_display() {
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
-// Internal helper function for this device
-static void writeRegister(I2CAddress address, byte reg, byte value) {
-  I2CManager.write(address, 2, reg, value);
+// Private member function for this device
+void PCA9685::writeRegister(byte reg, byte value) {
+  I2CManager.write(_I2CAddress, 2, reg, value);
 }
 
 // Profile for a bouncing signal or turnout

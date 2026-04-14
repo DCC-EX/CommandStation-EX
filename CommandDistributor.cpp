@@ -1,6 +1,6 @@
 /*
  *  © 2022 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2020 Gregor Baues
  *  © 2022 Colin Murdoch
  *  All rights reserved.
@@ -31,6 +31,8 @@
 #include "DCC.h"
 #include "TrackManager.h"
 #include "StringFormatter.h"
+#include "Websockets.h"
+#include "LocoSlot.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -39,11 +41,12 @@ int8_t lastclockrate;
 
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
-StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer();
+StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer(256);
 template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
   broadcastBufferWriter->flush();
   StringFormatter::send(broadcastBufferWriter, msg...);
   broadcastToClients(type);
+  if (type==COMMAND_TYPE) broadcastToClients(WEBSOCKET_TYPE);
 }
 #else
 // on a single USB connection config, write direct to Serial and ignore flush/shove
@@ -56,14 +59,17 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
 #ifdef CD_HANDLE_RING
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
-  CommandDistributor::clientType  CommandDistributor::clients[8]={
-    NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE,NONE_TYPE};
+CommandDistributor::clientType  CommandDistributor::clients[MAX_NUM_TCP_CLIENTS]={ NONE_TYPE }; // 0 is and must be NONE_TYPE
 
 // Parse is called by Withrottle or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex
 void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
-  if (Diag::WIFI && Diag::CMD)
-    DIAG(F("Parse C=%d T=%d B=%s"),clientId, clients[clientId], buffer);
+  if (clientId>=sizeof (clients)) {
+    // Caution, diag dump of buffer could corrupt ringstream
+    // if headed by websocket bytes. 
+    DIAG(F("::parse invalid client=%d"),clientId);
+    return;
+  }
   ring=stream;
 
   // First check if the client is not known
@@ -72,22 +78,40 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   // client is using the DCC++ protocol where all commands start
   // with '<'
   if (clients[clientId] == NONE_TYPE) {
+    auto websock=Websockets::checkConnectionString(clientId,buffer,stream);
+    if (websock) {
+      clients[clientId]=WEBSOCK_CONNECTING_TYPE;
+      // websockets will have replied already 
+      return;
+    }
     if (buffer[0] == '<')
       clients[clientId]=COMMAND_TYPE;
     else
       clients[clientId]=WITHROTTLE_TYPE;
   }
 
+  // after first inbound transmission the websocket is connected
+  if (clients[clientId]==WEBSOCK_CONNECTING_TYPE)
+      clients[clientId]=WEBSOCKET_TYPE;
+      
+      
   // mark buffer that is sent to parser
-  ring->mark(clientId);
-
   // When type is known, send the string
   // to the right parser
   if (clients[clientId] == COMMAND_TYPE) {
+    ring->mark(clientId);
     DCCEXParser::parse(stream, buffer, ring);
   } else if (clients[clientId] == WITHROTTLE_TYPE) {
+    ring->mark(clientId);
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
   }
+  else if (clients[clientId] == WEBSOCKET_TYPE) {
+    buffer=Websockets::unmask(clientId,ring, buffer);
+    if (!buffer) return; // unmask may have handled it alrerday (ping/pong)
+    // mark ring with client flagged as websocket for transmission later
+    ring->mark(clientId | Websockets::WEBSOCK_CLIENT_MARKER);
+    DCCEXParser::parse(stream, buffer, ring);
+    }
 
   if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {
     // The commit call will either write the length bytes
@@ -95,7 +119,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     // or the command generated more output than fits in
     // the buffer
     if (!ring->commit()) {
-      DIAG(F("OUTBOUND FULL processing cmd:%s"),buffer);
+      DIAG(F("OUTBOUND FULL for client %d processing cmd:%s"),clientId, buffer);
     }
   } else {
     DIAG(F("CD parse: was alredy committed")); //XXX Could have been committed by broadcastClient?!
@@ -131,7 +155,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
     for (byte clientId=0; clientId<sizeof(clients); clientId++) {
       if (clients[clientId]==type)  {
 	//DIAG(F("CD mark client %d"), clientId);
-	ring->mark(clientId);
+	ring->mark(clientId | (type==WEBSOCKET_TYPE? Websockets::WEBSOCK_CLIENT_MARKER : 0));
 	ring->print(broadcastBufferWriter->getString());
 	//DIAG(F("CD commit client %d"), clientId);
 	ring->commit();
@@ -177,44 +201,71 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
 #endif
 }
 
-void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, byte opt) {
-  // opt - case 1 save the latest time if changed
-  //       case 2 broadcast the time when requested
-  //       case 3 display latest time
-  switch (opt)
-  {
-    case 1:
+void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
+  // save the latest time if changed
       if (clocktime != lastclocktime){
-        // CAH. DIAG removed because LCD does it anyway. 
-        LCD(6,F("Clk Time:%d Sp %d"), clocktime, clockrate);
+        auto difference = clocktime - lastclocktime;
+        if (difference<0) difference+=1440;
+        DCC::setTime(clocktime,clockrate,difference>2);
+        byte hh=clocktime/60;
+        byte mm=clocktime%60;
+        if (hh>23) hh=0;
+        LCD(6,clockrate<=1?F("Time %d%d:%d%d"):F("Time %d%d:%d%d (%d)"),
+             hh/10, hh%10, mm/10, mm%10, clockrate);
+
         // look for an event for this time
+#ifdef EXRAIL_ACTIVE        
         RMFT2::clockEvent(clocktime,1);
+#endif        
         // Now tell everyone else what the time is.
         CommandDistributor::broadcastClockTime(clocktime, clockrate);
         lastclocktime = clocktime;
         lastclockrate = clockrate;
       }
-      return;
-
-    case 2:
-      CommandDistributor::broadcastClockTime(lastclocktime, lastclockrate);
-      return;
-  }
- 
-}
+    }
 
 int16_t CommandDistributor::retClockTime() {
   return lastclocktime;
 }
 
-void  CommandDistributor::broadcastLoco(byte slot) {
-  DCC::LOCO * sp=&DCC::speedTable[slot];
-  broadcastReply(COMMAND_TYPE, F("<l %d %d %d %l>\n"), sp->loco,slot,sp->speedCode,sp->functions);
-#ifdef SABERTOOTH
+void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
+  if (!sp) {
+    broadcastReply(COMMAND_TYPE,F("<l 0 -1 128 0>\n"));
+    return;
+	}
+
+  // Broadcast the given loco.
+  // If its a consist leader, broadcast all followers too.
+  // A consist follower will only be broadcast because its functions have changed.
+  
+  bool isFollower=sp->isConsistFollower();
+  
+  #ifdef CD_HANDLE_RING
+  // Use the buffer directly to avoid multiple transmits in the case of a consist
+  broadcastBufferWriter->flush();
+  for (auto slot=sp; slot; slot=slot->getConsistNext()) {
+    StringFormatter::send(broadcastBufferWriter, F("<l %d 0 %d %l>\n"), 
+      slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
+    if (isFollower) break;  // dont follow next chain if original call was for a follower
+  }
+  broadcastToClients(COMMAND_TYPE);
+  broadcastToClients(WEBSOCKET_TYPE);
+  
+#else
+  // no ring handling, just broadcast each separately
+  for (auto slot=sp; slot; slot=slot->getConsistNext()) {
+    broadcastReply(COMMAND_TYPE, F("<l %d 0 %d %l>\n"), 
+      slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
+    if (isFollower) break;  // dont follow next chain if original call was for a follower
+  }
+  #endif
+
+  #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
     static uint8_t rampingmode = 0;
-    bool direction = (sp->speedCode & 0x80) !=0; // true for forward
-    int32_t speed = sp->speedCode & 0x7f;
+    auto speedCode=sp->getSpeedCode();
+    bool direction = (speedCode & 0x80) !=0; // true for forward
+    int32_t speed = speedCode & 0x7f;
     if (speed == 1) { // emergency stop
       if (rampingmode != 1) {
 	rampingmode = 1;
@@ -244,7 +295,7 @@ void  CommandDistributor::broadcastLoco(byte slot) {
   }
 #endif
 #ifdef CD_HANDLE_RING
-  WiThrottle::markForBroadcast(sp->loco);
+  WiThrottle::markForBroadcast(sp->getLoco());
 #endif
 }
 
@@ -326,6 +377,16 @@ void  CommandDistributor::broadcastPower() {
 
 void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
+}
+
+void CommandDistributor::broadcastEstopLock(bool locked) {
+  if (locked) {
+    broadcastReply(COMMAND_TYPE, F("<!PAUSED>\n"));
+    broadcastReply(WITHROTTLE_TYPE, F("HmESTOP PAUSED\n"));
+  } else {
+    broadcastReply(COMMAND_TYPE, F("<!RESUMED>\n"));
+    broadcastReply(WITHROTTLE_TYPE, F("HmESTOP RESUMED\n"));
+  }
 }
 
 void CommandDistributor::broadcastMessage(char * message) {

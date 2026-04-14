@@ -2,7 +2,7 @@
  *  © 2021 Harald Barth
  *  © 2021 Fred Decker
  *  (c) 2021 Fred Decker.  All rights reserved.
- *  (c) 2020 Chris Harlow. All rights reserved.
+ *  (c) 2020-2025 Chris Harlow. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -55,7 +55,8 @@ class WifiInboundHandler {
           IPD6_LENGTH, // got +IPD,c, reading length 
           IPD_DATA,    // got +IPD,c,ll,: collecting data
           IPD_IGNORE_DATA, // got +IPD,c,ll,: ignoring the data that won't fit inblound Ring
-
+          IPD_PRESCAN,    // prescanning data for websocket keys
+          IPD_POSTSCAN,    // copyimg data for websocket keys
           GOT_CLIENT_ID,  // clientid prefix to CONNECTED / CLOSED
           GOT_CLIENT_ID2  // clientid prefix to CONNECTED / CLOSED
   };
@@ -67,7 +68,7 @@ class WifiInboundHandler {
    void purgeCurrentCIPSEND();
    Stream * wifiStream;
    
-   static const int INBOUND_RING = 512;
+   static const int INBOUND_RING = 128;
    static const int OUTBOUND_RING = sizeof(void*)==2?2048:8192;
  
    static const int CIPSENDgap=100; // millis() between retries of cipsend. 

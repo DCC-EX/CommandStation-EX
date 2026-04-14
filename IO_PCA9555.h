@@ -1,7 +1,8 @@
 /*
  *  © 2021, Neil McKechnie. All rights reserved.
+ *  © 2026, Chris Harlow. All rights reserved.
  *  
- *  This file is part of DCC++EX API
+ *  This file is part of DCC-EX API
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,17 +28,17 @@
 /*
  * IODevice subclass for PCA9555 16-bit I/O expander (NXP & Texas Instruments).
  */
- 
+
 class PCA9555 : public GPIOBase<uint16_t> {
 public:
-  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new PCA9555(vpin,nPins, i2cAddress, interruptPin);
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1, char PorT='P') {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new PCA9555(vpin,nPins, i2cAddress, interruptPin,PorT);
   }
 
 private:  
   // Constructor
-  PCA9555(VPIN vpin, uint8_t nPins, I2CAddress I2CAddress, int interruptPin=-1) 
-    : GPIOBase<uint16_t>((FSH *)F("PCA9555"), vpin, nPins, I2CAddress, interruptPin) 
+  PCA9555(VPIN vpin, uint8_t nPins, I2CAddress I2CAddress, int interruptPin,char PorT) 
+    : GPIOBase<uint16_t>((PorT=='P') ? (FSH *)F("PCA9555") : (FSH *)F("TCA9555"), vpin, nPins, I2CAddress, interruptPin) 
   {
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
       outputBuffer, sizeof(outputBuffer));
@@ -106,6 +107,13 @@ private:
     REG_CONF_P1 = 0x07,    
   };
 
+};
+
+class TCA9555 {  // ALIAS for PCA9555 as they are identical for our purposes
+public:
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
+    PCA9555::create(vpin, nPins, i2cAddress, interruptPin,'T');
+  }
 };
 
 #endif

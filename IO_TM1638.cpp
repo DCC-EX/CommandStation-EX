@@ -22,6 +22,7 @@
 
 #include <Arduino.h>
 #include "IODevice.h"
+#include "IO_TM1638.h"
 #include "DIAG.h"
 
    

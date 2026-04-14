@@ -104,8 +104,8 @@ void _loop(unsigned long currentMicros) override{
         //_clocktime = (a << 8) + b;
         //_clockrate = readBuffer[2];
 
-        CommandDistributor::setClockTime(((a << 8) + b), readBuffer[2], 1);
-        //setClockTime(int16_t clocktime, int8_t clockrate, byte opt);
+        CommandDistributor::setClockTime(((a << 8) + b), readBuffer[2]);
+        //setClockTime(int16_t clocktime, int8_t clockrate);
         
         // As the minimum clock increment is 2 seconds delay a bit - say 1 sec.
         // Clock interval is 60/ clockspeed i.e 60/b seconds

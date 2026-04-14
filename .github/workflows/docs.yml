@@ -1,0 +1,36 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - devel
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Install Requirements
+        run: |
+          cd docs
+          python -m pip install --upgrade pip
+          pip3 install -r requirements.txt
+          sudo apt-get install doxygen
+
+      - name: Build Prod docs
+        run: |
+          cd docs
+          make html
+          touch _build/html/.nojekyll
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages  # The branch the action should deploy to.
+          folder: docs/_build/html  # The folder the action should deploy.

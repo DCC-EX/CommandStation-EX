@@ -1,8 +1,8 @@
 /*
- *  © 2022 Chris Harlow
+ *  © 2022-2025 Chris Harlow
  *  © 2022-2024 Harald Barth
  *  © 2023-2024 Paul M. Antoine
- *  © 2024 Herb Morton
+ *  © 2024-2025 Herb Morton
  *  © 2023 Colin Murdoch
  *  All rights reserved.
  *  
@@ -42,6 +42,7 @@
 
 MotorDriver * TrackManager::track[MAX_TRACKS] = { NULL };
 int16_t TrackManager::trackDCAddr[MAX_TRACKS] = { 0 };
+int16_t TrackManager::trackPwrMA[MAX_TRACKS] = { 0 };
 
 int8_t TrackManager::lastTrack=-1;
 bool TrackManager::progTrackSyncMain=false; 
@@ -332,7 +333,8 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 	canDo &= track[t]->trackPWM;
       }
     }
-    if (!canDo) {
+    if (canDo) DIAG(F("HA mode")); 
+    else {
       // if we discover that HA mode was globally impossible
       // we must adjust the trackPWM capabilities
       FOR_EACH_TRACK(t) {
@@ -341,6 +343,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
       DCCTimer::clearPWM(); // has to be AFTER trackPWM changes because if trackPWM==true this is undone for  that track
     }
+    DCCWaveform::setRailcomPossible(canDo);
 #else
     // For ESP32 we just reinitialize the DCC Waveform
     DCCWaveform::begin();
@@ -378,7 +381,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
 }
 
 void TrackManager::applyDCSpeed(byte t) {
-  track[t]->setDCSignal(DCC::getThrottleSpeedByte(trackDCAddr[t]),
+  track[t]->setDCSignal(DCC::getLocoSpeedByte(trackDCAddr[t]),
 			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 
@@ -448,7 +451,7 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
     if(tm & TRACK_MODIFIER_AUTO)
       modename=F("MAIN A");
     else if (tm & TRACK_MODIFIER_INV)
-      modename=F("MAIN I>\n");
+      modename=F("MAIN I");
     else
       modename=F("MAIN");
   }
@@ -643,6 +646,37 @@ void TrackManager::reportCurrent(Print* stream) {
     StringFormatter::send(stream,F(">\n"));    
 }
 
+void TrackManager::reportCurrentLCD(uint8_t display, byte row) {
+  int16_t trackPwrTotalMA = 0;
+  FOR_EACH_TRACK(t) {
+    bool pstate = TrackManager::isPowerOn(t);  // checks if power is on or off
+    TRACK_MODE tMode=(TrackManager::getMode(t)); // gets to current power mode
+    int16_t DCAddr=(TrackManager::returnDCAddr(t));
+
+      if (pstate) {                                                 // if power is on do this section
+        trackPwrMA[t]=(3*trackPwrMA[t]>>2) + ((track[t]->getPower()==POWERMODE::OVERLOAD) ? -1 :
+                        track[t]->raw2mA(track[t]->getCurrentRaw(false)));
+        trackPwrTotalMA += trackPwrMA[t];
+        if (tMode & TRACK_MODE_DC) {    // Test if track is in DC or DCX mode
+          SCREEN(display, row+t, F("%c: %S %d  %dmA"), t+'A', (TrackManager::getModeName(tMode)),DCAddr, trackPwrMA[t]>>2);
+        }
+        else {                                                      // formats without DCAddress
+          SCREEN(display, row+t, F("%c: %S  %dmA"), t+'A', (TrackManager::getModeName(tMode)), trackPwrMA[t]>>2);
+        }
+      } 
+      else {                                                        // if power is off do this section
+        trackPwrMA[t] = 0;
+        if (tMode & TRACK_MODE_DC) {   // DC / DCX
+          SCREEN(display, row+t, F("%c: %S %d"), t+'A', (TrackManager::getModeName(tMode)),DCAddr);
+        }
+        else {                                                      // Not DC or DCX
+          SCREEN(display, row+t, F("%c: %S"), t+'A', (TrackManager::getModeName(tMode)));
+        }
+      }
+  }
+  SCREEN(display, row+lastTrack+1, F("%d Districts  %dmA"), lastTrack+1,  trackPwrTotalMA>>2);
+} 
+
 void TrackManager::reportGauges(Print* stream) {
     StringFormatter::send(stream,F("<jG"));
     FOR_EACH_TRACK(t) {
@@ -669,9 +703,11 @@ void TrackManager::setJoin(bool joined) {
 	setTrackMode(t, TRACK_MODE_MAIN, 0, false);      // 0 = no DC loco; false = do not turn off pwr
 	// then in some cases setPower() is called
 	// seperately after the setJoin() as well
-	break;                                           // there is only one prog track, done
+	goto success;                                    // there is only one prog track, done
       }
     }
+    return;                                              // no prog track found, can not do more
+  success: /* continue here when prog tack found */;
   } else {
     if (tempProgTrack != MAX_TRACKS+1) {
       // setTrackMode defaults to power off, so we

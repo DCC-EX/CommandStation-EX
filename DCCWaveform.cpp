@@ -24,14 +24,14 @@
 #ifndef ARDUINO_ARCH_ESP32
   // This code is replaced entirely on an ESP32
 #include <Arduino.h>
-
 #include "DCCWaveform.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
 #include "DCCACK.h"
 #include "DIAG.h"
+#include "Railcom.h"
 
-
+bool DCCWaveform::cutoutNextTime=false;
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
@@ -71,9 +71,17 @@ void DCCWaveform::loop() {
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
+
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
+  #if defined(HAS_ENOUGH_MEMORY)
+  if (cutoutNextTime) {
+    cutoutNextTime=false;
+    Railcom::incCutout();
+    DCCTimer::startRailcomTimer(9);
+  }
+  #endif
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=TrackManager::progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   
@@ -115,19 +123,16 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   bytes_sent = 0;
   bits_sent = 0;
 }
-    
-volatile bool DCCWaveform::railcomActive=false;     // switched on by user
-volatile bool DCCWaveform::railcomDebug=false;     // switched on by user
 
-bool DCCWaveform::setRailcom(bool on, bool debug) {
-  if (on) {
-    // TODO check possible
+bool DCCWaveform::railcomPossible=false;     // High accuracy only    
+volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+ 
+bool DCCWaveform::setRailcom(bool on) {
+  if (on && railcomPossible) {
     railcomActive=true;
-    railcomDebug=debug;
   }
   else {
     railcomActive=false;
-    railcomDebug=false;
   } 
   return railcomActive;
 }
@@ -140,14 +145,32 @@ void DCCWaveform::interrupt2() {
   //        or WAVE_HIGH_0 for a 0 bit.
   if (remainingPreambles > 0 ) {
     state=WAVE_MID_1;  // switch state to trigger LOW on next interrupt
+    
     remainingPreambles--;
   
     // As we get to the end of the preambles, open the reminder window.
     // This delays any reminder insertion until the last moment so
     // that the reminder doesn't block a more urgent packet. 
     reminderWindowOpen=transmitRepeats==0 && remainingPreambles<12 && remainingPreambles>1;
-    if (remainingPreambles==1) promotePendingPacket();
-    else if (remainingPreambles==10 && isMainTrack && railcomActive) DCCTimer::ackRailcomTimer();
+    if (remainingPreambles==1)
+      promotePendingPacket();
+
+#if defined(HAS_ENOUGH_MEMORY)   
+    else if (isMainTrack && railcomActive) {
+      if (remainingPreambles==(requiredPreambles-1)) {
+        // First look if we need to start a railcom cutout on next interrupt
+        cutoutNextTime= true;
+      } else if (remainingPreambles==(requiredPreambles-12)) {
+        // cutout has ended so its now possible to poll the railcom detectors
+        // requiredPreambles is one higher that preamble length so
+        // if preamble length is 16 then this evaluates to 5
+      } else if (remainingPreambles==(requiredPreambles-3)) {
+        // cutout can be ended when read
+        // see above for requiredPreambles
+        DCCTimer::ackRailcomTimer();
+      }
+    }
+#endif    
     // Update free memory diagnostic as we don't have anything else to do this time.
     // Allow for checkAck and its called functions using 22 bytes more.
     else DCCTimer::updateMinimumFreeMemoryISR(22); 
@@ -171,13 +194,7 @@ void DCCWaveform::interrupt2() {
       bytes_sent = 0;
       // preamble for next packet will start...
       remainingPreambles = requiredPreambles;
-      
-      // set the railcom coundown to trigger half way 
-      // through the first preamble bit.
-      // Note.. we are still sending the last packet bit
-      //    and we then have to allow for the packet end bit
-      if (isMainTrack && railcomActive) DCCTimer::startRailcomTimer(9);
-      }
+    }
   }  
 }
 #pragma GCC pop_options
@@ -212,7 +229,7 @@ void DCCWaveform::promotePendingPacket() {
         transmitRepeats--;
         return;
       }
-
+    
     if (packetPending) {
         // Copy pending packet to transmit packet
         // a fixed length memcpy is faster than a variable length loop for these small lengths
@@ -228,101 +245,9 @@ void DCCWaveform::promotePendingPacket() {
       
       // nothing to do, just send idles or resets
       // Fortunately reset and idle packets are the same length
-      // Note: If railcomDebug is on, then we send resets to the main
-      //       track instead of idles. This means that all data will be zeros
-      //       and only the porersets will be ones, making it much
-      //       easier to read on a logic analyser.
-      memcpy( transmitPacket, (isMainTrack && (!railcomDebug)) ? idlePacket : resetPacket, sizeof(idlePacket));
+      memcpy( transmitPacket, isMainTrack ? idlePacket : resetPacket, sizeof(idlePacket));
       transmitLength = sizeof(idlePacket);
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-#include "DCCWaveform.h"
-#include "DCCACK.h"
-
-DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
-DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
-RMTChannel *DCCWaveform::rmtMainChannel = NULL;
-RMTChannel *DCCWaveform::rmtProgChannel = NULL;
-
-DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
-  isMainTrack = isMain;
-  requiredPreambles = preambleBits;
-}
-void DCCWaveform::begin() {
-  for(const auto& md: TrackManager::getMainDrivers()) {
-    pinpair p = md->getSignalPin();
-    if(rmtMainChannel) {
-      //DIAG(F("added pins %d %d to MAIN channel"), p.pin, p.invpin);
-      rmtMainChannel->addPin(p); // add pin to existing main channel
-    } else {
-      //DIAG(F("new MAIN channel with pins %d %d"), p.pin, p.invpin);
-      rmtMainChannel = new RMTChannel(p, true); /* create new main channel */
-    }
-  }
-  MotorDriver *md = TrackManager::getProgDriver();
-  if (md) {
-    pinpair p = md->getSignalPin();
-    if (rmtProgChannel) {
-      //DIAG(F("added pins %d %d to PROG channel"), p.pin, p.invpin);
-      rmtProgChannel->addPin(p); // add pin to existing prog channel
-    } else {
-      //DIAG(F("new PROGchannel with pins %d %d"), p.pin, p.invpin);
-      rmtProgChannel = new RMTChannel(p, false);
-    }
-  }
-}
-
-void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
-  RMTChannel *rmtchannel = (isMainTrack ? rmtMainChannel : rmtProgChannel);
-  if (rmtchannel == NULL)
-    return; // no idea to prepare packet if we can not send it anyway
-
-  rmtchannel->waitForDataCopy(); // blocking wait so we can write into buffer
-  byte checksum = 0;
-  for (byte b = 0; b < byteCount; b++) {
-    checksum ^= buffer[b];
-    pendingPacket[b] = buffer[b];
-  }
-  // buffer is MAX_PACKET_SIZE but pendingPacket is one bigger
-  pendingPacket[byteCount] = checksum;
-  pendingLength = byteCount + 1;
-  pendingRepeats = repeats;
-// DIAG repeated commands (accesories)
-//  if (pendingRepeats > 0)
-//    DIAG(F("Repeats=%d on %s track"), pendingRepeats, isMainTrack ? "MAIN" : "PROG");
-  // The resets will be zero not only now but as well repeats packets into the future
-  clearResets(repeats+1);
-  {
-    int ret = 0;
-    do {
-      ret = rmtchannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
-    } while(ret > 0);
-  }
-}
-
-bool DCCWaveform::isReminderWindowOpen() {
-  if(isMainTrack) {
-    if (rmtMainChannel == NULL)
-      return false;
-    return !rmtMainChannel->busy();
-  } else {
-    if (rmtProgChannel == NULL)
-      return false;
-    return !rmtProgChannel->busy();
-  }
-}
-void IRAM_ATTR DCCWaveform::loop() {
-  DCCACK::checkAck(progTrack.getResets());
-}
-
-bool DCCWaveform::setRailcom(bool on, bool debug) {
-  // TODO... ESP32 railcom waveform
-  return false;
-}
-
 #endif

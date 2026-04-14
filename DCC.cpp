@@ -5,7 +5,7 @@
  *  © 2021 Herb Morton
  *  © 2020-2022 Harald Barth
  *  © 2020-2021 M Steve Todd
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  All rights reserved.
  *
  *  This file is part of DCC-EX
@@ -26,6 +26,7 @@
 #include "DIAG.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "DCCConsist.h"
 #ifndef DISABLE_EEPROM
 #include "EEStore.h"
 #endif
@@ -37,6 +38,8 @@
 #include "CommandDistributor.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
+#include "Railcom.h"
+#include "DCCQueue.h"
 
 // This module is responsible for converting API calls into
 // messages to be sent to the waveform generator.
@@ -60,6 +63,8 @@ const byte FN_GROUP_5=0x10;
 FSH* DCC::shieldName=NULL;
 byte DCC::globalSpeedsteps=128;
 
+#define SLOTLOOP for (auto slot=LocoSlot::getFirst();slot;slot=slot->getNext())
+
 void DCC::begin() {
   StringFormatter::send(&USB_SERIAL,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 #ifndef DISABLE_EEPROM
@@ -72,21 +77,85 @@ void DCC::begin() {
 #endif
 }
 
+byte DCC::defaultMomentumA=0;
+byte DCC::defaultMomentumD=0;
+bool DCC::linearAcceleration=false; 
 
-void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
-  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
-  setThrottle2(cab, speedCode);
-  TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
-  // retain speed for loco reminders
-  updateLocoReminder(cab, speedCode );
+byte DCC::getMomentum(LocoSlot * slot) {
+   auto target=slot->getTargetSpeed() & 0x7f;
+   auto current=slot->getSpeedCode() & 0x7f;
+   if (target > current) {
+    // accelerating
+    auto momentum=(slot->getMomentumA() == MOMENTUM_USE_DEFAULT) ? defaultMomentumA : slot->getMomentumA();
+    // if nonlinear acceleration, momentum is reduced according to 
+    // gap between throttle and speed.
+    // ie. Loco takes accelerates faster if high throttle
+    if (momentum==0 || linearAcceleration) return momentum;
+    auto powerDifference= (target-current)/8;
+    if (momentum-powerDifference <0) return 0;
+    return momentum-powerDifference; 
+   }
+   return (slot->getMomentumD() == MOMENTUM_USE_DEFAULT) ? defaultMomentumD : slot->getMomentumD();
 }
 
-void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
+bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+  if (tSpeed==1) {
+    if (cab==0) {
+      estopAll(); // ESTOP broadcast fix 
+      return true;
+    }
+  } 
+  byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
+  auto slot=LocoSlot::getSlot(cab, true);
+  if (!slot) return false; // speed table full, can not do anything
 
+  // Ignore any throttle command to consist follower.
+  if (slot->isConsistFollower()) return true; 
+  
+  if (slot->getTargetSpeed()==speedCode) // speed has been reached
+    return true;
+  slot->setTargetSpeed(speedCode);
+
+  // copy target speed to consist followers
+  for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
+    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0) );
+  }
+
+  byte momentum=getMomentum(slot);
+  if (momentum && tSpeed!=1) { // not ESTOP
+    // we dont throttle speed, we just let the reminders take it to target
+    slot->setMomentumBase(millis());
+  } 
+  else {  // Momentum not involved, throttle now.
+    setThrottle2(slot,speedCode);
+    if (!estopIsLocked) TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
+  }
+  CommandDistributor::broadcastLoco(slot);
+  return true;
+}
+
+// set speedCode directly to DCC and make followers same
+void DCC::setThrottle2( LocoSlot * slot, byte speedCode)  {
+  for (auto follower=slot; follower; follower=follower->getConsistNext()) {
+    follower->setSpeedCode(speedCode);
+    setThrottleDCC(follower,speedCode);
+  } 
+}
+
+void DCC::setThrottleDCC( LocoSlot * slot, byte speedCode)  {
+  uint16_t cab=0;
+  if (slot) {
+    cab=slot->getLoco();
+    if (slot->isConsistReverse()) speedCode^=0x80;
+  }
+  // any throttle traffic is blocked when estop is locked
+  if (estopIsLocked) {
+    cab=0;
+    speedCode = 1;
+  }
   uint8_t b[4];
   uint8_t nB = 0;
   // DIAG(F("setSpeedInternal %d %x"),cab,speedCode);
-
   if (cab > HIGHEST_SHORT_ADDR)
     b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
   b[nB++] = lowByte(cab);
@@ -118,11 +187,11 @@ void DCC::setThrottle2( uint16_t cab, byte speedCode)  {
     b[nB++] = speedCode; // for encoding see setThrottle
 
   }
-
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 0);
+  if ((speedCode & 0x7F) == 1) DCCQueue::scheduleEstopPacket(b, nB, 4, cab); // highest priority
+  else DCCQueue::scheduleDCCSpeedPacket( b, nB, 0, cab);
 }
 
-void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
+void DCC::setFunctionInternal(int cab, byte group, byte byte1, byte byte2) {
   // DIAG(F("setFunctionInternal %d %x %x"),cab,byte1,byte2);
   byte b[4];
   byte nB = 0;
@@ -132,25 +201,31 @@ void DCC::setFunctionInternal(int cab, byte byte1, byte byte2, byte count) {
   b[nB++] = lowByte(cab);
   if (byte1!=0) b[nB++] = byte1;
   b[nB++] = byte2;
-
-  DCCWaveform::mainTrack.schedulePacket(b, nB, count);
+  
+  DCCQueue::scheduleDCCFunctionPacket(b, nB, cab,group);
 }
 
 // returns speed steps 0 to 127 (1 == emergency stop)
 // or -1 on "loco not found"
 int8_t DCC::getThrottleSpeed(int cab) {
-  int reg=lookupSpeedTable(cab, true);
-  if (reg<0) return -1;
-  return speedTable[reg].speedCode & 0x7F;
+  return getThrottleSpeedByte(cab) & 0x7F;
 }
 
 // returns speed code byte
 // or 128 (speed 0, dir forward) on "loco not found".
+// This is the throttle set speed... which may be different
+// from the actual loco speed if momentum is active or
+// speed limiting is applied.
 uint8_t DCC::getThrottleSpeedByte(int cab) {
-  int reg=lookupSpeedTable(cab, true);
-  if (reg<0)
-    return 128;
-  return speedTable[reg].speedCode;
+  auto slot=LocoSlot::getSlot(cab,false);
+  return slot?slot->getTargetSpeed():128;
+}
+// returns speed code byte for loco. 
+// This is the most recently send DCC speed packet byte
+// or 128 (speed 0, dir forward) on "loco not found".
+uint8_t DCC::getLocoSpeedByte(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  return slot?slot->getSpeedCode():128;
 }
 
 // returns 0 to 7 for frequency
@@ -159,12 +234,12 @@ uint8_t DCC::getThrottleFrequency(int cab) {
   (void)cab;
   return 0;
 #else
-  int reg=lookupSpeedTable(cab, true);
-  if (reg<0)
-    return 0; // use default frequency
+ auto slot=LocoSlot::getSlot(cab,false);
+ if (slot == nullptr)  // speed table full, can not do anything
+    return 0;           // return value for default frequency
   // shift out first 29 bits so we have the 3 "frequency bits" left
-  uint8_t res = (uint8_t)(speedTable[reg].functions >>29);
-  //DIAG(F("Speed table %d functions %l shifted %d"), reg, speedTable[reg].functions, res);
+  uint8_t res = (uint8_t)(slot->getFunctions() >>29);
+  //DIAG(F("Speed table %d functions %l shifted %d"), reg, slot->functions, res);
   return res;
 #endif
 }
@@ -172,9 +247,7 @@ uint8_t DCC::getThrottleFrequency(int cab) {
 // returns direction on loco
 // or true/forward on "loco not found"
 bool DCC::getThrottleDirection(int cab) {
-  int reg=lookupSpeedTable(cab, true);
-  if (reg<0) return true;
-  return (speedTable[reg].speedCode & 0x80) !=0;
+  return getThrottleSpeedByte(cab) & 0x80;
 }
 
 // Set function to value on or off
@@ -198,7 +271,7 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
        b[nB++] = (functionNumber & 0x7F) | (on ? 0x80 : 0);  // low order bits and state flag
        b[nB++] = functionNumber >>7 ;  // high order bits
     }
-    DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+    DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
   }
   // We use the reminder table up to 28 for normal functions.
   // We use 29 to 31 for DC frequency as well so up to 28
@@ -207,22 +280,24 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
   if (functionNumber > 31)
     return true;
   
-	  int reg = lookupSpeedTable(cab, true);
-  if (reg<0) return false;
+   auto slot=LocoSlot::getSlot(cab,true);
+   if (!slot) return false; // speed table full, can not do anything
 
-  // Take care of functions:
+   // Take care of functions:
   // Set state of function
-  uint32_t previous=speedTable[reg].functions;
+  uint32_t previous=slot->getFunctions();
+  uint32_t newset=previous;
   uint32_t funcmask = (1UL<<functionNumber);
   if (on) {
-      speedTable[reg].functions |= funcmask;
+      newset |= funcmask;
   } else {
-      speedTable[reg].functions &= ~funcmask;
+      newset &= ~funcmask;
   }
-  if (speedTable[reg].functions != previous) {
+  if (newset != previous) {
+    slot->setFunctions(newset);
     if (functionNumber <= 28)
-      updateGroupflags(speedTable[reg].groupFlags, functionNumber);
-    CommandDistributor::broadcastLoco(reg);
+      updateGroupflags(slot, functionNumber);
+    CommandDistributor::broadcastLoco(slot);
   }
   return true;
 }
@@ -239,45 +314,58 @@ void DCC::changeFn( int cab, int16_t functionNumber) {
 int8_t DCC::getFn( int cab, int16_t functionNumber) {
   if (cab<=0 || functionNumber>31)
     return -1;  // unknown
-  int reg = lookupSpeedTable(cab, false);
-  if (reg<0)
+  auto slot = LocoSlot::getSlot(cab, false);
+  if (slot == nullptr) // not found
     return -1;
-
   unsigned long funcmask = (1UL<<functionNumber);
-  return  (speedTable[reg].functions & funcmask)? 1 : 0;
+  return  (slot->getFunctions() & funcmask)? 1 : 0;
 }
 
 // Set the group flag to say we have touched the particular group.
 // A group will be reminded only if it has been touched.
-void DCC::updateGroupflags(byte & flags, int16_t functionNumber) {
+void DCC::updateGroupflags(LocoSlot * slot, int16_t functionNumber) {
   byte groupMask;
   if (functionNumber<=4)       groupMask=FN_GROUP_1;
   else if (functionNumber<=8)  groupMask=FN_GROUP_2;
   else if (functionNumber<=12) groupMask=FN_GROUP_3;
   else if (functionNumber<=20) groupMask=FN_GROUP_4;
   else                         groupMask=FN_GROUP_5;
-  flags |= groupMask;
+  slot->setGroupFlags((slot->getGroupFlags()) | groupMask);
 }
 
 uint32_t DCC::getFunctionMap(int cab) {
   if (cab<=0) return 0;  // unknown pretend all functions off
-  int reg = lookupSpeedTable(cab, false);
-  return (reg<0)?0:speedTable[reg].functions;
+  auto slot = LocoSlot::getSlot(cab,false);
+  return slot?slot->getFunctions():0;
 }
 
 // saves DC frequency (0..3) in spare functions 29,30,31
 void DCC::setDCFreq(int cab,byte freq) {
   if (cab==0 || freq>3) return;
-  auto reg=lookupSpeedTable(cab,true);
-  if (reg < 0) return;
+  auto slot=LocoSlot::getSlot(cab,true);
+  if (!slot) return; // speed table full, can not do anything
+  
   // drop and replace F29,30,31 (top 3 bits) 
-  auto newFunctions=speedTable[reg].functions & 0x1FFFFFFFUL;
-  if (freq==1)      newFunctions |= (1UL<<29); // F29
-  else if (freq==2) newFunctions |= (1UL<<30); // F30
-  else if (freq==3) newFunctions |= (1UL<<31); // F31
-  if (newFunctions==speedTable[reg].functions) return; // no change 
-  speedTable[reg].functions=newFunctions;
-  CommandDistributor::broadcastLoco(reg);
+  auto newFunctions=slot->getFunctions() & 0x1FFFFFFFUL; // get and clear relevant bits
+  if (freq != 0) newFunctions |= (1UL<<(28 + freq));     // 1->29, 2->30, 3->31
+  if (newFunctions==slot->getFunctions()) return; // no change 
+  slot->setFunctions(newFunctions);
+  CommandDistributor::broadcastLoco(slot);
+}
+
+void DCC::saveSpeed(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  if (slot == nullptr)  // speed table full, can not do anything
+    return;
+  slot->saveSpeed();
+}
+
+void DCC::restoreSpeed(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  if (slot == nullptr)  // speed table full, can not do anything
+    return;
+  auto speedCode=slot->getSavedSpeedCode();  
+  setThrottle(cab, speedCode& 0x7f, (speedCode & 0x80)!=0);
 }
 
 void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
@@ -303,16 +391,17 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   // second byte is of the form 1AAACPPG, where C is 1 for on, PP the ports 0 to 3 and G the gate (coil).
   b[0] = address % 64 + 128;
   b[1] = ((((address / 64) % 8) << 4) + (port % 4 << 1) + gate % 2) ^ 0xF8;
-  if (onoff != 0) {
-    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat on packet three times
-#if defined(EXRAIL_ACTIVE)
-    RMFT2::activateEvent(address<<2|port,gate);
-#endif
-  }
-  if (onoff != 1) {
+  if (onoff==0) {   // off packet only
     b[1] &= ~0x08; // set C to 0
-    DCCWaveform::mainTrack.schedulePacket(b, 2, 3);      // Repeat off packet three times
-  }
+    DCCQueue::scheduleDCCPacket(b, 2, 3);
+  } else if (onoff==1) { // on packet only
+    DCCQueue::scheduleDCCPacket(b, 2, 3);
+  } else { // auto timed on then off  
+    DCCQueue::scheduleAccOnOffPacket(b, 2, 3, 100); // On then off after 100mS
+  } 
+#if defined(EXRAIL_ACTIVE)
+  if (onoff !=0) RMFT2::activateEvent(address<<2|port,gate);
+#endif
 }
 
 bool DCC::setExtendedAccessory(int16_t address, int16_t value, byte repeats) {
@@ -334,8 +423,8 @@ preamble -0- 1 0 A7 A6 A5 A4 A3 A2 -0- 0 ^A10 ^A9 ^A8 0 A1 A0 1 -0- ....
 
 Thus in byte packet form the format is 10AAAAAA, 0AAA0AA1, 000XXXXX
 
-Die Adresse f�r den ersten erweiterten Zubeh�rdecoder ist wie bei den einfachen
-Zubeh�rdecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
+Die Adresse für den ersten erweiterten Zubehördecoder ist wie bei den einfachen
+Zubehördecodern die Adresse 4 = 1000-0001 0111-0001 . Diese Adresse wird in
 Anwenderdialogen als Adresse 1 dargestellt.
 
 This means that the first address shown to the user as "1" is mapped
@@ -362,7 +451,7 @@ whole range of the 11 bits sent to track.
     | (((~(address>>8)) & 0x07)<<4)  // shift out 8, invert, mask 3 bits, shift up 4
     | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
   b[2]=value;
-  DCCWaveform::mainTrack.schedulePacket(b, sizeof(b), repeats);
+  DCCQueue::scheduleDCCPacket(b, sizeof(b), repeats);
   return true;
 }
 
@@ -381,7 +470,26 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = bValue;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
+}
+
+//
+// readCVByteMain: Read a byte with PoM on main.
+// This requires Railcom active 
+//
+void DCC::readCVByteMain(int cab, int cv, ACK_CALLBACK callback)  {
+  byte b[5];
+  byte nB = 0;
+  if (cab > HIGHEST_SHORT_ADDR)
+    b[nB++] = highByte(cab) | 0xC0;    // convert train number into a two-byte address
+
+  b[nB++] = lowByte(cab);
+  b[nB++] = cv1(READ_BYTE_MAIN, cv); // any CV>1023 will become modulus(1024) due to bit-mask of 0x03
+  b[nB++] = cv2(cv);
+  b[nB++] = 0;
+
+  DCCQueue::scheduleDCCPacket(b, nB, 2,cab);
+  Railcom::anticipate(cab,cv,callback);
 }
 
 //
@@ -402,7 +510,45 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   b[nB++] = cv2(cv);
   b[nB++] = WRITE_BIT | (bValue ? BIT_ON : BIT_OFF) | bNum;
 
-  DCCWaveform::mainTrack.schedulePacket(b, nB, 4);
+  DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
+}
+
+bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
+  /* see rcn-122
+  5 Global commands 
+These commands are sent and begin exclusively with a broadcast address 0 
+always with {synchronous bits} 0 0000-0000 … and end with the checksum 
+... PPPPPPPP 1. Therefore, only the bytes of the commands and not that of 
+shown below whole package shown. The commands can be used by vehicle and 
+accessory decoders alike. 
+
+  5.1 Time command 
+This command is four bytes long and has the format: 
+1100-0001 CCxx-xxxx xxxx-xxxxx xxxx-xxxx 
+CC indicates what data is transmitted in the packet: 
+CC = 00 Model Time 
+1100-0001 00MM-MMMM WWWH-HHHH U0BB-BBBB with: 
+MMMMMM = Minutes, Value range: 0..59 
+WWW =     Day of the Week, Value range: 0 = Monday, 1 = Tuesday, 2 = Wednesday, 
+3 = Thursday, 4 = Friday, 5 = Saturday, 6 = Sunday, 7 = Weekday 
+is not supported. 
+HHHHH =   Hours, value range: 0..23 
+U =         
+Update, i.e. the time has changed suddenly, e.g. by a new one timetable to start.        
+Up to 4 can occur per sudden change commands can be marked like this. 
+BBBBBB =    Acceleration factor, value range 0..63. An acceleration factor of 0 means the  
+model clock has been stopped, a factor of 1 corresponds to real time, at 2 the 
+clock runs twice as fast, at three times as fast as real time, etc. 
+*/
+if (minutes>=1440 || speed>63 ) return false; 
+byte b[5];
+b[0]=0; // broadcast address
+b[1]=0b11000001; // 1100-0001 (model time)
+b[2]=minutes % 60 ;  // MM
+b[3]= 0b11100000 | (minutes/60); // 111H-HHHH weekday not supported
+b[4]= (suddenChange ? 0b10000000 : 0) | speed;
+DCCQueue::scheduleDCCPacket(b, sizeof(b), 2);
+return true; 
 }
 
 FSH* DCC::getMotorShieldName() {
@@ -506,8 +652,8 @@ const ackOp FLASH READ_CV_PROG[] = {
       VB, WACK, ITCB,  // verify merged byte and return it if acked ok
       CALLFAIL };          // verification failed
 
-
-const ackOp FLASH LOCO_ID_PROG[] = {
+// returns loco id or consist id or -1 on failure
+const ackOp FLASH LOCO_DRIVEAWAY_PROG[] = {
       BASELINE,
       // first check cv20 for extended addressing
       SETCV, (ackOp)20,     // CV 19 is extended
@@ -602,6 +748,108 @@ const ackOp FLASH LOCO_ID_PROG[] = {
       V0, WACK, MERGE,
       VB, WACK, ITCB,  // verify merged byte and callback
       CALLFAIL
+      };
+
+// returns loco id regardless of consist 
+const ackOp FLASH LOCO_READ_ID_PROG[] = {
+      BASELINE,
+      SETCV,(ackOp)29,
+      SETBIT,(ackOp)5,
+      V0, WACK, ITSKIP,  // Skip to SKIPTARGET if bit 5 of CV29 is zero
+
+      // Long locoid
+      SETCV, (ackOp)17,       // CV 17 is part of locoid
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      STASHLOCOID,         // keep stashed cv 17 for later
+      // Read 2nd part from CV 18
+      SETCV, (ackOp)18,
+      STARTMERGE,
+      V0, WACK, MERGE,  // read and merge bit 1 etc
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // verify merged byte and return -1 it if not acked ok
+      COMBINELOCOID,        // Combile byte with stash to make long locoid and callback
+
+      // ITSKIP Skips to here if CV 29 bit 5 was zero. so read CV 1 and return that
+      SKIPTARGET,
+      SETCV, (ackOp)1,
+      STARTMERGE,
+      SETBIT, (ackOp)6,  // skip over first bit as we know its a zero
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB,  // verify merged byte and callback
+      CALLFAIL
+      };
+
+// returns consist id or -1 on failure
+const ackOp FLASH LOCO_READ_CONSIST_PROG[] = {
+      BASELINE,
+      // first check cv20 for extended addressing
+      SETCV, (ackOp)20,     // CV 19 is extended
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITSKIP,     // skip past extended section if cv20 is zero
+      // read cv20 and 19 and merge 
+      STARTMERGE,           // Setup to read cv 20
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKSKIP, // bad read of cv20, assume its 0 
+      BAD20SKIP,     // detect invalid cv20 value and ignore 
+      STASHLOCOID,   // keep cv 20 until we have cv19 as well.
+      SETCV, (ackOp)19, 
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, NAKFAIL,  // cant recover if cv 19 unreadable
+      COMBINE1920,  // Combile byte with stash and callback
+// end of advanced 20,19 check
+      SKIPTARGET,
+      SETCV, (ackOp)19,     // CV 19 is consist setting
+      SETBYTE, (ackOp)0,
+      VB, WACK, ITC0,     // rerturn 0 if cv19 is zero (no consist)
+      SETBYTE, (ackOp)128,
+      VB, WACK, ITC0,     // return 0 if cv19 is 128 (no consist, direction bit set)
+      STARTMERGE,           // Setup to read cv 19
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      V0, WACK, MERGE,
+      VB, WACK, ITCB7,  // return 7 bits only, No_ACK means CV19 not supported so ignore it
+      CALLFAIL // return -1 if cv19 wont verify
       };
 
 const ackOp FLASH SHORT_LOCO_ID_PROG[] = {
@@ -699,8 +947,16 @@ void DCC::readCV(int16_t cv, ACK_CALLBACK callback)  {
   DCCACK::Setup(cv, 0,READ_CV_PROG, callback);
 }
 
+void DCC::getDriveawayLocoId(ACK_CALLBACK callback) {
+  DCCACK::Setup(0,0, LOCO_DRIVEAWAY_PROG, callback);
+}
+
 void DCC::getLocoId(ACK_CALLBACK callback) {
-  DCCACK::Setup(0,0, LOCO_ID_PROG, callback);
+  DCCACK::Setup(0,0, LOCO_READ_ID_PROG, callback);
+}
+
+void DCC::getConsistId(ACK_CALLBACK callback) {
+  DCCACK::Setup(0,0, LOCO_READ_CONSIST_PROG, callback);
 }
 
 void DCC::setLocoId(int id,ACK_CALLBACK callback) {
@@ -735,88 +991,161 @@ void DCC::setConsistId(int id,bool reverse,ACK_CALLBACK callback) {
 }
 
 void DCC::forgetLoco(int cab) {  // removes any speed reminders for this loco
-  setThrottle2(cab,1); // ESTOP this loco if still on track
-  int reg=lookupSpeedTable(cab, false);
-  if (reg>=0) {
-    speedTable[reg].loco=0;
-    setThrottle2(cab,1); // ESTOP if this loco still on track
+  auto slot=LocoSlot::getSlot(cab, false);
+  if (slot) {
+     setThrottleDCC(slot,1); // ESTOP this loco if still on track
+     if (nextLocoReminder==slot) nextLocoReminder=slot->getNext(); // move on if we are about to forget this one
+    if (slot->isConsistLead() || slot->isConsistFollower()) 
+      DCCConsist::deleteAnyConsist(cab); // unchain any consist
+    slot->forget(); // no longer used but not end of world
     CommandDistributor::broadcastForgetLoco(cab);
   }
 }
 void DCC::forgetAllLocos() {  // removes all speed reminders
-  setThrottle2(0,1); // ESTOP all locos still on track
-  for (int i=0;i<MAX_LOCOS;i++) {
-    if (speedTable[i].loco) CommandDistributor::broadcastForgetLoco(speedTable[i].loco);
-    speedTable[i].loco=0;
+  setThrottleDCC(nullptr,1); // ESTOP all locos still on track
+  SLOTLOOP {
+     CommandDistributor::broadcastForgetLoco(slot->getLoco());
   }
+  LocoSlot::forgetAll(); // will effectively forget all consist chains 
+  nextLocoReminder=nullptr;  
 }
 
 byte DCC::loopStatus=0;
 
 void DCC::loop()  {
   TrackManager::loop(); // power overload checks
-  issueReminders();
+  if (DCCWaveform::mainTrack.isReminderWindowOpen()) {
+    // Now is a good time to choose a packet to be sent
+    // Either highest priority from the queues or a reminder
+    if (!DCCQueue::scheduleNext(false)) {
+      // none pending, 
+      issueReminders();
+      DCCQueue::scheduleNext(true); // send any pending and force an idle if none 
+    }
+
+  }
 }
 
 void DCC::issueReminders() {
-  // if the main track transmitter still has a pending packet, skip this time around.
-  if (!DCCWaveform::mainTrack.isReminderWindowOpen()) return;
-  // Move to next loco slot.  If occupied, send a reminder.
-  int reg = lastLocoReminder+1;
-  if (reg > highestUsedReg) {
-    if (loopStatus == 0 /*only needed if numLocos == 1 but we do not have a counter*/) {
-      // insert idle packet in the speed packet loop to fullfill the *censored*
-      // >5ms between packets to same decoder rule
-      const byte idlepacket[] = {0xFF, 0x00};
-      DCCWaveform::mainTrack.schedulePacket(idlepacket, 2, 0);
-    }
-    reg = 0;  // Go to start of table
+
+  // note, chainModified is set whenever a loco is added or removed
+  // so we dont accidentally follow a stale pointer.
+
+  if (LocoSlot::chainModified || nextLocoReminder==nullptr) {
+    LocoSlot::chainModified=false;
+    nextLocoReminder=LocoSlot::getFirst(); // start at the beginning
+    if (nextLocoReminder==nullptr) return; // no locos at all
+    // we have reached the end of the table, so we can move on to 
+    // the next loop state and start from the top.
+    // There are 0-9 loop states..  speed,f1,speed,f2,speed,f3,speed,f4,speed,f5
+    loopStatus++;
+    if (loopStatus>9) loopStatus=0; // reset to 0
   }
-  if (speedTable[reg].loco > 0) {
-    // have found loco to remind
-    if (issueReminder(reg))
-      lastLocoReminder = reg;
-  } else
-    lastLocoReminder = reg;
+
+  for (auto slot=nextLocoReminder;slot;slot=slot->getNext()) {
+    if (issueReminder(slot)) {
+      nextLocoReminder=slot->getNext(); // remember next one to check
+      return; // reminder sent, exit
+      }
+    }
+  
+    // if we get to her, we have reached the end of the table.
+    // The next call will move on to restart 
+    nextLocoReminder=nullptr;
+  
 }
 
-bool DCC::issueReminder(int reg) {
-  unsigned long functions=speedTable[reg].functions;
-  int loco=speedTable[reg].loco;
-  byte flags=speedTable[reg].groupFlags;
+int16_t normalize(byte speed) {
+   if (speed & 0x80) return speed & 0x7F;
+   return 0-1-speed; 
+}
+
+byte dccalize(int16_t speed) {
+   if (speed>127) return 0xFF;  // 127 forward
+   if (speed<-127) return 0x7F;  // 127 reverse
+   if (speed >=0) return speed | 0x80;
+   // negative speeds... -1==dcc 0, -2==dcc 1 
+   return (int16_t)-1 - speed; 
+}
+
+bool DCC::issueReminder(LocoSlot * slot) {
+  unsigned long functions=slot->getFunctions();
+  int loco=slot->getLoco();
+  byte flags=slot->getGroupFlags();
 
   switch (loopStatus) {
         case 0:
-      //   DIAG(F("Reminder %d speed %d"),loco,speedTable[reg].speedCode);
-         setThrottle2(loco, speedTable[reg].speedCode);
-         break;
+        case 2:
+        case 4:
+        case 6:
+        case 8: {
+         // dont remind consist followers here 
+         if (slot->isConsistFollower()) break; 
+
+         // calculate any momentum change going on
+         auto sc=slot->getSpeedCode();
+         if (slot->getTargetSpeed() != sc) {
+            // calculate new speed code 
+            auto now=millis();
+            int16_t delay=now-slot->getMomentumBase();
+            auto millisPerNotch=MOMENTUM_FACTOR * (int16_t)getMomentum(slot);
+            // allow for momentum change to 0 while accelerating/slowing
+            auto ticks=(millisPerNotch>0)?(delay/millisPerNotch):500;
+            if (ticks>0) {
+              auto current=normalize(sc);  // -128..+127
+              auto target=normalize(slot->getTargetSpeed());
+              // DIAG(F("Momentum l=%d ti=%d sc=%d c=%d t=%d"),loco,ticks,sc,current,target);
+              if (current<target) { // accelerate
+                current+=ticks;
+                if (current>target) current=target;
+              }
+              else  { // slow
+                current-=ticks;
+                if (current<target) current=target;
+              }
+              sc=dccalize(current);
+              //DIAG(F("c=%d newsc=%d"),current,sc);
+              slot->setSpeedCode(sc);
+              if (!estopIsLocked) TrackManager::setDCSignal(loco,sc); // in case this is a dcc track on this addr
+              slot->setMomentumBase(now);  
+            }
+          }
+          // DIAG(F("Reminder %d speed %d"),loco,slot->speedCode);
+          setThrottle2(slot, sc); // includes consist followers
+        }
+        return true; // reminder sent
        case 1: // remind function group 1 (F0-F4)
-          if (flags & FN_GROUP_1)
-	    setFunctionInternal(loco,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4),0); // 100D DDDD
+          if (flags & FN_GROUP_1) {
+            setFunctionInternal(loco,1,0, 128 | ((functions>>1)& 0x0F) | ((functions & 0x01)<<4)); // 100D DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 2: // remind function group 2 F5-F8
-          if (flags & FN_GROUP_2)
-  	    setFunctionInternal(loco,0, 176 | ((functions>>5)& 0x0F),0);                           // 1011 DDDD
+       case 3: // remind function group 2 F5-F8
+          if (flags & FN_GROUP_2) {
+  	        setFunctionInternal(loco,2,0, 176 | ((functions>>5)& 0x0F));      // 1011 DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 3: // remind function group 3 F9-F12
-          if (flags & FN_GROUP_3)
-	    setFunctionInternal(loco,0, 160 | ((functions>>9)& 0x0F),0);                           // 1010 DDDD
+       case 5: // remind function group 3 F9-F12
+          if (flags & FN_GROUP_3) {
+	          setFunctionInternal(loco,3,0, 160 | ((functions>>9)& 0x0F));    // 1010 DDDD
+            return true;  // reminder sent
+          }
           break;
-       case 4: // remind function group 4 F13-F20
-          if (flags & FN_GROUP_4)
-	    setFunctionInternal(loco,222, ((functions>>13)& 0xFF),0);
+       case 7: // remind function group 4 F13-F20
+          if (flags & FN_GROUP_4) {
+	          setFunctionInternal(loco,4,222, ((functions>>13)& 0xFF));
+            return true; 
+          }
           break;
-       case 5: // remind function group 5 F21-F28
-          if (flags & FN_GROUP_5)
-	    setFunctionInternal(loco,223, ((functions>>21)& 0xFF),0);
+       case 9: // remind function group 5 F21-F28
+          if (flags & FN_GROUP_5) {
+	          setFunctionInternal(loco,5,223, ((functions>>21)& 0xFF));
+            return true;  // reminder sent
+          }
           break;
       }
-      loopStatus++;
-      // if we reach status 6 then this loco is done so
-      // reset status to 0 for next loco and return true so caller
-      // moves on to next loco.
-      if (loopStatus>5) loopStatus=0;
-      return loopStatus==0;
+      return false; // no reminder sent 
     }
 
 
@@ -833,70 +1162,80 @@ byte DCC::cv2(int cv)  {
   return lowByte(cv);
 }
 
-int DCC::lookupSpeedTable(int locoId, bool autoCreate) {
-  // determine speed reg for this loco
-  int firstEmpty = MAX_LOCOS;
-  int reg;
-  for (reg = 0; reg < MAX_LOCOS; reg++) {
-    if (speedTable[reg].loco == locoId) break;
-    if (speedTable[reg].loco == 0 && firstEmpty == MAX_LOCOS) firstEmpty = reg;
-  }
 
-  // return -1 if not found and not auto creating
-  if (reg == MAX_LOCOS) {
-    if (!autoCreate) return -1;    // nothing found and not auto creating
-    if (firstEmpty == MAX_LOCOS) { // through and no empty slot
-      DIAG(F("Too many locos"));
-      return -1;
-    }
-    reg = firstEmpty;
-    speedTable[reg].loco = locoId;
-    speedTable[reg].speedCode=128;  // default direction forward
-    speedTable[reg].groupFlags=0;
-    speedTable[reg].functions=0;
+bool DCC::setMomentum(int locoId,int16_t accelerating, int16_t decelerating) {
+  if (locoId<0) return false;
+  if (locoId==0) {
+    if (accelerating<0 || decelerating<0) return false;
+    defaultMomentumA=accelerating/MOMENTUM_FACTOR;
+    defaultMomentumD=decelerating/MOMENTUM_FACTOR;
+    return true;
   }
-  if (reg > highestUsedReg) highestUsedReg = reg;
-  return reg;
+  // -1 is ok and means this loco should use the default.
+  if (accelerating<-1 || decelerating<-1) return false;
+  if (accelerating/MOMENTUM_FACTOR >= MOMENTUM_USE_DEFAULT || 
+      decelerating/MOMENTUM_FACTOR >= MOMENTUM_USE_DEFAULT) return false;
+  
+  // Values stored are 255=MOMENTUM_USE_DEFAULT, or millis/MOMENTUM_FACTOR.
+  // This is to keep the values in a byte rather than int16
+  // thus saving 2 bytes RAM per loco slot.   
+  auto slot=LocoSlot::getSlot(locoId,true);
+  if (!slot) return false; // speed table full, can not do anything
+  
+  slot->setMomentumA((accelerating<0)? MOMENTUM_USE_DEFAULT: (accelerating/MOMENTUM_FACTOR));
+  slot->setMomentumD((decelerating<0)? MOMENTUM_USE_DEFAULT: (decelerating/MOMENTUM_FACTOR));
+  return true; 
 }
 
-void  DCC::updateLocoReminder(int loco, byte speedCode) {
+// ESTOP functions:
+// estopAll() - estop all locos (broadcast dcc) and set their reminders
+//              to speed 0 with their current direction preserved.
+//              Throttles will be told, but can immediately start driving again.
+// estopLock(true) - estop all locos (broadcast dcc) and lock the estop state. 
+//              While locked, no loco can be moved because any throttle packets will
+//              be blocked at the DCC/DC level and replaced by the estop broadcast packet.
+//              Reminders are unchanged so retain the original speed/direction ready for the restart.
+//              Throttles will show original speed and can be changed to affect the speed that
+//              will be used when the estop is unlocked. 
+// estopLock(false) - unlocks the estop state and all locos will resume their 
+//              previous (or changed since locking) speeds as the reminder loop continues.
 
-  if (loco==0) {
-     // broadcast stop/estop but dont change direction
-     for (int reg = 0; reg <= highestUsedReg; reg++) {
-       if (speedTable[reg].loco==0) continue;
-       byte newspeed=(speedTable[reg].speedCode & 0x80) |  (speedCode & 0x7f);
-       if (speedTable[reg].speedCode != newspeed) {
-         speedTable[reg].speedCode = newspeed;
-         CommandDistributor::broadcastLoco(reg);
-       }
-     }
-     return;
-  }
-
-  // determine speed reg for this loco
-  int reg=lookupSpeedTable(loco, true);
-  if (reg>=0 && speedTable[reg].speedCode!=speedCode) {
-    speedTable[reg].speedCode = speedCode;
-    CommandDistributor::broadcastLoco(reg);
+void  DCC::estopAll() {
+  setThrottleDCC(nullptr,1); // estop all locos
+  TrackManager::setDCSignal(0,1); 
+    
+  // remind stop/estop but dont change direction
+  for (auto slot=LocoSlot::getFirst();slot;slot=slot->getNext()) {
+    byte newspeed=(slot->getTargetSpeed() & 0x80) |  0x01;
+    slot->setSpeedCode(newspeed);
+    slot->setTargetSpeed(newspeed);
+    CommandDistributor::broadcastLoco(slot);  
   }
 }
 
-DCC::LOCO DCC::speedTable[MAX_LOCOS];
-int DCC::lastLocoReminder = 0;
-int DCC::highestUsedReg = 0;
+bool DCC::estopIsLocked=false;
+
+bool DCC::isEstopLocked() {
+  return estopIsLocked;
+}
+
+void DCC::estopLock( bool lock) {
+  // see notes above about estop functions. 
+  if (estopIsLocked==lock) return; // no change
+  estopIsLocked=lock;
+  if (lock) {
+    setThrottleDCC(nullptr, 1); // broadcast estop to DCC
+    TrackManager::setDCSignal(0, 1); // stop DC signal on all tracks
+  }
+  CommandDistributor::broadcastEstopLock(estopIsLocked); // tell throttle users
+}
+
+
+LocoSlot  *  DCC::nextLocoReminder = nullptr;
 
 
 void DCC::displayCabList(Print * stream) {
-
-    int used=0;
-    for (int reg = 0; reg <= highestUsedReg; reg++) {
-       if (speedTable[reg].loco>0) {
-        used ++;
-        StringFormatter::send(stream,F("cab=%d, speed=%d, dir=%c \n"),
-           speedTable[reg].loco,  speedTable[reg].speedCode & 0x7f,(speedTable[reg].speedCode & 0x80) ? 'F':'R');
-       }
-     }
-     StringFormatter::send(stream,F("Used=%d, max=%d\n"),used,MAX_LOCOS);
-
+    LocoSlot::dumpTable(stream);
+     StringFormatter::send(stream,F("<* Default momentum=%d/%d *>\n"),
+              DCC::defaultMomentumA,DCC::defaultMomentumD);
 }

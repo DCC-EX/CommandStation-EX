@@ -4,7 +4,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *
  *  This file is part of CommandStation-EX
  *
@@ -26,14 +26,16 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 // defines.h relies on macros defined in config.h
-// but it may have already been included (for cosmetic convenence) by the .ino
-#ifndef MOTOR_SHIELD_TYPE
-  #if __has_include ( "config.h")
+// but it may have already been included (for cosmetic convenience) by the .ino
+
+#if __has_include ( "config.h")
     #include "config.h"
-  #else
-    #include "config.example.h"
-  #endif
 #endif
+
+#ifndef MOTOR_SHIELD_TYPE
+  #define MOTOR_SHIELD_TYPE NO_SHIELD
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create a cpu type we can share and 
@@ -42,7 +44,7 @@
 #define HAS_ENOUGH_MEMORY
 #undef USB_SERIAL     // Teensy has this defined by default...
 #define USB_SERIAL Serial
-
+#define USB_SERIAL_WEB 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
 
@@ -51,20 +53,26 @@
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
+
 #elif defined(ARDUINO_AVR_NANO)
   #define ARDUINO_TYPE "NANO"
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
 #elif defined(ARDUINO_AVR_MEGA)
   #define ARDUINO_TYPE "MEGA"
+  #define DEFAULT_MAX_LOCOS 50
 #elif defined(ARDUINO_AVR_MEGA2560)
   #define ARDUINO_TYPE "MEGA"
+  #define DEFAULT_MAX_LOCOS 50
 #elif defined(ARDUINO_ARCH_MEGAAVR)
   #define ARDUINO_TYPE "MEGAAVR"
   #undef HAS_ENOUGH_MEMORY
   #define NO_EXTENDED_CHARACTERS
   #undef I2C_EXTENDED_ADDRESS
+  #define DEFAULT_MAX_LOCOS 8
 #elif defined(ARDUINO_TEENSY31)
   #define ARDUINO_TYPE "TEENSY3132"
   #undef USB_SERIAL
@@ -129,6 +137,10 @@
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
   #endif
+  #if ENABLE_WIFI
+   #define ENABLE_SERIAL_LOG
+   #endif
+
 #elif defined(ARDUINO_ARCH_SAMD)
   #define ARDUINO_TYPE "SAMD21"
   #undef USB_SERIAL
@@ -143,6 +155,11 @@
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
   #endif
+  #if ENABLE_ETHERNET
+    // WAITING FOR STM32 ETHERNET SUPPORT FIX
+    // #define ENABLE_SERIAL_LOG
+  #endif
+
   // STM32 support for native I2C is awaiting development 
   // #ifndef I2C_USE_WIRE
   // #define I2C_USE_WIRE
@@ -213,6 +230,14 @@
 //
 #define WIFI_SERIAL_LINK_SPEED 115200
 
+// configure serial log browser feature if possible
+#ifdef ENABLE_SERIAL_LOG
+    // Replace USB_SERIAL with SerialLog so we can browse it!
+    #undef USB_SERIAL
+    #include "SerialUsbLog.h"
+    #define USB_SERIAL SerialLog
+  #endif
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
@@ -239,4 +264,60 @@
   #endif
 #endif
 
+#if defined(ARDUINO_ARCH_STM32)
+// The LwIP library for the STM32 wired ethernet has by default 10 TCP
+// clients defined but because of a bug in the library #11 is not
+// rejected but kicks out any old connection. By restricting our limit
+// to 9 the #10 will be rejected by our code so that the number can
+// never get to 11 which would kick an existing connection.
+// If you want to change this value, do that in
+// config.h AND in STM32lwipopts.h.
+ #ifndef MAX_NUM_TCP_CLIENTS
+  #define MAX_NUM_TCP_CLIENTS 9
+ #endif
+#else
+ #if defined(ARDUINO_ARCH_ESP32)
+// Espressif LWIP stack
+  #define MAX_NUM_TCP_CLIENTS 10
+ #else
+// Wifi shields etc
+  #define MAX_NUM_TCP_CLIENTS 8
+ #endif
 #endif
+
+
+// Default MAX_LOCOS if not found in config.h
+#ifndef DEFAULT_MAX_LOCOS 
+   #define DEFAULT_MAX_LOCOS 120
+#endif   
+#ifndef MAX_LOCOS 
+   #define MAX_LOCOS DEFAULT_MAX_LOCOS
+#endif   
+
+// Default IP_PORT if not found in config.h
+#ifndef IP_PORT
+    #define IP_PORT 2560
+#endif
+
+// Default WIFI_SSID if not found in config.h
+#ifndef WIFI_SSID
+    #define WIFI_SSID ""
+ 
+#endif
+
+// Default WIFI_PASSWORD if not found in config.h
+#ifndef WIFI_PASSWORD
+    #define WIFI_PASSWORD "Your network passwd"
+#endif
+
+// Default WIFI_HOSTNAME if not found in config.h
+#ifndef WIFI_HOSTNAME
+    #define WIFI_HOSTNAME "DCC-EX"
+#endif
+// Default ETHERNET_HOSTNAME to WIFI_HOSTNAME if not found in config.h (for old EXinstaller compatibility)
+#ifndef ETHERNET_HOSTNAME
+    #define ETHERNET_HOSTNAME WIFI_HOSTNAME
+#endif
+
+
+#endif //DEFINES_H

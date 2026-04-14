@@ -251,7 +251,7 @@ public:
       strcpy_P(ptr, (const char*)F("{I2CMux_"));
       ptr += 8;
       *ptr++ = '0' + _muxNumber;
-      strcpy_P(ptr, (const char*)F(",Subbus_"));
+      strcpy_P(ptr, (const char*)F(",SubBus_"));
       ptr += 8;
       if (_subBus == SubBus_None) {
         strcpy_P(ptr, (const char*)F("None"));
@@ -469,6 +469,8 @@ public:
   // Expand error codes into text.  Note that they are in flash so 
   // need to be printed using FSH.
   static const FSH *getErrorMessage(uint8_t status);
+
+  void scanForDevices(Print * stream);
 
 private:
   bool _beginCompleted = false;

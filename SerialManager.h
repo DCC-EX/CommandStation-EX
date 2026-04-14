@@ -25,8 +25,20 @@
 #include "defines.h"
 
 
+// We size this to keep max two commands of maximum lenght
+// in the COMMAND_BUFFER. Most commands are shorter, the
+// <C WIFI SSID PASSWORD> can be 106 bytes. We do not
+// support that on AVR
+// AVR:   32bytes+32bytes
+//        <foo  ><bar   >
+// Other: 128bytes+128bytes
+//        <fooo   ><baar  >
 #ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 100
+#ifdef ARDUINO_ARCH_AVR
+ #define COMMAND_BUFFER_SIZE 64
+#else
+ #define COMMAND_BUFFER_SIZE 256
+#endif
 #endif
 
 class SerialManager {

@@ -1,5 +1,5 @@
 /*
- *  © 2020-2022 Chris Harlow. All rights reserved.
+ *  © 2020-2025 Chris Harlow. All rights reserved.
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -17,11 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with CommandStation.  If not, see https://www.gnu.org/licenses/.
  */
 
-// This file cleans and resets the RMFT2 Macros.
-// It is used between passes to reduce complexity in RMFT2Macros.h
+// This file cleans and resets the EXRAIL Macros.
+// It is used between passes to reduce complexity in EXRAILMacros.h
 // DO NOT add an include guard to this file.
 
 // Undefine all RMFT macros
@@ -40,10 +40,13 @@
 #undef AUTOMATION 
 #undef AUTOSTART
 #undef BLINK
+#undef BUILD_CONSIST
+#undef BREAK_CONSIST
 #undef BROADCAST
 #undef CALL 
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
+#undef CLEAR_ANY_STASH
 #undef CLOSE 
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
@@ -61,6 +64,9 @@
 #undef ENDIF  
 #undef ENDTASK
 #undef ESTOP
+#undef ESTOPALL
+#undef ESTOP_PAUSE
+#undef ESTOP_RESUME
 #undef EXRAIL
 #undef EXTT_TURNTABLE
 #undef FADE
@@ -69,12 +75,15 @@
 #undef FON 
 #undef FORGET
 #undef FTOGGLE
-#undef FREE 
+#undef FREE
+#undef FREEALL
 #undef FWD 
 #undef GREEN
 #undef HAL
 #undef HAL_IGNORE_DEFAULTS
 #undef IF 
+#undef IF_ALL
+#undef IF_ANY
 #undef IFAMBER
 #undef IFCLOSED
 #undef IFGREEN
@@ -85,12 +94,21 @@
 #undef IFRANDOM 
 #undef IFRED
 #undef IFRESERVE
+#undef IFSTASH
+#undef IFSTASHED_HERE
 #undef IFTHROWN
 #undef IFTIMEOUT
 #undef IFTTPOSITION
 #undef IFRE
+#undef IFROUTE_ACTIVE
+#undef IFROUTE_INACTIVE
+#undef IFROUTE_HIDDEN
+#undef IFROUTE_DISABLED
+#undef IFBITMAP_ALL
+#undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
 #undef JMRI_SENSOR
+#undef JMRI_SENSOR_NOPULLUP
 #undef JOIN 
 #undef KILLALL
 #undef LATCH 
@@ -99,6 +117,7 @@
 #undef LCC 
 #undef LCCX 
 #undef LCN 
+#undef MOMENTUM
 #undef MOVETT
 #undef NEOPIXEL
 #undef NEOPIXEL_OFF
@@ -111,6 +130,8 @@
 #undef ONACTIVATE
 #undef ONACTIVATEL
 #undef ONAMBER
+#undef ONBLOCKENTER
+#undef ONBLOCKEXIT
 #undef ONDEACTIVATE
 #undef ONDEACTIVATEL 
 #undef ONCLOSE
@@ -127,21 +148,32 @@
 #undef ONBUTTON
 #undef ONSENSOR
 #undef ONTHROW 
+#undef ONBITMAP
 #undef ONCHANGE
 #undef PARSE
 #undef PAUSE
 #undef PICKUP_STASH
-#undef PIN_TURNOUT 
+#undef PIN_TURNOUT
+#undef PLAY_EQ
+#undef PLAY_FOLDER
+#undef PLAY_PAUSE
+#undef PLAY_REPEAT
+#undef PLAY_RESET
+#undef PLAY_RESUME
+#undef PLAY_STOP
+#undef PLAY_TRACK
+#undef PLAY_VOLUME
 #undef PRINT
-#ifndef DISABLE_PROG
 #undef POM
-#endif
 #undef POWEROFF
 #undef POWERON
+#undef RANDOM_CALL
+#undef RANDOM_FOLLOW
 #undef READ_LOCO 
 #undef RED 
 #undef RESERVE 
 #undef RESET 
+#undef RESTORE_SPEED
 #undef RESUME 
 #undef RETURN 
 #undef REV
@@ -154,6 +186,7 @@
 #undef ROUTE_HIDDEN
 #undef ROUTE_DISABLED
 #undef ROUTE_CAPTION
+#undef SAVE_SPEED
 #undef SENDLOCO 
 #undef SEQUENCE 
 #undef SERIAL 
@@ -174,8 +207,13 @@
 #undef SETFREQ
 #undef SIGNAL 
 #undef SIGNALH 
-#undef SPEED 
-#undef START 
+#undef SPEED
+#undef SPEEDUP
+#undef SPEED_REL
+#undef SLOWDOWN
+#undef START
+#undef START_SHARED
+#undef START_SEND
 #undef STASH
 #undef STEALTH
 #undef STEALTH_GLOBAL
@@ -190,189 +228,29 @@
 #undef VIRTUAL_SIGNAL
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
+#undef WAIT_WHILE_RED
 #ifndef IO_NO_HAL
+#undef BITMAP_AND
+#undef BITMAP_OR
+#undef BITMAP_SET
+#undef BITMAP_XOR
+#undef BITMAP_INC
+#undef BITMAP_DEC
 #undef WAITFORTT
 #endif
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
 #undef XFTOGGLE
+#undef XPOM
 #undef XREV
 #undef XFWD
+#undef XSAVE_SPEED
+#undef XRESTORE_SPEED
+#undef ZTEST
+#undef ZTEST2
+#undef ZTEST3
 
 #ifndef RMFT2_UNDEF_ONLY
-#define ACTIVATE(addr,subaddr)
-#define ACTIVATEL(addr)
-#define AFTER(sensor_id,timer...)
-#define AFTEROVERLOAD(track_id)
-#define ALIAS(name,value...)
-#define AMBER(signal_id)
-#define ANOUT(vpin,value,param1,param2)
-#define AT(sensor_id)
-#define ASPECT(address,value)
-#define ATGTE(sensor_id,value) 
-#define ATLT(sensor_id,value) 
-#define ATTIMEOUT(sensor_id,timeout_ms)
-#define AUTOMATION(id,description) 
-#define AUTOSTART
-#define BLINK(vpin,onDuty,offDuty)
-#define BROADCAST(msg)
-#define CALL(route)
-#define CLEAR_STASH(id)
-#define CLEAR_ALL_STASH
-#define CLOSE(id)
-#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) 
-#define DCC_SIGNAL(id,add,subaddr)
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
-#define DCC_TURNTABLE(id,home,description...)
-#define DEACTIVATE(addr,subaddr)
-#define DEACTIVATEL(addr)
-#define DELAY(mindelay)
-#define DELAYMINS(mindelay)
-#define DELAYRANDOM(mindelay,maxdelay) 
-#define DONE
-#define DRIVE(analogpin)
-#define ELSE
-#define ENDEXRAIL 
-#define ENDIF  
-#define ENDTASK
-#define ESTOP 
-#define EXRAIL
-#define EXTT_TURNTABLE(id,vpin,home,description...)
-#define FADE(pin,value,ms)
-#define FOFF(func)
-#define FOLLOW(route) 
-#define FON(func)
-#define FORGET
-#define FREE(blockid) 
-#define FTOGGLE(func)
-#define FWD(speed) 
-#define GREEN(signal_id)
-#define HAL(haltype,params...)
-#define HAL_IGNORE_DEFAULTS
-#define IF(sensor_id) 
-#define IFAMBER(signal_id)
-#define IFCLOSED(turnout_id) 
-#define IFGREEN(signal_id)
-#define IFGTE(sensor_id,value) 
-#define IFLOCO(loco_id)
-#define IFLT(sensor_id,value) 
-#define IFNOT(sensor_id)
-#define IFRANDOM(percent)
-#define IFRED(signal_id)
-#define IFTHROWN(turnout_id) 
-#define IFRESERVE(block)
-#define IFTIMEOUT
-#define IFTTPOSITION(turntable_id,position)
-#define IFRE(sensor_id,value)
-#define INVERT_DIRECTION 
-#define JMRI_SENSOR(vpin,count...)
-#define JOIN 
-#define KILLALL
-#define LATCH(sensor_id)
-#define LCC(eventid) 
-#define LCCX(senderid,eventid) 
-#define LCD(row,msg)
-#define SCREEN(display,row,msg)
-#define LCN(msg) 
-#define MESSAGE(msg)
-#define MOVETT(id,steps,activity)
-#define NEOPIXEL(id,r,g,b,count...)
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
-#define ACON(eventid)
-#define ACOF(eventid)
-#define ONACON(eventid)
-#define ONACOF(eventid)
-#define ONACTIVATE(addr,subaddr)
-#define ONACTIVATEL(linear)
-#define ONAMBER(signal_id) 
-#define ONTIME(value)
-#define ONCLOCKTIME(hours,mins)
-#define ONCLOCKMINS(mins)
-#define ONOVERLOAD(track_id)
-#define ONRAILSYNCON
-#define ONRAILSYNCOFF
-#define ONDEACTIVATE(addr,subaddr)
-#define ONDEACTIVATEL(linear) 
-#define ONCLOSE(turnout_id)
-#define ONLCC(sender,event)
-#define ONGREEN(signal_id) 
-#define ONRED(signal_id)
-#define ONROTATE(turntable_id)
-#define ONTHROW(turnout_id) 
-#define ONCHANGE(sensor_id)
-#define ONSENSOR(sensor_id)
-#define ONBUTTON(sensor_id)
-#define PAUSE
-#define PIN_TURNOUT(id,pin,description...) 
-#define PRINT(msg) 
-#define PARSE(msg)
-#define PICKUP_STASH(id)
-#ifndef DISABLE_PROG
-#define POM(cv,value)
-#endif
-#define POWEROFF
-#define POWERON
-#define READ_LOCO 
-#define RED(signal_id) 
-#define RESERVE(blockid) 
-#define RESET(pin,count...) 
-#define RESUME 
-#define RETURN 
-#define REV(speed) 
-#define ROTATE(turntable_id,position,activity)
-#define ROTATE_DCC(turntable_id,position)
-#define ROSTER(cab,name,funcmap...)
-#define ROUTE(id,description)
-#define ROUTE_ACTIVE(id)
-#define ROUTE_INACTIVE(id)
-#define ROUTE_HIDDEN(id)
-#define ROUTE_DISABLED(id)
-#define ROUTE_CAPTION(id,caption)
-#define SENDLOCO(cab,route) 
-#define SEQUENCE(id) 
-#define SERIAL(msg) 
-#define SERIAL1(msg) 
-#define SERIAL2(msg) 
-#define SERIAL3(msg) 
-#define SERIAL4(msg) 
-#define SERIAL5(msg) 
-#define SERIAL6(msg) 
-#define SERVO(id,position,profile) 
-#define SERVO2(id,position,duration) 
-#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) 
-#define SET(pin,count...) 
-#define SET_TRACK(track,mode)
-#define SET_POWER(track,onoff)
-#define SETLOCO(loco) 
-#define SETFREQ(freq)
-#define SIGNAL(redpin,amberpin,greenpin) 
-#define SIGNALH(redpin,amberpin,greenpin) 
-#define SPEED(speed) 
-#define START(route)
-#define STASH(id) 
-#define STEALTH(code...)
-#define STEALTH_GLOBAL(code...)
-#define STOP 
-#define THROW(id)
-#define TOGGLE_TURNOUT(id)
-#define TT_ADDPOSITION(turntable_id,position,value,angle,description...)
-#define TURNOUT(id,addr,subaddr,description...) 
-#define TURNOUTL(id,addr,description...) 
-#define UNJOIN 
-#define UNLATCH(sensor_id) 
-#define VIRTUAL_SIGNAL(id) 
-#define VIRTUAL_TURNOUT(id,description...) 
-#define WAITFOR(pin)
-#ifndef IO_NO_HAL
-#define WAITFORTT(turntable_id)
-#endif
-#define WITHROTTLE(msg)
-#define XFOFF(cab,func)
-#define XFON(cab,func)
-#define XFTOGGLE(cab,func)
-#define XFWD(cab,speed)
-#define XREV(cab,speed)
-
+#include "EXRAIL2MacroBase.h"
 #endif

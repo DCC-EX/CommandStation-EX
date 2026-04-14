@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -35,7 +35,9 @@
 // searching easier as a parameter can never be confused with an opcode. 
 // 
 enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
-             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,OPCODE_INVERT_DIRECTION,
+             OPCODE_FWD,OPCODE_REV,OPCODE_SPEED,
+             OPCODE_SPEEDUP,OPCODE_SLOWDOWN,OPCODE_SPEED_REL,OPCODE_INVERT_DIRECTION,
+             OPCODE_MOMENTUM,
              OPCODE_RESERVE,OPCODE_FREE,
              OPCODE_AT,OPCODE_AFTER,
              OPCODE_AFTEROVERLOAD,OPCODE_AUTOSTART,
@@ -54,7 +56,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,
 #endif
              OPCODE_POM,
-             OPCODE_START,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
+             OPCODE_START,OPCODE_START_SHARED,OPCODE_START_SEND,OPCODE_SETLOCO,OPCODE_SETFREQ,OPCODE_SENDLOCO,OPCODE_FORGET,
              OPCODE_PAUSE, OPCODE_RESUME,OPCODE_POWEROFF,OPCODE_POWERON,
              OPCODE_ONCLOSE, OPCODE_ONTHROW, OPCODE_SERVOTURNOUT, OPCODE_PINTURNOUT,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
@@ -77,8 +79,19 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
-             OPCODE_ONBUTTON,OPCODE_ONSENSOR,             
+             OPCODE_CLEAR_ANY_STASH,
+             OPCODE_ONBUTTON,OPCODE_ONSENSOR,OPCODE_ONVP_SENSOR,
              OPCODE_NEOPIXEL,
+             OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
+             OPCODE_ESTOPALL,OPCODE_XPOM,
+             OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
+             OPCODE_FREEALL,
+             OPCODE_WAIT_WHILE_RED,
+             OPCODE_SAVE_SPEED,OPCODE_RESTORE_SPEED,
+             OPCODE_XSAVE_SPEED,OPCODE_XRESTORE_SPEED,
+             OPCODE_RANDOM_CALL,OPCODE_RANDOM_FOLLOW,
+             OPCODE_CONSIST,
+             
              // OPcodes below this point are skip-nesting IF operations
              // placed here so that they may be skipped as a group
              // see skipIfBlock()
@@ -91,7 +104,12 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFCLOSED,OPCODE_IFTHROWN,
              OPCODE_IFRE,
              OPCODE_IFLOCO,
-             OPCODE_IFTTPOSITION
+             OPCODE_IFTTPOSITION,
+             OPCODE_IFSTASH,
+             OPCODE_IFSTASHED_HERE,
+             OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
+             OPCODE_IF_ROUTE_ACTIVE,OPCODE_IF_ROUTE_INACTIVE,
+             OPCODE_IF_ROUTE_HIDDEN,OPCODE_IF_ROUTE_DISABLED,
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 
@@ -135,9 +153,10 @@ enum SignalType {
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
-  static const byte FEATURE_STASH = 0x08;
+  // spare = 0x08;
   static const byte FEATURE_BLINK = 0x04;
   static const byte FEATURE_SENSOR = 0x02;
+  static const byte FEATURE_BLOCK = 0x01;
   
  
   // Flag bits for status of hardware and TPL
@@ -164,7 +183,7 @@ class LookList {
     int16_t findPosition(int16_t value); // finds index 
     int16_t size();
     void stream(Print * _stream); 
-    void handleEvent(const FSH* reason,int16_t id);
+    void handleEvent(const FSH* reason,int16_t id, int16_t loco=0);
 
   private:
      int16_t m_size;
@@ -178,8 +197,7 @@ class LookList {
    public:
     static void begin();
     static void loop();
-    RMFT2(int progCounter);
-    RMFT2(int route, uint16_t cab);
+    RMFT2(int progCounter, int16_t cab=0, bool invert=false);
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
@@ -192,6 +210,7 @@ class LookList {
 #ifdef BOOSTER_INPUT
     static void railsyncEvent(bool on);
 #endif
+    static void blockEvent(int16_t block, int16_t loco, bool entering);
     static bool signalAspectEvent(int16_t address, byte aspect );    
     // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
@@ -205,7 +224,7 @@ class LookList {
   static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
-  static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc);
+  static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);
   static bool readSensor(uint16_t sensorId);
   static bool isSignal(int16_t id,char rag);
   static SIGNAL_DEFINITION getSignalSlot(int16_t slotno); 
@@ -226,10 +245,11 @@ private:
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n);
     static void killBlinkOnVpin(VPIN pin,uint16_t count=1);
+    static void ifAllFunc(const int16_t * vpinList, int16_t count); 
+    static void ifAnyFunc(const int16_t * vpinList, int16_t count);
     static RMFT2 * loopTask;
     static RMFT2 * pausingTask;
     void delayMe(long millisecs);
-    void driveLoco(byte speedo);
     bool skipIfBlock();
     bool readLoco();
     void loop2();
@@ -238,8 +258,11 @@ private:
     void printMessage2(const FSH * msg);
     void thrungeString(uint32_t strfar, thrunger mode, byte id=0);
     uint16_t getOperand(byte n); 
+    void pause();
+    void resume();
     
    static bool diag;
+   static bool skipIf;
    static const  HIGHFLASH3  byte RouteCode[];
    static const  HIGHFLASH  SIGNAL_DEFINITION SignalDefinitions[];
    static byte flags[MAX_FLAGS];
@@ -259,14 +282,19 @@ private:
    static LookList * onRotateLookup;
 #endif
    static LookList * onOverloadLookup;
+   static LookList * onBlockEnterLookup;
+   static LookList * onBlockExitLookup;
 #ifdef BOOSTER_INPUT
    static LookList * onRailSyncOnLookup;
    static LookList * onRailSyncOffLookup;
 #endif
+   
+   
    static const int countLCCLookup;
    static int onLCCLookup[];
    static const byte compileFeatures;
    static void manageRouteState(int16_t id, byte state);
+   static bool ifRouteState(int16_t id, byte state);
    static void manageRouteCaption(int16_t id, const FSH* caption);
    static byte * routeStateArray;
    static const FSH ** routeCaptionArray;
@@ -286,9 +314,8 @@ private:
     byte  taskId;
     BlinkState blinkState; // includes AT_TIMEOUT flag. 
     uint16_t loco;
-    bool forward;
     bool invert;
-    byte speedo;
+    byte pauseSpeed;
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
@@ -296,24 +323,5 @@ private:
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
 #define SKIPOP progCounter+=3
-
-// IO_I2CDFPlayer commands and values
-enum  : uint8_t{
-    DF_PLAY          = 0x0F,
-    DF_VOL           = 0x06,
-    DF_FOLDER        = 0x2B, // Not a DFPlayer command, used to set folder nr where audio file is
-    DF_REPEATPLAY    = 0x08,
-    DF_STOPPLAY      = 0x16,
-    DF_EQ            = 0x07, // Set equaliser, require parameter NORMAL, POP, ROCK, JAZZ, CLASSIC or BASS
-    DF_RESET         = 0x0C,
-    DF_DACON         = 0x1A,
-    DF_SETAM         = 0x2A, // Set audio mixer 1 or 2 for this DFPLayer   
-    DF_NORMAL        = 0x00, // Equalizer parameters
-    DF_POP           = 0x01,
-    DF_ROCK          = 0x02,
-    DF_JAZZ          = 0x03,
-    DF_CLASSIC       = 0x04,
-    DF_BASS          = 0x05,
-  };
 
 #endif

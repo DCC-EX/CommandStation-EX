@@ -3,7 +3,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2024 Harald Barth
- *  © 2020-2021 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -23,11 +23,8 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
-
-#include "MotorDriver.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCRMT.h"
-#include "TrackManager.h"
 #endif
 
 
@@ -85,9 +82,19 @@ class DCCWaveform {
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();
     void promotePendingPacket();
-    static bool setRailcom(bool on, bool debug);
-    static bool isRailcom() {return railcomActive;}
+    static bool setRailcom(bool on);
+    inline static bool isRailcom() {
+      return railcomActive;
+    };
+    inline static bool isRailcomPossible() {
+      return railcomPossible;
+    };
+    inline static void setRailcomPossible(bool yes) {
+      railcomPossible=yes;
+      if (!yes) setRailcom(false);
+    };
     
+
   private:
 #ifndef ARDUINO_ARCH_ESP32
     volatile bool packetPending;
@@ -112,9 +119,9 @@ class DCCWaveform {
     byte pendingPacket[MAX_PACKET_SIZE+1]; // +1 for checksum
     byte pendingLength;
     byte pendingRepeats;
+    static bool railcomPossible; // High accuracy mode only
     static volatile bool railcomActive;     // switched on by user
-    static volatile bool railcomDebug;     // switched on by user
-    
+    static bool cutoutNextTime;   // railcom
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;
   static RMTChannel *rmtProgChannel;

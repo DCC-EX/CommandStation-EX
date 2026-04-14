@@ -1,5 +1,5 @@
 /*
- *  © 2020, Chris Harlow. All rights reserved.
+ *  © 2020=2025, Chris Harlow. All rights reserved.
  *  
  *  This file is part of Asbelos DCC API
  *
@@ -27,7 +27,10 @@ bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
+bool Diag::RAILCOM=false;
+bool Diag::WEBSOCKET=false; 
 bool Diag::SNIFFER=false;
+
 
  
 void StringFormatter::diag( const FSH* input...) {

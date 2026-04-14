@@ -16,11 +16,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
 */
-#define driverVer 308  //f Prod only. (needs latest sensorCAM v320+)
+#define driverVer 309 //devel 5.5.15+ only - specifically for Chris' mod
+// v309 includes changes for Chris' mod addVpin() Specifically for 5.5.15+ method with CAM v320+
 // v308 allows v0 to give version without using '^'. CAM address identifier added to 'm'
 //   "   added check in Pkt[31] & shared inputBuf[32] "ACK OK" & case:'v'. Shows <> formats
 //   "   added setClock as per 307 devel version  Note: v308 for 5.4.6+ Prod. only with CAM v320+
-// v305b fix to 'p' cmd
+// v307 fix to 'p' cmd & CS cmd prompts. includes setClock(100000);
+// v306 Pass vpin to regeister it in CamParser.  Incompatible with 5.4.0+
+//   "  Move base vpin to camparser. devel 5.5.15+ only
 // v305 less debug & alpha ordered switch
 // v304 static oldb0;  t(##[,%%]); 
 // v303 zipped with CS 5.2.76 and uploaded to repo (with debug)
@@ -35,9 +38,6 @@
  * This device driver will configure the device on startup, along with CamParser.cpp
  * interacting with the sensorCAM device for all input/output duties.
  *
- * #include "CamParser.h"      in DCCEXParser.cpp
- * #include "IO_EXSensorCAM.h" in IODevice.h
- 
  * includes not required with devel 5.5.15+												 
  * To create EX-SensorCAM devices, 
  *  use HAL(EXSensorCAM, baseVpin, numpins, i2c_address) in myAutomation.h
@@ -70,7 +70,7 @@ class EXSensorCAM : public IODevice {
       new EXSensorCAM(vpin, nPins, i2cAddress);
     }
   																
-    static VPIN CAMBaseVpin;					   
+    					   
 
   private:
    // Constructor
@@ -81,6 +81,7 @@ class EXSensorCAM : public IODevice {
       _nPins = nPins;
       _I2CAddress = i2cAddress;
       addDevice(this);
+      CamParser::addVpin(firstVpin); 
     }
 //*************************
 void _begin() {
@@ -88,6 +89,7 @@ void _begin() {
     // Initialise EX-SensorCAM device
     I2CManager.setClock(100000);  // Set speed for I2C operations
     I2CManager.begin();
+    I2CManager.setClock(100000);  // Set speed for I2C operations
     if (!I2CManager.exists(_I2CAddress)) {
       DIAG(F("EX-SensorCAM I2C:%s device not found"), _I2CAddress.toString());
       _deviceState = DEVSTATE_FAILED;

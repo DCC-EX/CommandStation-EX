@@ -37,21 +37,42 @@
 // it can replace use of noInterrupts/interrupts in other parts of DCC-EX.
 //
 static inline uint8_t _deferInterrupts(void) {
+#if defined(ARDUINO_ARCH_STM32)
+  NVIC_DisableIRQ(I2C1_EV_IRQn);
+  NVIC_DisableIRQ(I2C1_ER_IRQn);
+#else
   noInterrupts();
+#endif
   return 1;
 }
 static inline void _conditionalEnableInterrupts(bool *wasEnabled) {
+#if defined(ARDUINO_ARCH_STM32)
+  (void)wasEnabled;
+  NVIC_EnableIRQ(I2C1_EV_IRQn);
+  NVIC_EnableIRQ(I2C1_ER_IRQn);
+#else
   if (*wasEnabled) interrupts();
+#endif
 }
 #define ATOMIC_BLOCK(x) \
 for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) \
             =_getInterruptState(),_ToDo=_deferInterrupts(); _ToDo; _ToDo=0)
 
+// The  construct of
+// "variable __attribute__((__cleanup__(func)))"
+// calls the func with *variable when variable goes out of scope
+
 #if defined(__AVR__) // Nano, Uno, Mega2580, NanoEvery, etc.
   static inline bool _getInterruptState(void) {
     return bitRead(SREG, SREG_I);  // true if enabled, false if disabled
   }
-#elif defined(__arm__)  // STM32, SAMD, Teensy
+#elif defined(ARDUINO_ARCH_STM32)
+  static inline bool _getInterruptState( void ) {
+    // as we do ony mess with the I2C interrupts in the STM32 case,
+    // we do not care about their previous state
+    return true;
+  }
+#elif defined(__arm__)  // SAMD, Teensy
   static inline bool _getInterruptState( void ) {
     uint32_t reg;
     __asm__ __volatile__ ("MRS %0, primask" : "=r" (reg) );

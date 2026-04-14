@@ -254,7 +254,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
       stashThrottleChar=throttleChar;
       stashInstance=this;
       // ask DCC to call us back when the loco id has been read
-      DCC::getLocoId(getLocoCallback); // will remove any previous join                    
+      DCC::getDriveawayLocoId(getLocoCallback); // will remove any previous join                    
       return; // return nothing in stream as response is sent later in the callback 
     }
     //return error if address zero requested
@@ -265,6 +265,11 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
     //return error if L or S from request doesn't match DCC++ assumptions
     if (cmd[3] != LorS(locoid)) { 
       StringFormatter::send(stream, F("HMLength '%c' not valid for %d!\n"), cmd[3] ,locoid);                    
+      return;
+    }
+    //return error if loco slots or ram full
+    if (!LocoSlot::getSlot(locoid,true)) { 
+      StringFormatter::send(stream, F("HMUnable to create loco %d slot\n"), locoid);                    
       return;
     }
     //use first empty "slot" on this client's list, will be added to DCC registration list

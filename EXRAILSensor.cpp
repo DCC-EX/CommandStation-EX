@@ -59,7 +59,7 @@ void EXRAILSensor::checkAll() {
 
 bool EXRAILSensor::check() {
   // check for debounced change in this sensor 
-  inputState = RMFT2::readSensor(pin);
+  inputState = useAnalog?IODevice::readAnalogue(pin):RMFT2::readSensor(pin);
 
   // Check if changed since last time, and process changes.
   if (inputState == active) {// no change
@@ -83,18 +83,18 @@ bool EXRAILSensor::check() {
     return false; 
 }
 
-EXRAILSensor::EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange) {
-  // Add to the start of the list
-  //DIAG(F("ONthing vpin=%d at %d"), _pin, _progCounter);
+EXRAILSensor::EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange, bool _useAnalog) {
+
   nextSensor = firstSensor;
   firstSensor = this;
 
   pin=_pin;
   progCounter=_progCounter;
   onChange=_onChange;
+  useAnalog=_useAnalog;
 
   IODevice::configureInput(pin, true);   
-  active = IODevice::read(pin);
+  active = useAnalog?IODevice::readAnalogue(pin): IODevice::read(pin);
   inputState = active;
   latchDelay = minReadCount;
 }

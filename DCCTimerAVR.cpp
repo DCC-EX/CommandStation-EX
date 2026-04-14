@@ -2,7 +2,7 @@
  *  © 2021 Mike S
  *  © 2021-2023 Harald Barth
  *  © 2021 Fred Decker
- *  © 2021 Chris Harlow
+ *  © 2021-2025 Chris Harlow
  *  © 2021 David Cutting
  *  All rights reserved.
  *  
@@ -57,70 +57,65 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
     TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
     TIMSK1 = _BV(TOIE1); // Enable Software interrupt
     interrupts();
+//diagnostic    pinMode(4,OUTPUT);
   }
 
 
 void DCCTimer::startRailcomTimer(byte brakePin) {
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+  (void) brakePin; // Ignored... works on pin 9 only 
+  // diagnostic digitalWrite(4,HIGH);   
+
   /* The Railcom timer is started in such a way that it 
-     - First triggers 28uS after the last TIMER1 tick. 
+     - First triggers a calculated time after the previous TIMER1 tick. 
        This provides an accurate offset (in High Accuracy mode)
-       for the start of the Railcom cutout.
-     - Sets the Railcom pin high at first tick, 
-       because its been setup with 100% PWM duty cycle.
+       for the start of the Railcom cutout. The delayBeforeCutout value 
+       reflects that this call is made at the start of the end-packet bit
+       thus the delay is nominally 58+58+Tcs BUT 
+       in HA mode, the dcc pin is flipped at the NEXT 
+       interrupt so runs 1 tick behind the code. Thus an extra 58uS is needed. 
+     - Timer2 Sets the Railcom pin high at first tick and subsequent ticks 
+       until its reset to setting pin 9 low at next tick.
         
-     - Cycles at 436uS so the second tick is the 
+     - Cycles at cutoutDuration so the second tick is the 
         correct distance from the cutout.
         
-     - Waveform code is responsible for altering the PWM 
-       duty cycle to 0% any time between the first and last tick.
+     - Waveform code is responsible for resetting 
+       any time between the first and second tick.
        (there will be 7 DCC timer1 ticks in which to do this.)
     
     */
-  (void) brakePin; // Ignored... works on pin 9 only 
-  const int cutoutDuration = 430; // Desired interval in microseconds
+  const int Tcs=28;    // NMRA spec is 26..32
+  const int cutoutDuration_uS = 450;    // As chosen by most
+  const uint16_t delayBeforeCutout_uS=58+58+58+Tcs;
+  const uint16_t timer1_ticks_per_uS = 8;
+  const uint16_t timer2_uS_per_tick = 2;
   
-  // Set up Timer2 for CTC mode (Clear Timer on Compare Match)
-  TCCR2A = 0; // Clear Timer2 control register A
-  TCCR2B = 0; // Clear Timer2 control register B
-  TCNT2 = 0;  // Initialize Timer2 counter value to 0
-   // Configure Phase and Frequency Correct PWM mode
-   TCCR2A =  (1 << COM2B1); // enable pwm on pin 9
-   TCCR2A |= (1 << WGM20);
-  
-   
-  // Set Timer 2 prescaler to 32
-  TCCR2B = (1 << CS21) | (1 << CS20); // 32 prescaler
-
-  // Set the compare match value for desired interval
-  OCR2A = (F_CPU / 1000000) * cutoutDuration / 64 - 1;
-
-  // Calculate the compare match value for desired duty cycle
-  OCR2B = OCR2A+1;  // set duty cycle to 100%= OCR2A)
-
+  // Set Timer2 to CTC mode with set on compare match
+  TCCR2A = (1 << WGM21) | (1 << COM2B0) | (1 << COM2B1);
+  // Prescaler of 32
+  TCCR2B =  (1 << CS21) | (1 << CS20); 
+  OCR2A = cutoutDuration_uS/timer2_uS_per_tick; // Compare match value for cutout duration in timer2 ticks (2uSec)
   // Enable Timer2 output on pin 9 (OC2B)
   DDRB |= (1 << DDB1);
-  // TODO Fudge TCNT2 to sync with last tcnt1 tick + 28uS
 
- // Previous TIMER1 Tick was at rising end-of-packet bit
- // Cutout starts half way through first preamble
- // that is 2.5 * 58uS later.
- // TCNT1 ticks 8 times / microsecond
- // auto microsendsToFirstRailcomTick=(58+58+29)-(TCNT1/8);
-  // set the railcom timer counter allowing for phase-correct
-
-  // CHris's NOTE: 
-  // I dont kniow quite how this calculation works out but
-  // it does seems to get a good answer. 
-
-  TCNT2=193 + (ICR1 - TCNT1)/8;
-#endif
+  // timeSlip is the expired time since the DCC timer interrupt that triggered this call.
+  // This allows us to cope with any delays between the interrupt and this code executing.  
+  
+  
+  noInterrupts();
+  // Time already used since DCC interrupt 
+  uint16_t timeSlip_uS=TCNT1/timer1_ticks_per_uS;
+  
+  // Calculate the time left before the cutout is to be triggered
+  uint16_t timeToCutout_uS=cutoutDuration_uS+timeSlip_uS-delayBeforeCutout_uS;
+  // Adjust clock2 to trigger on time
+  TCNT2=timeToCutout_uS/timer2_uS_per_tick;
+  interrupts();
 }
 
 void DCCTimer::ackRailcomTimer() {
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  OCR2B= 0x00;  // brake pin pwm duty cycle 0 at next tick
-#endif
+  // Change Timer2 to CTC mode with RESET pin 9 on next compare match
+  TCCR2A = (1 << WGM21) | (1 << COM2B1);
 }
 
 

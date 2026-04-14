@@ -10,27 +10,25 @@
 //
 // If you used the automatic installer program, config.h will have been created automatically.
 //
-// To obtain a starting copy of config.h please copy the file config.example.h which is
-// shipped with the code and may be updated as new features are added.
-//
-// If config.h is not found, config.example.h will be used with all defaults.
+// If config.h is not found, the command station will build with no motor shield.
 ////////////////////////////////////////////////////////////////////////////////////
 
 #if __has_include ( "config.h")
   #include "config.h"
-  #ifndef MOTOR_SHIELD_TYPE
-  #error Your config.h must include a MOTOR_SHIELD_TYPE definition. If you see this warning in spite not having a config.h, you have a buggy preprocessor and must copy config.example.h to config.h
-  #endif
-#else
-  #warning config.h not found. Using defaults from config.example.h
-  #include "config.example.h"
+#else 
+  #warning config.h not found.
+#endif 
+#ifndef MOTOR_SHIELD_TYPE
+  #warning MOTOR_SHIELD_TYPE not found. Building with no motor shield
+  #define MOTOR_SHIELD_TYPE NO_SHIELD 
 #endif
 
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2021 Chris Harlow, Harald Barth, David Cutting,
+ *  © 2020-2025 Chris Harlow, Harald Barth, David Cutting,
  *  Fred Decker, Gregor Baues, Anthony W - Dayton
  *  © 2023 Nathan Kellenicki
+ *  © 2025 Herb Morton
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -57,6 +55,10 @@
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
+
+#define QWRAP_(x) QWRAP__(x)
+#define QWRAP__(x) #x
+static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOCOS) " must be >1 and <256");
 
 #ifdef CPU_TYPE_ERROR
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
@@ -109,16 +111,14 @@ void setup()
   // Responsibility 2: Start all the communications before the DCC engine
   // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
   // Start Ethernet if it exists
-#ifndef ARDUINO_ARCH_ESP32
 #if WIFI_ON
   PASSWDCHECK(WIFI_PASSWORD); // compile time check
+#ifndef ARDUINO_ARCH_ESP32
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-#endif // WIFI_ON
 #else
-  // ESP32 needs wifi on always
-  PASSWDCHECK(WIFI_PASSWORD); // compile time check
   WifiESP::setup(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #endif // ARDUINO_ARCH_ESP32
+#endif // WIFI_ON
 
 #if ETHERNET_ON
   EthernetInterface::setup();
@@ -154,7 +154,12 @@ void setup()
 
 void loop()
 {
+  #ifdef ENABLE_SERIAL_LOG
+    SerialLog.loop();
+  #endif
+
 #ifdef ARDUINO_ARCH_ESP32
+
 #ifdef BOOSTER_INPUT
   static bool oldactive = false;
   if (dccSniffer) {
@@ -190,9 +195,11 @@ void loop()
  
 #endif //WIFI_ON
 #else  //ARDUINO_ARCH_ESP32
+#if WIFI_ON
 #ifndef WIFI_TASK_ON_CORE0
   WifiESP::loop();
 #endif
+#endif //WIFI_ON
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
@@ -215,9 +222,19 @@ void loop()
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 
+  #ifdef ARDUINO_ARCH_AVR
+  // count every byte of free RAM on AVR
   int freeNow = DCCTimer::getMinimumFreeMemory();
   if (freeNow < ramLowWatermark) {
     ramLowWatermark = freeNow;
     LCD(3,F("Free RAM=%5db"), ramLowWatermark);
   }
+  #else
+  // on other platforms, just report every 4kb
+  int freeNow = DCCTimer::getMinimumFreeMemory() / 4096;
+  if (freeNow < ramLowWatermark) {
+    ramLowWatermark = freeNow;
+    LCD(3,F("Free RAM=%5dKb"), ramLowWatermark*4);
+  }
+  #endif
 }

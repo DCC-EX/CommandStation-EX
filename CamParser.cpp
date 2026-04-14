@@ -1,31 +1,53 @@
+/*
+ *  © 2023-2025, Barry Daniel  
+ *  © 2025       Chris Harlow
+ *  All rights reserved.
+ *  
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-//sensorCAM parser.cpp version 3.03  Sep 2024
+//sensorCAM parser.cpp devel. version 3.07  August 2025
+#include "DCCEXParser.h"
 #include "CamParser.h"
 #include "FSH.h"
-#include "IO_EXSensorCAM.h"
 
-#ifndef SENSORCAM_VPIN       //define CAM vpin (700?) in config.h
-#define SENSORCAM_VPIN 0     
-#endif
-#define CAM_VPIN SENSORCAM_VPIN
-#ifndef SENSORCAM2_VPIN 
-#define SENSORCAM2_VPIN CAM_VPIN
-#endif
-#ifndef SENSORCAM3_VPIN 
-#define SENSORCAM3_VPIN 0
-#endif
-const int CAMVPINS[] = {CAM_VPIN,SENSORCAM_VPIN,SENSORCAM2_VPIN,SENSORCAM3_VPIN};
-const int16_t ver=30177;
-const int16_t ve =2899;
+// The CAMVPINS array will be filled by IO_EXSensorCam HAL drivers calling
+// the CamParser::addVpin() function.
+// The CAMBaseVpin is the one to be used when commands are given without a vpin. 
+VPIN CamParser::CAMBaseVpin = 0; // no vpins yet known 
+VPIN CamParser::CAMVPINS[] = {0,0,0,0};  // determines max # CAM's
+int CamParser::vpcount=sizeof(CAMVPINS)/sizeof(CAMVPINS[0]);
 
-VPIN EXSensorCAM::CAMBaseVpin = CAM_VPIN;
-
+void CamParser::parse(Print * stream, byte & opcode, byte & paramCount, int16_t p[]) {
+  if (opcode!='N') return; // this is not for us. 
+  if (parseN(stream,paramCount,p)) opcode=0; // we have consumed this
+  // If we fail, the caller will <X> the <N command. 
+}
+     
 bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
   (void)stream;  // probably unused parameter 
-  VPIN vpin=EXSensorCAM::CAMBaseVpin;   //use current CAM selection
+  if (CAMBaseVpin==0) CAMBaseVpin=CAMVPINS[0];  // default to CAM 1.
+  VPIN vpin=CAMBaseVpin;   //use current CAM selection
 
   if (paramCount==0) { 
-    DIAG(F("vpin:%d EXSensorCAMs defined at Vpins #1@ %d #2@ %d #3@ %d"),vpin,CAMVPINS[1],CAMVPINS[2],CAMVPINS[3]);
+    DIAG(F("Cam base vpin:%d"),CAMBaseVpin);
+    for (auto i=0;i<vpcount;i++){
+       if (CAMVPINS[i]==0) break;
+       DIAG(F("EXSensorCam #%d vpin %d"),i+1,CAMVPINS[i]);
+    }
     return true; 
   }
   uint8_t camop=p[0]; // cam oprerator 
@@ -33,44 +55,49 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
   int16_t param3=9999;   // =0 could invoke parameter changes. & -1 gives later errors
 
   if(camop=='C'){ 
-    if(p[1]>=100) EXSensorCAM::CAMBaseVpin=p[1];
-    if(p[1]<4) EXSensorCAM::CAMBaseVpin=CAMVPINS[p[1]];
-    DIAG(F("CAM base Vpin: %c %d "),p[0],EXSensorCAM::CAMBaseVpin);
+    if(p[1]>=100) CAMBaseVpin=p[1];
+    if(p[1]<=vpcount && p[1]>0)    CAMBaseVpin=CAMVPINS[p[1]-1];
+    DIAG(F("CAM base Vpin: %c %d "),p[0],CAMBaseVpin);
     return true;
   }
-  if (camop<100) {               //switch CAM# if p[1] dictates
-    if(p[1]>=100 && p[1]<400) {  //limits to CAM# 1 to 3 for now
-      vpin=CAMVPINS[p[1]/100];
-      EXSensorCAM::CAMBaseVpin=vpin;     
-      DIAG(F("switching to CAM %d baseVpin:%d"),p[1]/100,vpin); 
-      p[1]=p[1]%100;             //strip off CAM #
-    } 
-  }
-  if (EXSensorCAM::CAMBaseVpin==0) return false; // no cam defined 
 
-  
+  if ((camop<='a') && (camop>='A')){   //switch CAM# if p[1] or p[2] dictates (beware 'k')
+    vpin=p[1];
+    if(camop != 'A')   
+      if(p[2] < vpcount*100+99) { vpin=(p[1] > p[2]) ? p[1] : p[2] ;   //get the larger. 
+        p[2]=p[2]%100;       //strip off any CAM #
+      }
+    if((vpin>=100) && (int(vpin)<=vpcount*100+99)) {    //limits to CAM# 1 to vpcount
+      CAMBaseVpin=CAMVPINS[vpin/100-1];     
+      DIAG(F("switching to CAM %d baseVpin:%d"),vpin/100,CAMBaseVpin);     
+      p[1]=p[1]%100;       //strip off any CAM #
+    } 
+    vpin=CAMBaseVpin;
+  }
+
+  if (CAMBaseVpin==0) return false; // no cam defined 
+
       // send UPPER case to sensorCAM to flag binary data from a DCCEX-CS parser  
   switch(paramCount) {    
     case 1:                          //<N ver> produces '^'
-      if((p[0] == ve) || (p[0] == ver) || (p[0] == 'V')) camop='^'; 
       if (STRCHR_P((const char *)F("EFGMQRVW^"),camop) == nullptr) return false;
       if (camop=='Q') param3=10;     //<NQ> for activation state of all 10 banks of sensors
       if (camop=='F') camop=']';     //<NF> for Reset/Finish webCAM.
       break;    // F Coded as ']' else conflicts with <Nf %%>
     
     case 2:                          //<N camop p1>  
-      if (STRCHR_P((const char *)F("ABFILMNOPQRSTUV"),camop)==nullptr) return false;
+      if (STRCHR_P((const char *)F("ABFHILMNOPQRSTUV"),camop)==nullptr) return false;
       param1=p[1];
       break;
     
     case 3:              //<N vpin rowY colx > or <N cmd p1 p2>
-      camop=p[0];
       if (p[0]>=100) {   //vpin - i.e. NOT 'A' through 'Z'
         if (p[1]>236 || p[1]<0) return false;     //row
         if (p[2]>316 || p[2]<0) return false;     //column
         camop=0x80;      // special 'a' case for IO_SensorCAM
         vpin = p[0];
       }else if (STRCHR_P((const char *)F("IJMNT"),camop) == nullptr) return false; 
+      camop=p[0];
       param1 = p[1];  
       param3 = p[2];
       break;
@@ -92,4 +119,23 @@ bool CamParser::parseN(Print * stream, byte paramCount, int16_t p[]) {
   DIAG(F("CamParser: %d %c %d %d"),vpin,camop,param1,param3);
   IODevice::writeAnalogue(vpin,param1,camop,param3);
   return true;
+}
+
+void CamParser::addVpin(VPIN pin) {
+  // called by IO_EXSensorCam starting up a camera on a vpin
+  byte slot=255;
+  for (auto i=0;i<vpcount && slot==255;i++) {
+    if (CAMVPINS[i]==0) {
+      slot=i;
+      CAMVPINS[slot]=pin;
+    }
+  }
+  if (slot==255) {
+    DIAG(F("No more than %d cameras supported"),vpcount);
+    return;
+  }
+  if (slot==0) CAMBaseVpin=pin;
+  DIAG(F("CamParser Registered cam #%dvpin %d"),slot+1,pin);
+  // tell the DCCEXParser that we wish to filter commands
+  DCCEXParser::setCamParserFilter(&parse);
 }

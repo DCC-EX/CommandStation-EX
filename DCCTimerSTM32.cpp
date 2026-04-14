@@ -208,7 +208,7 @@ void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   dcctimer.setOverflow(DCC_SIGNAL_TIME, MICROSEC_FORMAT);
   // dcctimer.attachInterrupt(Timer11_Handler);
   dcctimer.attachInterrupt(DCCTimer_Handler);
-  dcctimer.setInterruptPriority(0, 0); // Set highest preemptive priority!
+  dcctimer.setInterruptPriority(1, 0); // Set second highest preemptive priority!
   dcctimer.refresh();
   dcctimer.resume();
 

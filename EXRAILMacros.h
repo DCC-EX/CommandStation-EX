@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2025 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -24,6 +24,7 @@
 
 #ifndef EXRAILMacros_H
 #define EXRAILMacros_H
+#include "IODeviceList.h"
 
 // remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
@@ -48,7 +49,7 @@
 // can be called to emit a list of routes/automatuions in a form suitable for Withrottle. 
  
 // PRINT(msg), LCD(row,msg) and SCREEN(display,row,msg) are implemented in a separate pass to create 
-// a getMessageText(id) function.  
+// a getMessageText(id) function. (also now IFLOCO).
 
 // CAUTION: The macros below are multiple passed over myAutomation.h
 
@@ -60,9 +61,9 @@
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
-// PLAYSOUND is alias of ANOUT to make the user experience of a Conductor beter for
-// playing sounds with IO_I2CDFPlayer
-#define PLAYSOUND ANOUT
+// PLAYSOUND is deprecated and appears here temporarily so it does not get 
+// extracted into the documentation. 
+#define PLAYSOUND(vpin,v1,v2,code) ANOUT(vpin,v1,v2,DFPLayerBase::code)
 
 // SEG7 is a helper to create ANOUT from a 7-segment request
 #define SEG7(vpin,value,format) \
@@ -79,78 +80,35 @@
 // NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
 #define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
 
+// Collection of macros to assist variadic exrail macros
+// in particular RANDOMCALL and RANDOMFOLLOW
+// Count the number of arguments
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_HELPER(__VA_ARGS__,8,7, 6,5,4, 3, 2, 1, 0)
+#define FOR_EACH_NARG_HELPER(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+// Force proper expansion (extra indirection to resolve `##`)
+#define _CONCAT_(a, b) a##b
+#define _EXPAND_(a) a
+
+#define ZC0()                      
+#define ZC1(_1)                      CALL(_1) 
+#define ZC2(_1,_2)                   CALL(_1) CALL(_2)
+#define ZC3(_1,_2,_3)                CALL(_1) CALL(_2) CALL(_3)
+#define ZC4(_1,_2,_3,_4)             CALL(_1) CALL(_2) CALL(_3) CALL(_4)
+#define ZC5(_1,_2,_3,_4,_5)          CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5)
+#define ZC6(_1,_2,_3,_4,_5,_6)       CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6)
+#define ZC7(_1,_2,_3,_4,_5,_6,_7)    CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7)
+#define ZC8(_1,_2,_3,_4,_5,_6,_7,_8) CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7) CALL(_8)
+#define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
+
+
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
 #define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
-// Pass 1d Detect sequence duplicates.
-// This pass generates no runtime data or code 
-#include "EXRAIL2MacroReset.h"
-#undef AUTOMATION
-#define AUTOMATION(id, description) id,
-#undef ROUTE
-#define ROUTE(id, description) id,
-#undef SEQUENCE
-#define SEQUENCE(id) id,
-constexpr int16_t compileTimeSequenceList[]={
-   #include "myAutomation.h"
-   0
-   };
-constexpr int16_t stuffSize=sizeof(compileTimeSequenceList)/sizeof(int16_t) - 1;
-
-
-// Compile time function to check for sequence nos.
-constexpr bool hasseq(const int16_t value, const int16_t pos=0 ) {
-    return pos>=stuffSize? false :
-          compileTimeSequenceList[pos]==value 
-       || hasseq(value,pos+1); 
-}
-
-// Compile time function to check for duplicate sequence nos.
-constexpr bool hasdup(const int16_t value, const int16_t pos ) {
-    return pos>=stuffSize? false :
-          compileTimeSequenceList[pos]==value 
-       || hasseq(value,pos+1) 
-       || hasdup(compileTimeSequenceList[pos],pos+1);
-}
-
-
-static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AUTOMATION detected");
-
-//pass 1s static asserts to
-//  - check call and follows etc for existing sequence numbers
-//  - check range on LATCH/UNLATCH
-// This pass generates no runtime data or code 
-#include "EXRAIL2MacroReset.h"
-#undef ASPECT
-#define ASPECT(address,value) static_assert(address <=2044, "invalid Address"); \
-                              static_assert(address>=-3, "Invalid value");
-#undef CALL
-#define CALL(id) static_assert(hasseq(id),"Sequence not found");
-#undef FOLLOW
-#define FOLLOW(id)  static_assert(hasseq(id),"Sequence not found");
-#undef START
-#define START(id)  static_assert(hasseq(id),"Sequence not found");
-#undef SENDLOCO
-#define SENDLOCO(cab,id) static_assert(hasseq(id),"Sequence not found");
-#undef LATCH
-#define LATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
-#undef UNLATCH
-#define UNLATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
-#undef RESERVE
-#define RESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
-#undef FREE
-#define FREE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
-#undef SPEED
-#define SPEED(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
-#undef FWD
-#define FWD(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
-#undef REV
-#define REV(speed) static_assert(speed>=0 && speed<128,"Speed out of valid range 0-127");
-
-#include "myAutomation.h"
+// Perform compile time asserts to check the script for errors
+#include "EXRAILAsserts.h"
 
 // Pass 1g Implants STEALTH_GLOBAL in correct place 
 #include "EXRAIL2MacroReset.h"
@@ -158,21 +116,54 @@ static_assert(!hasdup(compileTimeSequenceList[0],1),"Duplicate SEQUENCE/ROUTE/AU
 #define STEALTH_GLOBAL(code...) code
 #include "myAutomation.h"
 
-// Pass 1h Implements HAL macro by creating exrailHalSetup function
+// Pass 1h Implements HAL macro by creating exrailHalSetup1 function
 // Also allows creating EXTurntable object
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
 #undef HAL_IGNORE_DEFAULTS
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
-#undef JMRI_SENSOR
-#define JMRI_SENSOR(vpin,count...) Sensor::createMultiple(vpin,##count);
-#undef  CONFIGURE_SERVO
-#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
-bool exrailHalSetup() {
+bool exrailHalSetup1() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
    return ignore_defaults;
+}
+
+// Pass 1s Implements servos by creating exrailHalSetup2
+// TODO Turnout and turntable creation should be moved to here instead of 
+// the first pass from the opcode table. 
+#include "EXRAIL2MacroReset.h"
+#undef JMRI_SENSOR
+#define JMRI_SENSOR(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   static byte state_map[(npins+7)/8]; \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,true); \
+  }
+#undef JMRI_SENSOR_NOPULLUP
+#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   static byte state_map[(npins+7)/8]; \
+   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,false); \
+  }
+
+void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
+   (void)   action; // suppress unused warnings if no groups
+   (void)   stream;
+   #include "myAutomation.h"
+}
+
+// Pass 1s Implements servos by creating exrailHalSetup2
+// TODO Turnout and turntable creation should be moved to here instead of 
+// the first pass from the opcode table. 
+#include "EXRAIL2MacroReset.h"
+#undef  CONFIGURE_SERVO
+#define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
+void exrailHalSetup2() {
+   #include "myAutomation.h"
+   // pullup any group sensors
+   SensorGroup::prepareAll();
 }
 
 // Pass 1c detect compile time featurtes
@@ -216,21 +207,26 @@ bool exrailHalSetup() {
 #define ROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef ROUTE_CAPTION
 #define ROUTE_CAPTION(id,caption) | FEATURE_ROUTESTATE
-
-#undef CLEAR_STASH
-#define CLEAR_STASH(id) | FEATURE_STASH
-#undef CLEAR_ALL_STASH
-#define CLEAR_ALL_STASH | FEATURE_STASH
-#undef PICKUP_STASH
-#define PICKUP_STASH(id) | FEATURE_STASH
-#undef STASH
-#define STASH(id) | FEATURE_STASH
+#undef IFROUTE_ACTIVE
+#define IFROUTE_ACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_INACTIVE
+#define IFROUTE_INACTIVE(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_HIDDEN
+#define IFROUTE_HIDDEN(id) | FEATURE_ROUTESTATE
+#undef IFROUTE_DISABLED
+#define IFROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
 #define ONBUTTON(vpin) | FEATURE_SENSOR
 #undef ONSENSOR
 #define ONSENSOR(vpin) | FEATURE_SENSOR
+#undef ONBITMAP
+#define ONBITMAP(vpin) | FEATURE_SENSOR
+#undef ONBLOCKENTER
+#define ONBLOCKENTER(blockid) | FEATURE_BLOCK
+#undef ONBLOCKEXIT
+#define ONBLOCKEXIT(blockid) | FEATURE_BLOCK
 
 const byte RMFT2::compileFeatures = 0
    #include "myAutomation.h"
@@ -305,6 +301,36 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define SERIAL5(msg)  THRUNGE(msg,thrunge_serial5)
 #undef SERIAL6
 #define SERIAL6(msg)  THRUNGE(msg,thrunge_serial6)
+#undef IFLOCO
+#define IFLOCO(locolist...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const int16_t temp[]={locolist}; \
+   skipIf=true; \
+   for (size_t i=0; i<sizeof(temp)/sizeof(temp[0]); i++) { \
+      if (loco==(uint16_t)temp[i]) { skipIf=false; break;} \
+    } \
+    return;\
+  }
+
+#undef IF_ALL
+#define IF_ALL(vpinList...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const int16_t temp[]={vpinList}; \
+   ifAllFunc(temp,sizeof(temp)/sizeof(temp[0])); \
+   return;\
+  }
+
+#undef IF_ANY  
+#define IF_ANY(vpinList...) \
+  case (__COUNTER__ - StringMacroTracker1) : \
+  { \
+   const int16_t temp[]={vpinList}; \
+   ifAnyFunc(temp,sizeof(temp)/sizeof(temp[0])); \
+   return;\
+  }
+
 #undef LCD
 #define LCD(id,msg)  \
      case (__COUNTER__ - StringMacroTracker1) : {\
@@ -327,6 +353,20 @@ case (__COUNTER__ - StringMacroTracker1) : {\
 #define STEALTH(code...) case (__COUNTER__ - StringMacroTracker1) : {code} return; 
 #undef WITHROTTLE
 #define WITHROTTLE(msg) THRUNGE(msg,thrunge_withrottle)
+#undef ZTEST
+#define ZTEST(command,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),nullptr,[]() -> bool { return (code);}); \
+   return;
+#undef ZTEST2
+#define ZTEST2(command,response) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),nullptr); \
+   return;
+#undef ZTEST3
+#define ZTEST3(command,response,code...) case (__COUNTER__ - StringMacroTracker1) : \
+   Ztest::parse(F(command),F(response),[]() -> bool { return (code);}); \
+   return;
+
+#include "Ztest.h"
 
 void  RMFT2::printMessage(uint16_t id) { 
   thrunger tmode;
@@ -490,10 +530,13 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,0,0,
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
+#define BUILD_CONSIST(addloco) OPCODE_CONSIST,V(addloco),
+#define BREAK_CONSIST OPCODE_CONSIST,V(0),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
+#define CLEAR_ANY_STASH OPCODE_CLEAR_ANY_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #ifndef IO_NO_HAL
@@ -513,6 +556,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ENDIF  OPCODE_ENDIF,0,0,
 #define ENDTASK OPCODE_ENDTASK,0,0,
 #define ESTOP OPCODE_SPEED,V(1), 
+#define ESTOPALL OPCODE_ESTOPALL,V(0),
+#define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
+#define ESTOP_RESUME OPCODE_ESTOPALL,V(2),
 #define EXRAIL
 #ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
@@ -523,6 +569,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FON(func) OPCODE_FON,V(func),
 #define FORGET OPCODE_FORGET,0,0,
 #define FREE(blockid) OPCODE_FREE,V(blockid),
+#define FREEALL OPCODE_FREEALL,0,0,
 #define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -533,20 +580,31 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFCLOSED(turnout_id) OPCODE_IFCLOSED,V(turnout_id),
 #define IFGREEN(signal_id) OPCODE_IFGREEN,V(signal_id),
 #define IFGTE(sensor_id,value) OPCODE_IFGTE,V(sensor_id),OPCODE_PAD,V(value),
-#define IFLOCO(loco_id) OPCODE_IFLOCO,V(loco_id),
+#define IFLOCO(loco_list...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
+#define IF_ALL(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
+#define IF_ANY(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
+#define IFROUTE_ACTIVE(sequence_id) OPCODE_IF_ROUTE_ACTIVE,V(sequence_id),
+#define IFROUTE_INACTIVE(sequence_id) OPCODE_IF_ROUTE_INACTIVE,V(sequence_id),
+#define IFROUTE_HIDDEN(sequence_id) OPCODE_IF_ROUTE_HIDDEN,V(sequence_id),
+#define IFROUTE_DISABLED(sequence_id) OPCODE_IF_ROUTE_DISABLED,V(sequence_id),
+#define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
+#define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
 #ifndef IO_NO_HAL
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
 #endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
+#define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
+#define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define JMRI_SENSOR(vpin,count...)
+#define JMRI_SENSOR_NOPULLUP(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,
 #define KILLALL OPCODE_KILLALL,0,0,
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
@@ -565,6 +623,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STEALTH_GLOBAL(code...) 
 #define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
+#define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
 #define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
         OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
@@ -575,6 +634,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
+#define ONBLOCKENTER(block_id) OPCODE_ONBLOCKENTER,V(block_id),
+#define ONBLOCKEXIT(block_id) OPCODE_ONBLOCKEXIT,V(block_id),
 #define ONCLOSE(turnout_id) OPCODE_ONCLOSE,V(turnout_id),
 #define ONLCC(sender,event) OPCODE_ONLCC,V(event),\
         OPCODE_PAD,V((((uint64_t)sender)>>32)&0xFFFF),\
@@ -596,17 +657,31 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
+#define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
-#ifndef DISABLE_PROG
+#define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
+#define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
+#define PLAY_PAUSE(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_PAUSE)
+#define PLAY_REPEAT(vpin,track,volume...)  ANOUT(vpin,track,volume+0,DFPlayerBase::DF_REPEATPLAY)
+#define PLAY_RESET(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_RESET)
+#define PLAY_RESUME(vpin)                  ANOUT(vpin,0,0,DFPlayerBase::DF_RESUME)
+#define PLAY_STOP(vpin)                    ANOUT(vpin,0,0,DFPlayerBase::DF_STOPPLAY)
+#define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
+#define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
-#endif
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
+#define RANDOM_CALL(...) \
+  OPCODE_RANDOM_CALL,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define RANDOM_FOLLOW(...) \
+  OPCODE_RANDOM_FOLLOW,V(FOR_EACH_NARG(__VA_ARGS__)), \
+  ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
 #define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
@@ -625,6 +700,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ROUTE_HIDDEN(id)  OPCODE_ROUTE_HIDDEN,V(id),
 #define ROUTE_DISABLED(id)  OPCODE_ROUTE_DISABLED,V(id),
 #define ROUTE_CAPTION(id,caption) PRINT(caption)
+#define SAVE_SPEED OPCODE_SAVE_SPEED,V(0),
+#define RESTORE_SPEED OPCODE_RESTORE_SPEED,V(0),
 #define SENDLOCO(cab,route) OPCODE_SENDLOCO,V(cab),OPCODE_PAD,V(route),
 #define SEQUENCE(id)  OPCODE_SEQUENCE, V(id), 
 #define SERIAL(msg) PRINT(msg)
@@ -646,7 +723,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
 #define SPEED(speed) OPCODE_SPEED,V(speed),
+#define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
+#define SPEED_REL(percent) OPCODE_SPEED_REL,V(percent),
+#define SLOWDOWN(speedstep) OPCODE_SLOWDOWN,V(speedstep),
 #define START(route) OPCODE_START,V(route), 
+#define START_SHARED(route) OPCODE_START_SHARED,V(route),
+#define START_SEND(route) OPCODE_START_SEND,V(route),
 #define STASH(id) OPCODE_STASH,V(id), 
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
@@ -660,16 +742,29 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
+#define BITMAP_AND(vpin,mask) OPCODE_BITMAP_AND,V(vpin),OPCODE_PAD,V(mask),
+#define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),
+#define BITMAP_DEC(vpin) OPCODE_BITMAP_DEC,V(vpin),
+#define BITMAP_OR(vpin,mask) OPCODE_BITMAP_OR,V(vpin),OPCODE_PAD,V(mask),
+#define BITMAP_SET(vpin,value) ANOUT(vpin,value,0,0)
+#define BITMAP_XOR(vpin,mask) OPCODE_BITMAP_XOR,V(vpin),OPCODE_PAD,V(mask),
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
 #ifndef IO_NO_HAL
 #define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
 #endif
+#define WAIT_WHILE_RED(signal_id) OPCODE_WAIT_WHILE_RED,V(signal_id),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
 #define XFTOGGLE(cab,func) OPCODE_XFTOGGLE,V(cab),OPCODE_PAD,V(func),
 #define XFWD(cab,speed) OPCODE_XFWD,V(cab),OPCODE_PAD,V(speed),
 #define XREV(cab,speed) OPCODE_XREV,V(cab),OPCODE_PAD,V(speed),
+#define XPOM(cab,cv,value) OPCODE_XPOM,V(cab),OPCODE_PAD,V(cv),OPCODE_PAD,V(value),
+#define XSAVE_SPEED(cab) OPCODE_XSAVE_SPEED,V(cab),
+#define XRESTORE_SPEED(cab) OPCODE_XRESTORE_SPEED,V(cab),
+#define ZTEST(command,code...) PRINT(dummy)
+#define ZTEST2(command,response) PRINT(dummy)
+#define ZTEST3(command,response,code...) PRINT(dummy)
 
 // Build RouteCode
 const int StringMacroTracker2=__COUNTER__;

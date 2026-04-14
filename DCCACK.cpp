@@ -497,7 +497,8 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
     }
     trailingEdgeCounter = 0;
 
-    if (ackPulseDuration>=minAckPulseDuration && ackPulseDuration<=maxAckPulseDuration) {
+    if (ackPulseDuration>=minAckPulseDuration
+	&& (ackPulseDuration<=maxAckPulseDuration || maxAckPulseDuration == 0)) {
         ackCheckDuration=millis()-ackCheckStart;
         ackDetected=true;
         ackPending=false;

@@ -197,6 +197,7 @@ public:
   // Check for incoming data, and update busy flag and other state accordingly
  
   void processIncoming(unsigned long currentMicros) {
+    (void)currentMicros; // suppress warning, not used in this function
     // Expected message is in the form "7E FF 06 3D xx xx xx xx xx EF"
     RX_fifo_lvl();
     if (FIFO_RX_LEVEL >= 10) {      
@@ -308,7 +309,7 @@ public:
           sendPacket(0x0C,0,0);
           _resetCmd = false;          
       } else if(_volCmd == true) { // do the volme before palying a track
-         if(_requestedVolumeLevel >= 0 && _requestedVolumeLevel <= 30){         
+         if(_requestedVolumeLevel <= 30) {         
          _currentVolume = _requestedVolumeLevel; // If _requestedVolumeLevel is out of range, sent _currentV1olume      
          }
          sendPacket(0x06, 0x00, _currentVolume);
@@ -407,6 +408,9 @@ public:
 
   // Write to a vPin will do nothing
   void _write(VPIN vpin, int value) override {
+    (void)vpin; // suppress warning, not used in this function
+    (void)value; // suppress warning, not used in this function
+    
     if (_deviceState == DEVSTATE_FAILED) return;
       #ifdef DIAG_IO
         DIAG(F("I2CDFPlayer: Writing to any vPin not supported"));
@@ -511,6 +515,7 @@ public:
       if (pin == 0) { // Do nothing if not vPin 0
         return _playing;
       }
+      return _playing; // fix for compile error: "control reaches end of non-void function [-Wreturn-type]"
     }
 
   void _display() override {
@@ -549,8 +554,8 @@ private:
     setChecksum(out);
 
       // Prepend the DFPlayer command with REG address and UART Channel in _outbuffer
-      _outbuffer[0] = REG_THR << 3 | _UART_CH << 1; //TX FIFO and UART Channel      
-      for ( int i = 1; i < sizeof(out)+1 ; i++){
+      _outbuffer[0] = REG_THR << 3 | _UART_CH << 1; //TX FIFO and UART Channel            
+      for ( uint8_t i = 1; i < sizeof(out)+1 ; i++){
         _outbuffer[i] = out[i-1];
       }
 
@@ -616,6 +621,14 @@ private:
     uint16_t _divisor = (_sc16is752_xtal_freq/PRESCALER)/(BAUD_RATE * 16);  // Calculate _divisor for baudrate
     TEMP_REG_VAL = 0x08; // UART Software reset
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
+
+    // Extra delay when using low frequency xtal after soft reset
+    // Test when using 1.8432 Mhz xtal
+    if(_sc16is752_xtal_freq == SC16IS752_XTAL_FREQ_LOW){
+      _timeoutTime = micros() + 10000UL;  // 10mS timeout      
+      _awaitingResponse = true;
+    }
+
     TEMP_REG_VAL = 0x00; // Set pins to GPIO mode
     UART_WriteRegister(REG_IOCONTROL, TEMP_REG_VAL);
     TEMP_REG_VAL = 0xFF; //Set all pins as output
