@@ -22,14 +22,16 @@
 #include <Arduino.h>
 #include "StringFormatter.h"
 
+const char EEPROM_FLAG[]="DCCEX-WIFI";
+
 // Note... functions that are not cpu-specific are implemented here in the header file to reduce duplication.
 //         CPU specific functions are implemented in the corresponding WifiPreferencesXXX.cpp file.
 class WifiPreferences {
 public:
   static bool load();
-  static void saveSTA(const char *_ssid, const char *_password, bool sticky);
-  static void saveAP(const char *_ssid, const char *_password, byte _channel, bool _hidden);
-  static void saveHostName(const char *_hostname);
+  static bool saveSTA(const char *_ssid, const char *_password, bool sticky);
+  static bool saveAP(const char *_ssid, const char *_password, byte _channel, bool _hidden);
+  static bool saveHostName(const char *_hostname);
   static void clear();
   static void enable(bool enable);
   static bool getEnabled() {return state.enabled;};
@@ -52,20 +54,28 @@ public:
                  F("<* C WIFI HOSTNAME \"%s\" *>\n"), state.  hostName);
 
   };
-static const byte MAX_SSID_LENGTH=32;
-static const byte MAX_PASSWORD_LENGTH=64;
+
+// STA limits are chosen to meet standards for external routers, despite being stupidly large.
+static const byte MAX_STA_SSID_LENGTH=32;
+static const byte MAX_STA_PASSWORD_LENGTH=64;
+// AP limits are smaller to fit in the typical small memory of an embedded AP implementation and because a short SSID is more appropriate for an AP. 
+static const byte MAX_HOSTNAME_LENGTH=16;
+static const byte MAX_AP_SSID_LENGTH=16;
+static const byte MAX_AP_PASSWORD_LENGTH=16;
 
 private:
   struct SavedState {
+    byte eepromFlag[sizeof(EEPROM_FLAG)]; // Reserved for AVR to detect if preferences have been saved before
     bool enabled;
-    char ssidAP[MAX_SSID_LENGTH+1];
-    char passwordAP[MAX_PASSWORD_LENGTH+1];
     byte channelAP;
     bool hiddenAP;
-    char ssidSTA[MAX_SSID_LENGTH+1];
-    char passwordSTA[MAX_PASSWORD_LENGTH+1];
-    char hostName[MAX_SSID_LENGTH+1 ];
+    char ssidAP[MAX_AP_SSID_LENGTH+1];
+    char passwordAP[MAX_AP_PASSWORD_LENGTH+1];
+    char ssidSTA[MAX_STA_SSID_LENGTH+1];
+    char passwordSTA[MAX_STA_PASSWORD_LENGTH+1];
+    char hostName[MAX_HOSTNAME_LENGTH+1];
   };
   static SavedState state;
+  static const int16_t savedSize=sizeof(state);
 };
 #endif //WifiPreferences_h

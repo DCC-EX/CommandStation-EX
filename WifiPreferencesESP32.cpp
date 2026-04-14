@@ -25,7 +25,7 @@ Preferences preferences;
 WifiPreferences::SavedState WifiPreferences::state;
 
 bool WifiPreferences::load() {
-  preferences.begin("DCCEX-WIFI", true);
+  preferences.begin(EEPROM_FLAG, true);
   /* experiments with preferences.isKey("ssid") have proved problematic */
   state.ssidSTA[0]=0;
   preferences.getString("ssidSTA", state.ssidSTA, sizeof(state.ssidSTA));
@@ -48,38 +48,46 @@ bool WifiPreferences::load() {
   return true;
 }
 
-void WifiPreferences::saveSTA(const char *_ssid, const char *_password,  bool sticky) {
+bool WifiPreferences::saveSTA(const char *_ssid, const char *_password,  bool sticky) {
+  if (strlen(_ssid)>=sizeof(state.ssidSTA)) return false; // SSID too long
+  if (strlen(_password)>=sizeof(state.passwordSTA)) return false; // Password too long
   strncpy(state.ssidSTA, _ssid, sizeof(state.ssidSTA));
   strncpy(state.passwordSTA, _password, sizeof(state.passwordSTA));
-  if (!sticky) return; // do not save to preferences if not sticky
-  preferences.begin("DCCEX-WIFI", false); // read/write
+  if (!sticky) return true; // do not save to preferences if not sticky
+  preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putString("ssidSTA", state.ssidSTA);
   preferences.putString("passwordSTA", state.passwordSTA);  
   preferences.end();
+  return true;
 }
 
-void WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _channel, bool _hidden) {
+bool WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _channel, bool _hidden) {
+  if (strlen(_ssid)>=sizeof(state.ssidAP)) return false; // SSID too long
+  if (strlen(_password)>=sizeof(state.passwordAP)) return false; // Password too long
   strncpy(state.ssidAP, _ssid, sizeof(state.ssidAP));
   strncpy(state.passwordAP, _password, sizeof(state.passwordAP));
   state.channelAP=_channel;
   state.hiddenAP=_hidden;
-  preferences.begin("DCCEX-WIFI", false); // read/write
+  preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putString("ssidAP", state.ssidAP);
   preferences.putString("passwordAP", state.passwordAP);
   preferences.putUChar("channelAP",state.channelAP);
   preferences.putBool("hiddenAP",state.hiddenAP);
   preferences.end();
+  return true;
 }
 
-void WifiPreferences::saveHostName(const char *_hostname) {
+bool WifiPreferences::saveHostName(const char *_hostname) {
+  if (strlen(_hostname)>=sizeof(state.hostName)) return false; // hostname too long
   strncpy(state.hostName, _hostname, sizeof(state.hostName));
-  preferences.begin("DCCEX-WIFI", false); // read/write
+  preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putString("hostName", state.hostName);
   preferences.end();
+  return true;
 }
 
 void WifiPreferences::clear() {
-  preferences.begin("DCCEX-WIFI", false); // read/write
+  preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.clear();
   preferences.end();
   load(); // reload to update static variables and defaults
@@ -88,7 +96,7 @@ void WifiPreferences::clear() {
 void WifiPreferences::enable(bool enable) {
   if (enable==state.enabled) return; 
   state.enabled=enable;
-  preferences.begin("DCCEX-WIFI", false); // read/write
+  preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putBool("enabled", state.enabled);
   preferences.end();
 }
