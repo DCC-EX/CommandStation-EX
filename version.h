@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.68"
+#define VERSION "5.6.0"
+// 5.6.0  - Minor adaptions to make production version
 // 5.5.68 - EXRAIL: BITMAP_SET
 //        - EXRAIL: Comments corrections for doc build
 //        - RailCom: Simplification for sniffer-based detector implementation      
