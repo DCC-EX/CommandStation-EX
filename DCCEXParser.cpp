@@ -1376,14 +1376,12 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
     if (params==2 
         && p[1]=="ON"_hk) { // <C WIFI ON>
         WifiPreferences::enable(true);
-        WifiESP::setup();
         return true;
     }
 
     if (params==2 
         && p[1]=="OFF"_hk) { // <C WIFI OFF>
         WifiPreferences::enable(false);
-        WifiESP::setup();
         return true;
     }
 
@@ -1391,15 +1389,12 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         && p[1]=="HOSTNAME"_hk 
         && p[2]==STRING_MARKER) { // <C WIFI HOSTNAME "xx">
         auto hostname=(const char*)(com + p[3]);
-        if (!WifiPreferences::saveHostName(hostname)) return false;
-        WifiESP::setup();
-        return true;
+        return WifiPreferences::saveHostName(hostname);
     }
 
     if (params==2 
         && p[1]=="DEFAULT"_hk) { // <C WIFI DEFAULT>
         WifiPreferences::clear();
-        WifiESP::setup();
         return true;
     }
 
@@ -1410,9 +1405,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         auto ssid=(const char*)(com + p[2]);
         auto password=(const char*)(com + p[4]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        if (!WifiPreferences::saveSTA(ssid,password,true)) return false; // save sticky credentials                   
-        WifiESP::setup();
-        return true;
+        return WifiPreferences::saveSTA(ssid,password,true); // save sticky credentials
     }
     
     if (params==6 
@@ -1423,9 +1416,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         auto ssid=(const char*)(com + p[3]);
         auto password=(const char*)(com + p[5]);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        if (!WifiPreferences::saveSTA(ssid,password,false)) return false; // save non-sticky credentials                   
-        WifiESP::setup();
-        return true;
+        return WifiPreferences::saveSTA(ssid,password,false);
     }
     
     if ((params ==6 || params==7) 
@@ -1438,9 +1429,7 @@ bool DCCEXParser::parseWifi(Print * stream, int16_t params, int16_t p[], const b
         byte channel=(params==7)?p[6]:11;
         bool hidden=(p[1]=="HIDDENAP"_hk);
         if (strlen(password)<8) return false; // minimum password length for WPA2
-        if (!WifiPreferences::saveAP(ssid,password,channel,hidden)) return false; // save AP credentials
-        WifiESP::setup();
-        return true;
+        return WifiPreferences::saveAP(ssid,password,channel,hidden);
     }
 
     return false; // invalid/unknown

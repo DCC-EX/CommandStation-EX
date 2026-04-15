@@ -21,6 +21,7 @@
 #include "WifiPreferences.h"
 #include <Preferences.h>
 #include <WiFi.h>
+#include "WifiESP32.h"
 
 Preferences preferences;
 WifiPreferences::SavedState WifiPreferences::state;
@@ -86,6 +87,7 @@ bool WifiPreferences::saveSTA(const char *_ssid, const char *_password,  bool st
   preferences.putString("ssidSTA", state.ssidSTA);
   preferences.putString("passwordSTA", state.passwordSTA);  
   preferences.end();
+  WifiESP::setup(); // restart wifi to apply new credentials
   return true;
 }
 
@@ -102,6 +104,7 @@ bool WifiPreferences::saveAP(const char *_ssid, const char *_password,  byte _ch
   preferences.putUChar("channelAP",state.channelAP);
   preferences.putBool("hiddenAP",state.hiddenAP);
   preferences.end();
+  WifiESP::setup(); // restart wifi to apply new credentials
   return true;
 }
 
@@ -111,6 +114,7 @@ bool WifiPreferences::saveHostName(const char *_hostname) {
   preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putString("hostName", state.hostName);
   preferences.end();
+  WifiESP::setup(); // restart wifi to apply new hostname
   return true;
 }
 
@@ -119,6 +123,7 @@ void WifiPreferences::clear() {
   preferences.clear();
   preferences.end();
   load(); // reload to update static variables and defaults
+  WifiESP::setup(); // restart wifi to apply cleared preferences
 }
 
 void WifiPreferences::enable(bool enable) {
@@ -127,6 +132,7 @@ void WifiPreferences::enable(bool enable) {
   preferences.begin(EEPROM_FLAG, false); // read/write
   preferences.putBool("enabled", state.enabled);
   preferences.end();
+  WifiESP::setup(); // restart wifi to apply new enabled state
 }
 
 #endif //ARDUINO_ARCH_ESP32
