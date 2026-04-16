@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.69"
+#define VERSION "5.7.0"
+// 5.7.0  - Start new devel version series
 // 5.5.69 - Bugfix: AT+ wifi MDNS error
 //        - <C WIFI > commands replace config.h wifi settings on ESP32 and CSB1.
 // 5.5.68 - EXRAIL: BITMAP_SET
