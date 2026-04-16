@@ -235,6 +235,11 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   StringFormatter::send(wifiStream, F("AT+CWMODE%s=1\r\n"), oldCmd ? "" : "_CUR"); // configure as "station" = WiFi client
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
 
+  // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
+  // mode=1 which means DHCP for STA mode
+  StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
+  checkForOK(1000, true);
+
   const char *yourNetwork = "Your network ";
   if (STRNCMP_P(yourNetwork, (const char*)SSid, 13) == 0 || STRNCMP_P("", (const char*)SSid, 13) == 0) {
     if (STRNCMP_P(yourNetwork, (const char*)password, 13) == 0) {
@@ -292,7 +297,8 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
     // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
-    StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
+    // mode=0 which means DHCP for softAP 
+    StringFormatter::send(wifiStream, F("AT+CWDHCP%s=0,1\r\n"), oldCmd ? "" : "_CUR");
     checkForOK(1000, true);
 
     // Figure out MAC addr
