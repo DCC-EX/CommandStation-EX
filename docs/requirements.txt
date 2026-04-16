@@ -36,4 +36,4 @@ sphinxcontrib-serializinghtml==2.0.0
 sphinxcontrib-spelling==8.0.1
 tomli==2.2.1
 typing_extensions==4.12.2
-urllib3==2.3.0
+urllib3==2.6.3
