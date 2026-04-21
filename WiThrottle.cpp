@@ -116,6 +116,18 @@ WiThrottle::~WiThrottle() {
   }
 }
 
+void WiThrottle::parseConduit(RingStream * stream, byte * cmd) {
+  // conduit messages are of the form [id 0..9]command
+  // currently only supporting [DCC command params] but could be used for other things in future
+  if (cmd[0]!='[') return; // not a conduit message
+  char throttle_id=cmd[1];
+  stream->print('[');
+  stream->print(throttle_id);
+  stream->print(']'); 
+  auto throttle=getThrottle(throttle_id-'0');
+  if (throttle) throttle->parse (stream,cmd+3); // skip [id]
+}
+
 void WiThrottle::parse(RingStream * stream, byte * cmdx) {
   
   byte * cmd=cmdx;

@@ -34,6 +34,7 @@ struct MYLOCO {
 class WiThrottle {
   public:  
     static void loop(RingStream * stream);
+    static void parseConduit(RingStream * stream, byte * cmd);
     void parse(RingStream * stream, byte * cmd);
     static WiThrottle* getThrottle( int wifiClient); 
     static void markForBroadcast(int cab);
