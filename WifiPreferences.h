@@ -66,7 +66,7 @@ static const byte MAX_AP_PASSWORD_LENGTH=16;
 
 private:
   struct SavedState {
-    byte eepromFlag[sizeof(EEPROM_FLAG)]; // Reserved for AVR to detect if preferences have been saved before
+    char eepromFlag[sizeof(EEPROM_FLAG)]; // Reserved for AVR to detect if preferences have been saved before
     bool enabled;
     byte channelAP;
     bool hiddenAP;
@@ -78,6 +78,6 @@ private:
     char hostName[MAX_HOSTNAME_LENGTH+1];
   };
   static SavedState state;
-  static const int16_t savedSize=sizeof(state);
+  static int savedEEPROMAddress;
 };
 #endif //WifiPreferences_h
