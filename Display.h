@@ -22,6 +22,12 @@
 #include "defines.h"
 #include "DisplayInterface.h"
 
+// Used for OLED displays.  Orientation is not implemented for LCDs, but they share "HALDisplay::create" constructors
+enum class Orientation {
+  normal,
+  flipped
+};
+
 // Allow maximum message length to be overridden from config.h
 #if !defined(MAX_MSG_SIZE)
 #define MAX_MSG_SIZE 20 
