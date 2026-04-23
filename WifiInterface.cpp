@@ -235,10 +235,20 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   StringFormatter::send(wifiStream, F("AT+CWMODE%s=1\r\n"), oldCmd ? "" : "_CUR"); // configure as "station" = WiFi client
   checkForOK(1000, true);                       // Not always OK, sometimes "no change"
 
+#ifdef DHCPTEST
   // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
   // mode=1 which means DHCP for STA mode
   StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
   checkForOK(1000, true);
+#else
+  StringFormatter::send(wifiStream, F("AT+CWDHCP%s?\r\n"), oldCmd ? "" : "_CUR");
+  if (checkForOK(5000, F("+CWDHCP"), true,false)) {
+    if (!checkForOK(5000, F("3"), true,false))
+      DIAG(F("Warning: DHCP may be off"));
+  } else {
+    DIAG(F("Warning: Can not determine DHCP state"));
+  }
+#endif
 
   const char *yourNetwork = "Your network ";
   if (STRNCMP_P(yourNetwork, (const char*)SSid, 13) == 0 || STRNCMP_P("", (const char*)SSid, 13) == 0) {
@@ -296,10 +306,12 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
+#ifdef DHCPTEST
     // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
     // mode=0 which means DHCP for softAP 
     StringFormatter::send(wifiStream, F("AT+CWDHCP%s=0,1\r\n"), oldCmd ? "" : "_CUR");
     checkForOK(1000, true);
+#endif
 
     // Figure out MAC addr
     StringFormatter::send(wifiStream, F("AT+CIFSR\r\n")); // not TOMATO
