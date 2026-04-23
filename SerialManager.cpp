@@ -23,6 +23,7 @@
 #include "SerialManager.h"
 #include "DCCEXParser.h"
 #include "StringFormatter.h"
+#include "WiThrottle.h"
 #include "DIAG.h"
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -37,9 +38,6 @@ BluetoothSerial SerialBT;
 #endif //COMMANDS
 #endif //ESP32
 
-static const byte PAYLOAD_FALSE = 0;
-static const byte PAYLOAD_NORMAL = 1;
-static const byte PAYLOAD_STRING = 2;
 
 SerialManager * SerialManager::first=NULL;
 
@@ -48,7 +46,8 @@ SerialManager::SerialManager(Stream * myserial) {
   next=first;
   first=this;
   bufferLength=0;
-  inCommandPayload=PAYLOAD_FALSE; 
+  inCommandPayload=PAYLOAD_WAITING; 
+  withrottleInUse=false;
 } 
 
 void SerialManager::init() {
@@ -105,6 +104,13 @@ void SerialManager::init() {
 #endif
 }
 
+void SerialManager::broadcastWithrottle(char * stringBuffer) {
+    // send a withrottle broadcast over whichever serial is handling the conduit with a withrottle client, which is identified by the withrottleInUse flag.  We use a special format to allow the conduit parser to identify these and avoid loops.  The format is [*]message~ where [*] identifies this as a withrottle broadcast and ~ identifies the end of the message.
+    for (SerialManager * s=first;s;s=s->next) {
+      if (s->withrottleInUse) StringFormatter::send(s->serial,F("[*]%s~"),stringBuffer);
+    }
+}
+
 void SerialManager::broadcast(char * stringBuffer) {
     for (SerialManager * s=first;s;s=s->next) s->broadcast2(stringBuffer);
 }
@@ -117,43 +123,54 @@ void SerialManager::loop() {
 }
 
 void SerialManager::loop2() {
+  if (withrottleInUse && serial->available()==0) {
+    // if this serial is doing nothing and but withrottle is in use it needs a loop() call to check for changes
+    WiThrottle::loop(serial);
+    return;
+  }
+
   while (serial->available()) {
     char ch = serial->read();
-    if (!inCommandPayload) {
-      if (ch == '<') {
-        inCommandPayload = PAYLOAD_NORMAL;
-        bufferLength = 0;
-        buffer[0] = '\0';
-      }
-    } else { // if (inCommandPayload)
-      if (bufferLength <  (COMMAND_BUFFER_SIZE-1)) {
-        buffer[bufferLength++] = ch;          // advance bufferLength
-	if (inCommandPayload > PAYLOAD_NORMAL) {
-	  if (inCommandPayload > COMMAND_BUFFER_SIZE/2) { // String way too long, see SerialManager.h
-	    ch = '>';                                     // we end this nonsense
-	    inCommandPayload = PAYLOAD_NORMAL;
-	    DIAG(F("Parse error: Unbalanced string"));
-	    // fall through to ending parsing below
-	  } else if (ch == '"') {               // String end
-	    inCommandPayload = PAYLOAD_NORMAL;
-	    continue; // do not fall through
-	  } else
-	    inCommandPayload++;
-	}
-	if (inCommandPayload == PAYLOAD_NORMAL) {
-	  if (ch == '>') {
-	    buffer[bufferLength] = '\0';               // This \0 is after the '>'
-	    DCCEXParser::parse(serial, buffer, NULL);  // buffer parsed with trailing '>'
-	    inCommandPayload = PAYLOAD_FALSE;
-	    break;
-	  } else if (ch == '"') {
-	    inCommandPayload = PAYLOAD_STRING;
-	  }
-	}
-      } else {
-	DIAG(F("Parse error: input buffer overflow"));
-	inCommandPayload = PAYLOAD_FALSE;
-      }
+    bool overflow = bufferLength >= COMMAND_BUFFER_SIZE;
+
+    switch (inCommandPayload) {
+      case PAYLOAD_WAITING:
+        if (ch == '<') inCommandPayload = PAYLOAD_DCCEX; // start of DCC++EX command
+        else if (ch == '[') inCommandPayload = PAYLOAD_TAGGED; // start of tagged payload, used for withrottle conduit messages
+        else break; // ignore for now
+          
+        bufferLength=0; // reset buffer for new command
+        buffer[bufferLength++]=ch;
+        break;
+
+      case PAYLOAD_DCCEX:
+        if (!overflow) buffer[bufferLength++] = ch;          // advance bufferLength
+        if(ch=='"') {
+          inCommandPayload=PAYLOAD_STRING; // start of string, which can contain > so we need to wait for closing " before we can parse
+          break;
+        }
+        if (ch == '>') { // end of DCC++EX command
+         buffer[bufferLength] = '\0';
+         DCCEXParser::parse(serial, buffer, NULL);
+         inCommandPayload = PAYLOAD_WAITING;
+       }
+       break;
+       
+    case PAYLOAD_STRING:
+       if (!overflow) buffer[bufferLength++] = ch;          // advance bufferLength
+       if (ch == '"') inCommandPayload = PAYLOAD_DCCEX; // end of string, back to normal parsing
+       break;
+   
+    case PAYLOAD_TAGGED:
+        if (ch=='~') { // end of tagged input
+          buffer[bufferLength]='\0';
+          withrottleInUse=true; // assume any tagged input is from withrottle until we have reason to think otherwise
+          WiThrottle::parseConduit(serial, buffer);  // buffer parsed with trailing '>'
+          inCommandPayload = PAYLOAD_WAITING;
+          break;
+        }
+        if (!overflow) buffer[bufferLength++] = ch;          // advance bufferLength
+        break;
     }
   }
 }

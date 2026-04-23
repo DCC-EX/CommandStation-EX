@@ -33,9 +33,9 @@ struct MYLOCO {
 
 class WiThrottle {
   public:  
-    static void loop(RingStream * stream);
-    static void parseConduit(RingStream * stream, byte * cmd);
-    void parse(RingStream * stream, byte * cmd);
+    static void loop(Print * stream);
+    static void parseConduit(Print * stream, byte * cmd);
+    void parse(Print * stream, byte * cmd);
     static WiThrottle* getThrottle( int wifiClient); 
     static void markForBroadcast(int cab);
     static void forget(byte clientId);
@@ -73,10 +73,10 @@ class WiThrottle {
 
       int DCCToWiTSpeed(int DCCSpeed);
       int WiTToDCCSpeed(int WiTSpeed);
-      void multithrottle(RingStream * stream, byte * cmd);
-      void locoAction(RingStream * stream, byte* aval, char throttleChar, int cab);
-      void accessory(RingStream *, byte* cmd);
-      void checkHeartbeat(RingStream * stream); 
+      void multithrottle(Print * stream, byte * cmd);
+      void locoAction(Print * stream, byte* aval, char throttleChar, int cab);
+      void accessory(Print * stream, byte* cmd);
+      void checkHeartbeat(Print * stream); 
       void markForBroadcast2(int cab);
       void sendIntro(Print * stream);
       void sendTurnouts(Print * stream);
@@ -84,11 +84,14 @@ class WiThrottle {
       void sendRoutes(Print * stream);
       void sendFunctions(Print* stream, byte loco);
        // callback stuff to support prog track acquire
-       static RingStream * stashStream;
+       static Print * stashStream;
        static WiThrottle * stashInstance;
        static byte         stashClient;
        static char         stashThrottleChar;
        static void         getLocoCallback(int16_t locoid);
+
+       static void startStream(Print * stream,byte clientid);
+       static void endStream(Print * stream);
 
 };
 #endif

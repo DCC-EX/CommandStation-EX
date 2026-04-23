@@ -46,8 +46,10 @@ public:
   static void init();
   static void loop();
   static void broadcast(char * stringBuffer);
+  static void broadcastWithrottle(char * stringBuffer); // if connected over conduit
   
-private:  
+private: 
+  enum PayloadType { PAYLOAD_WAITING,PAYLOAD_DCCEX,PAYLOAD_STRING,PAYLOAD_TAGGED}; 
   static SerialManager * first;
   SerialManager(Stream * myserial);
   void loop2();
@@ -56,6 +58,7 @@ private:
   SerialManager * next;
   byte bufferLength;
   byte buffer[COMMAND_BUFFER_SIZE]; 
-  byte inCommandPayload;
+  PayloadType inCommandPayload;
+  bool withrottleInUse;
 };
 #endif

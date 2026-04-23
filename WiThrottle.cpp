@@ -116,19 +116,25 @@ WiThrottle::~WiThrottle() {
   }
 }
 
-void WiThrottle::parseConduit(RingStream * stream, byte * cmd) {
+void WiThrottle::parseConduit(Print * stream, byte * cmd) {
   // conduit messages are of the form [id 0..9]command
-  // currently only supporting [DCC command params] but could be used for other things in future
-  if (cmd[0]!='[') return; // not a conduit message
-  char throttle_id=cmd[1];
-  stream->print('[');
-  stream->print(throttle_id);
-  stream->print(']'); 
-  auto throttle=getThrottle(throttle_id-'0');
-  if (throttle) throttle->parse (stream,cmd+3); // skip [id]
+  if (cmd[0]!='[' || cmd[2]!=']') return; // not a conduit message
+  char throttle_id=cmd[1]-'0';
+  // output needs to be buffered to prevent interleaving of <> broadcasts , so we use a StringBuffer and then send it at the end.  If the stream is a RingStream then we can mark the start and end of the message to allow it to be sent without copying into the StringBuffer, otherwise we will use the StringBuffer for output.
+  StringBuffer  buffer(2048); // should be enough for any single command but rosters could get tricky
+  auto throttle=getThrottle(throttle_id);
+  if (!throttle) return;
+  throttle->parse (&buffer,cmd+3); // skip [id]
+  if (buffer.getLength()>0) {
+    startStream(stream, throttle_id);
+    stream->write(buffer.getString(), buffer.getLength()); // send response to client
+    endStream(stream);
+    if (Diag::WITHROTTLE) DIAG(F("Conduit [%d]%s\n"),throttle_id,buffer.getString());
+  }
+  loop(stream);
 }
 
-void WiThrottle::parse(RingStream * stream, byte * cmdx) {
+void WiThrottle::parse(Print * stream, byte * cmdx) {
   
   byte * cmd=cmdx;
   
@@ -244,7 +250,7 @@ int WiThrottle::getLocoId(byte * cmd) {
     return getInt(cmd+1); 
 }
 
-void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
+void WiThrottle::multithrottle(Print * stream, byte * cmd){ 
   char throttleChar=cmd[1];
   int locoid=getLocoId(cmd+3); // -1 for *
   if (locoid > 10239 || locoid < -1) {
@@ -262,7 +268,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
       // M+* means get loco from prog track, then join tracks ready to drive away
       // Stash the things the callback will need later
       stashStream= stream;
-      stashClient=stream->peekTargetMark();
+      stashClient=clientid;
       stashThrottleChar=throttleChar;
       stashInstance=this;
       // ask DCC to call us back when the loco id has been read
@@ -313,7 +319,7 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
   }
 }
 
-void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, int cab){
+void WiThrottle::locoAction(Print * stream, byte* aval, char throttleChar, int cab){
   // Note cab=-1 for all cabs in the consist called throttleChar.  
   //    DIAG(F("Loco Action aval=%c%c throttleChar=%c, cab=%d"), aval[0],aval[1],throttleChar, cab);
   (void) stream;
@@ -405,13 +411,13 @@ int WiThrottle::WiTToDCCSpeed(int WiTSpeed) {
   return WiTSpeed + 1; //offset others by 1
 }
 
-void WiThrottle::loop(RingStream * stream) {
+void WiThrottle::loop(Print * stream) {
   // for each WiThrottle, check the heartbeat and broadcast needed
   for (WiThrottle* wt=firstThrottle; wt!=NULL ; wt=wt->nextThrottle) 
     wt->checkHeartbeat(stream);
 }
 
-void WiThrottle::checkHeartbeat(RingStream * stream) {
+void WiThrottle::checkHeartbeat(Print * stream) {
   // if eStop time passed... eStop any locos still assigned to this client and then drop the connection
   if(heartBeatEnable && (millis()-heartBeat > ESTOP_SECONDS*1000)) {
     if (Diag::WITHROTTLE)  DIAG(F("%l WiThrottle(%d) eStop(%ds) timeout, drop connection"), millis(), clientid, ESTOP_SECONDS);
@@ -433,8 +439,8 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
   LOOPLOCOS('*', -1) { 
     if (myLocos[loco].throttle!='\0' && myLocos[loco].broadcastPending) {
       if (!streamHasBeenMarked) {
-	stream->mark(clientid);
-	streamHasBeenMarked=true;
+        startStream(stream,clientid);
+	    streamHasBeenMarked=true;
       }
       myLocos[loco].broadcastPending=false;
       int cab=myLocos[loco].cab;
@@ -463,7 +469,8 @@ void WiThrottle::checkHeartbeat(RingStream * stream) {
       } 
     }
     }
-  if (streamHasBeenMarked)   stream->commit();     
+  if (streamHasBeenMarked) { endStream(stream); }
+       
 }
 
 void WiThrottle::markForBroadcast(int cab) {
@@ -483,19 +490,18 @@ char WiThrottle::LorS(int cab) {
 
 // Drive Away feature. Callback handling
 
-RingStream * WiThrottle::stashStream;
+Print * WiThrottle::stashStream;
 WiThrottle * WiThrottle::stashInstance;
 byte         WiThrottle::stashClient;
 char         WiThrottle::stashThrottleChar;
 
 void WiThrottle::getLocoCallback(int16_t locoid) {
   //DIAG(F("LocoCallback mark client %d"), stashClient);
-  stashStream->mark(stashClient);
-  
+  startStream(stashStream, stashClient);
   if (locoid<=0) {
     StringFormatter::send(stashStream,F("HMNo loco found on prog track\n"));
     //DIAG(F("LocoCallback commit (noloco)"));
-    stashStream->commit();                  // done here, commit and return
+    endStream(stashStream);
     return;
   }
 
@@ -506,7 +512,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
     if (locoid <= HIGHEST_SHORT_ADDR ) {    // out of range for long addr
       StringFormatter::send(stashStream,F("HMLong addr %d <= %d unsupported\n"), locoid, HIGHEST_SHORT_ADDR);
       //DIAG(F("LocoCallback commit (error)"));
-      stashStream->commit();                // done here, commit and return
+      endStream(stashStream);
       return;
     }
     addrchar = 'L';
@@ -521,7 +527,7 @@ void WiThrottle::getLocoCallback(int16_t locoid) {
   TrackManager::setMainPower(POWERMODE::ON);
   TrackManager::setProgPower(POWERMODE::ON);
   DIAG(F("LocoCallback commit success"));
-  stashStream->commit();
+  endStream(stashStream);
 }
 
 void WiThrottle::sendIntro(Print* stream) {
@@ -650,4 +656,14 @@ void WiThrottle::sendFunctions(Print* stream, byte loco) {
       int8_t fstate=DCC::getFn(locoid,fKey);
       if (fstate>=0) StringFormatter::send(stream,F("M%cA%c%d<;>F%d%d\n"),myLocos[loco].throttle,LorS(locoid),locoid,fstate,fKey);                     
 	}
+}
+
+void WiThrottle::startStream(Print * stream,byte clientid) {
+    if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM) ((RingStream*)stream)->mark(clientid);
+	  else StringFormatter::send(stream,F("[%c]"),'0'+clientid);
+}
+
+void WiThrottle::endStream(Print * stream) {
+  if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM) ((RingStream*)stream)->commit();
+  else StringFormatter::send(stream,F("~")); // end of withrottle response marke so conduit knows when to stop reading
 }

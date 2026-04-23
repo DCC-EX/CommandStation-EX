@@ -139,8 +139,9 @@ void CommandDistributor::broadcastToClients(clientType type) {
   byte rememberClient;
   (void)rememberClient; // shut up compiler warning
 
-  // Broadcast to Serials
+  // Broadcast to Serials or withrottle version to the conduit if any.
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
+  else if (type==WITHROTTLE_TYPE) SerialManager::broadcastWithrottle(broadcastBufferWriter->getString());
 
 #ifdef CD_HANDLE_RING
   // If we are broadcasting from a wifi/eth process we need to complete its output
@@ -181,9 +182,7 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
   broadcastReply(COMMAND_TYPE, F("<H %d %d>\n"),id, !isClosed);
-#ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PTA%c%d\n"), isClosed?'2':'4', id);
-#endif
 }
 
 void CommandDistributor::broadcastTurntable(int16_t id, uint8_t position, bool moving) {
@@ -196,9 +195,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
   broadcastReply(COMMAND_TYPE, F("<jC %d %d>\n"),time, rate);
-#ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PFT%l<;>%d\n"), (int32_t)time*60, rate);
-#endif
 }
 
 void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
@@ -363,10 +360,8 @@ void  CommandDistributor::broadcastPower() {
 	broadcastReply(COMMAND_TYPE, F("<p1 PROG>\n"));
       }
     }
-#ifdef CD_HANDLE_RING
     // send '1' if all main are on, otherwise global state (which in that case is '0' or '2')
     broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1': state);
-#endif
 #if defined(HAS_ENOUGH_MEMORY)
     LCD(2,F("PWR %s%S"),state=='1'? "On" : ( state=='0'? "Off" : trackLetter ),reason);
 #else
