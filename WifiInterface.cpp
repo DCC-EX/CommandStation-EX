@@ -321,6 +321,11 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       for (int i=0; i<17;i++) {
         while(!wifiStream->available());
 	macAddress[i]=wifiStream->read();
+	if (macAddress[i] < '0' || macAddress[i] > 'f' || (macAddress[i] > ':' && macAddress[i] < 'a')) {
+	  // this does not look like a MAC addr format, try to save the day
+	  // with some printable character
+	  macAddress[i] = 'x';
+	}
 	StringFormatter::printEscape(macAddress[i]);
       }
     } else {
