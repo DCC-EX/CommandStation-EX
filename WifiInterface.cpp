@@ -239,7 +239,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
   // mode=1 which means DHCP for STA mode
   StringFormatter::send(wifiStream, F("AT+CWDHCP%s=1,1\r\n"), oldCmd ? "" : "_CUR");
-  checkForOK(1000, true);
+  checkForOK(5000, true);
 #else
   StringFormatter::send(wifiStream, F("AT+CWDHCP%s?\r\n"), oldCmd ? "" : "_CUR");
   if (checkForOK(5000, F("+CWDHCP"), true,false)) {
@@ -248,6 +248,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   } else {
     DIAG(F("Warning: Can not determine DHCP state"));
   }
+  checkForOK(1000, true); // consume the OK
 #endif
 
   const char *yourNetwork = "Your network ";
@@ -272,30 +273,30 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 	      StringFormatter::send(wifiStream, F("AT+CWJAP=\"%S\",\"%S\"\r\n"), SSid, password);
 	      ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, true);
       } else {
-      // later version supports CWJAP_CUR
+	// later version supports CWJAP_CUR
         StringFormatter::send(wifiStream, F("AT+CWHOSTNAME=\"%S\"\r\n"), hostname); // Set Host name for Wifi Client
-      	checkForOK(2000, true); // dont care if not supported
-      
+      	checkForOK(5001, true); // dont care if not supported
+	
         StringFormatter::send(wifiStream, F("AT+CWJAP_CUR=\"%S\",\"%S\"\r\n"), SSid, password);
-        ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, true);
+	ipOK = checkForOK(WIFI_CONNECT_TIMEOUT, true);
       }
 
       if (ipOK) {
-	      // But we really only have the ESSID and password correct
+	// But we really only have the ESSID and password correct
         // Let's check for IP (via DHCP)
         ipOK = false;
         StringFormatter::send(wifiStream, F("AT+CIFSR\r\n"));
-        if (checkForOK(5000, F("+CIFSR:STAIP"), true,false))
-        if (!checkForOK(1000, F("0.0.0.0"), true,false))
-        ipOK = true;
+        if (checkForOK(5004, F("+CIFSR:STAIP"), true,false))
+	  if (!checkForOK(1000, F("0.0.0.0"), true,false))
+	    ipOK = true;
       }
   }
 
   if (!ipOK) {
     // If we have not managed to get this going in station mode, go for AP mode
 
-  //    StringFormatter::send(wifiStream, F("AT+RST\r\n"));
-  //    checkForOK(1000, true); // Not always OK, sometimes "no change"
+    //    StringFormatter::send(wifiStream, F("AT+RST\r\n"));
+    //    checkForOK(1000, true); // Not always OK, sometimes "no change"
 
     int i=0;
     do {
@@ -310,7 +311,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
     // sometimes the esp8266 will get stuck with DHCP off, so reset DHCP to on
     // mode=0 which means DHCP for softAP 
     StringFormatter::send(wifiStream, F("AT+CWDHCP%s=0,1\r\n"), oldCmd ? "" : "_CUR");
-    checkForOK(1000, true);
+    checkForOK(5000, true);
 #endif
 
     // Figure out MAC addr
@@ -471,7 +472,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor,
       if (ch == GETFLASH(locator)) {
         locator++;
         if (!GETFLASH(locator)) {
-          DIAG(F("Found in %dms"), millis() - startTime);
+          DIAG(F("Found in %dms of %d"), (int)(millis() - startTime), timeout);
           return true;
         }
       }
