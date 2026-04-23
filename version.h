@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.4.21"
+#define VERSION "5.4.22"
+// 5.4.22 - Bugfix: ESP8266 AT wifi did not work reliably since 5.4.16, 3rd fix of fix
 // 5.4.21 - Bugfix: STA mode did not work reliably since 5.4.16, 2nd fix of fix
 // 5.4.20 - Bugfix: STA mode did not work reliably since 5.4.16, fix of fix
 // 5.4.19 - Bugfix: PCA9685 driver did not handle mux I2C addresses for writing registers
