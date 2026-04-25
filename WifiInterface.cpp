@@ -184,6 +184,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
 				      const FSH* hostname, int port, byte channel, bool forceAP) {
   bool ipOK = false;
   bool oldCmd = false;
+  bool apMode = false;
 
   char macAddress[17];  //  mac address extraction   
  
@@ -304,6 +305,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
       // last way out to get any Wifi connectivity. 
       StringFormatter::send(wifiStream, F("AT+CWMODE%s=2\r\n"), oldCmd ? "" : "_CUR"); 
     } while (!checkForOK(1000+i*500, true) && i++<10);
+    apMode = true;
 
     while (wifiStream->available()) StringFormatter::printEscape( wifiStream->read()); /// THIS IS A DIAG IN DISGUISE
 
@@ -375,7 +377,7 @@ wifiSerialState WifiInterface::setup2(const FSH* SSid, const FSH* password,
   StringFormatter::send(wifiStream, F("AT+CIPMUX=1\r\n")); // configure for multiple connections
   if (!checkForOK(1000, true)) return WIFI_DISCONNECTED;
 
-  if(!oldCmd) {                                                                    // no idea to test this on old firmware
+  if(!oldCmd && !apMode) {  // no idea to test this on old firmware and it works only in STA mode anyway
     StringFormatter::send(wifiStream, F("AT+MDNS=1,\"%S\",\"withrottle\",%d\r\n"),
 			  hostname, port);                                         // mDNS responder
     checkForOK(1000, true);                                                        // dont care if not supported
