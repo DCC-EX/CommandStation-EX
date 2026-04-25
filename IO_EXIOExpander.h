@@ -63,18 +63,75 @@ public:
     NoPowerOff = 0x80, // Flag to be ORed in to suppress power off after move.
   };
 
+  static EXIOExpander* findByVpin(VPIN vpin) {
+    for (EXIOExpander* ex = _expanderHead(); ex; ex = ex->_nextExpander) {
+      if (vpin >= ex->_firstVpin && vpin < (VPIN)(ex->_firstVpin + ex->_nPins)) {
+        return ex;
+      }
+    }
+    return nullptr;
+  }
+
   static void create(VPIN vpin, int nPins, I2CAddress i2cAddress) {
     if (checkNoOverlap(vpin, nPins, i2cAddress)) new EXIOExpander(vpin, nPins, i2cAddress);
   }
 
+  VPIN getFirstVpin() const { return _firstVpin; }
+    int getVPINCount() const { return _nPins; }
+
+  bool shiftInBytes(uint8_t clkPin, uint8_t latchPin, uint8_t dataPin,
+                    uint8_t nBytes, uint8_t* out) {
+    uint8_t cmd[] = {EXIOSHIFTIN, clkPin, latchPin, dataPin, nBytes};
+
+    // response: [EXIORDY][bytes...]
+    uint8_t resp[1 + 16];
+    if (nBytes == 0 || nBytes > 16) return false;
+
+    uint8_t status = I2CManager.read(_I2CAddress, resp, (uint8_t)(1 + nBytes), cmd, sizeof(cmd));
+    if (status != I2C_STATUS_OK) return false;
+    if (resp[0] != EXIORDY) return false;
+
+    memcpy(out, &resp[1], nBytes);
+    return true;
+  }
+
+  bool shiftOutBytes(uint8_t clkPin, uint8_t latchPin, uint8_t dataPin,
+                     uint8_t nBytes, const uint8_t* in) {
+    if (nBytes == 0 || nBytes > 16) return false;
+
+    // cmd: [EXIOSHIFTOUT][clk][latch][data][nBytes][payload...]
+    uint8_t cmd[5 + 16];
+    cmd[0] = EXIOSHIFTOUT;
+    cmd[1] = clkPin;
+    cmd[2] = latchPin;
+    cmd[3] = dataPin;
+    cmd[4] = nBytes;
+    memcpy(&cmd[5], in, nBytes);
+
+    uint8_t resp[1];
+    uint8_t status = I2CManager.read(_I2CAddress, resp, sizeof(resp), cmd, (uint8_t)(5 + nBytes));
+    return (status == I2C_STATUS_OK && resp[0] == EXIORDY);
+  }
+
 private:
+  EXIOExpander* _nextExpander = nullptr;
+
+  static EXIOExpander*& _expanderHead() {
+    static EXIOExpander* head = nullptr;   // function-static => no .cpp needed
+    return head;
+  }
+
   // Constructor
   EXIOExpander(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
     _firstVpin = firstVpin;
-    // Number of pins cannot exceed 256 (1 byte) because of I2C message structure.
     if (nPins > 256) nPins = 256;
     _nPins = nPins;
     _I2CAddress = i2cAddress;
+
+    // Link into our expander-only list
+    _nextExpander = _expanderHead();
+    _expanderHead() = this;
+
     addDevice(this);
   }
 
@@ -411,6 +468,8 @@ private:
     EXIOINITA = 0xE8,   // Flag we're receiving analogue pin mappings
     EXIOPINS = 0xE9,    // Flag we're receiving pin counts for buffers
     EXIOWRAN = 0xEA,   // Flag we're sending an analogue write (PWM)
+    EXIOSHIFTIN  = 0xEB,
+    EXIOSHIFTOUT = 0xEC,
     EXIOERR = 0xEF,     // Flag we've received an error
   };
 };
