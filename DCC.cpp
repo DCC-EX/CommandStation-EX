@@ -150,8 +150,8 @@ void DCC::setThrottleDCC( LocoSlot * slot, byte speedCode)  {
   }
   // any throttle traffic is blocked when estop is locked
   if (estopIsLocked) {
-    cab=0;
-    speedCode = 1;
+    // replace speed with emergency stop but keep direction
+    speedCode = (speedCode & 0x80) | 0x01;
   }
   uint8_t b[4];
   uint8_t nB = 0;
