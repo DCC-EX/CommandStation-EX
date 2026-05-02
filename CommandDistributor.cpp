@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Paul M. Antoine
  *  © 2022 Harald Barth
  *  © 2020-2025 Chris Harlow
  *  © 2020 Gregor Baues
@@ -33,6 +34,9 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "WifiESP32.h"
+#endif
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -141,6 +145,11 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
   // Broadcast to Serials
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
+
+#if defined(ARDUINO_ARCH_ESP32)
+  // Broadcast everything to Wifi/Ethernet UDP multicast
+  WifiESP::udpMulticast(broadcastBufferWriter->getString(), strlen(broadcastBufferWriter->getString()));
+#endif
 
 #ifdef CD_HANDLE_RING
   // If we are broadcasting from a wifi/eth process we need to complete its output

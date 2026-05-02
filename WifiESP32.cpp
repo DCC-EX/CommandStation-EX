@@ -1,5 +1,5 @@
 /*
-    © 2023 Paul M. Antoine
+    © 2023, 2026 Paul M. Antoine
     © 2021 Harald Barth
     © 2023 Nathan Kellenicki
     © 2025, 2026 Chris Harlow
@@ -35,6 +35,18 @@
 #include "WifiPreferences.h"  
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
+
+// Async UDP transport
+#include "AsyncUDP.h"
+AsyncUDP udpSend;
+AsyncUDP udpReceive;
+IPAddress udpBroadcastIP;
+const IPAddress udpMulticastIP = { 239, 255, 255, 250 }; // Multicast address for DCC-EX Native Protocol
+volatile bool udpCommandReceived = false;
+byte udpCommandBuffer[256]; // Buffer for UDP command data - TODO: COMMAND_BUFFER_SIZE
+uint32_t udpCommandMillis = 0; // Counter for UDP commands
+
+/* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
 
 #include "soc/timer_group_struct.h"
@@ -159,6 +171,28 @@ bool WifiESP::setup() {
     DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
   DIAG(F("Server has started on port %d"),IP_PORT);
+
+  // Start UDP server for DCC-EX Native Protocol
+  // Transmit via UDP multicast
+  if (!udpSend.connect(udpMulticastIP, IP_PORT)) {
+    DIAG(F("Failed to start UDP transmitter for DCC-EX Native Protocol"));
+    // return false;
+  } 
+  else {
+    DIAG(F("UDP Multicast transmitter for DCC-EX Native Protocol started on %s:%d"), udpMulticastIP.toString().c_str(), IP_PORT);
+    // set the broadcast address for UDP
+  }
+  
+  // Receive via UDP unicast
+  // TODO: not yet handling individual clients!!
+  if (!udpReceive.listen(IP_PORT)) {
+    DIAG(F("Failed to start UDP receiver for DCC-EX Native Protocol"));
+    // return false;
+  } else {
+    udpReceive.onPacket(packet_listener);
+    DIAG(F("UDP Multicast receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
+  }
+
   return true;
 }
 
@@ -195,6 +229,11 @@ const char *wlerror[] = {
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
+  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
@@ -203,6 +242,7 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
 #endif
   WiFi.setAutoReconnect(true);
   WiFi.begin(SSid, password);
+
   uint8_t tries = 40;
   while (WiFi.status() != WL_CONNECTED && tries) {
     USB_SERIAL.print('.');
@@ -245,6 +285,11 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
 
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
   WiFi.mode(WIFI_AP);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
+  esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11N);
+  esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
+
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
 #else
@@ -305,6 +350,17 @@ void WifiESP::loop() {
 	}
       }
     } // all clients
+
+    // Check UDP
+    if (udpCommandReceived) {
+      // DIAG(F("UDP Command processed after %d ms"), millis() - udpCommandMillis);
+      // We have a command in the udpCommandBuffer
+      // Parse it
+      DCCEXParser::parse(&USB_SERIAL, udpCommandBuffer, NULL);
+      udpCommandReceived = false; // Reset the flag
+      udpCommandMillis = 0; // Reset the timer for UDP commands
+    }
+
 
     WiThrottle::loop(outboundRing);
 
@@ -376,6 +432,76 @@ void WifiESP::loop() {
   if (xPortGetCoreID() == 0) {
     feedTheDog0();
     yield();
+  }
+}
+
+bool WifiESP::udpMulticast(const char *buffer, const int count) {
+  bool ok = false;
+  if (count <= 0 || count > 1540  // 1540 is the max UDP packet size
+      || buffer == NULL) {
+    DIAG(F("UDP Multicast: Invalid count %d or buffer %p"), count, buffer);
+    return false;
+  } 
+  // Regardless of the clientId, we can send it via UDP Multicast
+  if (udpSend.connected()) {
+    // DIAG(F("UDP Multicast send %d bytes: %s"), count, buffer);
+    ok = udpSend.print(buffer);
+    if (!ok)
+      DIAG(F("UDP Multicast send failed"));
+  } 
+  return ok;
+}
+
+// We'll receive UDP packets asynchronously, then send the on to be parsed
+void packet_listener(AsyncUDPPacket &packet) {
+  // DIAG(F("UDP Packet received: %s:%d -> %s:%d, Length: %d"),
+  //      packet.remoteIP().toString().c_str(), packet.remotePort(),
+  //      packet.localIP().toString().c_str(), packet.localPort(),
+  //      packet.length());
+  // DIAG(F("UDP Packet received: %s"), packet.data());
+  if (!packet.isBroadcast() && !packet.isMulticast()) {
+    if (packet.length() < 2) {
+      DIAG(F("UDP Rcv: Packet too short %d bytes"), packet.length());
+      return; // not enough data
+    }
+    if ((packet.data()[0] == '<') && packet.data()[packet.length() - 1] == '\0' && (packet.data()[packet.length() - 2] == '>'|| (packet.data()[packet.length() - 2] == '\n'))) {
+      // Valid DCC-EX packet format
+      // We found the closing '>', terminate the string
+      memcpy(udpCommandBuffer, &packet.data()[0], packet.length());
+      udpCommandReceived = true; // Set the flag to indicate a command is ready
+      udpCommandMillis = millis(); // Reset the timer for UDP commands
+
+      // for (int i = 0; i < packet.length(); i++) {
+      //   if (udpCommandBuffer[i] == '\0')
+      //     DIAG(F("UDP Rcv: Null character found in command buffer at position %d"), i);
+      //   else
+      //     DIAG(F("UDP Rcv: Command buffer[%d] = %c"), i, udpCommandBuffer[i]);
+      // }
+      // DCCEXParser::parse(&USB_SERIAL, udpCommandBuffer, NULL);
+      // DCCEXParser::parse(&USB_SERIAL, packet.data(), NULL);
+      // if (Diag::CMD || Diag::WITHROTTLE) {
+        // DIAG(F("UDP Rcv %d bytes: %s"), packet.length(), (const char *)packet.data());
+        // DIAG(F("UDP Rcv copied %d bytes: %s"), packet.length() - 3, (const char *)udpCommandBuffer);
+      // }
+    } else {
+      // No closing '>', so we have a partial command, just print it
+      // for (int i = 0; i < packet.length(); i++) {
+      //   if (udpCommandBuffer[i] == '\0')
+      //     DIAG(F("UDP Rcv: Null character found in command buffer at position %d"), i);
+      //   else
+      //     DIAG(F("UDP Rcv: Command buffer[%d] = %c"), i, udpCommandBuffer[i]);
+      // }
+      packet.data()[packet.length() - 1] = '\0';
+      DIAG(F("UDP Rcv partial command: %s"), (const char *)packet.data());
+    }
+  } else {
+      // This is a multicast or broadcast packet
+      // Print the packet details
+      DIAG(F("UDP Packet: %s"), packet.isBroadcast() ? "Broadcast" : packet.isMulticast() ? "Multicast" : "Unicast");
+      DIAG(F("From: %s:%d, To: %s:%d, Length: %d, Data: "), 
+           packet.remoteIP().toString().c_str(), packet.remotePort(),
+           packet.localIP().toString().c_str(), packet.localPort(),
+           packet.length());
   }
 }
 #endif //ESP32

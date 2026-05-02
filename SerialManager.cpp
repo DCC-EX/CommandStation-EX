@@ -1,5 +1,5 @@
  /*
- *  © 2022 Paul M. Antoine
+ *  © 2022, 2026 Paul M. Antoine
  *  © 2021 Chris Harlow
  *  © 2022 2024 Harald Barth
  *  All rights reserved.
@@ -35,6 +35,10 @@
 BluetoothSerial SerialBT;
 //BleSerial SerialBT;
 #endif //COMMANDS
+
+#ifdef ESP32_UDP
+#include "WifiESP32.h"
+#endif //UDP
 #endif //ESP32
 
 static const byte PAYLOAD_FALSE = 0;
