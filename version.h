@@ -5,6 +5,9 @@
 
 #define VERSION "5.7.0"
 // 5.7.0  - Start new devel version series
+//        - Bugfix: Websckets endian and close
+//        - Improvement: Readable msg when prog track busy
+//        - Improvement, ESP32: motor driver for EX8874 on Keystudio ESP32 (KS5016)
 // 5.5.69 - Bugfix: AT+ wifi MDNS error
 //        - <C WIFI > commands replace config.h wifi settings on ESP32 and CSB1.
 // 5.5.68 - EXRAIL: BITMAP_SET
