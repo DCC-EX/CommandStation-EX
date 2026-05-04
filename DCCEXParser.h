@@ -61,16 +61,9 @@ struct DCCEXParser
     static bool parseI(Print * stream, int16_t params, int16_t p[]);
 #endif
 
-    static Print * getAsyncReplyStream();
-    static void commitAsyncReplyStream();
-
-    static bool stashBusy;
-    static byte stashTarget;
-    static Print * stashStream;
-    static RingStream * stashRingStream;
-    
+    static bool stashBusy;    
     static int16_t stashP[MAX_COMMAND_PARAMS];
-    static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream);
+    static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS]);
     static void callback_W(int16_t result);
     static void callback_W4(int16_t result);
     static void callback_B(int16_t result);        

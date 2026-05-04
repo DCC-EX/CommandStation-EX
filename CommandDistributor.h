@@ -58,7 +58,7 @@ public :
   static void broadcastPower();
   static void broadcastRaw(clientType type,char * msg);
   static void broadcastTrackState(const FSH* format,byte trackLetter, const FSH* modename, int16_t dcAddr);
-  template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
+  static void broadcastReply(clientType type, const FSH* format...);
   static void forget(byte clientId);
   static void broadcastRouteState(int16_t routeId,byte state);
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);

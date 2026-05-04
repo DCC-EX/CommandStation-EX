@@ -46,17 +46,23 @@ int8_t lastclockrate;
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
 StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer(256);
-template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
+  va_list args;
+  va_start(args, format);
   broadcastBufferWriter->flush();
-  StringFormatter::send(broadcastBufferWriter, msg...);
+  StringFormatter::send2(broadcastBufferWriter, format, args);
+  va_end(args);
   broadcastToClients(type);
   if (type==COMMAND_TYPE) broadcastToClients(WEBSOCKET_TYPE);
 }
 #else
 // on a single USB connection config, write direct to Serial and ignore flush/shove
-template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
   (void)type; //shut up compiler warning
-  StringFormatter::send(&USB_SERIAL, msg...);
+  va_list args;
+  va_start(args, format);
+  StringFormatter::send2(&USB_SERIAL, format, args);
+  va_end(args);
 }
 #endif 
 
@@ -148,7 +154,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 #if defined(ARDUINO_ARCH_ESP32)
   // Broadcast everything to Wifi/Ethernet UDP multicast
-  WifiESP::udpMulticast(broadcastBufferWriter->getString(), strlen(broadcastBufferWriter->getString()));
+  WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
 #endif
 
 #ifdef CD_HANDLE_RING
