@@ -33,7 +33,7 @@ public:
   static bool setup();
   static void loop();
   static bool isUp() { return wifiUp; }
-  static bool udpMulticast(const char *buffer, const int count);
+  static void udpMulticast(const char *buffer, const int count);
 private:
   static bool setupFromPreferences();
   static bool setupFromConfig(const char *wifiESSID,

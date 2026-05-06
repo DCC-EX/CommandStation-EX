@@ -56,6 +56,14 @@ struct UdpCommand {
 };
 static QueueHandle_t udpCommandQueue = nullptr;
 static uint32_t udpCommandDropCount = 0;
+static std::vector<IPAddress> udpDiscoveryClients;
+
+static void rememberUdpDiscoveryClient(const IPAddress &ip) {
+  for (const auto &knownIp : udpDiscoveryClients) {
+    if (knownIp == ip) return;
+  }
+  udpDiscoveryClients.push_back(ip);
+}
 
 /* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
@@ -159,6 +167,7 @@ void WifiESP::teardown() {
     vQueueDelete(udpCommandQueue);
     udpCommandQueue = nullptr;
   }
+  udpDiscoveryClients.clear();
   wifiUp = false;
 }
 
@@ -211,7 +220,6 @@ bool WifiESP::setup() {
   }
   
   // Receive via UDP unicast
-  // TODO: not yet handling individual clients!!
   if (!udpReceive.listen(IP_PORT)) {
     DIAG(F("Failed to start UDP receiver for DCC-EX Native Protocol"));
     // return false;
@@ -384,6 +392,10 @@ void WifiESP::loop() {
       if (xQueueReceive(udpCommandQueue, &cmd, 0) == pdTRUE) {
         // DIAG(F("UDP Command processed after %d ms"), millis() - cmd.receivedMillis);
         StringBuffer response(UDP_RESPONSE_MAX); // response buffer for any command responses
+        // Track unique UDP clients that send a discovery probe starting with <#>
+        if (cmd.len >= 3 && cmd.data[0] == '<' && cmd.data[1] == '#' && cmd.data[2] == '>') {
+          rememberUdpDiscoveryClient(cmd.remoteIP);
+        }
         DCCEXParser::parse(&response, cmd.data, NULL);
         if (response.getLength() > 0) {
           // Reply unicast to the originator
@@ -468,21 +480,27 @@ void WifiESP::loop() {
   }
 }
 
-bool WifiESP::udpMulticast(const char *buffer, const int count) {
-  bool ok = false;
+void WifiESP::udpMulticast(const char *buffer, const int count) {
   if (count <= 0 || count > UDP_RESPONSE_MAX  // max unfragmented UDP payload over Ethernet/WiFi
       || buffer == NULL) {
     DIAG(F("UDP Multicast: Invalid count %d or buffer %p"), count, buffer);
-    return false;
+    return;
   } 
   // Regardless of the clientId, we can send it via UDP Multicast
   if (udpSend.connected()) {
     // DIAG(F("UDP Multicast send %d bytes: %s"), count, buffer);
-    ok = udpSend.print(buffer);
-    if (!ok)
+    bool sentMulticast = udpSend.print(buffer);
+    if (!sentMulticast)
       DIAG(F("UDP Multicast send failed"));
+
+    // Also unicast to clients discovered via <#> probe packets.
+    for (const auto &clientIp : udpDiscoveryClients) {
+      bool sent = udpSend.writeTo((const uint8_t *)buffer, count, clientIp, IP_PORT);
+      if (!sent) {
+        DIAG(F("UDP Unicast send failed to %s:%d"), clientIp.toString().c_str(), IP_PORT);
+      }
+    }
   } 
-  return ok;
 }
 
 // We'll receive UDP packets asynchronously, then send the on to be parsed
