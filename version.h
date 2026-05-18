@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.0"
+#define VERSION "5.7.1"
+// 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
+//        - Unicast input/respomse
+//        - Unicast & multicast broadcasts
+//        - Prog track function results are broadcast
 // 5.7.0  - Start new devel version series
 //        - Bugfix: Websckets endian and close
 //        - Improvement: Readable msg when prog track busy
