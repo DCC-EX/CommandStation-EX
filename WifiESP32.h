@@ -2,6 +2,7 @@
  *  © 2021 Harald Barth
  *  © 2023 Nathan Kellenicki
  *  © 2026 Chris Harlow
+ *  © 2026 Paul M. Antoine
  *
  *  This file is part of CommandStation-EX
  *
@@ -32,6 +33,7 @@ public:
   static bool setup();
   static void loop();
   static bool isUp() { return wifiUp; }
+  static void udpMulticast(const char *buffer, const int count);
 private:
   static bool setupFromPreferences();
   static bool setupFromConfig(const char *wifiESSID,

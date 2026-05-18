@@ -1,5 +1,5 @@
 /*
-    © 2023 Paul M. Antoine
+    © 2023, 2026 Paul M. Antoine
     © 2021 Harald Barth
     © 2023 Nathan Kellenicki
     © 2025, 2026 Chris Harlow
@@ -35,6 +35,37 @@
 #include "WifiPreferences.h"  
 #include "soc/rtc_wdt.h"
 #include "esp_task_wdt.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+
+// Async UDP transport
+#include "AsyncUDP.h"
+AsyncUDP udpSend;
+AsyncUDP udpReceive;
+IPAddress udpBroadcastIP;
+const IPAddress udpMulticastIP = { 239, 255, 255, 250 }; // Multicast address for DCC-EX Native Protocol
+constexpr uint16_t UDP_COMMAND_MAX   = 255;  // max inbound command payload (fits one DCC-EX command)
+constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
+constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 8;
+struct UdpCommand {
+  uint16_t len;
+  uint32_t receivedMillis;
+  IPAddress remoteIP;  // originator IP
+  uint16_t remotePort; // originator port
+  byte data[UDP_COMMAND_MAX + 1]; // +1 for null terminator
+};
+static QueueHandle_t udpCommandQueue = nullptr;
+static uint32_t udpCommandDropCount = 0;
+static std::vector<IPAddress> udpDiscoveryClients;
+
+static void rememberUdpDiscoveryClient(const IPAddress &ip) {
+  for (const auto &knownIp : udpDiscoveryClients) {
+    if (knownIp == ip) return;
+  }
+  udpDiscoveryClients.push_back(ip);
+}
+
+/* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
 
 #include "soc/timer_group_struct.h"
@@ -132,6 +163,11 @@ void WifiESP::teardown() {
   mdns_free();
   // stop WiFi
   WiFi.disconnect(true);
+  if (udpCommandQueue != nullptr) {
+    vQueueDelete(udpCommandQueue);
+    udpCommandQueue = nullptr;
+  }
+  udpDiscoveryClients.clear();
   wifiUp = false;
 }
 
@@ -146,6 +182,18 @@ bool WifiESP::setup() {
 
   if (!wifiUp) return false;
 
+  if (udpCommandQueue == nullptr) {
+    udpCommandQueue = xQueueCreate(UDP_COMMAND_QUEUE_DEPTH, sizeof(UdpCommand));
+    if (udpCommandQueue == nullptr) {
+      DIAG(F("Failed to create UDP command queue"));
+      teardown();
+      return false;
+    }
+  } else {
+    xQueueReset(udpCommandQueue);
+  }
+  udpCommandDropCount = 0;
+
   // Now Wifi is up, register the mDNS service
   if(!MDNS.begin(WifiPreferences::getHostName())) {
     DIAG(F("Wifi setup failed to start mDNS"));
@@ -159,6 +207,27 @@ bool WifiESP::setup() {
     DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
   DIAG(F("Server has started on port %d"),IP_PORT);
+
+  // Start UDP server for DCC-EX Native Protocol
+  // Transmit via UDP multicast
+  if (!udpSend.connect(udpMulticastIP, IP_PORT)) {
+    DIAG(F("Failed to start UDP transmitter for DCC-EX Native Protocol"));
+    // return false;
+  } 
+  else {
+    DIAG(F("UDP Multicast transmitter for DCC-EX Native Protocol started on %s:%d"), udpMulticastIP.toString().c_str(), IP_PORT);
+    // set the broadcast address for UDP
+  }
+  
+  // Receive via UDP unicast
+  if (!udpReceive.listen(IP_PORT)) {
+    DIAG(F("Failed to start UDP receiver for DCC-EX Native Protocol"));
+    // return false;
+  } else {
+    udpReceive.onPacket(packet_listener);
+    DIAG(F("UDP Multicast receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
+  }
+
   return true;
 }
 
@@ -195,6 +264,11 @@ const char *wlerror[] = {
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
+  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
@@ -203,6 +277,7 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
 #endif
   WiFi.setAutoReconnect(true);
   WiFi.begin(SSid, password);
+
   uint8_t tries = 40;
   while (WiFi.status() != WL_CONNECTED && tries) {
     USB_SERIAL.print('.');
@@ -245,6 +320,11 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
 
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
   WiFi.mode(WIFI_AP);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
+  esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11N);
+  esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
+
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
 #else
@@ -305,6 +385,27 @@ void WifiESP::loop() {
 	}
       }
     } // all clients
+
+    // Drain queued UDP commands collected by async callback.
+    if (udpCommandQueue != nullptr) {
+      UdpCommand cmd;
+      if (xQueueReceive(udpCommandQueue, &cmd, 0) == pdTRUE) {
+        // DIAG(F("UDP Command processed after %d ms"), millis() - cmd.receivedMillis);
+        StringBuffer response(UDP_RESPONSE_MAX); // response buffer for any command responses
+        // Track unique UDP clients that send a discovery probe starting with <#>
+        if (cmd.len >= 3 && cmd.data[0] == '<' && cmd.data[1] == '#' && cmd.data[2] == '>') {
+          rememberUdpDiscoveryClient(cmd.remoteIP);
+        }
+        DCCEXParser::parse(&response, cmd.data, NULL);
+        if (response.getLength() > 0) {
+          // Reply unicast to the originator
+          // DIAG(F("UDP reply to %s:%d"), cmd.remoteIP.toString().c_str(), cmd.remotePort);
+          udpSend.writeTo((const uint8_t *)response.getString(),
+                          response.getLength(), cmd.remoteIP, cmd.remotePort);
+        } 
+      }
+    }
+
 
     WiThrottle::loop(outboundRing);
 
@@ -378,4 +479,63 @@ void WifiESP::loop() {
     yield();
   }
 }
+
+void WifiESP::udpMulticast(const char *buffer, const int count) {
+  if (count <= 0 || count > UDP_RESPONSE_MAX  // max unfragmented UDP payload over Ethernet/WiFi
+      || buffer == NULL) {
+    DIAG(F("UDP Multicast: Invalid count %d or buffer %p"), count, buffer);
+    return;
+  } 
+  // Regardless of the clientId, we can send it via UDP Multicast
+  if (udpSend.connected()) {
+    // DIAG(F("UDP Multicast send %d bytes: %s"), count, buffer);
+    bool sentMulticast = udpSend.print(buffer);
+    if (!sentMulticast)
+      DIAG(F("UDP Multicast send failed"));
+
+    // Also unicast to clients discovered via <#> probe packets.
+    for (const auto &clientIp : udpDiscoveryClients) {
+      bool sent = udpSend.writeTo((const uint8_t *)buffer, count, clientIp, IP_PORT);
+      if (!sent) {
+        DIAG(F("UDP Unicast send failed to %s:%d"), clientIp.toString().c_str(), IP_PORT);
+      }
+    }
+  } 
+}
+
+// We'll receive UDP packets asynchronously, then send the on to be parsed
+void packet_listener(AsyncUDPPacket &packet) {
+  // DIAG(F("UDP Packet received: %s:%d -> %s:%d, Length: %d"),
+  //      packet.remoteIP().toString().c_str(), packet.remotePort(),
+  //      packet.localIP().toString().c_str(), packet.localPort(),
+  //      packet.length());
+  // DIAG(F("UDP Packet received: %s"), packet.data());
+  if (packet.isBroadcast() || packet.isMulticast())  return; // ignore broadcast and multicast packets, we only want unicast for commands
+  if (packet.length() < 2) {
+    DIAG(F("UDP Rcv: Packet too short %d bytes"), packet.length());
+    return; // not enough data
+  }
+  if (udpCommandQueue == nullptr) return;
+
+  if (packet.length() > UDP_COMMAND_MAX) {
+    DIAG(F("UDP Rcv: Packet too long %d bytes"), packet.length());
+    return;
+  }
+
+  UdpCommand cmd;
+  cmd.len = packet.length();
+  cmd.receivedMillis = millis();
+  cmd.remoteIP   = packet.remoteIP();
+  cmd.remotePort = packet.remotePort();
+  memcpy(cmd.data, &packet.data()[0], cmd.len);
+  cmd.data[cmd.len] = 0;
+
+  if (xQueueSend(udpCommandQueue, &cmd, 0) != pdTRUE) {
+    udpCommandDropCount++;
+    if ((udpCommandDropCount & 0x3F) == 1) {
+      DIAG(F("UDP Rcv: command queue full, dropped=%d"), udpCommandDropCount);
+    }
+  }
+}
+
 #endif //ESP32

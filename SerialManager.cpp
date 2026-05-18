@@ -1,5 +1,5 @@
  /*
- *  © 2022 Paul M. Antoine
+ *  © 2022, 2026 Paul M. Antoine
  *  © 2021 Chris Harlow
  *  © 2022 2024 Harald Barth
  *  All rights reserved.

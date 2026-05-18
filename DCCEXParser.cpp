@@ -138,9 +138,6 @@ Once a new OPCODE is decided upon, update this list.
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
-Print *DCCEXParser::stashStream = NULL;
-RingStream *DCCEXParser::stashRingStream = NULL;
-byte DCCEXParser::stashTarget=0;
 
 // This is a JMRI command parser.
 // It doesnt know how the string got here, nor how it gets back.
@@ -516,7 +513,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
       if (params != 2)
 	break;
       if (!DCCWaveform::isRailcom()) break;
-      if (!stashCallback(stream, p, ringStream)) break;
+    if (!stashCallback(stream, p)) break;
       DCC::readCVByteMain(p[0], p[1],callback_r);
       return;
 #endif      
@@ -561,7 +558,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         
 #ifndef DISABLE_PROG
     case 'W': // WRITE CV ON PROG <W CV VALUE CALLBACKNUM CALLBACKSUB>
-        if (!stashCallback(stream, p, ringStream))
+        if (!stashCallback(stream, p))
 	    break;
         if (params == 1) // <W id> Write new loco id (clearing consist and managing short/long)
             DCC::setLocoId(p[0],callback_Wloco);
@@ -572,21 +569,21 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }    
         else if (params == 2)  // WRITE CV ON PROG <W CV VALUE>
             DCC::writeCVByte(p[0], p[1], callback_W);
-	else
+	    else stashBusy=false; // if callback not stashed, make sure to clear busy flag so that we dont block other commands
             break;
         return;
 
     case 'V': // VERIFY CV ON PROG <V CV VALUE> <V CV BIT 0|1>
         if (params == 2)
         { // <V CV VALUE>
-            if (!stashCallback(stream, p, ringStream))
+            if (!stashCallback(stream, p))
                 break;
             DCC::verifyCVByte(p[0], p[1], callback_Vbyte);
             return;
         }
         if (params == 3)
         {
-            if (!stashCallback(stream, p, ringStream))
+            if (!stashCallback(stream, p))
                 break;
             DCC::verifyCVBit(p[0], p[1], p[2], callback_Vbit);
             return;
@@ -596,14 +593,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     case 'B': // WRITE CV BIT ON PROG  <B CV BIT VALUE CALLBACKNUM CALLBACKSUB> or <B CV BIT VALUE>
         if (params != 3 && params != 5)
 	  break;
-        if (!stashCallback(stream, p, ringStream))
+        if (!stashCallback(stream, p))
 	  break;
         DCC::writeCVBit(p[0], p[1], p[2], callback_B);
         return;
 
     case 'R': // READ CV ON PROG
         if (params == 1) {
-            if (!stashCallback(stream, p, ringStream)) break;
+            if (!stashCallback(stream, p)) break;
             if (p[0]=="LOCOID"_hk) { // <R LOCOID> read consist id
                 DCC::getLocoId(callback_Rloco);
                 return;
@@ -619,14 +616,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         }
         if (params == 3)
         { // <R CV CALLBACKNUM CALLBACKSUB>
-            if (!stashCallback(stream, p, ringStream))
+            if (!stashCallback(stream, p))
                 break;
             DCC::readCV(p[0], callback_R);
             return;
         }
         if (params == 0)
         { // <R> New read driveaway loco id
-            if (!stashCallback(stream, p, ringStream))
+            if (!stashCallback(stream, p))
                 break;
             DCC::getDriveawayLocoId(callback_Rloco);
             return;
@@ -1666,7 +1663,7 @@ return false;
 }
 
 // CALLBACKS must be static
-bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream)
+bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS])
 {
     if (stashBusy) {
         StringFormatter::send(stream, F("<* PROG busy *>\n"));
@@ -1674,67 +1671,58 @@ bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS], Ri
     }
 
     stashBusy = true;
-    stashStream = stream;
-    stashRingStream=ringStream;
-    if (ringStream) stashTarget= ringStream->peekTargetMark();
     memcpy(stashP, p, MAX_COMMAND_PARAMS * sizeof(p[0]));
     return true;
 }
 
-Print * DCCEXParser::getAsyncReplyStream() {
-       if (stashRingStream) {
-           stashRingStream->mark(stashTarget);
-           return stashRingStream;
-       }
-       return stashStream;
-}
-
-void DCCEXParser::commitAsyncReplyStream() {
-     if (stashRingStream) stashRingStream->commit();
-     stashBusy = false;
-}
-
 void DCCEXParser::callback_W(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(),
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE,
           F("<r %d %d>\n"), stashP[0], result == 1 ? stashP[1] : -1);
-    commitAsyncReplyStream();
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_W4(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(),
-	  F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE,
+	    F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_B(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), 
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, 
           F("<r%d|%d|%d %d %d>\n"), stashP[3], stashP[4], stashP[0], stashP[1], result == 1 ? stashP[2] : -1);
-    commitAsyncReplyStream();
+    stashBusy = false;
 }
 void DCCEXParser::callback_Vbit(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), F("<v %d %d %d>\n"), stashP[0], stashP[1], result);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<v %d %d %d>\n"), stashP[0], stashP[1], result);
+    stashBusy = false;
 }
 void DCCEXParser::callback_Vbyte(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), F("<v %d %d>\n"), stashP[0], result);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<v %d %d>\n"), stashP[0], result);
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_R(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), F("<r%d|%d|%d %d>\n"), stashP[1], stashP[2], stashP[0], result);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<r%d|%d|%d %d>\n"), stashP[1], stashP[2], stashP[0], result);
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_r(int16_t result)
 {
-    StringFormatter::send(getAsyncReplyStream(), F("<r %d %d %d >\n"), stashP[0], stashP[1], result);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<r %d %d %d >\n"), stashP[0], stashP[1], result);  
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_Rloco(int16_t result) {
@@ -1760,22 +1748,25 @@ void DCCEXParser::callback_Rloco(int16_t result) {
     else
       detail=F("<r %S%d>\n");
   }
-  StringFormatter::send(getAsyncReplyStream(), detail, typetag,result);
-  commitAsyncReplyStream();
+  CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, detail, typetag,result);  
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_Wloco(int16_t result)
 {
     if (result==1) result=stashP[0]; // pick up original requested id from command
-    StringFormatter::send(getAsyncReplyStream(), F("<w %d>\n"), result);
-    commitAsyncReplyStream();
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<w %d>\n"), result);   
+    stashBusy = false;
 }
 
 void DCCEXParser::callback_Wconsist(int16_t result)
 {
     if (result==-4) DIAG(F("Long Consist %d not supported by decoder"),stashP[1]);
     if (result==1) result=stashP[1]; // pick up original requested id from command
-    StringFormatter::send(getAsyncReplyStream(), F("<w CONSIST %d%S>\n"),
+    CommandDistributor::broadcastReply( 
+        CommandDistributor::clientType::COMMAND_TYPE, F("<w CONSIST %d%S>\n"),
      result, stashP[2]=="REVERSE"_hk ? F(" REVERSE") : F(""));
-    commitAsyncReplyStream();
+    stashBusy = false;
 }
