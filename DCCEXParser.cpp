@@ -330,7 +330,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     StringFormatter::send(USB_SERIAL, F("<*"));
     if (matchedCommandFormat) {
         // A command format was matched but a check failed
-        StringFormatter::send(USB_SERIAL,F(" Command format <%<> failed CHECK(%S)\n  <"), matchedCommandFormat, checkFailedFormat);
+        StringFormatter::send(USB_SERIAL,F(" Command format <%S> failed CHECK(%S)\n  <"), matchedCommandFormat, checkFailedFormat);
     }
     else  {
         // No command format matched, so we have no idea what the command was
@@ -353,7 +353,7 @@ bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
      if (cab == 0 && tspeed > 1) return false; // ignore broadcasts of speed>1
      if (direction < 0 || direction > 1) return false; // invalid direction code
      if (cab > 10239 || cab < 0) return false; // beyond DCC range
-     //????????????????????
+     DCC::setThrottle(cab, tspeed, direction);
      return true;
 }
 #include "IO_DFPlayerBase.h"
