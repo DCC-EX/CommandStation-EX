@@ -131,8 +131,10 @@ ZZ(!)   // Emergency stop all locos
 ZZ(t,loco) // Request loco status
         CommandDistributor::broadcastLoco(LocoSlot::getSlot(loco,false));
 ZZ(t,loco,tspeed,direction) // Set throttle speed(0..127) and direction (0=reverse, 1=fwd) 
+        CHECK(loco>0 || tspeed<0) // allow loco 0 broadcast -1 estop
         CHECK(setThrottle(loco,tspeed,direction)) 
 ZZ(t,ignore,loco,tspeed,direction) // (Deprecated) Set throttle speed and direction
+        CHECK(loco>0 || tspeed<0) // allow loco 0 broadcast -1 estop
         CHECK(setThrottle(loco,tspeed,direction)) 
 ZZ(f,loco,byte1)  // (Deprecated use F) Set loco function group 
     switch ( byte1 & 0b11110000) { // 1111 0000
@@ -552,8 +554,10 @@ ZZ(F,loco,DCCFREQ,freqvalue) // Set DC frequencey for loco
         CHECK(freqvalue>=0 && freqvalue<=3) DCC::setDCFreq(loco,freqvalue);
 ZZ(F,loco,function,onoff) // Set loco function ON/OFF
         CHECK(onoff==0 || onoff==1) DCC::setFn(loco,function,onoff);    
-             
-// ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
+ZZMANY(^) // List consists or build consists from variable number of loco ids (negative for reverse)
+  CHECK(DCCConsist::parse(stream,params,p),Consist failed)
+
+  // ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);

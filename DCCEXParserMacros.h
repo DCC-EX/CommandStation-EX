@@ -41,7 +41,7 @@
 #define Z6(op,_1,_2,_3,_4,_5)       ZPREP(op,5) ZZZ(0,_1) ZZZ(1,_2) ZZZ(2,_3) ZZZ(3,_4) ZZZ(4,_5)
 #define Z7(op,_1,_2,_3,_4,_5,_6)    ZPREP(op,6) ZZZ(0,_1) ZZZ(1,_2) ZZZ(2,_3) ZZZ(3,_4) ZZZ(4,_5) ZZZ(5,_6)
 #define Z8(op,_1,_2,_3,_4,_5,_6,_7) ZPREP(op,7) ZZZ(0,_1) ZZZ(1,_2) ZZZ(2,_3) ZZZ(3,_4) ZZZ(4,_5) ZZZ(5,_6) ZZZ(6,_7)
-
+#define ZZMANY(op) ZPREP(op,params)
 #define ZRIP(count) CONCAT(Z,count)
 
 #define ZC1(op)                      
@@ -76,6 +76,8 @@
 // Automatic range checks based on name of inserted parameter
 #define ZZCHK(_index,_pname)\
 ZCHECK(loco,_index,_pname,0,10239) \
+ZCHECK(tspeed,_index,_pname,-1,126) \
+ZCHECK(direction,_index,_pname,0,1) \
 ZCHECK(track,_index,_pname,'A','H') \
 ZCHECK(cv,_index,_pname,1,255) \
 ZCHECK(value,_index,_pname,0,255) \
