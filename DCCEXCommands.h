@@ -630,4 +630,99 @@ ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
 ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
 
+#ifdef EXRAIL_ACTIVE        
+ZZ(D,EXRAIL,ON) // EXRAIL diagnostics on
+      RMFT2::diag=true; 
+ZZ(D,EXRAIL,OFF) // EXRAIL doagnostics off
+      RMFT2::diag=false; 
+
+// TODO This is not documented here because its an override of the one in DCCEXParserCommands.h      
+ZZ_nodoc(A,address,aspect) // Send DCC extended accessory (aspect) and syncronize any signal on this address
+      return RMFT2::signalAspectEvent(address,aspect);
+ZZ(L)  // LCC/CBUS adapter introducing self
+    CHECK(RMFT2::streamLCC(stream),no LCC/CBUS events)
+ZZ(L,eventid)  // LCC incoming event 
+      CHECK(eventid>=0 && eventid<RMFT2::countLCCLookup)
+      RMFT2::startNonRecursiveTask(F("LCC"),eventid,RMFT2::onLCCLookup[eventid]);
+ 
+ZZ(J,A) // List automation ids
+    REPLY("<jA") RMFT2::routeLookup->stream(stream); REPLY(">\n")
+ZZ(J,A,id) // list automation details
+    REPLY("<jA %d %c \"%S\">\n",id, RMFT2::getRouteType(id), RMFT2::getRouteDescription(id));             
+    if (RMFT2::compileFeatures & FEATURE_ROUTESTATE) {
+      // Send any non-default button states or captions
+      int16_t statePos=RMFT2::routeLookup->findPosition(id);
+      if (statePos>=0) {
+        if (RMFT2::routeStateArray[statePos]) REPLY("<jB %d %d>\n", id, RMFT2::routeStateArray[statePos]);
+        if (RMFT2::routeCaptionArray[statePos]) REPLY("<jB %d \"%S\">\n", id,RMFT2::routeCaptionArray[statePos]);
+      }
+    }
+ZZ(K,blockid,loco) //  Loco entering Block
+      RMFT2::blockEvent(blockid,loco,true);
+ZZ(k,blockid,loco) // Loco exiting block
+      RMFT2::blockEvent(blockid,loco,false);
+
+ZZ(/) // Stream EXRAIL status
+      RMFT2::streamStatus(stream);
+ZZ(/,PAUSE) // pause all tasks 
+      RMFT2 * task=RMFT2::loopTask;
+      while(task) {
+	      task->pause();
+	      task=task->next;
+	      if (task==RMFT2::loopTask) break;
+      }
+      DCC::estopAll();  // pause all locos on the track
+      RMFT2::pausingTask=(RMFT2 *)1; // Impossible task address
+  
+ZZ(/,RESUME)  // Resume all tasks
+      RMFT2::pausingTask=NULL;
+      RMFT2 * task=RMFT2::loopTask;
+      while(task) {
+	      task->resume();
+	      task=task->next;
+	      if (task==RMFT2::loopTask) break;
+      }
+
+ZZ(/,START,route)  // Start a route or sequence
+      auto pc=RMFT2::routeLookup->find(route);
+      CHECK(pc>=0,route not found)
+      new RMFT2(pc,0); // no cab for route start
+
+ZZ(/,START,loco,route)  // Start an AUTOMATION or sequence with a loco 
+      auto pc=RMFT2::routeLookup->find(route);
+      CHECK(pc>=0, route not found)
+      new RMFT2(pc,loco);
+ 
+ZZ(/,KILL,ALL) // Kill all exrail tasks
+      while (RMFT2::loopTask) RMFT2::loopTask->kill(F("KILL ALL")); // destructor changes loopTask
+ZZ(/,KILL,taskid) // Kill specific exrail tasks  
+    CHECK(taskid>=0 && taskid<MAX_FLAGS)
+    auto task=RMFT2::loopTask;
+    bool found=false;
+    while(task) {
+	      if (task->taskId==taskid) {
+          found=true;
+	        task->kill(F("KILL"));
+	        break;
+	      }
+	      task=task->next;
+	      if (task==RMFT2::loopTask) break;
+      }
+    CHECK(found, task not found)
+ZZ(/,RESERVE,section) // Flag section as reserved
+    CHECK(RMFT2::setFlag(section,SECTION_FLAG),invalid section)
+ZZ(/,FREE,section) // Free reserve on section
+    CHECK(RMFT2::setFlag(section,0,SECTION_FLAG),invalid section)
+ZZ(/,LATCH,latch) // Set pin latch
+  CHECK(RMFT2::setFlag(latch,LATCH_FLAG),invalid latch)
+ZZ(/,UNLATCH,latch) // Removeve pin latch
+  CHECK(RMFT2::setFlag(latch,0,LATCH_FLAG),invalid latch)
+ZZ(/,RED,signal) // Set signal to Red 
+   RMFT2::doSignal(signal,SIGNAL_RED);
+ZZ(/,AMBER,signal) // set Signal to Amber/Yellow
+  RMFT2::doSignal(signal,SIGNAL_AMBER);
+ZZ(/,GREEN,signal) // Set signal to Green  
+  RMFT2::doSignal(signal,SIGNAL_GREEN);
+
+#endif
 ZZEND

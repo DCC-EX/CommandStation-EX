@@ -68,7 +68,6 @@ struct DCCEXParser
     static void callback_Vbit(int16_t result);
     static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;
-    static FILTER_CALLBACK  filterRMFTCallback;
     static FILTER_CALLBACK  filterCamParserCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static void sendFlashList(Print * stream,const int16_t flashList[]);

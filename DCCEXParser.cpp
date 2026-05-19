@@ -240,7 +240,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
 
 extern __attribute__((weak))  void myFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
-FILTER_CALLBACK DCCEXParser::filterRMFTCallback = 0;
 FILTER_CALLBACK DCCEXParser::filterCamParserCallback = 0;
 AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 
@@ -249,10 +248,7 @@ void DCCEXParser::setFilter(FILTER_CALLBACK filter)
 {
     filterCallback = filter;
 }
-void DCCEXParser::setRMFTFilter(FILTER_CALLBACK filter)
-{
-    filterRMFTCallback = filter;
-}
+
 void DCCEXParser::setCamParserFilter(FILTER_CALLBACK filter)
 {
     filterCamParserCallback = filter;
@@ -321,8 +317,6 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
  
     if (filterCallback)
         filterCallback(stream, opcode, params, p);
-    if (filterRMFTCallback && opcode!='\0')
-        filterRMFTCallback(stream, opcode, params, p);
     if (filterCamParserCallback && opcode!='\0')
         filterCamParserCallback(stream, opcode, params, p);
     if (opcode=='\0') return; // filterCallback asked us to ignore

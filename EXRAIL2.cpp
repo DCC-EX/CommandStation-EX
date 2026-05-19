@@ -191,7 +191,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     
   bool saved_diag=diag;
   diag=true;
-  DCCEXParser::setRMFTFilter(RMFT2::ComandFilter);
   for (int f=0;f<MAX_FLAGS;f++) flags[f]=0;
   
   // create lookups

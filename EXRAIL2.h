@@ -194,6 +194,7 @@ class LookList {
 };
 
  class RMFT2 {
+    friend class DCCEXParser;
    public:
     static void begin();
     static void loop();
@@ -230,8 +231,8 @@ class LookList {
   static SIGNAL_DEFINITION getSignalSlot(int16_t slotno); 
    
 private: 
-    static void ComandFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
-    static bool parseSlash(Print * stream, byte & paramCount, int16_t p[]) ;
+    static bool streamLCC(Print * stream);
+    static bool streamStatus(Print * stream);
     static void streamFlags(Print* stream);
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
