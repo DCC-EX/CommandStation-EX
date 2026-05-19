@@ -41,25 +41,18 @@ struct DCCEXParser
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
    static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
- 
+   static const FSH * matchedCommandFormat;
+   static const FSH * checkFailedFormat;
+   
    private:
-  
+   #ifdef DCC_ACCESSORY_COMMAND_REVERSE
+   static const bool accessoryCommandReverse = true;
+  #else    
+   static const bool accessoryCommandReverse = false;
+  #endif
     static const int16_t MAX_BUFFER=50;  // longest command sent in
-    static const int16_t STRING_MARKER=0x7777; // used to mark next parameter as a string pointer in the command buffer
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
-     
-    static bool parseT(Print * stream, int16_t params, int16_t p[]);
-    static bool parseZ(Print * stream, int16_t params, int16_t p[]);
-    static bool parsey(Print * stream, int16_t params, int16_t p[]);
-    static bool parseS(Print * stream, int16_t params, int16_t p[]);
-    static bool parsef(Print * stream, int16_t params, int16_t p[]);
-    static bool parseC(Print * stream, int16_t params, int16_t p[]);
-    static bool parseD(Print * stream, int16_t params, int16_t p[]);
-    static bool parseJM(Print * stream, int16_t params, int16_t p[]);
-    static bool parseWifi(Print * stream, int16_t params, int16_t p[], const byte * com);
-#ifndef IO_NO_HAL
-    static bool parseI(Print * stream, int16_t params, int16_t p[]);
-#endif
+    static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[], RingStream * ringStream);
 
     static bool stashBusy;    
     static int16_t stashP[MAX_COMMAND_PARAMS];
@@ -79,6 +72,7 @@ struct DCCEXParser
     static FILTER_CALLBACK  filterCamParserCallback;
     static AT_COMMAND_CALLBACK  atCommandCallback;
     static void sendFlashList(Print * stream,const int16_t flashList[]);
+    static bool setThrottle(int16_t cab,int16_t tspeed,int16_t direction);
 
 };
 
