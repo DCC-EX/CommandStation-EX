@@ -339,7 +339,15 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     if (opcode >= ' ' && opcode <= '~') StringFormatter::send(USB_SERIAL,F( "%c"), opcode);
         else StringFormatter::send(USB_SERIAL,F("0x%x"), opcode);
     
-    for (int i = 0; i < params; i++) StringFormatter::send(USB_SERIAL,F(" %d"),p[i]);
+    for (int i = 0; i < params; i++) {
+        if ((p[i] & 0xFF00)== 0x7700) {
+            // this parameter was a quoted string, so print the string instead of the value
+            char * q = (char *)(com + (p[i] & 0x00FF));
+            StringFormatter::send(USB_SERIAL,F(" \"%s\""), q);
+        } else {
+             StringFormatter::send(USB_SERIAL,F(" %d"), p[i]);  
+        }
+    }
     StringFormatter::send(USB_SERIAL,F("> *>\n"));
 }
 

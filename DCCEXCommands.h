@@ -115,19 +115,21 @@ The REPLY( format, ...) macro sends a formatted string to the stream.
  
 These macros are included into the DCCEXParser::execute function so
   stream, ringStream and other DCCEXParser variables are available in context. */
-
-// TODO include new consist
-// TODO momentum 
-// TODO sound commands
-// TODO inclde new wifi settings
-// TODO merge in EXRAIL parser
  
 
 ZZBEGIN
 ZZ(#) // Request number of simultaneously supported locos
         REPLY( "<# %d>\n", MAX_LOCOS)
+        
 ZZ(!)   // Emergency stop all locos
         DCC::estopAll(); 
+ZZ(!,P) //  ESTOP pause layoput
+        DCC::estopLock(true); // <!P>
+ZZ(!,R) //  ESTOP rfesume paused layoput
+        DCC::estopLock(false); // <!R>
+ZZ(!,Q) //  ESTOP query paused status
+        REPLY(DCC::isEstopLocked() ? F("<!PAUSED>\n"): F("<!RESUMED>\n")) // <!Q>     
+
 ZZ(t,loco) // Request loco status
         CommandDistributor::broadcastLoco(LocoSlot::getSlot(loco,false));
 ZZ(t,loco,tspeed,direction) // Set throttle speed(0..127) and direction (0=reverse, 1=fwd) 
@@ -205,8 +207,8 @@ ZZ(J,G) // FReport gauge limits
         TrackManager::reportGauges(stream);       
 ZZ(J,I) // Report currents 
         TrackManager::reportCurrent(stream);      
-// TODO... Ask @Ash zz(J,L,display,row) // Direct current displays to LCS/OLED
-//         TrackManager::reportCurrentLCD(display,row);   // Track power status     
+ZZ(J,L,display,row) // Direct current displays to LCS/OLED
+        TrackManager::reportCurrentLCD(display,row);  
 ZZ(J,A) // List Routes
         REPLY( "<jA>\n") 
 ZZ(J,R) // List Roster
@@ -396,6 +398,7 @@ ZZ(D,ANIN,vpin) // Display analogue input value
         DIAG(F("VPIN=%u value=%d"), vpin, IODevice::readAnalogue(vpin));
 
 ZZ(D,HAL,SHOW)  // Show HAL devices table
+        I2CManager.scanForDevices(&USB_SERIAL);
         IODevice::DumpAll();
 ZZ(D,HAL,RESET) // Reset all HAL devices
         IODevice::reset();
@@ -432,13 +435,59 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
-ZZ(C,WIFI,ssid,password) // set Wifi ssid and password (in quotes)
-  CHECK((ssid & 0x7700)==0x7700, ssid must be in "quotes")
-  ssid &= 0x00FF;
-  CHECK((password & 0x7700)==0x7700, password must be in "quotes")
-  password &= 0x00FF;
-  // TODO... new WIFI command preferences settings 
+ZZ(C,WIFI,OFF) // Disable Wifi
+        CHECK(stream==&USB_SERIAL, Wifi can only be disabled from USB Serial)
+        WifiPreferences::enable(false);
+        WifiESP::setup();
+ZZ(C,WIFI,ON) // Enable Wifi
+        WifiPreferences::enable(true);
+        WifiESP::setup();
+ZZ(C,WIFI,hostname) // set Wifi hostname (in quotes)
+  CHECKQ(hostname)
+  WifiPreferences::saveHostName(q_hostname); 
   WifiESP::setup();
+
+#undef DEFAULT
+ZZ(C,WIFI,DEFAULT) // set Wifi to default credentials
+  WifiPreferences::clear(); 
+  WifiESP::setup();
+ZZ(C,WIFI,ssid,password) // set Wifi ssid and password (in quotes)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveSTA(q_ssid, q_password,true); 
+  WifiESP::setup();
+ZZ(C,WIFI,TEMP,ssid,password) // set Wifi ssid and password temporarily (in quotes)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveSTA(q_ssid, q_password,false); 
+  WifiESP::setup(); 
+ZZ(C,WIFI,AP,ssid,password) // set Wifi to AP mode with given ssid and password (in quotes)
+  CHECK(stream==&USB_SERIAL, Wifi AP can only be set from USB Serial)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveAP(q_ssid, q_password,11,false); 
+  WifiESP::setup();
+ZZ(C,WIFI,AP,ssid,password,channel) // set Wifi to AP mode with given ssid and password (in quotes)
+  CHECK(stream==&USB_SERIAL, Wifi AP can only be set from USB Serial)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveAP(q_ssid, q_password,channel,false); 
+  WifiESP::setup();
+ZZ(C,WIFI,HIDDENAP,ssid,password) // set Wifi to AP mode with given ssid and password (in quotes)
+  CHECK(stream==&USB_SERIAL, Wifi AP can only be set from USB Serial)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveAP(q_ssid, q_password,11,true); 
+  WifiESP::setup();
+ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // set Wifi to AP mode with given ssid and password (in quotes)
+  CHECK(stream==&USB_SERIAL, Wifi AP can only be set from USB Serial)
+  CHECKQ(ssid)
+  CHECKQ(password)
+  WifiPreferences::saveAP(q_ssid, q_password,channel,true); 
+  WifiESP::setup();
+
+ZZ(D,WIFI,SHOW) // Show Wifi status
+  WifiPreferences::dump(stream);  
 #endif
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
@@ -534,6 +583,10 @@ ZZ(B,cv,bit,bitvalue)  // Write cv bit
         EXPECT_CALLBACK DCC::writeCVBit(cv,bit,bitvalue,callback_B);
 ZZ(R,cv,ignore1,ignore2) // (Deprecated) read cv value on PROG track
         EXPECT_CALLBACK DCC::readCV(cv,callback_R);
+ZZ(R,LOCOID) // read loco id (ignoring consist) on PROG track
+        EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
+ZZ(R,CONSIST) // read consist id on PROG track
+        EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
 ZZ(R,cv) // Read cv
         EXPECT_CALLBACK DCC::verifyCVByte(cv, 0, callback_Vbyte);
 ZZ(R)   // Read driveable loco id (may be long, short or consist)
@@ -544,8 +597,6 @@ ZZ_nodoc(@)
         CommandDistributor::setVirtualLCDSerial(stream);
         REPLY( "<@ 0 0 \"DCC-EX v" VERSION "\">\n<@ 0 1 \"Lic GPLv3\">\n")
 #endif
-ZZ(@,display,row,string1) // Display string1 on line row (0 or 1) of LCD
-  StringFormatter::lcd2(display,row,F("%s"),ZGETSTRING(string1));               
 ZZ(-) // Clear loco state and reminder table
         DCC::forgetAllLocos();
 ZZ(-,loco) // remove loco state amnd reminders
@@ -717,6 +768,8 @@ ZZ(/,RESERVE,section) // Flag section as reserved
     CHECK(RMFT2::setFlag(section,SECTION_FLAG),invalid section)
 ZZ(/,FREE,section) // Free reserve on section
     CHECK(RMFT2::setFlag(section,0,SECTION_FLAG),invalid section)
+ZZ(/,FREEALL) // Free all reserves
+    for (int i=0;i<MAX_FLAGS;i++) RMFT2::setFlag(i,0,SECTION_FLAG);
 ZZ(/,LATCH,latch) // Set pin latch
   CHECK(RMFT2::setFlag(latch,LATCH_FLAG),invalid latch)
 ZZ(/,UNLATCH,latch) // Removeve pin latch
@@ -729,4 +782,33 @@ ZZ(/,GREEN,signal) // Set signal to Green
   RMFT2::doSignal(signal,SIGNAL_GREEN);
 
 #endif
+ZZ(@) // Request all virtual msgs to this client
+    REPLY(F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
+               "<@ 0 1 \"Lic GPLv3\">\n"));  
+ZZ(@,display,row,text) // Display text on virtual LCD at row 
+  CHECK(display>=0 && row>=0)
+  CHECKQ(text)
+  StringFormatter::lcd2(display,row,F("%s"),q_text);
+ZZ(y,vpin,PLAY,track)  // Play sound track with default volume
+     IODevice::writeAnalogue(vpin,track,0,DFPlayerBase::DF_PLAY);
+ZZ(y,vpin,PLAY,track,volume) // Play sound track with volume
+     IODevice::writeAnalogue(vpin,track,volume,DFPlayerBase::DF_PLAY);
+ZZ(y,vpin,REPEAT,track) // Repeat sound track with default volume
+     IODevice::writeAnalogue(vpin,track,0,DFPlayerBase::DF_REPEATPLAY);
+ZZ(y,vpin,REPEAT,track,volume) // Repeat sound track with volume
+     IODevice::writeAnalogue(vpin,track,volume,DFPlayerBase::DF_REPEATPLAY);
+ZZ(y,vpin,FOLDER,folder) // switch to sound track folder
+     IODevice::writeAnalogue(vpin,0,folder,DFPlayerBase::DF_FOLDER);
+ZZ(y,vpin,STOP) // Stop playing sound
+     IODevice::writeAnalogue(vpin,0,0,DFPlayerBase::DF_STOPPLAY);
+ZZ(y,vpin,VOL,volume) // Set sound volume
+     IODevice::writeAnalogue(vpin,0,volume,DFPlayerBase::DF_VOL);
+ZZ(y,vpin,PAUSE) // Pause sound
+     IODevice::writeAnalogue(vpin,0,0,DFPlayerBase::DF_PAUSE);
+ZZ(y,vpin,RESUME) // Resume sound
+     IODevice::writeAnalogue(vpin,0,0,DFPlayerBase::DF_RESUME);
+ZZ(y,vpin,EQ,eq) // Set sound EQ
+     IODevice::writeAnalogue(vpin,0,eq,DFPlayerBase::DF_EQ);
+ZZ(y,vpin,RESET) // Reset sound module
+     IODevice::writeAnalogue(vpin,0,0,DFPlayerBase::DF_RESET);
 ZZEND

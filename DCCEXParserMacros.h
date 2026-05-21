@@ -64,6 +64,9 @@
 #define ZZBEGIN if (false) {
 #define ZZEND return true; } return false;
 #define CHECK(x,...) if (!(x)) { DCCEXParser::checkFailedFormat=#__VA_ARGS__[0]?F(#__VA_ARGS__):F(#x); return false;}
+#define CHECKQ(x) CHECK((x & 0xFF00)==0x7700, x must be in "quotes") \
+auto q_##x = (const char *)(com + (x & 0x00FF)); (void)q_##x;
+  
 #define REPLY(format,...) StringFormatter::send(stream,F(format), ##__VA_ARGS__);
 #define EXPECT_CALLBACK CHECK(stashCallback(stream, p))
 // helper macro to hide command from documentation extractor
@@ -83,11 +86,3 @@ ZCHECK(cv,_index,_pname,1,255) \
 ZCHECK(value,_index,_pname,0,255) \
 ZCHECK(bit,_index,_pname,0,7) \
 ZCHECK(bitvalue,_index,_pname,0,1)
-
-#define ZGETSTRING(p) ((char *)(com+ (p & 0x00FF)))
-
-
-
-  
-
-
