@@ -264,12 +264,12 @@ void DCCEXParser::parse(const FSH * cmd) {
       int size=STRLEN_P((char *)cmd)+1; 
       char buffer[size];
       STRCPY_P(buffer,(char *)cmd);
-      parse(&USB_SERIAL,(byte *)buffer,NULL);
+      parse(&USB_SERIAL,(byte *)buffer);
 }
 
 // See documentation on DCC class for info on this section
 
-void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
+void DCCEXParser::parse(Print *stream,  byte *com) {
   // This function can get stings of the form "<C OMM AND>" or "C OMM AND>"
   // found is true first after the leading "<" has been passed which results
   // in parseOne() getting c="C OMM AND>"
@@ -281,18 +281,14 @@ void DCCEXParser::parse(Print *stream,  byte *com,  RingStream *ringStream) {
       found=false;
     }
     if (c[0] == '<') {
-      if (cForLater) parseOne(stream, cForLater, ringStream);
+      if (cForLater) parseOne(stream, cForLater);
       found = true;
     }
   }
-  if (cForLater) parseOne(stream, cForLater, ringStream);
+  if (cForLater) parseOne(stream, cForLater);
 }
 
-void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
-{
-#ifdef DISABLE_PROG
-    (void)ringStream;
-#endif
+void DCCEXParser::parseOne(Print *stream, byte *com) {
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif
@@ -322,7 +318,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     if (opcode=='\0') return; // filterCallback asked us to ignore
     
     
-    if (execute(com,stream, opcode, params, p, ringStream)) return;
+    if (execute(com,stream, opcode, params, p)) return;
 
     StringFormatter::send(stream, F("<X>\n"));  // respond to caller with error
     
@@ -382,7 +378,7 @@ const FSH* DCCEXParser::checkFailedFormat=nullptr;
 
 // Having broken the command into opcode and parameters, we now execute the command
 // The actual commands and their parameter mappings are in DCCEXCommands.h
-bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, int16_t p[], RingStream * ringStream) {
+bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, int16_t p[]) {
   #include "DCCEXCommands.h"
 }
 

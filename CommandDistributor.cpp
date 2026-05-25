@@ -110,7 +110,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   // to the right parser
   if (clients[clientId] == COMMAND_TYPE) {
     ring->mark(clientId);
-    DCCEXParser::parse(stream, buffer, ring);
+    DCCEXParser::parse(stream, buffer);
   } else if (clients[clientId] == WITHROTTLE_TYPE) {
     ring->mark(clientId);
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
@@ -120,7 +120,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     if (!buffer) return; // unmask may have handled it alrerday (ping/pong)
     // mark ring with client flagged as websocket for transmission later
     ring->mark(clientId | Websockets::WEBSOCK_CLIENT_MARKER);
-    DCCEXParser::parse(stream, buffer, ring);
+    DCCEXParser::parse(stream, buffer);
     }
 
   if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {

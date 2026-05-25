@@ -128,7 +128,7 @@ ZZ(!,P) //  ESTOP pause layoput
 ZZ(!,R) //  ESTOP rfesume paused layoput
         DCC::estopLock(false); // <!R>
 ZZ(!,Q) //  ESTOP query paused status
-        REPLY(DCC::isEstopLocked() ? F("<!PAUSED>\n"): F("<!RESUMED>\n")) // <!Q>     
+        REPLY("<!%S>\n",DCC::isEstopLocked() ? F("PAUSED") : F("RESUMED")); // <!Q>     
 
 ZZ(t,loco) // Request loco status
         CommandDistributor::broadcastLoco(LocoSlot::getSlot(loco,false));
@@ -783,8 +783,8 @@ ZZ(/,GREEN,signal) // Set signal to Green
 
 #endif
 ZZ(@) // Request all virtual msgs to this client
-    REPLY(F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
-               "<@ 0 1 \"Lic GPLv3\">\n"));  
+    REPLY("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
+               "<@ 0 1 \"Lic GPLv3\">\n");  
 ZZ(@,display,row,text) // Display text on virtual LCD at row 
   CHECK(display>=0 && row>=0)
   CHECKQ(text)

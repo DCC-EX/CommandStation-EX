@@ -23,7 +23,6 @@
 #define DCCEXParser_h
 #include <Arduino.h>
 #include "FSH.h"
-#include "RingStream.h"
 #include "defines.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
@@ -32,9 +31,9 @@ typedef void (*AT_COMMAND_CALLBACK)(HardwareSerial * stream,const byte * command
 struct DCCEXParser
 {
    
-   static void parse(Print * stream,  byte * command,  RingStream * ringStream);
+   static void parse(Print * stream,  byte * command);
    static void parse(const FSH * cmd);
-   static void parseOne(Print * stream,  byte * command,  RingStream * ringStream);
+   static void parseOne(Print * stream,  byte * command);
    static void setFilter(FILTER_CALLBACK filter);
    static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setCamParserFilter(FILTER_CALLBACK filter);
@@ -52,7 +51,7 @@ struct DCCEXParser
   #endif
     static const int16_t MAX_BUFFER=50;  // longest command sent in
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
-    static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[], RingStream * ringStream);
+    static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[]);
 
     static bool stashBusy;    
     static int16_t stashP[MAX_COMMAND_PARAMS];

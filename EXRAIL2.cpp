@@ -1705,7 +1705,7 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
          break;
     // TODO  more serials for SAMx case thrunge_serial4: stream=&Serial4; break;
     case thrunge_parse: 
-      DCCEXParser::parseOne(&USB_SERIAL,(byte*)buffer->getString(),NULL);
+      DCCEXParser::parseOne(&USB_SERIAL,(byte*)buffer->getString());
       break;
     case thrunge_broadcast:
       CommandDistributor::broadcastRaw(CommandDistributor::COMMAND_TYPE,buffer->getString());
