@@ -396,7 +396,7 @@ void WifiESP::loop() {
         if (cmd.len >= 3 && cmd.data[0] == '<' && cmd.data[1] == '#' && cmd.data[2] == '>') {
           rememberUdpDiscoveryClient(cmd.remoteIP);
         }
-        DCCEXParser::parse(&response, cmd.data, NULL);
+        DCCEXParser::parse(&response, cmd.data);
         if (response.getLength() > 0) {
           // Reply unicast to the originator
           // DIAG(F("UDP reply to %s:%d"), cmd.remoteIP.toString().c_str(), cmd.remotePort);
