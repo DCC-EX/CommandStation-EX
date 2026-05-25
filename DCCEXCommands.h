@@ -210,7 +210,11 @@ ZZ(J,I) // Report currents
 ZZ(J,L,display,row) // Direct current displays to LCS/OLED
         TrackManager::reportCurrentLCD(display,row);  
 ZZ(J,A) // List Routes
-        REPLY( "<jA>\n") 
+#ifdef EXRAIL_ACTIVE
+    REPLY("<jA") RMFT2::routeLookup->stream(stream); REPLY(">\n")
+#else 
+        REPLY( "<jA>\n")
+#endif 
 ZZ(J,R) // List Roster
         REPLY("<jR") 
         #ifdef EXRAIL_ACTIVE
@@ -442,7 +446,7 @@ ZZ(C,WIFI,OFF) // Disable Wifi
 ZZ(C,WIFI,ON) // Enable Wifi
         WifiPreferences::enable(true);
         WifiESP::setup();
-ZZ(C,WIFI,hostname) // set Wifi hostname (in quotes)
+ZZ(C,WIFI,HOSTNAME,hostname) // set Wifi hostname (in quotes)
   CHECKQ(hostname)
   WifiPreferences::saveHostName(q_hostname); 
   WifiESP::setup();
@@ -542,6 +546,13 @@ ZZ(a,linearaddress,activate) // send dcc accessory command
         CHECK(activate==0 || activate ==1, invalid activate 0..1 )
         DCC::setAccessory((linearaddress - 1) / 4 + 1,(linearaddress - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
 ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
+        // signalAspectEvent returns true if the aspect is destined
+        // for a defined DCCX_SIGNAL which will handle all the RAG flags
+        // and ON* handlers.
+        // Otherwise false so the parser should send the command directly 
+#ifdef EXRAIL_ACTIVE
+        if (!RMFT2::signalAspectEvent(address,value)) 
+#endif
         DCC::setExtendedAccessory(address,value);
 
 ZZ(w,loco,cv,value) // POM write cv on main track
@@ -591,12 +602,6 @@ ZZ(R,cv) // Read cv
         EXPECT_CALLBACK DCC::verifyCVByte(cv, 0, callback_Vbyte);
 ZZ(R)   // Read driveable loco id (may be long, short or consist)
         EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
-
-#ifndef DISABLE_VDPY
-ZZ_nodoc(@)
-        CommandDistributor::setVirtualLCDSerial(stream);
-        REPLY( "<@ 0 0 \"DCC-EX v" VERSION "\">\n<@ 0 1 \"Lic GPLv3\">\n")
-#endif
 ZZ(-) // Clear loco state and reminder table
         DCC::forgetAllLocos();
 ZZ(-,loco) // remove loco state amnd reminders
@@ -691,17 +696,12 @@ ZZ(D,EXRAIL,ON) // EXRAIL diagnostics on
 ZZ(D,EXRAIL,OFF) // EXRAIL doagnostics off
       RMFT2::diag=false; 
 
-// TODO This is not documented here because its an override of the one in DCCEXParserCommands.h      
-ZZ_nodoc(A,address,aspect) // Send DCC extended accessory (aspect) and syncronize any signal on this address
-      return RMFT2::signalAspectEvent(address,aspect);
 ZZ(L)  // LCC/CBUS adapter introducing self
     CHECK(RMFT2::streamLCC(stream),no LCC/CBUS events)
 ZZ(L,eventid)  // LCC incoming event 
       CHECK(eventid>=0 && eventid<RMFT2::countLCCLookup)
       RMFT2::startNonRecursiveTask(F("LCC"),eventid,RMFT2::onLCCLookup[eventid]);
  
-ZZ(J,A) // List automation ids
-    REPLY("<jA") RMFT2::routeLookup->stream(stream); REPLY(">\n")
 ZZ(J,A,id) // list automation details
     REPLY("<jA %d %c \"%S\">\n",id, RMFT2::getRouteType(id), RMFT2::getRouteDescription(id));             
     if (RMFT2::compileFeatures & FEATURE_ROUTESTATE) {
