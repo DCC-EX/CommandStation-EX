@@ -154,7 +154,8 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 #if defined(ARDUINO_ARCH_ESP32)
   // Broadcast everything to Wifi/Ethernet UDP multicast
-  WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+  if (type==COMMAND_TYPE)  
+    WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
 #endif
 
 #ifdef CD_HANDLE_RING
