@@ -38,7 +38,7 @@ Once a new OPCODE is decided upon, update this list.
   -, Remove from reminder table
   =, |TM| configuration
   !, Emergency stop
-  @, Reserved for future use - LCD messages to JMRI
+  @, LCD messages
   #, Request number of supported cabs/locos; heartbeat
   +, WiFi AT commands
   ?, Reserved for future use
@@ -93,7 +93,7 @@ Once a new OPCODE is decided upon, update this list.
   W, Write CV
   x,
   X, Invalid command response
-  y, 
+  y, sounds 
   Y, Output broadcast
   z, Direct output
   Z, Output configuration/control

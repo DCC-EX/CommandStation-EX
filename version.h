@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.7.2"
+// 5.7.3  - ZZPARSER First merge 
 // 5.7.2  - LCD/OLED broadcast improvements
 // 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
 //        - Unicast input/respomse
