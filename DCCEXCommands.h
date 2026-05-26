@@ -243,8 +243,8 @@ ZZ(J,T,id) // Get turnout state and description
         #endif
         if (!tdesc) tdesc = F("");
         REPLY("<jT %d %c \"%S\">\n",id,t->isThrown()?'T':'C',tdesc)
-ZZ(z,vpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
-        IODevice::write(vpin,(vpin>0)?HIGH:LOW);
+ZZ(z,signedVpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
+        IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);
 ZZ(z,vpin,analog,profile,duration) // Change analog value over duration (Fade or servo move)
         IODevice::writeAnalogue(vpin,analog,profile,duration);
 ZZ(z,vpin,analog,profile) // Write analog device using profile number (Fade or servo movement)
