@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.1"
+#define VERSION "5.7.2"
+// 5.7.2  - LCD/OLED messages are broadcast to all <> clients 
 // 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
 //        - Unicast input/respomse
 //        - Unicast & multicast broadcasts

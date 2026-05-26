@@ -966,15 +966,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         break; // Will <X> if not intercepted by filters
 
     case '@': 
-#ifndef DISABLE_VDPY
       if (params==0) {  // <@> JMRI saying "give me virtual LCD msgs"
-        CommandDistributor::setVirtualLCDSerial(stream);
+        // all  lcd messages are broadcast anyway.
+        // But this allows a clean start of basic 2 lines.
         StringFormatter::send(stream,
             F("<@ 0 0 \"DCC-EX v" VERSION "\">\n"
                "<@ 0 1 \"Lic GPLv3\">\n"));
             return;   
-            }
-#endif            
+            }    
         if (params==4 && p[2]==0x7777) { // <@ x  y "string">
             // p[2] will be 0x7777 string marker. 
             StringFormatter::lcd2(p[0],p[1], F("%s"),(const char*)(com + p[3]));
