@@ -154,7 +154,8 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 #if defined(ARDUINO_ARCH_ESP32)
   // Broadcast everything to Wifi/Ethernet UDP multicast
-  WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+  if (type==COMMAND_TYPE)  
+    WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
 #endif
 
 #ifdef CD_HANDLE_RING
@@ -420,50 +421,3 @@ void  CommandDistributor::broadcastRouteState(int16_t routeId, byte state ) {
 void  CommandDistributor::broadcastRouteCaption(int16_t routeId, const FSH* caption ) {
   broadcastReply(COMMAND_TYPE, F("<jB %d \"%S\">\n"),routeId,caption);
 }
-
-Print * CommandDistributor::getVirtualLCDSerial(byte screen, byte row) {
-  Print * stream=virtualLCDSerial;
-  #ifdef  CD_HANDLE_RING
-  rememberVLCDClient=RingStream::NO_CLIENT;
-  if (!stream && virtualLCDClient!=RingStream::NO_CLIENT) {
-    // If we are broadcasting from a wifi/eth process we need to complete its output
-    // before merging broadcasts in the ring, then reinstate it in case
-    // the process continues to output to its client.
-    if ((rememberVLCDClient = ring->peekTargetMark()) != RingStream::NO_CLIENT) {
-      ring->commit();
-    }
-    ring->mark(virtualLCDClient);   
-    stream=ring; 
-  }
-  #endif
-  if (stream) StringFormatter::send(stream,F("<@ %d %d \""), screen,row);
-  return stream;  
-}
-
-void CommandDistributor::commitVirtualLCDSerial() {
-  #ifdef  CD_HANDLE_RING
-  if (virtualLCDClient!=RingStream::NO_CLIENT) {
-    StringFormatter::send(ring,F("\">\n"));
-    ring->commit();
-    if (rememberVLCDClient!=RingStream::NO_CLIENT) ring->mark(rememberVLCDClient);
-    return;  
-   }
-  #endif
-  StringFormatter::send(virtualLCDSerial,F("\">\n"));  
-}
-
-void CommandDistributor::setVirtualLCDSerial(Print * stream) {
-  #ifdef  CD_HANDLE_RING
-  virtualLCDClient=RingStream::NO_CLIENT;
-  if (stream && stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM) {
-     virtualLCDClient=((RingStream *) stream)->peekTargetMark();
-     virtualLCDSerial=nullptr;
-     return;
-  }      
-    #endif
-  virtualLCDSerial=stream;
-}
-
-Print* CommandDistributor::virtualLCDSerial=&USB_SERIAL;
-byte CommandDistributor::virtualLCDClient=0xFF;
-byte CommandDistributor::rememberVLCDClient=0;

@@ -65,14 +65,6 @@ public :
   static void broadcastMessage(char * message);
   static void broadcastEstopLock(bool locked); 
   
-  // Handling code for virtual LCD receiver.
-  static Print * getVirtualLCDSerial(byte screen, byte row);
-  static void commitVirtualLCDSerial();
-  static void setVirtualLCDSerial(Print * stream); 
-  private:
-    static Print * virtualLCDSerial;
-    static byte virtualLCDClient;
-    static byte rememberVLCDClient;
 };
 
 #endif

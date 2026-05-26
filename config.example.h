@@ -210,18 +210,6 @@ The configuration file for DCC-EX Command Station
 // #define DISABLE_PROG
 
 /////////////////////////////////////////////////////////////////////////////////////
-// DISABLE / ENABLE VDPY
-//
-// The Virtual display "VDPY" feature is by default enabled everywhere
-// but on Uno and Nano. If you think you can fit it (for example
-// having disabled some of the features above) you can enable it with
-// ENABLE_VDPY. You can even disable it on all other CPUs with
-// DISABLE_VDPY
-//
-// #define DISABLE_VDPY
-// #define ENABLE_VDPY
-
-/////////////////////////////////////////////////////////////////////////////////////
 // DISABLE / ENABLE DIAG
 //
 // To diagose different errors, you can turn on differnet messages. This costs
