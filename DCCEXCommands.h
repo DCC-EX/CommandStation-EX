@@ -415,6 +415,8 @@ ZZ(C,PROGBOOST) // Configute PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station
         DCCTimer::reset();
+ZZ(D,RESET) // Reset and restart command station
+        DCCTimer::reset();
 ZZ(C,SPEED28) // Set all DCC speed commands as 28 step to old decoders
         DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
 ZZ(C,SPEED128) // Set all DCC speed commands to 128 step (default)
@@ -789,14 +791,14 @@ ZZ(@,display,row,text) // Display text on virtual LCD at row
   CHECK(display>=0 && row>=0)
   CHECKQ(text)
   StringFormatter::lcd2(display,row,F("%s"),q_text);
-ZZ(y,vpin,PLAY,track)  // Play sound track with default volume
-     IODevice::writeAnalogue(vpin,track,0,DFPlayerBase::DF_PLAY);
-ZZ(y,vpin,PLAY,track,volume) // Play sound track with volume
-     IODevice::writeAnalogue(vpin,track,volume,DFPlayerBase::DF_PLAY);
-ZZ(y,vpin,REPEAT,track) // Repeat sound track with default volume
-     IODevice::writeAnalogue(vpin,track,0,DFPlayerBase::DF_REPEATPLAY);
-ZZ(y,vpin,REPEAT,track,volume) // Repeat sound track with volume
-     IODevice::writeAnalogue(vpin,track,volume,DFPlayerBase::DF_REPEATPLAY);
+ZZ(y,vpin,PLAY,tracknumber)  // Play sound track with default volume
+     IODevice::writeAnalogue(vpin,tracknumber,0,DFPlayerBase::DF_PLAY);
+ZZ(y,vpin,PLAY,tracknumber,volume) // Play sound track with volume
+     IODevice::writeAnalogue(vpin,tracknumber,volume,DFPlayerBase::DF_PLAY);
+ZZ(y,vpin,REPEAT,tracknumber) // Repeat sound track with default volume
+     IODevice::writeAnalogue(vpin,tracknumber,0,DFPlayerBase::DF_REPEATPLAY);
+ZZ(y,vpin,REPEAT,tracknumber,volume) // Repeat sound track with volume
+     IODevice::writeAnalogue(vpin,tracknumber,volume,DFPlayerBase::DF_REPEATPLAY);
 ZZ(y,vpin,FOLDER,folder) // switch to sound track folder
      IODevice::writeAnalogue(vpin,0,folder,DFPlayerBase::DF_FOLDER);
 ZZ(y,vpin,STOP) // Stop playing sound
