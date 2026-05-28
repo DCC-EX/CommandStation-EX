@@ -43,7 +43,6 @@
 AsyncUDP udpSend;
 AsyncUDP udpReceive;
 IPAddress udpBroadcastIP;
-const IPAddress udpMulticastIP = { 239, 255, 255, 250 }; // Multicast address for DCC-EX Native Protocol
 constexpr uint16_t UDP_COMMAND_MAX   = 255;  // max inbound command payload (fits one DCC-EX command)
 constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
 constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 8;
@@ -206,6 +205,29 @@ bool WifiESP::setup() {
   if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
     DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
   }
+  if(!MDNS.addService("dcc-ex", "tcp", IP_PORT)) {
+    DIAG(F("Wifi setup failed to add dcc-ex tcp service to mDNS"));
+  }
+  if(!MDNS.addService("dcc-ex", "udp", IP_PORT)) {
+    DIAG(F("Wifi setup failed to add dcc-ex udp service to mDNS"));
+  }
+  if(!MDNS.addService("http", "tcp", 80)) {
+    DIAG(F("Wifi setup failed to add http service to mDNS"));
+  }
+  
+// The followin additional mdns settings created using copilot
+
+// Multicast address for DCC-EX Native Protocol broadcasts
+// Uses last byte of server address to create unique multicast group per device, so multiple DCC-EX servers can co-exist on the same network without interfering with each other. 
+  const IPAddress udpMulticastIP = { 239, 255, 255, WiFi.localIP()[3] }; 
+  
+  const String udpMulticastAddress = udpMulticastIP.toString();
+  const String udpMulticastPort = String(IP_PORT);
+  MDNS.addServiceTxt("dcc-ex", "udp", "multicast", "true");
+  MDNS.addServiceTxt("dcc-ex", "udp", "group", udpMulticastAddress.c_str());
+  MDNS.addServiceTxt("dcc-ex", "udp", "port", udpMulticastPort.c_str());
+  MDNS.addServiceTxt("http", "tcp", "path", "/");
+
   DIAG(F("Server has started on port %d"),IP_PORT);
 
   // Start UDP server for DCC-EX Native Protocol

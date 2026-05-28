@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.3"
+#define VERSION "5.7.4"
+// 5.7.4  - ESP32 MDNS service adverts for udp, multicast and http services
 // 5.7.3  - ZZPARSER First merge 
 // 5.7.2  - LCD/OLED messages are broadcast to all <> clients 
 // 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
