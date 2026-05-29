@@ -419,11 +419,13 @@ void WifiESP::loop() {
           rememberUdpDiscoveryClient(cmd.remoteIP);
         }
         DCCEXParser::parse(&response, cmd.data);
+        if (Diag::WIFI)
+          DIAG(F("UDP Command: %s>, Response: %s"), cmd.data, response.getString());
         if (response.getLength() > 0) {
           // Reply unicast to the originator
           // DIAG(F("UDP reply to %s:%d"), cmd.remoteIP.toString().c_str(), cmd.remotePort);
-          udpSend.writeTo((const uint8_t *)response.getString(),
-                          response.getLength(), cmd.remoteIP, cmd.remotePort);
+          udpSend.writeTo((const uint8_t *)(response.getString()),
+                          response.getLength(), cmd.remoteIP, IP_PORT);
         } 
       }
     }
