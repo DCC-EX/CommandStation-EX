@@ -299,16 +299,21 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
     byte opcode = com[0];
-    int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
-    if (splitnum < 0) {
-        // if arguments are broken, leave but via printing <X>
-        StringFormatter::send(stream, F("<X>\n<* command incomplete *>\n"));  // respond to caller with error
-        return;
-    }
-    if (splitnum >= MAX_COMMAND_PARAMS) {
-        // if arguments are broken, leave but via printing <X>
-        StringFormatter::send(stream, F("<X>\n<* command too long *>\n"));  // respond to caller with error
-        return;
+    int16_t splitnum =0;
+
+    // Special case <+ anything> cant be split as its in AT command form
+    if (opcode!='+') {
+        splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
+        if (splitnum < 0) {
+            // if arguments are broken, leave but via printing <X>
+            StringFormatter::send(stream, F("<X>\n<* command incomplete *>\n"));  // respond to caller with error
+            return;
+        }
+        if (splitnum >= MAX_COMMAND_PARAMS) {
+            // if arguments are broken, leave but via printing <X>
+            StringFormatter::send(stream, F("<X>\n<* command too long *>\n"));  // respond to caller with error
+            return;
+        }
     }
     
     // Because of check above we are now inside byte size

@@ -35,7 +35,6 @@ struct DCCEXParser
    static void parse(const FSH * cmd);
    static void parseOne(Print * stream,  byte * command);
    static void setFilter(FILTER_CALLBACK filter);
-   static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setCamParserFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this

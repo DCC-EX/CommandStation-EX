@@ -615,7 +615,16 @@ ZZ(F,loco,function,onoff) // Set loco function ON/OFF
 ZZMANY(^) // List consists or build consists from variable number of loco ids (negative for reverse)
   CHECK(DCCConsist::parse(stream,params,p),Consist failed)
 
-  // ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
+#ifndef ARDUINO_ARCH_ESP32
+#ifdef WIFI_ON
+ZZ(+) // Complex Wifi AT command interface (Not ESP32)
+        CHECK(atCommandCallback)
+        TrackManager::setPower(POWERMODE::OFF);
+        atCommandCallback((HardwareSerial *)stream,com);
+#endif
+#endif
+
+// ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
