@@ -247,7 +247,7 @@ bool WifiESP::setup() {
     // return false;
   } else {
     udpReceive.onPacket(packet_listener);
-    DIAG(F("UDP Multicast receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
+    DIAG(F("UDP receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
   }
 
   return true;

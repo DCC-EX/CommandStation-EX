@@ -532,7 +532,7 @@ ZZ(0,PROG) // Power off PROG track
         TrackManager::setTrackPower(TRACK_MODE_PROG, POWERMODE::OFF);
 ZZ(0,track) // Power off given track
         TrackManager::setJoin(false);
-	TrackManager::setTrackPower(POWERMODE::OFF, (byte)track-'a');
+	TrackManager::setTrackPower(POWERMODE::OFF, (byte)track-'A');
 
 ZZ(c)   // Report main track currect (Deprecated)
         TrackManager::reportObsoleteCurrent(stream);

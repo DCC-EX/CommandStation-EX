@@ -300,9 +300,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
         com++; // strip off any number of < or spaces
     byte opcode = com[0];
     int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
-    if (splitnum < 0 || splitnum >= MAX_COMMAND_PARAMS) {
+    if (splitnum < 0) {
         // if arguments are broken, leave but via printing <X>
-        StringFormatter::send(stream, F("<X>\n<* command too lomg *>\n"));  // respond to caller with error
+        StringFormatter::send(stream, F("<X>\n<* command incomplete *>\n"));  // respond to caller with error
+        return;
+    }
+    if (splitnum >= MAX_COMMAND_PARAMS) {
+        // if arguments are broken, leave but via printing <X>
+        StringFormatter::send(stream, F("<X>\n<* command too long *>\n"));  // respond to caller with error
         return;
     }
     
