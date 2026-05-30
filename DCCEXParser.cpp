@@ -311,7 +311,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
         }
         if (splitnum >= MAX_COMMAND_PARAMS) {
             // if arguments are broken, leave but via printing <X>
-            StringFormatter::send(stream, F("<X>\n<* command too long *>\n"));  // respond to caller with error
+            StringFormatter::send(stream, F("<X>\n<* too many parameters *>\n"));  // respond to caller with error
             return;
         }
     }
@@ -336,7 +336,15 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
     StringFormatter::send(USB_SERIAL, F("<*"));
     if (matchedCommandFormat) {
         // A command format was matched but a check failed
-        StringFormatter::send(USB_SERIAL,F(" Command format <%S> failed CHECK(%S)\n  <"), matchedCommandFormat, checkFailedFormat);
+        // But the format is in progmem with comma separators
+        // (I couldnt find a way of replacing that at complie time)
+        int size=STRLEN_P((char *)matchedCommandFormat); 
+        char buffer[size+1];
+        STRCPY_P(buffer,(char *)matchedCommandFormat);
+        for (byte i=0;i<size;i++) {
+          if (buffer[i]==',') buffer[i]=' '; 
+        }
+        StringFormatter::send(USB_SERIAL,F(" Command format <%s> failed CHECK(%S)\n  <"), buffer, checkFailedFormat);
     }
     else  {
         // No command format matched, so we have no idea what the command was
