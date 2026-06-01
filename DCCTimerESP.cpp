@@ -230,7 +230,7 @@ static byte LEDCToMux[] = {
 };
 
 void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
-  DIAG(F("Attaching pin %d to channel %d %c"), pin, channel, inverted ? 'I' : ' ');
+  // DIAG(F("Attaching pin %d to channel %d %c"), pin, channel, inverted ? 'I' : ' ');
   ledcAttachPin(pin, channel);
   if (inverted) // we attach again but with inversion
     gpio_matrix_out(pin, LEDCToMux[channel], inverted, 0);
