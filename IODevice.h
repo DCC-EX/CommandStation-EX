@@ -425,6 +425,7 @@ public:
     LED_Off = 7,          // Turn LED off
     Acc_On = 8,           // Turn accessory pin on
     Acc_Off = 9,          // Turn accessory pin off
+    Reverse = 18,         // Reverse turntable 180 degrees
   };
 
 private:

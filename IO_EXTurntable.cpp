@@ -72,7 +72,7 @@ void EXTurntable::_loop(unsigned long currentMicros) {
   I2CManager.read(_I2CAddress, readBuffer, 1);
   _stepperStatus = readBuffer[0];
   if (_stepperStatus != _previousStatus && _stepperStatus == 0) { // Broadcast when a rotation finishes
-    if ( _currentActivity < 4) {
+    if ( _currentActivity < ActivityNumber::LED_On || _currentActivity == ActivityNumber::Reverse) {
       _broadcastStatus(_firstVpin, _stepperStatus, _currentActivity);
     }
     _previousStatus = _stepperStatus;
@@ -96,7 +96,7 @@ int EXTurntable::_read(VPIN vpin) {
 void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity) {
   Turntable *tto = Turntable::getByVpin(vpin);
   if (tto) {
-    if (activity < 4) {
+    if (activity < ActivityNumber::LED_On || activity == ActivityNumber::Reverse) {
       tto->setMoving(status);
       CommandDistributor::broadcastTurntable(tto->getId(), tto->getPosition(), status);
     }
@@ -129,9 +129,9 @@ void EXTurntable::_writeAnalogue(VPIN vpin, int value, uint8_t activity, uint16_
   DIAG(F("I2CManager write I2C Address:%d stepsMSB:%d stepsLSB:%d activity:%d"),
     _I2CAddress.toString(), stepsMSB, stepsLSB, activity);
 #else
-  (void)duration;
+   (void)duration;
 #endif
-  if (activity < 4) _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
+  if (activity < ActivityNumber::LED_On || activity == ActivityNumber::Reverse) _stepperStatus = 1;     // Tell the device driver Turntable-EX is busy
   _previousStatus = _stepperStatus;
   _currentActivity = activity;
   _broadcastStatus(vpin, _stepperStatus, activity); // Broadcast when the rotation starts

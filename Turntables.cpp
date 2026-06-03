@@ -142,6 +142,11 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
   Turntable *tto = Turntable::get(id);
   if (!tto) return false;
   if (tto->isMoving()) return false;
+  
+  if(activity == EXTurntable::ActivityNumber::Reverse){
+    // A 180-degree turn keeps the same logical track position.
+    position = tto->getPosition();
+  }
   bool ok = tto->setPositionInternal(position, activity);
 
   if (ok) {
@@ -152,7 +157,7 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
     // Trigger EXRAIL rotateEvent for both types here if changed
 #if defined(EXRAIL_ACTIVE)
     bool rotated = false;
-    if (position != tto->_previousPosition) rotated = true;
+    if (position != tto->_previousPosition || activity == EXTurntable::ActivityNumber::Reverse) rotated = true;
     RMFT2::rotateEvent(id, rotated);
 #endif
   }
@@ -204,12 +209,19 @@ using DevState = IODevice::DeviceStateEnum;
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
 #ifndef IO_NO_HAL
     int16_t value;
-    if (position == 0) {
-      value = 0;  // Position 0 is just to send activities
-    } else {
-      if (activity > 1) return false; // If sending a position update, only phase changes valid (0|1)
+    if(activity == EXTurntable::ActivityNumber::Reverse) {
+      // Keep logical position unchanged while issuing the 180 action.
+      position = _turntableData.position;
       value = getPositionValue(position); // Get position value from position list
+    }else {
+      if (position == 0) {
+        value = 0;  // Position 0 is just to send activities
+      } else {
+        if (activity > EXTurntable::ActivityNumber::Turn_PInvert) return false; // If sending a position update, only phase changes valid (0|1)
+        value = getPositionValue(position); // Get position value from position list
+      }
     }
+
     if (position > 0 && !value) return false; // Return false if it's not a valid position
     // Set position via device driver
     _previousPosition = _turntableData.position;
