@@ -3,8 +3,18 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.0"
+#define VERSION "5.7.4"
+// 5.7.4  - ESP32 MDNS service adverts for udp, multicast and http services
+// 5.7.3  - ZZPARSER First merge 
+// 5.7.2  - LCD/OLED messages are broadcast to all <> clients 
+// 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
+//        - Unicast input/respomse
+//        - Unicast & multicast broadcasts
+//        - Prog track function results are broadcast
 // 5.7.0  - Start new devel version series
+//        - Bugfix: Websckets endian and close
+//        - Improvement: Readable msg when prog track busy
+//        - Improvement, ESP32: motor driver for EX8874 on Keystudio ESP32 (KS5016)
 // 5.5.69 - Bugfix: AT+ wifi MDNS error
 //        - <C WIFI > commands replace config.h wifi settings on ESP32 and CSB1.
 // 5.5.68 - EXRAIL: BITMAP_SET

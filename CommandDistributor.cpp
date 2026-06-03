@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Paul M. Antoine
  *  © 2022 Harald Barth
  *  © 2020-2025 Chris Harlow
  *  © 2020 Gregor Baues
@@ -33,6 +34,9 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "WifiESP32.h"
+#endif
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -42,17 +46,23 @@ int8_t lastclockrate;
 #if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
 StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer(256);
-template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
+  va_list args;
+  va_start(args, format);
   broadcastBufferWriter->flush();
-  StringFormatter::send(broadcastBufferWriter, msg...);
+  StringFormatter::send2(broadcastBufferWriter, format, args);
+  va_end(args);
   broadcastToClients(type);
   if (type==COMMAND_TYPE) broadcastToClients(WEBSOCKET_TYPE);
 }
 #else
 // on a single USB connection config, write direct to Serial and ignore flush/shove
-template<typename... Targs> void CommandDistributor::broadcastReply(clientType type, Targs... msg){
+void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
   (void)type; //shut up compiler warning
-  StringFormatter::send(&USB_SERIAL, msg...);
+  va_list args;
+  va_start(args, format);
+  StringFormatter::send2(&USB_SERIAL, format, args);
+  va_end(args);
 }
 #endif 
 
@@ -100,7 +110,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
   // to the right parser
   if (clients[clientId] == COMMAND_TYPE) {
     ring->mark(clientId);
-    DCCEXParser::parse(stream, buffer, ring);
+    DCCEXParser::parse(stream, buffer);
   } else if (clients[clientId] == WITHROTTLE_TYPE) {
     ring->mark(clientId);
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
@@ -110,7 +120,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     if (!buffer) return; // unmask may have handled it alrerday (ping/pong)
     // mark ring with client flagged as websocket for transmission later
     ring->mark(clientId | Websockets::WEBSOCK_CLIENT_MARKER);
-    DCCEXParser::parse(stream, buffer, ring);
+    DCCEXParser::parse(stream, buffer);
     }
 
   if (ring->peekTargetMark()!=RingStream::NO_CLIENT) {
@@ -129,7 +139,6 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
 void CommandDistributor::forget(byte clientId) {
   if (clients[clientId]==WITHROTTLE_TYPE) WiThrottle::forget(clientId);
   clients[clientId]=NONE_TYPE;
-  if (virtualLCDClient==clientId) virtualLCDClient=RingStream::NO_CLIENT;
 }
 #endif 
 
@@ -141,6 +150,12 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
   // Broadcast to Serials
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
+
+#if defined(ARDUINO_ARCH_ESP32)
+  // Broadcast everything to Wifi/Ethernet UDP multicast
+  if (type==COMMAND_TYPE)  
+    WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+#endif
 
 #ifdef CD_HANDLE_RING
   // If we are broadcasting from a wifi/eth process we need to complete its output
@@ -405,50 +420,3 @@ void  CommandDistributor::broadcastRouteState(int16_t routeId, byte state ) {
 void  CommandDistributor::broadcastRouteCaption(int16_t routeId, const FSH* caption ) {
   broadcastReply(COMMAND_TYPE, F("<jB %d \"%S\">\n"),routeId,caption);
 }
-
-Print * CommandDistributor::getVirtualLCDSerial(byte screen, byte row) {
-  Print * stream=virtualLCDSerial;
-  #ifdef  CD_HANDLE_RING
-  rememberVLCDClient=RingStream::NO_CLIENT;
-  if (!stream && virtualLCDClient!=RingStream::NO_CLIENT) {
-    // If we are broadcasting from a wifi/eth process we need to complete its output
-    // before merging broadcasts in the ring, then reinstate it in case
-    // the process continues to output to its client.
-    if ((rememberVLCDClient = ring->peekTargetMark()) != RingStream::NO_CLIENT) {
-      ring->commit();
-    }
-    ring->mark(virtualLCDClient);   
-    stream=ring; 
-  }
-  #endif
-  if (stream) StringFormatter::send(stream,F("<@ %d %d \""), screen,row);
-  return stream;  
-}
-
-void CommandDistributor::commitVirtualLCDSerial() {
-  #ifdef  CD_HANDLE_RING
-  if (virtualLCDClient!=RingStream::NO_CLIENT) {
-    StringFormatter::send(ring,F("\">\n"));
-    ring->commit();
-    if (rememberVLCDClient!=RingStream::NO_CLIENT) ring->mark(rememberVLCDClient);
-    return;  
-   }
-  #endif
-  StringFormatter::send(virtualLCDSerial,F("\">\n"));  
-}
-
-void CommandDistributor::setVirtualLCDSerial(Print * stream) {
-  #ifdef  CD_HANDLE_RING
-  virtualLCDClient=RingStream::NO_CLIENT;
-  if (stream && stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM) {
-     virtualLCDClient=((RingStream *) stream)->peekTargetMark();
-     virtualLCDSerial=nullptr;
-     return;
-  }      
-    #endif
-  virtualLCDSerial=stream;
-}
-
-Print* CommandDistributor::virtualLCDSerial=&USB_SERIAL;
-byte CommandDistributor::virtualLCDClient=0xFF;
-byte CommandDistributor::rememberVLCDClient=0;

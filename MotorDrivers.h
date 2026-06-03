@@ -1,7 +1,7 @@
 /*
  *  © 2022-2023 Paul M. Antoine
  *  © 2021 Fred Decker
- *  © 2020-2024 Harald Barth
+ *  © 2020-2026 Harald Barth
  *  (c) 2020 Chris Harlow. All rights reserved.
  *  (c) 2021 Fred Decker.  All rights reserved.
  *  (c) 2020 Harald Barth. All rights reserved.
@@ -57,6 +57,35 @@
 // of the brake pin on the motor bridge is inverted
 // (HIGH == release brake)
 
+// The EX8874 shield has the following possible pin positions:
+//
+// signal name    number  arduino location
+//                 (*)                       
+// alt_fault_n_a   15          D0         
+// alt_fault_n_b   16          D1         
+// alt_pwm_a       17          D2         
+// def_pwm_a       18          D3         
+// alt_dir_b       19          D4         
+// alt_pwm_b       20          D5         
+// alt_brake_b     21          D6         
+// alt_brake_a     22          D7         
+// def_brake_b     23          D8         
+// def_brake_a     24   `      D9         
+// alt_dir_a       25          D10        
+// def_pwm_b       26          D11        
+// def_dir_a       27          D12        
+// def_dir_b       28          D13        
+// 
+// def_sen_a        9          A0         
+// def_sen_b       10          A1         
+// alt_sen_a       11          A2         
+// alt_sen_b       12          A3         
+// def_fault_n_a   13          A4         
+// def_fault_n_b   14          A5         
+//
+// (*) in the EX8874 schematics
+
+
 // You can have a CS wihout any possibility to do any track signal.
 // That's strange but possible.
 #define NO_SHIELD F("No shield at all")
@@ -104,6 +133,41 @@
 #define EX8874_SHIELD F("EX8874"),\
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 1.27, 5000, 36 /*A4*/), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 1.27, 5000, 39 /*A5*/)
+
+// There is a KS5016 Keystudio ESP32 Development Board.
+// https://www.dropbox.com/scl/fo/ygn2yodfjpll1945hdw16/AHLpcNwS_-wzqQU37hHkbcw/KS5016%20Keyestudio%20ESP32%20Development%20Board.pdf
+// Pin allocation on the Keystudio is like this:
+// 
+//arduino location  gpio  DCCEX
+//                  number name
+//     D0            rx
+//     D1            tx
+//     D2            26
+//     D3            25   pwrA 
+//     D4            17
+//     D5            16
+//     D6            27
+//     D7            14
+//     D8            12   brkB 
+//     D9            13   brkA 
+//     D10            5
+//     D11           23   pwrB 
+//     D12           19   dirA 
+//     D13           18   dirB 
+//
+//     A0            32   senA 
+//     A1            33   senB 
+//     A2            34
+//     A3            35
+//     A4            36   fltA 
+//     A5            39   fltB 
+//
+// If that board is combined with a EX8874 shield the motor driver is:
+//
+
+#define EX8874_KEYES_ESP32 F("EX8874 on Keystudio ESP32 (KS5016)"),\
+    new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 32/*A0*/, 1.52, 5000, 36 /*A4*/), \
+    new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 33/*A1*/, 1.52, 5000, 39 /*A5*/)
 
 // EX-CSB1 with integrated motor driver definition
 #define EXCSB1 F("EXCSB1"),\

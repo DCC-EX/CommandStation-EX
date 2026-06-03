@@ -245,10 +245,6 @@
 #if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
 #define IO_NO_HAL // HAL too big whatever you disable otherwise
 
-#ifndef ENABLE_VDPY
-#define DISABLE_VDPY
-#endif
-
 #ifndef ENABLE_DIAG
 #define DISABLE_DIAG
 #endif
