@@ -179,9 +179,9 @@ ZZ(T,id,DCC,addr,subadd) // Create DCC turnout
         CHECK(DCCTurnout::create(id, addr, subadd)) 
 ZZ(T,id,DCC,linearAddr)  // Create DCC turnout
         CHECK(DCCTurnout::create(id, (linearAddr-1)/4+1, (linearAddr-1)%4)) 
-ZZ(T,id,addr,subadd) // Create DCC turnout (prefer <T id DCC addr subadd> form for clarity)
+ZZ(T,id,addr,subadd) // Create DCC turnout (Deprecated use <T id DCC addr subadd>)
         CHECK(DCCTurnout::create(id, addr, subadd)) 
-ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout
+ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout (Deprecated use <T id SERVO vpin closedValue thrownValue>)
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
 ZZ(S,id,vpin,pullup)  // Create Sensor
         CHECK(Sensor::create(id,vpin,pullup)) 
