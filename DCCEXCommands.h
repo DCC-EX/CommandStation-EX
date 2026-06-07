@@ -123,9 +123,9 @@ ZZ(#) // Request number of simultaneously supported locos
         
 ZZ(!)   // Emergency stop all locos
         DCC::estopAll(); 
-ZZ(!,P) //  ESTOP pause layoput
+ZZ(!,P) //  ESTOP pause layout
         DCC::estopLock(true); // <!P>
-ZZ(!,R) //  ESTOP rfesume paused layoput
+ZZ(!,R) //  ESTOP resume paused layout
         DCC::estopLock(false); // <!R>
 ZZ(!,Q) //  ESTOP query paused status
         REPLY("<!%S>\n",DCC::isEstopLocked() ? F("PAUSED") : F("RESUMED")); // <!Q>     
@@ -169,13 +169,17 @@ ZZ(T,id,value) // Close (value=0) ot Throw turnout
         Turnout::setClosed(id, value==0);      
 ZZ(T,id,SERVO,vpin,closedValue,thrownValue) // Create Servo turnout  
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1)) 
+ZZ(T,id,SERVO,vpin,closedValue,thrownValue,profile) // Create Servo turnout
+/// profile: 1=Fast, 2=Medium, 3=Slow
+        CHECK(profile>=1 && profile<=3,Invalid profile 1..3 )  
+        CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, profile)) 
 ZZ(T,id,VPIN,vpin)  // Create pin turnout
         CHECK(VpinTurnout::create(id, vpin)) 
 ZZ(T,id,DCC,addr,subadd) // Create DCC turnout 
         CHECK(DCCTurnout::create(id, addr, subadd)) 
 ZZ(T,id,DCC,linearAddr)  // Create DCC turnout
         CHECK(DCCTurnout::create(id, (linearAddr-1)/4+1, (linearAddr-1)%4)) 
-ZZ(T,id,addr,subadd) // Create DCC turnout
+ZZ(T,id,addr,subadd) // Create DCC turnout (prefer <T id DCC addr subadd> form for clarity)
         CHECK(DCCTurnout::create(id, addr, subadd)) 
 ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
