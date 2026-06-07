@@ -83,17 +83,17 @@ private:
 
 public:
   //  Static function to handle "HALDisplay::create(...)" calls.
-  static void create(I2CAddress i2cAddress, int width, int height) {
-    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(0, i2cAddress, width, height);
+  static void create(I2CAddress i2cAddress, int width, int height, Orientation orientation = Orientation::normal) {
+    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(0, i2cAddress, width, height, orientation);
   } 
-  static void create(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
-    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(displayNo, i2cAddress, width, height);
+  static void create(uint8_t displayNo, I2CAddress i2cAddress, int width, int height, Orientation orientation = Orientation::normal) {
+    if (checkNoOverlap(0, 0, i2cAddress)) new HALDisplay(displayNo, i2cAddress, width, height, orientation);
   } 
 
 protected:
   // Constructor
-  HALDisplay(uint8_t displayNo, I2CAddress i2cAddress, int width, int height) {
-    _displayDriver = new T(i2cAddress, width, height);
+  HALDisplay(uint8_t displayNo, I2CAddress i2cAddress, int width, int height, Orientation orientation) {
+    _displayDriver = new T(i2cAddress, width, height, orientation);
     if (!_displayDriver) return;  // Check for memory allocation failure
     _I2CAddress = i2cAddress;
     _width = width;

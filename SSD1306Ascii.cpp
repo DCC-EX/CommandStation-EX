@@ -115,6 +115,27 @@ const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
     SSD1306_DISPLAYON
 };
 
+const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit_FLIP[] = {
+    // Init sequence changing SEGREMAP and COMSCAN to flip display orientation
+    0x00,                              // Set to command mode
+    SSD1306_DISPLAYOFF,
+    SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80 
+    SSD1306_SETMULTIPLEX, 0x3F,        // ratio 64 (initially)
+    SSD1306_SETDISPLAYOFFSET, 0x0,     // no offset
+    SSD1306_SETSTARTLINE | 0x0,        // line #0
+    SSD1306_CHARGEPUMP, 0x14,          // internal vcc
+    SSD1306_MEMORYMODE, 0x02,          // page mode
+    SSD1306_SEGREMAP | 0x0,            // column 0 mapped to SEG0
+    SSD1306_COMSCANINC,                // column scan direction normal
+    SSD1306_SETCOMPINS, 0X12,          // set COM pins
+    SSD1306_SETCONTRAST, 0x7F,         // contrast level 127
+    SSD1306_SETPRECHARGE, 0xF1,        // pre-charge period (1, 15)
+    SSD1306_SETVCOMDETECT, 0x40,       // vcomh regulator level
+    SSD1306_DISPLAYALLON_RESUME,
+    SSD1306_NORMALDISPLAY,
+    SSD1306_DISPLAYON
+};
+
 //------------------------------------------------------------------------------
 // This section is based on https://github.com/stanleyhuangyc/MultiLCD
 
@@ -139,19 +160,41 @@ const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init[] = {
   SSD1306_DISPLAYON
 };
 
+// Init sequence changing SEGREMAP and COMSCAN to flip display orientation
+const uint8_t FLASH SSD1306AsciiWire::SH1106_132x64init_FLIP[] = {
+  0x00,                                  // Set to command mode
+  SSD1306_DISPLAYOFF,
+  SSD1306_SETDISPLAYCLOCKDIV, 0X80,      // set osc division
+  SSD1306_SETMULTIPLEX, 0x3F,            // ratio 64
+  SSD1306_SETDISPLAYOFFSET, 0X00,        // set display offset
+  SSD1306_SETSTARTPAGE | 0X0,            // set page address
+  SSD1306_SETSTARTLINE | 0x0,            // set start line
+  SH1106_SET_PUMP_MODE, SH1106_PUMP_ON,  // set charge pump enable
+  SSD1306_SEGREMAP | 0x0,                // column 0 mapped to SEG0
+  SSD1306_COMSCANINC,                    // column scan direction normal
+  SSD1306_SETCOMPINS, 0X12,              // set COM pins
+  SSD1306_SETCONTRAST, 0x80,             // 128
+  SSD1306_SETPRECHARGE, 0X1F,            // set pre-charge period
+  SSD1306_SETVCOMDETECT,  0x40,          // set vcomh
+  SH1106_SET_PUMP_VOLTAGE | 0X2,         // 8.0 volts
+  SSD1306_NORMALDISPLAY,                 // normal / reverse
+  SSD1306_DISPLAYON
+};
+
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
  
 // Auto-detect address
-SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) 
-  : SSD1306AsciiWire(0, width, height) { }
+SSD1306AsciiWire::SSD1306AsciiWire(int width, int height, Orientation orientation) 
+  : SSD1306AsciiWire(0, width, height, orientation) { }
 
 // Constructor with explicit address
-SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height) {
+SSD1306AsciiWire::SSD1306AsciiWire(I2CAddress address, int width, int height, Orientation orientation) {
   m_i2cAddr = address;
   m_displayWidth = width;
   m_displayHeight = height;
+  m_orientation = orientation;
   // Set size in characters
   m_charsPerColumn = m_displayHeight / fontHeight;
   m_charsPerRow = (m_displayWidth+fontWidth-1) / fontWidth; // Round up
@@ -180,10 +223,18 @@ bool SSD1306AsciiWire::begin() {
   if (m_displayWidth==132 && m_displayHeight==64) {
     // SH1106 display.  This uses 128x64 centered within a 132x64 OLED.
     m_colOffset = 2;
-    I2CManager.write_P(m_i2cAddr, SH1106_132x64init, sizeof(SH1106_132x64init));
+    if (m_orientation == Orientation::flipped) {
+      I2CManager.write_P(m_i2cAddr, SH1106_132x64init_FLIP, sizeof(SH1106_132x64init_FLIP));
+    } else {
+      I2CManager.write_P(m_i2cAddr, SH1106_132x64init, sizeof(SH1106_132x64init));
+    }
   } else if (m_displayWidth==128 && (m_displayHeight==64 || m_displayHeight==32)) {
     // SSD1306 or SSD1309 128x64 or 128x32
-    I2CManager.write_P(m_i2cAddr, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
+    if (m_orientation == Orientation::flipped) {
+      I2CManager.write_P(m_i2cAddr, Adafruit128xXXinit_FLIP, sizeof(Adafruit128xXXinit_FLIP));
+    } else {
+      I2CManager.write_P(m_i2cAddr, Adafruit128xXXinit, sizeof(Adafruit128xXXinit));
+    }
     if (m_displayHeight == 32) 
       I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
         SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32

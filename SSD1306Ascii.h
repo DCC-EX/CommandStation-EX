@@ -39,9 +39,9 @@
 class SSD1306AsciiWire : public DisplayDevice {
  public:
 
-  // Constructors
-  SSD1306AsciiWire(int width, int height); // Auto-detects I2C address
-  SSD1306AsciiWire(I2CAddress address, int width, int height);  
+  // Constructors; optional orientation paramater defaults to normal
+  SSD1306AsciiWire(int width, int height, Orientation orientation = Orientation::normal); // Auto-detects I2C address
+  SSD1306AsciiWire(I2CAddress address, int width, int height, Orientation orientation = Orientation::normal);
 
   // Initialize the display controller.
   bool begin();
@@ -68,6 +68,8 @@ class SSD1306AsciiWire : public DisplayDevice {
   uint8_t m_displayWidth;
   // Display height.
   uint8_t m_displayHeight;
+  // Rotation of display
+  Orientation m_orientation;
   // Display width in characters
   uint8_t m_charsPerRow;
   // Display height in characters
@@ -95,6 +97,8 @@ class SSD1306AsciiWire : public DisplayDevice {
   static const uint8_t System6x8[];
   static const uint8_t FLASH Adafruit128xXXinit[];
   static const uint8_t FLASH SH1106_132x64init[];
+  static const uint8_t FLASH Adafruit128xXXinit_FLIP[];
+  static const uint8_t FLASH SH1106_132x64init_FLIP[];
 };
 
 #endif  // SSD1306Ascii_h

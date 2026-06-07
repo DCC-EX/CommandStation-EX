@@ -50,6 +50,10 @@ void halSetup() {
 
   //HALDisplay<OLED>::create(1, 0x3d, 128, 32);
 
+  // To invert the orientation of the OLED, add the Orientation::flipped parameter:
+
+  // HALDisplay<OLED>::create(1, 0x3d, 128, 32, Orientation::flipped);
+
   // Create a 20x4 LCD display device as display number 2 
   // (line 0 is written by EX-RAIL 'SCREEN(2, 0, "text")').
 
