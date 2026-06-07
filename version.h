@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.4"
+#define VERSION "5.7.5"
+// 5.7.5  - Bugfix: <W cv value> and similar commands incorrectly limited cv number to 255 instead of 1023. 
+//        - Removed unnecessary pin change message (ESP32)
+//        - Improved command parser error messages
+//        - Bugfix: variety of ZZParser format checking and error reporting issues
+//        - Corrected new UDP command responses
 // 5.7.4  - ESP32 MDNS service adverts for udp, multicast and http services
 // 5.7.3  - ZZPARSER First merge 
 // 5.7.2  - LCD/OLED messages are broadcast to all <> clients 
