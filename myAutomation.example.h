@@ -25,14 +25,16 @@
 
 // This is the startup sequence, 
 AUTOSTART
+SET_TRACK(A,MAIN)
+SET_TRACK(B,PROG)
 POWERON        // turn on track power
 SENDLOCO(3,1) // send loco 3 off along route 1
 SENDLOCO(10,2) // send loco 10 off along route 2
 DONE     // This just ends the startup thread, leaving 2 others running.
 
 /* SEQUENCE(1) is a simple shuttle between 2 sensors      
- *  S20 and S21 are sensors on arduino pins 20 and 21 
- *  S20                    S21                   
+ *  S167 and S168 are sensors on vpins 167 and 168 
+ *  S167                   S168                   
  *  === START->================
  */
    SEQUENCE(1) 
@@ -41,40 +43,40 @@ DONE     // This just ends the startup thread, leaving 2 others running.
      DELAY(1000)    // wait 1 second
      FOFF(3)      // Horn off
      FWD(80)      // Move forward at speed 80
-     AT(21)       // until we hit sensor id 21
+     AT(168)       // until we hit sensor 168
      STOP         // then stop
      DELAY(5000)    // Wait 5 seconds
      FON(2)       // ring bell
      REV(60)      // reverse at speed 60
-     AT(20)       // until we get to S20
+     AT(167)       // until we get to S167
      STOP         // then stop
      FOFF(2)      // Bell off 
      FOLLOW(1)    // and follow sequence 1 again
    
 /* SEQUENCE(2) is an automation example for a single loco Y shaped journey
- *  S31,S32,S33 are sensors, T4 is a turnout
+ *  S164,S165,S166 are sensors, T4 is a turnout
  *  
- *  S33                      T4                            S31
+ *  S166                      T4                        S164
  *  ===-START->=============================================
  *                          //
- *  S32                    //
+ *  S165                    //
  *  ======================//
  *  
- *  Train runs from START to S31, back to S32, again to S31, Back to start.
+ *  Train runs from START to S164, back to S165, again to S164, Back to start.
  */
   SEQUENCE(2)
    FWD(60)     // go forward at DCC speed 60 
-   AT(31) STOP  // when we get to sensor 31 
+   AT(164) STOP  // when we get to sensor 164 
    DELAY(10000)  // wait 10 seconds 
-   THROW(4)    // throw turnout for route to S32
+   THROW(4)    // throw turnout for route to S165
    REV(45)     // go backwards at speed 45
-   AT(32) STOP  // until we arrive at sensor 32
+   AT(165) STOP  // until we arrive at sensor 165
    DELAY(5000)   // wait 5 seconds
    FWD(50)     // go forwards at speed 50
-   AT(31) STOP  // and stop at sensor 31
+   AT(164) STOP  // and stop at sensor 164
    DELAY(5000)   // wait 5 seconds 
    CLOSE(4)    // set turnout closed
-   REV(50)     // reverse back to S3
-   AT(33) STOP
+   REV(50)     // reverse back to S166
+   AT(166) STOP
    DELAY(20000)  // wait 20 seconds 
    FOLLOW(2)   // follow sequence 2... ie repeat the process
