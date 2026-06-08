@@ -616,7 +616,13 @@ ZZ(F,loco,DCCFREQ,freqvalue) // Set DC frequencey for loco
         CHECK(freqvalue>=0 && freqvalue<=3) DCC::setDCFreq(loco,freqvalue);
 ZZ(F,loco,function,onoff) // Set loco function ON/OFF
         CHECK(onoff==0 || onoff==1) DCC::setFn(loco,function,onoff);    
-ZZMANY(^) // List consists or build consists from variable number of loco ids (negative for reverse)
+
+ZZ(^) // List consists
+  CHECK(DCCConsist::parse(stream,params,p),Consist failed)
+ZZ(^, loco) // uncouples any consist containing this loco
+  CHECK(DCCConsist::parse(stream,params,p),Consist failed)
+ZZMANY(^) // Build consists from variable number of loco ids (negative for reverse)
+// ZZ(^, leadloco,follower [,follower2..7]) // creates a consist from up to 8 loco ids (negative for loco in reverse) 
   CHECK(DCCConsist::parse(stream,params,p),Consist failed)
 
 #ifndef ARDUINO_ARCH_ESP32
@@ -826,4 +832,11 @@ ZZ(y,vpin,EQ,eq) // Set sound EQ
      IODevice::writeAnalogue(vpin,0,eq,DFPlayerBase::DF_EQ);
 ZZ(y,vpin,RESET) // Reset sound module
      IODevice::writeAnalogue(vpin,0,0,DFPlayerBase::DF_RESET);
+
+// SensorCam abbreviated documentation.      
+// ZZ(N)   //List current and alternate defines for SensorCam base vpins
+// ZZ(N,Q) //Lists full set of SensorCam sensor states
+// ZZ(N,cmd,value)  //execute SensorCam command with parameters
+ZZMANY(N) // this will catch N commands when the SensorCam Parser was not loaded by its HAL driver 
+   CHECK(false,SensorCam not implemented)
 ZZEND
