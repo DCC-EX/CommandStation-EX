@@ -549,7 +549,7 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
    }
   else
    {
-    b[nB++] = 0x80 | (inverted_high << 4) | 0x08 | (a1a0 << 1) | 0x00;
+    b[nB++] = 0x00 | (inverted_high << 4) | 0x00 | (a1a0 << 1) | 0x01;
    }
 
   // Byte 3 & 4: Configuration Variable Long Form (CV - 1)
