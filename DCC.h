@@ -64,6 +64,9 @@ public:
   static void readCVByteMain(int cab, int cv, ACK_CALLBACK callback);
   
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
+  
+  static void writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic);
+  
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
   static void changeFn(int cab, int16_t functionNumber);
