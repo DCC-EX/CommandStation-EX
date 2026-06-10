@@ -535,8 +535,8 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
   // Bit 0 = 0
 
   // Extended accessory decoder
-  // Byte 2: 1Ā10Ā9Ā80A1A01 -> (Ā indicates ones' complement)
-  // Bit 7 = 1
+  // Byte 2: 0Ā10Ā9Ā80A1A01 -> (Ā indicates ones' complement)
+  // Bit 7 = 0
   // Bits 4-6 = inverted a10a8
   // Bit 3 = 0 (Programming device default write flag extended accessory decoder)
   // Bits 1-2 = a1a0
