@@ -582,7 +582,7 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, boo
   // Byte 4 - 6:  CV Address Bits    this is the 24 bit indexed cv address
   //                                 byte 4 is CV31, byte 5 is CV32, byte 6 is the 8 bit CV address
   //                                 all three bytes are required
-  // Byte 7 - 10: Data               data is 0 - 4 bytes the first byte is written to the 24bit address from above
+  // Byte 7 - 10: Data               data is 1 - 4 bytes the first byte is written to the 24bit address from above
   //                                 the subsequent bytes are written to successive CVs
 
   //  TODO work out correct way to implement the above
