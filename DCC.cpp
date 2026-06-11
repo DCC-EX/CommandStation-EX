@@ -513,6 +513,52 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
   DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
 }
 
+
+void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue)  {
+  byte b[5];             // this needs to be set depending on xpom which will need upto 10 bytes.
+  int nB = 0;
+
+  // Extract NMRA address bits from cab (0-indexed 11-bit address space)
+  // for basic, extended and xpoms this is the same.
+
+  byte a10a8 = (cab >> 8) & 0x07; // Top 3 bits
+  byte a7a2  = (cab >> 2) & 0x3F; // Middle 6 bits
+  byte a1a0  = cab & 0x03;        // Bottom 2 bits
+
+  // Byte 1: 10A7A6A5A4A3A2
+  b[nB++] = 0x80 | a7a2;
+
+  // Basic accessory decoder pom
+  // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
+  // Bit 7 = 1
+  // Bits 4-6 = inverted a10a8
+  // Bit 3 = 1 (Programming device default write flag basic accessory decoder)
+  // Bits 1-2 = a1a0
+  // Bit 0 = 0
+
+  byte inverted_high = (~a10a8) & 0x07;
+
+  b[nB++] = 0x80 | (inverted_high << 4) | 0x08 | (a1a0 << 1) | 0x00;
+  // Byte 3 & 4: Configuration Variable Long Form (CV - 1) these are 10 bit binary so 0-1024
+  // 1110GGVV 0 VVVVVVVV               GG is Instruction Sub Type in this case 11 write byte
+  //                                   V is CV number
+  // 3          4
+  // Byte 3: 111011A9A8                CV number upper bits A9 A8.
+  // Byte 4: A7A6A5A4A3A2A1A0          CV number lower bits A7 - A0
+    int cvAddress = cv - 1;
+    b[nB++] = 0xEC | ((cvAddress >> 8) & 0x03);
+    b[nB++] = cvAddress & 0xFF;
+
+  // Byte 5: Data
+    b[nB++] = bValue;
+
+  DCCQueue::scheduleDCCPacket(b, nB, 4, cab);
+}
+
+
+
+
+
 bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
   /* see rcn-122
   5 Global commands 

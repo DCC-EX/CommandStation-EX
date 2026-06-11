@@ -569,7 +569,11 @@ ZZ(r,loco,cv) // POM read cv on main track
         DCC::readCVByteMain(loco,cv,callback_r);
 ZZ(b,loco,cv,bit,bitvalue)  // POM write cv bit on main track
         DCC::writeCVBitMain(loco,cv,bit,bitvalue);
- 
+
+ZZ(w,A,linearaddress,cv,value) // POM write basic accessory decoder cv on main track
+        DCC::writeAccessoryCVByteMain(linearaddress,cv,value);
+
+
 ZZ(m,LINEAR) // Set Momentum algorithm to linear acceleration
         DCC::linearAcceleration=true;
 ZZ(m,POWER) // Set momentum algortithm to very based on difference between current speed and throttle seting
