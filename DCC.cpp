@@ -514,11 +514,13 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 }
 
 
-void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
-  byte b[5];
+void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, bool xpom)  {
+  byte b[5];             // this needs to be set depending on xpom which will need upto 10 bytes.
   int nB = 0;
 
   // Extract NMRA address bits from cab (0-indexed 11-bit address space)
+  // for basic, extended and xpoms this is the same.
+
   byte a10a8 = (cab >> 8) & 0x07; // Top 3 bits
   byte a7a2  = (cab >> 2) & 0x3F; // Middle 6 bits
   byte a1a0  = cab & 0x03;        // Bottom 2 bits
@@ -526,7 +528,7 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
   // Byte 1: 10A7A6A5A4A3A2
   b[nB++] = 0x80 | a7a2;
 
-  // Basic accessory decoder
+  // Basic accessory decoder including xpom
   // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
   // Bit 7 = 1
   // Bits 4-6 = inverted a10a8
@@ -534,13 +536,15 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
   // Bits 1-2 = a1a0
   // Bit 0 = 0
 
-  // Extended accessory decoder
+
+  // Extended accessory decoder including xpom
   // Byte 2: 0Ā10Ā9Ā80A1A01 -> (Ā indicates ones' complement)
   // Bit 7 = 0
   // Bits 4-6 = inverted a10a8
   // Bit 3 = 0 (Programming device default write flag extended accessory decoder)
   // Bits 1-2 = a1a0
   // Bit 0 = 1
+
   byte inverted_high = (~a10a8) & 0x07;
 
   if (basic)
@@ -552,15 +556,43 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic)  {
     b[nB++] = 0x00 | (inverted_high << 4) | 0x00 | (a1a0 << 1) | 0x01;
    }
 
-  // Byte 3 & 4: Configuration Variable Long Form (CV - 1)
-  // Byte 3: 111011A9A8
-  // Byte 4: A7A6A5A4A3A2A1A0
-  int cvAddress = cv - 1;
-  b[nB++] = 0xEC | ((cvAddress >> 8) & 0x03);
-  b[nB++] = cvAddress & 0xFF;
+  if (!xpom)
+   {
+  // Byte 3 & 4: Configuration Variable Long Form (CV - 1) these are 10 bit binary so 0-1024
+  // 1110GGVV 0 VVVVVVVV               GG is Instruction Sub Type in this case 11 write byte
+  //                                   V is CV number
+  // 3          4
+  // Byte 3: 111011A9A8                CV number upper bits A9 A8.
+  // Byte 4: A7A6A5A4A3A2A1A0          CV number lower bits A7 - A0
+    int cvAddress = cv - 1;
+    b[nB++] = 0xEC | ((cvAddress >> 8) & 0x03);
+    b[nB++] = cvAddress & 0xFF;
 
   // Byte 5: Data
-  b[nB++] = bValue;
+    b[nB++] = bValue;
+   }
+  else
+   {
+  // xpom basic and extended
+  // (1110GGSS 0 VVVVVVVV 0 VVVVVVVV 0 VVVVVVVV 0 {DDDDDDDD 0 {DDDDDDDD 0 {DDDDDDDD 0 {DDDDDDDD}}}})
+  //  3          4          5          6           7           8           9           10
+  // Byte 3:      111011SS        GG is Instruction Sub Type in this case 11 write byte
+  //                              SS is Decoder Sub Address or Sequence Number set to 0x00
+  //                                 as there is no bidirectional feedback
+  // Byte 4 - 6:  CV Address Bits    this is the 24 bit indexed cv address
+  //                                 byte 4 is CV31, byte 5 is CV32, byte 6 is the 8 bit CV address
+  //                                 all three bytes are required
+  // Byte 7 - 10: Data               data is 0 - 4 bytes the first byte is written to the 24bit address from above
+  //                                 the subsequent bytes are written to successive CVs
+
+  //  TODO work out correct way to implement the above
+  //  this is not necessarily correct
+//    b[nB++] = 0xEC | 0x00;           // byte 3
+//    int cvAddress = cv - 1;
+//    b[nB++] =                        // byte 4
+//    b[nB++] =                        // byte 5
+//    b[nB++] =                        // byte 6
+   }
 
   DCCQueue::scheduleDCCPacket(b, nB, 4, cab);
 }
