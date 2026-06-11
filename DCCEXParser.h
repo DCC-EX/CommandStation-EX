@@ -34,6 +34,7 @@ struct DCCEXParser
    static void parse(Print * stream,  byte * command);
    static void parse(const FSH * cmd);
    static void parseOne(Print * stream,  byte * command);
+   static void parseNodeTraffic(byte * command);
    static void setFilter(FILTER_CALLBACK filter);
    static void setCamParserFilter(FILTER_CALLBACK filter);
    static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
@@ -51,6 +52,7 @@ struct DCCEXParser
     static const int16_t MAX_BUFFER=50;  // longest command sent in
     static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
     static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[]);
+    static bool executeNodfeTraffic(byte * command, byte opcode, byte params, int16_t p[]);
 
     static bool stashBusy;    
     static int16_t stashP[MAX_COMMAND_PARAMS];
