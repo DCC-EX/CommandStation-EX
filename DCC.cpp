@@ -514,7 +514,7 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 }
 
 
-void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, bool xpom)  {
+void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue)  {
   byte b[5];             // this needs to be set depending on xpom which will need upto 10 bytes.
   int nB = 0;
 
@@ -528,7 +528,7 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, boo
   // Byte 1: 10A7A6A5A4A3A2
   b[nB++] = 0x80 | a7a2;
 
-  // Basic accessory decoder including xpom
+  // Basic accessory decoder pom
   // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
   // Bit 7 = 1
   // Bits 4-6 = inverted a10a8
@@ -536,28 +536,9 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, boo
   // Bits 1-2 = a1a0
   // Bit 0 = 0
 
-
-  // Extended accessory decoder including xpom
-  // Byte 2: 0Ā10Ā9Ā80A1A01 -> (Ā indicates ones' complement)
-  // Bit 7 = 0
-  // Bits 4-6 = inverted a10a8
-  // Bit 3 = 0 (Programming device default write flag extended accessory decoder)
-  // Bits 1-2 = a1a0
-  // Bit 0 = 1
-
   byte inverted_high = (~a10a8) & 0x07;
 
-  if (basic)
-   {
-    b[nB++] = 0x80 | (inverted_high << 4) | 0x08 | (a1a0 << 1) | 0x00;
-   }
-  else
-   {
-    b[nB++] = 0x00 | (inverted_high << 4) | 0x00 | (a1a0 << 1) | 0x01;
-   }
-
-  if (!xpom)
-   {
+  b[nB++] = 0x80 | (inverted_high << 4) | 0x08 | (a1a0 << 1) | 0x00;
   // Byte 3 & 4: Configuration Variable Long Form (CV - 1) these are 10 bit binary so 0-1024
   // 1110GGVV 0 VVVVVVVV               GG is Instruction Sub Type in this case 11 write byte
   //                                   V is CV number
@@ -570,29 +551,6 @@ void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue, bool basic, boo
 
   // Byte 5: Data
     b[nB++] = bValue;
-   }
-  else
-   {
-  // xpom basic and extended
-  // (1110GGSS 0 VVVVVVVV 0 VVVVVVVV 0 VVVVVVVV 0 {DDDDDDDD 0 {DDDDDDDD 0 {DDDDDDDD 0 {DDDDDDDD}}}})
-  //  3          4          5          6           7           8           9           10
-  // Byte 3:      111011SS        GG is Instruction Sub Type in this case 11 write byte
-  //                              SS is Decoder Sub Address or Sequence Number set to 0x00
-  //                                 as there is no bidirectional feedback
-  // Byte 4 - 6:  CV Address Bits    this is the 24 bit indexed cv address
-  //                                 byte 4 is CV31, byte 5 is CV32, byte 6 is the 8 bit CV address
-  //                                 all three bytes are required
-  // Byte 7 - 10: Data               data is 1 - 4 bytes the first byte is written to the 24bit address from above
-  //                                 the subsequent bytes are written to successive CVs
-
-  //  TODO work out correct way to implement the above
-  //  this is not necessarily correct
-//    b[nB++] = 0xEC | 0x00;           // byte 3
-//    int cvAddress = cv - 1;
-//    b[nB++] =                        // byte 4
-//    b[nB++] =                        // byte 5
-//    b[nB++] =                        // byte 6
-   }
 
   DCCQueue::scheduleDCCPacket(b, nB, 4, cab);
 }

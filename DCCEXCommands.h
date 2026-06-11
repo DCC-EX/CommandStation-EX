@@ -571,13 +571,7 @@ ZZ(b,loco,cv,bit,bitvalue)  // POM write cv bit on main track
         DCC::writeCVBitMain(loco,cv,bit,bitvalue);
 
 ZZ(w,A,linearaddress,cv,value) // POM write basic accessory decoder cv on main track
-        DCC::writeAccessoryCVByteMain(linearaddress,cv,value,true);
-ZZ(w,E,linearaddress,cv,value) // POM write extended accessory decodeer cv on main track
-        DCC::writeAccessoryCVByteMain(linearaddress,cv,value,false);
-ZZ(w,AX,linearaddress,cv,value) // xPOM write basic accessory decoder cv on main track
-        DCC::writeAccessoryCVByteMain(linearaddress,cv,value,true, true);
-ZZ(w,EX,linearaddress,cv,value) // xPOM write extended accessory decodeer cv on main track
-        DCC::writeAccessoryCVByteMain(linearaddress,cv,value,false, true);
+        DCC::writeAccessoryCVByteMain(linearaddress,cv,value);
 
 
 ZZ(m,LINEAR) // Set Momentum algorithm to linear acceleration
