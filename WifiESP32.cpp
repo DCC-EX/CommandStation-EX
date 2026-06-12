@@ -29,6 +29,7 @@
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
+#include "NodeManager.h"
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "Websockets.h"
@@ -38,8 +39,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+
 // Async UDP transport
-#include "AsyncUDP.h"
+
 AsyncUDP udpSend;
 AsyncUDP udpReceive;
 IPAddress udpBroadcastIP;
@@ -50,7 +52,7 @@ struct UdpCommand {
   uint16_t len;
   uint32_t receivedMillis;
   IPAddress remoteIP;  // originator IP
-  uint16_t remotePort; // originator port
+  uint16_t localPort; // Arrival port
   byte data[UDP_COMMAND_MAX + 1]; // +1 for null terminator
 };
 static QueueHandle_t udpCommandQueue = nullptr;
@@ -134,6 +136,7 @@ int16_t WifiESP::wifiLed = 0;
 #endif
 
 WiFiServer *WifiESP::server = NULL;
+const int NODE_PORT=IP_PORT+1; // separate port for node multicast to allow client differentiation and avoid interference with command processing.
 
 char asciitolower(char in) {
   if (in <= 'Z' && in >= 'A')
@@ -241,7 +244,7 @@ bool WifiESP::setup() {
     // set the broadcast address for UDP
   }
   
-  // Receive via UDP unicast
+  // Receive throttle traffic via UDP unicast
   if (!udpReceive.listen(IP_PORT)) {
     DIAG(F("Failed to start UDP receiver for DCC-EX Native Protocol"));
     // return false;
@@ -249,6 +252,8 @@ bool WifiESP::setup() {
     udpReceive.onPacket(packet_listener);
     DIAG(F("UDP receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
   }
+
+NodeManager::setup(); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
 
   return true;
 }
@@ -412,6 +417,11 @@ void WifiESP::loop() {
     if (udpCommandQueue != nullptr) {
       UdpCommand cmd;
       if (xQueueReceive(udpCommandQueue, &cmd, 0) == pdTRUE) {
+        if (cmd.localPort==NODE_PORT) {
+          // This is a Node multicast, no response 
+          NodeManager::parse(cmd.data);
+          return;
+        }
         // DIAG(F("UDP Command processed after %d ms"), millis() - cmd.receivedMillis);
         StringBuffer response(UDP_RESPONSE_MAX); // response buffer for any command responses
         // Track unique UDP clients that send a discovery probe starting with <#>
@@ -528,13 +538,13 @@ void WifiESP::udpMulticast(const char *buffer, const int count) {
 }
 
 // We'll receive UDP packets asynchronously, then send the on to be parsed
-void packet_listener(AsyncUDPPacket &packet) {
+void WifiESP::packet_listener(AsyncUDPPacket &packet) {
   // DIAG(F("UDP Packet received: %s:%d -> %s:%d, Length: %d"),
   //      packet.remoteIP().toString().c_str(), packet.remotePort(),
   //      packet.localIP().toString().c_str(), packet.localPort(),
   //      packet.length());
   // DIAG(F("UDP Packet received: %s"), packet.data());
-  if (packet.isBroadcast() || packet.isMulticast())  return; // ignore broadcast and multicast packets, we only want unicast for commands
+  if (packet.isBroadcast())  return; // ignore broadcast, Unicast commands, multicast Node traffic
   if (packet.length() < 2) {
     DIAG(F("UDP Rcv: Packet too short %d bytes"), packet.length());
     return; // not enough data
@@ -550,7 +560,7 @@ void packet_listener(AsyncUDPPacket &packet) {
   cmd.len = packet.length();
   cmd.receivedMillis = millis();
   cmd.remoteIP   = packet.remoteIP();
-  cmd.remotePort = packet.remotePort();
+  cmd.localPort = packet.localPort();
   memcpy(cmd.data, &packet.data()[0], cmd.len);
   cmd.data[cmd.len] = 0;
 
