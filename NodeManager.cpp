@@ -22,9 +22,10 @@
 
 #ifndef ARDUINO_ARCH_ESP32
 // dummy NodeManager without ESP32 support
- void NodeManager::setup() {}
- void NodeManager::loop() {}
-void NodeManager::cast(const FSH* format...) {}
+void NodeManager::setup() {}
+void NodeManager::cast(const FSH* format...) {
+    (void)format; // avoid unused parameter warning
+}
 #else
 #include <AsyncUDP.h>
 #include <WiFiUdp.h>
