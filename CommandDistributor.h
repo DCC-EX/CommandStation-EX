@@ -29,6 +29,7 @@
 #include "defines.h"
 #include "EXRAIL2.h"
 #include "DCC.h"
+#include "NodeManager.h"
 
 #if WIFI_ON | ETHERNET_ON 
   // Command Distributor must handle a RingStream of clients

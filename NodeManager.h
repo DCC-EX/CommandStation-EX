@@ -22,11 +22,17 @@
 
 #include <Arduino.h>
 #include "FSH.h"
+#include "StringBuffer.h"
 
 class NodeManager {
     public:
-        static void setup();
+        static void setup(bool throttleNode);
+        static void cast(StringBuffer * writer); 
         static void cast(const FSH* format...);
-        static void parse(byte * cmd); 
+        static void parse(byte * cmd);
+        static bool isThrottleNode(); 
+   private:
+        static bool started;
+        static bool isThrottleNodeFlag;     
 };
 #endif // NODEMANAGER_H

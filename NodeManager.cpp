@@ -26,6 +26,9 @@ void NodeManager::setup() {}
 void NodeManager::cast(const FSH* format...) {
     (void)format; // avoid unused parameter warning
 }
+void NodeManager::cast(StringBuffer * buffer) {
+    (void)buffer; // avoid unused parameter warning
+}
 #else
 #include <AsyncUDP.h>
 #include <WiFiUdp.h>
@@ -36,32 +39,26 @@ void NodeManager::cast(const FSH* format...) {
 
 constexpr uint16_t NODE_PORT = IP_PORT+1;
 const IPAddress nodeMulticastIP = {239, 255, 254, 254};
-constexpr uint16_t NODE_UDP_MAX = 255;
-
 AsyncUDP udpNodeRx;
+bool NodeManager::started = false;
+bool NodeManager::isThrottleNodeFlag = true;
 
-void packetLoopbackFilter(AsyncUDPPacket &packet) {
-    // ignore packets sent from this address to avoid processing our own multicasts.
-    if (packet.remoteIP() == WiFi.localIP()) return;
-    
-    // Packets are sent in to the same queue as the throttle commands to avoid multi threading.
-    // The packet_listener will know that this is a node packet and parse it differently when dequeueing.
-    WifiESP::packet_listener(packet); 
-}
-
-void NodeManager::setup() {
+void NodeManager::setup(bool throttleNode) {
+    isThrottleNodeFlag = throttleNode;
     if (!udpNodeRx.listenMulticast(nodeMulticastIP, NODE_PORT)) {
         DIAG(F("Failed to start UDP receiver for DCC-EX Node traffic"));
         return;
     }
+    started = true;
 
     // the packet listener will push received packets to the command parser via a queue.
-    udpNodeRx.onPacket(packetLoopbackFilter);
+    udpNodeRx.onPacket(WifiESP::packet_listener);
     DIAG(F("UDP receiver for DCC-EX Node traffic started on multicast group %s:%d"),
          nodeMulticastIP.toString().c_str(), NODE_PORT);
 }
 
 void NodeManager::cast(const FSH* format...) {
+    if (!started) return;
   WiFiUDP udpNodeTx;
   udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT);
   va_list args;
@@ -70,10 +67,22 @@ void NodeManager::cast(const FSH* format...) {
   va_end(args);
   udpNodeTx.endPacket();
 }
- 
+
+void NodeManager::cast(StringBuffer * buffer) {
+    if (!started || buffer == nullptr || buffer->getLength() <= 0) return;
+  WiFiUDP udpNodeTx;
+  udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT);
+  udpNodeTx.print(buffer->getString());
+  udpNodeTx.endPacket();
+}
+
 void NodeManager::parse(byte * cmd) {
-    DIAG(F("Received node message: %s"), cmd);
     DCCEXParser::parseNodeTraffic(cmd);
 }
+
+bool NodeManager::isThrottleNode() {
+    return isThrottleNodeFlag;
+}
+
 #endif
 

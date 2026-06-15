@@ -101,7 +101,7 @@ protected:
    * Virtual functions
    */
 
-  virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
+  virtual void setClosedInternal(bool close) = 0;  // Mandatory in subclass
   virtual void save() {}
   
   /*
@@ -151,7 +151,10 @@ public:
     return !isClosed(id);
   }
 
-  static bool setClosed(uint16_t id, bool closeFlag);
+  // nodecast is true if the turnout change should be broadcast to other nodes.  
+  // This is normally true, but false must be given when a node receives
+  // a turnout change from another node.
+  static bool setClosed(uint16_t id, bool closeFlag, bool nodecast=true);
 
   inline static bool setClosed(uint16_t id) {
     return setClosed(id, true);
@@ -161,7 +164,7 @@ public:
     return setClosed(id, false);
   }
 
-  static bool setClosedStateOnly(uint16_t id, bool close);
+  bool setClosedStateOnly(bool close);
 
   inline static Turnout *first() { return _firstTurnout; }
 
@@ -215,7 +218,7 @@ public:
 
 protected:
   // ServoTurnout-specific code for throwing or closing a servo turnout.
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -247,7 +250,7 @@ public:
   void print(Print *stream) override;
 
 protected:
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -277,7 +280,7 @@ public:
   void print(Print *stream) override;
 
 protected:
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -301,7 +304,7 @@ public:
   static Turnout *create(uint16_t id, bool closed=true);
 
 
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
 
   // LCN turnouts not saved to EEPROM.
   //void save() override {  }

@@ -451,7 +451,13 @@ ZZ(C,WIFI,OFF) // Disable Wifi
         WifiESP::setup();
 ZZ(C,WIFI,ON) // Enable Wifi
         WifiPreferences::enable(true);
+        WifiPreferences::saveThrottleNode(true);
         WifiESP::setup();
+ZZ(C,WIFI,NODE) // Enable Wifi Node without throttle support
+        WifiPreferences::enable(true);
+        WifiPreferences::saveThrottleNode(false);
+        WifiESP::setup();
+        
 ZZ(C,WIFI,HOSTNAME,hostname) // set Wifi hostname (in quotes)
   CHECKQ(hostname)
   WifiPreferences::saveHostName(q_hostname); 

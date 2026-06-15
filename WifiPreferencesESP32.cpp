@@ -44,6 +44,7 @@ bool WifiPreferences::load() {
   enabled = preferences.getBool("enabled", true);
   channelAP = preferences.getUChar("channelAP", 11);
   hiddenAP = preferences.getBool("hiddenAP", false);
+  throttleNode = preferences.getBool("throttleNode", true);
   preferences.end();
   return true;
 }
@@ -92,6 +93,12 @@ void WifiPreferences::enable(bool enable) {
   preferences.putBool("enabled", enabled);
   preferences.end();
 }
+void WifiPreferences::saveThrottleNode(bool _throttleNode) {
+  throttleNode = _throttleNode;
+  preferences.begin("DCCEX-WIFI", false); // read/write
+  preferences.putBool("throttleNode", throttleNode);
+  preferences.end();
+}
 
 // getters
 bool WifiPreferences::getEnabled() { return enabled;}
@@ -102,6 +109,7 @@ const char *WifiPreferences::getPasswordAP() {return passwordAP;}
 const char *WifiPreferences::getHostName() {return hostName;}
 byte WifiPreferences::getChannelAP() {return channelAP;}
 bool WifiPreferences::getHiddenAP() {return hiddenAP;}
+bool WifiPreferences::getThrottleNode() {return throttleNode;}
 
 void WifiPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
@@ -122,5 +130,6 @@ char WifiPreferences::passwordAP[32] ="";
 byte WifiPreferences::channelAP = 0;
 bool WifiPreferences::hiddenAP = false;
 bool WifiPreferences::enabled  = true;
+bool WifiPreferences::throttleNode  = true;
 char WifiPreferences::hostName[32] ="";
 #endif //ARDUINO_ARCH_ESP32

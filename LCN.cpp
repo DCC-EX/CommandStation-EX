@@ -48,8 +48,9 @@ void LCN::loop() {
     }
     else if (ch == 't' || ch == 'T') { // Turnout opcodes
       if (Diag::LCN) DIAG(F("LCN IN %d%c"),id,(char)ch);
-      if (!Turnout::exists(id)) LCNTurnout::create(id);
-      Turnout::setClosedStateOnly(id,ch=='t');
+      auto tt = Turnout::get(id);
+      if (!tt) tt = LCNTurnout::create(id);
+      tt->setClosedStateOnly(ch=='t');
       id = 0;
     }
     else if (ch == 'y' || ch == 'Y') { // Turnout opcodes

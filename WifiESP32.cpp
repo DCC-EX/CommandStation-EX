@@ -200,7 +200,22 @@ bool WifiESP::setup() {
   if(!MDNS.begin(WifiPreferences::getHostName())) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
+  // Advertise browser interface
+  if(!MDNS.addService("http", "tcp", 80)) {
+    DIAG(F("Wifi setup failed to add http service to mDNS"));
+  }
+  MDNS.addServiceTxt("http", "tcp", "path", "/");
 
+  // Are we expected to handle throttle traffic or just be a node on the network?
+  auto throttlehandler= WifiPreferences::getThrottleNode();
+
+  if (!throttlehandler) {
+    DIAG(F("Wifi setup as node only, no throttle handler"));
+    NodeManager::setup(false); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
+    return true;
+ }
+
+  DIAG(F("Wifi setup as throttle handler"));
   server = new WiFiServer(IP_PORT); // start listening on tcp port
   if (!server) return false;
   // server started here
@@ -214,10 +229,7 @@ bool WifiESP::setup() {
   if(!MDNS.addService("dcc-ex", "udp", IP_PORT)) {
     DIAG(F("Wifi setup failed to add dcc-ex udp service to mDNS"));
   }
-  if(!MDNS.addService("http", "tcp", 80)) {
-    DIAG(F("Wifi setup failed to add http service to mDNS"));
-  }
-  
+ 
 // The followin additional mdns settings created using copilot
 
 // Multicast address for DCC-EX Native Protocol broadcasts
@@ -229,8 +241,8 @@ bool WifiESP::setup() {
   MDNS.addServiceTxt("dcc-ex", "udp", "multicast", "true");
   MDNS.addServiceTxt("dcc-ex", "udp", "group", udpMulticastAddress.c_str());
   MDNS.addServiceTxt("dcc-ex", "udp", "port", udpMulticastPort.c_str());
-  MDNS.addServiceTxt("http", "tcp", "path", "/");
 
+  
   DIAG(F("Server has started on port %d"),IP_PORT);
 
   // Start UDP server for DCC-EX Native Protocol
@@ -252,8 +264,8 @@ bool WifiESP::setup() {
     udpReceive.onPacket(packet_listener);
     DIAG(F("UDP receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
   }
-
-NodeManager::setup(); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
+  
+  NodeManager::setup(true); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
 
   return true;
 }
