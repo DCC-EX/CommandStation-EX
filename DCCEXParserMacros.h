@@ -79,10 +79,10 @@ auto q_##x = (const char *)(com + (x & 0x00FF)); (void)q_##x;
 // Automatic range checks based on name of inserted parameter
 #define ZZCHK(_index,_pname)\
 ZCHECK(loco,_index,_pname,0,10239) \
-ZCHECK(tspeed,_index,_pname,-1,126) \
+ZCHECK(tSpeed,_index,_pname,-1,126) \
 ZCHECK(direction,_index,_pname,0,1) \
 ZCHECK(track,_index,_pname,'A','H') \
 ZCHECK(cv,_index,_pname,1,1023) \
 ZCHECK(value,_index,_pname,0,255) \
-ZCHECK(bit,_index,_pname,0,7) \
-ZCHECK(bitvalue,_index,_pname,0,1)
+ZCHECK(bitPosition,_index,_pname,0,7) \
+ZCHECK(bitValue,_index,_pname,0,1)
