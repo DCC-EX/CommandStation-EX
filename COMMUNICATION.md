@@ -17,19 +17,15 @@ The CS does announce its IP and its services via mDNS.
 
 We have the following services to announce:
 
-TODO: define service names
+TODO: write the service names here
 
 * CS hostname
 * withrottle port (server) over TCP [2560]
 * dccex port (server) over TCP [2560]
 * dccex port (server) over UDP [2560]
-* dccex port (client) over UDP for answers [2561]
-
-We may have to announce:
-
-* the multicast addr for answers?
-* the multicast addr for rebroadcasts?
-* the multicast port for rebroadcasts?
+* dccex port (client) over UDP for answers [2561] ???
+* the multicast IP for answers
+* the multicast port for answers
 
 Once we have all the IP and ports set, communication is like:
 
@@ -51,14 +47,20 @@ when it is set up as a client server connection.
 UDP (dccex)
 ---
 
-Make an equivalent connection via UDP
+Make an equivalent connection via UDP. Unicast looks like this:
 
 ```
 client                            server
 192.168.0.22                     192.168.0.2
          unknown ---UDP--->  2560
             2561 <--UDP----  unknown
-239.255.254.254                  192.168.0.2
+```
+
+For multicast the multicast addr is 239.255.255.X. The CS does derive
+X from the last octet of the server IP (here 2).
+
+```
+239.255.255.2                    192.168.0.2
             2561 <--UDP----  unknown
 ```
 
