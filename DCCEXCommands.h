@@ -562,15 +562,11 @@ ZZ(a,address,activate) // Send dcc accessory command to linear address
         CHECK(activate==0 || activate ==1, invalid activate 0..1 )
         DCC::setAccessory((address - 1) / 4 + 1,(address - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
 ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
-        // signalAspectEvent returns true if the aspect is destined
-        // for a defined DCCX_SIGNAL which will handle all the RAG flags
+        // If the aspect is destined
+        // for a defined DCCX_SIGNAL this will handle all the RAG flags
         // and ON* handlers.
-        // Otherwise false so the parser should send the command directly 
-#ifdef EXRAIL_ACTIVE
-        if (!RMFT2::signalAspectEvent(address,value)) 
-#endif
-        DCC::setExtendedAccessory(address,value);
-
+        
+        Signal::setSignalByReverseAspectLookup(address,value);
 ZZ(w,loco,cv,value) // POM write cv on MAIN track
         DCC::writeCVByteMain(loco,cv,value);
 ZZ(r,loco,cv) // POM read cv on MAIN track
@@ -806,11 +802,11 @@ ZZ(/,LATCH,latch) // Set pin latch
 ZZ(/,UNLATCH,latch) // Remove pin latch
   CHECK(RMFT2::setFlag(latch,0,LATCH_FLAG),invalid latch)
 ZZ(/,RED,signal) // Set signal to Red 
-   RMFT2::doSignal(signal,SIGNAL_RED);
+   Signal::setSignal(signal,Signal::RAG::SIGNAL_RED);
 ZZ(/,AMBER,signal) // Set Signal to Amber/Yellow
-  RMFT2::doSignal(signal,SIGNAL_AMBER);
+  Signal::setSignal(signal,Signal::RAG::SIGNAL_AMBER);
 ZZ(/,GREEN,signal) // Set signal to Green  
-  RMFT2::doSignal(signal,SIGNAL_GREEN);
+  Signal::setSignal(signal,Signal::RAG::SIGNAL_GREEN);
 
 #endif
 ZZ(@) // Request all virtual msgs to this client

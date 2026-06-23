@@ -11,6 +11,8 @@ A layout may be controlled entirely by a single processor, known as the Command 
 - Running EXRAIL scripts
 - Handling accessories
 - Displaying on oleds
+- Lighting 
+- Turntable operations
 
 In some cases, particularly large layouts,  it would be preferable to offload some of these functions to separate processors, mostly for ease of wiring... performance is rarely an issue.
 

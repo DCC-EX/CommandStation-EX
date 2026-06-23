@@ -1,10 +1,10 @@
 # Nodes implementation notes (Internal, not for user docs)
 
-This file describes the code implementation of the Node system. 
+This file describes the code implementation of the Node system
 
-## Multicast basics.
+## Multicast basics
 
-Nodes communicate via multicast to a separate address and port from the throttle multicast. Throttles should NEVER see the nodes traffic and the nodes should not see throttle traffic. 
+Nodes communicate via multicast to a separate address and port from the throttle multicast. Throttles should NEVER see the nodes traffic and the nodes should not see throttle traffic.
 
 ## NodeManager.cpp
 
@@ -20,9 +20,7 @@ This means node traffic can be whatever we like without interfering with throttl
 
 ## WifiESP32.cpp
 
-When the incoming UDP queue is processed, node messages are passed back to NodeManager for parsing rather than being put gthrough the usual command parser.
-
-
+When the incoming UDP queue is processed, node messages are passed back to NodeManager for parsing rather than being put through the usual command parser.
 
 ## Answering "Why?"
 

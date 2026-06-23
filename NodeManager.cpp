@@ -22,12 +22,15 @@
 
 #ifndef ARDUINO_ARCH_ESP32
 // dummy NodeManager without ESP32 support
-void NodeManager::setup() {}
+void NodeManager::setup(bool throttleNode) {}
 void NodeManager::cast(const FSH* format...) {
     (void)format; // avoid unused parameter warning
 }
 void NodeManager::cast(StringBuffer * buffer) {
     (void)buffer; // avoid unused parameter warning
+}
+bool NodeManager::isThrottleNode() {
+    return true; // default to true for non-ESP32 platforms
 }
 #else
 #include <AsyncUDP.h>

@@ -26,6 +26,7 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "Turnouts.h"
+#include "Signals.h"
 #include "Turntables.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
@@ -50,7 +51,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
              OPCODE_FTOGGLE,OPCODE_XFTOGGLE,OPCODE_XFWD,OPCODE_XREV,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,OPCODE_DRIVE,
-             OPCODE_SERVO,OPCODE_SIGNAL,OPCODE_TURNOUT,OPCODE_WAITFOR,
+             OPCODE_SERVO,OPCODE_TURNOUT,OPCODE_WAITFOR,
              OPCODE_PAD,OPCODE_FOLLOW,OPCODE_CALL,OPCODE_RETURN,
 #ifndef DISABLE_PROG
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,
@@ -130,26 +131,8 @@ enum BlinkState: byte {
     blink_high, // blink task running with pin high 
     at_timeout  // ATTIMEOUT timed out flag
     }; 
-enum SignalType {
-       sigtypeVIRTUAL,
-       sigtypeSIGNAL, 
-       sigtypeSIGNALH, 
-       sigtypeDCC,
-       sigtypeDCCX,
-       sigtypeSERVO,
-       sigtypeNEOPIXEL,
-       sigtypeContinuation,  // neopixels require a second line
-       sigtypeNoMoreSignals
-       }; 
-
-  struct SIGNAL_DEFINITION {
-       SignalType type;
-       VPIN id;  
-       VPIN  redpin,amberpin,greenpin; 
-  };
 
   // Flag bits for compile time features.
-  static const byte FEATURE_SIGNAL= 0x80;
   static const byte FEATURE_LCC   = 0x40;
   static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
@@ -164,11 +147,7 @@ enum SignalType {
   static const byte LATCH_FLAG   = 0x40;
   static const byte TASK_FLAG    = 0x20;
   static const byte SPARE_FLAG   = 0x10;
-  static const byte SIGNAL_MASK  = 0x0C;
-  static const byte SIGNAL_RED   = 0x08;
-  static const byte SIGNAL_AMBER = 0x0C;
-  static const byte SIGNAL_GREEN = 0x04;
-
+  
   static const byte  MAX_STACK_DEPTH=4;
  
    static const short MAX_FLAGS=256;
@@ -212,7 +191,6 @@ class LookList {
     static void railsyncEvent(bool on);
 #endif
     static void blockEvent(int16_t block, int16_t loco, bool entering);
-    static bool signalAspectEvent(int16_t address, byte aspect );    
     // Throttle Info Access functions built by exrail macros 
   static const byte rosterNameCount;
   static const int16_t HIGHFLASH routeIdList[];
@@ -228,8 +206,8 @@ class LookList {
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);
   static bool readSensor(uint16_t sensorId);
   static bool isSignal(int16_t id,char rag);
-  static SIGNAL_DEFINITION getSignalSlot(int16_t slotno); 
-   
+  static void killBlinkOnVpin(VPIN pin,uint16_t count=1); 
+  static void doSignalHandlers(int16_t id, Signal::RAG rag);
 private: 
     static bool streamLCC(Print * stream);
     static bool streamStatus(Print * stream);
@@ -237,7 +215,6 @@ private:
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void doSignal(int16_t id,char rag); 
     static void setTurnoutHiddenState(Turnout * t);
     #ifndef IO_NO_HAL
     static void setTurntableHiddenState(Turntable * tto);
@@ -245,7 +222,7 @@ private:
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n);
-    static void killBlinkOnVpin(VPIN pin,uint16_t count=1);
+    
     static void ifAllFunc(const int16_t * vpinList, int16_t count); 
     static void ifAnyFunc(const int16_t * vpinList, int16_t count);
     static RMFT2 * loopTask;
@@ -265,11 +242,9 @@ private:
    static bool diag;
    static bool skipIf;
    static const  HIGHFLASH3  byte RouteCode[];
-   static const  HIGHFLASH  SIGNAL_DEFINITION SignalDefinitions[];
    static byte flags[MAX_FLAGS];
    static Print * LCCSerial;
    static LookList * routeLookup;
-   static LookList * signalLookup;
    static LookList * onThrowLookup;
    static LookList * onCloseLookup;
    static LookList * onActivateLookup;

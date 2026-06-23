@@ -76,7 +76,6 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
 byte RMFT2::flags[MAX_FLAGS];
 Print * RMFT2::LCCSerial=0;
 LookList *  RMFT2::routeLookup=NULL;
-LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
@@ -224,29 +223,13 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
-  if (compileFeatures & FEATURE_SIGNAL) {
+  
     
     onRedLookup=LookListLoader(OPCODE_ONRED);
     onAmberLookup=LookListLoader(OPCODE_ONAMBER);
     onGreenLookup=LookListLoader(OPCODE_ONGREEN);
-    // Load the signal lookup with slot numbers in the signal table
-    int signalCount=0; 
-    for (int16_t slot=0;;slot++) {
-        SIGNAL_DEFINITION signal=getSignalSlot(slot);
-        DIAG(F("Signal s=%d id=%d t=%d"),slot,signal.id,signal.type);
-        if (signal.type==sigtypeNoMoreSignals) break;
-        if (signal.type==sigtypeContinuation) continue;
-        signalCount++;
-    }    
-    signalLookup=new LookList(signalCount);
-    for (int16_t slot=0;;slot++) {
-        SIGNAL_DEFINITION signal=getSignalSlot(slot);
-        if (signal.type==sigtypeNoMoreSignals) break;
-        if (signal.type==sigtypeContinuation) continue;
-        signalLookup->add(signal.id,slot);
-        doSignal(signal.id, SIGNAL_RED);
-    }    
-   }
+    Signal::setAllSignalsToRed();
+    
 
   int progCounter;
   for (progCounter=0;; SKIPOP){
@@ -900,11 +883,11 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFRED: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_RED);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_RED;
     break;
     
   case OPCODE_WAIT_WHILE_RED: // do block if signal as expected
-    if (isSignal(operand,SIGNAL_RED)) {
+    if (Signal::getState(operand)==Signal::SIGNAL_RED) {
       if (loco && (DCC::getLocoSpeedByte(loco) & 0x7f)>1) 
           DCC::setThrottle(loco,0,DCC::getThrottleDirection(loco));
       delayMe(500);
@@ -913,11 +896,11 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFAMBER: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_AMBER);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_AMBER;
     break;
     
   case OPCODE_IFGREEN: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_GREEN);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_GREEN;
     break;
     
   case OPCODE_IFTHROWN:
@@ -962,15 +945,15 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_RED:
-    doSignal(operand,SIGNAL_RED);
+    Signal::setSignal(operand,Signal::SIGNAL_RED);
     break;
     
   case OPCODE_AMBER:
-    doSignal(operand,SIGNAL_AMBER);
+    Signal::setSignal(operand,Signal::SIGNAL_AMBER);
     break;
     
   case OPCODE_GREEN:
-    doSignal(operand,SIGNAL_GREEN);
+    Signal::setSignal(operand,Signal::SIGNAL_GREEN);
     break;
     
   case OPCODE_FON:
@@ -1023,7 +1006,10 @@ void RMFT2::loop2() {
     // operand is address<<5 |  value
     int16_t address=operand>>5;
     byte aspect=operand & 0x1f;
-    if (!signalAspectEvent(address,aspect))
+
+    // If we can find this address as a DCCX aspect signal and the aspect matches
+    // gtyhen do this via the signal, otherwise do it direct in DCC
+    if (!Signal::setSignalByReverseAspectLookup(address,aspect))
       DCC::setExtendedAccessory(address,aspect);
     break;
   }
@@ -1375,147 +1361,12 @@ void RMFT2::kill(const FSH * reason, int operand) {
   delete this;
 }
 
-
-SIGNAL_DEFINITION RMFT2::getSignalSlot(int16_t slot) {
-  SIGNAL_DEFINITION signal;
-  COPYHIGHFLASH(&signal,SignalDefinitions,slot*sizeof(SIGNAL_DEFINITION),sizeof(SIGNAL_DEFINITION));
-  return signal;
-}
-
-/* static */ void RMFT2::doSignal(int16_t id,char rag) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return; // dont compile code below
-  //if (diag) DIAG(F(" doSignal %d %x"),id,rag);
-  
-  // Schedule any event handler for this signal change.
-  // This will work even without a signal definition. 
-  if (rag==SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
-  else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
+void RMFT2::doSignalHandlers(int16_t id, Signal::RAG rag) {
+  if (rag==Signal::SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
+  else if (rag==Signal::SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
   else onAmberLookup->handleEvent(F("AMBER"),id);
-  
-  auto sigslot=signalLookup->find(id);
-  if (sigslot<0) return; 
-  
-  // keep track of signal state 
-  setFlag(sigslot,rag,SIGNAL_MASK);
- 
-  // Correct signal definition found, get the rag values
-  auto signal=getSignalSlot(sigslot);
-  
-  switch (signal.type) {
-  case sigtypeSERVO: 
-    { 
-    auto servopos = rag==SIGNAL_RED? signal.redpin: (rag==SIGNAL_GREEN? signal.greenpin : signal.amberpin);
-    //if (diag) DIAG(F("sigA %d %d"),id,servopos);
-    if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
-    return;  
-   }
-
-  case sigtypeDCC:
-   {
-    // redpin,amberpin are the DCC addr,subaddr 
-    DCC::setAccessory(signal.redpin,signal.amberpin, rag!=SIGNAL_RED);
-    return; 
-  }
-
- case sigtypeDCCX:
-  {
-    // redpin,amberpin,greenpin are the 3 aspects
-    auto value=signal.redpin;
-    if (rag==SIGNAL_AMBER) value=signal.amberpin;
-    if (rag==SIGNAL_GREEN) value=signal.greenpin; 
-    DCC::setExtendedAccessory(id, value);
-    return; 
-  }
-
-case sigtypeNEOPIXEL: 
-  {
-    // redpin,amberpin,greenpin are the 3 RG values but with no blue permitted. . (code limitation hack) 
-    auto colour_RG=signal.redpin;
-    if (rag==SIGNAL_AMBER) colour_RG=signal.amberpin;
-    if (rag==SIGNAL_GREEN) colour_RG=signal.greenpin; 
-
-    // blue channel is in followng signal slot (a continuation)
-    auto signal2=getSignalSlot(sigslot+1);
-    auto colour_B=signal2.redpin;
-    if (rag==SIGNAL_AMBER) colour_B=signal2.amberpin;
-    if (rag==SIGNAL_GREEN) colour_B=signal2.greenpin; 
-    IODevice::writeAnalogue(id, colour_RG,true,colour_B);
-    return; 
-  }
-  
-  case sigtypeSIGNAL:
-  case sigtypeSIGNALH:
-  {
-  // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
-  // If amberpin is zero, synthesise amber from red+green
-  const byte SIMAMBER=0x00;
-  if (rag==SIGNAL_AMBER && (signal.amberpin==0)) rag=SIMAMBER; // special case this func only
-   
-  // Manage invert (HIGH on) pins
-  bool aHigh=signal.type==sigtypeSIGNALH;
-      
-  // set the three pins 
-  if (signal.redpin) {
-    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
-    if (!aHigh) redval=!redval;
-    killBlinkOnVpin(signal.redpin);
-    IODevice::write(signal.redpin,redval);
-  }
-  if (signal.amberpin) {
-    bool amberval=(rag==SIGNAL_AMBER);
-    if (!aHigh) amberval=!amberval;
-    killBlinkOnVpin(signal.amberpin);
-    IODevice::write(signal.amberpin,amberval);
-  }
-  if (signal.greenpin) {
-    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
-    if (!aHigh) greenval=!greenval;
-    killBlinkOnVpin(signal.greenpin);
-    IODevice::write(signal.greenpin,greenval);
-  }
 }
-  case sigtypeVIRTUAL: break;
-  case sigtypeContinuation: break;
-  case sigtypeNoMoreSignals: break;
-  }
-}
-
-/* static */ bool RMFT2::isSignal(int16_t id,char rag) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  int16_t sigslot=signalLookup->find(id);
-  if (sigslot<0) return false; 
-  return (flags[sigslot] & SIGNAL_MASK) == rag;
-}
-
-
-// signalAspectEvent returns true if the aspect is destined
-// for a defined DCCX_SIGNAL which will handle all the RAG flags
-// and ON* handlers.
-// Otherwise false so the parser should send the command directly 
-bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  auto sigslot=signalLookup->find(address);
-  if (sigslot<0) return false;  // this is not a defined signal 
-  auto signal=getSignalSlot(sigslot);
-  if (signal.type!=sigtypeDCCX) return false; // not a DCCX signal
-  // Turn an aspect change into a RED/AMBER/GREEN setting
-  if (aspect==signal.redpin) {
-      doSignal(address,SIGNAL_RED);
-      return true;
-  }
   
-  if (aspect==signal.amberpin) {
-      doSignal(address,SIGNAL_AMBER);
-      return true;
-  }
-  
-  if (aspect==signal.greenpin) {
-      doSignal(address,SIGNAL_GREEN);
-      return true;
-  }
-
-  return false;  // aspect is not a defined one    
-}
 
 void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   // Hunt for an ONTHROW/ONCLOSE for this turnout

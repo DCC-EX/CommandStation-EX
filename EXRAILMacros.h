@@ -154,12 +154,27 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
    #include "myAutomation.h"
 }
 
-// Pass 1s Implements servos by creating exrailHalSetup2
+// Pass 1s Implements servos and signals by creating exrailHalSetup2
 // TODO Turnout and turntable creation should be moved to here instead of 
 // the first pass from the opcode table. 
 #include "EXRAIL2MacroReset.h"
 #undef  CONFIGURE_SERVO
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
+#undef SIGNAL
+#define SIGNAL(redpin,amberpin,greenpin) new LEDSignal(redpin,redpin,amberpin,greenpin,false);
+#undef SIGNALH
+#define SIGNALH(redpin,amberpin,greenpin) new LEDSignal(redpin,redpin,amberpin,greenpin,false); 
+#undef SERVO_SIGNAL
+#define SERVO_SIGNAL(vpin,redval,amberval,greenval) new ServoSignal(vpin,redval,amberval,greenval);
+#undef DCC_SIGNAL
+#define DCC_SIGNAL(id,addr,subaddr) new DCCSignal(id,addr,subaddr);
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) new DCCXSignal(id,redAspect,amberAspect,greenAspect);
+#undef NEOPIXEL_SIGNAL
+#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB) \
+        new NEOPIXELSignal(id,redRGB,amberRGB,greenRGB);
+#undef VIRTUAL_SIGNAL
+#define VIRTUAL_SIGNAL(id) new Signal(id);
 void exrailHalSetup2() {
    #include "myAutomation.h"
    // pullup any group sensors
@@ -168,21 +183,6 @@ void exrailHalSetup2() {
 
 // Pass 1c detect compile time featurtes
 #include "EXRAIL2MacroReset.h"
-#undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
-#undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
-#undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
-#undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
-#undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
-#undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) | FEATURE_SIGNAL
-#undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
-
 #undef LCC
 #define LCC(eventid)  | FEATURE_LCC
 #undef LCCX
@@ -466,30 +466,6 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
    }   
    return NULL;
 } 
-
-// Pass 8 Signal definitions
-#include "EXRAIL2MacroReset.h"
-#undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) {sigtypeSIGNAL,redpin,redpin,amberpin,greenpin}, 
-#undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) {sigtypeSIGNALH,redpin,redpin,amberpin,greenpin}, 
-#undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) {sigtypeSERVO,vpin,redval,amberval,greenval}, 
-#undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) {sigtypeDCC,id,addr,subaddr,0},
-#undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) {sigtypeDCCX,id,redAspect,amberAspect,greenAspect},
-#undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB) \
-        {sigtypeNEOPIXEL,id,((VPIN)((redRGB)>>8)), ((VPIN)((amberRGB)>>8)), ((VPIN)((greenRGB)>>8))},\
-        {sigtypeContinuation,id,((VPIN)((redRGB) & 0xff)), ((VPIN)((amberRGB) & 0xFF)), ((VPIN)((greenRGB) & 0xFF))},
-#undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) {sigtypeVIRTUAL,id,0,0,0},
-
-const  HIGHFLASH  SIGNAL_DEFINITION RMFT2::SignalDefinitions[] = {
-    #include "myAutomation.h"
-     {sigtypeNoMoreSignals,0,0,0,0}
-    };
 
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
