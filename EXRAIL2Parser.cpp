@@ -174,6 +174,7 @@ bool RMFT2::streamStatus(Print * stream) {
     }
 
     // do the signals
+    StringFormatter::send(stream,F("\n"));
     Signal::display(stream);   
     StringFormatter::send(stream,F(" *>\n"));
     return true;
