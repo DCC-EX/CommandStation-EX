@@ -17,11 +17,10 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// ATTENTION: this file only compiles on an ESP32 with IDF version 4
+// ATTENTION: this file only compiles on an ESP32
 // On ESP32 we do not even use the functions but they are here for completeness sake
 // Please refer to DCCTimer.h for general comments about how this class works
 // This is to avoid repetition and duplication.
-
 
 ////////////////////////////////////////////////////////////////////////
 #ifdef ARDUINO_ARCH_ESP32
@@ -29,34 +28,10 @@
 #if __has_include("esp_idf_version.h")
 #include "esp_idf_version.h"
 #endif
-#if ESP_IDF_VERSION_MAJOR == 4
-// all well correct IDF version
-#else
-#ifdef MOTOR_SHIELD_TYPE
-  #error "DCC-EX does not support compiling for motor shields with IDF version 5.0 or later. Downgrade your ESP32 library to a version that contains IDF version 4. Arduino ESP32 library 3.0.0 is too new. Downgrade to one of 2.0.9 to 2.0.17"
-#endif
-#endif
 
-// protect all the rest of the code from IDF version 5
-#if ESP_IDF_VERSION_MAJOR == 4
+// protect all the rest of the code for IDF version 5
+#if ESP_IDF_VERSION_MAJOR >= 5
 #include "DIAG.h"
-#include <driver/adc.h>
-#include <soc/sens_reg.h>
-#include <soc/sens_struct.h>
-#undef ADC_INPUT_MAX_VALUE
-#define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
-#define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
-
-int IRAM_ATTR local_adc1_get_raw(int channel) {
-  uint16_t adc_value;
-  SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
-  while (SENS.sar_slave_addr1.meas_status != 0);
-  SENS.sar_meas_start1.meas1_start_sar = 0;
-  SENS.sar_meas_start1.meas1_start_sar = 1;
-  while (SENS.sar_meas_start1.meas1_done_sar == 0);
-  adc_value = SENS.sar_meas_start1.meas1_data_sar;
-  return adc_value;
-}
 
 #include "DCCTimer.h"
 INTERRUPT_CALLBACK interruptHandler=0;
@@ -67,13 +42,8 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
   // This should not be called on ESP32 so disable it
+  (void)callback;
   return;
-  interruptHandler = callback;
-  hw_timer_t *timer = NULL;
-  timer = timerBegin(0, 2, true); // prescaler can be 2 to 65536 so choose 2
-  timerAttachInterrupt(timer, interruptHandler, true);
-  timerAlarmWrite(timer, CLOCK_CYCLES / 6, true); // divide by prescaler*3 (Clockbase is 80Mhz and not F_CPU 240Mhz)
-  timerAlarmEnable(timer);
 }
 
 // We do not support to use PWM to make the Waveform on ESP
@@ -147,7 +117,7 @@ static int cnt_channel = LEDC_CHANNELS;
 void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency) {
   if (pin < SOC_GPIO_PIN_COUNT) {
     if (pin_to_channel[pin] != 0) {
-      ledcSetup(pin_to_channel[pin], frequency, 8);
+      ledcChangeFrequency(pin, frequency, 8);
     }
   }
 }
@@ -157,33 +127,15 @@ void DCCTimer::DCCEXledcDetachPin(uint8_t pin) {
   DIAG(F("Clear pin %d from ledc channel"), pin);
 #endif
   pin_to_channel[pin] = 0;
-  pinMatrixOutDetach(pin, false, false);
+  ledcDetach(pin);
 }
-
-static byte LEDCToMux[] = {
-  LEDC_HS_SIG_OUT0_IDX,
-  LEDC_HS_SIG_OUT1_IDX,
-  LEDC_HS_SIG_OUT2_IDX,
-  LEDC_HS_SIG_OUT3_IDX,
-  LEDC_HS_SIG_OUT4_IDX,
-  LEDC_HS_SIG_OUT5_IDX,
-  LEDC_HS_SIG_OUT6_IDX,
-  LEDC_HS_SIG_OUT7_IDX,
-  LEDC_LS_SIG_OUT0_IDX,
-  LEDC_LS_SIG_OUT1_IDX,
-  LEDC_LS_SIG_OUT2_IDX,
-  LEDC_LS_SIG_OUT3_IDX,
-  LEDC_LS_SIG_OUT4_IDX,
-  LEDC_LS_SIG_OUT5_IDX,
-  LEDC_LS_SIG_OUT6_IDX,
-  LEDC_LS_SIG_OUT7_IDX,
-};
 
 void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
   // DIAG(F("Attaching pin %d to channel %d %c"), pin, channel, inverted ? 'I' : ' ');
-  ledcAttachPin(pin, channel);
-  if (inverted) // we attach again but with inversion
-    gpio_matrix_out(pin, LEDCToMux[channel], inverted, 0);
+  if (channel >= 0) {
+    ledcAttachChannel(pin, 1000, 8, channel);
+    ledcOutputInvert(pin, inverted);
+  }
 }
 
 void DCCTimer::DCCEXanalogCopyChannel(int8_t frompin, int8_t topin) {
@@ -234,34 +186,27 @@ void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
 	DIAG(F("Pin %d assigned to new channel %d"), pin, cnt_channel);
 	--cnt_channel;                       // Now we are at 14, 12, ...
       }
-      ledcSetup(pin_to_channel[pin], 1000, 8);
       DCCEXledcAttachPin(pin, pin_to_channel[pin], invert);
     } else {
       // This else is only here so we can enable diag
       // Pin should be already attached to channel
       // DIAG(F("Pin %d assigned to old channel %d"), pin, pin_to_channel[pin]);
     }
-    ledcWrite(pin_to_channel[pin], value);
+    ledcWriteChannel(pin_to_channel[pin], value);
   }
 }
 
 void DCCTimer::DCCEXInrushControlOn(uint8_t pin, int duty, bool inverted) {
   // this uses hardcoded channel 0
-  ledcSetup(0, 62500, 8);
-  DCCEXledcAttachPin(pin, 0, inverted);
-  ledcWrite(0, duty);
+  ledcAttachChannel(pin, 62500, 8, 0);
+  ledcOutputInvert(pin, inverted);
+  ledcWrite(pin, duty);
 }
 
 int ADCee::init(uint8_t pin) {
   pinMode(pin, ANALOG);
-  adc1_config_width(ADC_WIDTH_BIT_12);
-// Espressif deprecated ADC_ATTEN_DB_11 somewhere between 2.0.9 and 2.0.17
-#ifdef ADC_ATTEN_11db
-  adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_11db);
-#else
-  adc1_config_channel_atten(pinToADC1Channel(pin),ADC_ATTEN_DB_11);
-#endif
-  return adc1_get_raw(pinToADC1Channel(pin));
+  analogReadResolution(12);
+  return analogRead(pin);
 }
 int16_t ADCee::ADCmax() {
   return 4095;
@@ -270,7 +215,8 @@ int16_t ADCee::ADCmax() {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
-  return local_adc1_get_raw(pinToADC1Channel(pin));
+  (void)fromISR;
+  return analogRead(pin);
 }
 /*
  * Scan function that is called from interrupt

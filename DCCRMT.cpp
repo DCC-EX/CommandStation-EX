@@ -36,7 +36,7 @@
  *
  */
 
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
 #include "defines.h"
 #include "DIAG.h"
 #include "DCCRMT.h"

@@ -32,10 +32,6 @@
     #include "config.h"
 #endif
 
-#ifndef MOTOR_SHIELD_TYPE
-  #define MOTOR_SHIELD_TYPE NO_SHIELD
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create a cpu type we can share and 

@@ -439,6 +439,7 @@ void MotorDriver::throttleInrush(bool on) {
     return;
   if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
+#ifdef MOTOR_SHIELD_TYPE
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
@@ -462,6 +463,8 @@ void MotorDriver::throttleInrush(bool on) {
   }
   analogWrite(brakePin,duty);
 #endif
+  #endif // MOTOR_SHIELD_TYPE
+
 }
 unsigned int MotorDriver::raw2mA( int raw) {
   //DIAG(F("%d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);

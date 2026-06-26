@@ -33,9 +33,16 @@
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "Websockets.h"
-#include "WifiPreferences.h"  
-#include "soc/rtc_wdt.h"
+#include "WifiPreferences.h"
+
+#if __has_include ( "soc/rtc_wdt.h")
+#include <soc/rtc_wdt.h>
+#else 
+#include <rtc_wdt.h>
+#endif
+
 #include "esp_task_wdt.h"
+#include "esp_idf_version.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
@@ -68,24 +75,21 @@ static void rememberUdpDiscoveryClient(const IPAddress &ip) {
 
 /* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
-
-#include "soc/timer_group_struct.h"
-#include "soc/timer_group_reg.h"
+#if defined(ESP_IDF_VERSION)
 void feedTheDog0(){
-  // feed dog 0
-  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  TIMERG0.wdt_feed=1;                       // feed dog
-  TIMERG0.wdt_wprotect=0;                   // write protect
-  // feed dog 1
-  //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  //TIMERG1.wdt_feed=1;                       // feed dog
-  //TIMERG1.wdt_wprotect=0;                   // write protect
+  // Use task watchdog API on modern ESP-IDF versions.
+  esp_task_wdt_reset();
 }
+#else
+void feedTheDog0(){
+  // No IDF version information available.
+}
+#endif
 
 
-class NetworkClient {
+class exNetworkClient {
 public:
-  NetworkClient(WiFiClient c) {
+  exNetworkClient(WiFiClient c) {
     wifi = c;
     inUse = true;
   };
@@ -123,7 +127,7 @@ private:
 };
 
 // file scope variables
-static std::vector<NetworkClient> clients; // a list to hold all clients
+static std::vector<exNetworkClient> clients; // a list to hold all clients
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
 // init of static class scope variables
@@ -402,7 +406,7 @@ void WifiESP::loop() {
 	  }
 	}
 	if (clientId>=clients.size()) {
-	  NetworkClient nc(client);
+	  exNetworkClient nc(client);
 	  clients.push_back(nc);
 	  DIAG(F("New client %d, %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	}

@@ -158,11 +158,17 @@ static void drainHttpHeaders(Client& client) {
  * @param serialPort underlying serial port (eg. &Serial)
  */
 SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort) {
+  // Delegate to the Stream constructor
+  SerialUsbLog(len, (Stream*)serialPort);
+  _canBegin = false;
+}
+SerialUsbLog::SerialUsbLog(const uint16_t len, Stream* serialPort) {
   _bufferSize = len;
   _buffer = new byte[len];
   _pos_write = 0;
   _overflow = false;
   _serialPort = serialPort;
+  _canBegin = true;
 
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
@@ -280,7 +286,10 @@ size_t SerialUsbLog::streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t
 
 // begin() shim
 void SerialUsbLog::begin(unsigned long baud) {
-  _serialPort->begin(baud);
+  if (_serialPort) {
+    _serialPort->flush();
+   if (_canBegin) ((HardwareSerial*)_serialPort)->begin(baud);
+  }
 }
 
 // while(!Serial) shim

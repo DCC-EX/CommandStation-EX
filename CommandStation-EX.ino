@@ -20,7 +20,6 @@
 #endif 
 #ifndef MOTOR_SHIELD_TYPE
   #warning MOTOR_SHIELD_TYPE not found. Building with no motor shield
-  #define MOTOR_SHIELD_TYPE NO_SHIELD 
 #endif
 
 /*
@@ -100,8 +99,11 @@ void setup()
   // let's make sure to initialise the ADCee class!
   ADCee::begin();
   // Set up MotorDrivers early to initialize all pins
-  TrackManager::Setup(MOTOR_SHIELD_TYPE);
-
+  #ifdef MOTOR_SHIELD_TYPE
+    TrackManager::Setup(MOTOR_SHIELD_TYPE);
+  #else 
+    TrackManager::Setup(F("No Shield"));
+  #endif
   DISPLAY_START (
     // This block is still executed for DIAGS if display not in use
     LCD(0,F("DCC-EX v" VERSION));

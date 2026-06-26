@@ -44,7 +44,8 @@ The configuration file for DCC-EX Command Station
 //        generating resistor on the current sense pin of the device. Failure to select
 //        the correct resistor could damage the sense pin on your Arduino or destroy
 //        the device.
-//
+// For CS without any motor shield (as an accessory only CS) DO NOT #define MOTOR_SHIELD_TYPE or define it as NO_SHIELD
+
 // DEFINE MOTOR_SHIELD_TYPE BELOW. THESE ARE EXAMPLES. Full list in MotorDrivers.h
 //
 //  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
@@ -52,7 +53,7 @@ The configuration file for DCC-EX Command Station
 //  EX8874_SHIELD         : DCC-EX TI DRV8874 based motor shield
 //  EXCSB1                : DCC-EX CSB-1 hardware
 //  EXCSB1_WITH_EX8874    : DCC-EX CSB-1 hardware with DCC-EX TI DRV8874 shield
-//  NO_SHIELD             : CS without any motor shield (as an accessory only CS)
+//  
 //   |
 //   +-----------------------v
 //

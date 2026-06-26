@@ -64,7 +64,10 @@ constexpr int16_t seqCount(const int16_t value, const int16_t pos=0, const int16
 
 
 constexpr int16_t compileTimePinBlackList[]={
-   PIN_BLACKLIST, MDFURKLE(MOTOR_SHIELD_TYPE)
+   PIN_BLACKLIST 
+#ifdef MOTOR_SHIELD_TYPE   
+   ,MDFURKLE(MOTOR_SHIELD_TYPE)
+#endif
    };
 constexpr int16_t pbSize=sizeof(compileTimePinBlackList)/sizeof(int16_t);
 
