@@ -252,7 +252,10 @@ void DCCWaveform::promotePendingPacket() {
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
 
-void DCCWaveform::clearResets() { sentResetsSincePacket=0; }
+void DCCWaveform::clearResets(byte fudge) {
+  (void)fudge;
+  sentResetsSincePacket=0;
+ }
  byte DCCWaveform::getResets() { return sentResetsSincePacket; }
 #endif
 #endif

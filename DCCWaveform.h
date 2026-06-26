@@ -23,6 +23,7 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
+#include "defines.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCRMT.h"
 #endif
@@ -58,7 +59,7 @@ class DCCWaveform {
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
     inline void clearRepeats() { transmitRepeats=0; }
-    void clearResets();
+    void clearResets(byte fudge=0);
     byte getResets();
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();

@@ -115,7 +115,7 @@ bool DCCWaveform::setRailcom(bool on) {
 }
 
 // extrafudge is added when we know that the resets will first come extrafudge  packets in the future
-    void DCCWaveform::clearResets(byte extrafudge=0) {
+    void DCCWaveform::clearResets(byte extrafudge) {
       if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return;
       resetPacketBase = isMainTrack ? rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
       resetPacketBase += extrafudge;

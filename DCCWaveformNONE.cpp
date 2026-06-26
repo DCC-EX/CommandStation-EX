@@ -1,3 +1,4 @@
+#include "defines.h"
 #ifndef MOTOR_SHIELD_TYPE
 #include "DCCWaveform.h"
 
@@ -38,7 +39,9 @@ bool DCCWaveform::setRailcom(bool on) {
   return false;
 }
 
-void DCCWaveform::clearResets() {}
+void DCCWaveform::clearResets(byte fudge) {
+  (void)fudge;
+}
 byte DCCWaveform::getResets() { return 0; }
 
 #endif

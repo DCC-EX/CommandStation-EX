@@ -17,7 +17,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if defined(ARDUINO_ARCH_ESP32) && (MOTOR_SHIELD_TYPE != NO_SHIELD)
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
 #pragma once
 #include <Arduino.h>
 #include "driver/rmt.h"
