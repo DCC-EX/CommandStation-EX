@@ -21,6 +21,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #ifdef MOTOR_SHIELD_TYPE
 #ifndef ARDUINO_ARCH_ESP32
   // This code is replaced entirely on an ESP32
