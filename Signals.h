@@ -13,7 +13,7 @@ class Signal {
         SIGNAL_UNKNOWN='X'
     }; // S is a special case for simulatd amber when no amber pin is defined. It is treated as amber for the purposes of ON* handlers but as red for the purposes of setting the hardware.
      
-     static void setSignal(uint16_t id, RAG rag, bool nodeCast=true);
+     static void setSignal(uint16_t id, RAG rag, bool tellNodes=true);
      static RAG getState(uint16_t id);
      static void setAllSignalsToRed();
      static void display(Print * stream);

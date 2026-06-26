@@ -26,8 +26,8 @@ void Signal::setAllSignalsToRed() {
     }
 }
 
-void Signal::setSignal(uint16_t id, RAG rag, bool nodeCast) {
-    if (nodeCast) NodeManager::cast(F("<S %d %c>"), id, rag);
+void Signal::setSignal(uint16_t id, RAG rag, bool tellNodes) {
+    if (tellNodes) NodeManager::cast(F("<S %d %c>"), id, rag);
     auto s=findSignal(id);
     s->state=rag;
     s->action(); // do the hardware implemnentation
