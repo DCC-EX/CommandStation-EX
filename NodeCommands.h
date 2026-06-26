@@ -37,7 +37,8 @@ ZZBEGIN
 ZZ(t,loco,speedByte)  // Throttle speed change
   // This was sent by any node that changes a loco speed
   // It will not cause a rebroadcast
-  DCC::getLoco(loco)->setTargetSpeed(speedByte,false);
+  DCC::setThrottle(loco,speedByte & 0x7f,(speedByte>>7) & 0x01,false);
+ 
 ZZ(F,loco,functionNumber,on)  // Throttle function change
   // This was sent by any node that changes a loco function
   // It will not cause a rebroadcast
@@ -50,4 +51,5 @@ ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 
+  
 ZZEND
