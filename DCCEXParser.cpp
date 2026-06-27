@@ -421,7 +421,7 @@ bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, in
 }
 // Having broken the command into opcode and parameters, we now execute the command
 // The actual commands and their parameter mappings are in DCCEXCommands.h
-bool DCCEXParser::executeNodeTraffic(byte * command, byte opcode, byte params, int16_t p[]) {
+bool DCCEXParser::executeNodeTraffic(byte * com, byte opcode, byte params, int16_t p[]) {
   #include "NodeCommands.h"
 }
 

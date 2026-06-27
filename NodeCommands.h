@@ -51,5 +51,8 @@ ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 
-  
+ZZ(@,display,row,text) // Display text change
+  // This was sent by a node that changes a display text
+  CHECKQ(text)
+  StringFormatter::lcd4(display,row,q_text,false);
 ZZEND

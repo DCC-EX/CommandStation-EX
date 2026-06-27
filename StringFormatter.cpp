@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include "DisplayInterface.h"
 #include "CommandDistributor.h"
+#include "NodeManager.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -58,13 +59,19 @@ void StringFormatter::lcd3(byte display, byte row, const FSH * input, va_list ar
   // build the string to display 
   StringBuffer buffer(120);
   send2(&buffer,input,args);
+  lcd4(display,row,buffer.getString(),true);
+}
 
+// final LCD stage 
+void StringFormatter::lcd4(byte display, byte row,const char * input,bool tellNodes) {
   // send to the display (if exists) and broadcast to clients
   DisplayInterface::setRow(display, row);    
-  DisplayInterface::getDisplayHandler()->print(buffer.getString());
+  DisplayInterface::getDisplayHandler()->print(input);
   CommandDistributor::broadcastReply(
     CommandDistributor::COMMAND_TYPE, F("<@ %d %d \"%s\">\n"), display, row,
-        buffer.getString());
+        input);
+  if (tellNodes) NodeManager::cast(F("<@ %d %d \"%s\">"), display, row,
+        input);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {

@@ -53,6 +53,7 @@ class StringFormatter
     static void printEscape( char c);
     static void printHex(Print * stream,uint16_t value);
     static void send2(Print * serial, const FSH* input,va_list args);
+    static void lcd4(byte display, byte row, const char * input,bool tellNodes);
     
     private:
     static void lcd3(byte display, byte row, const FSH* input, va_list args);

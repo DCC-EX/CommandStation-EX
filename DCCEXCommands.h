@@ -815,7 +815,7 @@ ZZ(@) // Request all virtual msgs to this client
 ZZ(@,display,row,text) // Display text on virtual LCD at row 
   CHECK(display>=0 && row>=0)
   CHECKQ(text)
-  StringFormatter::lcd2(display,row,F("%s"),q_text);
+  StringFormatter::lcd4(display,row,q_text,true);
 ZZ(y,vpin,PLAY,trackNumber)  // Play sound track with default volume
      IODevice::writeAnalogue(vpin,trackNumber,0,DFPlayerBase::DF_PLAY);
 ZZ(y,vpin,PLAY,trackNumber,volume) // Play sound track with volume
