@@ -571,6 +571,9 @@ ZZ(b,loco,cv,bit,bitvalue)  // POM write cv bit on main track
         DCC::writeCVBitMain(loco,cv,bit,bitvalue);
 
 ZZ(w,A,linearaddress,cv,value) // POM write basic accessory decoder cv on main track
+        CHECK(linearaddress>0 && linearaddress<=2044, linearaddress 1..2044)
+        CHECK(cv>0 && cv<= 1024, CV 0..1024)
+        CHECK(value>=0 && value<=255, value 0..255)
         DCC::writeAccessoryCVByteMain(linearaddress,cv,value);
 
 
