@@ -70,7 +70,9 @@ void StringFormatter::lcd4(byte display, byte row,const char * input,bool tellNo
   CommandDistributor::broadcastReply(
     CommandDistributor::COMMAND_TYPE, F("<@ %d %d \"%s\">\n"), display, row,
         input);
-  if (tellNodes) NodeManager::cast(F("<@ %d %d \"%s\">"), display, row,
+  // We share display updates with all nodes but NOT screen 0 as 
+  // this display would be for local node ip address etc etc..      
+  if (tellNodes && display!=0) NodeManager::cast(F("<@ %d %d \"%s\">"), display, row,
         input);
 }
 
