@@ -123,6 +123,8 @@
 #define HAL(haltype,params...)  haltype::create(params);
 #undef HAL_IGNORE_DEFAULTS
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
+#undef NODE_SHARE_SCREEN0
+#define NODE_SHARE_SCREEN0(display_id) StringFormatter::alternativeScreen0=display_id;
 bool exrailHalSetup1() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
@@ -607,6 +609,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V(#count[0]?(count+0):1),
          
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+#define NODE_SHARE_SCREEN0(display_id)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),

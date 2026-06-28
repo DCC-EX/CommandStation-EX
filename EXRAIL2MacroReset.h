@@ -122,6 +122,7 @@
 #undef NEOPIXEL
 #undef NEOPIXEL_OFF
 #undef NEOPIXEL_SIGNAL
+#undef NODE_SHARE_SCREEN0
 #undef ACON
 #undef ACOF
 #undef ONACON

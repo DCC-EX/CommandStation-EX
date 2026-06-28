@@ -443,6 +443,14 @@
 ///param vpin unique signal_id
 ///param redcolour  RGB colour use NEORGB(red,green,blue) to create values.
 
+#define NODE_SHARE_SCREEN0(display_id)
+///brief Remaps this devices screen display 0 to another id when sharing with nodes.
+///see LCD, SCREEN
+///param display_id Alternative display id that nodes may render as required.
+/// Display 0 is used to represent node-specific values such as Wifi settings, so it cant be mixed with other display 0 data. 
+/// This node will display it's own display 0 as normal.
+//  If display_id is non-zero, it will share the screen with other nodes as display_id.
+
 #define ACON(eventid)
 ///brief Send MERG CBUS ACON to Adapter
 

@@ -33,6 +33,7 @@ bool Diag::WEBSOCKET=false;
 bool Diag::SNIFFER=false;
 
 
+byte StringFormatter::alternativeScreen0=0; // for node screen sharing
  
 void StringFormatter::diag( const FSH* input...) {
  USB_SERIAL.print(F("<* "));   
@@ -71,7 +72,12 @@ void StringFormatter::lcd4(byte display, byte row,const char * input,bool tellNo
     CommandDistributor::COMMAND_TYPE, F("<@ %d %d \"%s\">\n"), display, row,
         input);
   // We share display updates with all nodes but NOT screen 0 as 
-  // this display would be for local node ip address etc etc..      
+  // this display would normally be for local node-specific information such as IP address etc.
+  // If the user has told us that this node wants its screen 0 to
+  // be rendered by other nodes, we must give it a unique non-zero
+  // display number that other nodes can render without conflicting with other nodes using screen 0.  
+  // This is done by setting the alternativeScreen0 variable to a non-zero value. 
+  if (display==0) display=alternativeScreen0; // for node screen sharing
   if (tellNodes && display!=0) NodeManager::cast(F("<@ %d %d \"%s\">"), display, row,
         input);
 }

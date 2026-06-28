@@ -157,10 +157,9 @@ static void drainHttpHeaders(Client& client) {
  * @param len Maximum length of the log buffer
  * @param serialPort underlying serial port (eg. &Serial)
  */
-SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort) {
-  // Delegate to the Stream constructor
-  SerialUsbLog(len, (Stream*)serialPort);
-  _canBegin = false;
+SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort)
+  : SerialUsbLog(len, (Stream*)serialPort) {
+    _canBegin = true;
 }
 SerialUsbLog::SerialUsbLog(const uint16_t len, Stream* serialPort) {
   _bufferSize = len;
@@ -168,7 +167,7 @@ SerialUsbLog::SerialUsbLog(const uint16_t len, Stream* serialPort) {
   _pos_write = 0;
   _overflow = false;
   _serialPort = serialPort;
-  _canBegin = true;
+  _canBegin = false; // only HardwareSerial can call begin() to set baud rate
 
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
