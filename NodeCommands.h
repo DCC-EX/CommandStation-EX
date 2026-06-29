@@ -55,4 +55,7 @@ ZZ(@,display,row,text) // Display text change
   // This was sent by a node that changes a display text
   CHECKQ(text)
   StringFormatter::lcd4(display,row,q_text,false);
+ZZ(c,clocktime,clockrate) // Clock time change
+  // This was sent by a node that changes the clock time
+  CommandDistributor::setClockTime(clocktime,clockrate,false);
 ZZEND

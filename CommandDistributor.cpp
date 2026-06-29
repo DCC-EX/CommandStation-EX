@@ -217,7 +217,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
 #endif
 }
 
-void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
+void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, bool tellNodes) {
   // save the latest time if changed
       if (clocktime != lastclocktime){
         auto difference = clocktime - lastclocktime;
@@ -237,6 +237,7 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
         CommandDistributor::broadcastClockTime(clocktime, clockrate);
         lastclocktime = clocktime;
         lastclockrate = clockrate;
+        if (tellNodes) NodeManager::cast(F("<c %d %d>"),clocktime, clockrate);
       }
     }
 
