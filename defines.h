@@ -233,19 +233,6 @@
     #define USB_SERIAL SerialLog
   #endif
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
-// The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
-// 
-#if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
-#define IO_NO_HAL // HAL too big whatever you disable otherwise
-
-#ifndef ENABLE_DIAG
-#define DISABLE_DIAG
-#endif
-
-#endif
 
 #if __has_include ( "myAutomation.h")
   #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)

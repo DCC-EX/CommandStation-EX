@@ -903,11 +903,8 @@
 #define WAITFOR(pin)
 ///brief Waits for completion of servo movement
 
-#ifndef IO_NO_HAL
-
 #define WAITFORTT(turntable_id)
 ///brief waits for completion of turntable movement
-#endif
 
 #define WAIT_WHILE_RED(signal_id)
 ///brief Keeps loco at speed 0 while signal is RED

@@ -216,9 +216,7 @@ private:
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
     static void setTurnoutHiddenState(Turnout * t);
-    #ifndef IO_NO_HAL
     static void setTurntableHiddenState(Turntable * tto);
-    #endif
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n);
@@ -254,9 +252,7 @@ private:
    static LookList * onGreenLookup;
    static LookList * onChangeLookup;
    static LookList * onClockLookup;
-#ifndef IO_NO_HAL
    static LookList * onRotateLookup;
-#endif
    static LookList * onOverloadLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;

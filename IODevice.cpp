@@ -45,7 +45,6 @@ extern __attribute__((weak)) bool exrailHalSetup2();
 
 // Static method to initialise the IODevice subsystem.  
 
-#if !defined(IO_NO_HAL)
 
 // Create any standard device instances that may be required, such as the Arduino pins 
 // and PCA9685.
@@ -445,49 +444,7 @@ bool IODevice::owns(VPIN id) {
 }
 
 
-#else // !defined(IO_NO_HAL)
 
-// Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
-
-void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN pin, ConfigTypeEnum configType, int nParams, int p[]) {
-  if (configType!=CONFIGURE_INPUT || nParams!=1 || pin >= NUM_DIGITAL_PINS) return false;
-  #ifdef DIAG_IO
-  DIAG(F("Arduino _configurePullup pin:%d Val:%d"), pin, p[0]);
-  #endif
-  pinMode(pin, p[0] ? INPUT_PULLUP : INPUT);
-  return true;
-}
-void IODevice::write(VPIN vpin, int value) {
-  if (vpin >= NUM_DIGITAL_PINS) return;
-  digitalWrite(vpin, value);
-  pinMode(vpin, OUTPUT);
-}
-void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
-bool IODevice::isBusy(VPIN) { return false; }
-bool IODevice::hasCallback(VPIN) { return false; }
-int IODevice::read(VPIN vpin) { 
-  if (vpin >= NUM_DIGITAL_PINS) return 0;
-  return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
-}
-int IODevice::readAnalogue(VPIN vpin) {
-  return ADCee::read(vpin);
-}
-int IODevice::configureAnalogIn(VPIN vpin) {
-  return ADCee::init(vpin);
-}
-void IODevice::loop() {}
-void IODevice::DumpAll() {
-  DIAG(F("NO HAL CONFIGURED!"));
-}
-bool IODevice::exists(VPIN vpin) { return (vpin > 2 && vpin < NUM_DIGITAL_PINS); }
-void IODevice::setGPIOInterruptPin(int16_t) {}
-
-// Chain of callback blocks (identifying registered callback functions for state changes)
-// Not used in IO_NO_HAL but must be declared.
-IONotifyCallback *IONotifyCallback::first = 0;
-
-#endif // IO_NO_HAL
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

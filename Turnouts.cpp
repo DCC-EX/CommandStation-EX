@@ -219,7 +219,6 @@
 
   // Create function
   /* static */ Turnout *ServoTurnout::create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed) {
-#ifndef IO_NO_HAL
     Turnout *tt = get(id);
     if (tt) { 
       // Object already exists, check if it is usable
@@ -251,11 +250,7 @@
     DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
     IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
     return tt;
-#else
-    (void)id; (void)vpin; (void)thrownPosition; (void)closedPosition;
-    (void)profile; (void)closed;          // avoid compiler warnings.
-    return NULL;
-#endif
+
   }
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
@@ -285,12 +280,8 @@
 
   // ServoTurnout-specific code for throwing or closing a servo turnout.
   void ServoTurnout::setClosedInternal(bool close) {
-#ifndef IO_NO_HAL
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
-#else
-    (void)close;  // avoid compiler warnings
-#endif
   }
 
   void ServoTurnout::save() {

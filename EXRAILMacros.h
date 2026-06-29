@@ -517,9 +517,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CLEAR_ANY_STASH OPCODE_CLEAR_ANY_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
-#ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
-#endif
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
@@ -538,9 +536,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
 #define ESTOP_RESUME OPCODE_ESTOPALL,V(2),
 #define EXRAIL
-#ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
-#endif
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V((int16_t)PCA9685::ProfileType::UseDuration|(int16_t)PCA9685::ProfileType::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
@@ -574,9 +570,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
 #define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
-#ifndef IO_NO_HAL
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
-#endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
@@ -630,9 +624,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
-#ifndef IO_NO_HAL
 #define ONROTATE(id) OPCODE_ONROTATE,V(id),
-#endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
@@ -669,10 +661,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define RETURN OPCODE_RETURN,0,0,
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
-#ifndef IO_NO_HAL
 #define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
 #define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
-#endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
 #define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
@@ -712,9 +702,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
-#ifndef IO_NO_HAL
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
-#endif
 #define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
 #define UNJOIN OPCODE_UNJOIN,0,0,
@@ -729,9 +717,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define BITMAP_XOR(vpin,mask) OPCODE_BITMAP_XOR,V(vpin),OPCODE_PAD,V(mask),
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
-#ifndef IO_NO_HAL
 #define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
-#endif
 #define WAIT_WHILE_RED(signal_id) OPCODE_WAIT_WHILE_RED,V(signal_id),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),

@@ -230,7 +230,6 @@
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #undef WAIT_WHILE_RED
-#ifndef IO_NO_HAL
 #undef BITMAP_AND
 #undef BITMAP_OR
 #undef BITMAP_SET
@@ -238,7 +237,6 @@
 #undef BITMAP_INC
 #undef BITMAP_DEC
 #undef WAITFORTT
-#endif
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON
