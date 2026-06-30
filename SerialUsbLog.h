@@ -29,8 +29,7 @@
 class SerialUsbLog : public Stream {
 
   public:
-    SerialUsbLog( const uint16_t len, HardwareSerial* serialPort);
-    SerialUsbLog( const uint16_t len, Stream* serialPort  );
+    SerialUsbLog( const uint16_t len);
     void begin( unsigned long baud );
     virtual size_t write(uint8_t b);
     using Print::write;
@@ -46,10 +45,8 @@ class SerialUsbLog : public Stream {
     void loop();
 
  private:
-   Stream * _serialPort;
    int _pos_write;
    bool _overflow;
-   bool _canBegin;
    byte * _buffer;
    int _bufferSize;
    // NEW
@@ -59,6 +56,7 @@ class SerialUsbLog : public Stream {
    // protect buffer/seq from concurrent access
    portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
 #endif
+
 };
 extern SerialUsbLog SerialLog;
 

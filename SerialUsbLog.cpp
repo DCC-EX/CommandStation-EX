@@ -72,7 +72,7 @@
   #endif
 
 // Global instance
-SerialUsbLog SerialLog(LOG_BUFFER, &Serial);
+SerialUsbLog SerialLog(LOG_BUFFER);
 StringBuffer dummyClient(2048); // buffering client for response construction
 
 // --------------------------- Small helpers (ESP32 only) ---------------------------
@@ -155,20 +155,12 @@ static void drainHttpHeaders(Client& client) {
 /**
  * Constructor
  * @param len Maximum length of the log buffer
- * @param serialPort underlying serial port (eg. &Serial)
  */
-SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort)
-  : SerialUsbLog(len, (Stream*)serialPort) {
-    _canBegin = true;
-}
-SerialUsbLog::SerialUsbLog(const uint16_t len, Stream* serialPort) {
+SerialUsbLog::SerialUsbLog(const uint16_t len) {
   _bufferSize = len;
   _buffer = new byte[len];
   _pos_write = 0;
   _overflow = false;
-  _serialPort = serialPort;
-  _canBegin = false; // only HardwareSerial can call begin() to set baud rate
-
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
 }
@@ -177,7 +169,7 @@ SerialUsbLog::SerialUsbLog(const uint16_t len, Stream* serialPort) {
  * Write a single byte to the log buffer and to the underlying serial port.
  */
 size_t SerialUsbLog::write(uint8_t b) {
-  _serialPort->write(b);
+  Serial.write(b);
 
   // Store directly (no translation)
   shoveToBuffer(b);
@@ -285,30 +277,29 @@ size_t SerialUsbLog::streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t
 
 // begin() shim
 void SerialUsbLog::begin(unsigned long baud) {
-  if (_serialPort) {
-    _serialPort->flush();
-   if (_canBegin) ((HardwareSerial*)_serialPort)->begin(baud);
+    Serial.flush();
+    Serial.begin(baud);
   }
-}
+
 
 // while(!Serial) shim
 bool SerialUsbLog::operator!() const {
-  return _serialPort == nullptr;
+  return !Serial;
 }
 
 // available() shim
 int SerialUsbLog::available() {
-  return _serialPort->available();
+  return Serial.available();
 }
 
 // read() shim
 int SerialUsbLog::read() {
-  return _serialPort->read();
+  return Serial.read();
 }
 
 // peek() shim
 int SerialUsbLog::peek() {
-  return _serialPort->peek();
+  return Serial.peek();
 }
 
 /**
@@ -338,7 +329,7 @@ void SerialUsbLog::loop() {
   String reqLine = client.readStringUntil('\r');
   if (reqLine.length() == 0) { client.stop(); return; }
   if (Diag::WIFI || Diag::ETHERNET) {
-    StringFormatter::send(_serialPort,F("<* http: %s *>\n"), reqLine.c_str());
+    StringFormatter::send(Serial,F("<* http: %s *>\n"), reqLine.c_str());
   }
   int sp1 = reqLine.indexOf(' ');
   int sp2 = reqLine.indexOf(' ', sp1 + 1);
@@ -446,7 +437,7 @@ else {
   );
 }
 if (Diag::WIFI || Diag::ETHERNET) {
-    StringFormatter::send(_serialPort,F("<* http:replyLength %d *>\n"),
+    StringFormatter::send(Serial,F("<* http:replyLength %d *>\n"),
     dummyClient.getLength());
   }
   
