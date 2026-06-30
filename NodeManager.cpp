@@ -69,6 +69,13 @@ void NodeManager::cast(const FSH* format...) {
   StringFormatter::send2(&udpNodeTx, format, args);
   va_end(args);
   udpNodeTx.endPacket();
+  if (Diag::NODE) {
+    USB_SERIAL.print(F("<* Node out: "));
+    va_start(args, format);
+    StringFormatter::send2(&USB_SERIAL, format, args);
+    va_end(args);
+    USB_SERIAL.println(F(">\n"));
+  }
 }
 
 void NodeManager::cast(StringBuffer * buffer) {
@@ -80,6 +87,7 @@ void NodeManager::cast(StringBuffer * buffer) {
 }
 
 void NodeManager::parse(byte * cmd) {
+    if (Diag::NODE) DIAG(F("Node in: %s"),cmd);
     DCCEXParser::parseNodeTraffic(cmd);
 }
 

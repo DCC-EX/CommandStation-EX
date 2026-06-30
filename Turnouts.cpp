@@ -135,7 +135,7 @@
     if (!tt) return false;
     tt->setClosedInternal(closeFlag);
 
-    if (nodeCast) NodeManager::cast(F("<H %d %d>\n"), id, closeFlag ? 0 : 1);
+    if (nodeCast) NodeManager::cast(F("<H %d %d>"), id, closeFlag ? 0 : 1);
     tt->setClosedStateOnly(closeFlag);
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress

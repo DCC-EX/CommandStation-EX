@@ -366,7 +366,7 @@ ZZ(D,RAILCOM,ON) // Enable Railcom diagnostics
         Diag::RAILCOM = true;
 ZZ(D,RAILCOM,OFF) // DIsable Railcom diagnostics
         Diag::RAILCOM = false;    
-ZZ(D,WIFI,ON) // Enable WiFi diagnostics
+ZZ(D,WIWEBSOCKETFI,ON) // Enable WiFi diagnostics
         Diag::WIFI = true;
 ZZ(D,WIFI,OFF) // Disable WiFi diagnostics
         Diag::WIFI = false; 
@@ -386,6 +386,10 @@ ZZ(D,WEBSOCKET,ON) // Enable WebSocket diagnostics
         Diag::WEBSOCKET = true;
 ZZ(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
+ZZ(D,NODE,ON) // Enable Node diagnostics 
+        Diag::NODE = true;
+ZZ(D,NODE,OFF) // Disable Node diagnostics 
+        Diag::NODE = false;
             
 #ifndef DISABLE_EEPROM  
 ZZ(D,EEPROM,numEntries) // Dump EEPROM contents
