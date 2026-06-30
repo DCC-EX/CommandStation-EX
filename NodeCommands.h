@@ -51,6 +51,13 @@ ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 
+ZZ(z,vpin,value,count)
+  // This was sent by a node that changes a vpin state
+  // It will not cause a rebroadcast
+  if (IODevice::isSharedWrite(vpin,count)) 
+    IODevice::writeRange(vpin,value,count,false);
+  
+
 ZZ(@,display,row,text) // Display text change
   // This was sent by a node that changes a display text
   CHECKQ(text)

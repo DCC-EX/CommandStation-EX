@@ -128,9 +128,9 @@ public:
   }
 
   // write invokes the IODevice instance's _write method.
-  static void write(VPIN vpin, int value);
-  static void writeRange(VPIN vpin, int value,int count);
-
+  static void write(VPIN vpin, int value, bool tellNodes=true);
+  static void writeRange(VPIN vpin, int value,int count, bool tellNodes=true);
+  static bool isSharedWrite(VPIN vpin1,int16_t count);
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
   static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
   static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count);

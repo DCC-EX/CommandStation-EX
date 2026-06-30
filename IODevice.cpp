@@ -26,6 +26,7 @@
 #include "FSH.h"
 #include "IO_MCP23017.h"
 #include "DCCTimer.h"
+#include "NodeManager.h"
 
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
@@ -253,22 +254,28 @@ int IODevice::configureAnalogIn(VPIN vpin) {
   return -1023;
 }
 
+#ifndef EXRAIL_ACTIVE
+
+// Exrail will create this function if active.
+bool IODevice::isSharedWrite(VPIN vpin1, int16_t count) {
+
+  return false;
+}
+#endif
+
 // Write value to virtual pin(s).  If multiple devices are allocated the same pin
 //  then only the first one found will be used.
-void IODevice::write(VPIN vpin, int value) {
+void IODevice::write(VPIN vpin, int value, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
-  if (dev) {
-    dev->_write(vpin, value);
-    return;
-  }
-#ifdef DIAG_IO
-  DIAG(F("IODevice::write(): VPIN %u not found!"), (int)vpin);
-#endif
+  if (dev) dev->_write(vpin, value);
+  if (tellNodes) NodeManager::cast(F("<z %d %d 1>"), vpin, value);
 }
 
 // Write value to count virtual pin(s).
 // these may be within one driver or separated over several drivers 
-void IODevice::writeRange(VPIN vpin, int value, int count) {  
+void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {  
+  auto countBefore = count;
+  auto vpinBefore = vpin;
   
   while(count) {  
     auto dev = findDevice(vpin);
@@ -284,6 +291,8 @@ void IODevice::writeRange(VPIN vpin, int value, int count) {
       count--;
     }
   }
+  if (tellNodes) NodeManager::cast(F("<z %d %d %d>"), 
+     vpinBefore, value,countBefore);
 }
 
 // Write analogue value to virtual pin(s).  If multiple devices are allocated

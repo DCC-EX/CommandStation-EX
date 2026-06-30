@@ -451,6 +451,9 @@
 /// This node will display it's own display 0 as normal.
 //  If display_id is non-zero, it will share the screen with other nodes as display_id.
 
+#define SHARED_WRITE_VPINS(vpin,count)
+///brief Marks a range of VPINS as shared, so that any node can write to them
+
 #define ACON(eventid)
 ///brief Send MERG CBUS ACON to Adapter
 

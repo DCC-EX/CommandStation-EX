@@ -206,6 +206,7 @@
 #undef SET_POWER
 #undef SETLOCO 
 #undef SETFREQ
+#undef SHARED_WRITE_VPINS
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED

@@ -110,6 +110,19 @@
 // Perform compile time asserts to check the script for errors
 #include "EXRAILAsserts.h"
 
+// Pass 1s implements IODevice::isSharedWrite 
+#include "EXRAIL2MacroReset.h"
+#undef SHARED_WRITE_VPINS
+#define SHARED_WRITE_VPINS(vpin,count) \
+  || (xvpin>=vpin && (xvpin+xcount-1)<=(vpin+count-1)) 
+
+bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
+   return false 
+   #include "myAutomation.h"
+   ;
+}
+
+
 // Pass 1g Implants STEALTH_GLOBAL in correct place 
 #include "EXRAIL2MacroReset.h"
 #undef STEALTH_GLOBAL
@@ -691,6 +704,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SETFREQ(freq) OPCODE_SETFREQ,V(freq),
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
+#define SHARED_WRITE_VPINS(vpin,count)
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
 #define SPEED_REL(percent) OPCODE_SPEED_REL,V(percent),
