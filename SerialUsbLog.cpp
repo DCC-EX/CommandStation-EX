@@ -53,9 +53,20 @@
   #include <WiFi.h>
   #include "WifiESP32.h"
   WiFiServer server(80);
-#else
+#elif defined(ARDUINO_ARCH_STM32)
   #include <STM32Ethernet.h>
   EthernetServer server(80);
+#else
+  #include "Ethernet.h"
+  class LogEthernetServer : public EthernetServer {
+   public:
+    explicit LogEthernetServer(uint16_t port) : EthernetServer(port) {}
+    void begin(uint16_t port=0) {
+      (void)port;
+      EthernetServer::begin();
+    }
+  };
+  LogEthernetServer server(80);
 #endif
 
 #include "SerialUsbLog.h"

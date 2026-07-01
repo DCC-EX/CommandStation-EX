@@ -137,7 +137,10 @@
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
   #endif
-  #define ENABLE_WIFI true
+  // ESP32 defaults to WiFi, but allow config.h to override (e.g. W5500 Ethernet builds).
+  #ifndef ENABLE_WIFI
+    #define ENABLE_WIFI true
+  #endif
   #define ENABLE_SERIAL_LOG
 
 #elif defined(ARDUINO_ARCH_SAMD)
