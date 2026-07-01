@@ -238,7 +238,7 @@
         IODevice::configureServo(vpin, thrownPosition, closedPosition, profile, 0, closed);
 
         // Set position directly to specified position - we don't know where it is moving from.
-        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
+        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant,0,false);
 
         return tt;
       } else {
@@ -248,7 +248,7 @@
     }
     tt = (Turnout *)new ServoTurnout(id, vpin, thrownPosition, closedPosition, profile, closed);
     DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
-    IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
+    IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant,0,false);
     return tt;
 
   }
@@ -281,7 +281,7 @@
   // ServoTurnout-specific code for throwing or closing a servo turnout.
   void ServoTurnout::setClosedInternal(bool close) {
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
-      close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
+      close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile,0,false);
   }
 
   void ServoTurnout::save() {

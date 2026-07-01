@@ -190,5 +190,5 @@ void ServoSignal::action(){
         default:
             angle= redAngle; // default to red if unknown
     }
-     IODevice::writeAnalogue(servoPin, angle);    
+     IODevice::writeAnalogue(servoPin, angle,0,0,false);    
 }

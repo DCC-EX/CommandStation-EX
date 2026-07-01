@@ -57,6 +57,12 @@ ZZ(z,vpin,value,count)
   if (IODevice::isSharedWrite(vpin,count)) 
     IODevice::writeRange(vpin,value,count,false);
   
+ZZ(z,vpin,value,param1,param2,count)
+  // This was sent by a node that changes a vpin state
+  // It will not cause a rebroadcast
+  if (IODevice::isSharedWrite(vpin,count)) 
+    IODevice::writeAnalogueRange(vpin,value,param1,param2,count,false);
+  
 
 ZZ(@,display,row,text) // Display text change
   // This was sent by a node that changes a display text

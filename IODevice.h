@@ -132,8 +132,8 @@ public:
   static void writeRange(VPIN vpin, int value,int count, bool tellNodes=true);
   static bool isSharedWrite(VPIN vpin1,int16_t count);
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
-  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
-  static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count);
+  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0, bool tellNodes=true);
+  static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count, bool tellNodes=true);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.

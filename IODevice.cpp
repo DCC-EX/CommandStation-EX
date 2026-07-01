@@ -303,19 +303,26 @@ void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {
 // the duration, i.e. the time that the operation is to be animated over
 // in deciseconds (0-3276 sec)
 //
-void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
+void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
   if (dev) {
     dev->_writeAnalogue(vpin, value, param1, param2);
     return;
   }
+    if (tellNodes) NodeManager::cast(F("<z %d %d %d %d 1>"),
+       vpin, value, param1, param2);
+
 #ifdef DIAG_IO
   DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
 #endif
 }
 
 //
-void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count) {
+void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count, bool tellNodes) {
+  
+  auto countBefore = count;
+  auto vpinBefore = vpin;
+  
   while(count) {  
     auto dev = findDevice(vpin);
     if (dev) {
@@ -330,6 +337,9 @@ void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t
       count--;
     }
   }
+    if (tellNodes) NodeManager::cast(F("<z %d %d %d %d %d>"), 
+     vpinBefore, value,param1,param2,countBefore);
+
 }
 
 // isBusy, when called for a device pin is always a digital output or analogue output,
