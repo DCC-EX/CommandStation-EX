@@ -45,6 +45,12 @@
 #include "esp_idf_version.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
+#if __has_include(<esp_mac.h>)
+  #include <esp_mac.h>
+#else
+  #include <esp_system.h>
+#endif
 
 
 // Async UDP transport
@@ -76,9 +82,34 @@ static void rememberUdpDiscoveryClient(const IPAddress &ip) {
 /* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
 #if defined(ESP_IDF_VERSION)
+namespace {
+  bool sTaskWdtRegistered = false;
+  bool sTaskWdtInitAttempted = false;
+
+  void ensureTaskWdtRegistered() {
+    if (sTaskWdtInitAttempted) return;
+    sTaskWdtInitAttempted = true;
+
+    esp_err_t err = esp_task_wdt_add(nullptr);
+    if (err == ESP_OK) {
+      sTaskWdtRegistered = true;
+    } else if (err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT add failed: %d"), err);
+    }
+  }
+}
+
 void feedTheDog0(){
-  // Use task watchdog API on modern ESP-IDF versions.
-  esp_task_wdt_reset();
+  if (!sTaskWdtInitAttempted) {
+    ensureTaskWdtRegistered();
+  }
+
+  if (sTaskWdtRegistered) {
+    esp_err_t err = esp_task_wdt_reset();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT reset failed: %d"), err);
+    }
+  }
 }
 #else
 void feedTheDog0(){
@@ -304,14 +335,38 @@ const char *wlerror[] = {
   "WL_DISCONNECTED"
 };
 
+uint8_t wifi_sta_protocols = WIFI_PROTOCOL_11N;
+
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
   // Optimize Wi-Fi for multicast send performance!!
-  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
-  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.  Some older ESP32s only support 802.11b/g/n.
+  #if CONFIG_SOC_WIFI_SUPPORT_5G
+
+    wifi_protocols_t proto = {
+        .ghz_2g = WIFI_PROTOCOL_11AX,
+        .ghz_5g = WIFI_PROTOCOL_11AX,
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_protocols(WIFI_IF_STA, &proto));
+
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+
+    ESP_ERROR_CHECK(
+        esp_wifi_set_protocol(
+            WIFI_IF_STA,
+            WIFI_PROTOCOL_11N |
+            WIFI_PROTOCOL_11AX));
+
+#else
+
+    ESP_ERROR_CHECK(
+        esp_wifi_set_protocol(
+            WIFI_IF_STA,
+            WIFI_PROTOCOL_11N));
   esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
 
+#endif
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
@@ -319,6 +374,10 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setSleep(false);
 #endif
   WiFi.setAutoReconnect(true);
+  // Scan all channels, and select the AP with the strongest signal.
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+  
   WiFi.begin(SSid, password);
 
   uint8_t tries = 40;
@@ -343,35 +402,60 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
   bool password_secret=true;
   String strSSID; // retain scope in function for c_str() to be valid
   String strPass;
-  
-  if (!SSid || SSid[0]==0) {
-    String strMac;
-    strMac = WiFi.macAddress();
-    strMac.remove(0,9);
-    strMac.replace(":","");
-    strMac.replace(":","");
-    // convert mac addr hex chars to lower case to be compatible with AT software
-    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    strSSID.concat("DCCEX_");
-    strSSID.concat(strMac);
-    SSid=strSSID.c_str();
-    strPass.concat("PASS_");
-    strPass.concat(strMac);
-    password=strPass.c_str();
-    password_secret=false;
-  }
 
-  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
+  // Grab the MAC address of the ESP32 and use the last 3 bytes to create a unique SSID and password if not provided.
+  if (!SSid || SSid[0] == 0) {
+      uint8_t byteMac[6];
+      esp_read_mac(byteMac, ESP_MAC_WIFI_STA);
+
+      char suffix[7];
+      snprintf(suffix, sizeof(suffix), "%02x%02x%02x",
+              byteMac[3], byteMac[4], byteMac[5]);
+
+      strSSID = "DCCEX_";
+      strSSID += suffix;
+      SSid = strSSID.c_str();
+
+      strPass = "PASS_";
+      strPass += suffix;
+      password = strPass.c_str();
+
+      password_secret = false;
+  }
+  
   WiFi.mode(WIFI_AP);
   // Optimize Wi-Fi for multicast send performance!!
-  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
-  esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11N);
-  esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.  Some older ESP32s only support 802.11b/g/n, newer ones support 802.11ax.
+  // NB: the ESP32-C5 has a single WiFi radio... so can be configured for **either** 2.4GHz or 5GHz, but not both at the same time.
+  // We'll keep the ESP32-C5 in 2.4GHz mode for now, with future 5GHz support. The 5GHz config here is left for reference.
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+    wifi_protocols_t proto = {
+        .ghz_2g = WIFI_PROTOCOL_11AX,
+        .ghz_5g = WIFI_PROTOCOL_11AX,
+    };
+    esp_wifi_set_protocols(WIFI_IF_AP, &proto);
+// For the ESP32-C6, and anything similar which supports 802.11ax, but only 2.4GHz, we can use the same 11ax protocol.
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+    esp_wifi_set_protocol(
+            WIFI_IF_AP,
+            WIFI_PROTOCOL_11N |
+            WIFI_PROTOCOL_11AX);
+// Legacy ESP32s (ESP32, ESP32-S3, ESP32-C3) which support only 2.4GHz, and not 5GHz, can use the 11n protocol.
+#else
+    esp_wifi_set_protocol(
+        WIFI_IF_AP,
+        WIFI_PROTOCOL_11N);
+#endif
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
 #else
   WiFi.setSleep(false);
+#endif
+
+// For now, we will force the ESP32-C5 to operate in 2.4GHz mode only, as the 5GHz support is not yet implemented.
+#if CONFIG_IDF_TARGET_ESP32C5
+    esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY);
 #endif
 
   const bool hiddenAP = WifiPreferences::getHiddenAP();
