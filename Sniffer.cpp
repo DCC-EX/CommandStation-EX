@@ -16,6 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "config.h"
 #if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
 #include "Sniffer.h"
 #include "DIAG.h"
@@ -242,4 +243,6 @@ static void IRAM_ATTR sniffer_isr_handler(void *) {
   DCCSniffer.processInterrupt();
 }
 */
+#else
+#warning Sniffer.cpp is only compiled for ESP32
 #endif // ESP32
