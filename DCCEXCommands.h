@@ -445,6 +445,13 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
+#ifdef BOOSTER_INPUT
+// <C SNIFFER [ON|OFF]>
+ZZ(C,SNIFFER,ON)
+  DCCDecoder::onoff(true);
+ZZ(C,SNIFFER,OFF)
+  DCCDecoder::onoff(false);
+#endif
 ZZ(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         WifiPreferences::enable(false);
