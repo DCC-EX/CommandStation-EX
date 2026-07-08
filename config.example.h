@@ -172,6 +172,28 @@ The configuration file for DCC-EX Command Station
 // Use 132,64 for a SH1106-based I2C device with a 128x64 display.
 // #define OLED_DRIVER 0x3c,128,32
 
+//OR define ST7789_DRIVER cs,dc,rst,width,height[,rotation[,textsize[,backlight[,active]]]]
+// for an SPI ST7789 TFT using the Adafruit GFX and ST7789 libraries.
+// Rotation 1 or 3 swaps the usable text geometry, so a 170x320 display at
+// rotation 1 behaves as a 320x170 display for column/row calculations.
+// A 240x240 screen with text size 2 gives 20 columns x 15 rows.
+// Omit backlight if the backlight pin is wired permanently on; otherwise specify
+// the backlight pin and optionally LOW for active-low backlight circuits.
+// #define ST7789_DRIVER 10,9,8,240,240,0,2
+// #define ST7789_DRIVER 10,9,8,240,240,0,2,7,HIGH
+// Use text size 0 to choose the largest text size that fits the requested
+// columns and/or rows.  If only one is specified, only that dimension limits
+// the calculated text size.
+// #define ST7789_DRIVER 10,9,8,170,320,1,0,7,HIGH
+// #define ST7789_TEXT_COLS 40
+// #define ST7789_TEXT_ROWS 10
+// Optionally add extra vertical pixels between text rows.  This is included in
+// row count and auto-size calculations.
+// #define ST7789_TEXT_ROW_SPACING 1
+// The Adafruit ST77xx library defaults to 32MHz hardware SPI.  You can override
+// it if your display and wiring are reliable at another speed.
+// #define ST7789_SPI_SPEED 40000000
+
 // Define scroll mode as 0, 1 or 2
 //  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
 //  *  #define SCROLLMODE 1 is by page (alternate between pages),
@@ -184,6 +206,10 @@ The configuration file for DCC-EX Command Station
 // of the warning that this will take extra RAM.  if you wish to include additional rows
 // uncomment the following #define and set the number of lines you need.
 //#define MAX_CHARACTER_ROWS 12
+
+// The current display line length is limited to 20 characters by default.
+// For a 240x240 ST7789 at text size 1, uncomment this to use all 40 columns.
+//#define MAX_MSG_SIZE 40
 
 
 /////////////////////////////////////////////////////////////////////////////////////

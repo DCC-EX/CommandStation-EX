@@ -30,6 +30,9 @@
 #include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
+#if defined(ST7789_DRIVER)
+#include "ST7789Display.h"
+#endif
   
 
 // Implement the Display shim class as a singleton.
@@ -38,6 +41,7 @@
 // Then Display class talks to the specific device type classes:
 //    SSD1306AsciiWire for I2C OLED driver with SSD1306 or SH1106 controllers;
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
+//    ST7789Display for SPI TFT driver with ST7789 controller.
 
 #if defined(OLED_DRIVER)
   #define DISPLAY_START(xxx) { \
@@ -50,6 +54,12 @@
 #elif defined(LCD_DRIVER)
   #define DISPLAY_START(xxx) { \
     DisplayInterface *t = new Display(new LiquidCrystal_I2C(LCD_DRIVER)); \
+    t->begin(); \
+    xxx;  \
+    t->refresh();}
+#elif defined(ST7789_DRIVER)
+  #define DISPLAY_START(xxx) { \
+    DisplayInterface *t = new Display(new ST7789Display(ST7789_DRIVER)); \
     t->begin(); \
     xxx;  \
     t->refresh();}

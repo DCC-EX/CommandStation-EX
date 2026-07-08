@@ -36,7 +36,7 @@
 
 class Display : public DisplayInterface {
 public:
-  Display(DisplayDevice *deviceDriver);
+  Display(DisplayDevice *deviceDriver, uint8_t displayNo = 0);
 #if !defined (MAX_CHARACTER_ROWS)
   #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
     static const int MAX_CHARACTER_ROWS = 17;
