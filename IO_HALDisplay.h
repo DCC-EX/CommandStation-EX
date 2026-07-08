@@ -47,6 +47,13 @@
  * where address is the I2C address of the LCD display (0x27 typically),
  * width is the width in characters (16 or 20 typically),
  * and height is the height in characters (2 or 4 typically).
+ *
+ * OR in myAutomation.h:
+ *
+ *    HAL(ST7789, cs, dc, rst, width, height, rotation, textSize, backlight, active)
+ *    HAL(ST7789, displayNo, cs, dc, rst, width, height, rotation, textSize, backlight, active)
+ *
+ * where width and height are the native pixel dimensions before rotation.
  */
 
 
@@ -57,6 +64,10 @@
 #include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
+#if __has_include(<Adafruit_GFX.h>) && __has_include(<Adafruit_ST7789.h>)
+#include "Display.h"
+#include "ST7789Display.h"
+#endif
 #include "version.h"
 
 typedef SSD1306AsciiWire OLED;
@@ -261,5 +272,42 @@ public:
   }
 
 };
+
+#if __has_include(<Adafruit_GFX.h>) && __has_include(<Adafruit_ST7789.h>)
+
+class ST7789 {
+public:
+  static void create(int8_t cs, int8_t dc, int8_t rst,
+                     uint16_t width, uint16_t height,
+                     uint8_t rotation = 0, uint8_t textSize = 2,
+                     int8_t backlightPin = -1,
+                     uint8_t backlightActiveLevel = HIGH) {
+    create(0, cs, dc, rst, width, height, rotation, textSize,
+           backlightPin, backlightActiveLevel);
+  }
+
+  static void create(uint8_t displayNo, int8_t cs, int8_t dc, int8_t rst,
+                     uint16_t width, uint16_t height,
+                     uint8_t rotation, uint8_t textSize,
+                     int8_t backlightPin,
+                     uint8_t backlightActiveLevel) {
+    DisplayInterface *display = new Display(
+      new ST7789Display(cs, dc, rst, width, height, rotation, textSize,
+                        backlightPin, backlightActiveLevel),
+      displayNo);
+    if (!display) return;
+    display->begin();
+    if (displayNo == 0) {
+      DisplayInterface::setRow(0, 0);
+      display->print(F("DCC-EX v"));
+      display->print(F(VERSION));
+      DisplayInterface::setRow(0, 1);
+      display->print(F("Lic GPLv3"));
+      display->refresh(0);
+    }
+  }
+};
+
+#endif // Adafruit ST7789 library available
 
 #endif // IO_HALDisplay_H

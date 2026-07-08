@@ -48,7 +48,7 @@
 #include "Display.h"
 
 // Constructor - allocates device driver.
-Display::Display(DisplayDevice *deviceDriver) {
+Display::Display(DisplayDevice *deviceDriver, uint8_t displayNo) {
   _deviceDriver = deviceDriver;
   // Get device dimensions in characters (e.g. 16x2).
   numScreenColumns = _deviceDriver->getNumCols();
@@ -56,7 +56,7 @@ Display::Display(DisplayDevice *deviceDriver) {
   for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
     rowBuffer[row][0] = '\0';
   
-  addDisplay(0);  // Add this display as display number 0
+  addDisplay(displayNo);  // Add this display
 };
 
 void Display::begin() {
