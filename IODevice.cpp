@@ -73,6 +73,12 @@ void IODevice::begin() {
   if (exrailHalSetup1)
     ignoreDefaults=exrailHalSetup1();
   
+    #if __has_include("AudioTools.h")
+    // Waveshare and similar devices have embedded i2c devices
+    // with clashing i2c addresses
+    ignoreDefaults=true;
+  #endif  
+
   if (!ignoreDefaults) {
   
     // Predefine two PCA9685 modules 0x40-0x41 if no conflicts

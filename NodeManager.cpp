@@ -22,7 +22,7 @@
 
 #ifndef ARDUINO_ARCH_ESP32
 // dummy NodeManager without ESP32 support
-void NodeManager::setup(bool throttleNode) {}
+void NodeManager::setup(bool throttleNode) { (void)throttleNode;}
 void NodeManager::cast(const FSH* format...) {
     (void)format; // avoid unused parameter warning
 }
