@@ -23,6 +23,10 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 
+#if defined(ARDUINO_ARCH_ESP32)
+#include "esp_log.h"
+#endif
+
 // Include target-specific portions of I2CManager class
 #if defined(I2C_USE_WIRE) 
 #include "I2CManager_Wire.h"
@@ -108,6 +112,15 @@ void I2CManagerClass::begin(void) {
     StringFormatter::send(stream,F("   I2CManager: Using Wire library\n"));
     #endif
 
+#if defined(ARDUINO_ARCH_ESP32)
+    // Scanning intentionally probes non-existent addresses, so suppress expected
+    // ESP32 I2C error logs during scan and restore levels afterwards.
+    esp_log_level_t i2cMasterLevel = esp_log_level_get("i2c.master");
+    esp_log_level_t i2cNgLevel = esp_log_level_get("esp32-hal-i2c-ng");
+    esp_log_level_set("i2c.master", ESP_LOG_NONE);
+    esp_log_level_set("esp32-hal-i2c-ng", ESP_LOG_NONE);
+#endif
+
     // Probe and list devices.  Use standard mode 
     //  (clock speed 100kHz) for best device compatibility.
     _setClock(100000);
@@ -118,8 +131,14 @@ void I2CManagerClass::begin(void) {
     // First count the multiplexers and switch off all subbuses
     _muxCount = 0;
     for (uint8_t muxNo=I2CMux_0; muxNo <= I2CMux_7; muxNo++) {
-      if (I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None})==I2C_STATUS_OK)
-        _muxCount++;
+      uint8_t muxAddr = I2C_MUX_BASE_ADDRESS + muxNo;
+      // Probe mux address first to avoid writing selector bytes to
+      // non-existent muxes, which can emit noisy ESP32 HAL errors.
+      if (exists(muxAddr)) {
+        if (I2CManager.muxSelectSubBus({(I2CMux)muxNo, SubBus_None}) == I2C_STATUS_OK) {
+          _muxCount++;
+        }
+      }
     }
   #endif
 
@@ -173,6 +192,11 @@ void I2CManagerClass::begin(void) {
     StringFormatter::send(stream,found?F("*>\n"):F("  No I2C Devices found\n*>\n"));
     _setClock(_clockSpeed);
     setTimeout(originalTimeout);      // set timeout back to original
+
+  #if defined(ARDUINO_ARCH_ESP32)
+    esp_log_level_set("i2c.master", i2cMasterLevel);
+    esp_log_level_set("esp32-hal-i2c-ng", i2cNgLevel);
+  #endif
   }
 
 // Set clock speed to the lowest requested one. If none requested,
