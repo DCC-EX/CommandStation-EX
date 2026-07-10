@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.5"
+#define VERSION "5.7.6"
+// 5.7.6  - Safety net for users which have not defined an ONRAILSYNCOFF hanlder
 // 5.7.5  - Bugfix: <W cv value> and similar commands incorrectly limited cv number to 255 instead of 1023. 
 //        - Removed unnecessary pin change message (ESP32)
 //        - Improved command parser error messages
