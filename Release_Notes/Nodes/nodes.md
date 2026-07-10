@@ -11,7 +11,7 @@ A layout may be controlled entirely by a single processor, known as the Command 
 - Running EXRAIL scripts
 - Handling accessories
 - Displaying on oleds
-- Lighting 
+- Lighting
 - Turntable operations
 
 In some cases, particularly large layouts,  it would be preferable to offload some of these functions to separate processors, mostly for ease of wiring... performance is rarely an issue.
@@ -28,9 +28,9 @@ The following object types are shared amongst the nodes but in general a noce/cs
 
 - Turnouts can be thrown, closed or monitored from any node.
 - Signals can be set or monitored from any node 
-- EXRAIL RESERVE/FREE tokens can be obtained by any node
+- EXRAIL RESERVE/FREE tokens might be obtained by any node (NOT YET.. and MAYBE NEVER)
 - Input (sensor) vpins can be monitored by any node
-- Output vpins can be monitored by any node 
+- Output vpins can be set by any node... The implication of this is that most devices like DFPlayers, NeoPixels, Leds can be controlled by any node as long as the node with the real device has deliberately accepted the VPIN numbers using the SHARED_WRITE_VPINS macro.  
 
 ## Node processors
 
@@ -51,3 +51,10 @@ It is assumed that the reader intending to implement nodes is familiar with the 
 Each node will need its own myAutomation.h but otherwise operates exactly the same EX-CommandStation code. A definition (or possibly runtime switch) prevents the node from advertising itself to throttles or trying to generate a DCC waveform.
 
 (Installer assist in managing this?)
+
+## Node Wifi
+
+The node must be able to identify the Wifi SSID/Password to get on to the same network as the other devices. Since we now have a CSB1 way of setting wifi from a command , the node can be configured over USB (or any other viable input such as a browser, throttle or toolbox connected to the nodes AP) with the `<C WIFI "ssid" "password">`  command and it will stick.
+(without the Node code, you would have had to code that manually somewhere.)
+
+- It is very convenient to use `<C WIFI HOSTNAME "nodename">` to set the nodes hostname so that you can easily open a browser to http://nodename/ and monitor the node as for the CS.
