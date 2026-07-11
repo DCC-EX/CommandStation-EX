@@ -97,7 +97,7 @@ public:
     void _begin() override {
         DIAG(F("WaveShare::_begin()"));
 
-        _currentVolume = 0.7f;
+        _currentVolume = 8;
 
         // Setup audio output
         auto cfg = kit->defaultConfig(TX_MODE);
@@ -107,8 +107,8 @@ public:
         USB_SERIAL.println("Initializing SD card at 2 MHz...");
 
         // Setup player callbacks (before SD card)
+        player->setVolume(0.0f);
         player->stop();
-        player->setVolume(0.7f);
         player->setAutoNext(false);
 
         if (!source->begin()) {
@@ -128,9 +128,11 @@ public:
 
     void _display() override {
         USB_SERIAL.printf("<* WaveShare Audio Device VPIN %d:\n", _firstVpin);
-        USB_SERIAL.printf("  Current Volume: %.2f\n", _currentVolume);
-        USB_SERIAL.printf("  Current File: %d/%d\n", _currentFolder, _currentTrack);
-        USB_SERIAL.printf("  Is Playing: %s *>\n", player->isActive() ? "Yes" : "No");
+        USB_SERIAL.printf("  Current Volume: %d\n", _currentVolume);
+        if (player->isActive()) {
+            USB_SERIAL.printf("  Playing File: %d/%d\n", _currentFolder, _currentTrack);
+        }
+        USB_SERIAL.print(" *>\n");
     }
 
     void _loop(unsigned long currentMicros) override {
@@ -174,7 +176,8 @@ protected:
                     delay(50);
                 }
                 if (v2) {
-                    player->setVolume(v2 * 0.03f);
+                    _currentVolume = v2;
+                    player->setVolume(linearToActualVolume(v2));
                 }
                 _currentTrack = v1;
                 playFile(_currentFolder, _currentTrack);
@@ -191,7 +194,8 @@ protected:
                 break;
 
             case DF_VOL:
-                player->setVolume(v2 * 0.03f);
+                _currentVolume =v2;
+                player->setVolume(linearToActualVolume(v2));
                 break;
 
             case DF_EQ:
@@ -230,7 +234,7 @@ private:
     MP3DecoderHelix *decoder;
     AudioPlayer *player;
     AudioBoardStream *kit;
-    float _currentVolume = 0.7f;
+    byte _currentVolume = 8;
 
     void listSDFiles(const char *dirPath, uint8_t dirNum = 0) {
         File32 dir;
@@ -304,6 +308,16 @@ private:
 
         DIAG(F("[SD] File %d/%d not in lookup table\n"), folder, file);
     }
+
+    // ========== NON-LINEAR VOLUME SCALING ==========
+    float linearToActualVolume(int dfpvol) {
+        if (dfpvol < 0) return 0.0f;
+        if (dfpvol > 32) dfpvol=32;
+        auto vol = dfpvol/32.0f;
+        vol*=0.75f;  // scale to 0.0-0.75 range
+        return vol;  
+    }
+
 };
 
 #endif
