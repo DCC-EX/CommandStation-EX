@@ -59,12 +59,14 @@
 // Suppress the library's broken auto-generated global instance
 #define NO_OTA_NETWORK
 #include <ArduinoOTA.h>
-ArduinoOTAMdnsClass<ESP32EthernetServer, EthernetClient, EthernetUDP> activeOTA;
-#elif WIFI_ON
+ArduinoOTAClass<ESP32EthernetServer, EthernetClient> activeOTA;
+#endif
+
+#if WIFI_ON
 // Suppress the library's broken auto-generated global instance
 #define NO_OTA_NETWORK
 #include <ArduinoOTA.h>
-ArduinoOTAMdnsClass<WiFiServer, WiFiClient, WiFiUDP> activeOTA;
+ArduinoOTAClass<WiFiServer, WiFiClient> activeOTA;
 #endif
 
 Sniffer *dccSniffer = NULL;
@@ -137,6 +139,7 @@ void setup()
 
 #if ETHERNET_ON
   EthernetInterface::setup();
+#endif
 
 #ifdef ARDUINO_ARCH_ESP32
 #if OTA_AUTO_INIT
@@ -144,7 +147,6 @@ void setup()
 #endif // OTA_AUTO_INIT
 #endif
   
-#endif // ETHERNET_ON
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -256,13 +258,16 @@ void loop()
       #if WIFI_ON
       if (WiFi.status() == WL_CONNECTED) {
         // Wi-Fi Mode active
+        Serial.println(">>> ATTEMPTING TO BIND OTA PORT NOW <<<");
         activeOTA.onStart(onStartCb);
         activeOTA.onError(onErrorCb);
         activeOTA.begin(WiFi.localIP(), WIFI_HOSTNAME, otaPassword, InternalStorage);
         DIAG(F("OTA initialized over Wi-Fi."));
         otaInitialised = true;
-      } 
-      #elif ETHERNET_ON
+      }
+      #endif 
+      
+      #if ETHERNET_ON
       if (Ethernet.localIP() != IPAddress(0,0,0,0) && Ethernet.localIP() != IPAddress(255,255,255,255)) {
         // Ethernet Mode active
         activeOTA.onStart(onStartCb);
