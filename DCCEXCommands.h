@@ -449,6 +449,13 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 #endif
 
 #if defined(ARDUINO_ARCH_ESP32)
+#ifdef BOOSTER_INPUT
+// <C SNIFFER [ON|OFF]>
+ZZ(C,SNIFFER,ON)  // Turn sniffer output on
+  DCCDecoder::onoff(true);
+ZZ(C,SNIFFER,OFF) // Turn sniffer output off
+  DCCDecoder::onoff(false);
+#endif
 ZZ(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         WifiPreferences::enable(false);
@@ -471,7 +478,7 @@ ZZ(C,WIFI,HOSTNAME,hostname) // set Wifi hostname (in quotes)
 ZZ(C,WIFI,DEFAULT) // Set WiFi to default credentials
   WifiPreferences::clear(); 
   WifiESP::setup();
-ZZ(C,WIFI,ssid,password) // Set WiFi ssid and password (in quotes)
+ZZ(C,WIFI,ssid,password) // Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveSTA(q_ssid, q_password,true); 

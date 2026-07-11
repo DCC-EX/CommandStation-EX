@@ -1406,11 +1406,15 @@ void RMFT2::railsyncEvent(bool on) {
   if (Diag::CMD)
    DIAG(F("railsyncEvent : %d"), on);
   if (on) {
-    if (onRailSyncOnLookup)
+    if (onRailSyncOnLookup && onRailSyncOnLookup->size() > 0)
       onRailSyncOnLookup->handleEvent(F("RAILSYNCON"), 0);
   } else {
-    if (onRailSyncOffLookup)
+    if (onRailSyncOffLookup && onRailSyncOffLookup->size() > 0)
       onRailSyncOffLookup->handleEvent(F("RAILSYNCOFF"), 0);
+    else {
+      TrackManager::setTrackPower(TRACK_MODE_BOOST, POWERMODE::OFF);
+      DIAG(F("Railsync signal went off and no ONRAILSYNCOFF handler was defined. All booster tracks switched off"));
+    }
   }
 }
 #endif
