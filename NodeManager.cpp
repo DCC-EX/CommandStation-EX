@@ -41,7 +41,10 @@ bool NodeManager::isThrottleNode() {
 #include "DCCEXParser.h"
 
 constexpr uint16_t NODE_PORT = IP_PORT+1;
-const IPAddress nodeMulticastIP = {239, 255, 254, 254};
+#ifndef NODE_GROUP
+    #define NODE_GROUP 254
+#endif 
+const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
 AsyncUDP udpNodeRx;
 bool NodeManager::started = false;
 bool NodeManager::isThrottleNodeFlag = true;

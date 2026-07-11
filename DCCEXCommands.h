@@ -366,10 +366,10 @@ ZZ(D,RAILCOM,ON) // Enable Railcom diagnostics
         Diag::RAILCOM = true;
 ZZ(D,RAILCOM,OFF) // DIsable Railcom diagnostics
         Diag::RAILCOM = false;    
-ZZ(D,WIWEBSOCKETFI,ON) // Enable WiFi diagnostics
+ZZ(D,WIFI,ON) // Enable WiFi diagnostics
         Diag::WIFI = true;
 ZZ(D,WIFI,OFF) // Disable WiFi diagnostics
-        Diag::WIFI = false; 
+        Diag::WIFI = false;
 ZZ(D,ETHERNET,ON) // Enable Ethernet diagnostics
         Diag::ETHERNET = true;
 ZZ(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
