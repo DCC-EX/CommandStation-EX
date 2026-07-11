@@ -335,37 +335,44 @@ const char *wlerror[] = {
   "WL_DISCONNECTED"
 };
 
-uint8_t wifi_sta_protocols = WIFI_PROTOCOL_11N;
+static void setStaProtocolsBestEffort() {
+  // Prefer higher-throughput modes when available, but never crash if a target/core
+  // rejects a protocol bitmap. Fall back to legacy b/g/n which is broadly supported.
+  esp_err_t err = ESP_OK;
+
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+  wifi_protocols_t proto = {
+      .ghz_2g = WIFI_PROTOCOL_11AX,
+      .ghz_5g = WIFI_PROTOCOL_11AX,
+  };
+  err = esp_wifi_set_protocols(WIFI_IF_STA, &proto);
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N | WIFI_PROTOCOL_11AX);
+#else
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+#endif
+
+  if (err != ESP_OK) {
+    DIAG(F("esp_wifi_set_protocol failed (%d), falling back to 11b/g/n"), err);
+    err = esp_wifi_set_protocol(
+        WIFI_IF_STA,
+        WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    if (err != ESP_OK) {
+      DIAG(F("Fallback esp_wifi_set_protocol failed (%d)"), err);
+    }
+  }
+}
 
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
   // Optimize Wi-Fi for multicast send performance!!
-  // Only advertise the higher bandwidth modes if the ESP32 supports them.  Some older ESP32s only support 802.11b/g/n.
-  #if CONFIG_SOC_WIFI_SUPPORT_5G
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.
+  // Some targets/cores reject narrow protocol bitmaps; use safe fallback instead of aborting.
+  setStaProtocolsBestEffort();
 
-    wifi_protocols_t proto = {
-        .ghz_2g = WIFI_PROTOCOL_11AX,
-        .ghz_5g = WIFI_PROTOCOL_11AX,
-    };
-    ESP_ERROR_CHECK(esp_wifi_set_protocols(WIFI_IF_STA, &proto));
-
-#elif CONFIG_SOC_WIFI_HE_SUPPORT
-
-    ESP_ERROR_CHECK(
-        esp_wifi_set_protocol(
-            WIFI_IF_STA,
-            WIFI_PROTOCOL_11N |
-            WIFI_PROTOCOL_11AX));
-
-#else
-
-    ESP_ERROR_CHECK(
-        esp_wifi_set_protocol(
-            WIFI_IF_STA,
-            WIFI_PROTOCOL_11N));
+#if !CONFIG_SOC_WIFI_SUPPORT_5G
   esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
-
 #endif
 
 #ifdef SERIAL_BT_COMMANDS
