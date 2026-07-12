@@ -117,7 +117,9 @@
   || (xvpin>=vpin && (xvpin+xcount-1)<=(vpin+count-1)) 
 
 bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
-   return false 
+   (void) xvpin; // suppress unused warnings if no groups
+   (void) xcount; // suppress unused warnings if no groups
+   return false;
    #include "myAutomation.h"
    ;
 }
