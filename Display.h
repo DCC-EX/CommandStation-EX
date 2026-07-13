@@ -1,4 +1,5 @@
 /*
+ *  © 2026, Paul M. Antoine
  *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
