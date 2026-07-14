@@ -30,9 +30,9 @@ class NodeManager {
         static void cast(StringBuffer * writer); 
         static void cast(const FSH* format...);
         static void parse(byte * cmd);
-        static bool isThrottleNode(); 
+        static bool isThrottleNode();
    private:
         static bool started;
-        static bool isThrottleNodeFlag;     
+        static bool isThrottleNodeFlag;    
 };
 #endif // NODEMANAGER_H

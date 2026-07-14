@@ -131,12 +131,11 @@
 #if defined(DIAG_IO)
     DIAG(F("Turnout(%d,%c)"), id, closeFlag ? 'c':'t');
 #endif
+    if (nodeCast) NodeManager::cast(F("<H %d %d>"), id, closeFlag ? 0 : 1);
     Turnout *tt = Turnout::get(id);
     if (!tt) return false;
     tt->setClosedInternal(closeFlag);
 
-    if (nodeCast) NodeManager::cast(F("<H %d %d>"), id, closeFlag ? 0 : 1);
-    tt->setClosedStateOnly(closeFlag);
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
@@ -145,6 +144,23 @@
 #endif
     return true;
 }
+
+/* static */ void Turnout::shareNodesToCS() {
+    
+    DIAG(F("Sharing turnouts to CS"));
+    NodeManager::cast(F("<startshare>")); // test only
+    for (Turnout *tt = _firstTurnout; tt; tt = tt->_nextTurnout) {
+      DIAG(F("Sharing turnout %d"), tt->getId());
+      if (tt->isHidden()) continue;
+	    if (tt->getRamDescription()) continue; // wasnt my creation
+      const FSH *tdesc=nullptr;
+        #ifdef EXRAIL_ACTIVE
+        tdesc = RMFT2::getTurnoutDescription(tt->getId());
+        #endif
+        if (!tdesc) tdesc = F("");
+        NodeManager::cast(F("<H %d %d \"%S\">"),tt->getId(), tt->isThrown(), tdesc);
+      } 
+  }
 
 #ifndef DISABLE_EEPROM
   // Load all turnout objects

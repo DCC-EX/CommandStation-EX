@@ -31,7 +31,7 @@ bool Diag::LCN=false;
 bool Diag::RAILCOM=false;
 bool Diag::WEBSOCKET=false; 
 bool Diag::SNIFFER=false;
-bool Diag::NODE=false;
+bool Diag::NODE=true;
 
 
 byte StringFormatter::alternativeScreen0=0; // for node screen sharing

@@ -46,7 +46,15 @@ ZZ(F,loco,functionNumber,on)  // Throttle function change
 
 ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
   // This was sent by a node that changes a turnout state
+  // If it is the guardian of the turnout it will change the turnout state and not rebroadcast.
   Turnout::setClosed(turnoutid,bit==0,false);
+
+ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and description
+    CHECKQ(description) 
+    auto tt=Turnout::get(turnoutid);
+    if (!tt) tt=VpinTurnout::create(turnoutid,0);
+    tt->setClosed(bit==0,false);
+    tt->setRamDescription(q_description);
 
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   

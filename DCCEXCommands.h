@@ -241,6 +241,13 @@ ZZ(J,T) // Get turnout list
 ZZ(J,T,id) // Get turnout state and description
         auto t=Turnout::get(id);
         if (!t || t->isHidden()) { REPLY("<jT %d X>\n",id) return true; }
+        // some turnouts have description in RAM, some have description in flash, some have no description.
+        auto ramDesc = t->getRamDescription();
+        if (ramDesc) {
+           REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
+           return true; 
+        }
+        
         const FSH *tdesc=nullptr;
         #ifdef EXRAIL_ACTIVE
         tdesc = RMFT2::getTurnoutDescription(id);
@@ -419,6 +426,8 @@ ZZ(D,TT,vpin,steps) // Test turntable
 ZZ(D,TT,vpin,steps,activity) // Test turntable
         IODevice::writeAnalogue(vpin,steps,activity);
 
+ZZ_nodoc(D,SHARE) // dev testing nodes only 
+  Turnout::shareNodesToCS();
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station

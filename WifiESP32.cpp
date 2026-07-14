@@ -252,7 +252,10 @@ bool WifiESP::setup() {
 
   DIAG(F("Wifi setup as throttle handler"));
   server = new WiFiServer(IP_PORT); // start listening on tcp port
-  if (!server) return false;
+  if (!server) {
+        DIAG(F("WiFi setup failed to create WiFiServer"));
+        return false;
+  }
   // server started here
   server->begin();
   if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
@@ -487,7 +490,7 @@ void WifiESP::loop() {
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
-    if (server->hasClient()) {
+    if (server && server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
 	for (clientId=0; clientId<clients.size(); clientId++){

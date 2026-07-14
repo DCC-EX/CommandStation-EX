@@ -51,6 +51,8 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
+#include "NodeManager.h"
+
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
@@ -75,6 +77,8 @@ static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOC
 // compile time check, passwords 1 to 7 chars do not work, so do not try to compile with them at all
 // remember trailing '\0', sizeof("") == 1.
 #define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")
+
+bool nodeSharePending = false; // true when a node share startup is pending
 
 void setup()
 {
@@ -150,6 +154,7 @@ void setup()
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
+  nodeSharePending = !NodeManager::isThrottleNode();
   LCD(3, F("Ready"));
   CommandDistributor::broadcastPower();
 }
@@ -221,6 +226,11 @@ void loop()
 
   Sensor::checkAll(); // Update and print changes
 
+  if (nodeSharePending) {
+    nodeSharePending = false;
+    Turnout::shareNodesToCS();
+  }
+  
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 

@@ -39,6 +39,7 @@ bool NodeManager::isThrottleNode() {
 #include "DIAG.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
+#include "Turnouts.h"
 
 constexpr uint16_t NODE_PORT = IP_PORT+1;
 #ifndef NODE_GROUP
@@ -61,32 +62,32 @@ void NodeManager::setup(bool throttleNode) {
     udpNodeRx.onPacket(WifiESP::packet_listener);
     DIAG(F("UDP receiver for DCC-EX Node traffic started on multicast group %s:%d"),
          nodeMulticastIP.toString().c_str(), NODE_PORT);
+
+    if (!throttleNode) {
+        DIAG(F("This node is not a throttle node.  It will not accept throttle connectioms"));
+    }
 }
 
 void NodeManager::cast(const FSH* format...) {
     if (!started) return;
-  WiFiUDP udpNodeTx;
-  udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT);
-  va_list args;
-  va_start(args, format);
-  StringFormatter::send2(&udpNodeTx, format, args);
-  va_end(args);
-  udpNodeTx.endPacket();
-  if (Diag::NODE) {
-    USB_SERIAL.print(F("<* Node out: "));
+    StringBuffer buffer(260); // max unfragmented UDP payload over Ethernet/WiFi
+    va_list args;
     va_start(args, format);
-    StringFormatter::send2(&USB_SERIAL, format, args);
+    StringFormatter::send2(&buffer, format, args);
     va_end(args);
-    USB_SERIAL.println(F(">\n"));
-  }
+    cast(&buffer);
 }
 
 void NodeManager::cast(StringBuffer * buffer) {
     if (!started || buffer == nullptr || buffer->getLength() <= 0) return;
   WiFiUDP udpNodeTx;
-  udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT);
+  if (!udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT)) {
+    DIAG(F("Failed to start UDP transmitter for node out %s"),buffer->getString());
+    return;
+  }
   udpNodeTx.print(buffer->getString());
   udpNodeTx.endPacket();
+  if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
 void NodeManager::parse(byte * cmd) {

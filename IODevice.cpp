@@ -52,7 +52,7 @@ extern __attribute__((weak)) bool exrailHalSetup2();
 void IODevice::begin() {
   // Initialise the IO subsystem defaults
   ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
-
+  I2CManager.begin();  // Initialise I2C subsystem With trace
   // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
   //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
