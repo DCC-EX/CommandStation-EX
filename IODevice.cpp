@@ -344,7 +344,7 @@ void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t
     }
   }
     if (tellNodes) NodeManager::cast(F("<z %d %d %d %d %d>"), 
-     vpinBefore, value,param1,param2,countBefore);
+     vpinBefore, value,(uint16_t)param1,param2,countBefore);
 
 }
 

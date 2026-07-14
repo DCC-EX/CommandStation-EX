@@ -41,6 +41,10 @@
 
 #include "DIAG.h"
 #include "IO_PCA9555.h"
+#include <Adafruit_NeoPixel.h>
+#define NEOPIXEL_PIN        38
+#define NEOPIXEL_COUNT      7
+
 
 // The WaveShare board routes SD chip select through the TCA9555 expander.
 // AudioSourceSDFAT is constructed with cs=-1 for this board, so we override
@@ -55,13 +59,14 @@ void sdCsWrite(SdCsPin_t pin, bool level) {
 }
 
 class WaveShare : public IODevice {
+    
 public:
-    static void create(VPIN firstVpin) {
-        if (checkNoOverlap(firstVpin, 1)) {
-            new WaveShare(firstVpin);
+    static void create(VPIN firstVpin,int npins=8) {
+        if (npins>NEOPIXEL_COUNT+1) npins=NEOPIXEL_COUNT+1;
+        if (checkNoOverlap(firstVpin, npins)) {
+            new WaveShare(firstVpin,npins);
         }
     }
-
     // CAUTION, these constants are copied from DFPlayerBase, and must be kept in sync with that class.
     static const uint8_t DF_PLAY       = 0x0F;
     static const uint8_t DF_STOPPLAY   = 0x16;
@@ -84,8 +89,10 @@ protected:
     bool _repeat = false;
     uint8_t _currentFolder = 1;
     uint8_t _currentTrack = 0;
-
-    WaveShare(VPIN firstVpin) : IODevice(firstVpin, 1) {
+    Adafruit_NeoPixel *pixels;
+    bool * pixelmap;
+    int32_t * pixelColours;
+    WaveShare(VPIN firstVpin,int npins) : IODevice(firstVpin, npins) {
         source = new AudioSourceSDFAT<SdFat32, File32>("", "mp3", -1, 2);
         decoder = new MP3DecoderHelix();
         kit = new AudioBoardStream(ESP32S3AISmartSpeaker);
@@ -97,6 +104,12 @@ public:
     void _begin() override {
         DIAG(F("WaveShare::_begin()"));
 
+        pixels = new Adafruit_NeoPixel(NEOPIXEL_COUNT, NEOPIXEL_PIN, NEO_RGB + NEO_KHZ800);
+        pixels->begin();
+        pixels->setBrightness(255);
+        pixelmap=new bool[NEOPIXEL_COUNT];
+        pixelColours=new int32_t[NEOPIXEL_COUNT];
+
         _currentVolume = 8;
 
         // Setup audio output
@@ -104,6 +117,7 @@ public:
         cfg.sd_active = true;
         bool boardReady = kit->begin(cfg);
         USB_SERIAL.printf("Audio board begin: %s\n", boardReady ? "OK" : "FAIL");
+        setLed(false);
         USB_SERIAL.println("Initializing SD card at 2 MHz...");
 
         // Setup player callbacks (before SD card)
@@ -145,27 +159,50 @@ public:
     }
 
     void _write(VPIN vpin, int value) override {
-        (void)vpin;
+        if (vpin != _firstVpin) {
+            auto pix=vpin-_firstVpin;
+            pixelmap[pix] = value;
+            pixels->setPixelColor(pix, value?pixelColours[pix]:0);
+            pixels->show();
+            return;
+        }
         if (value) {
             if (_currentTrack) {
                 player->play();
+                setLed(true);
             }
         } else {
             _repeat = false;
             _currentTrack = 0;
             player->stop();
+            setLed(false);
         }
     }
 
     int _read(VPIN vpin) override {
         (void)vpin;
-        return player->isActive();
+        if (vpin==_firstVpin) return player->isActive();
+        return pixelmap[vpin-_firstVpin];
     }
 
 protected:
     void _writeAnalogue(VPIN vpin, int v1, uint8_t v2 = 0, uint16_t cmd = 0) override {
         (void)vpin;
-        //DIAG(F("WaveShare::_writeAnalogue(vpin=%u, v1=%d, cmd=%u, v2=%d)"), (int)vpin, v1, (int)cmd, v2);
+        DIAG(F("WaveShare::_writeAnalogue(vpin=%u, v1=%d, cmd=%u, v2=%d)"), (int)vpin, v1, (int)cmd, v2);
+        if (vpin != _firstVpin) {
+            auto pix=vpin-_firstVpin;
+            pixelmap[pix] = v2!=0;
+            int32_t red=(v1>>8) & 0xFF;
+            int32_t green=(v1) & 0xFF;
+            int32_t blue=(cmd) & 0xFF;
+            pixelColours[pix] = (red << 16) | (green << 8) | blue;
+            DIAG(F("WaveShare::Pixel %d R=%d G=%d B=%d clr=%x"),
+                pix, red, green, blue, pixelColours[pix]);
+            pixels->setPixelColor(pix, cmd?pixelColours[pix]:0);
+            pixels->show();
+            return;
+        }
+
         switch (cmd) {
             case DF_REPEATPLAY:
             case DF_PLAY:
@@ -191,6 +228,7 @@ protected:
                 _repeat = false;
                 _currentTrack = 0;
                 player->stop();
+                setLed(false);
                 break;
 
             case DF_VOL:
@@ -204,10 +242,12 @@ protected:
 
             case DF_PAUSE:
                 player->stop();
+                setLed(false);
                 break;
 
             case DF_RESUME:
                 player->play();
+                setLed(true);
                 break;
 
             case DF_RESET:
@@ -215,6 +255,7 @@ protected:
                 _repeat = false;
                 _currentFolder = 1;
                 _currentTrack = 0;
+                setLed(false);
                 break;
         }
     }
@@ -235,6 +276,13 @@ private:
     AudioPlayer *player;
     AudioBoardStream *kit;
     byte _currentVolume = 8;
+
+    void setLed(bool on) {
+        auto ledPin = audio_driver::PinsESP32S3AISmartSpeaker.getPinID(audio_driver::PinFunction::LED);
+        if (ledPin >= 0) {
+            audio_driver::PinsESP32S3AISmartSpeaker.getGPIO().digitalWrite(ledPin, on);
+        }
+    }
 
     void listSDFiles(const char *dirPath, uint8_t dirNum = 0) {
         File32 dir;
@@ -302,11 +350,13 @@ private:
                 DIAG(F("PLAY_FILE %s (from lookup table)\n"), fe->fullPath.c_str());
                 player->setPath(fe->fullPath.c_str());
                 player->play();
+                setLed(true);
                 return;
             }
         }
 
         DIAG(F("[SD] File %d/%d not in lookup table\n"), folder, file);
+        setLed(false);
     }
 
     // ========== NON-LINEAR VOLUME SCALING ==========

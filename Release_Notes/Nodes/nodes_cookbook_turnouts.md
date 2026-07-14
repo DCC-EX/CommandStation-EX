@@ -24,14 +24,10 @@ SERVO_TURNOUT(22,400,350,120,Slow,"Mountain pass")
 
 Notice that the turnout ID does not change but the vpin 400 may well change to suit whatever HAL device is driving the turnout.
 
-AND telling the Command Station that this turnout is somewhere else (with a new command REMOTE_TURNOUT)
+The Command Station will automatically know that the turnout is defined elsewhere so does not need the turnout definitio.
 
-```cpp
-// Command station version of myAutomation.h
-VIRTUAL_TURNOUT(22,"Mountain pass")
-```
+This is particularly powerful if you are building a modular layout. If for eaxample a bunch of turnouts are on a particular module handled by a node, then the throttles will automatically know if the module is present or absent and will not show turnouts for the module unless it is powered up. 
 
-The Command Station needs the VIRTUAL_TURNOUT so that it can still allow EXRAIL and throttles to throw/close, but it doesn't need to know which node has the turnout, nor how it's electronically connected.
 
 Notice that this is all you need to do... Any EXRAIL in the Command station that needs to handle the turnout can remain unchanged.
 
@@ -41,7 +37,7 @@ In effect, turnout numbers are unique across all nodes so only one node should h
 
 ## DCC Turnouts
 
-It must be fairly obvious that a DCC turnout can't be moved to a node because its "wired" to the CS/Track.
+FOR THE TIME BEING a DCC turnout can't be moved to a node because its "wired" to the CS/Track.
 
 That doesn't stop a node throwing or closing it as the id is shared automatically between all nodes.
 
