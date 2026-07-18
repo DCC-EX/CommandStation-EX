@@ -120,8 +120,32 @@ Sniffer::Sniffer(byte snifferpin) {
 
 #define SNIFFER_TIMEOUT 100L // 100 Milliseconds
 bool Sniffer::inputActive(){
+#ifdef DEBUG_RAILSYNC
+  static bool state=false;
+  static unsigned long lastsniff=0;
+#endif // DEBUG_RAILSYNC
+  noInterrupts();
+  unsigned long leop = lastendofpacket;
+  interrupts();
   unsigned long now = millis();
-  return ((now - lastendofpacket) < SNIFFER_TIMEOUT);
+  unsigned long diff = now - leop;
+  if (diff < SNIFFER_TIMEOUT) {
+#ifdef DEBUG_RAILSYNC
+    if (state == false) {
+      DIAG(F("Sniffer is back %L"), now - lastsniff);
+      state=true;
+    }
+#endif // DEBUG_RAILSYNC
+    return true;
+  }
+#ifdef DEBUG_RAILSYNC
+  if (state == true) {
+    DIAG(F("Sniffer timeout hit %L"), diff);
+    lastsniff = leop;
+    state = false;
+  }
+#endif // DEBUG_RAILSYNC
+  return false;
 }
 
 #define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
