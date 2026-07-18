@@ -5,7 +5,7 @@
 
 #define VERSION "5.6.2"
 // 5.6.2  - Bugfix: Sniffer decoder filter out irrelevant DCC packets
-          - Bugfix: Make sniffer railsync input detection interrupt safe
+//        - Bugfix: Make sniffer railsync input detection interrupt safe
 // 5.6.1  - Safety net for users which have not defined an ONRAILSYNCOFF hanlder
 // 5.6.0  - Minor adaptions to make production version
 // 5.5.68 - EXRAIL: BITMAP_SET
