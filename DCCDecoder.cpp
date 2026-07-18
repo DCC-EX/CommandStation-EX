@@ -37,6 +37,11 @@ bool DCCDecoder::parse(DCCPacket &p) {
   if (d[0] ==  0B11111111) {  // Idle packet
     return false;
   }
+  // do not bother with packets that are too short
+  // or too long anyway
+  if (p.len() < 3 || p.len() > 6) {
+    return false;
+  }
   // CRC verification here
   byte checksum = 0;
   for (byte n = 0; n < p.len(); n++)
@@ -72,6 +77,9 @@ bool DCCDecoder::parse(DCCPacket &p) {
     }
   }
   if (decoderType == DECODER_MOBILE) {
+    if (addr == 0) { // do not care about loco addr 0 broadcasts
+      return false;
+    }
     switch (instr[0] & 0xE0) {
     case 0x20: // 001x-xxxx Extended commands
       if (instr[0] == 0B00111111) { // 128 speed steps
@@ -160,10 +168,20 @@ bool DCCDecoder::parse(DCCPacket &p) {
 	byte port = (instr[0] & 0B00000110) >> 1;
 	byte activate = (instr[0] & 0B00001000) >> 3;
 	byte coil = (instr[0] & 0B00000001);
-	locoInfoChanged = true;
-	//(void)addr; (void)port; (void)coil; (void)activate;
-	//DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
-	DCC::setAccessory(addr, port, coil, activate);
+	// all accessory PoM packets are of length 6 and otherwise identical to the ordinary accessory packets
+	// which are of length 3. According to RCN 214 this is the only difference, so we need to filter
+	if (p.len() == 3) {
+	  locoInfoChanged = true;
+	  //DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
+	  DCC::setAccessory(addr, port, coil, activate);
+	}
+#ifdef DEBUG_POM_ACC
+	if (p.len() == 6) {
+	  uint16_t cv = ((d[2] & 0B00000011) << 8) + d[3] + 1;
+	  uint16_t val = d[4];
+	  DIAG(F("Accessory POM: HL=%d LL=%d LIN=%d C=0=%d A=1=%d CV=%d VAL=%d"), addr, port, (addr-1)*4 + port + 1, coil, activate, cv, val);
+	}
+#endif //DEBUG_POM_ACC
       } else { // Accessory Extended NMRA spec, do we need to decode this?
 	/*
 	addr = (addr << 5) +
