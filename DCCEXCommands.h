@@ -70,13 +70,13 @@ Once a new OPCODE is decided upon, update this list.
   L, Reserved for LCC interface (implemented in EXRAIL)
   m, message to throttles (broadcast output) 
   m, set momentum  
-  M, Write DCC packet
+  M, Write DCC packet on main track
   n, Reserved for SensorCam
   N, Reserved for Sensorcam 
   o, Neopixel driver (see also IO_NeoPixel.h)
   O, Output broadcast
   p, Broadcast power state
-  P, Write DCC packet
+  P, Write DCC packet on prog track
   q, Sensor deactivated
   Q, Sensor activated
   r, Broadcast address read on programming track
