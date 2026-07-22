@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.6.2"
+#define VERSION "5.6.3"
+// 5.6.3  - BugFix: EXRAIL READ_LOCO IFLOCO(0)
 // 5.6.2  - Bugfix: Sniffer decoder filter out irrelevant DCC packets
 //        - Bugfix: Make sniffer railsync input detection interrupt safe
 // 5.6.1  - Safety net for users which have not defined an ONRAILSYNCOFF hanlder
