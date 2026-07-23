@@ -148,7 +148,6 @@
 /* static */ void Turnout::shareNodesToCS() {
     
     DIAG(F("Sharing turnouts to CS"));
-    NodeManager::cast(F("<startshare>")); // test only
     for (Turnout *tt = _firstTurnout; tt; tt = tt->_nextTurnout) {
       DIAG(F("Sharing turnout %d"), tt->getId());
       if (tt->isHidden()) continue;
@@ -253,8 +252,11 @@
         //  behave consistently with the turnout commands.
         IODevice::configureServo(vpin, thrownPosition, closedPosition, profile, 0, closed);
 
+        
+        // Set position directly to mid position - we don't know where it is moving from.
+        IODevice::writeAnalogue(vpin, (thrownPosition + closedPosition) / 2, PCA9685::Instant, 0, false);
         // Set position directly to specified position - we don't know where it is moving from.
-        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant,0,false);
+        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Fast,0,false);
 
         return tt;
       } else {
@@ -263,7 +265,7 @@
       }
     }
     tt = (Turnout *)new ServoTurnout(id, vpin, thrownPosition, closedPosition, profile, closed);
-    DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
+    //DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
     IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant,0,false);
     return tt;
 
@@ -461,7 +463,7 @@
   }
 
   void VpinTurnout::setClosedInternal(bool close) {
-    IODevice::write(_vpinTurnoutData.vpin, close);
+    if (_vpinTurnoutData.vpin) IODevice::write(_vpinTurnoutData.vpin, close);
   }
 
   void VpinTurnout::save() {

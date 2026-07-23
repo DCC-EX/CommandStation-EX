@@ -369,7 +369,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
 // This function is used by the node manager to pare inter-mode traffic.
 // 
 void DCCEXParser::parseNodeTraffic( byte *com) {
-    if (Diag::CMD) DIAG(F("Node in:%s"), com);
+    if (Diag::CMD) DIAG(F("Node parse: %s"), com);
     int16_t params = 0;
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<')

@@ -311,16 +311,12 @@ void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {
 //
 void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
-  if (dev) {
-    dev->_writeAnalogue(vpin, value, param1, param2);
-    return;
-  }
-    if (tellNodes) NodeManager::cast(F("<z %d %d %d %d 1>"),
-       vpin, value, param1, param2);
+  if (dev) dev->_writeAnalogue(vpin, value, param1, param2);
 
-#ifdef DIAG_IO
-  DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
-#endif
+  // writes are shared with nodes so that multiple nodes can be kept in sync.  
+  // The tellNodes flag is used to avoid recursive node broadcasts.
+  if (tellNodes) NodeManager::cast(F("<z %d %d %d %d 1>"),
+       vpin, value, param1, param2);
 }
 
 //
