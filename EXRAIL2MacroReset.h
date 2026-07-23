@@ -43,7 +43,8 @@
 #undef BUILD_CONSIST
 #undef BREAK_CONSIST
 #undef BROADCAST
-#undef CALL 
+#undef CALL
+#undef CHANGE_DIRECTION
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLEAR_ANY_STASH

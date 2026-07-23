@@ -572,6 +572,10 @@ void RMFT2::loop2() {
     if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
     break;
   
+    case OPCODE_CHANGE_DIRECTION:
+      if (loco) DCC::setThrottle(loco,DCC::getThrottleSpeed(loco),!DCC::getThrottleDirection(loco));
+    break;
+  
   case OPCODE_SAVE_SPEED:
     if (loco) DCC::saveSpeed(loco);
     break;

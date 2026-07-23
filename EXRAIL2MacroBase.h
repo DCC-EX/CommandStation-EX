@@ -121,6 +121,9 @@
 ///see RETURN
 ///param sequence_id SEQUENCE to jump processing to, must terminate or RETURN
 
+#define CHANGE_DIRECTION
+///brief Change the direction of the current loco
+
 #define CLEAR_STASH(stash_id)
 ///brief Clears loco value stored in stash
 ///param stash_id which stash to clear.
