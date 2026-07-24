@@ -431,8 +431,10 @@ ZZ_nodoc(D,SHARE) // dev testing nodes only
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station
+        TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
         DCCTimer::reset();
 ZZ(D,RESET) // Reset and restart command station
+        TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
         DCCTimer::reset();
 ZZ(C,SPEED28) // Set all DCC speed commands as 28 step to old decoders
         DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
