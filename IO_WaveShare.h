@@ -126,6 +126,7 @@ public:
         player->setAutoNext(false);
 
         if (!source->begin()) {
+            SCREEN(0,1,"SD card init failed");
             DIAG(F("ERROR: Failed to initialize SD card!\n"
                    "Check that SD card is inserted and formatted FAT32\n"
                    "SDFAT error code: 0x%x data: 0x%x\n"),
@@ -136,7 +137,7 @@ public:
         USB_SERIAL.print("<* SD card initialized\n");
         listSDFiles("/");
         USB_SERIAL.print(" *>\n");
-
+        showState();
         _display();
     }
 
@@ -156,6 +157,11 @@ public:
             DIAG(F("WaveShare::_loop() - Looping track %d/%d"), _currentFolder, _currentTrack);
             playFile(_currentFolder, _currentTrack);
         }
+        if (_wasPlaying && !player->isActive()) {
+            _wasPlaying=false;
+            DIAG(F("WaveShare::_loop() - Track %d/%d finished"), _currentFolder, _currentTrack);
+            showState();
+        }
     }
 
     void _write(VPIN vpin, int value) override {
@@ -169,13 +175,13 @@ public:
         if (value) {
             if (_currentTrack) {
                 player->play();
-                setLed(true);
+                showState();
             }
         } else {
             _repeat = false;
             _currentTrack = 0;
             player->stop();
-            setLed(false);
+            showState();
         }
     }
 
@@ -228,12 +234,13 @@ protected:
                 _repeat = false;
                 _currentTrack = 0;
                 player->stop();
-                setLed(false);
+                showState();
                 break;
 
             case DF_VOL:
                 _currentVolume =v2;
                 player->setVolume(linearToActualVolume(v2));
+                showState();
                 break;
 
             case DF_EQ:
@@ -242,12 +249,12 @@ protected:
 
             case DF_PAUSE:
                 player->stop();
-                setLed(false);
+                SCREEN(0,2,"Paused");
                 break;
 
             case DF_RESUME:
                 player->play();
-                setLed(true);
+                showState();
                 break;
 
             case DF_RESET:
@@ -255,7 +262,7 @@ protected:
                 _repeat = false;
                 _currentFolder = 1;
                 _currentTrack = 0;
-                setLed(false);
+                showState();
                 break;
         }
     }
@@ -276,6 +283,8 @@ private:
     AudioPlayer *player;
     AudioBoardStream *kit;
     byte _currentVolume = 8;
+    String _currentFileName;
+    bool _wasPlaying = false;
 
     void setLed(bool on) {
         auto ledPin = audio_driver::PinsESP32S3AISmartSpeaker.getPinID(audio_driver::PinFunction::LED);
@@ -346,17 +355,31 @@ private:
         FileEntry *fe;
         for (fe = firstFileEntry; fe; fe = fe->next) {
             if (fe->dirNum == folder && fe->trackNum == file) {
-                fe->fullPath;
+                _currentFileName = fe->fullPath;
+                // omit dir and track number from display, just show filename
+                int slashIndex = _currentFileName.lastIndexOf('/');
+                if (slashIndex >= 0) {
+                    _currentFileName = _currentFileName.substring(slashIndex + 4);
+                } else {
+                    _currentFileName = _currentFileName.substring(3);  // skip "0xx" prefix if no slash found
+                }
+                // omit .mp3 extension from display
+                int dotIndex = _currentFileName.lastIndexOf('.');
+                if (dotIndex >= 0) {
+                    _currentFileName = _currentFileName.substring(0, dotIndex);
+                }
                 DIAG(F("PLAY_FILE %s (from lookup table)\n"), fe->fullPath.c_str());
                 player->setPath(fe->fullPath.c_str());
                 player->play();
-                setLed(true);
+                _wasPlaying = true;
+                showState();
                 return;
             }
         }
 
         DIAG(F("[SD] File %d/%d not in lookup table\n"), folder, file);
-        setLed(false);
+        _wasPlaying = false;
+        showState();
     }
 
     // ========== NON-LINEAR VOLUME SCALING ==========
@@ -368,6 +391,17 @@ private:
         return vol;  
     }
 
+    void showState() {
+        if (player->isActive()) {
+            setLed(true);
+            SCREEN(0,2,"Playing %d/%d vol %d",_currentFolder,_currentTrack,_currentVolume);
+            SCREEN(0,3,"%s",_currentFileName.c_str());
+        } else {
+            setLed(false);
+            SCREEN(0,2,"Stopped");
+            SCREEN(0,3,"");
+        }
+    }   
 };
 
 #endif
