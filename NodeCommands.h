@@ -53,7 +53,9 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
     CHECKQ(description) 
     auto tt=Turnout::get(turnoutid);
     if (!tt) tt=VpinTurnout::create(turnoutid,0);
-    tt->setClosed(bit==0,false);
+    // beware dont call tt->setClosed(state,false), it will divert to the static
+    // with the wrong turnout id. 
+    Turnout::setClosed(turnoutid,bit==0,false);
     tt->setRamDescription(q_description);
 
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
