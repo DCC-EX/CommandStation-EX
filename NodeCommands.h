@@ -58,6 +58,9 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
     Turnout::setClosed(turnoutid,bit==0,false);
     tt->setRamDescription(q_description);
 
+ZZ(H) // CS requests list of locally defined turnouts
+  Turnout::shareNodesToCS();
+   
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 

@@ -78,7 +78,8 @@ static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOC
 // remember trailing '\0', sizeof("") == 1.
 #define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")
 
-bool nodeSharePending = false; // true when a node share startup is pending
+bool nodeSharePending = false; // true when a node is starting
+bool nodeShareRequestPending = false; // true when a CS is starting and wants to know what turnouts a node has defined.  This is a one time only request.
 
 void setup()
 {
@@ -154,7 +155,11 @@ void setup()
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
-  nodeSharePending = !NodeManager::isThrottleNode();
+  if (NodeManager::isThrottleNode()) {
+    nodeShareRequestPending = true; // node will request turnouts list from CS on next loop
+  } else {
+    nodeSharePending = true; // node Will share turnouts list to CS on next loop
+  }
   LCD(3, F("Ready"));
   CommandDistributor::broadcastPower();
 }
@@ -226,9 +231,21 @@ void loop()
 
   Sensor::checkAll(); // Update and print changes
 
+  /* Turnout sharing between nodes and the CS. 
+  On startup the CS will request nodes to share their turnouts.
+  On startup a node will share their turnouts.
+  
+  This means it doesnt matter whether a node starts after the CS or before. */
   if (nodeSharePending) {
+    // We are on a node and we have just started up, so share our turnouts with the CS.  This is a one time only action.
+    // This is slow but only happens once , so not a problem.  It is done here to ensure that all turnouts have been created before sharing.
     nodeSharePending = false;
     Turnout::shareNodesToCS();
+  }
+
+  if (nodeShareRequestPending) { // one time only 
+    nodeShareRequestPending = false;
+    NodeManager::cast(F("<H>")); // CS asks nodes for turnouts list
   }
   
   // Report any decrease in memory (will automatically trigger on first call)
