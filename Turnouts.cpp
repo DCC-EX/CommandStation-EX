@@ -128,13 +128,15 @@
   //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
   /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag, bool nodeCast) { 
-#if defined(DIAG_IO)
-    DIAG(F("Turnout(%d,%c)"), id, closeFlag ? 'c':'t');
-#endif
     if (nodeCast) NodeManager::cast(F("<H %d %d>"), id, closeFlag ? 0 : 1);
     Turnout *tt = Turnout::get(id);
-    if (!tt) return false;
+    if (!tt) tt=VpinTurnout::create(id,0, closeFlag);
     tt->setClosedInternal(closeFlag);
+#if defined(EXRAIL_ACTIVE)
+    RMFT2::turnoutEvent(id, closeFlag);    
+#endif
+    if (NodeManager::isThrottleNode() && !tt->isHidden())
+      CommandDistributor::broadcastTurnout(id, closeFlag);
 
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
