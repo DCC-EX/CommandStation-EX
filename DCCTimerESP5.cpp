@@ -69,10 +69,7 @@ volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
 
 // Return low memory value... 
 int DCCTimer::getMinimumFreeMemory() {
-  noInterrupts(); // Disable interrupts to get volatile value 
-  int retval = minimum_free_memory;
-  interrupts();
-  return retval;
+  return ESP.getMinFreeHeap(); // not concerned with interrupts on ESP32
 }
 
 int DCCTimer::freeMemory() {

@@ -79,7 +79,7 @@ static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOC
 #define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")
 
 bool nodeSharePending = false; // true when a node is starting
-bool nodeShareRequestPending = false; // true when a CS is starting and wants to know what turnouts a node has defined.  This is a one time only request.
+bool startupPendingCS = false; // true when a CS is starting and wants to know what turnouts a node has defined.  This is a one time only request.
 
 void setup()
 {
@@ -156,12 +156,13 @@ void setup()
   LCN::init(LCN_SERIAL);
   #endif
   if (NodeManager::isThrottleNode()) {
-    nodeShareRequestPending = true; // node will request turnouts list from CS on next loop
+    startupPendingCS = true; // node will request turnouts list from CS on next loop
+
   } else {
     nodeSharePending = true; // node Will share turnouts list to CS on next loop
   }
   LCD(3, F("Ready"));
-  CommandDistributor::broadcastPower();
+
 }
 
 void loop()
@@ -243,8 +244,9 @@ void loop()
     Turnout::shareNodesToCS();
   }
 
-  if (nodeShareRequestPending) { // one time only 
-    nodeShareRequestPending = false;
+  if (startupPendingCS) { // one time only 
+    CommandDistributor::broadcastPower();
+    startupPendingCS = false;
     NodeManager::cast(F("<H>")); // CS asks nodes for turnouts list
   }
   
