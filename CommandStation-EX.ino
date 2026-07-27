@@ -242,6 +242,7 @@ void loop()
     // This is slow but only happens once , so not a problem.  It is done here to ensure that all turnouts have been created before sharing.
     nodeSharePending = false;
     Turnout::shareNodesToCS();
+    SensorGroup::shareSensorsToCS();
   }
 
   if (startupPendingCS) { // one time only 

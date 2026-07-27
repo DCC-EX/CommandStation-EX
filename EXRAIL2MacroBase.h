@@ -377,6 +377,11 @@
 #define INVERT_DIRECTION
 ///brief Marks current task so that FWD and REV commands are inverted.
 
+#define SHARED_SENSOR(vpin,count...)
+///brief Defines multiple sensor vpins to be shared by nodes.
+///param vpin first vpin number
+///param count... Number of consecutive VPINS. Default 1.
+
 #define JMRI_SENSOR(vpin,count...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
 ///param vpin first vpin number

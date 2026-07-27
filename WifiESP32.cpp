@@ -60,7 +60,7 @@ AsyncUDP udpReceive;
 IPAddress udpBroadcastIP;
 constexpr uint16_t UDP_COMMAND_MAX   = 255;  // max inbound command payload (fits one DCC-EX command)
 constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
-constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 8;
+constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 64;
 struct UdpCommand {
   uint16_t len;
   uint32_t receivedMillis;

@@ -150,19 +150,27 @@ bool exrailHalSetup1() {
 // TODO Turnout and turntable creation should be moved to here instead of 
 // the first pass from the opcode table. 
 #include "EXRAIL2MacroReset.h"
+#undef SHARED_SENSOR
+#define SHARED_SENSOR(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   static byte state_map[(npins+7)/8]; \
+   static GroupType groupType=GroupType::shared; \
+   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action,&groupType); \
+  }
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) \
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,true); \
+   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,true); \
   }
 #undef JMRI_SENSOR_NOPULLUP
 #define JMRI_SENSOR_NOPULLUP(vpin,count...) \
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,false); \
+   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,false); \
   }
 
 void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
@@ -591,6 +599,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define SHARED_SENSOR(vpin,count...)
 #define JMRI_SENSOR(vpin,count...)
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,

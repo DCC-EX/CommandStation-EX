@@ -34,6 +34,12 @@
   */
 
 ZZBEGIN
+ZZ(q,vpin,count,bytestate) // SHARED_SENSOR bulk state report
+   for (int i=0;i<count;i++) {
+        IODevice::write(vpin+i,(bytestate&(1<<i))!=0,false);
+   }
+ZZ(q,vpin,bit) //SHARED_SENSOR state change
+   IODevice::writeRange(vpin,bit==1,1,false);
 ZZ(t,loco,speedByte)  // Throttle speed change
   // This was sent by any node that changes a loco speed
   // It will not cause a rebroadcast
@@ -60,6 +66,7 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
 
 ZZ(H) // CS requests list of locally defined turnouts
   Turnout::shareNodesToCS();
+  SensorGroup::shareSensorsToCS();
    
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);   
