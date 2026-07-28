@@ -1,5 +1,5 @@
 /*
- *  © 2024, Chris Harlow. All rights reserved.
+ *  © 2026, Chris Harlow. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -18,7 +18,7 @@
 */
 
 /*
-* The IO_DS1307 device driver is used to interface a standalone realtime clock. 
+* The IO_PCF85063 device driver is used to interface a standalone realtime clock. 
 * The clock will announce every minute (which will trigger EXRAIL ONTIME events).
 * Seconds, and Day/date info is ignored, except that the announced hhmm time
 * will attempt to synchronize with the 0 seconds of the clock. 
@@ -27,13 +27,13 @@
 * with the command <z vpin hh mm ss> 
 */
 
-#ifndef IO_DS1307_h
-#define IO_DS1307_h
+#ifndef IO_PCF85063_h
+#define IO_PCF85063_h
 
 
 #include "IODevice.h"
 
-class DS1307 : public IODevice {
+class PCF85063 : public IODevice {
 public: 
   static const bool debug=false; 
   static void create(VPIN vpin, I2CAddress i2cAddress);
@@ -42,7 +42,7 @@ public:
 private:
   
   // Constructor
-    DS1307(VPIN vpin,I2CAddress i2cAddress);
+    PCF85063(VPIN vpin,I2CAddress i2cAddress);
     uint32_t getTime();
     uint8_t d2b(uint8_t b);
     void _begin() override;
@@ -51,5 +51,5 @@ private:
     int _readAnalogue(VPIN vpin) override;
     void _writeAnalogue(VPIN vpin, int hh, uint8_t mm, uint16_t ss)  override;
 };
- 
-#endif
+
+#endif // IO_PCF85063_h

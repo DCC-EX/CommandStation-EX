@@ -48,3 +48,4 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_VL53L0X.h"
 #include "IO_XL9535.h"
 #include "IO_WaveShare.h"
+#include "IO_PCF85063.h"

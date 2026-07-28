@@ -1,5 +1,5 @@
 /*
- *  © 2024, Chris Harlow. All rights reserved.
+ *  © 2024-2026 Chris Harlow. All rights reserved.
  *
  *  This file is part of CommandStation-EX
  *
@@ -18,7 +18,7 @@
 */
 
 /*
-* The IO_DS1307 device driver is used to interface a standalone realtime clock. 
+* The IO_PCF85063 device driver is used to interface a standalone realtime clock. 
 * The clock will announce every minute (which will trigger EXRAIL ONTIME events).
 * Seconds, and Day/date info is ignored, except that the announced hhmm time
 * will attempt to synchronize with the 0 seconds of the clock. 
@@ -27,34 +27,41 @@
 * with the command <z vpin hh mm ss> 
 */
 
-#include "IO_DS1307.h"
+#include "IO_PCF85063.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
 
-uint8_t DS1307::d2b(uint8_t d) {
-     return (d >> 4)*10 + (d & 0x0F);  
+static constexpr uint8_t PCF85063_REG_CONTROL1 = 0x00;
+static constexpr uint8_t PCF85063_REG_SECONDS = 0x04;
+static constexpr uint8_t PCF85063_REG_MINUTES = 0x05;
+static constexpr uint8_t PCF85063_REG_HOURS = 0x06;
+static constexpr uint8_t PCF85063_CONTROL1_STOP = 0x20;
+static constexpr uint8_t PCF85063_SECONDS_OS = 0x80;
+
+uint8_t PCF85063::d2b(uint8_t b) {
+     return (b >> 4)*10 + (b & 0x0F);  
 }
 
-void DS1307::create(VPIN vpin, I2CAddress i2cAddress) {
-    if (checkNoOverlap(vpin, 1, i2cAddress)) new DS1307(vpin, i2cAddress);
+void PCF85063::create(VPIN vpin, I2CAddress i2cAddress) {
+    if (checkNoOverlap(vpin, 1, i2cAddress)) new PCF85063(vpin, i2cAddress);
   }
  
     
   // Constructor
-    DS1307::DS1307(VPIN vpin,I2CAddress i2cAddress){
+    PCF85063::PCF85063(VPIN vpin,I2CAddress i2cAddress){
       _firstVpin = vpin;
       _nPins = 1;
      _I2CAddress = i2cAddress;
      addDevice(this);
     }
 
-uint32_t DS1307::getTime() {
-    // Obtain ss,mm,hh buffers from device
-    uint8_t readBuffer[3];
-    const uint8_t writeBuffer[1]={0};
+uint32_t PCF85063::getTime() {
+  // Obtain ss,mm,hh buffers from device.
+  // Time registers on PCF85063 start at 0x04.
+  uint8_t readBuffer[3];
+  const uint8_t writeBuffer[1]={PCF85063_REG_SECONDS};
 
-    // address register 0 for read. 
     I2CManager.write(_I2CAddress, writeBuffer, 1);
     if (I2CManager.read(_I2CAddress, readBuffer, 3) != I2C_STATUS_OK) {
        _deviceState=DEVSTATE_FAILED;
@@ -72,10 +79,20 @@ uint32_t DS1307::getTime() {
         }
         StringFormatter::send(&USB_SERIAL,F(" %d *>\n"),_deviceState);
       }
-    
-    if (readBuffer[0] & 0x80) {
+
+    // PCF85063: seconds bit7=OS (oscillator stop), and control_1 bit5=STOP.
+    // Either indicates the clock is not currently running valid time.
+    uint8_t control1 = 0;
+    const uint8_t controlReg[1]={PCF85063_REG_CONTROL1};
+    I2CManager.write(_I2CAddress, controlReg, 1);
+    if (I2CManager.read(_I2CAddress, &control1, 1) != I2C_STATUS_OK) {
+      _deviceState=DEVSTATE_FAILED;
+      return 0;
+    }
+
+    if ((control1 & PCF85063_CONTROL1_STOP) || (readBuffer[0] & PCF85063_SECONDS_OS)) {
         _deviceState=DEVSTATE_INITIALISING;
-        DIAG(F("DS1307 clock in standby"));
+        DIAG(F("PCF85063 clock stopped or invalid"));
         return 0; // clock is not running
     }
     // convert device format to seconds since midnight
@@ -85,7 +102,7 @@ uint32_t DS1307::getTime() {
     return (hh*60ul +mm)*60ul +ss;     
 }
 
-void DS1307::_begin()  {
+void PCF85063::_begin()  {
   // Initialise  device and sync loop() to zero seconds
     I2CManager.begin(); 
     auto tstamp=getTime();
@@ -98,7 +115,7 @@ void DS1307::_begin()  {
 
 // Processing loop to obtain clock time.
 // This self-synchronizes to the next minute tickover
-void DS1307::_loop(unsigned long currentMicros) {
+void PCF85063::_loop(unsigned long currentMicros) {
     byte ss=0; 
     auto time=getTime();
     if (_deviceState==DEVSTATE_NORMAL) {
@@ -114,34 +131,36 @@ void DS1307::_loop(unsigned long currentMicros) {
 
 
   // Display device driver info.
-  void DS1307::_display()  {
+  void PCF85063::_display()  {
     auto tstamp=getTime();
     byte ss=tstamp%60;
     tstamp/=60;
     byte mm=tstamp%60;
     byte hh=tstamp/60;
-    DIAG(F("DS1307 on I2C:%s vpin %d %d:%d:%d %S"), 
+    DIAG(F("PCF85063 on I2C:%s vpin %d %d:%d:%d %S"), 
       _I2CAddress.toString(), _firstVpin,
       hh,mm,ss,
      (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
   // allow user to set the clock 
-  void DS1307::_writeAnalogue(VPIN vpin, int hh, uint8_t mm, uint16_t ss)  {  
+  void PCF85063::_writeAnalogue(VPIN vpin, int hh, uint8_t mm, uint16_t ss)  {  
     (void) vpin;
-    uint8_t writeBuffer[3];
-    writeBuffer[0]=1; // write mm,hh first 
-    writeBuffer[1]=((mm/10)<<4) + (mm % 10);  
-    writeBuffer[2]=((hh/10)<<4) + (hh % 10);  
-    I2CManager.write(_I2CAddress, writeBuffer, 3);
-    writeBuffer[0]=0; // write ss  
-    writeBuffer[1]=((ss/10)<<4) + (ss % 10);  
-    I2CManager.write(_I2CAddress, writeBuffer, 2);
+    uint8_t writeBuffer[4];
+    writeBuffer[0]=PCF85063_REG_SECONDS;
+    writeBuffer[1]=((ss/10)<<4) + (ss % 10);
+    writeBuffer[2]=((mm/10)<<4) + (mm % 10);
+    writeBuffer[3]=((hh/10)<<4) + (hh % 10);
+    I2CManager.write(_I2CAddress, writeBuffer, 4);
+
+    // Ensure oscillator is enabled after setting time (clear STOP bit).
+    const uint8_t controlWrite[2]={PCF85063_REG_CONTROL1, 0x00};
+    I2CManager.write(_I2CAddress, controlWrite, 2);
     _loop(micros()); // resync with seconds rollover
   }
    
   // Method to read analogue hh*60+mm time 
-   int DS1307::_readAnalogue(VPIN vpin) { 
+   int PCF85063::_readAnalogue(VPIN vpin) { 
     (void)vpin; 
     return getTime()/60;
   };
