@@ -6,7 +6,7 @@ R"???(
       <link rel=stylesheet href='/style.css'/>
       <body>
       <header>
-        <h1>DCC-EX Server Log</h1>
+        <h1>DCC-EX <span id=showHostName></span> Log</h1>
         <button id=pause>Pause</button>
         <button id=clear>Clear</button>
         <label id=followLbl><input id=follow type=checkbox checked>Follow</label>

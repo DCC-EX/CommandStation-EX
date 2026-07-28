@@ -31,6 +31,10 @@ stat.textContent='offline';
 }
 setTimeout(tick, 400);
 }
+const hostName = window.location.hostname || window.location.host;
+if (hostName && hostName!="DCC-EX") {
+  showHostName.textContent = "(" + hostName + ")";
+  document.title = "DCC-EX " + showHostName.textContent;
+}
 tick();
-
 )???"

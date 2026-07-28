@@ -9,6 +9,7 @@ const filterIn=dog('filter');
 const stat=dog('stat');
 const cmdInput = dog('cmd');
 const cmdButton = dog('cmdButton');
+const showHostName = dog('showHostName');
 let paused=false, seq=0, buf='',cmdWaiting=false;
 let userScrolled=false;
 function atBottom(){return (logEl.scrollHeight-logEl.scrollTop-logEl.clientHeight)<8;}
