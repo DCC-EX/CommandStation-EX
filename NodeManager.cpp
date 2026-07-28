@@ -47,6 +47,8 @@ constexpr uint16_t NODE_PORT = IP_PORT+1;
 #endif 
 const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
 AsyncUDP udpNodeRx;
+AsyncUDP udpNodeTx;
+
 bool NodeManager::started = false;
 bool NodeManager::isThrottleNodeFlag = true;
 
@@ -54,6 +56,10 @@ void NodeManager::setup(bool throttleNode) {
     isThrottleNodeFlag = throttleNode;
     if (!udpNodeRx.listenMulticast(nodeMulticastIP, NODE_PORT)) {
         DIAG(F("Failed to start UDP receiver for DCC-EX Node traffic"));
+        return;
+    }
+    if (!udpNodeTx.connect(nodeMulticastIP, NODE_PORT)) {
+        DIAG(F("Failed to start UDP transmitter for DCC-EX Node traffic"));
         return;
     }
     started = true;
@@ -79,15 +85,9 @@ void NodeManager::cast(const FSH* format...) {
 }
 
 void NodeManager::cast(StringBuffer * buffer) {
-    if (!started || buffer == nullptr || buffer->getLength() <= 0) return;
-  WiFiUDP udpNodeTx;
-  if (!udpNodeTx.beginPacket(nodeMulticastIP, NODE_PORT)) {
-    DIAG(F("Failed to start UDP transmitter for node out %s"),buffer->getString());
-    return;
-  }
-  udpNodeTx.print(buffer->getString());
-  udpNodeTx.endPacket();
-  if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
+    if (!started || buffer == nullptr || buffer->getLength() <= 0) return;    
+    udpNodeTx.print(buffer->getString());
+    if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
 void NodeManager::parse(byte * cmd) {
