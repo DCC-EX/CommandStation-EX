@@ -122,11 +122,12 @@ void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits
           byte stateMask=1<<(i%8);
           VPIN vpin= firstVpin+i;
           // check for state unchanged
-          if ((bool)(statebits[stateByte]&stateMask) == IODevice::read(vpin)) break; // no change  
+          bool newstate=IODevice::read(vpin)!=0;
+          if (newstate == (bool)(statebits[stateByte]&stateMask)) break; // no change
           // flip state bit
-          statebits[stateByte]^=stateMask;
-          bool state=statebits[stateByte]&stateMask;
-          NodeManager::cast(F("<q %d %b>\n"),vpin, state);
+          if (newstate) statebits[stateByte]|=stateMask;
+          else statebits[stateByte]&=~stateMask; 
+          NodeManager::cast(F("<q %d %b>\n"),vpin, newstate);
         } 
         break;
 
