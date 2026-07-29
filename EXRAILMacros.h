@@ -156,7 +156,7 @@ bool exrailHalSetup1() {
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
    static GroupType groupType=GroupType::shared; \
-   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action,&groupType); \
+   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action,&groupType, applyPin, applyState); \
   }
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) \
@@ -173,9 +173,11 @@ bool exrailHalSetup1() {
    SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,false); \
   }
 
-void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
+void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN applyPin, bool applyState) {
    (void)   action; // suppress unused warnings if no groups
    (void)   stream;
+   (void)   applyPin;
+   (void)   applyState;
    #include "myAutomation.h"
 }
 

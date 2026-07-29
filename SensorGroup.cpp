@@ -27,6 +27,10 @@ void SensorGroup::shareSensorsToCS() {
     doExrailSensorGroup(GroupProcess::share, nullptr);
 }
 
+void SensorGroup::applyIncomingSensor(VPIN applyPin, bool applyState) {
+    doExrailSensorGroup(GroupProcess::apply, nullptr, applyPin, applyState);
+}
+
 #else
 // if EXRAIL is not active, these functions are empty
 void SensorGroup::checkAll() {}
@@ -34,7 +38,9 @@ void SensorGroup::printAll(Print * serial) {(void)serial;}
 void SensorGroup::prepareAll() {}
 void SensorGroup::dumpAll(Print * stream) {(void)stream;}
 void SensorGroup::shareSensorsToCS() {}
-
+void SensorGroup::applyIncomingSensor(VPIN applyPin, bool applyState) {
+    (void)applyPin; (void)applyState;
+}
 #endif 
 
 // called by EXRAIL constructed doExrailSensorGroup for each group 
@@ -78,6 +84,8 @@ void SensorGroup::doJMRISensorGroup(VPIN firstVpin, int nPins, byte* statebits,
          break;
 
       case GroupProcess::share:
+      case GroupProcess::apply:
+         // Not applicable to JMRI sensors 
          break;
     } 
   }
@@ -85,9 +93,17 @@ void SensorGroup::doJMRISensorGroup(VPIN firstVpin, int nPins, byte* statebits,
 
     // called by EXRAIL constructed doExrailSensorGroup for each group 
 void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
-  GroupProcess action, GroupType * groupType) {
+  GroupProcess action, GroupType * groupType, VPIN applyPin, bool applyState) {
 
   switch(action) {
+    case GroupProcess::apply:
+      // called when a shared sensor value is incoming from another node, so apply the state to the local copy of the state bits
+      if (*groupType!=GroupType::incomingShare) return; // dont apply to outgoing groups
+      if (applyPin<firstVpin || applyPin>=firstVpin+nPins) return;
+      // apply the state to the applyPin (no rebroadcast)
+      IODevice::write(applyPin, applyState,false);
+      break;
+
     case GroupProcess::prepare:
         //Need to know if this group is monitoring real pins or shared pins from another node.
 
@@ -123,7 +139,7 @@ void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits
           VPIN vpin= firstVpin+i;
           // check for state unchanged
           bool newstate=IODevice::read(vpin)!=0;
-          if (newstate == (bool)(statebits[stateByte]&stateMask)) break; // no change
+          if (newstate == (bool)(statebits[stateByte]&stateMask)) continue; // no change
           // flip state bit
           if (newstate) statebits[stateByte]|=stateMask;
           else statebits[stateByte]&=~stateMask; 
