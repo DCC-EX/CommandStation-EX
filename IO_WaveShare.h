@@ -32,7 +32,10 @@
 #include "IODevice.h"
 
 #define TCA9555 TCA9555_AUDIOTOOLS
+#define DISABLE_FS_H_WARNING
 #include <AudioBoards/ESP32S3AISmartSpeaker.h>
+#undef IS_GPIO   // avoid compiler warnings in library
+#undef GPIO_TO_INT
 #include <AudioTools.h>
 #include <AudioTools/AudioCodecs/CodecMP3Helix.h>
 #include <AudioTools/AudioLibs/AudioBoardStream.h>
@@ -40,7 +43,6 @@
 #undef TCA9555
 
 #include "DIAG.h"
-#include "IO_PCA9555.h"
 #include <Adafruit_NeoPixel.h>
 #define NEOPIXEL_PIN        38
 #define NEOPIXEL_COUNT      7
