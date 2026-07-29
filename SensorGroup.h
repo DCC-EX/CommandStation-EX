@@ -26,7 +26,9 @@ class SensorGroup {
      static void doJMRISensorGroup(VPIN vpin, int nPins, byte* statebits,
         GroupProcess action, Print * serial, bool pullup);
      static void doSharedSensorGroup(VPIN vpin, int nPins, byte* statebits,
-        GroupProcess action, GroupType * groupType, VPIN applyPin=0, bool applyState=false);
+        GroupProcess action, VPIN applyPin=0, bool applyState=false);
+     static void doRemoteSensorGroup(VPIN vpin, int nPins,
+        GroupProcess action, VPIN applyPin=0, bool applyState=false);
      private: 
        static void doExrailSensorGroup(GroupProcess action, Print * stream, VPIN applyPin=0, bool applyState=false);  
 };

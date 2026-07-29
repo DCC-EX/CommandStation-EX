@@ -378,7 +378,12 @@
 ///brief Marks current task so that FWD and REV commands are inverted.
 
 #define SHARED_SENSOR(vpin,count...)
-///brief Defines multiple sensor vpins to be shared by nodes.
+///brief Defines multiple sensor vpins to be shared to other nodes
+///param vpin first vpin number
+///param count... Number of consecutive VPINS. Default 1.
+
+#define REMOTE_SENSOR(vpin,count...)
+///brief Defines multiple sensor vpins shared by other nodes.
 ///param vpin first vpin number
 ///param count... Number of consecutive VPINS. Default 1.
 

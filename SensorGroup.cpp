@@ -91,33 +91,17 @@ void SensorGroup::doJMRISensorGroup(VPIN firstVpin, int nPins, byte* statebits,
   }
 }
 
-    // called by EXRAIL constructed doExrailSensorGroup for each group 
+// called by EXRAIL constructed doExrailSensorGroup for each group 
 void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
-  GroupProcess action, GroupType * groupType, VPIN applyPin, bool applyState) {
+  GroupProcess action, VPIN applyPin, bool applyState) {
 
   switch(action) {
-    case GroupProcess::apply:
-      // called when a shared sensor value is incoming from another node, so apply the state to the local copy of the state bits
-      if (*groupType!=GroupType::incomingShare) return; // dont apply to outgoing groups
-      if (applyPin<firstVpin || applyPin>=firstVpin+nPins) return;
-      // apply the state to the applyPin (no rebroadcast)
-      IODevice::write(applyPin, applyState,false);
-      break;
-
+   
     case GroupProcess::prepare:
         //Need to know if this group is monitoring real pins or shared pins from another node.
 
-        if (IODevice::checkNoOverlap(firstVpin,nPins,0,true)){
-          // if  no overlap, then this is monitoring pins from another node
-          // so we have to create a local copy of the state bits
-          DIAG(F("Creating incoming SHARED_SENSOR( %d,%d)"),firstVpin,nPins);
-          FLAGS::create(firstVpin,nPins);
-          *groupType=GroupType::incomingShare;  // mark this group as shared
-          return; 
-        }
-
         // this is monitoring real pins, so configure them as inputs and take current state
-        DIAG(F("Creating outgoing SHARED_SENSOR( %d,%d)"),firstVpin,nPins);
+        DIAG(F("Creating SHARED_SENSOR( %d,%d)"),firstVpin,nPins);
         for (auto i=0;i<nPins;i++) {
           byte stateByte=i/8;
           byte stateMask=1<<(i%8);
@@ -125,12 +109,9 @@ void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits
           IODevice::configureInput(vpin,true);
           if (IODevice::read(vpin))  statebits[stateByte]|=stateMask;
         }
-      
-        *groupType=GroupType::outgoingShare;  // mark this group as outgoing
         break;
   
     case GroupProcess::check:
-        if (*groupType!=GroupType::outgoingShare) return; // dont check incoming shared groups
         // Loop through the pins in the group  
         for (auto i=0;i<nPins;i++) {
           // locate position of state bit
@@ -149,12 +130,10 @@ void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits
 
     case GroupProcess::print:
     case GroupProcess::dump:
-        DIAG(F("%S SHARED_SENSOR(%d,%d)"),
-        *groupType==GroupType::outgoingShare ? F("Outgoing") : F("Incoming"), firstVpin,nPins);
+        DIAG(F("SHARED_SENSOR(%d,%d)"), firstVpin,nPins);
         break;
 
     case GroupProcess::share: // share outgoing groups to the CS and other nodes 
-      if (*groupType!=GroupType::outgoingShare) break; 
       // share the outgoing group to the CS as 8 bits per xmit
       for (auto partbyte=0;partbyte<(nPins+7)/8;partbyte++) {
         auto vpin=firstVpin+8*partbyte;
@@ -163,5 +142,43 @@ void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits
         NodeManager::cast(F("<q %d %d %d>"),vpin, npins, statebits[partbyte]);
       }
       break;
+
+    default:
+      break;  
     } // switch(action)
 }
+
+// called by EXRAIL constructed doExrailSensorGroup for each group 
+void SensorGroup::doRemoteSensorGroup(VPIN firstVpin, int nPins,
+  GroupProcess action, VPIN applyPin, bool applyState) {
+
+  switch(action) {
+    case GroupProcess::apply:
+      // called when a shared sensor value is incoming from another node, so apply the state to the local copy of the state bits
+      if (applyPin<firstVpin || applyPin>=firstVpin+nPins) return;
+      // apply the state to the applyPin (no rebroadcast)
+      IODevice::write(applyPin, applyState,false);
+      break;
+
+    case GroupProcess::prepare:
+        //Need to know if this group is monitoring real pins or shared pins from another node.
+
+        if (IODevice::checkNoOverlap(firstVpin,nPins,0,true)){
+          // if  no overlap, then this is monitoring pins from another node
+          // so we have to create a local copy of the state bits
+          DIAG(F("Creating incoming REMOTE_SENSOR( %d,%d)"),firstVpin,nPins);
+          FLAGS::create(firstVpin,nPins);
+          return;
+        }
+        DIAG(F("REMOTE_SENSOR(%d,%d) mapped to existing VPINs"),firstVpin,nPins);
+        break;
+  
+    case GroupProcess::print:
+    case GroupProcess::dump:
+        DIAG(F("REMOTE_SENSOR(%d,%d)"), firstVpin,nPins);
+        break;
+
+    default:
+      break;
+    } // switch(action)
+  }

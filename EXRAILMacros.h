@@ -155,8 +155,13 @@ bool exrailHalSetup1() {
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   static GroupType groupType=GroupType::shared; \
-   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action,&groupType, applyPin, applyState); \
+   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action, applyPin, applyState); \
+  }
+#undef REMOTE_SENSOR
+#define REMOTE_SENSOR(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   SensorGroup::doRemoteSensorGroup(vpin,npins,action, applyPin, applyState); \
   }
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) \
@@ -602,6 +607,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
 #define SHARED_SENSOR(vpin,count...)
+#define REMOTE_SENSOR(vpin,count...)
 #define JMRI_SENSOR(vpin,count...)
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,
