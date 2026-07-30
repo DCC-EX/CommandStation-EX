@@ -1,4 +1,4 @@
-R"???(
+String SerialUsbLog_style_css=R"???(
 html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
 body{background:#0f1115;color:#d7dae0;display:flex;flex-direction:column}
 header{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.6rem .75rem;border-bottom:1px solid #2a2d34}
@@ -10,4 +10,4 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 #log{flex:1;overflow:auto;padding:.75rem;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
 #stat{opacity:.75;font-size:.85rem;min-width:160px;text-align:right}
 .dim{opacity:.75}
-)???"
+)???";

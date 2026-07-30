@@ -48,6 +48,11 @@
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
+#include "SerialUsbLog.html.h"
+#include "SerialUsbLog.style.css.h"
+#include "SerialUsbLog.script1.js.h"
+#include "SerialUsbLog.script2.js.h"
+
 
 #if WIFI_ON
   #include <WiFi.h>
@@ -302,6 +307,46 @@ int SerialUsbLog::peek() {
   return Serial.peek();
 }
 
+const char htmlHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/html; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+;
+const char jsHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/javascript; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+  ;
+const char cssHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/css; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+  ;
+
+class LogPage{
+  public:
+    static LogPage* first;
+    LogPage* next; 
+    const String path;
+    const String displayName;
+    String content;
+    LogPage(const String& _path,const String& _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
+      next=first;
+      first=this;
+    }
+    void render(Print* targetStream) {
+      if (targetStream==nullptr) return;
+      if (path.endsWith(".css")) targetStream->print(cssHeader);
+      else if (path.endsWith(".js")) targetStream->print(jsHeader);
+      else targetStream->print(htmlHeader);
+      targetStream->print(content);
+    }
+};
+LogPage* LogPage::first = nullptr;
+
 /**
  * Lightweight HTTP server loop 
  *
@@ -317,6 +362,11 @@ void SerialUsbLog::loop() {
      && WifiESP::isUp()
   #endif
   ) {
+    new LogPage("/style.css", SerialUsbLog_style_css);
+    new LogPage("/script1.js", SerialUsbLog_script1_js);
+    new LogPage("/script2.js", SerialUsbLog_script2_js);
+    new LogPage("/", SerialUsbLog_html);
+    // user pages may be added later with exrail
     server.begin();
     started = true;
     return;
@@ -341,21 +391,20 @@ void SerialUsbLog::loop() {
 
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
-  dummyClient.flush();
-
+  
   if (method != "GET") {
-    dummyClient.println(
-      "HTTP/1.1 405 Method Not Allowed\r\n"
-      "Connection: close\r\n\r\n"
-    );
-  }
+      client.print(
+        "HTTP/1.1 405 Method Not Allowed\r\n"
+        "Connection: close\r\n\r\n"
+      );
+      client.stop();
+      return;
+    }
 
   // ----------------------------- /log incremental feed -----------------------------
-  else if (path == "/log") {
+  if (path == "/log") {
     String cmd= queryParamString(uri, "cmd", "");
-    if (cmd.length()>0) {
-      DCCEXParser::parse(cmd.c_str());
-    }
+    if (cmd.length()>0)  DCCEXParser::parse(cmd.c_str());
 
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
@@ -373,76 +422,45 @@ void SerialUsbLog::loop() {
     if (avail > (uint32_t)chunk) avail = (uint32_t)chunk;
     uint32_t next = start + avail;
 
-    dummyClient.print(
+    client.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n"
       "X-Next-Seq: "
     );
-    dummyClient.print(next);
-    dummyClient.print("\r\n\r\n");
+    client.print(next);
+    client.print("\r\n\r\n");
 
     uint32_t nextSeqOut = from;
-    SerialLog.streamOutFrom(&dummyClient, from, (size_t)chunk, nextSeqOut);
+    SerialLog.streamOutFrom(&client, from, (size_t)chunk, nextSeqOut);
+    client.stop();
+    return;
   }
 
-  // --------------------------------- / HTML shell ---------------------------------
-else  if (path == "/" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/html; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.html.h"
-    );
-
-  }
-
-  else if (path == "/style.css" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/css; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.style.css.h"
-    );
-  }
-
- else if (path == "/script1.js" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/javascript; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.script1.js.h"
-    );
-
+// try for registered page 
+  for (auto page = LogPage::first; page != nullptr; page = page->next) {
+    DIAG(F("SerialUsbLog: %s checking page %s"), path.c_str(), page->path.c_str());
+    if (path == page->path) {
+      DIAG(F("SerialUsbLog:found"));
+      page->render(&client);
+      client.stop();
+      return;
+    }
   }
   
-  else if (path == "/script2.js" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/javascript; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.script2.js.h"
-    );
-  }
-else {
   // --------------------------------- 404 ---------------------------------
-  dummyClient.print(
+  client.print(
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
-}
-if (Diag::WIFI || Diag::ETHERNET) {
-    StringFormatter::send(Serial,F("<* http:replyLength %d *>\n"),
-    dummyClient.getLength());
-  }
-  
-  client.print(dummyClient.getString());
   client.stop();
+
+}
+
+void SerialUsbLog::addUserPage(const String& path, const String& displayName, const String& content) {
+  // For future expansion: allow user to add custom pages to the web server.
+  new LogPage(path, content,displayName);
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
 #endif // ENABLE_SERIAL_LOG

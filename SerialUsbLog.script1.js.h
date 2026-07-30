@@ -1,4 +1,4 @@
-R"???(
+String SerialUsbLog_script1_js=R"???(
 function dog(tag) {return document.getElementById(tag);}
 const logEl=dog('log');
 const pauseBtn=dog('pause');
@@ -25,4 +25,4 @@ return text.split('\n').filter(l=>l.includes(f)).join('\n');
 }
 filterIn.addEventListener('input',()=>{logEl.value=applyFilter(buf); if(followCb.checked&&!userScrolled){logEl.scrollTop=logEl.scrollHeight;}});
 cmdInput?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); cmdButton.click(); }});
-)???"
+)???";

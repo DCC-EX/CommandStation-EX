@@ -43,6 +43,7 @@ class SerialUsbLog : public Stream {
     virtual int read();
     virtual int peek();
     void loop();
+    void addUserPage(const String& path, const String& displayName, const String& content);
 
  private:
    int _pos_write;

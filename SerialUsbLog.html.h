@@ -1,4 +1,4 @@
-R"???(
+String SerialUsbLog_html=R"???(
 <!doctype html><html><head>
       <meta name=viewport content='width=device-width,initial-scale=1'>
       <title>DCC-EX Server Log</title>
@@ -21,4 +21,4 @@ R"???(
       <script src="/script1.js" defer></script>
       <script src="/script2.js" defer></script> 
 </body></html>
-)???"
+)???";
