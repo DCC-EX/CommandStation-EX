@@ -225,7 +225,11 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     onAmberLookup=LookListLoader(OPCODE_ONAMBER);
     onGreenLookup=LookListLoader(OPCODE_ONGREEN);
     Signal::setAllSignalsToRed();
+
+    // hide any hidden turnouts
+    for (auto t=Turnout::first();t;t=t->next()) setTurnoutHiddenState(t);
     
+    // configure any input pins, and create any ON* catchers
 
   int progCounter;
   for (progCounter=0;; SKIPOP){
@@ -270,34 +274,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       if (compileFeatures & FEATURE_SENSOR) 
         new EXRAILSensor(operand,progCounter+3,false );
       break;
-    case OPCODE_TURNOUT: {
-      VPIN id=operand;
-      int addr=getOperand(progCounter,1);
-      byte subAddr=getOperand(progCounter,2);
-      Turnout *t = DCCTurnout::create(id,addr,subAddr);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
-    case OPCODE_SERVOTURNOUT: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      int activeAngle=getOperand(progCounter,2);
-      int inactiveAngle=getOperand(progCounter,3);
-      int profile=getOperand(progCounter,4);
-      Turnout *t = ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
-    case OPCODE_PINTURNOUT: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      Turnout *t = VpinTurnout::create(id,pin);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
+   
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
@@ -1284,9 +1261,6 @@ void RMFT2::loop2() {
   
   case OPCODE_AUTOSTART: // Handled only during begin process
   case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
-  case OPCODE_TURNOUT: // Turnout definition ignored at runtime
-  case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
-  case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_ONCLOSE: // Turnout event catchers ignored here
   case OPCODE_ONLCC:   // LCC event catchers ignored here 
   case OPCODE_ONACON:   // MERG event catchers ignored here 

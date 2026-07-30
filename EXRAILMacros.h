@@ -207,6 +207,20 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
         new NEOPIXELSignal(id,redRGB,amberRGB,greenRGB);
 #undef VIRTUAL_SIGNAL
 #define VIRTUAL_SIGNAL(id) new Signal(id);
+
+// Turnouts created here
+#undef SERVO_TURNOUT
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) \
+      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,PCA9685::ProfileType::profile);
+#undef TURNOUT
+#define TURNOUT(id,addr,subaddr,description...) DCCTurnout::create(id,addr,subaddr);
+#undef TURNOUTL
+#define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
+#undef PIN_TURNOUT
+#define PIN_TURNOUT(id,pin,description...) VpinTurnout::create(id,pin);
+#undef VIRTUAL_TURNOUT
+#define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0);
+
 void exrailHalSetup2() {
    #include "myAutomation.h"
    // pullup any group sensors
@@ -665,7 +679,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
-#define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#define PIN_TURNOUT(id,pin,description...)
 #define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
 #define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
 #define PLAY_PAUSE(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_PAUSE)
@@ -716,7 +730,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
 #define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...)
 #define SET(pin,count...) OPCODE_SET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
 #define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff),OPCODE_PAD, V(TRACK_NUMBER_##track),
@@ -737,12 +751,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
-#define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
-#define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
+#define TURNOUT(id,addr,subaddr,description...)
+#define TURNOUTL(id,addr,description...)
 #define UNJOIN OPCODE_UNJOIN,0,0,
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 
-#define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
+#define VIRTUAL_TURNOUT(id,description...) 
 #define BITMAP_AND(vpin,mask) OPCODE_BITMAP_AND,V(vpin),OPCODE_PAD,V(mask),
 #define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),
 #define BITMAP_DEC(vpin) OPCODE_BITMAP_DEC,V(vpin),
