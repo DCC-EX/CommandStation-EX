@@ -48,7 +48,8 @@
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLEAR_ANY_STASH
-#undef CLOSE 
+#undef CLOSE
+#undef CONFIGURE_DIALOG
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
 #undef DCCX_SIGNAL

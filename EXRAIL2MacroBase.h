@@ -138,6 +138,10 @@
 ///brief Close turnout by id
 ///see THROW
 
+#define CONFIGURE_DIALOG(title,body)
+///brief Set up browser config dialog with title and body text. The dialog will be shown when the user clicks on the config button in the browser interface.
+///param profile Movement profile (Instant, Fast, Medium, Slow, Bounce)
+
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 ///brief Set up servo movement parameters for non-turnout
 ///param vpin must refer to a servo capable pin

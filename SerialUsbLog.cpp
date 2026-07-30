@@ -458,9 +458,9 @@ void SerialUsbLog::loop() {
 
 }
 
-void SerialUsbLog::addUserPage(const String& path, const String& displayName, const String& content) {
+void SerialUsbLog::addUserPage(const String& path, const String& content, const String& displayname) {
   // For future expansion: allow user to add custom pages to the web server.
-  new LogPage(path, content,displayName);
+  new LogPage(path, content,displayname);
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
 #endif // ENABLE_SERIAL_LOG

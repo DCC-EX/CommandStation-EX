@@ -220,6 +220,11 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 #define PIN_TURNOUT(id,pin,description...) VpinTurnout::create(id,pin);
 #undef VIRTUAL_TURNOUT
 #define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0);
+#undef CONFIGURE_DIALOG
+#define CONFIGURE_DIALOG(title,body) {\
+   extern String body##_html;\
+   SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
+}
 
 void exrailHalSetup2() {
    #include "myAutomation.h"
@@ -561,6 +566,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLEAR_ANY_STASH OPCODE_CLEAR_ANY_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#define CONFIGURE_DIALOG(title,body)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
