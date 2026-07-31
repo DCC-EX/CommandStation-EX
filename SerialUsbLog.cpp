@@ -52,6 +52,7 @@
 #include "SerialUsbLog.style.css.h"
 #include "SerialUsbLog.script1.js.h"
 #include "SerialUsbLog.script2.js.h"
+#include "SerialUsbLog.script3.js.h"
 
 
 #if WIFI_ON
@@ -365,6 +366,7 @@ void SerialUsbLog::loop() {
     new LogPage("/style.css", SerialUsbLog_style_css);
     new LogPage("/script1.js", SerialUsbLog_script1_js);
     new LogPage("/script2.js", SerialUsbLog_script2_js);
+    new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
     // user pages may be added later with exrail
     server.begin();
@@ -437,12 +439,27 @@ void SerialUsbLog::loop() {
     client.stop();
     return;
   }
+  
+  if (path == "/configs.js") {
+    client.print(jsHeader);
+    for (auto page = LogPage::first; page != nullptr; page = page->next) {
+      if (page->displayName && page->displayName.length() > 0) {
+        client.print("addConfig(\"");
+        client.print(page->displayName);
+        client.print("\", \"");
+        client.print(page->path);
+        client.print("\");\n");
+      }
+    }
+    client.stop();
+    return;
+  }
 
-// try for registered page 
+    // try for registered page 
   for (auto page = LogPage::first; page != nullptr; page = page->next) {
-    DIAG(F("SerialUsbLog: %s checking page %s"), path.c_str(), page->path.c_str());
+    // DIAG(F("SerialUsbLog: %s checking page %s"), path.c_str(), page->path.c_str());
     if (path == page->path) {
-      DIAG(F("SerialUsbLog:found"));
+      // DIAG(F("SerialUsbLog:found"));
       page->render(&client);
       client.stop();
       return;
@@ -450,12 +467,12 @@ void SerialUsbLog::loop() {
   }
   
   // --------------------------------- 404 ---------------------------------
+  DIAG(F("SerialUsbLog: 404 %s"), path.c_str());
   client.print(
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
   client.stop();
-
 }
 
 void SerialUsbLog::addUserPage(const String& path, const String& content, const String& displayname) {

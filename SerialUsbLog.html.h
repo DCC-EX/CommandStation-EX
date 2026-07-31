@@ -7,6 +7,12 @@ String SerialUsbLog_html=R"???(
       <body>
       <header>
         <h1>DCC-EX <span id=showHostName></span> Log</h1>
+
+        <div class="menu-wrap">
+          <button id=configsBtn type="button" aria-haspopup="true" aria-expanded="false">Configs</button>
+          <div id=configsMenu class="menu" role="menu" hidden></div>
+        </div>
+
         <button id=pause>Pause</button>
         <button id=clear>Clear</button>
         <label id=followLbl><input id=follow type=checkbox checked>Follow</label>
@@ -19,6 +25,8 @@ String SerialUsbLog_html=R"???(
       </header>
       <textarea id=log readOnly></textarea>
       <script src="/script1.js" defer></script>
-      <script src="/script2.js" defer></script> 
+      <script src="/script2.js" defer></script>
+      <script src="/script3.js" defer></script>
+      <script src="/configs.js" defer></script>
 </body></html>
 )???";
