@@ -50,10 +50,10 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   invertPower=power_pin < 0;
   if (invertPower) {
     powerPin = 0-power_pin;
-    IODevice::write(powerPin,HIGH);// set to OUTPUT and off
+    IODevice::write(powerPin,HIGH,false);// set to OUTPUT and off
   } else {
     powerPin = power_pin;
-    IODevice::write(powerPin,LOW);// set to OUTPUT and off
+    IODevice::write(powerPin,LOW,false);// set to OUTPUT and off
   }
   
   signalPin=signal_pin;
@@ -245,12 +245,12 @@ void MotorDriver::setPower(POWERMODE mode) {
         if (Diag::ACK) DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
     }
 
-    IODevice::write(powerPin,invertPower ? LOW : HIGH);
+    IODevice::write(powerPin,invertPower ? LOW : HIGH,false);
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
-      IODevice::write(powerPin,invertPower ? HIGH : LOW);
+      IODevice::write(powerPin,invertPower ? HIGH : LOW,false);
   }
   powerMode=mode; 
 }
