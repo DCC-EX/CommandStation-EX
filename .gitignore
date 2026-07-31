@@ -6,6 +6,7 @@ Release/*
 .gcc-flags.json
 .pio/
 .vscode/
+my*.ini
 config.h
 mySetup.cpp
 myHal.cpp
