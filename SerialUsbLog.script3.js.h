@@ -41,7 +41,7 @@ String SerialUsbLog_script3_js=R"???(
     const header = document.createElement('div');
     header.style.cssText =
       'display:flex; justify-content:space-between; align-items:center; ' +
-      'padding:8px 10px; background:#f0f0f0; border-bottom:1px solid #ccc;';
+      'padding:8px 10px; background:#0f0f0f; border-bottom:1px solid #ccc;';
 
     const titleEl = document.createElement('div');
     titleEl.textContent = title || 'Config';
