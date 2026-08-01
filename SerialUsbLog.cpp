@@ -53,6 +53,8 @@
 #include "SerialUsbLog.script1.js.h"
 #include "SerialUsbLog.script2.js.h"
 #include "SerialUsbLog.script3.js.h"
+#include "CVTableEditor.html.h"
+#include "CVTable.h"
 
 
 #if WIFI_ON
@@ -368,6 +370,7 @@ void SerialUsbLog::loop() {
     new LogPage("/script2.js", SerialUsbLog_script2_js);
     new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
+    new LogPage("/cvtableeditor.html", CVTTableEditor_html,"Raw CV Editor");  
     // user pages may be added later with exrail
     server.begin();
     started = true;
@@ -394,6 +397,36 @@ void SerialUsbLog::loop() {
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
   
+  if (method == "POST" && path == "/savecv") {
+    DIAG(F("POST /savecv"));
+    // Handle POST request to CVTable save endpoint. The body is expected to be a JSON object with CV values.
+    String body = client.readStringUntil('\0'); // Read until end of stream 
+    // extract cv value list as csv from body and apply to CVTable::cv
+    int start = body.indexOf('{');
+    int end = body.indexOf('}', start);  
+    if (start >= 0 && end > start) {
+      String csv = body.substring(start + 1, end);
+      DIAG(F("csv=%s"), csv.c_str());
+      int index = 0;
+      int lastIndex = 0;
+      while (index <= CVTable::CV_MAX) {
+        int comma = csv.indexOf(',', lastIndex);
+        if (comma < 0) comma = csv.length();
+        String valueStr = csv.substring(lastIndex, comma);
+        CVTable::cv[index] = (uint16_t)valueStr.toInt();
+        lastIndex = comma + 1;
+        index++;
+        if (lastIndex >= csv.length()) break;
+      }
+      client.print(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain; charset=utf-8\r\n"
+        "Cache-Control: no-store\r\n"
+        "Connection: close\r\n\r\n"
+      );
+    } 
+  }
+
   if (method != "GET") {
       client.print(
         "HTTP/1.1 405 Method Not Allowed\r\n"
@@ -451,6 +484,16 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
+    int lastcv=0;
+    for (int i=0;i<=CVTable::CV_MAX;i++) {
+      if (CVTable::cv[i]) lastcv=i;
+    }
+    client.print("const CVTable=[");
+    for (int i=0;i<=lastcv;i++) {
+      if (i>0) client.print(",");
+      client.print(CVTable::cv[i]);
+    }
+    client.print("];\n CVTableBefore=CVTable.slice();\n");
     client.stop();
     return;
   }

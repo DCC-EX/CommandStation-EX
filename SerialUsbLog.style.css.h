@@ -10,4 +10,11 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 #log{flex:1;overflow:auto;padding:.75rem;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
 #stat{opacity:.75;font-size:.85rem;min-width:160px;text-align:right}
 .dim{opacity:.75}
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
 )???";
