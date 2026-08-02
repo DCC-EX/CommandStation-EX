@@ -3,6 +3,31 @@ configuration dialogs. It was written mostly by AI.
 */
 
 String SerialUsbLog_script3_js=R"???(
+function convertCvInputs(container) {
+  const cvNodes = container.querySelectorAll('cvinput');
+  cvNodes.forEach(function(el) {
+    const cv = parseInt(el.getAttribute('cv'), 10);
+    const min = parseInt(el.getAttribute('min'), 10);
+    const max = parseInt(el.getAttribute('max'), 10);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = Number.isFinite(min) ? min : 0;
+    input.max = Number.isFinite(max) ? max : 255;
+
+    input.value = CVTable[cv] ?? 0;
+
+    input.addEventListener('input', function() {
+      const value = parseInt(this.value, 10);
+      if (!Number.isNaN(value)) {
+        CVTable[cv] = value;
+      }
+    });
+
+    el.parentNode.replaceChild(input, el);
+  });
+};
+
 (function() {
   const configsBtn = document.getElementById('configsBtn');
   const configsMenu = document.getElementById('configsMenu');
@@ -63,6 +88,7 @@ String SerialUsbLog_script3_js=R"???(
     body.style.padding = '10px';
     body.innerHTML = html;
     activateScripts(body);
+    convertCvInputs(body);
 
     configPanel.appendChild(header);
     configPanel.appendChild(body);
