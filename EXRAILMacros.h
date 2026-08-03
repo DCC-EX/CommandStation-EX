@@ -100,6 +100,14 @@
 #define ZC8(_1,_2,_3,_4,_5,_6,_7,_8) CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7) CALL(_8)
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
+// For all passes that generate c++ code directly from the macros, 
+// cv references can refer directly to the CVTable::cv[] so cv values will be passed directly
+// in to things like Alias, turnout and signal definitions, HAL setups etc.
+// these will take place at startup time but changes to the cv will not 
+// affect them without a reboot. 
+
+#undef CV
+#define CV(cvnum) CVTable::cv[cvnum]
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -538,8 +546,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #include "EXRAIL2MacroReset.h"
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
-// a constant.  
-#define V(val) (byte)(((int16_t)(val))&0x00FF),(byte)(((int16_t)(val)>>8)&0x00FF)
+// a constant.
+#undef CV
+#define CV(cvnum) (((int32_t)cvnum & 0x00FF) | 0x7f000000) 
+#define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
 // Define macros for route code creation 
 
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
@@ -553,9 +563,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
-#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
-#define AUTOSTART OPCODE_AUTOSTART,0,0,
+#define AUTOSTART OPCODE_AUTOSTART,V(0),
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
 #define BUILD_CONSIST(addloco) OPCODE_CONSIST,V(addloco),
 #define BREAK_CONSIST OPCODE_CONSIST,V(0),
@@ -576,12 +586,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DCC_SIGNAL(id,add,subaddr)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
-#define DONE OPCODE_ENDTASK,0,0,
+#define DONE OPCODE_ENDTASK,V(0),
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
-#define ELSE OPCODE_ELSE,0,0,
+#define ELSE OPCODE_ELSE,V(0),
 #define ENDEXRAIL 
-#define ENDIF  OPCODE_ENDIF,0,0,
-#define ENDTASK OPCODE_ENDTASK,0,0,
+#define ENDIF  OPCODE_ENDIF,V(0),
+#define ENDTASK OPCODE_ENDTASK,V(0),
 #define ESTOP OPCODE_SPEED,V(1), 
 #define ESTOPALL OPCODE_ESTOPALL,V(0),
 #define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
@@ -592,9 +602,9 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
 #define FON(func) OPCODE_FON,V(func),
-#define FORGET OPCODE_FORGET,0,0,
+#define FORGET OPCODE_FORGET,V(0),
 #define FREE(blockid) OPCODE_FREE,V(blockid),
-#define FREEALL OPCODE_FREEALL,0,0,
+#define FREEALL OPCODE_FREEALL,V(0),
 #define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -620,18 +630,18 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
-#define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
+#define IFTIMEOUT OPCODE_IFTIMEOUT,V(0),
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
-#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,V(0),
 #define SHARED_SENSOR(vpin,count...)
 #define REMOTE_SENSOR(vpin,count...)
 #define JMRI_SENSOR(vpin,count...)
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
-#define JOIN OPCODE_JOIN,0,0,
-#define KILLALL OPCODE_KILLALL,0,0,
+#define JOIN OPCODE_JOIN,V(0),
+#define KILLALL OPCODE_KILLALL,V(0),
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCC(eventid) OPCODE_LCC,V(eventid),
 #define LCCX(sender,event) OPCODE_LCCX,V(event),\
@@ -671,8 +681,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
 #define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
-#define ONRAILSYNCON OPCODE_ONRAILSYNCON,0,0,
-#define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,0,0,
+#define ONRAILSYNCON OPCODE_ONRAILSYNCON,V(0),
+#define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,V(0),
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
@@ -683,7 +693,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
 #define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
-#define PAUSE OPCODE_PAUSE,0,0,
+#define PAUSE OPCODE_PAUSE,V(0),
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...)
 #define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
@@ -696,8 +706,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
 #define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
-#define POWEROFF OPCODE_POWEROFF,0,0,
-#define POWERON OPCODE_POWERON,0,0,
+#define POWEROFF OPCODE_POWEROFF,V(0),
+#define POWERON OPCODE_POWERON,V(0),
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
 #define RANDOM_CALL(...) \
@@ -706,12 +716,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define RANDOM_FOLLOW(...) \
   OPCODE_RANDOM_FOLLOW,V(FOR_EACH_NARG(__VA_ARGS__)), \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
-#define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
+#define READ_LOCO OPCODE_READ_LOCO1,V(0),OPCODE_READ_LOCO2,V(0),
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
 #define RESET(pin,count...) OPCODE_RESET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
-#define RESUME OPCODE_RESUME,0,0,
-#define RETURN OPCODE_RETURN,0,0,
+#define RESUME OPCODE_RESUME,V(0),
+#define RETURN OPCODE_RETURN,V(0),
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
 #define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
@@ -759,7 +769,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
 #define TURNOUT(id,addr,subaddr,description...)
 #define TURNOUTL(id,addr,description...)
-#define UNJOIN OPCODE_UNJOIN,0,0,
+#define UNJOIN OPCODE_UNJOIN,V(0),
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
 #define VIRTUAL_SIGNAL(id) 
 #define VIRTUAL_TURNOUT(id,description...) 
@@ -789,9 +799,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 const int StringMacroTracker2=__COUNTER__;
 const  HIGHFLASH3  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
-    OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
+    OPCODE_ENDTASK,V(0),OPCODE_ENDEXRAIL,V(0) };
 
 // Restore normal code LCD & SERIAL  macro
+#undef CV
 #undef LCD
 #define LCD   StringFormatter::lcd
 #undef SCREEN

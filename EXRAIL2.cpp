@@ -59,6 +59,7 @@
 #include "EXRAILSensor.h"
 #include "Stash.h"
 #include "DCCConsist.h"
+#include "CVTable.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -104,10 +105,17 @@ uint16_t RMFT2::getOperand(byte n) {
 
 // getOperand static version, must be provided prog counter from loop etc.
 uint16_t RMFT2::getOperand(int progCounter,byte n) {
-  int offset=progCounter+1+(n*3);
-  byte lsb=GETHIGHFLASH(RouteCode,offset);
-  byte msb=GETHIGHFLASH(RouteCode,offset+1);
-  return msb<<8|lsb;
+  int offset=progCounter+1+(n*fixedOpcodeLength);
+  byte b3=GETHIGHFLASH(RouteCode,offset);
+  byte b2=GETHIGHFLASH(RouteCode,offset+1);
+  byte b1=GETHIGHFLASH(RouteCode,offset+2);
+  byte b0=GETHIGHFLASH(RouteCode,offset+3);
+  if (b0==0x7f) {
+    // this is a cv reference in b3
+    return CVTable::cv[b3];
+  }
+  int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
+  return value; // may be negative, but will be truncated to 16 bits for return.
 }
 
 LookList::LookList(int16_t size) {
@@ -264,15 +272,15 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
     case OPCODE_ONSENSOR:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true );
       break;
     case OPCODE_ONBITMAP:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,true, true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true, true );
       break;
     case OPCODE_ONBUTTON:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,false );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,false );
       break;
    
     case OPCODE_DCCTURNTABLE: {
@@ -993,7 +1001,7 @@ void RMFT2::loop2() {
       kill(F("CALL stack"), stackDepth);
       return;
     }
-    callStack[stackDepth++]=progCounter+3;
+    callStack[stackDepth++]=progCounter+fixedOpcodeLength;
     progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
@@ -1018,7 +1026,7 @@ void RMFT2::loop2() {
       auto newroute=getOperand(1+(millis()%operand));
       
       // return position is after the RANDOM_CALL + all its operands
-      callStack[stackDepth++]=progCounter+3*(operand+1);
+      callStack[stackDepth++]=progCounter+fixedOpcodeLength*(operand+1);
       progCounter=routeLookup->find(newroute);
       if (progCounter<0) kill(F("CALL unknown"),newroute);
     }

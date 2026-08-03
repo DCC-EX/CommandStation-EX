@@ -292,9 +292,10 @@ private:
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
+    static const byte fixedOpcodeLength=5; // All opcodes are 5 bytes long, including padding.
 };
 
 #define GET_OPCODE GETHIGHFLASH(RMFT2::RouteCode,progCounter)
-#define SKIPOP progCounter+=3
+#define SKIPOP progCounter+=fixedOpcodeLength
 
 #endif
