@@ -62,8 +62,7 @@ String CVTTableEditor_html=R"???(
      <br/>
      This is not related in any way to DCC Locomotive or Accessory CVs. 
     <br/>
-    Enter values for CVs 0–255 then -> 
-    <button type="button" onclick="saveAllCvValues()">Save</button>
+    Enter values for CVs 0–255 then Save
     </p>
   </div>
 

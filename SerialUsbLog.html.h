@@ -24,7 +24,14 @@ String SerialUsbLog_html=R"???(
         <span id=stat class=dim></span>
       </header>
       <textarea id=log readOnly></textarea>
-      <div id="configPanel" hidden style="margin-top:12px; border:4px solid #ccc; min-height:200px;"></div>
+      <div id="configPanel" hidden>
+        <div class="config-panel-header">
+          <div id="configPanelTitle">Config</div>
+          <button id="configPanelSave" type="button">Save</button>
+          <button id="configPanelClose" type="button">Close</button>
+        </div>
+        <div id="configPanelBody"></div>
+      </div>
       <script src="/script1.js" defer></script>
       <script src="/script2.js" defer></script>
       <script src="/script3.js" defer></script>

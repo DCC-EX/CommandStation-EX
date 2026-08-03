@@ -17,4 +17,26 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 .form-group label {
   display: block;
   margin-bottom: 4px;
+}
+
+.config-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #0f0f0f;
+  color: #fff;
+  border-bottom: 1px solid #ccc;
+}
+
+#configPanelBody {
+  padding: 10px;
+}
+
+#configPanel {
+  border: 2px solid #fff;
+  background: #000
+  margin-top: 10px;
+  box-sizing: border-box;
+}
 )???";

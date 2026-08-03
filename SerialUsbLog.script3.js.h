@@ -32,11 +32,41 @@ function convertCvInputs(container) {
   const configsBtn = document.getElementById('configsBtn');
   const configsMenu = document.getElementById('configsMenu');
   const configPanel = document.getElementById('configPanel');
+  const configPanelTitle = document.getElementById('configPanelTitle');
+  const configPanelBody = document.getElementById('configPanelBody');
+  const configPanelClose = document.getElementById('configPanelClose');
+  const configPanelSave = document.getElementById('configPanelSave');
 
   if (!configsBtn || !configsMenu) return;
 
+  function closeConfigPanel() {
+    if (configPanel) {
+      configPanel.hidden = true;
+    }
+    if (configPanelBody) {
+      configPanelBody.innerHTML = '';
+    }
+  }
+function saveConfigPanel() {
+  const saveHandler =
+    typeof window.dialogSave === 'function'
+      ? window.dialogSave
+      : (typeof window.saveCvValues === 'function' ? window.saveCvValues : null);
+
+  if (saveHandler) {
+    saveHandler();
+  }
+  }
+
   if (configPanel) {
     configPanel.hidden = true;
+  }
+
+  if (configPanelClose) {
+    configPanelClose.addEventListener('click', closeConfigPanel);
+  }
+  if (configPanelSave) {
+    configPanelSave.addEventListener('click', saveConfigPanel);
   }
 
   function setMenuVisible(visible) {
@@ -58,40 +88,13 @@ function convertCvInputs(container) {
   }
 
   window.setConfigPanel = function(title, html) {
-    if (!configPanel) return;
+    if (!configPanel || !configPanelTitle || !configPanelBody) return;
 
+    configPanelTitle.textContent = title || 'Config';
+    configPanelBody.innerHTML = html;
+    activateScripts(configPanelBody);
+    convertCvInputs(configPanelBody);
     configPanel.hidden = false;
-    configPanel.innerHTML = '';
-
-    const header = document.createElement('div');
-    header.style.cssText =
-      'display:flex; justify-content:space-between; align-items:center; ' +
-      'padding:8px 10px; background:#0f0f0f; border-bottom:1px solid #ccc;';
-
-    const titleEl = document.createElement('div');
-    titleEl.textContent = title || 'Config';
-    titleEl.style.fontWeight = 'bold';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.textContent = 'Close';
-    closeBtn.style.padding = '4px 8px';
-    closeBtn.addEventListener('click', function() {
-      configPanel.hidden = true;
-      configPanel.innerHTML = '';
-    });
-
-    header.appendChild(titleEl);
-    header.appendChild(closeBtn);
-
-    const body = document.createElement('div');
-    body.style.padding = '10px';
-    body.innerHTML = html;
-    activateScripts(body);
-    convertCvInputs(body);
-
-    configPanel.appendChild(header);
-    configPanel.appendChild(body);
   };
 
   configsBtn.addEventListener('click', function(e) {
@@ -110,10 +113,7 @@ function convertCvInputs(container) {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       setMenuVisible(false);
-      if (configPanel) {
-        configPanel.hidden = true;
-        configPanel.innerHTML = '';
-      }
+      closeConfigPanel();
     }
   });
 
@@ -167,7 +167,7 @@ window.addConfig = function(label, path) {
   });
 };
 
-function SaveCvValues() {
+function saveCvValues() {
   // create a string of cv values from CVTable up to the last one thats different to CVTableBefore
   let result = '';
   let lastDifferentIndex = -1;
