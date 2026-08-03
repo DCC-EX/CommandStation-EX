@@ -113,7 +113,7 @@ bool WifiPreferences::getThrottleNode() {return throttleNode;}
 
 void WifiPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
-                 F("<* C WIFI %S *>\n"), enabled?F("ON"):F("OFF"));
+                 F("<* C WIFI %S%S *>\n"), enabled?F("ON"):F("OFF"), throttleNode?F(""):F(" [NODE]"));
   if (ssidAP[0]) StringFormatter::send(stream, 
                  F("<* C WIFI %S \"%s\" \"%s\" %d *>\n"),
                  hiddenAP?F("HIDDENAP"):F("AP"), ssidAP, passwordAP, channelAP);
