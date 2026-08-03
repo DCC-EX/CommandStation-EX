@@ -418,6 +418,7 @@ void SerialUsbLog::loop() {
         index++;
         if (lastIndex >= csv.length()) break;
       }
+      CVTable::save(); // Save updated CV values to Preferences
       client.print(
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain; charset=utf-8\r\n"

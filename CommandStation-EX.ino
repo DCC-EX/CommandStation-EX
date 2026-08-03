@@ -52,6 +52,7 @@
 #include "Sniffer.h"
 #include "DCCDecoder.h"
 #include "NodeManager.h"
+#include "CVTable.h"
 
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
@@ -91,6 +92,7 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
+  CVTable::load(); // Load CV values from Preferences (ESP32) or do nothing on other platforms
 // If user has defined a startup delay, delay here before starting IO
 #if defined(STARTUP_DELAY)
   DIAG(F("Delaying startup for %dms"), STARTUP_DELAY);

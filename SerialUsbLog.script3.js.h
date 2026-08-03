@@ -95,9 +95,13 @@ function saveConfigPanel() {
     if (!configPanel || !configPanelTitle || !configPanelBody) return;
 
     configPanelTitle.textContent = title || 'Config';
-    configPanelBody.innerHTML = html;
+
+    const normalizedHtml = normalizeCvInputs(html);
+    configPanelBody.innerHTML = normalizedHtml;
+
     activateScripts(configPanelBody);
     convertCvInputs(configPanelBody);
+
     configPanel.hidden = false;
   };
 

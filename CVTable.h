@@ -5,6 +5,8 @@ class CVTable {
   public:
     static const uint8_t CV_MAX = 255;
     static uint16_t cv[CV_MAX+1];
+    static void load();
+    static void save();
 };
 
 #endif
