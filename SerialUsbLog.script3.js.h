@@ -28,6 +28,10 @@ function convertCvInputs(container) {
   });
 };
 
+function normalizeCvInputs(html) {
+  return html.replace(/<cvinput\b([^>]*)\/>/gi, '<cvinput$1></cvinput>');
+}
+
 (function() {
   const configsBtn = document.getElementById('configsBtn');
   const configsMenu = document.getElementById('configsMenu');
