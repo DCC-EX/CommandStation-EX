@@ -56,9 +56,7 @@ struct DCCEXParser
     static int16_t stashP[MAX_COMMAND_PARAMS];
     static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS]);
     static void callback_W(int16_t result);
-    static void callback_W4(int16_t result);
-    static void callback_B(int16_t result);        
-    static void callback_R(int16_t result); // prog
+    static void callback_B(int16_t result);
     static void callback_r(int16_t result); // main
     static void callback_Rloco(int16_t result);
     static void callback_Wloco(int16_t result);

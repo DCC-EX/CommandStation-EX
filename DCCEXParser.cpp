@@ -421,13 +421,6 @@ void DCCEXParser::callback_W(int16_t result)
     stashBusy = false;
 }
 
-void DCCEXParser::callback_W4(int16_t result)
-{
-    CommandDistributor::broadcastReply( 
-        CommandDistributor::clientType::COMMAND_TYPE,
-	    F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
-    stashBusy = false;
-}
 
 void DCCEXParser::callback_B(int16_t result)
 {
@@ -446,13 +439,6 @@ void DCCEXParser::callback_Vbyte(int16_t result)
 {
     CommandDistributor::broadcastReply( 
         CommandDistributor::clientType::COMMAND_TYPE, F("<v %d %d>\n"), stashP[0], result);
-    stashBusy = false;
-}
-
-void DCCEXParser::callback_R(int16_t result)
-{
-    CommandDistributor::broadcastReply( 
-        CommandDistributor::clientType::COMMAND_TYPE, F("<r%d|%d|%d %d>\n"), stashP[1], stashP[2], stashP[0], result);
     stashBusy = false;
 }
 
