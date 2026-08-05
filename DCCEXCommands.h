@@ -562,18 +562,19 @@ ZZ(a,address,activate) // Send dcc accessory command to linear address
 /// activate: 0=deactivate, 1=activate
         CHECK(activate==0 || activate ==1, invalid activate 0..1 )
         DCC::setAccessory((address - 1) / 4 + 1,(address - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
-ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
+ZZ(A,address,aspect) // Send DCC extended accessory (Aspect) command
         // signalAspectEvent returns true if the aspect is destined
         // for a defined DCCX_SIGNAL which will handle all the RAG flags
         // and ON* handlers.
         // Otherwise false so the parser should send the command directly 
-#ifdef EXRAIL_ACTIVE
-        if (!RMFT2::signalAspectEvent(address,value)) 
+        CHECK(aspect == (aspect & 0x1F), invalid aspect 0..31)
+        #ifdef EXRAIL_ACTIVE
+        if (!RMFT2::signalAspectEvent(address,aspect)) 
 #endif
-        DCC::setExtendedAccessory(address,value);
+        DCC::setExtendedAccessory(address,aspect);
 
-ZZ(w,loco,cv,value) // POM write cv on MAIN track
-        DCC::writeCVByteMain(loco,cv,value);
+ZZ(w,loco,cv,cValue) // POM write cv on MAIN track
+        DCC::writeCVByteMain(loco,cv,cValue);
 ZZ(r,loco,cv) // POM read cv on MAIN track
         CHECK(DCCWaveform::isRailcom(),Railcom not active)
         EXPECT_CALLBACK
@@ -591,20 +592,20 @@ ZZ(m,loco,accelerating,braking) // Set momentum for loco
         CHECK(DCC::setMomentum(loco,accelerating,braking))
 
         // todo  reorder for more sensible doco. 
-ZZ(W,cv,value,ignore1,ignore2) // Write cv value on PROG track (Deprecated)
-        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);        
+ZZ(W,cv,cValue,ignore1,ignore2) // Write cv value on PROG track (Deprecated)
+        EXPECT_CALLBACK DCC::writeCVByte(cv,cValue, callback_W);        
 ZZ(W,loco) // Write loco address on PROG track
         EXPECT_CALLBACK DCC::setLocoId(loco,callback_Wloco);
 ZZ(W,CONSIST,loco,REVERSE) // Write consist address and reverse flag on PROG track 
         EXPECT_CALLBACK DCC::setConsistId(loco,true,callback_Wconsist);
 ZZ(W,CONSIST,loco) // write consist address on PROG track       
         EXPECT_CALLBACK DCC::setConsistId(loco,false,callback_Wconsist);
-ZZ(W,cv,value)   // Write cv value on PROG track
-        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);
+ZZ(W,cv,cValue)   // Write cv value on PROG track
+        EXPECT_CALLBACK DCC::writeCVByte(cv,cValue, callback_W);
 ZZ(W,cv,bitPosition,bitValue) // Write cv bit on prog track
         EXPECT_CALLBACK DCC::writeCVBit(cv,bitPosition,bitValue,callback_W);
-ZZ(V,cv,value) // Fast read cv with expected value
-        EXPECT_CALLBACK DCC::verifyCVByte(cv,value, callback_Vbyte);
+ZZ(V,cv,cValue) // Fast read cv with expected value
+        EXPECT_CALLBACK DCC::verifyCVByte(cv,cValue, callback_Vbyte);
 ZZ(V,cv,bitPosition,bitValue) // Fast read bit with expected value
         EXPECT_CALLBACK DCC::verifyCVBit(cv,bitPosition,bitValue,callback_Vbit);  
 ZZ(B,cv,bitPosition,bitValue)  // Write cv bit
