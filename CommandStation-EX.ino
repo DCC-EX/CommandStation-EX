@@ -48,11 +48,11 @@
 
 #include "DCCEX.h"
 #include "Display_Implementation.h"
+#include "CVTable.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
 #include "NodeManager.h"
-#include "CVTable.h"
 
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;

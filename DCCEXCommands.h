@@ -526,7 +526,13 @@ ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with giv
 
 ZZ(D,WIFI,SHOW) // Show WiFi status
   WifiPreferences::dump(stream);  
-#endif
+
+ZZ(C,CV,cvnumber,cvvalue)
+  CVTable::setCV(cvnumber,cvvalue);
+    
+ZZ(D,CVS) // Show all non-zero CV values (Not Loco CVs)
+  CVTable::::dumpCVs(stream);
+  #endif
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
         IODevice::write(abs(vpin),vpin>0);
