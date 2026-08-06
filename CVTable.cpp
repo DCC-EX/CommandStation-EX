@@ -1,8 +1,9 @@
 #include "CVTable.h"
+#include "StringFormatter.h"
+
 #ifdef ARDUINO_ARCH_ESP32
 
 #include "Preferences.h"
-#include "StringFormatter.h"
 
 uint16_t CVTable::cv[CVTable::CV_MAX+1];
 
@@ -23,13 +24,13 @@ void CVTable::save() {
 }
 void CVTable::dump(Print * stream) {
   // Dump all non-zero CV values to the provided stream
-  for (uint8_t i = 1; i <= CV_MAX; i++) {
-    stream->print(F("<* All non-zero CV values\n"));
+  stream->print(F("<* All non-zero CV values \n"));
+    for (int16_t i = 1; i <= CV_MAX; i++) {
     if (cv[i] != 0) {
-      StringFormatter::send(stream,F("CV %3d = %d\n"), i, cv[i]);
+      StringFormatter::send(stream,F("<C CV %3d  %d>\n"), i, cv[i]);
     }
-    stream->println(F("*>"));
   }
+  stream->print(F("*>\n"));
 }
 
 void CVTable::setCV(uint8_t cvNumber, uint16_t value) {
@@ -43,11 +44,11 @@ void CVTable::setCV(uint8_t cvNumber, uint16_t value) {
 void CVTable::load(){};
 void CVTable::save(){};
 void CVTable::dump(Print * stream) {
-  StringFormatter::send(stream,F("<* CVTable dump not supported on this platform *\n"));
+  stream->print(F("<* CVs not supported on this platform *>\n"));
 }
 void CVTable::setCV(uint8_t cvNumber, uint16_t value) {
   // Do nothing on non-ESP32 platforms
   (void)cvNumber; // Suppress unused parameter warning
-
+  (void)value;    // Suppress unused parameter warning
 }
 #endif

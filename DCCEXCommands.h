@@ -531,7 +531,7 @@ ZZ(C,CV,cvnumber,cvvalue)
   CVTable::setCV(cvnumber,cvvalue);
     
 ZZ(D,CVS) // Show all non-zero CV values (Not Loco CVs)
-  CVTable::::dumpCVs(stream);
+  CVTable::dump(stream);
   #endif
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)

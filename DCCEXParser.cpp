@@ -123,11 +123,12 @@ Once a new OPCODE is decided upon, update this list.
 #include "Stash.h"
 #include "DCCEXParserMacros.h"
 #include "DCCConsist.h"
+#include "Signals.h"
+#include "CVTable.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #include "DCCDecoder.h"
 #include "WifiPreferences.h"
-#include "Signals.h"
 #endif    
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
