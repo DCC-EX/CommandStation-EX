@@ -52,6 +52,7 @@
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
+#include "NtpClock.h"
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
@@ -203,6 +204,12 @@ void loop()
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
+#endif
+
+  // Feed the fast clock from NTP before EX-RAIL looks at it, so an
+  // ONCLOCKTIME fires in the same iteration the minute changes.
+#if defined(ARDUINO_ARCH_ESP32) && defined(NTP_CLOCK)
+  NtpClock::loop();
 #endif
 
   RMFT::loop();  // ignored if no automation
