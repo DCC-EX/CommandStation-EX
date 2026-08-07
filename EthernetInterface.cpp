@@ -31,6 +31,9 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#endif
 
 #ifdef DO_MDNS
 #include "EXmDNS.h"
@@ -42,7 +45,7 @@ MDNS mdns(udp);
 #define looptimer(a,b)
 
 bool EthernetInterface::connected=false;
-EthernetServer * EthernetInterface::server= nullptr;
+EXEthernetServer * EthernetInterface::server= nullptr;
 EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 bool EthernetInterface::inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
@@ -77,6 +80,19 @@ void EthernetInterface::setup()
 
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
+
+  #if defined(ARDUINO_ARCH_ESP32)
+    DIAG(F("Ethernet SPI pins: CS=%d SCK=%d MISO=%d MOSI=%d RST=%d"),
+      ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
+    Ethernet.init(ETHERNET_CS_PIN);
+    #if ETHERNET_RST_PIN >= 0
+      pinMode(ETHERNET_RST_PIN, OUTPUT);
+      digitalWrite(ETHERNET_RST_PIN, LOW);
+      delay(2);
+      digitalWrite(ETHERNET_RST_PIN, HIGH);
+      delay(150);
+    #endif
+  #endif
   
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
@@ -85,17 +101,86 @@ void EthernetInterface::setup()
     if (Ethernet.begin(mac)==0)
   {
     LCD(4,F("IP: No DHCP"));
+    auto hw = Ethernet.hardwareStatus();
+    switch (hw) {
+      case EthernetNoHardware:
+        DIAG(F("Ethernet HW: none detected"));
+        break;
+      case EthernetW5100:
+        DIAG(F("Ethernet HW: W5100"));
+        break;
+      case EthernetW5200:
+        DIAG(F("Ethernet HW: W5200"));
+        break;
+      case EthernetW5500:
+        DIAG(F("Ethernet HW: W5500"));
+        break;
+      default:
+        DIAG(F("Ethernet HW: unknown (%d)"), (int)hw);
+        break;
+    }
+
+    auto link = Ethernet.linkStatus();
+    switch (link) {
+      case LinkON:
+        DIAG(F("Ethernet link: ON"));
+        break;
+      case LinkOFF:
+        DIAG(F("Ethernet link: OFF"));
+        break;
+      case Unknown:
+      default:
+        DIAG(F("Ethernet link: UNKNOWN"));
+        break;
+    }
     return;
   }
   #endif
+
+  auto hw = Ethernet.hardwareStatus();
+  switch (hw) {
+    case EthernetNoHardware:
+      DIAG(F("Ethernet HW: none detected"));
+      break;
+    case EthernetW5100:
+      DIAG(F("Ethernet HW: W5100"));
+      break;
+    case EthernetW5200:
+      DIAG(F("Ethernet HW: W5200"));
+      break;
+    case EthernetW5500:
+      DIAG(F("Ethernet HW: W5500"));
+      break;
+    default:
+      DIAG(F("Ethernet HW: unknown (%d)"), (int)hw);
+      break;
+  }
+
+  auto initialLink = Ethernet.linkStatus();
+  switch (initialLink) {
+    case LinkON:
+      DIAG(F("Ethernet link: ON"));
+      break;
+    case LinkOFF:
+      DIAG(F("Ethernet link: OFF"));
+      break;
+    case Unknown:
+    default:
+      DIAG(F("Ethernet link: UNKNOWN"));
+      break;
+  }
 
   auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
   if (!ip) {
     LCD(4,F("IP: None"));
     return;
   }
-  server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+  server = new EXEthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+  #if defined(ARDUINO_ARCH_ESP32)
+  server->begin(IP_PORT);
+  #else
   server->begin();
+  #endif
 
   // Arrange display of IP address and port
   #ifdef LCD_DRIVER

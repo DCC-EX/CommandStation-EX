@@ -38,21 +38,37 @@
 #if defined (ARDUINO_TEENSY41)
  #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
  #include <NativeEthernetUdp.h>   
+ typedef EthernetServer EXEthernetServer;
  #ifndef MAX_SOCK_NUM
  #define MAX_SOCK_NUM 4
  #endif
  // can't use our MDNS because of a namespace clash with Teensy's NativeEthernet library!
  // #define DO_MDNS
-#elif defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
+#elif (defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)) && !defined(ARDUINO_ARCH_ESP32)
  #include <LwIP.h>
  #include <STM32Ethernet.h>
  #include <lwip/netif.h>
  extern "C" struct netif gnetif;
+ typedef EthernetServer EXEthernetServer;
  #define STM32_ETHERNET
  #define MAX_SOCK_NUM MAX_NUM_TCP_CLIENTS
  #define DO_MDNS
 #else
  #include "Ethernet.h"
+ #if defined(ARDUINO_ARCH_ESP32)
+  // Compatibility adapter: ESP32 core expects Server::begin(uint16_t),
+  // while some Ethernet libraries only expose begin().
+  class EXEthernetServer : public EthernetServer {
+   public:
+    explicit EXEthernetServer(uint16_t port) : EthernetServer(port) {}
+    void begin(uint16_t port=0) {
+      (void)port;
+      EthernetServer::begin();
+    }
+  };
+ #else
+  typedef EthernetServer EXEthernetServer;
+ #endif
  #define DO_MDNS
 #endif
 
@@ -76,7 +92,7 @@ class EthernetInterface {
    
  private:
     static bool connected;
-    static EthernetServer * server;
+     static EXEthernetServer * server;
     static EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     static bool inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     static uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
