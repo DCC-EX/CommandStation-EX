@@ -30,6 +30,7 @@
 #include "DisplayInterface.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
+#include "LiquidCrystal_Parallel.h"
   
 
 // Implement the Display shim class as a singleton.
@@ -38,6 +39,7 @@
 // Then Display class talks to the specific device type classes:
 //    SSD1306AsciiWire for I2C OLED driver with SSD1306 or SH1106 controllers;
 //    LiquidCrystal_I2C for I2C LCD driver for HD44780 with PCF8574 'backpack'.
+//    LiquidCrystal_Parallel for HD44780 in parallel mode.
 
 #if defined(OLED_DRIVER)
   #define DISPLAY_START(xxx) { \
@@ -50,6 +52,14 @@
 #elif defined(LCD_DRIVER)
   #define DISPLAY_START(xxx) { \
     DisplayInterface *t = new Display(new LiquidCrystal_I2C(LCD_DRIVER)); \
+    t->begin(); \
+    xxx;  \
+    t->refresh();}
+
+#elif defined(PARALLEL_LCD_DRIVER)
+  #define DISPLAY_START(xxx) { \
+    DisplayInterface *t = new Display( \
+      new LiquidCrystal_Parallel(PARALLEL_LCD_DRIVER)); \
     t->begin(); \
     xxx;  \
     t->refresh();}
