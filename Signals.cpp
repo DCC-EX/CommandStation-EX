@@ -23,17 +23,24 @@
 #include "NodeManager.h"
 #include "DCC.h"
 #include "EXRAIL2.h"
+#include "CommandDistributor.h"
 
 Signal *Signal::firstSignal = nullptr;
-Signal::Signal(uint16_t _id) {
+Signal::Signal(uint16_t _id, const char * _description) {
     id=_id;
     nextSignal=firstSignal;
     firstSignal = this;
     state=SIGNAL_UNKNOWN;
+    description=nullptr;
+    setRamDescription(_description);
 }
 
 Signal::RAG Signal::getState(uint16_t id) {
     return findSignal(id)->state;
+}
+
+char * Signal::getDescription(uint16_t id) {
+    return findSignal(id)->description;
 }
 
 void Signal::action() {
@@ -44,16 +51,20 @@ void Signal::setAllSignalsToRed() {
     for (auto s = firstSignal; s; s = s->nextSignal) {
         s->state = SIGNAL_RED;
         s->action();
+        CommandDistributor::broadcastSignal(s->id, s->state);
     }
 }
 
 void Signal::setSignal(uint16_t id, RAG rag, bool tellNodes) {
     if (tellNodes) NodeManager::cast(F("<S %d %c>"), id, rag);
     auto s=findSignal(id);
+    bool changed=(s->state!=rag);
     s->state=rag;
     s->action(); // do the hardware implemnentation
-    RMFT2::doSignalHandlers(id, rag); // call the ON* handlers 
+    RMFT2::doSignalHandlers(id, rag); // call the ON* handlers
+if (changed) CommandDistributor::broadcastSignal(id, rag);
 }
+
 
 bool Signal::setSignalByReverseAspectLookup(uint16_t dccaddress, byte aspect) {
     for (auto s = firstSignal; s; s = s->nextSignal) {
@@ -69,26 +80,55 @@ bool Signal::ssbral(uint16_t dccaddress, byte aspect) {
     (void)dccaddress; (void)aspect; // avoid unused parameter warning
     return false;
 }
+void Signal::setRamDescription(const char *desc) {
+    if (description) return; // No renaming of signals.
+    if (!desc) return; // null description is ignored
+    description = (char *)malloc(strlen(desc)+1);
+    strcpy(description, desc);
+}
+
+bool Signal::isHidden() {
+    return description && description[0]==0x01;
+}
 
 Signal * Signal::findSignal(uint16_t id) {
     for (auto s=firstSignal;s;s=s->nextSignal) {
         if (s->id == id) return s;
     }
-    return new Signal(id); // Create a new signal if not found
+    return new Signal(id, ""); // Create a new signal if not found
 }
 
 void Signal::display(Print * stream) {
     for (auto s=firstSignal;s;s=s->nextSignal) {
         switch(s->state) {
-            case SIGNAL_RED:  StringFormatter::send(stream,F("Signal %d: RED\n"),s->id); break;
-            case SIGNAL_AMBER:StringFormatter::send(stream,F("Signal %d: AMBER\n"),s->id); break;
-            case SIGNAL_GREEN: StringFormatter::send(stream,F("Signal %d: GREEN\n"),s->id); break;
-            default: StringFormatter::send(stream,F("Signal %d: UNKNOWN\n"),s->id); break;
+            case SIGNAL_RED:    StringFormatter::send(stream,F("Signal %d: RED   %s\n"),s->id,s->description); break;
+            case SIGNAL_AMBER:  StringFormatter::send(stream,F("Signal %d: AMBER %s\n"),s->id,s->description); break;
+            case SIGNAL_GREEN:  StringFormatter::send(stream,F("Signal %d: GREEN %s\n"),s->id,s->description); break;
+            default: StringFormatter::send(stream,F("Signal %d: UNKNOWN %s\n"),s->id,s->description); break;
         }
      }
 }
+void Signal::listSignalIds(Print * stream){
+    for (auto s=firstSignal;s;s=s->nextSignal) {
+        if (s->isHidden()) continue;
+        StringFormatter::send(stream,F(" %d"),s->id);
+    }
+}
+
+/* static */ void Signal::shareNodesToCS() {
+    
+    DIAG(F("Sharing signals to CS"));
+    for (auto s=firstSignal;s;s=s->nextSignal) {
+      if (s->isHidden()) continue;
+	  // todo prevent loopback
+      auto description=s->getDescription();
+      NodeManager::cast(F("<S %d %d \"%s\">"),s->id, s->state,
+       description?description:"");  
+    }
+  }
+
 // DCC Signals 
-DCCSignal::DCCSignal(uint16_t id, uint16_t dccAddress) : Signal(id), dccAddress(dccAddress) {
+DCCSignal::DCCSignal(uint16_t id, uint16_t dccAddress, const char * description) : Signal(id, description), dccAddress(dccAddress) {
 }
 
 void DCCSignal::action(){
@@ -97,8 +137,8 @@ void DCCSignal::action(){
 
 }
 
-DCCXSignal::DCCXSignal(uint16_t id, uint16_t dccAddress, byte redAspect, byte amberAspect, byte greenAspect) 
-    : Signal(id), dccAddress(dccAddress), redAspect(redAspect), amberAspect(amberAspect), greenAspect(greenAspect) {
+DCCXSignal::DCCXSignal(uint16_t id, uint16_t dccAddress, byte redAspect, byte amberAspect, byte greenAspect, const char * description) 
+    : Signal(id, description), dccAddress(dccAddress), redAspect(redAspect), amberAspect(amberAspect), greenAspect(greenAspect) {
 }
 
 void DCCXSignal::action(){
@@ -139,8 +179,8 @@ bool DCCXSignal::ssbral(uint16_t dccaddress, byte aspect) {
 }
 
 // LED signals
-LEDSignal::LEDSignal(uint16_t id, VPIN red, VPIN amber, VPIN green, bool invert) 
-    : Signal(id), redPin(red), amberPin(amber), greenPin(green), invert(invert) {
+LEDSignal::LEDSignal(uint16_t id, VPIN red, VPIN amber, VPIN green, bool invert, const char * description) 
+    : Signal(id, description), redPin(red), amberPin(amber), greenPin(green), invert(invert) {
 }
 
 void LEDSignal::action(){
@@ -166,8 +206,8 @@ void LEDSignal::action(){
 }
 
 NeoPixelSignal::NeoPixelSignal(uint16_t id, VPIN dataPin,  
-        uint32_t redRGB, uint32_t amberRGB, uint32_t greenRGB) 
-    : Signal(id), dataPin(dataPin), redRGB(redRGB), amberRGB(amberRGB), greenRGB(greenRGB) {
+        uint32_t redRGB, uint32_t amberRGB, uint32_t greenRGB, const char * description) 
+    : Signal(id, description), dataPin(dataPin), redRGB(redRGB), amberRGB(amberRGB), greenRGB(greenRGB) {
 } 
 
 void NeoPixelSignal::action(){
@@ -190,8 +230,8 @@ void NeoPixelSignal::action(){
 }
 
 ServoSignal::ServoSignal(uint16_t id, VPIN servoPin,  
-        uint16_t redAngle, uint16_t amberAngle, uint16_t greenAngle) 
-    : Signal(id), servoPin(servoPin), redAngle(redAngle), amberAngle(amberAngle), greenAngle(greenAngle) {
+        uint16_t redAngle, uint16_t amberAngle, uint16_t greenAngle, const char * description) 
+    : Signal(id, description), servoPin(servoPin), redAngle(redAngle), amberAngle(amberAngle), greenAngle(greenAngle) {
 }
 
 void ServoSignal::action(){

@@ -67,9 +67,16 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
 ZZ(H) // CS requests list of locally defined turnouts & shared sensors
   Turnout::shareNodesToCS();
   SensorGroup::shareSensorsToCS();
+  Signal::shareNodesToCS();
    
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
-  Signal::setSignal(signalid,(Signal::RAG)rag,false);   
+  Signal::setSignal(signalid,(Signal::RAG)rag,false);
+
+ZZ(S,signalid,rag,description) // Node startup broadcast of signal state and description
+    CHECKQ(description) 
+    auto ss=Signal::findSignal(signalid);
+    if (!ss) ss=new Signal(signalid,q_description); // create a dummy signal to hold the description
+    Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 
 ZZ(z,vpin,value,count)
   // This was sent by a node that changes a vpin state

@@ -218,7 +218,19 @@ ZZ(J,A) // List Routes
     REPLY("<jA") RMFT2::routeLookup->stream(stream); REPLY(">\n")
 #else 
         REPLY( "<jA>\n")
-#endif 
+#endif
+ZZ(J,S) // list signals
+        REPLY("<jS")
+        Signal::listSignalIds(stream);
+        REPLY(">\n")
+ZZ(J,S,signal_id) // get signal state and description
+        auto s=Signal::findSignal(signal_id);
+        if (s==nullptr || s->isHidden()) { // hidden signal or no description
+                REPLY("<jS %d X>\n", signal_id);
+                return true;
+        }
+        auto description=s->getDescription();
+        REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
 ZZ(J,R) // List Roster
         REPLY("<jR") 
         #ifdef EXRAIL_ACTIVE
@@ -428,6 +440,7 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
+  Signal::shareNodesToCS();
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station

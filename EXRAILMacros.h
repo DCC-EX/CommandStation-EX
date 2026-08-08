@@ -56,6 +56,8 @@
 
 // helper macro for turnout descriptions, creates NULL for missing description
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+#define S_DESC(desc) ("" desc)[0]?("" desc):nullptr
+
 // helper macro for turntable descriptions, creates NULL for missing description
 #define T_DESC(tid,pid,desc) if(turntableId==tid && positionId==pid) return ("" desc)[0]?F("" desc):NULL;
 // helper macro for turnout description as HIDDEN 
@@ -201,26 +203,30 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 }
 
 // Pass 1s Implements servos and signals by creating exrailHalSetup2
-// TODO Turnout and turntable creation should be moved to here instead of 
-// the first pass from the opcode table. 
 #include "EXRAIL2MacroReset.h"
 #undef  CONFIGURE_SERVO
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 #undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) new LEDSignal(redpin,redpin,amberpin,greenpin,false);
+#define SIGNAL(redpin,amberpin,greenpin,description...) \
+  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
 #undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) new LEDSignal(redpin,redpin,amberpin,greenpin,false); 
+#define SIGNALH(redpin,amberpin,greenpin,description...) \
+  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
 #undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) new ServoSignal(vpin,redval,amberval,greenval);
+#define SERVO_SIGNAL(vpin,redval,amberval,greenval,description...) \
+  new ServoSignal(vpin,vpin,redval,amberval,greenval,S_DESC(description));
 #undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) new DCCSignal(id,addr,subaddr);
+#define DCC_SIGNAL(id,addr,subaddr,description...) \
+   new DCCSignal(id,(((addr)-1)*4)+(subaddr)+1,S_DESC(description));
 #undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) new DCCXSignal(id,redAspect,amberAspect,greenAspect);
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...) \
+  new DCCXSignal(id,id,redAspect,amberAspect,greenAspect,S_DESC(description));
 #undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB) \
-        new NEOPIXELSignal(id,redRGB,amberRGB,greenRGB);
+#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB,description...) \
+  new NeoPixelSignal(id,id,redRGB,amberRGB,greenRGB,S_DESC(description));
 #undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) new Signal(id);
+#define VIRTUAL_SIGNAL(id,description...) \
+  new Signal(id,S_DESC(description));
 
 // Turnouts created here
 #undef SERVO_TURNOUT
@@ -590,8 +596,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
-#define DCC_SIGNAL(id,add,subaddr)
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
+#define DCC_SIGNAL(id,add,subaddr,description...)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
 #define DONE OPCODE_ENDTASK,V(0),
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,V(0),
@@ -671,7 +677,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V((b & 0xff)),\
         OPCODE_PAD,V(#count[0]?(count+0):1),
          
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
 #define NODE_SHARE_SCREEN0(display_id2,count...)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
@@ -751,15 +757,15 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SERIAL6(msg) PRINT(msg)
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
-#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
+#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos,description...) 
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...)
 #define SET(pin,count...) OPCODE_SET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
 #define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff),OPCODE_PAD, V(TRACK_NUMBER_##track),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SETFREQ(freq) OPCODE_SETFREQ,V(freq),
-#define SIGNAL(redpin,amberpin,greenpin) 
-#define SIGNALH(redpin,amberpin,greenpin) 
+#define SIGNAL(redpin,amberpin,greenpin,description...) 
+#define SIGNALH(redpin,amberpin,greenpin,description...) 
 #define SHARED_WRITE_VPINS(vpin,count)
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
@@ -777,7 +783,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define TURNOUTL(id,addr,description...)
 #define UNJOIN OPCODE_UNJOIN,V(0),
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
-#define VIRTUAL_SIGNAL(id) 
+#define VIRTUAL_SIGNAL(id,description...) 
 #define VIRTUAL_TURNOUT(id,description...) 
 #define BITMAP_AND(vpin,mask) OPCODE_BITMAP_AND,V(vpin),OPCODE_PAD,V(mask),
 #define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),

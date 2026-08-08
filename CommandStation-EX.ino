@@ -49,6 +49,7 @@
 #include "DCCEX.h"
 #include "Display_Implementation.h"
 #include "CVTable.h"
+#include "Signals.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
@@ -245,6 +246,7 @@ void loop()
     nodeSharePending = false;
     Turnout::shareNodesToCS();
     SensorGroup::shareSensorsToCS();
+    Signal::shareNodesToCS();
   }
 
   if (startupPendingCS) { // one time only 

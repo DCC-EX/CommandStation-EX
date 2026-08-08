@@ -30,6 +30,7 @@
 #include "EXRAIL2.h"
 #include "DCC.h"
 #include "NodeManager.h"
+#include "Signals.h"
 
 #if WIFI_ON | ETHERNET_ON 
   // Command Distributor must handle a RingStream of clients
@@ -65,6 +66,7 @@ public :
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);
   static void broadcastEstopLock(bool locked); 
+  static void broadcastSignal(int16_t signal_id, Signal::RAG state);
   
 };
 

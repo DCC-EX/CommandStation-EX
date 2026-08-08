@@ -35,21 +35,30 @@ class Signal {
      
      static void setSignal(uint16_t id, RAG rag, bool tellNodes=true);
      static RAG getState(uint16_t id);
+     static char * getDescription(uint16_t id);
      static void setAllSignalsToRed();
      static void display(Print * stream);
      static bool setSignalByReverseAspectLookup(uint16_t id, byte aspect);
-     Signal(uint16_t id);
-    
+     static void shareNodesToCS();
+     static void listSignalIds(Print * stream);
+     static Signal* findSignal(uint16_t id);
+
+     Signal(uint16_t id, const char * description);
+     uint16_t getId() { return id; }
+     RAG getState() { return state; }
+     const char * getDescription() { return description; }
+     void setRamDescription(const char *desc);
+     bool isHidden();
     private:
      Signal *nextSignal;
      virtual void action();
-     virtual bool ssbral(uint16_t id, byte aspect);
+     virtual bool ssbral(uint16_t id, byte aspect); // set signal by reverse aspect lookup
      static Signal *firstSignal;
-     static Signal* findSignal(uint16_t id);
-
+     
     protected:
         uint16_t id;
         RAG state;
+        char * description;
 #ifdef DCC_ACCESSORY_COMMAND_REVERSE
 
     static const bool accessoryCommandReverse = true;
@@ -60,7 +69,7 @@ class Signal {
 
 class DCCSignal : public Signal {
     public:
-     DCCSignal(uint16_t id, uint16_t dccAddress);
+     DCCSignal(uint16_t id, uint16_t dccAddress, const char * description);
     private:
      uint16_t dccAddress;
      void action() override; 
@@ -68,7 +77,7 @@ class DCCSignal : public Signal {
 
 class DCCXSignal: public Signal {
     public:
-     DCCXSignal(uint16_t id, uint16_t dccAddress, byte redAspect, byte amberAspect, byte greenAspect);
+     DCCXSignal(uint16_t id, uint16_t dccAddress, byte redAspect, byte amberAspect, byte greenAspect, const char * description);
      bool ssbral(uint16_t dccaddress, byte aspect) override;
      private:
      uint16_t dccAddress;
@@ -79,7 +88,7 @@ class DCCXSignal: public Signal {
 
 class LEDSignal : public Signal {
     public:
-     LEDSignal(uint16_t id, VPIN red, VPIN amber, VPIN green, bool invert=false);
+    LEDSignal(uint16_t id, VPIN red, VPIN amber, VPIN green, bool invert=false, const char * description=nullptr);
     private:
      VPIN redPin;
      VPIN amberPin;
@@ -91,7 +100,7 @@ class LEDSignal : public Signal {
 class NeoPixelSignal : public Signal {
     public:
      NeoPixelSignal(uint16_t id, VPIN dataPin,  
-        uint32_t redRGB, uint32_t amberRGB, uint32_t greenRGB);
+        uint32_t redRGB, uint32_t amberRGB, uint32_t greenRGB, const char * description);
     private:
       VPIN dataPin;
       uint32_t redRGB;
@@ -103,7 +112,7 @@ class NeoPixelSignal : public Signal {
 class ServoSignal : public Signal {
     public:
      ServoSignal(uint16_t id, VPIN servoPin,  
-        uint16_t redAngle, uint16_t amberAngle, uint16_t greenAngle);
+        uint16_t redAngle, uint16_t amberAngle, uint16_t greenAngle, const char * description);
     private:
       VPIN servoPin;
       uint16_t redAngle;
