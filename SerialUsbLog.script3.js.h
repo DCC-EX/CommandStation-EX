@@ -138,7 +138,7 @@ function saveConfigPanel() {
     });
 
     if (opts && opts.id) item.id = opts.id;
-    configsMenu.appendChild(item);
+    configsMenu.insertBefore(item, configsMenu.firstChild);
     return item;
   };
 
