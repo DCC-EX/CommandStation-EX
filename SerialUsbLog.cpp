@@ -55,6 +55,7 @@
 #include "SerialUsbLog.script3.js.h"
 #include "CVTableEditor.html.h"
 #include "CVTable.h"
+#include "SerialUsbLog.favicon.h"
 
 
 #if WIFI_ON
@@ -328,6 +329,12 @@ const char cssHeader[] PROGMEM =
   "Cache-Control: no-store\r\n"
   "Connection: close\r\n\r\n"
   ;
+const char faviconHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: image/x-icon\r\n"
+  "Cache-Control: public, max-age=86400\r\n"
+  "Connection: close\r\n\r\n"
+  ;
 
 class LogPage{
   public:
@@ -495,6 +502,13 @@ void SerialUsbLog::loop() {
       client.print(CVTable::cv[i]);
     }
     client.print("];\n CVTableBefore=CVTable.slice();\n");
+    client.stop();
+    return;
+  }
+
+  if (path == "/favicon.ico") {
+    client.print(faviconHeader);
+    client.write(favicon_ico, sizeof(favicon_ico));
     client.stop();
     return;
   }
