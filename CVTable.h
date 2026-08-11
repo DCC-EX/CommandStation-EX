@@ -1,3 +1,9 @@
+/**********************************************************************
+
+The NVS Table class for DCC-EX Command Station Nodes
+
+**********************************************************************/
+
 #ifndef CVTable_h
 #define CVTable_h
 #include <Arduino.h>
