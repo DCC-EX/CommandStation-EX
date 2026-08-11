@@ -1,3 +1,9 @@
+/**********************************************************************
+
+The NVS Table class for DCC-EX Command Station Nodes
+
+**********************************************************************/
+
 #include "CVTable.h"
 #include "StringFormatter.h"
 
