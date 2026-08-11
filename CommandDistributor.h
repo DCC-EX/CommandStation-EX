@@ -66,7 +66,7 @@ public :
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);
   static void broadcastEstopLock(bool locked); 
-  static void broadcastSignal(int16_t signal_id, Signal::RAG state);
+  static void broadcastSignal(int16_t signal_id, Signal::RAG state, byte aspect=255);
   
 };
 

@@ -192,8 +192,9 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
   broadcastReply(COMMAND_TYPE, F("<%c %d>\n"), on?'Q':'q', id);
 }
 
-void  CommandDistributor::broadcastSignal(int16_t id, Signal::RAG state) {
-  broadcastReply(COMMAND_TYPE, F("<h %d %c>\n"),id, state);
+void  CommandDistributor::broadcastSignal(int16_t id, Signal::RAG state, byte aspect) {
+  if (aspect==255) broadcastReply(COMMAND_TYPE, F("<h %d %c>\n"),id, state);
+  else broadcastReply(COMMAND_TYPE, F("<h %d %c %d>\n"),id, state, aspect);
 }
 
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {

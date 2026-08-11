@@ -51,7 +51,7 @@ void Signal::setAllSignalsToRed() {
     for (auto s = firstSignal; s; s = s->nextSignal) {
         s->state = SIGNAL_RED;
         s->action();
-        CommandDistributor::broadcastSignal(s->id, s->state);
+        CommandDistributor::broadcastSignal(s->id, s->state, s->getAspect());
     }
 }
 
@@ -62,7 +62,7 @@ void Signal::setSignal(uint16_t id, RAG rag, bool tellNodes) {
     s->state=rag;
     s->action(); // do the hardware implemnentation
     RMFT2::doSignalHandlers(id, rag); // call the ON* handlers
-if (changed) CommandDistributor::broadcastSignal(id, rag);
+if (changed) CommandDistributor::broadcastSignal(id, rag, s->getAspect()); // broadcast the change to clients
 }
 
 
@@ -157,24 +157,29 @@ void DCCXSignal::action(){
         default:
             value= redAspect; // default to red if unknown
     }
+    currentAspect=value;
     DCC::setExtendedAccessory(dccAddress, value);
 }
 
 bool DCCXSignal::ssbral(uint16_t dccaddress, byte aspect) {
     // used when a DCCX signal aspect is altered by a DCC command. 
-    // If the dccaddress matches this signal and the aspect matches
-    // one of the defined aspects, then set the state and return true. 
-    // Otherwise return false.
+    // If the dccaddress matches this signal then and the aspect matches
+    // one of the defined aspects, then set the state. 
+    DIAG(F("DCCXSignal::ssbral %d %d"), dccaddress, aspect);
+    // If this is not the signal in question return false.
     if (dccaddress != dccAddress) return false;
+    
+    if (currentAspect==aspect) return true; // no change needed 
 
-    if (aspect == redAspect) state=SIGNAL_RED;
-    else if (aspect == amberAspect) state=SIGNAL_AMBER;
-    else if (aspect == greenAspect) state=SIGNAL_GREEN;
+    if (aspect == redAspect) setSignal(dccaddress, SIGNAL_RED);
+    else if (aspect == amberAspect) setSignal(dccaddress, SIGNAL_AMBER);
+    else if (aspect == greenAspect) setSignal(dccaddress, SIGNAL_GREEN);
     else {
-        DCC::setExtendedAccessory(dccAddress, aspect); // set to red if unknown aspect
-        return true; // return true to indicate that the aspect was handled, even if the aspect was unknown
+        currentAspect=aspect; // unknown aspect, just store it
+        DCC::setExtendedAccessory(dccAddress, aspect); // set direct..
+        // this will recurse but will not change the state since currentAspect is now set to aspect
+        CommandDistributor::broadcastSignal(id, state, aspect); // broadcast the change
     }
-    setSignal(id, state); // update the hardware/nodes
     return true;
 }
 

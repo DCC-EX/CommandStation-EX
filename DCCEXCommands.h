@@ -602,12 +602,16 @@ ZZ(a,address,activate) // Send dcc accessory command to linear address
 /// activate: 0=deactivate, 1=activate
         CHECK(activate==0 || activate ==1, invalid activate 0..1 )
         DCC::setAccessory((address - 1) / 4 + 1,(address - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
-ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
+ZZ(A,address,aspect) // Send DCC extended accessory (Aspect) command
+        CHECK((aspect & 0b11111) == aspect, invalid aspect 0..31)
         // If the aspect is destined
         // for a defined DCCX_SIGNAL this will handle all the RAG flags
-        // and ON* handlers.
-        
-        Signal::setSignalByReverseAspectLookup(address,value);
+        // and ON* handlers.        
+        if (!Signal::setSignalByReverseAspectLookup(address,aspect)) {
+            // If the aspect is not destined for a defined DCCX_SIGNAL
+            // then send the aspect as a raw extended accessory command.
+            DCC::setExtendedAccessory(address, aspect);
+        }
 ZZ(w,loco,cv,value) // POM write cv on MAIN track
         DCC::writeCVByteMain(loco,cv,value);
 ZZ(r,loco,cv) // POM read cv on MAIN track

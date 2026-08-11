@@ -52,6 +52,7 @@ class Signal {
     private:
      Signal *nextSignal;
      virtual void action();
+     virtual byte getAspect() { return 255; } // get the aspect for DCCX signals
      virtual bool ssbral(uint16_t id, byte aspect); // set signal by reverse aspect lookup
      static Signal *firstSignal;
      
@@ -82,7 +83,8 @@ class DCCXSignal: public Signal {
      private:
      uint16_t dccAddress;
      byte redAspect,amberAspect,greenAspect;
-
+     byte currentAspect;
+     byte getAspect() override { return currentAspect; } 
      void action() override; 
 };
 
