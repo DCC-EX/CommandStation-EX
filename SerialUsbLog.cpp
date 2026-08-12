@@ -377,7 +377,7 @@ void SerialUsbLog::loop() {
     new LogPage("/script2.js", SerialUsbLog_script2_js);
     new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
-    new LogPage("/cvtableeditor.html", CVTTableEditor_html,"Raw CV Editor");  
+    new LogPage("/nvstableeditor.html", NVSTTableEditor_html,"Raw NVS Editor");  
     // user pages may be added later with exrail
     server.begin();
     started = true;
@@ -404,9 +404,9 @@ void SerialUsbLog::loop() {
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
   
-  if (method == "POST" && path == "/savecv") {
-    DIAG(F("POST /savecv"));
-    // Handle POST request to CVTable save endpoint. The body is expected to be a JSON object with CV values.
+  if (method == "POST" && path == "/savenvs") {
+    DIAG(F("POST /savenvs"));
+    // Handle POST request to NVSTable save endpoint. The body is expected to be a JSON object with NVS values.
     String body = client.readStringUntil('\0'); // Read until end of stream 
     // extract nvs value list as csv from body and apply to NVSTable::nvs
     int start = body.indexOf('{');
@@ -425,7 +425,7 @@ void SerialUsbLog::loop() {
         index++;
         if (lastIndex >= csv.length()) break;
       }
-      NVSTable::save(); // Save updated CV values to Preferences
+      NVSTable::save(); // Save updated NVS values to Preferences
       client.print(
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain; charset=utf-8\r\n"
@@ -492,16 +492,16 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
-    int lastcv=0;
+    int lastnvs=0;
     for (int i=0;i<=NVSTable::NVS_MAX;i++) {
-      if (NVSTable::nvs[i]) lastcv=i;
+      if (NVSTable::nvs[i]) lastnvs=i;
     }
-    client.print("const CVTable=[");
-    for (int i=0;i<=lastcv;i++) {
+    client.print("const NVSTable=[");
+    for (int i=0;i<=lastnvs;i++) {
       if (i>0) client.print(",");
       client.print(NVSTable::nvs[i]);
     }
-    client.print("];\n CVTableBefore=CVTable.slice();\n");
+    client.print("];\n NVSTableBefore=NVSTable.slice();\n");
     client.stop();
     return;
   }

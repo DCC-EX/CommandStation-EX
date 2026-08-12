@@ -3,10 +3,10 @@ configuration dialogs. It was written mostly by AI.
 */
 
 String SerialUsbLog_script3_js=R"???(
-function convertCvInputs(container) {
-  const cvNodes = container.querySelectorAll('cvinput');
-  cvNodes.forEach(function(el) {
-    const cv = parseInt(el.getAttribute('cv'), 10);
+function convertNvsInputs(container) {
+  const nvsNodes = container.querySelectorAll('nvsinput');
+  nvsNodes.forEach(function(el) {
+    const nvs = parseInt(el.getAttribute('nvs'), 10);
     const min = parseInt(el.getAttribute('min'), 10);
     const max = parseInt(el.getAttribute('max'), 10);
 
@@ -15,12 +15,12 @@ function convertCvInputs(container) {
     input.min = Number.isFinite(min) ? min : 0;
     input.max = Number.isFinite(max) ? max : 255;
 
-    input.value = CVTable[cv] ?? 0;
+    input.value = NVSTable[nvs] ?? 0;
 
     input.addEventListener('input', function() {
       const value = parseInt(this.value, 10);
       if (!Number.isNaN(value)) {
-        CVTable[cv] = value;
+        NVSTable[nvs] = value;
       }
     });
 
@@ -28,8 +28,8 @@ function convertCvInputs(container) {
   });
 };
 
-function normalizeCvInputs(html) {
-  return html.replace(/<cvinput\b([^>]*)\/>/gi, '<cvinput$1></cvinput>');
+function normalizeNvsInputs(html) {
+  return html.replace(/<nvsinput\b([^>]*)\/>/gi, '<nvsinput$1></nvsinput>');
 }
 
 (function() {
@@ -55,7 +55,7 @@ function saveConfigPanel() {
   const saveHandler =
     typeof window.dialogSave === 'function'
       ? window.dialogSave
-      : (typeof window.saveCvValues === 'function' ? window.saveCvValues : null);
+      : (typeof window.saveNvsValues === 'function' ? window.saveNvsValues : null);
 
   if (saveHandler) {
     saveHandler();
@@ -96,11 +96,11 @@ function saveConfigPanel() {
 
     configPanelTitle.textContent = title || 'Config';
 
-    const normalizedHtml = normalizeCvInputs(html);
+    const normalizedHtml = normalizeNvsInputs(html);
     configPanelBody.innerHTML = normalizedHtml;
 
     activateScripts(configPanelBody);
-    convertCvInputs(configPanelBody);
+    convertNvsInputs(configPanelBody);
 
     configPanel.hidden = false;
   };
@@ -175,21 +175,21 @@ window.addConfig = function(label, path) {
   });
 };
 
-function saveCvValues() {
-  // create a string of cv values from CVTable up to the last one thats different to CVTableBefore
+function saveNvsValues() {
+  // create a string of nvs values from NVSTable up to the last one thats different to NVSTableBefore
   let result = '';
   let lastDifferentIndex = -1;
-  for (let i = 0; i < CVTable.length; i++) {
-    if (CVTable[i] !== CVTableBefore[i]) {
+  for (let i = 0; i < NVSTable.length; i++) {
+    if (NVSTable[i] !== NVSTableBefore[i]) {
       lastDifferentIndex = i;
     }
   }
   for (let i = 0; i <= lastDifferentIndex; i++) {
-    result += (CVTable[i] ?? 0) + ',';
+    result += (NVSTable[i] ?? 0) + ',';
   }
-  console.log('Saving CV values:', result.slice(0, -1)); // remove trailing comma
-  // POST the result to /savecv
-  fetch('/savecv', {
+  console.log('Saving NVS values:', result.slice(0, -1)); // remove trailing comma
+  // POST the result to /savenvs
+  fetch('/savenvs', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/txt'
@@ -201,12 +201,12 @@ function saveCvValues() {
       return response.text();
     })
     .then(data => {
-      console.log('CV values saved successfully:', data);
-      // Update CVTableBefore to match CVTable after successful save
-      CVTableBefore = CVTable.slice();
+      console.log('NVS values saved successfully:', data);
+      // Update NVSTableBefore to match NVSTable after successful save
+      NVSTableBefore = NVSTable.slice();
     })
     .catch(err => {
-      console.error('Failed to save CV values:', err);
+      console.error('Failed to save NVS values:', err);
     });
 }
 )???";

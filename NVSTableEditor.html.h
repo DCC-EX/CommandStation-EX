@@ -1,25 +1,25 @@
-String CVTTableEditor_html=R"???(
-<div class="cv-editor">
+String NVSTTableEditor_html=R"???(
+<div class="nvs-editor">
   <style>
-    .cv-editor {
+    .nvs-editor {
       font-family: inherit;
     }
 
-    .cv-editor .controls {
+    .nvs-editor .controls {
       display: flex;
       align-items: center;
       gap: 8px;
       margin-bottom: 10px;
     }
 
-    .cv-editor .cv-grid {
+    .nvs-editor .nvs-grid {
       display: grid;
       grid-template-columns: repeat(16, minmax(80px, 1fr));
       gap: 0px;
       max-width: 1400px;
     }
 
-    .cv-editor .cv-cell {
+    .nvs-editor .nvs-cell {
       display: flex;
       flex-direction: column;
       gap: 0px;
@@ -28,71 +28,71 @@ String CVTTableEditor_html=R"???(
       background: #0000;
     }
 
-    .cv-editor .cv-cell label {
+    .nvs-editor .nvs-cell label {
       font-size: 0.8rem;
       font-weight: bold;
     }
 
-    .cv-editor .cv-cell input {
+    .nvs-editor .nvs-cell input {
       width: 100%;
       box-sizing: border-box;
       font: inherit;
     }
 
-    .cv-editor .cv-cell input[type="number"] {
+    .nvs-editor .nvs-cell input[type="number"] {
       -moz-appearance: textfield;
       appearance: textfield;
     }
 
-    .cv-editor .cv-cell input[type="number"]::-webkit-outer-spin-button,
-    .cv-editor .cv-cell input[type="number"]::-webkit-inner-spin-button {
+    .nvs-editor .nvs-cell input[type="number"]::-webkit-outer-spin-button,
+    .nvs-editor .nvs-cell input[type="number"]::-webkit-inner-spin-button {
       -webkit-appearance: none;
       margin: 0;
     }
 
-    .cv-editor button {
+    .nvs-editor button {
       font: inherit;
     }
   </style>
 
   <div class="controls">
     <p>This is a generic editor for Command Station or Node configuration values.
-     It allows you to view and edit the values of CVs 0–255 directly.
-     The meaning of the CVs depends on the specific firmware and EXRAIL configuration of your Command Station or Node.
+     It allows you to view and edit the values of NVS 0–255 directly.
+     The meaning of the NVS depends on the specific firmware and EXRAIL configuration of your Command Station or Node.
      <br/>
-     This is not related in any way to DCC Locomotive or Accessory CVs. 
+     This is not related in any way to DCC Locomotive or Accessory NVS. 
     <br/>
-    Enter values for CVs 0–255 then Save
+    Enter values for NVS 0–255 then Save
     </p>
   </div>
 
-  <div id="cvGrid" class="cv-grid"></div>
+  <div id="nvsGrid" class="nvs-grid"></div>
 
   <script>
     (function() {
-      const grid = document.getElementById('cvGrid');
+      const grid = document.getElementById('nvsGrid');
       if (!grid) return;
 
-      function createCvCell(cv) {
+      function createNvsCell(nvs) {
         const cell = document.createElement('div');
-        cell.className = 'cv-cell';
+        cell.className = 'nvs-cell';
 
         const label = document.createElement('label');
-        label.textContent = 'CV ' + cv;
+        label.textContent = 'NVS ' + nvs;
 
         const input = document.createElement('input');
         input.type = 'number';
         input.min = '-32768';
         input.max = '32767';
         //input.step = '1';
-        input.value = (typeof CVTable !== 'undefined' && CVTable[cv] != null) ? CVTable[cv] : 0;
+        input.value = (typeof NVSTable !== 'undefined' && NVSTable[nvs] != null) ? NVSTable[nvs] : 0;
 
         input.addEventListener('input', function() {
           const value = parseInt(this.value, 10);
           if (!Number.isNaN(value) && value >= -32768 && value <= 32767) {
-            CVTable[cv] = value;
+            NVSTable[nvs] = value;
           } else {
-            CVTable[cv] = 0;
+            NVSTable[nvs] = 0;
           }
         });
 
@@ -101,12 +101,12 @@ String CVTTableEditor_html=R"???(
         return cell;
       }
 
-      for (let cv = 0; cv <= 255; cv++) {
-        grid.appendChild(createCvCell(cv));
+      for (let nvs = 0; nvs <= 255; nvs++) {
+        grid.appendChild(createNvsCell(nvs));
       }
 
-      window.saveAllCvValues = function() {
-        SaveCvValues();
+      window.saveAllNvsValues = function() {
+        SaveNvsValues();
       };
     })();
   </script>
