@@ -25,57 +25,57 @@ The NVS Table class for DCC-EX Command Station Nodes
 
 **********************************************************************/
 
-#include "CVTable.h"
+#include "NVSTable.h"
 #include "StringFormatter.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 
 #include "Preferences.h"
 
-uint16_t CVTable::cv[CVTable::CV_MAX+1];
+uint16_t NVSTable::nvs[NVSTable::NVS_MAX+1];
 
-void CVTable::load() {
-  // Load CV values from Preferences
+void NVSTable::load() {
+  // Load NVS values from Preferences
   Preferences prefs;
-  prefs.begin("cvtable", true); // Read-only
-  prefs.getBytes("CVTable",cv,sizeof(cv)); 
+  prefs.begin("nvstable", true); // Read-only
+  prefs.getBytes("NVSTable",nvs,sizeof(nvs)); 
   prefs.end();
 }
 
-void CVTable::save() {
-  // Save CV values to Preferences
+void NVSTable::save() {
+  // Save NVS values to Preferences
   Preferences prefs;
-  prefs.begin("cvtable", false); // Read-write
-  prefs.putBytes("CVTable", cv, sizeof(cv));
+  prefs.begin("nvstable", false); // Read-write
+  prefs.putBytes("NVSTable", nvs, sizeof(nvs));
   prefs.end();
 }
-void CVTable::dump(Print * stream) {
-  // Dump all non-zero CV values to the provided stream
-  stream->print(F("<* All non-zero CV values \n"));
-    for (int16_t i = 1; i <= CV_MAX; i++) {
-    if (cv[i] != 0) {
-      StringFormatter::send(stream,F("<C CV %3d  %d>\n"), i, cv[i]);
+void NVSTable::dump(Print * stream) {
+  // Dump all non-zero NVS values to the provided stream
+  stream->print(F("<* All non-zero NVS values \n"));
+    for (int16_t i = 1; i <= NVS_MAX; i++) {
+    if (nvs[i] != 0) {
+      StringFormatter::send(stream,F("<C NVS %3d  %d>\n"), i, nvs[i]);
     }
   }
   stream->print(F("*>\n"));
 }
 
-void CVTable::setCV(uint8_t cvNumber, uint16_t value) {
-  if (cvNumber <= CV_MAX) {
-    cv[cvNumber] = value;
-    save(); // Save the updated CV table to Preferences
+void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
+  if (nvsNumber <= NVS_MAX) {
+    nvs[nvsNumber] = value;
+    save(); // Save the updated NVS table to Preferences
   }
 }
 
 #else
-void CVTable::load(){};
-void CVTable::save(){};
-void CVTable::dump(Print * stream) {
+void NVSTable::load(){};
+void NVSTable::save(){};
+void NVSTable::dump(Print * stream) {
   stream->print(F("<* CVs not supported on this platform *>\n"));
 }
-void CVTable::setCV(uint8_t cvNumber, uint16_t value) {
+void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
   // Do nothing on non-ESP32 platforms
-  (void)cvNumber; // Suppress unused parameter warning
+  (void)nvsNumber; // Suppress unused parameter warning
   (void)value;    // Suppress unused parameter warning
 }
 #endif

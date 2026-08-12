@@ -124,7 +124,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "DCCEXParserMacros.h"
 #include "DCCConsist.h"
 #include "Signals.h"
-#include "CVTable.h"
+#include "NVSTable.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #include "DCCDecoder.h"

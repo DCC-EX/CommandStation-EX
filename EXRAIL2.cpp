@@ -59,7 +59,7 @@
 #include "EXRAILSensor.h"
 #include "Stash.h"
 #include "DCCConsist.h"
-#include "CVTable.h"
+#include "NVSTable.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -112,7 +112,7 @@ uint16_t RMFT2::getOperand(int progCounter,byte n) {
   byte b0=GETHIGHFLASH(RouteCode,offset+3);
   if (b0==0x7f) {
     // this is a cv reference in b3
-    return CVTable::cv[b3];
+    return NVSTable::nvs[b3];
   }
   int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
   return value; // may be negative, but will be truncated to 16 bits for return.

@@ -103,13 +103,13 @@
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
 // For all passes that generate c++ code directly from the macros, 
-// cv references can refer directly to the CVTable::cv[] so cv values will be passed directly
+// cv references can refer directly to the NVSTable::nvs[] so cv values will be passed directly
 // in to things like Alias, turnout and signal definitions, HAL setups etc.
 // these will take place at startup time but changes to the cv will not 
 // affect them without a reboot. 
 
 #undef CV
-#define CV(cvnum) CVTable::cv[cvnum]
+#define CV(cvnum) NVSTable::nvs[cvnum]
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
