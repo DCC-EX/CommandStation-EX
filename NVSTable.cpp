@@ -93,19 +93,17 @@ int16_t NVSTable::getNVS(uint8_t nvsNumber) {
 }
 
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
-  if (nvs[nvsNumber] == INT16_MAX) {
-    Preferences prefs;
-    prefs.begin("nvstable", true);
-    char key[15];
-    snprintf(key, sizeof(key), "nvstext_%03d", nvsNumber);
-    // Retrieve the string. If it doesn't exist yet, return an empty string ""
-    String storedStr = prefs.getString(key, "");
-    prefs.end();
-    return storedStr;
-  }
-  else {
+  if (nvs[nvsNumber] != INT16_MAX) {
     return String(nvs[nvsNumber]);
   }
+  Preferences prefs;
+  prefs.begin("nvstable", true);
+  char key[15];
+  snprintf(key, sizeof(key), "nvstext_%03d", nvsNumber);
+  // Retrieve the string. If it doesn't exist yet, return an empty string ""
+  String storedStr = prefs.getString(key, "");
+  prefs.end();
+  return storedStr;
 }
 
 #else
