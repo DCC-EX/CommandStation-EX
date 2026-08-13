@@ -420,12 +420,11 @@ void SerialUsbLog::loop() {
         int comma = csv.indexOf(',', lastIndex);
         if (comma < 0) comma = csv.length();
         String valueStr = csv.substring(lastIndex, comma);
-        NVSTable::nvs[index] = (uint16_t)valueStr.toInt();
+        NVSTable::setNVS(index, (int16_t)valueStr.toInt());
         lastIndex = comma + 1;
         index++;
         if (lastIndex >= csv.length()) break;
       }
-      NVSTable::save(); // Save updated NVS values to Preferences
       client.print(
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain; charset=utf-8\r\n"
@@ -494,12 +493,12 @@ void SerialUsbLog::loop() {
     }
     int lastnvs=0;
     for (int i=0;i<=NVSTable::NVS_MAX;i++) {
-      if (NVSTable::nvs[i]) lastnvs=i;
+      if (NVSTable::getNVS(i)) lastnvs=i;
     }
     client.print("const NVSTable=[");
     for (int i=0;i<=lastnvs;i++) {
       if (i>0) client.print(",");
-      client.print(NVSTable::nvs[i]);
+      client.print(NVSTable::getNVS(i));
     }
     client.print("];\n NVSTableBefore=NVSTable.slice();\n");
     client.stop();

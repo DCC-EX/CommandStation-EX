@@ -32,7 +32,7 @@ The NVS Table class for DCC-EX Command Station Nodes
 
 #include "Preferences.h"
 
-uint16_t NVSTable::nvs[NVSTable::NVS_MAX+1];
+int16_t NVSTable::nvs[NVSTable::NVS_MAX+1];
 
 void NVSTable::load() {
   // Load NVS values from Preferences
@@ -42,48 +42,50 @@ void NVSTable::load() {
   prefs.end();
 }
 
-void NVSTable::save() {
+void NVSTable::dump(Print * stream) {
+  stream->print(F("<* All non-zero NVS values *>\n"));
+  for (int16_t i = 0; i <= NVS_MAX; i++) {
+    if (nvs[i]) dump(stream,i);
+  }
+}
+
+void NVSTable::dump(Print * stream, uint8_t nvsNumber) {
+    if (nvs[nvsNumber] == NVS_IS_STRING) {  
+      StringFormatter::send(stream,F("<C NVS %3d \"%s\">\n"),nvsNumber, getTextNVS(nvsNumber).c_str());
+    }
+    else {
+      StringFormatter::send(stream,F("<C NVS %3d %5d>\n"), nvsNumber, nvs[nvsNumber]);
+    }
+}
+
+
+void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
+  if (nvsNumber > NVS_MAX  || nvs[nvsNumber] == value) return; // No change needed
+  nvs[nvsNumber] = value;
   // Save NVS values to Preferences
   Preferences prefs;
   prefs.begin("nvstable", false); // Read-write
   prefs.putBytes("NVSTable", nvs, sizeof(nvs));
   prefs.end();
 }
-void NVSTable::dump(Print * stream) {
-  // Dump all non-zero NVS values to the provided stream
-  stream->print(F("<* All non-zero NVS values \n"));
-    for (int16_t i = 1; i <= NVS_MAX; i++) {
-    if (nvs[i] != 0) {
-      StringFormatter::send(stream,F("<C NVS %3d  %d>\n"), i, nvs[i]);
-    }
-  }
-  stream->print(F("*>\n"));
-}
-
-
-void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
-  if (nvsNumber <= NVS_MAX) {
-    nvs[nvsNumber] = value;
-    save(); // Save the updated NVS table to Preferences
-  }
-}
 
 
 void NVSTable::setNVS(uint8_t nvsNumber, String value) {
-  if (nvsNumber <= NVS_MAX) {
-    char key[15];
-    snprintf(key, sizeof(key), "nvsText_%03d", nvsNumber);
-    Preferences prefs;
-    prefs.begin("nvstable", false);
-// Retrieve the string. If it doesn't exist yet, return an empty string ""
-    String storedStr = prefs.getString(key, "");
-    if (storedStr != value) {
-      prefs.putString(key, value);
-      nvs[nvsNumber] = INT16_MAX;
-      save();
+  if (nvsNumber > NVS_MAX) return;
+  char key[15];
+  snprintf(key, sizeof(key), "nvsText_%03d", nvsNumber);
+  Preferences prefs;
+  prefs.begin("nvstable", false);
+  // Retrieve the string. If it doesn't exist yet, return an empty string ""
+  String storedStr = prefs.getString(key, "");
+  if (storedStr != value) {
+    prefs.putString(key, value);
+    if (nvs[nvsNumber] != NVS_IS_STRING) {
+      nvs[nvsNumber] = NVS_IS_STRING; // Mark this NVS entry as a string
+      prefs.putBytes("NVSTable", nvs, sizeof(nvs)); // Save the updated NVS table to Preferences
     }
-    prefs.end();
   }
+  prefs.end();
 }
 
 
@@ -93,24 +95,19 @@ int16_t NVSTable::getNVS(uint8_t nvsNumber) {
 }
 
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
-  if (nvs[nvsNumber] == INT16_MAX) {
-    Preferences prefs;
-    prefs.begin("nvstable", true);
-    char key[15];
-    snprintf(key, sizeof(key), "nvstext_%03d", nvsNumber);
-    // Retrieve the string. If it doesn't exist yet, return an empty string ""
-    String storedStr = prefs.getString(key, "");
-    prefs.end();
-    return storedStr;
-  }
-  else {
-    return String(nvs[nvsNumber]);
-  }
+  if (nvs[nvsNumber] != NVS_IS_STRING) return String(nvs[nvsNumber]); // Not a string, return the numeric value as a string
+  Preferences prefs;
+  prefs.begin("nvstable", true);
+  char key[15];
+  snprintf(key, sizeof(key), "nvsText_%03d", nvsNumber);
+  // Retrieve the string. If it doesn't exist yet, return an empty string ""
+  String storedStr = prefs.getString(key, "");
+  prefs.end();
+  return storedStr;
 }
 
 #else
 void NVSTable::load(){};
-void NVSTable::save(){};
 void NVSTable::dump(Print * stream) {
   stream->print(F("<* CVs not supported on this platform *>\n"));
 }
@@ -121,7 +118,7 @@ void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
   (void)value;    // Suppress unused parameter warning
 }
 */
-void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value, String str) {
+void NVSTable::setNVS(uint8_t nvsNumber, int16_t value, String str) {
   (void)nvsNumber;
   (void)value;
   (void)str;
@@ -132,6 +129,6 @@ int16_t NVSTable::getNVS(uint8_t nvsNumber) {
 }
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
   (void)nvsNumber;
-  return "<* CVs not supported on this platform *>";
+  return "";
 }
 #endif

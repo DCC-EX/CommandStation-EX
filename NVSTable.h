@@ -31,14 +31,16 @@ The NVS Table class for DCC-EX Command Station Nodes
 class NVSTable {
   public:
     static const uint8_t NVS_MAX = 255;
-    static uint16_t nvs[NVS_MAX+1];
+    static const uint16_t NVS_IS_STRING = 0x7FFE; // Special marker for string values
     static void load();
-    static void save();
     static void dump(Print * stream);
-    static void setNVS(uint8_t nvsNumber, uint16_t value);
+    static void dump(Print * stream, uint8_t nvsNumber);
+    static void setNVS(uint8_t nvsNumber, int16_t value);
     static void setNVS(uint8_t nvsNumber, String value);
     static int16_t getNVS(uint8_t nvsNumber);
     static String getTextNVS(uint8_t nvsNumber);
+  private:
+    static int16_t nvs[NVS_MAX+1];  
 };
 
 #endif
