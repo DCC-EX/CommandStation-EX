@@ -165,7 +165,7 @@ bool DCCXSignal::ssbral(uint16_t dccaddress, byte aspect) {
     // used when a DCCX signal aspect is altered by a DCC command. 
     // If the dccaddress matches this signal then and the aspect matches
     // one of the defined aspects, then set the state. 
-    DIAG(F("DCCXSignal::ssbral %d %d"), dccaddress, aspect);
+    // DIAG(F("DCCXSignal::ssbral %d %d"), dccaddress, aspect);
     // If this is not the signal in question return false.
     if (dccaddress != dccAddress) return false;
     
