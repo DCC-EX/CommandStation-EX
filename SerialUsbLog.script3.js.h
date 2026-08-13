@@ -22,6 +22,9 @@ function convertNvsInputs(container) {
 
       input.addEventListener('input', function() {
         NVSTable[nvs] = this.value;
+        if (typeof window.setConfigPanelDirty === 'function') {
+          window.setConfigPanelDirty(true);
+        }
       });
     } else {
       input.type = 'number';
@@ -33,6 +36,9 @@ function convertNvsInputs(container) {
         const value = parseInt(this.value, 10);
         if (!Number.isNaN(value)) {
           NVSTable[nvs] = value;
+          if (typeof window.setConfigPanelDirty === 'function') {
+            window.setConfigPanelDirty(true);
+          }
         }
       });
     }
@@ -53,8 +59,16 @@ function normalizeNvsInputs(html) {
   const configPanelBody = document.getElementById('configPanelBody');
   const configPanelClose = document.getElementById('configPanelClose');
   const configPanelSave = document.getElementById('configPanelSave');
+  let configPanelDirty = false;
 
   if (!configsBtn || !configsMenu) return;
+
+  window.setConfigPanelDirty = function(dirty) {
+    configPanelDirty = !!dirty;
+    if (!configPanelSave) return;
+    configPanelSave.style.visibility = configPanelDirty ? 'visible' : 'hidden';
+    configPanelSave.disabled = !configPanelDirty;
+  };
 
   function closeConfigPanel() {
     if (configPanel) {
@@ -63,6 +77,7 @@ function normalizeNvsInputs(html) {
     if (configPanelBody) {
       configPanelBody.innerHTML = '';
     }
+    window.setConfigPanelDirty(false);
   }
 function saveConfigPanel() {
   const saveHandler =
@@ -78,6 +93,11 @@ function saveConfigPanel() {
   if (configPanel) {
     configPanel.hidden = true;
   }
+  if (configPanelSave) {
+    configPanelSave.style.visibility = 'hidden';
+    configPanelSave.disabled = true;
+  }
+  configPanelDirty = false;
 
   if (configPanelClose) {
     configPanelClose.addEventListener('click', closeConfigPanel);
@@ -116,6 +136,7 @@ function saveConfigPanel() {
     convertNvsInputs(configPanelBody);
 
     configPanel.hidden = false;
+    window.setConfigPanelDirty(false);
   };
 
   configsBtn.addEventListener('click', function(e) {
@@ -221,6 +242,9 @@ function saveNvsValues() {
       console.log('NVS values saved successfully:', data);
       // Update NVSTableBefore to match NVSTable after successful save
       NVSTableBefore = NVSTable.slice();
+      if (typeof window.setConfigPanelDirty === 'function') {
+        window.setConfigPanelDirty(false);
+      }
     })
     .catch(err => {
       console.error('Failed to save NVS values:', err);
