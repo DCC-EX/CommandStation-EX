@@ -103,13 +103,13 @@
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
 // For all passes that generate c++ code directly from the macros, 
-// cv references can refer directly to the NVSTable::nvs[] so cv values will be passed directly
+// nvs references can refer directly to the NVSTable::nvs[] so nvs values will be passed directly
 // in to things like Alias, turnout and signal definitions, HAL setups etc.
-// these will take place at startup time but changes to the cv will not 
+// these will take place at startup time but changes to the nvs will not 
 // affect them without a reboot. 
 
-#undef CV
-#define CV(cvnum) NVSTable::nvs[cvnum]
+#undef NVS
+#define NVS(nvsnum) NVSTable::nvs[nvsnum]
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -559,8 +559,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
 // a constant.
-#undef CV
-#define CV(cvnum) (((int32_t)cvnum & 0x00FF) | 0x7f000000) 
+#undef NVS
+#define NVS(nvsnum) (((int32_t)nvsnum & 0x00FF) | 0x7f000000) 
 #define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
 // Define macros for route code creation 
 
@@ -814,7 +814,7 @@ const  HIGHFLASH3  byte RMFT2::RouteCode[] = {
     OPCODE_ENDTASK,V(0),OPCODE_ENDEXRAIL,V(0) };
 
 // Restore normal code LCD & SERIAL  macro
-#undef CV
+#undef NVS
 #undef LCD
 #define LCD   StringFormatter::lcd
 #undef SCREEN
