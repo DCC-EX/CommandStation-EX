@@ -406,32 +406,28 @@ void SerialUsbLog::loop() {
   
   if (method == "POST" && path == "/savenvs") {
     DIAG(F("POST /savenvs"));
-    // Handle POST request to NVSTable save endpoint. The body is expected to be a JSON object with NVS values.
+    // Handle POST request to NVSTable save endpoint.
+    // Preferred format is id=value pairs, values may be int or string.
     String body = client.readStringUntil('\0'); // Read until end of stream 
-    // extract nvs value list as csv from body and apply to NVSTable::nvs
-    int start = body.indexOf('{');
-    int end = body.indexOf('}', start);  
-    if (start >= 0 && end > start) {
-      String csv = body.substring(start + 1, end);
-      DIAG(F("csv=%s"), csv.c_str());
-      int index = 0;
-      int lastIndex = 0;
-      while (index <= NVSTable::NVS_MAX) {
-        int comma = csv.indexOf(',', lastIndex);
-        if (comma < 0) comma = csv.length();
-        String valueStr = csv.substring(lastIndex, comma);
-        NVSTable::setNVS(index, (int16_t)valueStr.toInt());
-        lastIndex = comma + 1;
-        index++;
-        if (lastIndex >= csv.length()) break;
-      }
-      client.print(
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain; charset=utf-8\r\n"
-        "Cache-Control: no-store\r\n"
-        "Connection: close\r\n\r\n"
-      );
-    } 
+    DIAG(F("POST body: %s"), body.c_str());
+    auto headerEnd = body.indexOf("\r\n\r\n");
+    if (headerEnd >= 0) {
+      body = body.substring(headerEnd + 4); // Skip past headers
+    }
+    DIAG(F("POST data: %s"), body.c_str());
+    
+    // read id=value, id="value" pairs from the full body.
+    if (body.indexOf('=') >= 0) {
+      NVSTable::applyChanges(body);
+    }
+    client.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/plain; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+    );
+    client.stop();
+    return;
   }
 
   if (method != "GET") {
@@ -491,10 +487,7 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
-    int lastnvs=0;
-    for (int i=0;i<=NVSTable::NVS_MAX;i++) {
-      if (NVSTable::getNVS(i)) lastnvs=i;
-    }
+    // Add the NVS table as a JS array for the web UI.
     client.print("const NVSTable=[");
     NVSTable::streamJSArray(&client);
     client.print("];\n NVSTableBefore=NVSTable.slice();\n");

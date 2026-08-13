@@ -176,17 +176,21 @@ window.addConfig = function(label, path) {
 };
 
 function saveNvsValues() {
-  // create a string of nvs values from NVSTable up to the last one thats different to NVSTableBefore
+  // create a string of nvs id=value from NVSTable up to the last one thats different to NVSTableBefore
   let result = '';
-  let lastDifferentIndex = -1;
   for (let i = 0; i < NVSTable.length; i++) {
     if (NVSTable[i] !== NVSTableBefore[i]) {
-      lastDifferentIndex = i;
+    result += (i+'=')
+     if (NVSTable[i] === null || NVSTable[i] === undefined) {
+        result += '0,';
+      } else if (typeof NVSTable[i] === 'string') {
+        result += '"' + NVSTable[i].replace(/"/g, '\\"') + '",';
+      } else {
+        result += NVSTable[i] + ',';
+      }
     }
   }
-  for (let i = 0; i <= lastDifferentIndex; i++) {
-    result += (NVSTable[i] ?? 0) + ',';
-  }
+  
   console.log('Saving NVS values:', result.slice(0, -1)); // remove trailing comma
   // POST the result to /savenvs
   fetch('/savenvs', {
@@ -194,7 +198,7 @@ function saveNvsValues() {
     headers: {
       'Content-Type': 'application/txt'
     },
-    body: '{' + result.slice(0, -1) + '}' // remove trailing comma
+    body: result.slice(0, -1) + ';' 
   })
     .then(response => {
       if (!response.ok) throw new Error('HTTP ' + response.status);

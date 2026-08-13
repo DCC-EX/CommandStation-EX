@@ -60,7 +60,7 @@ void NVSTable::dump(Print * stream, uint8_t nvsNumber) {
 
 void NVSTable::streamJSArray(Print * stream) {
   for (int i=0;i<=NVS_MAX;i++) {
-    auto value = NVSTable::getNVS(i);
+    auto value = nvs[i];
     if (value == NVSTable::NVS_IS_STRING) {
       stream->print('"');
       stream->print(NVSTable::getTextNVS(i).c_str());
@@ -72,7 +72,7 @@ void NVSTable::streamJSArray(Print * stream) {
 }
 
 void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
-  if (nvsNumber > NVS_MAX  || nvs[nvsNumber] == value) return; // No change needed
+  if (nvs[nvsNumber] == value) return; // No change needed
   nvs[nvsNumber] = value;
   // Save NVS values to Preferences
   Preferences prefs;
@@ -83,7 +83,6 @@ void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
 
 
 void NVSTable::setNVS(uint8_t nvsNumber, String value) {
-  if (nvsNumber > NVS_MAX) return;
   char key[15];
   snprintf(key, sizeof(key), "nvsText_%03d", nvsNumber);
   Preferences prefs;
@@ -98,6 +97,70 @@ void NVSTable::setNVS(uint8_t nvsNumber, String value) {
     }
   }
   prefs.end();
+}
+
+void NVSTable::applyChanges(const String& changes) {
+  enum State:byte { WAITING_FOR_ID, READING_ID, WAITING_FOR_VALUE, READING_VALUE, READING_STRING };
+  State state = WAITING_FOR_ID;
+  uint16_t nvsid=0;
+  int16_t nvsval=0; 
+  bool negate=false;
+  int stringStart=0;
+
+  for(int pos=0;pos<changes.length();pos++) {
+    char c = changes[pos];
+    
+    switch(state) {
+      case WAITING_FOR_ID:
+        if (c==',') break; // Ignore separator
+        if (c >= '0' && c <= '9') {
+          state = READING_ID;
+          nvsid=c-'0';
+        }
+        break;
+
+      case READING_ID:
+        if (c == '=') {
+          state = WAITING_FOR_VALUE;
+          nvsval=0;
+          negate = false;
+          break;
+        }
+        // assume syntax is valid 
+        nvsid = 10 * nvsid + (c - '0');
+        break;
+      case WAITING_FOR_VALUE:
+        if (c=='-') {
+          negate = true;
+          state=READING_VALUE;
+          break;
+        }
+        if (c == '"') {
+          state = READING_STRING;
+          stringStart = pos + 1; // Start of string value
+          break;
+        }
+        // assume it's a digit, fall through to READING_VALUE
+        [[fallthrough]];
+      case READING_VALUE:
+        if (c >= '0' && c <= '9') {
+          nvsval = 10 * nvsval + (c - '0');
+          break;
+        }
+        // end of numeric value 
+        if (negate) nvsval = -nvsval;
+        setNVS((uint8_t)nvsid, (int16_t)nvsval);
+        state = WAITING_FOR_ID;
+        break;
+      case READING_STRING:
+        if (c !='"') break;
+        // end of string value
+        String strValue = changes.substring(stringStart, pos);
+        setNVS((uint8_t)nvsid, strValue);
+        state = WAITING_FOR_ID; // End of value, reset for next ID
+        break;
+    }
+  }
 }
 
 
@@ -134,6 +197,10 @@ void NVSTable::setNVS(uint8_t nvsNumber, int16_t value, String str) {
   (void)nvsNumber;
   (void)value;
   (void)str;
+}
+void NVSTable::applyChanges(const String& changes) {
+  (void)changes;
+  return false;
 }
 int16_t NVSTable::getNVS(uint8_t nvsNumber) {
   (void)nvsNumber;
