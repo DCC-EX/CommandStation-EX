@@ -58,6 +58,18 @@ void NVSTable::dump(Print * stream, uint8_t nvsNumber) {
     }
 }
 
+void NVSTable::streamJSArray(Print * stream) {
+  for (int i=0;i<=NVS_MAX;i++) {
+    auto value = NVSTable::getNVS(i);
+    if (value == NVSTable::NVS_IS_STRING) {
+      stream->print('"');
+      stream->print(NVSTable::getTextNVS(i).c_str());
+      stream->print('"');
+    }
+    else stream->print(value);
+    if (i < NVS_MAX) stream->print(',');
+  }
+}
 
 void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
   if (nvsNumber > NVS_MAX  || nvs[nvsNumber] == value) return; // No change needed

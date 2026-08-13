@@ -39,6 +39,7 @@ class NVSTable {
     static void setNVS(uint8_t nvsNumber, String value);
     static int16_t getNVS(uint8_t nvsNumber);
     static String getTextNVS(uint8_t nvsNumber);
+    static void streamJSArray(Print * stream);
   private:
     static int16_t nvs[NVS_MAX+1];  
 };

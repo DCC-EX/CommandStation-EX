@@ -496,10 +496,7 @@ void SerialUsbLog::loop() {
       if (NVSTable::getNVS(i)) lastnvs=i;
     }
     client.print("const NVSTable=[");
-    for (int i=0;i<=lastnvs;i++) {
-      if (i>0) client.print(",");
-      client.print(NVSTable::getNVS(i));
-    }
+    NVSTable::streamJSArray(&client);
     client.print("];\n NVSTableBefore=NVSTable.slice();\n");
     client.stop();
     return;
