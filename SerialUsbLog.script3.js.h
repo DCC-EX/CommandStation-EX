@@ -7,22 +7,35 @@ function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');
   nvsNodes.forEach(function(el) {
     const nvs = parseInt(el.getAttribute('nvs'), 10);
+    const hasMin = el.hasAttribute('min');
+    const hasMax = el.hasAttribute('max');
     const min = parseInt(el.getAttribute('min'), 10);
     const max = parseInt(el.getAttribute('max'), 10);
+    const length = parseInt(el.getAttribute('length'), 10);
+    const useTextInput = !hasMin && !hasMax && Number.isFinite(length) && length > 0;
 
     const input = document.createElement('input');
-    input.type = 'number';
-    input.min = Number.isFinite(min) ? min : 0;
-    input.max = Number.isFinite(max) ? max : 255;
+    if (useTextInput) {
+      input.type = 'text';
+      input.maxLength = length;
+      input.value = NVSTable[nvs] ?? '';
 
-    input.value = NVSTable[nvs] ?? 0;
+      input.addEventListener('input', function() {
+        NVSTable[nvs] = this.value;
+      });
+    } else {
+      input.type = 'number';
+      input.min = Number.isFinite(min) ? min : 0;
+      input.max = Number.isFinite(max) ? max : 255;
+      input.value = NVSTable[nvs] ?? 0;
 
-    input.addEventListener('input', function() {
-      const value = parseInt(this.value, 10);
-      if (!Number.isNaN(value)) {
-        NVSTable[nvs] = value;
-      }
-    });
+      input.addEventListener('input', function() {
+        const value = parseInt(this.value, 10);
+        if (!Number.isNaN(value)) {
+          NVSTable[nvs] = value;
+        }
+      });
+    }
 
     el.parentNode.replaceChild(input, el);
   });
