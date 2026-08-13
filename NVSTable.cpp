@@ -60,10 +60,51 @@ void NVSTable::dump(Print * stream) {
   stream->print(F("*>\n"));
 }
 
+
 void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
   if (nvsNumber <= NVS_MAX) {
     nvs[nvsNumber] = value;
     save(); // Save the updated NVS table to Preferences
+  }
+}
+
+
+void NVSTable::setNVS(uint8_t nvsNumber, String value) {
+  if (nvsNumber <= NVS_MAX) {
+    char key[15];
+    snprintf(key, sizeof(key), "nvsText_%03d", nvsNumber);
+    Preferences prefs;
+    prefs.begin("nvstable", false);
+// Retrieve the string. If it doesn't exist yet, return an empty string ""
+    String storedStr = prefs.getString(key, "");
+    if (storedStr != value) {
+      prefs.putString(key, value);
+      nvs[nvsNumber] = INT16_MAX;
+      save();
+    }
+    prefs.end();
+  }
+}
+
+
+
+int16_t NVSTable::getNVS(uint8_t nvsNumber) {
+  return nvs[nvsNumber];
+}
+
+String NVSTable::getTextNVS(uint8_t nvsNumber) {
+  if (nvs[nvsNumber] == INT16_MAX) {
+    Preferences prefs;
+    prefs.begin("nvstable", true);
+    char key[15];
+    snprintf(key, sizeof(key), "nvstext_%03d", nvsNumber);
+    // Retrieve the string. If it doesn't exist yet, return an empty string ""
+    String storedStr = prefs.getString(key, "");
+    prefs.end();
+    return storedStr;
+  }
+  else {
+    return String(nvs[nvsNumber]);
   }
 }
 
@@ -73,9 +114,24 @@ void NVSTable::save(){};
 void NVSTable::dump(Print * stream) {
   stream->print(F("<* CVs not supported on this platform *>\n"));
 }
+/*
 void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
   // Do nothing on non-ESP32 platforms
   (void)nvsNumber; // Suppress unused parameter warning
   (void)value;    // Suppress unused parameter warning
+}
+*/
+void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value, String str) {
+  (void)nvsNumber;
+  (void)value;
+  (void)str;
+}
+int16_t NVSTable::getNVS(uint8_t nvsNumber) {
+  (void)nvsNumber;
+  return INT16_MIN;
+}
+String NVSTable::getTextNVS(uint8_t nvsNumber) {
+  (void)nvsNumber;
+  return "<* CVs not supported on this platform *>";
 }
 #endif

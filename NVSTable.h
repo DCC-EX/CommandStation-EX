@@ -36,6 +36,9 @@ class NVSTable {
     static void save();
     static void dump(Print * stream);
     static void setNVS(uint8_t nvsNumber, uint16_t value);
+    static void setNVS(uint8_t nvsNumber, String value);
+    static int16_t getNVS(uint8_t nvsNumber);
+    static String getTextNVS(uint8_t nvsNumber);
 };
 
 #endif
