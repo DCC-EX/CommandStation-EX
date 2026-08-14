@@ -110,15 +110,19 @@
 // The NVS macro generates a token that will be passed to the NVSTable::decodeNVSToken function at the appropriate time.
 // the _NVS_ macro is used when a value MIGHT be a token that ius needed in code.
 
-// For all passes that generate c++ code directly from the macros,
+// For all Aliases... NVS references are not possible
 #undef NVS
-#define NVS(nvsnum) NVSTable::getNVSDuringBoot(nvsnum)
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
 #undef ALIAS
 #define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
+
+// For all passes that generate c++ code directly from the macros,
+#undef NVS
+#define NVS(nvsnum) NVSTable::getNVSDuringBoot(nvsnum)
+
 
 // Perform compile time asserts to check the script for errors
 #include "EXRAILAsserts.h"
