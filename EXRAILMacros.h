@@ -103,13 +103,16 @@
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
 // For all passes that generate c++ code directly from the macros, 
-// nvs references can refer directly to the NVSTable::nvs[] so nvs values will be passed directly
+// nvs references can refer directly to the NVSTable::decodeNVSToken so nvs values will be passed directly
 // in to things like Alias, turnout and signal definitions, HAL setups etc.
 // these will take place at startup time but changes to the nvs will not 
 // affect them without a reboot. 
+// The NVS macro generates a token that will be passed to the NVSTable::decodeNVSToken function at the appropriate time.
+// the _NVS_ macro is used when a value MIGHT be a token that ius needed in code.
 
+// For all passes that generate c++ code directly from the macros,
 #undef NVS
-#define NVS(nvsnum) NVSTable::nvs[nvsnum]
+#define NVS(nvsnum) NVSTable::getNVSDuringBoot(nvsnum)
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -124,7 +127,7 @@
 #include "EXRAIL2MacroReset.h"
 #undef SHARED_WRITE_VPINS
 #define SHARED_WRITE_VPINS(vpin,count) \
-  || (xvpin>=vpin && (xvpin+xcount-1)<=(vpin+count-1)) 
+  || (xvpin>=vpin && (xvpin+xcount-1)<=(vpin+count-1))
 
 bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
    (void) xvpin; // suppress unused warnings if no groups
@@ -559,8 +562,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
 // a constant.
+
 #undef NVS
-#define NVS(nvsnum) (((int32_t)nvsnum & 0x00FF) | 0x7f000000) 
+#define NVS(nvsnum) ((int32_t)((nvsnum & 0x00FF)<< 16 | 0x7e000000)) 
+
+
 #define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
 // Define macros for route code creation 
 

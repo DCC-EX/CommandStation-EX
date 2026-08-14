@@ -50,6 +50,8 @@
 #include "TrackManager.h"
 #include "DCCTimer.h"    
 #include "KeywordHasher.h"
+#include "NVSTable.h"
+#include "Signals.h"
 #include "EXRAIL.h"
     
 #endif

@@ -26,6 +26,7 @@ The NVS Table class for DCC-EX Command Station Nodes
 **********************************************************************/
 
 #include "NVSTable.h"
+#include "DIAG.h"
 #include "StringFormatter.h"
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -181,18 +182,30 @@ String NVSTable::getTextNVS(uint8_t nvsNumber) {
   return storedStr;
 }
 
+// Decode a token into its corresponding NVS value. 
+// This identifies EXRAIL type 32-bit tokens which may represnt
+// NVS[x]+y or just return y.
+// This allows things like DELAY(NVS(6)) DELAY(1000+NVS(6)) or DELAY(1000)  in exrail.
+int16_t NVSTable::decodeNVSToken(int32_t token) {
+  
+  if ((token >> 24)!=0x7E) {
+      // this is just a number, not an NVS token, return it as is.
+      return (int16_t)token;
+  }
+  byte nvsNumber = (token >> 16) & 0xFF;
+  auto addition=(int16_t)(token & 0xFFFF);
+   return nvs[nvsNumber]+addition;
+}
+
 #else
 void NVSTable::load(){};
 void NVSTable::dump(Print * stream) {
   stream->print(F("<* CVs not supported on this platform *>\n"));
 }
-/*
-void NVSTable::setNVS(uint8_t nvsNumber, uint16_t value) {
-  // Do nothing on non-ESP32 platforms
-  (void)nvsNumber; // Suppress unused parameter warning
-  (void)value;    // Suppress unused parameter warning
+int16_t NVSTable::decodeNVSToken(int32_t token) {
+  return token&0xFFFF;
 }
-*/
+
 void NVSTable::setNVS(uint8_t nvsNumber, int16_t value, String str) {
   (void)nvsNumber;
   (void)value;
@@ -200,7 +213,6 @@ void NVSTable::setNVS(uint8_t nvsNumber, int16_t value, String str) {
 }
 void NVSTable::applyChanges(const String& changes) {
   (void)changes;
-  return false;
 }
 int16_t NVSTable::getNVS(uint8_t nvsNumber) {
   (void)nvsNumber;

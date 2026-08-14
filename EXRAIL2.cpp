@@ -110,13 +110,8 @@ uint16_t RMFT2::getOperand(int progCounter,byte n) {
   byte b2=GETHIGHFLASH(RouteCode,offset+1);
   byte b1=GETHIGHFLASH(RouteCode,offset+2);
   byte b0=GETHIGHFLASH(RouteCode,offset+3);
-  if (b0==0x7f) {
-    // this is a cv reference in b1
-    int16_t addValue=(int32_t)b3 | ((int32_t)b2<<8);
-    return NVSTable::getNVS(b1)+addValue; // may be negative, but will be truncated to 16 bits for return.
-  }
   int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
-  return value; // may be negative, but will be truncated to 16 bits for return.
+  return NVSTable::decodeNVSToken(value);
 }
 
 LookList::LookList(int16_t size) {

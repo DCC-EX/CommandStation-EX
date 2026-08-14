@@ -43,7 +43,11 @@ class NVSTable {
     // streaming for web interface
     static void streamJSArray(Print * stream);
     static void applyChanges(const String& changes);
-    
+
+    // Acess NVS() values from EXRAIL scripts. This will decode a token into its corresponding NVS value.
+    // This identifies EXRAIL type 32-bit tokens which may represent NVS[x]+
+    static int16_t decodeNVSToken(int32_t token);
+    static int16_t getNVSDuringBoot(uint8_t nvsnum) { return getNVS((uint8_t)nvsnum); } // used during boot time to get NVS values from EXRAIL scripts
   private:
     static int16_t nvs[NVS_MAX+1];  
 };

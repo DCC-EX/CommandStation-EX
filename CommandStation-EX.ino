@@ -46,10 +46,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "DCCEX.h"
-#include "Display_Implementation.h"
-#include "NVSTable.h"
-#include "Signals.h"
+#include "DCCEX.h"  // This include is intended to visually simplify the .ino for the end users.  If there were any #ifdefs required they are much better handled in here.
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
