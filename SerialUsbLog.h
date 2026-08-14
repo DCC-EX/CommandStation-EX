@@ -50,6 +50,7 @@ class SerialUsbLog : public Stream {
    bool _overflow;
    byte * _buffer;
    int _bufferSize;
+   bool _timestampPending;
    // NEW
    volatile uint32_t _seq_write;
 

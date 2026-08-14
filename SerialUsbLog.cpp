@@ -172,6 +172,7 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
   _overflow = false;
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
+  _timestampPending = true; // first write will trigger timestamp
 }
 
 /**
@@ -179,10 +180,19 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
  */
 size_t SerialUsbLog::write(uint8_t b) {
   Serial.write(b);
-
+  if (_timestampPending) {
+    auto timestamp = millis() % 10000; // use last 4 digits
+    shoveToBuffer('[');
+    shoveToBuffer((timestamp / 1000) % 10 + '0');
+    shoveToBuffer((timestamp / 100) % 10 + '0');
+    shoveToBuffer((timestamp / 10) % 10 + '0');
+    shoveToBuffer(timestamp % 10 + '0');
+    shoveToBuffer(']');
+    _timestampPending = false;
+  }
   // Store directly (no translation)
   shoveToBuffer(b);
-
+  _timestampPending = b=='\n';
   return 1;
 }
 
