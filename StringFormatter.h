@@ -60,5 +60,6 @@ class StringFormatter
     private:
     static void lcd3(byte display, byte row, const FSH* input, va_list args);
     static void printPadded(Print* stream, long value, byte width, bool formatLeft);
+    static void printResolvingNVS(Print* stream, const char * input);
 };
 #endif

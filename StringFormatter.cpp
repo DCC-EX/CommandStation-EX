@@ -21,6 +21,7 @@
 #include "DisplayInterface.h"
 #include "CommandDistributor.h"
 #include "NodeManager.h"
+#include "NVSTable.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -120,7 +121,7 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
     switch(c) {
       case '%': stream->print('%'); break;
       case 'c': stream->print((char) va_arg(args, int)); break;
-      case 's': stream->print(va_arg(args, char*)); break;
+      case 's': printResolvingNVS(stream, va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
       case 'E': printEscapes(stream,(const FSH*)va_arg(args, char*)); break;
       case 'S':
@@ -259,4 +260,36 @@ void StringFormatter::printHex(Print * stream,uint16_t value) {
     }
     result[4]='\0';
      stream->print(result);
+}
+void StringFormatter::printResolvingNVS(Print* stream, const char * input) {
+  // This function is used to print a string that may contain NVS references
+  // in the form of \bN\n where N is an NVS number. It will resolve these references
+  // to their actual values from the NVS and print the resulting string.
+  enum ScanState : byte { SCANNING_TEXT, SCANNING_NVS };
+  if (!stream || !input) return;
+
+  ScanState state = SCANNING_TEXT;
+  uint8_t nvsIndex = 0;
+
+  while (*input) {
+    switch (state) {
+      case SCANNING_TEXT:
+        if (*input == '\b') {
+          state = SCANNING_NVS;
+          nvsIndex=0;
+          break;
+        }
+        stream->write(*input);
+        break;
+
+      case SCANNING_NVS:
+        if (isdigit(*input)) nvsIndex = nvsIndex * 10 + (*input - '0');
+        else if (*input == '\b') {
+          stream->print(NVSTable::getTextNVS(nvsIndex));
+          state = SCANNING_TEXT;
+        }
+        break;
+    }
+    input++;
+  }
 }
