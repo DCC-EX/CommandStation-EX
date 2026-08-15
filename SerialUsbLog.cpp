@@ -181,12 +181,13 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
 size_t SerialUsbLog::write(uint8_t b) {
   Serial.write(b);
   if (_timestampPending) {
-    auto timestamp = millis() % 10000; // use last 4 digits
+    auto timestamp = millis();
     shoveToBuffer('[');
-    shoveToBuffer((timestamp / 1000) % 10 + '0');
-    shoveToBuffer((timestamp / 100) % 10 + '0');
-    shoveToBuffer((timestamp / 10) % 10 + '0');
-    shoveToBuffer(timestamp % 10 + '0');
+    shoveToBuffer((timestamp / 10000) % 10 + '0');
+    shoveToBuffer((timestamp /  1000) % 10 + '0');
+    shoveToBuffer((timestamp /   100) % 10 + '0');
+    shoveToBuffer((timestamp /    10) % 10 + '0');
+    shoveToBuffer((timestamp        ) % 10 + '0');
     shoveToBuffer(']');
     _timestampPending = false;
   }
