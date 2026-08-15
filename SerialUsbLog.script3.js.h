@@ -14,9 +14,20 @@ function convertNvsInputs(container) {
     const max = parseInt(el.getAttribute('max'), 10);
     const length = parseInt(el.getAttribute('length'), 10);
     const useTextInput = !hasMin && !hasMax && Number.isFinite(length) && length > 0;
+    const useCheckbox = min === 0 && max === 1;
 
     const input = document.createElement('input');
-    if (useTextInput) {
+    if (useCheckbox) {
+      input.type = 'checkbox';
+      input.checked = Number(NVSTable[nvs]) === 1;
+
+      input.addEventListener('change', function() {
+        NVSTable[nvs] = this.checked ? 1 : 0;
+        if (typeof window.setConfigPanelDirty === 'function') {
+          window.setConfigPanelDirty(true);
+        }
+      });
+    } else if (useTextInput) {
       input.type = 'text';
       input.maxLength = length;
       input.value = NVSTable[nvs] ?? '';
