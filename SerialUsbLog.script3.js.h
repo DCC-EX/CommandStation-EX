@@ -3,6 +3,7 @@ configuration dialogs. It was written mostly by AI.
 */
 
 String SerialUsbLog_script3_js=R"???(
+NVSTable = [];
 function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');
   nvsNodes.forEach(function(el) {
@@ -51,6 +52,19 @@ function normalizeNvsInputs(html) {
   return html.replace(/<nvsinput\b([^>]*)\/>/gi, '<nvsinput$1></nvsinput>');
 }
 
+async function refreshNvsValues() {
+  const response = await fetch('/nvsValues.js', { cache: 'no-store' });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+
+  const source = await response.text();
+  const values = new Function(source + '\nreturn NVSTable;')();
+  NVSTable.length = values.length;
+  values.forEach(function(value, index) {
+    NVSTable[index] = value;
+  });
+  NVSTableBefore = values.slice();
+}
+
 (function() {
   const configsBtn = document.getElementById('configsBtn');
   const configsMenu = document.getElementById('configsMenu');
@@ -71,6 +85,17 @@ function normalizeNvsInputs(html) {
   };
 
   function closeConfigPanel() {
+    if (configPanelDirty && configPanelSave &&
+        configPanelSave.style.visibility === 'visible' &&
+        !window.confirm('Discard unsaved changes?')) {
+      return;
+    }
+    if (configPanelDirty && Array.isArray(window.NVSTableBefore)) {
+      NVSTable.length = NVSTableBefore.length;
+      NVSTableBefore.forEach(function(value, index) {
+        NVSTable[index] = value;
+      });
+    }
     if (configPanel) {
       configPanel.hidden = true;
     }
@@ -189,9 +214,12 @@ window.addConfig = function(label, path) {
   addConfigMenuItem(label, function() {
     window.setConfigPanel(label, '<div style="color:#666;">Loading…</div>');
 
-    fetch(path, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
+    refreshNvsValues()
+      .then(function() {
+        return fetch(path, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+      })
       .then(function(response) {
         if (!response.ok) throw new Error('HTTP ' + response.status);
         return response.text();

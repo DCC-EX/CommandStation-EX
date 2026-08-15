@@ -498,8 +498,13 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
-    // Add the NVS table as a JS array for the web UI.
-    client.print("const NVSTable=[");
+    client.stop();
+    return;
+  }
+
+  if (path == "/nvsValues.js") {
+    client.print(jsHeader);
+    client.print("NVSTable=[");
     NVSTable::streamJSArray(&client);
     client.print("];\n NVSTableBefore=NVSTable.slice();\n");
     client.stop();
