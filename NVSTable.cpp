@@ -206,10 +206,13 @@ int16_t NVSTable::decodeNVSToken(int32_t token) {
   return token&0xFFFF;
 }
 
-void NVSTable::setNVS(uint8_t nvsNumber, int16_t value, String str) {
+void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
   (void)nvsNumber;
   (void)value;
-  (void)str;
+}
+void NVSTable::setNVS(uint8_t nvsNumber, String value) {
+  (void)nvsNumber;
+  (void)value;
 }
 void NVSTable::applyChanges(const String& changes) {
   (void)changes;
