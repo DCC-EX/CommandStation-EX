@@ -26,6 +26,8 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 
 .config-panel-header {
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   justify-content: flex-start;
   gap: 8px;
   align-items: center;
@@ -35,12 +37,15 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
   border-bottom: 1px solid #ccc;
 }
 
+#configPanelTitle {
+  margin-right: auto;
+}
+
 #configPanelSave {
   margin-left: 0;
 }
 
 #configPanelRestartWarning {
-  margin-left: auto;
   display: none;
   border: 1px solid #e44;
   color: #f88;
