@@ -84,15 +84,30 @@ async function refreshNvsValues() {
   const configPanelBody = document.getElementById('configPanelBody');
   const configPanelClose = document.getElementById('configPanelClose');
   const configPanelSave = document.getElementById('configPanelSave');
+  const configPanelRestartWarning = document.getElementById('configPanelRestartWarning');
   let configPanelDirty = false;
 
   if (!configsBtn || !configsMenu) return;
 
   window.setConfigPanelDirty = function(dirty) {
     configPanelDirty = !!dirty;
-    if (!configPanelSave) return;
-    configPanelSave.style.visibility = configPanelDirty ? 'visible' : 'hidden';
-    configPanelSave.disabled = !configPanelDirty;
+    let restartRequired = false;
+    if (configPanelDirty && Array.isArray(window.NVSTableBefore)) {
+      for (let nvs = 0; nvs < NVSTable.length; nvs++) {
+        if (NVSTable[nvs] !== NVSTableBefore[nvs] &&
+            Array.isArray(window.NVSBootNeeded) && NVSBootNeeded[nvs] === true) {
+          restartRequired = true;
+          break;
+        }
+      }
+    }
+    if (configPanelSave) {
+      configPanelSave.style.visibility = configPanelDirty ? 'visible' : 'hidden';
+      configPanelSave.disabled = !configPanelDirty;
+    }
+    if (configPanelRestartWarning) {
+      configPanelRestartWarning.style.display = restartRequired ? 'block' : 'none';
+    }
   };
 
   function closeConfigPanel() {

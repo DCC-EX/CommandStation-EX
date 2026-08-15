@@ -27,6 +27,7 @@ String SerialUsbLog_html=R"???(
       <div id="configPanel" hidden>
         <div class="config-panel-header">
           <div id="configPanelTitle">Config</div>
+          <div id="configPanelRestartWarning" role="alert">Save Requires RESET</div>
           <button id="configPanelSave" type="button">Save</button>
           <button id="configPanelClose" type="button">Close</button>
         </div>

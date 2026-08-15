@@ -504,9 +504,7 @@ void SerialUsbLog::loop() {
 
   if (path == "/nvsValues.js") {
     client.print(jsHeader);
-    client.print("NVSTable=[");
     NVSTable::streamJSArray(&client);
-    client.print("];\n NVSTableBefore=NVSTable.slice();\n");
     client.stop();
     return;
   }

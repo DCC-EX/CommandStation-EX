@@ -47,9 +47,10 @@ class NVSTable {
     // Acess NVS() values from EXRAIL scripts. This will decode a token into its corresponding NVS value.
     // This identifies EXRAIL type 32-bit tokens which may represent NVS[x]+
     static int16_t decodeNVSToken(int32_t token);
-    static int16_t getNVSDuringBoot(uint8_t nvsnum) { return getNVS((uint8_t)nvsnum); } // used during boot time to get NVS values from EXRAIL scripts
+    static int16_t getNVSDuringBoot(uint8_t nvsnum);
   private:
-    static int16_t nvs[NVS_MAX+1];  
+    static int16_t nvs[NVS_MAX+1];
+    static byte bootNeeded[(NVS_MAX+1)/8+1]; // bit array to track which NVS values need to be set during boot
 };
 
 #endif

@@ -36,7 +36,17 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 }
 
 #configPanelSave {
+  margin-left: 0;
+}
+
+#configPanelRestartWarning {
   margin-left: auto;
+  display: none;
+  border: 1px solid #e44;
+  color: #f88;
+  padding: 3px 6px;
+  font-size: .85rem;
+  white-space: nowrap;
 }
 
 #configPanelBody {

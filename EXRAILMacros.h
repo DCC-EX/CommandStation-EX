@@ -119,9 +119,13 @@
 #define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
+// NVST creates a text insert tag
+#define NVST(nvsnum)  "\b" #nvsnum "\b" 
+
 // For all passes that generate c++ code directly from the macros,
 #undef NVS
 #define NVS(nvsnum) NVSTable::getNVSDuringBoot(nvsnum)
+
 
 
 // Perform compile time asserts to check the script for errors

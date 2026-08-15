@@ -34,6 +34,7 @@ The NVS Table class for DCC-EX Command Station Nodes
 #include "Preferences.h"
 
 int16_t NVSTable::nvs[NVSTable::NVS_MAX+1];
+byte NVSTable::bootNeeded[(NVSTable::NVS_MAX+1)/8+1];
 
 void NVSTable::load() {
   // Load NVS values from Preferences
@@ -41,6 +42,7 @@ void NVSTable::load() {
   prefs.begin("nvstable", true); // Read-only
   prefs.getBytes("NVSTable",nvs,sizeof(nvs)); 
   prefs.end();
+  for (auto i=0;i<=sizeof(bootNeeded);i++) bootNeeded[i]=0;
 }
 
 void NVSTable::dump(Print * stream) {
@@ -60,16 +62,21 @@ void NVSTable::dump(Print * stream, uint8_t nvsNumber) {
 }
 
 void NVSTable::streamJSArray(Print * stream) {
+  stream->print(F("NVSTable=[];\nNVSBootNeeded=[];\n"));
   for (int i=0;i<=NVS_MAX;i++) {
     auto value = nvs[i];
     if (value == NVSTable::NVS_IS_STRING) {
-      stream->print('"');
-      stream->print(NVSTable::getTextNVS(i).c_str());
-      stream->print('"');
+      StringFormatter::send(stream, F("NVSTable[%d]=\"%s\";\n"),
+         i,getTextNVS(i).c_str());
+    } else if (value) {
+      StringFormatter::send(stream, F("NVSTable[%d]=%d;\n"),
+         i,value);
     }
-    else stream->print(value);
-    if (i < NVS_MAX) stream->print(',');
+    if (bootNeeded[i/8] & (1 << (i%8))) {
+      StringFormatter::send(stream, F("NVSBootNeeded[%d]=true;\n"), i);
+    }
   }
+   stream->print(F("NVSTableBefore=NVSTable.slice();\n"));  
 }
 
 void NVSTable::setNVS(uint8_t nvsNumber, int16_t value) {
@@ -169,6 +176,14 @@ void NVSTable::applyChanges(const String& changes) {
 int16_t NVSTable::getNVS(uint8_t nvsNumber) {
   return nvs[nvsNumber];
 }
+
+// used during boot time to get NVS values from EXRAIL scripts
+// This can then inform the browser that these values require a reboot if changed.
+
+int16_t NVSTable::getNVSDuringBoot(uint8_t nvsnum) {
+  bootNeeded[nvsnum/8] |= (1 << (nvsnum%8)); // Mark this NVS entry as needing to be set during boot
+  return getNVS((uint8_t)nvsnum);
+} 
 
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
   if (nvs[nvsNumber] != NVS_IS_STRING) return String(nvs[nvsNumber]); // Not a string, return the numeric value as a string
