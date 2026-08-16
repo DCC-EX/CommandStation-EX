@@ -124,7 +124,7 @@ bool GPIOBase<T>::_configure(VPIN vpin, ConfigTypeEnum configType, int paramCoun
   #ifdef DIAG_IO
   DIAG(F("%S I2C:%s Config Pin:%d Val:%d"), _deviceName, _I2CAddress.toString(), pin, pullup);
   #endif
-  uint16_t mask = 1 << pin;
+  T mask = T(1) << pin;
   if (pullup) 
     _portPullup |= mask;
   else
