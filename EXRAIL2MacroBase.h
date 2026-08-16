@@ -800,6 +800,13 @@
 ///brief Sets current tasks loco speed to percentage of current speed
 ///param percent 1..500
 
+#define SPEED_LIMIT(speed)
+///brief Applies a temporary maximum speed to the current loco.
+///param speed 2..127; the throttle command remains available for restore.
+
+#define CLEAR_SPEED_LIMIT
+///brief Removes the current loco's temporary speed limit.
+
 #define START(sequence_id)
 ///brief Starts a new task at the given route/animation/sequence
 

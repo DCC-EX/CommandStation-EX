@@ -612,8 +612,16 @@ void RMFT2::loop2() {
     DCC::saveSpeed(operand);
     break;
 
-    case OPCODE_XRESTORE_SPEED:
+  case OPCODE_XRESTORE_SPEED:
     DCC::restoreSpeed(operand);
+    break;
+
+  case OPCODE_SPEED_LIMIT:
+    if (loco) DCC::setSpeedLimit(loco, operand);
+    break;
+
+  case OPCODE_CLEAR_SPEED_LIMIT:
+    if (loco) DCC::clearSpeedLimit(loco);
     break;
   
   case OPCODE_SPEEDUP:

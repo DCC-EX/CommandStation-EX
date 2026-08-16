@@ -48,6 +48,7 @@ private:
   byte speedCode;         // current DCC speed and direction
   byte snifferSpeedCode;  // sniffer speed and direction
   byte savedSpeedCode;    // speed code saved by EXRAIL SAVE_SPEED
+  byte speedLimit;        // maximum commanded speed, 127 means unlimited
   byte momentumA;         // momentum accelerating
   byte momentumD;         // momentum decelerating
   byte groupFlags;        // function groups acivated
@@ -94,6 +95,8 @@ public:
   void forget();
   void saveSpeed();
   byte getSavedSpeedCode() ;
+  byte getSpeedLimit() { return speedLimit; }
+  void setSpeedLimit(byte v) { speedLimit=v; }
   LocoSlot * getConsistLead() { return consistLead; }
   LocoSlot * getConsistNext() { return consistNext; } 
   void setConsistLead(LocoSlot * lead) { consistLead=lead; }
