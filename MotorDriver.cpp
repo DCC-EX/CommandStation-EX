@@ -371,8 +371,9 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
     }
 #endif
     //DIAG(F("Brake pin %d value %d freqency %d"), brakePin, brake, f);
+    // STM32 allocates the timer in the frequency call; configure it first.
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, f); // set DC PWM frequency
-    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);  // line swapped to set frequency first
+    DCCTimer::DCCEXanalogWrite(brakePin, brake, invertBrake);
 #else // all AVR here
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, frequency); // frequency steps
     analogWrite(brakePin, invertBrake ? 255-brake : brake);

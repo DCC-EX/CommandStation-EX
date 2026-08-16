@@ -558,19 +558,6 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
   if (didChange)
     CommandDistributor::broadcastPower();
 
-  // re-initialize DC mode timer settings following powerON  
-  if (powermode == POWERMODE::ON) {  
-    #ifdef ARDUINO_ARCH_STM32
-//        for (byte i=0;i<=lastTrack;i++)  {
-//          setTrackPowerF439ZI(i);
-//        }
-          // repeated in case the <F29..31 was set on a later track than power
-          // Note:  this retains power but prevents speed doubling
-        for (byte i=0;i<lastTrack;i++)  {
-           setTrackPowerF439ZI(i);
-        }
-      #endif
-  }
 }
 
 // Set track power for this track, inependent of mode
@@ -602,19 +589,6 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   if (oldpower != driver->getPower())
     CommandDistributor::broadcastPower();
 
-  // re-initialize DC mode timer settings following powerON  
-  if (powermode == POWERMODE::ON) {  
-    #ifdef ARDUINO_ARCH_STM32
-        for (byte i=0;i<=lastTrack;i++)  {
-          setTrackPowerF439ZI(i);
-        }
-          // repeated in case the <F29..31 was set on a later track than power
-          // Note:  this retains power but prevents speed doubling
-        for (byte i=0;i<lastTrack;i++)  {
-           setTrackPowerF439ZI(i);
-        }
-      #endif
-  }
 }
 
 // returns state of the one and only prog track
@@ -769,10 +743,10 @@ int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
 }
 
-// Set track power for EACH track, independent of mode 
+// Set track power for EACH track, independent of mode
 // This updates the settings so that speed is correct
 // following a frequency change - DC mode
-void TrackManager::setTrackPowerF439ZI(byte t) {
+/* void TrackManager::setTrackPowerF439ZI(byte t) {
   MotorDriver *driver=track[t];
   if (driver == NULL) { // track is not defined at all
    // DIAG(F("Error: Track %c does not exist"), t+'A');
@@ -802,4 +776,4 @@ void TrackManager::setTrackPowerF439ZI(byte t) {
   driver->setPower(powermode);
   if (oldpower != driver->getPower())
     CommandDistributor::broadcastPower();
-}
+} */

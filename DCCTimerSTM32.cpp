@@ -43,11 +43,21 @@
 void refreshDCmodeTimers();
 void resetCounterDCmodeTimers();
 
+#if defined(TIM1)
 HardwareTimer *Timer1 = new HardwareTimer(TIM1);
+#endif
+#if defined(TIM2)
 HardwareTimer *Timer2 = new HardwareTimer(TIM2);
+#endif
+#if defined(TIM3)
 HardwareTimer *Timer3 = new HardwareTimer(TIM3);
+#endif
+#if defined(TIM4)
 HardwareTimer *Timer4 = new HardwareTimer(TIM4);
+#endif
+#if defined(TIM9)
 HardwareTimer *Timer9 = new HardwareTimer(TIM9);
+#endif
 #if defined(TIM13)
 HardwareTimer *Timer13 = new HardwareTimer(TIM13);
 #endif
@@ -89,7 +99,7 @@ HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
 HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART2
 #if !defined(ARDUINO_NUCLEO_F412ZG)  // F412ZG does not have UART5
   HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
-#endif  
+#endif
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 #else
@@ -687,11 +697,21 @@ void ADCee::begin() {
 // lines added to sync timers -- 
 //    not exact sync, but timers with the same frequency should be in sync
 void refreshDCmodeTimers() {
+#if defined(TIM1)
   Timer1->refresh();
+#endif
+#if defined(TIM2)
   Timer2->refresh();
+#endif
+#if defined(TIM3)
   Timer3->refresh();
+#endif
+#if defined(TIM4)
   Timer4->refresh();
+#endif
+#if defined(TIM9)
   Timer9->refresh();
+#endif
   #if defined(TIM13)
   Timer13->refresh();
   #endif
@@ -700,11 +720,21 @@ void refreshDCmodeTimers() {
 // Function to synchronize timers - called every time there is powerON commmand for any DC track
 void resetCounterDCmodeTimers() {
     // Reset the counter for all DC mode timers
+#if defined(TIM1)
     TIM1->CNT = 0;
+#endif
+#if defined(TIM2)
     TIM2->CNT = 0;
+#endif
+#if defined(TIM3)
     TIM3->CNT = 0;
+#endif
+#if defined(TIM4)
     TIM4->CNT = 0;
+#endif
+#if defined(TIM9)
     TIM9->CNT = 0;
+#endif
     #if defined(TIM13)
     TIM13->CNT = 0;
     #endif
