@@ -174,9 +174,12 @@ Display *Display::loop2(bool force) {
           rowFirst = rowCurrent;
 #elif SCROLLMODE==1
           // Scrollmode 1 scrolls by page, so if the last page has just completed then
-          // next time restart with row 0.
+          // next time restart with row 0. Otherwise continue the next page at
+          // the first non-blank row after the page just displayed.
           if (noMoreRowsToDisplay) 
             rowFirst = rowCurrent = 0;
+          else
+            rowFirst = rowCurrent;
 #else
           // Scrollmode 2 scrolls by row.  If the rows don't fit on the screen,
           // then start one row further on next time.  If they do fit, then 
