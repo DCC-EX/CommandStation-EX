@@ -76,6 +76,7 @@ class TrackManager {
     static bool setTrackMode(byte track, TRACK_MODE mode, int16_t DCaddr=0, bool offAtChange=true);
     static bool parseEqualSign(Print * stream,  int16_t params, int16_t p[]);
     static void loop();
+    static void autoPowerOffActivity();
     static POWERMODE getMainPower();
     static POWERMODE getProgPower();
     static inline POWERMODE getPower(byte t) { return track[t]->getPower(); }
