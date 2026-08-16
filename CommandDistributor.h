@@ -56,6 +56,8 @@ public :
   static void setClockTime(int16_t time, int8_t rate);
   static int16_t retClockTime();
   static void broadcastPower();
+  // Broadcast one current sample for an opt-in <JI 1> telemetry subscriber.
+  static void broadcastCurrent(byte track, unsigned int milliamps, bool fault);
   static void broadcastRaw(clientType type,char * msg);
   static void broadcastTrackState(const FSH* format,byte trackLetter, const FSH* modename, int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
