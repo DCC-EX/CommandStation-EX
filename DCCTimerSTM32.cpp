@@ -690,11 +690,11 @@ void ADCee::begin() {
   interrupts();
 }
 
-// NOTE:  additional testing is needed to check the DCC signal 
+// NOTE: additional testing is needed to check the DCC signal
 //        where the DCC signal pin is a pwm pin on timers 1, 2, 3, 4, 9, 13
 //        or the brake pin is defined on a different timer.
-//        -- example:  F411RE/F446RE - pin 10 on stacked EX8874  
-// lines added to sync timers -- 
+//        -- example: F411RE/F446RE - pin 10 on stacked EX8874
+// lines added to sync timers --
 //    not exact sync, but timers with the same frequency should be in sync
 void refreshDCmodeTimers() {
 #if defined(TIM1)
