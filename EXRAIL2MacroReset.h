@@ -126,6 +126,8 @@
 #undef ACOF
 #undef ONACON
 #undef ONACOF
+#undef ONFUNCTION
+#undef ONACQUIRE
 #undef MESSAGE
 #undef ONACTIVATE
 #undef ONACTIVATEL

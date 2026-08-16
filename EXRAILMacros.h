@@ -617,6 +617,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ACOF(eventid) OPCODE_ACOF,V(((uint32_t)eventid >>16) & 0xFFFF),OPCODE_PAD,V(eventid & 0xFFFF),
 #define ONACON(eventid) OPCODE_ONACON,V((uint32_t)(eventid) >>16),OPCODE_PAD,V(eventid & 0xFFFF),
 #define ONACOF(eventid) OPCODE_ONACOF,V((uint32_t)(eventid) >>16),OPCODE_PAD,V(eventid & 0xFFFF),
+#define ONFUNCTION(func) OPCODE_ONFUNCTION,V(func),
+#define ONACQUIRE(cab) OPCODE_ONACQUIRE,V(cab),
 #define LCD(id,msg) PRINT(msg)
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
