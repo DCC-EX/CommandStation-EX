@@ -37,6 +37,7 @@ enum {
   TURNOUT_SERVO = 2,
   TURNOUT_VPIN = 3,
   TURNOUT_LCN = 4,
+  TURNOUT_HBRIDGE = 5,
 };
 
 /*************************************************************************************
@@ -280,6 +281,30 @@ protected:
   bool setClosedInternal(bool close) override;
   void save() override;
 
+};
+
+/** Kato-style turnout driven by two non-blocking momentary outputs. */
+class HBridgeTurnout : public Turnout {
+private:
+  static const uint16_t MaxPulseMillis = 500;
+  struct HBridgeTurnoutData {
+    VPIN throwVpin;
+    VPIN closeVpin;
+    uint16_t pulseMillis;
+  } _hbridgeTurnoutData;
+
+  HBridgeTurnout(uint16_t id, VPIN throwVpin, VPIN closeVpin,
+                 uint16_t pulseMillis, bool closed);
+
+public:
+  static Turnout *create(uint16_t id, VPIN throwVpin, VPIN closeVpin,
+                         uint16_t pulseMillis, bool closed=true);
+  static Turnout *load(struct TurnoutData *turnoutData);
+  void print(Print *stream) override;
+
+protected:
+  bool setClosedInternal(bool close) override;
+  void save() override;
 };
 
 
