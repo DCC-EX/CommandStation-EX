@@ -290,3 +290,9 @@ SEQUENCE(9001)
     )
 // Reverse back to start, and test again
 REV(127) FOLLOW(9001)
+
+// Compile-time and deterministic runtime coverage for pulse/substitution support.
+ROUTE(9050,"PULSE and substitution coverage")
+  PRINT("Loco %L speed %V")
+  PULSE_PIN(1,25)
+  DONE
