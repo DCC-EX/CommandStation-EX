@@ -369,3 +369,36 @@ The configuration file for DCC-EX Command Station
 // That is described further above.
 //
 /////////////////////////////////////////////////////////////////////////////////////
+//
+// NTP FAST CLOCK ON ESP32
+// Drives the fast clock from the ESP32 system clock, synchronised over the
+// internet by NTP. This gives you <JC> and the EX-RAIL ONCLOCKTIME /
+// ONCLOCKMINS triggers without a DS1307 chip or an EX-FastClock module.
+//
+// Requires WiFi in station mode (WIFI_FORCE_AP false and a reachable router);
+// in AP mode there is no route to an NTP server and the clock stays off.
+//
+//#define NTP_CLOCK
+//
+// Optional, shown with their defaults:
+//
+// Which time server to ask.
+//#define NTP_CLOCK_SERVER "pool.ntp.org"
+//
+// POSIX timezone string. The default is Central European Time with the EU
+// daylight saving rules. Examples:
+//   "CET-1CEST,M3.5.0,M10.5.0/3"  Central Europe (Berlin, Paris, Rome)
+//   "GMT0BST,M3.5.0/1,M10.5.0"    United Kingdom
+//   "UTC0"                        UTC, no daylight saving
+//#define NTP_CLOCK_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
+//
+// How many model minutes pass per real minute, 1..127. With 1 the model clock
+// is the wall clock. With 12 a model day takes two real hours, which suits
+// scenery automation such as lighting scenes.
+//#define NTP_CLOCK_RATE 1
+//
+// Note that EX-RAIL ONCLOCKTIME triggers only fire when the minute is reached.
+// After a restart nothing happens until the next trigger time comes around,
+// so the layout keeps whatever state it powered up in until then.
+//
+/////////////////////////////////////////////////////////////////////////////////////
