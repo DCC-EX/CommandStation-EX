@@ -35,7 +35,7 @@ public:
     return (nPins + 7) / 8;
   }
 
-  static_assert(stateBytes(MAX_PINS) <= MAX_STATE_BYTES,
+  static_assert((MAX_PINS + 7) / 8 <= MAX_STATE_BYTES,
     "S88 state storage limit must cover the supported VPIN range");
 
   /*
@@ -236,7 +236,7 @@ private:
 
     case STEP_RELEASE_RESET:
       ArduinoPins::fastWriteDigital(_resetPin, LOW);
-      if (_bitIndex >= _nPins)
+      if (_bitIndex >= (uint16_t)_nPins)
         _step = STEP_FINISH;
       else
         _step = STEP_CLOCK_HIGH;
@@ -261,7 +261,7 @@ private:
       // time even when the bus contains slower microcontroller modules.
       sampleBit(_bitIndex);
       _bitIndex++;
-      if (_bitIndex >= _nPins) {
+      if (_bitIndex >= (uint16_t)_nPins) {
         _step = STEP_FINISH;
         schedule(currentMicros);
       } else {
@@ -296,7 +296,7 @@ private:
   }
 
   void publishOne(unsigned long currentMicros) {
-    if (_publishIndex < _nPins) {
+    if (_publishIndex < (uint16_t)_nPins) {
       uint8_t mask = (uint8_t)(1 << (_publishIndex & 7));
       uint8_t byteIndex = (uint8_t)(_publishIndex >> 3);
       bool current = (_states[byteIndex] & mask) != 0;
