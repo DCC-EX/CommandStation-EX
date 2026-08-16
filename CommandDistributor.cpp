@@ -33,6 +33,7 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
+#include <stdlib.h>
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -60,6 +61,9 @@ template<typename... Targs> void CommandDistributor::broadcastReply(clientType t
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
 CommandDistributor::clientType  CommandDistributor::clients[MAX_NUM_TCP_CLIENTS]={ NONE_TYPE }; // 0 is and must be NONE_TYPE
+static uint32_t watchdogDeadline[MAX_NUM_TCP_CLIENTS]={0};
+static uint32_t watchdogInterval[MAX_NUM_TCP_CLIENTS]={0};
+static bool watchdogEnabled[MAX_NUM_TCP_CLIENTS]={false};
 
 // Parse is called by Withrottle or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex
@@ -71,6 +75,24 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     return;
   }
   ring=stream;
+
+  if (buffer[0]=='<' && buffer[1]=='#') {
+    if (buffer[2]=='>' && watchdogEnabled[clientId]) {
+      watchdogDeadline[clientId]=millis()+watchdogInterval[clientId];
+    } else if (buffer[2]==' ' && buffer[3]=='W' && buffer[4]==' ') {
+      int seconds=atoi((char *)buffer+5);
+      if (seconds>=0 && seconds<=255) {
+        watchdogEnabled[clientId]=(seconds!=0);
+        watchdogInterval[clientId]=seconds*1000UL;
+        watchdogDeadline[clientId]=millis()+watchdogInterval[clientId];
+        if (clients[clientId]==NONE_TYPE) clients[clientId]=COMMAND_TYPE;
+        ring->mark(clientId);
+        StringFormatter::send(stream,F("<# W %d>\n"),seconds);
+        ring->commit();
+        return;
+      }
+    }
+  }
 
   // First check if the client is not known
   // yet and in that case determinine type
@@ -129,8 +151,25 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
 void CommandDistributor::forget(byte clientId) {
   if (clients[clientId]==WITHROTTLE_TYPE) WiThrottle::forget(clientId);
   clients[clientId]=NONE_TYPE;
+  watchdogEnabled[clientId]=false;
+  watchdogDeadline[clientId]=0;
+  watchdogInterval[clientId]=0;
   if (virtualLCDClient==clientId) virtualLCDClient=RingStream::NO_CLIENT;
 }
+
+void CommandDistributor::watchdog() {
+  const uint32_t now=millis();
+  for (byte clientId=0; clientId<sizeof(clients); clientId++) {
+    if (watchdogEnabled[clientId] && (int32_t)(now-watchdogDeadline[clientId])>=0) {
+      watchdogEnabled[clientId]=false;
+      watchdogDeadline[clientId]=0;
+      DCC::estopAll();
+      broadcastReply(COMMAND_TYPE,F("<# TIMEOUT %d>\n"),clientId);
+    }
+  }
+}
+#else
+void CommandDistributor::watchdog() {}
 #endif 
 
 // This will not be called on a uno 

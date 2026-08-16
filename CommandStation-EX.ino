@@ -154,6 +154,7 @@ void setup()
 
 void loop()
 {
+  CommandDistributor::watchdog();
   #ifdef ENABLE_SERIAL_LOG
     SerialLog.loop();
   #endif
