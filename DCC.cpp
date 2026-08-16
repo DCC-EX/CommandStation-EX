@@ -66,7 +66,7 @@ byte DCC::globalSpeedsteps=128;
 #define SLOTLOOP for (auto slot=LocoSlot::getFirst();slot;slot=slot->getNext())
 
 void DCC::begin() {
-  StringFormatter::send(&USB_SERIAL,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+  printMetadata(&USB_SERIAL);
 #ifndef DISABLE_EEPROM
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
@@ -75,6 +75,11 @@ void DCC::begin() {
 #ifndef ARDUINO_ARCH_ESP32 /* On ESP32 started in TrackManager::setTrackMode() */
   DCCWaveform::begin();
 #endif
+}
+
+void DCC::printMetadata(Print *stream) {
+  StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>\n"),
+                        F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 }
 
 byte DCC::defaultMomentumA=0;
