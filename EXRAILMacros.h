@@ -592,6 +592,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFROUTE_INACTIVE(sequence_id) OPCODE_IF_ROUTE_INACTIVE,V(sequence_id),
 #define IFROUTE_HIDDEN(sequence_id) OPCODE_IF_ROUTE_HIDDEN,V(sequence_id),
 #define IFROUTE_DISABLED(sequence_id) OPCODE_IF_ROUTE_DISABLED,V(sequence_id),
+#define IF_ESTOP_PAUSED OPCODE_IF_ESTOP_PAUSED,0,0,
 #define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
