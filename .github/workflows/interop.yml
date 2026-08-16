@@ -1,0 +1,13 @@
+name: Protocol interoperability fixtures
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate CommandStation protocol scenarios
+        run: python3 tests/interop/validate_fixtures.py
