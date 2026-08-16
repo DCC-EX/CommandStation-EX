@@ -39,6 +39,7 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_PCF8574.h"
 #include "IO_PCF8575.h"
 #include "IO_RotaryEncoder.h"
+#include "IO_S88.h"
 #include "IO_Servo.h"
 #include "IO_TCA8418.h"
 #include "IO_TM1638.h"
