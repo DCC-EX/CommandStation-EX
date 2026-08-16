@@ -53,6 +53,7 @@
  #define DO_MDNS
 #else
  #include "Ethernet.h"
+ #define DCCEX_WIZNET_ETHERNET
  #define DO_MDNS
 #endif
 
