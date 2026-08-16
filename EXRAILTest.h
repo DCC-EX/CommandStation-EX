@@ -295,4 +295,5 @@ REV(127) FOLLOW(9001)
 ROUTE(9050,"PULSE and substitution coverage")
   PRINT("Loco %L speed %V")
   PULSE_PIN(1,25)
+  PULSE(2,25)
   DONE

@@ -547,10 +547,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#undef PULSE_PIN
 #define PULSE_PIN(vpin,duration) SET(vpin) DELAY(duration) RESET(vpin)
-#ifndef PULSE
-#define PULSE(vpin,duration) PULSE_PIN(vpin,duration)
-#endif
 #define DCC_SIGNAL(id,add,subaddr)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
 #define DONE OPCODE_ENDTASK,0,0,
