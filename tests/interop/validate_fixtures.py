@@ -2,7 +2,10 @@
 import json
 from pathlib import Path
 
-REQUIRED = {"parsing", "power", "accessories", "programming", "heartbeat"}
+REQUIRED = {
+    "parsing", "responses", "broadcasts", "power", "turnout", "sensor",
+    "programming", "heartbeat", "reconnect", "multiple-clients",
+}
 
 def validate(scenarios):
     assert isinstance(scenarios, list) and scenarios
@@ -11,12 +14,17 @@ def validate(scenarios):
         assert scenario["id"] not in ids, scenario["id"]
         ids.add(scenario["id"])
         capabilities.add(scenario["capability"])
+        capabilities.update(scenario.get("capabilities", []))
         assert scenario["clients"] and scenario["steps"]
         for step in scenario["steps"]:
             assert step.get("client") in scenario["clients"]
             assert "input" in step or "event" in step
+            if step.get("event") == "connect":
+                assert step["replies"]
+                assert all(reply.startswith("<") for reply in step["replies"])
             if "input" in step:
                 assert step["input"].startswith("<")
+                assert step["replies"]
                 assert all(reply.startswith("<") for reply in step["replies"])
             for broadcast in step.get("broadcasts", []):
                 target = broadcast["broadcast_to"]
@@ -24,6 +32,7 @@ def validate(scenarios):
                 assert broadcast["message"].startswith("<")
         if scenario["capability"] == "heartbeat":
             assert any(step.get("heartbeat") for step in scenario["steps"])
+        if scenario["capability"] == "reconnect":
             assert any(step.get("event") == "disconnect" for step in scenario["steps"])
             assert any(step.get("event") == "connect" for step in scenario["steps"])
     assert REQUIRED <= capabilities, sorted(REQUIRED - capabilities)
