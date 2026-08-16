@@ -307,7 +307,7 @@ void Sensor::load(){
 
   uint16_t i=EEStore::eeStore->data.nSensors;
   while(i--){
-    EEPROM.get(EEStore::pointer(),data);
+    EEStore::read(EEStore::pointer(),data);
     tt=create(data.snum, data.pin, data.pullUp);
     EEStore::advance(sizeof(tt->data));
   }
@@ -322,7 +322,7 @@ void Sensor::store(){
   EEStore::eeStore->data.nSensors=0;
 
   while(tt!=NULL){
-    EEPROM.put(EEStore::pointer(),tt->data);
+    EEStore::write(EEStore::pointer(),tt->data);
     EEStore::advance(sizeof(tt->data));
     tt=tt->nextSensor;
     EEStore::eeStore->data.nSensors++;
