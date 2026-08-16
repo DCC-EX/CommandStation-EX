@@ -455,6 +455,14 @@
 #define ONACOF(eventid)
 ///brief Start task here when ACOF for event received from MERG CBUS
 
+#define ONFUNCTION(func)
+///brief Start task when the given loco function changes state.
+///param func function number
+
+#define ONACQUIRE(cab)
+///brief Start task when a throttle acquires the given loco.
+///param cab loco id
+
 #define ONACTIVATE(addr,subaddr)
 ///brief Start task here when DCC Activate sent for short address
 
