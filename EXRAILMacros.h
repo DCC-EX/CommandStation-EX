@@ -172,6 +172,10 @@ void exrailHalSetup2() {
 #define SIGNAL(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
+#undef SIGNALA
+#define SIGNALA(redpin,amberpin,greenpin) | FEATURE_SIGNAL
+#undef SIGNALAH
+#define SIGNALAH(redpin,amberpin,greenpin) | FEATURE_SIGNAL
 #undef SERVO_SIGNAL
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
 #undef DCC_SIGNAL
@@ -473,6 +477,10 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
 #define SIGNAL(redpin,amberpin,greenpin) {sigtypeSIGNAL,redpin,redpin,amberpin,greenpin}, 
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin) {sigtypeSIGNALH,redpin,redpin,amberpin,greenpin}, 
+#undef SIGNALA
+#define SIGNALA(redpin,amberpin,greenpin) {sigtypeSIGNALA,redpin,redpin,amberpin,greenpin},
+#undef SIGNALAH
+#define SIGNALAH(redpin,amberpin,greenpin) {sigtypeSIGNALAH,redpin,redpin,amberpin,greenpin},
 #undef SERVO_SIGNAL
 #define SERVO_SIGNAL(vpin,redval,amberval,greenval) {sigtypeSERVO,vpin,redval,amberval,greenval}, 
 #undef DCC_SIGNAL
@@ -722,6 +730,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SETFREQ(freq) OPCODE_SETFREQ,V(freq),
 #define SIGNAL(redpin,amberpin,greenpin) 
 #define SIGNALH(redpin,amberpin,greenpin) 
+#define SIGNALA(redpin,amberpin,greenpin)
+#define SIGNALAH(redpin,amberpin,greenpin)
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
 #define SPEED_REL(percent) OPCODE_SPEED_REL,V(percent),

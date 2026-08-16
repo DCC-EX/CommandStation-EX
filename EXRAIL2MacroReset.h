@@ -207,6 +207,8 @@
 #undef SETFREQ
 #undef SIGNAL 
 #undef SIGNALH 
+#undef SIGNALA
+#undef SIGNALAH
 #undef SPEED
 #undef SPEEDUP
 #undef SPEED_REL

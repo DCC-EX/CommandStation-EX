@@ -29,6 +29,12 @@ The configuration file for DCC-EX Command Station
 **********************************************************************/
 
 /////////////////////////////////////////////////////////////////////////////////////
+#ifndef SIGNAL_MAIN_ASPECT
+// Three-bit octal pin maps for RED, AMBER and GREEN. The defaults preserve the
+// historical one-pin-per-aspect behavior; SIGNALA/SIGNALAH use the alternate map.
+#define SIGNAL_MAIN_ASPECT 0421
+#define SIGNAL_ALT_ASPECT 0431
+#endif
 // If you want to add your own motor driver definition(s), add them here
 //   For example MY_SHIELD with display name "MINE":
 //   (remove comment start and end marker if you want to edit and use that)
