@@ -6,12 +6,12 @@ This is particularly useful for:
 
 - Wifi Settings
 - OLED type settings
-- Configuration of factory created nodes which provide standardised turnouts and signals but require individual confuguration for things like a base address, descriptions, servo positions.
+- Configuration of factory created nodes which provide standardised turnouts and signals but require individual configuration for things like a base address, descriptions, servo positions.
 - Configuration of user or system provided EXRAIL scripts for things like power-on-at-boot etc.
 
 ## NVS Storage
 
-The system provides for NVS values numbered 0..255. Each of which defaults to 0 but may be configured as a nummber (-32760..+32760) or a string value. (the 0 is deliverate, some values are reserved for internal flagging purposes.)
+The system provides for NVS values numbered 0..255. Each of which defaults to 0/"" but may be configured as a nummber (-32760..+32760) or a string value. (the 32760 is deliberate, some values are reserved for internal flagging purposes.)
 
 These values are maintained over power down.
 
@@ -21,15 +21,10 @@ Values may be set by the ```<C NVS``` command as follows:
 
 ```cpp
 <C NVS 29 333>
-
-```
-Sets NVS(29) to the value 333
-
-```cpp
 <C NVS 77 "My Big Red Signal">
 ```
 
-Sets NVS(77) to a string value.
+Sets NVS(29) to the value 333 and NVS(77) to a string value.
 
 NVS values can be displayed by the command ```<D NVS>``` which will list all the non-zero NVS values as ```<C NVS``` commands.
 
@@ -48,9 +43,9 @@ SPEED(NVS(18))
 PLAY_TRACK(7000,NVS(88)) 
 ```
 
-In commands that are "executed" in sequences, like the above, NVS values will be extracted at execution time, so a change to the NVS(66) value will take effect next time that DELAY is executed.
+In commands like these that are "executed" in sequences, NVS values will be extracted at execution time, so a change to the NVS(66) value will take effect next time that DELAY is executed.
 
-However EXRAIL macros that define things at statup, will only examine the NVS value at startup... For example:
+However EXRAIL macros that define things at startup, will only examine the NVS value at startup... For example:
 
 ```cpp
 SERVO_TURNOUT(1,100,NVS(21),NVS(22), Slow,"My turnout")
@@ -58,8 +53,8 @@ SERVO_TURNOUT(1,100,NVS(21),NVS(22), Slow,"My turnout")
 
 will evaluate the values in NVS(21) and NVS(22) once only at startup.
 
-[Its accepted that this is not great for servo settings, it may be possible to modify servo handling as a special case to reevaluate these at run time but wait and see]
- 
+[Its accepted that this is not great for servo settings, it may be possible to modify servo handling as a special case to ree-valuate these at run time but wait and see. I need feedback on any others that make sense to handle as special cases.]
+
 This can be particularly tricky when using a turnout or signal id because the turnout definition, or ONTHROW/ONCLOSE  will be evaluated once at startup but a THROW, RED etc  will be re-evaluated each time it is executed.
 
 Caution must be observed in IF() type macros because
@@ -86,7 +81,9 @@ ENDIF
 
 Accesing NVS text values uses the NVST macro which will generate a runtime tag inside a string, such that the string, when displayed will have the NVS value embedded. This means that NVST values will generally work immediately without the need to restart.
 
-NVST may be used stand alone or as part of another string, the following will be valid:
+[Please report any strings that dont work, they can be fixed.]
+
+Because NVST cfreates a quoted string at compile time, it may be used stand alone or as part of another string, the following will be valid:
 
 ```cpp
 SCREEN(0,1,NVST(1))
@@ -142,17 +139,19 @@ Altering the values with the C command will work even while the automation is ru
 
 The serial log browser inteface, which allows a user to monitor the serial log and issue commands from a web browser pointed at the hostname or ip-address of the CS or Node, contains an integrated configuration editor feature which allows a user (or factory) dialog to be attached.
 
-Dialogs can be extreemly simple or staggeringly complicated, such is the world of HTML/CSS/JavaScript. However, simple dialogs can be created with a minimum of red-tape as is the philosophy behind EXRAIL.
+Dialogs can be extremly simple or staggeringly complicated, such is the world of HTML/CSS/JavaScript. However, simple dialogs can be created with a minimum of red-tape as is the philosophy behind EXRAIL.
 
 User dialogs can be created in my* files and referenced from EXRAIL so that no base code needs to be modified. Follow this example to create a simple dialog to configure the example sequence shown above.
 
-First we need to create a dialog file fith the name format Like this:
+First we need to create a dialog file with the name format Like this:
 
-```myRunAround.htnl.h```
+```myRunAround.html.h```
 
 The `RunAround` part is your choice but the `my` and `.html.h` must be fixed.
 
 In this file create code like this: Notice correct use of ```RunAround``` in the header.
+
+file: 'myRunAround.html.h'
 
 ```html
 #include <Arduino.h>
@@ -168,8 +167,11 @@ Delay to clear station sensor <nvsinput nvs=23 min=1000 max=32000 /> mS
 Message to output when train arrives <nvsinput nvs=22 length=20 /> 
 )???";
 ```
+Note the file is .h because that is required by the build process, and is essentially a singl C++ string definition using the extended R format so the header and trailing ```)???";``` are important.
 
-Of course this embedded html can contain all kinds of display and logic but the ```<nvsinput``` tags will automatically fill with the current NVS values and automate the Save button handling.
+If you are using PlatformIo as your editor, you can click the language type in the bottom toolbar and select HTML, this makes the html easier to read and check.
+
+Of course this embedded html can contain all kinds of display and logic but the ```<nvsinput``` tags will automatically fill with the current NVS values and automate the Save button handling. They will also provide a reboot warning if they were used by exrail at startup time.
 
 To make this dialog available to the browser interface, use the following defining command in EXRAIL
 
