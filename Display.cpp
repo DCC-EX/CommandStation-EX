@@ -52,6 +52,10 @@ Display::Display(DisplayDevice *deviceDriver) {
   _deviceDriver = deviceDriver;
   // Get device dimensions in characters (e.g. 16x2).
   numScreenColumns = _deviceDriver->getNumCols();
+  // Keep the physical width within the logical row buffer.  Some display
+  // drivers expose more columns than MAX_MSG_SIZE can store.
+  if (numScreenColumns > MAX_CHARACTER_COLS)
+    numScreenColumns = MAX_CHARACTER_COLS;
   numScreenRows = _deviceDriver->getNumRows();
   for (uint8_t row = 0; row < MAX_CHARACTER_ROWS; row++) 
     rowBuffer[row][0] = '\0';
@@ -77,7 +81,9 @@ void Display::_setRow(uint8_t line) {
 }
 
 size_t Display::_write(uint8_t b) {
-  if (hotRow >= MAX_CHARACTER_ROWS || hotCol >= MAX_CHARACTER_COLS) return -1;
+  // The message buffer may be wider than the physical display. Keep writes
+  // within the device row so narrow OLEDs do not wrap into the next row.
+  if (hotRow >= MAX_CHARACTER_ROWS || hotCol >= numScreenColumns) return -1;
   rowBuffer[hotRow][hotCol] = b;
   hotCol++;
   rowBuffer[hotRow][hotCol] = '\0';
@@ -128,7 +134,7 @@ Display *Display::loop2(bool force) {
         buffer[0] = '\0';
       } else {
         // Non-blank line found, so copy it (including terminator)
-        for (uint8_t i = 0; i <= MAX_CHARACTER_COLS; i++)
+        for (uint8_t i = 0; i <= numScreenColumns; i++)
           buffer[i] = rowBuffer[rowCurrent][i];
       }
       _deviceDriver->setRowNative(slot);  // Set position for display
@@ -144,7 +150,7 @@ Display *Display::loop2(bool force) {
         _deviceDriver->writeNative(' ');
       }
 
-      if (++charIndex >= MAX_CHARACTER_COLS) {
+      if (++charIndex >= numScreenColumns) {
         // Screen slot completed, move to next nonblank row
         bufferPointer = 0;
         for (;;) {
