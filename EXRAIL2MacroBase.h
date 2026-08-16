@@ -319,6 +319,10 @@
 ///brief Inverse of IF
 ///see IF
 
+#define IFNVS(nvenum)
+///brief Check if given Non Volatile Storage entry is non-zero
+///see IF
+
 #define IFRANDOM(percent)
 ///brief randomly satisfied IF at given percent probability
 ///see IF

@@ -93,6 +93,7 @@
 #undef IFLOCO
 #undef IFLT
 #undef IFNOT
+#undef IFNVS
 #undef IFRANDOM 
 #undef IFRED
 #undef IFRESERVE

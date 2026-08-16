@@ -844,6 +844,10 @@ void RMFT2::loop2() {
     skipIf=readSensor(operand);
     break;
 
+  case OPCODE_IFNVS: // do next operand if non-volatile storage entry is non-zero
+    skipIf=NVSTable::getNVS(operand)==0;
+    break;
+
   case OPCODE_IFRE: // do next operand if rotary encoder != position
     skipIf=IODevice::readAnalogue(operand)!=(int)(getOperand(1));
     break;

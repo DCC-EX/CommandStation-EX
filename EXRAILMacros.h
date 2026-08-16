@@ -646,6 +646,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IF_ANY(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
+#define IFNVS(nvs_id) OPCODE_IFNVS,V(nvs_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
