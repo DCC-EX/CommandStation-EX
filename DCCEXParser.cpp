@@ -94,7 +94,7 @@ Once a new OPCODE is decided upon, update this list.
   W, Write CV
   x,
   X, Invalid command response
-  y, Output Sound
+  y, Accessory/extended accessory broadcast
   Y, Output broadcast
   z, Direct output
   Z, Output configuration/control
