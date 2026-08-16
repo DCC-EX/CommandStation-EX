@@ -47,6 +47,8 @@ public:
     shieldName=(FSH *)motorShieldName;
   };
   static void begin();
+  // Emit the product/device/release metadata contract used by host tools.
+  static void printMetadata(Print *stream);
   static void loop();
 
   // Public DCC API functions
