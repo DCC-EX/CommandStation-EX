@@ -46,6 +46,7 @@ Once a new OPCODE is decided upon, update this list.
   0, Track power off
   1, Track power on
   a, DCC accessory control
+  aw, DCC accessory decoder PoM write
   A, DCC extended accessory control
   b, Write CV bit on main
   B, Write CV bit
@@ -303,6 +304,11 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif
+    const bool accessoryPom = com[0] == 'a' && com[1] == 'w' && com[2] == ' ';
+    if (accessoryPom) {
+      com[0] = 'w';
+      memmove(com + 1, com + 2, strlen((char *)com + 2) + 1);
+    }
     byte params = 0;
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
@@ -506,6 +512,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
 
 #ifndef DISABLE_PROG
     case 'w': // WRITE CV on MAIN <w CAB CV VALUE>
+      if (accessoryPom) {
+        if (params != 4 || p[0] < 1 || p[0] > 511 || p[1] < 0 || p[1] > 3
+            || p[2] < 1 || p[2] > 1024 || p[3] < 0 || p[3] > 255)
+          break;
+        if (DCC::writeAccessoryCVByteMain(p[0], p[1], p[2], p[3])) return;
+        break;
+      }
       if (params != 3)
 	break;
       DCC::writeCVByteMain(p[0], p[1], p[2]);
