@@ -742,4 +742,3 @@ TRACK_MODE TrackManager::getMode(byte t) {
 int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
 }
-
