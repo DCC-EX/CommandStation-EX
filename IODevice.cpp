@@ -21,11 +21,17 @@
 
 
 #include <Arduino.h>
+#include "defines.h"
 #include "IODevice.h"
+#include "IO_S88.h"
 #include "DIAG.h" 
 #include "FSH.h"
 #include "IO_MCP23017.h"
 #include "DCCTimer.h"
+
+#if defined(IO_NO_HAL) && defined(S88_NUM_PINS) && S88_NUM_PINS > 0
+#error "S88 configuration requires a build with HAL enabled"
+#endif
 
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
@@ -60,6 +66,56 @@ void IODevice::begin() {
   // create something that conflicts with the user's vpin definitions. 
   if (halSetup)
     halSetup();
+
+  // Optional config.h shortcut for one directly connected S88 chain.  More
+  // than one chain can be created with S88::create() from myHal.cpp or EX-RAIL.
+#if defined(S88_NUM_PINS)
+#if S88_NUM_PINS > 0
+#if !defined(S88_FIRST_VPIN) || !defined(S88_CLOCK_PIN) || \
+    !defined(S88_LOAD_PIN) || !defined(S88_RESET_PIN) || \
+    !defined(S88_DATA_PIN)
+#error "S88_NUM_PINS requires S88_FIRST_VPIN, S88_CLOCK_PIN, S88_LOAD_PIN, S88_RESET_PIN, and S88_DATA_PIN"
+#endif
+#ifndef S88_CLOCK_PERIOD_MICROS
+#define S88_CLOCK_PERIOD_MICROS S88::DEFAULT_CLOCK_PERIOD_MICROS
+#endif
+#ifndef S88_SCAN_INTERVAL_MICROS
+#define S88_SCAN_INTERVAL_MICROS S88::DEFAULT_SCAN_INTERVAL_MICROS
+#endif
+#ifndef S88_INVERT_DATA
+#define S88_INVERT_DATA false
+#endif
+#ifndef S88_DATA_PULLUP
+#define S88_DATA_PULLUP false
+#endif
+  static_assert(S88_NUM_PINS <= S88::MAX_PINS,
+    "S88_NUM_PINS exceeds the supported VPIN/resource limit");
+  static_assert(S88::stateBytes(S88_NUM_PINS) <= S88::MAX_STATE_BYTES,
+    "S88_NUM_PINS exceeds the supported state storage limit");
+  static_assert(S88_CLOCK_PERIOD_MICROS >= S88::MIN_CLOCK_PERIOD_MICROS,
+    "S88 clock period is shorter than the S88-N minimum");
+  static_assert((S88_CLOCK_PERIOD_MICROS & 1) == 0,
+    "S88 clock period must be even so high and low phases are equal");
+  static_assert(S88_CLOCK_PIN != S88_LOAD_PIN &&
+                S88_CLOCK_PIN != S88_RESET_PIN &&
+                S88_CLOCK_PIN != S88_DATA_PIN &&
+                S88_LOAD_PIN != S88_RESET_PIN &&
+                S88_LOAD_PIN != S88_DATA_PIN &&
+                S88_RESET_PIN != S88_DATA_PIN,
+    "S88 control and data pins must be distinct");
+#if defined(NUM_DIGITAL_PINS)
+  static_assert(S88_CLOCK_PIN >= 0 && S88_CLOCK_PIN < NUM_DIGITAL_PINS &&
+                S88_LOAD_PIN >= 0 && S88_LOAD_PIN < NUM_DIGITAL_PINS &&
+                S88_RESET_PIN >= 0 && S88_RESET_PIN < NUM_DIGITAL_PINS &&
+                S88_DATA_PIN >= 0 && S88_DATA_PIN < NUM_DIGITAL_PINS,
+    "S88 pins must exist on the selected Arduino board");
+#endif
+  S88::create(S88_FIRST_VPIN, S88_NUM_PINS,
+              S88_CLOCK_PIN, S88_LOAD_PIN, S88_RESET_PIN, S88_DATA_PIN,
+              S88_CLOCK_PERIOD_MICROS, S88_SCAN_INTERVAL_MICROS,
+              S88_INVERT_DATA, S88_DATA_PULLUP);
+#endif
+#endif
 
   // Include any HAL devices defined in exrail.
   // The first pass call only creates HAL devices, 
