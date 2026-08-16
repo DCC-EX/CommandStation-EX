@@ -34,6 +34,8 @@ static const byte MODE1_RESTART=0x80; /**< Restart enabled */
 
 static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
+static const int PCA9685_OUTPUT_OFF = 0;
+static const int PCA9685_OUTPUT_ON = 4095;
 
 // Create device driver instance.
 void PCA9685::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress, uint16_t frequency) {
@@ -103,6 +105,10 @@ void PCA9685::_begin() {
     writeRegister(PCA9685_PRESCALE, prescaler);
     writeRegister(PCA9685_MODE1, MODE1_AI);
     writeRegister(PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
+    // Establish a safe, deterministic state.  A PCA9685 reset normally clears
+    // outputs, but explicitly clearing every channel also covers a controller
+    // that was reset independently of the command station.
+    for (int pin = 0; pin < _nPins; pin++) writeDevice(pin, PCA9685_OUTPUT_OFF);
     // In theory, we should wait 500us before sending any other commands to each device, to allow
     // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
     // plenty of other stuff to do before we will send a command.
@@ -127,8 +133,12 @@ void PCA9685::_write(VPIN vpin, int value) {
     // Use configured parameters
     _writeAnalogue(vpin, value ? s->activePosition : s->inactivePosition, s->profile, s->duration);
   }  else {
-     /* simulate digital pin on PWM */
-      _writeAnalogue(vpin, value ? 4095 : 0, Instant | NoPowerOff, 0);     
+     // Simulate a digital pin on PWM.  This is a level output: HIGH remains
+     // fully on until a LOW is written.  It is not a timed solenoid pulse;
+     // callers controlling a solenoid must provide the required off command
+     // (or configure a bounded profile explicitly).
+      _writeAnalogue(vpin, value ? PCA9685_OUTPUT_ON : PCA9685_OUTPUT_OFF,
+                     Instant | NoPowerOff, 0);
       }
 }
 

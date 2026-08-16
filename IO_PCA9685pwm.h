@@ -106,6 +106,9 @@ private:
       writeRegister(_I2CAddress, PCA9685_PRESCALE, prescaler);
       writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_AI);
       writeRegister(_I2CAddress, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
+      // Make startup deterministic even when the expander was reset
+      // independently of the command station.
+      for (int pin = 0; pin < _nPins; pin++) writeDevice(pin, 0);
       // In theory, we should wait 500us before sending any other commands to each device, to allow
       // the PWM oscillator to get running.  However, we don't do any specific wait, as there's 
       // plenty of other stuff to do before we will send a command.
@@ -114,6 +117,12 @@ private:
     #endif
     } else
       _deviceState = DEVSTATE_FAILED;
+  }
+
+  // Device-specific digital write. HIGH is held at 100% duty until LOW is
+  // written; there is no implicit solenoid pulse duration.
+  void _write(VPIN vpin, int value) override {
+    _writeAnalogue(vpin, value ? 4095 : 0, 0, 0);
   }
 
   // Device-specific writeAnalogue function, invoked from IODevice::writeAnalogue().
