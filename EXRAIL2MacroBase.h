@@ -213,6 +213,9 @@
 #define ESTOP_RESUME
 ///brief Resumes loco speeds after ESTOP_PAUSE
 
+#define IF_ESTOP_PAUSED
+///brief Executes the following block while the global ESTOP_PAUSE lock is active
+
 #define EXRAIL
 ///brief obsolete.. no longer needed. Does nothing.
 
