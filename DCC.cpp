@@ -83,6 +83,7 @@ bool DCC::linearAcceleration=false;
 
 byte DCC::getMomentum(LocoSlot * slot) {
    auto target=slot->getTargetSpeed() & 0x7f;
+   if (target > slot->getSpeedLimit()) target=slot->getSpeedLimit();
    auto current=slot->getSpeedCode() & 0x7f;
    if (target > current) {
     // accelerating
@@ -108,11 +109,14 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128;
   auto slot=LocoSlot::getSlot(cab, true);
   if (!slot) return false; // speed table full, can not do anything
+  byte outputSpeed = speedCode;
+  byte limit = slot->getSpeedLimit();
+  if ((tSpeed > 1) && (tSpeed > limit)) outputSpeed = (speedCode & 0x80) | limit;
 
   // Ignore any throttle command to consist follower.
   if (slot->isConsistFollower()) return true; 
   
-  if (slot->getTargetSpeed()==speedCode) // speed has been reached
+  if (slot->getTargetSpeed()==speedCode && slot->getSpeedCode()==outputSpeed) // speed has been reached
     return true;
   slot->setTargetSpeed(speedCode);
 
@@ -127,11 +131,26 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
     slot->setMomentumBase(millis());
   } 
   else {  // Momentum not involved, throttle now.
-    setThrottle2(slot,speedCode);
-    if (!estopIsLocked) TrackManager::setDCSignal(cab,speedCode); // in case this is a dcc track on this addr
+    setThrottle2(slot,outputSpeed);
+    if (!estopIsLocked) TrackManager::setDCSignal(cab,outputSpeed); // in case this is a dcc track on this addr
   }
   CommandDistributor::broadcastLoco(slot);
   return true;
+}
+
+void DCC::setSpeedLimit(int cab, byte limit) {
+  if (cab <= 0 || limit < 2 || limit > 127) return;
+  auto slot=LocoSlot::getSlot(cab,true);
+  if (!slot) return;
+  slot->setSpeedLimit(limit);
+  setThrottle(cab, slot->getTargetSpeed() & 0x7f, slot->getTargetSpeed() & 0x80);
+}
+
+void DCC::clearSpeedLimit(int cab) {
+  auto slot=LocoSlot::getSlot(cab,false);
+  if (!slot) return;
+  slot->setSpeedLimit(127);
+  setThrottle(cab, slot->getTargetSpeed() & 0x7f, slot->getTargetSpeed() & 0x80);
 }
 
 // set speedCode directly to DCC and make followers same
@@ -1094,6 +1113,7 @@ bool DCC::issueReminder(LocoSlot * slot) {
             if (ticks>0) {
               auto current=normalize(sc);  // -128..+127
               auto target=normalize(slot->getTargetSpeed());
+              if (target > slot->getSpeedLimit()) target=slot->getSpeedLimit();
               // DIAG(F("Momentum l=%d ti=%d sc=%d c=%d t=%d"),loco,ticks,sc,current,target);
               if (current<target) { // accelerate
                 current+=ticks;

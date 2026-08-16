@@ -93,6 +93,8 @@ public:
   static void forgetAllLocos();    // removes all speed reminders
   static void saveSpeed(int cab);   // saves speed for later restore
   static void restoreSpeed(int cab); // restores saved speed  
+  static void setSpeedLimit(int cab, byte limit);
+  static void clearSpeedLimit(int cab);
   static void displayCabList(Print *stream);
   static FSH *getMotorShieldName();
   static inline void setGlobalSpeedsteps(byte s) {

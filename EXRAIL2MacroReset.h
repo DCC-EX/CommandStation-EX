@@ -210,6 +210,8 @@
 #undef SPEED
 #undef SPEEDUP
 #undef SPEED_REL
+#undef SPEED_LIMIT
+#undef CLEAR_SPEED_LIMIT
 #undef SLOWDOWN
 #undef START
 #undef START_SHARED
