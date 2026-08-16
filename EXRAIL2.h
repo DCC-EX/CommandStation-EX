@@ -74,7 +74,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
-             OPCODE_ONOVERLOAD,
+             OPCODE_ONOVERLOAD,OPCODE_ONPOWER,
 	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
@@ -110,6 +110,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
              OPCODE_IF_ROUTE_ACTIVE,OPCODE_IF_ROUTE_INACTIVE,
              OPCODE_IF_ROUTE_HIDDEN,OPCODE_IF_ROUTE_DISABLED,
+             OPCODE_IFPOWERON,OPCODE_IFPOWEROFF,
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 
@@ -282,6 +283,7 @@ private:
    static LookList * onRotateLookup;
 #endif
    static LookList * onOverloadLookup;
+   static LookList * onPowerLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;
 #ifdef BOOSTER_INPUT

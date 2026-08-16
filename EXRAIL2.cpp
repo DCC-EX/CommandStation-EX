@@ -90,6 +90,7 @@ LookList *  RMFT2::onClockLookup=NULL;
 LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
+LookList *  RMFT2::onPowerLookup=NULL;
 LookList *  RMFT2::onBlockEnterLookup=NULL;
 LookList *  RMFT2::onBlockExitLookup=NULL;
 #ifdef BOOSTER_INPUT
@@ -211,6 +212,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 #endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
+  onPowerLookup=LookListLoader(OPCODE_ONPOWER);
 
   if (compileFeatures & FEATURE_BLOCK) {
     onBlockEnterLookup=LookListLoader(OPCODE_ONBLOCKENTER);
@@ -887,6 +889,13 @@ void RMFT2::loop2() {
     skipIf=readSensor(operand);
     break;
 
+  case OPCODE_IFPOWERON:
+    skipIf=TrackManager::getMainPower()!=POWERMODE::ON;
+    break;
+  case OPCODE_IFPOWEROFF:
+    skipIf=TrackManager::getMainPower()==POWERMODE::ON;
+    break;
+
   case OPCODE_IFRE: // do next operand if rotary encoder != position
     skipIf=IODevice::readAnalogue(operand)!=(int)(getOperand(1));
     break;
@@ -1334,6 +1343,7 @@ void RMFT2::loop2() {
   case OPCODE_ONROTATE:
 #endif
   case OPCODE_ONOVERLOAD:
+  case OPCODE_ONPOWER:
   case OPCODE_ONBLOCKENTER:
   case OPCODE_ONBLOCKEXIT:
 #ifdef BOOSTER_INPUT
@@ -1568,6 +1578,8 @@ void RMFT2::powerEvent(int16_t track, bool overload) {
   if (overload) {
     onOverloadLookup->handleEvent(F("POWER"),track);
   }
+  else if (onPowerLookup)
+    onPowerLookup->handleEvent(F("POWER"), TrackManager::getMainPower()==POWERMODE::ON);
 }
 #ifdef BOOSTER_INPUT
 void RMFT2::railsyncEvent(bool on) {

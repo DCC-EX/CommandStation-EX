@@ -199,6 +199,29 @@ ROUTE(8001,"8001 ESTOP_RESUME test")
    ZTEST("<D CABS>",DCC::getLocoSpeedByte(3)==(128+20))
    DONE
 
+// Power event/query and command response regression coverage.
+ROUTE(8100,"8100 POWER event/query test")
+   PARSE("<0>")
+   IFPOWEROFF
+     ZTEST("<0> -> IFPOWEROFF",TrackManager::getMainPower()==POWERMODE::OFF)
+   ELSE
+     PRINT("8100 power-off query failed")
+   ENDIF
+   PARSE("<1>")
+   IFPOWERON
+     ZTEST("<1> -> IFPOWERON",TrackManager::getMainPower()==POWERMODE::ON)
+   ELSE
+     PRINT("8100 power-on query failed")
+   ENDIF
+   DONE
+
+AUTOMATION(8101,"8101 POWER event macro compile coverage")
+   ONPOWER(OFF)
+     IFPOWEROFF
+       SET(8101)
+     ENDIF
+   DONE
+
 
 #define MYGROUP 1,2,3,4   
 ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")

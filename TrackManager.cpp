@@ -32,6 +32,7 @@
 #include "CommandDistributor.h"
 #include "DCCEXParser.h"
 #include "KeywordHasher.h"
+#include "EXRAIL2.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
     
@@ -535,11 +536,13 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
 // Set track power for all tracks with this mode
 void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermode) {
   bool didChange=false;
+  POWERMODE oldMainPower=getMainPower();
   FOR_EACH_TRACK(t) {
     MotorDriver *driver=track[t];
     TRACK_MODE trackmodeOfTrack = driver->getMode();
     if (trackmodeToMatch & trackmodeOfTrack) {
-      if (powermode != driver->getPower())
+      bool changed = powermode != driver->getPower();
+      if (changed)
 	didChange=true;
       if (powermode == POWERMODE::ON) {
 	if (trackmodeOfTrack & TRACK_MODE_DC) {
@@ -555,6 +558,8 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
       driver->setPower(powermode);
     }
   }
+  if (oldMainPower != getMainPower())
+    RMFT2::powerEvent(0, false);
   if (didChange)
     CommandDistributor::broadcastPower();
 }
@@ -567,6 +572,7 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
     return;
   }
   TRACK_MODE trackmode = driver->getMode();
+  POWERMODE oldMainPower=getMainPower();
   POWERMODE oldpower = driver->getPower();
   if (trackmode & TRACK_MODE_NONE) {
     driver->setBrake(true);     // Track is unused. Brake is good to have.
@@ -585,8 +591,11 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
     }
   }
   driver->setPower(powermode);
-  if (oldpower != driver->getPower())
+  if (oldpower != driver->getPower()) {
+    if (oldMainPower != getMainPower())
+      RMFT2::powerEvent(0, false);
     CommandDistributor::broadcastPower();
+  }
 }
 
 // returns state of the one and only prog track
