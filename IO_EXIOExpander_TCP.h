@@ -480,9 +480,20 @@ private:
   bool _sendFrame(uint8_t cmd, const uint8_t* payload, uint8_t len) {
     if (!_client || !_client->connected()) return false;
     uint8_t hdr[2] = { cmd, len };
-    if (_client->write(hdr, 2) != 2) return false;
-    if (len && payload) {
-      if (_client->write(payload, len) != len) return false;
+    if (!_writeAll(hdr, sizeof(hdr))) return false;
+    if (!len) return true;
+    return payload && _writeAll(payload, len);
+  }
+
+  // Client::write() is permitted to accept fewer bytes than requested.  A
+  // short write must not leave a peer parsing a truncated frame as a new one.
+  bool _writeAll(const uint8_t* data, size_t len) {
+    while (len > 0) {
+      if (!_client || !_client->connected()) return false;
+      size_t written = _client->write(data, len);
+      if (written == 0) return false;
+      data += written;
+      len -= written;
     }
     return true;
   }
@@ -619,22 +630,37 @@ private:
       return true;
     }
 
-    const uint16_t need = (uint16_t)(2 + _pendingLen);
-    if (!_client || _client->available() < (int)need) return false;
+    // EX-IOExpander's TCP server includes the response command as the first
+    // payload byte for poll responses (for example, [EXIORDD][bitmap]).
+    // Earlier proof-of-concept clients used a raw bitmap payload.  Accept
+    // either framing so server and client can be upgraded independently.
+    if (!_client || _client->available() < 2) return false;
 
     uint8_t rcmd = (uint8_t)_client->read();
     uint8_t rlen = (uint8_t)_client->read();
 
-    if (rcmd != _pendingCmd || rlen != _pendingLen) {
+    if (rcmd != _pendingCmd || (rlen != _pendingLen && rlen != (uint8_t)(_pendingLen + 1))) {
       _drain(rlen);
       return true;
     }
 
-    if (_pendingBuf && rlen) {
-      for (uint8_t i = 0; i < rlen; i++) _pendingBuf[i] = (uint8_t)_client->read();
-    } else {
-      _drain(rlen);
+    // Read the complete payload with a timeout.  Waiting for only the raw
+    // payload size before consuming the header is unsafe for tagged frames,
+    // which are one byte longer and may arrive in several TCP segments.
+    uint8_t response[33]; // max EXIO analogue payload (16*2) plus tag
+    if (rlen > sizeof(response) || !_readBytesTimeout(response, rlen, _responseTimeoutMs)) {
+      _markOffline();
+      return true;
     }
+
+    bool tagged = rlen == (uint8_t)(_pendingLen + 1);
+    uint8_t offset = 0;
+    if (tagged) {
+      if (response[0] != _pendingCmd) return true;
+      offset = 1;
+    }
+
+    if (_pendingBuf && _pendingLen) memcpy(_pendingBuf, response + offset, _pendingLen);
 
     if (_readState == RDS_ANALOGUE) {
       memcpy(_analogueInputStates, _analogueInputBuffer, _analoguePinBytes);
