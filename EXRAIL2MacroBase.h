@@ -174,6 +174,15 @@
 ///brief Waits for given minutes delay (This is not blocking)
 
 #define DELAYRANDOM(mindelay,maxdelay)
+///\brief Set a VPIN, hold it active for duration milliseconds, then reset it.
+///\param vpin VPIN to pulse
+///\param duration Pulse duration in milliseconds
+#define PULSE_PIN(vpin,duration)
+// Keep the compatibility alias in the base pass: EXRAIL re-includes this
+// file between passes, while the final pass supplies PULSE_PIN's bytecode.
+#ifndef PULSE
+#define PULSE(vpin,duration) PULSE_PIN(vpin,duration)
+#endif
 ///brief Waits for random delay between min and max milliseconds (This is not blocking)
 ///param mindelay minimum delay in ms
 ///param maxdelay maximum delay in ms
