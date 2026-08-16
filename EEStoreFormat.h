@@ -2,9 +2,9 @@
 #ifndef EEStoreFormat_h
 #define EEStoreFormat_h
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
 #define EESTORE_ID "DCC++1"
 
@@ -20,12 +20,12 @@ static_assert(sizeof(EEStoreData) == sizeof(EESTORE_ID) + 6,
               "legacy header layout changed");
 
 inline bool isLegacyEEStoreData(const EEStoreData &data) {
-  return std::memcmp(data.id, EESTORE_ID, sizeof(EESTORE_ID)) == 0;
+  return memcmp(data.id, EESTORE_ID, sizeof(EESTORE_ID)) == 0;
 }
 
 inline EEStoreData blankEEStoreData() {
   EEStoreData data{};
-  std::memcpy(data.id, EESTORE_ID, sizeof(EESTORE_ID));
+  memcpy(data.id, EESTORE_ID, sizeof(EESTORE_ID));
   return data;
 }
 
