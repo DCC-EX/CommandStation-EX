@@ -32,6 +32,9 @@
 #include "CommandDistributor.h"
 #include "EXRAIL2.h"
 #include "Turnouts.h"
+#ifndef IO_NO_HAL
+#include "IO_HBridgePin.h"
+#endif
 #include "DCC.h"
 #include "LCN.h"
 #ifdef EESTOREDEBUG
@@ -185,6 +188,9 @@
       case TURNOUT_VPIN:
         // VPIN turnout
         tt = VpinTurnout::load(&turnoutData);
+        break;
+      case TURNOUT_HBRIDGE:
+        tt = HBridgeTurnout::load(&turnoutData);
         break;
       default:
         // If we find anything else, then we don't know what it is or how long it is, 
@@ -470,6 +476,88 @@
     EEStore::advance(sizeof(_turnoutData));
     EEPROM.put(EEStore::pointer(), _vpinTurnoutData);
     EEStore::advance(sizeof(_vpinTurnoutData));
+#endif
+  }
+
+
+/*************************************************************************************
+ * HBridgeTurnout - Kato turnout controlled through two momentary HAL pins.
+ *************************************************************************************/
+
+  HBridgeTurnout::HBridgeTurnout(uint16_t id, VPIN throwVpin, VPIN closeVpin,
+                                 uint16_t pulseMillis, bool closed) :
+    Turnout(id, TURNOUT_HBRIDGE, closed) {
+    _hbridgeTurnoutData.throwVpin = throwVpin;
+    _hbridgeTurnoutData.closeVpin = closeVpin;
+    _hbridgeTurnoutData.pulseMillis = pulseMillis > MaxPulseMillis
+      ? MaxPulseMillis : pulseMillis;
+#ifndef IO_NO_HAL
+    HBridgePin::create(throwVpin, _hbridgeTurnoutData.pulseMillis);
+    HBridgePin::create(closeVpin, _hbridgeTurnoutData.pulseMillis);
+#endif
+  }
+
+  /* static */ Turnout *HBridgeTurnout::create(uint16_t id, VPIN throwVpin,
+                                               VPIN closeVpin, uint16_t pulseMillis,
+                                               bool closed) {
+    Turnout *tt = get(id);
+    if (tt) {
+      if (tt->isType(TURNOUT_HBRIDGE)) {
+        HBridgeTurnout *ht = (HBridgeTurnout *)tt;
+        ht->_hbridgeTurnoutData.throwVpin = throwVpin;
+        ht->_hbridgeTurnoutData.closeVpin = closeVpin;
+        ht->_hbridgeTurnoutData.pulseMillis = pulseMillis > MaxPulseMillis
+          ? MaxPulseMillis : pulseMillis;
+        return tt;
+      }
+      remove(id);
+    }
+#ifdef IO_NO_HAL
+    (void)id; (void)throwVpin; (void)closeVpin; (void)pulseMillis; (void)closed;
+    return NULL;
+#else
+    return new HBridgeTurnout(id, throwVpin, closeVpin, pulseMillis, closed);
+#endif
+  }
+
+  /* static */ Turnout *HBridgeTurnout::load(struct TurnoutData *turnoutData) {
+#ifndef DISABLE_EEPROM
+    HBridgeTurnoutData data;
+    EEPROM.get(EEStore::pointer(), data);
+    EEStore::advance(sizeof(data));
+    return new HBridgeTurnout(turnoutData->id, data.throwVpin, data.closeVpin,
+                              data.pulseMillis, turnoutData->closed);
+#else
+    (void)turnoutData;
+    return NULL;
+#endif
+  }
+
+  void HBridgeTurnout::print(Print *stream) {
+    StringFormatter::send(stream, F("<H %d HBRIDGE %d %d %d>\n"), _turnoutData.id,
+      _hbridgeTurnoutData.throwVpin, _hbridgeTurnoutData.closeVpin,
+      !_turnoutData.closed);
+  }
+
+  bool HBridgeTurnout::setClosedInternal(bool close) {
+#ifndef IO_NO_HAL
+    // Never energise both sides: only the side matching the requested state is pulsed.
+    const VPIN activeVpin = close ? _hbridgeTurnoutData.closeVpin : _hbridgeTurnoutData.throwVpin;
+    const VPIN inactiveVpin = close ? _hbridgeTurnoutData.throwVpin : _hbridgeTurnoutData.closeVpin;
+    IODevice::write(inactiveVpin, LOW);
+    IODevice::write(activeVpin, HIGH);
+#else
+    (void)close;
+#endif
+    return true;
+  }
+
+  void HBridgeTurnout::save() {
+#ifndef DISABLE_EEPROM
+    EEPROM.put(EEStore::pointer(), _turnoutData);
+    EEStore::advance(sizeof(_turnoutData));
+    EEPROM.put(EEStore::pointer(), _hbridgeTurnoutData);
+    EEStore::advance(sizeof(_hbridgeTurnoutData));
 #endif
   }
 

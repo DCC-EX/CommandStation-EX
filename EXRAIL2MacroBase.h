@@ -536,6 +536,10 @@
 ///brief Defines a turnout which operates on a single pin
 ///param description... Quoted text (shown to throttles) or HIDDEN
 
+#define HBRIDGE_TURNOUT(id,throw_vpin,close_vpin,pulse_millis,description...)
+///brief Defines a Kato turnout driven by two momentary H-bridge outputs.
+///param pulse_millis Pulse duration, capped at 500ms.
+
 #define PRINT(msg)
 ///brief prints diagnostic message on USB serial
 ///param msg Quoted text
