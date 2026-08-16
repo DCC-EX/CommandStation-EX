@@ -9,6 +9,9 @@ hardware.
 | --- | --- | --- | --- | --- | --- |
 | AVR | `mega2560` | `megaatmega2560` | Arduino AVR platform selected by PlatformIO | Yes | Supported baseline |
 | ESP32 | `ESP32` | `esp32dev` | `espressif32 @ 6.7.0` (Arduino 2.0.16, ESP-IDF 4.4.7) | Yes | Supported baseline |
+| STM32 | `Nucleo-F411RE` | `nucleo_f411re` | `ststm32 @ 19.0.0` | Yes | Supported baseline |
+| STM32 | `Nucleo-F446RE` | `nucleo_f446re` | `ststm32 @ 19.0.0` | Yes | Supported baseline |
+| STM32 | `Nucleo-F429ZI` | `nucleo_f429zi` | `ststm32 @ 19.0.0` | Yes | Experimental Ethernet |
 | ESP32-C6 | — | — | No configured environment or validated core/board combination | No | Not supported/validated |
 | RP2040 | — | — | No configured environment in `master` | No | Not supported/validated |
 
