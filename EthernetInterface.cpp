@@ -45,7 +45,7 @@ MDNS mdns(udp);
 #define looptimer(a,b)
 
 bool EthernetInterface::connected=false;
-EthernetServer * EthernetInterface::server= nullptr;
+EthernetServerType * EthernetInterface::server= nullptr;
 EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 bool EthernetInterface::inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
@@ -170,7 +170,7 @@ void EthernetInterface::setup()
     return;
   }
   DIAG(F("Ethernet IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-  server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+  server = new EthernetServerType(IP_PORT); // Ethernet Server listening on default port IP_PORT
   server->begin();
 
   // Arrange display of IP address and port
