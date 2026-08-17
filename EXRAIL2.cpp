@@ -104,14 +104,14 @@ uint16_t RMFT2::getOperand(byte n) {
 }
 
 // getOperand static version, must be provided prog counter from loop etc.
-uint16_t RMFT2::getOperand(int progCounter,byte n) {
+uint16_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
   int offset=progCounter+1+(n*fixedOpcodeLength);
   byte b3=GETHIGHFLASH(RouteCode,offset);
   byte b2=GETHIGHFLASH(RouteCode,offset+1);
   byte b1=GETHIGHFLASH(RouteCode,offset+2);
   byte b0=GETHIGHFLASH(RouteCode,offset+3);
   int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
-  return NVSTable::decodeNVSToken(value);
+  return NVSTable::decodeNVSToken(value,atBoot);
 }
 
 LookList::LookList(int16_t size) {
@@ -181,7 +181,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   for (progCounter=0;; SKIPOP) {
     byte opcode=GET_OPCODE;
     if (opcode==OPCODE_ENDEXRAIL) break;
-    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(getOperand(progCounter,0),progCounter);   
+
+    // Note NVS values on ON*() statements are decoded once here
+    // and flagged as needing boot if changed
+    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(getOperand(progCounter,0,true),progCounter);   
   }
   return list;
 }

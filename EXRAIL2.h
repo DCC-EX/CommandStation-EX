@@ -221,7 +221,7 @@ private:
     static void setTurntableHiddenState(Turntable * tto);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
-    static uint16_t getOperand(int progCounter,byte n);
+    static uint16_t getOperand(int progCounter,byte n, bool atBoot=false);
     
     static void ifAllFunc(const int16_t * vpinList, int16_t count); 
     static void ifAnyFunc(const int16_t * vpinList, int16_t count);

@@ -108,7 +108,7 @@
 // these will take place at startup time but changes to the nvs will not 
 // affect them without a reboot. 
 // The NVS macro generates a token that will be passed to the NVSTable::decodeNVSToken function at the appropriate time.
-// the _NVS_ macro is used when a value MIGHT be a token that ius needed in code.
+// the _NVS_ macro is used when a value MIGHT be a token that is needed in code.
 
 // For all Aliases... NVS references are not possible
 #undef NVS
@@ -124,7 +124,7 @@
 
 // For all passes that generate c++ code directly from the macros,
 #undef NVS
-#define NVS(nvsnum) NVSTable::getNVSDuringBoot(nvsnum)
+#define NVS(nvsnum) NVSTable::getNVS(nvsnum,true)
 
 
 

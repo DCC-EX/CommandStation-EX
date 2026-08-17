@@ -42,7 +42,7 @@ void NVSTable::load() {
   prefs.begin("nvstable", true); // Read-only
   prefs.getBytes("NVSTable",nvs,sizeof(nvs)); 
   prefs.end();
-  for (auto i=0;i<=sizeof(bootNeeded);i++) bootNeeded[i]=0;
+  for (auto i=0;i<sizeof(bootNeeded);i++) bootNeeded[i]=0;
 }
 
 void NVSTable::dump(Print * stream) {
@@ -173,17 +173,10 @@ void NVSTable::applyChanges(const String& changes) {
 
 
 
-int16_t NVSTable::getNVS(uint8_t nvsNumber) {
+int16_t NVSTable::getNVS(uint8_t nvsNumber, bool atBoot) {
+  if (atBoot) bootNeeded[nvsNumber/8] |= (1 << (nvsNumber%8)); // Mark this NVS entry as needing to be set during boot  
   return nvs[nvsNumber];
 }
-
-// used during boot time to get NVS values from EXRAIL scripts
-// This can then inform the browser that these values require a reboot if changed.
-
-int16_t NVSTable::getNVSDuringBoot(uint8_t nvsnum) {
-  bootNeeded[nvsnum/8] |= (1 << (nvsnum%8)); // Mark this NVS entry as needing to be set during boot
-  return getNVS((uint8_t)nvsnum);
-} 
 
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
   if (nvs[nvsNumber] != NVS_IS_STRING) return String(nvs[nvsNumber]); // Not a string, return the numeric value as a string
@@ -201,7 +194,7 @@ String NVSTable::getTextNVS(uint8_t nvsNumber) {
 // This identifies EXRAIL type 32-bit tokens which may represnt
 // NVS[x]+y or just return y.
 // This allows things like DELAY(NVS(6)) DELAY(1000+NVS(6)) or DELAY(1000)  in exrail.
-int16_t NVSTable::decodeNVSToken(int32_t token) {
+int16_t NVSTable::decodeNVSToken(int32_t token, bool atBoot) {
   
   if ((token >> 24)!=0x7E) {
       // this is just a number, not an NVS token, return it as is.
@@ -209,7 +202,8 @@ int16_t NVSTable::decodeNVSToken(int32_t token) {
   }
   byte nvsNumber = (token >> 16) & 0xFF;
   auto addition=(int16_t)(token & 0xFFFF);
-   return nvs[nvsNumber]+addition;
+  if (atBoot) bootNeeded[nvsNumber/8] |= (1 << (nvsNumber%8)); // Mark this NVS entry as needing to be set during boot  
+  return nvs[nvsNumber]+addition;
 }
 
 #else
@@ -217,7 +211,8 @@ void NVSTable::load(){};
 void NVSTable::dump(Print * stream) {
   stream->print(F("<* CVs not supported on this platform *>\n"));
 }
-int16_t NVSTable::decodeNVSToken(int32_t token) {
+int16_t NVSTable::decodeNVSToken(int32_t token, bool atBoot) {
+  (void)atBoot;
   return token&0xFFFF;
 }
 

@@ -37,7 +37,7 @@ class NVSTable {
     static void dump(Print * stream, uint8_t nvsNumber);
     static void setNVS(uint8_t nvsNumber, int16_t value);
     static void setNVS(uint8_t nvsNumber, String value);
-    static int16_t getNVS(uint8_t nvsNumber);
+    static int16_t getNVS(uint8_t nvsNumber, bool atBoot=false);
     static String getTextNVS(uint8_t nvsNumber);
     
     // streaming for web interface
@@ -46,8 +46,7 @@ class NVSTable {
 
     // Acess NVS() values from EXRAIL scripts. This will decode a token into its corresponding NVS value.
     // This identifies EXRAIL type 32-bit tokens which may represent NVS[x]+
-    static int16_t decodeNVSToken(int32_t token);
-    static int16_t getNVSDuringBoot(uint8_t nvsnum);
+    static int16_t decodeNVSToken(int32_t token, bool atBoot);
   private:
     static int16_t nvs[NVS_MAX+1];
     static byte bootNeeded[(NVS_MAX+1)/8+1]; // bit array to track which NVS values need to be set during boot
