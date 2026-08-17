@@ -394,10 +394,14 @@ void DCC::setAccessory(int address, byte port, bool gate, byte onoff /*= 2*/) {
   if (onoff==0) {   // off packet only
     b[1] &= ~0x08; // set C to 0
     DCCQueue::scheduleDCCPacket(b, 2, 3);
+    CommandDistributor::broadcastAccessory(address, port, gate, false);
   } else if (onoff==1) { // on packet only
     DCCQueue::scheduleDCCPacket(b, 2, 3);
+    CommandDistributor::broadcastAccessory(address, port, gate, true);
   } else { // auto timed on then off  
     DCCQueue::scheduleAccOnOffPacket(b, 2, 3, 100); // On then off after 100mS
+    CommandDistributor::broadcastAccessory(address, port, gate, true);
+    CommandDistributor::broadcastAccessory(address, port, gate, false);
   } 
 #if defined(EXRAIL_ACTIVE)
   if (onoff !=0) RMFT2::activateEvent(address<<2|port,gate);
@@ -452,6 +456,7 @@ whole range of the 11 bits sent to track.
     | ((address & 0x03)<<1);         // mask 2 bits, shift up 1
   b[2]=value;
   DCCQueue::scheduleDCCPacket(b, sizeof(b), repeats);
+  CommandDistributor::broadcastExtendedAccessory(address-3, value);
   return true;
 }
 
