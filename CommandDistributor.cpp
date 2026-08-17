@@ -177,7 +177,7 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
 }
 
 void CommandDistributor::broadcastAccessory(int16_t address, byte port, bool gate, bool on) {
-  broadcastReply(COMMAND_TYPE, F("<y A %d %d %d %d>\n"), address, port, gate, on);
+  broadcastReply(COMMAND_TYPE, F("<y a %d %d %d %d>\n"), address, port, gate, on);
 }
 
 void CommandDistributor::broadcastExtendedAccessory(int16_t address, int16_t value) {
