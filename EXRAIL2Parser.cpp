@@ -154,7 +154,8 @@ bool RMFT2::streamStatus(Print * stream) {
               case OPCODE_DELAY:
               case OPCODE_DELAYMINS:
               case OPCODE_DELAYMS:
-              case OPCODE_RANDWAIT:
+              case OPCODE_RANDWAIT_MS:
+              case OPCODE_RANDWAIT_DS:
                 StringFormatter::send(stream,F(" WAIT DELAY"));
                 break; 
             default: break;

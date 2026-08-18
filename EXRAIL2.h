@@ -47,7 +47,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_BLINK,
              OPCODE_ENDIF,OPCODE_ELSE,
-             OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_DELAYMS,OPCODE_RANDWAIT,
+             OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_DELAYMS,
+             OPCODE_RANDWAIT_MS,OPCODE_RANDWAIT_DS,
              OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
              OPCODE_FTOGGLE,OPCODE_XFTOGGLE,OPCODE_XFWD,OPCODE_XREV,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,OPCODE_DRIVE,
@@ -283,6 +284,7 @@ private:
     union {
       unsigned long waitAfter; // Used by OPCODE_AFTER
       unsigned long timeoutStart; // Used by OPCODE_ATTIMEOUT
+      unsigned long holdoverMinDelay; // Used by OPCODE_RANDWAIT to hold mindelay from previous delay opcode
       VPIN blinkPin;  // Used by blink tasks 
     };
     byte  taskId;

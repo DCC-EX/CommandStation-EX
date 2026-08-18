@@ -607,9 +607,17 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
-#define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
+
+// DELAY/DELAYRANDOM opcodes altered to select millis or tenths of seconds based on the value of the delay.
+// but allowing NVS tolkens (which are always >= 0x7E000000) to be passed through unchanged as 
+// millis. This does NOT allow the use of NVS tokens for delays that are longer than 30 seconds
+// due to NVS number range limits.
+#define DELAY(ms) (ms<=30000 || ms>=0x7E000000) ? OPCODE_DELAYMS : OPCODE_DELAY,\
+                V((ms<=30000 || ms>=0x7E000000) ? ms : (ms/100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
+#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay)\
+        (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
+        V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
 #define DCC_SIGNAL(id,add,subaddr,description...)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
 #define DONE OPCODE_ENDTASK,V(0),
