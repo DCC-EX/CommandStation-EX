@@ -160,8 +160,8 @@ class LookList {
   public: 
     LookList(int16_t size);
     void chain(LookList* chainTo);
-    void add(int16_t lookup, int16_t result);
-    int16_t find(int16_t value); // finds result value
+    void add(int16_t lookup, int result);
+    int find(int16_t value); // finds result value
     int16_t findPosition(int16_t value); // finds index 
     int16_t size();
     void stream(Print * _stream); 
@@ -171,7 +171,7 @@ class LookList {
      int16_t m_size;
      int16_t m_loaded;
      int16_t * m_lookupArray;
-     int16_t * m_resultArray;
+     int * m_resultArray;
      LookList* m_chain;     
 };
 

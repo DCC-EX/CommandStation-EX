@@ -120,18 +120,18 @@ LookList::LookList(int16_t size) {
   m_chain=nullptr;
   if (size) {
     m_lookupArray=new int16_t[size];
-    m_resultArray=new int16_t[size];
+    m_resultArray=new int[size];
   }
 }
 
-void LookList::add(int16_t lookup, int16_t result) {
+void LookList::add(int16_t lookup, int result) {
   if (m_loaded==m_size) return; // and forget
   m_lookupArray[m_loaded]=lookup;
   m_resultArray[m_loaded]=result;
   m_loaded++;
 }
 
-int16_t LookList::find(int16_t value) {
+int LookList::find(int16_t value) {
   for (int16_t i=0;i<m_size;i++) {
     if (m_lookupArray[i]==value) return m_resultArray[i];
   }
