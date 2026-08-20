@@ -232,10 +232,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     onAmberLookup=LookListLoader(OPCODE_ONAMBER);
     onGreenLookup=LookListLoader(OPCODE_ONGREEN);
     Signal::setAllSignalsToRed();
-
-    // hide any hidden turnouts
-    for (auto t=Turnout::first();t;t=t->next()) setTurnoutHiddenState(t);
-    
+ 
     // configure any input pins, and create any ON* catchers
 
   int progCounter;
@@ -334,12 +331,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   // Removed for 4.2.31  new RMFT2(0); // add the startup route
   diag=saved_diag;
-}
-
-void RMFT2::setTurnoutHiddenState(Turnout * t) {
-  // turnout descriptions are in low flash F strings
-  const FSH *desc = getTurnoutDescription(t->getId());
-  if (desc) t->setHidden(GETFLASH(desc)==0x01);
 }
 
 void RMFT2::setTurntableHiddenState(Turntable * tto) {

@@ -201,7 +201,6 @@ class LookList {
   static const int16_t HIGHFLASH rosterIdList[];
   static const FSH *  getRouteDescription(int16_t id);
   static char   getRouteType(int16_t id);
-  static const FSH *  getTurnoutDescription(int16_t id);
   static const FSH *  getRosterName(int16_t id);
   static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
@@ -218,7 +217,6 @@ private:
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void setTurnoutHiddenState(Turnout * t);
     static void setTurntableHiddenState(Turntable * tto);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);

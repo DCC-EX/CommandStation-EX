@@ -242,15 +242,16 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 // Turnouts created here
 #undef SERVO_TURNOUT
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) \
-      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,PCA9685::ProfileType::profile);
+      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,PCA9685::ProfileType::profile)->\
+      setRamDescription(S_DESC(description));
 #undef TURNOUT
-#define TURNOUT(id,addr,subaddr,description...) DCCTurnout::create(id,addr,subaddr);
+#define TURNOUT(id,addr,subaddr,description...) DCCTurnout::create(id,addr,subaddr)->setRamDescription(S_DESC(description));
 #undef TURNOUTL
 #define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
 #undef PIN_TURNOUT
-#define PIN_TURNOUT(id,pin,description...) VpinTurnout::create(id,pin);
+#define PIN_TURNOUT(id,pin,description...) VpinTurnout::create(id,pin)->setRamDescription(S_DESC(description));
 #undef VIRTUAL_TURNOUT
-#define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0);
+#define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0)->setRamDescription(S_DESC(description));
 #undef CONFIGURE_DIALOG
 #define CONFIGURE_DIALOG(title,body) {\
    extern String body##_html;\
@@ -459,28 +460,6 @@ void  RMFT2::printMessage(uint16_t id) {
     default: break ; 
   }
   if (strfar) thrungeString(strfar,tmode,lcdid);
-}
-
-
-// Pass 5: Turnout descriptions (optional)
-#include "EXRAIL2MacroReset.h"
-#undef TURNOUT
-#define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
-#undef TURNOUTL
-#define TURNOUTL(id,addr,description...) O_DESC(id,description)
-#undef PIN_TURNOUT
-#define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
-#undef SERVO_TURNOUT
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) O_DESC(id,description)
-#undef VIRTUAL_TURNOUT
-#define VIRTUAL_TURNOUT(id,description...) O_DESC(id,description)
-
-const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
-     switch (turnoutid) {
-        #include "myAutomation.h"
-     default:break;
-     }
-     return NULL;
 }
 
 // Pass to get turntable descriptions (optional)

@@ -153,13 +153,9 @@
     for (Turnout *tt = _firstTurnout; tt; tt = tt->_nextTurnout) {
       DIAG(F("Sharing turnout %d"), tt->getId());
       if (tt->isHidden()) continue;
-	    if (tt->getRamDescription()) continue; // wasnt my creation
-      const FSH *tdesc=nullptr;
-        #ifdef EXRAIL_ACTIVE
-        tdesc = RMFT2::getTurnoutDescription(tt->getId());
-        #endif
-        if (!tdesc) tdesc = F("");
-        NodeManager::cast(F("<H %d %d \"%S\">"),tt->getId(), tt->isThrown(), tdesc);
+      auto tdesc = tt->getRamDescription();
+      if (!tdesc) tdesc = "";
+	    NodeManager::cast(F("<H %d %d \"%s\">"),tt->getId(), tt->isThrown(), tdesc);
       } 
   }
 

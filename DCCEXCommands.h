@@ -255,17 +255,9 @@ ZZ(J,T,id) // Get turnout state and description
         if (!t || t->isHidden()) { REPLY("<jT %d X>\n",id) return true; }
         // some turnouts have description in RAM, some have description in flash, some have no description.
         auto ramDesc = t->getRamDescription();
-        if (ramDesc) {
-           REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
-           return true; 
-        }
-        
-        const FSH *tdesc=nullptr;
-        #ifdef EXRAIL_ACTIVE
-        tdesc = RMFT2::getTurnoutDescription(id);
-        #endif
-        if (!tdesc) tdesc = F("");
-        REPLY("<jT %d %c \"%S\">\n",id,t->isThrown()?'T':'C',tdesc)
+        if (!ramDesc) ramDesc="";
+        REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
+        return true; 
 ZZ(z,signedVpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
         IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);
 ZZ(z,vpin,analogue,profile,duration) // Change analogue value over duration (Fade or servo move)

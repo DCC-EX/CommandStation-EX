@@ -131,19 +131,13 @@ public:
    */
   inline bool isClosed() { return _turnoutData.closed; };
   inline bool isThrown() { return !_turnoutData.closed; }
-  inline bool isHidden() { return _turnoutData.hidden; }
-  inline void setHidden(bool h) { _turnoutData.hidden=h; }
+  inline bool isHidden() { return _turnoutData.ramDescription && _turnoutData.ramDescription[0]==0x01; }
   inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }
   inline const char *getRamDescription() { return _turnoutData.ramDescription; }
   inline void setRamDescription(const char *desc) {
-    if (desc[0]==0x01) { // special case for hidden turnout
-      _turnoutData.hidden=true;
-      return;
-    }
     if (_turnoutData.ramDescription) return; // No renaming of turnouts.
-
     _turnoutData.ramDescription = (char *)malloc(strlen(desc)+1);
     strcpy(_turnoutData.ramDescription, desc);
   }
