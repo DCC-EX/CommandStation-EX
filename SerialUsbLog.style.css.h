@@ -10,6 +10,8 @@ button:hover,input:hover,label:hover,a.btn:hover{border-color:#3a3f4a}
 .menu[hidden]{display:none!important}
 .menu-item{width:100%;text-align:left;background:#181a1f;color:#d7dae0;border:1px solid transparent;border-radius:8px;padding:.35rem .55rem}
 .menu-item:hover{border-color:#3a3f4a}
+@media (max-width: 399px){.menu{left:auto;right:0}}
+@media (max-width: 318px){.menu{left:0;right:auto}}
 #wrapLbl{display:flex;align-items:center;gap:.35rem;opacity:.9}
 #followLbl{display:flex;align-items:center;gap:.35rem;opacity:.9}
 #log{flex:1;overflow:auto;padding:.75rem;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;tab-size:2}
