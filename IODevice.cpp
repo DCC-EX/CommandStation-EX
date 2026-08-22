@@ -28,7 +28,7 @@
 #include "DCCTimer.h"
 #include "NodeManager.h"
 
-#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
+#if defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
 #endif
 

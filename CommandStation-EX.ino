@@ -12,6 +12,10 @@
 //
 // If config.h is not found, the command station will build with no motor shield.
 ////////////////////////////////////////////////////////////////////////////////////
+#ifdef ARDUINO_ARCH_AVR
+#error This version of DCC-EX does not run on AVR Architecture such as Mega or Nano\
+You must use Version 5.6.x 
+#else
 
 #if __has_include ( "config.h")
   #include "config.h"
@@ -24,7 +28,7 @@
 
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2025 Chris Harlow, Harald Barth, David Cutting,
+ *  © 2020-2026 Chris Harlow, Harald Barth, David Cutting,
  *  Fred Decker, Gregor Baues, Anthony W - Dayton
  *  © 2023 Nathan Kellenicki
  *  © 2025 Herb Morton
@@ -255,19 +259,11 @@ void loop()
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
 
-  #ifdef ARDUINO_ARCH_AVR
-  // count every byte of free RAM on AVR
-  int freeNow = DCCTimer::getMinimumFreeMemory();
-  if (freeNow < ramLowWatermark) {
-    ramLowWatermark = freeNow;
-    LCD(3,F("Free RAM=%5db"), ramLowWatermark);
-  }
-  #else
   // on other platforms, just report every 4kb
   int freeNow = DCCTimer::getMinimumFreeMemory() / 4096;
   if (freeNow < ramLowWatermark) {
     ramLowWatermark = freeNow;
     LCD(3,F("Free RAM=%5dKb"), ramLowWatermark*4);
   }
-  #endif
 }
+#endif // ARDUINO_ARCH_AVR

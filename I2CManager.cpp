@@ -30,9 +30,6 @@
 // Include target-specific portions of I2CManager class
 #if defined(I2C_USE_WIRE) 
 #include "I2CManager_Wire.h"
-#elif defined(ARDUINO_ARCH_AVR)
-#include "I2CManager_NonBlocking.h"
-#include "I2CManager_AVR.h"       // Uno/Nano/Mega2560
 #elif defined(ARDUINO_ARCH_MEGAAVR) 
 #include "I2CManager_NonBlocking.h"
 #include "I2CManager_Mega4809.h"  // NanoEvery/UnoWifi

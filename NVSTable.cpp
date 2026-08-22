@@ -227,8 +227,9 @@ void NVSTable::setNVS(uint8_t nvsNumber, String value) {
 void NVSTable::applyChanges(const String& changes) {
   (void)changes;
 }
-int16_t NVSTable::getNVS(uint8_t nvsNumber) {
+int16_t NVSTable::getNVS(uint8_t nvsNumber, bool atBoot) {
   (void)nvsNumber;
+  (void)atBoot;
   return INT16_MIN;
 }
 String NVSTable::getTextNVS(uint8_t nvsNumber) {
