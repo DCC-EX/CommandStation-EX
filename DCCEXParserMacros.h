@@ -83,6 +83,6 @@ ZCHECK(tSpeed,_index,_pname,-1,126) \
 ZCHECK(direction,_index,_pname,0,1) \
 ZCHECK(track,_index,_pname,'A','H') \
 ZCHECK(cv,_index,_pname,1,1023) \
-ZCHECK(value,_index,_pname,0,255) \
+ZCHECK(cValue,_index,_pname,0,255) \
 ZCHECK(bitPosition,_index,_pname,0,7) \
 ZCHECK(bitValue,_index,_pname,0,1)
