@@ -56,7 +56,7 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+#define MOTOR_SHIELD_TYPE EXCSB1
 //
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -169,7 +169,7 @@ The configuration file for DCC-EX Command Station
 //OR define OLED_DRIVER width,height[,address] in pixels (address auto detected if not supplied)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
 // Use 132,64 for a SH1106-based I2C device with a 128x64 display.
-// #define OLED_DRIVER 0x3c,128,32
+#define OLED_DRIVER 0x3c,128,32
 
 // Define scroll mode as 0, 1 or 2
 //  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),

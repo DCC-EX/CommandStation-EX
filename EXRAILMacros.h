@@ -671,6 +671,24 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PLAY_STOP(vpin)                    ANOUT(vpin,0,0,DFPlayerBase::DF_STOPPLAY)
 #define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
 #define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
+
+// LSS Commands (Aliases of ANOUT)
+#define LSS_LOAD(vpin, file_id)                    ANOUT(vpin, file_id, 0, IO_LSS::LSS_CMD_LOAD)
+#define LSS_FLUSH(vpin)                            ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_FLUSH)
+#define LSS_PLAY(vpin)                             ANOUT(vpin, 1, 0, IO_LSS::LSS_CMD_PLAY)
+#define LSS_PLAY_LOOP(vpin)                        ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_PLAY_LOOP)
+#define LSS_STOP(vpin)                             ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_STOP)
+#define LSS_PAUSE(vpin)                            ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_PAUSE)
+#define LSS_RESUME(vpin)                           ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_RESUME)
+#define LSS_VOLUME(vpin, channel, volume)          ANOUT(vpin, volume, channel, IO_LSS::LSS_CMD_VOLUME)
+#define LSS_FADE(vpin, channel, target_vol, duration_ticks, curve) \
+                                                   ANOUT(vpin, duration_ticks, target_vol, ((channel) << 12) | ((curve) << 8) | IO_LSS::LSS_CMD_FADE)
+#define LSS_GLOBAL_RESET(vpin)                     ANOUT(vpin, 0, 0, IO_LSS::LSS_CMD_GLOBAL_RESET)
+#define LSS_GLOBAL_MUTE(vpin, mute)                ANOUT(vpin, mute, 0, IO_LSS::LSS_CMD_GLOBAL_MUTE)
+#define LSS_OLED_PAGE(vpin, page)                  ANOUT(vpin, page, 0, IO_LSS::LSS_CMD_OLED_PAGE)
+#define LSS_RUN_SCRIPT(vpin, script_id, engine_id) ANOUT(vpin, script_id, engine_id, IO_LSS::LSS_CMD_RUN_SCRIPT)
+#define LSS_STOP_SCRIPT(vpin, engine_id)           ANOUT(vpin, 0, engine_id, IO_LSS::LSS_CMD_STOP_SCRIPT)
+
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,
 #define POWERON OPCODE_POWERON,0,0,
