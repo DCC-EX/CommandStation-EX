@@ -538,6 +538,7 @@ ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted st
    else {
         NVSTable::setNVS(nvsnumber,nvsvalue);
    }
+   if (NVSTable::saveNeeded()) NVSTable::save();
   
 ZZ(D,NVS) // Show all non-zero NVS values (Not Loco CVs)
   NVSTable::dump(stream);

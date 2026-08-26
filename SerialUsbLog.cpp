@@ -53,7 +53,6 @@
 #include "SerialUsbLog.script1.js.h"
 #include "SerialUsbLog.script2.js.h"
 #include "SerialUsbLog.script3.js.h"
-#include "NVSTableEditor.html.h"
 #include "NVSTable.h"
 #include "SerialUsbLog.favicon.h"
 
@@ -388,7 +387,6 @@ void SerialUsbLog::loop() {
     new LogPage("/script2.js", SerialUsbLog_script2_js);
     new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
-    new LogPage("/nvstableeditor.html", NVSTTableEditor_html,"Raw NVS Editor");  
     // user pages may be added later with exrail
     server.begin();
     started = true;
@@ -429,7 +427,9 @@ void SerialUsbLog::loop() {
     
     // read id=value, id="value" pairs from the full body.
     if (body.indexOf('=') >= 0) {
-      NVSTable::applyChanges(body);
+      char changes[body.length() + 1];
+      body.toCharArray(changes, sizeof(changes));
+      NVSTable::applyChanges(changes,false);
     }
     client.print(
       "HTTP/1.1 200 OK\r\n"

@@ -103,15 +103,17 @@
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
 // For all passes that generate c++ code directly from the macros, 
-// nvs references can refer directly to the NVSTable::decodeNVSToken so nvs values will be passed directly
-// in to things like Alias, turnout and signal definitions, HAL setups etc.
+// nvs references can refer directly to the NVSTable functions 
+// In to things like Alias, turnout and signal definitions, HAL setups etc.
 // these will take place at startup time but changes to the nvs will not 
-// affect them without a reboot. 
+// affect them without a reboot.
+
+// For run-time statelents (e.h DELAY) 
 // The NVS macro generates a token that will be passed to the NVSTable::decodeNVSToken function at the appropriate time.
-// the _NVS_ macro is used when a value MIGHT be a token that is needed in code.
 
 // For all Aliases... NVS references are not possible
 #undef NVS
+#undef NVST
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -119,14 +121,11 @@
 #define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
-// NVST creates a text insert tag
-#define NVST(nvsnum)  "\b" #nvsnum "\b" 
 
 // For all passes that generate c++ code directly from the macros,
 #undef NVS
 #define NVS(nvsnum) NVSTable::getNVS(nvsnum,true)
-
-
+#define NVST(nvsnum)  "\b" #nvsnum "\b" 
 
 // Perform compile time asserts to check the script for errors
 #include "EXRAILAsserts.h"
@@ -548,10 +547,15 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #include "EXRAIL2MacroReset.h"
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
-// a constant.
+// a constant. (0b01, 14-bit NVS number,16-bit added value)
+// Note that all string-using commands will alreday have been compiled
+// into code and only an OPCODE_PRINT is used to reference them at run time.
+
 
 #undef NVS
-#define NVS(nvsnum) ((int32_t)((nvsnum & 0x00FF)<< 16 | 0x7e000000)) 
+#define NVS(nvsnum) ((int32_t)((nvsnum & 0x03FF)<< 16 | 0x40000000)) 
+#undef NVST
+#define NVST(nvsnum)
 
 
 #define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
