@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  © 2023 Neil McKechnie
  *  © 2022-2024 Paul M. Antoine
  *  © 2021 Mike S
@@ -30,11 +30,335 @@
 #ifdef ARDUINO_ARCH_STM32
 
 #include "DCCTimer.h"
-#ifdef DEBUG_ADC
-#include "TrackManager.h"
-#endif
 #include "DIAG.h"
 #include <wiring_private.h>
+
+#include "TrackManager.h"
+#include "LocoSlot.h"
+#include "CommandDistributor.h"
+#include "DCC.h"
+
+// Forward declarations for cross-linking functions safely
+void DCCEXanalogWriteInternal(uint8_t pin, uint32_t rawValue, uint8_t forcedTrackIdx = 255);
+uint32_t lookupSiblingFrameworkFrequency(uint8_t currentPin);
+void registerActiveLayoutTimer(TIM_TypeDef* instance);
+void forceHardwareTimerUpdate(TIM_TypeDef* TIMx);
+void syncAllLayoutOverflowCounters();
+
+// --- Core Framework Arrays ---
+static HardwareTimer * pin_timer[NUM_DIGITAL_PINS*2] = {0};
+static uint32_t channel_frequency[NUM_DIGITAL_PINS*2] = {0};
+static uint32_t pin_channel[NUM_DIGITAL_PINS*2] = {0};
+
+// 1. Dynamic Layout Unrolling Structure
+class SiblingLayoutParser {
+public:
+    int16_t extractedBrakePin;
+    SiblingLayoutParser() : extractedBrakePin(255) {}
+    SiblingLayoutParser(int p1 __attribute__((unused)), 
+                        int p2 __attribute__((unused)), 
+                        int p3 __attribute__((unused)), 
+                        int16_t brakePin, 
+                        int p5 __attribute__((unused)), 
+                        float p6 __attribute__((unused)), 
+                        int p7 __attribute__((unused)), 
+                        int p8 __attribute__((unused))) {
+        extractedBrakePin = brakePin;
+    }
+};
+
+#ifdef F
+#undef F
+#endif
+#define F(str) SiblingLayoutParser()
+#define MotorDriver SiblingLayoutParser
+#define new 
+
+static const SiblingLayoutParser layoutDriversGrid[] = { MOTOR_SHIELD_TYPE };
+
+#undef new
+#undef MotorDriver
+#undef F
+#define F(str) (str)
+
+#define TOTAL_LAYOUT_TRACK_COUNT (sizeof(layoutDriversGrid) / sizeof(layoutDriversGrid[0]))
+
+// 2. Global State & Matrix Management Storage Arrays
+static bool isProcessingSiblingDCUpdate = false;
+static TIM_TypeDef* _activeLayoutTimers[8] = { nullptr }; 
+static uint8_t _activeTimerCount = 0;
+
+static inline TIM_TypeDef* getRawTimerInstance(uint8_t pin) {
+    if (pin == 0 || pin == 255) return nullptr;
+    PinName pinName = digitalPinToPinName(pin);
+    if (pinName == NC) return nullptr;
+    TIM_TypeDef *instance = (TIM_TypeDef *)pinmap_peripheral(pinName, PinMap_PWM);
+    if (instance == nullptr) instance = (TIM_TypeDef *)pinmap_peripheral(pinName, PinMap_TIM);
+    return instance;
+}
+
+static uint8_t getFrameworkDynamicBrakePin(uint8_t trackIndex) {
+    if (TOTAL_LAYOUT_TRACK_COUNT == 0) return 255;
+    bool hasLeadingShiftArtifact = (layoutDriversGrid[0].extractedBrakePin == 255 || layoutDriversGrid[0].extractedBrakePin == 0);
+    uint8_t correctedArrayTargetIndex = hasLeadingShiftArtifact ? (trackIndex + 1) : trackIndex;
+    if (correctedArrayTargetIndex >= TOTAL_LAYOUT_TRACK_COUNT) return 255;
+    int16_t rawPin = layoutDriversGrid[correctedArrayTargetIndex].extractedBrakePin;
+    if (rawPin == 0 || rawPin == 255) return 255;
+    return (rawPin < 0) ? (uint8_t)(-rawPin) : (uint8_t)rawPin;
+}
+
+void registerActiveLayoutTimer(TIM_TypeDef* instance) {
+    if (instance == nullptr) return;
+    for (uint8_t i = 0; i < _activeTimerCount; i++) { 
+        if (_activeLayoutTimers[i] == instance) return; 
+    }
+    if (_activeTimerCount < 8) { 
+        _activeLayoutTimers[_activeTimerCount] = instance; 
+        _activeTimerCount++; 
+    }
+}
+
+void forceHardwareTimerUpdate(TIM_TypeDef* TIMx) {
+    if (TIMx != nullptr) {
+        TIMx->CR1 |= TIM_CR1_URS; 
+        TIMx->EGR |= TIM_EGR_UG; 
+        TIMx->SR &= ~TIM_SR_UIF; 
+    }
+}
+
+void syncAllLayoutOverflowCounters() {
+    for (uint8_t i = 0; i < _activeTimerCount; i++) {
+        forceHardwareTimerUpdate(_activeLayoutTimers[i]);
+    }
+}
+
+void DCCEXanalogWriteInternal(uint8_t pin, uint32_t rawValue, uint8_t forcedTrackIdx) {
+    if (pin_timer[pin] != nullptr) {
+        uint32_t currentARR = __HAL_TIM_GET_AUTORELOAD(pin_timer[pin]->getHandle());
+        uint32_t linearSpeed = rawValue & 127;
+        uint32_t calculatedTicks = 0;
+        if (currentARR > 0) {
+            uint32_t highTicks = (uint32_t)((uint64_t)currentARR * linearSpeed / 127);
+            calculatedTicks = currentARR - highTicks;
+        }
+        pin_timer[pin]->setCaptureCompare(pin_channel[pin], calculatedTicks);
+        
+        int trackIdx = forcedTrackIdx;
+        uint8_t totalTracks = TrackManager::numTracks();
+        if (trackIdx == 255) {
+            for (uint8_t t = 0; t < totalTracks; t++) {
+                if (getFrameworkDynamicBrakePin(t) == pin) { 
+                    trackIdx = t; 
+                    break; 
+                }
+            }
+        }
+        int cab = (trackIdx >= 0 && trackIdx < totalTracks) ? TrackManager::returnDCAddr(trackIdx) : 0;
+        char trackLetter = (trackIdx >= 0 && trackIdx < totalTracks) ? ('A' + trackIdx) : '?';
+        int effectiveLowPercent = (int)((linearSpeed * 100) / 127);
+        DIAG(F("DC-Sync [Write] -> Track: %c, Cab: %d, Pin: %d, ARR: %d, Ticks: %d, Width: %d%%"), 
+             trackLetter, cab, pin, (int)currentARR, (int)calculatedTicks, effectiveLowPercent);
+    }
+}
+
+// =========================================================================
+// DEFERRED SYNCHRONIZATION RUNTIME DRIVER (Called from DCC::setFn Function Bits)
+// =========================================================================
+void DCC::syncDCFreqToActiveHardwareSiblings(int currentCab, uint32_t frequencyBitfield) {
+    uint8_t totalTracks = TrackManager::numTracks();
+    
+    uint32_t targetFrequencyBits = frequencyBitfield & 0xE0000000UL;
+    uint8_t mask = 0;
+    if (targetFrequencyBits & (1UL << 29)) mask |= (1 << 0);
+    if (targetFrequencyBits & (1UL << 30)) mask |= (1 << 1);
+    if (targetFrequencyBits & (1UL << 31)) mask |= (1 << 2);
+    
+    uint32_t frequencyTable[] = { 131, 480, 3600, 16000, 32000, 32000, 32000, 62500 };
+    uint32_t targetFrequencyHz = frequencyTable[mask];
+
+    TIM_TypeDef* callingTimer = nullptr;
+    for (uint8_t i = 0; i < totalTracks; i++) {
+        TRACK_MODE mode = TrackManager::getMode(i);
+        if (mode == TRACK_MODE_DC || mode == TRACK_MODE_DCX || mode == TRACK_MODE_DC_INV) {
+            if (TrackManager::returnDCAddr(i) == currentCab) {
+                callingTimer = getRawTimerInstance(getFrameworkDynamicBrakePin(i));
+                break;
+            }
+        }
+    }
+    
+    if (callingTimer == nullptr) return;
+
+    isProcessingSiblingDCUpdate = true;
+    bool hardwareTimerNeedsRefresh = false;
+
+    // STEP 1: Accumulate Engine State Changes & Broadcast Changes
+    for (uint8_t trackIdx = 0; trackIdx < totalTracks; trackIdx++) {
+        TRACK_MODE mode = TrackManager::getMode(trackIdx);
+        if (mode == TRACK_MODE_DC || mode == TRACK_MODE_DCX || mode == TRACK_MODE_DC_INV) {
+            uint8_t siblingPin = getFrameworkDynamicBrakePin(trackIdx);
+            if (siblingPin != 0 && siblingPin != 255 && getRawTimerInstance(siblingPin) == callingTimer) {
+                
+                int16_t siblingCab = TrackManager::returnDCAddr(trackIdx);
+                if (siblingCab != 0 && siblingCab != currentCab) {
+                    auto slot = LocoSlot::getSlot(siblingCab, true);
+                    if (slot != nullptr) {
+                        uint32_t oldFunctions = slot->getFunctions();
+                        uint32_t updatedFunctions = (oldFunctions & ~0xE0000000UL) | targetFrequencyBits;
+                        if (updatedFunctions != oldFunctions) {
+                            slot->setFunctions(updatedFunctions);
+                            CommandDistributor::broadcastLoco(slot);
+                        }
+                    }
+                }
+                channel_frequency[siblingPin] = targetFrequencyHz;
+                hardwareTimerNeedsRefresh = true;
+            }
+        }
+    }
+
+    // STEP 2: Deferred Hardware Array Updates
+    if (hardwareTimerNeedsRefresh) {
+        for (uint8_t trackIdx = 0; trackIdx < totalTracks; trackIdx++) {
+            TRACK_MODE mode = TrackManager::getMode(trackIdx);
+            if (mode == TRACK_MODE_DC || mode == TRACK_MODE_DCX || mode == TRACK_MODE_DC_INV) {
+                uint8_t siblingPin = getFrameworkDynamicBrakePin(trackIdx);
+                if (siblingPin != 0 && siblingPin != 255 && getRawTimerInstance(siblingPin) == callingTimer) {
+                    
+                    pinmap_pinout(digitalPinToPinName(siblingPin), PinMap_TIM);
+                    if (pin_timer[siblingPin] == nullptr) {
+                        TIM_TypeDef *Instance = getRawTimerInstance(siblingPin);
+                        if (Instance != nullptr) {
+                            pin_channel[siblingPin] = STM_PIN_CHANNEL(pinmap_function(digitalPinToPinName(siblingPin), PinMap_PWM));
+                            pin_timer[siblingPin] = new HardwareTimer(Instance);
+                            if (pin_timer[siblingPin] != nullptr) {
+                                pin_timer[siblingPin]->setPWM(pin_channel[siblingPin], siblingPin, targetFrequencyHz, 0);
+                                registerActiveLayoutTimer(Instance);
+                            }
+                        }
+                    } else {
+                        pin_timer[siblingPin]->setOverflow(targetFrequencyHz, HERTZ_FORMAT);
+                        registerActiveLayoutTimer(callingTimer);
+                    }
+                }
+            }
+        }
+
+        // Flush registers down on a single clock execution pass
+        forceHardwareTimerUpdate(callingTimer);
+
+        // STEP 3: Flash Throttle Duty Synchronously
+        for (uint8_t trackIdx = 0; trackIdx < totalTracks; trackIdx++) {
+            TRACK_MODE mode = TrackManager::getMode(trackIdx);
+            if (mode == TRACK_MODE_DC || mode == TRACK_MODE_DCX || mode == TRACK_MODE_DC_INV) {
+                uint8_t siblingPin = getFrameworkDynamicBrakePin(trackIdx);
+                if (siblingPin != 0 && siblingPin != 255 && getRawTimerInstance(siblingPin) == callingTimer) {
+                  int16_t siblingCab = TrackManager::returnDCAddr(trackIdx);
+                    if (siblingCab != 0) {
+                      auto siblingSlot = LocoSlot::getSlot(siblingCab, false);
+                      uint32_t targetSpeedValue = (siblingSlot != nullptr) ? siblingSlot->getTargetSpeed() : 0;
+                      DCCEXanalogWriteInternal(siblingPin, targetSpeedValue, trackIdx);
+                    }
+                }
+            }
+        }
+    }
+    isProcessingSiblingDCUpdate = false;
+    syncAllLayoutOverflowCounters();
+}
+
+// =========================================================================
+// PHYSICAL PWM LAYER EXECUTION INTERFACE
+// =========================================================================
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency) {
+  channel_frequency[pin] = frequency;
+  if (pin_timer[pin] == nullptr) {
+    TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(digitalPinToPinName(pin), PinMap_PWM);
+    if (Instance == nullptr) Instance = (TIM_TypeDef *)pinmap_peripheral(digitalPinToPinName(pin), PinMap_TIM);
+    if (Instance == nullptr) return;
+    pin_channel[pin] = STM_PIN_CHANNEL(pinmap_function(digitalPinToPinName(pin), PinMap_PWM));
+    pin_timer[pin] = new HardwareTimer(Instance);
+    if (pin_timer[pin] != nullptr) {
+      pin_timer[pin]->setPWM(pin_channel[pin], pin, frequency, 0);
+      registerActiveLayoutTimer(Instance);
+    }
+  } else {
+    pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM);
+    pin_timer[pin]->setOverflow(frequency, HERTZ_FORMAT);
+    TIM_TypeDef* currentTimer = getRawTimerInstance(pin);
+    if (currentTimer != nullptr) {
+      registerActiveLayoutTimer(currentTimer);
+      forceHardwareTimerUpdate(currentTimer);
+    }
+  }
+  uint8_t totalTracks = TrackManager::numTracks();
+  int activeScanningTrackIdx = -1;
+  for (uint8_t t = 0; t < totalTracks; t++) {
+    if (getFrameworkDynamicBrakePin(t) == pin) {
+      if (TrackManager::returnDCAddr(t) != 0) {
+        activeScanningTrackIdx = t;
+        break;
+      }
+    }
+  }
+  if (activeScanningTrackIdx != -1) {
+    int cab = TrackManager::returnDCAddr(activeScanningTrackIdx);
+    if (cab != 0) {
+      auto slot = LocoSlot::getSlot(cab, false);
+      if (slot != nullptr) {
+        DCCEXanalogWriteInternal(pin, slot->getTargetSpeed(), activeScanningTrackIdx);
+      }
+    }
+  }
+  syncAllLayoutOverflowCounters();
+}
+
+// =========================================================================
+// ENTRY POINT INTEGRATION: SELECTION OVERWRITE TRAP PURGED COMPLETELY
+// =========================================================================
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  uint32_t frequencyHz = 131;
+  if (f >= 16) frequencyHz = f;
+  else if (f == 7) frequencyHz = 62500;
+  else if (f >= 4) frequencyHz = 32000;
+  else if (f >= 3) frequencyHz = 16000;
+  else if (f >= 2) frequencyHz = 3600;
+  else if (f == 1) frequencyHz = 480;
+  else frequencyHz = 131;
+  uint8_t totalTracks = TrackManager::numTracks();
+  int targetTrackIdx = -1;
+  for (uint8_t t = 0; t < totalTracks; t++) {
+    if (getFrameworkDynamicBrakePin(t) == pin) {
+      targetTrackIdx = t;
+      break;
+    }
+  }
+  if (targetTrackIdx == -1) {
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, frequencyHz);
+    return;
+  }
+  TIM_TypeDef* targetTimer = getRawTimerInstance(pin);
+  if (targetTimer != nullptr) {
+    isProcessingSiblingDCUpdate = true;
+    for (uint8_t i = 0; i < totalTracks; i++) {
+      TRACK_MODE mode = TrackManager::getMode(i);
+      if (mode == TRACK_MODE_DC || mode == TRACK_MODE_DCX || mode == TRACK_MODE_DC_INV) {
+        uint8_t siblingPin = getFrameworkDynamicBrakePin(i);
+        if (siblingPin != 0 && siblingPin != 255 && getRawTimerInstance(siblingPin) == targetTimer) {
+          DCCTimer::DCCEXanalogWriteFrequencyInternal(siblingPin, frequencyHz);
+        }
+      }
+    }
+    isProcessingSiblingDCUpdate = false;
+    forceHardwareTimerUpdate(targetTimer);
+    syncAllLayoutOverflowCounters();
+  }
+}
+
+// =========================================================================
+// prior functions, etc commented out below
+// =========================================================================
+//   
 
 #if defined(ARDUINO_NUCLEO_F401RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
@@ -279,7 +603,7 @@ void DCCTimer::reset() {
     NVIC_SystemReset();
     while(true) {};
 }
-
+/*
 void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   if (f >= 16)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
@@ -290,23 +614,26 @@ void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
   else if (f >= 3)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
   else if (f >= 2)
-    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3600);
   else if (f == 1)
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
   else
     DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 131);
 }
-
+*/
+/*
+// move block into new DC track sync section
 // TODO: rationalise the size of these... could really use sparse arrays etc.
 static HardwareTimer * pin_timer[100] = {0};
 static uint32_t channel_frequency[100] = {0};
 static uint32_t pin_channel[100] = {0};
-
+*/
 // Using the HardwareTimer library API included in stm32duino core to handle PWM duties
 // TODO: in order to use the HA code above which Neil kindly wrote, we may have to do something more
 // sophisticated about detecting any clash between the timer we'd like to use for PWM and the ones
 // currently used for HA so they don't interfere with one another. For now we'll just make PWM
 // work well... then work backwards to integrate with HA mode if we can.
+/*
 void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency)
 {
   if (pin_timer[pin] == NULL) {
@@ -328,6 +655,7 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
     if (pin_timer[pin] != NULL)
     {
       pin_timer[pin]->setPWM(pin_channel[pin], pin, frequency, 0); // set frequency in Hertz, 0% dutycycle
+      syncTrackPeripherals(pin);
       DIAG(F("DCCEXanalogWriteFrequency::Pin %d on Timer Channel %d, frequency %d"), pin, pin_channel[pin], frequency);
     }
     else
@@ -340,12 +668,15 @@ void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency
     {
       pinmap_pinout(digitalPinToPinName(pin), PinMap_TIM); // ensure the pin has been configured!
       pin_timer[pin]->setOverflow(frequency, HERTZ_FORMAT); // Just change the frequency if it's already running!
+      syncTrackPeripherals(pin);
       DIAG(F("DCCEXanalogWriteFrequency::setting frequency to %d"), frequency);
     }
   }
   channel_frequency[pin] = frequency;
   return;
 }
+*/
+
 
 void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
     if (invert)

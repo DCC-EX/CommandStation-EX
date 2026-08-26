@@ -1161,6 +1161,18 @@ void RMFT2::loop2() {
     }
     break;
 
+  case OPCODE_DCTRANSIT:
+    TrackManager::dcTransit(operand & 0x0F, getOperand(1) & 0x0F);
+    break;
+
+  case OPCODE_DCTRANSITCAB:
+    TrackManager::dcTransitCab(operand & 0x0F, getOperand(1) & 0x0F);
+    break;
+
+  case OPCODE_INVERT_TRACK:
+    TrackManager::invertTrackMode(operand & 0x0F);
+    break;
+
   case OPCODE_LCC:  // short form LCC
       if ((compileFeatures & FEATURE_LCC) && LCCSerial) 
           StringFormatter::send(LCCSerial,F("<L x%h>"),(uint16_t)operand);

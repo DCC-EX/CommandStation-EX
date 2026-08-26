@@ -549,6 +549,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
 #define DCC_SIGNAL(id,add,subaddr)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
+#define DCTRANSIT(trackA,trackB) OPCODE_DCTRANSIT,V(TRACK_NUMBER_##trackA),OPCODE_PAD,V(TRACK_NUMBER_##trackB),
+#define DCTRANSITCAB(trackA,trackB) OPCODE_DCTRANSITCAB,V(TRACK_NUMBER_##trackA),OPCODE_PAD,V(TRACK_NUMBER_##trackB),
 #define DONE OPCODE_ENDTASK,0,0,
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
 #define ELSE OPCODE_ELSE,0,0,
@@ -603,6 +605,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define INVERT_TRACK(track) OPCODE_INVERT_TRACK,V(TRACK_NUMBER_##track),
 #define JMRI_SENSOR(vpin,count...)
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
 #define JOIN OPCODE_JOIN,0,0,

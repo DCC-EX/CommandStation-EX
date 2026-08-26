@@ -299,6 +299,15 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
       updateGroupflags(slot, functionNumber);
     CommandDistributor::broadcastLoco(slot);
   }
+  #ifdef ARDUINO_ARCH_STM32
+    if (functionNumber >= 29 && functionNumber <= 31) {
+      // Query the active software slots to pass updated bitfield frames out to the timers
+      auto slot = LocoSlot::getSlot(cab, false);
+      if (slot != nullptr) {
+          DCC::syncDCFreqToActiveHardwareSiblings(cab, slot->getFunctions());
+      }
+    }
+  #endif
   return true;
 }
 

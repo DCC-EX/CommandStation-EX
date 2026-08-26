@@ -98,6 +98,9 @@ class TrackManager {
     static TRACK_MODE getMode(byte t);
     static int16_t returnDCAddr(byte t);
     static const FSH* getModeName(TRACK_MODE Mode);
+    static void dcTransit(uint8_t trackA, uint8_t trackB);
+    static void dcTransitCab(uint8_t trackA, uint8_t trackB);
+    static void invertTrackMode(uint8_t trackIdx);
 
     static int16_t joinRelay;
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main

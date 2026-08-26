@@ -157,6 +157,12 @@
 ///param homeAngle the angle of the home position, valid angles are 0 - 3600
 ///param description... Quoted text description of turntable
 
+#define DCTRANSIT(trackA,trackB)
+///brief Set speed and frequency for approach track
+
+#define DCTRANSITCAB(trackA,trackB)
+///brief Assign locoID of cab on track A to track B
+
 #define DEACTIVATE(addr,subaddr)
 ///brief Sends DCC Deactivate packet (gate on, gate off)
 ///param addr DCC accessory address
@@ -373,6 +379,9 @@
 
 #define INVERT_DIRECTION
 ///brief Marks current task so that FWD and REV commands are inverted.
+
+#define INVERT_TRACK(trackIdx)
+///brief Accomplish track reversal, invert/uninvert existing track mode 
 
 #define JMRI_SENSOR(vpin,count...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP

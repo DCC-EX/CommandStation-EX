@@ -692,3 +692,63 @@ TRACK_MODE TrackManager::getMode(byte t) {
 int16_t TrackManager::returnDCAddr(byte t) {
     return (trackDCAddr[t]);
 }
+
+void TrackManager::dcTransit(uint8_t trackA, uint8_t trackB) {
+    if (trackA >= numTracks() || trackB >= numTracks()) return;
+
+    int16_t cabA = returnDCAddr(trackA);
+    int16_t cabB = returnDCAddr(trackB);
+
+    // Both tracks must have active cabs assigned to transfer details
+    if (cabA == 0 || cabB == 0) return;
+
+    auto slotA = LocoSlot::getSlot(cabA, false);
+    auto slotB = LocoSlot::getSlot(cabB, true);
+
+    if (slotA != nullptr && slotB != nullptr) {
+        // 1. Synchronize speed steps safely via standard slot mechanisms
+        slotB->setTargetSpeed(slotA->getTargetSpeed());
+
+        // 2. Isolate and push F29, F30, F31 high register frequency flags
+        uint32_t oldFuncB = slotB->getFunctions();
+        uint32_t flagsA = slotA->getFunctions() & 0xE0000000UL;
+        slotB->setFunctions((oldFuncB & ~0xE0000000UL) | flagsA);
+
+        // 3. Trigger standard system throttle network slot broadcast
+        CommandDistributor::broadcastLoco(slotB);
+
+        // 4. Force our refactored hardware sync layer to process the update
+        DCC::syncDCFreqToActiveHardwareSiblings(cabB, slotB->getFunctions());
+    }
+}
+
+// DCTRANSITCAB(A, B) -- Assigns the cab on Track A directly to Track B
+void TrackManager::dcTransitCab(uint8_t trackA, uint8_t trackB) {
+    if (trackA >= numTracks() || trackB >= numTracks()) return;
+
+    int16_t cabA = returnDCAddr(trackA);
+    TRACK_MODE modeA = getMode(trackA);
+
+    if (cabA != 0) {
+        // Equivalent to manual sequence: SET_TRACK(trackB, modeA, cabA)
+        // Automatically takes care of standard inheritance mechanics natively
+        setTrackMode(trackB, modeA, cabA);
+    }
+}
+
+void TrackManager::invertTrackMode(uint8_t trackIdx) {
+    // a. Validate track boundary index
+    if (trackIdx >= numTracks()) return;
+
+    // Gather existing operational states
+    TRACK_MODE currentMode = getMode(trackIdx);
+    int16_t currentCab = returnDCAddr(trackIdx);
+
+    // Perform bitwise toggle on the inversion modifier bit
+    TRACK_MODE invertedMode = (TRACK_MODE)(currentMode ^ TRACK_MODIFIER_INV);
+
+    // b. Re-assign the track state using native registration mechanics.
+    // Passing currentCab takes care of standard DC cab inheritance automatically.
+    setTrackMode(trackIdx, invertedMode, currentCab);
+}
+
