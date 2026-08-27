@@ -50,10 +50,10 @@ MotorDriver::MotorDriver(int16_t power_pin, byte signal_pin, byte signal_pin2, i
   invertPower=power_pin < 0;
   if (invertPower) {
     powerPin = 0-power_pin;
-    IODevice::write(powerPin,HIGH);// set to OUTPUT and off
+    IODevice::write(powerPin,HIGH,false);// set to OUTPUT and off
   } else {
     powerPin = power_pin;
-    IODevice::write(powerPin,LOW);// set to OUTPUT and off
+    IODevice::write(powerPin,LOW,false);// set to OUTPUT and off
   }
   
   signalPin=signal_pin;
@@ -245,12 +245,12 @@ void MotorDriver::setPower(POWERMODE mode) {
         if (Diag::ACK) DIAG(F("Track %c sensOffset=%d"),trackLetter,senseOffset);
     }
 
-    IODevice::write(powerPin,invertPower ? LOW : HIGH);
+    IODevice::write(powerPin,invertPower ? LOW : HIGH,false);
     if (isProgTrack)
       DCCWaveform::progTrack.clearResets();
   }
   else {
-      IODevice::write(powerPin,invertPower ? HIGH : LOW);
+      IODevice::write(powerPin,invertPower ? HIGH : LOW,false);
   }
   powerMode=mode; 
 }
@@ -439,6 +439,7 @@ void MotorDriver::throttleInrush(bool on) {
     return;
   if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
+#ifdef MOTOR_SHIELD_TYPE
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
@@ -462,6 +463,8 @@ void MotorDriver::throttleInrush(bool on) {
   }
   analogWrite(brakePin,duty);
 #endif
+  #endif // MOTOR_SHIELD_TYPE
+
 }
 unsigned int MotorDriver::raw2mA( int raw) {
   //DIAG(F("%d = %d * %d / %d"), (int32_t)raw * senseFactorInternal / senseScale, raw, senseFactorInternal, senseScale);

@@ -59,6 +59,7 @@
 #include "EXRAILSensor.h"
 #include "Stash.h"
 #include "DCCConsist.h"
+#include "NVSTable.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -76,7 +77,6 @@ RMFT2 * RMFT2::pausingTask=NULL; // Task causing a PAUSE.
 byte RMFT2::flags[MAX_FLAGS];
 Print * RMFT2::LCCSerial=0;
 LookList *  RMFT2::routeLookup=NULL;
-LookList *  RMFT2::signalLookup=NULL;
 LookList *  RMFT2::onThrowLookup=NULL;
 LookList *  RMFT2::onCloseLookup=NULL;
 LookList *  RMFT2::onActivateLookup=NULL;
@@ -86,9 +86,7 @@ LookList *  RMFT2::onAmberLookup=NULL;
 LookList *  RMFT2::onGreenLookup=NULL;
 LookList *  RMFT2::onChangeLookup=NULL;
 LookList *  RMFT2::onClockLookup=NULL;
-#ifndef IO_NO_HAL
 LookList *  RMFT2::onRotateLookup=NULL;
-#endif
 LookList *  RMFT2::onOverloadLookup=NULL;
 LookList *  RMFT2::onBlockEnterLookup=NULL;
 LookList *  RMFT2::onBlockExitLookup=NULL;
@@ -106,11 +104,14 @@ uint16_t RMFT2::getOperand(byte n) {
 }
 
 // getOperand static version, must be provided prog counter from loop etc.
-uint16_t RMFT2::getOperand(int progCounter,byte n) {
-  int offset=progCounter+1+(n*3);
-  byte lsb=GETHIGHFLASH(RouteCode,offset);
-  byte msb=GETHIGHFLASH(RouteCode,offset+1);
-  return msb<<8|lsb;
+uint16_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
+  int offset=progCounter+1+(n*fixedOpcodeLength);
+  byte b3=GETHIGHFLASH(RouteCode,offset);
+  byte b2=GETHIGHFLASH(RouteCode,offset+1);
+  byte b1=GETHIGHFLASH(RouteCode,offset+2);
+  byte b0=GETHIGHFLASH(RouteCode,offset+3);
+  int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
+  return NVSTable::decodeNVSToken(value,atBoot);
 }
 
 LookList::LookList(int16_t size) {
@@ -119,18 +120,18 @@ LookList::LookList(int16_t size) {
   m_chain=nullptr;
   if (size) {
     m_lookupArray=new int16_t[size];
-    m_resultArray=new int16_t[size];
+    m_resultArray=new int[size];
   }
 }
 
-void LookList::add(int16_t lookup, int16_t result) {
+void LookList::add(int16_t lookup, int result) {
   if (m_loaded==m_size) return; // and forget
   m_lookupArray[m_loaded]=lookup;
   m_resultArray[m_loaded]=result;
   m_loaded++;
 }
 
-int16_t LookList::find(int16_t value) {
+int LookList::find(int16_t value) {
   for (int16_t i=0;i<m_size;i++) {
     if (m_lookupArray[i]==value) return m_resultArray[i];
   }
@@ -180,7 +181,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   for (progCounter=0;; SKIPOP) {
     byte opcode=GET_OPCODE;
     if (opcode==OPCODE_ENDEXRAIL) break;
-    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(getOperand(progCounter,0),progCounter);   
+
+    // Note NVS values on ON*() statements are decoded once here
+    // and flagged as needing boot if changed
+    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(getOperand(progCounter,0,true),progCounter);   
   }
   return list;
 }
@@ -206,9 +210,7 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onDeactivateLookup=LookListLoader(OPCODE_ONDEACTIVATE);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
-#ifndef IO_NO_HAL
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
-#endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
 
   if (compileFeatures & FEATURE_BLOCK) {
@@ -224,29 +226,14 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
   // Second pass startup, define any turnouts or servos, set signals red
   // add sequences onRoutines to the lookups
-  if (compileFeatures & FEATURE_SIGNAL) {
+  
     
     onRedLookup=LookListLoader(OPCODE_ONRED);
     onAmberLookup=LookListLoader(OPCODE_ONAMBER);
     onGreenLookup=LookListLoader(OPCODE_ONGREEN);
-    // Load the signal lookup with slot numbers in the signal table
-    int signalCount=0; 
-    for (int16_t slot=0;;slot++) {
-        SIGNAL_DEFINITION signal=getSignalSlot(slot);
-        DIAG(F("Signal s=%d id=%d t=%d"),slot,signal.id,signal.type);
-        if (signal.type==sigtypeNoMoreSignals) break;
-        if (signal.type==sigtypeContinuation) continue;
-        signalCount++;
-    }    
-    signalLookup=new LookList(signalCount);
-    for (int16_t slot=0;;slot++) {
-        SIGNAL_DEFINITION signal=getSignalSlot(slot);
-        if (signal.type==sigtypeNoMoreSignals) break;
-        if (signal.type==sigtypeContinuation) continue;
-        signalLookup->add(signal.id,slot);
-        doSignal(signal.id, SIGNAL_RED);
-    }    
-   }
+    Signal::setAllSignalsToRed();
+ 
+    // configure any input pins, and create any ON* catchers
 
   int progCounter;
   for (progCounter=0;; SKIPOP){
@@ -281,45 +268,17 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
     case OPCODE_ONSENSOR:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true );
       break;
     case OPCODE_ONBITMAP:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,true, true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true, true );
       break;
     case OPCODE_ONBUTTON:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+3,false );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,false );
       break;
-    case OPCODE_TURNOUT: {
-      VPIN id=operand;
-      int addr=getOperand(progCounter,1);
-      byte subAddr=getOperand(progCounter,2);
-      Turnout *t = DCCTurnout::create(id,addr,subAddr);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
-    case OPCODE_SERVOTURNOUT: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      int activeAngle=getOperand(progCounter,2);
-      int inactiveAngle=getOperand(progCounter,3);
-      int profile=getOperand(progCounter,4);
-      Turnout *t = ServoTurnout::create(id,pin,activeAngle,inactiveAngle,profile);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
-    case OPCODE_PINTURNOUT: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      Turnout *t = VpinTurnout::create(id,pin);
-      if (t) setTurnoutHiddenState(t);
-      break;
-    }
-
-#ifndef IO_NO_HAL
+   
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
@@ -354,7 +313,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       if (tto) tto->addPosition(position,value,angle);
       break;
     }
-#endif
 
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
@@ -375,18 +333,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   diag=saved_diag;
 }
 
-void RMFT2::setTurnoutHiddenState(Turnout * t) {
-  // turnout descriptions are in low flash F strings
-  const FSH *desc = getTurnoutDescription(t->getId());
-  if (desc) t->setHidden(GETFLASH(desc)==0x01);
-}
-
-#ifndef IO_NO_HAL
 void RMFT2::setTurntableHiddenState(Turntable * tto) {
   const FSH *desc = getTurntableDescription(tto->getId());
   if (desc) tto->setHidden(GETFLASH(desc)==0x01);
 }
-#endif
 
 char RMFT2::getRouteType(int16_t id) {
   int16_t progCounter=routeLookup->find(id);
@@ -579,13 +529,11 @@ void RMFT2::loop2() {
     Turnout::setClosed(operand, Turnout::isThrown(operand));
     break;
 
-#ifndef IO_NO_HAL
   case OPCODE_ROTATE:
     uint8_t activity;
     activity=getOperand(2);
     Turntable::setPosition(operand,getOperand(1),activity);
     break;
-#endif
 
   case OPCODE_REV:
     if (loco) DCC::setThrottle(loco,operand,invert);
@@ -597,6 +545,10 @@ void RMFT2::loop2() {
       
   case OPCODE_SPEED:
     if (loco) DCC::setThrottle(loco,operand,DCC::getThrottleDirection(loco));
+    break;
+  
+    case OPCODE_CHANGE_DIRECTION:
+      if (loco) DCC::setThrottle(loco,DCC::getThrottleSpeed(loco),!DCC::getThrottleDirection(loco));
     break;
   
   case OPCODE_SAVE_SPEED:
@@ -886,6 +838,10 @@ void RMFT2::loop2() {
     skipIf=readSensor(operand);
     break;
 
+  case OPCODE_IFNVS: // do next operand if non-volatile storage entry is non-zero
+    skipIf=NVSTable::getNVS(operand)==0;
+    break;
+
   case OPCODE_IFRE: // do next operand if rotary encoder != position
     skipIf=IODevice::readAnalogue(operand)!=(int)(getOperand(1));
     break;
@@ -900,11 +856,11 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFRED: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_RED);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_RED;
     break;
     
   case OPCODE_WAIT_WHILE_RED: // do block if signal as expected
-    if (isSignal(operand,SIGNAL_RED)) {
+    if (Signal::getState(operand)==Signal::SIGNAL_RED) {
       if (loco && (DCC::getLocoSpeedByte(loco) & 0x7f)>1) 
           DCC::setThrottle(loco,0,DCC::getThrottleDirection(loco));
       delayMe(500);
@@ -913,11 +869,11 @@ void RMFT2::loop2() {
     break;
     
   case OPCODE_IFAMBER: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_AMBER);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_AMBER;
     break;
     
   case OPCODE_IFGREEN: // do block if signal as expected
-    skipIf=!isSignal(operand,SIGNAL_GREEN);
+    skipIf=Signal::getState(operand)!=Signal::SIGNAL_GREEN;
     break;
     
   case OPCODE_IFTHROWN:
@@ -936,41 +892,57 @@ void RMFT2::loop2() {
     skipIf=(Stash::get(operand) & 0x7FFF)!=loco;
     break;
 
-#ifndef IO_NO_HAL
   case OPCODE_IFTTPOSITION: // do block if turntable at this position
     skipIf=Turntable::getPosition(operand)!=(int)getOperand(1);
     break;
-#endif
 
   case OPCODE_ENDIF:
     break;
     
   case OPCODE_DELAYMS:
-    delayMe(operand);
+    holdoverMinDelay=operand;
+    delayMe(holdoverMinDelay);
     break;
     
   case OPCODE_DELAY:
-    delayMe(operand*100L);
+    holdoverMinDelay=operand*100L;
+    delayMe(holdoverMinDelay);
     break;
     
   case OPCODE_DELAYMINS:
-    delayMe(operand*60L*1000L);
+    holdoverMinDelay=operand*60L*1000L;
+    delayMe(holdoverMinDelay);
     break;
     
-  case OPCODE_RANDWAIT:
-    delayMe(operand==0 ? 0 : (micros()%operand) *100L);
+  // This randwait opcodes are only generated immediately after a delay type opcode for the mindelay 
+  // This is changed because the former (maxdelay-mindelay) calculation
+  // would compromise use of an NVS token. 
+  // The operand is now the maxdelay but must have the mindelay 
+  // from the previous delay subtracted.
+  case OPCODE_RANDWAIT_DS:
+    { 
+      int32_t remainingDelay=operand*100L-holdoverMinDelay;
+      if (remainingDelay>0) delayMe(micros()%remainingDelay);
+    }
+    break;
+    
+  case OPCODE_RANDWAIT_MS:
+    { 
+      int32_t remainingDelay=operand-holdoverMinDelay;
+      if (remainingDelay>0) delayMe(micros()%remainingDelay);
+    }
     break;
     
   case OPCODE_RED:
-    doSignal(operand,SIGNAL_RED);
+    Signal::setSignal(operand,Signal::SIGNAL_RED);
     break;
     
   case OPCODE_AMBER:
-    doSignal(operand,SIGNAL_AMBER);
+    Signal::setSignal(operand,Signal::SIGNAL_AMBER);
     break;
     
   case OPCODE_GREEN:
-    doSignal(operand,SIGNAL_GREEN);
+    Signal::setSignal(operand,Signal::SIGNAL_GREEN);
     break;
     
   case OPCODE_FON:
@@ -1023,7 +995,10 @@ void RMFT2::loop2() {
     // operand is address<<5 |  value
     int16_t address=operand>>5;
     byte aspect=operand & 0x1f;
-    if (!signalAspectEvent(address,aspect))
+
+    // If we can find this address as a DCCX aspect signal and the aspect matches
+    // gtyhen do this via the signal, otherwise do it direct in DCC
+    if (!Signal::setSignalByReverseAspectLookup(address,aspect))
       DCC::setExtendedAccessory(address,aspect);
     break;
   }
@@ -1038,7 +1013,7 @@ void RMFT2::loop2() {
       kill(F("CALL stack"), stackDepth);
       return;
     }
-    callStack[stackDepth++]=progCounter+3;
+    callStack[stackDepth++]=progCounter+fixedOpcodeLength;
     progCounter=routeLookup->find(operand);
     if (progCounter<0) kill(F("CALL unknown"),operand);
     return;
@@ -1063,7 +1038,7 @@ void RMFT2::loop2() {
       auto newroute=getOperand(1+(millis()%operand));
       
       // return position is after the RANDOM_CALL + all its operands
-      callStack[stackDepth++]=progCounter+3*(operand+1);
+      callStack[stackDepth++]=progCounter+fixedOpcodeLength*(operand+1);
       progCounter=routeLookup->find(newroute);
       if (progCounter<0) kill(F("CALL unknown"),newroute);
     }
@@ -1195,7 +1170,6 @@ void RMFT2::loop2() {
     }
     break;
     
-#ifndef IO_NO_HAL
   case OPCODE_NEOPIXEL: 
     // OPCODE_NEOPIXEL,V([-]vpin),OPCODE_PAD,V(colour_RG),OPCODE_PAD,V(colour_B),OPCODE_PAD,V(count)
     { 
@@ -1212,7 +1186,6 @@ void RMFT2::loop2() {
       return;
     }
     break;
-#endif
 
 /* IFLOCO and PRINT use code generated in printMessage
    but IFLOCO is recognized as an IF when doing
@@ -1308,9 +1281,6 @@ void RMFT2::loop2() {
   
   case OPCODE_AUTOSTART: // Handled only during begin process
   case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
-  case OPCODE_TURNOUT: // Turnout definition ignored at runtime
-  case OPCODE_SERVOTURNOUT: // Turnout definition ignored at runtime
-  case OPCODE_PINTURNOUT: // Turnout definition ignored at runtime
   case OPCODE_ONCLOSE: // Turnout event catchers ignored here
   case OPCODE_ONLCC:   // LCC event catchers ignored here 
   case OPCODE_ONACON:   // MERG event catchers ignored here 
@@ -1326,12 +1296,10 @@ void RMFT2::loop2() {
   case OPCODE_ONBUTTON:
   case OPCODE_ONSENSOR:
   case OPCODE_ONBITMAP:
-#ifndef IO_NO_HAL
   case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
   case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
   case OPCODE_TTADDPOSITION:  // Turntable position definition ignored at runtime
   case OPCODE_ONROTATE:
-#endif
   case OPCODE_ONOVERLOAD:
   case OPCODE_ONBLOCKENTER:
   case OPCODE_ONBLOCKEXIT:
@@ -1375,147 +1343,12 @@ void RMFT2::kill(const FSH * reason, int operand) {
   delete this;
 }
 
-
-SIGNAL_DEFINITION RMFT2::getSignalSlot(int16_t slot) {
-  SIGNAL_DEFINITION signal;
-  COPYHIGHFLASH(&signal,SignalDefinitions,slot*sizeof(SIGNAL_DEFINITION),sizeof(SIGNAL_DEFINITION));
-  return signal;
-}
-
-/* static */ void RMFT2::doSignal(int16_t id,char rag) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return; // dont compile code below
-  //if (diag) DIAG(F(" doSignal %d %x"),id,rag);
-  
-  // Schedule any event handler for this signal change.
-  // This will work even without a signal definition. 
-  if (rag==SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
-  else if (rag==SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
+void RMFT2::doSignalHandlers(int16_t id, Signal::RAG rag) {
+  if (rag==Signal::SIGNAL_RED) onRedLookup->handleEvent(F("RED"),id);
+  else if (rag==Signal::SIGNAL_GREEN) onGreenLookup->handleEvent(F("GREEN"),id);
   else onAmberLookup->handleEvent(F("AMBER"),id);
-  
-  auto sigslot=signalLookup->find(id);
-  if (sigslot<0) return; 
-  
-  // keep track of signal state 
-  setFlag(sigslot,rag,SIGNAL_MASK);
- 
-  // Correct signal definition found, get the rag values
-  auto signal=getSignalSlot(sigslot);
-  
-  switch (signal.type) {
-  case sigtypeSERVO: 
-    { 
-    auto servopos = rag==SIGNAL_RED? signal.redpin: (rag==SIGNAL_GREEN? signal.greenpin : signal.amberpin);
-    //if (diag) DIAG(F("sigA %d %d"),id,servopos);
-    if  (servopos!=0) IODevice::writeAnalogue(id,servopos,PCA9685::Bounce);
-    return;  
-   }
-
-  case sigtypeDCC:
-   {
-    // redpin,amberpin are the DCC addr,subaddr 
-    DCC::setAccessory(signal.redpin,signal.amberpin, rag!=SIGNAL_RED);
-    return; 
-  }
-
- case sigtypeDCCX:
-  {
-    // redpin,amberpin,greenpin are the 3 aspects
-    auto value=signal.redpin;
-    if (rag==SIGNAL_AMBER) value=signal.amberpin;
-    if (rag==SIGNAL_GREEN) value=signal.greenpin; 
-    DCC::setExtendedAccessory(id, value);
-    return; 
-  }
-
-case sigtypeNEOPIXEL: 
-  {
-    // redpin,amberpin,greenpin are the 3 RG values but with no blue permitted. . (code limitation hack) 
-    auto colour_RG=signal.redpin;
-    if (rag==SIGNAL_AMBER) colour_RG=signal.amberpin;
-    if (rag==SIGNAL_GREEN) colour_RG=signal.greenpin; 
-
-    // blue channel is in followng signal slot (a continuation)
-    auto signal2=getSignalSlot(sigslot+1);
-    auto colour_B=signal2.redpin;
-    if (rag==SIGNAL_AMBER) colour_B=signal2.amberpin;
-    if (rag==SIGNAL_GREEN) colour_B=signal2.greenpin; 
-    IODevice::writeAnalogue(id, colour_RG,true,colour_B);
-    return; 
-  }
-  
-  case sigtypeSIGNAL:
-  case sigtypeSIGNALH:
-  {
-  // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
-  // If amberpin is zero, synthesise amber from red+green
-  const byte SIMAMBER=0x00;
-  if (rag==SIGNAL_AMBER && (signal.amberpin==0)) rag=SIMAMBER; // special case this func only
-   
-  // Manage invert (HIGH on) pins
-  bool aHigh=signal.type==sigtypeSIGNALH;
-      
-  // set the three pins 
-  if (signal.redpin) {
-    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
-    if (!aHigh) redval=!redval;
-    killBlinkOnVpin(signal.redpin);
-    IODevice::write(signal.redpin,redval);
-  }
-  if (signal.amberpin) {
-    bool amberval=(rag==SIGNAL_AMBER);
-    if (!aHigh) amberval=!amberval;
-    killBlinkOnVpin(signal.amberpin);
-    IODevice::write(signal.amberpin,amberval);
-  }
-  if (signal.greenpin) {
-    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
-    if (!aHigh) greenval=!greenval;
-    killBlinkOnVpin(signal.greenpin);
-    IODevice::write(signal.greenpin,greenval);
-  }
 }
-  case sigtypeVIRTUAL: break;
-  case sigtypeContinuation: break;
-  case sigtypeNoMoreSignals: break;
-  }
-}
-
-/* static */ bool RMFT2::isSignal(int16_t id,char rag) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  int16_t sigslot=signalLookup->find(id);
-  if (sigslot<0) return false; 
-  return (flags[sigslot] & SIGNAL_MASK) == rag;
-}
-
-
-// signalAspectEvent returns true if the aspect is destined
-// for a defined DCCX_SIGNAL which will handle all the RAG flags
-// and ON* handlers.
-// Otherwise false so the parser should send the command directly 
-bool RMFT2::signalAspectEvent(int16_t address, byte aspect ) {
-  if (!(compileFeatures & FEATURE_SIGNAL)) return false; 
-  auto sigslot=signalLookup->find(address);
-  if (sigslot<0) return false;  // this is not a defined signal 
-  auto signal=getSignalSlot(sigslot);
-  if (signal.type!=sigtypeDCCX) return false; // not a DCCX signal
-  // Turn an aspect change into a RED/AMBER/GREEN setting
-  if (aspect==signal.redpin) {
-      doSignal(address,SIGNAL_RED);
-      return true;
-  }
   
-  if (aspect==signal.amberpin) {
-      doSignal(address,SIGNAL_AMBER);
-      return true;
-  }
-  
-  if (aspect==signal.greenpin) {
-      doSignal(address,SIGNAL_GREEN);
-      return true;
-  }
-
-  return false;  // aspect is not a defined one    
-}
 
 void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   // Hunt for an ONTHROW/ONCLOSE for this turnout
@@ -1543,12 +1376,10 @@ void RMFT2::changeEvent(int16_t vpin, bool change) {
   if (change)  onChangeLookup->handleEvent(F("CHANGE"),vpin);
 }
 
-#ifndef IO_NO_HAL
 void RMFT2::rotateEvent(int16_t turntableId, bool change) {
   // Hunt or an ONROTATE for this turntable
   if (change) onRotateLookup->handleEvent(F("ROTATE"),turntableId);
 }
-#endif
 
 void RMFT2::clockEvent(int16_t clocktime, bool change) {
   // Hunt for an ONTIME for this time

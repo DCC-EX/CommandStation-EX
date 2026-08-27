@@ -1,0 +1,227 @@
+/*
+ *  © 2020-2022 Harald Barth
+ *
+ *  This file is part of CommandStation-EX
+ *  
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+// ATTENTION: this file only compiles on an ESP32
+// On ESP32 we do not even use the functions but they are here for completeness sake
+// Please refer to DCCTimer.h for general comments about how this class works
+// This is to avoid repetition and duplication.
+
+////////////////////////////////////////////////////////////////////////
+#ifdef ARDUINO_ARCH_ESP32
+
+#if __has_include("esp_idf_version.h")
+#include "esp_idf_version.h"
+#endif
+
+// protect all the rest of the code for IDF version 5
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include "DIAG.h"
+
+#include "DCCTimer.h"
+INTERRUPT_CALLBACK interruptHandler=0;
+
+// https://www.visualmicro.com/page/Timer-Interrupts-Explained.aspx
+
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
+  // This should not be called on ESP32 so disable it
+  (void)callback;
+  return;
+}
+
+// We do not support to use PWM to make the Waveform on ESP
+bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
+  return false;
+}
+void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
+}
+void IRAM_ATTR DCCTimer::clearPWM() {
+}
+
+// Fake this as it should not be used
+void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+  mac[0] = 0xFE;
+  mac[1] = 0xBE;
+  mac[2] = 0xEF;
+  mac[3] = 0xC0;
+  mac[4] = 0xFF;
+  mac[5] = 0xEE;
+}
+
+volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
+
+// Return low memory value... 
+int DCCTimer::getMinimumFreeMemory() {
+  return ESP.getMinFreeHeap(); // not concerned with interrupts on ESP32
+}
+
+int DCCTimer::freeMemory() {
+  return ESP.getFreeHeap();
+}
+
+void DCCTimer::reset() {
+   ESP.restart();
+}
+
+void DCCTimer::DCCEXanalogWriteFrequency(uint8_t pin, uint32_t f) {
+  if (f >= 16)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, f);
+/*
+  else if (f == 7) // not used on ESP32
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 62500);
+*/
+  else if (f >= 4)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 32000);
+  else if (f >= 3)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 16000);
+  else if (f >= 2)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 3400);
+  else if (f == 1)
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 480);
+  else
+    DCCTimer::DCCEXanalogWriteFrequencyInternal(pin, 131);
+}
+
+#include "esp32-hal.h"
+#include "soc/soc_caps.h"
+
+#ifdef SOC_LEDC_SUPPORT_HS_MODE
+#define LEDC_CHANNELS           (SOC_LEDC_CHANNEL_NUM<<1)
+#else
+#define LEDC_CHANNELS           (SOC_LEDC_CHANNEL_NUM)
+#endif
+
+static int8_t pin_to_channel[SOC_GPIO_PIN_COUNT] = { 0 };
+static int cnt_channel = LEDC_CHANNELS;
+
+void DCCTimer::DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency) {
+  if (pin < SOC_GPIO_PIN_COUNT) {
+    if (pin_to_channel[pin] != 0) {
+      ledcChangeFrequency(pin, frequency, 8);
+    }
+  }
+}
+
+void DCCTimer::DCCEXledcDetachPin(uint8_t pin) {
+#ifdef DIAG_IO
+  DIAG(F("Clear pin %d from ledc channel"), pin);
+#endif
+  pin_to_channel[pin] = 0;
+  ledcDetach(pin);
+}
+
+void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
+  // DIAG(F("Attaching pin %d to channel %d %c"), pin, channel, inverted ? 'I' : ' ');
+  if (channel >= 0) {
+    ledcAttachChannel(pin, 1000, 8, channel);
+    ledcOutputInvert(pin, inverted);
+  }
+}
+
+void DCCTimer::DCCEXanalogCopyChannel(int8_t frompin, int8_t topin) {
+  // arguments are signed depending on inversion of pins
+  DIAG(F("Pin %d copied to %d"), frompin, topin);
+  bool inverted = false;
+  if (frompin<0)
+    frompin = -frompin;
+  if (topin<0) {
+    inverted = true;
+    topin = -topin;
+  }
+  int channel = pin_to_channel[frompin]; // after abs(frompin)
+  pin_to_channel[topin] = channel;
+  DCCTimer::DCCEXledcAttachPin(topin, channel, inverted);
+}
+
+void DCCTimer::DCCEXanalogWrite(uint8_t pin, int value, bool invert) {
+  // This allocates channels 15, 13, 11, ....
+  // so each channel gets its own timer.
+  if (pin < SOC_GPIO_PIN_COUNT) {
+    if (pin_to_channel[pin] == 0) {
+      int search_channel;
+      int n;
+      if (!cnt_channel) {
+          log_e("No more PWM channels available! All %u already used", LEDC_CHANNELS);
+          return;
+      }
+      // search for free channels top down
+      for (search_channel=LEDC_CHANNELS-1; search_channel >=cnt_channel; search_channel -= 2) {
+	bool chanused = false;
+	for (n=0; n < SOC_GPIO_PIN_COUNT; n++) {
+	  if (pin_to_channel[n] == search_channel) { // current search_channel used
+	    chanused = true;
+	    break;
+	  }
+	}
+	if (chanused)
+	  continue;
+	if (n == SOC_GPIO_PIN_COUNT) // current search_channel unused
+	  break;
+      }
+      if (search_channel >= cnt_channel) {
+	pin_to_channel[pin] = search_channel;
+	DIAG(F("Pin %d assigned to search channel %d"), pin, search_channel);
+      } else {
+	pin_to_channel[pin] = --cnt_channel; // This sets 15, 13, ...
+	DIAG(F("Pin %d assigned to new channel %d"), pin, cnt_channel);
+	--cnt_channel;                       // Now we are at 14, 12, ...
+      }
+      DCCEXledcAttachPin(pin, pin_to_channel[pin], invert);
+    } else {
+      // This else is only here so we can enable diag
+      // Pin should be already attached to channel
+      // DIAG(F("Pin %d assigned to old channel %d"), pin, pin_to_channel[pin]);
+    }
+    ledcWriteChannel(pin_to_channel[pin], value);
+  }
+}
+
+void DCCTimer::DCCEXInrushControlOn(uint8_t pin, int duty, bool inverted) {
+  // this uses hardcoded channel 0
+  ledcAttachChannel(pin, 62500, 8, 0);
+  ledcOutputInvert(pin, inverted);
+  ledcWrite(pin, duty);
+}
+
+int ADCee::init(uint8_t pin) {
+  pinMode(pin, ANALOG);
+  analogReadResolution(12);
+  return analogRead(pin);
+}
+int16_t ADCee::ADCmax() {
+  return 4095;
+}
+/*
+ * Read function ADCee::read(pin) to get value instead of analogRead(pin)
+ */
+int ADCee::read(uint8_t pin, bool fromISR) {
+  (void)fromISR;
+  return analogRead(pin);
+}
+/*
+ * Scan function that is called from interrupt
+ */
+void ADCee::scan() {
+}
+
+void ADCee::begin() {
+}
+#endif //IDF v4
+#endif //ESP32

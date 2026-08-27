@@ -18,6 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
 #ifdef ENABLE_SERIAL_LOG
 #ifndef SerialUsbLog_h
 #define SerialUsbLog_h
@@ -28,7 +29,7 @@
 class SerialUsbLog : public Stream {
 
   public:
-    SerialUsbLog( const uint16_t len, HardwareSerial* serialPort  );
+    SerialUsbLog( const uint16_t len);
     void begin( unsigned long baud );
     virtual size_t write(uint8_t b);
     using Print::write;
@@ -42,13 +43,14 @@ class SerialUsbLog : public Stream {
     virtual int read();
     virtual int peek();
     void loop();
+    static void addUserPage(const String& path, const String& content, const String& displayname);
 
  private:
-   HardwareSerial * _serialPort;
    int _pos_write;
    bool _overflow;
    byte * _buffer;
    int _bufferSize;
+   bool _timestampPending;
    // NEW
    volatile uint32_t _seq_write;
 
@@ -56,6 +58,7 @@ class SerialUsbLog : public Stream {
    // protect buffer/seq from concurrent access
    portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
 #endif
+
 };
 extern SerialUsbLog SerialLog;
 

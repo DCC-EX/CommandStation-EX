@@ -35,9 +35,8 @@
  * 2 channels dedicated for RX. Half RMT capacity compared to the C3.
  *
  */
-
-#if defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
 #include "DIAG.h"
 #include "DCCRMT.h"
 #include "DCCTimer.h"

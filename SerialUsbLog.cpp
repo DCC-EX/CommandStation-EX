@@ -48,6 +48,14 @@
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
+#include "SerialUsbLog.html.h"
+#include "SerialUsbLog.style.css.h"
+#include "SerialUsbLog.script1.js.h"
+#include "SerialUsbLog.script2.js.h"
+#include "SerialUsbLog.script3.js.h"
+#include "NVSTable.h"
+#include "SerialUsbLog.favicon.h"
+
 
 #if WIFI_ON
   #include <WiFi.h>
@@ -72,7 +80,7 @@
   #endif
 
 // Global instance
-SerialUsbLog SerialLog(LOG_BUFFER, &Serial);
+SerialUsbLog SerialLog(LOG_BUFFER);
 StringBuffer dummyClient(2048); // buffering client for response construction
 
 // --------------------------- Small helpers (ESP32 only) ---------------------------
@@ -155,28 +163,36 @@ static void drainHttpHeaders(Client& client) {
 /**
  * Constructor
  * @param len Maximum length of the log buffer
- * @param serialPort underlying serial port (eg. &Serial)
  */
-SerialUsbLog::SerialUsbLog(const uint16_t len, HardwareSerial* serialPort) {
+SerialUsbLog::SerialUsbLog(const uint16_t len) {
   _bufferSize = len;
   _buffer = new byte[len];
   _pos_write = 0;
   _overflow = false;
-  _serialPort = serialPort;
-
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
+  _timestampPending = true; // first write will trigger timestamp
 }
 
 /**
  * Write a single byte to the log buffer and to the underlying serial port.
  */
 size_t SerialUsbLog::write(uint8_t b) {
-  _serialPort->write(b);
-
+  Serial.write(b);
+  if (_timestampPending) {
+    auto timestamp = millis();
+    shoveToBuffer('[');
+    shoveToBuffer((timestamp / 10000) % 10 + '0');
+    shoveToBuffer((timestamp /  1000) % 10 + '0');
+    shoveToBuffer((timestamp /   100) % 10 + '0');
+    shoveToBuffer((timestamp /    10) % 10 + '0');
+    shoveToBuffer((timestamp        ) % 10 + '0');
+    shoveToBuffer(']');
+    _timestampPending = false;
+  }
   // Store directly (no translation)
   shoveToBuffer(b);
-
+  _timestampPending = b=='\n';
   return 1;
 }
 
@@ -280,28 +296,76 @@ size_t SerialUsbLog::streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t
 
 // begin() shim
 void SerialUsbLog::begin(unsigned long baud) {
-  _serialPort->begin(baud);
-}
+    Serial.flush();
+    Serial.begin(baud);
+  }
+
 
 // while(!Serial) shim
 bool SerialUsbLog::operator!() const {
-  return _serialPort == nullptr;
+  return !Serial;
 }
 
 // available() shim
 int SerialUsbLog::available() {
-  return _serialPort->available();
+  return Serial.available();
 }
 
 // read() shim
 int SerialUsbLog::read() {
-  return _serialPort->read();
+  return Serial.read();
 }
 
 // peek() shim
 int SerialUsbLog::peek() {
-  return _serialPort->peek();
+  return Serial.peek();
 }
+
+const char htmlHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/html; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+;
+const char jsHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/javascript; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+  ;
+const char cssHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/css; charset=utf-8\r\n"
+  "Cache-Control: no-store\r\n"
+  "Connection: close\r\n\r\n"
+  ;
+const char faviconHeader[] PROGMEM = 
+  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: image/x-icon\r\n"
+  "Cache-Control: public, max-age=86400\r\n"
+  "Connection: close\r\n\r\n"
+  ;
+
+class LogPage{
+  public:
+    static LogPage* first;
+    LogPage* next; 
+    const String path;
+    const String displayName;
+    String content;
+    LogPage(const String& _path,const String& _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
+      next=first;
+      first=this;
+    }
+    void render(Print* targetStream) {
+      if (targetStream==nullptr) return;
+      if (path.endsWith(".css")) targetStream->print(cssHeader);
+      else if (path.endsWith(".js")) targetStream->print(jsHeader);
+      else targetStream->print(htmlHeader);
+      targetStream->print(content);
+    }
+};
+LogPage* LogPage::first = nullptr;
 
 /**
  * Lightweight HTTP server loop 
@@ -318,6 +382,12 @@ void SerialUsbLog::loop() {
      && WifiESP::isUp()
   #endif
   ) {
+    new LogPage("/style.css", SerialUsbLog_style_css);
+    new LogPage("/script1.js", SerialUsbLog_script1_js);
+    new LogPage("/script2.js", SerialUsbLog_script2_js);
+    new LogPage("/script3.js", SerialUsbLog_script3_js);
+    new LogPage("/", SerialUsbLog_html);
+    // user pages may be added later with exrail
     server.begin();
     started = true;
     return;
@@ -330,7 +400,7 @@ void SerialUsbLog::loop() {
   String reqLine = client.readStringUntil('\r');
   if (reqLine.length() == 0) { client.stop(); return; }
   if (Diag::WIFI || Diag::ETHERNET) {
-    StringFormatter::send(_serialPort,F("<* http: %s *>\n"), reqLine.c_str());
+    StringFormatter::send(Serial,F("<* http: %s *>\n"), reqLine.c_str());
   }
   int sp1 = reqLine.indexOf(' ');
   int sp2 = reqLine.indexOf(' ', sp1 + 1);
@@ -342,21 +412,48 @@ void SerialUsbLog::loop() {
 
   // Drain the rest of the headers to keep the TCP state clean-ish.
   drainHttpHeaders(client);
-  dummyClient.flush();
-
-  if (method != "GET") {
-    dummyClient.println(
-      "HTTP/1.1 405 Method Not Allowed\r\n"
+  
+  if (method == "POST" && path == "/savenvs") {
+    DIAG(F("POST /savenvs"));
+    // Handle POST request to NVSTable save endpoint.
+    // Preferred format is id=value pairs, values may be int or string.
+    String body = client.readStringUntil('\0'); // Read until end of stream 
+    DIAG(F("POST body: %s"), body.c_str());
+    auto headerEnd = body.indexOf("\r\n\r\n");
+    if (headerEnd >= 0) {
+      body = body.substring(headerEnd + 4); // Skip past headers
+    }
+    DIAG(F("POST data: %s"), body.c_str());
+    
+    // read id=value, id="value" pairs from the full body.
+    if (body.indexOf('=') >= 0) {
+      char changes[body.length() + 1];
+      body.toCharArray(changes, sizeof(changes));
+      NVSTable::applyChanges(changes,false);
+    }
+    client.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/plain; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
     );
+    client.stop();
+    return;
   }
 
-  // ----------------------------- /log incremental feed -----------------------------
-  else if (path == "/log") {
-    String cmd= queryParamString(uri, "cmd", "");
-    if (cmd.length()>0) {
-      DCCEXParser::parse(cmd.c_str());
+  if (method != "GET") {
+      client.print(
+        "HTTP/1.1 405 Method Not Allowed\r\n"
+        "Connection: close\r\n\r\n"
+      );
+      client.stop();
+      return;
     }
+
+  // ----------------------------- /log incremental feed -----------------------------
+  if (path == "/log") {
+    String cmd= queryParamString(uri, "cmd", "");
+    if (cmd.length()>0)  DCCEXParser::parse(cmd.c_str());
 
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
@@ -374,76 +471,74 @@ void SerialUsbLog::loop() {
     if (avail > (uint32_t)chunk) avail = (uint32_t)chunk;
     uint32_t next = start + avail;
 
-    dummyClient.print(
+    client.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n"
       "X-Next-Seq: "
     );
-    dummyClient.print(next);
-    dummyClient.print("\r\n\r\n");
+    client.print(next);
+    client.print("\r\n\r\n");
 
     uint32_t nextSeqOut = from;
-    SerialLog.streamOutFrom(&dummyClient, from, (size_t)chunk, nextSeqOut);
-  }
-
-  // --------------------------------- / HTML shell ---------------------------------
-else  if (path == "/" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/html; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.html.h"
-    );
-
-  }
-
-  else if (path == "/style.css" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/css; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.style.css.h"
-    );
-  }
-
- else if (path == "/script1.js" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/javascript; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.script1.js.h"
-    );
-
+    SerialLog.streamOutFrom(&client, from, (size_t)chunk, nextSeqOut);
+    client.stop();
+    return;
   }
   
-  else if (path == "/script2.js" ) {
-    dummyClient.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/javascript; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n"
-      #include "SerialUsbLog.script2.js.h"
-    );
+  if (path == "/configs.js") {
+    client.print(jsHeader);
+    for (auto page = LogPage::first; page != nullptr; page = page->next) {
+      if (page->displayName && page->displayName.length() > 0) {
+        client.print("addConfig(\"");
+        client.print(page->displayName);
+        client.print("\", \"");
+        client.print(page->path);
+        client.print("\");\n");
+      }
+    }
+    client.stop();
+    return;
   }
-else {
+
+  if (path == "/nvsValues.js") {
+    client.print(jsHeader);
+    NVSTable::streamJSArray(&client);
+    client.stop();
+    return;
+  }
+
+  if (path == "/favicon.ico") {
+    client.print(faviconHeader);
+    client.write(favicon_ico, sizeof(favicon_ico));
+    client.stop();
+    return;
+  }
+
+    // try for registered page 
+  for (auto page = LogPage::first; page != nullptr; page = page->next) {
+    // DIAG(F("SerialUsbLog: %s checking page %s"), path.c_str(), page->path.c_str());
+    if (path == page->path) {
+      // DIAG(F("SerialUsbLog:found"));
+      page->render(&client);
+      client.stop();
+      return;
+    }
+  }
+  
   // --------------------------------- 404 ---------------------------------
-  dummyClient.print(
+  DIAG(F("SerialUsbLog: 404 %s"), path.c_str());
+  client.print(
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
-}
-if (Diag::WIFI || Diag::ETHERNET) {
-    StringFormatter::send(_serialPort,F("<* http:replyLength %d *>\n"),
-    dummyClient.getLength());
-  }
-  
-  client.print(dummyClient.getString());
   client.stop();
+}
+
+void SerialUsbLog::addUserPage(const String& path, const String& content, const String& displayname) {
+  // For future expansion: allow user to add custom pages to the web server.
+  new LogPage(path, content,displayname);
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
 #endif // ENABLE_SERIAL_LOG

@@ -36,6 +36,7 @@
 #include "LCN.h"
 #ifdef EESTOREDEBUG
 #include "DIAG.h"
+#include "NodeManager.h"
 #endif
 
   /* 
@@ -107,18 +108,17 @@
       return false;
   }
 
-  /* static */ bool Turnout::setClosedStateOnly(uint16_t id, bool closeFlag) {
-    Turnout *tt = get(id);
-    if (!tt) return false;
+  bool Turnout::setClosedStateOnly(bool closeFlag) {
     // I know it says setClosedStateOnly, but we need to tell others
     // that the state has changed too. But we only broadcast if there
     // really has been a change.
-    if (tt->_turnoutData.closed != closeFlag) {
-      tt->_turnoutData.closed = closeFlag;
-      CommandDistributor::broadcastTurnout(id, closeFlag);
+    if ( _turnoutData.closed != closeFlag) {
+      _turnoutData.closed = closeFlag;
+      if (NodeManager::isThrottleNode())
+        CommandDistributor::broadcastTurnout(getId(), closeFlag);
     }
 #if defined(EXRAIL_ACTIVE)
-    RMFT2::turnoutEvent(id, closeFlag);
+    RMFT2::turnoutEvent(getId(), closeFlag);
 #endif
     return true;
   }
@@ -127,24 +127,36 @@
   //  common parts of the turnout operation.  Code which is specific to a turnout
   //  type should be placed in the virtual function setClosedInternal(bool) which is
   //  called from here.
-  /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag) { 
-#if defined(DIAG_IO)
-    DIAG(F("Turnout(%d,%c)"), id, closeFlag ? 'c':'t');
-#endif
+  /* static */ bool Turnout::setClosed(uint16_t id, bool closeFlag, bool nodeCast) { 
+    if (nodeCast) NodeManager::cast(F("<H %d %d>"), id, closeFlag ? 0 : 1);
     Turnout *tt = Turnout::get(id);
-    if (!tt) return false;
-    bool ok = tt->setClosedInternal(closeFlag);
+    if (!tt) tt=VpinTurnout::create(id,0, closeFlag);
+    tt->setClosedInternal(closeFlag);
+#if defined(EXRAIL_ACTIVE)
+    RMFT2::turnoutEvent(id, closeFlag);    
+#endif
+    if (NodeManager::isThrottleNode() && !tt->isHidden())
+      CommandDistributor::broadcastTurnout(id, closeFlag);
 
-    if (ok) {
-      tt->setClosedStateOnly(id, closeFlag);
 #ifndef DISABLE_EEPROM
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
         EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);
 #endif
-    }
-    return ok;
+    return true;
+}
+
+/* static */ void Turnout::shareNodesToCS() {
+    
+    DIAG(F("Sharing turnouts to CS"));
+    for (Turnout *tt = _firstTurnout; tt; tt = tt->_nextTurnout) {
+      DIAG(F("Sharing turnout %d"), tt->getId());
+      if (tt->isHidden()) continue;
+      auto tdesc = tt->getRamDescription();
+      if (!tdesc) tdesc = "";
+	    NodeManager::cast(F("<H %d %d \"%s\">"),tt->getId(), tt->isThrown(), tdesc);
+      } 
   }
 
 #ifndef DISABLE_EEPROM
@@ -220,7 +232,6 @@
 
   // Create function
   /* static */ Turnout *ServoTurnout::create(uint16_t id, VPIN vpin, uint16_t thrownPosition, uint16_t closedPosition, uint8_t profile, bool closed) {
-#ifndef IO_NO_HAL
     Turnout *tt = get(id);
     if (tt) { 
       // Object already exists, check if it is usable
@@ -239,8 +250,11 @@
         //  behave consistently with the turnout commands.
         IODevice::configureServo(vpin, thrownPosition, closedPosition, profile, 0, closed);
 
+        
+        // Set position directly to mid position - we don't know where it is moving from.
+        IODevice::writeAnalogue(vpin, (thrownPosition + closedPosition) / 2, PCA9685::Instant, 0, false);
         // Set position directly to specified position - we don't know where it is moving from.
-        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
+        IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Fast,0,false);
 
         return tt;
       } else {
@@ -249,14 +263,10 @@
       }
     }
     tt = (Turnout *)new ServoTurnout(id, vpin, thrownPosition, closedPosition, profile, closed);
-    DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
-    IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant);
+    //DIAG(F("Turnout 0x%x size %d size %d"), tt, sizeof(Turnout),sizeof(struct TurnoutData));
+    IODevice::writeAnalogue(vpin, closed ? closedPosition : thrownPosition, PCA9685::Instant,0,false);
     return tt;
-#else
-    (void)id; (void)vpin; (void)thrownPosition; (void)closedPosition;
-    (void)profile; (void)closed;          // avoid compiler warnings.
-    return NULL;
-#endif
+
   }
 
   // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
@@ -285,14 +295,9 @@
   }
 
   // ServoTurnout-specific code for throwing or closing a servo turnout.
-  bool ServoTurnout::setClosedInternal(bool close) {
-#ifndef IO_NO_HAL
+  void ServoTurnout::setClosedInternal(bool close) {
     IODevice::writeAnalogue(_servoTurnoutData.vpin, 
-      close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile);
-#else
-    (void)close;  // avoid compiler warnings
-#endif
-    return true;
+      close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile,0,false);
   }
 
   void ServoTurnout::save() {
@@ -375,7 +380,7 @@
       _dccTurnoutData.address, _dccTurnoutData.subAddress, !_turnoutData.closed); 
   }
 
-  bool DCCTurnout::setClosedInternal(bool close) {
+  void DCCTurnout::setClosedInternal(bool close) {
     // DCC++ Classic behaviour is that Throw writes a 1 in the packet,
     // and Close writes a 0.  
     // RCN-213 specifies that Throw is 0 and Close is 1.
@@ -383,7 +388,6 @@
     close = !close;
 #endif
     DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close);
-    return true;
   }
 
   void DCCTurnout::save() {
@@ -456,9 +460,8 @@
       !_turnoutData.closed); 
   }
 
-  bool VpinTurnout::setClosedInternal(bool close) {
-    IODevice::write(_vpinTurnoutData.vpin, close);
-    return true;
+  void VpinTurnout::setClosedInternal(bool close) {
+    if (_vpinTurnoutData.vpin) IODevice::write(_vpinTurnoutData.vpin, close);
   }
 
   void VpinTurnout::save() {
@@ -505,14 +508,13 @@
     return tt;
   }
 
-  bool LCNTurnout::setClosedInternal(bool close) {
+  void LCNTurnout::setClosedInternal(bool close) {
     // Assume that the LCN command still uses 1 for throw and 0 for close...
     LCN::send('T', _turnoutData.id, !close);
     // The _turnoutData.closed flag should be updated by a message from the LCN master.
     // but in this implementation it is updated in setClosedStateOnly() instead.
     // If the LCN master updates this, setClosedStateOnly() and all setClosedInternal()
     // have to be updated accordingly so that the closed flag is only set once.
-    return true;
   }
 
   // LCN turnouts not saved to EEPROM.

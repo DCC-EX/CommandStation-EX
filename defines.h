@@ -32,10 +32,6 @@
     #include "config.h"
 #endif
 
-#ifndef MOTOR_SHIELD_TYPE
-  #define MOTOR_SHIELD_TYPE NO_SHIELD
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create a cpu type we can share and 
@@ -48,90 +44,9 @@
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
 
-#if defined(ARDUINO_AVR_UNO)
-  #define ARDUINO_TYPE "UNO"
-  #undef HAS_ENOUGH_MEMORY
-  #define NO_EXTENDED_CHARACTERS
-  #undef I2C_EXTENDED_ADDRESS
-  #define DEFAULT_MAX_LOCOS 8
-
-#elif defined(ARDUINO_AVR_NANO)
-  #define ARDUINO_TYPE "NANO"
-  #undef HAS_ENOUGH_MEMORY
-  #define NO_EXTENDED_CHARACTERS
-  #undef I2C_EXTENDED_ADDRESS
-  #define DEFAULT_MAX_LOCOS 8
-#elif defined(ARDUINO_AVR_MEGA)
+#if defined(ARDUINO_AVR_MEGA) | defined(ARDUINO_AVR_MEGA2560)
   #define ARDUINO_TYPE "MEGA"
   #define DEFAULT_MAX_LOCOS 50
-#elif defined(ARDUINO_AVR_MEGA2560)
-  #define ARDUINO_TYPE "MEGA"
-  #define DEFAULT_MAX_LOCOS 50
-#elif defined(ARDUINO_ARCH_MEGAAVR)
-  #define ARDUINO_TYPE "MEGAAVR"
-  #undef HAS_ENOUGH_MEMORY
-  #define NO_EXTENDED_CHARACTERS
-  #undef I2C_EXTENDED_ADDRESS
-  #define DEFAULT_MAX_LOCOS 8
-#elif defined(ARDUINO_TEENSY31)
-  #define ARDUINO_TYPE "TEENSY3132"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-  // Teensy support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
-#elif defined(ARDUINO_TEENSY35)
-  #define ARDUINO_TYPE "TEENSY35"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  // Teensy support for I2C is awaiting development 
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-  // Teensy support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
-#elif defined(ARDUINO_TEENSY36)
-  #define ARDUINO_TYPE "TEENSY36"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-  // Teensy support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
-#elif defined(ARDUINO_TEENSY40)
-  #define ARDUINO_TYPE "TEENSY40"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-  // Teensy support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-  #define I2C_USE_WIRE
-  #endif
-#elif defined(ARDUINO_TEENSY41)
-  #define ARDUINO_TYPE "TEENSY41"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-  // Teensy support for native I2C is awaiting development 
-  #ifndef I2C_USE_WIRE
-    #define I2C_USE_WIRE
-  #endif
-#elif defined(ARDUINO_ARCH_ESP8266)
-  #define ARDUINO_TYPE "ESP8266"
-  #warning "ESP8266 platform untested, you are on your own"
 #elif defined(ARDUINO_ARCH_ESP32)
   #define ARDUINO_TYPE "ESP32"
   #ifndef DISABLE_EEPROM
@@ -140,14 +55,6 @@
   #define ENABLE_WIFI true
   #define ENABLE_SERIAL_LOG
 
-#elif defined(ARDUINO_ARCH_SAMD)
-  #define ARDUINO_TYPE "SAMD21"
-  #undef USB_SERIAL
-  #define USB_SERIAL SerialUSB
-  // SAMD no EEPROM by default 
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
 #elif defined(ARDUINO_ARCH_STM32)
   #define ARDUINO_TYPE "STM32"
   // STM32 no EEPROM by default 
@@ -237,19 +144,6 @@
     #define USB_SERIAL SerialLog
   #endif
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// Define symbol IO_NO_HAL to reduce FLASH footprint when HAL features not required
-// The HAL is disabled by default on Nano and Uno platforms, because of limited flash space.
-// 
-#if defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_UNO)
-#define IO_NO_HAL // HAL too big whatever you disable otherwise
-
-#ifndef ENABLE_DIAG
-#define DISABLE_DIAG
-#endif
-
-#endif
 
 #if __has_include ( "myAutomation.h")
   #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)
