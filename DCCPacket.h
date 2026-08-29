@@ -57,7 +57,7 @@ public:
       _data = NULL;
     }
   };
-  inline bool operator==(const DCCPacket &right) {
+  inline bool operator==(const DCCPacket &right) const {
     if (_len != right._len)
       return false;
     if (_len == 0)
