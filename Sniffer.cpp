@@ -1,5 +1,5 @@
 /*
- *  © 2025 Harald Barth
+ *  © 2025, 2026 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -17,7 +17,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "config.h"
-#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
+#if defined(ARDUINO_ARCH_ESP32)
 #include "Sniffer.h"
 #include "DIAG.h"
 #include "driver/mcpwm.h"
