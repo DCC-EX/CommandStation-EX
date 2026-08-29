@@ -1,6 +1,6 @@
 /*
  *  © 2022-2025 Chris Harlow
- *  © 2022-2024 Harald Barth
+ *  © 2022-2026 Harald Barth
  *  © 2023-2024 Paul M. Antoine
  *  © 2024-2025 Herb Morton
  *  © 2023 Colin Murdoch
@@ -225,7 +225,7 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
       }
     }
 
-#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
     // remove pin from MUX matrix and turn it off
     pinpair p = track[trackToSet]->getSignalPin();
     //DIAG(F("Track=%c remove  pin %d"),trackToSet+'A', p.pin);
