@@ -1,5 +1,5 @@
 /*
- *  © 2025 Harald Barth
+ *  © 2025, 2026 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -26,7 +26,7 @@
 class Sniffer {
 public:
   Sniffer(byte snifferpin);
-  void IRAM_ATTR processInterrupt(int32_t capticks, bool posedge);
+  void processInterrupt(int32_t capticks, bool posedge);
   inline int32_t getTicks() {
     noInterrupts();
     int32_t i = diffticks;
