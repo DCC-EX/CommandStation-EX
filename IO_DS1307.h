@@ -44,6 +44,7 @@ private:
   // Constructor
     DS1307(VPIN vpin,I2CAddress i2cAddress);
     uint32_t getTime();
+    uint8_t d2b(uint8_t b);
     void _begin() override;
     void _display() override;
     void _loop(unsigned long currentMicros) override;

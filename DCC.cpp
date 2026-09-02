@@ -98,7 +98,7 @@ byte DCC::getMomentum(LocoSlot * slot) {
    return (slot->getMomentumD() == MOMENTUM_USE_DEFAULT) ? defaultMomentumD : slot->getMomentumD();
 }
 
-bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection,bool tellNodes)  {
   if (tSpeed==1) {
     if (cab==0) {
       estopAll(); // ESTOP broadcast fix 
@@ -114,11 +114,11 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   
   if (slot->getTargetSpeed()==speedCode) // speed has been reached
     return true;
-  slot->setTargetSpeed(speedCode);
+  slot->setTargetSpeed(speedCode,tellNodes);
 
   // copy target speed to consist followers
   for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
-    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0) );
+    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0), tellNodes);
   }
 
   byte momentum=getMomentum(slot);
@@ -251,7 +251,7 @@ bool DCC::getThrottleDirection(int cab) {
 }
 
 // Set function to value on or off
-bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
+bool DCC::setFn( int cab, int16_t functionNumber, bool on, bool tellNodes) {
   if (cab<=0 ) return false;
   if (functionNumber < 0) return false;
 
@@ -273,6 +273,8 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
     }
     DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
   }
+  if (tellNodes) NodeManager::cast(F("<F %d %d %d>"),cab,functionNumber,on?1:0);
+  
   // We use the reminder table up to 28 for normal functions.
   // We use 29 to 31 for DC frequency as well so up to 28
   // are "real" functions and 29 to 31 are frequency bits

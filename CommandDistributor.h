@@ -29,6 +29,8 @@
 #include "defines.h"
 #include "EXRAIL2.h"
 #include "DCC.h"
+#include "NodeManager.h"
+#include "Signals.h"
 
 #if WIFI_ON | ETHERNET_ON 
   // Command Distributor must handle a RingStream of clients
@@ -53,7 +55,7 @@ public :
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);
-  static void setClockTime(int16_t time, int8_t rate);
+  static void setClockTime(int16_t time, int8_t rate, bool tellNodes=true);
   static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastRaw(clientType type,char * msg);
@@ -64,6 +66,7 @@ public :
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);
   static void broadcastEstopLock(bool locked); 
+  static void broadcastSignal(int16_t signal_id, Signal::RAG state, byte aspect=255);
   
 };
 

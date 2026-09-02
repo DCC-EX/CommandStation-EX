@@ -56,6 +56,8 @@
 
 // helper macro for turnout descriptions, creates NULL for missing description
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
+#define S_DESC(desc) ("" desc)[0]?("" desc):nullptr
+
 // helper macro for turntable descriptions, creates NULL for missing description
 #define T_DESC(tid,pid,desc) if(turntableId==tid && positionId==pid) return ("" desc)[0]?F("" desc):NULL;
 // helper macro for turnout description as HIDDEN 
@@ -100,6 +102,18 @@
 #define ZC8(_1,_2,_3,_4,_5,_6,_7,_8) CALL(_1) CALL(_2) CALL(_3) CALL(_4) CALL(_5) CALL(_6) CALL(_7) CALL(_8)
 #define ZCRIP(count) _EXPAND_(_CONCAT_(ZC,count))
 
+// For all passes that generate c++ code directly from the macros, 
+// nvs references can refer directly to the NVSTable functions 
+// In to things like Alias, turnout and signal definitions, HAL setups etc.
+// these will take place at startup time but changes to the nvs will not 
+// affect them without a reboot.
+
+// For run-time statelents (e.h DELAY) 
+// The NVS macro generates a token that will be passed to the NVSTable::decodeNVSToken function at the appropriate time.
+
+// For all Aliases... NVS references are not possible
+#undef NVS
+#undef NVST
 
 // Pass 1 Implements aliases 
 #include "EXRAIL2MacroReset.h"
@@ -107,8 +121,29 @@
 #define ALIAS(name,value...) const int name= #value[0] ? value+0: -__COUNTER__ ; 
 #include "myAutomation.h"
 
+
+// For all passes that generate c++ code directly from the macros,
+#undef NVS
+#define NVS(nvsnum) NVSTable::getNVS(nvsnum,true)
+#define NVST(nvsnum)  "\b" #nvsnum "\b" 
+
 // Perform compile time asserts to check the script for errors
 #include "EXRAILAsserts.h"
+
+// Pass 1s implements IODevice::isSharedWrite 
+#include "EXRAIL2MacroReset.h"
+#undef SHARED_WRITE_VPINS
+#define SHARED_WRITE_VPINS(vpin,count) \
+  || (xvpin>=vpin && (xvpin+xcount-1)<=(vpin+count-1))
+
+bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
+   (void) xvpin; // suppress unused warnings if no groups
+   (void) xcount; // suppress unused warnings if no groups
+   return false
+   #include "myAutomation.h"
+   ;
+}
+
 
 // Pass 1g Implants STEALTH_GLOBAL in correct place 
 #include "EXRAIL2MacroReset.h"
@@ -123,6 +158,14 @@
 #define HAL(haltype,params...)  haltype::create(params);
 #undef HAL_IGNORE_DEFAULTS
 #define HAL_IGNORE_DEFAULTS ignore_defaults=true;
+#undef NODE_SHARE_SCREEN0
+#define NODE_SHARE_SCREEN0(display_id2,count...) \
+  { \
+   const int displayRowOffset=#count[0]? count+0:0; \
+   StringFormatter::alternativeScreen0RowOffset=displayRowOffset; \
+   StringFormatter::alternativeScreen0=display_id2; \
+  }
+
 bool exrailHalSetup1() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
@@ -133,33 +176,90 @@ bool exrailHalSetup1() {
 // TODO Turnout and turntable creation should be moved to here instead of 
 // the first pass from the opcode table. 
 #include "EXRAIL2MacroReset.h"
+#undef SHARED_SENSOR
+#define SHARED_SENSOR(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   static byte state_map[(npins+7)/8]; \
+   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action, applyPin, applyState); \
+  }
+#undef REMOTE_SENSOR
+#define REMOTE_SENSOR(vpin,count...) \
+  { \
+   const int npins=#count[0]? count+0:1; \
+   SensorGroup::doRemoteSensorGroup(vpin,npins,action, applyPin, applyState); \
+  }
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) \
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,true); \
+   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,true); \
   }
 #undef JMRI_SENSOR_NOPULLUP
 #define JMRI_SENSOR_NOPULLUP(vpin,count...) \
   { \
    const int npins=#count[0]? count+0:1; \
    static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSensorGroup(vpin,npins,state_map,action,stream,false); \
+   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,false); \
   }
 
-void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream) {
+void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN applyPin, bool applyState) {
    (void)   action; // suppress unused warnings if no groups
    (void)   stream;
+   (void)   applyPin;
+   (void)   applyState;
    #include "myAutomation.h"
 }
 
-// Pass 1s Implements servos by creating exrailHalSetup2
-// TODO Turnout and turntable creation should be moved to here instead of 
-// the first pass from the opcode table. 
+// Pass 1s Implements servos and signals by creating exrailHalSetup2
 #include "EXRAIL2MacroReset.h"
 #undef  CONFIGURE_SERVO
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
+#undef SIGNAL
+#define SIGNAL(redpin,amberpin,greenpin,description...) \
+  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
+#undef SIGNALH
+#define SIGNALH(redpin,amberpin,greenpin,description...) \
+  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
+#undef LED_SIGNAL
+#define LED_SIGNAL(signalid,redpin,amberpin,greenpin,description...) \
+  new LEDSignal(signalid,redpin,amberpin,greenpin,false,S_DESC(description));
+#undef SERVO_SIGNAL
+#define SERVO_SIGNAL(vpin,redval,amberval,greenval,description...) \
+  new ServoSignal(vpin,vpin,redval,amberval,greenval,S_DESC(description));
+#undef DCC_SIGNAL
+#define DCC_SIGNAL(id,addr,subaddr,description...) \
+   new DCCSignal(id,(((addr)-1)*4)+(subaddr)+1,S_DESC(description));
+#undef DCCX_SIGNAL
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...) \
+  new DCCXSignal(id,id,redAspect,amberAspect,greenAspect,S_DESC(description));
+#undef NEOPIXEL_SIGNAL
+#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB,description...) \
+  new NeoPixelSignal(id,id,redRGB,amberRGB,greenRGB,S_DESC(description));
+#undef VIRTUAL_SIGNAL
+#define VIRTUAL_SIGNAL(id,description...) \
+  new Signal(id,S_DESC(description));
+
+// Turnouts created here
+#undef SERVO_TURNOUT
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) \
+      ServoTurnout::create(id,pin,activeAngle,inactiveAngle,PCA9685::ProfileType::profile)->\
+      setRamDescription(S_DESC(description));
+#undef TURNOUT
+#define TURNOUT(id,addr,subaddr,description...) DCCTurnout::create(id,addr,subaddr)->setRamDescription(S_DESC(description));
+#undef TURNOUTL
+#define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
+#undef PIN_TURNOUT
+#define PIN_TURNOUT(id,pin,description...) VpinTurnout::create(id,pin)->setRamDescription(S_DESC(description));
+#undef VIRTUAL_TURNOUT
+#define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0)->setRamDescription(S_DESC(description));
+#undef CONFIGURE_DIALOG
+#define CONFIGURE_DIALOG(title,body) {\
+   extern String body##_html;\
+   SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
+}
+
 void exrailHalSetup2() {
    #include "myAutomation.h"
    // pullup any group sensors
@@ -168,21 +268,6 @@ void exrailHalSetup2() {
 
 // Pass 1c detect compile time featurtes
 #include "EXRAIL2MacroReset.h"
-#undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
-#undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) | FEATURE_SIGNAL 
-#undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) | FEATURE_SIGNAL 
-#undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) | FEATURE_SIGNAL
-#undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) | FEATURE_SIGNAL
-#undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour) | FEATURE_SIGNAL
-#undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) | FEATURE_SIGNAL
-
 #undef LCC
 #define LCC(eventid)  | FEATURE_LCC
 #undef LCCX
@@ -379,28 +464,6 @@ void  RMFT2::printMessage(uint16_t id) {
   if (strfar) thrungeString(strfar,tmode,lcdid);
 }
 
-
-// Pass 5: Turnout descriptions (optional)
-#include "EXRAIL2MacroReset.h"
-#undef TURNOUT
-#define TURNOUT(id,addr,subaddr,description...) O_DESC(id,description)
-#undef TURNOUTL
-#define TURNOUTL(id,addr,description...) O_DESC(id,description)
-#undef PIN_TURNOUT
-#define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
-#undef SERVO_TURNOUT
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) O_DESC(id,description)
-#undef VIRTUAL_TURNOUT
-#define VIRTUAL_TURNOUT(id,description...) O_DESC(id,description)
-
-const FSH * RMFT2::getTurnoutDescription(int16_t turnoutid) {
-     switch (turnoutid) {
-        #include "myAutomation.h"
-     default:break;
-     }
-     return NULL;
-}
-
 // Pass to get turntable descriptions (optional)
 #include "EXRAIL2MacroReset.h"
 #undef DCC_TURNTABLE
@@ -467,30 +530,6 @@ const FSH * RMFT2::getRosterFunctions(int16_t id) {
    return NULL;
 } 
 
-// Pass 8 Signal definitions
-#include "EXRAIL2MacroReset.h"
-#undef SIGNAL
-#define SIGNAL(redpin,amberpin,greenpin) {sigtypeSIGNAL,redpin,redpin,amberpin,greenpin}, 
-#undef SIGNALH
-#define SIGNALH(redpin,amberpin,greenpin) {sigtypeSIGNALH,redpin,redpin,amberpin,greenpin}, 
-#undef SERVO_SIGNAL
-#define SERVO_SIGNAL(vpin,redval,amberval,greenval) {sigtypeSERVO,vpin,redval,amberval,greenval}, 
-#undef DCC_SIGNAL
-#define DCC_SIGNAL(id,addr,subaddr) {sigtypeDCC,id,addr,subaddr,0},
-#undef DCCX_SIGNAL
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect) {sigtypeDCCX,id,redAspect,amberAspect,greenAspect},
-#undef NEOPIXEL_SIGNAL
-#define NEOPIXEL_SIGNAL(id,redRGB,amberRGB,greenRGB) \
-        {sigtypeNEOPIXEL,id,((VPIN)((redRGB)>>8)), ((VPIN)((amberRGB)>>8)), ((VPIN)((greenRGB)>>8))},\
-        {sigtypeContinuation,id,((VPIN)((redRGB) & 0xff)), ((VPIN)((amberRGB) & 0xFF)), ((VPIN)((greenRGB) & 0xFF))},
-#undef VIRTUAL_SIGNAL
-#define VIRTUAL_SIGNAL(id) {sigtypeVIRTUAL,id,0,0,0},
-
-const  HIGHFLASH  SIGNAL_DEFINITION RMFT2::SignalDefinitions[] = {
-    #include "myAutomation.h"
-     {sigtypeNoMoreSignals,0,0,0,0}
-    };
-
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
 #undef ONLCC
@@ -511,8 +550,18 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #include "EXRAIL2MacroReset.h"
 // Define internal helper macros.
 // Everything we generate here has to be compile-time evaluated to 
-// a constant.  
-#define V(val) (byte)(((int16_t)(val))&0x00FF),(byte)(((int16_t)(val)>>8)&0x00FF)
+// a constant. (0b01, 14-bit NVS number,16-bit added value)
+// Note that all string-using commands will alreday have been compiled
+// into code and only an OPCODE_PRINT is used to reference them at run time.
+
+
+#undef NVS
+#define NVS(nvsnum) ((int32_t)((nvsnum & 0x03FF)<< 16 | 0x40000000)) 
+#undef NVST
+#define NVST(nvsnum)
+
+
+#define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
 // Define macros for route code creation 
 
 #define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
@@ -526,50 +575,56 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
-#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,0,0,OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
-#define AUTOSTART OPCODE_AUTOSTART,0,0,
+#define AUTOSTART OPCODE_AUTOSTART,V(0),
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
 #define BUILD_CONSIST(addloco) OPCODE_CONSIST,V(addloco),
 #define BREAK_CONSIST OPCODE_CONSIST,V(0),
 #define BROADCAST(msg) PRINT(msg)
 #define CALL(route) OPCODE_CALL,V(route),
+#define CHANGE_DIRECTION OPCODE_CHANGE_DIRECTION,V(0),
 #define CLEAR_STASH(id) OPCODE_CLEAR_STASH,V(id),
 #define CLEAR_ALL_STASH OPCODE_CLEAR_ALL_STASH,V(0),
 #define CLEAR_ANY_STASH OPCODE_CLEAR_ANY_STASH,V(0),
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
+#define CONFIGURE_DIALOG(title,body)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
-#ifndef IO_NO_HAL
 #define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
-#endif
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
-#define DELAY(ms) ms<30000?OPCODE_DELAYMS:OPCODE_DELAY,V(ms/(ms<30000?1L:100L)),
+
+// DELAY/DELAYRANDOM opcodes altered to select millis or tenths of seconds based on the value of the delay.
+// but allowing NVS tolkens (which are always >= 0x7E000000) to be passed through unchanged as 
+// millis. This does NOT allow the use of NVS tokens for delays that are longer than 30 seconds
+// due to NVS number range limits.
+#define DELAY(ms) (ms<=30000 || ms>=0x7E000000) ? OPCODE_DELAYMS : OPCODE_DELAY,\
+                V((ms<=30000 || ms>=0x7E000000) ? ms : (ms/100L)),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay) OPCODE_RANDWAIT,V((maxdelay-mindelay)/100L),
-#define DCC_SIGNAL(id,add,subaddr)
-#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect)
-#define DONE OPCODE_ENDTASK,0,0,
+#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay)\
+        (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
+        V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
+#define DCC_SIGNAL(id,add,subaddr,description...)
+#define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
+#define DONE OPCODE_ENDTASK,V(0),
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
-#define ELSE OPCODE_ELSE,0,0,
+#define ELSE OPCODE_ELSE,V(0),
 #define ENDEXRAIL 
-#define ENDIF  OPCODE_ENDIF,0,0,
-#define ENDTASK OPCODE_ENDTASK,0,0,
+#define ENDIF  OPCODE_ENDIF,V(0),
+#define ENDTASK OPCODE_ENDTASK,V(0),
 #define ESTOP OPCODE_SPEED,V(1), 
 #define ESTOPALL OPCODE_ESTOPALL,V(0),
 #define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
 #define ESTOP_RESUME OPCODE_ESTOPALL,V(2),
 #define EXRAIL
-#ifndef IO_NO_HAL
 #define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
-#endif
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V((int16_t)PCA9685::ProfileType::UseDuration|(int16_t)PCA9685::ProfileType::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
 #define FON(func) OPCODE_FON,V(func),
-#define FORGET OPCODE_FORGET,0,0,
+#define FORGET OPCODE_FORGET,V(0),
 #define FREE(blockid) OPCODE_FREE,V(blockid),
-#define FREEALL OPCODE_FREEALL,0,0,
+#define FREEALL OPCODE_FREEALL,V(0),
 #define FTOGGLE(func) OPCODE_FTOGGLE,V(func),
 #define FWD(speed) OPCODE_FWD,V(speed),
 #define GREEN(signal_id) OPCODE_GREEN,V(signal_id),
@@ -585,6 +640,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IF_ANY(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
+#define IFNVS(nvs_id) OPCODE_IFNVS,V(nvs_id),
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
@@ -595,18 +651,18 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFSTASH(stash_id) OPCODE_IFSTASH,V(stash_id),
 #define IFSTASHED_HERE(stash_id) OPCODE_IFSTASHED_HERE,V(stash_id),
 #define IFTHROWN(turnout_id) OPCODE_IFTHROWN,V(turnout_id),
-#define IFTIMEOUT OPCODE_IFTIMEOUT,0,0,
-#ifndef IO_NO_HAL
+#define IFTIMEOUT OPCODE_IFTIMEOUT,V(0),
 #define IFTTPOSITION(id,position) OPCODE_IFTTPOSITION,V(id),OPCODE_PAD,V(position),
-#endif
 #define IFRE(sensor_id,value) OPCODE_IFRE,V(sensor_id),OPCODE_PAD,V(value),
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
-#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,0,0,
+#define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,V(0),
+#define SHARED_SENSOR(vpin,count...)
+#define REMOTE_SENSOR(vpin,count...)
 #define JMRI_SENSOR(vpin,count...)
 #define JMRI_SENSOR_NOPULLUP(vpin,count...)
-#define JOIN OPCODE_JOIN,0,0,
-#define KILLALL OPCODE_KILLALL,0,0,
+#define JOIN OPCODE_JOIN,V(0),
+#define KILLALL OPCODE_KILLALL,V(0),
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
 #define LCC(eventid) OPCODE_LCC,V(eventid),
 #define LCCX(sender,event) OPCODE_LCCX,V(event),\
@@ -630,7 +686,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         OPCODE_PAD,V((b & 0xff)),\
         OPCODE_PAD,V(#count[0]?(count+0):1),
          
-#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour)
+#define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
+#define NODE_SHARE_SCREEN0(display_id2,count...)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
 #define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
@@ -645,23 +702,21 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
 #define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
-#define ONRAILSYNCON OPCODE_ONRAILSYNCON,0,0,
-#define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,0,0,
+#define ONRAILSYNCON OPCODE_ONRAILSYNCON,V(0),
+#define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,V(0),
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
 #define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
-#ifndef IO_NO_HAL
 #define ONROTATE(id) OPCODE_ONROTATE,V(id),
-#endif
 #define ONTHROW(turnout_id) OPCODE_ONTHROW,V(turnout_id),
 #define ONCHANGE(sensor_id) OPCODE_ONCHANGE,V(sensor_id),
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
 #define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
-#define PAUSE OPCODE_PAUSE,0,0,
+#define PAUSE OPCODE_PAUSE,V(0),
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
-#define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#define PIN_TURNOUT(id,pin,description...)
 #define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
 #define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
 #define PLAY_PAUSE(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_PAUSE)
@@ -672,8 +727,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PLAY_TRACK(vpin,track,volume...)   ANOUT(vpin,track,volume+0,DFPlayerBase::DF_PLAY) 
 #define PLAY_VOLUME(vpin,volume)           ANOUT(vpin,0,volume,DFPlayerBase::DF_VOL)
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
-#define POWEROFF OPCODE_POWEROFF,0,0,
-#define POWERON OPCODE_POWERON,0,0,
+#define POWEROFF OPCODE_POWEROFF,V(0),
+#define POWERON OPCODE_POWERON,V(0),
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
 #define RANDOM_CALL(...) \
@@ -682,18 +737,16 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define RANDOM_FOLLOW(...) \
   OPCODE_RANDOM_FOLLOW,V(FOR_EACH_NARG(__VA_ARGS__)), \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
-#define READ_LOCO OPCODE_READ_LOCO1,0,0,OPCODE_READ_LOCO2,0,0,
+#define READ_LOCO OPCODE_READ_LOCO1,V(0),OPCODE_READ_LOCO2,V(0),
 #define RED(signal_id) OPCODE_RED,V(signal_id),
 #define RESERVE(blockid) OPCODE_RESERVE,V(blockid),
 #define RESET(pin,count...) OPCODE_RESET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
-#define RESUME OPCODE_RESUME,0,0,
-#define RETURN OPCODE_RETURN,0,0,
+#define RESUME OPCODE_RESUME,V(0),
+#define RETURN OPCODE_RETURN,V(0),
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
-#ifndef IO_NO_HAL
 #define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
 #define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
-#endif
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
 #define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
@@ -713,15 +766,17 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SERIAL6(msg) PRINT(msg)
 #define SERVO(id,position,profile) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::profile),OPCODE_PAD,V(0),
 #define SERVO2(id,position,ms) OPCODE_SERVO,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(PCA9685::Instant),OPCODE_PAD,V(ms/100L),
-#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
-#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) OPCODE_SERVOTURNOUT,V(id),OPCODE_PAD,V(pin),OPCODE_PAD,V(activeAngle),OPCODE_PAD,V(inactiveAngle),OPCODE_PAD,V(PCA9685::ProfileType::profile),
+#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos,description...) 
+#define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...)
 #define SET(pin,count...) OPCODE_SET,V(pin),OPCODE_PAD,V(#count[0] ? count+0: 1),
 #define SET_TRACK(track,mode)  OPCODE_SET_TRACK,V(TRACK_MODE_##mode  <<8 | TRACK_NUMBER_##track),
 #define SET_POWER(track,onoff) OPCODE_SET_POWER,V(TRACK_POWER_##onoff),OPCODE_PAD, V(TRACK_NUMBER_##track),
 #define SETLOCO(loco) OPCODE_SETLOCO,V(loco),
 #define SETFREQ(freq) OPCODE_SETFREQ,V(freq),
-#define SIGNAL(redpin,amberpin,greenpin) 
-#define SIGNALH(redpin,amberpin,greenpin) 
+#define SIGNAL(redpin,amberpin,greenpin,description...) 
+#define SIGNALH(redpin,amberpin,greenpin,description...)
+#define LED_SIGNAL(signalid,redpin,amberpin,greenpin,description...)
+#define SHARED_WRITE_VPINS(vpin,count)
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
 #define SPEED_REL(percent) OPCODE_SPEED_REL,V(percent),
@@ -733,15 +788,13 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
-#ifndef IO_NO_HAL
 #define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
-#endif
-#define TURNOUT(id,addr,subaddr,description...) OPCODE_TURNOUT,V(id),OPCODE_PAD,V(addr),OPCODE_PAD,V(subaddr),
-#define TURNOUTL(id,addr,description...) TURNOUT(id,(addr-1)/4+1,(addr-1)%4, description)
-#define UNJOIN OPCODE_UNJOIN,0,0,
+#define TURNOUT(id,addr,subaddr,description...)
+#define TURNOUTL(id,addr,description...)
+#define UNJOIN OPCODE_UNJOIN,V(0),
 #define UNLATCH(sensor_id) OPCODE_UNLATCH,V(sensor_id),
-#define VIRTUAL_SIGNAL(id) 
-#define VIRTUAL_TURNOUT(id,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(0), 
+#define VIRTUAL_SIGNAL(id,description...) 
+#define VIRTUAL_TURNOUT(id,description...) 
 #define BITMAP_AND(vpin,mask) OPCODE_BITMAP_AND,V(vpin),OPCODE_PAD,V(mask),
 #define BITMAP_INC(vpin) OPCODE_BITMAP_INC,V(vpin),
 #define BITMAP_DEC(vpin) OPCODE_BITMAP_DEC,V(vpin),
@@ -750,9 +803,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define BITMAP_XOR(vpin,mask) OPCODE_BITMAP_XOR,V(vpin),OPCODE_PAD,V(mask),
 #define WITHROTTLE(msg) PRINT(msg)
 #define WAITFOR(pin) OPCODE_WAITFOR,V(pin),
-#ifndef IO_NO_HAL
 #define WAITFORTT(turntable_id) OPCODE_WAITFORTT,V(turntable_id),
-#endif
 #define WAIT_WHILE_RED(signal_id) OPCODE_WAIT_WHILE_RED,V(signal_id),
 #define XFOFF(cab,func) OPCODE_XFOFF,V(cab),OPCODE_PAD,V(func),
 #define XFON(cab,func) OPCODE_XFON,V(cab),OPCODE_PAD,V(func),
@@ -770,9 +821,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 const int StringMacroTracker2=__COUNTER__;
 const  HIGHFLASH3  byte RMFT2::RouteCode[] = {
     #include "myAutomation.h"
-    OPCODE_ENDTASK,0,0,OPCODE_ENDEXRAIL,0,0 };
+    OPCODE_ENDTASK,V(0),OPCODE_ENDEXRAIL,V(0) };
 
 // Restore normal code LCD & SERIAL  macro
+#undef NVS
 #undef LCD
 #define LCD   StringFormatter::lcd
 #undef SCREEN

@@ -21,6 +21,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
+#ifdef MOTOR_SHIELD_TYPE
 #ifndef ARDUINO_ARCH_ESP32
   // This code is replaced entirely on an ESP32
 #include <Arduino.h>
@@ -250,4 +252,11 @@ void DCCWaveform::promotePendingPacket() {
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
+
+void DCCWaveform::clearResets(byte fudge) {
+  (void)fudge;
+  sentResetsSincePacket=0;
+ }
+ byte DCCWaveform::getResets() { return sentResetsSincePacket; }
+#endif
 #endif

@@ -23,9 +23,11 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
+#include "defines.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "DCCRMT.h"
 #endif
+#include <Arduino.h>
 
 
 
@@ -57,28 +59,8 @@ class DCCWaveform {
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
     inline void clearRepeats() { transmitRepeats=0; }
-#ifndef ARDUINO_ARCH_ESP32
-    inline void clearResets() { sentResetsSincePacket=0; }
-    inline byte getResets() { return sentResetsSincePacket; }
-#else
-  // extrafudge is added when we know that the resets will first come extrafudge  packets in the future
-    inline void clearResets(byte extrafudge=0) {
-      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return;
-      resetPacketBase = isMainTrack ? rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
-      resetPacketBase += extrafudge;
-    };
-    inline byte getResets() {
-      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return 0;
-      uint32_t packetcount = isMainTrack ?
-	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
-      uint32_t count = packetcount - resetPacketBase; // Beware of unsigned interger arithmetic.
-      if (count > UINT32_MAX/2)                       // we are in the extrafudge area
-	return 0;
-      if (count > 255)                                // cap to 255
-	return 255;
-      return count;                                   // all special cases handled above
-    };
-#endif
+    void clearResets(byte fudge=0);
+    byte getResets();
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     bool isReminderWindowOpen();
     void promotePendingPacket();
@@ -122,7 +104,9 @@ class DCCWaveform {
     static bool railcomPossible; // High accuracy mode only
     static volatile bool railcomActive;     // switched on by user
     static bool cutoutNextTime;   // railcom
-#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
+  static void IRAM_ATTR interrupt(rmt_channel_t channel, void *t);
+  static void IRAM_ATTR updateMinimumFreeMemoryISR(int channel);
   static RMTChannel *rmtMainChannel;
   static RMTChannel *rmtProgChannel;
 #endif

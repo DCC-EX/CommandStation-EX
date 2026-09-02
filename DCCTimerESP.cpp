@@ -17,63 +17,11 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// ATTENTION: this file only compiles on an ESP8266 and ESP32
+// ATTENTION: this file only compiles on an ESP32 with IDF version 4
 // On ESP32 we do not even use the functions but they are here for completeness sake
 // Please refer to DCCTimer.h for general comments about how this class works
 // This is to avoid repetition and duplication.
 
-#ifdef ARDUINO_ARCH_ESP8266
-
-#include "DCCTimer.h"
-INTERRUPT_CALLBACK interruptHandler=0;
-
-void DCCTimer::begin(INTERRUPT_CALLBACK callback) {
-  interruptHandler=callback;
-  timer1_disable();
-
-  // There seem to be differnt ways to attach interrupt handler
-  //    ETS_FRC_TIMER1_INTR_ATTACH(NULL, NULL);
-  //    ETS_FRC_TIMER1_NMI_INTR_ATTACH(interruptHandler);
-  // Let us choose the one from the API
-  timer1_attachInterrupt(interruptHandler);
-
-  // not exactly sure of order:
-  timer1_enable(TIM_DIV1, TIM_EDGE, TIM_LOOP);
-  timer1_write(CLOCK_CYCLES);
-}
-// We do not support to use PWM to make the Waveform on ESP
-bool IRAM_ATTR DCCTimer::isPWMPin(byte pin) {
-  return false;
-}
-void IRAM_ATTR DCCTimer::setPWM(byte pin, bool high) {
-}
-void IRAM_ATTR DCCTimer::clearPWM() {
-}
-
-// Fake this as it should not be used
-void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-  mac[0] = 0xFE;
-  mac[1] = 0xBE;
-  mac[2] = 0xEF;
-  mac[3] = 0xC0;
-  mac[4] = 0xFF;
-  mac[5] = 0xEE;
-}
-
-volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
-
-// Return low memory value... 
-int DCCTimer::getMinimumFreeMemory() {
-  noInterrupts(); // Disable interrupts to get volatile value 
-  int retval = minimum_free_memory;
-  interrupts();
-  return retval;
-}
-
-int DCCTimer::freeMemory() {
-  return ESP.getFreeHeap();
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 #ifdef ARDUINO_ARCH_ESP32
@@ -84,7 +32,9 @@ int DCCTimer::freeMemory() {
 #if ESP_IDF_VERSION_MAJOR == 4
 // all well correct IDF version
 #else
-#error "DCC-EX does not support compiling with IDF version 5.0 or later. Downgrade your ESP32 library to a version that contains IDF version 4. Arduino ESP32 library 3.0.0 is too new. Downgrade to one of 2.0.9 to 2.0.17"
+#ifdef MOTOR_SHIELD_TYPE
+  #error "DCC-EX does not support compiling for motor shields with IDF version 5.0 or later. Downgrade your ESP32 library to a version that contains IDF version 4. Arduino ESP32 library 3.0.0 is too new. Downgrade to one of 2.0.9 to 2.0.17"
+#endif
 #endif
 
 // protect all the rest of the code from IDF version 5

@@ -33,6 +33,7 @@ class Diag {
   static bool RAILCOM;
   static bool WEBSOCKET;
   static bool SNIFFER;
+  static bool NODE;
 };
 
 class StringFormatter
@@ -53,9 +54,12 @@ class StringFormatter
     static void printEscape( char c);
     static void printHex(Print * stream,uint16_t value);
     static void send2(Print * serial, const FSH* input,va_list args);
-    
+    static void lcd4(byte display, byte row, const char * input,bool tellNodes);
+    static byte alternativeScreen0; // for node screen sharing
+    static byte alternativeScreen0RowOffset; // for node screen sharing
     private:
     static void lcd3(byte display, byte row, const FSH* input, va_list args);
     static void printPadded(Print* stream, long value, byte width, bool formatLeft);
+    static void printResolvingNVS(Print* stream, const char * input);
 };
 #endif

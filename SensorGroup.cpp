@@ -1,5 +1,6 @@
 #include "SensorGroup.h"
 #include "CommandDistributor.h"
+#include "NodeManager.h"
 
 #ifdef EXRAIL_ACTIVE
 
@@ -22,37 +23,55 @@ void SensorGroup::dumpAll(Print * stream) {
     doExrailSensorGroup(GroupProcess::dump, stream);
 }
 
+void SensorGroup::shareSensorsToCS() {
+    doExrailSensorGroup(GroupProcess::share, nullptr);
+}
+
+void SensorGroup::applyIncomingSensor(VPIN applyPin, bool applyState) {
+    doExrailSensorGroup(GroupProcess::apply, nullptr, applyPin, applyState);
+}
+
 #else
 // if EXRAIL is not active, these functions are empty
 void SensorGroup::checkAll() {}
 void SensorGroup::printAll(Print * serial) {(void)serial;}
 void SensorGroup::prepareAll() {}
 void SensorGroup::dumpAll(Print * stream) {(void)stream;}
+void SensorGroup::shareSensorsToCS() {}
+void SensorGroup::applyIncomingSensor(VPIN applyPin, bool applyState) {
+    (void)applyPin; (void)applyState;
+}
 #endif 
 
 // called by EXRAIL constructed doExrailSensorGroup for each group 
-void SensorGroup::doSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
+void SensorGroup::doJMRISensorGroup(VPIN firstVpin, int nPins, byte* statebits,
   GroupProcess action, Print * serial, bool pullup) {
-  
+         
   // Loop through the pins in the group  
-  for (auto i=0;i<nPins;i++) {   
+  for (auto i=0;i<nPins;i++) {
     // locate position of state bit
     byte stateByte=i/8;
     byte stateMask=1<<(i%8);
     VPIN vpin= firstVpin+i;
     switch(action) {
       case GroupProcess::prepare:
-          IODevice::configureInput(vpin, pullup);
-          if (IODevice::read(vpin))  statebits[stateByte]|=stateMask;
+            // this is monitoring Vpins, so configure them as inputs
+            IODevice::configureInput(vpin,pullup);
+            if (IODevice::read(vpin))  statebits[stateByte]|=stateMask;
           break; 
     
       case GroupProcess::check:
+        {
+         // dont check incoming shared groups, they are updated by the other node
          // check for state unchanged
          if ((bool)(statebits[stateByte]&stateMask) == IODevice::read(vpin)) break; // no change  
          // flip state bit
          statebits[stateByte]^=stateMask;
-         CommandDistributor::broadcastSensor(vpin,statebits[stateByte]&stateMask);
-         break;
+         bool state=statebits[stateByte]&stateMask;
+           // if not shared, broadcast to JMRI etc.
+           CommandDistributor::broadcastSensor(vpin,state);
+        }
+        break;
       
       case GroupProcess::print:
         StringFormatter::send(serial, F("<%c %d>\n"), 
@@ -63,7 +82,103 @@ void SensorGroup::doSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
         StringFormatter::send(serial, F("<Q %d %d %c>\n"), 
          vpin, vpin, pullup?'1':'0');
          break;
+
+      case GroupProcess::share:
+      case GroupProcess::apply:
+         // Not applicable to JMRI sensors 
+         break;
     } 
   }
 }
-    
+
+// called by EXRAIL constructed doExrailSensorGroup for each group 
+void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
+  GroupProcess action, VPIN applyPin, bool applyState) {
+
+  switch(action) {
+   
+    case GroupProcess::prepare:
+        //Need to know if this group is monitoring real pins or shared pins from another node.
+
+        // this is monitoring real pins, so configure them as inputs and take current state
+        DIAG(F("Creating SHARED_SENSOR( %d,%d)"),firstVpin,nPins);
+        for (auto i=0;i<nPins;i++) {
+          byte stateByte=i/8;
+          byte stateMask=1<<(i%8);
+          VPIN vpin= firstVpin+i;
+          IODevice::configureInput(vpin,true);
+          if (IODevice::read(vpin))  statebits[stateByte]|=stateMask;
+        }
+        break;
+  
+    case GroupProcess::check:
+        // Loop through the pins in the group  
+        for (auto i=0;i<nPins;i++) {
+          // locate position of state bit
+          byte stateByte=i/8;
+          byte stateMask=1<<(i%8);
+          VPIN vpin= firstVpin+i;
+          // check for state unchanged
+          bool newstate=IODevice::read(vpin)!=0;
+          if (newstate == (bool)(statebits[stateByte]&stateMask)) continue; // no change
+          // flip state bit
+          if (newstate) statebits[stateByte]|=stateMask;
+          else statebits[stateByte]&=~stateMask; 
+          NodeManager::cast(F("<q %d %b>\n"),vpin, newstate);
+        } 
+        break;
+
+    case GroupProcess::print:
+    case GroupProcess::dump:
+        DIAG(F("SHARED_SENSOR(%d,%d)"), firstVpin,nPins);
+        break;
+
+    case GroupProcess::share: // share outgoing groups to the CS and other nodes 
+      // share the outgoing group to the CS as 8 bits per xmit
+      for (auto partbyte=0;partbyte<(nPins+7)/8;partbyte++) {
+        auto vpin=firstVpin+8*partbyte;
+        auto npins=nPins-8*partbyte;
+        if (npins>8) npins=8;
+        NodeManager::cast(F("<q %d %d %d>"),vpin, npins, statebits[partbyte]);
+      }
+      break;
+
+    default:
+      break;  
+    } // switch(action)
+}
+
+// called by EXRAIL constructed doExrailSensorGroup for each group 
+void SensorGroup::doRemoteSensorGroup(VPIN firstVpin, int nPins,
+  GroupProcess action, VPIN applyPin, bool applyState) {
+
+  switch(action) {
+    case GroupProcess::apply:
+      // called when a shared sensor value is incoming from another node, so apply the state to the local copy of the state bits
+      if (applyPin<firstVpin || applyPin>=firstVpin+nPins) return;
+      // apply the state to the applyPin (no rebroadcast)
+      IODevice::write(applyPin, applyState,false);
+      break;
+
+    case GroupProcess::prepare:
+        //Need to know if this group is monitoring real pins or shared pins from another node.
+
+        if (IODevice::checkNoOverlap(firstVpin,nPins,0,true)){
+          // if  no overlap, then this is monitoring pins from another node
+          // so we have to create a local copy of the state bits
+          DIAG(F("Creating incoming REMOTE_SENSOR( %d,%d)"),firstVpin,nPins);
+          FLAGS::create(firstVpin,nPins);
+          return;
+        }
+        DIAG(F("REMOTE_SENSOR(%d,%d) mapped to existing VPINs"),firstVpin,nPins);
+        break;
+  
+    case GroupProcess::print:
+    case GroupProcess::dump:
+        DIAG(F("REMOTE_SENSOR(%d,%d)"), firstVpin,nPins);
+        break;
+
+    default:
+      break;
+    } // switch(action)
+  }

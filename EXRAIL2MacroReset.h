@@ -43,11 +43,13 @@
 #undef BUILD_CONSIST
 #undef BREAK_CONSIST
 #undef BROADCAST
-#undef CALL 
+#undef CALL
+#undef CHANGE_DIRECTION
 #undef CLEAR_STASH
 #undef CLEAR_ALL_STASH
 #undef CLEAR_ANY_STASH
-#undef CLOSE 
+#undef CLOSE
+#undef CONFIGURE_DIALOG
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
 #undef DCCX_SIGNAL
@@ -91,6 +93,7 @@
 #undef IFLOCO
 #undef IFLT
 #undef IFNOT
+#undef IFNVS
 #undef IFRANDOM 
 #undef IFRED
 #undef IFRESERVE
@@ -107,6 +110,8 @@
 #undef IFBITMAP_ALL
 #undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
+#undef SHARED_SENSOR
+#undef REMOTE_SENSOR
 #undef JMRI_SENSOR
 #undef JMRI_SENSOR_NOPULLUP
 #undef JOIN 
@@ -116,12 +121,14 @@
 #undef SCREEN
 #undef LCC 
 #undef LCCX 
-#undef LCN 
+#undef LCN
+#undef LED_SIGNAL
 #undef MOMENTUM
 #undef MOVETT
 #undef NEOPIXEL
 #undef NEOPIXEL_OFF
 #undef NEOPIXEL_SIGNAL
+#undef NODE_SHARE_SCREEN0
 #undef ACON
 #undef ACOF
 #undef ONACON
@@ -205,6 +212,7 @@
 #undef SET_POWER
 #undef SETLOCO 
 #undef SETFREQ
+#undef SHARED_WRITE_VPINS
 #undef SIGNAL 
 #undef SIGNALH 
 #undef SPEED
@@ -229,7 +237,6 @@
 #undef VIRTUAL_TURNOUT
 #undef WAITFOR
 #undef WAIT_WHILE_RED
-#ifndef IO_NO_HAL
 #undef BITMAP_AND
 #undef BITMAP_OR
 #undef BITMAP_SET
@@ -237,7 +244,6 @@
 #undef BITMAP_INC
 #undef BITMAP_DEC
 #undef WAITFORTT
-#endif
 #undef WITHROTTLE
 #undef XFOFF
 #undef XFON

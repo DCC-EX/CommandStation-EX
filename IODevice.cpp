@@ -26,8 +26,9 @@
 #include "FSH.h"
 #include "IO_MCP23017.h"
 #include "DCCTimer.h"
+#include "NodeManager.h"
 
-#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR)
+#if defined(ARDUINO_ARCH_MEGAAVR)
 #define USE_FAST_IO
 #endif
 
@@ -45,14 +46,13 @@ extern __attribute__((weak)) bool exrailHalSetup2();
 
 // Static method to initialise the IODevice subsystem.  
 
-#if !defined(IO_NO_HAL)
 
 // Create any standard device instances that may be required, such as the Arduino pins 
 // and PCA9685.
 void IODevice::begin() {
   // Initialise the IO subsystem defaults
   ArduinoPins::create(2, NUM_DIGITAL_PINS-2);  // Reserve pins for direct access
-
+  I2CManager.begin();  // Initialise I2C subsystem With trace
   // Call user's halSetup() function (if defined in the build in myHal.cpp).
   //  The contents will depend on the user's system hardware configuration.
   //  The myHal.cpp file is a standard C++ module so has access to all of the DCC++EX APIs.
@@ -73,6 +73,12 @@ void IODevice::begin() {
   if (exrailHalSetup1)
     ignoreDefaults=exrailHalSetup1();
   
+    #if __has_include("AudioTools.h")
+    // Waveshare and similar devices have embedded i2c devices
+    // with clashing i2c addresses
+    ignoreDefaults=true;
+  #endif  
+
   if (!ignoreDefaults) {
   
     // Predefine two PCA9685 modules 0x40-0x41 if no conflicts
@@ -254,22 +260,28 @@ int IODevice::configureAnalogIn(VPIN vpin) {
   return -1023;
 }
 
+#ifndef EXRAIL_ACTIVE
+
+// Exrail will create this function if active.
+bool IODevice::isSharedWrite(VPIN vpin1, int16_t count) {
+
+  return false;
+}
+#endif
+
 // Write value to virtual pin(s).  If multiple devices are allocated the same pin
 //  then only the first one found will be used.
-void IODevice::write(VPIN vpin, int value) {
+void IODevice::write(VPIN vpin, int value, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
-  if (dev) {
-    dev->_write(vpin, value);
-    return;
-  }
-#ifdef DIAG_IO
-  DIAG(F("IODevice::write(): VPIN %u not found!"), (int)vpin);
-#endif
+  if (dev) dev->_write(vpin, value);
+  if (tellNodes) NodeManager::cast(F("<z %d %d 1>"), vpin, value);
 }
 
 // Write value to count virtual pin(s).
 // these may be within one driver or separated over several drivers 
-void IODevice::writeRange(VPIN vpin, int value, int count) {  
+void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {  
+  auto countBefore = count;
+  auto vpinBefore = vpin;
   
   while(count) {  
     auto dev = findDevice(vpin);
@@ -285,6 +297,8 @@ void IODevice::writeRange(VPIN vpin, int value, int count) {
       count--;
     }
   }
+  if (tellNodes) NodeManager::cast(F("<z %d %d %d>"), 
+     vpinBefore, value,countBefore);
 }
 
 // Write analogue value to virtual pin(s).  If multiple devices are allocated
@@ -295,19 +309,22 @@ void IODevice::writeRange(VPIN vpin, int value, int count) {
 // the duration, i.e. the time that the operation is to be animated over
 // in deciseconds (0-3276 sec)
 //
-void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2) {
+void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t param2, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
-  if (dev) {
-    dev->_writeAnalogue(vpin, value, param1, param2);
-    return;
-  }
-#ifdef DIAG_IO
-  DIAG(F("IODevice::writeAnalogue(): VPIN %u not found!"), (int)vpin);
-#endif
+  if (dev) dev->_writeAnalogue(vpin, value, param1, param2);
+
+  // writes are shared with nodes so that multiple nodes can be kept in sync.  
+  // The tellNodes flag is used to avoid recursive node broadcasts.
+  if (tellNodes) NodeManager::cast(F("<z %d %d %d %d 1>"),
+       vpin, value, param1, param2);
 }
 
 //
-void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count) {
+void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t param2,int count, bool tellNodes) {
+  
+  auto countBefore = count;
+  auto vpinBefore = vpin;
+  
   while(count) {  
     auto dev = findDevice(vpin);
     if (dev) {
@@ -322,6 +339,9 @@ void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t
       count--;
     }
   }
+    if (tellNodes) NodeManager::cast(F("<z %d %d %d %d %d>"), 
+     vpinBefore, value,(uint16_t)param1,param2,countBefore);
+
 }
 
 // isBusy, when called for a device pin is always a digital output or analogue output,
@@ -445,49 +465,7 @@ bool IODevice::owns(VPIN id) {
 }
 
 
-#else // !defined(IO_NO_HAL)
 
-// Minimal implementations of public HAL interface, to support Arduino pin I/O and nothing more.
-
-void IODevice::begin() { DIAG(F("NO HAL CONFIGURED!")); }
-bool IODevice::configure(VPIN pin, ConfigTypeEnum configType, int nParams, int p[]) {
-  if (configType!=CONFIGURE_INPUT || nParams!=1 || pin >= NUM_DIGITAL_PINS) return false;
-  #ifdef DIAG_IO
-  DIAG(F("Arduino _configurePullup pin:%d Val:%d"), pin, p[0]);
-  #endif
-  pinMode(pin, p[0] ? INPUT_PULLUP : INPUT);
-  return true;
-}
-void IODevice::write(VPIN vpin, int value) {
-  if (vpin >= NUM_DIGITAL_PINS) return;
-  digitalWrite(vpin, value);
-  pinMode(vpin, OUTPUT);
-}
-void IODevice::writeAnalogue(VPIN, int, uint8_t, uint16_t) {}
-bool IODevice::isBusy(VPIN) { return false; }
-bool IODevice::hasCallback(VPIN) { return false; }
-int IODevice::read(VPIN vpin) { 
-  if (vpin >= NUM_DIGITAL_PINS) return 0;
-  return !digitalRead(vpin);  // Return inverted state (5v=0, 0v=1)
-}
-int IODevice::readAnalogue(VPIN vpin) {
-  return ADCee::read(vpin);
-}
-int IODevice::configureAnalogIn(VPIN vpin) {
-  return ADCee::init(vpin);
-}
-void IODevice::loop() {}
-void IODevice::DumpAll() {
-  DIAG(F("NO HAL CONFIGURED!"));
-}
-bool IODevice::exists(VPIN vpin) { return (vpin > 2 && vpin < NUM_DIGITAL_PINS); }
-void IODevice::setGPIOInterruptPin(int16_t) {}
-
-// Chain of callback blocks (identifying registered callback functions for state changes)
-// Not used in IO_NO_HAL but must be declared.
-IONotifyCallback *IONotifyCallback::first = 0;
-
-#endif // IO_NO_HAL
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
