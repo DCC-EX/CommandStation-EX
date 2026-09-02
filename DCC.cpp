@@ -570,7 +570,7 @@ void DCC::writeExtendedAccessoryCVByteMain(int cab, int cv, byte bValue)  {
   // Byte 1: 10A7A6A5A4A3A2
   b[nB++] = 0x80 | a7a2;
 
-  // Basic accessory decoder pom
+  // Extended accessory decoder pom
   // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
   // Bit 7 = 0
   // Bits 4-6 = inverted a10a8
