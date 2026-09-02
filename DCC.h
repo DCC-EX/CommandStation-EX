@@ -66,6 +66,7 @@ public:
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
   
   static void writeAccessoryCVByteMain(int cab, int cv, byte bValue);
+  static void writeExtendedAccessoryCVByteMain(int cab, int cv, byte bValue);
   
   static void setFunction(int cab, byte fByte, byte eByte);
   static bool setFn(int cab, int16_t functionNumber, bool on);
