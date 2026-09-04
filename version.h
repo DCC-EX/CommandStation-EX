@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.2"
+#define VERSION "5.9.3"
+// 5.9.3  - Minor bug fixes and improvements
+//        - Updated documentation for new features
+//        - POM for accessory decoders
 // 5.9.2  - Fixed null turnout descriptions and ifthrown state
 // 5.9.1  - Added LED_SIGNAL exrail macro
 // 5.9.0  - Major update for Nodes
