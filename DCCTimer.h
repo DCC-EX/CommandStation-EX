@@ -71,29 +71,11 @@ class DCCTimer {
   static void DCCEXInrushControlOn(uint8_t pin, int duty, bool invert);
   static void DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted);
 
-// Update low ram level.  Allow for extra bytes to be specified
-// by estimation or inspection, that may be used by other 
-// called subroutines.  Must be called with interrupts disabled.
-// 
-// Although __brkval may go up and down as heap memory is allocated
-// and freed, this function records only the worst case encountered.
-// So even if all of the heap is freed, the reported minimum free 
-// memory will not increase.
-//
-  static void inline updateMinimumFreeMemoryISR(unsigned char extraBytes=0)
-    __attribute__((always_inline)) {
-    int spare = freeMemory()-extraBytes;
-    if (spare < 0) spare = 0;
-    if (spare < minimum_free_memory) minimum_free_memory = spare;
-  };
-
   static int  getMinimumFreeMemory();
   static void reset();
   
 private:
   static void DCCEXanalogWriteFrequencyInternal(uint8_t pin, uint32_t frequency);
-  static int freeMemory();
-  static volatile int minimum_free_memory;
   static const int DCC_SIGNAL_TIME=58;  // this is the 58uS DCC 1-bit waveform half-cycle 
 #if defined(ARDUINO_ARCH_STM32)  // TODO: PMA temporary hack - assumes 100Mhz F_CPU as STM32 can change frequency
   static const long CLOCK_CYCLES=(100000000L / 1000000 * DCC_SIGNAL_TIME) >>1;

@@ -839,7 +839,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_IFNVS: // do next operand if non-volatile storage entry is non-zero
-    skipIf=NVSTable::getNVS(operand)==0;
+    skipIf=! NVSTable::hasNVS(operand);
     break;
 
   case OPCODE_IFRE: // do next operand if rotary encoder != position
@@ -1279,38 +1279,9 @@ void RMFT2::loop2() {
     IODevice::writeAnalogue(operand,IODevice::readAnalogue(operand) ^ getOperand(1));
     break;
   
-  case OPCODE_AUTOSTART: // Handled only during begin process
-  case OPCODE_PAD: // Just a padding for previous opcode needing >1 operand byte.
-  case OPCODE_ONCLOSE: // Turnout event catchers ignored here
-  case OPCODE_ONLCC:   // LCC event catchers ignored here 
-  case OPCODE_ONACON:   // MERG event catchers ignored here 
-  case OPCODE_ONACOF:   // MERG event catchers ignored here 
-  case OPCODE_ONTHROW:
-  case OPCODE_ONACTIVATE: // Activate event catchers ignored here
-  case OPCODE_ONDEACTIVATE:
-  case OPCODE_ONRED:
-  case OPCODE_ONAMBER:
-  case OPCODE_ONGREEN:
-  case OPCODE_ONCHANGE:
-  case OPCODE_ONTIME:
-  case OPCODE_ONBUTTON:
-  case OPCODE_ONSENSOR:
-  case OPCODE_ONBITMAP:
-  case OPCODE_DCCTURNTABLE: // Turntable definition ignored at runtime
-  case OPCODE_EXTTTURNTABLE:  // Turntable definition ignored at runtime
-  case OPCODE_TTADDPOSITION:  // Turntable position definition ignored at runtime
-  case OPCODE_ONROTATE:
-  case OPCODE_ONOVERLOAD:
-  case OPCODE_ONBLOCKENTER:
-  case OPCODE_ONBLOCKEXIT:
-#ifdef BOOSTER_INPUT
-  case OPCODE_ONRAILSYNCON:
-  case OPCODE_ONRAILSYNCOFF:
-#endif
-    break;
     
   default:
-    kill(F("INVOP"),operand);
+    if (opcode>=END_OF_VALID_OPCODES) kill(F("INVOP"),operand);
   }
   // Falling out of the switch means move on to the next opcode
   // but if we are skipping a false IF or else

@@ -216,6 +216,9 @@ public:
     return 0;
   };
 
+  // Method to find device handling Vpin
+  static IODevice *findDevice(VPIN vpin);
+
 protected:
   
   // Constructor
@@ -272,9 +275,6 @@ protected:
     
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice, IODevice *slaveDevice = NULL);
-
-  // Method to find device handling Vpin
-  static IODevice *findDevice(VPIN vpin);
 
   // Current state of device
   DeviceStateEnum _deviceState = DEVSTATE_DORMANT;

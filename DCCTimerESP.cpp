@@ -95,18 +95,9 @@ void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   mac[5] = 0xEE;
 }
 
-volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
-
 // Return low memory value... 
 int DCCTimer::getMinimumFreeMemory() {
-  noInterrupts(); // Disable interrupts to get volatile value 
-  int retval = minimum_free_memory;
-  interrupts();
-  return retval;
-}
-
-int DCCTimer::freeMemory() {
-  return ESP.getFreeHeap();
+  return ESP.getMinFreeHeap();
 }
 
 void DCCTimer::reset() {

@@ -39,6 +39,7 @@ class NVSTable {
     static void setNVS(uint16_t nvsNumber, const char * value, bool autosave=true);
     static int16_t getNVS(uint16_t nvsNumber, bool atBoot=false);
     static const char * getTextNVS(uint16_t nvsNumber);
+    static bool hasNVS(uint16_t nvsNumber);
     
     // streaming for web interface
     static void streamJSArray(Print * stream);

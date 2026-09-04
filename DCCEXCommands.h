@@ -366,6 +366,7 @@ ZZ(D,CABS)  // Diagnostic display loco state table
         DCC::displayCabList(stream);
 ZZ(D,RAM)  // Diagnostic display free RAM
         DIAG(F("Free memory=%d"), DCCTimer::getMinimumFreeMemory());
+        DIAG(F("Free memory=%dkb" ), DCCTimer::getMinimumFreeMemory()/1024);
 ZZ(D,CMD,ON) // Enable command input diagnostics
         Diag::CMD = true;
 ZZ(D,CMD,OFF) // Disable command input diagnostics

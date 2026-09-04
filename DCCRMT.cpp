@@ -98,8 +98,6 @@ RMTChannel *channelHandle[8] = { 0 };
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   RMTChannel *tt = channelHandle[channel];
   if (tt) tt->RMTinterrupt();
-  if (channel == 0)
-    DCCTimer::updateMinimumFreeMemoryISR(0);
 }
 
 RMTChannel::RMTChannel(pinpair pins, bool isMain) {

@@ -13,7 +13,7 @@ This is done by a config definition:
 #define NODE_GROUP 1
 ```
 
-The default is group 254 and does not need to be altered unless you have more than one layout.
+The default is group 254 and does not need to be altered unless you have more than one layout on the same wifi network.
 
 ## NodeManager.cpp
 

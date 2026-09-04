@@ -29,7 +29,7 @@ ONCLOSE(22) SET(522) RESET(622) DONE
 
 Note that it does not care where the actual turnout 22 is located.
 
-Similarly, the script may detect a button press on the mimic panel and use that to toggle a tuirnout
+Similarly, the script may detect a button press on the mimic panel and use that to toggle a turnout
 
 ```cpp
 ONBUTTON(722) TOGGLE_TURNOUT(22) DONE

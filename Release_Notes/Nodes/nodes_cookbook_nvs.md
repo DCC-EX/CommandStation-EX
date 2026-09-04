@@ -11,7 +11,7 @@ This is particularly useful for:
 
 ## NVS Storage
 
-The system provides for NVS values numbered 0..255. Each of which defaults to 0/"" but may be configured as a nummber (-32760..+32760) or a string value. (the 32760 is deliberate, some values are reserved for internal flagging purposes.)
+The system provides for NVS values numbered 0..16000 Each of which defaults to 0/"" but may be configured as a nummber (-32760..+32760) or a string value.
 
 These values are maintained over power down.
 
@@ -83,7 +83,7 @@ Accesing NVS text values uses the NVST macro which will generate a runtime tag i
 
 [Please report any strings that dont work, they can be fixed.]
 
-Because NVST cfreates a quoted string at compile time, it may be used stand alone or as part of another string, the following will be valid:
+Because NVST creates a quoted string at compile time, it may be used stand alone or as part of another string, the following will be valid:
 
 ```cpp
 SCREEN(0,1,NVST(1))
@@ -167,7 +167,8 @@ Delay to clear station sensor <nvsinput nvs=23 min=1000 max=32000 /> mS
 Message to output when train arrives <nvsinput nvs=22 length=20 /> 
 )???";
 ```
-Note the file is .h because that is required by the build process, and is essentially a singl C++ string definition using the extended R format so the header and trailing ```)???";``` are important.
+
+Note the file is .h because that is required by the build process, and is essentially a single C++ string definition using the extended R format so the header and trailing ```)???";``` are important.
 
 If you are using PlatformIo as your editor, you can click the language type in the bottom toolbar and select HTML, this makes the html easier to read and check.
 

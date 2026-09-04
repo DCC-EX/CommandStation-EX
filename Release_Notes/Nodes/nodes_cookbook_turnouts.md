@@ -24,10 +24,9 @@ SERVO_TURNOUT(22,400,350,120,Slow,"Mountain pass")
 
 Notice that the turnout ID does not change but the vpin 400 may well change to suit whatever HAL device is driving the turnout.
 
-The Command Station will automatically know that the turnout is defined elsewhere so does not need the turnout definitio.
+The Command Station will automatically know that the turnout is defined elsewhere so does not need the turnout definition.
 
-This is particularly powerful if you are building a modular layout. If for eaxample a bunch of turnouts are on a particular module handled by a node, then the throttles will automatically know if the module is present or absent and will not show turnouts for the module unless it is powered up. 
-
+This is particularly powerful if you are building a modular layout. If for eaxample a bunch of turnouts are on a particular module handled by a node, then the throttles will automatically know if the module is present or absent and will not show turnouts for the module unless it is powered up.
 
 Notice that this is all you need to do... Any EXRAIL in the Command station that needs to handle the turnout can remain unchanged.
 

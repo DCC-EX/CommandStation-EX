@@ -2,9 +2,9 @@
 
 THis device incorporates a speaker and SD file reader.
 
-It has a supporting IO_WaveShare HAL driver that will only operate or compile on this device. 
+It has a supporting IO_WaveShare HAL driver that will only operate or compile on this device.
 
-The compilation also needs to use the platformio environment `waveshare_esp32_s3_audio` to ensure the cotrrect cpu type and libraries are linked.
+The compilation also needs to use the platformio environment `waveshare_esp32_s3_audio` to ensure the correct cpu type and libraries are linked.
 
 ## Playing Audio files
 
@@ -19,7 +19,7 @@ This loads the WaveShare driver on VPIN 7777 and tells the node system to accept
 
 This means that ANY node in the system can use the EXRAIL PLAY_* and ```<y``` commands which normally drive a DFPlayer  and this node will operate in the same way.
 
-The node can also handle things like this. 
+The node can also handle things like this.
 
 ```cpp
 ONSENSOR(7777)
@@ -28,3 +28,5 @@ ONSENSOR(7777)
   ENDIF
 DONE
 ```
+
+TODO ...waveshare neopixels 

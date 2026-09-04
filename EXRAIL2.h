@@ -114,6 +114,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_IFBITMAP_ALL,OPCODE_IFBITMAP_ANY,
              OPCODE_IF_ROUTE_ACTIVE,OPCODE_IF_ROUTE_INACTIVE,
              OPCODE_IF_ROUTE_HIDDEN,OPCODE_IF_ROUTE_DISABLED,
+
+             END_OF_VALID_OPCODES  // remains at the end 
              };
 
 // Ensure thrunge_lcd is put last as there may be more than one display, 

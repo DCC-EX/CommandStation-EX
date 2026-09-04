@@ -200,6 +200,10 @@ void NVSTable::setNVS(uint16_t nvsNumber, const char * value, bool autosave) {
   if (autosave && NVSentry::savePending) save();
 }
 
+bool NVSTable::hasNVS(uint16_t nvsNumber) {
+  return NVSentry::find(nvsNumber)!=nullptr;
+}
+
 void NVSTable::applyChanges(char * changes,bool fromNewBoot) {
   enum State:byte { WAITING_FOR_ID, READING_ID, WAITING_FOR_VALUE, READING_VALUE, READING_STRING };
   State state = WAITING_FOR_ID;
