@@ -314,9 +314,8 @@ void I2CManagerClass::I2C_close() {
  *  (and therefore, indirectly, from I2CRB::wait() and I2CRB::isBusy()).
  ***************************************************************************/
 void I2CManagerClass::I2C_handleInterrupt() {
-  volatile uint16_t temp_sr1, temp_sr2;
-  (void) temp_sr2; // only used as target for reads
-
+  volatile uint16_t temp_sr1;
+  
   temp_sr1 = s->SR1;
 
   // Check for errors first
@@ -370,7 +369,8 @@ void I2CManagerClass::I2C_handleInterrupt() {
 
       case TS_W_ADDR:
         if (temp_sr1 & I2C_SR1_ADDR) {
-          temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
+          // Note: the compiler will not optimize away this void cast because SR2 is marked volatile
+          (void)s->SR2; // read SR2 to complete clearing the ADDR bit
           // Event EV6
           // Address sent successfully, device has ack'd in response.
           if (!bytesToSend) {
@@ -451,7 +451,7 @@ void I2CManagerClass::I2C_handleInterrupt() {
           if (bytesToReceive == 1) {
             // Receive 1 byte
             s->CR1 &= ~I2C_CR1_ACK;  // Disable ack
-            temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
+            (void)s->SR2; // read SR2 to complete clearing the ADDR bit
             // Next step will occur after a RXNE interrupt, so enable it
             s->CR2 |= I2C_CR2_ITBUFEN;
             transactionState = TS_R_STOP;
@@ -461,14 +461,14 @@ void I2CManagerClass::I2C_handleInterrupt() {
             s->CR1 |= I2C_CR1_POS;  // set POS flag to delay effect of ACK flag
             // Next step will occur after a BTF interrupt, so disable RXNE interrupt
             s->CR2 &= ~I2C_CR2_ITBUFEN;
-            temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
+            (void)s->SR2; // read SR2 to complete clearing the ADDR bit
             transactionState = TS_R_STOP;
           } else {
             // >2 bytes, just wait for bytes to come in and ack them for the time being
             // (ack flag has already been set).
             // Next step will occur after a BTF interrupt, so disable RXNE interrupt
             s->CR2 &= ~I2C_CR2_ITBUFEN;
-            temp_sr2 = s->SR2; // read SR2 to complete clearing the ADDR bit
+            (void)s->SR2; // read SR2 to complete clearing the ADDR bit
             transactionState = TS_R_DATA;
           }
         }

@@ -191,7 +191,6 @@ INTERRUPT_CALLBACK interruptHandler=0;
 #endif // ifndef DCC_EX_TIMER
 
 HardwareTimer dcctimer(DCC_EX_TIMER);
-void DCCTimer_Handler() __attribute__((interrupt));
 
 // Timer IRQ handler
 void DCCTimer_Handler() {
@@ -257,19 +256,9 @@ void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   mac[5] = m2 >> 0;
 }
 
-volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
-
 // Return low memory value... 
-int DCCTimer::getMinimumFreeMemory() {
-  noInterrupts(); // Disable interrupts to get volatile value 
-  int retval = freeMemory();
-  interrupts();
-  return retval;
-}
-
 extern "C" char* sbrk(int incr);
-
-int DCCTimer::freeMemory() {
+int DCCTimer::getMinimumFreeMemory() {
   char top;
   return (int)(&top - reinterpret_cast<char *>(sbrk(0)));
 }
@@ -510,6 +499,7 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
+  (void)fromISR;
   uint8_t id = pin - PNUM_ANALOG_BASE;
   // Was this pin initialised yet?
   if ((usedpins & (1<<id) ) == 0)

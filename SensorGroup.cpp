@@ -94,7 +94,8 @@ void SensorGroup::doJMRISensorGroup(VPIN firstVpin, int nPins, byte* statebits,
 // called by EXRAIL constructed doExrailSensorGroup for each group 
 void SensorGroup::doSharedSensorGroup(VPIN firstVpin, int nPins, byte* statebits,
   GroupProcess action, VPIN applyPin, bool applyState) {
-
+  (void)applyPin;
+  (void)applyState;
   switch(action) {
    
     case GroupProcess::prepare:
