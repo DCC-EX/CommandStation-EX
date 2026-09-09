@@ -26,7 +26,7 @@
 #include "I2CManager.h"
 #include "I2CManager_NonBlocking.h"   // to satisfy intellisense
 
-#include <wiring_private.h>
+//#include <wiring_private.h>
 #include "stm32f4xx_hal_rcc.h"
 
 /*****************************************************************************
