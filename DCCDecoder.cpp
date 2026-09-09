@@ -128,10 +128,10 @@ bool DCCDecoder::parse(DCCPacket &p) {
     case 0xC0: // 110x-xxxx Extended (here are functions F13 and up
       switch (instr[0] & 0B00011111) {
       case 0B00011110:  // F13-F20 Function Control
-	if ((locoInfoChanged = updateFunc(addr, instr[0], 13)) == true) {
+	if ((locoInfoChanged = updateFunc(addr, instr[1], 13)) == true) {
 	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
-	}
-	if ((locoInfoChanged = updateFunc(addr, instr[0], 17)) == true) {
+	} // updateFunc handles only the 4 low bits as that is the most common case
+	if ((locoInfoChanged = updateFunc(addr, instr[1]>>4, 17)) == true) {
 	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
 	}
       break;
