@@ -264,8 +264,8 @@ int IODevice::configureAnalogIn(VPIN vpin) {
 
 // Exrail will create this function if active.
 bool IODevice::isSharedWrite(VPIN vpin1, int16_t count) {
-  <void>vpin1; // suppress unused warnings if no groups
-  <void>count; // suppress unused warnings if no groups
+  (void)vpin1; // suppress unused warnings if no groups
+  (void)count; // suppress unused warnings if no groups
   return false;
 }
 #endif
