@@ -15,5 +15,7 @@ jobs:
       run: pip install -U platformio
     - name: Copy generic config over
       run: cp config.example.h config.h
+    - name: Copy EXRAILTest.h to myAutomation.h to ensure EXRAIL is compiled
+      run: cp EXRAILTest.h myAutomation.h
     - name: Compile Command Station (AVR)
       run: python -m platformio run
