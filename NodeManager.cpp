@@ -32,6 +32,8 @@ void NodeManager::cast(StringBuffer * buffer) {
 bool NodeManager::isThrottleNode() {
     return true; // default to true for non-ESP32 platforms
 }
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) { (void)vpin; (void)count; (void)value; }
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) { (void)vpin; (void)count; (void)value; (void)param1; (void)param2; }
 #else
 #include <AsyncUDP.h>
 #include <WiFiUdp.h>

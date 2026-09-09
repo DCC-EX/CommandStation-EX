@@ -100,6 +100,7 @@ public:
     DEVSTATE_NORMAL = 3,
     DEVSTATE_SCANNING = 4,
     DEVSTATE_FAILED = 5,
+    DEVSTATE_SHADOW = 6, // this is a node shadow, not a real device, so not shared at startup
   } DeviceStateEnum;
 
   // Static functions to find the device and invoke its member functions

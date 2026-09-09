@@ -23,6 +23,7 @@
 #include <Arduino.h>
 #include "FSH.h"
 #include "StringBuffer.h"
+#include "IODevice.h"
 
 class NodeManager {
     public:

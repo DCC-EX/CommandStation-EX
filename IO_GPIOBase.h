@@ -23,6 +23,7 @@
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
+#include "NodeManager.h"
 
 // GPIOBase is defined as a class template.  This allows it to be instantiated by
 // subclasses with different types, according to the number of pins on the GPIO module.
