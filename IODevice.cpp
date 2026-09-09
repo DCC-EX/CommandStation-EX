@@ -264,17 +264,20 @@ int IODevice::configureAnalogIn(VPIN vpin) {
 
 // Exrail will create this function if active.
 bool IODevice::isSharedWrite(VPIN vpin1, int16_t count) {
-
+  <void>vpin1; // suppress unused warnings if no groups
+  <void>count; // suppress unused warnings if no groups
   return false;
 }
 #endif
 
 // Write value to virtual pin(s).  If multiple devices are allocated the same pin
 //  then only the first one found will be used.
+//  tellNodes is used to avoid recursive node broadcasts and to allow updates to be propagated to other nodes.
+//  and to allow range writeRange as a single broadcast to other nodes.
 void IODevice::write(VPIN vpin, int value, bool tellNodes) {
   IODevice *dev = findDevice(vpin);
   if (dev) dev->_write(vpin, value);
-  if (tellNodes) NodeManager::cast(F("<z %d %d 1>"), vpin, value);
+  if (tellNodes ) NodeManager::castVpin(vpin, 1, value);
 }
 
 // Write value to count virtual pin(s).
@@ -288,6 +291,7 @@ void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {
     if (dev) {
       auto vpinBefore=vpin; 
       // write to driver, driver will return next vpin it cant handle
+      // dont tell nodes this time, we will send a group write below
       vpin=dev->_writeRange(vpin, value,count);
       count-= vpin-vpinBefore;  // decrement by number of vpins changed
     }
@@ -297,8 +301,8 @@ void IODevice::writeRange(VPIN vpin, int value, int count, bool tellNodes) {
       count--;
     }
   }
-  if (tellNodes) NodeManager::cast(F("<z %d %d %d>"), 
-     vpinBefore, value,countBefore);
+  if (tellNodes) 
+    NodeManager::castVpin(vpinBefore, countBefore, value);
 }
 
 // Write analogue value to virtual pin(s).  If multiple devices are allocated
@@ -315,8 +319,7 @@ void IODevice::writeAnalogue(VPIN vpin, int value, uint8_t param1, uint16_t para
 
   // writes are shared with nodes so that multiple nodes can be kept in sync.  
   // The tellNodes flag is used to avoid recursive node broadcasts.
-  if (tellNodes) NodeManager::cast(F("<z %d %d %d %d 1>"),
-       vpin, value, param1, param2);
+  if (tellNodes) NodeManager::castVpin(vpin, 1, value, param1, param2);
 }
 
 //
@@ -339,9 +342,8 @@ void IODevice::writeAnalogueRange(VPIN vpin, int value, uint8_t param1, uint16_t
       count--;
     }
   }
-    if (tellNodes) NodeManager::cast(F("<z %d %d %d %d %d>"), 
-     vpinBefore, value,(uint16_t)param1,param2,countBefore);
-
+    if (tellNodes && isSharedWrite(vpinBefore, countBefore)) 
+       NodeManager::castVpin(vpinBefore, countBefore, value, param1, param2);
 }
 
 // isBusy, when called for a device pin is always a digital output or analogue output,

@@ -146,7 +146,8 @@ public:
         if (_unlockTimer > 0 && now > _unlockTimer) {
             _unlockTimer = 0;
             _playing = false;
-            forceUpdate(0); 
+            forceUpdate(0);
+            NodeManager::castVpin(_firstVpin, 1, 0);          
         }
 
         if (_head != _tail && (now - _lastXmit > 120)) {
@@ -179,7 +180,7 @@ public:
         if (_deviceState != DEVSTATE_NORMAL) return; 
         _flagLoop = false; _repeatTimer = 0;
         if (value) { 
-            _playing = true; 
+            _playing = true; // change notified by Write manager
             _lastTrack = (uint8_t)(vpin - _firstVpin + 1);
             queuePacket(DF_PLAY, _currentFolder, _lastTrack); 
         } else { 
@@ -188,7 +189,9 @@ public:
         }
     }
 
-    int _read(VPIN vpin) override { (void)vpin; return _playing ? 1 : 0; }
+    int _read(VPIN vpin) override { 
+        (void)vpin; return _playing ? 1 : 0;
+     }
 
 protected:
     void _writeAnalogue(VPIN vpin, int v1, uint8_t v2=0, uint16_t cmd=0) override {

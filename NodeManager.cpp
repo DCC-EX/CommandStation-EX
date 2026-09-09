@@ -90,6 +90,22 @@ void NodeManager::cast(StringBuffer * buffer) {
     if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) {
+    if (!started) return;
+    if (!IODevice::isSharedWrite(vpin, count)) return; // only send if this is a shared write
+    StringBuffer buffer(128); 
+    StringFormatter::send(&buffer, F("<z %d %d %d>"), vpin, value,count);
+    cast(&buffer);
+}
+
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) {
+    if (!started) return;
+    if (!IODevice::isSharedWrite(vpin, count)) return; // only send if this is a shared write
+    StringBuffer buffer(128);
+    StringFormatter::send(&buffer, F("<z %d %d %d %d %d>"), vpin, value,(uint16_t)param1,param2,count);
+    cast(&buffer);
+}
+
 void NodeManager::parse(byte * cmd) {
     if (Diag::NODE) DIAG(F("Node in: %s"),cmd);
     DCCEXParser::parseNodeTraffic(cmd);
