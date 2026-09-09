@@ -48,7 +48,7 @@ Uart Serial1(PB7, PB6);  // Rx=PB7, Tx=PB6 -- CN7 pin 17 and CN10 pin 17
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 // Let's define Serial6 as an additional serial port (the only other option for the F401RE)
-HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F401RE
+Uart Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F401RE
 #elif defined(ARDUINO_NUCLEO_F411RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
 Uart Serial1(PB7, PA15);  // Rx=PB7, Tx=PA15 -- CN7 pins 17 and 21 - F411RE
@@ -59,7 +59,7 @@ Uart Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 - F411RE
 #elif defined(ARDUINO_NUCLEO_F446RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
 // On the F446RE, Serial1 isn't really useable as it's Rx/Tx pair sit on already used D2/D10 pins
-// HardwareSerial Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
+// Uart Serial1(PA10, PB6);  // Rx=PA10 (D2), Tx=PB6 (D10) -- CN10 pins 17 and 9 - F446RE 
 // Serial2 is defined to use USART2 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 // On the F446RE, Serial3 and Serial5 are easy to use:
