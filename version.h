@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.4"
+#define VERSION "5.9.5"
+// 5.9.5  - STM32 and ESP32 build environment fixes
 // 5.9.4  - STM32 cleanup
 // 5.9.3  - Minor bug fixes and improvements
 //        - Updated documentation for new features
