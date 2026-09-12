@@ -129,18 +129,20 @@ bool DCCDecoder::parse(DCCPacket &p) {
       switch (instr[0] & 0B00011111) {
       case 0B00011110:  // F13-F20 Function Control
 	if ((locoInfoChanged = updateFunc(addr, instr[1], 13)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
-	} // updateFunc handles only the 4 low bits as that is the most common case
+	  DCCEXParser::funcmap(addr, instr[1], 13, 16);
+	}
+        // updateFunc handles only the 4 low bits as that is the most common case
 	if ((locoInfoChanged = updateFunc(addr, instr[1]>>4, 17)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
+	  DCCEXParser::funcmap(addr, instr[1]>>4, 17, 20); // adjust instr[1] to align with pos 17
 	}
       break;
       case 0B00011111:  // F21-F28 Function Control
 	if ((locoInfoChanged = updateFunc(addr, instr[1], 21)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 21, 28);
-	}  // updateFunc handles only the 4 low bits as that is the most common case
+	  DCCEXParser::funcmap(addr, instr[1], 21, 24);
+	}
+        // updateFunc handles only the 4 low bits as that is the most common case
 	if ((locoInfoChanged = updateFunc(addr, instr[1]>>4, 25)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 21, 28);
+	  DCCEXParser::funcmap(addr, instr[1]>>4, 25, 28); // adjust instr[1] to align with pos 25
 	}
 	break;
 	/* do that later
