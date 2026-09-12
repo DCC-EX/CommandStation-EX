@@ -153,8 +153,9 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
 #if defined(ARDUINO_ARCH_ESP32)
   // Broadcast everything to Wifi/Ethernet UDP multicast
-  if (type==COMMAND_TYPE)  
+  if (type==COMMAND_TYPE)  {
     WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+  }
 #endif
 
 #ifdef CD_HANDLE_RING
@@ -191,6 +192,11 @@ void  CommandDistributor::broadcastSensor(int16_t id, bool on ) {
   broadcastReply(COMMAND_TYPE, F("<%c %d>\n"), on?'Q':'q', id);
 }
 
+void  CommandDistributor::broadcastSignal(int16_t id, Signal::RAG state, byte aspect) {
+  if (aspect==255) broadcastReply(COMMAND_TYPE, F("<h %d %c>\n"),id, state);
+  else broadcastReply(COMMAND_TYPE, F("<h %d %c %d>\n"),id, state, aspect);
+}
+
 void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed;
   // The string below contains serial and Withrottle protocols which should
@@ -216,7 +222,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
 #endif
 }
 
-void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
+void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, bool tellNodes) {
   // save the latest time if changed
       if (clocktime != lastclocktime){
         auto difference = clocktime - lastclocktime;
@@ -236,6 +242,7 @@ void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate) {
         CommandDistributor::broadcastClockTime(clocktime, clockrate);
         lastclocktime = clocktime;
         lastclockrate = clockrate;
+        if (tellNodes) NodeManager::cast(F("<c %d %d>"),clocktime, clockrate);
       }
     }
 

@@ -25,6 +25,7 @@
 #define WifiESP32_h
 
 #include <WiFi.h>
+#include <AsyncUDP.h>
 #include "FSH.h"
 
 class WifiESP
@@ -34,7 +35,8 @@ public:
   static void loop();
   static bool isUp() { return wifiUp; }
   static void udpMulticast(const char *buffer, const int count);
-private:
+  static void packet_listener(AsyncUDPPacket &packet);
+  private:
   static bool setupFromPreferences();
   static bool setupFromConfig(const char *wifiESSID,
 			      const char *wifiPassword,

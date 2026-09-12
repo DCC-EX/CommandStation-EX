@@ -34,7 +34,7 @@
 #include "TrackManager.h"
 #endif
 #include "DIAG.h"
-#include <wiring_private.h>
+//#include <wiring_private.h>
 
 #if defined(ARDUINO_NUCLEO_F401RE)
 // Nucleo-64 boards don't have additional serial ports defined by default
@@ -64,15 +64,15 @@ HardwareSerial Serial6(PA12, PA11);  // Rx=PA12, Tx=PA11 -- CN10 pins 12 and 14 
 // via the debugger on the Nucleo-64. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
 // On the F446RE, Serial3 and Serial5 are easy to use:
 HardwareSerial Serial3(PC11, PC10);  // Rx=PC11, Tx=PC10 -- USART3 - F446RE
-HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5 - F446RE
+HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- HardwareSerial5 - F446RE
 // On the F446RE, Serial4 and Serial6 also use pins we can't readily map while using the Arduino pins
 #elif defined(ARDUINO_NUCLEO_F412ZG) || defined(ARDUINO_NUCLEO_F413ZH) || defined(ARDUINO_NUCLEO_F446ZE) || \
       defined(ARDUINO_NUCLEO_F429ZI) || defined(ARDUINO_NUCLEO_F439ZI) || defined(ARDUINO_NUCLEO_F4X9ZI)
 // Nucleo-144 boards don't have Serial1 defined by default
 HardwareSerial Serial6(PG9, PG14);  // Rx=PG9, Tx=PG14 -- USART6
-HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- UART2
-#if !defined(ARDUINO_NUCLEO_F412ZG)  // F412ZG does not have UART5
-  HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- UART5
+HardwareSerial Serial2(PD6, PD5);  // Rx=PD6, Tx=PD5 -- HardwareSerial2
+#if !defined(ARDUINO_NUCLEO_F412ZG)  // F412ZG does not have HardwareSerial5
+  HardwareSerial Serial5(PD2, PC12);  // Rx=PD2, Tx=PC12 -- HardwareSerial5
 #endif  
 // Serial3 is defined to use USART3 by default, but is in fact used as the diag console
 // via the debugger on the Nucleo-144. It is therefore unavailable for other DCC-EX uses like WiFi, DFPlayer, etc.
@@ -191,7 +191,6 @@ INTERRUPT_CALLBACK interruptHandler=0;
 #endif // ifndef DCC_EX_TIMER
 
 HardwareTimer dcctimer(DCC_EX_TIMER);
-void DCCTimer_Handler() __attribute__((interrupt));
 
 // Timer IRQ handler
 void DCCTimer_Handler() {
@@ -257,19 +256,9 @@ void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
   mac[5] = m2 >> 0;
 }
 
-volatile int DCCTimer::minimum_free_memory=__INT_MAX__;
-
 // Return low memory value... 
-int DCCTimer::getMinimumFreeMemory() {
-  noInterrupts(); // Disable interrupts to get volatile value 
-  int retval = freeMemory();
-  interrupts();
-  return retval;
-}
-
 extern "C" char* sbrk(int incr);
-
-int DCCTimer::freeMemory() {
+int DCCTimer::getMinimumFreeMemory() {
   char top;
   return (int)(&top - reinterpret_cast<char *>(sbrk(0)));
 }
@@ -510,6 +499,7 @@ int ADCee::init(uint8_t pin) {
  * Read function ADCee::read(pin) to get value instead of analogRead(pin)
  */
 int ADCee::read(uint8_t pin, bool fromISR) {
+  (void)fromISR;
   uint8_t id = pin - PNUM_ANALOG_BASE;
   // Was this pin initialised yet?
   if ((usedpins & (1<<id) ) == 0)

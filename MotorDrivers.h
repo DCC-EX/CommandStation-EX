@@ -86,10 +86,6 @@
 // (*) in the EX8874 schematics
 
 
-// You can have a CS wihout any possibility to do any track signal.
-// That's strange but possible.
-#define NO_SHIELD F("No shield at all")
-
 // Arduino STANDARD Motor Shield, used on different architectures:
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)

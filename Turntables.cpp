@@ -26,9 +26,6 @@
 #include "EXRAIL2.h"
 #include "DCC.h"
 
-// No turntable support without HAL
-#ifndef IO_NO_HAL
-
 /*
  * Protected static data
  */
@@ -174,7 +171,6 @@ using DevState = IODevice::DeviceStateEnum;
 
 // Create function
   Turntable *EXTTTurntable::create(uint16_t id, VPIN vpin) {
-#ifndef IO_NO_HAL
     Turntable *tto = get(id);
     if (tto) {
       if (tto->isType(TURNTABLE_EXTT)) {
@@ -189,11 +185,6 @@ using DevState = IODevice::DeviceStateEnum;
     tto = (Turntable *)new EXTTTurntable(id, vpin);
     DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
     return tto;
-#else
-  (void)id;
-  (void)vpin;
-  return NULL;
-#endif
   }
 
   void EXTTTurntable::print(Print *stream) {
@@ -202,7 +193,6 @@ using DevState = IODevice::DeviceStateEnum;
 
   // EX-Turntable specific code for moving to the specified position
   bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
-#ifndef IO_NO_HAL
     int16_t value;
     if (position == 0) {
       value = 0;  // Position 0 is just to send activities
@@ -215,9 +205,6 @@ using DevState = IODevice::DeviceStateEnum;
     _previousPosition = _turntableData.position;
     _turntableData.position = position;
     EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
-#else
-    (void)position;
-#endif
     return true;
   }
 
@@ -230,17 +217,12 @@ DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
 
 // Create function
   Turntable *DCCTurntable::create(uint16_t id) {
-#ifndef IO_NO_HAL
     Turntable *tto = get(id);
     if (!tto) {
       tto = (Turntable *)new DCCTurntable(id);
       DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
     }
     return tto;
-#else
-  (void)id;
-  return NULL;
-#endif
   }
 
   void DCCTurntable::print(Print *stream) {
@@ -250,7 +232,6 @@ DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
 // EX-Turntable specific code for moving to the specified position
 bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
   (void) activity;
-#ifndef IO_NO_HAL
   int16_t value = getPositionValue(position);
   if (position == 0 || !value) return false; // Return false if it's not a valid position
   // Set position via device driver
@@ -260,10 +241,5 @@ bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
   _previousPosition = _turntableData.position;
   _turntableData.position = position;
   DCC::setAccessory(addr, subaddr, active);
-#else
-  (void)position;
-#endif
   return true;
 }
-
-#endif

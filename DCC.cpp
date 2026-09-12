@@ -98,7 +98,7 @@ byte DCC::getMomentum(LocoSlot * slot) {
    return (slot->getMomentumD() == MOMENTUM_USE_DEFAULT) ? defaultMomentumD : slot->getMomentumD();
 }
 
-bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
+bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection,bool tellNodes)  {
   if (tSpeed==1) {
     if (cab==0) {
       estopAll(); // ESTOP broadcast fix 
@@ -114,11 +114,11 @@ bool DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   
   if (slot->getTargetSpeed()==speedCode) // speed has been reached
     return true;
-  slot->setTargetSpeed(speedCode);
+  slot->setTargetSpeed(speedCode,tellNodes);
 
   // copy target speed to consist followers
   for (auto follower=slot->getConsistNext(); follower; follower=follower->getConsistNext()) {
-    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0) );
+    follower->setTargetSpeed(speedCode ^ (follower->isConsistReverse() ? 0x80 : 0), tellNodes);
   }
 
   byte momentum=getMomentum(slot);
@@ -251,7 +251,7 @@ bool DCC::getThrottleDirection(int cab) {
 }
 
 // Set function to value on or off
-bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
+bool DCC::setFn( int cab, int16_t functionNumber, bool on, bool tellNodes) {
   if (cab<=0 ) return false;
   if (functionNumber < 0) return false;
 
@@ -273,6 +273,8 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
     }
     DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
   }
+  if (tellNodes) NodeManager::cast(F("<F %d %d %d>"),cab,functionNumber,on?1:0);
+  
   // We use the reminder table up to 28 for normal functions.
   // We use 29 to 31 for DC frequency as well so up to 28
   // are "real" functions and 29 to 31 are frequency bits
@@ -512,6 +514,97 @@ void DCC::writeCVBitMain(int cab, int cv, byte bNum, bool bValue)  {
 
   DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
 }
+
+void DCC::writeAccessoryCVByteMain(int cab, int cv, byte bValue)  {
+  byte b[5];             // this needs to be set depending on xpom which will need upto 10 bytes.
+  int nB = 0;
+
+  cab = cab + 3;           // +3 offset according to RCN-213
+                           // decoder needs to take this into account
+
+  // Extract NMRA address bits from cab (0-indexed 11-bit address space)
+  // for basic, extended and xpoms this is the same.
+
+  byte a10a8 = (cab >> 8) & 0x07; // Top 3 bits
+  byte a7a2  = (cab >> 2) & 0x3F; // Middle 6 bits
+  byte a1a0  = cab & 0x03;        // Bottom 2 bits
+
+  // Byte 1: 10A7A6A5A4A3A2
+  b[nB++] = 0x80 | a7a2;
+
+  // Basic accessory decoder pom
+  // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
+  // Bit 7 = 1
+  // Bits 4-6 = inverted a10a8
+  // Bit 3 = 1 (Programming device default write flag basic accessory decoder)
+  // Bits 1-2 = a1a0
+  // Bit 0 = 0
+
+  byte inverted_high = (~a10a8) & 0x07;
+
+  b[nB++] = 0x80 | (inverted_high << 4) | 0x08 | (a1a0 << 1) | 0x00;
+  // Byte 3 & 4: Configuration Variable Long Form (CV - 1) these are 10 bit binary so 0-1024
+  // 1110GGVV 0 VVVVVVVV               GG is Instruction Sub Type in this case 11 write byte
+  //                                   V is CV number
+  // 3          4
+  // Byte 3: 111011A9A8                CV number upper bits A9 A8.
+  // Byte 4: A7A6A5A4A3A2A1A0          CV number lower bits A7 - A0
+    int cvAddress = cv - 1;
+    b[nB++] = 0xEC | ((cvAddress >> 8) & 0x03);
+    b[nB++] = cvAddress & 0xFF;
+
+  // Byte 5: Data
+    b[nB++] = bValue;
+
+  DCCQueue::scheduleDCCPacket(b, nB, 4, cab);
+}
+
+
+void DCC::writeExtendedAccessoryCVByteMain(int cab, int cv, byte bValue)  {
+  byte b[5];             // this needs to be set depending on xpom which will need upto 10 bytes.
+  int nB = 0;
+
+  cab = cab + 3;           // +3 offset according to RCN-213
+                           // decoder needs to take this into account
+
+  // Extract NMRA address bits from cab (0-indexed 11-bit address space)
+  // for basic, extended and xpoms this is the same.
+
+  byte a10a8 = (cab >> 8) & 0x07; // Top 3 bits
+  byte a7a2  = (cab >> 2) & 0x3F; // Middle 6 bits
+  byte a1a0  = cab & 0x03;        // Bottom 2 bits
+
+  // Byte 1: 10A7A6A5A4A3A2
+  b[nB++] = 0x80 | a7a2;
+
+  // Extended accessory decoder pom
+  // Byte 2: 1Ā10Ā9Ā81A1A00 -> (Ā indicates ones' complement)
+  // Bit 7 = 0
+  // Bits 4-6 = inverted a10a8
+  // Bit 3 = 0  (Programming device default write flag extended accessory decoder)
+  // Bits 1-2 = a1a0
+  // Bit 0 = 1
+
+  byte inverted_high = (~a10a8) & 0x07;
+
+  b[nB++] = 0x00 | (inverted_high << 4) | 0x00 | (a1a0 << 1) | 0x01;
+  // Byte 3 & 4: Configuration Variable Long Form (CV - 1) these are 10 bit binary so 0-1024
+  // 1110GGVV 0 VVVVVVVV               GG is Instruction Sub Type in this case 11 write byte
+  //                                   V is CV number
+  // 3          4
+  // Byte 3: 111011A9A8                CV number upper bits A9 A8.
+  // Byte 4: A7A6A5A4A3A2A1A0          CV number lower bits A7 - A0
+    int cvAddress = cv - 1;
+    b[nB++] = 0xEC | ((cvAddress >> 8) & 0x03);
+    b[nB++] = cvAddress & 0xFF;
+
+  // Byte 5: Data
+    b[nB++] = bValue;
+
+  DCCQueue::scheduleDCCPacket(b, nB, 4, cab);
+}
+
+
 
 bool DCC::setTime(uint16_t minutes,uint8_t speed, bool suddenChange) {
   /* see rcn-122

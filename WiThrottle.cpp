@@ -530,10 +530,7 @@ void WiThrottle::sendTurnouts(Print* stream) {
       for(Turnout *tt=Turnout::first();tt!=NULL;tt=tt->next()){
           if (tt->isHidden()) continue;
           int id=tt->getId();
-          const FSH * tdesc=NULL;
-          #ifdef EXRAIL_ACTIVE
-          tdesc=RMFT2::getTurnoutDescription(id);
-          #endif
+          auto tdesc=tt->getRamDescription();
           char tchar=Turnout::isClosed(id)?'2':'4';
           if (tdesc==NULL) // turnout with no description
               StringFormatter::send(stream,F("]\\[%d}|{T%d}|{T%c"), id,id,tchar);

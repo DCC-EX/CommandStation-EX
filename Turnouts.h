@@ -30,6 +30,7 @@
 #include "Arduino.h"
 #include "IODevice.h"
 #include "StringFormatter.h"
+#include "NodeManager.h"
 
 // Turnout type definitions
 enum {
@@ -67,7 +68,12 @@ protected:
       uint8_t flags;
     };
     uint16_t id;
+    char * ramDescription; // optional description of turnout.
   } _turnoutData;  // 3 bytes
+
+  // Note: ramDescription is used in Nodes environment when a description
+  // has been provided by another node. 
+  // It is normally nullptr when the description is known from EXRAIL.
 
 #ifndef DISABLE_EEPROM
   // Address in eeprom of first byte of the _turnoutData struct (containing the closed flag).
@@ -87,6 +93,7 @@ protected:
     _turnoutData.turnoutType = turnoutType;
     _turnoutData.closed = closed;
     _turnoutData.hidden=false;
+    _turnoutData.ramDescription = nullptr;
     add(this);
   }
 
@@ -101,7 +108,7 @@ protected:
    * Virtual functions
    */
 
-  virtual bool setClosedInternal(bool close) = 0;  // Mandatory in subclass
+  virtual void setClosedInternal(bool close) = 0;  // Mandatory in subclass
   virtual void save() {}
   
   /*
@@ -124,12 +131,14 @@ public:
    */
   inline bool isClosed() { return _turnoutData.closed; };
   inline bool isThrown() { return !_turnoutData.closed; }
-  inline bool isHidden() { return _turnoutData.hidden; }
-  inline void setHidden(bool h) { _turnoutData.hidden=h; }
+  inline bool isHidden() { return _turnoutData.ramDescription && _turnoutData.ramDescription[0]==0x01; }
   inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }
+  inline const char *getRamDescription() { return _turnoutData.ramDescription; }
+  void setRamDescription(const char *desc);
   void printState(Print *stream);
+  static void shareAll();
   /* 
    * Virtual functions
    */
@@ -151,7 +160,10 @@ public:
     return !isClosed(id);
   }
 
-  static bool setClosed(uint16_t id, bool closeFlag);
+  // nodecast is true if the turnout change should be broadcast to other nodes.  
+  // This is normally true, but false must be given when a node receives
+  // a turnout change from another node.
+  static bool setClosed(uint16_t id, bool closeFlag, bool nodecast=true);
 
   inline static bool setClosed(uint16_t id) {
     return setClosed(id, true);
@@ -161,7 +173,7 @@ public:
     return setClosed(id, false);
   }
 
-  static bool setClosedStateOnly(uint16_t id, bool close);
+  bool setClosedStateOnly(bool close);
 
   inline static Turnout *first() { return _firstTurnout; }
 
@@ -182,7 +194,7 @@ public:
       }
     return gotOne;
   }
-
+static void shareNodesToCS();
 
 };
 
@@ -215,7 +227,7 @@ public:
 
 protected:
   // ServoTurnout-specific code for throwing or closing a servo turnout.
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -247,7 +259,7 @@ public:
   void print(Print *stream) override;
 
 protected:
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -277,7 +289,7 @@ public:
   void print(Print *stream) override;
 
 protected:
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
   void save() override;
 
 };
@@ -301,7 +313,7 @@ public:
   static Turnout *create(uint16_t id, bool closed=true);
 
 
-  bool setClosedInternal(bool close) override;
+  void setClosedInternal(bool close) override;
 
   // LCN turnouts not saved to EEPROM.
   //void save() override {  }

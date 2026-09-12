@@ -3,7 +3,28 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.7.6"
+#define VERSION "5.9.5"
+// 5.9.5  - STM32 and ESP32 build environment fixes
+// 5.9.4  - STM32 cleanup
+// 5.9.3  - Minor bug fixes and improvements
+//        - Updated documentation for new features
+//        - POM for accessory decoders
+// 5.9.2  - Fixed null turnout descriptions and ifthrown state
+// 5.9.1  - Added LED_SIGNAL exrail macro
+// 5.9.0  - Major update for Nodes
+//        - Removed AVR support
+//        - Removed obsolete <t and <R variants with ignored arguments
+//        - Improved serial log browser support
+//        - Implemented Non Volatile Storage
+//        - EXRAIL >32kb execution script support
+//        - NVS dialogs for browser interface
+//        - Serial log timestamps
+//        - Broadcast signal aspects to all connected throttles
+//        - Inter node turnout, sensor and signal sharing
+//        - exrail change direction
+//
+// 5.7.8  - Bugfix: Incorrect parser limit on prog track tuning command values
+// 5.7.7  - BugFix: EXRAIL READ_LOCO IFLOCO(0)
 // 5.7.6  - Safety net for users which have not defined an ONRAILSYNCOFF hanlder
 // 5.7.5  - Bugfix: <W cv value> and similar commands incorrectly limited cv number to 255 instead of 1023. 
 //        - Removed unnecessary pin change message (ESP32)

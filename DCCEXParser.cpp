@@ -123,6 +123,8 @@ Once a new OPCODE is decided upon, update this list.
 #include "Stash.h"
 #include "DCCEXParserMacros.h"
 #include "DCCConsist.h"
+#include "Signals.h"
+#include "NVSTable.h"
 #ifdef ARDUINO_ARCH_ESP32
 #include "WifiESP32.h"
 #include "DCCDecoder.h"
@@ -365,6 +367,25 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
     StringFormatter::send(USB_SERIAL,F("> *>\n"));
 }
 
+// This function is used by the node manager to pare inter-mode traffic.
+// 
+void DCCEXParser::parseNodeTraffic( byte *com) {
+    if (Diag::CMD) DIAG(F("Node parse: %s"), com);
+    int16_t params = 0;
+    int16_t p[MAX_COMMAND_PARAMS];
+    while (com[0] == '<')
+        com++; // strip off any number of < or spaces
+    byte opcode = com[0];
+    params = splitValues(p, com, false);
+    if (params >=0 && params < MAX_COMMAND_PARAMS) {
+        
+        matchedCommandFormat = nullptr;
+        checkFailedFormat = nullptr;
+        if (executeNodeTraffic(com, opcode, params, p)) return;
+    }
+    DIAG(F("Node unrecognized command: %s\n"), com);    
+}
+
 bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
     // Convert DCC-EX protocol speed steps where
      // -1=emergency stop, 0-126 as speeds
@@ -399,6 +420,11 @@ const FSH* DCCEXParser::checkFailedFormat=nullptr;
 bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, int16_t p[]) {
   #include "DCCEXCommands.h"
 }
+// Having broken the command into opcode and parameters, we now execute the command
+// The actual commands and their parameter mappings are in DCCEXCommands.h
+bool DCCEXParser::executeNodeTraffic(byte * com, byte opcode, byte params, int16_t p[]) {
+  #include "NodeCommands.h"
+}
 
 // CALLBACKS must be static
 bool DCCEXParser::stashCallback(Print *stream, int16_t p[MAX_COMMAND_PARAMS])
@@ -421,13 +447,6 @@ void DCCEXParser::callback_W(int16_t result)
     stashBusy = false;
 }
 
-void DCCEXParser::callback_W4(int16_t result)
-{
-    CommandDistributor::broadcastReply( 
-        CommandDistributor::clientType::COMMAND_TYPE,
-	    F("<r%d|%d|%d %d>\n"), stashP[2], stashP[3], stashP[0], result == 1 ? stashP[1] : -1);
-    stashBusy = false;
-}
 
 void DCCEXParser::callback_B(int16_t result)
 {
@@ -446,13 +465,6 @@ void DCCEXParser::callback_Vbyte(int16_t result)
 {
     CommandDistributor::broadcastReply( 
         CommandDistributor::clientType::COMMAND_TYPE, F("<v %d %d>\n"), stashP[0], result);
-    stashBusy = false;
-}
-
-void DCCEXParser::callback_R(int16_t result)
-{
-    CommandDistributor::broadcastReply( 
-        CommandDistributor::clientType::COMMAND_TYPE, F("<r%d|%d|%d %d>\n"), stashP[1], stashP[2], stashP[0], result);
     stashBusy = false;
 }
 

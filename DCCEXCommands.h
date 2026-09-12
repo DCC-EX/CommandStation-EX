@@ -70,13 +70,13 @@ Once a new OPCODE is decided upon, update this list.
   L, Reserved for LCC interface (implemented in EXRAIL)
   m, message to throttles (broadcast output) 
   m, set momentum  
-  M, Write DCC packet
+  M, Write DCC packet on main track
   n, Reserved for SensorCam
   N, Reserved for Sensorcam 
   o, Neopixel driver (see also IO_NeoPixel.h)
   O, Output broadcast
   p, Broadcast power state
-  P, Write DCC packet
+  P, Write DCC packet on prog track
   q, Sensor deactivated
   Q, Sensor activated
   r, Broadcast address read on programming track
@@ -133,9 +133,6 @@ ZZ(!,Q) //  ESTOP Query paused status
 ZZ(t,loco) // Request loco status
         CommandDistributor::broadcastLoco(LocoSlot::getSlot(loco,false));
 ZZ(t,loco,tSpeed,direction) // Set throttle speed(0..127) and direction (0=reverse, 1=fwd) 
-        CHECK(loco>0 || tSpeed<0) // allow loco 0 broadcast -1 estop
-        CHECK(setThrottle(loco,tSpeed,direction)) 
-ZZ(t,ignore,loco,tSpeed,direction) // Set throttle speed and direction (Deprecated)
         CHECK(loco>0 || tSpeed<0) // allow loco 0 broadcast -1 estop
         CHECK(setThrottle(loco,tSpeed,direction)) 
 ZZ(f,loco,byte1)  //Set loco function group  (Deprecated use F)  
@@ -218,7 +215,19 @@ ZZ(J,A) // List Routes
     REPLY("<jA") RMFT2::routeLookup->stream(stream); REPLY(">\n")
 #else 
         REPLY( "<jA>\n")
-#endif 
+#endif
+ZZ(J,S) // list signals
+        REPLY("<jS")
+        Signal::listSignalIds(stream);
+        REPLY(">\n")
+ZZ(J,S,signal_id) // get signal state and description
+        auto s=Signal::findSignal(signal_id);
+        if (s==nullptr || s->isHidden()) { // hidden signal or no description
+                REPLY("<jS %d X>\n", signal_id);
+                return true;
+        }
+        auto description=s->getDescription();
+        REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
 ZZ(J,R) // List Roster
         REPLY("<jR") 
         #ifdef EXRAIL_ACTIVE
@@ -241,12 +250,11 @@ ZZ(J,T) // Get turnout list
 ZZ(J,T,id) // Get turnout state and description
         auto t=Turnout::get(id);
         if (!t || t->isHidden()) { REPLY("<jT %d X>\n",id) return true; }
-        const FSH *tdesc=nullptr;
-        #ifdef EXRAIL_ACTIVE
-        tdesc = RMFT2::getTurnoutDescription(id);
-        #endif
-        if (!tdesc) tdesc = F("");
-        REPLY("<jT %d %c \"%S\">\n",id,t->isThrown()?'T':'C',tdesc)
+        // some turnouts have description in RAM, some have description in flash, some have no description.
+        auto ramDesc = t->getRamDescription();
+        if (!ramDesc) ramDesc="";
+        REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
+        return true; 
 ZZ(z,signedVpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
         IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);
 ZZ(z,vpin,analogue,profile,duration) // Change analogue value over duration (Fade or servo move)
@@ -357,7 +365,7 @@ ZZ(D,ACK,OFF) // Disable PROG track diagnostics
 ZZ(D,CABS)  // Diagnostic display loco state table
         DCC::displayCabList(stream);
 ZZ(D,RAM)  // Diagnostic display free RAM
-        DIAG(F("Free memory=%d"), DCCTimer::getMinimumFreeMemory());
+        DIAG(F("Free memory=%dkb" ), DCCTimer::getMinimumFreeMemory()/1024);
 ZZ(D,CMD,ON) // Enable command input diagnostics
         Diag::CMD = true;
 ZZ(D,CMD,OFF) // Disable command input diagnostics
@@ -369,7 +377,7 @@ ZZ(D,RAILCOM,OFF) // DIsable Railcom diagnostics
 ZZ(D,WIFI,ON) // Enable WiFi diagnostics
         Diag::WIFI = true;
 ZZ(D,WIFI,OFF) // Disable WiFi diagnostics
-        Diag::WIFI = false; 
+        Diag::WIFI = false;
 ZZ(D,ETHERNET,ON) // Enable Ethernet diagnostics
         Diag::ETHERNET = true;
 ZZ(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
@@ -386,6 +394,10 @@ ZZ(D,WEBSOCKET,ON) // Enable WebSocket diagnostics
         Diag::WEBSOCKET = true;
 ZZ(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
+ZZ(D,NODE,ON) // Enable Node diagnostics 
+        Diag::NODE = true;
+ZZ(D,NODE,OFF) // Disable Node diagnostics 
+        Diag::NODE = false;
             
 #ifndef DISABLE_EEPROM  
 ZZ(D,EEPROM,numEntries) // Dump EEPROM contents
@@ -415,11 +427,16 @@ ZZ(D,TT,vpin,steps) // Test turntable
 ZZ(D,TT,vpin,steps,activity) // Test turntable
         IODevice::writeAnalogue(vpin,steps,activity);
 
+ZZ_nodoc(D,SHARE) // dev testing nodes only 
+  Turnout::shareNodesToCS();
+  Signal::shareNodesToCS();
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station
+        TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
         DCCTimer::reset();
 ZZ(D,RESET) // Reset and restart command station
+        TrackManager::setTrackPower(TRACK_ALL, POWERMODE::OFF);
         DCCTimer::reset();
 ZZ(C,SPEED28) // Set all DCC speed commands as 28 step to old decoders
         DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
@@ -456,10 +473,16 @@ ZZ(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         WifiPreferences::enable(false);
         WifiESP::setup();
-ZZ(C,WIFI,ON) // Enable WiFi
+ZZ(C,WIFI,ON) // Enable Wifi
         WifiPreferences::enable(true);
+        WifiPreferences::saveThrottleNode(true);
         WifiESP::setup();
-ZZ(C,WIFI,HOSTNAME,hostname) // Set WiFi hostname (in quotes)
+ZZ(C,WIFI,NODE) // Enable Wifi Node without throttle support
+        WifiPreferences::enable(true);
+        WifiPreferences::saveThrottleNode(false);
+        WifiESP::setup();
+        
+ZZ(C,WIFI,HOSTNAME,hostname) // set Wifi hostname (in quotes)
   CHECKQ(hostname)
   WifiPreferences::saveHostName(q_hostname); 
   WifiESP::setup();
@@ -505,7 +528,23 @@ ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with giv
 
 ZZ(D,WIFI,SHOW) // Show WiFi status
   WifiPreferences::dump(stream);  
-#endif
+
+ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted string)
+  if ((nvsvalue & 0xFF00) == 0x7700) {
+        // nvsvalue is quoted
+        auto q_nvsvalue = (const char *)(com + (nvsvalue & 0x00FF));
+        NVSTable::setNVS(nvsnumber,q_nvsvalue);
+   }
+   else {
+        NVSTable::setNVS(nvsnumber,nvsvalue);
+   }
+   if (NVSTable::saveNeeded()) NVSTable::save();
+  
+ZZ(D,NVS) // Show all non-zero NVS values (Not Loco CVs)
+  NVSTable::dump(stream);
+ZZ(D,NVS,value) // Show specific NVS value
+  NVSTable::dump(stream,value);
+  #endif
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
         IODevice::write(abs(vpin),vpin>0);
@@ -513,10 +552,10 @@ ZZ(o,vpin,count)  // Set multiple neopixels on(vpin>0) or off(vpin<0)
         IODevice::writeRange(abs(vpin),vpin>0,count);
 ZZ(o,vpin,r,g,b)  // Set neopixel colour
         CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255) 
-        IODevice::writeAnalogueRange(abs(vpin),vpin>0,r<<8 | g,b,1);
+        IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,1);
 ZZ(o,vpin,r,g,b,count) // Set multiple neopixels colour 
         CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255) 
-        IODevice::writeAnalogueRange(abs(vpin),vpin>0,r<<8 | g,b,count);
+        IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,count);
 
 ZZ(1)  // Power ON all tracks
         TrackManager::setTrackPower(TRACK_ALL, POWERMODE::ON);
@@ -562,16 +601,16 @@ ZZ(a,address,activate) // Send dcc accessory command to linear address
 /// activate: 0=deactivate, 1=activate
         CHECK(activate==0 || activate ==1, invalid activate 0..1 )
         DCC::setAccessory((address - 1) / 4 + 1,(address - 1)  % 4 ,activate ^ accessoryCommandReverse);                                    
-ZZ(A,address,value) // Send DCC extended accessory (Aspect) command
-        // signalAspectEvent returns true if the aspect is destined
-        // for a defined DCCX_SIGNAL which will handle all the RAG flags
-        // and ON* handlers.
-        // Otherwise false so the parser should send the command directly 
-#ifdef EXRAIL_ACTIVE
-        if (!RMFT2::signalAspectEvent(address,value)) 
-#endif
-        DCC::setExtendedAccessory(address,value);
-
+ZZ(A,address,aspect) // Send DCC extended accessory (Aspect) command
+        CHECK((aspect & 0b11111) == aspect, invalid aspect 0..31)
+        // If the aspect is destined
+        // for a defined DCCX_SIGNAL this will handle all the RAG flags
+        // and ON* handlers.        
+        if (!Signal::setSignalByReverseAspectLookup(address,aspect)) {
+            // If the aspect is not destined for a defined DCCX_SIGNAL
+            // then send the aspect as a raw extended accessory command.
+            DCC::setExtendedAccessory(address, aspect);
+        }
 ZZ(w,loco,cv,value) // POM write cv on MAIN track
         DCC::writeCVByteMain(loco,cv,value);
 ZZ(r,loco,cv) // POM read cv on MAIN track
@@ -580,7 +619,18 @@ ZZ(r,loco,cv) // POM read cv on MAIN track
         DCC::readCVByteMain(loco,cv,callback_r);
 ZZ(b,loco,cv,bitPosition,bitValue)  // POM write cv bit on main track
         DCC::writeCVBitMain(loco,cv,bitPosition,bitValue);
- 
+
+ZZ(w,A,linearaddress,cv,value) // POM write basic accessory decoder cv on main track
+        CHECK(linearaddress>0 && linearaddress<=2044, linearaddress 1..2044)
+        CHECK(cv>0 && cv<= 1024, CV 0..1024)
+        CHECK(value>=0 && value<=255, value 0..255)
+        DCC::writeAccessoryCVByteMain(linearaddress,cv,value);
+ZZ(w,E,linearaddress,cv,value) // POM write extended accessory decoder cv on main track
+        CHECK(linearaddress>0 && linearaddress<=2044, linearaddress 1..2044)
+        CHECK(cv>0 && cv<= 1024, CV 0..1024)
+        CHECK(value>=0 && value<=255, value 0..255)
+        DCC::writeExtendedAccessoryCVByteMain(linearaddress,cv,value);
+
 ZZ(m,LINEAR) // Set Momentum algorithm to linear acceleration
         DCC::linearAcceleration=true;
 ZZ(m,POWER) // Set momentum algorithm to very based on difference between current speed and throttle setting
@@ -591,26 +641,22 @@ ZZ(m,loco,accelerating,braking) // Set momentum for loco
         CHECK(DCC::setMomentum(loco,accelerating,braking))
 
         // todo  reorder for more sensible doco. 
-ZZ(W,cv,value,ignore1,ignore2) // Write cv value on PROG track (Deprecated)
-        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);        
 ZZ(W,loco) // Write loco address on PROG track
         EXPECT_CALLBACK DCC::setLocoId(loco,callback_Wloco);
 ZZ(W,CONSIST,loco,REVERSE) // Write consist address and reverse flag on PROG track 
         EXPECT_CALLBACK DCC::setConsistId(loco,true,callback_Wconsist);
 ZZ(W,CONSIST,loco) // write consist address on PROG track       
         EXPECT_CALLBACK DCC::setConsistId(loco,false,callback_Wconsist);
-ZZ(W,cv,value)   // Write cv value on PROG track
-        EXPECT_CALLBACK DCC::writeCVByte(cv,value, callback_W);
+ZZ(W,cv,cValue)   // Write cv value on PROG track
+        EXPECT_CALLBACK DCC::writeCVByte(cv,cValue, callback_W);
 ZZ(W,cv,bitPosition,bitValue) // Write cv bit on prog track
         EXPECT_CALLBACK DCC::writeCVBit(cv,bitPosition,bitValue,callback_W);
-ZZ(V,cv,value) // Fast read cv with expected value
-        EXPECT_CALLBACK DCC::verifyCVByte(cv,value, callback_Vbyte);
+ZZ(V,cv,cValue) // Fast read cv with expected value
+        EXPECT_CALLBACK DCC::verifyCVByte(cv,cValue, callback_Vbyte);
 ZZ(V,cv,bitPosition,bitValue) // Fast read bit with expected value
         EXPECT_CALLBACK DCC::verifyCVBit(cv,bitPosition,bitValue,callback_Vbit);  
 ZZ(B,cv,bitPosition,bitValue)  // Write cv bit
         EXPECT_CALLBACK DCC::writeCVBit(cv,bitPosition,bitValue,callback_B);
-ZZ(R,cv,ignore1,ignore2) // Read cv value on PROG track (Deprecated)
-        EXPECT_CALLBACK DCC::readCV(cv,callback_R);
 ZZ(R,LOCOID) // Read loco id (ignoring consist) on PROG track
         EXPECT_CALLBACK DCC::getLocoId(callback_Rloco);
 ZZ(R,CONSIST) // Read consist id on PROG track
@@ -645,13 +691,15 @@ ZZ(+) // Complex WiFi AT command interface (Not ESP32)
 #endif
 #endif
 
-// ZZ(M,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on MAIN track (all d values in hex)
+// ZZ(M,ignore,d0,d1,[d2,d3,d4,d5]) // Send up to 5 byte DCC packet on MAIN track (values in hex). 
+/// The ignore value is for backward compatibility, use 0. 
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1,d2) byte packet[]={(byte)d0,(byte)d1,(byte)d2}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(M,ignore,d0,d1) byte packet[]={(byte)d0,(byte)d1}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-// ZZ(P,ignore,d0,d1,d2,d3,d4,d5) // Send up to 5 byte DCC packet on PROG track (all d values in hex)
+// ZZ(P,ignore,d0,d1[,d2,d3,d4,d5]) // Send up to 5 byte DCC packet on PROG track (all d values in hex).
+/// The ignore value is for backward compatibility, use 0.
 ZZ_nodoc(P,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(P,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
 ZZ_nodoc(P,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);
@@ -807,11 +855,11 @@ ZZ(/,LATCH,latch) // Set pin latch
 ZZ(/,UNLATCH,latch) // Remove pin latch
   CHECK(RMFT2::setFlag(latch,0,LATCH_FLAG),invalid latch)
 ZZ(/,RED,signal) // Set signal to Red 
-   RMFT2::doSignal(signal,SIGNAL_RED);
+   Signal::setSignal(signal,Signal::RAG::SIGNAL_RED);
 ZZ(/,AMBER,signal) // Set Signal to Amber/Yellow
-  RMFT2::doSignal(signal,SIGNAL_AMBER);
+  Signal::setSignal(signal,Signal::RAG::SIGNAL_AMBER);
 ZZ(/,GREEN,signal) // Set signal to Green  
-  RMFT2::doSignal(signal,SIGNAL_GREEN);
+  Signal::setSignal(signal,Signal::RAG::SIGNAL_GREEN);
 
 #endif
 ZZ(@) // Request all virtual msgs to this client
@@ -820,7 +868,7 @@ ZZ(@) // Request all virtual msgs to this client
 ZZ(@,display,row,text) // Display text on virtual LCD at row 
   CHECK(display>=0 && row>=0)
   CHECKQ(text)
-  StringFormatter::lcd2(display,row,F("%s"),q_text);
+  StringFormatter::lcd4(display,row,q_text,true);
 ZZ(y,vpin,PLAY,trackNumber)  // Play sound track with default volume
      IODevice::writeAnalogue(vpin,trackNumber,0,DFPlayerBase::DF_PLAY);
 ZZ(y,vpin,PLAY,trackNumber,volume) // Play sound track with volume

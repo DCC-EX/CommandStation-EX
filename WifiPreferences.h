@@ -26,8 +26,10 @@ public:
   static void saveSTA(const char *_ssid, const char *_password, bool sticky);
   static void saveAP(const char *_ssid, const char *_password, byte _channel, bool _hidden);
   static void saveHostName(const char *_hostname);
+  static void saveThrottleNode(bool throttleNode);
   static void clear();
   static void enable(bool enable);
+  static bool getThrottleNode();
   static bool getEnabled();
   static const char *getSsidSTA();
   static const char *getPasswordSTA();
@@ -43,6 +45,7 @@ private:
   static char passwordAP[32];
   static byte channelAP;
   static bool hiddenAP;
+  static bool throttleNode;
   static char ssidSTA[32];
   static char passwordSTA[32];
   static char hostName[32];

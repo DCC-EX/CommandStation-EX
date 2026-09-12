@@ -16,12 +16,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_ARCH_ESP32) 
 #include <Arduino.h>
 #include <list>
-#include "driver/mcpwm.h"
-#include "soc/mcpwm_struct.h"
-#include "soc/mcpwm_reg.h"
 
 #define MAXDCCPACKETLEN 8
 #include "DCCPacket.h"

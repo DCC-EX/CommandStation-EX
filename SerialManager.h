@@ -34,11 +34,7 @@
 // Other: 128bytes+128bytes
 //        <fooo   ><baar  >
 #ifndef COMMAND_BUFFER_SIZE
-#ifdef ARDUINO_ARCH_AVR
- #define COMMAND_BUFFER_SIZE 64
-#else
  #define COMMAND_BUFFER_SIZE 256
-#endif
 #endif
 
 class SerialManager {

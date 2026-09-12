@@ -34,8 +34,6 @@
 #include "Turntables.h"
 #include "CommandDistributor.h"
 
-#ifndef IO_NO_HAL
-
 void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   new EXTurntable(firstVpin, nPins, I2CAddress);
 }
@@ -144,4 +142,3 @@ void EXTurntable::_display() {
     (int)_firstVpin+_nPins-1, (_deviceState==DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
 }
 
-#endif

@@ -35,9 +35,8 @@
  * 2 channels dedicated for RX. Half RMT capacity compared to the C3.
  *
  */
-
-#if defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
+#if defined(ARDUINO_ARCH_ESP32) && defined(MOTOR_SHIELD_TYPE)
 #include "DIAG.h"
 #include "DCCRMT.h"
 #include "DCCTimer.h"
@@ -99,8 +98,6 @@ RMTChannel *channelHandle[8] = { 0 };
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   RMTChannel *tt = channelHandle[channel];
   if (tt) tt->RMTinterrupt();
-  if (channel == 0)
-    DCCTimer::updateMinimumFreeMemoryISR(0);
 }
 
 RMTChannel::RMTChannel(pinpair pins, bool isMain) {

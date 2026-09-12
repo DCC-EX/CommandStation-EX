@@ -121,6 +121,9 @@
 ///see RETURN
 ///param sequence_id SEQUENCE to jump processing to, must terminate or RETURN
 
+#define CHANGE_DIRECTION
+///brief Change the direction of the current loco
+
 #define CLEAR_STASH(stash_id)
 ///brief Clears loco value stored in stash
 ///param stash_id which stash to clear.
@@ -135,6 +138,11 @@
 ///brief Close turnout by id
 ///see THROW
 
+#define CONFIGURE_DIALOG(title,body)
+///brief Set up browser config dialog with title and body text. The dialog will be shown when the user clicks on the config button in the browser interface.
+///param title Quoted text for dialog title
+///param body base name for dialog body text.
+
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 ///brief Set up servo movement parameters for non-turnout
 ///param vpin must refer to a servo capable pin
@@ -142,15 +150,17 @@
 ///param pos2 RESET position of servo
 ///param profile Movement profile (Instant, Fast, Medium, Slow, Bounce)
 
-#define DCC_SIGNAL(signal_id,addr,subaddr)
+#define DCC_SIGNAL(signal_id,addr,subaddr,description...)
 ///brief Define a DCC accessory signal with short address
 ///param signal_id Id used for all signal manipulation commands
 ///param addr DCC address
 ///param subaddr DCC subaddress
+///param description... Quoted text description of signal
 
-#define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect)
+#define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect,description...)
 ///brief Define advanced DCC accessory signal with aspects
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands
+///param description... Quoted text description of signal
 
 #define DCC_TURNTABLE(turntable_id,home,description...)
 ///brief defines a Turntable device
@@ -309,6 +319,10 @@
 ///brief Inverse of IF
 ///see IF
 
+#define IFNVS(nvenum)
+///brief Check if given Non Volatile Storage entry is non-zero
+///see IF
+
 #define IFRANDOM(percent)
 ///brief randomly satisfied IF at given percent probability
 ///see IF
@@ -374,6 +388,16 @@
 #define INVERT_DIRECTION
 ///brief Marks current task so that FWD and REV commands are inverted.
 
+#define SHARED_SENSOR(vpin,count...)
+///brief Defines multiple sensor vpins to be shared to other nodes
+///param vpin first vpin number
+///param count... Number of consecutive VPINS. Default 1.
+
+#define REMOTE_SENSOR(vpin,count...)
+///brief Defines multiple sensor vpins shared by other nodes.
+///param vpin first vpin number
+///param count... Number of consecutive VPINS. Default 1.
+
 #define JMRI_SENSOR(vpin,count...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
 ///param vpin first vpin number
@@ -437,11 +461,24 @@
 ///param b blue component 0-255
 ///param count... Number of consecutive pixels to set, Default 1.
 
-#define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour)
+#define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour,description...)
 ///brief Define a signal that uses a single multi colour pixel
 ///see NEORGB
 ///param vpin unique signal_id
 ///param redcolour  RGB colour use NEORGB(red,green,blue) to create values.
+///param description... Quoted text description of signal
+
+#define NODE_SHARE_SCREEN0(display_id,count...)
+///brief Remaps this devices screen display 0 to another id when sharing with nodes.
+///see LCD, SCREEN
+///param display_id Alternative display id that nodes may render as required.
+/// Display 0 is used to represent node-specific values such as Wifi settings, so it cant be mixed with other display 0 data. 
+/// This node will display it's own display 0 as normal.
+//  If display_id is non-zero, it will share the screen with other nodes as display_id.
+///param optional second parameter for start row offset
+
+#define SHARED_WRITE_VPINS(vpin,count)
+///brief Marks a range of VPINS as shared, so that any node can write to them
 
 #define ACON(eventid)
 ///brief Send MERG CBUS ACON to Adapter
@@ -737,12 +774,13 @@
 ///param position  servo position (values are hardware dependent)
 ///param duration mS
 
-#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos)
+#define SERVO_SIGNAL(vpin,redpos,amberpos,greenpos,description...)
 ///brief Dedfine a servo based signal with 3 servo positions
 ///param vpin of servo, acts as signal_id
 ///param redpos servo position (values are hardware dependent)
 ///param amberpos servo position (values are hardware dependent)
 ///param greenpos servo position (values are hardware dependent)
+///param description... Quoted text description of signal
 
 #define SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...)
 ///brief Define a servo driven turnout
@@ -775,14 +813,28 @@
 ///brief Sets the DC track PWM frequency
 ///param freq Frequency is default 0, or 1..3
 
-#define SIGNAL(redpin,amberpin,greenpin)
-///brief Define a Signal with LOW=on leds
+#define SIGNAL(redpin,amberpin,greenpin,description...)
+///brief Define a Signal with LOW=on leds (rare case)
 ///see SIGNALH
 ///param redpin vpin for RED state, also acts as signal_id
+///param amberpin vpin for AMBER state
+///param greenpin vpin for GREEN state
+///param description... Quoted text description of signal
 
-#define SIGNALH(redpin,amberpin,greenpin)
-///brief define a signal with HIGH=ON leds
+#define SIGNALH(redpin,amberpin,greenpin,description...)
+///brief define a signal with HIGH=ON leds (use LED_SIGNAL prefereably)
 ///param redpin vpin for RED state, also acts as signal_id
+///param amberpin vpin for AMBER state
+///param greenpin vpin for GREEN state
+///param description... Quoted text description of signal
+
+#define LED_SIGNAL(signalid,redpin,amberpin,greenpin,description...)
+///brief define a signal with HIGH=ON leds
+///param signalid unique identifier for the signal
+///param redpin vpin for RED state
+///param amberpin vpin for AMBER state
+///param greenpin vpin for GREEN state
+///param description... Quoted text description of signal
 
 #define SPEED(speed)
 ///brief Changes current tasks loco speed without changing direction
@@ -861,9 +913,10 @@
 ///see LATCH
 ///param vpin (limited to 0..255)
 
-#define VIRTUAL_SIGNAL(signal_id)
+#define VIRTUAL_SIGNAL(signal_id,description...)
 ///brief Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware
 ///see SIGNAL ONRED ONAMBER ONGREEN
+///param description... Quoted text description of signal
 
 #define VIRTUAL_TURNOUT(id,description...)
 ///brief Defines a virtual (no hardware) turnout, use ONhandlers to simulate hardware
@@ -895,11 +948,8 @@
 #define WAITFOR(pin)
 ///brief Waits for completion of servo movement
 
-#ifndef IO_NO_HAL
-
 #define WAITFORTT(turntable_id)
 ///brief waits for completion of turntable movement
-#endif
 
 #define WAIT_WHILE_RED(signal_id)
 ///brief Keeps loco at speed 0 while signal is RED

@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Paul M. Antoine
  *  © 2023, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -33,13 +34,21 @@
 // Older versions of Wire don't have setWireTimeout function.  AVR does.
 #ifdef ARDUINO_ARCH_AVR
 #define WIRE_HAS_TIMEOUT
+elif defined(ARDUINO_ARCH_ESP32)
+#define WIRE_HAS_TIMEOUT
+#endif
+
+// Some boards need different pins for SDA/SCL.  If not defined in the compiler flags, use board default.
+#if !defined(I2C_SDA) && !defined(I2C_SCL)
+#define I2C_SDA SDA
+#define I2C_SCL SCL
 #endif
 
 /***************************************************************************
  *  Initialise I2C interface software
  ***************************************************************************/
 void I2CManagerClass::_initialise() {
-  Wire.begin();
+  Wire.begin(I2C_SDA, I2C_SCL);
 #if defined(WIRE_HAS_TIMEOUT) 
   Wire.setWireTimeout(_timeout, true);
 #endif

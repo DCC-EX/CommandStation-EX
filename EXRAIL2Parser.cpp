@@ -154,7 +154,8 @@ bool RMFT2::streamStatus(Print * stream) {
               case OPCODE_DELAY:
               case OPCODE_DELAYMINS:
               case OPCODE_DELAYMS:
-              case OPCODE_RANDWAIT:
+              case OPCODE_RANDWAIT_MS:
+              case OPCODE_RANDWAIT_DS:
                 StringFormatter::send(stream,F(" WAIT DELAY"));
                 break; 
             default: break;
@@ -166,26 +167,16 @@ bool RMFT2::streamStatus(Print * stream) {
     // Now stream the flags
     for (int id=0;id<MAX_FLAGS; id++) {
       byte flag=flags[id];
-      if (flag & ~TASK_FLAG & ~SIGNAL_MASK) { // not interested in TASK_FLAG only. Already shown above
+      if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above
 	      StringFormatter::send(stream,F("\nflags[%d] "),id);
 	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
 	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }
     }
 
-    if (compileFeatures & FEATURE_SIGNAL) {
-      // do the signals
-      // flags[n] represents the state of the nth signal in the table 
-      for (int sigslot=0;;sigslot++) {
-        SIGNAL_DEFINITION slot=getSignalSlot(sigslot);
-        if (slot.type==sigtypeNoMoreSignals) break; // end of signal list
-	      if (slot.type==sigtypeContinuation) continue; // continueation of previous line
-	      byte flag=flags[sigslot] & SIGNAL_MASK; // obtain signal flags for this ids
-        StringFormatter::send(stream,F("\n%S[%d]"), 
-			      (flag == SIGNAL_RED)? F("RED") : (flag==SIGNAL_GREEN) ? F("GREEN") : F("AMBER"),
-			      slot.id);
-      } 
-    }
+    // do the signals
+    StringFormatter::send(stream,F("\n"));
+    Signal::display(stream);   
     StringFormatter::send(stream,F(" *>\n"));
     return true;
   }

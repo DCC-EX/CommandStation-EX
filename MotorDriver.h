@@ -26,7 +26,7 @@
 #include "FSH.h"
 #include "IODevice.h"
 #include "DCCTimer.h"
-#include <wiring_private.h>
+//#include <wiring_private.h>
 
 #include "TemplateForEnums.h"
 // use powers of two so we can do logical and/or on the track modes in if clauses.

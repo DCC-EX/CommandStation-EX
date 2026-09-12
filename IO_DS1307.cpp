@@ -32,7 +32,7 @@
 #include "DIAG.h"
 #include "CommandDistributor.h"
 
-uint8_t d2b(uint8_t d) {
+uint8_t DS1307::d2b(uint8_t d) {
      return (d >> 4)*10 + (d & 0x0F);  
 }
 

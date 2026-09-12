@@ -22,6 +22,9 @@ various loco-specific values are stored.
 #ifndef LocoSlot_h
 #define LocoSlot_h  
 #include <Arduino.h>
+#include "defines.h"
+#include "NodeManager.h"
+
 const byte MOMENTUM_USE_DEFAULT=255;
 
 class LocoSlot {
@@ -83,7 +86,10 @@ public:
   uint32_t getMomentumBase() { return momentum_base; }
   void setMomentumBase(uint32_t v) { momentum_base=v; } 
   byte getTargetSpeed() { return targetSpeed; }
-  void setTargetSpeed(byte v) { targetSpeed=v; }  
+  void setTargetSpeed(byte v, bool tellNodes=true) { 
+    targetSpeed=v;
+    if (tellNodes) NodeManager::cast(F("<t %d %d>"),loco, targetSpeed);
+  }  
 
   byte getSpeedCode() { return speedCode; }
   void setSpeedCode(byte v) { speedCode=v; }

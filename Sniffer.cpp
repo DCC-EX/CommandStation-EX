@@ -1,5 +1,5 @@
 /*
- *  © 2025 Harald Barth
+ *  © 2025-2026 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -16,9 +16,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+#include "config.h"
+#if defined(ARDUINO_ARCH_ESP32)
 #include "Sniffer.h"
 #include "DIAG.h"
+#include "driver/mcpwm.h"
+#include "soc/mcpwm_struct.h"
+#include "soc/mcpwm_reg.h"
+
 //extern Sniffer *DCCSniffer;
 
 static void packeterror() {
@@ -120,8 +125,32 @@ Sniffer::Sniffer(byte snifferpin) {
 
 #define SNIFFER_TIMEOUT 100L // 100 Milliseconds
 bool Sniffer::inputActive(){
+#ifdef DEBUG_RAILSYNC
+  static bool state=false;
+  static unsigned long lastsniff=0;
+#endif // DEBUG_RAILSYNC
+  noInterrupts();
+  unsigned long leop = lastendofpacket;
+  interrupts();
   unsigned long now = millis();
-  return ((now - lastendofpacket) < SNIFFER_TIMEOUT);
+  unsigned long diff = now - leop;
+  if (diff < SNIFFER_TIMEOUT) {
+#ifdef DEBUG_RAILSYNC
+    if (state == false) {
+      DIAG(F("Sniffer is back %L"), now - lastsniff);
+      state=true;
+    }
+#endif // DEBUG_RAILSYNC
+    return true;
+  }
+#ifdef DEBUG_RAILSYNC
+  if (state == true) {
+    DIAG(F("Sniffer timeout hit %L"), diff);
+    lastsniff = leop;
+    state = false;
+  }
+#endif // DEBUG_RAILSYNC
+  return false;
 }
 
 #define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
@@ -238,4 +267,6 @@ static void IRAM_ATTR sniffer_isr_handler(void *) {
   DCCSniffer.processInterrupt();
 }
 */
+#else
+#warning Sniffer.cpp is only compiled for ESP32
 #endif // ESP32

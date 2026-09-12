@@ -29,28 +29,43 @@
 #include "DIAG.h"
 #include "RingStream.h"
 #include "CommandDistributor.h"
+#include "NodeManager.h"
 #include "WiThrottle.h"
 #include "DCC.h"
 #include "Websockets.h"
-#include "WifiPreferences.h"  
-#include "soc/rtc_wdt.h"
+#include "WifiPreferences.h"
+
+#if __has_include ( "soc/rtc_wdt.h")
+#include <soc/rtc_wdt.h>
+#else 
+#include <rtc_wdt.h>
+#endif
+
 #include "esp_task_wdt.h"
+#include "esp_idf_version.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
+#if __has_include(<esp_mac.h>)
+  #include <esp_mac.h>
+#else
+  #include <esp_system.h>
+#endif
+
 
 // Async UDP transport
-#include "AsyncUDP.h"
+
 AsyncUDP udpSend;
 AsyncUDP udpReceive;
 IPAddress udpBroadcastIP;
 constexpr uint16_t UDP_COMMAND_MAX   = 255;  // max inbound command payload (fits one DCC-EX command)
 constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
-constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 8;
+constexpr uint8_t  UDP_COMMAND_QUEUE_DEPTH = 64;
 struct UdpCommand {
   uint16_t len;
   uint32_t receivedMillis;
   IPAddress remoteIP;  // originator IP
-  uint16_t remotePort; // originator port
+  uint16_t localPort; // Arrival port
   byte data[UDP_COMMAND_MAX + 1]; // +1 for null terminator
 };
 static QueueHandle_t udpCommandQueue = nullptr;
@@ -66,24 +81,46 @@ static void rememberUdpDiscoveryClient(const IPAddress &ip) {
 
 /* IRAM_ATTR */ void packet_listener(AsyncUDPPacket &packet);
 
+#if defined(ESP_IDF_VERSION)
+namespace {
+  bool sTaskWdtRegistered = false;
+  bool sTaskWdtInitAttempted = false;
 
-#include "soc/timer_group_struct.h"
-#include "soc/timer_group_reg.h"
-void feedTheDog0(){
-  // feed dog 0
-  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  TIMERG0.wdt_feed=1;                       // feed dog
-  TIMERG0.wdt_wprotect=0;                   // write protect
-  // feed dog 1
-  //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  //TIMERG1.wdt_feed=1;                       // feed dog
-  //TIMERG1.wdt_wprotect=0;                   // write protect
+  void ensureTaskWdtRegistered() {
+    if (sTaskWdtInitAttempted) return;
+    sTaskWdtInitAttempted = true;
+
+    esp_err_t err = esp_task_wdt_add(nullptr);
+    if (err == ESP_OK) {
+      sTaskWdtRegistered = true;
+    } else if (err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT add failed: %d"), err);
+    }
+  }
 }
 
+void feedTheDog0(){
+  if (!sTaskWdtInitAttempted) {
+    ensureTaskWdtRegistered();
+  }
 
-class NetworkClient {
+  if (sTaskWdtRegistered) {
+    esp_err_t err = esp_task_wdt_reset();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT reset failed: %d"), err);
+    }
+  }
+}
+#else
+void feedTheDog0(){
+  // No IDF version information available.
+}
+#endif
+
+
+class exNetworkClient {
 public:
-  NetworkClient(WiFiClient c) {
+  exNetworkClient(WiFiClient c) {
     wifi = c;
     inUse = true;
   };
@@ -121,7 +158,7 @@ private:
 };
 
 // file scope variables
-static std::vector<NetworkClient> clients; // a list to hold all clients
+static std::vector<exNetworkClient> clients; // a list to hold all clients
 static RingStream *outboundRing = new RingStream(10240);
 static bool APmode = false;
 // init of static class scope variables
@@ -134,6 +171,7 @@ int16_t WifiESP::wifiLed = 0;
 #endif
 
 WiFiServer *WifiESP::server = NULL;
+const int NODE_PORT=IP_PORT+1; // separate port for node multicast to allow client differentiation and avoid interference with command processing.
 
 char asciitolower(char in) {
   if (in <= 'Z' && in >= 'A')
@@ -197,9 +235,27 @@ bool WifiESP::setup() {
   if(!MDNS.begin(WifiPreferences::getHostName())) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
+  // Advertise browser interface
+  if(!MDNS.addService("http", "tcp", 80)) {
+    DIAG(F("Wifi setup failed to add http service to mDNS"));
+  }
+  MDNS.addServiceTxt("http", "tcp", "path", "/");
 
+  // Are we expected to handle throttle traffic or just be a node on the network?
+  auto throttlehandler= WifiPreferences::getThrottleNode();
+
+  if (!throttlehandler) {
+    DIAG(F("Wifi setup as node only, no throttle handler"));
+    NodeManager::setup(false); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
+    return true;
+ }
+
+  DIAG(F("Wifi setup as throttle handler"));
   server = new WiFiServer(IP_PORT); // start listening on tcp port
-  if (!server) return false;
+  if (!server) {
+        DIAG(F("WiFi setup failed to create WiFiServer"));
+        return false;
+  }
   // server started here
   server->begin();
   if(!MDNS.addService("withrottle", "tcp", IP_PORT)) {
@@ -211,10 +267,7 @@ bool WifiESP::setup() {
   if(!MDNS.addService("dcc-ex", "udp", IP_PORT)) {
     DIAG(F("Wifi setup failed to add dcc-ex udp service to mDNS"));
   }
-  if(!MDNS.addService("http", "tcp", 80)) {
-    DIAG(F("Wifi setup failed to add http service to mDNS"));
-  }
-  
+ 
 // The followin additional mdns settings created using copilot
 
 // Multicast address for DCC-EX Native Protocol broadcasts
@@ -226,8 +279,8 @@ bool WifiESP::setup() {
   MDNS.addServiceTxt("dcc-ex", "udp", "multicast", "true");
   MDNS.addServiceTxt("dcc-ex", "udp", "group", udpMulticastAddress.c_str());
   MDNS.addServiceTxt("dcc-ex", "udp", "port", udpMulticastPort.c_str());
-  MDNS.addServiceTxt("http", "tcp", "path", "/");
 
+  
   DIAG(F("Server has started on port %d"),IP_PORT);
 
   // Start UDP server for DCC-EX Native Protocol
@@ -241,7 +294,7 @@ bool WifiESP::setup() {
     // set the broadcast address for UDP
   }
   
-  // Receive via UDP unicast
+  // Receive throttle traffic via UDP unicast
   if (!udpReceive.listen(IP_PORT)) {
     DIAG(F("Failed to start UDP receiver for DCC-EX Native Protocol"));
     // return false;
@@ -249,6 +302,8 @@ bool WifiESP::setup() {
     udpReceive.onPacket(packet_listener);
     DIAG(F("UDP receiver for DCC-EX Native Protocol started on port %d"), IP_PORT);
   }
+  
+  NodeManager::setup(true); // start the node manager which includes a separate UDP multicast listener for inter-node communication.
 
   return true;
 }
@@ -283,14 +338,45 @@ const char *wlerror[] = {
   "WL_DISCONNECTED"
 };
 
+static void setStaProtocolsBestEffort() {
+  // Prefer higher-throughput modes when available, but never crash if a target/core
+  // rejects a protocol bitmap. Fall back to legacy b/g/n which is broadly supported.
+  esp_err_t err = ESP_OK;
+
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+  wifi_protocols_t proto = {
+      .ghz_2g = WIFI_PROTOCOL_11AX,
+      .ghz_5g = WIFI_PROTOCOL_11AX,
+  };
+  err = esp_wifi_set_protocols(WIFI_IF_STA, &proto);
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N | WIFI_PROTOCOL_11AX);
+#else
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+#endif
+
+  if (err != ESP_OK) {
+    DIAG(F("esp_wifi_set_protocol failed (%d), falling back to 11b/g/n"), err);
+    err = esp_wifi_set_protocol(
+        WIFI_IF_STA,
+        WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    if (err != ESP_OK) {
+      DIAG(F("Fallback esp_wifi_set_protocol failed (%d)"), err);
+    }
+  }
+}
+
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setHostname(WifiPreferences::getHostName());
   WiFi.mode(WIFI_STA);
   // Optimize Wi-Fi for multicast send performance!!
-  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
-  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
-  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.
+  // Some targets/cores reject narrow protocol bitmaps; use safe fallback instead of aborting.
+  setStaProtocolsBestEffort();
 
+#if !CONFIG_SOC_WIFI_SUPPORT_5G
+  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+#endif
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
@@ -298,6 +384,10 @@ bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
   WiFi.setSleep(false);
 #endif
   WiFi.setAutoReconnect(true);
+  // Scan all channels, and select the AP with the strongest signal.
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+  
   WiFi.begin(SSid, password);
 
   uint8_t tries = 40;
@@ -322,35 +412,60 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
   bool password_secret=true;
   String strSSID; // retain scope in function for c_str() to be valid
   String strPass;
-  
-  if (!SSid || SSid[0]==0) {
-    String strMac;
-    strMac = WiFi.macAddress();
-    strMac.remove(0,9);
-    strMac.replace(":","");
-    strMac.replace(":","");
-    // convert mac addr hex chars to lower case to be compatible with AT software
-    std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    strSSID.concat("DCCEX_");
-    strSSID.concat(strMac);
-    SSid=strSSID.c_str();
-    strPass.concat("PASS_");
-    strPass.concat(strMac);
-    password=strPass.c_str();
-    password_secret=false;
-  }
 
-  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
+  // Grab the MAC address of the ESP32 and use the last 3 bytes to create a unique SSID and password if not provided.
+  if (!SSid || SSid[0] == 0) {
+      uint8_t byteMac[6];
+      esp_read_mac(byteMac, ESP_MAC_WIFI_STA);
+
+      char suffix[7];
+      snprintf(suffix, sizeof(suffix), "%02x%02x%02x",
+              byteMac[3], byteMac[4], byteMac[5]);
+
+      strSSID = "DCCEX_";
+      strSSID += suffix;
+      SSid = strSSID.c_str();
+
+      strPass = "PASS_";
+      strPass += suffix;
+      password = strPass.c_str();
+
+      password_secret = false;
+  }
+  
   WiFi.mode(WIFI_AP);
   // Optimize Wi-Fi for multicast send performance!!
-  // Prefer n only (no slow old 11b/11g) and HT20, as HT40 can cause issues
-  esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11N);
-  esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.  Some older ESP32s only support 802.11b/g/n, newer ones support 802.11ax.
+  // NB: the ESP32-C5 has a single WiFi radio... so can be configured for **either** 2.4GHz or 5GHz, but not both at the same time.
+  // We'll keep the ESP32-C5 in 2.4GHz mode for now, with future 5GHz support. The 5GHz config here is left for reference.
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+    wifi_protocols_t proto = {
+        .ghz_2g = WIFI_PROTOCOL_11AX,
+        .ghz_5g = WIFI_PROTOCOL_11AX,
+    };
+    esp_wifi_set_protocols(WIFI_IF_AP, &proto);
+// For the ESP32-C6, and anything similar which supports 802.11ax, but only 2.4GHz, we can use the same 11ax protocol.
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+    esp_wifi_set_protocol(
+            WIFI_IF_AP,
+            WIFI_PROTOCOL_11N |
+            WIFI_PROTOCOL_11AX);
+// Legacy ESP32s (ESP32, ESP32-S3, ESP32-C3) which support only 2.4GHz, and not 5GHz, can use the 11n protocol.
+#else
+    esp_wifi_set_protocol(
+        WIFI_IF_AP,
+        WIFI_PROTOCOL_11N);
+#endif
 
 #ifdef SERIAL_BT_COMMANDS
   WiFi.setSleep(true);
 #else
   WiFi.setSleep(false);
+#endif
+
+// For now, we will force the ESP32-C5 to operate in 2.4GHz mode only, as the 5GHz support is not yet implemented.
+#if CONFIG_IDF_TARGET_ESP32C5
+    esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY);
 #endif
 
   const bool hiddenAP = WifiPreferences::getHiddenAP();
@@ -375,7 +490,7 @@ void WifiESP::loop() {
   // really no good way to check for LISTEN especially in AP mode?
   wl_status_t wlStatus;
   if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
-    if (server->hasClient()) {
+    if (server && server->hasClient()) {
       WiFiClient client;
       while (client = server->available()) {
 	for (clientId=0; clientId<clients.size(); clientId++){
@@ -385,7 +500,7 @@ void WifiESP::loop() {
 	  }
 	}
 	if (clientId>=clients.size()) {
-	  NetworkClient nc(client);
+	  exNetworkClient nc(client);
 	  clients.push_back(nc);
 	  DIAG(F("New client %d, %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
 	}
@@ -412,6 +527,11 @@ void WifiESP::loop() {
     if (udpCommandQueue != nullptr) {
       UdpCommand cmd;
       if (xQueueReceive(udpCommandQueue, &cmd, 0) == pdTRUE) {
+        if (cmd.localPort==NODE_PORT) {
+          // This is a Node multicast, no response 
+          NodeManager::parse(cmd.data);
+          return;
+        }
         // DIAG(F("UDP Command processed after %d ms"), millis() - cmd.receivedMillis);
         StringBuffer response(UDP_RESPONSE_MAX); // response buffer for any command responses
         // Track unique UDP clients that send a discovery probe starting with <#>
@@ -528,13 +648,13 @@ void WifiESP::udpMulticast(const char *buffer, const int count) {
 }
 
 // We'll receive UDP packets asynchronously, then send the on to be parsed
-void packet_listener(AsyncUDPPacket &packet) {
+void WifiESP::packet_listener(AsyncUDPPacket &packet) {
   // DIAG(F("UDP Packet received: %s:%d -> %s:%d, Length: %d"),
   //      packet.remoteIP().toString().c_str(), packet.remotePort(),
   //      packet.localIP().toString().c_str(), packet.localPort(),
   //      packet.length());
   // DIAG(F("UDP Packet received: %s"), packet.data());
-  if (packet.isBroadcast() || packet.isMulticast())  return; // ignore broadcast and multicast packets, we only want unicast for commands
+  if (packet.isBroadcast())  return; // ignore broadcast, Unicast commands, multicast Node traffic
   if (packet.length() < 2) {
     DIAG(F("UDP Rcv: Packet too short %d bytes"), packet.length());
     return; // not enough data
@@ -550,7 +670,7 @@ void packet_listener(AsyncUDPPacket &packet) {
   cmd.len = packet.length();
   cmd.receivedMillis = millis();
   cmd.remoteIP   = packet.remoteIP();
-  cmd.remotePort = packet.remotePort();
+  cmd.localPort = packet.localPort();
   memcpy(cmd.data, &packet.data()[0], cmd.len);
   cmd.data[cmd.len] = 0;
 
