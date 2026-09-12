@@ -56,6 +56,23 @@ You must use Version 5.6.x
 #include "DCCDecoder.h"
 #include "NodeManager.h"
 
+
+
+#if ETHERNET_ON
+#include "ESP32OTAEthernetServer.h"
+// Suppress the library's broken auto-generated global instance
+#define NO_OTA_NETWORK
+#include <ArduinoOTA.h>
+ArduinoOTAClass<ESP32EthernetServer, EthernetClient> activeOTA;
+#endif
+
+#if WIFI_ON
+// Suppress the library's broken auto-generated global instance
+#define NO_OTA_NETWORK
+#include <ArduinoOTA.h>
+ArduinoOTAClass<WiFiServer, WiFiClient> activeOTA;
+#endif
+
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
@@ -133,7 +150,14 @@ void setup()
 
 #if ETHERNET_ON
   EthernetInterface::setup();
-#endif // ETHERNET_ON
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if OTA_AUTO_INIT
+  Diag::OTA = true;
+#endif // OTA_AUTO_INIT
+#endif
+  
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -217,6 +241,66 @@ void loop()
   WifiESP::loop();
 #endif
 #endif //WIFI_ON
+
+  if (Diag::OTA) {
+    static bool otaInitialised = false;
+    
+    if (!otaInitialised) {
+      // Define standard safety callbacks
+      auto onStartCb = []() {
+        DCC::setThrottle(0,1,1);
+        TrackManager::setMainPower(POWERMODE::OFF);
+        TrackManager::setProgPower(POWERMODE::OFF);
+        CommandDistributor::broadcastPower();
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("In progress..."));
+        );
+      };
+
+      auto onErrorCb = [](int error, const char* msg) {
+        DISPLAY_START (
+          LCD(0,F("OTA Error:"));
+          LCD(1,F("%d - %s"), error, msg);
+        );
+      };
+
+      #ifdef OTA_AUTH
+        const char* otaPassword = OTA_AUTH;
+      #else
+        const char* otaPassword = nullptr;
+      #endif
+
+      // 3. Dynamically assign and initialize the correct engine
+      #if WIFI_ON
+      if (WiFi.status() == WL_CONNECTED) {
+        // Wi-Fi Mode active
+        Serial.println(">>> ATTEMPTING TO BIND OTA PORT NOW <<<");
+        activeOTA.onStart(onStartCb);
+        activeOTA.onError(onErrorCb);
+        activeOTA.begin(WiFi.localIP(), WIFI_HOSTNAME, otaPassword, InternalStorage);
+        DIAG(F("OTA initialized over Wi-Fi."));
+        otaInitialised = true;
+      }
+      #endif 
+      
+      #if ETHERNET_ON
+      if (Ethernet.localIP() != IPAddress(0,0,0,0) && Ethernet.localIP() != IPAddress(255,255,255,255)) {
+        // Ethernet Mode active
+        activeOTA.onStart(onStartCb);
+        activeOTA.onError(onErrorCb);
+        activeOTA.begin(Ethernet.localIP(), WIFI_HOSTNAME, otaPassword, InternalStorage);
+        DIAG(F("OTA initialized over Ethernet."));
+        otaInitialised = true;
+      }
+      #endif
+
+    } else {
+      // 4. Poll whichever network interface was selected at startup
+      activeOTA.poll();
+    }
+  }
+
 #endif //ARDUINO_ARCH_ESP32
 #if ETHERNET_ON
   EthernetInterface::loop();
