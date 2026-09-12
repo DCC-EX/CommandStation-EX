@@ -21,8 +21,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ARDUINO_AVR_UNO_WIFI_REV2
-// This code is NOT compiled on a unoWifiRev2 processor which uses a different architecture 
 #include "WifiInterface.h"        /* config.h included there */
 //#include <avr/pgmspace.h>
 #include "DIAG.h"
@@ -48,15 +46,6 @@ Stream * WifiInterface::wifiStream;
 //
 // Figure out number of serial ports depending on hardware
 //
-#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO)
-#define NUM_SERIAL 0
-#endif
- 
-#if (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560))
-#define NUM_SERIAL 3
-#define SERIAL1 Serial1
-#define SERIAL3 Serial3
-#endif
 
 #if defined(ARDUINO_ARCH_STM32)
 // Handle serial ports availability on STM32 for variants!
@@ -113,17 +102,6 @@ bool WifiInterface::setup(long serial_link_speed,
 #endif
 
 // Other serials are tried, depending on hardware.
-// Currently only the Arduino Mega 2560 has usable Serial2 (Nucleo-64 boards use Serial 2 for console!)
-#if defined(ARDUINO_AVR_MEGA2560)
-#if NUM_SERIAL > 1 && !defined(SERIAL2_COMMANDS)
-  if (wifiUp == WIFI_NOAT)
-  {
-    Serial2.begin(serial_link_speed);
-    wifiUp = setup(Serial2, wifiESSID, wifiPassword, hostname, port, channel, forceAP);
-  }
-#endif
-#endif
-
 // We guess here that in all architctures that have a Serial3
 // we can use it for our purpose.
 #if NUM_SERIAL > 2 && !defined(SERIAL3_COMMANDS)
@@ -470,5 +448,3 @@ void WifiInterface::loop() {
     WifiInboundHandler::loop(); 
   }
 }
-
-#endif

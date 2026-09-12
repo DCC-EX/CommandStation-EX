@@ -230,10 +230,6 @@ uint8_t DCC::getLocoSpeedByte(int cab) {
 
 // returns 0 to 7 for frequency
 uint8_t DCC::getThrottleFrequency(int cab) {
-#if defined(ARDUINO_AVR_UNO)
-  (void)cab;
-  return 0;
-#else
  auto slot=LocoSlot::getSlot(cab,false);
  if (slot == nullptr)  // speed table full, can not do anything
     return 0;           // return value for default frequency
@@ -241,7 +237,7 @@ uint8_t DCC::getThrottleFrequency(int cab) {
   uint8_t res = (uint8_t)(slot->getFunctions() >>29);
   //DIAG(F("Speed table %d functions %l shifted %d"), reg, slot->functions, res);
   return res;
-#endif
+
 }
 
 // returns direction on loco

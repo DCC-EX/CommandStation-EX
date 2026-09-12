@@ -44,10 +44,7 @@
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
 
-#if defined(ARDUINO_AVR_MEGA) | defined(ARDUINO_AVR_MEGA2560)
-  #define ARDUINO_TYPE "MEGA"
-  #define DEFAULT_MAX_LOCOS 50
-#elif defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32)
   #define ARDUINO_TYPE "ESP32"
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM

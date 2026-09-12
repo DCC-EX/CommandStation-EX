@@ -34,9 +34,7 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
-#if defined(ARDUINO_ARCH_ESP32)
 #include "WifiESP32.h"
-#endif
 
 // variables to hold clock time
 int16_t lastclocktime;
