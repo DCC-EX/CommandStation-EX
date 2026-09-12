@@ -59,6 +59,10 @@
 
 #include "RingStream.h"
 
+#if defined(STM32_ETHERNET)
+#include <EthernetUdp.h>
+#endif
+
 /**
  * @brief Network Configuration
  * 
@@ -72,7 +76,10 @@ class EthernetInterface {
  public:
      
      static void setup();       
-     static void loop();
+    static void loop();
+    static void udpMulticast(const char *buffer, int count);
+    static void udpNodeMulticast(const char *buffer, int count);
+    static void processNodeTraffic();
    
  private:
     static bool connected;

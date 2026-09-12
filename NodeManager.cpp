@@ -19,21 +19,68 @@
  */
 
 #include "NodeManager.h"
+#include "DCCEXParser.h"
 
 #ifndef ARDUINO_ARCH_ESP32
 // dummy NodeManager without ESP32 support
-void NodeManager::setup(bool throttleNode) { (void)throttleNode;}
+#if ETHERNET_ON
+#include "EthernetInterface.h"
+#include "StringFormatter.h"
+static bool ethernetNodeStarted = false;
+#endif
+void NodeManager::setup(bool throttleNode) {
+    (void)throttleNode;
+#if ETHERNET_ON
+    ethernetNodeStarted = true;
+#endif
+}
 void NodeManager::cast(const FSH* format...) {
-    (void)format; // avoid unused parameter warning
+#if ETHERNET_ON
+    if (!ethernetNodeStarted) return;
+    StringBuffer buffer(260);
+    va_list args;
+    va_start(args, format);
+    StringFormatter::send2(&buffer, format, args);
+    va_end(args);
+    cast(&buffer);
+#else
+    (void)format;
+#endif
 }
 void NodeManager::cast(StringBuffer * buffer) {
-    (void)buffer; // avoid unused parameter warning
+#if ETHERNET_ON
+    if (ethernetNodeStarted && buffer != nullptr)
+        EthernetInterface::udpNodeMulticast(buffer->getString(), buffer->getLength());
+#else
+    (void)buffer;
+#endif
 }
 bool NodeManager::isThrottleNode() {
     return true; // default to true for non-ESP32 platforms
 }
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) { (void)vpin; (void)count; (void)value; }
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) { (void)vpin; (void)count; (void)value; (void)param1; (void)param2; }
+void NodeManager::parse(byte * cmd) {
+    DCCEXParser::parseNodeTraffic(cmd);
+}
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) {
+#if ETHERNET_ON
+    if (!ethernetNodeStarted || !IODevice::isSharedWrite(vpin, count)) return;
+    StringBuffer buffer(128);
+    StringFormatter::send(&buffer, F("<z %d %d %d>"), vpin, value, count);
+    cast(&buffer);
+#else
+    (void)vpin; (void)count; (void)value;
+#endif
+}
+void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) {
+#if ETHERNET_ON
+    if (!ethernetNodeStarted || !IODevice::isSharedWrite(vpin, count)) return;
+    StringBuffer buffer(128);
+    StringFormatter::send(&buffer, F("<z %d %d %d %d %d>"), vpin, value, (uint16_t)param1, param2, count);
+    cast(&buffer);
+#else
+    (void)vpin; (void)count; (void)value; (void)param1; (void)param2;
+#endif
+}
 #else
 #include <AsyncUDP.h>
 #include <WiFiUdp.h>

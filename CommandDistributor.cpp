@@ -35,6 +35,9 @@
 #include "Websockets.h"
 #include "LocoSlot.h"
 #include "WifiESP32.h"
+#if ETHERNET_ON
+#include "EthernetInterface.h"
+#endif
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -153,6 +156,10 @@ void CommandDistributor::broadcastToClients(clientType type) {
   // Broadcast everything to Wifi/Ethernet UDP multicast
   if (type==COMMAND_TYPE)  {
     WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+  }
+#elif ETHERNET_ON
+  if (type==COMMAND_TYPE) {
+    EthernetInterface::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
   }
 #endif
 

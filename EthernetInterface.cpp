@@ -24,22 +24,32 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  * 
  */
+#ifdef ARDUINO_ARCH_STM32
 #include "defines.h" 
-#if ETHERNET_ON == true
 #include "EthernetInterface.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
+#include "DCCEXParser.h"
+#include "NodeManager.h"
 
-#ifdef DO_MDNS
 #include "EXmDNS.h"
 EthernetUDP udp;
 MDNS mdns(udp);
-#endif
 
 //extern void looptimer(unsigned long timeout, const FSH* message);
 #define looptimer(a,b)
+
+static EthernetUDP udpCommand;
+static EthernetUDP udpNode;
+static IPAddress udpMulticastIP;
+static IPAddress nodeMulticastIP(239, 255, 254, 254);
+static IPAddress udpDiscoveryClients[8];
+static uint8_t udpDiscoveryClientCount = 0;
+static constexpr uint16_t UDP_COMMAND_MAX = 255;
+static constexpr uint16_t UDP_RESPONSE_MAX = 1472;
+static constexpr uint16_t NODE_PORT = IP_PORT + 1;
 
 bool EthernetInterface::connected=false;
 EthernetServer * EthernetInterface::server= nullptr;
@@ -56,13 +66,10 @@ RingStream * EthernetInterface::outboundRing = nullptr;
 void EthernetInterface::setup() 
 {
   DIAG(F("Ethernet starting"
-  #ifdef DO_MDNS
     " (with mDNS)"
-  #endif 
     " Please be patient, especially if no cable is connected!"
   ));
   
-  #ifdef STM32_ETHERNET
     // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
     // The default is "lwip", which is **always** set in STM32Ethernet/src/utility/ethernetif.cpp
     // for some reason. One can edit it to instead read:
@@ -73,7 +80,6 @@ void EthernetInterface::setup()
     //      #endif /* LWIP_NETIF_HOSTNAME */
     // Which seems more useful! We should propose the patch... so the following line actually works!
     netif_set_hostname(&gnetif, ETHERNET_HOSTNAME);   // Should probably be passed in the contructor...
-  #endif   
 
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
@@ -97,33 +103,20 @@ void EthernetInterface::setup()
   server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
   server->begin();
 
-  // Arrange display of IP address and port
-  #ifdef LCD_DRIVER
-    const byte lcdData[]={LCD_DRIVER};
-    const bool wideDisplay=lcdData[1]>=24; // data[1] is cols. 
-  #else 
-    const bool wideDisplay=true;
-  #endif    
-  if (wideDisplay) {
-    // OLEDS or just usb diag is ok on one line. 
-    LCD(4,F("IP %d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);    
-  } 
-  else { // LCDs generally too narrow, so take 2 lines
-    LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port %d"), IP_PORT);
-  }
+  LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
  
   outboundRing=new RingStream(OUTBOUND_RING_SIZE);
-  #ifdef DO_MDNS
+    udpMulticastIP = IPAddress(239, 255, 255, ip[3]);
+    udpCommand.begin(IP_PORT);
+    udpNode.beginMulticast(nodeMulticastIP, NODE_PORT);
+    NodeManager::setup(true);
     if (!mdns.begin(Ethernet.localIP(), (char *)ETHERNET_HOSTNAME))
       DIAG(F("mdns.begin fail")); // hostname
     mdns.addServiceRecord(ETHERNET_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
     mdns.run(); // run it right away to get out info ASAP
-  #endif  
   connected=true;    
 }
 
-#if defined (STM32_ETHERNET)
 void EthernetInterface::acceptClient() { // STM32 version
   auto client=server->available();
   if (!client) return;
@@ -147,17 +140,6 @@ void EthernetInterface::acceptClient() { // STM32 version
   DIAG(F("Ethernet more than %d clients, not accepting new connection"), MAX_SOCK_NUM);
   client.stop();
 }
-#else
-void EthernetInterface::acceptClient() { // non-STM32 version
-  auto client=server->accept();
-  if (!client) return;
-  auto socket=client.getSocketNumber();
-  clients[socket]=client;
-  inUse[socket]=true;
-  if (Diag::ETHERNET)
-    DIAG(F("Ethernet: New client socket %d"), socket);
-}
-#endif
 
 void EthernetInterface::dropClient(byte socket) 
 { 
@@ -191,13 +173,10 @@ void EthernetInterface::loop()
       warnedAboutLink=false;
     } 
     
-  #ifdef DO_MDNS
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
     looptimer(5000, F("E.mdns"));
 	  
-  #endif
-
     //
     switch (Ethernet.maintain()) {
     case 1:
@@ -219,6 +198,39 @@ void EthernetInterface::loop()
 	  
     // get client from the server
     acceptClient();
+
+      processNodeTraffic();
+      const int packetSize = udpCommand.parsePacket();
+      if (packetSize > 0) {
+        if (packetSize > UDP_COMMAND_MAX) {
+          DIAG(F("Ethernet UDP packet too large: %d"), packetSize);
+          while (udpCommand.available()) udpCommand.read();
+        } else {
+          byte command[UDP_COMMAND_MAX + 1];
+          const int count = udpCommand.read(command, UDP_COMMAND_MAX);
+          command[count > 0 ? count : 0] = 0;
+          if (count > 0) {
+            if (count >= 3 && command[0] == '<' && command[1] == '#' && command[2] == '>') {
+              bool knownClient = false;
+              for (uint8_t i = 0; i < udpDiscoveryClientCount; i++) {
+                if (udpDiscoveryClients[i] == udpCommand.remoteIP()) {
+                  knownClient = true;
+                  break;
+                }
+              }
+              if (!knownClient && udpDiscoveryClientCount < 8)
+                udpDiscoveryClients[udpDiscoveryClientCount++] = udpCommand.remoteIP();
+            }
+            StringBuffer response(UDP_RESPONSE_MAX);
+            DCCEXParser::parse(&response, command);
+            if (response.getLength() > 0) {
+              udpCommand.beginPacket(udpCommand.remoteIP(), udpCommand.remotePort());
+              udpCommand.write((const uint8_t *)response.getString(), response.getLength());
+              udpCommand.endPacket();
+            }
+          }
+        }
+      }
     
     // handle disconnected sockets because STM32 library doesnt
     // do the read==0 response.
@@ -277,5 +289,42 @@ void EthernetInterface::loop()
       }
     }
     
+}
+
+void EthernetInterface::udpMulticast(const char *buffer, int count) {
+  if (!connected || buffer == nullptr || count <= 0 || count > UDP_RESPONSE_MAX) return;
+
+  udpCommand.beginPacket(udpMulticastIP, IP_PORT);
+  udpCommand.write((const uint8_t *)buffer, count);
+  udpCommand.endPacket();
+
+  for (uint8_t i = 0; i < udpDiscoveryClientCount; i++) {
+    udpCommand.beginPacket(udpDiscoveryClients[i], IP_PORT);
+    udpCommand.write((const uint8_t *)buffer, count);
+    udpCommand.endPacket();
+  }
+}
+
+void EthernetInterface::udpNodeMulticast(const char *buffer, int count) {
+  if (!connected || buffer == nullptr || count <= 0 || count > UDP_RESPONSE_MAX) return;
+  udpNode.beginPacket(nodeMulticastIP, NODE_PORT);
+  udpNode.write((const uint8_t *)buffer, count);
+  udpNode.endPacket();
+}
+
+void EthernetInterface::processNodeTraffic() {
+  const int packetSize = udpNode.parsePacket();
+  if (packetSize <= 0) return;
+  if (packetSize > UDP_COMMAND_MAX) {
+    while (udpNode.available()) udpNode.read();
+    return;
+  }
+
+  byte command[UDP_COMMAND_MAX + 1];
+  const int count = udpNode.read(command, UDP_COMMAND_MAX);
+  if (count > 0) {
+    command[count] = 0;
+    NodeManager::parse(command);
+  }
 }
 #endif
