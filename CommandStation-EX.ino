@@ -56,23 +56,9 @@ You must use Version 5.6.x
 #include "DCCDecoder.h"
 #include "NodeManager.h"
 
-
-
-#if ETHERNET_ON
-#include "ESP32OTAEthernetServer.h"
-// Suppress the library's broken auto-generated global instance
-#define NO_OTA_NETWORK
-#include <ArduinoOTA.h>
-ArduinoOTAClass<ESP32EthernetServer, EthernetClient> activeOTA;
+#if WIFI_ON || ETHERNET_ON
+#include "EthernetOTA.h"
 #endif
-
-#if WIFI_ON
-// Suppress the library's broken auto-generated global instance
-#define NO_OTA_NETWORK
-#include <ArduinoOTA.h>
-ArduinoOTAClass<WiFiServer, WiFiClient> activeOTA;
-#endif
-
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
@@ -145,19 +131,20 @@ void setup()
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
 #else
   WifiESP::setup();
+
+  #if OTA_AUTO_INIT
+    Diag::OTA = true;
+  #endif // OTA_AUTO_INIT
+  
 #endif // ARDUINO_ARCH_ESP32
 #endif // WIFI_ON
 
 #if ETHERNET_ON
   EthernetInterface::setup();
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-#if OTA_AUTO_INIT
-  Diag::OTA = true;
-#endif // OTA_AUTO_INIT
-#endif
-  
+  #if ARDUINO_ARCH_ESP32 && OTA_AUTO_INIT
+    Diag::OTA = true;
+  #endif // OTA_AUTO_INIT
+#endif // ETHERNET_ON
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -242,12 +229,19 @@ void loop()
 #endif
 #endif //WIFI_ON
 
+ // Responsibility 4: Optionally handle OTA updates
   if (Diag::OTA) {
     static bool otaInitialised = false;
-    
+    // Initialise OTA if not already done
     if (!otaInitialised) {
-      // Define standard safety callbacks
-      auto onStartCb = []() {
+      EthernetOTA.setHostname(
+    #if ETHERNET_ON
+        ETHERNET_HOSTNAME
+    #else
+        WIFI_HOSTNAME
+    #endif
+      );
+      EthernetOTA.onStart([]() {
         DCC::setThrottle(0,1,1);
         TrackManager::setMainPower(POWERMODE::OFF);
         TrackManager::setProgPower(POWERMODE::OFF);
@@ -256,48 +250,28 @@ void loop()
           LCD(0,F("OTA update"));
           LCD(1,F("In progress..."));
         );
-      };
-
-      auto onErrorCb = [](int error, const char* msg) {
+      });
+      EthernetOTA.onEnd([]() {
         DISPLAY_START (
-          LCD(0,F("OTA Error:"));
-          LCD(1,F("%d - %s"), error, msg);
+          LCD(0,F("OTA update"));
+          LCD(1,F("Complete"));
         );
-      };
-
+      });
+      EthernetOTA.onError([](int error) {
+        DISPLAY_START (
+          LCD(0,F("OTA update"));
+          LCD(1,F("Error: %d"), error);
+        );
+      });
       #ifdef OTA_AUTH
-        const char* otaPassword = OTA_AUTH;
-      #else
-        const char* otaPassword = nullptr;
-      #endif
-
-      // 3. Dynamically assign and initialize the correct engine
-      #if WIFI_ON
-      if (WiFi.status() == WL_CONNECTED) {
-        // Wi-Fi Mode active
-        Serial.println(">>> ATTEMPTING TO BIND OTA PORT NOW <<<");
-        activeOTA.onStart(onStartCb);
-        activeOTA.onError(onErrorCb);
-        activeOTA.begin(WiFi.localIP(), WIFI_HOSTNAME, otaPassword, InternalStorage);
-        DIAG(F("OTA initialized over Wi-Fi."));
-        otaInitialised = true;
-      }
-      #endif 
-      
-      #if ETHERNET_ON
-      if (Ethernet.localIP() != IPAddress(0,0,0,0) && Ethernet.localIP() != IPAddress(255,255,255,255)) {
-        // Ethernet Mode active
-        activeOTA.onStart(onStartCb);
-        activeOTA.onError(onErrorCb);
-        activeOTA.begin(Ethernet.localIP(), WIFI_HOSTNAME, otaPassword, InternalStorage);
-        DIAG(F("OTA initialized over Ethernet."));
-        otaInitialised = true;
-      }
-      #endif
-
-    } else {
-      // 4. Poll whichever network interface was selected at startup
-      activeOTA.poll();
+        EthernetOTA.setPassword(OTA_AUTH);
+      #endif // OTA_AUTH
+      EthernetOTA.begin();
+      otaInitialised = true;
+    }
+    // Handle OTA if initialised
+    else {
+      EthernetOTA.handle();
     }
   }
 
