@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.5"
+#define VERSION "5.9.6"
+// 5.9.6  - DCCDecoder F13-F28 improvements
+//        - waveshare lib
 // 5.9.5  - STM32 and ESP32 build environment fixes
 // 5.9.4  - STM32 cleanup
 // 5.9.3  - Minor bug fixes and improvements
