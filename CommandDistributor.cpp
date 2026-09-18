@@ -34,10 +34,7 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
-#include "WifiESP32.h"
-#if ETHERNET_ON
-#include "EthernetInterface.h"
-#endif
+#include "NetworkInterface.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -152,16 +149,10 @@ void CommandDistributor::broadcastToClients(clientType type) {
   // Broadcast to Serials
   if (type==COMMAND_TYPE) SerialManager::broadcast(broadcastBufferWriter->getString());
 
-#if defined(ARDUINO_ARCH_ESP32)
-  // Broadcast everything to Wifi/Ethernet UDP multicast
-  if (type==COMMAND_TYPE)  {
-    WifiESP::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
-  }
-#elif ETHERNET_ON
+  // Broadcast everything to the active network transport.
   if (type==COMMAND_TYPE) {
-    EthernetInterface::udpMulticast(broadcastBufferWriter->getString(), broadcastBufferWriter->getLength());
+    NetworkInterface::udpMulticast(broadcastBufferWriter->getString());
   }
-#endif
 
 #ifdef CD_HANDLE_RING
   // If we are broadcasting from a wifi/eth process we need to complete its output

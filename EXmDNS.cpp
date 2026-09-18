@@ -19,9 +19,10 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef ARDUINO_ARCH_STM32
 #include <Arduino.h>
 #include "EthernetInterface.h"
-#ifdef DO_MDNS
+
 #include "EXmDNS.h"
 
 // fixed values for mDNS
@@ -67,7 +68,7 @@ MDNS::~MDNS() {
   if (_serviceName) free(_serviceName);
   if (_serviceProto) free(_serviceProto);
 }
-int MDNS::begin(const IPAddress& ip, char* name) {
+int MDNS::begin(const IPAddress& ip, const char* name) {
   // if we were called very soon after the board was booted, we need to give the
   // EthernetShield (WIZnet) some time to come up. Hence, we delay until millis() is at
   // least 3000. This is necessary, so that if we need to add a service record directly
@@ -197,4 +198,4 @@ void MDNS::run() {
   _udp->flush();
   // 
 }
-#endif //DO_MDNS
+#endif // ARDUINO_ARCH_STM32

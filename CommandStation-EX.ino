@@ -120,20 +120,7 @@ void setup()
   );
 
   // Responsibility 2: Start all the communications before the DCC engine
-  // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
-  // Start Ethernet if it exists
-#if WIFI_ON
-  PASSWDCHECK(WIFI_PASSWORD); // compile time check
-#ifndef ARDUINO_ARCH_ESP32
-  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-#else
-  WifiESP::setup();
-#endif // ARDUINO_ARCH_ESP32
-#endif // WIFI_ON
-
-#if ETHERNET_ON
-  EthernetInterface::setup();
-#endif // ETHERNET_ON
+  NetworkInterface::setup();
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -159,12 +146,8 @@ void setup()
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
-  if (NodeManager::isThrottleNode()) {
-    startupPendingCS = true; // node will request turnouts list from CS on next loop
-
-  } else {
-    nodeSharePending = true; // node Will share turnouts list to CS on next loop
-  }
+  startupPendingCS = true; // node will request turnouts list from CS on next loop
+  nodeSharePending = true; // node Will share turnouts list to CS on next loop
   LCD(3, F("Ready"));
 
 }
@@ -205,22 +188,8 @@ void loop()
   // Responsibility 2: handle any incoming commands on USB connection
   SerialManager::loop();
  
-  // Responsibility 3: Optionally handle any incoming WiFi traffic
-#ifndef ARDUINO_ARCH_ESP32
-#if WIFI_ON
-  WifiInterface::loop();
- 
-#endif //WIFI_ON
-#else  //ARDUINO_ARCH_ESP32
-#if WIFI_ON
-#ifndef WIFI_TASK_ON_CORE0
-  WifiESP::loop();
-#endif
-#endif //WIFI_ON
-#endif //ARDUINO_ARCH_ESP32
-#if ETHERNET_ON
-  EthernetInterface::loop();
-#endif
+  // Responsibility 3: Handle incoming network traffic
+  NetworkInterface::loop();
 
   RMFT::loop();  // ignored if no automation
 

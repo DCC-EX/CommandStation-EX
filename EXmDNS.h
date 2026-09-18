@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef DO_MDNS
+#ifdef ARDUINO_ARCH_STM32
 #define BROADCASTTIME 15 //seconds
 
 // We do this ourselves because every library is different and/or broken...
@@ -36,7 +36,7 @@ class MDNS {
 public:
   MDNS(EthernetUDP& udp);
   ~MDNS();
-  int begin(const IPAddress& ip,  char* name);
+  int begin(const IPAddress& ip,  const char* name);
   int addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto);
   void run();
 private:
@@ -47,4 +47,4 @@ private:
   char* _serviceProto;
   int _servicePort;
 };
-#endif //DO_MDNS
+#endif // ARDUINO_ARCH_STM32
