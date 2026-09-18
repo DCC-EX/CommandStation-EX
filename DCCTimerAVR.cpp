@@ -86,7 +86,7 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
     */
   const int Tcs=28;    // NMRA spec is 26..32
   const int cutoutDuration_uS = 450;    // As chosen by most
-  const uint16_t delayBeforeCutout_uS=58+58+58+Tcs;
+  const uint16_t delayBeforeCutout_uS=58+58+Tcs;
   const uint16_t timer1_ticks_per_uS = 8;
   const uint16_t timer2_uS_per_tick = 2;
   
