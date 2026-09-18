@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.6.4"
+#define VERSION "5.6.5"
+// 5.6.5  - BugFix: Mega: RailCom cutout was too late
 // 5.6.4  - BugFix: Corrected decoding for F13 to F20
 //        - Minor fixes for PlatformIO compile
 // 5.6.3  - BugFix: EXRAIL READ_LOCO IFLOCO(0)
