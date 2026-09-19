@@ -50,7 +50,7 @@
   #define DISABLE_EEPROM
   #endif
   #define ENABLE_WIFI true
-  #define ENABLE_SERIAL_LOG
+
 
 #elif defined(ARDUINO_ARCH_STM32)
   #define ARDUINO_TYPE "STM32"
@@ -58,20 +58,12 @@
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
   #endif
-  #if ENABLE_ETHERNET
-    // WAITING FOR STM32 ETHERNET SUPPORT FIX
-    // #define ENABLE_SERIAL_LOG
-  #endif
 
   // STM32 support for native I2C is awaiting development 
   // #ifndef I2C_USE_WIRE
   // #define I2C_USE_WIRE
   // #endif
 
-/* TODO when ready 
-#elif defined(ARDUINO_ARCH_RP2040)
-  #define ARDUINO_TYPE "RP2040"
-*/
 
 #else
   #define CPU_TYPE_ERROR
@@ -134,12 +126,11 @@
 #define WIFI_SERIAL_LINK_SPEED 115200
 
 // configure serial log browser feature if possible
-#ifdef ENABLE_SERIAL_LOG
-    // Replace USB_SERIAL with SerialLog so we can browse it!
-    #undef USB_SERIAL
-    #include "SerialUsbLog.h"
-    #define USB_SERIAL SerialLog
-  #endif
+// Replace USB_SERIAL with SerialLog so we can browse it!
+#undef USB_SERIAL
+#include "SerialUsbLog.h"
+#define USB_SERIAL SerialLog
+
 
 
 #if __has_include ( "myAutomation.h")

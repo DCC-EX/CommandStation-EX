@@ -38,13 +38,22 @@ public:
   ~MDNS();
   int begin(const IPAddress& ip,  const char* name);
   int addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto);
+  int addTextRecord(const char* name, MDNSServiceProtocol_t proto,
+                    const char* key, const char* value);
   void run();
 private:
   EthernetUDP *_udp;
   IPAddress _ipAddress;
   char* _name;
-  char* _serviceName;
-  char* _serviceProto;
-  int _servicePort;
+  struct ServiceRecord {
+    char* name;
+    MDNSServiceProtocol_t proto;
+    uint16_t port;
+    uint8_t* text;
+    uint16_t textLength;
+  };
+  static const uint8_t MAX_SERVICE_RECORDS = 8;
+  ServiceRecord _services[MAX_SERVICE_RECORDS];
+  uint8_t _serviceCount;
 };
 #endif // ARDUINO_ARCH_STM32

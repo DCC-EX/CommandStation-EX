@@ -73,6 +73,7 @@ bool EthernetInterface::setup()
       return false;
     }
   #endif
+  LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
   return connected;
 }
@@ -91,8 +92,12 @@ void EthernetInterface::addService(const char *name, const char *proto, uint16_t
 }
 
 void EthernetInterface::addServiceTxt(const char *name, const char *proto, const char *key, const char *value) {
-  // TODO when exmdns supports adding TXT records
-  (void)name; (void)proto; (void)key; (void)value;
+  auto serviceProto = MDNSServiceTCP;
+  if (strcmp(proto, "udp") == 0) serviceProto = MDNSServiceUDP;
+
+  if (!mdns.addTextRecord(name, serviceProto, key, value)) {
+    DIAG(F("addServiceTxt failed %s=%s"), key, value);
+  }
 }
 
 IPAddress EthernetInterface::getIPAddress() {

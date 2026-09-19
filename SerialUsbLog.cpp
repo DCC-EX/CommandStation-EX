@@ -42,7 +42,6 @@
 
 #include "defines.h"
 
-// This entire file is ignored if ENABLE_SERIAL_LOG is not defined in defines.h.
 #include "Arduino.h"
 #include "DIAG.h"
 #include "NetworkInterface.h"
@@ -380,7 +379,8 @@ void SerialUsbLog::loop() {
   if (!client) return;
   
   // Read request line: "GET /path?... HTTP/1.1"
-  String reqLine = client.readStringUntil('\r');
+  String reqLine = client.readStringUntil('\n');
+  reqLine.trim();
   if (reqLine.length() == 0) { client.stop(); return; }
   if (Diag::WIFI || Diag::ETHERNET) {
     StringFormatter::send(Serial,F("<* http: %s *>\n"), reqLine.c_str());

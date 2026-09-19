@@ -154,10 +154,9 @@ void setup()
 
 void loop()
 {
-  #ifdef ENABLE_SERIAL_LOG
-    SerialLog.loop();
-  #endif
-
+  
+  SerialLog.loop();
+  
 #ifdef ARDUINO_ARCH_ESP32
 
 #ifdef BOOSTER_INPUT

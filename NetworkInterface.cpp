@@ -108,11 +108,11 @@ void NetworkInterface::setup() {
   udpMulticastIP[3] = ipaddress[3];
 
   // Socket server for old style throttle connections.
-  throttleServer.begin();
+  throttleServer.begin(IP_PORT);
   DIAG(F("throttleServer started on port %d"), IP_PORT);
 
   // Web server for browser interface.
-  webServer.begin();
+  webServer.begin(80);
   DIAG(F("webServer started on port 80"));
 
   bool nodeFail = false;
@@ -168,7 +168,7 @@ void NetworkInterface::setup() {
 bool NetworkInterface::isUp() { return _SHIM_::isUp(); }
 
 void NetworkInterface::udpMulticast(const char *buffer) {
-  if (buffer == NULL) return;
+  if (buffer == NULL || !isUp()) return;
   int count = strlen(buffer);
   if (count <= 0 || count > UDP_RESPONSE_MAX) {
     DIAG(F("udpMulticast: Invalid count %d, %s"), count, buffer);
@@ -189,7 +189,7 @@ void NetworkInterface::udpMulticast(const char *buffer) {
 }
 
 void NetworkInterface::udpNodeMulticast(const char *buffer) {
-  if (buffer == NULL) return;
+  if (buffer == NULL || !isUp()) return;
   if (!sendUDP(nodeMulticastIP, NODE_PORT,
                        (const uint8_t *)buffer, strlen(buffer))) {
     DIAG(F("udpNodeMulticast failed"));
@@ -395,5 +395,9 @@ void NetworkInterface::teardown() {
 
 bool NetworkInterface::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
   if (!isUp()) return false;
+  #ifdef ARDUINO_ARCH_STM32
+    if (ip[0]==239)
+      return udpTx.beginMulticast(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  #endif
   return udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
 }

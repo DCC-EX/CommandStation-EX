@@ -46,5 +46,6 @@
 #include "NVSTable.h"
 #include "Signals.h"
 #include "EXRAIL.h"
+#include "SerialUSBLog.h"
     
 #endif
