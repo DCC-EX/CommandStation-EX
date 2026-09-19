@@ -11,7 +11,7 @@ esbonio==0.16.5
 exceptiongroup==1.2.2
 idna==3.10
 imagesize==1.4.1
-Jinja2==3.1.5
+Jinja2==3.1.6
 lsprotocol==2023.0.1
 MarkupSafe==3.0.2
 packaging==24.2
