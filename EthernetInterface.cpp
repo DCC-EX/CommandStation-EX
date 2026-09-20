@@ -31,6 +31,9 @@
 #include "CommandDistributor.h"
 #include "WiThrottle.h"
 #include "DCCTimer.h"
+#if defined(DCCEX_WIZNET_ETHERNET) && defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#endif
 
 #ifdef DO_MDNS
 #include "EXmDNS.h"
@@ -42,11 +45,46 @@ MDNS mdns(udp);
 #define looptimer(a,b)
 
 bool EthernetInterface::connected=false;
-EthernetServer * EthernetInterface::server= nullptr;
+EthernetServerType * EthernetInterface::server= nullptr;
 EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 bool EthernetInterface::inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
 uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
 RingStream * EthernetInterface::outboundRing = nullptr;
+
+#if defined(DCCEX_WIZNET_ETHERNET)
+static void reportWiznetStatus() {
+  switch (Ethernet.hardwareStatus()) {
+    case EthernetNoHardware:
+      DIAG(F("Ethernet hardware: none detected"));
+      break;
+    case EthernetW5100:
+      DIAG(F("Ethernet hardware: W5100"));
+      break;
+    case EthernetW5200:
+      DIAG(F("Ethernet hardware: W5200"));
+      break;
+    case EthernetW5500:
+      DIAG(F("Ethernet hardware: W5500"));
+      break;
+    default:
+      DIAG(F("Ethernet hardware: unknown"));
+      break;
+  }
+
+  switch (Ethernet.linkStatus()) {
+    case LinkON:
+      DIAG(F("Ethernet link: ON"));
+      break;
+    case LinkOFF:
+      DIAG(F("Ethernet link: OFF"));
+      break;
+    case Unknown:
+    default:
+      DIAG(F("Ethernet link: UNKNOWN"));
+      break;
+  }
+}
+#endif
 
 /**
  * @brief Setup Ethernet Connection
@@ -61,6 +99,33 @@ void EthernetInterface::setup()
   #endif 
     " Please be patient, especially if no cable is connected!"
   ));
+
+  DIAG(F("Ethernet hostname: %s"), (char *)ETHERNET_HOSTNAME);
+
+  #if defined(DCCEX_WIZNET_ETHERNET)
+    #if defined(ARDUINO_ARCH_ESP32)
+      DIAG(F("Ethernet SPI pins: CS=%d SCK=%d MISO=%d MOSI=%d RST=%d"),
+        ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
+      SPI.begin(ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_CS_PIN);
+      #if ETHERNET_RST_PIN >= 0
+        pinMode(ETHERNET_RST_PIN, OUTPUT);
+        digitalWrite(ETHERNET_RST_PIN, LOW);
+        delay(2);
+        digitalWrite(ETHERNET_RST_PIN, HIGH);
+        delay(150);
+      #endif
+      Ethernet.init(ETHERNET_CS_PIN);
+      DIAG(F("Ethernet CS pin %d"), ETHERNET_CS_PIN);
+    #else
+      #if defined(ETHERNET_CS_PIN) && !defined(ETHERNET_CS)
+        #define ETHERNET_CS ETHERNET_CS_PIN
+      #endif
+      #ifdef ETHERNET_CS
+        Ethernet.init(ETHERNET_CS);
+        DIAG(F("Ethernet CS pin %d"), ETHERNET_CS);
+      #endif
+    #endif
+  #endif
   
   #ifdef STM32_ETHERNET
     // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
@@ -82,19 +147,30 @@ void EthernetInterface::setup()
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac,myIP);
   #else
+    DIAG(F("Ethernet requesting DHCP"));
     if (Ethernet.begin(mac)==0)
   {
     LCD(4,F("IP: No DHCP"));
+    #if defined(DCCEX_WIZNET_ETHERNET)
+      reportWiznetStatus();
+    #endif
+    DIAG(F("Ethernet DHCP failed; check CS wiring, cable, and network"));
     return;
   }
+  #endif
+
+  #if defined(DCCEX_WIZNET_ETHERNET)
+    reportWiznetStatus();
   #endif
 
   auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
   if (!ip) {
     LCD(4,F("IP: None"));
+    DIAG(F("Ethernet has no IP address"));
     return;
   }
-  server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
+  DIAG(F("Ethernet IP: %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+  server = new EthernetServerType(IP_PORT); // Ethernet Server listening on default port IP_PORT
   server->begin();
 
   // Arrange display of IP address and port

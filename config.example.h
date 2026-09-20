@@ -83,7 +83,9 @@ The configuration file for DCC-EX Command Station
 // NOTE: Not supported on Arduino Uno or Nano
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
+#ifndef ENABLE_WIFI
+  #define ENABLE_WIFI true
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -119,6 +121,10 @@ The configuration file for DCC-EX Command Station
 // CS to make them show up with different names on the network.
 // Otherwise do not touch.
 #define WIFI_HOSTNAME "dccex"
+
+// ETHERNET_HOSTNAME is used by Ethernet mDNS and native STM32 Ethernet.
+// If omitted, it defaults to WIFI_HOSTNAME for compatibility with EX-Installer.
+//#define ETHERNET_HOSTNAME "dccex-ethernet"
 //
 // WIFI_CHANNEL: The default channel is set to "1". If you need to use an
 // alternate channel (we recommend using only 1,6, or 11) you may change it here.
@@ -137,6 +143,15 @@ The configuration file for DCC-EX Command Station
 //
 //#define ENABLE_ETHERNET true
 
+// Arduino Ethernet W5100/W5500 chip-select. The default shield pin is 10;
+// set this to the pin actually connected to the module. ETHERNET_CS_PIN is
+// also accepted and is the preferred name for ESP32 configurations.
+//#define ETHERNET_CS 10
+//#define ETHERNET_CS_PIN 5
+
+// ESP32 W5500 defaults used by the ESP32-Ethernet environment are CS=5,
+// SCK=18, MISO=16, MOSI=17, and RST=4. Override them above or in config.h.
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // MAX_NUM_TCP_CLIENTS: If you on STM32 Ethernet (and only there) want more than
@@ -153,6 +168,19 @@ The configuration file for DCC-EX Command Station
 // DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
 //
 //#define IP_ADDRESS { 192, 168, 1, 200 }
+
+// With IP_ADDRESS omitted, Arduino W5100/W5500 builds request an address by
+// DHCP automatically. WIFI_SSID and WIFI_PASSWORD are not used for Ethernet.
+// The official Arduino Ethernet dependency currently supplies its own DHCP
+// hostname; ETHERNET_HOSTNAME controls mDNS/native Ethernet naming, but a
+// custom W5500 DHCP hostname requires a dependency that exposes that option.
+
+// W5500 hardware validation (Mega or ESP32 + module): connect power, ground,
+// SPI, CS, and optional reset as configured; connect to a DHCP-enabled LAN;
+// confirm diagnostics report the expected hardware, link, DHCP, hostname, and
+// non-zero IP; then connect a client to IP_PORT (default 2560) and verify a
+// command/reply round trip. Repeat with the cable disconnected to verify the
+// link/DHCP failure diagnostics.
 
 
 /////////////////////////////////////////////////////////////////////////////////////

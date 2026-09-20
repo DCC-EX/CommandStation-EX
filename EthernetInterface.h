@@ -53,7 +53,23 @@
  #define DO_MDNS
 #else
  #include "Ethernet.h"
+ #define DCCEX_WIZNET_ETHERNET
  #define DO_MDNS
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+// Arduino Ethernet 2.0.x exposes begin() without the uint16_t parameter
+// required by the ESP32 Arduino Server base class. Add the missing override
+// without modifying or vendoring the external Ethernet library.
+class DCCEXEthernetServer : public EthernetServer {
+ public:
+    using EthernetServer::EthernetServer;
+    using EthernetServer::begin;
+    void begin(uint16_t) override { EthernetServer::begin(); }
+};
+using EthernetServerType = DCCEXEthernetServer;
+#else
+using EthernetServerType = EthernetServer;
 #endif
 
 
@@ -76,7 +92,7 @@ class EthernetInterface {
    
  private:
     static bool connected;
-    static EthernetServer * server;
+    static EthernetServerType * server;
     static EthernetClient clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     static bool inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
     static uint8_t buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
