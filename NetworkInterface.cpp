@@ -298,7 +298,7 @@ void NetworkInterface::loop() {
   // Track new socket clients.
   NetworkInterfaceClient client;
   while (client = throttleServer.available()) {
-    DIAG(F("New throttle client available"));
+  if (client = throttleServer.available()) {
     for (clientId = 0; clientId < throttleClients.size(); clientId++) {
       if (throttleClients[clientId].recycle(client)) {
         DIAG(F("Recycle client %d %s:%d"), clientId,
