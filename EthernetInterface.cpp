@@ -73,6 +73,12 @@ bool EthernetInterface::setup()
       return false;
     }
   #endif
+
+  // Accept all multicast frames. STM32Ethernet registers multicast MAC hashes,
+  // but its hash-filter path is unreliable on this MAC. This does not enable
+  // promiscuous unicast reception.
+  ETH->MACFFR |= (1UL << 4);
+
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
   return connected;

@@ -19,17 +19,19 @@
 NetworkInterfaceServer webServer(80);
 NetworkInterfaceServer throttleServer(IP_PORT);
 
+
+// udp throtttle traffic 
 NetworkInterfaceUDPRx udpThrottleRx;
 NetworkInterfaceUDPRx udpNodeRx;
 NetworkInterfaceUDPTx udpTx;
 
-IPAddress udpBroadcastIP;
+constexpr uint16_t NODE_PORT = IP_PORT + 1;
+const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
+IPAddress throttleMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[3] */};
+
 constexpr uint16_t UDP_COMMAND_MAX = 255;    // max inbound command payload (fits one DCC-EX command)
 constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
 constexpr uint8_t UDP_COMMAND_QUEUE_DEPTH = 64;
-constexpr uint16_t NODE_PORT = IP_PORT + 1;
-const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
-IPAddress udpMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[3] */};
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
@@ -53,6 +55,13 @@ public:
     if (!inUse) return false;
     if (!NetworkInterface::isUp()) {
       DIAG(F("Remove client %d"), clientId);
+      CommandDistributor::forget(clientId);
+      client.stop();
+      inUse = false;
+      return false;
+    }
+    if (!client.connected()) {
+      DIAG(F("Remove disconnected client %d"), clientId);
       CommandDistributor::forget(clientId);
       client.stop();
       inUse = false;
@@ -90,22 +99,35 @@ struct UdpCommand {
   byte data[UDP_COMMAND_MAX + 1]; // +1 for null terminator.
 };
 static UdpCommand udpCommandQueue[UDP_COMMAND_QUEUE_DEPTH];
-static uint8_t udpCommandQueueHead = 0;
-static uint8_t udpCommandQueueTail = 0;
-static uint8_t udpCommandQueueCount = 0;
-static uint32_t udpCommandDropCount = 0;
+static volatile uint8_t udpCommandQueueHead = 0;
+static volatile uint8_t udpCommandQueueTail = 0;
+static volatile uint32_t udpCommandDropCount = 0;
+#ifdef ARDUINO_ARCH_ESP32
+static portMUX_TYPE udpCommandQueueMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
 
 
 void NetworkInterface::setup() {
+  #ifdef ARDUINO_ARCH_STM32
+  udpTx.stop();
+  udpThrottleRx.stop();
+  udpNodeRx.stop();
+  #endif
+
   // Initialize the UDP command queue for handling incoming UDP commands.
   udpCommandQueueHead = 0;
   udpCommandQueueTail = 0;
-  udpCommandQueueCount = 0;
   udpCommandDropCount = 0;
 
   _SHIM_::setup();
   auto ipaddress = _SHIM_::getIPAddress();
-  udpMulticastIP[3] = ipaddress[3];
+  throttleMulticastIP[3] = ipaddress[3];
+
+  #ifdef ARDUINO_ARCH_STM32
+  // STM32Ethernet enables NETIF_FLAG_IGMP from its link-state handler.
+  // Run it before beginMulticast(), otherwise igmp_joingroup() can fail.
+  Ethernet.schedule();
+  #endif
 
   // Socket server for old style throttle connections.
   throttleServer.begin(IP_PORT);
@@ -115,31 +137,37 @@ void NetworkInterface::setup() {
   webServer.begin(80);
   DIAG(F("webServer started on port 80"));
 
+  if (!udpTx.begin(0)) {
+    DIAG(F("udpTx failed to start"));
+  }
+
   bool nodeFail = false;
 
   #ifdef ARDUINO_ARCH_STM32
-  // Receive throttle traffic via UDP multicast.
-  if (udpThrottleRx.beginMulticast(udpMulticastIP, IP_PORT)) {
-    udpThrottleRx.onDataArrival(throttlePacketListener);
+  // listen for incoming throttle traffic via UDP.
+    if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
     DIAG(F("udpThrottleRx started on %s:%d"),
-         udpMulticastIP.toString().c_str(), IP_PORT);
+      throttleMulticastIP.toString().c_str(), IP_PORT);
   }
-  // Receive node traffic via UDP multicast.
+  
+ 
+  // All node traffic via UDP multicast.
   if (udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT)) {
-    udpNodeRx.onDataArrival(nodePacketListener);
     DIAG(F("udpNodeRx started on %s:%d"),
          nodeMulticastIP.toString().c_str(), NODE_PORT);
   } else {
+    DIAG(F("udpNodeRx multicast join failed for %s:%d"),
+         nodeMulticastIP.toString().c_str(), NODE_PORT);
     nodeFail = true;
   }
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
-  // Receive throttle traffic via UDP multicast.
-  if (udpThrottleRx.listenMulticast(udpMulticastIP, IP_PORT)) {
+  // listen for incoming throttle traffic via UDP.
+    if (udpThrottleRx.listenMulticast(throttleMulticastIP, IP_PORT)) {
     udpThrottleRx.onPacket(esp32AsyncPacketListener);
     DIAG(F("udpThrottleRx started on %s:%d"),
-         udpMulticastIP.toString().c_str(), IP_PORT);
+      throttleMulticastIP.toString().c_str(), IP_PORT);
   }
   // Receive node traffic via UDP multicast.
   if (udpNodeRx.listenMulticast(nodeMulticastIP, NODE_PORT)) {
@@ -161,7 +189,7 @@ void NetworkInterface::setup() {
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
 
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
-  _SHIM_::addServiceTxt("dcc-ex", "udp", "group", udpMulticastIP.toString().c_str());
+  _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
 }
 
@@ -176,7 +204,7 @@ void NetworkInterface::udpMulticast(const char *buffer) {
   }
 
   // Regardless of the clientId, we can send it via UDP multicast.
-  if (!sendUDP(udpMulticastIP, IP_PORT, (const uint8_t *)buffer, count)) {
+  if (!sendUDP(throttleMulticastIP, IP_PORT, (const uint8_t *)buffer, count)) {
     DIAG(F("udpSend Multicast failed"));
   }
 
@@ -207,25 +235,34 @@ void NetworkInterface::queueUdpInput(IPAddress remoteIP, int localPort,
     DIAG(F("queueUdpInput: Invalid length %d, %s"), length, buffer);
     return;
   }
-  if (udpCommandQueueCount >= UDP_COMMAND_QUEUE_DEPTH) {
+#ifdef ARDUINO_ARCH_ESP32
+  portENTER_CRITICAL(&udpCommandQueueMux);
+#endif
+  uint8_t nextTail = (udpCommandQueueTail + 1) % UDP_COMMAND_QUEUE_DEPTH;
+  if (nextTail == udpCommandQueueHead) {
     udpCommandDropCount++;
     if ((udpCommandDropCount & 0x3F) == 1) {
       DIAG(F("queueUdpInput: command queue full, dropped=%d"), udpCommandDropCount);
     }
+#ifdef ARDUINO_ARCH_ESP32
+    portEXIT_CRITICAL(&udpCommandQueueMux);
+#endif
     return;
   }
 
-  UdpCommand cmd;
-  cmd.len = length;
-  cmd.receivedMillis = millis();
-  cmd.remoteIP = remoteIP;
-  cmd.localPort = localPort;
-  memcpy(cmd.data, buffer, cmd.len);
-  cmd.data[cmd.len] = 0;
+  UdpCommand &slot = udpCommandQueue[udpCommandQueueTail];
+  slot.len = length;
+  slot.receivedMillis = millis();
+  slot.remoteIP = remoteIP;
+  slot.localPort = localPort;
+  memcpy(slot.data, buffer, slot.len);
+  slot.data[slot.len] = 0;
 
-  udpCommandQueue[udpCommandQueueTail] = cmd;
-  udpCommandQueueTail = (udpCommandQueueTail + 1) % UDP_COMMAND_QUEUE_DEPTH;
-  udpCommandQueueCount++;
+  // Publish the completed slot last. This is a single-producer/single-consumer queue.
+  udpCommandQueueTail = nextTail;
+#ifdef ARDUINO_ARCH_ESP32
+  portEXIT_CRITICAL(&udpCommandQueueMux);
+#endif
 }
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -235,7 +272,7 @@ void NetworkInterface::esp32AsyncPacketListener(NetworkInterfaceUDPPacket &packe
 }
 #else
 void NetworkInterface::throttlePacketListener() {
-  auto packetSize = udpThrottleRx.parsePacket();
+  auto packetSize = udpThrottleRx.available();
   if (packetSize < 2) return;
 
   byte buffer[UDP_COMMAND_MAX];
@@ -244,7 +281,7 @@ void NetworkInterface::throttlePacketListener() {
 }
 
 void NetworkInterface::nodePacketListener() {
-  auto packetSize = udpNodeRx.parsePacket();
+  auto packetSize = udpNodeRx.available();
   if (packetSize < 2) return;
 
   byte buffer[UDP_COMMAND_MAX];
@@ -261,6 +298,7 @@ void NetworkInterface::loop() {
   // Track new socket clients.
   NetworkInterfaceClient client;
   while (client = throttleServer.available()) {
+    DIAG(F("New throttle client available"));
     for (clientId = 0; clientId < throttleClients.size(); clientId++) {
       if (throttleClients[clientId].recycle(client)) {
         DIAG(F("Recycle client %d %s:%d"), clientId,
@@ -291,26 +329,30 @@ void NetworkInterface::loop() {
     }
   }
 
-  // Drain queued UDP commands collected by the async callback.
-  if (udpCommandQueueCount > 0
+  // Poll STM32 UDP sockets from the main loop. The ESP32 path fills the queue
+  // asynchronously from its Wi-Fi callbacks.
 #ifndef ARDUINO_ARCH_ESP32
-      || udpThrottleRx.parsePacket() > 0 || udpNodeRx.parsePacket() > 0
-#endif
-  ) {
-#ifndef ARDUINO_ARCH_ESP32
-    do {
-      throttlePacketListener();
-    } while (udpThrottleRx.parsePacket() > 0);
-    do {
-      nodePacketListener();
-    } while (udpNodeRx.parsePacket() > 0);
+  while (udpThrottleRx.parsePacket() > 0) {
+    throttlePacketListener();
+  }
+  while (udpNodeRx.parsePacket() > 0) {
+    nodePacketListener();
+  }
 #endif
 
+  // Drain queued UDP commands collected by the UDP receive path.
+  if (udpCommandQueueHead != udpCommandQueueTail) {
     UdpCommand cmd;
-    while (udpCommandQueueCount > 0) {
-      cmd = udpCommandQueue[udpCommandQueueHead];
-      udpCommandQueueHead = (udpCommandQueueHead + 1) % UDP_COMMAND_QUEUE_DEPTH;
-      udpCommandQueueCount--;
+    while (udpCommandQueueHead != udpCommandQueueTail) {
+    #ifdef ARDUINO_ARCH_ESP32
+      portENTER_CRITICAL(&udpCommandQueueMux);
+    #endif
+      uint8_t head = udpCommandQueueHead;
+      cmd = udpCommandQueue[head];
+      udpCommandQueueHead = (head + 1) % UDP_COMMAND_QUEUE_DEPTH;
+#ifdef ARDUINO_ARCH_ESP32
+  portEXIT_CRITICAL(&udpCommandQueueMux);
+#endif
 
       if (cmd.localPort == NODE_PORT) {
         // This is a node multicast; no response is required.
@@ -390,14 +432,8 @@ void NetworkInterface::teardown() {
   _SHIM_::teardown();
   udpCommandQueueHead = 0;
   udpCommandQueueTail = 0;
-  udpCommandQueueCount = 0;
 }
 
 bool NetworkInterface::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  if (!isUp()) return false;
-  #ifdef ARDUINO_ARCH_STM32
-    if (ip[0]==239)
-      return udpTx.beginMulticast(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
-  #endif
-  return udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
 }
