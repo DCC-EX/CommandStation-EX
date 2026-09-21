@@ -48,7 +48,7 @@ ZZ(t,loco,speedByte)  // Throttle speed change
 ZZ(F,loco,functionNumber,on)  // Throttle function change
   // This was sent by any node that changes a loco function
   // It will not cause a rebroadcast
-  DCC::setFn(functionNumber,on,false);
+  DCC::setFn(loco,functionNumber,on,false);
 
 ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
   // This was sent by a node that changes a turnout state
