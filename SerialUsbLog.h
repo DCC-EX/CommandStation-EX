@@ -19,12 +19,11 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "defines.h"
-#ifdef ENABLE_SERIAL_LOG
+
 #ifndef SerialUsbLog_h
 #define SerialUsbLog_h
 
 #include <Arduino.h>
-#include "FSH.h"
   
 class SerialUsbLog : public Stream {
 
@@ -54,13 +53,7 @@ class SerialUsbLog : public Stream {
    // NEW
    volatile uint32_t _seq_write;
 
-#if defined(ARDUINO_ARCH_ESP32)
-   // protect buffer/seq from concurrent access
-   portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
-#endif
-
 };
 extern SerialUsbLog SerialLog;
 
 #endif
-#endif // ENABLE_SERIAL_LOG

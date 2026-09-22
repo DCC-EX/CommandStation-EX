@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+
 #include "DCCDecoder.h"
 #include "LocoSlot.h"
 #include "DCCEXParser.h"
@@ -228,5 +228,3 @@ bool DCCDecoder::updateFunc(uint16_t loco, byte func, int shift) {
   slot->setSnifferFunctions(newfunc);
   return true;
 }
-
-#endif // ARDUINO_ARCH_ESP32

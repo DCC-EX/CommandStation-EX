@@ -326,11 +326,7 @@ bool MotorDriver::sampleCurrentFromHW() {
   return true;
 }
 void MotorDriver::startCurrentFromHW() {
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-  const byte mask = 7;
-#else
   const byte mask = 31;
-#endif
   ADMUX=(1<<REFS0)|((currentPin-A0) & mask); //select AVCC as reference and set MUX
   bitSet(ADCSRA,ADSC); // start conversion
 }

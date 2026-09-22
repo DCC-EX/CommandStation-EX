@@ -24,45 +24,32 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  * 
  */
+#ifdef ARDUINO_ARCH_STM32
 #include "defines.h" 
-#if ETHERNET_ON == true
 #include "EthernetInterface.h"
+#include <LwIP.h>
+#include <STM32Ethernet.h>
+#include <lwip/netif.h>
+
+#include <EthernetUdp.h>
+extern "C" struct netif gnetif;
+
 #include "DIAG.h"
-#include "CommandDistributor.h"
-#include "WiThrottle.h"
 #include "DCCTimer.h"
-
-#ifdef DO_MDNS
 #include "EXmDNS.h"
-EthernetUDP udp;
-MDNS mdns(udp);
-#endif
 
-//extern void looptimer(unsigned long timeout, const FSH* message);
-#define looptimer(a,b)
+EthernetUDP udpMdns;
+MDNS mdns(udpMdns);
 
 bool EthernetInterface::connected=false;
-EthernetServer * EthernetInterface::server= nullptr;
-EthernetClient EthernetInterface::clients[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
-bool EthernetInterface::inUse[MAX_SOCK_NUM];                // accept up to MAX_SOCK_NUM client connections at the same time; This depends on the chipset used on the Shield
-uint8_t EthernetInterface::buffer[MAX_ETH_BUFFER+1];                    // buffer used by TCP for the recv
-RingStream * EthernetInterface::outboundRing = nullptr;
+bool EthernetInterface::isUp() { 
+  return connected;
+}
 
-/**
- * @brief Setup Ethernet Connection
- * 
- */
-
-void EthernetInterface::setup() 
+bool EthernetInterface::setup() 
 {
-  DIAG(F("Ethernet starting"
-  #ifdef DO_MDNS
-    " (with mDNS)"
-  #endif 
-    " Please be patient, especially if no cable is connected!"
-  ));
-  
-  #ifdef STM32_ETHERNET
+  connected=false;
+  DIAG(F("Ethernet starting (with mDNS). Please be patient, especially if no cable is connected!"));
     // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
     // The default is "lwip", which is **always** set in STM32Ethernet/src/utility/ethernetif.cpp
     // for some reason. One can edit it to instead read:
@@ -73,7 +60,6 @@ void EthernetInterface::setup()
     //      #endif /* LWIP_NETIF_HOSTNAME */
     // Which seems more useful! We should propose the patch... so the following line actually works!
     netif_set_hostname(&gnetif, ETHERNET_HOSTNAME);   // Should probably be passed in the contructor...
-  #endif   
 
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
@@ -82,100 +68,52 @@ void EthernetInterface::setup()
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac,myIP);
   #else
-    if (Ethernet.begin(mac)==0)
-  {
-    LCD(4,F("IP: No DHCP"));
-    return;
-  }
+    if (Ethernet.begin(mac)==0) {
+      LCD(4,F("IP: No DHCP"));
+      return false;
+    }
   #endif
 
-  auto ip = Ethernet.localIP();    // look what IP was obtained (dynamic or static)
-  if (!ip) {
-    LCD(4,F("IP: None"));
-    return;
+  // Accept all multicast frames. STM32Ethernet registers multicast MAC hashes,
+  // but its hash-filter path is unreliable on this MAC. This does not enable
+  // promiscuous unicast reception.
+  ETH->MACFFR |= (1UL << 4);
+
+  LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
+  connected=true;
+  return connected;
+}
+
+void EthernetInterface::setupMDNS() {
+  mdns.begin(getIPAddress(), ETHERNET_HOSTNAME);
+}
+
+void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {
+  auto ptype= MDNSServiceTCP;
+  if (strcmp(proto, "udp") == 0) ptype = MDNSServiceUDP;
+  
+  if (!mdns.addServiceRecord(name, port ,ptype)) {
+    DIAG(F("addService failed %s %s %d"), name, proto, port);
   }
-  server = new EthernetServer(IP_PORT); // Ethernet Server listening on default port IP_PORT
-  server->begin();
+}
 
-  // Arrange display of IP address and port
-  #ifdef LCD_DRIVER
-    const byte lcdData[]={LCD_DRIVER};
-    const bool wideDisplay=lcdData[1]>=24; // data[1] is cols. 
-  #else 
-    const bool wideDisplay=true;
-  #endif    
-  if (wideDisplay) {
-    // OLEDS or just usb diag is ok on one line. 
-    LCD(4,F("IP %d.%d.%d.%d:%d"), ip[0], ip[1], ip[2], ip[3], IP_PORT);    
-  } 
-  else { // LCDs generally too narrow, so take 2 lines
-    LCD(4,F("IP %d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-    LCD(5,F("Port %d"), IP_PORT);
+void EthernetInterface::addServiceTxt(const char *name, const char *proto, const char *key, const char *value) {
+  auto serviceProto = MDNSServiceTCP;
+  if (strcmp(proto, "udp") == 0) serviceProto = MDNSServiceUDP;
+
+  if (!mdns.addTextRecord(name, serviceProto, key, value)) {
+    DIAG(F("addServiceTxt failed %s=%s"), key, value);
   }
- 
-  outboundRing=new RingStream(OUTBOUND_RING_SIZE);
-  #ifdef DO_MDNS
-    if (!mdns.begin(Ethernet.localIP(), (char *)ETHERNET_HOSTNAME))
-      DIAG(F("mdns.begin fail")); // hostname
-    mdns.addServiceRecord(ETHERNET_HOSTNAME "._withrottle", IP_PORT, MDNSServiceTCP);
-    mdns.run(); // run it right away to get out info ASAP
-  #endif  
-  connected=true;    
 }
 
-#if defined (STM32_ETHERNET)
-void EthernetInterface::acceptClient() { // STM32 version
-  auto client=server->available();
-  if (!client) return;
-  // check for existing client
-  for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
-    if (inUse[socket] && client == clients[socket]) return;
-      
-  // new client
-  for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
-  {
-    if (!inUse[socket])
-    {
-      clients[socket] = client;
-      inUse[socket]=true;
-      if (Diag::ETHERNET)
-        DIAG(F("Ethernet: New client socket %d"), socket);
-      return;
-    }
-  }
-  // reached here only if more than MAX_SOCK_NUM clients want to connect
-  DIAG(F("Ethernet more than %d clients, not accepting new connection"), MAX_SOCK_NUM);
-  client.stop();
-}
-#else
-void EthernetInterface::acceptClient() { // non-STM32 version
-  auto client=server->accept();
-  if (!client) return;
-  auto socket=client.getSocketNumber();
-  clients[socket]=client;
-  inUse[socket]=true;
-  if (Diag::ETHERNET)
-    DIAG(F("Ethernet: New client socket %d"), socket);
-}
-#endif
-
-void EthernetInterface::dropClient(byte socket) 
-{ 
-  clients[socket].stop();
-  inUse[socket]=false;
-  CommandDistributor::forget(socket);
-	if (Diag::ETHERNET)  DIAG(F("Ethernet: Disconnect %d "), socket);  
+IPAddress EthernetInterface::getIPAddress() {
+  return connected ? Ethernet.localIP(): IPAddress(0,0,0,0);
 }
 
-/**
- * @brief Main loop for the EthernetInterface
- * 
- */
 void EthernetInterface::loop()
 {
     if (!connected) return;
-    looptimer(5000, F("E.loop"));
-	      
+      
     static bool warnedAboutLink=false;
     if (Ethernet.linkStatus() == LinkOFF){
         if (warnedAboutLink) return;
@@ -183,99 +121,28 @@ void EthernetInterface::loop()
         warnedAboutLink=true;
         return;
     }
-    looptimer(5000, F("E.loop warn"));
-	  
+    
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
       warnedAboutLink=false;
     } 
     
-  #ifdef DO_MDNS
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
-    looptimer(5000, F("E.mdns"));
-	  
-  #endif
-
-    //
+    
     switch (Ethernet.maintain()) {
     case 1:
-        //renewed fail
         DIAG(F("Ethernet Error: renewed fail"));
         connected=false;
         return;
     case 3:
-        //rebind fail
         DIAG(F("Ethernet Error: rebind fail"));
         connected=false;
         return;
     default:
-        //nothing happened
-        //DIAG(F("maintained"));
         break;
-    }
-    looptimer(5000, F("E.maintain"));
-	  
-    // get client from the server
-    acceptClient();
-    
-    // handle disconnected sockets because STM32 library doesnt
-    // do the read==0 response.
-    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
-    {
-      if (inUse[socket] && !clients[socket].connected()) dropClient(socket);
-    }  
-
-    // check for incoming data from all possible clients
-    for (byte socket = 0; socket < MAX_SOCK_NUM; socket++)
-    {
-      if (!inUse[socket]) continue; // socket is not in use
-	
-	    // read any bytes from this client
-	    auto count = clients[socket].read(buffer, MAX_ETH_BUFFER);
-      
-      if (count<0) continue;  // -1 indicates nothing to read
-	    
-      if (count > 0) {  // we have incoming data 
-	      buffer[count] = '\0'; // terminate the string properly
-	      if (Diag::ETHERNET) DIAG(F("Ethernet s=%d, c=%d b=:%e"), socket, count, buffer);
-	      // execute with data going directly back
-	      CommandDistributor::parse(socket,buffer,outboundRing);
-	      //looptimer(5000, F("Ethloop2 parse"));
-	      return; // limit the amount of processing that takes place within 1 loop() cycle. 
-	    }
-	    
-      // count=0 The client has disconnected
-	    dropClient(socket);
-    }
-	
-    WiThrottle::loop(outboundRing);
-
-    // handle at most 1 outbound transmission 
-    auto socketOut=outboundRing->read();
-    if (socketOut<0) return;  // no outbound pending
-
-    if (socketOut >= MAX_SOCK_NUM) {
-      // This is a catastrophic code failure and unrecoverable.  
-      DIAG(F("Ethernet outboundRing s=%d error"), socketOut);
-      connected=false;
-      return;
-    } 
-
-    auto count=outboundRing->count();
-    {
-	    char tmpbuf[count+1]; // one extra for '\0'
-	    for(int i=0;i<count;i++) {
-	      tmpbuf[i] = outboundRing->read();
-	    }
-	    tmpbuf[count]=0;
-      if (inUse[socketOut]) {
-  	    if (Diag::ETHERNET) DIAG(F("Ethernet reply s=%d, c=%d, b:%e"),
-                              socketOut,count,tmpbuf);
-	      clients[socketOut].write(tmpbuf,count);
-      }
-    }
-    
+    }   
 }
+
 #endif

@@ -32,14 +32,7 @@
 #include "DCCEXParser.h"
 #include "SerialManager.h"
 #include "version.h"
-#ifndef ARDUINO_ARCH_ESP32
-#include "WifiInterface.h"
-#else
-#include "WifiESP32.h"
-#endif
-#if ETHERNET_ON == true
-#include "EthernetInterface.h"
-#endif
+#include "NetworkInterface.h"
 #include "Display_Implementation.h"
 #include "LCN.h"
 #include "IODevice.h"
@@ -53,5 +46,6 @@
 #include "NVSTable.h"
 #include "Signals.h"
 #include "EXRAIL.h"
+#include "SerialUsbLog.h"
     
 #endif

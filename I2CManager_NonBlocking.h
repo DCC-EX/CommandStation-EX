@@ -62,11 +62,7 @@ for (bool _int_saved __attribute__((__cleanup__(_conditionalEnableInterrupts))) 
 // "variable __attribute__((__cleanup__(func)))"
 // calls the func with *variable when variable goes out of scope
 
-#if defined(__AVR__) // Nano, Uno, Mega2580, NanoEvery, etc.
-  static inline bool _getInterruptState(void) {
-    return bitRead(SREG, SREG_I);  // true if enabled, false if disabled
-  }
-#elif defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_STM32)
   static inline bool _getInterruptState( void ) {
     // as we do ony mess with the I2C interrupts in the STM32 case,
     // we do not care about their previous state

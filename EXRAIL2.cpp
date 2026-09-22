@@ -1491,19 +1491,8 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     }
     if (!stream) return; 
     
-     #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-    // if mega stream it out 
-    for (;;strfar++) {
-      char c=pgm_read_byte_far(strfar);
-      if (c=='\0') break;
-      stream->write(c);
-    }
-    #else
-    // UNO/NANO CPUs dont have high memory
-    // 32 bit cpus dont care anyway
     stream->print((FSH *)strfar);
-    #endif
-
+  
   // and decide what to do next
    switch (mode) {
     case thrunge_print:
