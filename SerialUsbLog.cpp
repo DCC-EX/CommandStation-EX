@@ -436,7 +436,7 @@ void SerialUsbLog::loop() {
   // ----------------------------- /log incremental feed -----------------------------
   if (path == "/log") {
     String cmd= queryParamString(uri, "cmd", "");
-    if (cmd.length()>0)  DCCEXParser::parse(cmd.c_str());
+    if (cmd.length()>0)  DCCEXParser::parse(&USB_SERIAL,cmd.c_str());
 
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
