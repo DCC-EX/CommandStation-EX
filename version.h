@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.6.5"
+#define VERSION "5.6.6"
+// 5.6.6  - BugFix: Mega: RailCom cutout was broken after overload or DC
 // 5.6.5  - BugFix: Mega: RailCom cutout was too late
 // 5.6.4  - BugFix: Corrected decoding for F13 to F20
 //        - Minor fixes for PlatformIO compile
