@@ -256,7 +256,7 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 #define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0)->setRamDescription(S_DESC(description));
 #undef CONFIGURE_DIALOG
 #define CONFIGURE_DIALOG(title,body) {\
-   extern String body##_html;\
+   extern const char  body##_html[];\
    SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
 }
 

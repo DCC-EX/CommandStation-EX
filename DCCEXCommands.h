@@ -472,59 +472,59 @@ ZZ(C,SNIFFER,OFF) // Turn sniffer output off
 ZZ(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         WifiPreferences::enable(false);
-        NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,ON) // Enable Wifi
         WifiPreferences::enable(true);
         WifiPreferences::saveThrottleNode(true);
-        NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,NODE) // Enable Wifi Node without throttle support
         WifiPreferences::enable(true);
         WifiPreferences::saveThrottleNode(false);
-        NetworkInterface::setup();
+        EXNetwork::setup();
         
 ZZ(C,WIFI,HOSTNAME,hostname) // set Wifi hostname (in quotes)
   CHECKQ(hostname)
   WifiPreferences::saveHostName(q_hostname); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 
 #undef DEFAULT
 ZZ(C,WIFI,DEFAULT) // Set WiFi to default credentials
   WifiPreferences::clear(); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,ssid,password) // Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveSTA(q_ssid, q_password,true); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,TEMP,ssid,password) // Set WiFi ssid and password temporarily (in quotes)
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveSTA(q_ssid, q_password,false); 
-  NetworkInterface::setup(); 
+        EXNetwork::setup();
 ZZ(C,WIFI,AP,ssid,password) // Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveAP(q_ssid, q_password,11,false); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,AP,ssid,password,channel) // Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveAP(q_ssid, q_password,channel,false); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,HIDDENAP,ssid,password) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveAP(q_ssid, q_password,11,true); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   WifiPreferences::saveAP(q_ssid, q_password,channel,true); 
-  NetworkInterface::setup();
+        EXNetwork::setup();
 
 ZZ(D,WIFI,SHOW) // Show WiFi status
   WifiPreferences::dump(stream);  

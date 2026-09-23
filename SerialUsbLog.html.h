@@ -1,4 +1,4 @@
-String SerialUsbLog_html=R"???(
+const char SerialUsbLog_html[]=R"???(
 <!doctype html><html><head>
       <meta name=viewport content='width=device-width,initial-scale=1'>
       <title>DCC-EX Server Log</title>

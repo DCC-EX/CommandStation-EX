@@ -1,4 +1,4 @@
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
 #include "NodeManager.h"
@@ -16,14 +16,14 @@
 #endif
 
 // Common points of interaction for network interfaces
-NetworkInterfaceServer webServer(80);
-NetworkInterfaceServer throttleServer(IP_PORT);
+EXNetworkServer webServer(80);
+EXNetworkServer throttleServer(IP_PORT);
 
 
 // udp throtttle traffic 
-NetworkInterfaceUDPRx udpThrottleRx;
-NetworkInterfaceUDPRx udpNodeRx;
-NetworkInterfaceUDPTx udpTx;
+EXNetworkUDPRx udpThrottleRx;
+EXNetworkUDPRx udpNodeRx;
+EXNetworkUDPTx udpTx;
 
 constexpr uint16_t NODE_PORT = IP_PORT + 1;
 const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
@@ -46,14 +46,14 @@ static void rememberUdpDiscoveryClient(const IPAddress &ip) {
 // A network client must be maintained.
 class exNetworkClient {
 public:
-  exNetworkClient(NetworkInterfaceClient c) {
+  exNetworkClient(EXNetworkClient c) {
     client = c;
     inUse = true;
   }
 
   bool active(byte clientId) {
     if (!inUse) return false;
-    if (!NetworkInterface::isUp()) {
+    if (!EXNetwork::isUp()) {
       DIAG(F("Remove client %d"), clientId);
       CommandDistributor::forget(clientId);
       client.stop();
@@ -69,7 +69,7 @@ public:
     }
     return true;
   }
-  bool recycle(NetworkInterfaceClient c) {
+  bool recycle(EXNetworkClient c) {
     if (client == c) {
       if (inUse) DIAG(F("WARNING: Duplicate"));
       else DIAG(F("Returning"));
@@ -84,7 +84,7 @@ public:
     return false;
   };
 
-  NetworkInterfaceClient client;
+  EXNetworkClient client;
 
 private:
   bool inUse;
@@ -107,7 +107,7 @@ static portMUX_TYPE udpCommandQueueMux = portMUX_INITIALIZER_UNLOCKED;
 #endif
 
 
-void NetworkInterface::setup() {
+void EXNetwork::setup() {
   #ifdef ARDUINO_ARCH_STM32
   udpTx.stop();
   udpThrottleRx.stop();
@@ -193,9 +193,9 @@ void NetworkInterface::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
 }
 
-bool NetworkInterface::isUp() { return _SHIM_::isUp(); }
+bool EXNetwork::isUp() { return _SHIM_::isUp(); }
 
-void NetworkInterface::udpMulticast(const char *buffer) {
+void EXNetwork::udpMulticast(const char *buffer) {
   if (buffer == NULL || !isUp()) return;
   int count = strlen(buffer);
   if (count <= 0 || count > UDP_RESPONSE_MAX) {
@@ -216,7 +216,7 @@ void NetworkInterface::udpMulticast(const char *buffer) {
   }
 }
 
-void NetworkInterface::udpNodeMulticast(const char *buffer) {
+void EXNetwork::udpNodeMulticast(const char *buffer) {
   if (buffer == NULL || !isUp()) return;
   if (!sendUDP(nodeMulticastIP, NODE_PORT,
                        (const uint8_t *)buffer, strlen(buffer))) {
@@ -224,11 +224,11 @@ void NetworkInterface::udpNodeMulticast(const char *buffer) {
   }
 }
 
-NetworkInterfaceClient NetworkInterface::acceptWebInput() {
+EXNetworkClient EXNetwork::acceptWebInput() {
   return webServer.available();
 }
 
-void NetworkInterface::queueUdpInput(IPAddress remoteIP, int localPort,
+void EXNetwork::queueUdpInput(IPAddress remoteIP, int localPort,
                                      const uint8_t *buffer, int length) {
   if (buffer == NULL) return;
   if (length <= 2 || length > UDP_COMMAND_MAX) {
@@ -267,11 +267,11 @@ void NetworkInterface::queueUdpInput(IPAddress remoteIP, int localPort,
 
 #ifdef ARDUINO_ARCH_ESP32
 // NOTE: This function is called asynchronously by the Wi-Fi code.
-void NetworkInterface::esp32AsyncPacketListener(NetworkInterfaceUDPPacket &packet) {
+void EXNetwork::esp32AsyncPacketListener(EXNetworkUDPPacket &packet) {
   queueUdpInput(packet.remoteIP(), packet.localPort(), packet.data(), packet.length());
 }
 #else
-void NetworkInterface::throttlePacketListener() {
+void EXNetwork::throttlePacketListener() {
   auto packetSize = udpThrottleRx.available();
   if (packetSize < 2) return;
 
@@ -280,7 +280,7 @@ void NetworkInterface::throttlePacketListener() {
   queueUdpInput(udpThrottleRx.remoteIP(), IP_PORT, buffer, length);
 }
 
-void NetworkInterface::nodePacketListener() {
+void EXNetwork::nodePacketListener() {
   auto packetSize = udpNodeRx.available();
   if (packetSize < 2) return;
 
@@ -290,13 +290,13 @@ void NetworkInterface::nodePacketListener() {
 }
 #endif
 
-void NetworkInterface::loop() {
+void EXNetwork::loop() {
   _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
     if (!isUp()) return;
   size_t clientId; // Temporary loop variable.
 
   // Track new socket clients.
-  NetworkInterfaceClient client;
+  EXNetworkClient client;
   if (client = throttleServer.available()) {
     for (clientId = 0; clientId < throttleClients.size(); clientId++) {
       if (throttleClients[clientId].recycle(client)) {
@@ -415,7 +415,7 @@ void NetworkInterface::loop() {
 }
 
 
-void NetworkInterface::teardown() {
+void EXNetwork::teardown() {
   // Stop all locos. This broadcasts speed 1 (estop) and sets all reminders to speed 1.
   DCC::setThrottle(0, 1, 1);
 
@@ -433,6 +433,6 @@ void NetworkInterface::teardown() {
   udpCommandQueueTail = 0;
 }
 
-bool NetworkInterface::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
+bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
   return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
 }

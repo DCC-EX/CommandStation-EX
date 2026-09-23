@@ -120,7 +120,7 @@ void setup()
   );
 
   // Responsibility 2: Start all the communications before the DCC engine
-  NetworkInterface::setup();
+  EXNetwork::setup();
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -188,7 +188,7 @@ void loop()
   SerialManager::loop();
  
   // Responsibility 3: Handle incoming network traffic
-  NetworkInterface::loop();
+  EXNetwork::loop();
 
   RMFT::loop();  // ignored if no automation
 

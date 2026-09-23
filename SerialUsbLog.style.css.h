@@ -1,4 +1,4 @@
-String SerialUsbLog_style_css=R"???(
+const char SerialUsbLog_style_css[]=R"???(
 html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
 body{background:#0f1115;color:#d7dae0;display:flex;flex-direction:column}
 header{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.6rem .75rem;border-bottom:1px solid #2a2d34}

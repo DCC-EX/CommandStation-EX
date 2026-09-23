@@ -32,7 +32,7 @@
 #include "DCCEXParser.h"
 #include "SerialManager.h"
 #include "version.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #include "Display_Implementation.h"
 #include "LCN.h"
 #include "IODevice.h"

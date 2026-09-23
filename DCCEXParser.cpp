@@ -126,7 +126,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "Signals.h"
 #include "NVSTable.h"
 #include "DCCDecoder.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #if defined(ARDUINO_ARCH_ESP32)
 #include "WifiPreferences.h"
 #endif

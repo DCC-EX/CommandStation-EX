@@ -1,4 +1,4 @@
-String SerialUsbLog_script2_js=R"???(
+const char SerialUsbLog_script2_js[]=R"???(
 async function tick(){
 try{
 if(!paused && logEl.selectionStart===logEl.selectionEnd){
