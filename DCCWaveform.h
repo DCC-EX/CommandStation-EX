@@ -83,6 +83,7 @@ class DCCWaveform {
     bool isReminderWindowOpen();
     void promotePendingPacket();
     static bool setRailcom(bool on);
+    static bool pauseRailcom(bool paused);
     inline static bool isRailcom() {
       return railcomActive;
     };
@@ -121,6 +122,7 @@ class DCCWaveform {
     byte pendingRepeats;
     static bool railcomPossible; // High accuracy mode only
     static volatile bool railcomActive;     // switched on by user
+    static volatile bool railcomPaused;     // pause Railcom (during inrush control) switched on motor driver, Mega only
     static bool cutoutNextTime;   // railcom
 #ifdef ARDUINO_ARCH_ESP32
   static RMTChannel *rmtMainChannel;

@@ -126,6 +126,7 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 bool DCCWaveform::railcomPossible=false;     // High accuracy only    
 volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+volatile bool DCCWaveform::railcomPaused=false;     // switched on by overload in motordriver
  
 bool DCCWaveform::setRailcom(bool on) {
   if (on && railcomPossible) {
@@ -135,6 +136,15 @@ bool DCCWaveform::setRailcom(bool on) {
     railcomActive=false;
   } 
   return railcomActive;
+}
+
+bool DCCWaveform::pauseRailcom(bool paused) {
+  if (paused && railcomPossible) {
+    railcomPaused=true;
+  } else {
+    railcomPaused=false;
+  }
+  return railcomPaused;
 }
 
 #pragma GCC push_options
@@ -156,7 +166,7 @@ void DCCWaveform::interrupt2() {
       promotePendingPacket();
 
 #if defined(HAS_ENOUGH_MEMORY)   
-    else if (isMainTrack && railcomActive) {
+    else if (isMainTrack && railcomActive && !railcomPaused) {
       if (remainingPreambles==(requiredPreambles-1)) {
         // First look if we need to start a railcom cutout on next interrupt
         cutoutNextTime= true;

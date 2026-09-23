@@ -460,11 +460,8 @@ void MotorDriver::throttleInrush(bool on) {
   if(on){
     DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
   }
+  DCCWaveform::pauseRailcom(on);
   analogWrite(brakePin,duty);
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-  if (!on && brakePin == 9) // For RailCom cutout: need to reset the OCR2B mangled by analogWrite
-    OCR2B = 0;
-#endif
 #endif
 }
 unsigned int MotorDriver::raw2mA( int raw) {

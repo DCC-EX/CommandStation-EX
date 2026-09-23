@@ -95,7 +95,7 @@ void DCCTimer::startRailcomTimer(byte brakePin) {
   // Prescaler of 32
   TCCR2B =  (1 << CS21) | (1 << CS20); 
   OCR2A = cutoutDuration_uS/timer2_uS_per_tick; // Compare match value for cutout duration in timer2 ticks (2uSec)
-  // OCR2B = 0; Needs to be 0 but is reset in MotorDriver::throttleInrush instead
+  OCR2B = 0; // Needs to be 0 for cutout which conflicts with MotorDriver::throttleInrush, so we pauseRailcom() there
   // Enable Timer2 output on pin 9 (OC2B)
   DDRB |= (1 << DDB1);
 
