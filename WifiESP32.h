@@ -34,19 +34,21 @@ public:
   static bool setup();
   static void loop();
   static bool isUp() { return wifiUp; }
-  static void udpMulticast(const char *buffer, const int count);
-  static void packet_listener(AsyncUDPPacket &packet);
+  static IPAddress getIPAddress() { return WiFi.localIP(); }
+  static void setupMDNS();
+  static void addService(const char *name, const char *proto, uint16_t port);
+  static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
+  static void teardown();
+  
   private:
   static bool setupFromPreferences();
   static bool setupFromConfig(const char *wifiESSID,
 			      const char *wifiPassword,
 			      const byte channel,
 			      const bool forceAP);
-  static void teardown();
   static bool ConnectSTA(const char * SSid, const char * password);
   static bool ConnectAP(const char * SSid, const char * password, byte channel);
   static bool wifiUp;
-  static WiFiServer *server;
   static int16_t wifiLed;
 };
 #endif //WifiESP32_h

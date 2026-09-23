@@ -17,68 +17,22 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #include "NodeManager.h"
-
-#ifndef ARDUINO_ARCH_ESP32
-// dummy NodeManager without ESP32 support
-void NodeManager::setup(bool throttleNode) { (void)throttleNode;}
-void NodeManager::cast(const FSH* format...) {
-    (void)format; // avoid unused parameter warning
-}
-void NodeManager::cast(StringBuffer * buffer) {
-    (void)buffer; // avoid unused parameter warning
-}
-bool NodeManager::isThrottleNode() {
-    return true; // default to true for non-ESP32 platforms
-}
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) { (void)vpin; (void)count; (void)value; }
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) { (void)vpin; (void)count; (void)value; (void)param1; (void)param2; }
-#else
-#include <AsyncUDP.h>
-#include <WiFiUdp.h>
-#include "WifiESP32.h"
-#include "DIAG.h"
-#include "StringFormatter.h"
 #include "DCCEXParser.h"
+#include "NetworkInterface.h"
+#include "StringFormatter.h"
+#include "DIAG.h"
 #include "Turnouts.h"
 
-constexpr uint16_t NODE_PORT = IP_PORT+1;
-#ifndef NODE_GROUP
-    #define NODE_GROUP 254
-#endif 
-const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
-AsyncUDP udpNodeRx;
-AsyncUDP udpNodeTx;
 
-bool NodeManager::started = false;
-bool NodeManager::isThrottleNodeFlag = true;
-
-void NodeManager::setup(bool throttleNode) {
-    isThrottleNodeFlag = throttleNode;
-    if (!udpNodeRx.listenMulticast(nodeMulticastIP, NODE_PORT)) {
-        DIAG(F("Failed to start UDP receiver for DCC-EX Node traffic"));
-        return;
-    }
-    if (!udpNodeTx.connect(nodeMulticastIP, NODE_PORT)) {
-        DIAG(F("Failed to start UDP transmitter for DCC-EX Node traffic"));
-        return;
-    }
-    started = true;
-
-    // the packet listener will push received packets to the command parser via a queue.
-    udpNodeRx.onPacket(WifiESP::packet_listener);
-    DIAG(F("UDP receiver for DCC-EX Node traffic started on multicast group %s:%d"),
-         nodeMulticastIP.toString().c_str(), NODE_PORT);
-
-    if (!throttleNode) {
-        DIAG(F("This node is not a throttle node.  It will not accept throttle connectioms"));
-    }
+bool NodeManager::enabled = false;
+void NodeManager::setup(bool enabledFlag) {
+    enabled = enabledFlag;
 }
 
 void NodeManager::cast(const FSH* format...) {
-    if (!started) return;
-    StringBuffer buffer(260); // max unfragmented UDP payload over Ethernet/WiFi
+    if (!enabled) return;
+    StringBuffer buffer(260);
     va_list args;
     va_start(args, format);
     StringFormatter::send2(&buffer, format, args);
@@ -86,36 +40,30 @@ void NodeManager::cast(const FSH* format...) {
     cast(&buffer);
 }
 
-void NodeManager::cast(StringBuffer * buffer) {
-    if (!started || buffer == nullptr || buffer->getLength() <= 0) return;    
-    udpNodeTx.print(buffer->getString());
+void NodeManager::cast(StringBuffer *buffer) {
+    if (!enabled || buffer == nullptr || buffer->getLength() <= 0) return;
+    NetworkInterface::udpNodeMulticast(buffer->getString());
     if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value) {
-    if (!started) return;
-    if (!IODevice::isSharedWrite(vpin, count)) return; // only send if this is a shared write
-    StringBuffer buffer(128); 
-    StringFormatter::send(&buffer, F("<z %d %d %d>"), vpin, value,count);
-    cast(&buffer);
-}
-
-void NodeManager::castVpin(VPIN vpin, int16_t count,int16_t value, int16_t param1, int16_t param2) {
-    if (!started) return;
-    if (!IODevice::isSharedWrite(vpin, count)) return; // only send if this is a shared write
+void NodeManager::castVpin(VPIN vpin, int16_t count, int16_t value) {
+    if (!enabled || !IODevice::isSharedWrite(vpin, count)) return;
     StringBuffer buffer(128);
-    StringFormatter::send(&buffer, F("<z %d %d %d %d %d>"), vpin, value,(uint16_t)param1,param2,count);
+    StringFormatter::send(&buffer, F("<z %d %d %d>"), vpin, value, count);
     cast(&buffer);
 }
 
-void NodeManager::parse(byte * cmd) {
-    if (Diag::NODE) DIAG(F("Node in: %s"),cmd);
+void NodeManager::castVpin(VPIN vpin, int16_t count, int16_t value,
+                           int16_t param1, int16_t param2) {
+    if (!enabled || !IODevice::isSharedWrite(vpin, count)) return;
+    StringBuffer buffer(128);
+    StringFormatter::send(&buffer, F("<z %d %d %d %d %d>"),
+                          vpin, value, (uint16_t)param1, param2, count);
+    cast(&buffer);
+}
+
+void NodeManager::parse(byte *cmd) {
+    if (Diag::NODE) DIAG(F("Node in: %s"), cmd);
     DCCEXParser::parseNodeTraffic(cmd);
 }
-
-bool NodeManager::isThrottleNode() {
-    return isThrottleNodeFlag;
-}
-
-#endif
 

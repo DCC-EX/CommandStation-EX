@@ -145,6 +145,7 @@ void setup()
     Diag::OTA = true;
   #endif // OTA_AUTO_INIT
 #endif // ETHERNET_ON
+  NetworkInterface::setup();
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -170,22 +171,17 @@ void setup()
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
-  if (NodeManager::isThrottleNode()) {
-    startupPendingCS = true; // node will request turnouts list from CS on next loop
-
-  } else {
-    nodeSharePending = true; // node Will share turnouts list to CS on next loop
-  }
+  startupPendingCS = true; // node will request turnouts list from CS on next loop
+  nodeSharePending = true; // node Will share turnouts list to CS on next loop
   LCD(3, F("Ready"));
 
 }
 
 void loop()
 {
-  #ifdef ENABLE_SERIAL_LOG
-    SerialLog.loop();
-  #endif
-
+  
+  SerialLog.loop();
+  
 #ifdef ARDUINO_ARCH_ESP32
 
 #ifdef BOOSTER_INPUT
@@ -279,6 +275,8 @@ void loop()
 #if ETHERNET_ON
   EthernetInterface::loop();
 #endif
+  // Responsibility 3: Handle incoming network traffic
+  NetworkInterface::loop();
 
   RMFT::loop();  // ignored if no automation
 

@@ -114,8 +114,7 @@
     // really has been a change.
     if ( _turnoutData.closed != closeFlag) {
       _turnoutData.closed = closeFlag;
-      if (NodeManager::isThrottleNode())
-        CommandDistributor::broadcastTurnout(getId(), closeFlag);
+      CommandDistributor::broadcastTurnout(getId(), closeFlag);
     }
 #if defined(EXRAIL_ACTIVE)
     RMFT2::turnoutEvent(getId(), closeFlag);
@@ -136,7 +135,7 @@
 #if defined(EXRAIL_ACTIVE)
     RMFT2::turnoutEvent(id, closeFlag);    
 #endif
-    if (NodeManager::isThrottleNode() && !tt->isHidden())
+    if ( !tt->isHidden())
       CommandDistributor::broadcastTurnout(id, closeFlag);
 
 #ifndef DISABLE_EEPROM

@@ -62,20 +62,6 @@ enum TRACK_MODE : byte {
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 
-#if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
-#define HAVE_PORTA(X) X
-#define HAVE_PORTB(X) X
-#define HAVE_PORTC(X) X
-#endif
-#if defined(ARDUINO_AVR_UNO)
-#define HAVE_PORTB(X) X
-#endif
-#if defined(ARDUINO_ARCH_SAMD)
-#define PORTA REG_PORT_OUT0
-#define HAVE_PORTA(X) X
-#define PORTB REG_PORT_OUT1
-#define HAVE_PORTB(X) X
-#endif
 #if defined(ARDUINO_ARCH_STM32)
 #define PORTA GPIOA->ODR
 #define HAVE_PORTA(X) X
