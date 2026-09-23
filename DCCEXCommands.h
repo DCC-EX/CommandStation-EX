@@ -422,10 +422,6 @@ ZZ(D,HAL,SHOW)  // Show HAL devices table
         IODevice::DumpAll();
 ZZ(D,HAL,RESET) // Reset all HAL devices
         IODevice::reset();
-ZZ(D,OTA,ON) // turn ota on
-        Diag::OTA = true;
-ZZ(D,OTA,OFF)
-        Diag::OTA = false;
 ZZ(D,TT,vpin,steps) // Test turntable
         IODevice::writeAnalogue(vpin,steps,0);
 ZZ(D,TT,vpin,steps,activity) // Test turntable

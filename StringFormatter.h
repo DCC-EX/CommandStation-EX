@@ -33,7 +33,6 @@ class Diag {
   static bool RAILCOM;
   static bool WEBSOCKET;
   static bool SNIFFER;
-  static bool OTA;
   static bool NODE;
 };
 

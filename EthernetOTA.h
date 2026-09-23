@@ -27,10 +27,16 @@ public:
   EthernetOTAClass& onStart(std::function<void(void)> callback);
   EthernetOTAClass& onEnd(std::function<void(void)> callback);
   EthernetOTAClass& onError(std::function<void(int)> callback);
-  void begin();
-  void handle();
+  template<class NetworkShim>
+  void begin() {
+    begin(NetworkShim::addService, NetworkShim::addServiceTxt);
+  }
+  void loop();
 
 private:
+  using AddServiceCallback = void (*)(const char*, const char*, uint16_t);
+  using AddServiceTxtCallback = void (*)(const char*, const char*, const char*, const char*);
+
   enum State { IDLE, WAIT_AUTH, RUN_UPDATE };
 
   State state;
@@ -49,6 +55,8 @@ private:
   std::function<void(int)> errorCallback;
   OTAUDP udp;
 
+  void configure();
+  void begin(AddServiceCallback addService, AddServiceTxtCallback addServiceTxt);
   void receiveInvitation();
   void receiveAuthentication();
   void runUpdate();

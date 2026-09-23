@@ -7,6 +7,12 @@
 #if !ETHERNET_ON
 #include <ESPmDNS.h>
 #endif
+#include "TrackManager.h"
+#include "Display_Implementation.h"
+#include "DCC.h"
+#include "CommandDistributor.h"
+#include "DIAG.h"
+
 
 static constexpr uint16_t ETHERNET_OTA_PORT = 3232;
 static constexpr int OTA_AUTH_ERROR = 0;
@@ -14,6 +20,13 @@ static constexpr int OTA_BEGIN_ERROR = 1;
 static constexpr int OTA_CONNECT_ERROR = 2;
 static constexpr int OTA_RECEIVE_ERROR = 3;
 static constexpr int OTA_END_ERROR = 4;
+
+#ifndef OTA_AUTO_INIT
+#define OTA_AUTO_INIT false
+#endif
+
+#define ETHERNET_OTA_STR(tok) tok
+#define ETHERNET_OTA_BOARD ETHERNET_OTA_STR(ARDUINO_VARIANT)
 
 EthernetOTAClass EthernetOTA;
 
@@ -54,15 +67,41 @@ EthernetOTAClass& EthernetOTAClass::onError(std::function<void(int)> callback) {
   return *this;
 }
 
-void EthernetOTAClass::begin() {
+void EthernetOTAClass::configure() {
+  setHostname(
+#if ETHERNET_ON
+    ETHERNET_HOSTNAME
+#else
+    WIFI_HOSTNAME
+#endif
+  );
+#ifdef OTA_AUTH
+  setPassword(OTA_AUTH);
+#endif // OTA_AUTH
+}
+
+void EthernetOTAClass::begin(AddServiceCallback addService, AddServiceTxtCallback addServiceTxt) {
   if (!initialized) {
-    udp.begin(ETHERNET_OTA_PORT);
-  #if !ETHERNET_ON
-    MDNS.enableArduino(ETHERNET_OTA_PORT, password.length() > 0);
-  #endif
+    configure();
+
+    if (!OTA_AUTO_INIT) {
+      DIAG(F("EthernetOTA disabled"));
+      return;
+    }
+
+    addService("_arduino", "_tcp", ETHERNET_OTA_PORT);
+    addServiceTxt("_arduino", "_tcp", "board", ETHERNET_OTA_BOARD);
+    addServiceTxt("_arduino", "_tcp", "tcp_check", "no");
+    addServiceTxt("_arduino", "_tcp", "ssh_upload", "no");
+    addServiceTxt("_arduino", "_tcp", "auth_upload", password.length() ? "yes" : "no");
+
+    const uint8_t beginResult = udp.begin(ETHERNET_OTA_PORT) ? 0 : 1;
+    DIAG(F("EthernetOTA UDP begin port %d result %d"), ETHERNET_OTA_PORT, beginResult);
     initialized = true;
     state = IDLE;
+
   }
+
 }
 
 void EthernetOTAClass::sendResponse(const char* response) {
@@ -192,8 +231,35 @@ void EthernetOTAClass::runUpdate() {
   }
 }
 
-void EthernetOTAClass::handle() {
+void EthernetOTAClass::loop() {
   if (!initialized) return;
+
+  static bool otaInitialised = false;
+  if (!otaInitialised) {
+    EthernetOTA.onStart([]() {
+      DCC::setThrottle(0,1,1);
+      TrackManager::setMainPower(POWERMODE::OFF);
+      TrackManager::setProgPower(POWERMODE::OFF);
+      CommandDistributor::broadcastPower();
+      DISPLAY_START (
+        LCD(0,F("OTA update"));
+        LCD(1,F("In progress..."));
+      );
+    });
+    EthernetOTA.onEnd([]() {
+      DISPLAY_START (
+        LCD(0,F("OTA update"));
+        LCD(1,F("Complete"));
+      );
+    });
+    EthernetOTA.onError([](int error) {
+      DISPLAY_START (
+        LCD(0,F("OTA update"));
+        LCD(1,F("Error: %d"), error);
+      );
+    });
+    otaInitialised = true;
+  }
 
   if (state == RUN_UPDATE) {
     runUpdate();

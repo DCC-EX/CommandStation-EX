@@ -388,7 +388,7 @@ The configuration file for DCC-EX Command Station
 /////////////////////////////////////////////////////////////////////////////////////
 // OTA_AUTO_INIT: Set this to true if you want OTA updates to be initialized
 // automatically upon startup. If set to false, OTA updates will remain
-// unavailable until the "<C OTA 1>" command is executed.
+// unavailable until firmware is built with this set to true.
 // Please note that this feature requires the use of ARDUINO_ARCH_ESP32 as your board.
 #define OTA_AUTO_INIT false
 //
@@ -398,5 +398,5 @@ The configuration file for DCC-EX Command Station
 // in the relevant environment within the platformio.ini file.
 // To deactivate OTA authorization, comment out the line below and comment out
 // the "upload_flags" line in the platformio.ini file.
-// #define OTA_AUTH "dccex-ota"
+#define OTA_AUTH "dccex-ota"
 /////////////////////////////////////////////////////////////////////////////////////
