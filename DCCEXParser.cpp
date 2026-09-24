@@ -309,6 +309,7 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<' || com[0] == ' ')
         com++; // strip off any number of < or spaces
+    TrackManager::autoPowerOffActivity();
     byte opcode = com[0];
     int16_t splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
     if (splitnum < 0 || splitnum >= MAX_COMMAND_PARAMS) // if arguments are broken, leave but via printing <X>

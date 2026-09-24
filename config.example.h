@@ -28,6 +28,11 @@ The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 
+// Optional external station-supply relay. Define both macros to opt in.
+// AUTO_POWER_OFF_PIN is driven HIGH after startup and LOW after inactivity.
+// #define AUTO_POWER_OFF_PIN 7
+// #define AUTO_POWER_OFF_TIMEOUT_MS 600000UL
+
 /////////////////////////////////////////////////////////////////////////////////////
 // If you want to add your own motor driver definition(s), add them here
 //   For example MY_SHIELD with display name "MINE":

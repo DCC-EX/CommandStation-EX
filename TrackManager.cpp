@@ -32,6 +32,7 @@
 #include "CommandDistributor.h"
 #include "DCCEXParser.h"
 #include "KeywordHasher.h"
+#include "AutoPowerOff.h"
 // Virtualised Motor shield multi-track hardware Interface
 #define FOR_EACH_TRACK(t) for (byte t=0;t<=lastTrack;t++)
     
@@ -51,6 +52,14 @@ int16_t TrackManager::joinRelay=UNUSED_PIN;
 #ifdef ARDUINO_ARCH_ESP32
 byte TrackManager::tempProgTrack=MAX_TRACKS+1; // MAX_TRACKS+1 is the unused flag
 #endif
+
+#if defined(AUTO_POWER_OFF_PIN) && defined(AUTO_POWER_OFF_TIMEOUT_MS)
+static void autoPowerOffRelayOff() { digitalWrite(AUTO_POWER_OFF_PIN, LOW); }
+static AutoPowerOff trackAutoPowerOff(AUTO_POWER_OFF_TIMEOUT_MS, autoPowerOffRelayOff);
+#else
+static AutoPowerOff trackAutoPowerOff(0, NULL);
+#endif
+void TrackManager::autoPowerOffActivity() { trackAutoPowerOff.activity(millis()); }
 
 #ifdef ANALOG_READ_INTERRUPT
 /*
@@ -131,6 +140,11 @@ void TrackManager::Setup(const FSH * shieldname,
     }
   }
   DCC::setShieldName(shieldname);
+#if defined(AUTO_POWER_OFF_PIN) && defined(AUTO_POWER_OFF_TIMEOUT_MS)
+  pinMode(AUTO_POWER_OFF_PIN, OUTPUT);
+  digitalWrite(AUTO_POWER_OFF_PIN, HIGH);
+#endif
+  trackAutoPowerOff.begin(millis());
 }
 
 void TrackManager::addTrack(byte t, MotorDriver* driver) {
@@ -504,6 +518,7 @@ void TrackManager::streamTrackState(Print* stream, byte t) {
 byte TrackManager::nextCycleTrack=MAX_TRACKS;
 
 void TrackManager::loop() {
+    trackAutoPowerOff.loop(millis());
     DCCWaveform::loop();
 #ifndef DISABLE_PROG
     DCCACK::loop();
