@@ -280,10 +280,11 @@ byte *DCCEXParser::parseOne(Print *stream, byte *com) {
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
     int16_t p[MAX_COMMAND_PARAMS];
-    while (com[0] == '<' || com[0] == ' ')
-        com++; // strip off any number of < or spaces
+    while (com[0] == '<' || com[0] == ' ' || com[0] == '\r' || com[0] == '\n')
+        com++; // strip off any number of < or white space
     byte *commandStart = com;
     byte opcode = com[0];
+    if (opcode=='\0') return nullptr;
     int16_t splitnum =0;
 
     splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
