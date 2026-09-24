@@ -31,7 +31,6 @@ IPAddress throttleMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[
 
 constexpr uint16_t UDP_COMMAND_MAX = 255;    // max inbound command payload (fits one DCC-EX command)
 constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
-constexpr uint8_t UDP_COMMAND_QUEUE_DEPTH = 64;
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
@@ -71,8 +70,8 @@ public:
   }
   bool recycle(EXNetworkClient c) {
     if (client == c) {
-      if (inUse) DIAG(F("WARNING: Duplicate"));
-      else DIAG(F("Returning"));
+      // ESP32: caller will warn about duplicate clients/recycling
+      // STM32: this is normal behavior due to .available() returning clients with unread data.
       inUse = true;
       return true;
     }
@@ -91,33 +90,12 @@ private:
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
 
-struct UdpCommand {
-  uint16_t len;
-  uint32_t receivedMillis;
-  IPAddress remoteIP;  // Originator IP.
-  uint16_t localPort;  // Arrival port.
-  byte data[UDP_COMMAND_MAX + 1]; // +1 for null terminator.
-};
-static UdpCommand udpCommandQueue[UDP_COMMAND_QUEUE_DEPTH];
-static volatile uint8_t udpCommandQueueHead = 0;
-static volatile uint8_t udpCommandQueueTail = 0;
-static volatile uint32_t udpCommandDropCount = 0;
-#ifdef ARDUINO_ARCH_ESP32
-static portMUX_TYPE udpCommandQueueMux = portMUX_INITIALIZER_UNLOCKED;
-#endif
-
-
 void EXNetwork::setup() {
   #ifdef ARDUINO_ARCH_STM32
   udpTx.stop();
   udpThrottleRx.stop();
   udpNodeRx.stop();
   #endif
-
-  // Initialize the UDP command queue for handling incoming UDP commands.
-  udpCommandQueueHead = 0;
-  udpCommandQueueTail = 0;
-  udpCommandDropCount = 0;
 
   _SHIM_::setup();
   auto ipaddress = _SHIM_::getIPAddress();
@@ -163,15 +141,13 @@ void EXNetwork::setup() {
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
-  // listen for incoming throttle traffic via UDP.
-    if (udpThrottleRx.listenMulticast(throttleMulticastIP, IP_PORT)) {
-    udpThrottleRx.onPacket(esp32AsyncPacketListener);
+  // Listen for incoming throttle traffic via UDP.
+    if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
     DIAG(F("udpThrottleRx started on %s:%d"),
       throttleMulticastIP.toString().c_str(), IP_PORT);
   }
   // Receive node traffic via UDP multicast.
-  if (udpNodeRx.listenMulticast(nodeMulticastIP, NODE_PORT)) {
-    udpNodeRx.onPacket(esp32AsyncPacketListener);
+  if (udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT)) {
     DIAG(F("udpNodeRx started on %s:%d"),
          nodeMulticastIP.toString().c_str(), NODE_PORT);
   } else {
@@ -228,80 +204,61 @@ EXNetworkClient EXNetwork::acceptWebInput() {
   return webServer.available();
 }
 
-void EXNetwork::queueUdpInput(IPAddress remoteIP, int localPort,
-                                     const uint8_t *buffer, int length) {
-  if (buffer == NULL) return;
-  if (length <= 2 || length > UDP_COMMAND_MAX) {
-    DIAG(F("queueUdpInput: Invalid length %d, %s"), length, buffer);
+void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
+  int packetSize = udp.available();
+  if (packetSize <= 2) return;
+
+  // Read the incoming UDP packet into a buffer.
+  byte data[UDP_COMMAND_MAX + 1];
+  int length = udp.read(data, UDP_COMMAND_MAX);
+  if (length <= 2) return;
+  data[length] = 0;
+
+  // Pass node traffic to NodeManager
+  if (localPort == NODE_PORT) {
+    NodeManager::parse(data);
     return;
   }
-#ifdef ARDUINO_ARCH_ESP32
-  portENTER_CRITICAL(&udpCommandQueueMux);
-#endif
-  uint8_t nextTail = (udpCommandQueueTail + 1) % UDP_COMMAND_QUEUE_DEPTH;
-  if (nextTail == udpCommandQueueHead) {
-    udpCommandDropCount++;
-    if ((udpCommandDropCount & 0x3F) == 1) {
-      DIAG(F("queueUdpInput: command queue full, dropped=%d"), udpCommandDropCount);
-    }
-#ifdef ARDUINO_ARCH_ESP32
-    portEXIT_CRITICAL(&udpCommandQueueMux);
-#endif
-    return;
+ 
+  // detect UDP throttles that can't listen to the UDP broadcast and remember them for unicast responses
+  IPAddress remoteIP = udp.remoteIP();
+  if (length >= 3 && data[0] == '<' && data[1] == '#' && data[2] == '>') {
+    rememberUdpDiscoveryClient(remoteIP);
   }
-
-  UdpCommand &slot = udpCommandQueue[udpCommandQueueTail];
-  slot.len = length;
-  slot.receivedMillis = millis();
-  slot.remoteIP = remoteIP;
-  slot.localPort = localPort;
-  memcpy(slot.data, buffer, slot.len);
-  slot.data[slot.len] = 0;
-
-  // Publish the completed slot last. This is a single-producer/single-consumer queue.
-  udpCommandQueueTail = nextTail;
-#ifdef ARDUINO_ARCH_ESP32
-  portEXIT_CRITICAL(&udpCommandQueueMux);
-#endif
+ 
+  // process command collecting results in a buffer
+  StringBuffer response(UDP_RESPONSE_MAX);
+  DCCEXParser::parse(&response, data);
+  if (response.getLength() > 0) {
+    sendUDP(remoteIP, IP_PORT,
+            (const byte *)response.getString(), response.getLength());
+  }
 }
-
-#ifdef ARDUINO_ARCH_ESP32
-// NOTE: This function is called asynchronously by the Wi-Fi code.
-void EXNetwork::esp32AsyncPacketListener(EXNetworkUDPPacket &packet) {
-  queueUdpInput(packet.remoteIP(), packet.localPort(), packet.data(), packet.length());
-}
-#else
-void EXNetwork::throttlePacketListener() {
-  auto packetSize = udpThrottleRx.available();
-  if (packetSize < 2) return;
-
-  byte buffer[UDP_COMMAND_MAX];
-  auto length = udpThrottleRx.read(buffer, sizeof(buffer));
-  queueUdpInput(udpThrottleRx.remoteIP(), IP_PORT, buffer, length);
-}
-
-void EXNetwork::nodePacketListener() {
-  auto packetSize = udpNodeRx.available();
-  if (packetSize < 2) return;
-
-  byte buffer[UDP_COMMAND_MAX];
-  auto length = udpNodeRx.read(buffer, sizeof(buffer));
-  queueUdpInput(udpNodeRx.remoteIP(), NODE_PORT, buffer, length);
-}
-#endif
 
 void EXNetwork::loop() {
   _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
-    if (!isUp()) return;
-  size_t clientId; // Temporary loop variable.
+  if (!isUp()) return;
+  
+  // Track new socket clients. 
+  // STM32: .available() returns any client with data waiting.
+  // ESP32: .available() returns only new clients.
 
-  // Track new socket clients.
+  size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
   if (client = throttleServer.available()) {
+
+    // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
+    // ESP32: recycling a client happens only once per client connect.
+    // STM32: recycling a client happens every incoming packet.
+        
     for (clientId = 0; clientId < throttleClients.size(); clientId++) {
       if (throttleClients[clientId].recycle(client)) {
+        #ifdef ARDUINO_ARCH_ESP32
+        // ESP32: recycling a client that has already been accepted.
         DIAG(F("Recycle client %d %s:%d"), clientId,
              client.remoteIP().toString().c_str(), client.remotePort());
+        #endif
+        //STM32: recycling a client happens every incoming packet.
         break;
       }
     }
@@ -328,53 +285,16 @@ void EXNetwork::loop() {
     }
   }
 
-  // Poll STM32 UDP sockets from the main loop. The ESP32 path fills the queue
-  // asynchronously from its Wi-Fi callbacks.
-#ifndef ARDUINO_ARCH_ESP32
+  // Poll and process UDP packets synchronously from the main loop.
   while (udpThrottleRx.parsePacket() > 0) {
-    throttlePacketListener();
+    processUdpPacket(udpThrottleRx, IP_PORT);
   }
+  
   while (udpNodeRx.parsePacket() > 0) {
-    nodePacketListener();
-  }
-#endif
-
-  // Drain queued UDP commands collected by the UDP receive path.
-  if (udpCommandQueueHead != udpCommandQueueTail) {
-    UdpCommand cmd;
-    while (udpCommandQueueHead != udpCommandQueueTail) {
-    #ifdef ARDUINO_ARCH_ESP32
-      portENTER_CRITICAL(&udpCommandQueueMux);
-    #endif
-      uint8_t head = udpCommandQueueHead;
-      cmd = udpCommandQueue[head];
-      udpCommandQueueHead = (head + 1) % UDP_COMMAND_QUEUE_DEPTH;
-#ifdef ARDUINO_ARCH_ESP32
-  portEXIT_CRITICAL(&udpCommandQueueMux);
-#endif
-
-      if (cmd.localPort == NODE_PORT) {
-        // This is a node multicast; no response is required.
-        NodeManager::parse(cmd.data);
-        return;
-      }
-
-      StringBuffer response(UDP_RESPONSE_MAX);
-      if (cmd.len >= 3 && cmd.data[0] == '<' && cmd.data[1] == '#' && cmd.data[2] == '>') {
-        rememberUdpDiscoveryClient(cmd.remoteIP);
-      }
-      DCCEXParser::parse(&response, cmd.data);
-      if (Diag::WIFI) {
-        DIAG(F("UDP Command: %s>, Response: %s"), cmd.data, response.getString());
-      }
-      if (response.getLength() > 0) {
-        sendUDP(cmd.remoteIP, IP_PORT,
-                        (const byte *)response.getString(), response.getLength());
-      }
-    }
+    processUdpPacket(udpNodeRx, NODE_PORT);
   }
 
-  WiThrottle::loop(outboundRing);
+  WiThrottle::loop(outboundRing); // withrottle may need to broadcast changes 
 
   // Send the next queued outbound message.
   auto readValue = outboundRing->read();
@@ -429,8 +349,6 @@ void EXNetwork::teardown() {
   throttleServer.end();
 
   _SHIM_::teardown();
-  udpCommandQueueHead = 0;
-  udpCommandQueueTail = 0;
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {

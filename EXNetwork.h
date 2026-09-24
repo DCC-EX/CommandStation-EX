@@ -2,11 +2,11 @@
 #define EXNetwork_h
 #ifdef ARDUINO_ARCH_ESP32
   #include "WifiESP32.h"
+  #include <WiFiUdp.h>
   typedef WiFiClient EXNetworkClient;
   typedef WiFiServer EXNetworkServer;
-  typedef AsyncUDP EXNetworkUDPRx;
+  typedef WiFiUDP EXNetworkUDPRx;
   typedef WiFiUDP EXNetworkUDPTx;
-  typedef AsyncUDPPacket EXNetworkUDPPacket;
   #define _SHIM_ WifiESP
   #else 
   #include "EthernetInterface.h"
@@ -29,12 +29,7 @@ public:
   
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
-  static void throttlePacketListener();
-  static void nodePacketListener();
-  #ifdef ARDUINO_ARCH_ESP32
-  static void esp32AsyncPacketListener(EXNetworkUDPPacket &packet);
-  #endif
-  static void queueUdpInput(IPAddress remoteIP,int localPort,const uint8_t *buffer,int length);
+  static void processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort);
 };
 
 #endif
