@@ -56,9 +56,6 @@ You must use Version 5.6.x
 #include "DCCDecoder.h"
 #include "NodeManager.h"
 
-#if WIFI_ON || ETHERNET_ON
-#include "EthernetOTA.h"
-#endif
 Sniffer *dccSniffer = NULL;
 bool DCCDecoder::active = false;
 #endif // ARDUINO_ARCH_ESP32
@@ -123,28 +120,7 @@ void setup()
   );
 
   // Responsibility 2: Start all the communications before the DCC engine
-  // Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
-  // Start Ethernet if it exists
-#if WIFI_ON
-  PASSWDCHECK(WIFI_PASSWORD); // compile time check
-#ifndef ARDUINO_ARCH_ESP32
-  WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL, WIFI_FORCE_AP);
-#else
-  WifiESP::setup();
-
-  #if OTA_AUTO_INIT
-    Diag::OTA = true;
-  #endif // OTA_AUTO_INIT
-  
-#endif // ARDUINO_ARCH_ESP32
-#endif // WIFI_ON
-
-#if ETHERNET_ON
-  EthernetInterface::setup();
-  #if ARDUINO_ARCH_ESP32 && OTA_AUTO_INIT
-    Diag::OTA = true;
-  #endif // OTA_AUTO_INIT
-#endif // ETHERNET_ON
+  NetworkInterface::setup();
   
   // Responsibility 3: Start the DCC engine.
   DCC::begin();
@@ -170,22 +146,17 @@ void setup()
   LCN_SERIAL.begin(115200);
   LCN::init(LCN_SERIAL);
   #endif
-  if (NodeManager::isThrottleNode()) {
-    startupPendingCS = true; // node will request turnouts list from CS on next loop
-
-  } else {
-    nodeSharePending = true; // node Will share turnouts list to CS on next loop
-  }
+  startupPendingCS = true; // node will request turnouts list from CS on next loop
+  nodeSharePending = true; // node Will share turnouts list to CS on next loop
   LCD(3, F("Ready"));
 
 }
 
 void loop()
 {
-  #ifdef ENABLE_SERIAL_LOG
-    SerialLog.loop();
-  #endif
-
+  
+  SerialLog.loop();
+  
 #ifdef ARDUINO_ARCH_ESP32
 
 #ifdef BOOSTER_INPUT
@@ -216,69 +187,8 @@ void loop()
   // Responsibility 2: handle any incoming commands on USB connection
   SerialManager::loop();
  
-  // Responsibility 3: Optionally handle any incoming WiFi traffic
-#ifndef ARDUINO_ARCH_ESP32
-#if WIFI_ON
-  WifiInterface::loop();
- 
-#endif //WIFI_ON
-#else  //ARDUINO_ARCH_ESP32
-#if WIFI_ON
-#ifndef WIFI_TASK_ON_CORE0
-  WifiESP::loop();
-#endif
-#endif //WIFI_ON
-
- // Responsibility 4: Optionally handle OTA updates
-  if (Diag::OTA) {
-    static bool otaInitialised = false;
-    // Initialise OTA if not already done
-    if (!otaInitialised) {
-      EthernetOTA.setHostname(
-    #if ETHERNET_ON
-        ETHERNET_HOSTNAME
-    #else
-        WIFI_HOSTNAME
-    #endif
-      );
-      EthernetOTA.onStart([]() {
-        DCC::setThrottle(0,1,1);
-        TrackManager::setMainPower(POWERMODE::OFF);
-        TrackManager::setProgPower(POWERMODE::OFF);
-        CommandDistributor::broadcastPower();
-        DISPLAY_START (
-          LCD(0,F("OTA update"));
-          LCD(1,F("In progress..."));
-        );
-      });
-      EthernetOTA.onEnd([]() {
-        DISPLAY_START (
-          LCD(0,F("OTA update"));
-          LCD(1,F("Complete"));
-        );
-      });
-      EthernetOTA.onError([](int error) {
-        DISPLAY_START (
-          LCD(0,F("OTA update"));
-          LCD(1,F("Error: %d"), error);
-        );
-      });
-      #ifdef OTA_AUTH
-        EthernetOTA.setPassword(OTA_AUTH);
-      #endif // OTA_AUTH
-      EthernetOTA.begin();
-      otaInitialised = true;
-    }
-    // Handle OTA if initialised
-    else {
-      EthernetOTA.handle();
-    }
-  }
-
-#endif //ARDUINO_ARCH_ESP32
-#if ETHERNET_ON
-  EthernetInterface::loop();
-#endif
+  // Responsibility 3: Handle incoming network traffic
+  NetworkInterface::loop();
 
   RMFT::loop();  // ignored if no automation
 

@@ -41,10 +41,10 @@
  */
 
 #include "defines.h"
-#ifdef ENABLE_SERIAL_LOG
-// This entire file is ignored if ENABLE_SERIAL_LOG is not defined in defines.h.
+
 #include "Arduino.h"
 #include "DIAG.h"
+#include "NetworkInterface.h"
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
@@ -55,6 +55,7 @@
 #include "SerialUsbLog.script3.js.h"
 #include "NVSTable.h"
 #include "SerialUsbLog.favicon.h"
+#include "NetworkInterface.h"
 
 
 #if WIFI_ON
@@ -77,7 +78,6 @@
   LogEthernetServer server(80);
 #endif
 
-#include "SerialUsbLog.h"
 
   // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
@@ -140,7 +140,7 @@ static int queryParamInt(const String& uri, const char* key, int defaultValue) {
 
 static String uriDecode(const String& str) {
   String result;
-  for (int i = 0; i < str.length(); i++) {
+  for (unsigned int i = 0; i < str.length(); i++) {
     if (str[i] == '%' && i + 2 < str.length()) {
       // hex decode: %20 → space, %2B → +
       char hex[3] = { str[i+1], str[i+2], 0 };
@@ -276,9 +276,6 @@ uint32_t SerialUsbLog::getWriteSeq() const {
 size_t SerialUsbLog::streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t maxBytes, uint32_t& nextSeq) {
   if (!targetStream) { nextSeq = fromSeq; return 0; }
 
-// #if defined(ARDUINO_ARCH_ESP32)
-//   portENTER_CRITICAL(&_mux);
-// #endif
 
   const uint32_t writeSeq = _seq_write;
   const uint32_t earliest = (writeSeq > (uint32_t)_bufferSize) ? (writeSeq - (uint32_t)_bufferSize) : 0;
@@ -298,9 +295,6 @@ size_t SerialUsbLog::streamOutFrom(Print* targetStream, uint32_t fromSeq, size_t
 
   nextSeq = start + available;
 
-// #if defined(ARDUINO_ARCH_ESP32)
-//   portEXIT_CRITICAL(&_mux);
-// #endif
 
   return (size_t)available;
 }
@@ -388,27 +382,24 @@ LogPage* LogPage::first = nullptr;
 void SerialUsbLog::loop() {
 
   static bool started = false;
-  if (!started 
-  #if WIFI_ON  
-     && WifiESP::isUp()
-  #endif
-  ) {
+  if (!started && NetworkInterface::isUp())
+   {
     new LogPage("/style.css", SerialUsbLog_style_css);
     new LogPage("/script1.js", SerialUsbLog_script1_js);
     new LogPage("/script2.js", SerialUsbLog_script2_js);
     new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
     // user pages may be added later with exrail
-    server.begin();
     started = true;
     return;
   }
 
-  auto client = server.available();
+  auto client = NetworkInterface::acceptWebInput();
   if (!client) return;
   
   // Read request line: "GET /path?... HTTP/1.1"
-  String reqLine = client.readStringUntil('\r');
+  String reqLine = client.readStringUntil('\n');
+  reqLine.trim();
   if (reqLine.length() == 0) { client.stop(); return; }
   if (Diag::WIFI || Diag::ETHERNET) {
     StringFormatter::send(Serial,F("<* http: %s *>\n"), reqLine.c_str());
@@ -552,4 +543,3 @@ void SerialUsbLog::addUserPage(const String& path, const String& content, const 
   new LogPage(path, content,displayname);
 }
 // --------------------------- End of SerialUsbLog.cpp ---------------------------
-#endif // ENABLE_SERIAL_LOG

@@ -206,7 +206,14 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       if (Diag::WITHROTTLE) DIAG(F("WiThrottle(%d) Quit"),clientid);
       delete this; 
-      break;           
+      break;
+    case 'D':
+      // This is the send raw DCC packet command, next byte would be repeat count
+      // char (as ASCII number) then the packet formated as hex ("D%c%2x %2x %2x")
+      // But we do not support it because the whole thing is a badly documented kluge.
+      // So use "Hm" to return a non-fatal warning instead.
+      StringFormatter::send(stream, F("HmCommand unsupported. For this operation, use the DCC-EX protocol instead"));
+      break;
     }
     // skip over cmd until 0 or past \r or \n
     while(*cmd !='\0' && *cmd != '\r' && *cmd !='\n') cmd++;

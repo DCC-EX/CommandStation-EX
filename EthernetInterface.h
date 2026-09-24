@@ -29,10 +29,9 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
+#if defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
 
 #include "defines.h"
-#if ETHERNET_ON == true
-#include "DCCEXParser.h"
 #include <Arduino.h>
 //#include <avr/pgmspace.h>
 #if defined (ARDUINO_TEENSY41)
@@ -72,23 +71,21 @@
  #define DO_MDNS
 #endif
 
-
-#include "RingStream.h"
-
-/**
- * @brief Network Configuration
- * 
- */
-
-#define MAX_ETH_BUFFER 128
-#define OUTBOUND_RING_SIZE 2048
+extern "C" struct netif gnetif;
 
 class EthernetInterface {
 
  public:
      
-     static void setup();       
-     static void loop();
+  static bool setup();
+  static void loop();
+  static bool isUp();
+  static IPAddress getIPAddress();
+  static void setupMDNS();
+  static void addService(const char *name, const char *proto, uint16_t port);
+  static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
+  static void teardown();
+  static bool startUDPListener(const IPAddress &ip, uint16_t port);
    
  private:
     static bool connected;
