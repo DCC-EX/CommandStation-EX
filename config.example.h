@@ -369,3 +369,34 @@ The configuration file for DCC-EX Command Station
 // That is described further above.
 //
 /////////////////////////////////////////////////////////////////////////////////////
+
+//
+// S88 / S88-N FEEDBACK BUS
+//
+// Leave this block commented out unless a directly connected S88 chain is
+// wired to four unused, logic-compatible GPIO pins.  The driver is HAL-based
+// and does not use a hardware timer or an interrupt.  For multiple chains,
+// use S88::create() from myHal.cpp or HAL(S88, ...) from EX-RAIL instead.
+//
+// S88_FIRST_VPIN is the virtual pin for the first shifted bit.  Define one
+// Sensor for each virtual pin that should be reported to a throttle or JMRI.
+//
+// #define S88_FIRST_VPIN 300
+// #define S88_NUM_PINS 128
+// #define S88_CLOCK_PIN 26
+// #define S88_LOAD_PIN 27
+// #define S88_RESET_PIN 28
+// #define S88_DATA_PIN 22
+//
+// The clock period is the complete high + low period.  200us is a safe
+// starting point for mixed S88/S88-N chains; the value must be even and at
+// least 30us.  S88_SCAN_INTERVAL_MICROS is the idle gap after a full frame.
+// #define S88_CLOCK_PERIOD_MICROS 200
+// #define S88_SCAN_INTERVAL_MICROS 10000
+//
+// Most S88 modules report an active input as logic HIGH.  Set either option
+// to true only when the connected hardware requires it.
+// #define S88_INVERT_DATA false
+// #define S88_DATA_PULLUP false
+
+/////////////////////////////////////////////////////////////////////////////////////

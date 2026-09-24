@@ -34,6 +34,22 @@ Refer to [our web site](https://https://dcc-ex.com/ex-commandstation/get-started
 * Rename or copy ``config.example.h`` to ``config.h``. 
 * You must edit ``config.h`` according to the help texts in ``config.h``.
 
+## S88 and S88-N feedback
+
+CommandStation-EX can read one directly connected S88/S88-N chain as a HAL
+device.  Uncomment the S88 block in ``config.h`` and assign four unused,
+logic-compatible GPIO pins for CLOCK, LOAD, RESET, and DATA.  The chain's
+virtual pins can then be mapped to normal DCC-EX sensors with the ``<S ID
+VPIN PULLUP>`` command.  Multiple chains can be created with ``S88::create``
+from ``myHal.cpp`` or ``HAL(S88, ...)`` from EX-RAIL.
+
+The driver uses the normal cooperative HAL scheduler and does not claim a
+hardware timer.  Its default 200 microsecond clock period is intended as a
+safe starting point for mixed S88/S88-N chains; adjust it only after checking
+the timing requirements of every module in the chain.  The GPIO voltage,
+power supply, RJ45 pinout, level shifting, and common ground remain hardware
+responsibilities.  See [S88.md](S88.md) for the wiring and timing criteria.
+
 # More information
 You can learn more at the [DCC-EX website](https://dcc-ex.com/)
 
