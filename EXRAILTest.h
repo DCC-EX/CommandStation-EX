@@ -199,6 +199,21 @@ ROUTE(8001,"8001 ESTOP_RESUME test")
    ZTEST("<D CABS>",DCC::getLocoSpeedByte(3)==(128+20))
    DONE
 
+ROUTE(8002,"8002 IF_ESTOP_PAUSED test")
+   ESTOP_PAUSE
+   IF_ESTOP_PAUSED
+     PRINT("8002 pause predicate passed")
+   ELSE
+     PRINT("8002 pause predicate failed")
+   ENDIF
+   ESTOP_RESUME
+   IF_ESTOP_PAUSED
+     PRINT("8002 resume predicate failed")
+   ELSE
+     PRINT("8002 resume predicate passed")
+   ENDIF
+   DONE
+
 
 #define MYGROUP 1,2,3,4   
 ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")

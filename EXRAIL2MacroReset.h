@@ -67,6 +67,7 @@
 #undef ESTOPALL
 #undef ESTOP_PAUSE
 #undef ESTOP_RESUME
+#undef IF_ESTOP_PAUSED
 #undef EXRAIL
 #undef EXTT_TURNTABLE
 #undef FADE
