@@ -29,16 +29,33 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
-
 #include "defines.h"
+#if defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI) || (defined(ARDUINO_ARCH_ESP32) && ETHERNET_ON)
+
 #include <Arduino.h>
+#if defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+
+// The ESP32 core's Server base class declares begin(uint16_t port=0) as pure
+// virtual, but arduino-libraries/Ethernet's EthernetServer only overrides the
+// no-arg begin(), leaving it abstract. Provide the missing override here.
+// end() is also added since arduino-libraries/Ethernet has no such call.
+class EthernetServerESP32 : public EthernetServer {
+ public:
+  EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
+  void begin(uint16_t /*port*/) { EthernetServer::begin(); }
+  void end() {}
+};
+#else
 #include <LwIP.h>
 #include <STM32Ethernet.h>
 #include <lwip/netif.h>
 #include <EthernetUdp.h>
 
 extern "C" struct netif gnetif;
+#endif
 
 class EthernetInterface {
 
