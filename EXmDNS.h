@@ -55,5 +55,7 @@ private:
   static const uint8_t MAX_SERVICE_RECORDS = 8;
   ServiceRecord _services[MAX_SERVICE_RECORDS];
   uint8_t _serviceCount;
+  void sendServiceAnnounce(ServiceRecord &service);
+  void processQueries();
 };
 #endif // ARDUINO_ARCH_STM32

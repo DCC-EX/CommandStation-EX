@@ -34,7 +34,7 @@
 #include "StringFormatter.h"
 #include "Websockets.h"
 #include "LocoSlot.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 
 // variables to hold clock time
 int16_t lastclocktime;
@@ -151,7 +151,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
 
   // Broadcast everything to the active network transport.
   if (type==COMMAND_TYPE) {
-    NetworkInterface::udpMulticast(broadcastBufferWriter->getString());
+    EXNetwork::udpMulticast(broadcastBufferWriter->getString());
   }
 
 #ifdef CD_HANDLE_RING

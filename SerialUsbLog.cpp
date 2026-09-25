@@ -44,7 +44,7 @@
 
 #include "Arduino.h"
 #include "DIAG.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
@@ -55,7 +55,7 @@
 #include "SerialUsbLog.script3.js.h"
 #include "NVSTable.h"
 #include "SerialUsbLog.favicon.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 
 
 
@@ -338,8 +338,8 @@ class LogPage{
     LogPage* next; 
     const String path;
     const String displayName;
-    String content;
-    LogPage(const String& _path,const String& _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
+    const char * content;
+    LogPage(const String& _path,const char * _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
       next=first;
       first=this;
     }
@@ -363,7 +363,7 @@ LogPage* LogPage::first = nullptr;
 void SerialUsbLog::loop() {
 
   static bool started = false;
-  if (!started && NetworkInterface::isUp())
+  if (!started && EXNetwork::isUp())
    {
     new LogPage("/style.css", SerialUsbLog_style_css);
     new LogPage("/script1.js", SerialUsbLog_script1_js);
@@ -375,7 +375,7 @@ void SerialUsbLog::loop() {
     return;
   }
 
-  auto client = NetworkInterface::acceptWebInput();
+  auto client = EXNetwork::acceptWebInput();
   if (!client) return;
   
   // Read request line: "GET /path?... HTTP/1.1"
@@ -436,7 +436,7 @@ void SerialUsbLog::loop() {
   // ----------------------------- /log incremental feed -----------------------------
   if (path == "/log") {
     String cmd= queryParamString(uri, "cmd", "");
-    if (cmd.length()>0)  DCCEXParser::parse(cmd.c_str());
+    if (cmd.length()>0)  DCCEXParser::parse(&USB_SERIAL,cmd.c_str());
 
     uint32_t from = (uint32_t)queryParamInt(uri, "from", 0);
 
@@ -519,7 +519,7 @@ void SerialUsbLog::loop() {
   client.stop();
 }
 
-void SerialUsbLog::addUserPage(const String& path, const String& content, const String& displayname) {
+void SerialUsbLog::addUserPage(const String& path, const char * content, const String& displayname) {
   // For future expansion: allow user to add custom pages to the web server.
   new LogPage(path, content,displayname);
 }

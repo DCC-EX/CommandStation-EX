@@ -126,7 +126,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "Signals.h"
 #include "NVSTable.h"
 #include "DCCDecoder.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #if defined(ARDUINO_ARCH_ESP32)
 #include "WifiPreferences.h"
 #endif
@@ -149,7 +149,7 @@ bool DCCEXParser::stashBusy;
 // Non-DCC things like turnouts, pins and sensors are handled in additional interface classes.
 
 
-int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, bool usehex)
+int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *&cmd, bool usehex)
 {
     byte state = 1;
     byte parameterCount = 0;
@@ -174,6 +174,7 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
 	      return -1;
 	    if (hot == '>') {
 	      *remainingCmd = '\0';  // terminate the cmd string with 0 instead of '>'
+              cmd = remainingCmd + 1;
 	      return parameterCount;
 	    }
             state = 2;
@@ -243,7 +244,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
 extern __attribute__((weak))  void myFilter(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
 FILTER_CALLBACK DCCEXParser::filterCallback = myFilter;
 FILTER_CALLBACK DCCEXParser::filterCamParserCallback = 0;
-AT_COMMAND_CALLBACK DCCEXParser::atCommandCallback = 0;
 
 // deprecated
 void DCCEXParser::setFilter(FILTER_CALLBACK filter)
@@ -255,42 +255,24 @@ void DCCEXParser::setCamParserFilter(FILTER_CALLBACK filter)
 {
     filterCamParserCallback = filter;
 }
-void DCCEXParser::setAtCommandCallback(AT_COMMAND_CALLBACK callback)
-{
-    atCommandCallback = callback;
-}
 
-// Parse an F() string 
-void DCCEXParser::parse(const FSH * cmd) {
-      DIAG(F("SETUP(\"%S\")"),cmd);
-      int size=STRLEN_P((char *)cmd)+1; 
-      char buffer[size];
-      STRCPY_P(buffer,(char *)cmd);
-      parse(&USB_SERIAL,(byte *)buffer);
-}
+void DCCEXParser::parse(Print *stream,  const char *com) {
+    int size=strlen(com)+1;
+    byte buffer[size];
+    memcpy(buffer,com,size);
+    parse(stream,buffer);
+}   
 
-// See documentation on DCC class for info on this section
 
 void DCCEXParser::parse(Print *stream,  byte *com) {
-  // This function can get stings of the form "<C OMM AND>" or "C OMM AND>"
-  // found is true first after the leading "<" has been passed which results
-  // in parseOne() getting c="C OMM AND>"
-  byte *cForLater = NULL;
-  bool found = (com[0] != '<');
-  for (byte *c=com; c[0] != '\0'; c++) {
-    if (found) {
-      cForLater = c;
-      found=false;
+    while (*com != '\0') {
+        com = parseOne(stream, com);
+        if (com == nullptr)
+            break;
     }
-    if (c[0] == '<') {
-      if (cForLater) parseOne(stream, cForLater);
-      found = true;
-    }
-  }
-  if (cForLater) parseOne(stream, cForLater);
 }
 
-void DCCEXParser::parseOne(Print *stream, byte *com) {
+byte *DCCEXParser::parseOne(Print *stream, byte *com) {
 #ifndef DISABLE_EEPROM
     (void)EEPROM; // tell compiler not to warn this is unused
 #endif
@@ -298,24 +280,23 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);
     int16_t p[MAX_COMMAND_PARAMS];
-    while (com[0] == '<' || com[0] == ' ')
-        com++; // strip off any number of < or spaces
+    while (com[0] == '<' || com[0] == ' ' || com[0] == '\r' || com[0] == '\n')
+        com++; // strip off any number of < or white space
+    byte *commandStart = com;
     byte opcode = com[0];
+    if (opcode=='\0') return nullptr;
     int16_t splitnum =0;
 
-    // Special case <+ anything> cant be split as its in AT command form
-    if (opcode!='+') {
-        splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
-        if (splitnum < 0) {
-            // if arguments are broken, leave but via printing <X>
-            StringFormatter::send(stream, F("<X>\n<* command incomplete *>\n"));  // respond to caller with error
-            return;
-        }
-        if (splitnum >= MAX_COMMAND_PARAMS) {
-            // if arguments are broken, leave but via printing <X>
-            StringFormatter::send(stream, F("<X>\n<* too many parameters *>\n"));  // respond to caller with error
-            return;
-        }
+    splitnum = splitValues(p, com, opcode=='M' || opcode=='P');
+    if (splitnum < 0) {
+        // if arguments are broken, leave but via printing <X>
+        StringFormatter::send(stream, F("<X>\n<* command incomplete %s*>\n"),commandStart);  // respond to caller with error
+        return nullptr;
+    }
+    if (splitnum >= MAX_COMMAND_PARAMS) {
+        // if arguments are broken, leave but via printing <X>
+        StringFormatter::send(stream, F("<X>\n<* too many parameters %s *>\n"), commandStart);  // respond to caller with error
+        return nullptr;
     }
     
     // Because of check above we are now inside byte size
@@ -327,13 +308,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
         filterCallback(stream, opcode, params, p);
     if (filterCamParserCallback && opcode!='\0')
         filterCamParserCallback(stream, opcode, params, p);
-    if (opcode=='\0') return; // filterCallback asked us to ignore
+    if (opcode=='\0') return com; // filterCallback asked us to ignore
     
     
-    if (execute(com,stream, opcode, params, p)) return;
+    if (execute(commandStart,stream, opcode, params, p)) return com;
 
     StringFormatter::send(stream, F("<X>\n"));  // respond to caller with error
-    
+
     // Extended diagnostics
     StringFormatter::send(USB_SERIAL, F("<*"));
     if (matchedCommandFormat) {
@@ -358,13 +339,14 @@ void DCCEXParser::parseOne(Print *stream, byte *com) {
     for (int i = 0; i < params; i++) {
         if ((p[i] & 0xFF00)== 0x7700) {
             // this parameter was a quoted string, so print the string instead of the value
-            char * q = (char *)(com + (p[i] & 0x00FF));
+            char * q = (char *)(commandStart + (p[i] & 0x00FF));
             StringFormatter::send(USB_SERIAL,F(" \"%s\""), q);
         } else {
              StringFormatter::send(USB_SERIAL,F(" %d"), p[i]);  
         }
     }
     StringFormatter::send(USB_SERIAL,F("> *>\n"));
+    return com;
 }
 
 // This function is used by the node manager to pare inter-mode traffic.
@@ -375,15 +357,16 @@ void DCCEXParser::parseNodeTraffic( byte *com) {
     int16_t p[MAX_COMMAND_PARAMS];
     while (com[0] == '<')
         com++; // strip off any number of < or spaces
+    byte *commandStart = com;
     byte opcode = com[0];
     params = splitValues(p, com, false);
     if (params >=0 && params < MAX_COMMAND_PARAMS) {
         
         matchedCommandFormat = nullptr;
         checkFailedFormat = nullptr;
-        if (executeNodeTraffic(com, opcode, params, p)) return;
+        if (executeNodeTraffic(commandStart, opcode, params, p)) return;
     }
-    DIAG(F("Node unrecognized command: %s\n"), com);    
+    DIAG(F("Node unrecognized command: %s\n"), commandStart);
 }
 
 bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
