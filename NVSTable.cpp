@@ -135,13 +135,6 @@ void NVSTable::load() {
   prefs.end();
 }
 
-#else
-void NVSTable::load() {  
-  DIAG(F("NVSTable::load() not implemented on this platform"));
-}
-#endif
-
-
 void NVSTable::save() {
   StringBuffer buffer(4096); // Create a buffer to hold the serialized NVS data
   for (auto e = NVSentry::first; e; e = e->next) e->save(&buffer);
@@ -154,10 +147,19 @@ void NVSTable::save() {
   prefs.begin("DCC-EX-NVS", false); // Read-write
   prefs.putBytes("NVSTable", buffer.getString(), buffer.getLength());
   prefs.end();
-  #else
-  DIAG(F("NVSTable::save() not implemented on this platform"));
-  #endif
 }
+
+#else
+void NVSTable::load() {  
+  DIAG(F("NVSTable::load() not implemented on this platform"));
+}
+void NVSTable::save()  {
+  DIAG(F("NVSTable::save() not implemented on this platform"));
+}
+ 
+#endif
+
+
 
 bool NVSTable::saveNeeded() {
   return NVSentry::savePending;

@@ -68,15 +68,6 @@ static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOC
 #error CANNOT COMPILE - DCC++ EX ONLY WORKS WITH THE ARCHITECTURES LISTED IN defines.h
 #endif
 
-#ifdef WIFI_WARNING
-#warning You have defined that you want WiFi but your hardware has not enough memory to do that, so WiFi DISABLED
-#endif
-#ifdef ETHERNET_WARNING
-#warning You have defined that you want Ethernet but your hardware has not enough memory to do that, so Ethernet DISABLED
-#endif
-#ifdef EXRAIL_WARNING
-#warning You have myAutomation.h but your hardware has not enough memory to do that, so EX-RAIL DISABLED
-#endif
 // compile time check, passwords 1 to 7 chars do not work, so do not try to compile with them at all
 // remember trailing '\0', sizeof("") == 1.
 #define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")

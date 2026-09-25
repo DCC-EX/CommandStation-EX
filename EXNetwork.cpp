@@ -97,22 +97,26 @@ void EXNetwork::setup() {
   udpNodeRx.stop();
   #endif
 
-  _SHIM_::setup();
+  if (!_SHIM_::setup()) {
+    DIAG(F("Network setup failed"));
+    return;
+  }
+
   auto ipaddress = _SHIM_::getIPAddress();
   throttleMulticastIP[3] = ipaddress[3];
 
-  #ifdef ARDUINO_ARCH_STM32
+  #if defined(ARDUINO_ARCH_STM32) && !defined(ETHERNET_CS_PIN)
   // STM32Ethernet enables NETIF_FLAG_IGMP from its link-state handler.
   // Run it before beginMulticast(), otherwise igmp_joingroup() can fail.
   Ethernet.schedule();
   #endif
 
   // Socket server for old style throttle connections.
-  throttleServer.begin(IP_PORT);
+  throttleServer.begin();
   DIAG(F("throttleServer started on port %d"), IP_PORT);
 
   // Web server for browser interface.
-  webServer.begin(80);
+  webServer.begin();
   DIAG(F("webServer started on port 80"));
 
   if (!udpTx.begin(0)) {
@@ -121,7 +125,6 @@ void EXNetwork::setup() {
 
   bool nodeFail = false;
 
-  #ifdef ARDUINO_ARCH_STM32
   // listen for incoming throttle traffic via UDP.
     if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
     DIAG(F("udpThrottleRx started on %s:%d"),
@@ -138,23 +141,7 @@ void EXNetwork::setup() {
          nodeMulticastIP.toString().c_str(), NODE_PORT);
     nodeFail = true;
   }
-  #endif
-
-  #ifdef ARDUINO_ARCH_ESP32
-  // Listen for incoming throttle traffic via UDP.
-    if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
-    DIAG(F("udpThrottleRx started on %s:%d"),
-      throttleMulticastIP.toString().c_str(), IP_PORT);
-  }
-  // Receive node traffic via UDP multicast.
-  if (udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT)) {
-    DIAG(F("udpNodeRx started on %s:%d"),
-         nodeMulticastIP.toString().c_str(), NODE_PORT);
-  } else {
-    nodeFail = true;
-  }
-  #endif
-
+  
   NodeManager::setup(!nodeFail);
 
   _SHIM_::setupMDNS();
@@ -345,8 +332,10 @@ void EXNetwork::teardown() {
     throttleClients.pop_back();
   }
 
+  #if !defined(ETHERNET_CS_PIN)
   webServer.end();
   throttleServer.end();
+  #endif
 
   _SHIM_::teardown();
 }

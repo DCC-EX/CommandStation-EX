@@ -49,11 +49,10 @@
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
   #endif
-  #define ENABLE_WIFI true
 
 
 #elif defined(ARDUINO_ARCH_STM32)
-  #define ARDUINO_TYPE "STM32"
+  #define ARDUINO_TYPE "Nucleo"
   // STM32 no EEPROM by default 
   #ifndef DISABLE_EEPROM
     #define DISABLE_EEPROM
@@ -75,55 +74,6 @@
   #define ARDUINO_TYPE BOARD_NAME
 #endif
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// WIFI_ON: All prereqs for running with WIFI are met
-// Note: WIFI_CHANNEL may not exist in early config.h files so is added here if needed.
-
-#if ENABLE_WIFI
-  #if defined(HAS_ENOUGH_MEMORY)
-    #define WIFI_ON true
-    #ifndef WIFI_CHANNEL
-      #define WIFI_CHANNEL 1
-    #endif
-  #else
-    #define WIFI_WARNING
-    #define WIFI_ON false
-  #endif
-#else
-  #define WIFI_ON false
-#endif
-
-#ifndef WIFI_FORCE_AP
-  #define WIFI_FORCE_AP false
-#else
-  #if WIFI_FORCE_AP==true || WIFI_FORCE_AP==false
-  #else
-    #error WIFI_FORCE_AP needs to be true or false
-  #endif
-#endif
-
-#if ENABLE_ETHERNET
-  #if defined(HAS_ENOUGH_MEMORY)
-    #define ETHERNET_ON true
-  #else
-    #define ETHERNET_WARNING
-    #define ETHERNET_ON false
-  #endif
-#else
-  #define ETHERNET_ON false
-#endif
-
-#if WIFI_ON && ETHERNET_ON
- #error Command Station does not support WIFI and ETHERNET at the same time.
-#endif
-  
-////////////////////////////////////////////////////////////////////////////////
-//
-// This defines the speed at which the Arduino will communicate with the ESP8266 module.
-// Currently only devices which can communicate at 115200 are supported.
-//
-#define WIFI_SERIAL_LINK_SPEED 115200
 
 // configure serial log browser feature if possible
 // Replace USB_SERIAL with SerialLog so we can browse it!
@@ -176,25 +126,6 @@
     #define IP_PORT 2560
 #endif
 
-// Default WIFI_SSID if not found in config.h
-#ifndef WIFI_SSID
-    #define WIFI_SSID ""
- 
-#endif
-
-// Default WIFI_PASSWORD if not found in config.h
-#ifndef WIFI_PASSWORD
-    #define WIFI_PASSWORD "Your network passwd"
-#endif
-
-// Default WIFI_HOSTNAME if not found in config.h
-#ifndef WIFI_HOSTNAME
-    #define WIFI_HOSTNAME "DCC-EX"
-#endif
-// Default ETHERNET_HOSTNAME to WIFI_HOSTNAME if not found in config.h (for old EXinstaller compatibility)
-#ifndef ETHERNET_HOSTNAME
-    #define ETHERNET_HOSTNAME WIFI_HOSTNAME
-#endif
 
 
 #endif //DEFINES_H

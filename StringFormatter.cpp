@@ -128,14 +128,11 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
       { 
         const FSH*  flash= (const FSH*)va_arg(args, char*);
 
-#if WIFI_ON | ETHERNET_ON
         // RingStream has special logic to handle flash strings
         // but is not implemented unless wifi or ethernet are enabled.
-        // The define prevents RingStream code being added unnecessariliy.        
         if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM)
               ((RingStream *)stream)->printFlash(flash);
               else 
-#endif
         stream->print(flash);
         break;
              }
