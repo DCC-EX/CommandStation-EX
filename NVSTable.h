@@ -48,6 +48,8 @@ class NVSTable {
     // Acess NVS() values from EXRAIL scripts. This will decode a token into its corresponding NVS value.
     // This identifies EXRAIL type 32-bit tokens which may represent NVS[x]+
     static int16_t decodeNVSToken(int32_t token, bool atBoot);
+  private:
+      static void save2(const char * data);
 };
 
 #endif

@@ -118,13 +118,23 @@ void set(const char * value) {
 NVSentry * NVSentry::first = nullptr;
 bool NVSentry::savePending = false;
 
+static const char EEPROM_HEADER[] = "DCC-EX-NVS";
+
+void NVSTable::save()  {
+  StringBuffer buffer(4096); // Create a buffer to hold the serialized NVS data
+  for (auto e = NVSentry::first; e; e = e->next) e->save(&buffer);
+  DIAG(F("Saving NVS: %s"), buffer.getString());
+  save2(buffer.getString());
+  NVSentry::savePending = false; // Reset the save pending flag after saving 
+}
+
 #ifdef ARDUINO_ARCH_ESP32
 #include "Preferences.h"
 
 // Load NVS values from Preferences
 void NVSTable::load() {
   Preferences prefs;
-  prefs.begin("DCC-EX-NVS", true); // Read-only
+  prefs.begin(EEPROM_HEADER, true); // Read-only
   auto savedSize = prefs.getBytesLength("NVSTable");  
   if (savedSize) {
     char buffer[savedSize+1];
@@ -135,25 +145,56 @@ void NVSTable::load() {
   prefs.end();
 }
 
-void NVSTable::save() {
-  StringBuffer buffer(4096); // Create a buffer to hold the serialized NVS data
-  for (auto e = NVSentry::first; e; e = e->next) e->save(&buffer);
-  NVSentry::savePending = false; // Reset the save pending flag after saving 
-  DIAG(F("Saving NVS to Preferences: %s"), buffer.getString());
+void NVSTable::save2(const char * data) {
   // ESP32 Preferences library requires a key-value pair for each entry, so we will store the entire NVS table as a single byte array under the key "NVSTable".
   Preferences prefs;
-  prefs.begin("DCC-EX-NVS", false); // Read-write
-  prefs.putBytes("NVSTable", buffer.getString(), buffer.getLength());
+  prefs.begin(EEPROM_HEADER, false); // Read-write
+  prefs.putBytes("NVSTable", data, strlen(data));
   prefs.end();
 }
 
 #else
 
-void NVSTable::load() {  
-  DIAG(F("NVSTable::load() not implemented on this platform"));
+// STM32 version uses EEPROM to store NVS values string
+// But the EEPROM.h is several thousand time slower than  this internal buffered approach
+#include "EEPROM.h"
+struct eeprom_map {
+  uint64_t alignment[0];
+  char header[sizeof(EEPROM_HEADER)];
+  char data[4000];
+  char force_end;
+};
+
+void NVSTable::load() {
+  (void)EEPROM;   
+  eeprom_buffer_fill();
+  eeprom_map mapping;
+  uint8_t *destPtr = (uint8_t *)&mapping;
+  for (uint16_t i = 0; i < sizeof(mapping); i++) {
+    destPtr[i] = eeprom_buffered_read_byte(i);
+  }
+  if (strcmp(mapping.header, EEPROM_HEADER) != 0) {
+    DIAG(F("EEPROM header mismatch or not initialized"));
+    return;
+  }
+  applyChanges(mapping.data, true); // Load the saved NVS values into the nvs array  
 }
-void NVSTable::save()  {
-  DIAG(F("NVSTable::save() not implemented on this platform"));
+
+void NVSTable::save2(const char * data)  {
+  DIAG(F("Saving NVS to EEPROM: %s"), data);
+  eeprom_map mapping;
+  strcpy(mapping.header, EEPROM_HEADER);
+  strlcpy(mapping.data, data, sizeof(mapping.data));
+  mapping.force_end = '\0';
+  uint8_t *sourcePtr = (uint8_t *)&mapping;
+  uint16_t structSize = sizeof(mapping);
+
+  // Step A: Stage the changes to the internal core array (Zero latency / pure RAM)
+  for (uint16_t i = 0; i < structSize; i++) {
+    eeprom_buffered_write_byte(i, sourcePtr[i]);
+  }
+  eeprom_buffer_flush();
+  DIAG(F("NVS saved"));
 }
  
 #endif
