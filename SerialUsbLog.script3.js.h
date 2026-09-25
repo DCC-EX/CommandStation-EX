@@ -2,7 +2,7 @@
 configuration dialogs. It was written mostly by AI. 
 */
 
-String SerialUsbLog_script3_js=R"???(
+const char SerialUsbLog_script3_js[]=R"???(
 NVSTable = [];
 function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');

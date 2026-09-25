@@ -19,13 +19,14 @@ void Ztest::parse(const FSH * command, const FSH * expect, bool (*test)() ) {
     // create response buffer to collect comparison
     ring->flush();
     ring->mark(0); // mark the start of the response  
-    DCCEXParser::parseOne(ring, (byte *)commandBuffer);
+    DCCEXParser::parse(ring, (byte *)commandBuffer);
     ring->commit();
   }
   else {
     // run command (but not if its just a title) without output test
-    if (commandBuffer[0]=='<') 
-      DCCEXParser::parseOne(& USB_SERIAL, (byte *)commandBuffer);
+    if (commandBuffer[0]=='<') {
+      DCCEXParser::parse(& USB_SERIAL, (byte *)commandBuffer);
+    }
   }
 
   

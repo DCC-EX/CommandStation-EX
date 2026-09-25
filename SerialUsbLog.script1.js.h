@@ -1,4 +1,4 @@
-String SerialUsbLog_script1_js=R"???(
+const char SerialUsbLog_script1_js[]=R"???(
 function dog(tag) {return document.getElementById(tag);}
 const logEl=dog('log');
 const pauseBtn=dog('pause');

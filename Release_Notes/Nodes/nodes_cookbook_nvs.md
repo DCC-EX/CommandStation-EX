@@ -155,7 +155,7 @@ file: 'myRunAround.html.h'
 
 ```html
 #include <Arduino.h>
-String myRunAround_html=R"???(
+extern const char * myRunAround_html[]=R"???(
 Loco starting speed <nvsinput nvs=24 min=2 max=127 />
 <br>
 Loco driving speed <nvsinput nvs=21 min=2 max=127 />

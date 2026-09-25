@@ -19,7 +19,7 @@
  */
 #include "NodeManager.h"
 #include "DCCEXParser.h"
-#include "NetworkInterface.h"
+#include "EXNetwork.h"
 #include "StringFormatter.h"
 #include "DIAG.h"
 #include "Turnouts.h"
@@ -42,7 +42,7 @@ void NodeManager::cast(const FSH* format...) {
 
 void NodeManager::cast(StringBuffer *buffer) {
     if (!enabled || buffer == nullptr || buffer->getLength() <= 0) return;
-    NetworkInterface::udpNodeMulticast(buffer->getString());
+    EXNetwork::udpNodeMulticast(buffer->getString());
     if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
