@@ -1,6 +1,7 @@
 #ifndef EXNetwork_h
 #define EXNetwork_h
-#ifdef ARDUINO_ARCH_ESP32
+#include "defines.h"
+#if defined(ARDUINO_ARCH_ESP32) && !ETHERNET_ON
   #include "WifiESP32.h"
   #include <WiFiUdp.h>
   typedef WiFiClient EXNetworkClient;
@@ -11,7 +12,11 @@
   #else 
   #include "EthernetInterface.h"
   typedef EthernetClient EXNetworkClient;
+  #if defined(ARDUINO_ARCH_ESP32)
+  typedef EthernetServerESP32 EXNetworkServer;
+  #else
   typedef EthernetServer EXNetworkServer;
+  #endif
   typedef EthernetUDP  EXNetworkUDPRx;
   typedef EthernetUDP  EXNetworkUDPTx;
   #define _SHIM_ EthernetInterface

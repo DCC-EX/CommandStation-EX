@@ -24,8 +24,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  * 
  */
+#include "defines.h"
 #ifdef ARDUINO_ARCH_STM32
-#include "defines.h" 
 #include "EthernetInterface.h"
 #include <LwIP.h>
 #include <STM32Ethernet.h>
@@ -143,6 +143,144 @@ void EthernetInterface::loop()
     default:
         break;
     }   
+}
+
+#elif defined(ARDUINO_ARCH_ESP32) && ETHERNET_ON
+#include "defines.h"
+#include "EthernetInterface.h"
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+
+#include "DIAG.h"
+#include "DCCTimer.h"
+#include "EXmDNS.h"
+
+// Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
+// Override any of these with -D build flags if your board wires the module differently.
+#ifndef ETHERNET_CS_PIN
+#define ETHERNET_CS_PIN 5
+#endif
+#ifndef ETHERNET_SCK_PIN
+#define ETHERNET_SCK_PIN 18
+#endif
+#ifndef ETHERNET_MISO_PIN
+#define ETHERNET_MISO_PIN 19
+#endif
+#ifndef ETHERNET_MOSI_PIN
+#define ETHERNET_MOSI_PIN 23
+#endif
+
+EthernetUDP udpMdns;
+MDNS mdns(udpMdns);
+
+bool EthernetInterface::connected=false;
+bool EthernetInterface::isUp() {
+  return connected;
+}
+
+bool EthernetInterface::setup()
+{
+  connected=false;
+  DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
+
+  #ifdef ETHERNET_RST_PIN
+  // Some W5500 boards need their reset line pulsed before SPI comms will work.
+  pinMode(ETHERNET_RST_PIN, OUTPUT);
+  digitalWrite(ETHERNET_RST_PIN, LOW);
+  delay(10);
+  digitalWrite(ETHERNET_RST_PIN, HIGH);
+  delay(50);
+  #endif
+
+  SPI.begin(ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_CS_PIN);
+  Ethernet.init(ETHERNET_CS_PIN);
+
+  byte mac[6];
+  DCCTimer::getSimulatedMacAddress(mac);
+
+  #ifdef IP_ADDRESS
+    static IPAddress myIP(IP_ADDRESS);
+    Ethernet.begin(mac,myIP);
+  #else
+    if (Ethernet.begin(mac)==0) {
+      if (Ethernet.hardwareStatus()==EthernetNoHardware) {
+        DIAG(F("Ethernet: W5500 not found, check wiring/pins"));
+      }
+      LCD(4,F("IP: No DHCP"));
+      return false;
+    }
+  #endif
+
+  if (Ethernet.hardwareStatus()==EthernetNoHardware) {
+    DIAG(F("Ethernet: W5500 not found, check wiring/pins"));
+    return false;
+  }
+
+  LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
+  connected=true;
+  return connected;
+}
+
+void EthernetInterface::setupMDNS() {
+  mdns.begin(getIPAddress(), ETHERNET_HOSTNAME);
+}
+
+void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {
+  auto ptype= MDNSServiceTCP;
+  if (strcmp(proto, "udp") == 0) ptype = MDNSServiceUDP;
+
+  if (!mdns.addServiceRecord(name, port ,ptype)) {
+    DIAG(F("addService failed %s %s %d"), name, proto, port);
+  }
+}
+
+void EthernetInterface::addServiceTxt(const char *name, const char *proto, const char *key, const char *value) {
+  auto serviceProto = MDNSServiceTCP;
+  if (strcmp(proto, "udp") == 0) serviceProto = MDNSServiceUDP;
+
+  if (!mdns.addTextRecord(name, serviceProto, key, value)) {
+    DIAG(F("addServiceTxt failed %s=%s"), key, value);
+  }
+}
+
+IPAddress EthernetInterface::getIPAddress() {
+  return connected ? Ethernet.localIP(): IPAddress(0,0,0,0);
+}
+
+void EthernetInterface::loop()
+{
+    if (!connected) return;
+
+    static bool warnedAboutLink=false;
+    if (Ethernet.linkStatus() == LinkOFF){
+        if (warnedAboutLink) return;
+        DIAG(F("Ethernet link OFF"));
+        warnedAboutLink=true;
+        return;
+    }
+
+    // link status must be ok here
+    if (warnedAboutLink) {
+      DIAG(F("Ethernet link RESTORED"));
+      warnedAboutLink=false;
+    }
+
+    // Always do this because we don't want traffic to intefere with being found!
+    mdns.run();
+
+    switch (Ethernet.maintain()) {
+    case 1:
+        DIAG(F("Ethernet Error: renewed fail"));
+        connected=false;
+        return;
+    case 3:
+        DIAG(F("Ethernet Error: rebind fail"));
+        connected=false;
+        return;
+    default:
+        break;
+    }
 }
 
 #endif
