@@ -139,8 +139,6 @@ void NVSTable::save() {
   StringBuffer buffer(4096); // Create a buffer to hold the serialized NVS data
   for (auto e = NVSentry::first; e; e = e->next) e->save(&buffer);
   NVSentry::savePending = false; // Reset the save pending flag after saving 
-
-  #ifdef ARDUINO_ARCH_ESP32
   DIAG(F("Saving NVS to Preferences: %s"), buffer.getString());
   // ESP32 Preferences library requires a key-value pair for each entry, so we will store the entire NVS table as a single byte array under the key "NVSTable".
   Preferences prefs;
@@ -150,6 +148,7 @@ void NVSTable::save() {
 }
 
 #else
+
 void NVSTable::load() {  
   DIAG(F("NVSTable::load() not implemented on this platform"));
 }
