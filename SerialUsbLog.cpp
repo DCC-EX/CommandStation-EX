@@ -56,10 +56,7 @@
 #include "NVSTable.h"
 #include "SerialUsbLog.favicon.h"
 #include "EXNetwork.h"
-
-
-
-
+#include "EXNetworkPreferences.html.h"
   // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
@@ -370,6 +367,9 @@ void SerialUsbLog::loop() {
     new LogPage("/script2.js", SerialUsbLog_script2_js);
     new LogPage("/script3.js", SerialUsbLog_script3_js);
     new LogPage("/", SerialUsbLog_html);
+
+    // Add system config menu(s) 
+    new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
     // user pages may be added later with exrail
     started = true;
     return;

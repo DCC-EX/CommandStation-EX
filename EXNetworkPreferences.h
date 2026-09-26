@@ -24,15 +24,15 @@ enum SystemPreferences : int16_t {
   // Starting value for system preferences in NVS
   // change the order of this enum and mess will happen
   _FIRST=32000,
-  ssidSTA, 
-  passwordSTA, 
-  ssidAP,
-  passwordAP, 
-  hostName, 
-  enabled, 
-  channelAP, 
-  hiddenAP,
-  throttleNode,
+  ssidSTA=32001, 
+  passwordSTA=32002, 
+  ssidAP=32003,
+  passwordAP=32004, 
+  hostName=32005, 
+  enabled=32006, 
+  channelAP=32007, 
+  hiddenAP=32008,
+  throttleNode=32009,
   // any additional preferences can only be added here
   _LAST
 };
