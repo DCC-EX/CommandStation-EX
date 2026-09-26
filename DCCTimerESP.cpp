@@ -187,14 +187,6 @@ void DCCTimer::DCCEXanalogCopyChannel(int16_t frompin, int16_t topin) {
     inverted = true;
     topin = -topin;
   }
-  if (frompin == UNUSED_PIN) {
-    DIAG(F("Can not copy from unused frompin"));
-    return;
-  }
-  if (topin == UNUSED_PIN) {
-    DIAG(F("Can not copy to unused topin"));
-    return;
-  }
   int channel = pin_to_channel[frompin]; // after abs(frompin)
   pin_to_channel[topin] = channel;
   DCCTimer::DCCEXledcAttachPin(topin, channel, inverted);
