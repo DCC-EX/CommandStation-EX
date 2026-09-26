@@ -199,6 +199,30 @@ ROUTE(8001,"8001 ESTOP_RESUME test")
    ZTEST("<D CABS>",DCC::getLocoSpeedByte(3)==(128+20))
    DONE
 
+// Test parser-triggered ONFUNCTION events and suppression of unchanged states.
+ROUTE(8020,"8020 ONFUNCTION parser test")
+   SETLOCO(3)
+   FOFF(4)
+   ZTEST("<F 3 3 1>",DCC::getFn(3,3)==1)
+   DELAY(100)
+   ZTEST("ONFUNCTION ON",DCC::getFn(3,4)==1)
+   ZTEST("<F 3 3 1>",DCC::getFn(3,3)==1)
+   DELAY(100)
+   ZTEST("ONFUNCTION unchanged",DCC::getFn(3,4)==1)
+   ZTEST("<F 3 3 0>",DCC::getFn(3,3)==0)
+   DELAY(100)
+   ZTEST("ONFUNCTION OFF",DCC::getFn(3,4)==0)
+   DONE
+
+ONFUNCTION(3)
+   FTOGGLE(4)
+   DONE
+
+// Compile/runtime coverage for cab-specific acquisition tuning.
+ONACQUIRE(3)
+   MOMENTUM(30)
+   DONE
+
 
 #define MYGROUP 1,2,3,4   
 ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")

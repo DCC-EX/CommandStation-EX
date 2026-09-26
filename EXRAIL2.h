@@ -74,6 +74,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
+             OPCODE_ONFUNCTION, OPCODE_ONACQUIRE,
              OPCODE_ONOVERLOAD,
 	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
@@ -207,6 +208,8 @@ class LookList {
     static void clockEvent(int16_t clocktime, bool change);
     static void rotateEvent(int16_t id, bool change);
     static void powerEvent(int16_t track, bool overload);
+    static void functionEvent(int16_t cab, int16_t functionNumber);
+    static void acquireEvent(int16_t cab);
 #ifdef BOOSTER_INPUT
     static void railsyncEvent(bool on);
 #endif
@@ -282,6 +285,8 @@ private:
    static LookList * onRotateLookup;
 #endif
    static LookList * onOverloadLookup;
+   static LookList * onFunctionLookup;
+   static LookList * onAcquireLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;
 #ifdef BOOSTER_INPUT

@@ -298,6 +298,9 @@ bool DCC::setFn( int cab, int16_t functionNumber, bool on) {
     if (functionNumber <= 28)
       updateGroupflags(slot, functionNumber);
     CommandDistributor::broadcastLoco(slot);
+#ifdef EXRAIL_ACTIVE
+    RMFT2::functionEvent(cab, functionNumber);
+#endif
   }
   return true;
 }

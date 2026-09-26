@@ -90,6 +90,8 @@ LookList *  RMFT2::onClockLookup=NULL;
 LookList *  RMFT2::onRotateLookup=NULL;
 #endif
 LookList *  RMFT2::onOverloadLookup=NULL;
+LookList *  RMFT2::onFunctionLookup=NULL;
+LookList *  RMFT2::onAcquireLookup=NULL;
 LookList *  RMFT2::onBlockEnterLookup=NULL;
 LookList *  RMFT2::onBlockExitLookup=NULL;
 #ifdef BOOSTER_INPUT
@@ -211,6 +213,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
 #endif
   onOverloadLookup=LookListLoader(OPCODE_ONOVERLOAD);
+  onFunctionLookup=LookListLoader(OPCODE_ONFUNCTION);
+  onAcquireLookup=LookListLoader(OPCODE_ONACQUIRE);
 
   if (compileFeatures & FEATURE_BLOCK) {
     onBlockEnterLookup=LookListLoader(OPCODE_ONBLOCKENTER);
@@ -1316,6 +1320,8 @@ void RMFT2::loop2() {
   case OPCODE_ONLCC:   // LCC event catchers ignored here 
   case OPCODE_ONACON:   // MERG event catchers ignored here 
   case OPCODE_ONACOF:   // MERG event catchers ignored here 
+  case OPCODE_ONFUNCTION:
+  case OPCODE_ONACQUIRE:
   case OPCODE_ONTHROW:
   case OPCODE_ONACTIVATE: // Activate event catchers ignored here
   case OPCODE_ONDEACTIVATE:
@@ -1542,6 +1548,14 @@ void RMFT2::blockEvent(int16_t block, int16_t loco, bool entering) {
 void RMFT2::changeEvent(int16_t vpin, bool change) {
   // Hunt for an ONCHANGE for this sensor
   if (change)  onChangeLookup->handleEvent(F("CHANGE"),vpin);
+}
+
+void RMFT2::functionEvent(int16_t cab, int16_t functionNumber) {
+  onFunctionLookup->handleEvent(F("FUNCTION"),functionNumber,cab);
+}
+
+void RMFT2::acquireEvent(int16_t cab) {
+  onAcquireLookup->handleEvent(F("ACQUIRE"),cab,cab);
 }
 
 #ifndef IO_NO_HAL

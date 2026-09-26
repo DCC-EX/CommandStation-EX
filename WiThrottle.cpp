@@ -280,6 +280,9 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
 	      myLocos[loco].functionMap=DCC::getFunctionMap(locoid); 
 	      myLocos[loco].broadcastPending=true; // means speed/dir will be sent later
 	      mostRecentCab=locoid;
+#ifdef EXRAIL_ACTIVE
+      RMFT2::acquireEvent(locoid);
+#endif
 	      StringFormatter::send(stream, F("M%c+%c%d<;>\n"), throttleChar, cmd[3] ,locoid); //tell client to add loco
 	      sendFunctions(stream,loco);
 	      //speed and direction will be published at next broadcast cycle
