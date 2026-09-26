@@ -137,6 +137,17 @@ SEQUENCE(7500)
     PRINT("870 set")
   DONE
 
+  ROUTE(7702,"Bitmap Set 870")
+    BITMAP_SET(870,1234)
+    IFGTE(870,1234) 
+        IFLT(870,1235) 
+            PRINT("870 set correctly")
+            DONE
+        ENDIF
+      ENDIF  
+      PRINT("870 not set correctly")      
+  DONE
+
   ROUTE(7800, "ZTESTS")
   PRINT("ZTESTS starting")
   ZTEST("<t 3 5 1>",DCC::getLocoSpeedByte(3)==(128+6))

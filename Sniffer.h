@@ -16,12 +16,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_ARCH_ESP32) 
 #include <Arduino.h>
 #include <list>
-#include "driver/mcpwm.h"
-#include "soc/mcpwm_struct.h"
-#include "soc/mcpwm_reg.h"
 
 #define MAXDCCPACKETLEN 8
 #include "DCCPacket.h"
@@ -29,7 +26,7 @@
 class Sniffer {
 public:
   Sniffer(byte snifferpin);
-  void IRAM_ATTR processInterrupt(int32_t capticks, bool posedge);
+  void IRAM_ATTR processInterrupt(uint32_t capticks, bool posedge);
   inline int32_t getTicks() {
     noInterrupts();
     int32_t i = diffticks;
@@ -56,11 +53,13 @@ public:
   };
   bool inputActive();
 private:
+  uint32_t dcc_too_short_limit;
+  uint32_t dcc_one_limit;
   // keep these vars in processInterrupt only
   uint64_t bitfield = 0;
   uint64_t debugfield = 0;
-  int32_t diffticks;
-  int32_t lastticks;
+  uint32_t diffticks;
+  uint32_t lastticks;
   bool lastedge;
   byte currentbyte = 0;
   byte dccbytes[MAXDCCPACKETLEN];

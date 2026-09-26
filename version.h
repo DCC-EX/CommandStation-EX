@@ -3,7 +3,52 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.5.67"
+#define VERSION "5.9.6"
+// 5.9.6  - DCCDecoder F13-F28 improvements
+//        - waveshare lib
+// 5.9.5  - STM32 and ESP32 build environment fixes
+// 5.9.4  - STM32 cleanup
+// 5.9.3  - Minor bug fixes and improvements
+//        - Updated documentation for new features
+//        - POM for accessory decoders
+// 5.9.2  - Fixed null turnout descriptions and ifthrown state
+// 5.9.1  - Added LED_SIGNAL exrail macro
+// 5.9.0  - Major update for Nodes
+//        - Removed AVR support
+//        - Removed obsolete <t and <R variants with ignored arguments
+//        - Improved serial log browser support
+//        - Implemented Non Volatile Storage
+//        - EXRAIL >32kb execution script support
+//        - NVS dialogs for browser interface
+//        - Serial log timestamps
+//        - Broadcast signal aspects to all connected throttles
+//        - Inter node turnout, sensor and signal sharing
+//        - exrail change direction
+//
+// 5.7.8  - Bugfix: Incorrect parser limit on prog track tuning command values
+// 5.7.7  - BugFix: EXRAIL READ_LOCO IFLOCO(0)
+// 5.7.6  - Safety net for users which have not defined an ONRAILSYNCOFF hanlder
+// 5.7.5  - Bugfix: <W cv value> and similar commands incorrectly limited cv number to 255 instead of 1023. 
+//        - Removed unnecessary pin change message (ESP32)
+//        - Improved command parser error messages
+//        - Bugfix: variety of ZZParser format checking and error reporting issues
+//        - Corrected new UDP command responses
+// 5.7.4  - ESP32 MDNS service adverts for udp, multicast and http services
+// 5.7.3  - ZZPARSER First merge 
+// 5.7.2  - LCD/OLED messages are broadcast to all <> clients 
+// 5.7.1  - UDP comms implementation (CSB1/ESP32 only)
+//        - Unicast input/respomse
+//        - Unicast & multicast broadcasts
+//        - Prog track function results are broadcast
+// 5.7.0  - Start new devel version series
+//        - Bugfix: Websckets endian and close
+//        - Improvement: Readable msg when prog track busy
+//        - Improvement, ESP32: motor driver for EX8874 on Keystudio ESP32 (KS5016)
+// 5.5.69 - Bugfix: AT+ wifi MDNS error
+//        - <C WIFI > commands replace config.h wifi settings on ESP32 and CSB1.
+// 5.5.68 - EXRAIL: BITMAP_SET
+//        - EXRAIL: Comments corrections for doc build
+//        - RailCom: Simplification for sniffer-based detector implementation      
 // 5.5.67 - RailCom, AVR: Correct cutout timer calculation
 //        - RailCom: Improved block handling
 //        - EXRAIL: new IF_ALL,IF_ANY

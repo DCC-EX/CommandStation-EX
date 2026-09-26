@@ -25,8 +25,6 @@
 #include "IODevice.h"
 #include "StringFormatter.h"
 
-// No turntable support without HAL
-#ifndef IO_NO_HAL
 
 // Turntable type definitions
 // EXTT = EX-Turntable
@@ -238,6 +236,5 @@ protected:
 
 };
 
-#endif
 
 #endif

@@ -23,56 +23,39 @@
 #define DCCEXParser_h
 #include <Arduino.h>
 #include "FSH.h"
-#include "RingStream.h"
 #include "defines.h"
 
 typedef void (*FILTER_CALLBACK)(Print * stream, byte & opcode, byte & paramCount, int16_t p[]);
-typedef void (*AT_COMMAND_CALLBACK)(HardwareSerial * stream,const byte * command);
-
 struct DCCEXParser
 {
    
-   static void parse(Print * stream,  byte * command,  RingStream * ringStream);
-   static void parse(const FSH * cmd);
-   static void parseOne(Print * stream,  byte * command,  RingStream * ringStream);
+   static void parse(Print * stream,  byte * command);
+   static void parse(Print * stream,  const char * command);
+   static void parseNodeTraffic(byte * command);
    static void setFilter(FILTER_CALLBACK filter);
-   static void setRMFTFilter(FILTER_CALLBACK filter);
    static void setCamParserFilter(FILTER_CALLBACK filter);
-   static void setAtCommandCallback(AT_COMMAND_CALLBACK filter);
    static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
    static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
- 
+   static const FSH * matchedCommandFormat;
+   static const FSH * checkFailedFormat;
+   
    private:
-  
+   #ifdef DCC_ACCESSORY_COMMAND_REVERSE
+   static const bool accessoryCommandReverse = true;
+  #else    
+   static const bool accessoryCommandReverse = false;
+  #endif
     static const int16_t MAX_BUFFER=50;  // longest command sent in
-    static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte * command, bool usehex);
-     
-    static bool parseT(Print * stream, int16_t params, int16_t p[]);
-    static bool parseZ(Print * stream, int16_t params, int16_t p[]);
-    static bool parsey(Print * stream, int16_t params, int16_t p[]);
-    static bool parseS(Print * stream, int16_t params, int16_t p[]);
-    static bool parsef(Print * stream, int16_t params, int16_t p[]);
-    static bool parseC(Print * stream, int16_t params, int16_t p[]);
-    static bool parseD(Print * stream, int16_t params, int16_t p[]);
-    static bool parseJM(Print * stream, int16_t params, int16_t p[]);
-#ifndef IO_NO_HAL
-    static bool parseI(Print * stream, int16_t params, int16_t p[]);
-#endif
+    static byte * parseOne(Print * stream,  byte * command);
+    static int16_t splitValues( int16_t result[MAX_COMMAND_PARAMS], byte *& command, bool usehex);
+    static bool execute(byte * command, Print * stream, byte opcode, byte params, int16_t p[]);
+    static bool executeNodeTraffic(byte * command, byte opcode, byte params, int16_t p[]);
 
-    static Print * getAsyncReplyStream();
-    static void commitAsyncReplyStream();
-
-    static bool stashBusy;
-    static byte stashTarget;
-    static Print * stashStream;
-    static RingStream * stashRingStream;
-    
+    static bool stashBusy;    
     static int16_t stashP[MAX_COMMAND_PARAMS];
-    static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS], RingStream * ringStream);
+    static bool stashCallback(Print * stream, int16_t p[MAX_COMMAND_PARAMS]);
     static void callback_W(int16_t result);
-    static void callback_W4(int16_t result);
-    static void callback_B(int16_t result);        
-    static void callback_R(int16_t result); // prog
+    static void callback_B(int16_t result);
     static void callback_r(int16_t result); // main
     static void callback_Rloco(int16_t result);
     static void callback_Wloco(int16_t result);
@@ -80,10 +63,9 @@ struct DCCEXParser
     static void callback_Vbit(int16_t result);
     static void callback_Vbyte(int16_t result);
     static FILTER_CALLBACK  filterCallback;
-    static FILTER_CALLBACK  filterRMFTCallback;
     static FILTER_CALLBACK  filterCamParserCallback;
-    static AT_COMMAND_CALLBACK  atCommandCallback;
     static void sendFlashList(Print * stream,const int16_t flashList[]);
+    static bool setThrottle(int16_t cab,int16_t tspeed,int16_t direction);
 
 };
 

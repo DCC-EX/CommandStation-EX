@@ -1,5 +1,5 @@
 /*
- *  © 2025 Harald Barth
+ *  © 2025-2026 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -16,9 +16,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+#include "config.h"
+#if defined(ARDUINO_ARCH_ESP32)
 #include "Sniffer.h"
 #include "DIAG.h"
+#include "driver/mcpwm.h"
+#include "soc/mcpwm_struct.h"
+#include "soc/mcpwm_reg.h"
+
 //extern Sniffer *DCCSniffer;
 
 static void packeterror() {
@@ -95,6 +100,9 @@ static bool IRAM_ATTR cap_ISR_cb(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t 
 }
 
 Sniffer::Sniffer(byte snifferpin) {
+  // init some constants, on standard ESP32 getApbFrequency() is 80 000 000.
+  dcc_too_short_limit = (getApbFrequency()/1000) * 50 /*usec*/ / 1000;
+  dcc_one_limit       = (getApbFrequency()/1000) * 80 /*usec*/ / 1000;
   mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_0, snifferpin);
   // set capture edge, BIT(0) - negative edge, BIT(1) - positive edge
   // MCPWM_POS_EDGE|MCPWM_NEG_EDGE should be 3.
@@ -120,21 +128,42 @@ Sniffer::Sniffer(byte snifferpin) {
 
 #define SNIFFER_TIMEOUT 100L // 100 Milliseconds
 bool Sniffer::inputActive(){
+#ifdef DEBUG_RAILSYNC
+  static bool state=false;
+  static unsigned long lastsniff=0;
+#endif // DEBUG_RAILSYNC
+  noInterrupts();
+  unsigned long leop = lastendofpacket;
+  interrupts();
   unsigned long now = millis();
-  return ((now - lastendofpacket) < SNIFFER_TIMEOUT);
+  unsigned long diff = now - leop;
+  if (diff < SNIFFER_TIMEOUT) {
+#ifdef DEBUG_RAILSYNC
+    if (state == false) {
+      DIAG(F("Sniffer is back %L"), now - lastsniff);
+      state=true;
+    }
+#endif // DEBUG_RAILSYNC
+    return true;
+  }
+#ifdef DEBUG_RAILSYNC
+  if (state == true) {
+    DIAG(F("Sniffer timeout hit %L"), diff);
+    lastsniff = leop;
+    state = false;
+  }
+#endif // DEBUG_RAILSYNC
+  return false;
 }
 
-#define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
-#define DCC_ONE_LIMIT 6400L // 6400 ticks are 80usec
-
-void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
+void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
   byte bit = 0;
   diffticks = capticks - lastticks;
   if (lastedge != posedge) {
-    if (diffticks < DCC_TOO_SHORT) {
+    if (diffticks < dcc_too_short_limit) {
       return;
     }
-    if (diffticks < DCC_ONE_LIMIT) {
+    if (diffticks < dcc_one_limit) {
       bit = 1;
     } else {
       bit = 0;
@@ -238,4 +267,6 @@ static void IRAM_ATTR sniffer_isr_handler(void *) {
   DCCSniffer.processInterrupt();
 }
 */
+#else
+#warning Sniffer.cpp is only compiled for ESP32
 #endif // ESP32

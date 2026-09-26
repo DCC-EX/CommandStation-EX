@@ -198,8 +198,16 @@ void TrackManager::setDCSignal(int16_t cab, byte speedbyte) {
   }
 }    
 
+bool TrackManager::orTrackMode(byte trackToSet,TRACK_MODE mode) {
+  if (trackToSet>='A') trackToSet-='A';  // convert A... to 0....   
+  if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
+  TRACK_MODE oldmode = track[trackToSet]->getMode();
+  return setTrackMode(trackToSet, mode | oldmode);
+}
+
 bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr, bool offAtChange) {
-    if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
+  if (trackToSet>='A') trackToSet-='A';  // convert A... to 0....   
+  if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
 
     // Remember track mode we came from for later
     TRACK_MODE oldmode = track[trackToSet]->getMode();
@@ -207,10 +215,6 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     //DIAG(F("Track=%c Mode=%d"),trackToSet+'A', mode);
     // DC tracks require a motorDriver that can set brake!
     if (mode & TRACK_MODE_DC) {
-#if defined(ARDUINO_AVR_UNO)
-      DIAG(F("Uno has no PWM timers available for DC"));
-      return false;
-#endif
       if (!track[trackToSet]->brakeCanPWM()) {
 	DIAG(F("Brake pin can't PWM: No DC"));
 	return false;
@@ -392,69 +396,8 @@ void TrackManager::applyDCSpeed(byte t) {
 			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
 
-bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
-{
-    
-    if (params==0) { // <=>  List track assignments
-        FOR_EACH_TRACK(t)
-             streamTrackState(stream,t);
-        return true;
-        
-    }
-    
-    p[0]-="A"_hk;  // convert A... to 0.... 
-
-    if (params>1 && (p[0]<0 || p[0]>=MAX_TRACKS)) 
-        return false;
-    
-    if (params==2  && p[1]=="MAIN"_hk)                                            // <= id MAIN>
-        return setTrackMode(p[0],TRACK_MODE_MAIN);
-    if (TRACK_MODIFIER_RAILCOM != 0 && params==2  && p[1]=="MAIN_RAILCOM"_hk)     // <= id MAIN_RAILCOM>
-        return setTrackMode(p[0],TRACK_MODE_MAIN|TRACK_MODIFIER_RAILCOM);
-    if (params==2  && p[1]=="MAIN_INV"_hk)                                        // <= id MAIN_INV>
-        return setTrackMode(p[0],TRACK_MODE_MAIN_INV);
-    if (TRACK_MODIFIER_RAILCOM != 0 && params==2  && p[1]=="MAIN_INV_RAILCOM"_hk) // <= id MAIN_INV_RAILCOM>
-        return setTrackMode(p[0],TRACK_MODE_MAIN_INV|TRACK_MODIFIER_RAILCOM);
-    if (params==2  && p[1]=="MAIN_AUTO"_hk)                                       // <= id MAIN_AUTO>
-        return setTrackMode(p[0],TRACK_MODE_MAIN_AUTO);
-    if (TRACK_MODIFIER_RAILCOM != 0 && params==2  && p[1]=="MAIN_AUTO_RAILCOM"_hk)// <= id MAIN_AUTO_RAILCOM>
-        return setTrackMode(p[0],TRACK_MODE_MAIN_AUTO|TRACK_MODIFIER_RAILCOM);
-    
-#ifndef DISABLE_PROG
-    if (params==2  && p[1]=="PROG"_hk)                     // <= id PROG>
-        return setTrackMode(p[0],TRACK_MODE_PROG);
-#endif
-    
-    if (params==2  && (p[1]=="OFF"_hk || p[1]=="NONE"_hk)) // <= id OFF> <= id NONE>
-        return setTrackMode(p[0],TRACK_MODE_NONE);
-
-    if (params==2  && p[1]=="EXT"_hk) // <= id EXT>
-        return setTrackMode(p[0],TRACK_MODE_EXT);
-#ifdef BOOSTER_INPUT
-    if (TRACK_MODE_BOOST != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST"_hk)                    // <= id BOOST>
-        return setTrackMode(p[0],TRACK_MODE_BOOST);
-    if (TRACK_MODE_BOOST_INV != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST_INV"_hk)                // <= id BOOST_INV>
-        return setTrackMode(p[0],TRACK_MODE_BOOST_INV);
-    if (TRACK_MODE_BOOST_AUTO != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST_AUTO"_hk)               // <= id BOOST_AUTO>
-        return setTrackMode(p[0],TRACK_MODE_BOOST_AUTO);
-#endif
-    if (params==2  && p[1]=="AUTO"_hk)                     // <= id AUTO>
-      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODIFIER_AUTO);
-
-    if (params==2  && p[1]=="INV"_hk)                      // <= id INV>
-      return setTrackMode(p[0], track[p[0]]->getMode() | TRACK_MODIFIER_INV);
-
-    if (params==3  && p[1]=="DC"_hk && p[2]>0)             // <= id DC cab>
-        return setTrackMode(p[0],TRACK_MODE_DC,p[2]);
-    
-    if (params==3  && (p[1]=="DC_INV"_hk ||                // <= id DC_INV cab>
-		       p[1]=="DCX"_hk) && p[2]>0)          // <= id DCX cab>
-        return setTrackMode(p[0],TRACK_MODE_DC_INV,p[2]);
-
-    return false;
+void TrackManager::list(Print * stream) {
+        FOR_EACH_TRACK(t) streamTrackState(stream,t);
 }
 
 const FSH* TrackManager::getModeName(TRACK_MODE tm) {
@@ -640,6 +583,8 @@ void TrackManager::reportObsoleteCurrent(Print* stream) {
   // This function is for backward JMRI compatibility only
   // It reports the first track only, as main, regardless of track settings.
   //  <c MeterName value C/V unit min max res warn>
+  if (!track[0]) return; // no shield so no current to report
+
 #ifdef HAS_ENOUGH_MEMORY
   int maxCurrent=track[0]->raw2mA(track[0]->getRawCurrentTripValue());
   StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>\n"), 

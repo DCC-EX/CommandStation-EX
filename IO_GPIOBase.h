@@ -23,6 +23,7 @@
 #include "IODevice.h"
 #include "I2CManager.h"
 #include "DIAG.h"
+#include "NodeManager.h"
 
 // GPIOBase is defined as a class template.  This allows it to be instantiated by
 // subclasses with different types, according to the number of pins on the GPIO module.
@@ -159,8 +160,21 @@ void GPIOBase<T>::_loop(unsigned long currentMicros) {
   // Set unused pin and write mode pin value to 1
     _portInputState |= ~_portInUse | _portMode;
 
-    // Scan for changes in input states and invoke callback (if present)
     T differences = lastPortStates ^ _portInputState;
+    // notify nodes of any changes in input states.  This is done here rather than in _readGpioPort() because
+    //  the read is non-blocking and the completion of the read is detected here.
+    if (differences) {
+      for (int pin=0; pin<_nPins; pin++) {
+        T mask = 1 << pin;
+        if (differences & mask) {
+          // Change detected.
+          int value = (_portInputState & mask) ? 0 : 1;  // Invert state (5v=0, 0v=1)
+          NodeManager::castVpin(_firstVpin+pin, 1, value);
+        }
+      }
+    }
+
+    // Scan for changes in input states and invoke callback (if present)
     if (differences && IONotifyCallback::hasCallback()) {
       // Scan for differences bit by bit
       T mask = 1;

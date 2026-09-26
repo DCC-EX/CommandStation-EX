@@ -50,7 +50,7 @@ public:
   static void loop();
 
   // Public DCC API functions
-  static bool setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection);
+  static bool setThrottle(uint16_t cab, uint8_t tSpeed, bool tDirection, bool tellNodes=true);
   static void estopAll();
   static void estopLock(bool lock);
   static bool isEstopLocked();
@@ -64,8 +64,12 @@ public:
   static void readCVByteMain(int cab, int cv, ACK_CALLBACK callback);
   
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
+
+  static void writeAccessoryCVByteMain(int cab, int cv, byte bValue);
+  static void writeExtendedAccessoryCVByteMain(int cab, int cv, byte bValue);
+
   static void setFunction(int cab, byte fByte, byte eByte);
-  static bool setFn(int cab, int16_t functionNumber, bool on);
+  static bool setFn(int cab, int16_t functionNumber, bool on, bool tellNodes=true);
   static void changeFn(int cab, int16_t functionNumber);
   static int8_t getFn(int cab, int16_t functionNumber);
   static uint32_t getFunctionMap(int cab);

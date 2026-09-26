@@ -19,11 +19,7 @@
  */
 //
 // Rewrite of the STM32lwipopts.h file from STM
-// To be copied into where lwipopts_default.h resides
-// typically into STM32Ethernet/src/STM32lwipopts.h
-// or STM32Ethernet\src\STM32lwipopts.h
-// search for `lwipopts_default.h` and copy this file into the
-// same directory but name it STM32lwipopts.h
+// Loaded from here because of the -I. build flag in platformio.ini
 //
 #ifndef __STM32LWIPOPTS_H__
 #define __STM32LWIPOPTS_H__
@@ -92,8 +88,11 @@ The STM32F4x7 allows computing and verifying the IP, UDP, TCP and ICMP checksums
 #error On STM32 TCP checksum should be in HW
 #endif
 
+// Required for IPv4 multicast receive on STM32Ethernet.
 #undef  LWIP_IGMP
-#define LWIP_IGMP       1
+#define LWIP_IGMP 1
+#define MEMP_NUM_IGMP_GROUP 8
+
 
 //#define SO_REUSE 1
 //#define SO_REUSE_RXTOALL 1

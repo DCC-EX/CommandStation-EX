@@ -1,9 +1,8 @@
 /*
-    © 2023 Paul M. Antoine
+    © 2023, 2026 Paul M. Antoine
     © 2021 Harald Barth
     © 2023 Nathan Kellenicki
-    © 2025 Chris Harlow
-    
+    © 2025, 2026 Chris Harlow
 
     This file is part of CommandStation-EX
 
@@ -28,128 +27,74 @@
 #include "esp_wifi.h"
 #include "WifiESP32.h"
 #include "DIAG.h"
-#include "RingStream.h"
-#include "CommandDistributor.h"
-#include "WiThrottle.h"
-#include "DCC.h"
-#include "Websockets.h"
-/*
-#include "soc/rtc_wdt.h"
+#include "WifiPreferences.h"
+
+#if __has_include ( "soc/rtc_wdt.h")
+#include <rtc_wdt.h>
+#endif
+
 #include "esp_task_wdt.h"
-*/
+#include "esp_idf_version.h"
+#include "freertos/task.h"
 
-#include "soc/timer_group_struct.h"
-#include "soc/timer_group_reg.h"
+
+
+
+
+
+#if __has_include(<esp_mac.h>)
+  #include <esp_mac.h>
+#else
+  #include <esp_system.h>
+#endif
+
+#if defined(ESP_IDF_VERSION)
+namespace {
+  bool sTaskWdtRegistered = false;
+  bool sTaskWdtInitAttempted = false;
+
+  void ensureTaskWdtRegistered() {
+    if (sTaskWdtInitAttempted) return;
+    sTaskWdtInitAttempted = true;
+
+    esp_err_t err = esp_task_wdt_add(nullptr);
+    if (err == ESP_OK) {
+      sTaskWdtRegistered = true;
+    } else if (err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT add failed: %d"), err);
+    }
+  }
+}
+
 void feedTheDog0(){
-  // feed dog 0
-  TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  TIMERG0.wdt_feed=1;                       // feed dog
-  TIMERG0.wdt_wprotect=0;                   // write protect
-  // feed dog 1
-  //TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
-  //TIMERG1.wdt_feed=1;                       // feed dog
-  //TIMERG1.wdt_wprotect=0;                   // write protect
-}
+  if (!sTaskWdtInitAttempted) {
+    ensureTaskWdtRegistered();
+  }
 
-/*
-void enableCoreWDT(byte core){
-  TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
-  if(idle == NULL){
-    DIAG(F("Get idle rask on core %d failed"),core);
-  } else {
-    if(esp_task_wdt_add(idle) != ESP_OK){
-      DIAG(F("Failed to add Core %d IDLE task to WDT"),core);
-    } else {
-      DIAG(F("Added Core %d IDLE task to WDT"),core);
+  if (sTaskWdtRegistered) {
+    esp_err_t err = esp_task_wdt_reset();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+      DIAG(F("Task WDT reset failed: %d"), err);
     }
   }
 }
-
-void disableCoreWDT(byte core){
-    TaskHandle_t idle = xTaskGetIdleTaskHandleForCPU(core);
-    if(idle == NULL || esp_task_wdt_delete(idle) != ESP_OK){
-      DIAG(F("Failed to remove Core %d IDLE task from WDT"),core);
-    }
-}
-*/
-
-class NetworkClient {
-public:
-  NetworkClient(WiFiClient c) {
-    wifi = c;
-    inUse = true;
-  };
-  bool active(byte clientId) {
-    if (!inUse)
-      return false;
-    if(!wifi.connected()) {
-      DIAG(F("Remove client %d"), clientId);
-      CommandDistributor::forget(clientId);
-      wifi.stop();
-      inUse = false;
-      return false;
-    }
-    return true;
-  }
-  bool recycle(WiFiClient c) {
-    if (wifi == c) {
-      if (inUse == true)
-	DIAG(F("WARNING: Duplicate"));
-      else
-	DIAG(F("Returning"));
-      inUse = true;
-      return true;
-    }
-    if (inUse == false) {
-      wifi = c;
-      inUse = true;
-      return true;
-    }
-    return false;
-  };
-  WiFiClient wifi;
-private:
-  bool inUse;
-};
-
-// file scope variables
-static std::vector<NetworkClient> clients; // a list to hold all clients
-static RingStream *outboundRing = new RingStream(10240);
-static bool APmode = false;
-// init of static class scope variables
-bool WifiESP::wifiUp = false;
-WiFiServer *WifiESP::server = NULL;
-
-#ifdef WIFI_TASK_ON_CORE0
-void wifiLoop(void *){
-  for(;;){
-    WifiESP::loop();
-  }
+#else
+void feedTheDog0(){
+  // No IDF version information available.
 }
 #endif
 
-char asciitolower(char in) {
-  if (in <= 'Z' && in >= 'A')
-    return in - ('Z' - 'z');
-  return in;
-}
+static bool APmode = false;
+bool WifiESP::wifiUp = false;
+
+#ifdef WIFI_LED
+int16_t WifiESP::wifiLed = WIFI_LED;
+#else
+int16_t WifiESP::wifiLed = 0;
+#endif
+
 
 void WifiESP::teardown() {
-  // stop all locos
-  DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1.
-  // terminate all clients connections
-  while (!clients.empty()) {
-    // pop_back() should invoke destructor which does stop()
-    // on the underlying TCP connction
-    clients.pop_back();
-  }
-  // stop server
-  if (server != NULL) {
-    server->stop();
-    server->close();
-    server->end();
-    DIAG(F("server stop, close, end"));
-  }
   // terminate MDNS anouncement
   mdns_service_remove_all();
   mdns_free();
@@ -158,314 +103,234 @@ void WifiESP::teardown() {
   wifiUp = false;
 }
 
-bool WifiESP::setup(const char *SSid,
-                    const char *password,
-                    const char *hostname,
-                    int port,
-                    const byte channel,
-                    const bool forceAP) {
-  bool havePassword = true;
-  bool haveSSID = true;
-//  bool wifiUp = false;
-  uint8_t tries = 40;
-  if (wifiUp)
-    teardown();
-  if (strcmp("OFF", SSid) == 0) {
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    return false; // debatable if that is true (success) or false (no network)
-  }
-  //#ifdef SERIAL_BT_COMMANDS
-  //return false;
-  //#endif
 
-  // tests
-  //  enableCoreWDT(1);
-  //  disableCoreWDT(0);
+bool WifiESP::setup() {
+  if (wifiUp) teardown();
+  if (wifiLed) {
+    pinMode(wifiLed, OUTPUT);
+    digitalWrite(wifiLed, 0);
+  }
+  wifiUp=setupFromPreferences();
+  if (wifiLed) digitalWrite(wifiLed, wifiUp);
+
+  if (!wifiUp) return false;
 
   DIAG(F("CPU Freq: %d MHz"), getCpuFrequencyMhz());
   DIAG(F("Flash Speed: %d Hz"), ESP.getFlashChipSpeed());
   DIAG(F("Flash Mode: %d"), ESP.getFlashChipMode());
   DIAG(F("Flash Size: %d MB"), ESP.getFlashChipSize() / (1024 * 1024));
   DIAG(F("SDK Version: %s"), ESP.getSdkVersion());
-  
 
-#ifdef WIFI_LED
-  // Turn off Wifi LED
-  pinMode(WIFI_LED, OUTPUT);
-  digitalWrite(WIFI_LED, 0);
-#endif
-
-  // clean start
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true);
-  // differnet settings that did not improve for haba
-  // WiFi.useStaticBuffers(true);
-  // WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-  // WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SECURITY);
-
-  const char *yourNetwork = "Your network ";
-  if (strncmp(yourNetwork, SSid, 13) == 0 || strncmp("", SSid, 13) == 0)
-    haveSSID = false;
-  if (strncmp(yourNetwork, password, 13) == 0 || strncmp("", password, 13) == 0)
-    havePassword = false;
-
-  if (haveSSID && havePassword && !forceAP) {
-    WiFi.setHostname(hostname); // Strangely does not work unless we do it HERE!
-    WiFi.mode(WIFI_STA);
-    WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN); // Scan all channels so we find strongest
-                                               // (default in Wifi library is first match)
-#ifdef SERIAL_BT_COMMANDS
-    WiFi.setSleep(true);
-#else
-    WiFi.setSleep(false);
-#endif
-    WiFi.setAutoReconnect(true);
-    WiFi.begin(SSid, password);
-    while (WiFi.status() != WL_CONNECTED && tries) {
-      Serial.print('.');
-      tries--;
-      delay(500);
-    }
-    if (WiFi.status() == WL_CONNECTED) {
-      // DIAG(F("Wifi STA IP %s"),WiFi.localIP().toString().c_str());
-      DIAG(F("Wifi in STA mode"));
-      LCD(7, F("IP: %s"), WiFi.localIP().toString().c_str());
-      wifiUp = true;
-    } else {
-      DIAG(F("Could not connect to Wifi SSID %s"),SSid);
-      DIAG(F("Forcing one more Wifi restart"));
-      esp_wifi_start();
-      esp_wifi_connect();
-      tries=40;
-      while (WiFi.status() != WL_CONNECTED && tries) {
-	Serial.print('.');
-	tries--;
-	delay(500);
-      }
-      if (WiFi.status() == WL_CONNECTED) {
-	DIAG(F("Wifi STA IP 2nd try %s"),WiFi.localIP().toString().c_str());
-	wifiUp = true;
-      } else {
-	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
-	wifiUp=false;
-      }
-    }
-  }
-  if (!wifiUp || forceAP) {
-    // prepare all strings
-    String strMac;
-    if (!haveSSID || !havePassword) {
-      strMac = WiFi.macAddress();
-      strMac.remove(0,9);
-      strMac.replace(":","");
-      strMac.replace(":","");
-      // convert mac addr hex chars to lower case to be compatible with AT software
-      std::transform(strMac.begin(), strMac.end(), strMac.begin(), asciitolower);
-    }
-    String strSSID;
-    if (!haveSSID) {
-      strSSID.concat("DCCEX_");
-      strSSID.concat(strMac);
-    } else {
-      strSSID.concat(SSid);
-    }
-    String strPass;
-    if (!havePassword) {
-      strPass.concat("PASS_");
-      strPass.concat(strMac);
-    } else {
-      strPass.concat(password);
-    }
-
-    WiFi.mode(WIFI_AP);
-#ifdef SERIAL_BT_COMMANDS
-    WiFi.setSleep(true);
-#else
-    WiFi.setSleep(false);
-#endif
-
-#ifdef WIFI_HIDE_SSID
- const bool hiddenAP = true;
-#else
- const bool hiddenAP = false;
-#endif
-
-    if (WiFi.softAP(strSSID.c_str(),
-		    havePassword ? password : strPass.c_str(),
-		    channel, hiddenAP, 8)) {
-      // DIAG(F("Wifi AP SSID %s PASS %s"),strSSID.c_str(),havePassword ? password : strPass.c_str());
-      DIAG(F("Wifi in AP mode"));
-      LCD(5, F("Wifi: %s"), strSSID.c_str());
-      if (!havePassword)
-	LCD(6, F("PASS: %s"),strPass.c_str());
-      // DIAG(F("Wifi AP IP %s"),WiFi.softAPIP().toString().c_str());
-      LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
-      wifiUp = true;
-      APmode = true;
-    } else {
-      DIAG(F("Could not set up AP with Wifi SSID %s"),strSSID.c_str());
-    }
-  }
-
-
-  if (!wifiUp) {
-    DIAG(F("Wifi setup all fail (STA and AP mode)"));
-    // no idea to go on
-    return false;
-  }
-#ifdef WIFI_LED
-  else{
-    // Turn on Wifi connected LED
-    digitalWrite(WIFI_LED, 1);
-  }
-#endif
-
-
-  // Now Wifi is up, register the mDNS service
-  if(!MDNS.begin(hostname)) {
-    DIAG(F("Wifi setup failed to start mDNS"));
-  }
-  if(!MDNS.addService("withrottle", "tcp", port)) {
-    DIAG(F("Wifi setup failed to add withrottle service to mDNS"));
-  }
-
-  server = new WiFiServer(port); // start listening on tcp port
-  server->begin();
-  // server started here
-
-#ifdef WIFI_TASK_ON_CORE0
-  //start loop task
-  if (pdPASS != xTaskCreatePinnedToCore(
-	wifiLoop, /* Task function. */
-	"wifiLoop",/* name of task.  */
-	10000,     /* Stack size of task */
-	NULL,      /* parameter of the task */
-	1,         /* priority of the task */
-	NULL,      /* Task handle to keep track of created task */
-	0)) {      /* pin task to core 0 */
-    DIAG(F("Could not create wifiLoop task"));
-    return false;
-  }
-
-  // report server started after wifiLoop creation
-  // when everything looks good
-  DIAG(F("Server starting (core 0) port %d"),port);
-#else
-  DIAG(F("Server will be started on port %d"),port);
-#endif
   return true;
 }
 
+void WifiESP::setupMDNS() {
+  if (!MDNS.begin(WifiPreferences::getHostName())) {
+    DIAG(F("Wifi setup failed to start mDNS"));
+  }
+}
+
+void WifiESP::addService(const char *name, const char *proto, uint16_t port) {
+  if (!MDNS.addService(name, proto, port)) {
+    DIAG(F("addService failed %s %s %d"), name, proto, port);
+  }
+}
+
+void WifiESP::addServiceTxt(const char *name, const char *proto, const char *key, const char *value) {
+  MDNS.addServiceTxt(name, proto, key, value);
+}
+
+bool WifiESP::setupFromPreferences() {
+  WifiPreferences::load();
+  if (!WifiPreferences::getEnabled()) {
+    LCD(5,F("WIFI OFF"));
+    LCD(6,F(""));
+    LCD(7,F(""));
+    return false;
+  }
+
+  // if we have been given an STA connection, try that first
+  auto ssidptr=WifiPreferences::getSsidSTA();
+  if (ssidptr[0] && ConnectSTA(ssidptr, WifiPreferences::getPasswordSTA())) return true;
+    
+  // Try for a defined AP mode. ConnectAP will fill missing values from mac.
+  if ( ConnectAP(WifiPreferences::getSsidAP(), WifiPreferences::getPasswordAP(), WifiPreferences::getChannelAP()) ) return true;
+  
+  // all a bit of a mystery 
+  return false;
+}
+
 const char *wlerror[] = {
-			 "WL_IDLE_STATUS",
-			 "WL_NO_SSID_AVAIL",
-			 "WL_SCAN_COMPLETED",
-			 "WL_CONNECTED",
-			 "WL_CONNECT_FAILED",
-			 "WL_CONNECTION_LOST",
-			 "WL_DISCONNECTED"
+  "WL_IDLE_STATUS",
+  "WL_NO_SSID_AVAIL",
+  "WL_SCAN_COMPLETED",
+  "WL_CONNECTED",
+  "WL_CONNECT_FAILED",
+  "WL_CONNECTION_LOST",
+  "WL_DISCONNECTED"
 };
 
+static void setStaProtocolsBestEffort() {
+  // Prefer higher-throughput modes when available, but never crash if a target/core
+  // rejects a protocol bitmap. Fall back to legacy b/g/n which is broadly supported.
+  esp_err_t err = ESP_OK;
+
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+  wifi_protocols_t proto = {
+      .ghz_2g = WIFI_PROTOCOL_11AX,
+      .ghz_5g = WIFI_PROTOCOL_11AX,
+  };
+  err = esp_wifi_set_protocols(WIFI_IF_STA, &proto);
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N | WIFI_PROTOCOL_11AX);
+#else
+  err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
+#endif
+
+  if (err != ESP_OK) {
+    DIAG(F("esp_wifi_set_protocol failed (%d), falling back to 11b/g/n"), err);
+    err = esp_wifi_set_protocol(
+        WIFI_IF_STA,
+        WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    if (err != ESP_OK) {
+      DIAG(F("Fallback esp_wifi_set_protocol failed (%d)"), err);
+    }
+  }
+}
+
+bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
+  WiFi.setHostname(WifiPreferences::getHostName());
+  WiFi.mode(WIFI_STA);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.
+  // Some targets/cores reject narrow protocol bitmaps; use safe fallback instead of aborting.
+  setStaProtocolsBestEffort();
+
+#if !CONFIG_SOC_WIFI_SUPPORT_5G
+  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+#endif
+
+#ifdef SERIAL_BT_COMMANDS
+  WiFi.setSleep(true);
+#else
+  WiFi.setSleep(false);
+#endif
+  WiFi.setAutoReconnect(true);
+  // Scan all channels, and select the AP with the strongest signal.
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+  
+  WiFi.begin(SSid, password);
+
+  uint8_t tries = 40;
+  while (WiFi.status() != WL_CONNECTED && tries) {
+    USB_SERIAL.print('.');
+    tries--;
+    delay(500);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    DIAG(F("Wifi in STA mode"));
+    LCD(5,F(""));
+    LCD(6,F(""));
+    LCD(7, F("IP: %s"), WiFi.localIP().toString().c_str());
+    return true;
+  }
+  DIAG(F("Could not connect to Wifi SSID %s"),SSid);
+  return false;
+}
+
+bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel) {
+// prepare all strings
+  bool password_secret=true;
+  String strSSID; // retain scope in function for c_str() to be valid
+  String strPass;
+
+  // Grab the MAC address of the ESP32 and use the last 3 bytes to create a unique SSID and password if not provided.
+  if (!SSid || SSid[0] == 0) {
+      uint8_t byteMac[6];
+      esp_read_mac(byteMac, ESP_MAC_WIFI_STA);
+
+      char suffix[7];
+      snprintf(suffix, sizeof(suffix), "%02x%02x%02x",
+              byteMac[3], byteMac[4], byteMac[5]);
+
+      strSSID = "DCCEX_";
+      strSSID += suffix;
+      SSid = strSSID.c_str();
+
+      strPass = "PASS_";
+      strPass += suffix;
+      password = strPass.c_str();
+
+      password_secret = false;
+  }
+  
+  WiFi.mode(WIFI_AP);
+  // Optimize Wi-Fi for multicast send performance!!
+  // Only advertise the higher bandwidth modes if the ESP32 supports them.  Some older ESP32s only support 802.11b/g/n, newer ones support 802.11ax.
+  // NB: the ESP32-C5 has a single WiFi radio... so can be configured for **either** 2.4GHz or 5GHz, but not both at the same time.
+  // We'll keep the ESP32-C5 in 2.4GHz mode for now, with future 5GHz support. The 5GHz config here is left for reference.
+#if CONFIG_SOC_WIFI_SUPPORT_5G
+    wifi_protocols_t proto = {
+        .ghz_2g = WIFI_PROTOCOL_11AX,
+        .ghz_5g = WIFI_PROTOCOL_11AX,
+    };
+    esp_wifi_set_protocols(WIFI_IF_AP, &proto);
+// For the ESP32-C6, and anything similar which supports 802.11ax, but only 2.4GHz, we can use the same 11ax protocol.
+#elif CONFIG_SOC_WIFI_HE_SUPPORT
+    esp_wifi_set_protocol(
+            WIFI_IF_AP,
+            WIFI_PROTOCOL_11N |
+            WIFI_PROTOCOL_11AX);
+// Legacy ESP32s (ESP32, ESP32-S3, ESP32-C3) which support only 2.4GHz, and not 5GHz, can use the 11n protocol.
+#else
+    esp_wifi_set_protocol(
+        WIFI_IF_AP,
+        WIFI_PROTOCOL_11N);
+#endif
+
+#ifdef SERIAL_BT_COMMANDS
+  WiFi.setSleep(true);
+#else
+  WiFi.setSleep(false);
+#endif
+
+// For now, we will force the ESP32-C5 to operate in 2.4GHz mode only, as the 5GHz support is not yet implemented.
+#if CONFIG_IDF_TARGET_ESP32C5
+    esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY);
+#endif
+
+  const bool hiddenAP = WifiPreferences::getHiddenAP();
+  
+  if (WiFi.softAP(SSid,password, channel, hiddenAP, 8)) {
+    DIAG(F("Wifi in AP mode"));
+    LCD(5, F("WIFI: %s"), SSid);
+    if (password_secret) LCD(6,F("")); 	
+    else LCD(6, F("PASS: %s"),password);
+    LCD(7, F("IP: %s"),WiFi.softAPIP().toString().c_str());
+    APmode = true;
+    return true;
+  }
+  DIAG(F("Could not set up AP with Wifi SSID %s"),SSid);
+  return false;
+}
+
 void WifiESP::loop() {
-  int clientId; //tmp loop var
+  
+  auto wlStatus=WiFi.status();
 
-  // really no good way to check for LISTEN especially in AP mode?
-  wl_status_t wlStatus;
-  if (APmode || (wlStatus = WiFi.status()) == WL_CONNECTED) {
-    if (server->hasClient()) {
-      WiFiClient client;
-      while (client = server->available()) {
-	for (clientId=0; clientId<clients.size(); clientId++){
-	  if (clients[clientId].recycle(client)) {
-	    DIAG(F("Recycle client %d %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
-	    break;
-	  }
-	}
-	if (clientId>=clients.size()) {
-	  NetworkClient nc(client);
-	  clients.push_back(nc);
-	  DIAG(F("New client %d, %s:%d"), clientId, client.remoteIP().toString().c_str(),client.remotePort());
-	}
-      }
-    }
-    // loop over all connected clients
-    // this removes as a side effect inactive clients when checking ::active()
-    for (clientId=0; clientId<clients.size(); clientId++){
-      if(clients[clientId].active(clientId)) {
-	int len;
-	if ((len = clients[clientId].wifi.available()) > 0) {
-	  // read data from client
-	  byte cmd[len+1];
-	  for(int i=0; i<len; i++) {
-	    cmd[i]=clients[clientId].wifi.read();
-	  }
-	  cmd[len]=0;
-	  CommandDistributor::parse(clientId,cmd,outboundRing);
-	}
-      }
-    } // all clients
-
-    WiThrottle::loop(outboundRing);
-
-    // something to write out?
-    clientId=outboundRing->read();
-    bool useWebsocket=clientId & Websockets::WEBSOCK_CLIENT_MARKER;
-    clientId &= ~ Websockets::WEBSOCK_CLIENT_MARKER;
-    if (clientId >= 0) {
-      // We have data to send in outboundRing
-      // and we have a valid clientId.
-      // First read it out to buffer
-      // and then look if it can be sent because
-      // we can not leave it in the ring for ever
-      int count=outboundRing->count();
-      auto wsHeaderLen=useWebsocket? Websockets::getOutboundHeaderSize(count) : 0;
-      {
-        byte buffer[wsHeaderLen + count + 1];  // one extra for '\0'
-        if (useWebsocket) Websockets::fillOutboundHeader(count, buffer);
-        for (int i = 0; i < count; i++) {
-          int c = outboundRing->read();
-          if (!c) {
-            DIAG(F("Ringread fail at %d"), i);
-            break;
-          }
-          // websocket implementations at browser end can barf at \n
-          if (useWebsocket && (c == '\n')) c = '\r';
-          buffer[i + wsHeaderLen] = (char)c;
-        }
-        // buffer filled, end with '\0' so we can use it as C string
-	buffer[wsHeaderLen+count]='\0';
-	if((unsigned int)clientId <= clients.size()) {
-	  if (clients[clientId].active(clientId)) {
-	    if (Diag::WIFI)
-	      DIAG(F("SEND%S %d:%s"), useWebsocket?F("ws"):F(""),clientId, buffer+wsHeaderLen);
-	    clients[clientId].wifi.write(buffer,count+wsHeaderLen);
-	  } else {
-	    // existed but not active
-	    DIAG(F("Unsent(%d): %s"), clientId, buffer+wsHeaderLen);
-	  }
-	} else {
-	  DIAG(F("Non existent client %d has message: %s"), clientId, buffer+wsHeaderLen);
-	}
-      }
-    }
-  } else if (!APmode) { // in STA mode but not connected any more
-    // kick it again
+  if (!APmode && wlStatus != WL_CONNECTED) { // in STA mode but not connected any more
+    // kick it again THIS IS CRAZY BECAUSE THE DELAYS WILL CAUSE ISSUES
     if (wlStatus <= 6) {
       DIAG(F("Wifi aborted with error %s. Kicking Wifi!"), wlerror[wlStatus]);
       esp_wifi_start();
       esp_wifi_connect();
-      uint8_t tries=40;
-      while (WiFi.status() != WL_CONNECTED && tries) {
-	Serial.print('.');
-	tries--;
-	delay(500);
+      for (uint8_t tries=40; WiFi.status() != WL_CONNECTED && tries; tries--) {
+	      Serial.print('.');
+	      delay(500);
       }
-    } else {
-      // all well, probably
-      //DIAG(F("Running BT"));
-    }
   }
+}
 
   // when loop() is running on core0 we must
   // feed the core0 wdt ourselves as yield()
@@ -478,4 +343,5 @@ void WifiESP::loop() {
     yield();
   }
 }
+
 #endif //ESP32

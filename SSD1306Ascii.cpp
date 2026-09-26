@@ -192,8 +192,10 @@ bool SSD1306AsciiWire::begin() {
     DIAG(F("OLED configuration option not recognised"));
     return false;
   }
-  // Device found
-  DIAG(F("%dx%d OLED display configured on I2C:%s"), m_displayWidth, m_displayHeight, m_i2cAddr.toString());
+  // Device found (or not as the case may be)
+  if (m_i2cAddr != 0) {
+    DIAG(F("%dx%d OLED display configured on I2C:%s"), m_displayWidth, m_displayHeight, m_i2cAddr.toString());
+  }
   return true;
 }
 

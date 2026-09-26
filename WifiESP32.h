@@ -1,6 +1,8 @@
 /*
  *  © 2021 Harald Barth
  *  © 2023 Nathan Kellenicki
+ *  © 2026 Chris Harlow
+ *  © 2026 Paul M. Antoine
  *
  *  This file is part of CommandStation-EX
  *
@@ -23,23 +25,31 @@
 #define WifiESP32_h
 
 #include <WiFi.h>
+#include <AsyncUDP.h>
 #include "FSH.h"
 
 class WifiESP
 {
-
 public:
-  static bool setup(const char *wifiESSID,
-		    const char *wifiPassword,
-		    const char *hostname,
-		    const int port,
-		    const byte channel,
-			const bool forceAP);
+  static bool setup();
   static void loop();
-private:
+  static bool isUp() { return wifiUp; }
+  static IPAddress getIPAddress() { return WiFi.localIP(); }
+  static void setupMDNS();
+  static void addService(const char *name, const char *proto, uint16_t port);
+  static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
   static void teardown();
+  
+  private:
+  static bool setupFromPreferences();
+  static bool setupFromConfig(const char *wifiESSID,
+			      const char *wifiPassword,
+			      const byte channel,
+			      const bool forceAP);
+  static bool ConnectSTA(const char * SSid, const char * password);
+  static bool ConnectAP(const char * SSid, const char * password, byte channel);
   static bool wifiUp;
-  static WiFiServer *server;
+  static int16_t wifiLed;
 };
-#endif //WifiESP8266_h
-#endif //ESP8266
+#endif //WifiESP32_h
+#endif //ESP32

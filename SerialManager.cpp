@@ -1,5 +1,5 @@
  /*
- *  © 2022 Paul M. Antoine
+ *  © 2022, 2026 Paul M. Antoine
  *  © 2021 Chris Harlow
  *  © 2022 2024 Harald Barth
  *  All rights reserved.
@@ -143,7 +143,7 @@ void SerialManager::loop2() {
 	if (inCommandPayload == PAYLOAD_NORMAL) {
 	  if (ch == '>') {
 	    buffer[bufferLength] = '\0';               // This \0 is after the '>'
-	    DCCEXParser::parse(serial, buffer, NULL);  // buffer parsed with trailing '>'
+	    DCCEXParser::parse(serial, buffer);  // buffer parsed with trailing '>'
 	    inCommandPayload = PAYLOAD_FALSE;
 	    break;
 	  } else if (ch == '"') {

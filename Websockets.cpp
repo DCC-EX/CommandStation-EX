@@ -1,5 +1,5 @@
 /*
- *  © 2023 Chris Harlow
+ *  © 2023-2026 Chris Harlow
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -153,7 +153,8 @@ byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
      mask=buffer+2;
      }
  else {
-     payloadLength=(buffer[3]<<8)|(buffer[2]);
+     // bytes 2 and 3 are the big-endian payload length
+     payloadLength=(buffer[2]<<8)|(buffer[3]);
      mask=buffer+4;
  }
  if (Diag::WEBSOCKET) DIAG(F("Websock op=%x mb=%b pl=%d m=%x %x %x %x"), opcode, maskbit, payloadLength, 
@@ -167,7 +168,18 @@ byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
      ring->commit();
      return nullptr; 
      }
-     
+  
+  if (opcode==0x88) { // close
+    DIAG(F("Websock close"));
+    // Echo back an unmasked close frame (server-to-client frames are never masked)
+    buffer[0]=0x88;
+    buffer[1]=0x00;
+    ring->mark(clientId & 0x7f); // dont readjust
+    ring->write((uint8_t *)buffer, 2);
+    ring->commit();
+    return nullptr;  // no payload to process
+ }
+
  if (opcode!=0x81) {
   DIAG(F("Websock unknown opcode 0x%x"),opcode);
   return nullptr;
@@ -196,15 +208,15 @@ int Websockets::fillOutboundHeader(uint16_t dataLength, byte * buffer) {
          return 2; 
     }
     buffer[1]=126;
-    buffer[2]=(byte)(dataLength & 0xFF);
-    buffer[3]= (byte)(dataLength>>8);
+    buffer[2]=(byte)(dataLength >> 8);
+    buffer[3]=(byte)(dataLength & 0xFF);
     return 4;  
 }
     
  void Websockets::writeOutboundHeader(Print * stream,uint16_t dataLength) {
     byte prefix[4];
     int headerlen=fillOutboundHeader(dataLength,prefix);
-    stream->write(prefix,sizeof(headerlen));
+    stream->write(prefix,headerlen);
   }
  
 

@@ -21,6 +21,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "defines.h"
+#ifdef MOTOR_SHIELD_TYPE
 #ifndef ARDUINO_ARCH_ESP32
   // This code is replaced entirely on an ESP32
 #include <Arduino.h>
@@ -75,13 +77,11 @@ void DCCWaveform::loop() {
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
-  #if defined(HAS_ENOUGH_MEMORY)
   if (cutoutNextTime) {
     cutoutNextTime=false;
     Railcom::incCutout();
     DCCTimer::startRailcomTimer(9);
   }
-  #endif
   byte sigMain=signalTransform[mainTrack.state];
   byte sigProg=TrackManager::progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   
@@ -155,7 +155,6 @@ void DCCWaveform::interrupt2() {
     if (remainingPreambles==1)
       promotePendingPacket();
 
-#if defined(HAS_ENOUGH_MEMORY)   
     else if (isMainTrack && railcomActive) {
       if (remainingPreambles==(requiredPreambles-1)) {
         // First look if we need to start a railcom cutout on next interrupt
@@ -170,10 +169,6 @@ void DCCWaveform::interrupt2() {
         DCCTimer::ackRailcomTimer();
       }
     }
-#endif    
-    // Update free memory diagnostic as we don't have anything else to do this time.
-    // Allow for checkAck and its called functions using 22 bytes more.
-    else DCCTimer::updateMinimumFreeMemoryISR(22); 
     return;
   }
 
@@ -250,4 +245,11 @@ void DCCWaveform::promotePendingPacket() {
       transmitRepeats = 0;
       if (getResets() < 250) sentResetsSincePacket++; // only place to increment (private!)
 }
+
+void DCCWaveform::clearResets(byte fudge) {
+  (void)fudge;
+  sentResetsSincePacket=0;
+ }
+ byte DCCWaveform::getResets() { return sentResetsSincePacket; }
+#endif
 #endif

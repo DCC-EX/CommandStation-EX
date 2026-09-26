@@ -16,7 +16,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #include "DCCPacket.h"
 
@@ -29,4 +28,3 @@ private:
   static bool updateLoco(uint16_t loco, byte speedCode);
   static bool updateFunc(uint16_t loco, byte func, int shift);
 };
-#endif // ARDUINO_ARCH_ESP32

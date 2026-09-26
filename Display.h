@@ -1,4 +1,5 @@
 /*
+ *  © 2026, Paul M. Antoine
  *  © 2021, Chris Harlow, Neil McKechnie. All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -36,9 +37,13 @@
 
 class Display : public DisplayInterface {
 public:
-  Display(DisplayDevice *deviceDriver);
+  Display(DisplayDevice *deviceDriver, uint8_t displayNo = 0);
 #if !defined (MAX_CHARACTER_ROWS)
-  static const int MAX_CHARACTER_ROWS = 8;
+  #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_STM32)
+    static const int MAX_CHARACTER_ROWS = 17;
+  #else
+    static const int MAX_CHARACTER_ROWS = 8;
+  #endif
 #endif
   static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
   static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds

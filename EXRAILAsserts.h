@@ -64,7 +64,10 @@ constexpr int16_t seqCount(const int16_t value, const int16_t pos=0, const int16
 
 
 constexpr int16_t compileTimePinBlackList[]={
-   PIN_BLACKLIST, MDFURKLE(MOTOR_SHIELD_TYPE)
+   PIN_BLACKLIST 
+#ifdef MOTOR_SHIELD_TYPE   
+   ,MDFURKLE(MOTOR_SHIELD_TYPE)
+#endif
    };
 constexpr int16_t pbSize=sizeof(compileTimePinBlackList)/sizeof(int16_t);
 
@@ -92,14 +95,14 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 // This pass generates no runtime data or code 
 #include "EXRAIL2MacroReset.h"
 #undef ASPECT
-#define ASPECT(address,value) static_assert(address <=2044, "invalid Address"); \
-                              static_assert(address>=-3, "Invalid value");
+#define ASPECT(address,value) static_assert(address <=2044, "\n\nUSER ERROR: invalid DCC Address " #address); \
+                              static_assert(address>=-3, "\n\nUSER ERROR: invalid DCC Address " #address);
 
 // check references to sequences/routes/automations
 #undef CALL
-#define CALL(id) static_assert(seqCount(id)>0,"Sequence  not found");
+#define CALL(id) static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef FOLLOW
-#define FOLLOW(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#define FOLLOW(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 
 // random call and follow will generate CALL macros here which
 // will check for invalid sequences
@@ -111,35 +114,35 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
 
 #undef START
-#define START(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#define START(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef START_SHARED
-#define START_SHARED(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#define START_SHARED(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef START_SEND
-#define START_SEND(id)  static_assert(seqCount(id)>0,"Sequence not found");
+#define START_SEND(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef SENDLOCO
-#define SENDLOCO(cab,id) static_assert(seqCount(id)>0,"Sequence not found");
+#define SENDLOCO(cab,id) static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef ROUTE_ACTIVE
-#define ROUTE_ACTIVE(id)  static_assert(seqCount(id)>0,"Route not found");
+#define ROUTE_ACTIVE(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef ROUTE_INACTIVE
-#define ROUTE_INACTIVE(id)  static_assert(seqCount(id)>0,"Route not found");
+#define ROUTE_INACTIVE(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef ROUTE_HIDDEN
-#define ROUTE_HIDDEN(id)  static_assert(seqCount(id)>0,"Route not found");
+#define ROUTE_HIDDEN(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef ROUTE_DISABLED
-#define ROUTE_DISABLED(id)  static_assert(seqCount(id)>0,"Route not found");
+#define ROUTE_DISABLED(id)  static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 #undef ROUTE_CAPTION 
-#define ROUTE_CAPTION(id,caption) static_assert(seqCount(id)>0,"Route not found");
+#define ROUTE_CAPTION(id,caption) static_assert(seqCount(id)>0,"\n\nUSER ERROR: Sequence " #id " not found");
 
 
 #undef LATCH
-#define LATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#define LATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"\n\nUSER ERROR: Id " #id " out of valid range 0-255" );
 #undef UNLATCH
-#define UNLATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#define UNLATCH(id) static_assert(id>=0 && id<MAX_FLAGS,"\n\nUSER ERROR: Id " #id " out of valid range 0-255" );
 #undef RESERVE
-#define RESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#define RESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"\n\nUSER ERROR: Id " #id " out of valid range 0-255" );
 #undef FREE
-#define FREE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#define FREE(id) static_assert(id>=0 && id<MAX_FLAGS,"\n\nUSER ERROR: Id " #id " out of valid range 0-255" );
 #undef IFRESERVE
-#define IFRESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"Id out of valid range 0-255" );
+#define IFRESERVE(id) static_assert(id>=0 && id<MAX_FLAGS,"\n\nUSER ERROR: Id " #id " out of valid range 0-255" );
 
 //check speeds
 #undef SPEED
@@ -175,12 +178,12 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 #define SIGNAL(redpin,amberpin,greenpin) \
       static_assert(!unsafePin(redpin),"Red pin " #redpin _PIN_RESERVED_); \
       static_assert(amberpin==0 ||!unsafePin(amberpin),"Amber pin " #amberpin _PIN_RESERVED_); \
-      static_assert(!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
+      static_assert(greenpin==0 ||!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin) \
       static_assert(!unsafePin(redpin),"Red pin " #redpin _PIN_RESERVED_); \
       static_assert(amberpin==0 ||!unsafePin(amberpin),"Amber pin " #amberpin _PIN_RESERVED_); \
-      static_assert(!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
+      static_assert(greenpin==0 ||!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
 
 // and run the assert pass.       
 #include "myAutomation.h"

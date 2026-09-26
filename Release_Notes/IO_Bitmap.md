@@ -50,6 +50,7 @@ Use as binary flag groups:
 
 
      Modifying bitmap values:
+      BITMAP_SET(voin,value) sets the value
       BITMAP_AND(vpin,mask) performs a bitwise AND operation.
       BITMAP_OR(vpin,mask)  performa a bitwise OR operation
       BITMAP_XOR(vpin,mask) performs a bitwise EXCLUSIVE OR (which is basically a toggle)   

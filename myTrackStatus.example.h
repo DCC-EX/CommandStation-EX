@@ -13,7 +13,6 @@ AUTOSTART DELAY(5000)
   IF(8236) 
     RESET(8236)
      ROUTE_CAPTION("TRACKSTATUS"_hk, "Paused") ROUTE_INACTIVE("TRACKSTATUS"_hk)
-     PRINT("Pause JL Display")
       SCREEN(0, 8, "Track status paused")
       SCREEN(0, 9, "")
       SCREEN(0,10, "")   // several blank lines as needed
@@ -23,6 +22,7 @@ AUTOSTART DELAY(5000)
       SCREEN(0,14, "")
       SCREEN(0,15, "")
       SCREEN(0,16, "")
+      PRINT("to pause/resume: </START TRACKSTATUS> \n")
     DONE ENDIF
   SET(8236) 
    ROUTE_CAPTION("TRACKSTATUS"_hk, "Running") ROUTE_ACTIVE("TRACKSTATUS"_hk)
@@ -30,8 +30,14 @@ AUTOSTART DELAY(5000)
    FOLLOW("PAUSETRACKSTATUS"_hk)
   SEQUENCE("PAUSETRACKSTATUS"_hk)
    PARSE("<JL 0 8>")  // screen 0  start on line 8
-    PRINT("\n")
+    PRINT("to pause/resume: </START TRACKSTATUS> \n")
     DELAY(3000)
   IF(8236) FOLLOW("PAUSETRACKSTATUS"_hk) ENDIF
   DONE
 // ************ End OLED JL Display Track mA Amperage ************** //
+
+// Display motor shield after 10 seconds
+AUTOSTART
+  DELAY(10000)
+  STEALTH(StringFormatter::lcd(1, F("MS: %S"), DCC::getMotorShieldName());)
+DONE

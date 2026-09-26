@@ -29,11 +29,10 @@
 #include "defines.h"
 #include "EXRAIL2.h"
 #include "DCC.h"
+#include "NodeManager.h"
+#include "Signals.h"
 
-#if WIFI_ON | ETHERNET_ON 
-  // Command Distributor must handle a RingStream of clients
-  #define CD_HANDLE_RING
-#endif 
+
 
 class CommandDistributor {
 public:
@@ -41,10 +40,8 @@ public:
 private:
   static void broadcastToClients(clientType type);
   static StringBuffer * broadcastBufferWriter;
-  #ifdef CD_HANDLE_RING
     static RingStream * ring;
     static clientType clients[MAX_NUM_TCP_CLIENTS];
-  #endif
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
   static void broadcastLoco(LocoSlot * slot);
@@ -53,26 +50,19 @@ public :
   static void broadcastTurnout(int16_t id, bool isClosed);
   static void broadcastTurntable(int16_t id, uint8_t position, bool moving);
   static void broadcastClockTime(int16_t time, int8_t rate);
-  static void setClockTime(int16_t time, int8_t rate);
+  static void setClockTime(int16_t time, int8_t rate, bool tellNodes=true);
   static int16_t retClockTime();
   static void broadcastPower();
   static void broadcastRaw(clientType type,char * msg);
   static void broadcastTrackState(const FSH* format,byte trackLetter, const FSH* modename, int16_t dcAddr);
-  template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
+  static void broadcastReply(clientType type, const FSH* format...);
   static void forget(byte clientId);
   static void broadcastRouteState(int16_t routeId,byte state);
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);
   static void broadcastEstopLock(bool locked); 
+  static void broadcastSignal(int16_t signal_id, Signal::RAG state, byte aspect=255);
   
-  // Handling code for virtual LCD receiver.
-  static Print * getVirtualLCDSerial(byte screen, byte row);
-  static void commitVirtualLCDSerial();
-  static void setVirtualLCDSerial(Print * stream); 
-  private:
-    static Print * virtualLCDSerial;
-    static byte virtualLCDClient;
-    static byte rememberVLCDClient;
 };
 
 #endif

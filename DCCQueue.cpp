@@ -31,7 +31,9 @@
 #include "DCCWaveform.h"
 #include "DIAG.h"
 
-// create statics 
+// create statics
+#ifdef MOTOR_SHIELD_TYPE
+        
 DCCQueue* DCCQueue::lowPriorityQueue=new DCCQueue();
 DCCQueue* DCCQueue::highPriorityQueue=new DCCQueue();
 PendingSlot* DCCQueue::recycleList=nullptr;
@@ -47,7 +49,7 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
         if (tail) tail->next=p;
         else head=p;
         tail=p;
-        p->next=nullptr;          
+        p->next=nullptr;
     }
 
     void DCCQueue::jumpQueue(PendingSlot* p) {
@@ -253,5 +255,48 @@ uint16_t DCCQueue::lastSentPacketLocoId=0; // used to prevent two packets to the
         p->locoId=loco;
         return p; 
     }
+#else
+// Queue is not used for non-motor shield types.
+// Provide no-op public APIs so callers can link regardless of build target.
+void DCCQueue::scheduleDCCPacket(byte* packet, byte length, byte repeats, uint16_t loco) {
+    (void)packet;
+    (void)length;
+    (void)repeats;
+    (void)loco;
+}
 
+void DCCQueue::scheduleDCCSpeedPacket(byte* packet, byte length, byte repeats, uint16_t loco) {
+    (void)packet;
+    (void)length;
+    (void)repeats;
+    (void)loco;
+}
+
+void DCCQueue::scheduleDCCFunctionPacket(byte* packet, byte length, uint16_t loco, byte group) {
+    (void)packet;
+    (void)length;
+    (void)loco;
+    (void)group;
+}
+
+void DCCQueue::scheduleEstopPacket(byte* packet, byte length, byte repeats, uint16_t loco) {
+    (void)packet;
+    (void)length;
+    (void)repeats;
+    (void)loco;
+}
+
+void DCCQueue::scheduleAccOnOffPacket(byte* packet, byte length, byte repeats, int16_t delayms) {
+    (void)packet;
+    (void)length;
+    (void)repeats;
+    (void)delayms;
+}
+
+bool DCCQueue::scheduleNext(bool force) {
+    (void)force;
+    return false;
+}
+
+#endif
     

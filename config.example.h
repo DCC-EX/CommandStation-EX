@@ -3,7 +3,7 @@
  *  © 2021 Neil McKechnie
  *  © 2020-2025 Harald Barth
  *  © 2020-2021 Fred Decker
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2023 Nathan Kellenicki
  *  
  *  This file is part of CommandStation-EX
@@ -44,7 +44,8 @@ The configuration file for DCC-EX Command Station
 //        generating resistor on the current sense pin of the device. Failure to select
 //        the correct resistor could damage the sense pin on your Arduino or destroy
 //        the device.
-//
+// For CS without any motor shield (as an accessory only CS) DO NOT #define MOTOR_SHIELD_TYPE or define it as NO_SHIELD
+
 // DEFINE MOTOR_SHIELD_TYPE BELOW. THESE ARE EXAMPLES. Full list in MotorDrivers.h
 //
 //  STANDARD_MOTOR_SHIELD : Arduino Motor shield Rev3 based on the L298 with 18V 2A per channel
@@ -52,7 +53,7 @@ The configuration file for DCC-EX Command Station
 //  EX8874_SHIELD         : DCC-EX TI DRV8874 based motor shield
 //  EXCSB1                : DCC-EX CSB-1 hardware
 //  EXCSB1_WITH_EX8874    : DCC-EX CSB-1 hardware with DCC-EX TI DRV8874 shield
-//  NO_SHIELD             : CS without any motor shield (as an accessory only CS)
+//  
 //   |
 //   +-----------------------v
 //
@@ -73,69 +74,11 @@ The configuration file for DCC-EX Command Station
 // #define MAX_CURRENT 2250
 //
 /////////////////////////////////////////////////////////////////////////////////////
-//
-// The IP port to talk to a WIFI or Ethernet shield.
-//
-#define IP_PORT 2560
+// IP address is chosen by router and 2560 is expected by throttles.
+// Do not alter these without full understanding of the network configuration.
+//#define IP_ADDRESS { 192, 168, 1, 200 }
+//#define IP_PORT 2560
 
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// NOTE: Not supported on Arduino Uno or Nano
-// Set to false if you not even want it on the Arduino Mega
-//
-#define ENABLE_WIFI true
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE WiFi Parameters (only in effect if WIFI is on)
-//
-// If DONT_TOUCH_WIFI_CONF is set, all WIFI config will be done with
-// the <+> commands and this sketch will not change anything over
-// AT commands and the other WIFI_* defines below do not have any effect.
-//#define DONT_TOUCH_WIFI_CONF
-//
-// WIFI_SSID is the network name IF you want to use your existing home network.
-// Do NOT change this if you want to use the WiFi in Access Point (AP) mode. 
-//
-// If you do NOT set the WIFI_SSID and do NOT set the WIFI_PASSWORD,
-// then the WiFi chip will first try to connect to the previously
-// configured network and if that fails fall back to Access Point mode.
-// The SSID of the AP will be automatically set to DCCEX_*.
-// If you DO set the WIFI_SSID then the WiFi chip will try to connect
-// to that (home) network in station (client) mode. If a WIFI_PASSWORD
-// is set (recommended), that password will be used for AP mode.
-// The AP mode password must be at least 8 characters long.
-//
-// Your SSID may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_SSID "Your network name"
-//
-// WIFI_PASSWORD is the network password for your home network or if
-// you want to change the password from default AP mode password
-// to the AP password you want. 
-// Your password may not contain ``"'' (double quote, ASCII 0x22).
-#define WIFI_PASSWORD "Your network passwd"
-//
-// WIFI_HOSTNAME: You can change this if you have more than one
-// CS to make them show up with different names on the network.
-// Otherwise do not touch.
-#define WIFI_HOSTNAME "dccex"
-//
-// WIFI_CHANNEL: The default channel is set to "1". If you need to use an
-// alternate channel (we recommend using only 1,6, or 11) you may change it here.
-#define WIFI_CHANNEL 1
-//
-// WIFI_FORCE_AP: If you'd like to specify your own WIFI_SSID in AP mode, set this
-// true. Otherwise it is assumed that you'd like to connect to an existing network
-// with that SSID.
-#define WIFI_FORCE_AP false
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired) based
-// on the W5100/W5500 ethernet chip or an STM32 CS with builin ethernet like the F429ZI.
-// This is not for Wifi. You will then need the Arduino Ethernet library as well.
-//
-//#define ENABLE_ETHERNET true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -146,13 +89,6 @@ The configuration file for DCC-EX Command Station
 // (*) It would be 10 if there would not be a bug in LwIP by STM32duino.
 //
 //#define MAX_NUM_TCP_CLIENTS 20
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// DEFINE STATIC IP ADDRESS *OR* COMMENT OUT TO USE DHCP
-//
-//#define IP_ADDRESS { 192, 168, 1, 200 }
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -171,6 +107,28 @@ The configuration file for DCC-EX Command Station
 // Use 132,64 for a SH1106-based I2C device with a 128x64 display.
 // #define OLED_DRIVER 0x3c,128,32
 
+//OR define ST7789_DRIVER cs,dc,rst,width,height[,rotation[,textsize[,backlight[,active]]]]
+// for an SPI ST7789 TFT using the Adafruit GFX and ST7789 libraries.
+// Rotation 1 or 3 swaps the usable text geometry, so a 170x320 display at
+// rotation 1 behaves as a 320x170 display for column/row calculations.
+// A 240x240 screen with text size 2 gives 20 columns x 15 rows.
+// Omit backlight if the backlight pin is wired permanently on; otherwise specify
+// the backlight pin and optionally LOW for active-low backlight circuits.
+// #define ST7789_DRIVER 10,9,8,240,240,0,2
+// #define ST7789_DRIVER 10,9,8,240,240,0,2,7,HIGH
+// Use text size 0 to choose the largest text size that fits the requested
+// columns and/or rows.  If only one is specified, only that dimension limits
+// the calculated text size.
+// #define ST7789_DRIVER 10,9,8,170,320,1,0,7,HIGH
+// #define ST7789_TEXT_COLS 40
+// #define ST7789_TEXT_ROWS 10
+// Optionally add extra vertical pixels between text rows.  This is included in
+// row count and auto-size calculations.
+// #define ST7789_TEXT_ROW_SPACING 1
+// The Adafruit ST77xx library defaults to 32MHz hardware SPI.  You can override
+// it if your display and wiring are reliable at another speed.
+// #define ST7789_SPI_SPEED 40000000
+
 // Define scroll mode as 0, 1 or 2
 //  *  #define SCROLLMODE 0 is scroll continuous (fill screen if poss),
 //  *  #define SCROLLMODE 1 is by page (alternate between pages),
@@ -183,6 +141,10 @@ The configuration file for DCC-EX Command Station
 // of the warning that this will take extra RAM.  if you wish to include additional rows
 // uncomment the following #define and set the number of lines you need.
 //#define MAX_CHARACTER_ROWS 12
+
+// The current display line length is limited to 20 characters by default.
+// For a 240x240 ST7789 at text size 1, uncomment this to use all 40 columns.
+//#define MAX_MSG_SIZE 40
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -208,18 +170,6 @@ The configuration file for DCC-EX Command Station
 // Note this disables all programming functionality, including EXRAIL.
 //
 // #define DISABLE_PROG
-
-/////////////////////////////////////////////////////////////////////////////////////
-// DISABLE / ENABLE VDPY
-//
-// The Virtual display "VDPY" feature is by default enabled everywhere
-// but on Uno and Nano. If you think you can fit it (for example
-// having disabled some of the features above) you can enable it with
-// ENABLE_VDPY. You can even disable it on all other CPUs with
-// DISABLE_VDPY
-//
-// #define DISABLE_VDPY
-// #define ENABLE_VDPY
 
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE / ENABLE DIAG

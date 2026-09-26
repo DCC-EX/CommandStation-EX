@@ -20,6 +20,8 @@
 #include <stdarg.h>
 #include "DisplayInterface.h"
 #include "CommandDistributor.h"
+#include "NodeManager.h"
+#include "NVSTable.h"
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
@@ -30,8 +32,11 @@ bool Diag::LCN=false;
 bool Diag::RAILCOM=false;
 bool Diag::WEBSOCKET=false; 
 bool Diag::SNIFFER=false;
+bool Diag::NODE=true;
 
 
+byte StringFormatter::alternativeScreen0=0; // for node screen sharing
+byte StringFormatter::alternativeScreen0RowOffset=0; 
  
 void StringFormatter::diag( const FSH* input...) {
  USB_SERIAL.print(F("<* "));   
@@ -43,49 +48,44 @@ void StringFormatter::diag( const FSH* input...) {
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
   va_list args;
-#ifndef DISABLE_VDPY
-  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(0,row);
-#else
-  Print * virtualLCD=NULL;
-#endif
-  // Issue the LCD as a diag first
-  // Unless the same serial is asking for the virtual @ respomnse
-  if (virtualLCD!=&USB_SERIAL) {
-    send(&USB_SERIAL,F("<* LCD%d:"),row);
-    va_start(args, input);
-    send2(&USB_SERIAL,input,args);
-    send(&USB_SERIAL,F(" *>\n"));
-  }
-  
-#ifndef DISABLE_VDPY
-  // send to virtual LCD collector (if any) 
-  if (virtualLCD) {
-    va_start(args, input);
-    send2(virtualLCD,input,args);
-    CommandDistributor::commitVirtualLCDSerial();
-  }
-#endif
-  DisplayInterface::setRow(row);    
   va_start(args, input);
-  send2(DisplayInterface::getDisplayHandler(),input,args);
+  lcd3(0,row,input,args);
 }
 
 void StringFormatter::lcd2(uint8_t display, byte row, const FSH* input...) {
   va_list args;
-  
-   // send to virtual LCD collector (if any) 
-#ifndef DISABLE_VDPY
-  Print * virtualLCD=CommandDistributor::getVirtualLCDSerial(display,row);
-  if (virtualLCD) {
-    va_start(args, input);
-    send2(virtualLCD,input,args);
-    CommandDistributor::commitVirtualLCDSerial();
-  }
-#endif
-
-  DisplayInterface::setRow(display, row);    
   va_start(args, input);
-  send2(DisplayInterface::getDisplayHandler(),input,args);
+  lcd3(display,row,input,args);
+}
+
+
+void StringFormatter::lcd3(byte display, byte row, const FSH * input, va_list args) {
+  // build the string to display 
+  StringBuffer buffer(120);
+  send2(&buffer,input,args);
+  lcd4(display,row,buffer.getString(),true);
+}
+
+// final LCD stage 
+void StringFormatter::lcd4(byte display, byte row,const char * input,bool tellNodes) {
+  // send to the display (if exists) and broadcast to clients
+  DisplayInterface::setRow(display, row);    
+  DisplayInterface::getDisplayHandler()->print(input);
+  CommandDistributor::broadcastReply(
+    CommandDistributor::COMMAND_TYPE, F("<@ %d %d \"%s\">\n"), display, row,
+        input);
+  // We share display updates with all nodes but NOT screen 0 as 
+  // this display would normally be for local node-specific information such as IP address etc.
+  // If the user has told us that this node wants its screen 0 to
+  // be rendered by other nodes, we must give it a unique non-zero
+  // display number that other nodes can render without conflicting with other nodes using screen 0.  
+  // This is done by setting the alternativeScreen0 variable to a non-zero value. 
+  if (display==0) {
+    row+=alternativeScreen0RowOffset;
+    display=alternativeScreen0; // for node screen sharing
+   }
+  if (tellNodes && display!=0) NodeManager::cast(F("<@ %d %d \"%s\">"), display, row,
+        input);
 }
 
 void StringFormatter::send(Print * stream, const FSH* input...) {
@@ -121,21 +121,18 @@ void StringFormatter::send2(Print * stream,const FSH* format, va_list args) {
     switch(c) {
       case '%': stream->print('%'); break;
       case 'c': stream->print((char) va_arg(args, int)); break;
-      case 's': stream->print(va_arg(args, char*)); break;
+      case 's': printResolvingNVS(stream, va_arg(args, char*)); break;
       case 'e': printEscapes(stream,va_arg(args, char*)); break;
       case 'E': printEscapes(stream,(const FSH*)va_arg(args, char*)); break;
       case 'S':
       { 
         const FSH*  flash= (const FSH*)va_arg(args, char*);
 
-#if WIFI_ON | ETHERNET_ON
         // RingStream has special logic to handle flash strings
         // but is not implemented unless wifi or ethernet are enabled.
-        // The define prevents RingStream code being added unnecessariliy.        
         if (stream->availableForWrite()==RingStream::THIS_IS_A_RINGSTREAM)
               ((RingStream *)stream)->printFlash(flash);
               else 
-#endif
         stream->print(flash);
         break;
              }
@@ -260,4 +257,36 @@ void StringFormatter::printHex(Print * stream,uint16_t value) {
     }
     result[4]='\0';
      stream->print(result);
+}
+void StringFormatter::printResolvingNVS(Print* stream, const char * input) {
+  // This function is used to print a string that may contain NVS references
+  // in the form of \bN\n where N is an NVS number. It will resolve these references
+  // to their actual values from the NVS and print the resulting string.
+  enum ScanState : byte { SCANNING_TEXT, SCANNING_NVS };
+  if (!stream || !input) return;
+
+  ScanState state = SCANNING_TEXT;
+  uint8_t nvsIndex = 0;
+
+  while (*input) {
+    switch (state) {
+      case SCANNING_TEXT:
+        if (*input == '\b') {
+          state = SCANNING_NVS;
+          nvsIndex=0;
+          break;
+        }
+        stream->write(*input);
+        break;
+
+      case SCANNING_NVS:
+        if (isdigit(*input)) nvsIndex = nvsIndex * 10 + (*input - '0');
+        else if (*input == '\b') {
+          stream->print(NVSTable::getTextNVS(nvsIndex));
+          state = SCANNING_TEXT;
+        }
+        break;
+    }
+    input++;
+  }
 }

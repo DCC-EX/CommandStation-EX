@@ -100,6 +100,7 @@ public:
     DEVSTATE_NORMAL = 3,
     DEVSTATE_SCANNING = 4,
     DEVSTATE_FAILED = 5,
+    DEVSTATE_SHADOW = 6, // this is a node shadow, not a real device, so not shared at startup
   } DeviceStateEnum;
 
   // Static functions to find the device and invoke its member functions
@@ -128,12 +129,12 @@ public:
   }
 
   // write invokes the IODevice instance's _write method.
-  static void write(VPIN vpin, int value);
-  static void writeRange(VPIN vpin, int value,int count);
-
+  static void write(VPIN vpin, int value, bool tellNodes=true);
+  static void writeRange(VPIN vpin, int value,int count, bool tellNodes=true);
+  static bool isSharedWrite(VPIN vpin1,int16_t count);
   // write invokes the IODevice instance's _writeAnalogue method (not applicable for digital outputs)
-  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0);
-  static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count);
+  static void writeAnalogue(VPIN vpin, int value, uint8_t profile=0, uint16_t duration=0, bool tellNodes=true);
+  static void writeAnalogueRange(VPIN vpin, int value, uint8_t profile, uint16_t duration, int count, bool tellNodes=true);
 
   // isBusy returns true if the device is currently in an animation of some sort, e.g. is changing
   //  the output over a period of time.
@@ -216,6 +217,9 @@ public:
     return 0;
   };
 
+  // Method to find device handling Vpin
+  static IODevice *findDevice(VPIN vpin);
+
 protected:
   
   // Constructor
@@ -272,9 +276,6 @@ protected:
     
   // Static support function for subclass creation
   static void addDevice(IODevice *newDevice, IODevice *slaveDevice = NULL);
-
-  // Method to find device handling Vpin
-  static IODevice *findDevice(VPIN vpin);
 
   // Current state of device
   DeviceStateEnum _deviceState = DEVSTATE_DORMANT;
@@ -403,7 +404,6 @@ private:
   uint8_t *_pinInUse; 
 };
 
-#ifndef IO_NO_HAL
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
  * IODevice subclass for EX-Turntable.
@@ -439,7 +439,6 @@ private:
   uint8_t _previousStatus;
   uint8_t _currentActivity;
 };
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 

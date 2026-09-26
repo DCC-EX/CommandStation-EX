@@ -28,6 +28,8 @@
 #include "TrackManager.h"
 #include "Railcom.h"
 
+#if defined(MOTOR_SHIELD_TYPE) 
+
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 RMTChannel *DCCWaveform::rmtMainChannel = NULL;
@@ -119,5 +121,24 @@ bool DCCWaveform::setRailcom(bool on) {
   // TODO... ESP32 railcom waveform
   return true;
 }
+
+// extrafudge is added when we know that the resets will first come extrafudge  packets in the future
+    void DCCWaveform::clearResets(byte extrafudge) {
+      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return;
+      resetPacketBase = isMainTrack ? rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
+      resetPacketBase += extrafudge;
+    };
+    byte DCCWaveform::getResets() {
+      if ((isMainTrack ? rmtMainChannel : rmtProgChannel) == NULL) return 0;
+      uint32_t packetcount = isMainTrack ?
+	rmtMainChannel->packetCount() : rmtProgChannel->packetCount();
+      uint32_t count = packetcount - resetPacketBase; // Beware of unsigned interger arithmetic.
+      if (count > UINT32_MAX/2)                       // we are in the extrafudge area
+	return 0;
+      if (count > 255)                                // cap to 255
+	return 255;
+      return count;                                   // all special cases handled above
+    };
+#endif
 
 #endif

@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_ESP32
+
 #include "DCCDecoder.h"
 #include "LocoSlot.h"
 #include "DCCEXParser.h"
@@ -35,6 +35,11 @@ bool DCCDecoder::parse(DCCPacket &p) {
   bool locoInfoChanged = false;
 
   if (d[0] ==  0B11111111) {  // Idle packet
+    return false;
+  }
+  // do not bother with packets that are too short
+  // or too long anyway
+  if (p.len() < 3 || p.len() > 6) {
     return false;
   }
   // CRC verification here
@@ -72,6 +77,9 @@ bool DCCDecoder::parse(DCCPacket &p) {
     }
   }
   if (decoderType == DECODER_MOBILE) {
+    if (addr == 0) { // do not care about loco addr 0 broadcasts
+      return false;
+    }
     switch (instr[0] & 0xE0) {
     case 0x20: // 001x-xxxx Extended commands
       if (instr[0] == 0B00111111) { // 128 speed steps
@@ -120,19 +128,21 @@ bool DCCDecoder::parse(DCCPacket &p) {
     case 0xC0: // 110x-xxxx Extended (here are functions F13 and up
       switch (instr[0] & 0B00011111) {
       case 0B00011110:  // F13-F20 Function Control
-	if ((locoInfoChanged = updateFunc(addr, instr[0], 13)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
+	if ((locoInfoChanged = updateFunc(addr, instr[1], 13)) == true) {
+	  DCCEXParser::funcmap(addr, instr[1], 13, 16);
 	}
-	if ((locoInfoChanged = updateFunc(addr, instr[0], 17)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 13, 20);
+        // updateFunc handles only the 4 low bits as that is the most common case
+	if ((locoInfoChanged = updateFunc(addr, instr[1]>>4, 17)) == true) {
+	  DCCEXParser::funcmap(addr, instr[1]>>4, 17, 20); // adjust instr[1] to align with pos 17
 	}
       break;
       case 0B00011111:  // F21-F28 Function Control
 	if ((locoInfoChanged = updateFunc(addr, instr[1], 21)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 21, 28);
-	}  // updateFunc handles only the 4 low bits as that is the most common case
+	  DCCEXParser::funcmap(addr, instr[1], 21, 24);
+	}
+        // updateFunc handles only the 4 low bits as that is the most common case
 	if ((locoInfoChanged = updateFunc(addr, instr[1]>>4, 25)) == true) {
-	  DCCEXParser::funcmap(addr, instr[1], 21, 28);
+	  DCCEXParser::funcmap(addr, instr[1]>>4, 25, 28); // adjust instr[1] to align with pos 25
 	}
 	break;
 	/* do that later
@@ -160,10 +170,20 @@ bool DCCDecoder::parse(DCCPacket &p) {
 	byte port = (instr[0] & 0B00000110) >> 1;
 	byte activate = (instr[0] & 0B00001000) >> 3;
 	byte coil = (instr[0] & 0B00000001);
-	locoInfoChanged = true;
-	//(void)addr; (void)port; (void)coil; (void)activate;
-	//DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
-	DCC::setAccessory(addr, port, coil, activate);
+	// all accessory PoM packets are of length 6 and otherwise identical to the ordinary accessory packets
+	// which are of length 3. According to RCN 214 this is the only difference, so we need to filter
+	if (p.len() == 3) {
+	  locoInfoChanged = true;
+	  //DIAG(F("HL=%d LL=%d C=%d A=%d"), addr, port, coil, activate);
+	  DCC::setAccessory(addr, port, coil, activate);
+	}
+#ifdef DEBUG_POM_ACC
+	if (p.len() == 6) {
+	  uint16_t cv = ((d[2] & 0B00000011) << 8) + d[3] + 1;
+	  uint16_t val = d[4];
+	  DIAG(F("Accessory POM: HL=%d LL=%d LIN=%d C=0=%d A=1=%d CV=%d VAL=%d"), addr, port, (addr-1)*4 + port + 1, coil, activate, cv, val);
+	}
+#endif //DEBUG_POM_ACC
       } else { // Accessory Extended NMRA spec, do we need to decode this?
 	/*
 	addr = (addr << 5) +
@@ -208,5 +228,3 @@ bool DCCDecoder::updateFunc(uint16_t loco, byte func, int shift) {
   slot->setSnifferFunctions(newfunc);
   return true;
 }
-
-#endif // ARDUINO_ARCH_ESP32
