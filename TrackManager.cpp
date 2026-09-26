@@ -202,6 +202,14 @@ bool TrackManager::orTrackMode(byte trackToSet,TRACK_MODE mode) {
   if (trackToSet>='A') trackToSet-='A';  // convert A... to 0....   
   if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
   TRACK_MODE oldmode = track[trackToSet]->getMode();
+  // sanity checks what can be added on
+  if ((mode & TRACK_MODIFIER_RAILCOM) && !(oldmode & (TRACK_MODE_MAIN))) // todo BOOST
+    return false;
+  if ((mode & TRACK_MODIFIER_AUTO) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST)))
+    return false;
+  if ((mode & TRACK_MODIFIER_INV) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST|TRACK_MODE_DC)))
+    return false;
+  // try to set new mode
   return setTrackMode(trackToSet, mode | oldmode);
 }
 
