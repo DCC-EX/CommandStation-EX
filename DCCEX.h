@@ -47,5 +47,6 @@
 #include "Signals.h"
 #include "EXRAIL.h"
 #include "SerialUsbLog.h"
-    
+#include "EXNetworkPreferences.h"
+  
 #endif

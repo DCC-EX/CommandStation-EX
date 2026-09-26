@@ -17,10 +17,27 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WifiPreferences_h
-#define WifiPreferences_h
+#ifndef EXNetworkPreferences_h
+#define EXNetworkPreferences_h
 #include <Arduino.h>
-class WifiPreferences {
+enum SystemPreferences : int16_t {
+  // Starting value for system preferences in NVS
+  // change the order of this enum and mess will happen
+  _FIRST=32000,
+  ssidSTA, 
+  passwordSTA, 
+  ssidAP,
+  passwordAP, 
+  hostName, 
+  enabled, 
+  channelAP, 
+  hiddenAP,
+  throttleNode,
+  // any additional preferences can only be added here
+  _LAST
+};
+
+class EXNetworkPreferences {
 public:
   static bool load();
   static void saveSTA(const char *_ssid, const char *_password, bool sticky);
@@ -40,14 +57,7 @@ public:
   static bool getHiddenAP();
   static void dump(Print * stream);
 private:
-  static bool enabled;
-  static char ssidAP[32];
-  static char passwordAP[32];
-  static byte channelAP;
-  static bool hiddenAP;
-  static bool throttleNode;
-  static char ssidSTA[32];
-  static char passwordSTA[32];
-  static char hostName[32];
+  static char tempssidSTA[32];
+  static char tempPasswordSTA[64];
 };
-#endif //WifiPreferences_h
+#endif //EXNetworkPreferences_h

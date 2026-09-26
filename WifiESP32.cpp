@@ -27,7 +27,7 @@
 #include "esp_wifi.h"
 #include "WifiESP32.h"
 #include "DIAG.h"
-#include "WifiPreferences.h"
+#include "EXNetworkPreferences.h"
 
 #if __has_include ( "soc/rtc_wdt.h")
 #include <rtc_wdt.h>
@@ -119,7 +119,7 @@ bool WifiESP::setup() {
 }
 
 void WifiESP::setupMDNS() {
-  if (!MDNS.begin(WifiPreferences::getHostName())) {
+  if (!MDNS.begin(EXNetworkPreferences::getHostName())) {
     DIAG(F("Wifi setup failed to start mDNS"));
   }
 }
@@ -135,8 +135,8 @@ void WifiESP::addServiceTxt(const char *name, const char *proto, const char *key
 }
 
 bool WifiESP::setupFromPreferences() {
-  WifiPreferences::load();
-  if (!WifiPreferences::getEnabled()) {
+  EXNetworkPreferences::load();
+  if (!EXNetworkPreferences::getEnabled()) {
     LCD(5,F("WIFI OFF"));
     LCD(6,F(""));
     LCD(7,F(""));
@@ -144,11 +144,11 @@ bool WifiESP::setupFromPreferences() {
   }
 
   // if we have been given an STA connection, try that first
-  auto ssidptr=WifiPreferences::getSsidSTA();
-  if (ssidptr[0] && ConnectSTA(ssidptr, WifiPreferences::getPasswordSTA())) return true;
+  auto ssidptr=EXNetworkPreferences::getSsidSTA();
+  if (ssidptr[0] && ConnectSTA(ssidptr, EXNetworkPreferences::getPasswordSTA())) return true;
     
   // Try for a defined AP mode. ConnectAP will fill missing values from mac.
-  if ( ConnectAP(WifiPreferences::getSsidAP(), WifiPreferences::getPasswordAP(), WifiPreferences::getChannelAP()) ) return true;
+  if ( ConnectAP(EXNetworkPreferences::getSsidAP(), EXNetworkPreferences::getPasswordAP(), EXNetworkPreferences::getChannelAP()) ) return true;
   
   // all a bit of a mystery 
   return false;
@@ -193,7 +193,7 @@ static void setStaProtocolsBestEffort() {
 }
 
 bool WifiESP::ConnectSTA(const char * SSid, const char * password) {
-  WiFi.setHostname(WifiPreferences::getHostName());
+  WiFi.setHostname(EXNetworkPreferences::getHostName());
   WiFi.mode(WIFI_STA);
   // Optimize Wi-Fi for multicast send performance!!
   // Only advertise the higher bandwidth modes if the ESP32 supports them.
@@ -294,7 +294,7 @@ bool WifiESP::ConnectAP(const char * SSid, const char * password,  byte channel)
     esp_wifi_set_band_mode(WIFI_BAND_MODE_2G_ONLY);
 #endif
 
-  const bool hiddenAP = WifiPreferences::getHiddenAP();
+  const bool hiddenAP = EXNetworkPreferences::getHiddenAP();
   
   if (WiFi.softAP(SSid,password, channel, hiddenAP, 8)) {
     DIAG(F("Wifi in AP mode"));

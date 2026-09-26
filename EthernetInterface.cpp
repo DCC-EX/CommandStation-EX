@@ -27,6 +27,7 @@
 #ifdef ARDUINO_ARCH_STM32
 #include "defines.h" 
 #include "EthernetInterface.h"
+#include "EXNetworkPreferences.h"
 
 extern "C" struct netif gnetif;
 
@@ -77,8 +78,7 @@ bool EthernetInterface::setup()
 }
 
 void EthernetInterface::setupMDNS() {
-  // TODO make hostname configurable from NVS (when wifipreferences moved to nvs)
-  mdns.begin(getIPAddress(), "DCC-EX-NUCLEO");
+  mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
 }
 
 void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {

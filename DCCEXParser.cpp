@@ -127,9 +127,8 @@ Once a new OPCODE is decided upon, update this list.
 #include "NVSTable.h"
 #include "DCCDecoder.h"
 #include "EXNetwork.h"
-#if defined(ARDUINO_ARCH_ESP32)
-#include "WifiPreferences.h"
-#endif
+#include "EXNetworkPreferences.h"
+
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 
 #define SENDFLASHLIST(stream,flashList)                 \
