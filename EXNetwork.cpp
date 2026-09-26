@@ -7,6 +7,9 @@
 #include "WiThrottle.h"
 #include "Websockets.h"
 
+#ifdef ARDUINO_ARCH_ESP32
+#include "EthernetOTA.h"
+#endif
 
 #ifndef NODE_GROUP
 #define NODE_GROUP 254
@@ -154,6 +157,9 @@ void EXNetwork::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+  #ifdef ARDUINO_ARCH_ESP32
+  EthernetOTA.begin<_SHIM_>();
+  #endif
 }
 
 bool EXNetwork::isUp() { return _SHIM_::isUp(); }
@@ -319,6 +325,10 @@ void EXNetwork::loop() {
       DIAG(F("Non existent client %d has message: %s"), clientId, buffer + wsHeaderLen);
     }
   }
+
+  #ifdef ARDUINO_ARCH_ESP32
+    EthernetOTA.loop();
+  #endif
 }
 
 
