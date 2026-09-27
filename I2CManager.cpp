@@ -59,6 +59,8 @@ static const FSH * guessI2CDeviceType(uint8_t address) {
     return F("GPIO Expander or LCD Display");
   if (address == 0x29)
     return F("Time-of-flight sensor");
+  if (address == 0x30)
+    return F("Line Side Sound");
   if (address == 0x34)
     return F("TCA8418 keypad scanner");
   if (address >= 0x3c && address <= 0x3d)

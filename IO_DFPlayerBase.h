@@ -70,6 +70,22 @@ public:
     static const uint8_t DF_PAUSE      = 0x0E;
     static const uint8_t DF_RESUME     = 0x0D;
 
+    // LSS specific commands (offset to prevent collision with standard DFPlayer commands)
+    static const uint8_t DF_LSS_LOAD         = 0x81;
+    static const uint8_t DF_LSS_FLUSH        = 0x82;
+    static const uint8_t DF_LSS_PLAY         = 0x83;
+    static const uint8_t DF_LSS_PLAY_LOOP    = 0x84;
+    static const uint8_t DF_LSS_STOP         = 0x85;
+    static const uint8_t DF_LSS_PAUSE        = 0x86;
+    static const uint8_t DF_LSS_RESUME       = 0x87;
+    static const uint8_t DF_LSS_VOLUME       = 0x88;
+    static const uint8_t DF_LSS_FADE         = 0x89;
+    static const uint8_t DF_LSS_GLOBAL_RESET = 0x8A;
+    static const uint8_t DF_LSS_GLOBAL_MUTE  = 0x8B;
+    static const uint8_t DF_LSS_OLED_PAGE    = 0x8C;
+    static const uint8_t DF_LSS_RUN_SCRIPT   = 0x8D;
+    static const uint8_t DF_LSS_STOP_SCRIPT  = 0x8E;
+
     static const uint8_t DF_EQ_NORMAL  = 0;
     static const uint8_t DF_EQ_POP     = 1;
     static const uint8_t DF_EQ_ROCK    = 2;

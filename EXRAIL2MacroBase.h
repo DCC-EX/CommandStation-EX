@@ -419,6 +419,21 @@
 #define LCN(msg)
 ///brief Reserved for LCN communication. Refer to their documentation.
 
+#define LSS_LOAD(vpin, file_id)
+#define LSS_FLUSH(vpin)
+#define LSS_PLAY(vpin)
+#define LSS_PLAY_LOOP(vpin)
+#define LSS_STOP(vpin)
+#define LSS_PAUSE(vpin)
+#define LSS_RESUME(vpin)
+#define LSS_VOLUME(vpin, channel, volume)
+#define LSS_FADE(vpin, channel, target_vol, duration_ticks, curve)
+#define LSS_GLOBAL_RESET(vpin)
+#define LSS_GLOBAL_MUTE(vpin, mute)
+#define LSS_OLED_PAGE(vpin, page)
+#define LSS_RUN_SCRIPT(vpin, script_id, engine_id)
+#define LSS_STOP_SCRIPT(vpin, engine_id)
+
 #define MESSAGE(msg)
 ///brief Send a human readable message to all throttle users
 ///param msg Quoted text
