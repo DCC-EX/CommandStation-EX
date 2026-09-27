@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.6"
+#define VERSION "5.9.7"
+// 5.9.7  - Network preferences move to NVS
+//        - NVS implemented on ESP32 and STM32 platforms
+//        - Nucleo Ethernet & MDNSsupport
+//        - Nucleo board support improvements
+//        - multiple-command improvements
 // 5.9.6  - DCCDecoder F13-F28 improvements
 //        - waveshare lib
 // 5.9.5  - STM32 and ESP32 build environment fixes

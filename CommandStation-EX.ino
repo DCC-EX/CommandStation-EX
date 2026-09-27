@@ -85,7 +85,9 @@ void setup()
 
   DIAG(F("License GPLv3 fsf.org (c) dcc-ex.com"));
 
-  NVSTable::load(); // Load NVS values from Preferences (ESP32) or do nothing on other platforms
+  NVSTable::load(); // Load NVS values
+  EXNetworkPreferences::load(); // Default any missing network preferences
+
 // If user has defined a startup delay, delay here before starting IO
 #if defined(STARTUP_DELAY)
   DIAG(F("Delaying startup for %dms"), STARTUP_DELAY);
