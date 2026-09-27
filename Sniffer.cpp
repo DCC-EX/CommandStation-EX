@@ -100,6 +100,9 @@ static bool IRAM_ATTR cap_ISR_cb(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t 
 }
 
 Sniffer::Sniffer(byte snifferpin) {
+  // init some constants, on standard ESP32 getApbFrequency() is 80 000 000.
+  dcc_too_short_limit = (getApbFrequency()/1000) * 50 /*usec*/ / 1000;
+  dcc_one_limit       = (getApbFrequency()/1000) * 80 /*usec*/ / 1000;
   mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_0, snifferpin);
   // set capture edge, BIT(0) - negative edge, BIT(1) - positive edge
   // MCPWM_POS_EDGE|MCPWM_NEG_EDGE should be 3.
@@ -153,17 +156,14 @@ bool Sniffer::inputActive(){
   return false;
 }
 
-#define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
-#define DCC_ONE_LIMIT 6400L // 6400 ticks are 80usec
-
-void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
+void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
   byte bit = 0;
   diffticks = capticks - lastticks;
   if (lastedge != posedge) {
-    if (diffticks < DCC_TOO_SHORT) {
+    if (diffticks < dcc_too_short_limit) {
       return;
     }
-    if (diffticks < DCC_ONE_LIMIT) {
+    if (diffticks < dcc_one_limit) {
       bit = 1;
     } else {
       bit = 0;
