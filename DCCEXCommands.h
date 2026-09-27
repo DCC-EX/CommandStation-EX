@@ -775,6 +775,8 @@ ZZ(=,track,AUTO)  // Update track to auto reverse
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
 ZZ(=,track,INV) // Update track to inverse polarity
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
+ZZ(=,track,RAILCOM) // Update track to add cutout
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_RAILCOM))
 ZZ(=,track,DC,loco) // Set track to DC
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, loco))
 ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity

@@ -115,6 +115,12 @@ bool WifiESP::setup() {
 
   if (!wifiUp) return false;
 
+  DIAG(F("CPU Freq: %d MHz"), getCpuFrequencyMhz());
+  DIAG(F("Flash Speed: %d Hz"), ESP.getFlashChipSpeed());
+  DIAG(F("Flash Mode: %d"), ESP.getFlashChipMode());
+  DIAG(F("Flash Size: %d MB"), ESP.getFlashChipSize() / (1024 * 1024));
+  DIAG(F("SDK Version: %s"), ESP.getSdkVersion());
+
   return true;
 }
 

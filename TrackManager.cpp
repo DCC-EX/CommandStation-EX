@@ -202,6 +202,14 @@ bool TrackManager::orTrackMode(byte trackToSet,TRACK_MODE mode) {
   if (trackToSet>='A') trackToSet-='A';  // convert A... to 0....   
   if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
   TRACK_MODE oldmode = track[trackToSet]->getMode();
+  // sanity checks what can be added on
+  if ((mode & TRACK_MODIFIER_RAILCOM) && !(oldmode & (TRACK_MODE_MAIN))) // todo BOOST
+    return false;
+  if ((mode & TRACK_MODIFIER_AUTO) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST)))
+    return false;
+  if ((mode & TRACK_MODIFIER_INV) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST|TRACK_MODE_DC)))
+    return false;
+  // try to set new mode
   return setTrackMode(trackToSet, mode | oldmode);
 }
 
@@ -229,6 +237,13 @@ bool TrackManager::setTrackMode(byte trackToSet, TRACK_MODE mode, int16_t dcAddr
     if (p.invpin != UNUSED_PIN) {
       //DIAG(F("Track=%c remove ^pin %d"),trackToSet+'A', p.invpin);
       gpio_reset_pin((gpio_num_t)p.invpin);
+    }
+    if (mode & TRACK_MODIFIER_RAILCOM) {
+      byte bp = track[trackToSet]->getBrakePin();
+      if (bp != UNUSED_PIN) {
+	gpio_reset_pin((gpio_num_t)bp);
+	digitalWrite(bp, LOW);
+      }
     }
 #ifdef BOOSTER_INPUT
     if (mode & TRACK_MODE_BOOST) {
@@ -388,6 +403,7 @@ void TrackManager::applyDCSpeed(byte t) {
   track[t]->setDCSignal(DCC::getLocoSpeedByte(trackDCAddr[t]),
 			DCC::getThrottleFrequency(trackDCAddr[t]));
 }
+
 void TrackManager::list(Print * stream) {
         FOR_EACH_TRACK(t) streamTrackState(stream,t);
 }
@@ -407,7 +423,7 @@ const FSH* TrackManager::getModeName(TRACK_MODE tm) {
   else if (tm & TRACK_MODE_PROG)
     modename=F("PROG");
 #endif
-  else if (tm & TRACK_MODE_NONE)
+  else if (tm == TRACK_MODE_NONE)
     modename=F("NONE");
   else if(tm & TRACK_MODE_EXT)
     modename=F("EXT");
@@ -516,7 +532,7 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   }
   TRACK_MODE trackmode = driver->getMode();
   POWERMODE oldpower = driver->getPower();
-  if (trackmode & TRACK_MODE_NONE) {
+  if (trackmode == TRACK_MODE_NONE) {
     driver->setBrake(true);     // Track is unused. Brake is good to have.
     powermode = POWERMODE::OFF; // Track is unused. Force it to OFF
   } else if (trackmode & TRACK_MODE_DC) { // includes inverted DC (called DCX)

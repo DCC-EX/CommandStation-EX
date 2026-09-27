@@ -26,6 +26,7 @@
 #include "DCCWaveform.h"
 #include "DCCACK.h"
 #include "TrackManager.h"
+#include "Railcom.h"
 
 #if defined(MOTOR_SHIELD_TYPE) 
 
@@ -34,8 +35,8 @@ DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 RMTChannel *DCCWaveform::rmtMainChannel = NULL;
 RMTChannel *DCCWaveform::rmtProgChannel = NULL;
 
-bool DCCWaveform::railcomPossible=false;     // High accuracy only    
-volatile bool DCCWaveform::railcomActive=false;     // switched on by user
+bool DCCWaveform::railcomPossible=true;         // ESP32 always possible
+volatile bool DCCWaveform::railcomActive=true;  // ESP32 switched on by user per track, global always on
 
 DCCWaveform::DCCWaveform(byte preambleBits, bool isMain) {
   isMainTrack = isMain;
@@ -50,6 +51,11 @@ void DCCWaveform::begin() {
     } else {
       //DIAG(F("new MAIN channel with pins %d %d"), p.pin, p.invpin);
       rmtMainChannel = new RMTChannel(p, true); /* create new main channel */
+    }
+    // if RC and so on XXX
+    TRACK_MODE m = md->getMode();
+    if (m & TRACK_MODIFIER_RAILCOM) {
+      rmtMainChannel->addRCPin(md->getBrakePinSigned());
     }
   }
   MotorDriver *md = TrackManager::getProgDriver();
@@ -91,6 +97,8 @@ void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repea
     do {
       ret = rmtchannel->RMTfillData(pendingPacket, pendingLength, pendingRepeats);
     } while(ret > 0);
+    if (isMainTrack && ret == 0) { // packet will be next packet out
+    }
   }
 }
 
@@ -111,7 +119,7 @@ void IRAM_ATTR DCCWaveform::loop() {
 
 bool DCCWaveform::setRailcom(bool on) {
   // TODO... ESP32 railcom waveform
-  return false;
+  return true;
 }
 
 // extrafudge is added when we know that the resets will first come extrafudge  packets in the future

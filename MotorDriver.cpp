@@ -431,7 +431,23 @@ void MotorDriver::setDCSignal(byte speedcode, uint8_t frequency /*default =0*/) 
   }
 }
 void MotorDriver::throttleInrush(bool on) {
-  if (brakePin == UNUSED_PIN)
+  byte throttlePin  = brakePin;
+#if defined(ARDUINO_ARCH_ESP32)
+  // On ESP32 we want to run inrush current throttling on the power
+  // pin so we can use the brake pin for cutout. But we must check
+  // before that the powerPin really is local IO and not a VPIN on
+  // I2C. Check for inverted value as well. This is not as easy
+  // on other architectures where cutout is tied to specific pins
+  // and these pins can have high numbers we don't know here.
+  const byte ESP32_MAX_PHYS_PIN=39;
+  if (powerPin <= ESP32_MAX_PHYS_PIN && powerPin >= -(ESP32_MAX_PHYS_PIN)) {
+    throttlePin = (byte)powerPin;
+  } else {
+    DIAG(F("Warning: Can not produce a reliable cutout on brake pin %d because power pin %d "
+	   "can not be used for current inrush control"), brakePin, powerPin);
+  }
+#endif
+  if (throttlePin == UNUSED_PIN)
     return;
   if ( !(trackMode & (TRACK_MODE_MAIN | TRACK_MODE_PROG | TRACK_MODE_EXT | TRACK_MODE_BOOST)))
     return;
@@ -439,25 +455,25 @@ void MotorDriver::throttleInrush(bool on) {
   byte duty = on ? 207 : 0; // duty of 81% at 62500Hz this gives pauses of 3usec
 #if defined(ARDUINO_ARCH_ESP32)
   if(on) {
-    DCCTimer::DCCEXInrushControlOn(brakePin, duty, invertBrake);
+    DCCTimer::DCCEXInrushControlOn(throttlePin, duty, invertBrake);
   } else {
-    ledcDetachPin(brakePin); // not DCCTimer::DCCEXledcDetachPin() as we have not
+    ledcDetachPin(throttlePin); // not DCCTimer::DCCEXledcDetachPin() as we have not
                              // registered the pin in the pin to channel array
   }
 #elif defined(ARDUINO_ARCH_STM32)
   if(on) {
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
-    DCCTimer::DCCEXanalogWrite(brakePin,duty,invertBrake);
+    DCCTimer::DCCEXanalogWriteFrequency(throttlePin, 7); // 7 means max
+    DCCTimer::DCCEXanalogWrite(throttlePin,duty,invertBrake);
   } else {
-    pinMode(brakePin, OUTPUT);
+    pinMode(throttlePin, OUTPUT);
   }
 #else // all AVR here
   if (invertBrake)
     duty = 255-duty;
   if(on){
-    DCCTimer::DCCEXanalogWriteFrequency(brakePin, 7); // 7 means max
+    DCCTimer::DCCEXanalogWriteFrequency(throttlePin, 7); // 7 means max
   }
-  analogWrite(brakePin,duty);
+  analogWrite(throttlePin,duty);
 #endif
   #endif // MOTOR_SHIELD_TYPE
 

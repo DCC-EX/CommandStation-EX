@@ -35,6 +35,7 @@ class RMTChannel {
   RMTChannel(pinpair pins, bool isMain);
   bool addPin(byte pin, bool inverted=0);
   bool addPin(pinpair pins);
+  bool addRCPin(int16_t brakePin); // signed (inverted or not)
   void IRAM_ATTR RMTinterrupt();
   void RMTprefill();
   //int RMTfillData(dccPacket packet);
