@@ -550,11 +550,19 @@ ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
         IODevice::write(abs(vpin),vpin>0);
 ZZ(o,vpin,count)  // Set multiple neopixels on(vpin>0) or off(vpin<0)
         IODevice::writeRange(abs(vpin),vpin>0,count);
-ZZ(o,vpin,r,g,b)  // Set neopixel colour
+ZZ(o,vpin,r,g,b)  // Set neopixel colour at full brightness
         CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255) 
         IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,1);
-ZZ(o,vpin,r,g,b,count) // Set multiple neopixels colour 
+ZZ(o,vpin,r,g,b,count) // Set multiple neopixels colour at full brightness
         CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255) 
+        IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,count);
+ZZ(o,vpin,r,g,b,count,brightness) // Set neopixel colour and brightness
+        CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255)
+        CHECK(count>0, count must be positive)
+        CHECK(brightness>=0 && brightness<=0xff, brightness value range 0..255)
+        r=(r*brightness+127)/255;
+        g=(g*brightness+127)/255;
+        b=(b*brightness+127)/255;
         IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,count);
 
 ZZ(1)  // Power ON all tracks
