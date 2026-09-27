@@ -299,6 +299,9 @@
 #define IFLOCO(loco_id_list...)
 ///brief Checks if current task loco is in the list of loco ids. List may be comma separated values
 ///see IF
+///note In an ONBLOCKENTER or ONBLOCKEXIT handler, the current task loco is the
+///note locomotive ID supplied by the RailCom block event. This allows a handler
+///note to test or dispatch on the locomotive without maintaining a second block table.
 
 #define IFLT(vpin,value)
 ///brief Checks if analog sensor < value
@@ -467,10 +470,12 @@
 #define ONBLOCKENTER(block_id)
 ///brief Start task here when a loco enters a railcom block
 ///param block_id vpin associated to block by HAL(I2CRailcom..)
+///note The handler task's current loco is the RailCom locomotive ID.
 
 #define ONBLOCKEXIT(block_id)
 ///brief Start task here when a loco leaves a railcom block
 ///param block_id vpin associated to block by HAL(I2CRailcom..)
+///note The handler task's current loco is the RailCom locomotive ID.
 
 #define ONTIME(minute_in_day)
 ///brief Start task here when fastclock matches

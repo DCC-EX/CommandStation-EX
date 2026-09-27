@@ -257,6 +257,17 @@ ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")
   
 
 
+// RailCom block events start their handler with the detected locomotive ID.
+// Keep this coverage outside route 1771 so it is a separate event handler.
+AUTOMATION(1772,"1772 Test RailCom block loco context")
+  ONBLOCKENTER(1700)
+    IFLOCO(42)
+      PRINT("RailCom block loco context passed")
+    ELSE
+      PRINT("RailCom block loco context failed")
+    ENDIF
+  DONE
+
 // Speedometer example
 // Track is =TS1===TS2===TS3= timing between S2 and S3.
 
