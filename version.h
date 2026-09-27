@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.7"
+#define VERSION "5.9.8"
+// 5.9.8  - RailCom cutout for ESP32
 // 5.9.7  - Network preferences move to NVS
 //        - NVS implemented on ESP32 and STM32 platforms
 //        - Nucleo Ethernet & MDNSsupport
