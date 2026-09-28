@@ -15,5 +15,11 @@ jobs:
       run: pip install -U platformio
     - name: Copy generic config over
       run: cp config.example.h config.h
+    - name: Static S88 regression checks
+      run: python S88_host_test.py
     - name: Compile Command Station (AVR)
       run: python -m platformio run
+    - name: Compile S88 HAL (Mega)
+      run: python -m platformio run -e mega2560-s88
+    - name: Compile S88 HAL (Teensy)
+      run: python -m platformio run -e Teensy3_2-s88
