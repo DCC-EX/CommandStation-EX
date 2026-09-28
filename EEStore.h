@@ -25,6 +25,7 @@
 #define EEStore_h
 
 #include <Arduino.h>
+#include "EEStoreFormat.h"
 
 #if defined(ARDUINO_ARCH_SAMC)
 #include <SparkFun_External_EEPROM.h>
@@ -33,14 +34,17 @@ extern ExternalEEPROM EEPROM;
 #include <EEPROM.h>
 #endif
 
-#define EESTORE_ID "DCC++1"
-
-struct EEStoreData{
-  char id[sizeof(EESTORE_ID)];
-  uint16_t nTurnouts;
-  uint16_t nSensors;
-  uint16_t nOutputs;
-};
+// A board may define these hooks before including EEStore.h to map persistence
+// to flash, emulated EEPROM, or another addressable backend.
+#ifndef EESTORE_READ
+#define EESTORE_READ(address, value) EEPROM.get(address, value)
+#endif
+#ifndef EESTORE_WRITE
+#define EESTORE_WRITE(address, value) EEPROM.put(address, value)
+#endif
+#ifndef EESTORE_CAPACITY
+#define EESTORE_CAPACITY() EEPROM.length()
+#endif
 
 struct EEStore{
   static EEStore *eeStore;
@@ -53,6 +57,13 @@ struct EEStore{
   static void store();
   static void clear();
   static void dump(int);
+  template <typename T> static void read(int address, T &value) {
+    EESTORE_READ(address, value);
+  }
+  template <typename T> static void write(int address, const T &value) {
+    EESTORE_WRITE(address, value);
+  }
+  static int capacity() { return EESTORE_CAPACITY(); }
 };
 
 #endif

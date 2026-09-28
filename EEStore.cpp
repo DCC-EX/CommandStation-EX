@@ -43,17 +43,14 @@ void EEStore::init() {
 
   eeStore = (EEStore *)calloc(1, sizeof(EEStore));
 
-  EEPROM.get(0, eeStore->data);  // get eeStore data
+  read(0, eeStore->data);  // get eeStore data
 
   // check to see that eeStore contains valid DCC++ ID
-  if (strncmp(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)) != 0) {  
+  if (!isLegacyEEStoreData(eeStore->data)) {
     // if not, create blank eeStore structure (no
     // turnouts, no sensors) and save it back to EEPROM  
-    strncpy(eeStore->data.id, EESTORE_ID, sizeof(EESTORE_ID)+0);  
-    eeStore->data.nTurnouts = 0;
-    eeStore->data.nSensors = 0;
-    eeStore->data.nOutputs = 0;
-    EEPROM.put(0, eeStore->data);
+    eeStore->data = blankEEStoreData();
+    write(0, eeStore->data);
   }
 
   reset();          // set memory pointer to first free EEPROM space
@@ -71,7 +68,7 @@ void EEStore::clear() {
   eeStore->data.nTurnouts = 0;
   eeStore->data.nSensors = 0;
   eeStore->data.nOutputs = 0;
-  EEPROM.put(0, eeStore->data);
+  write(0, eeStore->data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -81,8 +78,8 @@ void EEStore::store() {
   Turnout::store();
   Sensor::store();
   Output::store();
-  EEPROM.put(0, eeStore->data);
-  DIAG(F("EEPROM used: %d/%d bytes"), EEStore::pointer(), EEPROM.length());
+  write(0, eeStore->data);
+  DIAG(F("EEPROM used: %d/%d bytes"), EEStore::pointer(), capacity());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -101,7 +98,7 @@ void EEStore::dump(int num) {
   byte b = 0;
   DIAG(F("Addr  0x  char"));
   for (int n = 0; n < num; n++) {
-    EEPROM.get(n, b);
+    read(n, b);
     DIAG(F("%d     %x    %c"), n, b, isprint(b) ? b : ' ');
   }
 }

@@ -141,7 +141,7 @@
       // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
       // is always zero for LCN turnouts.
       if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
-        EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);
+        EEStore::write(tt->_eepromAddress, tt->_turnoutData.flags);
 #endif
     }
     return ok;
@@ -170,7 +170,7 @@
     // Read turnout type from EEPROM
     struct TurnoutData turnoutData;
     int eepromAddress = EEStore::pointer() + offsetof(struct TurnoutData, flags); // Address of byte containing the closed flag.
-    EEPROM.get(EEStore::pointer(), turnoutData);
+    EEStore::read(EEStore::pointer(), turnoutData);
     EEStore::advance(sizeof(turnoutData));
 
     switch (turnoutData.turnoutType) {
@@ -264,7 +264,7 @@
 #ifndef DISABLE_EEPROM
     ServoTurnoutData servoTurnoutData;
     // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), servoTurnoutData);
+    EEStore::read(EEStore::pointer(), servoTurnoutData);
     EEStore::advance(sizeof(servoTurnoutData));
     
     // Create new object
@@ -300,9 +300,9 @@
     // Write turnout definition and current position to EEPROM
     // First write common servo data, then
     // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
+    EEStore::write(EEStore::pointer(), _turnoutData);
     EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _servoTurnoutData);
+    EEStore::write(EEStore::pointer(), _servoTurnoutData);
     EEStore::advance(sizeof(_servoTurnoutData));
 #endif
   }
@@ -354,7 +354,7 @@
 #ifndef DISABLE_EEPROM
     DCCTurnoutData dccTurnoutData;
     // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), dccTurnoutData);
+    EEStore::read(EEStore::pointer(), dccTurnoutData);
     EEStore::advance(sizeof(dccTurnoutData));
     
     // Create new object
@@ -391,9 +391,9 @@
     // Write turnout definition and current position to EEPROM
     // First write common servo data, then
     // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
+    EEStore::write(EEStore::pointer(), _turnoutData);
     EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _dccTurnoutData);
+    EEStore::write(EEStore::pointer(), _dccTurnoutData);
     EEStore::advance(sizeof(_dccTurnoutData));
 #endif
   }
@@ -437,7 +437,7 @@
 #ifndef DISABLE_EEPROM
     VpinTurnoutData vpinTurnoutData;
     // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), vpinTurnoutData);
+    EEStore::read(EEStore::pointer(), vpinTurnoutData);
     EEStore::advance(sizeof(vpinTurnoutData));
     
     // Create new object
@@ -466,9 +466,9 @@
     // Write turnout definition and current position to EEPROM
     // First write common servo data, then
     // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
+    EEStore::write(EEStore::pointer(), _turnoutData);
     EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _vpinTurnoutData);
+    EEStore::write(EEStore::pointer(), _vpinTurnoutData);
     EEStore::advance(sizeof(_vpinTurnoutData));
 #endif
   }

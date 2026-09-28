@@ -111,7 +111,7 @@ void  Output::activate(uint16_t s){
 #ifndef DISABLE_EEPROM
   // Update EEPROM if output has been stored.    
   if(EEStore::eeStore->data.nOutputs > 0 && num > 0)
-    EEPROM.put(num, data.oStatus);
+    EEStore::write(num, data.oStatus);
 #endif
 }
 
@@ -154,7 +154,7 @@ void Output::load(){
   Output *tt;
 
   for(uint16_t i=0;i<EEStore::eeStore->data.nOutputs;i++){
-    EEPROM.get(EEStore::pointer(),data);
+    EEStore::read(EEStore::pointer(),data);
     // Create new object, set current state to default or to saved state from eeprom.
     tt=create(data.id, data.pin, data.flags);
     uint8_t state = data.setDefault ? data.defaultValue : data.active;
@@ -175,7 +175,7 @@ void Output::store(){
   EEStore::eeStore->data.nOutputs=0;
 
   while(tt!=NULL){
-    EEPROM.put(EEStore::pointer(),tt->data);
+    EEStore::write(EEStore::pointer(),tt->data);
     tt->num=EEStore::pointer() + offsetof(OutputData, oStatus); // Save pointer to flags within EEPROM
     EEStore::advance(sizeof(tt->data));
     tt=tt->nextOutput;
