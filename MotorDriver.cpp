@@ -439,8 +439,8 @@ void MotorDriver::throttleInrush(bool on) {
   // I2C. Check for inverted value as well. This is not as easy
   // on other architectures where cutout is tied to specific pins
   // and these pins can have high numbers we don't know here.
-  const byte ESP32_MAX_PHYS_PIN=39;
-  if (powerPin <= ESP32_MAX_PHYS_PIN && powerPin >= -(ESP32_MAX_PHYS_PIN)) {
+  const VPIN ESP32_MAX_PHYS_PIN=39;
+  if (powerPin <= ESP32_MAX_PHYS_PIN) {
     throttlePin = (byte)powerPin;
   } else {
     DIAG(F("Warning: Can not produce a reliable cutout on brake pin %d because power pin %d "
