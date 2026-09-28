@@ -1250,6 +1250,9 @@ void RMFT2::loop2() {
   case OPCODE_IF_ROUTE_DISABLED:
     skipIf=!ifRouteState(operand,4);
     break;   
+  case OPCODE_IF_ESTOP_PAUSED:
+    skipIf=!DCC::isEstopLocked();
+    break;
 
   case OPCODE_STASH:
     Stash::set(operand,invert? -loco : loco);
