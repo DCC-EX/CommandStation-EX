@@ -97,6 +97,12 @@ int DCCTimer::freeMemory() {
 #define ADC_INPUT_MAX_VALUE 4095 // 12 bit ADC
 #define pinToADC1Channel(X) (adc1_channel_t)(((X) > 35) ? (X)-36 : (X)-28)
 
+// ADC_ATTEN_11db selects the ESP32 ADC input range.  It does not belong in
+// MotorDriver's raw-to-mA conversion: adc1_get_raw() already returns the raw
+// code produced with this attenuation configured.  The sense_factor supplied
+// by each motor-shield definition is the calibration from that raw code to mA.
+// Do not change safety thresholds without a measured shield calibration.
+
 int IRAM_ATTR local_adc1_get_raw(int channel) {
   uint16_t adc_value;
   SENS.sar_meas_start1.sar1_en_pad = (1 << channel); // only one channel is selected
