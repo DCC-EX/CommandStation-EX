@@ -18,3 +18,4 @@ UserAddin.txt
 _build
 venv
 .DS_Store
+__pycache__/

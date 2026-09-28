@@ -154,6 +154,7 @@
 #undef PAUSE
 #undef PICKUP_STASH
 #undef PIN_TURNOUT
+#undef HBRIDGE_TURNOUT
 #undef PLAY_EQ
 #undef PLAY_FOLDER
 #undef PLAY_PAUSE

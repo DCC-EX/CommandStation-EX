@@ -312,6 +312,16 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
       break;
     }
 
+    case OPCODE_HBRIDGETURNOUT: {
+      VPIN id=operand;
+      VPIN throwVpin=getOperand(progCounter,1);
+      VPIN closeVpin=getOperand(progCounter,2);
+      uint16_t pulseMillis=getOperand(progCounter,3);
+      Turnout *t = HBridgeTurnout::create(id,throwVpin,closeVpin,pulseMillis);
+      if (t) setTurnoutHiddenState(t);
+      break;
+    }
+
     case OPCODE_PINTURNOUT: {
       VPIN id=operand;
       VPIN pin=getOperand(progCounter,1);

@@ -388,6 +388,8 @@ void  RMFT2::printMessage(uint16_t id) {
 #define TURNOUTL(id,addr,description...) O_DESC(id,description)
 #undef PIN_TURNOUT
 #define PIN_TURNOUT(id,pin,description...) O_DESC(id,description)
+#undef HBRIDGE_TURNOUT
+#define HBRIDGE_TURNOUT(id,throw_vpin,close_vpin,pulse_millis,description...) O_DESC(id,description)
 #undef SERVO_TURNOUT
 #define SERVO_TURNOUT(id,pin,activeAngle,inactiveAngle,profile,description...) O_DESC(id,description)
 #undef VIRTUAL_TURNOUT
@@ -662,6 +664,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define PAUSE OPCODE_PAUSE,0,0,
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...) OPCODE_PINTURNOUT,V(id),OPCODE_PAD,V(pin),
+#define HBRIDGE_TURNOUT(id,throw_vpin,close_vpin,pulse_millis,description...) OPCODE_HBRIDGETURNOUT,V(id),OPCODE_PAD,V(throw_vpin),OPCODE_PAD,V(close_vpin),OPCODE_PAD,V(pulse_millis),
 #define PLAY_EQ(vpin,eqname)               ANOUT(vpin,0,DFPlayerBase::DF_EQ_##eqname,DFPlayerBase::DF_EQ)
 #define PLAY_FOLDER(vpin,folder)           ANOUT(vpin,0,folder,DFPlayerBase::DF_FOLDER)
 #define PLAY_PAUSE(vpin)                   ANOUT(vpin,0,0,DFPlayerBase::DF_PAUSE)

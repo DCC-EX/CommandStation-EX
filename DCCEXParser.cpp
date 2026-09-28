@@ -1224,6 +1224,9 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
       if (params == 3 && p[1] == "VPIN"_hk) { // <T id VPIN n>
         if (!VpinTurnout::create(p[0], p[2])) return false;
       } else 
+      if (params == 5 && p[1] == "HBRIDGE"_hk) { // <T id HBRIDGE throwVpin closeVpin pulseMillis>
+        if (!HBridgeTurnout::create(p[0], p[2], p[3], p[4])) return false;
+      } else
       if (params >= 3 && p[1] == "DCC"_hk) {
         // <T id DCC addr subadd>   0<=addr<=511, 0<=subadd<=3 (like <a> command).<T>
         if (params==4 && p[2]>=0 && p[2]<512 && p[3]>=0 && p[3]<4) { // <T id DCC n m>
