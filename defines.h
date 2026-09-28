@@ -32,6 +32,14 @@
     #include "config.h"
 #endif
 
+// Wired Ethernet is the exclusive network interface on ESP32 Ethernet builds.
+// Apply this before the ESP32 feature defaults so a PlatformIO build flag can
+// select Ethernet even when an older config.h still enables WiFi.
+#if defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET
+  #undef ENABLE_WIFI
+  #define ENABLE_WIFI false
+#endif
+
 #ifndef MOTOR_SHIELD_TYPE
   #define MOTOR_SHIELD_TYPE NO_SHIELD
 #endif
@@ -221,6 +229,26 @@
 
 #if WIFI_ON && ETHERNET_ON
  #error Command Station does not support WIFI and ETHERNET at the same time.
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32) && ETHERNET_ON
+  // Defaults for the external W5100/W5500 SPI connection used by the
+  // ESP32-Ethernet PlatformIO environment. Override in config.h as needed.
+  #ifndef ETHERNET_CS_PIN
+    #define ETHERNET_CS_PIN 5
+  #endif
+  #ifndef ETHERNET_SCK_PIN
+    #define ETHERNET_SCK_PIN 18
+  #endif
+  #ifndef ETHERNET_MISO_PIN
+    #define ETHERNET_MISO_PIN 16
+  #endif
+  #ifndef ETHERNET_MOSI_PIN
+    #define ETHERNET_MOSI_PIN 17
+  #endif
+  #ifndef ETHERNET_RST_PIN
+    #define ETHERNET_RST_PIN 4
+  #endif
 #endif
   
 ////////////////////////////////////////////////////////////////////////////////
