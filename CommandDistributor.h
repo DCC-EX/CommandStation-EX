@@ -60,6 +60,7 @@ public :
   static void broadcastTrackState(const FSH* format,byte trackLetter, const FSH* modename, int16_t dcAddr);
   template<typename... Targs> static void broadcastReply(clientType type, Targs... msg);
   static void forget(byte clientId);
+  static void watchdog();
   static void broadcastRouteState(int16_t routeId,byte state);
   static void broadcastRouteCaption(int16_t routeId,const FSH * caption);
   static void broadcastMessage(char * message);

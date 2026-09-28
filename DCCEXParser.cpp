@@ -82,6 +82,7 @@ Once a new OPCODE is decided upon, update this list.
   Q, Sensor activated
   r, Broadcast address read on programming track
   R, Read CVs
+  i, Server details string; <i> returns stable device identity
   s, Display status
   S, Sensor configuration
   t, Cab/loco update command
@@ -104,6 +105,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "DCCEXParser.h"
 #include "DCC.h"
 #include "DCCWaveform.h"
+#include "DCCTimer.h"
 #include "Turnouts.h"
 #include "Outputs.h"
 #include "Sensors.h"
@@ -721,6 +723,16 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
         Sensor::printAll(stream);  //send all Sensor  states
+        return;
+
+    case 'i': // DEVICE IDENTITY <i>
+        if (params != 0) break;
+        {
+          byte id[6];
+          DCCTimer::getSimulatedMacAddress(id);
+          StringFormatter::send(stream, F("<iID %02X%02X%02X%02X%02X%02X>\n"),
+            id[0], id[1], id[2], id[3], id[4], id[5]);
+        }
         return;       
 
 #ifndef DISABLE_EEPROM

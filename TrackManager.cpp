@@ -719,6 +719,8 @@ void TrackManager::setJoin(bool joined) {
 #endif
   progTrackSyncMain=joined;
   if (joinRelay!=UNUSED_PIN) digitalWrite(joinRelay,joined?HIGH:LOW);
+  // JOIN changes the effective power topology even when neither driver changed power.
+  CommandDistributor::broadcastPower();
 }
 
 bool TrackManager::isPowerOn(byte t) {
