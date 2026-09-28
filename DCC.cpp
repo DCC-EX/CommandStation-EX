@@ -473,6 +473,22 @@ void DCC::writeCVByteMain(int cab, int cv, byte bValue)  {
   DCCQueue::scheduleDCCPacket(b, nB, 4,cab);
 }
 
+bool DCC::writeAccessoryCVByteMain(int address, byte subaddress, int cv, byte bValue) {
+  if (address < 1 || address > 511 || subaddress > 3 || cv < 1 || cv > 1024)
+    return false;
+  const int linearAddress = (address << 2) | subaddress;
+  byte b[5];
+  b[0] = 0x80 | ((linearAddress >> 2) & 0x3F);
+  b[1] = 0x80 | (((~(linearAddress >> 8)) & 0x07) << 4)
+       | 0x08 | ((linearAddress & 0x03) << 1);
+  const int cvAddress = cv - 1;
+  b[2] = 0xEC | ((cvAddress >> 8) & 0x03);
+  b[3] = cvAddress & 0xFF;
+  b[4] = bValue;
+  DCCQueue::scheduleDCCPacket(b, sizeof(b), 4, linearAddress);
+  return true;
+}
+
 //
 // readCVByteMain: Read a byte with PoM on main.
 // This requires Railcom active 

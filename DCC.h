@@ -61,6 +61,7 @@ public:
   static uint8_t getThrottleFrequency(int cab);
   static bool getThrottleDirection(int cab);
   static void writeCVByteMain(int cab, int cv, byte bValue);
+  static bool writeAccessoryCVByteMain(int address, byte subaddress, int cv, byte bValue);
   static void readCVByteMain(int cab, int cv, ACK_CALLBACK callback);
   
   static void writeCVBitMain(int cab, int cv, byte bNum, bool bValue);
