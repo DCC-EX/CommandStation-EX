@@ -134,6 +134,8 @@ enum SignalType {
        sigtypeVIRTUAL,
        sigtypeSIGNAL, 
        sigtypeSIGNALH, 
+       sigtypeSIGNALA,
+       sigtypeSIGNALAH,
        sigtypeDCC,
        sigtypeDCCX,
        sigtypeSERVO,
@@ -147,6 +149,12 @@ enum SignalType {
        VPIN id;  
        VPIN  redpin,amberpin,greenpin; 
   };
+#ifndef SIGNAL_MAIN_ASPECT
+#define SIGNAL_MAIN_ASPECT 0421
+#endif
+#ifndef SIGNAL_ALT_ASPECT
+#define SIGNAL_ALT_ASPECT 0431
+#endif
 
   // Flag bits for compile time features.
   static const byte FEATURE_SIGNAL= 0x80;

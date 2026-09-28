@@ -181,6 +181,10 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
       static_assert(!unsafePin(redpin),"Red pin " #redpin _PIN_RESERVED_); \
       static_assert(amberpin==0 ||!unsafePin(amberpin),"Amber pin " #amberpin _PIN_RESERVED_); \
       static_assert(!unsafePin(greenpin),"Green pin " #greenpin _PIN_RESERVED_); 
+#undef SIGNALA
+#define SIGNALA(redpin,amberpin,greenpin) SIGNAL(redpin,amberpin,greenpin)
+#undef SIGNALAH
+#define SIGNALAH(redpin,amberpin,greenpin) SIGNALH(redpin,amberpin,greenpin)
 
 // and run the assert pass.       
 #include "myAutomation.h"

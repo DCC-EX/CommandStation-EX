@@ -781,6 +781,10 @@
 ///param redpin vpin for RED state, also acts as signal_id
 
 #define SIGNALH(redpin,amberpin,greenpin)
+///\brief Define a signal using the alternate aspect map, LOW=on
+#define SIGNALA(redpin,amberpin,greenpin)
+///\brief Define a signal using the alternate aspect map, HIGH=on
+#define SIGNALAH(redpin,amberpin,greenpin)
 ///brief define a signal with HIGH=ON leds
 ///param redpin vpin for RED state, also acts as signal_id
 

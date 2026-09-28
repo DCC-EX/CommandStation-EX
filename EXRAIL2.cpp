@@ -1446,31 +1446,34 @@ case sigtypeNEOPIXEL:
   
   case sigtypeSIGNAL:
   case sigtypeSIGNALH:
+  case sigtypeSIGNALA:
+  case sigtypeSIGNALAH:
   {
   // LED or similar 3 pin signal, (all pins zero would be a virtual signal)
   // If amberpin is zero, synthesise amber from red+green
-  const byte SIMAMBER=0x00;
-  if (rag==SIGNAL_AMBER && (signal.amberpin==0)) rag=SIMAMBER; // special case this func only
+  byte aspect=(signal.type==sigtypeSIGNALA || signal.type==sigtypeSIGNALAH)
+                ? SIGNAL_ALT_ASPECT : SIGNAL_MAIN_ASPECT;
+  if (signal.redpin && signal.greenpin && !signal.amberpin)
+    aspect=(aspect & 0707) | ((aspect & 0700)>>3) | ((aspect & 07)<<3);
+  bool aHigh=signal.type==sigtypeSIGNALH || signal.type==sigtypeSIGNALAH;
+  byte pinmap=rag==SIGNAL_RED ? (aspect>>6) : rag==SIGNAL_AMBER ? ((aspect>>3)&07) : (aspect&07);
+  if (rag==SIGNAL_AMBER && !signal.amberpin) pinmap=((aspect>>6)&07)|(aspect&07);
    
   // Manage invert (HIGH on) pins
-  bool aHigh=signal.type==sigtypeSIGNALH;
       
   // set the three pins 
   if (signal.redpin) {
-    bool redval=(rag==SIGNAL_RED || rag==SIMAMBER);
-    if (!aHigh) redval=!redval;
+    bool redval=(pinmap & 04) != 0; if (!aHigh) redval=!redval;
     killBlinkOnVpin(signal.redpin);
     IODevice::write(signal.redpin,redval);
   }
   if (signal.amberpin) {
-    bool amberval=(rag==SIGNAL_AMBER);
-    if (!aHigh) amberval=!amberval;
+    bool amberval=(pinmap & 02) != 0; if (!aHigh) amberval=!amberval;
     killBlinkOnVpin(signal.amberpin);
     IODevice::write(signal.amberpin,amberval);
   }
   if (signal.greenpin) {
-    bool greenval=(rag==SIGNAL_GREEN || rag==SIMAMBER);
-    if (!aHigh) greenval=!greenval;
+    bool greenval=(pinmap & 01) != 0; if (!aHigh) greenval=!greenval;
     killBlinkOnVpin(signal.greenpin);
     IODevice::write(signal.greenpin,greenval);
   }
