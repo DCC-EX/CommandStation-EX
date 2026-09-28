@@ -585,6 +585,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IF_ANY(vpinlist...) OPCODE_IFLOCO,V(__COUNTER__ - StringMacroTracker2),
 #define IFLT(sensor_id,value) OPCODE_IFLT,V(sensor_id),OPCODE_PAD,V(value),
 #define IFNOT(sensor_id) OPCODE_IFNOT,V(sensor_id),
+#define IFPOWERON OPCODE_IFPOWERON,0,0,
+#define IFPOWEROFF OPCODE_IFPOWEROFF,0,0,
 #define IFRANDOM(percent) OPCODE_IFRANDOM,V(percent),
 #define IFRED(signal_id) OPCODE_IFRED,V(signal_id),
 #define IFRESERVE(block) OPCODE_IFRESERVE,V(block),
@@ -645,6 +647,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONCLOCKTIME(hours,mins) OPCODE_ONTIME,V((STRIP_ZERO(hours)*60)+STRIP_ZERO(mins)),
 #define ONCLOCKMINS(mins) ONCLOCKTIME(25,mins)
 #define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
+#define ONPOWER(mode) OPCODE_ONPOWER,V(TRACK_POWER_##mode),
 #define ONRAILSYNCON OPCODE_ONRAILSYNCON,0,0,
 #define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,0,0,
 #define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),

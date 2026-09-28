@@ -309,6 +309,14 @@
 ///brief Inverse of IF
 ///see IF
 
+#define IFPOWERON
+///brief Checks whether the aggregate MAIN track power is ON
+///see IF
+
+#define IFPOWEROFF
+///brief Checks whether the aggregate MAIN track power is OFF
+///see IF
+
 #define IFRANDOM(percent)
 ///brief randomly satisfied IF at given percent probability
 ///see IF
@@ -485,6 +493,10 @@
 #define ONOVERLOAD(track_id)
 ///brief Start task here when given track goes into overload
 ///param track_id A..H
+
+#define ONPOWER(mode)
+///brief Start task when a track power state changes to ON or OFF
+///param mode ON or OFF
 
 #define ONRAILSYNCON
 ///brief Start task here when the railsync (booster) input port get a valid DCC signal
