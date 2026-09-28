@@ -59,6 +59,7 @@
 #include "EXRAILSensor.h"
 #include "Stash.h"
 #include "DCCConsist.h"
+#include "LocoSlot.h"
 
 
 // One instance of RMFT clas is used for each "thread" in the automation.
@@ -1691,16 +1692,38 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
     if (!stream) return; 
     
      #if defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560)
+    // Stream HIGHFLASH strings while expanding the task-local substitutions:
+    // %L = executing loco id, %V = target speed. Unknown % sequences remain literal.
     // if mega stream it out 
     for (;;strfar++) {
       char c=pgm_read_byte_far(strfar);
       if (c=='\0') break;
-      stream->write(c);
+      if (c=='%' && (pgm_read_byte_far(strfar+1)=='L' || pgm_read_byte_far(strfar+1)=='V')) {
+        if (pgm_read_byte_far(strfar+1)=='L') stream->print(loco);
+        else {
+          LocoSlot *slot=LocoSlot::getSlot(loco,false);
+          stream->print(slot ? slot->getTargetSpeed() : 0);
+        }
+        strfar++;
+      } else {
+        stream->write(c);
+      }
     }
     #else
     // UNO/NANO CPUs dont have high memory
     // 32 bit cpus dont care anyway
-    stream->print((FSH *)strfar);
+    for (const char *text=(const char *)strfar; *text; text++) {
+      if (*text=='%' && (text[1]=='L' || text[1]=='V')) {
+        if (text[1]=='L') stream->print(loco);
+        else {
+          LocoSlot *slot=LocoSlot::getSlot(loco,false);
+          stream->print(slot ? slot->getTargetSpeed() : 0);
+        }
+        text++;
+      } else {
+        stream->write(*text);
+      }
+    }
     #endif
 
   // and decide what to do next
