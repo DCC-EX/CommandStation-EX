@@ -402,9 +402,9 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
     
     if (params==2  && p[1]=="MAIN"_hk)                     // <= id MAIN>
         return setTrackMode(p[0],TRACK_MODE_MAIN);
-    if (params==2  && p[1]=="MAIN_INV"_hk)                 // <= id MAIN_INV>
+    if (params==2  && (p[1]=="MAIN_INV"_hk || p[1]=="MAINX"_hk)) // <= id MAIN_INV> or MAINX
         return setTrackMode(p[0],TRACK_MODE_MAIN_INV);
-    if (params==2  && p[1]=="MAIN_AUTO"_hk)                // <= id MAIN_AUTO>
+    if (params==2  && (p[1]=="MAIN_AUTO"_hk || p[1]=="MAINA"_hk)) // <= id MAIN_AUTO> or MAINA
         return setTrackMode(p[0],TRACK_MODE_MAIN_AUTO);
     
 #ifndef DISABLE_PROG
@@ -422,10 +422,10 @@ bool TrackManager::parseEqualSign(Print *stream, int16_t params, int16_t p[])
 	params==2  && p[1]=="BOOST"_hk)                    // <= id BOOST>
         return setTrackMode(p[0],TRACK_MODE_BOOST);
     if (TRACK_MODE_BOOST_INV != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST_INV"_hk)                // <= id BOOST_INV>
+	params==2  && (p[1]=="BOOST_INV"_hk || p[1]=="BOOSTX"_hk)) // <= id BOOST_INV> or BOOSTX
         return setTrackMode(p[0],TRACK_MODE_BOOST_INV);
     if (TRACK_MODE_BOOST_AUTO != 0 &&        // compile time optimization
-	params==2  && p[1]=="BOOST_AUTO"_hk)               // <= id BOOST_AUTO>
+	params==2  && (p[1]=="BOOST_AUTO"_hk || p[1]=="BOOSTA"_hk)) // <= id BOOST_AUTO> or BOOSTA
         return setTrackMode(p[0],TRACK_MODE_BOOST_AUTO);
 #endif
     if (params==2  && p[1]=="AUTO"_hk)                     // <= id AUTO>

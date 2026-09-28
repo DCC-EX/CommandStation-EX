@@ -153,6 +153,25 @@ SEQUENCE(7500)
   ZTEST("<t 3 5 1>",DCC::getLocoSpeedByte(3)==(128+6))
   ZTEST("<t 3 5 0>",DCC::getLocoSpeedByte(3)==(6))
   ZTEST("<-3>",DCC::getLocoSpeedByte(3)==(128))
+
+  // DCCEX track-manager aliases must accept the vocabulary used by SET_TRACK.
+  SET_TRACK(A,MAINX)
+  ZTEST("<=>", TrackManager::getMode(0) == TRACK_MODE_MAIN_INV)
+  SET_TRACK(A,MAINA)
+  ZTEST("<=>", TrackManager::getMode(0) == TRACK_MODE_MAIN_AUTO)
+  ZTEST("<= A MAINX>", (TrackManager::getMode(0) & TRACK_MODE_MAIN) &&
+                       (TrackManager::getMode(0) & TRACK_MODIFIER_INV))
+  ZTEST("<= A MAINA>", (TrackManager::getMode(0) & TRACK_MODE_MAIN) &&
+                       (TrackManager::getMode(0) & TRACK_MODIFIER_AUTO))
+  ZTEST("<= A MAIN_INV>", TrackManager::getMode(0) == TRACK_MODE_MAIN_INV)
+  ZTEST("<= A MAIN_AUTO>", TrackManager::getMode(0) == TRACK_MODE_MAIN_AUTO)
+#ifdef BOOSTER_INPUT
+  ZTEST("<= A BOOSTX>", TrackManager::getMode(0) == TRACK_MODE_BOOST_INV)
+  ZTEST("<= A BOOSTA>", TrackManager::getMode(0) == TRACK_MODE_BOOST_AUTO)
+  ZTEST("<= A MAINA>", TrackManager::getMode(0) == TRACK_MODE_MAIN_AUTO)
+#endif
+  // The query response uses the existing, client-compatible response spelling.
+  ZTEST2("<=>", "<= A MAIN A>\n<= B PROG>\n")
   
   // speed up down and relative speed changes.
   SETLOCO(3)

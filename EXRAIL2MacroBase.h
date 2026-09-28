@@ -761,7 +761,7 @@
 #define SET_TRACK(track,mode)
 ///brief Set output track type
 ///param track A..H
-///param mode NONE, MAIN, PROG, DC, EXT, BOOST, BOOST_INV, BOOST_AUTO, MAIN_INV, MAIN_AUTO, DC_INV, DCX
+///param mode NONE, MAIN, PROG, DC, EXT, BOOST, BOOSTX, BOOSTA, MAINX, MAINA, BOOST_INV, BOOST_AUTO, MAIN_INV, MAIN_AUTO, DC_INV, DCX
 
 #define SET_POWER(track,onoff)
 ///brief Set track power mode
