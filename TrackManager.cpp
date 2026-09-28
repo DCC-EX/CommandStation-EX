@@ -557,6 +557,7 @@ void TrackManager::setTrackPower(TRACK_MODE trackmodeToMatch, POWERMODE powermod
   }
   if (didChange)
     CommandDistributor::broadcastPower();
+
 }
 
 // Set track power for this track, inependent of mode
@@ -587,6 +588,7 @@ void TrackManager::setTrackPower(POWERMODE powermode, byte t) {
   driver->setPower(powermode);
   if (oldpower != driver->getPower())
     CommandDistributor::broadcastPower();
+
 }
 
 // returns state of the one and only prog track
