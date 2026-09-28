@@ -375,6 +375,12 @@ void  CommandDistributor::broadcastPower() {
   }
 }
 
+void CommandDistributor::broadcastCurrent(byte track, unsigned int milliamps, bool fault) {
+  // Keep the existing <jI> response unchanged.  The three-field form is an
+  // opt-in event: track number, measured current in mA, and fault state.
+  broadcastReply(COMMAND_TYPE, F("<jI %d %d %d>\n"), track, milliamps, fault ? 1 : 0);
+}
+
 void CommandDistributor::broadcastRaw(clientType type, char * msg) {
   broadcastReply(type, F("%s"),msg);
 }

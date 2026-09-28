@@ -841,6 +841,13 @@ void DCCEXParser::parseOne(Print *stream, byte *com, RingStream * ringStream)
                     return;
                 
                 case "I"_hk: // <JI> current values
+                    if (params==2 && (p[1]==0 || p[1]==1)) {
+                        // <JI 1> enables 10Hz <jI track current fault> events;
+                        // <JI 0> disables them.  A plain <JI> remains the
+                        // established one-shot current query.
+                        TrackManager::setCurrentReporting(p[1] != 0);
+                        return;
+                    }
                     if (params>1) break;
                     TrackManager::reportCurrent(stream);   // <g limit...limit>     
                     return;

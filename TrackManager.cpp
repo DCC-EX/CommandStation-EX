@@ -45,6 +45,8 @@ int16_t TrackManager::trackDCAddr[MAX_TRACKS] = { 0 };
 int16_t TrackManager::trackPwrMA[MAX_TRACKS] = { 0 };
 
 int8_t TrackManager::lastTrack=-1;
+bool TrackManager::currentReporting=false;
+unsigned long TrackManager::lastCurrentReport=0;
 bool TrackManager::progTrackSyncMain=false; 
 bool TrackManager::progTrackBoosted=false; 
 int16_t TrackManager::joinRelay=UNUSED_PIN;
@@ -515,6 +517,20 @@ void TrackManager::loop() {
     MotorDriver * motorDriver=track[nextCycleTrack];
     bool useProgLimit=dontLimitProg ? false : (bool)(track[nextCycleTrack]->getMode() & TRACK_MODE_PROG);
     motorDriver->checkPowerOverload(useProgLimit, nextCycleTrack);   
+
+    // Current/fault telemetry is deliberately opt-in and throttled.  The
+    // broadcast path is client-safe for Wi-Fi/Ethernet ring streams, unlike
+    // retaining the parser's transient Print pointer.
+    if (currentReporting && (millis() - lastCurrentReport >= 100)) {
+      lastCurrentReport = millis();
+      FOR_EACH_TRACK(t) {
+        if (track[t] == NULL) continue;
+        int current = track[t]->getCurrentRaw(false);
+        bool fault = current < 0 || track[t]->getPower() == POWERMODE::OVERLOAD;
+        if (current < 0) current = -current;
+        CommandDistributor::broadcastCurrent(t, track[t]->raw2mA(current), fault);
+      }
+    }
 }
 
 MotorDriver * TrackManager::getProgDriver() {
