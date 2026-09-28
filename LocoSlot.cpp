@@ -32,6 +32,7 @@ void LocoSlot::prepare(uint16_t locoId) {
     momentumD=MOMENTUM_USE_DEFAULT;
     targetSpeed=128;
     savedSpeedCode=0; 
+    speedLimit=127;
 
     snifferSpeedCode=128; // default direction forward
     snifferFunctions=0;

@@ -725,6 +725,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SPEED(speed) OPCODE_SPEED,V(speed),
 #define SPEEDUP(speedstep) OPCODE_SPEEDUP,V(speedstep),
 #define SPEED_REL(percent) OPCODE_SPEED_REL,V(percent),
+#define SPEED_LIMIT(speed) OPCODE_SPEED_LIMIT,V(speed),
+#define CLEAR_SPEED_LIMIT OPCODE_CLEAR_SPEED_LIMIT,0,
 #define SLOWDOWN(speedstep) OPCODE_SLOWDOWN,V(speedstep),
 #define START(route) OPCODE_START,V(route), 
 #define START_SHARED(route) OPCODE_START_SHARED,V(route),

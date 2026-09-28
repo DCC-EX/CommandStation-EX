@@ -161,6 +161,10 @@ SEQUENCE(7500)
   SPEED_REL(50)  ZTEST("SPEED_REL(50)",DCC::getLocoSpeedByte(3)==(128+15))
   SPEED_REL(300) ZTEST("SPEED_REL(300)",DCC::getLocoSpeedByte(3)==(128+45))
   SLOWDOWN(5)    ZTEST("SLOWDOWN(5)",DCC::getLocoSpeedByte(3)==(128+40))
+  FWD(80)        ZTEST("FWD(80)",DCC::getLocoSpeedByte(3)==(128+80))
+  SPEED_LIMIT(30) ZTEST("SPEED_LIMIT(30)",DCC::getLocoSpeedByte(3)==(128+30))
+  SPEED(80)       ZTEST("LIMIT_RETains_COMMAND",DCC::getThrottleSpeedByte(3)==(128+80) && DCC::getLocoSpeedByte(3)==(128+30))
+  CLEAR_SPEED_LIMIT ZTEST("CLEAR_SPEED_LIMIT",DCC::getLocoSpeedByte(3)==(128+80))
   DONE
 
 ROUTE(7900,"7900 Test IFSTASHED_HERE")
