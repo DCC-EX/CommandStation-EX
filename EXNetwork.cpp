@@ -90,6 +90,8 @@ private:
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
 
+IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
+
 void EXNetwork::setup() {
   #ifdef ARDUINO_ARCH_STM32
   udpTx.stop();
@@ -102,8 +104,8 @@ void EXNetwork::setup() {
     return;
   }
 
-  auto ipaddress = _SHIM_::getIPAddress();
-  throttleMulticastIP[3] = ipaddress[3];
+  myipaddress = _SHIM_::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
 
   #if defined(ARDUINO_ARCH_STM32) && !defined(ETHERNET_CS_PIN)
   // STM32Ethernet enables NETIF_FLAG_IGMP from its link-state handler.
@@ -201,6 +203,12 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   if (length <= 2) return;
   data[length] = 0;
 
+  IPAddress remoteIP = udp.remoteIP();
+  if (remoteIP == myipaddress) {
+    // we do not want to hear ourselves
+    udp.flush();
+    return;
+  }
   // Pass node traffic to NodeManager
   if (localPort == NODE_PORT) {
     NodeManager::parse(data);
@@ -208,7 +216,6 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   }
  
   // detect UDP throttles that can't listen to the UDP broadcast and remember them for unicast responses
-  IPAddress remoteIP = udp.remoteIP();
   if (length >= 3 && data[0] == '<' && data[1] == '#' && data[2] == '>') {
     rememberUdpDiscoveryClient(remoteIP);
   }

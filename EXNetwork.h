@@ -30,6 +30,7 @@ public:
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
   static void processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort);
+  static IPAddress myipaddress;
 };
 
 #endif
