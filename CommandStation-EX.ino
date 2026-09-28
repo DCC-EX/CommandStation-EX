@@ -54,6 +54,7 @@ You must use Version 5.6.x
 #ifdef ARDUINO_ARCH_ESP32
 #include "Sniffer.h"
 #include "DCCDecoder.h"
+#include "NtpClock.h"
 #include "NodeManager.h"
 
 Sniffer *dccSniffer = NULL;
@@ -182,6 +183,12 @@ void loop()
  
   // Responsibility 3: Handle incoming network traffic
   EXNetwork::loop();
+
+  // Feed the fast clock from NTP before EX-RAIL looks at it, so an
+  // ONCLOCKTIME fires in the same iteration the minute changes.
+#if defined(ARDUINO_ARCH_ESP32) && defined(NTP_CLOCK)
+  NtpClock::loop();
+#endif
 
   RMFT::loop();  // ignored if no automation
 
