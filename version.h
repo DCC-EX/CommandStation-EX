@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.8"
+#define VERSION "5.9.9"
+// 5.9.9  - ESP32 bugfix: Use unsigned for time compare
+//        - UDP: Filter traffic from ourselves and make recieve more robust
+//        - Sniffer: Add dedup option
 // 5.9.8  - RailCom cutout for ESP32
 // 5.9.7  - Network preferences move to NVS
 //        - NVS implemented on ESP32 and STM32 platforms
