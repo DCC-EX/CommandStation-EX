@@ -99,7 +99,8 @@ static bool IRAM_ATTR cap_ISR_cb(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t 
   return 0;
 }
 
-Sniffer::Sniffer(byte snifferpin) {
+Sniffer::Sniffer(byte snifferpin, bool dedup) {
+  dedupInput = dedup;
   // init some constants, on standard ESP32 getApbFrequency() is 80 000 000.
   dcc_too_short_limit = (getApbFrequency()/1000) * 50 /*usec*/ / 1000;
   dcc_one_limit       = (getApbFrequency()/1000) * 80 /*usec*/ / 1000;
@@ -239,7 +240,7 @@ void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
 	    }
 	    lastendofpacket = millis();
 	    DCCPacket temppacket(dccbytes, dcclen);
-	    if (!(temppacket == prevpacket)) {
+	    if ((dedupInput == false) || !(temppacket == prevpacket)) {
 	      // we have something new to offer to the fetch routine
 	      // put it into the outpacket queue
 	      outpacket.push_back(temppacket);
