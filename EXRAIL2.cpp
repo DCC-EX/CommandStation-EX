@@ -67,6 +67,10 @@
 // The threads exist in a ring, each time through loop() the next thread in the ring is serviced.
 
 // Statics 
+#ifndef EXRAIL_ACTIVE
+// No automation file supplies the feature flags in this configuration.
+const byte RMFT2::compileFeatures = 0;
+#endif
 const int16_t LOCO_ID_WAITING=-99; // waiting for loco id from prog track
 int16_t RMFT2::progtrackLocoId;  // used for callback when detecting a loco on prog track
 bool RMFT2::diag=false;      // <D EXRAIL ON>  
