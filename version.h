@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.9"
+#define VERSION "5.9.10"
+// 5.9.10 - ESP32 bugfix: DCCEXanalogCopyChannel() parameter mismatch (int8_t vs int16_t) causing compile error in DCCTimerESP5.cpp
+//        - EXRAIL bugfix: fix RMFMT::CompileFeatures not being set correctly when EXRAIL_ACTIVE is not defined (lack of myAutomation.h)
+//        - Sniffer: Only compile when BOOSTER_INPUT is defined
 // 5.9.9  - ESP32 bugfix: Use unsigned for time compare
 //        - UDP: Filter traffic from ourselves and make recieve more robust
 //        - Sniffer: Add dedup option
