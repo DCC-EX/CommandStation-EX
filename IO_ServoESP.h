@@ -47,15 +47,11 @@ public:
   static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin,
                      uint8_t firstLedcChannel = 5) {
     if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) {
-          DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
+      DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
       return;
-    } else {
-          DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d "), firstVpin, nPins, firstLedcChannel);
     }
     if (checkNoOverlap(firstVpin, nPins)) {
       new ServoESP(firstVpin, nPins, firstGpioPin, firstLedcChannel);
-    } else {
-          DIAG(F("!! Error!!"));
     }
 
   }
