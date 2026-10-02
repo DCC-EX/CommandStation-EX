@@ -41,10 +41,13 @@
 #ifndef IO_ESP32_PWM_H
 #define IO_ESP32_PWM_H
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_IDF_TARGET_ESP32)
-
 #include <Arduino.h>
 #include "IODevice.h"
+
+// Compilation safety check for ESP32-WROOM architectures
+#if !defined(ARDUINO_ARCH_ESP32) || !defined(CONFIG_IDF_TARGET_ESP32)
+#error "This code is designed exclusively for ESP32 architectures (ESP32-WROOM) and cannot be compiled for other boards."
+#endif
 
 class ESP32PWM;
 
@@ -528,10 +531,5 @@ ESP32PWM *ESP32PWM::activeMovingInstance = nullptr;
 ServoQueueItem ESP32PWM::_queue[ESP32PWM::QUEUE_SIZE];
 int ESP32PWM::_queueTail = 0;
 uint8_t ESP32PWM::nextAvailableChannel = 9;
-
-#else
-  // what fallback is needed for other uC
-
-#endif // End of ESP32 architecture guard
 
 #endif
