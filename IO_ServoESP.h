@@ -66,7 +66,7 @@ private:
 		bool keepPowerOn;
 	};
 
-	static const uint8_t MaxServos = 16;
+	static const uint8_t MaxServos = 2;
 	static const uint16_t MaxPosition = 4095;
 	static const unsigned long DetachDelayMs = 200;
 	static const unsigned long RefreshIntervalMs = 50;
