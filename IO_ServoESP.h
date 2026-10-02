@@ -42,6 +42,8 @@
 #ifndef SERVO_PWM_RESOLUTION
 #define SERVO_PWM_RESOLUTION 16
 #endif
+
+
 class ServoESP : public IODevice {
 public:
   enum ProfileType : uint8_t {
@@ -91,6 +93,17 @@ private:
   uint8_t _firstLedcChannel;
   ServoData _servoData[MaxServos] = {};
 
+/**
+ * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
+ *        Maximum 2 servos and needs two consecutive gpio
+ *        Example gpio 13-14, 16-17, 18-19 
+ * @param firstVpin first vpin for IO_Device
+ * @param nPins number of vpins
+ * @param firstGpioPin first ESP32 gpio to use
+ * @param firstLedcChannel first ledc channel to use (default = 8)
+ * @note  Only provide the firstLedcChannel if you really know what you are doing.
+ **/
+
   ServoESP(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel) {
     _firstVpin = firstVpin;
     _nPins = (nPins > MaxServos) ? MaxServos : nPins;
@@ -129,6 +142,13 @@ private:
     _writeAnalogue(vpin, value ? servo.activePosition : servo.inactivePosition, servo.profile, servo.duration);
   }
 
+/**
+ * @brief Device specific writeAnalogue function, invoked from IODevice::writeAnalogue()
+ * @param vpin CS vpin
+ * @param value postion value
+ * @param profile movement profile (default = 0) see ProfileType
+ * @param duration duration of movement (default = 0)
+ **/
   void _writeAnalogue(VPIN vpin, int value, uint8_t profile = 0, uint16_t duration = 0) override {
     if (_deviceState == DEVSTATE_FAILED || vpin < _firstVpin || vpin >= _firstVpin + _nPins) {
       return;
@@ -206,6 +226,11 @@ private:
     return servo.outputAttached;
   }
 
+/**
+ * @brief takes a pin in the range 0 to nPins-1 and a value between 0 and 4095 for the PWM mark-to-period ratio, with 4095 being 100%
+ * @param pin range 0 to _nPins -1
+ * @param position PWM mark-to-period ratio, 0 - 4095, 4095 = 100%
+ **/
   void writePosition(uint8_t pin, uint16_t position) {
     const uint32_t resolution = UINT32_C(1) << SERVO_PWM_RESOLUTION;
     const uint32_t duty = position == MaxPosition ? resolution - 1 :
