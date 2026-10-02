@@ -43,10 +43,19 @@ public:
 	};
 
 	static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin,
-										 uint8_t firstLedcChannel = 0) {
-		if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) return;
-		if (checkNoOverlap(firstVpin, nPins))
+										 uint8_t firstLedcChannel = 5) {
+		if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) {
+          DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
+			return;
+		} else {
+          DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d "), firstVpin, nPins, firstLedcChannel);
+		}
+		if (checkNoOverlap(firstVpin, nPins)) {
 			new ServoESP(firstVpin, nPins, firstGpioPin, firstLedcChannel);
+		} else {
+          DIAG(F("!! Error!!"));
+		}
+
 	}
 
 private:
@@ -81,7 +90,7 @@ private:
 		_nPins = (nPins > MaxServos) ? MaxServos : nPins;
 		_firstGpioPin = firstGpioPin;
 		_firstLedcChannel = firstLedcChannel;
-
+    Serial.println("Creating ServoESP");
 		for (int pin = 0; pin < _nPins; pin++) {
 			_servoData[pin].activePosition = MaxPosition;
 			_servoData[pin].inactivePosition = 0;

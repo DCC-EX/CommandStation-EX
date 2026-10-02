@@ -40,9 +40,9 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_PCF8575.h"
 #include "IO_RotaryEncoder.h"
 #include "IO_Servo.h"
-#if defined(ARDUINO_ARCH_ESP32)
+//#if defined(ARDUINO_ARCH_ESP32)
 #include "IO_ServoESP.h"
-#endif
+//#endif
 #include "IO_TCA8418.h"
 #include "IO_TM1638.h"
 #include "IO_TouchKeypad.h"
