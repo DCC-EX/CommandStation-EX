@@ -2,6 +2,22 @@
  * @file IO_ServoESP.h
  *
  *  © 2026 Ross Scanlon
+ * 
+ * 
+ *  This file is part of DCC++EX API
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef IO_SERVOESP_H
@@ -26,13 +42,6 @@
 #ifndef SERVO_PWM_RESOLUTION
 #define SERVO_PWM_RESOLUTION 16
 #endif
-#ifndef SERVO_MIN_PULSE_US
-#define SERVO_MIN_PULSE_US 1000
-#endif
-#ifndef SERVO_MAX_PULSE_US
-#define SERVO_MAX_PULSE_US 2000
-#endif
-
 class ServoESP : public IODevice {
 public:
   enum ProfileType : uint8_t {
@@ -44,8 +53,7 @@ public:
     NoPowerOff = 0x80,
   };
 
-  static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin,
-                     uint8_t firstLedcChannel = 5) {
+  static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel = 8) {
     if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) {
       DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
       return;
@@ -71,6 +79,7 @@ private:
     bool moving;
     bool outputAttached;
     bool keepPowerOn;
+    bool positionInitialized;
   };
 
   static const uint8_t MaxServos = 2;
@@ -82,13 +91,11 @@ private:
   uint8_t _firstLedcChannel;
   ServoData _servoData[MaxServos] = {};
 
-  ServoESP(VPIN firstVpin, int nPins, uint8_t firstGpioPin,
-           uint8_t firstLedcChannel) {
+  ServoESP(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel) {
     _firstVpin = firstVpin;
     _nPins = (nPins > MaxServos) ? MaxServos : nPins;
     _firstGpioPin = firstGpioPin;
     _firstLedcChannel = firstLedcChannel;
-    Serial.println("Creating ServoESP");
     for (int pin = 0; pin < _nPins; pin++) {
       _servoData[pin].activePosition = MaxPosition;
       _servoData[pin].inactivePosition = 0;
@@ -97,47 +104,54 @@ private:
     addDevice(this);
   }
 
-  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount,
-                  int params[]) override {
-    if (configType != CONFIGURE_SERVO || paramCount != 5 ||
-        vpin < _firstVpin || vpin >= _firstVpin + _nPins) return false;
-
+  bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
+    if (configType != CONFIGURE_SERVO || paramCount != 5 || vpin < _firstVpin || vpin >= _firstVpin + _nPins) {
+      return false;
+    }
     const uint8_t pin = vpin - _firstVpin;
     ServoData &servo = _servoData[pin];
     servo.activePosition = clampPosition(params[0]);
     servo.inactivePosition = clampPosition(params[1]);
     servo.profile = params[2];
     servo.duration = params[3] < 0 ? 0 : params[3];
-    if (params[4] != -1)
-      _writeAnalogue(vpin, params[4] ? servo.activePosition : servo.inactivePosition,
-                     servo.profile, servo.duration);
+    if (params[4] != -1) {
+      _writeAnalogue(vpin, params[4] ? servo.activePosition : servo.inactivePosition, servo.profile, servo.duration);
+    }
     return true;
   }
 
   void _write(VPIN vpin, int value) override {
-    if (vpin < _firstVpin || vpin >= _firstVpin + _nPins) return;
+    if (vpin < _firstVpin || vpin >= _firstVpin + _nPins) {
+      return;
+    }
     const uint8_t pin = vpin - _firstVpin;
     ServoData &servo = _servoData[pin];
-    _writeAnalogue(vpin, value ? servo.activePosition : servo.inactivePosition,
-                   servo.profile, servo.duration);
+    _writeAnalogue(vpin, value ? servo.activePosition : servo.inactivePosition, servo.profile, servo.duration);
   }
 
-  void _writeAnalogue(VPIN vpin, int value, uint8_t profile = 0,
-                      uint16_t duration = 0) override {
-    if (_deviceState == DEVSTATE_FAILED || vpin < _firstVpin ||
-        vpin >= _firstVpin + _nPins) return;
-
+  void _writeAnalogue(VPIN vpin, int value, uint8_t profile = 0, uint16_t duration = 0) override {
+    if (_deviceState == DEVSTATE_FAILED || vpin < _firstVpin || vpin >= _firstVpin + _nPins) {
+      return;
+    }
     ServoData &servo = _servoData[vpin - _firstVpin];
     const unsigned long now = millis();
     servo.keepPowerOn = (profile & NoPowerOff) != 0;
     servo.travelTimeMs = travelTime(profile & ~NoPowerOff, duration);
-    servo.startPosition = servo.currentPosition;
     servo.targetPosition = clampPosition(value);
     servo.startedAt = now;
     servo.lastActionAt = now;
-    servo.moving = servo.startPosition != servo.targetPosition && servo.travelTimeMs != 0;
+    if (!servo.positionInitialized) {
+      servo.currentPosition = servo.targetPosition;
+      servo.positionInitialized = true;
+      servo.moving = false;
+    } else {
+      servo.startPosition = servo.currentPosition;
+      servo.moving = servo.startPosition != servo.targetPosition && servo.travelTimeMs != 0;
+    }
 
-    if (!attachOutput(vpin - _firstVpin)) return;
+    if (!attachOutput(vpin - _firstVpin)) {
+      return;
+    }
     if (!servo.moving) {
       servo.currentPosition = servo.targetPosition;
       writePosition(vpin - _firstVpin, servo.currentPosition);
@@ -156,14 +170,14 @@ private:
   }
 
   void _display() override {
-    DIAG(F("ServoESP GPIO:%u-%u Vpins:%u-%u %S"), _firstGpioPin,
-         _firstGpioPin + _nPins - 1, (int)_firstVpin,
-         (int)_firstVpin + _nPins - 1,
-         (_deviceState == DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
+    DIAG(F("ServoESP GPIO:%u-%u Vpins:%u-%u %S"), _firstGpioPin, _firstGpioPin + _nPins - 1, (int)_firstVpin,
+            (int)_firstVpin + _nPins - 1, (_deviceState == DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
   static uint16_t clampPosition(int value) {
-    if (value < 0) return 0;
+    if (value < 0) {
+      return 0;
+    }
     return value > MaxPosition ? MaxPosition : value;
   }
 
@@ -176,7 +190,9 @@ private:
 
   bool attachOutput(uint8_t pin) {
     ServoData &servo = _servoData[pin];
-    if (servo.outputAttached) return true;
+    if (servo.outputAttached) {
+      return true;
+    }
 
     const uint8_t gpioPin = _firstGpioPin + pin;
     pinMode(gpioPin, OUTPUT);
@@ -191,12 +207,13 @@ private:
   }
 
   void writePosition(uint8_t pin, uint16_t position) {
-    const uint32_t angle = (uint32_t)position * 180 / MaxPosition;
-    const uint32_t pwmPeriodUs = 1000000UL / SERVO_PWM_FREQUENCY;
     const uint32_t resolution = UINT32_C(1) << SERVO_PWM_RESOLUTION;
-    const uint32_t minDuty = resolution * SERVO_MIN_PULSE_US / pwmPeriodUs;
-    const uint32_t maxDuty = resolution * SERVO_MAX_PULSE_US / pwmPeriodUs;
-    const uint32_t duty = minDuty + (maxDuty - minDuty) * angle / 180;
+    const uint32_t duty = position == MaxPosition ? resolution - 1 :
+      (uint32_t)position * resolution / (MaxPosition + 1);
+
+    DIAG(F("ServoESP position:%u duty:%lu"), position, (unsigned long)duty);
+    
+
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     ledcWrite(_firstGpioPin + pin, duty);
 #else
@@ -232,9 +249,10 @@ private:
         servo.lastActionAt = now;
       }
       writePosition(pin, servo.currentPosition);
-    } else if (servo.outputAttached && !servo.keepPowerOn &&
-               now - servo.lastActionAt >= DetachDelayMs) {
-      detachOutput(pin);
+    } else {
+      if (servo.outputAttached && !servo.keepPowerOn && now - servo.lastActionAt >= DetachDelayMs) {
+        detachOutput(pin);
+      }
     }
   }
 };
