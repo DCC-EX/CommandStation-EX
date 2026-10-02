@@ -23,7 +23,7 @@
 #ifndef IO_SERVOESP_H
 #define IO_SERVOESP_H
 
-#ifdef DCCEX_NODE
+#if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE)
 
 #include "IODevice.h"
 #include "DIAG.h"
@@ -56,6 +56,21 @@ public:
   };
 
   static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel = 8) {
+    switch (firstGpioPin) {
+        case 13:
+        case 16:
+        case 17:
+        case 18:
+        case 21:
+        case 22:
+        case 25:
+        case 26:
+        case 32:
+            break; // Valid pin, proceed to next checks
+        default:
+            DIAG(F("!!Invalid firstGpioPin: %d!!"), firstGpioPin);
+            return;
+    }
     if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) {
       DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
       return;
@@ -99,7 +114,7 @@ private:
  *        Example gpio 13-14, 16-17, 18-19 
  * @param firstVpin first vpin for IO_Device
  * @param nPins number of vpins
- * @param firstGpioPin first ESP32 gpio to use
+ * @param firstGpioPin first ESP32 gpio to use should only be (13, 16, 17, 18, 21, 22, 25, 25 or 32)
  * @param firstLedcChannel first ledc channel to use (default = 8)
  * @note  Only provide the firstLedcChannel if you really know what you are doing.
  **/
