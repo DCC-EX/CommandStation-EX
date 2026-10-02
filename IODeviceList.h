@@ -25,7 +25,6 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_DS1307.h"
 #include "IO_duinoNodes.h"
 #include "IO_EncoderThrottle.h"
-#include "IO_ESP32PWM.h"
 #include "IO_EXFastclock.h"
 #include "IO_EXIOExpander.h"
 #include "IO_EXSensorCAM.h"
