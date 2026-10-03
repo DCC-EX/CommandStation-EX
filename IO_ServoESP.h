@@ -27,6 +27,7 @@
 
 #include "IODevice.h"
 #include "DIAG.h"
+#include <cstdarg>
 #include <initializer_list>
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -56,12 +57,60 @@ public:
     NoPowerOff = 0x80,
   };
 
-  static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel = 8) {
+
+/**
+ * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
+ *        Maximum MaxServos servos. GPIO pins can be supplied as a list or as a
+ *        consecutive range.
+ * @param firstVpin first vpin for IO_Device
+ * @param nPins number of vpins
+ * @param gpioPins ESP32 GPIO pins, one per VPIN must be consecutive gpio
+ **/
+
+
+  static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin) {
     if (nPins < 1 || nPins > MaxServos) return;
     uint8_t gpioPins[MaxServos];
     for (int pin = 0; pin < nPins; pin++) gpioPins[pin] = firstGpioPin + pin;
+    const uint8_t firstLedcChannel = 8;
     createWithPins(firstVpin, nPins, gpioPins, firstLedcChannel);
   }
+
+/**
+ * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
+ *        Maximum MaxServos servos. GPIO pins can be supplied as a list or as a
+ *        consecutive range.
+ * @param firstVpin first vpin for IO_Device
+ * @param nPins number of vpins
+ * @param p1, ... ESP32 GPIO pins, one per VPIN
+ **/
+
+  static void create(VPIN firstVpin, int nPins, uint8_t p1, ...) {
+    if (nPins < 1 || nPins > MaxServos) return;
+    uint8_t gpioPins[MaxServos] = {p1};
+    va_list pinArguments;
+    va_start(pinArguments, p1);
+    for (int pin = 1; pin < nPins; pin++)
+      gpioPins[pin] = (uint8_t)va_arg(pinArguments, int);
+    va_end(pinArguments);
+
+    const uint8_t firstLedcChannel = 8;
+    createWithPins(firstVpin, nPins, gpioPins, firstLedcChannel);
+  }
+
+
+/**
+ * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
+ *        Maximum MaxServos servos. GPIO pins can be supplied as a list or as a
+ *        consecutive range.
+ * @param firstVpin first vpin for IO_Device
+ * @param nPins number of vpins
+ * @param gpioPins ESP32 GPIO pins, one per VPIN
+ * @param firstLedcChannel first ledc channel to use (default = 8)(optional)
+ * @note  Only provide the firstLedcChannel if you really know what you are doing.
+ *        In myAutomation.h create with HAL(ServoESP, vpin, numberofpins, {gpiolist})  {} are required.
+ **/
+
 
   static void create(VPIN firstVpin, int nPins, std::initializer_list<uint8_t> gpioPins, uint8_t firstLedcChannel = 8) {
     if (gpioPins.size() != nPins) {
@@ -98,17 +147,6 @@ private:
   uint8_t _gpioPins[MaxServos] = {};
   uint8_t _firstLedcChannel;
   ServoData _servoData[MaxServos] = {};
-
-/**
- * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
- *        Maximum MaxServos servos. GPIO pins can be supplied as a list or as a
- *        consecutive range.
- * @param firstVpin first vpin for IO_Device
- * @param nPins number of vpins
- * @param gpioPins ESP32 GPIO pins, one per VPIN
- * @param firstLedcChannel first ledc channel to use (default = 8)
- * @note  Only provide the firstLedcChannel if you really know what you are doing.
- **/
 
   ServoESP(VPIN firstVpin, int nPins, const uint8_t *gpioPins, uint8_t firstLedcChannel) {
     _firstVpin = firstVpin;
