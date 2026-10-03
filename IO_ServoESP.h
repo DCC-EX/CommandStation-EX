@@ -281,8 +281,9 @@ private:
         }
       }
     }
-    if (checkNoOverlap(firstVpin, nPins))
+    if (checkNoOverlap(firstVpin, nPins)) {
       new ServoESP(firstVpin, nPins, gpioPins, firstLedcChannel);
+    }
   }
 
   bool attachOutput(uint8_t pin) {
