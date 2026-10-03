@@ -63,15 +63,13 @@ public:
     createWithPins(firstVpin, nPins, gpioPins, firstLedcChannel);
   }
 
-  static void create(VPIN firstVpin, int nPins, std::initializer_list<uint8_t> gpioPins,
-                     uint8_t firstLedcChannel = 8) {
+  static void create(VPIN firstVpin, int nPins, std::initializer_list<uint8_t> gpioPins, uint8_t firstLedcChannel = 8) {
     if (gpioPins.size() != nPins) {
       DIAG(F("ServoESP GPIO count %u does not match VPIN count %d"),
            (unsigned)gpioPins.size(), nPins);
       return;
     }
     createWithPins(firstVpin, nPins, gpioPins.begin(), firstLedcChannel);
-
   }
 
 private:
@@ -92,7 +90,7 @@ private:
     bool positionInitialized;
   };
 
-  static const uint8_t MaxServos = 2;
+  static const uint8_t MaxServos = 4;
   static const uint16_t MaxPosition = 4095;
   static const unsigned long DetachDelayMs = 200;
   static const unsigned long RefreshIntervalMs = 50;
@@ -103,8 +101,8 @@ private:
 
 /**
  * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
- *        Maximum 2 servos. GPIO pins can be supplied as a list or as a
- *        consecutive range using the legacy overload.
+ *        Maximum MaxServos servos. GPIO pins can be supplied as a list or as a
+ *        consecutive range.
  * @param firstVpin first vpin for IO_Device
  * @param nPins number of vpins
  * @param gpioPins ESP32 GPIO pins, one per VPIN
@@ -227,10 +225,8 @@ private:
     }
   }
 
-  static void createWithPins(VPIN firstVpin, int nPins, const uint8_t *gpioPins,
-                             uint8_t firstLedcChannel) {
-    if (nPins < 1 || nPins > MaxServos || gpioPins == nullptr ||
-        firstLedcChannel + nPins > 16) {
+  static void createWithPins(VPIN firstVpin, int nPins, const uint8_t *gpioPins, uint8_t firstLedcChannel) {
+    if (nPins < 1 || nPins > MaxServos || gpioPins == nullptr || firstLedcChannel + nPins > 16) {
       DIAG(F("ServoESP invalid configuration: VPIN:%u Pins:%d LEDC:%u"),
            firstVpin, nPins, firstLedcChannel);
       return;
