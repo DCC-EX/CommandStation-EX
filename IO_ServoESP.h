@@ -27,6 +27,7 @@
 
 #include "IODevice.h"
 #include "DIAG.h"
+#include <initializer_list>
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <Arduino.h>
@@ -56,28 +57,20 @@ public:
   };
 
   static void create(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel = 8) {
-    switch (firstGpioPin) {
-        case 13:
-        case 16:
-        case 17:
-        case 18:
-        case 21:
-        case 22:
-        case 25:
-        case 26:
-        case 32:
-            break; // Valid pin, proceed to next checks
-        default:
-            DIAG(F("!!Invalid firstGpioPin: %d!!"), firstGpioPin);
-            return;
-    }
-    if (nPins < 1 || nPins > 2 || firstLedcChannel + nPins > 16) {
-      DIAG(F("!!firstVpin: %d nPins:  %d firstLedcChannel : %d error!!"), firstVpin, nPins, firstLedcChannel);
+    if (nPins < 1 || nPins > MaxServos) return;
+    uint8_t gpioPins[MaxServos];
+    for (int pin = 0; pin < nPins; pin++) gpioPins[pin] = firstGpioPin + pin;
+    createWithPins(firstVpin, nPins, gpioPins, firstLedcChannel);
+  }
+
+  static void create(VPIN firstVpin, int nPins, std::initializer_list<uint8_t> gpioPins,
+                     uint8_t firstLedcChannel = 8) {
+    if (gpioPins.size() != nPins) {
+      DIAG(F("ServoESP GPIO count %u does not match VPIN count %d"),
+           (unsigned)gpioPins.size(), nPins);
       return;
     }
-    if (checkNoOverlap(firstVpin, nPins)) {
-      new ServoESP(firstVpin, nPins, firstGpioPin, firstLedcChannel);
-    }
+    createWithPins(firstVpin, nPins, gpioPins.begin(), firstLedcChannel);
 
   }
 
@@ -104,27 +97,27 @@ private:
   static const unsigned long DetachDelayMs = 200;
   static const unsigned long RefreshIntervalMs = 50;
 
-  uint8_t _firstGpioPin;
+  uint8_t _gpioPins[MaxServos] = {};
   uint8_t _firstLedcChannel;
   ServoData _servoData[MaxServos] = {};
 
 /**
  * @brief Provides servo control on ESP32-Wroom MCU without external hardware.
- *        Maximum 2 servos and needs two consecutive gpio
- *        Example gpio 13-14, 16-17, 18-19 
+ *        Maximum 2 servos. GPIO pins can be supplied as a list or as a
+ *        consecutive range using the legacy overload.
  * @param firstVpin first vpin for IO_Device
  * @param nPins number of vpins
- * @param firstGpioPin first ESP32 gpio to use should only be (13, 16, 17, 18, 21, 22, 25, 25 or 32)
+ * @param gpioPins ESP32 GPIO pins, one per VPIN
  * @param firstLedcChannel first ledc channel to use (default = 8)
  * @note  Only provide the firstLedcChannel if you really know what you are doing.
  **/
 
-  ServoESP(VPIN firstVpin, int nPins, uint8_t firstGpioPin, uint8_t firstLedcChannel) {
+  ServoESP(VPIN firstVpin, int nPins, const uint8_t *gpioPins, uint8_t firstLedcChannel) {
     _firstVpin = firstVpin;
     _nPins = (nPins > MaxServos) ? MaxServos : nPins;
-    _firstGpioPin = firstGpioPin;
     _firstLedcChannel = firstLedcChannel;
     for (int pin = 0; pin < _nPins; pin++) {
+      _gpioPins[pin] = gpioPins[pin];
       _servoData[pin].activePosition = MaxPosition;
       _servoData[pin].inactivePosition = 0;
       _servoData[pin].profile = Instant | NoPowerOff;
@@ -205,7 +198,7 @@ private:
   }
 
   void _display() override {
-    DIAG(F("ServoESP GPIO:%u-%u Vpins:%u-%u %S"), _firstGpioPin, _firstGpioPin + _nPins - 1, (int)_firstVpin,
+    DIAG(F("ServoESP GPIO:%u,%u Vpins:%u-%u %S"), _gpioPins[0], _nPins > 1 ? _gpioPins[1] : 0, (int)_firstVpin,
             (int)_firstVpin + _nPins - 1, (_deviceState == DEVSTATE_FAILED) ? F("OFFLINE") : F(""));
   }
 
@@ -223,13 +216,48 @@ private:
     return (uint32_t)duration * 100;
   }
 
+  static bool isValidGpio(uint8_t gpioPin) {
+    switch (gpioPin) {
+      case 13: case 14: case 16: case 17: case 18: case 19:
+      case 21: case 22: case 23: case 25: case 26: case 27:
+      case 32: case 33:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  static void createWithPins(VPIN firstVpin, int nPins, const uint8_t *gpioPins,
+                             uint8_t firstLedcChannel) {
+    if (nPins < 1 || nPins > MaxServos || gpioPins == nullptr ||
+        firstLedcChannel + nPins > 16) {
+      DIAG(F("ServoESP invalid configuration: VPIN:%u Pins:%d LEDC:%u"),
+           firstVpin, nPins, firstLedcChannel);
+      return;
+    }
+    for (int pin = 0; pin < nPins; pin++) {
+      if (!isValidGpio(gpioPins[pin])) {
+        DIAG(F("ServoESP invalid GPIO:%u for VPIN:%u"), gpioPins[pin], firstVpin + pin);
+        return;
+      }
+      for (int other = 0; other < pin; other++) {
+        if (gpioPins[pin] == gpioPins[other]) {
+          DIAG(F("ServoESP duplicate GPIO:%u"), gpioPins[pin]);
+          return;
+        }
+      }
+    }
+    if (checkNoOverlap(firstVpin, nPins))
+      new ServoESP(firstVpin, nPins, gpioPins, firstLedcChannel);
+  }
+
   bool attachOutput(uint8_t pin) {
     ServoData &servo = _servoData[pin];
     if (servo.outputAttached) {
       return true;
     }
 
-    const uint8_t gpioPin = _firstGpioPin + pin;
+    const uint8_t gpioPin = _gpioPins[pin];
     pinMode(gpioPin, OUTPUT);
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     servo.outputAttached = ledcAttach(gpioPin, SERVO_PWM_FREQUENCY, SERVO_PWM_RESOLUTION);
@@ -255,7 +283,7 @@ private:
     
 
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
-    ledcWrite(_firstGpioPin + pin, duty);
+    ledcWrite(_gpioPins[pin], duty);
 #else
     ledcWrite(_firstLedcChannel + pin, duty);
 #endif
@@ -264,7 +292,7 @@ private:
   void detachOutput(uint8_t pin) {
     ServoData &servo = _servoData[pin];
     if (!servo.outputAttached) return;
-    const uint8_t gpioPin = _firstGpioPin + pin;
+    const uint8_t gpioPin = _gpioPins[pin];
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     ledcDetach(gpioPin);
 #else
