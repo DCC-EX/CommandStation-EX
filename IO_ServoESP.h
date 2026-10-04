@@ -25,6 +25,8 @@
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE)
 
+#if !defined(MOTOR_SHIELD_TYPE)
+
 #include "IODevice.h"
 #include "DIAG.h"
 #include <cstdarg>
@@ -360,6 +362,7 @@ private:
   }
 };
 
+#endif // !MOTOR_SHIELD_TYPE
 #endif // ARDUINO_ARCH_ESP32
 #endif // DCCEX_NODE
 #endif // IO_SERVOESP_H
