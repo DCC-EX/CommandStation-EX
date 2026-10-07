@@ -27,6 +27,11 @@
 
 #if !defined(MOTOR_SHIELD_TYPE)
 
+#ifndef MAXSERVOS
+#define MAXSERVOS 4
+#endif
+
+
 #include "IODevice.h"
 #include "DIAG.h"
 #include <cstdarg>
@@ -141,7 +146,7 @@ private:
     bool positionInitialized;
   };
 
-  static const uint8_t MaxServos = 4;
+  static const uint8_t MaxServos = MAXSERVOS;
   static const uint16_t MaxPosition = 4095;
   static const unsigned long DetachDelayMs = 200;
   static const unsigned long RefreshIntervalMs = 50;
