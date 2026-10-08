@@ -20,6 +20,64 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @brief Driver for handling hobby servos (eg. SG90) directly via ESP32 GPIO pins using LEDC PWM.
+ *
+ * @details
+ * # IO_ServoESP
+ * `IO_ServoESP` drives hobby servos directly from ESP32 GPIO pins it does not require a separate
+ * PWM controller. The driver is compiled for ESP32 builds with `DCCEX_NODE` defined, 
+ * provided `MOTOR_SHIELD_TYPE` is not defined.
+ * It is included automatically through `IODeviceList.h` in those builds.
+ *
+ * ## Define the device
+ * Add a `HAL` declaration in `myAutomation.h`. The first number is the first virtual pin (VPIN), 
+ * the second is the number of servos, and then the list of ESP32 GPIO pins in order:
+ *
+ * @code{.cpp}
+ * HAL(ServoESP, 100, 2, 13, 23)
+ * @endcode
+ * 
+ * or an initializer list gives the ESP32 GPIO used for each VPIN, in order:
+ * 
+ * @code{.cpp}
+ * HAL(ServoESP, 100, 2, {13, 23})
+ * @endcode
+ *
+ * This assigns VPIN 100 to GPIO 13 and VPIN 101 to GPIO 23. The number of GPIOs
+ * must match the number of VPINs, and a GPIO cannot be repeated. The GPIOs may be non-consecutive.
+ *
+ * To use consecutive GPIO numbers, the shorter form is also supported:
+ *
+ * @code{.cpp}
+ * HAL(ServoESP, 100, 2, 13) // VPIN 100 -> GPIO 13; VPIN 101 -> GPIO 14
+ * @endcode
+ *
+ * The driver supports up to four servos by default (`MAXSERVOS`); builds may override that limit. 
+ * Each servo uses one VPIN and one distinct GPIO. The default LEDC channel range starts at channel 8. 
+ * An optional fourth argument to the initializer-list form can set the first LEDC channel; leave it 
+ * at its default unless you have checked that it does not conflict with other LEDC users.
+ * 
+ * @code{.cpp}
+ * HAL(ServoESP, 100, 2, {13, 23}, 2)
+ * @endcode
+ *
+ * ## Available output GPIOs
+ * The driver validates GPIOs against this exact list:
+ * **GPIO 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33**
+ *
+ * Only these pins can be selected, even if another pin on a particular ESP32 board is capable of 
+ * digital output. Check your board's pinout and any board peripherals before wiring a servo; 
+ * some listed GPIOs may be used by other hardware on a specific board.
+ * For example gpio21 and 22 are the usual i2c pins for a ESP32-Wroom.
+ *
+ * @note
+ * The GPIO supplies the PWM signal only; power the servo from a suitable external supply, 
+ * and connect the supply ground to ESP32 ground. Do not power the servo from an ESP32 GPIO.
+ * 
+ */
+
+
 #ifndef IO_SERVOESP_H
 #define IO_SERVOESP_H
 
@@ -166,6 +224,14 @@ private:
       _servoData[pin].profile = Instant | NoPowerOff;
     }
     addDevice(this);
+  }
+
+  void _begin() override {
+    for (uint8_t pin = 0; pin < _nPins; pin++) {
+      ServoData &servo = _servoData[pin];
+      const uint16_t startPosition = servo.positionInitialized ? servo.currentPosition : servo.inactivePosition;
+      _writeAnalogue(_firstVpin + pin, startPosition, Instant | NoPowerOff);
+    }
   }
 
   bool _configure(VPIN vpin, ConfigTypeEnum configType, int paramCount, int params[]) override {
