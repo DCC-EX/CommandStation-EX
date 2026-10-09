@@ -411,7 +411,7 @@ private:
  
 class EXTurntable : public IODevice {
 public:
-  static void create(VPIN firstVpin, int nPins, I2CAddress I2CAddress);
+  static void create(VPIN firstVpin, int nPins, I2CAddress I2CAddress = 0x60);
   // Constructor
   EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress);
   enum ActivityNumber : uint8_t {
