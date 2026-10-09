@@ -12,13 +12,61 @@ ESP32 uses step/dir/enable pins 17/16/18, home sensor 35, limit sensor 34, relay
 
 ESP32-S3 uses step/dir/enable pins A0/A1/A2, home sensor D5, limit sensor D8, relay D4, LED D6, and accessory D7.
 
+
 RT_EX-Turntable board uses:
 
 Arduino Nano ESP32-S3 step/dir/enable pins A0/A1/A2, home sensor D5, limit sensor D8, relay D4, LED D6 and accessory D7.
 Additional inputs/outputs D9, D10, D11 and D12.
 
 
-Need to have this line included in the build env for platformio
+# myPlatformio.ini file
+
+Add an environment to your myPlatformio.ini file.  I using other that arduino nano esp32 then modify 
+sections as required.
+
+```
+[env:EX_Turntable_Onboard]
+platform = espressif32
+board = arduino_nano_esp32
+framework = arduino	
+
+; Board-specific settings (ESP32-S3 with 16MB Flash, 8MB PSRAM)
+board_build.mcu = esp32s3
+board_build.f_cpu = 240000000L
+board_build.f_flash = 80000000L
+board_build.flash_mode = dio
+board_build.partitions = default_16MB.csv
+build_src_filter = +<*> -<IO_EXTurntable.cpp>
+
+lib_deps = 
+	waspinator/AccelStepper @ ^1.64.0
+
+
+; Build flags for PSRAM and partition support
+build_flags =
+    -std=c++17 
+    -DARDUINO_USB_MODE=1
+    -DARDUINO_USB_CDC_ON_BOOT=1
+    -DBOARD_HAS_PSRAM
+	-DDCCEX_NODE
+    -DDCCEX_NODE_NANO_EXTURNTABLE
+    -DNO_DISPLAY
+	-DI2C_SDA=11
+	-DI2C_SCL=10
+    -mfix-esp32-psram-cache-issue
+
+; Specify upload and monitor speed
+upload_speed = 921600
+upload_protocol = esptool
+monitor_speed = 115200
+monitor_echo = yes
+monitor_dtr = 0
+monitor_rts = 0
+```
+
+
+
+Need to have this line included in the build env for platformio as the function names in IO_EXTurntable_Onboard.h are the same and without this it causes linker errors.
 
 build_src_filter = +<*> -<IO_EXTurntable.cpp>
 
@@ -27,10 +75,7 @@ The onboard driver uses a TMC2209 stepper motor driver.
  `waspinator/AccelStepper` is included as a PlatformIO dependency.
 
 
-
-
-
-Other boards use the non-ESP32 assignments from EX-Turntable.  Although this is not really applicable for a node.
+Other boards use the non-ESP32 assignments from EX-Turntable.  Although this is not really applicable for a DCC-EX node.
 
 
 Pins can be overridden in
@@ -52,11 +97,18 @@ Define `EX_TURNTABLE_MODE_TRAVERSER` for traverser operation/
 Define `EX_TURNTABLE_MANUAL_PHASE_SWITCHING` to disable automatic phase switching.
 
 
-## myAutomation
+## myAutomation file
 
 Add
-HAL(EXTurntable, 600, 1, 0X60)
-as per the original EXTurntable.  The i2c address is ignored it's there purely for standardisation.
+
+`HAL(EXTurntable, 600, 1)`
+
+
+to prevent compile errors for those that are changing from an original EX-Turntable build the following still works:
+
+`HAL(EXTurntable, 600, 1, 0X60)`
+
+as per the original EXTurntable.  The i2c address is ignored.
 
 Other commands are as in the EX-Rail command reference.
 
