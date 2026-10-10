@@ -76,23 +76,24 @@ bool EXRAILSensor::check() {
     // change validated, act on it.
     active = inputState;
     latchDelay = minReadCount;  // Reset debounce counter
-    if (onChange || active) {
+    if ((onChangeAct && active) || (onChangeDeact && !active)) {
       new RMFT2(progCounter);
       return true;  // Don't check any more sensors on this entry
     }
     return false; 
 }
 
-EXRAILSensor::EXRAILSensor(VPIN _pin, int _progCounter, bool _onChange, bool _useAnalog) {
+EXRAILSensor::EXRAILSensor(VPIN _pin, int _progCounter, bool onAct, bool onDeact,bool _useAnalog) {
 
   nextSensor = firstSensor;
   firstSensor = this;
 
   pin=_pin;
   progCounter=_progCounter;
-  onChange=_onChange;
   useAnalog=_useAnalog;
-
+  onChangeAct=onAct;
+  onChangeDeact=onDeact;
+  
   IODevice::configureInput(pin, true);   
   active = useAnalog?IODevice::readAnalogue(pin): IODevice::read(pin);
   inputState = active;

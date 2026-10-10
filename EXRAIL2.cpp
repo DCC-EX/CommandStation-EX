@@ -272,15 +272,19 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
     case OPCODE_ONSENSOR:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true,true );
       break;
     case OPCODE_ONBITMAP:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true, true );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true, true, true );
       break;
     case OPCODE_ONBUTTON:
       if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,false );
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true,false );
+      break;
+    case OPCODE_ONBUTTONUP:
+      if (compileFeatures & FEATURE_SENSOR) 
+        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,false,true);
       break;
    
     case OPCODE_DCCTURNTABLE: {

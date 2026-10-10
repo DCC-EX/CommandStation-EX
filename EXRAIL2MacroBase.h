@@ -563,7 +563,10 @@
 ///brief Start task here when bitmap sensor changes state (debounced)
 
 #define ONBUTTON(vpin)
-///brief Start task here when sensor changes HIGH to LOW.
+///brief Start task here when sensor changes HIGH to LOW. (Typically a pressed button)
+
+#define ONBUTTONUP(vpin)
+///brief Start task here when sensor changes LOW to HIGH. (Typically a released button)
 
 #define PAUSE
 ///brief Pauses all EXRAIL tasks except the current one.

@@ -304,6 +304,8 @@ void exrailHalSetup2() {
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
 #define ONBUTTON(vpin) | FEATURE_SENSOR
+#undef ONBUTTONUP
+#define ONBUTTONUP(vpin) | FEATURE_SENSOR
 #undef ONSENSOR
 #define ONSENSOR(vpin) | FEATURE_SENSOR
 #undef ONBITMAP
@@ -714,6 +716,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
 #define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
+#define ONBUTTONUP(sensor_id) OPCODE_ONBUTTONUP,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,V(0),
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...)

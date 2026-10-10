@@ -23,6 +23,7 @@
 enum SystemPreferences : int16_t {
   // Starting value for system preferences in NVS
   // change the order of this enum and mess will happen
+  // The names used here are used when writing and reading system preferences in the NVS.
   _FIRST=32000,
   ssidSTA=32001, 
   passwordSTA=32002, 

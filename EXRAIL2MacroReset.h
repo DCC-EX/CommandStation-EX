@@ -153,6 +153,7 @@
 #undef ONRED
 #undef ONROTATE
 #undef ONBUTTON
+#undef ONBUTTONUP
 #undef ONSENSOR
 #undef ONTHROW 
 #undef ONBITMAP
