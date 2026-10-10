@@ -1,11 +1,8 @@
 # Onboard EX-Turntable
 
-The `EXTurntable` device drives a step/dir stepper driver directly from the
+The `EXTurntable_OB` device drives a step/dir stepper driver directly from the
 CommandStation. Existing EXRAIL `EXTURNTABLE` and `MOVETT()` definitions remain
 unchanged.
-
-The I2C address in an existing `EXTurntable` HAL definition is kept
-for configuration compatibility but is no longer used.
 
 Pin defaults follow the EX-Turntable board definitions:
 ESP32 uses step/dir/enable pins 17/16/18, home sensor 35, limit sensor 34, relay 27, LED 32 and accessory 33
@@ -36,7 +33,6 @@ board_build.f_cpu = 240000000L
 board_build.f_flash = 80000000L
 board_build.flash_mode = dio
 board_build.partitions = default_16MB.csv
-build_src_filter = +<*> -<IO_EXTurntable.cpp>
 
 lib_deps = 
 	waspinator/AccelStepper @ ^1.64.0
@@ -50,6 +46,7 @@ build_flags =
     -DBOARD_HAS_PSRAM
 	-DDCCEX_NODE
     -DDCCEX_NODE_NANO_EXTURNTABLE
+    -DEXTURNTABLE_ONBOARD
     -DNO_DISPLAY
 	-DI2C_SDA=11
 	-DI2C_SCL=10
@@ -65,10 +62,6 @@ monitor_rts = 0
 ```
 
 
-
-Need to have this line included in the build env for platformio as the function names in IO_EXTurntable_Onboard.h are the same and without this it causes linker errors.
-
-build_src_filter = +<*> -<IO_EXTurntable.cpp>
 
 The onboard driver uses a TMC2209 stepper motor driver.
 
@@ -101,16 +94,21 @@ Define `EX_TURNTABLE_MANUAL_PHASE_SWITCHING` to disable automatic phase switchin
 
 Add
 
-`HAL(EXTurntable, 600, 1)`
+`HAL(EXTurntable_OB, 600, 1)`
 
-
-to prevent compile errors for those that are changing from an original EX-Turntable build the following still works:
-
-`HAL(EXTurntable, 600, 1, 0X60)`
-
-as per the original EXTurntable.  The i2c address is ignored.
 
 Other commands are as in the EX-Rail command reference.
+
+
+# First start up
+
+The driver will attempt to move the turntable to home and then calibrate the full step count.
+
+If the home sensor can't be found then the calibration will not occur.
+
+
+
+
 
 
 ## NVS configuration
@@ -166,3 +164,4 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain zero-valued entries.
 
 After calibration, the controller stores the measured full step count in setting 15 when it fits the NVS maximum 32767
+

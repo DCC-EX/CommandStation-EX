@@ -95,6 +95,37 @@ namespace EXTurntableOnboard {
   bool command(long steps, uint8_t activity);
 }
 
+class EXTurntable_OB : public IODevice {
+public:
+  static void create(VPIN firstVpin, int nPins);
+  EXTurntable_OB(VPIN firstVpin, int nPins);
+
+  enum ActivityNumber : uint8_t {
+    Turn = 0,
+    Turn_PInvert = 1,
+    Home = 2,
+    Calibrate = 3,
+    LED_On = 4,
+    LED_Slow = 5,
+    LED_Fast = 6,
+    LED_Off = 7,
+    Acc_On = 8,
+    Acc_Off = 9,
+  };
+
+private:
+  void _begin() override;
+  void _loop(unsigned long currentMicros) override;
+  int _read(VPIN vpin) override;
+  void _broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity);
+  void _writeAnalogue(
+      VPIN vpin, int value, uint8_t activity, uint16_t duration) override;
+  void _display() override;
+  uint8_t _stepperStatus;
+  uint8_t _previousStatus;
+  uint8_t _currentActivity;
+};
+
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
   #define EXTT_DEFAULT_LIMIT_PIN D8
   #define EXTT_DEFAULT_HOME_PIN D5
@@ -524,7 +555,7 @@ inline void loadConfiguration() {
   if (gearingFactor > 10) gearingFactor = 10;
   config.gearingFactor = gearingFactor;
   if (config.phaseSwitchAngle >= 180) {
-    DIAG(F("EX-Turntable phase switch angle %u is invalid; using 45"),
+    DIAG(F("EX-Turntable_OB phase switch angle %u is invalid; using 45"),
          config.phaseSwitchAngle);
     config.phaseSwitchAngle = 45;
   }
@@ -569,7 +600,7 @@ inline void setPhase(uint8_t phase) {
 inline void updatePhaseSwitchSteps() {
   int phaseAngle = config.phaseSwitchAngle;
   if (phaseAngle < 0 || phaseAngle >= 180) {
-    DIAG(F("EX-Turntable phase angle %d is invalid; using 45 degrees"), phaseAngle);
+    DIAG(F("EX-Turntable_OB phase angle %d is invalid; using 45 degrees"), phaseAngle);
     phaseAngle = 45;
   }
   phaseSwitchStartSteps = fullTurnSteps / 360 * phaseAngle;
@@ -583,18 +614,18 @@ inline void moveHome() {
     stepper->setCurrentPosition(0);
     lastStep = 0;
     homed = 1;
-    DIAG(F("EX-Turntable homed"));
+    DIAG(F("EX-Turntable_OB homed"));
   } else if (!stepper->isRunning()) {
     if (stepper->targetPosition() == lastTarget) {
       stepper->setCurrentPosition(0);
       lastStep = 0;
       homed = 2;
-      DIAG(F("EX-Turntable could not find home sensor"));
+      DIAG(F("EX-Turntable_OB could not find home sensor"));
     } else {
       stepper->enableOutputs();
       stepper->move(config.sanitySteps);
       lastTarget = stepper->targetPosition();
-      DIAG(F("EX-Turntable homing started"));
+      DIAG(F("EX-Turntable_OB homing started"));
     }
   }
 }
@@ -630,6 +661,7 @@ inline void moveToPosition(long steps, uint8_t phaseSwitch) {
   stepper->enableOutputs();
   stepper->move(moveSteps);
   lastTarget = stepper->targetPosition();
+  DIAG(F("EX-Turntable_OB onboard move: steps=%ld"), moveSteps);
 }
 
 inline void setLedActivity(uint8_t activity) {
@@ -670,9 +702,9 @@ inline void calibration() {
     if (fullTurnSteps <= INT16_MAX) {
       NVSTable::setNVS(EXTurntableOnboard::FullStepCount, (int16_t)fullTurnSteps);
     } else {
-      DIAG(F("EX-Turntable calibration exceeds NVS range; configure full steps manually"));
+      DIAG(F("EX-Turntable_OB calibration exceeds NVS range; configure full steps manually"));
     }
-    DIAG(F("EX-Turntable calibration complete: %ld steps"), fullTurnSteps);
+    DIAG(F("EX-Turntable_OB calibration complete: %ld steps"), fullTurnSteps);
   } else if (config.mode == TraverserMode && calibrationPhase == 2 &&
              limitSensorState() == config.limitSensorActiveState) {
     stepper->stop();
@@ -708,7 +740,7 @@ inline void calibration() {
                stepper->currentPosition() == -config.sanitySteps) ||
               (config.mode == TurntableMode && calibrationPhase == 2 &&
                stepper->currentPosition() == config.sanitySteps))) {
-    DIAG(F("EX-Turntable calibration failed: sensor was not reached"));
+    DIAG(F("EX-Turntable_OB calibration failed: sensor was not reached"));
     calibrating = false;
     calibrationPhase = 0;
   }
@@ -769,8 +801,13 @@ inline void begin() {
   setPhase(0);
   digitalWrite(config.accessoryPin, LOW);
   digitalWrite(config.ledPin, LOW);
-  if (fullTurnSteps > 0) updatePhaseSwitchSteps();
-  else calibrating = true;
+
+  if (fullTurnSteps > 0) {
+    updatePhaseSwitchSteps();
+  } else {
+    DIAG(F("EX-Turntable_OB: fullTurnSteps=%ld"), fullTurnSteps);
+    calibrating = true;
+  }
 }
 
 inline void service() {
@@ -808,7 +845,7 @@ inline bool command(long steps, uint8_t activity) {
   if (activity <= ActivityTurnPhaseInvert) {
     const long gearedSteps = steps * gearingFactor;
     if (isBusy() || fullTurnSteps <= 0 || gearedSteps > fullTurnSteps) {
-      DIAG(F("EX-Turntable rejected move: steps=%ld fullTurnSteps=%ld busy=%d"),
+      DIAG(F("EX-Turntable_OB rejected move: steps=%ld fullTurnSteps=%ld busy=%d"),
            gearedSteps, fullTurnSteps, isBusy());
       return false;
     }
@@ -839,21 +876,24 @@ inline bool command(long steps, uint8_t activity) {
     setExtraOutput(activity);
     return true;
   }
-  DIAG(F("EX-Turntable rejected unsupported activity %u"), activity);
+  DIAG(F("EX-Turntable_OB rejected unsupported activity %u"), activity);
   return false;
 }
 }
 
-inline void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+//inline void EXTurntable_OB::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+inline void EXTurntable_OB::create(VPIN firstVpin, int nPins) {
   const int16_t configuredVpin = NVSTable::getNVS(0, true);
   if (configuredVpin > 0) firstVpin = (VPIN)configuredVpin;
-  new EXTurntable(firstVpin, nPins, i2cAddress);
+//  new EXTurntable_OB(firstVpin, nPins, i2cAddress);
+  new EXTurntable_OB(firstVpin, nPins);
 }
 
-inline EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+//inline EXTurntable_OB::EXTurntable_OB(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+inline EXTurntable_OB::EXTurntable_OB(VPIN firstVpin, int nPins) {
   _firstVpin = firstVpin;
   _nPins = nPins;
-  (void)i2cAddress;
+//  (void)i2cAddress;
   _stepperStatus = 0;
   _previousStatus = 0;
 
@@ -864,7 +904,7 @@ inline EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress i2cAddress
   addDevice(this);
 }
 
-inline void EXTurntable::_begin() {
+inline void EXTurntable_OB::_begin() {
   EXTurntableOnboard::begin();
   _stepperStatus = EXTurntableOnboard::isBusy();
   _previousStatus = _stepperStatus;
@@ -873,7 +913,7 @@ inline void EXTurntable::_begin() {
 #endif
 }
 
-inline void EXTurntable::_loop(unsigned long currentMicros) {
+inline void EXTurntable_OB::_loop(unsigned long currentMicros) {
   (void)currentMicros;
   EXTurntableOnboard::service();
   _stepperStatus = EXTurntableOnboard::isBusy();
@@ -885,12 +925,12 @@ inline void EXTurntable::_loop(unsigned long currentMicros) {
   }
 }
 
-inline int EXTurntable::_read(VPIN vpin) {
+inline int EXTurntable_OB::_read(VPIN vpin) {
   (void)vpin;
   return _stepperStatus;
 }
 
-inline void EXTurntable::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity) {
+inline void EXTurntable_OB::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity) {
   Turntable *turntable = Turntable::getByVpin(vpin);
   if (turntable && activity < 4) {
     turntable->setMoving(status);
@@ -899,10 +939,10 @@ inline void EXTurntable::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t act
   }
 }
 
-inline void EXTurntable::_writeAnalogue(
+inline void EXTurntable_OB::_writeAnalogue(
     VPIN vpin, int value, uint8_t activity, uint16_t duration) {
 #ifdef DIAG_IO
-  DIAG(F("EX-Turntable onboard VPIN:%u Value:%d Activity:%d Duration:%d"),
+  DIAG(F("EX-Turntable_OB onboard VPIN:%u Value:%d Activity:%d Duration:%d"),
        vpin, value, activity, duration);
 #else
   (void)duration;
@@ -917,8 +957,8 @@ inline void EXTurntable::_writeAnalogue(
   }
 }
 
-inline void EXTurntable::_display() {
-  DIAG(F("EX-Turntable onboard driver configured on Vpins:%u-%u"),
+inline void EXTurntable_OB::_display() {
+  DIAG(F("EX-Turntable_OB driver configured on Vpins:%u-%u"),
        (int)_firstVpin, (int)_firstVpin + _nPins - 1);
 }
 
