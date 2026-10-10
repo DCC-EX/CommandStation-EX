@@ -157,6 +157,12 @@
 ///param subaddr DCC subaddress
 ///param description... Quoted text description of signal
 
+#define DCC_SIGNALL(signal_id,linearaddr,description...)
+///brief Define a DCC accessory signal with linear address
+///param signal_id Id used for all signal manipulation commands
+///param linearaddr DCC linear address
+///param description... Quoted text description of signal
+
 #define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect,description...)
 ///brief Define advanced DCC accessory signal with aspects
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands

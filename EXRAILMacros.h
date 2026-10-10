@@ -231,6 +231,8 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr,description...) \
    new DCCSignal(id,(((addr)-1)*4)+(subaddr)+1,S_DESC(description));
+#define DCC_SIGNALL(id,linearaddr,description...) \
+   new DCCSignal(id,linearaddr,S_DESC(description));
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...) \
   new DCCXSignal(id,id,redAspect,amberAspect,greenAspect,S_DESC(description));
@@ -607,6 +609,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
         V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
 #define DCC_SIGNAL(id,add,subaddr,description...)
+#define DCC_SIGNALL(id,linearaddr,description...)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
 #define DONE OPCODE_ENDTASK,V(0),
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
