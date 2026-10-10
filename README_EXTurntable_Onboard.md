@@ -165,3 +165,6 @@ Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain z
 
 After calibration, the controller stores the measured full step count in setting 15 when it fits the NVS maximum 32767
 
+| 40 - 87  | steps          | Stepper motor steps for track | 1 - full step count
+| 90 - 137 | Track 1 - 48   | Description for track         | Track 1 - 48
+
