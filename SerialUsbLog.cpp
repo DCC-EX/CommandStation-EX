@@ -54,6 +54,7 @@
 #include "SerialUsbLog.script2.js.h"
 #include "SerialUsbLog.script3.js.h"
 #include "NVSTable.h"
+#include "EXNetworkPreferences.h"
 #include "SerialUsbLog.favicon.h"
 #include "EXNetwork.h"
 #include "EXNetworkPreferences.html.h"
@@ -488,6 +489,7 @@ void SerialUsbLog::loop() {
   if (path == "/nvsValues.js") {
     client.print(jsHeader);
     NVSTable::streamJSArray(&client);
+    EXNetworkPreferences::streamSystemPreferenceIds(&client);
     client.stop();
     return;
   }

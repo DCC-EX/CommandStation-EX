@@ -56,6 +56,7 @@ public:
   static byte getChannelAP();
   static bool getHiddenAP();
   static void dump(Print * stream);
+  static void streamSystemPreferenceIds(Print * stream);
 private:
   static char tempssidSTA[32];
   static char tempPasswordSTA[64];
