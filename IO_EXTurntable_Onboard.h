@@ -684,10 +684,32 @@ inline void processLed() {
   digitalWrite(config.ledPin, ledOutput);
 }
 
+inline void setDefaultTracks(int16_t fullTurnSteps) {
+  const int16_t trackStepInterval = fullTurnSteps / 48;
+  if (trackStepInterval <= 0) {
+    DIAG(F("EX-Turntable_OB cannot set default tracks for %d steps"),
+         fullTurnSteps);
+    return;
+  }
+
+  int32_t trackSteps = trackStepInterval;
+  for (uint16_t nvsId = 40; nvsId <= 87; ++nvsId) {
+    NVSTable::setNVS(nvsId, (int16_t)trackSteps, false);
+    trackSteps += trackStepInterval;
+  }
+  NVSTable::save();
+}
+
 inline void calibration() {
+  if (calibrationPhase == 0 && !stepper->isRunning() && homed == 1) {
+    DIAG(F("EX-Turntable_OB start calibration"));
+  }
   setPhase(0);
-  if (config.mode == TraverserMode && calibrationPhase == 3 &&
-      limitSensorState() != config.limitSensorActiveState) {
+  if ((config.mode == TraverserMode && calibrationPhase == 3 &&
+       limitSensorState() != config.limitSensorActiveState) ||
+      (config.mode == TurntableMode && calibrationPhase == 2 &&
+       homeSensorState() == config.homeSensorActiveState &&
+       stepper->currentPosition() > config.homeSensitivity)) {
     stepper->stop();
     fullTurnSteps = stepper->currentPosition();
     if (fullTurnSteps < 0) fullTurnSteps = -fullTurnSteps;
@@ -701,10 +723,13 @@ inline void calibration() {
     config.fullStepCount = fullTurnSteps;
     if (fullTurnSteps <= INT16_MAX) {
       NVSTable::setNVS(EXTurntableOnboard::FullStepCount, (int16_t)fullTurnSteps);
+      setDefaultTracks(NVSTable::getNVS(EXTurntableOnboard::FullStepCount, true));
     } else {
       DIAG(F("EX-Turntable_OB calibration exceeds NVS range; configure full steps manually"));
     }
     DIAG(F("EX-Turntable_OB calibration complete: %ld steps"), fullTurnSteps);
+    delay(20000);
+    ESP.restart();
   } else if (config.mode == TraverserMode && calibrationPhase == 2 &&
              limitSensorState() == config.limitSensorActiveState) {
     stepper->stop();

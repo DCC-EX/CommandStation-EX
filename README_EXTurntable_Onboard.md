@@ -1,14 +1,14 @@
-# Onboard EX-Turntable
+# EX-Turntable Onboard
 
-The `EXTurntable_OB` device drives a step/dir stepper driver directly from the
-CommandStation. Existing EXRAIL `EXTURNTABLE` and `MOVETT()` definitions remain
-unchanged.
+The `EXTurntable_OB` device drives a step/dir stepper driver directly from the Command Station.
+Existing EXRAIL `EXTURNTABLE` and `MOVETT()` definitions remain unchanged.
 
-Pin defaults follow the EX-Turntable board definitions:
+
+Pin defaults follow the EX-Turntable definitions:
+
 ESP32 uses step/dir/enable pins 17/16/18, home sensor 35, limit sensor 34, relay 27, LED 32 and accessory 33
 
 ESP32-S3 uses step/dir/enable pins A0/A1/A2, home sensor D5, limit sensor D8, relay D4, LED D6, and accessory D7.
-
 
 RT_EX-Turntable board uses:
 
@@ -18,7 +18,7 @@ Additional inputs/outputs D9, D10, D11 and D12.
 
 # myPlatformio.ini file
 
-Add an environment to your myPlatformio.ini file.  I using other that arduino nano esp32 then modify 
+Add an environment to your myPlatformio.ini file.  If using other that arduino nano esp32 then modify 
 sections as required.
 
 ```
@@ -63,12 +63,14 @@ monitor_rts = 0
 
 
 
-The onboard driver uses a TMC2209 stepper motor driver.
+The onboard driver uses a TMC2209 stepper motor driver.  This is the recommended driver module and is
+included on an RT_EX-Turntable board.
 
  `waspinator/AccelStepper` is included as a PlatformIO dependency.
 
 
-Other boards use the non-ESP32 assignments from EX-Turntable.  Although this is not really applicable for a DCC-EX node.
+Other boards use the non-ESP32 assignments from EX-Turntable.
+Although this is not really applicable for a DCC-EX node.
 
 
 Pins can be overridden in
@@ -82,8 +84,9 @@ Pins can be overridden in
 `EX_TURNTABLE_LED_PIN`
 `EX_TURNTABLE_ACCESSORY_PIN`
 
-If `EX_TURNTABLE_FULL_STEP_COUNT` (or the existing `FULL_STEP_COUNT`) is not
-defined, the controller homes and calibrates at startup.
+If `EX_TURNTABLE_FULL_STEP_COUNT` (or the existing `FULL_STEP_COUNT`) is not defined, the controller
+homes and calibrates at startup.
+
 The measured full-turn step count is saved in NVS when it fits the NVS signed 16-bit value range.
 
 Define `EX_TURNTABLE_MODE_TRAVERSER` for traverser operation/
@@ -100,15 +103,29 @@ Add
 Other commands are as in the EX-Rail command reference.
 
 
+
 # First start up
 
 The driver will attempt to move the turntable to home and then calibrate the full step count.
 
 If the home sensor can't be found then the calibration will not occur.
 
+After successful calibration, the controller stores the measured full-turn step count in NVS(15)
+when it fits the NVS maximum of 32767.
 
+It then generates default positions for 48 tracks in NVS(40)-NVS(87): each entry is the previous
+position plus `NVS(15) / 48`, so NVS(40) is one interval and NVS(87) is 48 intervals.
+These generated values replace any existing values in those slots.
 
+This is equivalent to a track angle of 7.5 degrees.
 
+This will also occur any time a calibration is redone.
+
+Once calibration is completed the node will restart after 20 seconds to reload all the relevant NVS values and rehome the turntable.
+
+# Subsequent start up
+
+The controller will move the turntable/traverser to the home position.
 
 
 ## NVS configuration
@@ -163,8 +180,7 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 
 Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain zero-valued entries.
 
-After calibration, the controller stores the measured full step count in setting 15 when it fits the NVS maximum 32767
-
-| 40 - 87  | steps          | Stepper motor steps for track | 1 - full step count
-| 90 - 137 | Track 1 - 48   | Description for track         | Track 1 - 48
-
+| NVS ID | Setting | Value |
+| --- | --- | --- |
+| 40-87 | Track positions | Stepper positions for tracks 1-48, generated after calibration |
+| 90-137 | Track descriptions | Description text for tracks 1-48 |
