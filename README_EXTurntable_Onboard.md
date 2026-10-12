@@ -89,8 +89,19 @@ homes and calibrates at startup.
 
 The measured full-turn step count is saved in NVS when it fits the NVS signed 16-bit value range.
 
-Define `EX_TURNTABLE_MODE_TRAVERSER` for traverser operation/
+Define `EX_TURNTABLE_MODE_TRAVERSER` for traverser operation.
 Define `EX_TURNTABLE_MANUAL_PHASE_SWITCHING` to disable automatic phase switching.
+
+The Extra GPIO pins are dependent on the ESP32 being compiled for.
+
+The pins can be overridden by
+`EXTT_DEFAULT_EXTRA_PIN_1`
+`EXTT_DEFAULT_EXTRA_PIN_2`
+`EXTT_DEFAULT_EXTRA_PIN_3`
+`EXTT_DEFAULT_EXTRA_PIN_4`
+
+They need to be ESP32 gpio pins and there is no check to their validity.  The default pins assigned to these are safe to use.
+
 
 
 ## myAutomation file
@@ -99,8 +110,18 @@ Add
 
 `HAL(EXTurntable_OB, 600, 1)`
 
-
 Other commands are as in the EX-Rail command reference.
+
+Additional activity commands are
+
+10  -   Extra 1 on
+11  -   Extra 1 off
+12  -   Extra 2 on
+13  -   Extra 2 off
+14  -   Extra 3 on
+15  -   Extra 3 off
+16  -   Extra 4 on
+17  -   Extra 4 off
 
 
 

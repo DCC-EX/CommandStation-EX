@@ -1,11 +1,76 @@
 /*
+ *
+ * @file IO_EXTurntable_Onboard.h
+ *
+ */
+
+ /*
+ *  © 2026 Ross Scanlon
+ *
+ */
+
+/*
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
+ * 
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+/**
+ * @brief Driver for handling a stepper motor driven turntable or traverser connected directly to an ESP32 GPIO pins.
+ *
+ * @details
+ * # IO_EXTurntable_Onboard
+ * `IO_EXTurntable_Onboard` drives a stepper motor driver directly from ESP32 GPIO pins.
+ * It does not require a separate Arduino Nano/Uno/Mega attached via i2c.
+ * The driver is compiled for ESP32 builds with `DCCEX_NODE` defined, provided `MOTOR_SHIELD_TYPE` is not defined.
+ * It is included automatically through `IODeviceList.h` in those builds.
+ *
+ * ## Define the device
+ * Add a `HAL` declaration in `myAutomation.h`. The first number is the first virtual pin (VPIN), the second is the number of vpins
+ * to use.  This is only 1 as that's all that's required for the turntable.
+ * 
+ *
+ * @code{.cpp}
+ * HAL(EXTurntable_OB, 600, 1)
+ * @endcode
+ * 
+ * This assigns VPIN 600 to the EXTurntable and EXRail functions are as per the website.
+ * 
+ * In addition to the standard control activities for EX-Turntable the following additional actives are available.
+ * 
+ * 10 - 11  Extra 1 on/off
+ * 12 - 13  Extra 2 on/off
+ * 14 - 15  Extra 3 on/off
+ * 16 - 17  Extra 4 on/off
+ * 
+ * These can be enabled/disabled by configuration 
+ * 
+ * @note
+ * 
+ * The driver controls the stepper motor driver module (eg TMC2209).
+ * The TMC2209 is the recommended driver module.
+ * 
+ * A separate power supply is required for the stepper motor.
+ * 
+ * See full details at
+ * https://dcc-ex.com/ex-turntable/index.html#gsc.tab=0
+ * 
+ * 
+ * 
+ */
+
+
 
 #ifndef IO_EXTURNTABLE_ONBOARD_H
 #define IO_EXTURNTABLE_ONBOARD_H
@@ -906,7 +971,15 @@ inline bool command(long steps, uint8_t activity) {
 }
 }
 
-//inline void EXTurntable_OB::create(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
+
+
+/**
+ * @brief Provides turntable/travserser stepper motor control on ESP32-Wroom or ESP32-S3 MCU.
+ * @param firstVpin first vpin for IO_Device
+ * @param nPins number of vpins (always 1)
+ **/
+
+
 inline void EXTurntable_OB::create(VPIN firstVpin, int nPins) {
   const int16_t configuredVpin = NVSTable::getNVS(0, true);
   if (configuredVpin > 0) firstVpin = (VPIN)configuredVpin;
@@ -914,11 +987,9 @@ inline void EXTurntable_OB::create(VPIN firstVpin, int nPins) {
   new EXTurntable_OB(firstVpin, nPins);
 }
 
-//inline EXTurntable_OB::EXTurntable_OB(VPIN firstVpin, int nPins, I2CAddress i2cAddress) {
 inline EXTurntable_OB::EXTurntable_OB(VPIN firstVpin, int nPins) {
   _firstVpin = firstVpin;
   _nPins = nPins;
-//  (void)i2cAddress;
   _stepperStatus = 0;
   _previousStatus = 0;
 
