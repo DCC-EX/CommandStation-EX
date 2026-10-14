@@ -231,6 +231,7 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr,description...) \
    new DCCSignal(id,(((addr)-1)*4)+(subaddr)+1,S_DESC(description));
+#undef DCC_SIGNALL   
 #define DCC_SIGNALL(id,linearaddr,description...) \
    new DCCSignal(id,linearaddr,S_DESC(description));
 #undef DCCX_SIGNAL
