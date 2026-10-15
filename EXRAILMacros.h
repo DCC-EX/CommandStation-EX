@@ -152,7 +152,7 @@ bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
 #include "myAutomation.h"
 
 // Pass 1h Implements HAL macro by creating exrailHalSetup1 function
-// Also allows creating EXTurntable object
+// Also allows creating EXTurntable object and jmri/node sensors
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
@@ -170,46 +170,6 @@ bool exrailHalSetup1() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
    return ignore_defaults;
-}
-
-// Pass 1s Implements servos by creating exrailHalSetup2
-// TODO Turnout and turntable creation should be moved to here instead of 
-// the first pass from the opcode table. 
-#include "EXRAIL2MacroReset.h"
-#undef SHARED_SENSOR
-#define SHARED_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action, applyPin, applyState); \
-  }
-#undef REMOTE_SENSOR
-#define REMOTE_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   SensorGroup::doRemoteSensorGroup(vpin,npins,action, applyPin, applyState); \
-  }
-#undef JMRI_SENSOR
-#define JMRI_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,true); \
-  }
-#undef JMRI_SENSOR_NOPULLUP
-#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,false); \
-  }
-
-void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN applyPin, bool applyState) {
-   (void)   action; // suppress unused warnings if no groups
-   (void)   stream;
-   (void)   applyPin;
-   (void)   applyState;
-   #include "myAutomation.h"
 }
 
 // Pass 1s Implements servos and signals by creating exrailHalSetup2
@@ -262,11 +222,19 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
    extern const char  body##_html[];\
    SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
 }
+// Sensors created here 
+#undef SHARED_SENSOR
+#define SHARED_SENSOR(vpin,count...) \
+  Sensor::createNode(vpin,count+0? count+0:1);
+#undef JMRI_SENSOR
+#define JMRI_SENSOR(vpin,count...) \
+  Sensor::createJMRI(vpin,count+0? count+0:1,true);
+#undef JMRI_SENSOR_NOPULLUP
+#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
+  Sensor::createJMRI(vpin,count+0? count+0:1,false);
 
 void exrailHalSetup2() {
    #include "myAutomation.h"
-   // pullup any group sensors
-   SensorGroup::prepareAll();
 }
 
 // Pass 1c detect compile time featurtes
@@ -366,8 +334,6 @@ const int StringMacroTracker1=__COUNTER__;
 #define PARSE(msg) THRUNGE(msg,thrunge_parse)
 #undef PRINT
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
-#undef LCN
-#define LCN(msg)   THRUNGE(msg,thrunge_lcn)
 #undef MESSAGE
 #define MESSAGE(msg) THRUNGE(msg,thrunge_message)
 
@@ -683,7 +649,6 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
 #define STEALTH_GLOBAL(code...) 
-#define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),

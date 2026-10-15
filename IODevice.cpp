@@ -21,6 +21,7 @@
 
 
 #include <Arduino.h>
+#include "defines.h"
 #include "IODevice.h"
 #include "DIAG.h" 
 #include "FSH.h"

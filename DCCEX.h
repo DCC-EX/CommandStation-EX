@@ -34,7 +34,6 @@
 #include "version.h"
 #include "EXNetwork.h"
 #include "Display_Implementation.h"
-#include "LCN.h"
 #include "IODevice.h"
 #include "Turnouts.h"
 #include "Sensors.h"

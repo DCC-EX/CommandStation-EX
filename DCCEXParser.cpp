@@ -53,8 +53,6 @@ Once a new OPCODE is decided upon, update this list.
   C, configure the CS
   d,
   D, Diagnostic commands
-  e, Erase EEPROM
-  E, Store configuration in EEPROM
   f, Loco decoder function control (deprecated)
   F, Loco decoder function control
   g,
@@ -111,7 +109,6 @@ Once a new OPCODE is decided upon, update this list.
 #include "version.h"
 #include "defines.h"
 #include "CommandDistributor.h"
-#include "EEStore.h"
 #include "DIAG.h"
 #include "TrackManager.h"
 #include "DCCTimer.h"
@@ -272,9 +269,6 @@ void DCCEXParser::parse(Print *stream,  byte *com) {
 }
 
 byte *DCCEXParser::parseOne(Print *stream, byte *com) {
-#ifndef DISABLE_EEPROM
-    (void)EEPROM; // tell compiler not to warn this is unused
-#endif
     byte params = 0;
     if (Diag::CMD)
         DIAG(F("PARSING:%s"), com);

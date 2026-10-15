@@ -125,7 +125,7 @@ enum thrunger: byte {
   thrunge_serial,thrunge_parse,
   thrunge_serial1, thrunge_serial2, thrunge_serial3,
   thrunge_serial4, thrunge_serial5, thrunge_serial6,
-  thrunge_lcn,thrunge_message,
+  thrunge_message,
   thrunge_lcd,  // Must be last!!
   };
 
@@ -186,7 +186,8 @@ class LookList {
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
-    static void turnoutEvent(int16_t id, bool closed);  
+    static void turnoutEvent(int16_t id, bool closed); 
+    static void sensorEvent(VPIN pin, bool isLow);
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
     static void clockEvent(int16_t clocktime, bool change);
@@ -259,6 +260,8 @@ private:
    static LookList * onOverloadLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;
+   static LookList * onButtonDownLookup;  // ONBUTTON, ONSENSOR
+   static LookList * onButtonUpLookup;  // ONBUTTONUP, ONSENSOR
 #ifdef BOOSTER_INPUT
    static LookList * onRailSyncOnLookup;
    static LookList * onRailSyncOffLookup;

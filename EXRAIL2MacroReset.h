@@ -121,8 +121,7 @@
 #undef LCD 
 #undef SCREEN
 #undef LCC 
-#undef LCCX 
-#undef LCN
+#undef LCCX
 #undef LED_SIGNAL
 #undef MOMENTUM
 #undef MOVETT

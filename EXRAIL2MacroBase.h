@@ -446,9 +446,6 @@
 ///  displays which may have different display numbers on different devices.
 ///param msg Quoted text
 
-#define LCN(msg)
-///brief Reserved for LCN communication. Refer to their documentation.
-
 #define MESSAGE(msg)
 ///brief Send a human readable message to all throttle users
 ///param msg Quoted text

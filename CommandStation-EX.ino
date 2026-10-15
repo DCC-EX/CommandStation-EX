@@ -135,10 +135,6 @@ void setup()
     #undef SETUP
   #endif
 
-  #if defined(LCN_SERIAL)
-  LCN_SERIAL.begin(115200);
-  LCN::init(LCN_SERIAL);
-  #endif
   startupPendingCS = true; // node will request turnouts list from CS on next loop
   nodeSharePending = true; // node Will share turnouts list to CS on next loop
   LCD(3, F("Ready"));
@@ -185,17 +181,13 @@ void loop()
 
   RMFT::loop();  // ignored if no automation
 
-  #if defined(LCN_SERIAL)
-  LCN::loop();
-  #endif
-
   // Display refresh
   DisplayInterface::loop();
 
   // Handle/update IO devices.
   IODevice::loop();
 
-  Sensor::checkAll(); // Update and print changes
+  Sensor::loop(); // Update and print changes
 
   /* Turnout sharing between nodes and the CS. 
   On startup the CS will request nodes to share their turnouts.
@@ -207,7 +199,7 @@ void loop()
     // This is slow but only happens once , so not a problem.  It is done here to ensure that all turnouts have been created before sharing.
     nodeSharePending = false;
     Turnout::shareNodesToCS();
-    SensorGroup::shareSensorsToCS();
+    Sensor::shareNodesToCS();
     Signal::shareNodesToCS();
   }
 

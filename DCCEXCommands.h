@@ -52,8 +52,6 @@ Once a new OPCODE is decided upon, update this list.
   C, configure the CS
   d,
   D, Diagnostic commands
-  e, Erase EEPROM
-  E, Store configuration in EEPROM
   f, Loco decoder function control (deprecated)
   F, Loco decoder function control
   g,
@@ -181,13 +179,11 @@ ZZ(T,id,addr,subAddr) // Create DCC turnout (Deprecated use <T id DCC addr subAd
 ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout (Deprecated use <T id SERVO vpin closedValue thrownValue>)
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
 ZZ(S,id,vpin,pullup)  // Create Sensor
-        CHECK(Sensor::create(id,vpin,pullup)) 
+        CHECK(Sensor::createJMRI(id,vpin,pullup)) 
 ZZ(S,id) // Delete sensor
-        CHECK(Sensor::remove(id))
+        Sensor::removeJMRI(id);
 ZZ(S)   // List sensors
-        for (auto *tt = Sensor::firstSensor; tt; tt = tt->nextSensor) {
-                REPLY("<Q %d %d %d>\n", tt->data.snum, tt->data.pin, tt->data.pullUp)
-        }           
+        Sensor::dumpAllJMRI(stream);           
 ZZ(J,M) // List stash values
         Stash::list(stream);
 ZZ(J,M,stashId) // get stash value
@@ -319,24 +315,14 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
         REPLY("<I>\n")
 
  ZZ(Q) // List all sensors 
-        Sensor::printAll(stream);
+        Sensor::printAllJMRI(stream);
 
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
-        Sensor::printAll(stream);  //send all Sensor  states
+        Sensor::printAllJMRI(stream);  //send all JMRI type Sensor  states
                
-
-#ifndef DISABLE_EEPROM
-    ZZ(E) // STORE EPROM
-        EEStore::store();
-        REPLY("<e %d %d %d>\n", EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs)
-    ZZ(e) // CLEAR EPROM
-        EEStore::clear();
-        REPLY("<O>\n")
-#endif
-
 ZZ(Z) // List Output definitions 
         bool gotone = false;
         for (auto *tt = Output::firstOutput; tt ; tt = tt->nextOutput) {
@@ -386,10 +372,6 @@ ZZ(D,WIT,ON) // Enable WiThrottle diagnostics
         Diag::WITHROTTLE = true;
 ZZ(D,WIT,OFF) // Disable WiThrottle diagnostics 
         Diag::WITHROTTLE = false;
-ZZ(D,LCN,ON) // Enable LCN Diagnostics
-        Diag::LCN = true;
-ZZ(D,LCN,OFF) // Disable LCN diagnostics
-        Diag::LCN = false;
 ZZ(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
         Diag::WEBSOCKET = true;
 ZZ(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
@@ -398,13 +380,6 @@ ZZ(D,NODE,ON) // Enable Node diagnostics
         Diag::NODE = true;
 ZZ(D,NODE,OFF) // Disable Node diagnostics 
         Diag::NODE = false;
-            
-#ifndef DISABLE_EEPROM  
-ZZ(D,EEPROM,numEntries) // Dump EEPROM contents
-        EEStore::dump(numEntries);
-#endif
-
-
 ZZ(D,ANOUT,vpin,position) // same as <z vpin position>
         IODevice::writeAnalogue(vpin,position,0);
 ZZ(D,ANOUT,vpin,position,profile) // see <z vpin position profile>

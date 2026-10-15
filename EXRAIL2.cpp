@@ -56,7 +56,7 @@
 #include "TrackManager.h"
 #include "Turntables.h"
 #include "IODevice.h"
-#include "EXRAILSensor.h"
+#include "Sensors.h"
 #include "Stash.h"
 #include "DCCConsist.h"
 #include "NVSTable.h"
@@ -94,6 +94,9 @@ LookList *  RMFT2::onRotateLookup=NULL;
 LookList *  RMFT2::onOverloadLookup=NULL;
 LookList *  RMFT2::onBlockEnterLookup=NULL;
 LookList *  RMFT2::onBlockExitLookup=NULL;
+LookList *  RMFT2::onButtonDownLookup=NULL;
+LookList *  RMFT2::onButtonUpLookup=NULL;
+
 #ifdef BOOSTER_INPUT
 LookList *  RMFT2::onRailSyncOnLookup=NULL;
 LookList *  RMFT2::onRailSyncOffLookup=NULL;
@@ -221,6 +224,10 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     onBlockEnterLookup=LookListLoader(OPCODE_ONBLOCKENTER);
     onBlockExitLookup=LookListLoader(OPCODE_ONBLOCKEXIT);
   }
+
+  // saee how ONSENSOR appears in both lists.
+  onButtonDownLookup=LookListLoader(OPCODE_ONBUTTON, OPCODE_ONSENSOR);
+  onButtonUpLookup=LookListLoader(OPCODE_ONBUTTONUP, OPCODE_ONSENSOR);
 #ifdef BOOSTER_INPUT
   onRailSyncOnLookup=LookListLoader(OPCODE_ONRAILSYNCON);
   onRailSyncOffLookup=LookListLoader(OPCODE_ONRAILSYNCOFF);
@@ -271,22 +278,14 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     }
 
     case OPCODE_ONSENSOR:
-      if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true,true );
+    case OPCODE_ONBUTTON:
+    case OPCODE_ONBUTTONUP:
+      Sensor::createEXRAIL(operand);
       break;
     case OPCODE_ONBITMAP:
-      if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true, true, true );
+        Sensor::createEXRAIL(operand,true); // analogue sensor
       break;
-    case OPCODE_ONBUTTON:
-      if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,true,false );
-      break;
-    case OPCODE_ONBUTTONUP:
-      if (compileFeatures & FEATURE_SENSOR) 
-        new EXRAILSensor(operand,progCounter+fixedOpcodeLength,false,true);
-      break;
-   
+    
     case OPCODE_DCCTURNTABLE: {
       VPIN id=operand;
       int home=getOperand(progCounter,1);
@@ -482,9 +481,6 @@ void RMFT2::resume() {
 }
 
 void RMFT2::loop() {
-  if (compileFeatures & FEATURE_SENSOR) 
-      EXRAILSensor::checkAll();
-
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;
   loopTask=loopTask->next;
@@ -1335,6 +1331,12 @@ void RMFT2::turnoutEvent(int16_t turnoutId, bool closed) {
   else onThrowLookup->handleEvent(F("THROW"),turnoutId);
 }
 
+void RMFT2::sensorEvent(VPIN pin, bool isLow) {
+  // buttonDown includes ONBUTTON and ONSENSOR handlers
+  // buttonUp includes ONBUTTONUP and ONSENSOR handlers
+  if (isLow)  onButtonDownLookup->handleEvent(F("SENSOR-L"),pin);
+  else onButtonUpLookup->handleEvent(F("SENSOR-H"),pin);
+}
 
 void RMFT2::activateEvent(int16_t addr, bool activate) {
   // Hunt for an ONACTIVATE/ONDEACTIVATE for this accessory
@@ -1482,11 +1484,6 @@ void RMFT2::thrungeString(uint32_t strfar, thrunger mode, byte id) {
          stream=&Serial6; 
          #endif
          break;
-    case thrunge_lcn: 
-      #if defined(LCN_SERIAL) 
-      stream=&LCN_SERIAL;
-      #endif
-       break;  
     case thrunge_parse:
     case thrunge_broadcast:
     case thrunge_message: 
