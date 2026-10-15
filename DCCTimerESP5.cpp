@@ -1,5 +1,6 @@
 /*
  *  © 2020-2022 Harald Barth
+ *  © 2026 Paul M. Antoine
  *
  *  This file is part of CommandStation-EX
  *  
@@ -129,7 +130,7 @@ void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
   }
 }
 
-void DCCTimer::DCCEXanalogCopyChannel(int8_t frompin, int8_t topin) {
+void DCCTimer::DCCEXanalogCopyChannel(int16_t frompin, int16_t topin) {
   // arguments are signed depending on inversion of pins
   DIAG(F("Pin %d copied to %d"), frompin, topin);
   bool inverted = false;

@@ -42,7 +42,7 @@ AP Hidden    <nvsinput nvs=32008 min="0" max="1" /> <br>
 <p/>
 If AP SSID and Password are not given DCC-EX will create a default Access Point based on the device's mac address. This will be shown on the OLED screen. If however an AP password is given, it will not appear.<br>
 <p/>
-WARNING: If you set the AP password and forget it, you may have to use the USB serial console to reset it.
+WARNING: If you set the AP password and forget it, you will have to use the USB serial console to reset it.
 )???"
 #endif
 ;

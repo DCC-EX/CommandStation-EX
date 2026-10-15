@@ -33,15 +33,17 @@
 // For example TRACK_MODE_DC_INV is (TRACK_MODE_DC|TRACK_MODIFIER_INV)
 enum TRACK_MODE : byte {
   // main modes
-  TRACK_MODE_NONE = 1, TRACK_MODE_MAIN = 2, TRACK_MODE_PROG = 4,
-  TRACK_MODE_DC = 8, TRACK_MODE_EXT = 16,
+  TRACK_MODE_NONE = 0, TRACK_MODE_MAIN = 1, TRACK_MODE_PROG = 2,
+  TRACK_MODE_DC = 4, TRACK_MODE_EXT = 8,
   // modifiers
   TRACK_MODIFIER_INV = 64, TRACK_MODIFIER_AUTO = 128,
 #ifdef ARDUINO_ARCH_ESP32
+  TRACK_MODIFIER_RAILCOM = 16,
   TRACK_MODE_BOOST = 32,
   TRACK_MODE_BOOST_INV = TRACK_MODE_BOOST|TRACK_MODIFIER_INV,
   TRACK_MODE_BOOST_AUTO = TRACK_MODE_BOOST|TRACK_MODIFIER_AUTO,
 #else
+  TRACK_MODIFIER_RAILCOM = 0,
   TRACK_MODE_BOOST = 0,
   TRACK_MODE_BOOST_INV = 0,
   TRACK_MODE_BOOST_AUTO = 0,
@@ -205,7 +207,8 @@ class MotorDriver {
       }
     };
     inline pinpair getSignalPin() { return pinpair(signalPin,signalPin2); };
-    inline int8_t getBrakePinSigned() { return invertBrake ? -brakePin : brakePin; };
+    inline int16_t getBrakePinSigned() { return invertBrake ? -brakePin : brakePin; };
+    inline int16_t getBrakePin() { return brakePin; };
     void setDCSignal(byte speedByte, uint8_t frequency=0);
     void throttleInrush(bool on);
     inline void detachDCSignal() {

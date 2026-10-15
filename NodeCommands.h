@@ -89,7 +89,16 @@ ZZ(z,vpin,value,param1,param2,count)
   // It will not cause a rebroadcast
   if (IODevice::isSharedWrite(vpin,count)) 
     IODevice::writeAnalogueRange(vpin,value,param1,param2,count,false);
-  
+
+// Railcom input from railcom detectors
+ZZ(K,block,loco) // Railcom loco entering block
+   RMFT2::blockEvent(block,loco,true);
+ZZ(k,block,loco) // Railcom loco leaving block
+   RMFT2::blockEvent(block,loco,false);
+ZZ(B,block,loco,cv,value) // pom read reply
+// TODO 
+ZZ(B,block,loco,cv,value1,value2,value3,value4) // pom long read reply 
+// TODO
 
 ZZ(@,display,row,text) // Display text change
   // This was sent by a node that changes a display text

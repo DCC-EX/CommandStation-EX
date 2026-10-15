@@ -25,7 +25,7 @@
 
 class Sniffer {
 public:
-  Sniffer(byte snifferpin);
+  Sniffer(byte snifferpin, bool dedup=true);
   void IRAM_ATTR processInterrupt(uint32_t capticks, bool posedge);
   inline int32_t getTicks() {
     noInterrupts();
@@ -70,6 +70,6 @@ private:
   std::list<DCCPacket> outpacket;
   DCCPacket prevpacket;
   volatile unsigned long lastendofpacket = 0; // timestamp millis
-
+  bool dedupInput;
 };
 #endif
