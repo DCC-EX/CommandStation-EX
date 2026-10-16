@@ -1,6 +1,8 @@
 /*
  *  © 2024 Harald Barth
  *  © 2024 Paul M. Antoine
+ *  © 2026 Chris Harlow (with Github copilot)
+ * 
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX

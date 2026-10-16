@@ -32,8 +32,10 @@ constexpr uint16_t NODE_PORT = IP_PORT + 1;
 const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
 IPAddress throttleMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[3] */};
 
-constexpr uint16_t UDP_COMMAND_MAX = 255;    // max inbound command payload (fits one DCC-EX command)
-constexpr uint16_t UDP_RESPONSE_MAX  = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
+constexpr uint16_t UDP_RESPONSE_MAX = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
+constexpr uint16_t UDP_COMMAND_MAX  = 1472; // Set to same as outbound, there might be more than one
+                                            // DCC-EX command per UDP packet. We do not care about
+                                            // packets > Ethernet MTU.
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
@@ -93,6 +95,8 @@ private:
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
 
+IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
+
 void EXNetwork::setup() {
   #ifdef ARDUINO_ARCH_STM32
   udpTx.stop();
@@ -100,22 +104,26 @@ void EXNetwork::setup() {
   udpNodeRx.stop();
   #endif
 
-  _SHIM_::setup();
-  auto ipaddress = _SHIM_::getIPAddress();
-  throttleMulticastIP[3] = ipaddress[3];
+  if (!_SHIM_::setup()) {
+    DIAG(F("Network setup failed"));
+    return;
+  }
 
-  #ifdef ARDUINO_ARCH_STM32
+  myipaddress = _SHIM_::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
+
+  #if defined(ARDUINO_ARCH_STM32) && !defined(ETHERNET_CS_PIN)
   // STM32Ethernet enables NETIF_FLAG_IGMP from its link-state handler.
   // Run it before beginMulticast(), otherwise igmp_joingroup() can fail.
   Ethernet.schedule();
   #endif
 
   // Socket server for old style throttle connections.
-  throttleServer.begin(IP_PORT);
+  throttleServer.begin();
   DIAG(F("throttleServer started on port %d"), IP_PORT);
 
   // Web server for browser interface.
-  webServer.begin(80);
+  webServer.begin();
   DIAG(F("webServer started on port 80"));
 
   if (!udpTx.begin(0)) {
@@ -124,7 +132,6 @@ void EXNetwork::setup() {
 
   bool nodeFail = false;
 
-  #ifdef ARDUINO_ARCH_STM32
   // listen for incoming throttle traffic via UDP.
     if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
     DIAG(F("udpThrottleRx started on %s:%d"),
@@ -141,23 +148,7 @@ void EXNetwork::setup() {
          nodeMulticastIP.toString().c_str(), NODE_PORT);
     nodeFail = true;
   }
-  #endif
-
-  #ifdef ARDUINO_ARCH_ESP32
-  // Listen for incoming throttle traffic via UDP.
-    if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
-    DIAG(F("udpThrottleRx started on %s:%d"),
-      throttleMulticastIP.toString().c_str(), IP_PORT);
-  }
-  // Receive node traffic via UDP multicast.
-  if (udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT)) {
-    DIAG(F("udpNodeRx started on %s:%d"),
-         nodeMulticastIP.toString().c_str(), NODE_PORT);
-  } else {
-    nodeFail = true;
-  }
-  #endif
-
+  
   NodeManager::setup(!nodeFail);
 
   _SHIM_::setupMDNS();
@@ -212,14 +203,29 @@ EXNetworkClient EXNetwork::acceptWebInput() {
 
 void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   int packetSize = udp.available();
-  if (packetSize <= 2) return;
+  if (packetSize <= 2) {
+    // Packet smaller than smallest DCCEX payload
+    udp.flush();
+    return;
+  }
 
   // Read the incoming UDP packet into a buffer.
   byte data[UDP_COMMAND_MAX + 1];
   int length = udp.read(data, UDP_COMMAND_MAX);
-  if (length <= 2) return;
+  IPAddress remoteIP = udp.remoteIP();
+  if (length < packetSize) {
+    DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize, remoteIP.toString().c_str());
+    udp.flush();
+    return;
+  }
+  // Null terminate incoming data
   data[length] = 0;
 
+  if (remoteIP == myipaddress) {
+    // we do not want to hear ourselves
+    udp.flush();
+    return;
+  }
   // Pass node traffic to NodeManager
   if (localPort == NODE_PORT) {
     NodeManager::parse(data);
@@ -227,7 +233,6 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   }
  
   // detect UDP throttles that can't listen to the UDP broadcast and remember them for unicast responses
-  IPAddress remoteIP = udp.remoteIP();
   if (length >= 3 && data[0] == '<' && data[1] == '#' && data[2] == '>') {
     rememberUdpDiscoveryClient(remoteIP);
   }
@@ -355,8 +360,10 @@ void EXNetwork::teardown() {
     throttleClients.pop_back();
   }
 
+  #if !defined(ETHERNET_CS_PIN)
   webServer.end();
   throttleServer.end();
+  #endif
 
   _SHIM_::teardown();
 }

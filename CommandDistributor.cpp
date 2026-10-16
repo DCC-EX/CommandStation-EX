@@ -41,7 +41,6 @@ int16_t lastclocktime;
 int8_t lastclockrate;
 
 
-#if WIFI_ON || ETHERNET_ON || defined(SERIAL1_COMMANDS) || defined(SERIAL2_COMMANDS) || defined(SERIAL3_COMMANDS) || defined(SERIAL4_COMMANDS) || defined(SERIAL5_COMMANDS) || defined(SERIAL6_COMMANDS)
 // use a buffer to allow broadcast
 StringBuffer * CommandDistributor::broadcastBufferWriter=new StringBuffer(256);
 void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
@@ -53,18 +52,7 @@ void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
   broadcastToClients(type);
   if (type==COMMAND_TYPE) broadcastToClients(WEBSOCKET_TYPE);
 }
-#else
-// on a single USB connection config, write direct to Serial and ignore flush/shove
-void CommandDistributor::broadcastReply(clientType type, const FSH* format...){
-  (void)type; //shut up compiler warning
-  va_list args;
-  va_start(args, format);
-  StringFormatter::send2(&USB_SERIAL, format, args);
-  va_end(args);
-}
-#endif 
 
-#ifdef CD_HANDLE_RING
   // wifi or ethernet ring streams with multiple client types
   RingStream *  CommandDistributor::ring=0;
 CommandDistributor::clientType  CommandDistributor::clients[MAX_NUM_TCP_CLIENTS]={ NONE_TYPE }; // 0 is and must be NONE_TYPE
@@ -138,7 +126,7 @@ void CommandDistributor::forget(byte clientId) {
   if (clients[clientId]==WITHROTTLE_TYPE) WiThrottle::forget(clientId);
   clients[clientId]=NONE_TYPE;
 }
-#endif 
+
 
 // This will not be called on a uno 
 void CommandDistributor::broadcastToClients(clientType type) {
@@ -154,7 +142,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
     EXNetwork::udpMulticast(broadcastBufferWriter->getString());
   }
 
-#ifdef CD_HANDLE_RING
+
   // If we are broadcasting from a wifi/eth process we need to complete its output
   // before merging broadcasts in the ring, then reinstate it in case
   // the process continues to output to its client.
@@ -180,7 +168,7 @@ void CommandDistributor::broadcastToClients(clientType type) {
       ring->mark(rememberClient);
     }
   }
-#endif
+
 }
 
 // Public broadcast functions below 
@@ -198,9 +186,7 @@ void  CommandDistributor::broadcastTurnout(int16_t id, bool isClosed ) {
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
   broadcastReply(COMMAND_TYPE, F("<H %d %d>\n"),id, !isClosed);
-#ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PTA%c%d\n"), isClosed?'2':'4', id);
-#endif
 }
 
 void CommandDistributor::broadcastTurntable(int16_t id, uint8_t position, bool moving) {
@@ -213,9 +199,7 @@ void  CommandDistributor::broadcastClockTime(int16_t time, int8_t rate) {
   // The string below contains serial and Withrottle protocols which should
   // be safe for both types.
   broadcastReply(COMMAND_TYPE, F("<jC %d %d>\n"),time, rate);
-#ifdef CD_HANDLE_RING
   broadcastReply(WITHROTTLE_TYPE, F("PFT%l<;>%d\n"), (int32_t)time*60, rate);
-#endif
 }
 
 void CommandDistributor::setClockTime(int16_t clocktime, int8_t clockrate, bool tellNodes) {
@@ -258,7 +242,7 @@ void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
   
   bool isFollower=sp->isConsistFollower();
   
-  #ifdef CD_HANDLE_RING
+
   // Use the buffer directly to avoid multiple transmits in the case of a consist
   broadcastBufferWriter->flush();
   for (auto slot=sp; slot; slot=slot->getConsistNext()) {
@@ -269,14 +253,6 @@ void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
   broadcastToClients(COMMAND_TYPE);
   broadcastToClients(WEBSOCKET_TYPE);
   
-#else
-  // no ring handling, just broadcast each separately
-  for (auto slot=sp; slot; slot=slot->getConsistNext()) {
-    broadcastReply(COMMAND_TYPE, F("<l %d 0 %d %l>\n"), 
-      slot->getLoco(),slot->getTargetSpeed(),slot->getFunctions());
-    if (isFollower) break;  // dont follow next chain if original call was for a follower
-  }
-  #endif
 
   #ifdef SABERTOOTH
   if (Serial2 && sp->loco == SABERTOOTH) {
@@ -312,9 +288,8 @@ void  CommandDistributor::broadcastLoco(LocoSlot *  sp) {
     }
   }
 #endif
-#ifdef CD_HANDLE_RING
+
   WiThrottle::markForBroadcast(sp->getLoco());
-#endif
 }
 
 void  CommandDistributor::broadcastForgetLoco(int16_t loco) {
@@ -381,15 +356,9 @@ void  CommandDistributor::broadcastPower() {
 	broadcastReply(COMMAND_TYPE, F("<p1 PROG>\n"));
       }
     }
-#ifdef CD_HANDLE_RING
     // send '1' if all main are on, otherwise global state (which in that case is '0' or '2')
     broadcastReply(WITHROTTLE_TYPE, F("PPA%c\n"), main?'1': state);
-#endif
-#if defined(HAS_ENOUGH_MEMORY)
     LCD(2,F("PWR %s%S"),state=='1'? "On" : ( state=='0'? "Off" : trackLetter ),reason);
-#else
-    LCD(2,F("PWR %s%S"),trackLetter ,reason);
-#endif
   }
 }
 

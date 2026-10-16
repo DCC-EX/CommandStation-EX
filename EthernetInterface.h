@@ -4,7 +4,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2024 Harald Barth
- *  © 2020-2024 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
  *  
@@ -29,13 +29,23 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_NUCLEO_F429ZI) || defined (ARDUINO_NUCLEO_F439ZI) || defined (ARDUINO_NUCLEO_F4X9ZI)
-
+#if defined (ARDUINO_ARCH_STM32)
 #include "defines.h"
 #include <Arduino.h>
-#include <LwIP.h>
-#include <STM32Ethernet.h>
-#include <lwip/netif.h>
+
+#if __has_include ( "STM32Ethernet.h")
+  // Nucleo devices with builtin ethernet
+  // Refer to platformio.ini library configs
+  #include <LwIP.h>
+  #include <STM32Ethernet.h>
+  #include <lwip/netif.h>
+#else
+  //Nucleo devices with external ethernet module
+  // Refer to platformio.ini library configs
+  #define ETHERNET_CS_PIN 10
+  #include <Ethernet.h>
+#endif
+
 #include <EthernetUdp.h>
 
 extern "C" struct netif gnetif;

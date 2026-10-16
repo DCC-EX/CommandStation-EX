@@ -17,7 +17,7 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "config.h"
-#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) && defined(BOOSTER_INPUT)
 #include "Sniffer.h"
 #include "DIAG.h"
 #include "driver/mcpwm.h"
@@ -99,7 +99,11 @@ static bool IRAM_ATTR cap_ISR_cb(mcpwm_unit_t mcpwm, mcpwm_capture_channel_id_t 
   return 0;
 }
 
-Sniffer::Sniffer(byte snifferpin) {
+Sniffer::Sniffer(byte snifferpin, bool dedup) {
+  dedupInput = dedup;
+  // init some constants, on standard ESP32 getApbFrequency() is 80 000 000.
+  dcc_too_short_limit = (getApbFrequency()/1000) * 50 /*usec*/ / 1000;
+  dcc_one_limit       = (getApbFrequency()/1000) * 80 /*usec*/ / 1000;
   mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_0, snifferpin);
   // set capture edge, BIT(0) - negative edge, BIT(1) - positive edge
   // MCPWM_POS_EDGE|MCPWM_NEG_EDGE should be 3.
@@ -153,17 +157,14 @@ bool Sniffer::inputActive(){
   return false;
 }
 
-#define DCC_TOO_SHORT 4000L // 4000 ticks are 50usec
-#define DCC_ONE_LIMIT 6400L // 6400 ticks are 80usec
-
-void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
+void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
   byte bit = 0;
   diffticks = capticks - lastticks;
   if (lastedge != posedge) {
-    if (diffticks < DCC_TOO_SHORT) {
+    if (diffticks < dcc_too_short_limit) {
       return;
     }
-    if (diffticks < DCC_ONE_LIMIT) {
+    if (diffticks < dcc_one_limit) {
       bit = 1;
     } else {
       bit = 0;
@@ -239,7 +240,7 @@ void IRAM_ATTR Sniffer::processInterrupt(int32_t capticks, bool posedge) {
 	    }
 	    lastendofpacket = millis();
 	    DCCPacket temppacket(dccbytes, dcclen);
-	    if (!(temppacket == prevpacket)) {
+	    if ((dedupInput == false) || !(temppacket == prevpacket)) {
 	      // we have something new to offer to the fetch routine
 	      // put it into the outpacket queue
 	      outpacket.push_back(temppacket);
@@ -267,6 +268,4 @@ static void IRAM_ATTR sniffer_isr_handler(void *) {
   DCCSniffer.processInterrupt();
 }
 */
-#else
-#warning Sniffer.cpp is only compiled for ESP32
-#endif // ESP32
+#endif // ESP32 with BOOSTER_INPUT

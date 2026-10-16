@@ -32,10 +32,7 @@
 #include "NodeManager.h"
 #include "Signals.h"
 
-#if WIFI_ON | ETHERNET_ON 
-  // Command Distributor must handle a RingStream of clients
-  #define CD_HANDLE_RING
-#endif 
+
 
 class CommandDistributor {
 public:
@@ -43,10 +40,8 @@ public:
 private:
   static void broadcastToClients(clientType type);
   static StringBuffer * broadcastBufferWriter;
-  #ifdef CD_HANDLE_RING
     static RingStream * ring;
     static clientType clients[MAX_NUM_TCP_CLIENTS];
-  #endif
 public :
   static void parse(byte clientId,byte* buffer, RingStream * ring);
   static void broadcastLoco(LocoSlot * slot);

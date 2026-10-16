@@ -1,5 +1,5 @@
 /*
- *  © 2021-2024, Harald Barth.
+ *  © 2021-2026, Harald Barth.
  *  
  *  This file is part of DCC-EX
  *
@@ -42,6 +42,11 @@
 #include "DCCTimer.h"
 #include "DCCWaveform.h" // for MAX_PACKET_SIZE
 #include "soc/gpio_sig_map.h"
+#include "Railcom.h"
+
+// mcpwm stuff
+#include "soc/mcpwm_struct.h"
+#include "driver/mcpwm.h"
 
 // check for right type of ESP32
 #include "soc/soc_caps.h"
@@ -89,16 +94,145 @@ void setEOT(rmt_item32_t* item) {
   item->val = 0;
 }
 
+// Special for debug, this can be called from interrupt.
+#ifdef MCPWM_DEBUG
+static void IRAM_ATTR __digitalWrite(uint8_t pin, uint8_t val) {
+  if(val) {
+    if(pin < 32) 
+    {
+      GPIO.out_w1ts = ((uint32_t)1 << pin);
+     } 
+    else if(pin < 34) {
+      GPIO.out1_w1ts.val = ((uint32_t)1 << (pin - 32));
+     }
+  } 
+  else
+  {
+    if(pin < 32) 
+    {
+      GPIO.out_w1tc = ((uint32_t)1 << pin);
+    } 
+    else if(pin < 34) 
+    {
+      GPIO.out1_w1tc.val = ((uint32_t)1 << (pin - 32));
+    }
+  }
+}
+#endif
+
 // This is an array that contains the this pointers
 // to all uses channel objects. This is used to determine
 // which of the channels was triggering the ISR as there
 // is only ONE common ISR routine for all channels.
 RMTChannel *channelHandle[8] = { 0 };
 
+// When cutoutFlag == 0 then it is the first
+// interrupt and we do the cutout
+static volatile uint8_t cutoutFlag = 0;
+
+// define time values for cutout
+#define CUTOUT_TOTAL                486  // usec
+#define CUTOUT_BASE_FREQ           2057  //1000*1000/CUTOUT_TOTAL Hz
+#define CUTOUT_PULSE                459  //CUTOUT_TOTAL-27
+#define CUTOUT_OFFSET_IN_PROMILLE   944  //CUTOUT_PULSE*1000/CUTOUT_TOTAL // 1-(28/488)
+#define CUTOUT_OFFSET_IN_PERCENT   94.4  //CUTOUT_OFFSET_IN_PROMILLE/10.0 // float please
+// As the DCC packet end marker was moved to the next preamble
+// this happens at the beginning of that end packet marker (bit).
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   RMTChannel *tt = channelHandle[channel];
   if (tt) tt->RMTinterrupt();
+  if (channel == 0) {
+    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    cutoutFlag = 0;
+    // not needed here, we keep it enabled all the time
+    //MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
+#ifdef MCPWM_DEBUG
+    __digitalWrite(13 , 0);
+    __digitalWrite(26 , 1);
+#endif
+    mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+    mcpwm_sync_config_t sync_conf = {
+      .sync_sig = MCPWM_SELECT_GPIO_SYNC0,
+      .timer_val =  CUTOUT_OFFSET_IN_PROMILLE, // in promille of all values
+      .count_direction = MCPWM_TIMER_DIRECTION_UP,
+    };
+    mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
+  }
 }
+
+// This intrrupt is called on sync which is configured on mcpwmPulseOn()
+static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
+  if (MCPWM1.int_st.timer0_tez_int_st) {
+    MCPWM1.int_clr.timer0_tez_int_clr = 1;
+    if (cutoutFlag == 0) {
+#ifdef MCPWM_DEBUG
+      __digitalWrite(26, 0);
+#endif
+      // The cutout has not happened yet
+      // This interrupt is on cutout start
+      // but we reset already the mcpwm into standby mode
+      MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 1; // bit 1 means "TEZ = timer zero"
+      mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, 0);
+      mcpwm_sync_disable(MCPWM_UNIT_1, MCPWM_TIMER_0);
+      cutoutFlag++;
+    } else if (cutoutFlag == 1) { // the else is important
+#ifdef MCPWM_DEBUG
+      __digitalWrite(13 , 1);
+#endif
+      // Cutout is done
+      Railcom::incCutout();
+      cutoutFlag++;
+      // this does not work as the enable does not go into effect immidiately
+      // MCPWM1.int_ena.timer0_tez_int_ena = 0;              // Disable interrupt on TEZ
+    }
+    // when cutoutFlag has reached 2 this routine does nothing
+  }
+}
+
+
+// Configure MCPWM unit 1.
+// https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32/api-reference/peripherals/mcpwm.html
+// Connect Operator 0 output A PWM0A to pin XXX   (this should go to brake then)
+// Connect Timer0 input sync 0 SYNC0 from pin YYY (this should connect to RMT channel 0 output
+// pin through the mux)
+static void IRAM_ATTR mcpwmPulseOn() {
+
+  //DEBUG pinMode(13, OUTPUT);
+  //DEBUG pinMode(26, OUTPUT);
+
+  DCCWaveform::setRailcomPossible(true);
+  mcpwm_config_t pwm_config = {
+    .frequency = CUTOUT_BASE_FREQ,      // calculation see above
+    .cmpr_a = CUTOUT_OFFSET_IN_PERCENT, // duty cycle of PWMxA (float in %)
+    .cmpr_b = 0,                        // not used
+    .duty_mode = MCPWM_DUTY_MODE_0,
+    .counter_mode = MCPWM_UP_COUNTER,
+  };
+  mcpwm_init(MCPWM_UNIT_1, MCPWM_TIMER_0, &pwm_config);
+  // We do not connect the mcpwm output anywhere here
+  // like with mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM0A, somepin)
+  // but we do that with gpio_matrix_out() later at another place.
+
+  mcpwm_sync_config_t sync_conf = {
+        .sync_sig = MCPWM_SELECT_GPIO_SYNC0,
+        .timer_val = CUTOUT_OFFSET_IN_PROMILLE, // calculation see above
+        .count_direction = MCPWM_TIMER_DIRECTION_UP,
+  };
+  // default is pos edge trigger, handled by mcpwm_sync_invert_gpio_synchro()
+  // if neg edge needed
+  mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
+  // Here We wanted to do with the unused silicon "virtual" pin 30.
+  // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
+  // But mcpwm_gpio_init() checks if the pins are real so we can't do
+  // that. Instead we use gpio_matrix_in(), see below.
+  // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
+  // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
+  // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
+  // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
+  gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
+  gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
+}
+
 
 RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   byte ch;
@@ -115,16 +249,15 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   //
   // ALLOCATED = RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL
   // MAX_PACKET_SIZE = floor((ALLOCATED - PREAMBLE_LEN - 2)/9 - 1)
-  //
 
   if (isMain) {
     ch = 0;
-    plen = PREAMBLE_BITS_MAIN;
+    plen = PREAMBLE_BITS_MAIN + 1; // put end bit of prev packet into preamble
     static_assert (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_MAIN + 2 <= RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL,
 		  "Number of DCC packet bits greater than ESP32 RMT memory available");
   } else {
     ch = RMT_CHAN_PER_DCC_CHAN; // number == offset
-    plen = PREAMBLE_BITS_PROG;
+    plen = PREAMBLE_BITS_PROG + 1; // put end bit of prev packet into preamble
     static_assert (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_PROG + 2 <= RMT_CHAN_PER_DCC_CHAN * SOC_RMT_MEM_WORDS_PER_CHANNEL,
 		   "Number of DCC packet bits greater than ESP32 RMT memory available");
   }
@@ -142,7 +275,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   setEOT(preamble + plen + 1);     // EOT marker
 
   // idle
-  idleLen = 28;
+  idleLen = 27;
   idle = (rmt_item32_t*)malloc(idleLen*sizeof(rmt_item32_t));
   if (isMain) {
     for (byte n=0; n<8; n++)   // 0 to 7
@@ -155,8 +288,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
     for (byte n=0; n<26; n++)  // all zero
       setDCCBit0(idle + n);
   }
-  setDCCBit1(idle + 26);     // end bit
-  setEOT(idle + 27);         // EOT marker
+  setEOT(idle + 26);     // EOT marker, end bit in next preamble
 
   // data: max packet size today is 5 + checksum
   maxDataLen = DATA_LEN(MAX_PACKET_SIZE+1);  // plus checksum
@@ -191,6 +323,17 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   //rmt_write_items(channel, preamble, preambleLen, false);
   RMTprefill();
   dataReady = false;
+  // test with mcpwm
+  mcpwmPulseOn();
+  ESP_ERROR_CHECK(mcpwm_isr_register(
+		    MCPWM_UNIT_1, mcpwmIsrHandler, NULL,
+		    ESP_INTR_FLAG_LOWMED|
+		    ESP_INTR_FLAG_SHARED,
+		    /*ESP_INTR_FLAG_IRAM,*/
+		    NULL)); //Set ISR Handler
+  MCPWM1.int_clr.timer0_tez_int_clr = 1;              // Clear the interrupt flag 
+  MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
+
 }
 
 void RMTChannel::RMTprefill() {
@@ -230,8 +373,7 @@ int RMTChannel::RMTfillData(const byte buffer[], byte byteCount, byte repeatCoun
     }
     setDCCBit0(data + bitcounter++); // zero at end of each byte
   }
-  setDCCBit1(data + bitcounter-1);     // overwrite previous zero bit with one bit
-  setEOT(data + bitcounter++);         // EOT marker
+  setEOT(data + bitcounter-1);     // overwrite previous zero bit with EOT marker
   dataLen = bitcounter;
   noInterrupts();                      // keep dataReady and dataRepeat consistnet to each other
   dataReady = true;
@@ -274,5 +416,26 @@ bool RMTChannel::addPin(byte pin, bool inverted) {
 }
 bool RMTChannel::addPin(pinpair pins) {
   return addPin(pins.pin) && addPin(pins.invpin, true);
+}
+// and we can not yet take away what we giweth
+bool RMTChannel::addRCPin(int16_t brakePin) {
+  bool inverted = false;
+  if (brakePin<0) {
+    inverted = true;
+    brakePin = -brakePin;
+  }
+  if (brakePin == UNUSED_PIN)
+    return true;
+  // now we can work with brakePin
+  DIAG(F("Adding RC pin %d %s"), brakePin, inverted ? "inverted" : "");  
+  gpio_num_t gpioNum = (gpio_num_t)(brakePin);
+  esp_err_t err;
+  PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
+  err = gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
+  if (err != ESP_OK) return false;
+  gpio_matrix_out(gpioNum, PWM1_OUT0A_IDX, inverted, 0);
+  if (err != ESP_OK) return false;
+  return true;
+
 }
 #endif //ESP32

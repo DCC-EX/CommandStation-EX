@@ -177,9 +177,9 @@ void DCCTimer::DCCEXledcAttachPin(uint8_t pin, int8_t channel, bool inverted) {
     gpio_matrix_out(pin, LEDCToMux[channel], inverted, 0);
 }
 
-void DCCTimer::DCCEXanalogCopyChannel(int8_t frompin, int8_t topin) {
+void DCCTimer::DCCEXanalogCopyChannel(int16_t frompin, int16_t topin) {
   // arguments are signed depending on inversion of pins
-  DIAG(F("Pin %d copied to %d"), frompin, topin);
+  //DIAG(F("Pin %d copied to %d"), frompin, topin);
   bool inverted = false;
   if (frompin<0)
     frompin = -frompin;

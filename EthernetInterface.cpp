@@ -27,11 +27,8 @@
 #ifdef ARDUINO_ARCH_STM32
 #include "defines.h" 
 #include "EthernetInterface.h"
-#include <LwIP.h>
-#include <STM32Ethernet.h>
-#include <lwip/netif.h>
+#include "EXNetworkPreferences.h"
 
-#include <EthernetUdp.h>
 extern "C" struct netif gnetif;
 
 #include "DIAG.h"
@@ -50,20 +47,14 @@ bool EthernetInterface::setup()
 {
   connected=false;
   DIAG(F("Ethernet starting (with mDNS). Please be patient, especially if no cable is connected!"));
-    // Set a HOSTNAME for the DHCP request - a nice to have, but hard it seems on LWIP for STM32
-    // The default is "lwip", which is **always** set in STM32Ethernet/src/utility/ethernetif.cpp
-    // for some reason. One can edit it to instead read:
-    //      #if LWIP_NETIF_HOSTNAME
-    //      /* Initialize interface hostname */
-    //      if (netif->hostname == NULL)
-    //         netif->hostname = "lwip";
-    //      #endif /* LWIP_NETIF_HOSTNAME */
-    // Which seems more useful! We should propose the patch... so the following line actually works!
-    netif_set_hostname(&gnetif, ETHERNET_HOSTNAME);   // Should probably be passed in the contructor...
-
+    
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
   
+  #ifdef ETHERNET_CS_PIN
+    Ethernet.init(ETHERNET_CS_PIN);
+  #endif
+
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac,myIP);
@@ -74,10 +65,12 @@ bool EthernetInterface::setup()
     }
   #endif
 
+  #ifndef ETHERNET_CS_PIN
   // Accept all multicast frames. STM32Ethernet registers multicast MAC hashes,
   // but its hash-filter path is unreliable on this MAC. This does not enable
   // promiscuous unicast reception.
   ETH->MACFFR |= (1UL << 4);
+  #endif
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
@@ -85,7 +78,7 @@ bool EthernetInterface::setup()
 }
 
 void EthernetInterface::setupMDNS() {
-  mdns.begin(getIPAddress(), ETHERNET_HOSTNAME);
+  mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
 }
 
 void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {
