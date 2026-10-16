@@ -319,3 +319,13 @@ The configuration file for DCC-EX Command Station
 // That is described further above.
 //
 /////////////////////////////////////////////////////////////////////////////////////
+
+//
+// OTA_AUTH: Set this to your desired password if you wish to secure OTA updates.
+// If not set, OTA updates will be password-free.
+// Note: Upon modifying the OTA password, ensure to update the "upload_flags → --auth"
+// in the relevant environment within the platformio.ini file.
+// To deactivate OTA authorization, comment out the line below and comment out
+// the "upload_flags" line in the platformio.ini file.
+#define OTA_AUTH "dccex-ota"
+/////////////////////////////////////////////////////////////////////////////////////
