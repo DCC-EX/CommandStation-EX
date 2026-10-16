@@ -49,6 +49,10 @@
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
   #endif
+  // Default to WiFi unless the build already asked for WiFi/Ethernet explicitly.
+  #if !defined(ENABLE_WIFI) && !defined(ENABLE_ETHERNET)
+    #define ENABLE_WIFI true
+  #endif
 
 
 #elif defined(ARDUINO_ARCH_STM32)

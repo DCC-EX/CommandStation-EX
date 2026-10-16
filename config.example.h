@@ -318,4 +318,41 @@ The configuration file for DCC-EX Command Station
 // For smoother power-up, when using the CAM, you may need a STARTUP_DELAY.
 // That is described further above.
 //
+
 /////////////////////////////////////////////////////////////////////////////////////
+//
+// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired) based
+// on the W5100/W5500 ethernet chip or an STM32 CS with builin ethernet like the F429ZI.
+// This is not for Wifi. You will then need the Arduino Ethernet library as well.
+// On ESP32, set ENABLE_WIFI false when enabling Ethernet.
+//
+//#define ENABLE_ETHERNET true
+
+// ESP32 W5100/W5500 SPI wiring (used when ENABLE_ETHERNET is true).
+// Defaults match EX-CSB1.
+#if defined(ARDUINO_ARCH_ESP32) and defined(ENABLE_ETHERNET)
+  #ifndef ETHERNET_CS_PIN
+    #define ETHERNET_CS_PIN   5
+  #endif
+  #ifndef ETHERNET_SCK_PIN
+    #define ETHERNET_SCK_PIN  18
+  #endif
+  #ifndef ETHERNET_MISO_PIN
+    #define ETHERNET_MISO_PIN 16
+  #endif
+  #ifndef ETHERNET_MOSI_PIN
+    #define ETHERNET_MOSI_PIN 17
+  #endif
+  #ifndef ETHERNET_RST_PIN
+    #define ETHERNET_RST_PIN  4   // or -1 if not connected
+  #endif
+  // To disable hardware reset handling, set: -DETHERNET_RST_PIN=-1
+#endif
+
+// OTA_AUTH: Set this to your desired password if you wish to secure OTA updates.
+// If not set, OTA updates will be password-free.
+// Note: Upon modifying the OTA password, ensure to update the "upload_flags → --auth"
+// in the relevant environment within the platformio.ini file.
+// To deactivate OTA authorization, comment out the line below and comment out
+// the "upload_flags" line in the platformio.ini file.
+#define OTA_AUTH "dccex-ota"

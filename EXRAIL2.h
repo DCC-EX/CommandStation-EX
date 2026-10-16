@@ -84,7 +84,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
              OPCODE_CLEAR_ANY_STASH,
              OPCODE_ONBUTTON,OPCODE_ONSENSOR,OPCODE_ONVP_SENSOR,
-             OPCODE_NEOPIXEL,
+             OPCODE_NEOPIXEL,OPCODE_NEOPIXEL_CHASE,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
@@ -295,6 +295,9 @@ private:
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
+    uint16_t pixelChaseIndex = 0;
+    bool pixelChaseActive = false;
+    bool pixelChaseFinishing = false;
     static const byte fixedOpcodeLength=5; // All opcodes are 5 bytes long, including padding.
 };
 

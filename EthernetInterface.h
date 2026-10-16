@@ -29,9 +29,26 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_ARCH_STM32)
+#if defined (ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET)
 #include "defines.h"
 #include <Arduino.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+
+// The ESP32 core's Server base class declares begin(uint16_t port=0) as pure
+// virtual, but arduino-libraries/Ethernet's EthernetServer only overrides the
+// no-arg begin(), leaving it abstract. Provide the missing override here.
+// end() is also added since arduino-libraries/Ethernet has no such call.
+class EthernetServerESP32 : public EthernetServer {
+ public:
+  EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
+  void begin(uint16_t port = 0) { EthernetServer::begin(); }
+  void end() {}
+};
+#else
 
 #if __has_include ( "STM32Ethernet.h")
   // Nucleo devices with builtin ethernet
@@ -44,6 +61,8 @@
   // Refer to platformio.ini library configs
   #define ETHERNET_CS_PIN 10
   #include <Ethernet.h>
+#endif
+
 #endif
 
 #include <EthernetUdp.h>
@@ -68,5 +87,5 @@ class EthernetInterface {
     static bool connected;
     
 };
-#endif // ETHERNET_ON
+#endif // ENABLE_ETHERNET
 #endif

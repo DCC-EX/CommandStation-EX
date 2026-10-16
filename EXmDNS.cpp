@@ -21,7 +21,8 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifdef ARDUINO_ARCH_STM32
+#include "defines.h"
+#if defined(ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET)
 #include <Arduino.h>
 #include "EthernetInterface.h"
 
@@ -435,4 +436,4 @@ void MDNS::run() {
     sendServiceAnnounce(_services[s]);
   }
 }
-#endif // ARDUINO_ARCH_STM32
+#endif // ARDUINO_ARCH_STM32 || (ARDUINO_ARCH_ESP32 && ENABLE_ETHERNET)
