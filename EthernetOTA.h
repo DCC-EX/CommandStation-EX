@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 #include <functional>
-#if ETHERNET_ON
+#if ENABLE_ETHERNET
 #include "EthernetInterface.h"
 using OTAUDP = EthernetUDP;
 using OTAClient = EthernetClient;

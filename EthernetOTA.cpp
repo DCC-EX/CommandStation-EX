@@ -4,7 +4,7 @@
 
 #include <MD5Builder.h>
 #include <Update.h>
-#if !ETHERNET_ON
+#if !ENABLE_ETHERNET
 #include <ESPmDNS.h>
 #endif
 #include "TrackManager.h"
@@ -65,11 +65,7 @@ EthernetOTAClass& EthernetOTAClass::onError(std::function<void(int)> callback) {
 
 void EthernetOTAClass::configure() {
   setHostname(
-#if ETHERNET_ON
-    ETHERNET_HOSTNAME
-#else
     WIFI_HOSTNAME
-#endif
   );
 #ifdef OTA_AUTH
   setPassword(OTA_AUTH);

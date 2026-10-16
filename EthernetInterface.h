@@ -29,7 +29,7 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ETHERNET_ON)
+#if defined (ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET)
 #include "defines.h"
 #include <Arduino.h>
 
@@ -45,7 +45,7 @@
 class EthernetServerESP32 : public EthernetServer {
  public:
   EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
-  void begin(uint16_t /*port*/) { EthernetServer::begin(); }
+  void begin(uint16_t port = 0) { EthernetServer::begin(); }
   void end() {}
 };
 #else
@@ -87,5 +87,5 @@ class EthernetInterface {
     static bool connected;
     
 };
-#endif // ETHERNET_ON
+#endif // ENABLE_ETHERNET
 #endif

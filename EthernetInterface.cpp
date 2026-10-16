@@ -138,7 +138,7 @@ void EthernetInterface::loop()
     }   
 }
 
-#elif defined(ARDUINO_ARCH_ESP32) && ETHERNET_ON
+#elif defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET
 #include "defines.h"
 #include "EthernetInterface.h"
 #include <SPI.h>
@@ -216,7 +216,7 @@ bool EthernetInterface::setup()
 }
 
 void EthernetInterface::setupMDNS() {
-  mdns.begin(getIPAddress(), ETHERNET_HOSTNAME);
+  mdns.begin(getIPAddress(), WIFI_HOSTNAME);
 }
 
 void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {

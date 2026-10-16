@@ -1,7 +1,7 @@
 #ifndef EXNetwork_h
 #define EXNetwork_h
 #include "defines.h"
-#if defined(ARDUINO_ARCH_ESP32) && !ETHERNET_ON
+#if defined(ARDUINO_ARCH_ESP32) && !ENABLE_ETHERNET
   #include "WifiESP32.h"
   #include <WiFiUdp.h>
   typedef WiFiClient EXNetworkClient;
