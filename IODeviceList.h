@@ -40,9 +40,6 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_PCF8575.h"
 #include "IO_RotaryEncoder.h"
 #include "IO_Servo.h"
-#if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE)
-#include "IO_ServoESP.h"
-#endif
 #include "IO_TCA8418.h"
 #include "IO_TM1638.h"
 #include "IO_TouchKeypad.h"
@@ -53,3 +50,6 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_WaveShare.h"
 #include "IO_PCF85063.h"
 #include "IO_NVSMap.h"
+#if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE)
+#include "IO_ServoESP.h"
+#endif
