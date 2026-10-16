@@ -1,6 +1,6 @@
 #include "EthernetOTA.h"
 
-#if defined(ARDUINO_ARCH_ESP32) && (WIFI_ON || ETHERNET_ON)
+#if defined(ARDUINO_ARCH_ESP32)
 
 #include <MD5Builder.h>
 #include <Update.h>
@@ -20,10 +20,6 @@ static constexpr int OTA_BEGIN_ERROR = 1;
 static constexpr int OTA_CONNECT_ERROR = 2;
 static constexpr int OTA_RECEIVE_ERROR = 3;
 static constexpr int OTA_END_ERROR = 4;
-
-#ifndef OTA_AUTO_INIT
-#define OTA_AUTO_INIT false
-#endif
 
 #define ETHERNET_OTA_STR(tok) tok
 #define ETHERNET_OTA_BOARD ETHERNET_OTA_STR(ARDUINO_VARIANT)
@@ -83,11 +79,6 @@ void EthernetOTAClass::configure() {
 void EthernetOTAClass::begin(AddServiceCallback addService, AddServiceTxtCallback addServiceTxt) {
   if (!initialized) {
     configure();
-
-    if (!OTA_AUTO_INIT) {
-      DIAG(F("EthernetOTA disabled"));
-      return;
-    }
 
     addService("_arduino", "_tcp", ETHERNET_OTA_PORT);
     addServiceTxt("_arduino", "_tcp", "board", ETHERNET_OTA_BOARD);

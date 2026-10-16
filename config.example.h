@@ -320,12 +320,6 @@ The configuration file for DCC-EX Command Station
 //
 /////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////
-// OTA_AUTO_INIT: Set this to true if you want OTA updates to be initialized
-// automatically upon startup. If set to false, OTA updates will remain
-// unavailable until firmware is built with this set to true.
-// Please note that this feature requires the use of ARDUINO_ARCH_ESP32 as your board.
-#define OTA_AUTO_INIT false
 //
 // OTA_AUTH: Set this to your desired password if you wish to secure OTA updates.
 // If not set, OTA updates will be password-free.

@@ -3,7 +3,7 @@
 
 #include "defines.h"
 
-#if defined(ARDUINO_ARCH_ESP32) && (WIFI_ON || ETHERNET_ON)
+#if defined(ARDUINO_ARCH_ESP32)
 
 #include <Arduino.h>
 #include <functional>
