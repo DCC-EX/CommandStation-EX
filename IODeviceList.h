@@ -50,13 +50,9 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_WaveShare.h"
 #include "IO_PCF85063.h"
 #include "IO_NVSMap.h"
-<<<<<<< HEAD
 #if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE)
 #include "IO_ServoESP.h"
 #endif
-=======
 #if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE) && defined(EXTURNTABLE_ONBOARD)
 #include "IO_EXTurntable_Onboard.h"
 #endif
-
->>>>>>> devel_RT_EX_Turntable
