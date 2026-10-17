@@ -225,13 +225,13 @@ bool exrailHalSetup1() {
 // Sensors created here 
 #undef SHARED_SENSOR
 #define SHARED_SENSOR(vpin,count...) \
-  Sensor::createNode(vpin,count+0? count+0:1);
+  Sensor::createNode(vpin,count);
 #undef JMRI_SENSOR
 #define JMRI_SENSOR(vpin,count...) \
-  Sensor::createJMRI(vpin,count+0? count+0:1,true);
+  Sensor::createJMRI(vpin,vpin,true,count);
 #undef JMRI_SENSOR_NOPULLUP
 #define JMRI_SENSOR_NOPULLUP(vpin,count...) \
-  Sensor::createJMRI(vpin,count+0? count+0:1,false);
+  Sensor::createJMRI(vpin,vpin,false,count);
 
 void exrailHalSetup2() {
    #include "myAutomation.h"

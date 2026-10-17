@@ -139,7 +139,7 @@ void Sensor::check(){
       if (tellJMRI)
         CommandDistributor::broadcastSensor(id,active);
       if (tellNodes)
-        NodeManager::castVpin(vpin,1,active?1:0);
+        NodeManager::castSharedSensorChange(vpin,active?1:0);
       if (tellEXRAIL)
         RMFT2::sensorEvent(vpin,active);
     }
@@ -167,7 +167,7 @@ void AnalogSensor::check(){
 void Sensor::shareNodesToCS(){
   for(auto ss=firstSensor;ss;ss=ss->nextSensor){
     if (ss->tellNodes)
-      NodeManager::castVpin(ss->vpin,1,ss->active?1:0);
+      NodeManager::castSharedSensorChange(ss->vpin,ss->active?1:0);
   }
 }
 
@@ -196,6 +196,20 @@ void Sensor::dumpAllJMRI(Print *stream){
   }
 } // Sensor::dumpAll
 
+void Sensor::dumpAll(Print * stream) {
+  DIAG(F("DUMP_ALL_SENSORS"));
+  for(auto ss =firstSensor;ss;ss=ss->nextSensor) ss->dump(stream);
+}
+
+void Sensor::dump(Print * stream) {
+  StringFormatter::send(stream, F("<* SENSOR id=%d, vpin=%d %S %S %S %S *>\n"), 
+    id, vpin,
+    pullUp ? F("") : F("NOPULLUP"),
+    tellJMRI ? F("JMRI") : F(""),
+    tellNodes ? F("NODES") : F(""),
+    tellEXRAIL ? F("EXRAIL") : F(""));
+} // Sensor::dump
+
 ///////////////////////////////////////////////////////////////////////////////
 // Static Function to create/find Sensor object.
 
@@ -205,7 +219,7 @@ Sensor::Sensor(int id, VPIN vpin, bool pullUp){
   this->id = id;
   this->vpin = vpin;
   this->pullUp = pullUp;
-  IODevice::configureInput(vpin, pullUp?INPUT_PULLUP:INPUT);
+  IODevice::configureInput(vpin, pullUp);
   tellJMRI=false;
   tellNodes=false;
   tellEXRAIL=false;
@@ -213,10 +227,12 @@ Sensor::Sensor(int id, VPIN vpin, bool pullUp){
   active = 0;
   inputState = 0;
   latchDelay = minReadCount;
+  DIAG(F("Sensor created: id=%d, vpin=%d, pullUp=%d"), id, vpin, pullUp);
 }
 
-// Creet multiple eponymous sensors based on vpin alone. 
-bool Sensor::createJMRI(int id,VPIN firstPin,bool pullup, byte count) {
+// Creet multiple jmri sensors based on id and vpin 
+bool Sensor::createJMRI(int id,VPIN firstPin,bool pullup, int count) {
+  DIAG(F("JMRI_SENSOR(%d,%d,%d)"), id, firstPin, count);
   for (int slot=0;slot<count;slot++) {
     auto ss=get(id+slot, firstPin+slot);
     if (!ss) ss=new Sensor(id+slot,firstPin+slot,pullup);
@@ -226,16 +242,22 @@ bool Sensor::createJMRI(int id,VPIN firstPin,bool pullup, byte count) {
   return true;
 }
 
-bool Sensor::createNode(VPIN vpin){
-  auto ss=getByVpin(vpin);
-  if (!ss) ss=new Sensor(0,vpin,true); 
-  ss->tellNodes=true;
+bool Sensor::createNode(VPIN vpin,int count){
+  DIAG(F("SHARED_SENSOR(%d,%d)"), vpin, count);
+  for (int slot=0;slot<count;slot++) {
+    auto ss=getByVpin(vpin+slot);
+    if (!ss) ss=new Sensor(0,vpin+slot,true); 
+    if (!ss) return false;
+    ss->tellNodes=true;
+  }
   return true;
 }
 
 bool Sensor::createEXRAIL(VPIN vpin, bool analogue){
+  DIAG(F("EXRAIL_SENSOR(%d,%d)"), vpin, analogue);
   if (analogue) {
     auto ss=new AnalogSensor(vpin);
+    ss->tellEXRAIL=true;
     return true;
   }
   auto ss=getByVpin(vpin); // EXRAIL sensors have id=vpin

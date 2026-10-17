@@ -182,7 +182,7 @@ ZZ(S,id,vpin,pullup)  // Create Sensor
         CHECK(Sensor::createJMRI(id,vpin,pullup)) 
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
-ZZ(S)   // List sensors
+ZZ(S)   // List sensors as seen by old dcc++
         Sensor::dumpAllJMRI(stream);           
 ZZ(J,M) // List stash values
         Stash::list(stream);
@@ -314,7 +314,7 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
         tto->addPosition(id,value,angle);
         REPLY("<I>\n")
 
- ZZ(Q) // List all sensors 
+ ZZ(Q) // List all sensors seen by throttles/jmri 
         Sensor::printAllJMRI(stream);
 
  ZZ(s) // Command station status
@@ -404,7 +404,10 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
+  Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
+ZZ(D,SENSORS) 
+  Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station

@@ -29,12 +29,13 @@
 class Sensor{
   friend class AnalogSensor;
   public: 
-    static bool createJMRI(int id, VPIN vpin, bool pullUp, byte count=1);
-    static bool createNode(VPIN vpin);
+    static bool createJMRI(int id, VPIN vpin, bool pullUp, int count=1);
+    static bool createNode(VPIN vpin,int count=1);
     static bool createEXRAIL(VPIN vpin, bool analogue=false);
 
     static void removeJMRI(int id);  
     static void loop();
+    static void dumpAll(Print * stream);
     static void printAllJMRI(Print *stream);
     static void dumpAllJMRI(Print* stream);
     static void shareNodesToCS();
@@ -67,11 +68,11 @@ private:
 
   Sensor(int id,VPIN vpin, bool pullup); 
   virtual void check();
+  virtual void dump(Print * stream);
   static Sensor* get(int id, VPIN vpin);
   static Sensor* getByVpin(VPIN vpin);
   static Sensor* getById(int id);
-  
-  
+    
      
   static unsigned long lastReadCycle; // value of micros at start of last read cycle
   static const unsigned int cycleInterval = 10000; // min time between consecutive reads of each sensor in microsecs.
