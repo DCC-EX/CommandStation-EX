@@ -74,7 +74,7 @@ decide to ignore the <q ID> return and only react to <Q ID> triggers.
 #include "defines.h"
 #include "StringFormatter.h"
 #include "CommandDistributor.h"
-#include "Nodemanager.h"
+#include "NodeManager.h"
 #include "EXRAIL2.h"
 #include "Sensors.h"
 #include "IODevice.h"
