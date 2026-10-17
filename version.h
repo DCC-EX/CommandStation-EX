@@ -3,7 +3,13 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.11"
+#define VERSION "5.9.12"
+// 5.9.12 - Unified sensor polling internals
+//        - D SENSORS command for diagnostics
+//        - EXRAIL ONBUTTONUP
+//        - EXRAIL DCC_SIGNALL for linear address
+//        - EXRAIL </> showa paused state
+//        - System preferences in HTML refer by name 
 // 5.9.11 - Add IO_ServoESP for nodes
 //        - Add IO_EXTurntable_Onboard for nodes
 // 5.9.10 - ESP32 bugfix: DCCEXanalogCopyChannel() parameter mismatch (int8_t vs int16_t) causing compile error in DCCTimerESP5.cpp
