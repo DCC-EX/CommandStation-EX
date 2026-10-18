@@ -36,7 +36,7 @@ public:
 private:
     static Roster * find(int locoId);
     Roster();
-    void sendToThrottle(Print * stream);
+    void sendToThrottle(Print * stream,bool asSave=false);
     static Roster * first;
     Roster * next;
     int locoId;

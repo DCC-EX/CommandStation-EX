@@ -21,6 +21,9 @@
 #include "defines.h"
 #include "Roster.h"
 #include "StringFormatter.h"
+#include "DCCEXParser.h"
+#include "StringBuffer.h"
+#include "DIAG.h"
 
 void Roster::create(int locoId, const char* name, const char* functionMap) {
     auto rr=find(locoId);
@@ -66,12 +69,49 @@ void Roster::sendToThrottle(int locoId, Print * stream) {
     else StringFormatter::send(stream,F("<jR %d X>\n"), locoId);
 }
 
-void Roster::save() {
-    // Implementation for saving the roster
-}
+
+static const char EEPROM_HEADER[11] = "DCC-EX-NVS";
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "Preferences.h"
+
+// Load NVS values from Preferences
 void Roster::load() {
-    // Implementation for loading the roster
+  Preferences prefs;
+  prefs.begin(EEPROM_HEADER, true); // Read-only
+  auto savedSize = prefs.getBytesLength("Roster");  
+  if (savedSize>0) {
+    char buffer[savedSize+1];
+    prefs.getBytes("Roster", buffer, savedSize);
+    buffer[savedSize] = '\0'; // Null-terminate the buffer just in case
+    DCCEXParser::parse(&USB_SERIAL, buffer); // Load the saved NVS values into the nvs array
+    }
+  prefs.end();
+  DIAG(F("Roster::load completed"));
 }
+
+void Roster::save() {
+  StringBuffer sb(4096);// ESP32 Preferences library requires a key-value pair for each entry, so we will store the entire NVS table as a single byte array under the key "NVSTable".
+  for (auto rr = first; rr; rr = rr->next)
+      if (rr->locoId >= 0) rr->sendToThrottle(&sb,true);
+  Preferences prefs;
+  prefs.begin(EEPROM_HEADER, false); // Read-write
+  prefs.putBytes("Roster", sb.getString(), sb.getLength());
+  prefs.end();
+  DIAG(F("Roster::save completed"));
+}
+
+#else
+
+// STM32 version not yet implemented
+void Roster::load() {
+  DIAG(F("Roster::load() not yet implemented for STM32"));
+}
+
+void Roster::save()  {
+  DIAG(F("Roster::save() not yet implemented for STM32"));
+}
+#endif
 
 /*** PRIVATE STATICS *****/
 Roster* Roster::first = nullptr;
@@ -92,9 +132,9 @@ Roster::Roster() {
     functionMap=nullptr;
 }
 
-void Roster::sendToThrottle(Print * stream) {
-       StringFormatter::send(stream,F("<jR %d \"%S\" \"%S\" >\n"),
-        locoId, name, functionMap?functionMap:"");
+void Roster::sendToThrottle(Print * stream,bool asSave) {
+       StringFormatter::send(stream,F("<%cR %d \"%S\" \"%S\" >\n"),
+       asSave?'J':'j', locoId, name, functionMap?functionMap:"");
 }
  
 void Roster::sendToWithrottle(Print * stream) {

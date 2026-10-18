@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.12"
+#define VERSION "5.9.13"
+// 5.9.13 - Runtime roster commands and save (ESP32 save only)
 // 5.9.12 - Unified sensor polling internals
 //        - D SENSORS command for diagnostics
 //        - EXRAIL ONBUTTONUP
