@@ -53,11 +53,11 @@ void Roster::remove(int locoId) {
 }
 
 void Roster::sendIdsToThrottle(Print * stream) {
-    stream->print("<jR ");
+    stream->print("<jR");
     for (auto rr = first; rr; rr = rr->next) {
         if (rr->locoId >= 0) {
-            stream->print(rr->locoId);
             stream->print(" ");
+            stream->print(rr->locoId);
         }
     }
     stream->println(">\n");
@@ -133,7 +133,7 @@ Roster::Roster() {
 }
 
 void Roster::sendToThrottle(Print * stream,bool asSave) {
-       StringFormatter::send(stream,F("<%cR %d \"%S\" \"%S\" >\n"),
+       StringFormatter::send(stream,F("<%cR %d \"%S\" \"%S\">\n"),
        asSave?'J':'j', locoId, name, functionMap?functionMap:"");
 }
  
