@@ -126,6 +126,7 @@ Once a new OPCODE is decided upon, update this list.
 #include "EXNetwork.h"
 #include "EXNetworkPreferences.h"
 #include "Sensors.h"
+#include "Roster.h"
 
 // This macro can't be created easily as a portable function because the
 // flashlist requires a far pointer for high flash access. 

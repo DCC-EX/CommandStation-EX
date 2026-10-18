@@ -106,8 +106,9 @@ void IODevice::begin() {
 
   // apply any second pass HAL setup from EXRAIL.
   // This will typically set up servo profiles, or create turnouts.
+  // it also includes roster entries from myAutomation.h
   if (exrailHalSetup2)
-    exrailHalSetup2();
+    exrailHalSetup2();  
 }
 
 // reset() function to reinitialise all devices

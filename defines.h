@@ -100,4 +100,12 @@
     #define IP_PORT 2560
 #endif
 
+#ifndef HIGHEST_SHORT_ADDR
+  #define HIGHEST_SHORT_ADDR 127
+#else
+  #if HIGHEST_SHORT_ADDR > 127
+    #error short addr greater than 127 does not make sense
+  #endif
+#endif
+
 #endif //DEFINES_H

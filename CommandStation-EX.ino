@@ -97,6 +97,10 @@ void setup()
 // Initialise HAL layer before reading EEprom or setting up MotorDrivers 
   IODevice::begin();
 
+// load saved roster if any after initializing IO devices because thats where 
+// exrail loads its predefined roster entries.)  
+  Roster::load(); 
+
   // As the setup of a motor shield may require a read of the current sense input from the ADC,
   // let's make sure to initialise the ADCee class!
   ADCee::begin();

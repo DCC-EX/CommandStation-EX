@@ -6,7 +6,7 @@
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022 Colin Murdoch
  *  All rights reserved.
  *  
@@ -224,21 +224,18 @@ ZZ(J,S,signal_id) // get signal state and description
         }
         auto description=s->getDescription();
         REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
-ZZ(J,R) // List Roster
-        REPLY("<jR") 
-        #ifdef EXRAIL_ACTIVE
-        SENDFLASHLIST(stream,RMFT2::rosterIdList) 
-        #endif                
-        REPLY(">\n");      
-#ifdef EXRAIL_ACTIVE
-ZZ(J,R,id) // Get roster for loco
-        auto rosterName= RMFT2::getRosterName(id);
-        if (!rosterName) rosterName=F("");
-        auto functionNames= RMFT2::getRosterFunctions(id);
-        if (!functionNames) functionNames=RMFT2::getRosterFunctions(0);
-        if (!functionNames) functionNames=F("");
-        REPLY("<jR %d \"%S\" \"%S\">\n",id, rosterName, functionNames)
-#endif
+ZZ(J,R) // List Roster ids
+        Roster::sendIdsToThrottle(stream); 
+ZZ(J,R,SAVE) // Save the roster to persistent storage
+        Roster::save();
+ZZ(J,R,locoid) // Get roster for loco
+        Roster::sendToThrottle(locoid,stream);
+ZZ(J,R,locoid,DELETE) // Delete roster entry
+        Roster::remove(locoid);
+ZZ(J,R,locoid,name,functionMap) // Update/add roster entry
+        CHECKQ(name)
+        CHECKQ(functionMap)
+        Roster::create(locoid,q_name,q_functionMap);
 ZZ(J,T) // Get turnout list 
         REPLY("<jT")
         for ( auto t=Turnout::first(); t; t=t->next()) if (!t->isHidden())  REPLY(" %d",t->getId()) 
@@ -406,7 +403,7 @@ ZZ_nodoc(D,SHARE) // dev testing nodes only
   Turnout::shareNodesToCS();
   Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
-ZZ(D,SENSORS) 
+ZZ(D,SENSORS) // Show sensor task list diagnostics
   Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;

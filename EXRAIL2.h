@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -64,7 +64,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ONCLOSE, OPCODE_ONTHROW,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
              OPCODE_ONACTIVATE,OPCODE_ONDEACTIVATE,
-             OPCODE_ROSTER,OPCODE_KILLALL,
+             OPCODE_KILLALL,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,
              OPCODE_ENDTASK,OPCODE_ENDEXRAIL,
              OPCODE_SET_TRACK,OPCODE_SET_POWER,
@@ -139,7 +139,6 @@ enum BlinkState: byte {
 
   // Flag bits for compile time features.
   static const byte FEATURE_LCC   = 0x40;
-  static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
   // spare = 0x08;
   static const byte FEATURE_BLINK = 0x04;
@@ -198,14 +197,10 @@ class LookList {
 #endif
     static void blockEvent(int16_t block, int16_t loco, bool entering);
     // Throttle Info Access functions built by exrail macros 
-  static const byte rosterNameCount;
   static const int16_t HIGHFLASH routeIdList[];
   static const int16_t HIGHFLASH automationIdList[];
-  static const int16_t HIGHFLASH rosterIdList[];
   static const FSH *  getRouteDescription(int16_t id);
   static char   getRouteType(int16_t id);
-  static const FSH *  getRosterName(int16_t id);
-  static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);

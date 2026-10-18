@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -232,6 +232,9 @@ bool exrailHalSetup1() {
 #undef JMRI_SENSOR_NOPULLUP
 #define JMRI_SENSOR_NOPULLUP(vpin,count...) \
   Sensor::createJMRI(vpin,vpin,false,count);
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) \
+ Roster::create(cabid,name,funcmap);
 
 void exrailHalSetup2() {
    #include "myAutomation.h"
@@ -461,45 +464,6 @@ const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t 
    #include "myAutomation.h"
    return NULL;
 }
-
-// Pass 6: Roster IDs (count)
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) +(cabid <= 0 ? 0 : 1)
-const byte RMFT2::rosterNameCount=0
-   #include "myAutomation.h"
-   ;
-   
-// Pass 6: Roster IDs 
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) cabid,
-const int16_t HIGHFLASH  RMFT2::rosterIdList[]={
-   #include "myAutomation.h"
-   INT16_MAX};
-
-// Pass 7: Roster names getter
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) case cabid: return F(name);
-const FSH * RMFT2::getRosterName(int16_t id) {
-   switch(id) {
-      #include "myAutomation.h"
-   default: break;
-   }
-   return F("");   
-} 
-
-// Pass to get roster functions 
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
-const FSH * RMFT2::getRosterFunctions(int16_t id) {
-   switch(id) {
-      #include "myAutomation.h"
-   default: break; 
-   }   
-   return NULL;
-} 
 
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
