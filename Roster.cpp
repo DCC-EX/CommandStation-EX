@@ -63,7 +63,7 @@ void Roster::sendIdsToThrottle(Print * stream) {
 void Roster::sendToThrottle(int locoId, Print * stream) {
     auto rr=find(locoId);
     if (rr) rr->sendToThrottle(stream); 
-    else StringFormatter::send(stream,F("<jR %s X>\n"), locoId);
+    else StringFormatter::send(stream,F("<jR %d X>\n"), locoId);
 }
 
 void Roster::save() {
