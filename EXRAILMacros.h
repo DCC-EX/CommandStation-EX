@@ -25,6 +25,7 @@
 #ifndef EXRAILMacros_H
 #define EXRAILMacros_H
 #include "IODeviceList.h"
+#include "EXRAIL2.h"
 
 // remove normal code LCD & SERIAL macros (will be restored later)
 #undef LCD
@@ -79,6 +80,24 @@
 
 // NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
 #define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
+
+// LSS Virtual Pin Helpers (base is the first virtual pin assigned in HAL(IO_LSS, base, 32, addr))
+#define LSS_PIN_SLOT(base, slot)       ((base) + (slot))         // Audio Slots 0-15 (0=Idle, 1=Playing)
+#define LSS_PIN_ENGINE(base, engine)   ((base) + 16 + (engine))  // Script Engines 0-3 State (0=IDLE, 1=BUSY)
+#define LSS_PIN_LINE(base, engine)     ((base) + 20 + (engine))  // Script Engines 0-3 Current Line Number
+#define LSS_PIN_SYS_STATUS(base)       ((base) + 24)             // Global SYS_STATUS Bitmask
+#define LSS_PIN_TEMP(base)             ((base) + 25)             // RP2350 Die Temperature (signed tenths of deg C)
+#define LSS_PIN_CURRENT(base)          ((base) + 26)             // INA219 Supply Current (mA)
+#define LSS_PIN_VOLTAGE(base)          ((base) + 27)             // INA219 Rail Voltage (mV)
+#define LSS_PIN_POWER(base)            ((base) + 28)             // INA219 Power Consumption (mW)
+#define LSS_PIN_CORE0_LOAD(base)       ((base) + 29)             // Core 0 Peak CPU Load (%)
+#define LSS_PIN_CORE1_LOAD(base)       ((base) + 30)             // Core 1 Peak CPU Load (%)
+#define LSS_PIN_OLED(base)             ((base) + 31)             // OLED Page (0-5, R/W)
+#define LSS_PIN_OLED_PAGE(base)        LSS_PIN_OLED(base)        // Alias for LSS_PIN_OLED
+
+// LSS Parameter Constants
+#define LSS_STARTUP_SCRIPT             0xFFFF                    // Special Script ID targeting startup.txt
+
 
 // Collection of macros to assist variadic exrail macros
 // in particular RANDOMCALL and RANDOMFOLLOW
@@ -686,8 +705,46 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LSS_GLOBAL_RESET(vpin)                     ANOUT(vpin, 0, 0, DFPlayerBase::DF_LSS_GLOBAL_RESET)
 #define LSS_GLOBAL_MUTE(vpin, mute)                ANOUT(vpin, mute, 0, DFPlayerBase::DF_LSS_GLOBAL_MUTE)
 #define LSS_OLED_PAGE(vpin, page)                  ANOUT(vpin, page, 0, DFPlayerBase::DF_LSS_OLED_PAGE)
-#define LSS_RUN_SCRIPT(vpin, script_id, engine_id) ANOUT(vpin, script_id, engine_id, DFPlayerBase::DF_LSS_RUN_SCRIPT)
-#define LSS_STOP_SCRIPT(vpin, engine_id)           ANOUT(vpin, 0, engine_id, DFPlayerBase::DF_LSS_STOP_SCRIPT)
+#define LSS_RUN_SCRIPT(vpin, script_id, engine_id...) ANOUT(vpin, script_id, engine_id+0, DFPlayerBase::DF_LSS_RUN_SCRIPT)
+#define LSS_STOP_SCRIPT(vpin, engine_id...)           ANOUT(vpin, 0, engine_id+0, DFPlayerBase::DF_LSS_STOP_SCRIPT)
+
+// LSS Condition & Synchronization Aliases
+// Audio Slot Playback
+#define LSS_WAIT_SLOT(vpin)                       WAITFOR(vpin)                                  // Wait for audio slot to finish playing
+#define LSS_IF_PLAYING(vpin)                      IF(vpin)                                       // True if audio slot is currently playing
+#define LSS_IF_STOPPED(vpin)                      IFNOT(vpin)                                    // True if audio slot is idle / stopped
+
+// Audio Slot Lifecycle & Memory Status (REG_SLOT_STATUS 0x23)
+#define LSS_IF_SLOT_ASSIGNED(vpin)                IFBITMAP_ALL(vpin, 0x01)                       // True while a file is assigned / being flushed
+#define LSS_IF_SLOT_EMPTY(vpin)                   IFLT(vpin, 1)                                  // True when slot is completely unassigned (status == 0)
+#define LSS_IF_SLOT_LOADING(vpin)                 IFBITMAP_ALL(vpin, 0x02)                       // True while slot is buffering data from SD
+#define LSS_IF_SLOT_READY(vpin)                   IFBITMAP_ALL(vpin, 0x04)                       // True when sample is primed in PSRAM, ready to play
+#define LSS_IF_SLOT_ERROR(vpin)                   IFBITMAP_ALL(vpin, 0x08)                       // True if slot failed validation or load error
+
+// Script Engine Synchronization
+#define LSS_WAIT_STARTUP(base)                    WAITFOR(LSS_PIN_ENGINE(base, 0))               // Wait for startup.txt (Engine 0) to finish preload
+#define LSS_WAIT_ENGINE(base, engine)             WAITFOR(LSS_PIN_ENGINE(base, engine))          // Wait for script engine (0-3) to finish
+#define LSS_IF_ENGINE_BUSY(base, engine)          IF(LSS_PIN_ENGINE(base, engine))               // True if script engine is executing
+#define LSS_IF_ENGINE_IDLE(base, engine)          IFNOT(LSS_PIN_ENGINE(base, engine))            // True if script engine is idle
+#define LSS_IF_SCRIPT_LINE_GTE(base, engine, line) IFGTE(LSS_PIN_LINE(base, engine), line)       // True if script has reached or passed line
+
+// System Hardware & Expansion Detection (REG_SYS_STATUS 0x02)
+#define LSS_IF_8CH(base)                          IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x20)   // True if 4-Ch Amp expansion board fitted (8 outputs 0-7)
+#define LSS_IF_EXPANSION(base)                    IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x20)   // Alias for LSS_IF_8CH
+#define LSS_IF_SD_READY(base)                     IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x01)   // True if MicroSD card mounted and ready
+#define LSS_IF_PSRAM_READY(base)                  IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x02)   // True if 8MB PSRAM initialized and ready
+#define LSS_IF_AUDIO_READY(base)                  IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x10)   // True if audio DSP pipeline initialized
+#define LSS_IF_OLED_DETECTED(base)                IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x40)   // True if SSD1306 OLED display detected
+
+// Telemetry & Protection Thresholds
+#define LSS_IF_TEMP_OVER(base, degC)              IFGTE(LSS_PIN_TEMP(base), ((degC) * 10))       // True if RP2350 die temp >= degC (auto converts to 0.1C)
+#define LSS_IF_CURRENT_OVER(base, mA)             IFGTE(LSS_PIN_CURRENT(base), mA)               // True if board current draw >= mA
+#define LSS_IF_VOLTAGE_UNDER(base, mV)            IFLT(LSS_PIN_VOLTAGE(base), mV)                // True if rail voltage < mV (brownout alert)
+#define LSS_IF_VOLTAGE_OVER(base, mV)             IFGTE(LSS_PIN_VOLTAGE(base), mV)               // True if rail voltage >= mV (overvoltage alert)
+#define LSS_IF_POWER_OVER(base, mW)               IFGTE(LSS_PIN_POWER(base), mW)                 // True if total board power >= mW
+#define LSS_IF_CORE0_LOAD_OVER(base, pct)         IFGTE(LSS_PIN_CORE0_LOAD(base), pct)           // True if Core 0 CPU peak load >= pct (0-100%)
+#define LSS_IF_CORE1_LOAD_OVER(base, pct)         IFGTE(LSS_PIN_CORE1_LOAD(base), pct)           // True if Core 1 (DSP audio) peak load >= pct (0-100%)
+
 
 #define POM(cv,value) OPCODE_POM,V(cv),OPCODE_PAD,V(value),
 #define POWEROFF OPCODE_POWEROFF,0,0,

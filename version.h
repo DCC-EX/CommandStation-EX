@@ -3,6 +3,10 @@
 
 #include "StringFormatter.h"
 
+// Work log IO_LSS.h
+// 2026-10-18 IO_LSS.h mostly complete, proceed to test new EXRAIL macros/aliases for the LSS
+// 
+
 #define VERSION "5.7.8"
 // 5.7.8  - Bugfix: Incorrect parser limit on prog track tuning command values
 // 5.7.7  - BugFix: EXRAIL READ_LOCO IFLOCO(0)

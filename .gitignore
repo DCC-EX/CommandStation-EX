@@ -18,3 +18,5 @@ UserAddin.txt
 _build
 venv
 .DS_Store
+/.agents
+AGENTS.md

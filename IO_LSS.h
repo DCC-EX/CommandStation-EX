@@ -15,7 +15,7 @@
 #ifndef IO_LSS_h
 #define IO_LSS_h
 
-#define DEBUG_LSS_I2C // Uncomment to enable I2C read/write diagnostic logging
+//#define DEBUG_LSS_I2C // Uncomment to enable I2C read/write diagnostic logging
 
 #include "IO_DFPlayerBase.h"
 #include "I2CManager.h"
@@ -52,7 +52,40 @@ private:
     REG_SCRIPT_ENG0_BASE = 0x30,
     REG_SCRIPT_ENG1_BASE = 0x38,
     REG_SCRIPT_ENG2_BASE = 0x40,
-    REG_SCRIPT_ENG3_BASE = 0x48
+    REG_SCRIPT_ENG3_BASE = 0x48,
+
+    // INA219 Power Monitor Telemetry
+    REG_CURRENT_LSB     = 0x50, // INA219 Current LSB (16-bit, mA)
+    REG_CURRENT_MSB     = 0x51, // INA219 Current MSB
+    REG_VOLTAGE_LSB     = 0x52, // INA219 Bus Voltage LSB (16-bit, mV)
+    REG_VOLTAGE_MSB     = 0x53, // INA219 Bus Voltage MSB
+    REG_POWER_LSB       = 0x54, // INA219 Power LSB (16-bit, mW)
+    REG_POWER_MSB       = 0x55  // INA219 Power MSB
+  };
+
+  // Pin offset definitions for virtual pins (0 to 31) relative to _firstVpin
+  enum LSS_PinOffset : uint8_t {
+    // 0 - 15: Audio Slots 0 - 15
+    OFFSET_PIN_SLOT_BASE        = 0,
+    OFFSET_PIN_SLOT_MAX         = 15,
+
+    // 16 - 19: Script Engines 0 - 3 State (0=IDLE, non-zero=BUSY)
+    OFFSET_PIN_SCRIPT_ENG_BASE  = 16,
+    OFFSET_PIN_SCRIPT_ENG_MAX   = 19,
+
+    // 20 - 23: Script Engines 0 - 3 Current Line Number (16-bit)
+    OFFSET_PIN_SCRIPT_LINE_BASE = 20,
+    OFFSET_PIN_SCRIPT_LINE_MAX  = 23,
+
+    // 24 - 31: Global Telemetry & System
+    OFFSET_PIN_SYS_STATUS       = 24, // 0x02 SYS_STATUS bitmask
+    OFFSET_PIN_TEMP             = 25, // 0x0C TEMP (signed 16-bit, tenths of deg C)
+    OFFSET_PIN_CURRENT          = 26, // 0x50 CURRENT (mA)
+    OFFSET_PIN_VOLTAGE          = 27, // 0x52 VOLTAGE (mV)
+    OFFSET_PIN_POWER            = 28, // 0x54 POWER (mW)
+    OFFSET_PIN_CORE0_LOAD       = 29, // 0x06 Core 0 peak load %
+    OFFSET_PIN_CORE1_LOAD       = 30, // 0x07 Core 1 peak load %
+    OFFSET_PIN_OLED_PAGE        = 31  // 0x05 OLED page (R/W, 0-5)
   };
 
   // Indexed I2C Registers (Slot-specific)
@@ -151,68 +184,200 @@ private:
 
   void _write(VPIN vpin, int value) override {
     if (_deviceState != DEVSTATE_NORMAL) return;
-    uint8_t slot = (uint8_t)(vpin - _firstVpin);
-    if (_activeSlot != slot) {
-      writeReg(REG_SLOT_SELECTOR, slot);
-      _activeSlot = slot;
+    uint8_t offset = (uint8_t)(vpin - _firstVpin);
+
+    // Audio Slots 0 - 15: Play / Stop
+    if (offset <= OFFSET_PIN_SLOT_MAX) {
+      if (_activeSlot != offset) {
+        writeReg(REG_SLOT_SELECTOR, offset);
+        _activeSlot = offset;
+      }
+      if (value) {
+        writeReg(REG_PLAY_CONTROL, PLAY_CTRL_PLAY); // PLAY
+      } else {
+        writeReg(REG_PLAY_CONTROL, PLAY_CTRL_STOP); // STOP
+      }
     }
-    if (value) {
-      writeReg(REG_PLAY_CONTROL, PLAY_CTRL_PLAY); // PLAY
-    } else {
-      writeReg(REG_PLAY_CONTROL, PLAY_CTRL_STOP); // STOP
+    // Script Engines 0 - 3: value=1 starts (if loaded), value=0 stops engine
+    else if (offset >= OFFSET_PIN_SCRIPT_ENG_BASE && offset <= OFFSET_PIN_SCRIPT_ENG_MAX) {
+      uint8_t engine = offset - OFFSET_PIN_SCRIPT_ENG_BASE;
+      writeReg(REG_SCRIPT_ENGINE, engine);
+      writeReg(REG_SCRIPT_CMD, value ? SCRIPT_CMD_START : SCRIPT_CMD_STOP);
     }
   }
 
   int _read(VPIN vpin) override {
     if (_deviceState != DEVSTATE_NORMAL) return 0;
-    uint8_t slot = (uint8_t)(vpin - _firstVpin);
-    if (_activeSlot != slot) {
-      writeReg(REG_SLOT_SELECTOR, slot);
-      _activeSlot = slot;
+    uint8_t offset = (uint8_t)(vpin - _firstVpin);
+
+    // Audio Slots 0 - 15: Returns 1 if playing, 0 if idle (WAITFOR support)
+    if (offset <= OFFSET_PIN_SLOT_MAX) {
+      if (_activeSlot != offset) {
+        writeReg(REG_SLOT_SELECTOR, offset);
+        _activeSlot = offset;
+      }
+      uint8_t playStatusVal = 0;
+      if (readReg(REG_PLAY_STATUS, playStatusVal) == I2C_STATUS_OK) {
+        return (playStatusVal & 0x01) ? 1 : 0; // Return 1 if IS_PLAYING (bit 0) is active
+      }
+      return 0;
     }
-    uint8_t playStatusVal = 0;
-    uint8_t playStatusReg = REG_PLAY_STATUS;
-    uint8_t status = I2CManager.read(_I2CAddress, &playStatusVal, 1, &playStatusReg, 1);
-#ifdef DEBUG_LSS_I2C
-    DIAG(F("LSS I2C read: slot=%d, reg=0x%02X, val=0x%02X, status=%d"), slot, playStatusReg, playStatusVal, status);
-#endif
-    if (status == I2C_STATUS_OK) {
-      return (playStatusVal & 0x01) ? 1 : 0; // Return 1 if IS_PLAYING (bit 0) is active
+
+    // Script Engines 0 - 3 State: Returns 1 if busy/running, 0 if IDLE (WAITFOR support)
+    if (offset >= OFFSET_PIN_SCRIPT_ENG_BASE && offset <= OFFSET_PIN_SCRIPT_ENG_MAX) {
+      uint8_t engine = offset - OFFSET_PIN_SCRIPT_ENG_BASE;
+      uint8_t reg = REG_SCRIPT_ENG0_BASE + (engine * 8); // OFFSET_SCRIPT_STATE is 0x00
+      uint8_t stateVal = 0;
+      if (readReg(reg, stateVal) == I2C_STATUS_OK) {
+        return (stateVal != 0) ? 1 : 0; // 1 = running/busy, 0 = idle
+      }
+      return 0;
     }
+
+    // Global System Status: Returns 1 if audio engine ready (bit 4)
+    if (offset == OFFSET_PIN_SYS_STATUS) {
+      uint8_t sysStatusVal = 0;
+      if (readReg(REG_SYS_STATUS, sysStatusVal) == I2C_STATUS_OK) {
+        return (sysStatusVal & 0x10) ? 1 : 0; // Bit 4 = AUDIO_ENGINE_READY
+      }
+      return 0;
+    }
+
     return 0;
   }
 
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState != DEVSTATE_NORMAL) return 0;
-    uint8_t slot = (uint8_t)(vpin - _firstVpin);
-    if (_activeSlot != slot) {
-      writeReg(REG_SLOT_SELECTOR, slot);
-      _activeSlot = slot;
+    uint8_t offset = (uint8_t)(vpin - _firstVpin);
+
+    // Audio Slots 0 - 15: Returns REG_SLOT_STATUS (0x23: Empty, Busy, Ready, Error)
+    if (offset <= OFFSET_PIN_SLOT_MAX) {
+      if (_activeSlot != offset) {
+        writeReg(REG_SLOT_SELECTOR, offset);
+        _activeSlot = offset;
+      }
+      uint8_t slotStatusVal = 0;
+      if (readReg(REG_SLOT_STATUS, slotStatusVal) == I2C_STATUS_OK) {
+        return slotStatusVal;
+      }
+      return 0;
     }
-    uint8_t slotStatusVal = 0;
-    uint8_t slotStatusReg = REG_SLOT_STATUS;
-    uint8_t status = I2CManager.read(_I2CAddress, &slotStatusVal, 1, &slotStatusReg, 1);
-#ifdef DEBUG_LSS_I2C
-    DIAG(F("LSS I2C readAnalogue: slot=%d, reg=0x%02X, val=0x%02X, status=%d"), slot, slotStatusReg, slotStatusVal, status);
-#endif
-    if (status == I2C_STATUS_OK) {
-      return slotStatusVal;
+
+    // Script Engines 0 - 3 State: Returns raw state byte (0x00 IDLE, 0x01 EXEC, etc.)
+    if (offset >= OFFSET_PIN_SCRIPT_ENG_BASE && offset <= OFFSET_PIN_SCRIPT_ENG_MAX) {
+      uint8_t engine = offset - OFFSET_PIN_SCRIPT_ENG_BASE;
+      uint8_t reg = REG_SCRIPT_ENG0_BASE + (engine * 8);
+      uint8_t stateVal = 0;
+      if (readReg(reg, stateVal) == I2C_STATUS_OK) {
+        return stateVal;
+      }
+      return 0;
     }
+
+    // Script Engines 0 - 3 Current Line: Returns 16-bit line number
+    if (offset >= OFFSET_PIN_SCRIPT_LINE_BASE && offset <= OFFSET_PIN_SCRIPT_LINE_MAX) {
+      uint8_t engine = offset - OFFSET_PIN_SCRIPT_LINE_BASE;
+      uint8_t reg = REG_SCRIPT_ENG0_BASE + (engine * 8) + OFFSET_SCRIPT_CURRENT_LINE_LSB;
+      uint16_t lineVal = 0;
+      if (readReg16(reg, lineVal) == I2C_STATUS_OK) {
+        return (int)lineVal;
+      }
+      return 0;
+    }
+
+    // Global Hardware System Status: Returns 0x02 bitmask
+    if (offset == OFFSET_PIN_SYS_STATUS) {
+      uint8_t sysStatusVal = 0;
+      if (readReg(REG_SYS_STATUS, sysStatusVal) == I2C_STATUS_OK) {
+        return sysStatusVal;
+      }
+      return 0;
+    }
+
+    // Internal Die Temperature: Signed 16-bit integer, tenths of deg C (e.g. 384 = 38.4 C)
+    if (offset == OFFSET_PIN_TEMP) {
+      uint16_t rawTemp = 0;
+      if (readReg16(REG_TEMP_LSB, rawTemp) == I2C_STATUS_OK) {
+        return (int16_t)rawTemp;
+      }
+      return 0;
+    }
+
+    // INA219 Current: Unsigned 16-bit integer, Milliamps (mA)
+    if (offset == OFFSET_PIN_CURRENT) {
+      uint16_t currentVal = 0;
+      if (readReg16(REG_CURRENT_LSB, currentVal) == I2C_STATUS_OK) {
+        return (int)currentVal;
+      }
+      return 0;
+    }
+
+    // INA219 Voltage: Unsigned 16-bit integer, Millivolts (mV)
+    if (offset == OFFSET_PIN_VOLTAGE) {
+      uint16_t voltVal = 0;
+      if (readReg16(REG_VOLTAGE_LSB, voltVal) == I2C_STATUS_OK) {
+        return (int)voltVal;
+      }
+      return 0;
+    }
+
+    // INA219 Power: Unsigned 16-bit integer, Milliwatts (mW)
+    if (offset == OFFSET_PIN_POWER) {
+      uint16_t powerVal = 0;
+      if (readReg16(REG_POWER_LSB, powerVal) == I2C_STATUS_OK) {
+        return (int)powerVal;
+      }
+      return 0;
+    }
+
+    // Core 0 Peak Load (0 - 100%)
+    if (offset == OFFSET_PIN_CORE0_LOAD) {
+      uint8_t loadVal = 0;
+      if (readReg(REG_CORE0_PEAK_LOAD, loadVal) == I2C_STATUS_OK) {
+        return loadVal;
+      }
+      return 0;
+    }
+
+    // Core 1 Peak Load (0 - 100%)
+    if (offset == OFFSET_PIN_CORE1_LOAD) {
+      uint8_t loadVal = 0;
+      if (readReg(REG_CORE1_PEAK_LOAD, loadVal) == I2C_STATUS_OK) {
+        return loadVal;
+      }
+      return 0;
+    }
+
+    // OLED Page (0 - 5)
+    if (offset == OFFSET_PIN_OLED_PAGE) {
+      uint8_t pageVal = 0;
+      if (readReg(REG_OLED_PAGE, pageVal) == I2C_STATUS_OK) {
+        return pageVal;
+      }
+      return 0;
+    }
+
     return 0;
   }
 
   void _writeAnalogue(VPIN vpin, int v1, uint8_t v2=0, uint16_t cmd=0) override {
     if (_deviceState != DEVSTATE_NORMAL) return;
 
+    uint8_t offset = (uint8_t)(vpin - _firstVpin);
+    if (offset == OFFSET_PIN_OLED_PAGE) {
+      writeReg(REG_OLED_PAGE, (uint8_t)v1);
+      return;
+    }
+
     auto selectSlot = [this, vpin]() {
       uint8_t slot = (uint8_t)(vpin - _firstVpin);
-      if (_activeSlot != slot) {
+      if (slot <= OFFSET_PIN_SLOT_MAX && _activeSlot != slot) {
         writeReg(REG_SLOT_SELECTOR, slot);
         _activeSlot = slot;
       }
     };
 
-    switch (cmd) {
+    switch (cmd & 0xFF) {
       // Standard DFPlayer compatibility mapping
       case DF_PLAY:
       case DF_REPEATPLAY:
@@ -313,22 +478,52 @@ private:
         writeReg(REG_OLED_PAGE, (uint8_t)v1);
         break;
 
-      case DF_LSS_RUN_SCRIPT:
-        // v1 = script_id, v2 = engine_id
-        writeReg(REG_SCRIPT_ENGINE, (uint8_t)v2);
+      case DF_LSS_RUN_SCRIPT: {
+        uint8_t offset = (uint8_t)(vpin - _firstVpin);
+        uint8_t engine = (offset >= OFFSET_PIN_SCRIPT_ENG_BASE && offset <= OFFSET_PIN_SCRIPT_ENG_MAX)
+                         ? (offset - OFFSET_PIN_SCRIPT_ENG_BASE)
+                         : (uint8_t)v2;
+        writeReg(REG_SCRIPT_ENGINE, engine);
         writeReg16(REG_SCRIPT_ID, (uint16_t)v1); // script_id LSB/MSB
         writeReg(REG_SCRIPT_CMD, SCRIPT_CMD_START);           // START script
         break;
+      }
 
-      case DF_LSS_STOP_SCRIPT:
-        // v2 = engine_id
-        writeReg(REG_SCRIPT_ENGINE, (uint8_t)v2);
+      case DF_LSS_STOP_SCRIPT: {
+        uint8_t offset = (uint8_t)(vpin - _firstVpin);
+        uint8_t engine = (offset >= OFFSET_PIN_SCRIPT_ENG_BASE && offset <= OFFSET_PIN_SCRIPT_ENG_MAX)
+                         ? (offset - OFFSET_PIN_SCRIPT_ENG_BASE)
+                         : (uint8_t)v2;
+        writeReg(REG_SCRIPT_ENGINE, engine);
         writeReg(REG_SCRIPT_CMD, SCRIPT_CMD_STOP);           // STOP script
         break;
+      }
     }
   }
 
-  // Helper functions for I2C register writes
+  // Helper functions for I2C register reads and writes
+  uint8_t readReg(uint8_t reg, uint8_t &val) {
+    uint8_t regAddr = reg;
+    uint8_t status = I2CManager.read(_I2CAddress, &val, 1, &regAddr, 1);
+#ifdef DEBUG_LSS_I2C
+    DIAG(F("LSS I2C readReg: reg=0x%02X, val=0x%02X, status=%d"), reg, val, status);
+#endif
+    return status;
+  }
+
+  uint8_t readReg16(uint8_t reg, uint16_t &val) {
+    uint8_t buf[2] = {0, 0};
+    uint8_t regAddr = reg;
+    uint8_t status = I2CManager.read(_I2CAddress, buf, 2, &regAddr, 1);
+    if (status == I2C_STATUS_OK) {
+      val = (uint16_t)buf[0] | ((uint16_t)buf[1] << 8);
+    }
+#ifdef DEBUG_LSS_I2C
+    DIAG(F("LSS I2C readReg16: reg=0x%02X, val=0x%04X, status=%d"), reg, val, status);
+#endif
+    return status;
+  }
+
   uint8_t writeReg(uint8_t reg, uint8_t val) {
 #ifdef DEBUG_LSS_I2C
     DIAG(F("LSS I2C write: reg=0x%02X, val=0x%02X"), reg, val);

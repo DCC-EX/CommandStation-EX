@@ -185,12 +185,53 @@ Sets the active page on the LSS board's OLED screen.
 #### `LSS_RUN_SCRIPT(vpin, script_id, engine_id)`
 Triggers execution of layout sequence script `script_id` on the board's engine `engine_id`.
 *   **vpin:** Any LSS slot virtual pin.
-*   **script_id:** 3-digit sequence ID (0–999, or `0xFFFF` for `startup.txt`).
-*   **engine_id:** Script engine channel (0–3).
-*   *Maps to:* `ANOUT(vpin, script_id, engine_id, 13)`
+*   **script_id:** 3-digit sequence ID (0–999), or `LSS_STARTUP_SCRIPT` (`0xFFFF`) for `startup.txt`.
+*   **engine_id:** Script engine channel (0–3, optional, defaults to 0).
+*   *Maps to:* `ANOUT(vpin, script_id, engine_id, DFPlayerBase::DF_LSS_RUN_SCRIPT)`
 
 #### `LSS_STOP_SCRIPT(vpin, engine_id)`
 Halts script execution on the specified engine ID.
 *   **vpin:** Any LSS slot virtual pin.
 *   **engine_id:** Script engine channel (0–3).
 *   *Maps to:* `ANOUT(vpin, 0, engine_id, 14)`
+
+---
+
+### LSS Condition & Synchronization Macros
+
+These macros allow EX-Rail sequences to test hardware health, read onboard telemetry, synchronize with script engines, and monitor playback without dealing with low-level pin offsets or bitmasks:
+
+#### Synchronization & Playback
+*   **`LSS_WAIT_SLOT(vpin)`**: Blocks task execution until the given slot finishes playing.
+*   **`LSS_IF_PLAYING(vpin)`**: Evaluates to true if the given slot is currently playing audio.
+*   **`LSS_IF_STOPPED(vpin)`**: Evaluates to true if the slot is idle / stopped.
+
+#### Audio Slot Lifecycle & Memory Status
+*   **`LSS_IF_SLOT_ASSIGNED(vpin)`**: Evaluates to true while a sound file is assigned to the slot (useful to check while a flush is in progress).
+*   **`LSS_IF_SLOT_EMPTY(vpin)`**: Evaluates to true when the slot is completely unassigned and empty.
+*   **`LSS_IF_SLOT_LOADING(vpin)`**: Evaluates to true while the slot is actively buffering data from the MicroSD card.
+*   **`LSS_IF_SLOT_READY(vpin)`**: Evaluates to true when the sound file is fully mapped, validated, and primed in PSRAM, ready to play immediately.
+*   **`LSS_IF_SLOT_ERROR(vpin)`**: Evaluates to true if the slot encountered an error loading or validating the sound file.
+
+#### Script Engine Synchronization
+*   **`LSS_WAIT_STARTUP(base)`**: Blocks task execution until Script Engine 0 completes running `startup.txt` during boot.
+*   **`LSS_WAIT_ENGINE(base, engine)`**: Blocks task execution until Script Engine `engine` (0–3) completes execution.
+*   **`LSS_IF_ENGINE_BUSY(base, engine)`**: Evaluates to true if the script engine is actively running.
+*   **`LSS_IF_ENGINE_IDLE(base, engine)`**: Evaluates to true if the script engine is idle.
+*   **`LSS_IF_SCRIPT_LINE_GTE(base, engine, line)`**: Evaluates to true if script execution has reached or passed `line`.
+
+#### System Hardware & Expansion Detection
+*   **`LSS_IF_8CH(base)` / `LSS_IF_EXPANSION(base)`**: Evaluates to true if the 4-channel amplifier expansion daughterboard is detected (total 8 amplifier outputs available, outputs 0–7).
+*   **`LSS_IF_SD_READY(base)`**: Evaluates to true if the MicroSD card is mounted and ready.
+*   **`LSS_IF_PSRAM_READY(base)`**: Evaluates to true if the 8MB external PSRAM is initialized.
+*   **`LSS_IF_AUDIO_READY(base)`**: Evaluates to true if the RP2350 audio synthesizer pipeline is running.
+*   **`LSS_IF_OLED_DETECTED(base)`**: Evaluates to true if an SSD1306 OLED display was detected on I2C.
+
+#### Telemetry & Protection Thresholds
+*   **`LSS_IF_TEMP_OVER(base, degC)`**: Evaluates to true if RP2350 die temperature $\ge$ `degC` (automatically converts to tenths of °C).
+*   **`LSS_IF_CURRENT_OVER(base, mA)`**: Evaluates to true if total sound board current draw $\ge$ `mA`.
+*   **`LSS_IF_VOLTAGE_UNDER(base, mV)`**: Evaluates to true if rail voltage $<$ `mV` (brownout protection).
+*   **`LSS_IF_VOLTAGE_OVER(base, mV)`**: Evaluates to true if rail voltage $\ge$ `mV`.
+*   **`LSS_IF_POWER_OVER(base, mW)`**: Evaluates to true if total power $\ge$ `mW`.
+*   **`LSS_IF_CORE0_LOAD_OVER(base, pct)`**: Evaluates to true if Core 0 peak CPU load $\ge$ `pct` (0–100%).
+*   **`LSS_IF_CORE1_LOAD_OVER(base, pct)`**: Evaluates to true if Core 1 (DSP audio synthesizer) peak CPU load $\ge$ `pct`.
