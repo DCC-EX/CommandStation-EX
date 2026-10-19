@@ -3,6 +3,10 @@
 
 #include "StringFormatter.h"
 
+// ToDo:
+// Completing test program
+// Add RP2350 temerature conversion to Farenheit and Kelvin (because we can)
+
 // Work log IO_LSS.h
 // 2026-10-18 IO_LSS.h mostly complete, proceed to test new EXRAIL macros/aliases for the LSS
 // 
