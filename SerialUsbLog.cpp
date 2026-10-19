@@ -375,7 +375,7 @@ void SerialUsbLog::loop() {
 
     // Add system config menu(s) 
     new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
-    new LogPage("/Roster.html",Roster_html,"Roster");
+    new LogPage("/Roster.html",Roster_html,"Roster Editor");
     // user pages may be added later with exrail
     started = true;
     return;
