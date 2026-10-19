@@ -430,16 +430,13 @@ void SerialUsbLog::loop() {
     return;
   }
 
-  if (method == "POST" && path == "/saveRoster") {
+  if (method == "POST" && path == "/parse") {
     String body = client.readStringUntil('\0');
     auto headerEnd = body.indexOf("\r\n\r\n");
     if (headerEnd >= 0) body = body.substring(headerEnd + 4);
     body.trim();
-    DIAG(F("POST /saveRoster %s"), body.c_str());
-    if (body.startsWith("<JR ")) {
-      DCCEXParser::parse(&USB_SERIAL, body.c_str());
-      Roster::save();
-    }
+    DIAG(F("POST /parse %s"), body.c_str());
+    DCCEXParser::parse(&USB_SERIAL, body.c_str());
     client.print(
       "HTTP/1.1 200 OK\r\n"
       "Content-Type: text/plain; charset=utf-8\r\n"

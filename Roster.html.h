@@ -22,12 +22,13 @@
 
 const char Roster_html[]=R"???(
 
-<label for="locoSelector">Select a loaded locomotive to edit or delete:</label>
             <div class="selector-controls">
+                Select a roster entry:
                 <select id="locoSelector" onchange="rosterSelectLoco(this.value)">
                     <option value="">-- No locomotives loaded yet --</option>
                 </select>
                 <button class="btn-inline-danger" onclick="rosterDeleteLoco()">🗑 Delete Locomotive</button>
+                <button class="btn-inline-danger" onclick="rosterSelectLoco(locoSelector.value)">RESET</button>
             </div>
         </div>
 
@@ -36,22 +37,32 @@ const char Roster_html[]=R"???(
                 <input type="number" id="locoNumber" placeholder="e.g. 3" value="3" 
                         min="1" max="10239">
                 <label for="locoId">ID:</label>
-                <input type="text" id="locoId" placeholder="e.g. Thomas" value="Thomas">
+                <input type="text" id="locoName" placeholder="e.g. Thomas" value="Thomas">
             </div>
         </div>
     </div>
 
     <!-- Functions F0 to F32 -->
     <div class="section">
-        <h2>Decoder Functions (F0 to F32)</h2>
-        <p class="hint">Here you see all functions from F0 to F32. Check the asterisk (*) for momentary functions.</p>
+        <p>Decoder Functions.  Check the box for momentary functions.</p>
         
+        <style>
+            .functions-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 4px 16px;
+            }
+            .func-item {
+                display: grid;
+                grid-template-columns: 2.5em minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 6px;
+            }
+            .func-label { text-align: right; font-weight: bold; }
+            .func-item input[type="text"] { width: 100%; min-width: 0; box-sizing: border-box; }
+            .func-moment { white-space: nowrap; }
+        </style>
         <div class="functions-grid" id="functionsGrid"></div>
-
-        <div style="margin-top: 10px;">
-            <button class="btn" onclick="rosterSave()">Generate Roster Line</button>
-            <button class="btn btn-danger" onclick="rosterSelectLoco(locoSelector.value)">RESET</button>
-        </div>
     </div>
 
     <script>
@@ -74,7 +85,7 @@ const char Roster_html[]=R"???(
                 <span class="func-label">F${i}</span>
                 <input type="text" id="func_text_${i}" value="${defaultText}" placeholder="Function for F${i}" maxlength="20">
                 <label class="func-moment" title="Momentary Function">
-                    <input type="checkbox" id="func_star_${i}" ${defaultChecked}> *
+                    <input type="checkbox" id="func_star_${i}" ${defaultChecked}> 
                 </label>
             `;
             grid.appendChild(item);
@@ -90,7 +101,7 @@ const char Roster_html[]=R"???(
         }
 
         document.getElementById('locoNumber').value = loco;
-        document.getElementById('locoId').value = name;
+        document.getElementById('locoName').value = name;
 
         const parts = functions.split('/');
 
@@ -148,7 +159,7 @@ const char Roster_html[]=R"???(
         const loco = parseInt(document.getElementById('locoNumber').value, 10);
         if (Number.isNaN(loco)) return '';
         const esc = s => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const name = esc(document.getElementById('locoId').value);
+        const name = esc(document.getElementById('locoName').value);
 
         const parts = [];
         for (let i = 0; i < totalFunctions; i++) {
@@ -159,9 +170,11 @@ const char Roster_html[]=R"???(
         while (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
         const functionMap = esc(parts.join('/'));
 
-        const command = `<JR ${loco} "${name}" "${functionMap}">`;
+        var command = `<JR ${loco} "${name}" "${functionMap}">`;
+        command+="<JR SAVE>";
+
         console.log('Roster save:', command);
-        fetch('/saveRoster', {
+        fetch('/parse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/txt' },
             body: command
@@ -179,7 +192,7 @@ const char Roster_html[]=R"???(
     }
     window.dialogSave = dialogSave;
     initFunctionsGrid();
-    ['locoNumber', 'locoId', 'functionsGrid'].forEach(function(id) {
+    ['locoNumber', 'locoName', 'functionsGrid'].forEach(function(id) {
         document.getElementById(id).addEventListener('input', function() {
             if (typeof window.setConfigPanelDirty === 'function') window.setConfigPanelDirty(true);
         });
