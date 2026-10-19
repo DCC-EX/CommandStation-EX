@@ -152,6 +152,36 @@ void Roster::sendToWithrottle(Print * stream) {
   StringFormatter::send(stream,F("\n"));       
 }
 
+// Prints a quoted JS string literal, escaping quotes, backslashes and control chars.
+static void printJsString(Print * stream, const char * s) {
+    stream->print('"');
+    for (; s && *s; s++) {
+        char c = *s;
+        if (c == '"' || c == '\\') { stream->print('\\'); stream->print(c); }
+        else if (c == '\n') stream->print("\\n");
+        else if (c == '\r') stream->print("\\r");
+        else if (c == '\t') stream->print("\\t");
+        else if ((unsigned char)c < 0x20) stream->print(' ');
+        else stream->print(c);
+    }
+    stream->print('"');
+}
+
+// Emits: var roster=[];roster[3]={name:"Loco",functions:"Light/*Horn"};...
+void Roster::sendAsJavascript(Print * stream) {
+    stream->print(F("var roster=[];\n"));
+    for (auto rr = first; rr; rr = rr->next) {
+        if (rr->locoId < 0) continue;
+        stream->print(F("roster["));
+        stream->print(rr->locoId);
+        stream->print(F("]={name:"));
+        printJsString(stream, rr->name);
+        stream->print(F(",functions:"));
+        printJsString(stream, rr->functionMap ? rr->functionMap : "");
+        stream->print(F("};\n"));
+    }
+}
+
 const char * Roster::getFunctionNamesForWithrottle(int locoid) {
     auto rr = find(locoid);
     if (rr) return rr->functionMap;

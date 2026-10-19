@@ -30,6 +30,7 @@ public:
     static void sendIdsToThrottle(Print * stream);
     static void sendToThrottle(int locoId, Print * stream);
     static void sendToWithrottle(Print * stream);
+    static void sendAsJavascript(Print * stream);
     static const char * getFunctionNamesForWithrottle(int locoid);
     static void save();
     static void load();

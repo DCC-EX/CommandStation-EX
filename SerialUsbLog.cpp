@@ -58,6 +58,10 @@
 #include "SerialUsbLog.favicon.h"
 #include "EXNetwork.h"
 #include "EXNetworkPreferences.html.h"
+#include "Roster.h"
+#include "Roster.html.h"
+
+
   // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
@@ -371,6 +375,7 @@ void SerialUsbLog::loop() {
 
     // Add system config menu(s) 
     new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
+    new LogPage("/Roster.html",Roster_html,"Roster");
     // user pages may be added later with exrail
     started = true;
     return;
@@ -414,6 +419,26 @@ void SerialUsbLog::loop() {
       char changes[body.length() + 1];
       body.toCharArray(changes, sizeof(changes));
       NVSTable::applyChanges(changes,false);
+    }
+    client.print(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/plain; charset=utf-8\r\n"
+      "Cache-Control: no-store\r\n"
+      "Connection: close\r\n\r\n"
+    );
+    client.stop();
+    return;
+  }
+
+  if (method == "POST" && path == "/saveRoster") {
+    String body = client.readStringUntil('\0');
+    auto headerEnd = body.indexOf("\r\n\r\n");
+    if (headerEnd >= 0) body = body.substring(headerEnd + 4);
+    body.trim();
+    DIAG(F("POST /saveRoster %s"), body.c_str());
+    if (body.startsWith("<JR ")) {
+      DCCEXParser::parse(&USB_SERIAL, body.c_str());
+      Roster::save();
     }
     client.print(
       "HTTP/1.1 200 OK\r\n"
@@ -490,6 +515,13 @@ void SerialUsbLog::loop() {
     client.print(jsHeader);
     NVSTable::streamJSArray(&client);
     EXNetworkPreferences::streamSystemPreferenceIds(&client);
+    client.stop();
+    return;
+  }
+
+  if (path == "/rosterValues.js") {
+    client.print(jsHeader);
+    Roster::sendAsJavascript(&client);
     client.stop();
     return;
   }
