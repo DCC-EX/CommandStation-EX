@@ -1,3 +1,26 @@
+/*
+ *  © 2024 Harald Barth
+ *  © 2024 Paul M. Antoine
+ *  © 2026 Chris Harlow (with Github copilot)
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "EXNetwork.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
@@ -21,7 +44,6 @@
 // Common points of interaction for network interfaces
 EXNetworkServer webServer(80);
 EXNetworkServer throttleServer(IP_PORT);
-
 
 // udp throtttle traffic 
 EXNetworkUDPRx udpThrottleRx;
@@ -157,13 +179,12 @@ void EXNetwork::setup() {
   _SHIM_::addService("withrottle", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
-
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
-  #ifdef ARDUINO_ARCH_ESP32
+#ifdef ARDUINO_ARCH_ESP32
   EthernetOTA.begin<_SHIM_>();
-  #endif
+#endif
 }
 
 bool EXNetwork::isUp() { return _SHIM_::isUp(); }
@@ -247,7 +268,7 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
 }
 
 void EXNetwork::loop() {
-  _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
+  _SHIM_::loop();
   if (!isUp()) return;
   
   // Track new socket clients. 

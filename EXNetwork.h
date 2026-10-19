@@ -1,26 +1,39 @@
+/*
+ *  © 2024 Harald Barth
+ *  © 2024 Paul M. Antoine
+ *  © 2026 Chris Harlow (with Github copilot)
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #ifndef EXNetwork_h
 #define EXNetwork_h
 #include "defines.h"
-#if defined(ARDUINO_ARCH_ESP32) && !ENABLE_ETHERNET
-  #include "WifiESP32.h"
-  #include <WiFiUdp.h>
-  typedef WiFiClient EXNetworkClient;
-  typedef WiFiServer EXNetworkServer;
-  typedef WiFiUDP EXNetworkUDPRx;
-  typedef WiFiUDP EXNetworkUDPTx;
-  #define _SHIM_ WifiESP
-  #else 
-  #include "EthernetInterface.h"
-  typedef EthernetClient EXNetworkClient;
-  #if defined(ARDUINO_ARCH_ESP32)
-  typedef EthernetServerESP32 EXNetworkServer;
-  #else
-  typedef EthernetServer EXNetworkServer;
-  #endif
-  typedef EthernetUDP  EXNetworkUDPRx;
-  typedef EthernetUDP  EXNetworkUDPTx;
-  #define _SHIM_ EthernetInterface
-  #endif
+#if defined(ARDUINO_ARCH_ESP32)
+#include "EXNetworkESP32.h"
+#else
+#include "EthernetInterface.h"
+typedef EthernetClient EXNetworkClient;
+typedef EthernetServer EXNetworkServer;
+typedef EthernetUDP EXNetworkUDPRx;
+typedef EthernetUDP EXNetworkUDPTx;
+#define _SHIM_ EthernetInterface
+#endif
 
 class EXNetwork {
 public:

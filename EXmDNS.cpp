@@ -22,7 +22,7 @@
  */
 
 #include "defines.h"
-#if defined(ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET)
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #include <Arduino.h>
 #include "EthernetInterface.h"
 
@@ -436,4 +436,4 @@ void MDNS::run() {
     sendServiceAnnounce(_services[s]);
   }
 }
-#endif // ARDUINO_ARCH_STM32 || (ARDUINO_ARCH_ESP32 && ENABLE_ETHERNET)
+#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32

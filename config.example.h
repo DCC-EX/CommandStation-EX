@@ -321,16 +321,9 @@ The configuration file for DCC-EX Command Station
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired) based
-// on the W5100/W5500 ethernet chip or an STM32 CS with builin ethernet like the F429ZI.
-// This is not for Wifi. You will then need the Arduino Ethernet library as well.
-// On ESP32, set ENABLE_WIFI false when enabling Ethernet.
-//
-//#define ENABLE_ETHERNET true
-
-// ESP32 W5100/W5500 SPI wiring (used when ENABLE_ETHERNET is true).
-// Defaults match EX-CSB1.
-#if defined(ARDUINO_ARCH_ESP32) and defined(ENABLE_ETHERNET)
+// ESP32 always probes for a W5500 before starting WiFi. These pins default to
+// the EX-CSB1 wiring and can be overridden for other ESP32/W5500 boards.
+#if defined(ARDUINO_ARCH_ESP32)
   #ifndef ETHERNET_CS_PIN
     #define ETHERNET_CS_PIN   5
   #endif

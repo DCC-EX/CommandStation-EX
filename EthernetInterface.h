@@ -29,7 +29,7 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_ARCH_STM32) || (defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET)
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include <Arduino.h>
 
@@ -87,5 +87,5 @@ class EthernetInterface {
     static bool connected;
     
 };
-#endif // ENABLE_ETHERNET
+#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
 #endif

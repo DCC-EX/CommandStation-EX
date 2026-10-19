@@ -138,7 +138,7 @@ void EthernetInterface::loop()
     }   
 }
 
-#elif defined(ARDUINO_ARCH_ESP32) && ENABLE_ETHERNET
+#elif defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include "EthernetInterface.h"
 #include <SPI.h>
@@ -163,6 +163,9 @@ void EthernetInterface::loop()
 #ifndef ETHERNET_MOSI_PIN
 #define ETHERNET_MOSI_PIN 23
 #endif
+#ifndef ETHERNET_RST_PIN
+#define ETHERNET_RST_PIN 4
+#endif
 
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
@@ -177,7 +180,7 @@ bool EthernetInterface::setup()
   connected=false;
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
 
-  #ifdef ETHERNET_RST_PIN
+  #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
   // Some W5500 boards need their reset line pulsed before SPI comms will work.
   pinMode(ETHERNET_RST_PIN, OUTPUT);
   digitalWrite(ETHERNET_RST_PIN, LOW);
@@ -188,6 +191,15 @@ bool EthernetInterface::setup()
 
   SPI.begin(ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_CS_PIN);
   Ethernet.init(ETHERNET_CS_PIN);
+
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    DIAG(F("Ethernet: W5500 not found, using WiFi"));
+    return false;
+  }
+  if (Ethernet.linkStatus() == LinkOFF) {
+    DIAG(F("Ethernet: no link, falling back to WiFi"));
+    return false;
+  }
 
   byte mac[6];
   DCCTimer::getSimulatedMacAddress(mac);
@@ -205,8 +217,8 @@ bool EthernetInterface::setup()
     }
   #endif
 
-  if (Ethernet.hardwareStatus()==EthernetNoHardware) {
-    DIAG(F("Ethernet: W5500 not found, check wiring/pins"));
+  if (Ethernet.linkStatus() == LinkOFF) {
+    DIAG(F("Ethernet: no link, falling back to WiFi"));
     return false;
   }
 
@@ -239,6 +251,10 @@ void EthernetInterface::addServiceTxt(const char *name, const char *proto, const
 
 IPAddress EthernetInterface::getIPAddress() {
   return connected ? Ethernet.localIP(): IPAddress(0,0,0,0);
+}
+
+void EthernetInterface::teardown() {
+  connected = false;
 }
 
 void EthernetInterface::loop()
