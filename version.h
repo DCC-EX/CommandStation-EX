@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.13"
+#define VERSION "5.9.14"
+// 5.9.14 - new EXRAIL PULSE(vpin,duration)
+//        - Roster editing config dialog
+//        - Command auto doc improvements   
 // 5.9.13 - Runtime roster commands and save (ESP32 save only)
 // 5.9.12 - Unified sensor polling internals
 //        - D SENSORS command for diagnostics

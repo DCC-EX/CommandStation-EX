@@ -289,6 +289,7 @@ private:
     BlinkState blinkState; // includes AT_TIMEOUT flag. 
     uint16_t loco;
     bool invert;
+    bool preventPause;
     byte pauseSpeed;
     int onEventStartPosition;
     byte stackDepth;

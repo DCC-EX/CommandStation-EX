@@ -370,6 +370,7 @@ RMFT2::RMFT2(int progCtr, int16_t _loco, bool _invert) {
   }
   delayTime=0;
   loco=_loco;
+  preventPause=false;
   invert=_invert;
   blinkState=not_blink_task;
   stackDepth=0;
@@ -484,7 +485,7 @@ void RMFT2::loop() {
   // Round Robin call to a RMFT task each time
   if (loopTask==NULL) return;
   loopTask=loopTask->next;
-  if (pausingTask==NULL || pausingTask==loopTask) loopTask->loop2();
+  if (pausingTask==NULL || pausingTask==loopTask || loopTask->preventPause) loopTask->loop2();
 }
 
 bool RMFT2::skipIf;
@@ -758,9 +759,11 @@ void RMFT2::loop2() {
       delayMe(getOperand(1));
       IODevice::write(operand,1,false);
       SKIPOP; // fast forward over the OPCODE_PAD for operand1 to avoid extra task cycle
+      preventPause=true; // this task must not be paused during the pulse
     break;
   case OPCODE_PULSE2:
       IODevice::write(operand,0,false);
+      preventPause=false; // pulse is done, can be paused again
     break;
   
   case OPCODE_BLINK: 
