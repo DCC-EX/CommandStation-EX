@@ -81,7 +81,7 @@ void Roster::load() {
   prefs.begin(EEPROM_HEADER, true); // Read-only
   auto savedSize = prefs.getBytesLength("Roster");  
   if (savedSize>0) {
-    char buffer[savedSize+1];
+    byte buffer[savedSize+1]; // force non const parse()
     prefs.getBytes("Roster", buffer, savedSize);
     buffer[savedSize] = '\0'; // Null-terminate the buffer just in case
     DCCEXParser::parse(&USB_SERIAL, buffer); // Load the saved NVS values into the nvs array
