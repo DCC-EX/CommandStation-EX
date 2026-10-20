@@ -340,42 +340,49 @@ ZZ(Z,id,pin,iFlag) // Create Output
 ZZ(Z,id) // Delete output
         CHECK(Output::remove(id))
         REPLY("<O>\n")
-
-ZZ(D,ACK,ON) // Enable PROG track diagnostics
+// ZZ(D,ACK,onoff)  // set PROG track diagnostics ON or OFF
+ZZ_nodoc(D,ACK,ON) // Enable PROG track diagnostics
         Diag::ACK = true;
-ZZ(D,ACK,OFF) // Disable PROG track diagnostics
+ZZ_nodoc(D,ACK,OFF) // Disable PROG track diagnostics
         Diag::ACK = false;
 ZZ(D,CABS)  // Diagnostic display loco state table
         DCC::displayCabList(stream);
 ZZ(D,RAM)  // Diagnostic display free RAM
         DIAG(F("Free memory=%dkb" ), DCCTimer::getMinimumFreeMemory()/1024);
-ZZ(D,CMD,ON) // Enable command input diagnostics
+// ZZ(D,CMD,onoff) // set command input echo ON or OFF        
+ZZ_nodoc(D,CMD,ON) // Enable command input diagnostics
         Diag::CMD = true;
-ZZ(D,CMD,OFF) // Disable command input diagnostics
+ZZ_nodoc(D,CMD,OFF) // Disable command input diagnostics
         Diag::CMD = false;
-ZZ(D,RAILCOM,ON) // Enable Railcom diagnostics
+// ZZ(D,RAILCOM,onoff) // set Railcom diagnostics ON or OFF
+ZZ_nodoc(D,RAILCOM,ON) // Enable Railcom diagnostics
         Diag::RAILCOM = true;
-ZZ(D,RAILCOM,OFF) // DIsable Railcom diagnostics
-        Diag::RAILCOM = false;    
-ZZ(D,WIFI,ON) // Enable WiFi diagnostics
+ZZ_nodoc(D,RAILCOM,OFF) // DIsable Railcom diagnostics
+        Diag::RAILCOM = false;
+// ZZ(D,WIFI,onoff) // Enable Wifi Diagnostics             
+ZZ_nodoc(D,WIFI,ON) // Enable WiFi diagnostics
         Diag::WIFI = true;
-ZZ(D,WIFI,OFF) // Disable WiFi diagnostics
+ZZ_nodoc(D,WIFI,OFF) // Disable WiFi diagnostics
         Diag::WIFI = false;
-ZZ(D,ETHERNET,ON) // Enable Ethernet diagnostics
+// ZZ(D,ETHERNET,onoff) // set Ethernet diagnostics ON or OFF
+ZZ_nodoc(D,ETHERNET,ON) // Enable Ethernet diagnostics
         Diag::ETHERNET = true;
-ZZ(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
+ZZ_nodoc(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
         Diag::ETHERNET = false;
-ZZ(D,WIT,ON) // Enable WiThrottle diagnostics
+// ZZ(D,WIT,onoff) // set WiThrottle diagnostics ON or OFF
+ZZ_nodoc(D,WIT,ON) // Enable WiThrottle diagnostics
         Diag::WITHROTTLE = true;
 ZZ(D,WIT,OFF) // Disable WiThrottle diagnostics 
         Diag::WITHROTTLE = false;
-ZZ(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
+// ZZ(D,WEBSOCKET,onoff) // set WebSocket diagnostics ON or OFF
+ZZ_nodoc(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
         Diag::WEBSOCKET = true;
-ZZ(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
+ZZ_nodoc(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
-ZZ(D,NODE,ON) // Enable Node diagnostics 
+// ZZ(D,NODE,onoff) // set Node diagnostics ON or OFF
+ZZ_nodoc(D,NODE,ON) // Enable Node diagnostics 
         Diag::NODE = true;
-ZZ(D,NODE,OFF) // Disable Node diagnostics 
+ZZ_nodoc(D,NODE,OFF) // Disable Node diagnostics 
         Diag::NODE = false;
 ZZ(D,ANOUT,vpin,position) // same as <z vpin position>
         IODevice::writeAnalogue(vpin,position,0);
@@ -417,9 +424,10 @@ ZZ(C,SPEED28) // Set all DCC speed commands as 28 step to old decoders
         DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
 ZZ(C,SPEED128) // Set all DCC speed commands to 128 step (default)
         DCC::setGlobalSpeedsteps(128); DIAG(F("128 Speedsteps"));
-ZZ(C,RAILCOM,ON) // Enable Railcom cutout 
+// ZZ(C,RAILCOM,onoff) // set Railcom cutout ON or OFF
+ZZ_nodoc(C,RAILCOM,ON) // Enable Railcom cutout 
         DIAG(F("Railcom %S"),DCCWaveform::setRailcom(true)?F("ON"):F("OFF"));
-ZZ(C,RAILCOM,OFF) // Disable Railcom cutout
+ZZ_nodoc(C,RAILCOM,OFF) // Disable Railcom cutout
         DIAG(F("Railcom OFF")); DCCWaveform::setRailcom(false);
 #ifndef DISABLE_PROG
 ZZ(D,ACK,LIMIT,value)  // Set ACK detection limit mA
@@ -441,7 +449,7 @@ ZZ(C,HOSTNAME,hostname) // set Wifi/eth hostname (in quotes)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
-ZZ(C,NODE,ON) // Enable Node mode without throttle support
+ZZ(C,NODE,ON) // (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
         EXNetwork::setup();
@@ -449,17 +457,18 @@ ZZ(C,NODE,ON) // Enable Node mode without throttle support
 #if defined(ARDUINO_ARCH_ESP32)
 // WIFI and similar ESP32 - only stuff 
 #ifdef BOOSTER_INPUT
-// <C SNIFFER [ON|OFF]>
-ZZ(C,SNIFFER,ON)  // Turn sniffer output on
+// ZZ(C,SNIFFER,onoff) // Enable SNIFFER output ON or OFF
+ZZ_nodoc(C,SNIFFER,ON)  // Turn sniffer output on
   DCCDecoder::onoff(true);
-ZZ(C,SNIFFER,OFF) // Turn sniffer output off
+ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
   DCCDecoder::onoff(false);
 #endif
-ZZ(C,WIFI,OFF) // Disable WiFi
+// ZZ(C,WIFI,onoff) // Enable WiFi ON or OFF
+ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
         EXNetwork::setup();
-ZZ(C,WIFI,ON) // Enable Wifi
+ZZ_nodoc(C,WIFI,ON) // Enable Wifi
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
@@ -512,12 +521,12 @@ ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with giv
 ZZ(D,WIFI,SHOW) // Show WiFi status
   EXNetworkPreferences::dump(stream);
 #else 
-ZZ(C,ETHERNET,OFF) // Disable Ethernet
+// ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
+ZZ_nodoc(C,ETHERNET,OFF) // Disable Ethernet
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
         EXNetwork::setup();
-
-ZZ(C,ETHERNET,ON) // Enable Ethernet
+ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
@@ -726,19 +735,20 @@ ZZ(J,P,id) // List turntable positions
 
 ZZ(=) // List track manager states
         TrackManager::list(stream); 
-ZZ(=,track,MAIN) // Set track to MAIN
+// ZZ(=,track,tracktype)   // Set track to MAIN, MAIN_INV, MAIN_AUTO, PROG, OFF, NONE, EXT, BOOST, BOOST_INV, BOOST_AUTO
+ZZ_nodoc(=,track,MAIN) // Set track to MAIN
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
-ZZ(=,track,MAIN_INV) // Set track to MAIN inverted polarity
+ZZ_nodoc(=,track,MAIN_INV) // Set track to MAIN inverted polarity
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
-ZZ(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
+ZZ_nodoc(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
-ZZ(=,track,PROG) // Set track to PROG
+ZZ_nodoc(=,track,PROG) // Set track to PROG
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
-ZZ(=,track,OFF) // Set track power OFF
+ZZ_nodoc(=,track,OFF) // Set track power OFF
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE))
-ZZ(=,track,NONE) // Set track no output
+ZZ_nodoc(=,track,NONE) // Set track no output
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE)) 
-ZZ(=,track,EXT)  // Set track to use external sync
+ZZ_nodoc(=,track,EXT)  // Set track to use external sync
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
 
 #ifdef BOOSTER_INPUT
@@ -746,12 +756,15 @@ ZZ_nodoc(=,track,BOOST)      CHECK(TrackManager::setTrackMode(track,TRACK_MODE_B
 ZZ_nodoc(=,track,BOOST_INV)  CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
 ZZ_nodoc(=,track,BOOST_AUTO) CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
 #endif
-ZZ(=,track,AUTO)  // Update track to auto reverse
+
+// Z(=,track,update) // Update track setting to AUTO, INV, RAILCOM
+ZZ_nodoc(=,track,AUTO)  // Update track to auto reverse
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
-ZZ(=,track,INV) // Update track to inverse polarity
+ZZ_nodoc(=,track,INV) // Update track to inverse polarity
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
-ZZ(=,track,RAILCOM) // Update track to add cutout
+ZZ_nodoc(=,track,RAILCOM) // Update track to add cutout
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_RAILCOM))
+
 ZZ(=,track,DC,loco) // Set track to DC
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, loco))
 ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
@@ -759,8 +772,9 @@ ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
 ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
 
-#ifdef EXRAIL_ACTIVE        
-ZZ(D,EXRAIL,ON) // EXRAIL diagnostics on
+#ifdef EXRAIL_ACTIVE
+// ZZ(D,EXRAIL,ON) // EXRAIL diagnostics ON or OFF
+ZZ_nodoc(D,EXRAIL,ON) // EXRAIL diagnostics on
       RMFT2::diag=true; 
 ZZ(D,EXRAIL,OFF) // EXRAIL diagnostics off
       RMFT2::diag=false; 
