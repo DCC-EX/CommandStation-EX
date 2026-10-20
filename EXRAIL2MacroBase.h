@@ -637,6 +637,11 @@
 #define POWERON
 ///brief Powers ON all tracks
 
+#define PULSE(vpin,duration)
+///brief Sets output pin HIGH for a given duration
+///param vpin The output pin to pulse
+///param duration Duration of the pulse in milliseconds
+
 #define RANDOM_CALL(sequence_id...)
 ///brief CALL to another sequence randomly chosen from list
 ///see CALL

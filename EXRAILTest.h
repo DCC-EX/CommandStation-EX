@@ -328,3 +328,7 @@ ONBUTTONUP(8002)
 // first 4 shared sensors tell JMRI
 JMRI_SENSOR(8000,2)  // 8000,8001 tell jmri
 SHARED_SENSOR(8001,2)  // 8001 and 8002 also tell nodes
+
+ROUTE("PULSE"_hk,"test 100mS pulse")
+  PULSE(8000,100)
+  DONE

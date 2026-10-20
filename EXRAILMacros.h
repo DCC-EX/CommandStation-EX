@@ -667,6 +667,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define POWERON OPCODE_POWERON,V(0),
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
+#define PULSE(vpin,duration) OPCODE_PULSE1,V(vpin),OPCODE_PAD,V(duration),OPCODE_PULSE2,V(vpin),
 #define RANDOM_CALL(...) \
   OPCODE_RANDOM_CALL,V(FOR_EACH_NARG(__VA_ARGS__)), \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)

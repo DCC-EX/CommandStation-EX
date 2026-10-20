@@ -175,6 +175,7 @@
 #undef POM
 #undef POWEROFF
 #undef POWERON
+#undef PULSE
 #undef RANDOM_CALL
 #undef RANDOM_FOLLOW
 #undef READ_LOCO 

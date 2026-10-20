@@ -168,6 +168,8 @@ constexpr bool unsafePin(const int16_t value, const int16_t pos=0 ) {
 
 // check dangerous pins
 #define _PIN_RESERVED_ "\n\nUSER ERROR: Pin is used by Motor Shield or other critical function.\n"
+#undef PULSE
+#define PULSE(vpin,duration) static_assert(!unsafePin(vpin),"PULSE(" #vpin ")" _PIN_RESERVED_);
 #undef SET
 #define SET(vpin, ...) static_assert(!unsafePin(vpin),"SET(" #vpin ")" _PIN_RESERVED_);
 #undef RESET

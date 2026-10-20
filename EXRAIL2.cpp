@@ -751,6 +751,18 @@ void RMFT2::loop2() {
     }
     break;
   
+  case OPCODE_PULSE1:
+      // for the most accurate pulse delay, we do what we can to make sure this task comes back
+      // to the following OPCODE_PULSE2 as close as possible to the requested duration
+      killBlinkOnVpin(operand);
+      delayMe(getOperand(1));
+      IODevice::write(operand,1,false);
+      SKIPOP; // fast forward over the OPCODE_PAD for operand1 to avoid extra task cycle
+    break;
+  case OPCODE_PULSE2:
+      IODevice::write(operand,0,false);
+    break;
+  
   case OPCODE_BLINK: 
      // Start a new task to blink this vpin
      killBlinkOnVpin(operand);
