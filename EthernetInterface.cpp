@@ -125,11 +125,11 @@ void EthernetInterface::loop()
     mdns.run();
     
     switch (Ethernet.maintain()) {
-    case 1:
+    case DHCP_CHECK_RENEW_FAIL:
         DIAG(F("Ethernet Error: renewed fail"));
         connected=false;
         return;
-    case 3:
+    case DHCP_CHECK_REBIND_FAIL:
         DIAG(F("Ethernet Error: rebind fail"));
         connected=false;
         return;
@@ -148,6 +148,10 @@ void EthernetInterface::loop()
 #include "DIAG.h"
 #include "DCCTimer.h"
 #include "EXmDNS.h"
+#include "EXNetworkPreferences.h"
+
+#define DHCP_CHECK_RENEW_FAIL   (1)
+#define DHCP_CHECK_REBIND_FAIL  (3)
 
 // Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
 // Override any of these with -D build flags if your board wires the module differently.
@@ -170,7 +174,7 @@ void EthernetInterface::loop()
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
-bool EthernetInterface::connected=false;
+bool EthernetInterface::connected = false;
 bool EthernetInterface::isUp() {
   return connected;
 }
@@ -179,7 +183,7 @@ bool EthernetInterface::setup()
 {
   connected=false;
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
-
+  DIAG(F("SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d"), ETHERNET_CS_PIN,ETHERNET_SCK_PIN,ETHERNET_MISO_PIN,ETHERNET_MOSI_PIN,ETHERNET_RST_PIN);
   #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
   // Some W5500 boards need their reset line pulsed before SPI comms will work.
   pinMode(ETHERNET_RST_PIN, OUTPUT);
@@ -192,15 +196,36 @@ bool EthernetInterface::setup()
   SPI.begin(ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_CS_PIN);
   Ethernet.init(ETHERNET_CS_PIN);
 
-  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-    DIAG(F("Ethernet: W5500 not found, using WiFi"));
-    return false;
+  Ethernet.linkStatus(); // init the hardware
+  switch (Ethernet.hardwareStatus()) {
+    case EthernetW5100:
+      DIAG(F("Ethernet: W5100 found"));
+      break;
+    case EthernetW5200:
+      DIAG(F("Ethernet: W5200 found"));
+      break;
+    case EthernetW5500:
+      DIAG(F("Ethernet: W5500 found"));
+      break;
+
+    case EthernetNoHardware:
+    default:
+      DIAG(F("Ethernet: W5*00 not found, using WiFi"));
+      return false;
   }
-  if (Ethernet.linkStatus() == LinkOFF) {
+
+  const unsigned long linkWaitStarted = millis();
+  auto linkStatus = Ethernet.linkStatus();
+  while (linkStatus == LinkOFF && millis() - linkWaitStarted < 5000) {
+    delay(100);
+    linkStatus = Ethernet.linkStatus();
+  }
+  if (linkStatus == LinkOFF) {
     DIAG(F("Ethernet: no link, falling back to WiFi"));
     return false;
   }
 
+  DIAG(F("Ethernet: Link Found"));
   byte mac[6];
   DCCTimer::getSimulatedMacAddress(mac);
 
@@ -208,9 +233,9 @@ bool EthernetInterface::setup()
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac,myIP);
   #else
-    if (Ethernet.begin(mac)==0) {
-      if (Ethernet.hardwareStatus()==EthernetNoHardware) {
-        DIAG(F("Ethernet: W5500 not found, check wiring/pins"));
+    if (Ethernet.begin(mac) == 0) {
+      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+        DIAG(F("Ethernet: W5*00 not found, check wiring/pins"));
       }
       LCD(4,F("IP: No DHCP"));
       return false;
@@ -223,12 +248,12 @@ bool EthernetInterface::setup()
   }
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
-  connected=true;
+  connected = true;
   return connected;
 }
 
 void EthernetInterface::setupMDNS() {
-  mdns.begin(getIPAddress(), WIFI_HOSTNAME);
+  mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
 }
 
 void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {
@@ -259,33 +284,64 @@ void EthernetInterface::teardown() {
 
 void EthernetInterface::loop()
 {
-    if (!connected) return;
+    static bool warnedAboutDisconnected = false;
+    if (!connected) {
+        if (!warnedAboutDisconnected) {
+            DIAG(F("Ethernet link polling stopped: interface disconnected"));
+            warnedAboutDisconnected = true;
+        }
+        return;
+    }
+    warnedAboutDisconnected = false;
 
-    static bool warnedAboutLink=false;
-    if (Ethernet.linkStatus() == LinkOFF){
-        if (warnedAboutLink) return;
-        DIAG(F("Ethernet link OFF"));
-        warnedAboutLink=true;
+    static bool warnedAboutLink = false;
+    static bool confirmingLink = false;
+    static unsigned long lastLinkDiagnostic = 0;
+    static unsigned long linkOnSince = 0;
+    const auto linkStatus = Ethernet.linkStatus();
+    if (linkStatus == LinkOFF) {
+        confirmingLink = false;
+        if (!warnedAboutLink) {
+            DIAG(F("Ethernet link OFF"));
+            warnedAboutLink = true;
+            lastLinkDiagnostic = millis();
+        } else if (millis() - lastLinkDiagnostic >= 2000) {
+            DIAG(F("Ethernet link still OFF (status %d)"), linkStatus);
+            lastLinkDiagnostic = millis();
+        }
         return;
     }
 
     // link status must be ok here
     if (warnedAboutLink) {
-      DIAG(F("Ethernet link RESTORED"));
-      warnedAboutLink=false;
+      if (linkStatus == LinkON) {
+        if (!confirmingLink) {
+          confirmingLink = true;
+          linkOnSince = millis();
+        } else if (millis() - linkOnSince >= 1000) {
+          DIAG(F("Ethernet link RESTORED"));
+          warnedAboutLink = false;
+          confirmingLink = false;
+        }
+      } else {
+        confirmingLink = false;
+        DIAG(F("Ethernet link status unknown (%d)"), linkStatus);
+        return;
+      }
+      if (warnedAboutLink) return;
     }
 
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
 
     switch (Ethernet.maintain()) {
-    case 1:
+    case DHCP_CHECK_RENEW_FAIL:
         DIAG(F("Ethernet Error: renewed fail"));
-        connected=false;
+        connected = false;
         return;
-    case 3:
+    case DHCP_CHECK_REBIND_FAIL:
         DIAG(F("Ethernet Error: rebind fail"));
-        connected=false;
+        connected = false;
         return;
     default:
         break;

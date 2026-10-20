@@ -32,7 +32,7 @@
 #include "DCC.h"
 #include "CommandDistributor.h"
 #include "DIAG.h"
-
+#include "EXNetworkPreferences.h"
 
 static constexpr uint16_t ETHERNET_OTA_PORT = 3232;
 static constexpr int OTA_AUTH_ERROR = 0;
@@ -85,7 +85,7 @@ EthernetOTAClass& EthernetOTAClass::onError(std::function<void(int)> callback) {
 
 void EthernetOTAClass::configure() {
   setHostname(
-    WIFI_HOSTNAME
+    EXNetworkPreferences::getHostName()
   );
 #ifdef OTA_AUTH
   setPassword(OTA_AUTH);
