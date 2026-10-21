@@ -22,8 +22,8 @@
 #include "Roster.h"
 #include "StringFormatter.h"
 #include "DCCEXParser.h"
-#include "StringBuffer.h"
 #include "DIAG.h"
+#include "StringBuffer.h"
 
 void Roster::create(int locoId, const char* name, const char* functionMap) {
     auto rr=find(locoId);
@@ -70,35 +70,54 @@ void Roster::sendToThrottle(int locoId, Print * stream) {
 }
 
 
-static const char EEPROM_HEADER[11] = "DCC-EX-NVS";
-
 #ifdef ARDUINO_ARCH_ESP32
-#include "Preferences.h"
+#include <SPIFFS.h>
 
-// Load NVS values from Preferences
+static File mountRosterFilesystem(bool write) {
+  static bool mounted = false;
+  if (!mounted) {
+    mounted = SPIFFS.begin(true);
+    if (!mounted) DIAG(F("Roster: failed to mount SPIFFS"));
+  }
+  auto rosterFile = SPIFFS.open("/Roster.txt", write? FILE_WRITE : FILE_READ);
+  if (rosterFile) return rosterFile;
+
+  DIAG( F("Roster: /Roster.txt %S"),
+    write ? F("failed to open for write") : F("not found"));
+  return File();
+}
+
 void Roster::load() {
-  Preferences prefs;
-  prefs.begin(EEPROM_HEADER, true); // Read-only
-  auto savedSize = prefs.getBytesLength("Roster");  
-  if (savedSize>0) {
-    byte buffer[savedSize+1]; // force non const parse()
-    prefs.getBytes("Roster", buffer, savedSize);
-    buffer[savedSize] = '\0'; // Null-terminate the buffer just in case
-    DCCEXParser::parse(&USB_SERIAL, buffer); // Load the saved NVS values into the nvs array
+  auto rosterFile = mountRosterFilesystem(false);
+  if (!rosterFile) return;
+
+  StringBuffer buffer(500);
+  // Note all lines end \n and dont care about line length beyond buffer size
+  while (rosterFile.available()) {
+    auto nextByte = rosterFile.read();
+    if (nextByte < 0) break; // end of file 
+
+    if (nextByte == '\n') {
+        DCCEXParser::parse(&USB_SERIAL, buffer.getString());
+        buffer.flush();
+      }
+     else buffer.write(nextByte);
     }
-  prefs.end();
+  rosterFile.close();
   DIAG(F("Roster::load completed"));
 }
 
 void Roster::save() {
-  StringBuffer sb(4096);// ESP32 Preferences library requires a key-value pair for each entry, so we will store the entire NVS table as a single byte array under the key "NVSTable".
+  auto rosterFile = mountRosterFilesystem(true);
+  if (!rosterFile) return;
+
   for (auto rr = first; rr; rr = rr->next)
-      if (rr->locoId >= 0) rr->sendToThrottle(&sb,true);
-  Preferences prefs;
-  prefs.begin(EEPROM_HEADER, false); // Read-write
-  prefs.putBytes("Roster", sb.getString(), sb.getLength());
-  prefs.end();
-  DIAG(F("Roster::save completed"));
+      if (rr->locoId >= 0) rr->sendToThrottle(&rosterFile,true);
+  rosterFile.flush();
+  auto writeFailed = rosterFile.getWriteError();
+  rosterFile.close();
+  if (writeFailed) DIAG(F("Roster: failed to write saved roster file"));
+  else DIAG(F("Roster::save completed"));
 }
 
 #else
