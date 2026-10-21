@@ -249,12 +249,15 @@ ZZ(J,T,id) // Get turnout state and description
         REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
         return true; 
 ZZ(z,signedVpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
-        IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);
-ZZ(z,vpin,analogue,profile,duration) // Change analogue value over duration (Fade or servo move)
+        IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);       
+ZZ(z,vpin,analogue,profile,duration) // Change PWM pin analogue value over duration
+/// profile 0=power off after move, 128=keep power on after move
         IODevice::writeAnalogue(vpin,analogue,profile,duration);
-ZZ(z,vpin,analogue,profile) // Write analogue device using profile number (Fade or servo movement)
+ZZ(z,vpin,analogue,profile) // Change PWM pin analogue value with profile
+/// profile 0=immediate, 1=fast(500ms), 2=medium(1s), 3=slow(2s), 4=bounce
+//  Add 128 to profile to keep power on after move
         IODevice::writeAnalogue(vpin,analogue,profile,0);
-ZZ(z,vpin,analogue) // Write analogue device value
+ZZ(z,vpin,analogue) // Write PWM pin analogue value
         IODevice::writeAnalogue(vpin,analogue,0,0);
      
 // ==========================
@@ -372,7 +375,7 @@ ZZ_nodoc(D,ETHERNET,OFF) // Disable Ethernet diagnostics
 // ZZ(D,WIT,onoff) // set WiThrottle diagnostics ON or OFF
 ZZ_nodoc(D,WIT,ON) // Enable WiThrottle diagnostics
         Diag::WITHROTTLE = true;
-ZZ(D,WIT,OFF) // Disable WiThrottle diagnostics 
+ZZ_nodoc(D,WIT,OFF) // Disable WiThrottle diagnostics 
         Diag::WITHROTTLE = false;
 // ZZ(D,WEBSOCKET,onoff) // set WebSocket diagnostics ON or OFF
 ZZ_nodoc(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
@@ -384,9 +387,9 @@ ZZ_nodoc(D,NODE,ON) // Enable Node diagnostics
         Diag::NODE = true;
 ZZ_nodoc(D,NODE,OFF) // Disable Node diagnostics 
         Diag::NODE = false;
-ZZ(D,ANOUT,vpin,position) // same as <z vpin position>
+ZZ(D,ANOUT,vpin,position) // Deprecated - use `<z vpin position>`
         IODevice::writeAnalogue(vpin,position,0);
-ZZ(D,ANOUT,vpin,position,profile) // see <z vpin position profile>
+ZZ(D,ANOUT,vpin,position,profile) // Deprecated - use  `<z vpin position profile>`
         IODevice::writeAnalogue(vpin,position,profile);
 ZZ(D,SERVO,vpin,position) // Test servo
         IODevice::writeAnalogue(vpin,position,0);
@@ -677,6 +680,8 @@ ZZ(-,loco) // Remove loco state and reminders
 ZZ(F,loco,DCCFREQ,freqValue) // Set DC frequency for loco   
         CHECK(freqValue>=0 && freqValue<=3) DCC::setDCFreq(loco,freqValue);
 ZZ(F,loco,function,onoff) // Set loco function ON/OFF
+        if (onoff=="ON"_hk) onoff=1; 
+        if (onoff=="OFF"_hk) onoff=0; 
         CHECK(onoff==0 || onoff==1) DCC::setFn(loco,function,onoff);    
 
 ZZ(^) // List consists
@@ -776,7 +781,7 @@ ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
 // ZZ(D,EXRAIL,ON) // EXRAIL diagnostics ON or OFF
 ZZ_nodoc(D,EXRAIL,ON) // EXRAIL diagnostics on
       RMFT2::diag=true; 
-ZZ(D,EXRAIL,OFF) // EXRAIL diagnostics off
+ZZ_nodoc(D,EXRAIL,OFF) // EXRAIL diagnostics off
       RMFT2::diag=false; 
 
 ZZ(L)  // LCC/CBUS adapter introducing self
