@@ -31,7 +31,33 @@ const char Roster_html[]=R"???(
   </select>
   <button class="btn-inline-danger" onclick="rosterDeleteLoco()">DELETE</button>
   <button class="btn-inline-danger" onclick="rosterCopyLoco()">COPY</button>
+  <span style="float:right">
+    <button type="button" onclick="fill_exrail()">Show as EXRAIL</button>
+    <button type="button" onclick="fill_jr()">Show as &lt;JR&gt;</button>
+  </span>
 </div>
+
+<style>
+#exrailDialog, #jrDialog { width: 90vw; max-width: 90vw; box-sizing: border-box; }
+#exrailDialog textarea, #jrDialog textarea { width: 100%; box-sizing: border-box; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+</style>
+<dialog id="exrailDialog">
+  <h3>Roster as EXRAIL</h3>
+  <textarea id="exrailOutput" readonly wrap="off" rows="16"></textarea>
+  <div>
+    <button type="button" onclick="copyText('exrailOutput')">Copy to clipboard</button>
+    <button type="button" onclick="document.getElementById('exrailDialog').close()">Close</button>
+  </div>
+</dialog>
+
+<dialog id="jrDialog">
+  <h3>Roster as &lt;JR&gt; commands</h3>
+  <textarea id="jrOutput" readonly wrap="off" rows="16"></textarea>
+  <div>
+    <button type="button" onclick="copyText('jrOutput')">Copy to clipboard</button>
+    <button type="button" onclick="document.getElementById('jrDialog').close()">Close</button>
+  </div>
+</dialog>
 
 <div class="form-row">
   <label for="locoNumber">DCC Address:</label>
@@ -62,6 +88,47 @@ const char Roster_html[]=R"???(
 <script>
 var totalFunctions = 33;
 var rosterCurrent = '';
+
+function copyText(id) {
+  var ta = document.getElementById(id);
+  ta.select();
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(ta.value);
+  } else {
+    document.execCommand('copy');
+  }
+}
+
+function fill_exrail() {
+  const escapeString = value => String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t');
+  const entries = Object.keys(window.roster || {})
+    .sort((a, b) => Number(a) - Number(b))
+    .map(id => {
+      const entry = window.roster[id];
+      return `ROSTER(${id},"${escapeString(entry.name)}","${escapeString(entry.functions)}")`;
+    });
+
+  document.getElementById('exrailOutput').value = entries.join('\n');
+  document.getElementById('exrailDialog').showModal();
+}
+
+function fill_jr() {
+  const esc = s => String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const commands = Object.keys(window.roster || {})
+    .sort((a, b) => Number(a) - Number(b))
+    .map(id => {
+      const entry = window.roster[id];
+      return `<JR ${id} "${esc(entry.name)}" "${esc(entry.functions)}">`;
+    });
+
+  document.getElementById('jrOutput').value = commands.join('\n');
+  document.getElementById('jrDialog').showModal();
+}
 
 function initFunctionsGrid() {
   const grid = document.getElementById('functionsGrid');
