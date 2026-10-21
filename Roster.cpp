@@ -71,15 +71,15 @@ void Roster::sendToThrottle(int locoId, Print * stream) {
 
 
 #ifdef ARDUINO_ARCH_ESP32
-#include <SPIFFS.h>
+#include <LittleFS.h>
 
 static File mountRosterFilesystem(bool write) {
   static bool mounted = false;
   if (!mounted) {
-    mounted = SPIFFS.begin(true);
-    if (!mounted) DIAG(F("Roster: failed to mount SPIFFS"));
+    mounted = LittleFS.begin(true); // format if necessary
+    if (!mounted) DIAG(F("Roster: failed to mount LittleFS"));
   }
-  auto rosterFile = SPIFFS.open("/Roster.txt", write? FILE_WRITE : FILE_READ);
+  auto rosterFile = LittleFS.open("/Roster.txt", write? FILE_WRITE : FILE_READ);
   if (rosterFile) return rosterFile;
 
   DIAG( F("Roster: /Roster.txt %S"),
