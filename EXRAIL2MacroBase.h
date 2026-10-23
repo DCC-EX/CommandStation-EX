@@ -456,21 +456,13 @@
 ///param steps position to move to
 ///param activity see ROTATE
 
-#define NEOPIXEL(...)
+#define NEOPIXEL(vpin,r,g,b,count...)
 ///brief Set a NEOPIXEL vpin to a given red/green/blue colour
 ///param vpin VPIN of a pixel
 ///param r red component 0-255
 ///param g green component 0-255
 ///param b blue component 0-255
-///param count Optional number of consecutive pixels to set, default 1
-///param brightness Optional brightness from 0 (off) to 255 (full), default 255
-
-#define NEOPIXEL_CHASE(vpin,count,delay,brightness...)
-///brief Repeatedly light pixels red, green and blue in order
-///param vpin First VPIN in the pixel range
-///param count Number of pixels, up to 256
-///param delay Milliseconds between pixels
-///param brightness... LED intensity from 0 (off) to 255 (full), default 255
+///param count... Number of consecutive pixels to set, Default 1.
 
 #define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour,description...)
 ///brief Define a signal that uses a single multi colour pixel
