@@ -26,11 +26,16 @@
 #include "StringFormatter.h"
 #include "NVSTable.h"
 
+// allow defined DCCHOSTNAME (eg in platformio.ini) to override the hostname
 bool EXNetworkPreferences::load() {
   auto hostName=NVSTable::getTextNVS(SystemPreferences::hostName);
   if (hostName[0]==0) {
-    // We have not been here before, set all non ""/0 defaults 
+#ifdef DCCHOSTNAME
+    NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+#else
     NVSTable::setNVS(SystemPreferences::hostName, "DCC-EX",false);
+#endif
+    // We have not been here before, set all non ""/0 defaults
     NVSTable::setNVS(SystemPreferences::enabled, true,false);
   #ifdef ARDUINO_ARCH_ESP32
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
@@ -39,6 +44,11 @@ bool EXNetworkPreferences::load() {
   #endif
     NVSTable::save();
   }
+
+#ifdef DCCHOSTNAME
+  NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+  NVSTable::save();
+#endif
 
   return true;
 }
