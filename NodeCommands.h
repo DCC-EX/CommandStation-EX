@@ -82,7 +82,7 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
 
 ZZ(H) // CS requests list of locally defined turnouts & shared sensors
   Turnout::shareNodesToCS();
-  Sensor::shareNodesToCS();
+  Sensor::shareJMRISensors();
   Signal::shareNodesToCS();
    
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
