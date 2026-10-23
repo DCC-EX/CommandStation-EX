@@ -48,6 +48,7 @@ public:
     begin(NetworkShim::addService, NetworkShim::addServiceTxt);
   }
   void loop();
+  void networkRestored();
 
 private:
   using AddServiceCallback = void (*)(const char*, const char*, uint16_t);

@@ -175,6 +175,7 @@ EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
 bool EthernetInterface::connected = false;
+static bool ethernetLinkRestored = false;
 bool EthernetInterface::isUp() {
   return connected;
 }
@@ -182,6 +183,7 @@ bool EthernetInterface::isUp() {
 bool EthernetInterface::setup()
 {
   connected=false;
+  ethernetLinkRestored = false;
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
   DIAG(F("SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d"), ETHERNET_CS_PIN,ETHERNET_SCK_PIN,ETHERNET_MISO_PIN,ETHERNET_MOSI_PIN,ETHERNET_RST_PIN);
   #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
@@ -232,8 +234,11 @@ bool EthernetInterface::setup()
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
     Ethernet.begin(mac,myIP);
+    DIAG(F("Ethernet static IP configured: %s"), Ethernet.localIP().toString().c_str());
   #else
-    if (Ethernet.begin(mac) == 0) {
+    const int dhcpResult = Ethernet.begin(mac);
+    DIAG(F("Ethernet DHCP begin result %d"), dhcpResult);
+    if (dhcpResult == 0) {
       if (Ethernet.hardwareStatus() == EthernetNoHardware) {
         DIAG(F("Ethernet: W5*00 not found, check wiring/pins"));
       }
@@ -248,12 +253,29 @@ bool EthernetInterface::setup()
   }
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
+  DIAG(F("Ethernet ready: IP %s, gateway %s, subnet %s, link %d"),
+       Ethernet.localIP().toString().c_str(),
+       Ethernet.gatewayIP().toString().c_str(),
+       Ethernet.subnetMask().toString().c_str(), Ethernet.linkStatus());
   connected = true;
   return connected;
 }
 
 void EthernetInterface::setupMDNS() {
   mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
+}
+
+bool EthernetInterface::takeLinkRestored() {
+  const bool restored = ethernetLinkRestored;
+  ethernetLinkRestored = false;
+  return restored;
+}
+
+void EthernetInterface::restartMDNS() {
+  udpMdns.stop();
+  const int result = mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
+  DIAG(F("Ethernet mDNS restart result %d on %s"),
+       result, getIPAddress().toString().c_str());
 }
 
 void EthernetInterface::addService(const char *name, const char *proto, uint16_t port) {
@@ -298,15 +320,21 @@ void EthernetInterface::loop()
     static bool confirmingLink = false;
     static unsigned long lastLinkDiagnostic = 0;
     static unsigned long linkOnSince = 0;
+    static unsigned long linkOffSince = 0;
     const auto linkStatus = Ethernet.linkStatus();
     if (linkStatus == LinkOFF) {
         confirmingLink = false;
         if (!warnedAboutLink) {
-            DIAG(F("Ethernet link OFF"));
+            DIAG(F("Ethernet link OFF at %lu ms; IP %s, hardware %d"),
+                 millis(), Ethernet.localIP().toString().c_str(),
+                 Ethernet.hardwareStatus());
             warnedAboutLink = true;
             lastLinkDiagnostic = millis();
-        } else if (millis() - lastLinkDiagnostic >= 2000) {
-            DIAG(F("Ethernet link still OFF (status %d)"), linkStatus);
+            linkOffSince = millis();
+        } else if (millis() - lastLinkDiagnostic >= 10000) {
+            DIAG(F("Ethernet link still OFF at %lu ms (status %d, hardware %d, IP %s)"),
+                 millis(), linkStatus, Ethernet.hardwareStatus(),
+                 Ethernet.localIP().toString().c_str());
             lastLinkDiagnostic = millis();
         }
         return;
@@ -318,10 +346,16 @@ void EthernetInterface::loop()
         if (!confirmingLink) {
           confirmingLink = true;
           linkOnSince = millis();
+          DIAG(F("Ethernet link ON detected at %lu ms after %lu ms down; IP %s"),
+               millis(), millis() - linkOffSince,
+               Ethernet.localIP().toString().c_str());
         } else if (millis() - linkOnSince >= 1000) {
-          DIAG(F("Ethernet link RESTORED"));
+          DIAG(F("Ethernet link RESTORED at %lu ms; IP %s"),
+               millis(), Ethernet.localIP().toString().c_str());
           warnedAboutLink = false;
           confirmingLink = false;
+          ethernetLinkRestored = true;
+          DIAG(F("Ethernet recovery event queued"));
         }
       } else {
         confirmingLink = false;
@@ -334,14 +368,17 @@ void EthernetInterface::loop()
     // Always do this because we don't want traffic to intefere with being found!
     mdns.run();
 
-    switch (Ethernet.maintain()) {
+    const int dhcpResult = Ethernet.maintain();
+    if (dhcpResult != 0) {
+      DIAG(F("Ethernet DHCP maintain result %d at %lu ms; IP %s"),
+           dhcpResult, millis(), Ethernet.localIP().toString().c_str());
+    }
+    switch (dhcpResult) {
     case DHCP_CHECK_RENEW_FAIL:
         DIAG(F("Ethernet Error: renewed fail"));
-        connected = false;
         return;
     case DHCP_CHECK_REBIND_FAIL:
         DIAG(F("Ethernet Error: rebind fail"));
-        connected = false;
         return;
     default:
         break;

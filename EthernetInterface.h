@@ -80,6 +80,10 @@ class EthernetInterface {
   static void setupMDNS();
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
+#if defined(ARDUINO_ARCH_ESP32)
+  static bool takeLinkRestored();
+  static void restartMDNS();
+#endif
   static void teardown();
   static bool startUDPListener(const IPAddress &ip, uint16_t port);
    

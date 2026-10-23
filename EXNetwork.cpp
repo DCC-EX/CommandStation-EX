@@ -117,6 +117,36 @@ private:
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
 
+#ifdef ARDUINO_ARCH_ESP32
+void EXNetwork::restartEthernetServices() {
+  DIAG(F("Ethernet service recovery starting: hardware %d, IP %s"),
+       Ethernet.hardwareStatus(), EthernetInterface::getIPAddress().toString().c_str());
+  while (!throttleClients.empty()) {
+    const auto clientId = static_cast<byte>(throttleClients.size() - 1);
+    CommandDistributor::forget(clientId);
+    throttleClients.pop_back();
+  }
+
+  myipaddress = EthernetInterface::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
+  udpDiscoveryClients.clear();
+
+  udpTx.stop();
+  udpThrottleRx.stop();
+  udpNodeRx.stop();
+  const bool txStarted = udpTx.begin(0);
+  const bool throttleStarted = udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT);
+  DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
+       txStarted, throttleStarted, nodeStarted);
+
+  EthernetInterface::restartMDNS();
+  EthernetOTA.networkRestored();
+  DIAG(F("Ethernet service recovery complete: IP %s"),
+       EthernetInterface::getIPAddress().toString().c_str());
+}
+#endif
+
 IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
 void EXNetwork::setup() {
@@ -235,7 +265,9 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   int length = udp.read(data, UDP_COMMAND_MAX);
   IPAddress remoteIP = udp.remoteIP();
   if (length < packetSize) {
-    DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize, remoteIP.toString().c_str());
+    DIAG(F("Short UDP read: got %d of %d bytes from %s:%d; link %d, IP %s"),
+         length, packetSize, remoteIP.toString().c_str(), udp.remotePort(),
+         Ethernet.linkStatus(), Ethernet.localIP().toString().c_str());
     udp.flush();
     return;
   }
@@ -269,6 +301,11 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
 
 void EXNetwork::loop() {
   _SHIM_::loop();
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet && EthernetInterface::takeLinkRestored()) {
+    restartEthernetServices();
+  }
+#endif
   if (!isUp()) return;
   
   // Track new socket clients. 

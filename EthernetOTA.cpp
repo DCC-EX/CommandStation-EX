@@ -111,6 +111,14 @@ void EthernetOTAClass::begin(AddServiceCallback addService, AddServiceTxtCallbac
 
 }
 
+void EthernetOTAClass::networkRestored() {
+  udp.stop();
+  if (!udp.begin(ETHERNET_OTA_PORT)) {
+    DIAG(F("EthernetOTA UDP restart failed on port %d"), ETHERNET_OTA_PORT);
+  }
+  state = IDLE;
+}
+
 void EthernetOTAClass::sendResponse(const char* response) {
   udp.beginPacket(remoteIP, remotePort);
   udp.print(response);

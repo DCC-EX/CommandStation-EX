@@ -87,7 +87,9 @@ int MDNS::begin(const IPAddress& ip, const char* name) {
   //  delay(100);
   
   _ipAddress = ip;
+  if (_name) free(_name);
   _name = (char *)malloc(strlen(name)+2);
+  if (!_name) return 0;
   byte n;
   for(n = 0; n<strlen(name); n++)
     _name[n+1] = name[n];
