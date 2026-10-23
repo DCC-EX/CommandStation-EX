@@ -616,10 +616,21 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
+#define NEOPIXEL(...) NEOPIXEL_EXPAND(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define NEOPIXEL_EXPAND(n) NEOPIXEL_EXPAND2(n)
+#define NEOPIXEL_EXPAND2(n) NEOPIXEL_##n
+#define NEOPIXEL_4(id,r,g,b) NEOPIXEL_6(id,r,g,b,1,255)
+#define NEOPIXEL_5(id,r,g,b,count) NEOPIXEL_6(id,r,g,b,count,255)
+#define NEOPIXEL_6(id,r,g,b,count,brightness) OPCODE_NEOPIXEL,V(id),\
         OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
         OPCODE_PAD,V((b & 0xff)),\
-        OPCODE_PAD,V(#count[0]?(count+0):1),
+   OPCODE_PAD,V(count),\
+   OPCODE_PAD,V(brightness),
+
+#define NEOPIXEL_CHASE(vpin,count,delay,brightness...) OPCODE_NEOPIXEL_CHASE,V(vpin),\
+   OPCODE_PAD,V(count),\
+   OPCODE_PAD,V(delay),\
+   OPCODE_PAD,V(#brightness[0]?(brightness+0):255),
          
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
 #define NODE_SHARE_SCREEN0(display_id2,count...)
