@@ -2,14 +2,6 @@ NeoPixel support
 
 The IO_NeoPixel.h driver supports the adafruit neopixel seesaw board. It turns each pixel into an individual VPIN which can be given a colour and turned on or off using the new <o> command or the NEOPIXEL Exrail macro. Exrail SIGNALS can also drive a single pixel signal or multiple separate pixels.
 
-For a directly connected ESP32 pixel string, use the RMT driver instead of a Seesaw board:
-
-  HAL(NeoPixelRMT,1000,20,18,NEO_GRB)
-
-The parameters are the first vpin, pixel count, ESP32 data GPIO and optional colour/speed mode. The sender runs on ESP32 core 0; the Arduino application loop runs on core 1. With DCC RMT enabled, this driver reserves channels starting at channel 4, after the channels used by the main and programming tracks. This shared use is supported on the classic ESP32; other ESP32 variants may not have free RMT transmit channels.
-
-`NEOPIXEL_CHASE(firstVpin,count,delay,brightness)` is an EXRAIL command for an RGB test pattern. It lights pixels red, green and blue in sequence, waits the specified milliseconds between pixels, then clears the range. Brightness is 0 (off) to 255 (full) and defaults to 255. Use `FOLLOW` to repeat the sequence. Up to 256 pixels can be scanned.
-
 
 1.  Defining the hardware driver:
     Add a driver definition in myAutomation.h for each adafruit I2C driver.
@@ -35,12 +27,12 @@ The parameters are the first vpin, pixel count, ESP32 data GPIO and optional col
     <o [-]vpin count> switches on/off count pixels starting at vpin. e.g <o 1000 5>
     Note: it IS acceptable to switch across 2 strings of pixels if they are contiguous vpin ranges.  It is also interesting that this command doesnt care if the vpins are NeoPixel or any other type, so it can be used to switch a range of other pin types. 
 
-    <o [-]vpin red green blue [count [brightness]]> sets the colour and on/off status of a pin or pins. Each colour and brightness is 0..255. Brightness defaults to 255. For example, <o 1005 255 255 0> sets pin 1005 to full-brightness yellow; <o 1000 255 0 0 20 64> sets 20 pixels to dim red. To set brightness for one pixel, specify a count of 1 first.
+    <o [-]vpin red green blue [count]> sets the colour and on/off status of a pin or pins. Each colour is 0..255 e.g. <o 1005 255 255 0>  sets pin 1005 to bright yellow and ON, <0 -1006 0 0 255 10>  sets pins 1006 to 1015 (10 pins) to bright blue but OFF.     
     Note: If you set a pin to a colour, you can turn it on and off without having to reset the colour every time. This is something the adafruit seesaw library can't do and is just one of several reasons why we dont use it.  
 
 3. Setting pixels from EXRAIL
-    The new NEOPIXEL macro provides the same functionality as the <o [-]vpin red green blue [count [brightness]]> command above.
-    NEOPIXEL([-]vpin, red, green, blue [,count [,brightness]])
+    The new NEOPIXEL macro provides the same functionality as the    <o [-]vpin red green blue [count]> command above. 
+    NEOPIXEL([-]vpin, red, green, blue [,count])
     
     Setting pixels on or off (without colour change) can be done with SET/RESET [currently there is no set range facility but that may be added as a general exrail thing... watch this space]
 

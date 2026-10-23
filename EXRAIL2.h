@@ -294,9 +294,6 @@ private:
     int onEventStartPosition;
     byte stackDepth;
     int callStack[MAX_STACK_DEPTH];
-    uint16_t pixelChaseIndex = 0;
-    bool pixelChaseActive = false;
-    bool pixelChaseFinishing = false;
     static const byte fixedOpcodeLength=5; // All opcodes are 5 bytes long, including padding.
 };
 
