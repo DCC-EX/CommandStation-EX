@@ -34,12 +34,6 @@
   */
 
 ZZBEGIN
-ZZ(q,vpin,count,bytestate) // SHARED_SENSOR bulk state report
-   for (int i=0;i<count;i++) {
-        SensorGroup::applyIncomingSensor(vpin+i,(bytestate&(1<<i))!=0);
-   }
-ZZ(q,vpin,bit) //SHARED_SENSOR incoming state change
-   SensorGroup::applyIncomingSensor(vpin,bit!=0);
 ZZ(t,loco,speedByte)  // Throttle speed change
   // This was sent by any node that changes a loco speed
   // It will not cause a rebroadcast
@@ -66,7 +60,7 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
 
 ZZ(H) // CS requests list of locally defined turnouts & shared sensors
   Turnout::shareNodesToCS();
-  SensorGroup::shareSensorsToCS();
+  Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
    
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)

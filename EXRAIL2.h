@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -54,7 +54,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,OPCODE_DRIVE,
              OPCODE_SERVO,OPCODE_WAITFOR,
              OPCODE_PAD,OPCODE_FOLLOW,OPCODE_CALL,OPCODE_RETURN,
-             OPCODE_CHANGE_DIRECTION,
+             OPCODE_CHANGE_DIRECTION,OPCODE_PULSE1,OPCODE_PULSE2,
 #ifndef DISABLE_PROG
              OPCODE_JOIN,OPCODE_UNJOIN,OPCODE_READ_LOCO1,OPCODE_READ_LOCO2,
 #endif
@@ -64,7 +64,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ONCLOSE, OPCODE_ONTHROW,
              OPCODE_PRINT,OPCODE_DCCACTIVATE,OPCODE_ASPECT,
              OPCODE_ONACTIVATE,OPCODE_ONDEACTIVATE,
-             OPCODE_ROSTER,OPCODE_KILLALL,
+             OPCODE_KILLALL,
              OPCODE_ROUTE,OPCODE_AUTOMATION,OPCODE_SEQUENCE,
              OPCODE_ENDTASK,OPCODE_ENDEXRAIL,
              OPCODE_SET_TRACK,OPCODE_SET_POWER,
@@ -83,8 +83,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
              OPCODE_CLEAR_ANY_STASH,
-             OPCODE_ONBUTTON,OPCODE_ONSENSOR,OPCODE_ONVP_SENSOR,
-             OPCODE_NEOPIXEL,OPCODE_NEOPIXEL_CHASE,
+             OPCODE_ONBUTTON,OPCODE_ONBUTTONUP,OPCODE_ONSENSOR,
+             OPCODE_NEOPIXEL,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
@@ -125,7 +125,7 @@ enum thrunger: byte {
   thrunge_serial,thrunge_parse,
   thrunge_serial1, thrunge_serial2, thrunge_serial3,
   thrunge_serial4, thrunge_serial5, thrunge_serial6,
-  thrunge_lcn,thrunge_message,
+  thrunge_message,
   thrunge_lcd,  // Must be last!!
   };
 
@@ -139,7 +139,6 @@ enum BlinkState: byte {
 
   // Flag bits for compile time features.
   static const byte FEATURE_LCC   = 0x40;
-  static const byte FEATURE_ROSTER= 0x20;
   static const byte FEATURE_ROUTESTATE= 0x10;
   // spare = 0x08;
   static const byte FEATURE_BLINK = 0x04;
@@ -186,7 +185,8 @@ class LookList {
     ~RMFT2();
     static void readLocoCallback(int16_t cv);
     static void createNewTask(int route, uint16_t cab);
-    static void turnoutEvent(int16_t id, bool closed);  
+    static void turnoutEvent(int16_t id, bool closed); 
+    static void sensorEvent(VPIN pin, bool isLow);
     static void activateEvent(int16_t addr, bool active);
     static void changeEvent(int16_t id, bool change);
     static void clockEvent(int16_t clocktime, bool change);
@@ -197,14 +197,10 @@ class LookList {
 #endif
     static void blockEvent(int16_t block, int16_t loco, bool entering);
     // Throttle Info Access functions built by exrail macros 
-  static const byte rosterNameCount;
   static const int16_t HIGHFLASH routeIdList[];
   static const int16_t HIGHFLASH automationIdList[];
-  static const int16_t HIGHFLASH rosterIdList[];
   static const FSH *  getRouteDescription(int16_t id);
   static char   getRouteType(int16_t id);
-  static const FSH *  getRosterName(int16_t id);
-  static const FSH *  getRosterFunctions(int16_t id);
   static const FSH *  getTurntableDescription(int16_t id);
   static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);
@@ -259,6 +255,8 @@ private:
    static LookList * onOverloadLookup;
    static LookList * onBlockEnterLookup;
    static LookList * onBlockExitLookup;
+   static LookList * onButtonDownLookup;  // ONBUTTON, ONSENSOR
+   static LookList * onButtonUpLookup;  // ONBUTTONUP, ONSENSOR
 #ifdef BOOSTER_INPUT
    static LookList * onRailSyncOnLookup;
    static LookList * onRailSyncOffLookup;
@@ -291,6 +289,7 @@ private:
     BlinkState blinkState; // includes AT_TIMEOUT flag. 
     uint16_t loco;
     bool invert;
+    bool preventPause;
     byte pauseSpeed;
     int onEventStartPosition;
     byte stackDepth;

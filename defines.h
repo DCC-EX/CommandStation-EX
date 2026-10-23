@@ -38,13 +38,15 @@
 // figure out if we have enough memory for advanced features
 // so define HAS_ENOUGH_MEMORY until proved otherwise.
 #define HAS_ENOUGH_MEMORY
-#undef USB_SERIAL     // Teensy has this defined by default...
-#define USB_SERIAL Serial
-#define USB_SERIAL_WEB 
 // Include extended addresses unless specifically excluded
 #define I2C_EXTENDED_ADDRESS
 
+// check for supported cpu types
+
+#define CPU_TYPE_ERROR
+
 #if defined(ARDUINO_ARCH_ESP32)
+  #undef CPU_TYPE_ERROR
   #define ARDUINO_TYPE "ESP32"
   #ifndef DISABLE_EEPROM
   #define DISABLE_EEPROM
@@ -53,23 +55,23 @@
   #if !defined(ENABLE_WIFI)
     #define ENABLE_WIFI true
   #endif
+  // Espressif LWIP stack
+  #define MAX_NUM_TCP_CLIENTS 10
+#endif
 
-
-#elif defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_STM32)
+  #undef CPU_TYPE_ERROR
   #define ARDUINO_TYPE "Nucleo"
-  // STM32 no EEPROM by default 
-  #ifndef DISABLE_EEPROM
-    #define DISABLE_EEPROM
-  #endif
-
-  // STM32 support for native I2C is awaiting development 
-  // #ifndef I2C_USE_WIRE
-  // #define I2C_USE_WIRE
-  // #endif
-
-
-#else
-  #define CPU_TYPE_ERROR
+  // The LwIP library for the STM32 wired ethernet has by default 10 TCP
+// clients defined but because of a bug in the library #11 is not
+// rejected but kicks out any old connection. By restricting our limit
+// to 9 the #10 will be rejected by our code so that the number can
+// never get to 11 which would kick an existing connection.
+// If you want to change this value, do that in
+// config.h AND in STM32lwipopts.h.
+ #ifndef MAX_NUM_TCP_CLIENTS
+  #define MAX_NUM_TCP_CLIENTS 9
+ #endif
 #endif
 
 // replace board type if provided by compiler
@@ -88,32 +90,7 @@
 
 
 #if __has_include ( "myAutomation.h")
-  #if defined(HAS_ENOUGH_MEMORY) || defined(DISABLE_EEPROM) || defined(DISABLE_PROG)
     #define EXRAIL_ACTIVE
-  #else
-    #define EXRAIL_WARNING
-  #endif
-#endif
-
-#if defined(ARDUINO_ARCH_STM32)
-// The LwIP library for the STM32 wired ethernet has by default 10 TCP
-// clients defined but because of a bug in the library #11 is not
-// rejected but kicks out any old connection. By restricting our limit
-// to 9 the #10 will be rejected by our code so that the number can
-// never get to 11 which would kick an existing connection.
-// If you want to change this value, do that in
-// config.h AND in STM32lwipopts.h.
- #ifndef MAX_NUM_TCP_CLIENTS
-  #define MAX_NUM_TCP_CLIENTS 9
- #endif
-#else
- #if defined(ARDUINO_ARCH_ESP32)
-// Espressif LWIP stack
-  #define MAX_NUM_TCP_CLIENTS 10
- #else
-// Wifi shields etc
-  #define MAX_NUM_TCP_CLIENTS 8
- #endif
 #endif
 
 
@@ -130,6 +107,12 @@
     #define IP_PORT 2560
 #endif
 
-
+#ifndef HIGHEST_SHORT_ADDR
+  #define HIGHEST_SHORT_ADDR 127
+#else
+  #if HIGHEST_SHORT_ADDR > 127
+    #error short addr greater than 127 does not make sense
+  #endif
+#endif
 
 #endif //DEFINES_H

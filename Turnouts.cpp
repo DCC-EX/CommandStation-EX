@@ -25,19 +25,13 @@
 
 
 #include "defines.h"  // includes config.h
-#ifndef DISABLE_EEPROM
-#include "EEStore.h"
-#endif
 #include "StringFormatter.h"
 #include "CommandDistributor.h"
 #include "EXRAIL2.h"
 #include "Turnouts.h"
 #include "DCC.h"
-#include "LCN.h"
-#ifdef EESTOREDEBUG
 #include "DIAG.h"
 #include "NodeManager.h"
-#endif
 
   /* 
    * Protected static data
@@ -138,12 +132,6 @@
     if ( !tt->isHidden())
       CommandDistributor::broadcastTurnout(id, closeFlag);
 
-#ifndef DISABLE_EEPROM
-      // Write byte containing new closed/thrown state to EEPROM if required.  Note that eepromAddress
-      // is always zero for LCN turnouts.
-      if (EEStore::eeStore->data.nTurnouts > 0 && tt->_eepromAddress > 0) 
-        EEPROM.put(tt->_eepromAddress, tt->_turnoutData.flags);
-#endif
     return true;
 }
 
@@ -166,62 +154,6 @@ void Turnout::setRamDescription(const char *desc) {
 	    NodeManager::cast(F("<H %d %d \"%s\">"),tt->getId(), tt->isThrown(), tdesc);
       } 
   }
-
-#ifndef DISABLE_EEPROM
-  // Load all turnout objects
-  /* static */ void Turnout::load() {
-    for (uint16_t i=0; i<EEStore::eeStore->data.nTurnouts; i++) {
-      Turnout::loadTurnout();
-    }
-  }
-
-  // Save all turnout objects
-  /* static */ void Turnout::store() {
-    EEStore::eeStore->data.nTurnouts=0;
-    for (Turnout *tt = _firstTurnout; tt != 0; tt = tt->_nextTurnout) {
-      tt->save();
-      EEStore::eeStore->data.nTurnouts++;
-    }
-  }
-
-  // Load one turnout from EEPROM
-  /* static */ Turnout *Turnout::loadTurnout () {
-    Turnout *tt = 0;
-    // Read turnout type from EEPROM
-    struct TurnoutData turnoutData;
-    int eepromAddress = EEStore::pointer() + offsetof(struct TurnoutData, flags); // Address of byte containing the closed flag.
-    EEPROM.get(EEStore::pointer(), turnoutData);
-    EEStore::advance(sizeof(turnoutData));
-
-    switch (turnoutData.turnoutType) {
-      case TURNOUT_SERVO:
-        // Servo turnout
-        tt = ServoTurnout::load(&turnoutData);
-        break;
-      case TURNOUT_DCC:
-        // DCC Accessory turnout
-        tt = DCCTurnout::load(&turnoutData);
-        break;
-      case TURNOUT_VPIN:
-        // VPIN turnout
-        tt = VpinTurnout::load(&turnoutData);
-        break;
-      default:
-        // If we find anything else, then we don't know what it is or how long it is, 
-        // so we can't go any further through the EEPROM!
-        return NULL;
-    }
-    if (tt) {
-      // Save EEPROM address in object.  Note that LCN turnouts always have eepromAddress of zero.
-      tt->_eepromAddress = eepromAddress + offsetof(struct TurnoutData, flags);
-    }
-
-#ifdef EESTOREDEBUG
-    printAll(&USB_SERIAL);
-#endif
-    return tt;
-  }
-#endif
 
 /*************************************************************************************
  * ServoTurnout - Turnout controlled by servo device.
@@ -277,23 +209,6 @@ void Turnout::setRamDescription(const char *desc) {
 
   }
 
-  // Load a Servo turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  Turnout *ServoTurnout::load(struct TurnoutData *turnoutData) {
-#ifndef DISABLE_EEPROM
-    ServoTurnoutData servoTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), servoTurnoutData);
-    EEStore::advance(sizeof(servoTurnoutData));
-    
-    // Create new object
-    Turnout *tt = ServoTurnout::create(turnoutData->id, servoTurnoutData.vpin, servoTurnoutData.thrownPosition,
-      servoTurnoutData.closedPosition, servoTurnoutData.profile, turnoutData->closed);
-    return tt;
-#else
-    (void)turnoutData;
-    return NULL;
-#endif
-  }
 
   // For DCC++ classic compatibility, state reported to JMRI is 1 for thrown and 0 for closed
   void ServoTurnout::print(Print *stream) {
@@ -308,25 +223,14 @@ void Turnout::setRamDescription(const char *desc) {
       close ? _servoTurnoutData.closedPosition : _servoTurnoutData.thrownPosition, _servoTurnoutData.profile,0,false);
   }
 
-  void ServoTurnout::save() {
-#ifndef DISABLE_EEPROM
-    // Write turnout definition and current position to EEPROM
-    // First write common servo data, then
-    // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
-    EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _servoTurnoutData);
-    EEStore::advance(sizeof(_servoTurnoutData));
-#endif
-  }
 
 /*************************************************************************************
  * DCCTurnout - Turnout controlled by DCC Accessory Controller.
  * 
  *************************************************************************************/
 
-  // DCCTurnoutData contains data specific to this subclass that is 
-  // written to EEPROM when the turnout is saved.
+  
+  // Since EEPROM support has been removed, this structure is now only used for runtime data.
   struct DCCTurnoutData {
     // DCC address (Address in bits 15-2, subaddress in bits 1-0
     uint16_t address; // CS currently supports linear address 1-2048
@@ -362,24 +266,6 @@ void Turnout::setRamDescription(const char *desc) {
     return tt;
   }
 
-  // Load a DCC turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  /* static */ Turnout *DCCTurnout::load(struct TurnoutData *turnoutData) {
-#ifndef DISABLE_EEPROM
-    DCCTurnoutData dccTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), dccTurnoutData);
-    EEStore::advance(sizeof(dccTurnoutData));
-    
-    // Create new object
-    DCCTurnout *tt = new DCCTurnout(turnoutData->id, dccTurnoutData.address, dccTurnoutData.subAddress);
-
-    return tt;
-#else
-    (void)turnoutData;
-    return NULL;
-#endif
-  }
-
   void DCCTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d DCC %d %d %d>\n"), _turnoutData.id, 
       _dccTurnoutData.address, _dccTurnoutData.subAddress, !_turnoutData.closed); 
@@ -396,18 +282,6 @@ void Turnout::setRamDescription(const char *desc) {
     close = !close;
 #endif
     DCC::setAccessory(_dccTurnoutData.address, _dccTurnoutData.subAddress, close);
-  }
-
-  void DCCTurnout::save() {
-#ifndef DISABLE_EEPROM
-    // Write turnout definition and current position to EEPROM
-    // First write common servo data, then
-    // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
-    EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _dccTurnoutData);
-    EEStore::advance(sizeof(_dccTurnoutData));
-#endif
   }
 
 
@@ -444,24 +318,6 @@ void Turnout::setRamDescription(const char *desc) {
     return tt;
   }
 
-  // Load a VPIN turnout definition from EEPROM.  The common Turnout data has already been read at this point.
-  /* static */ Turnout *VpinTurnout::load(struct TurnoutData *turnoutData) {
-#ifndef DISABLE_EEPROM
-    VpinTurnoutData vpinTurnoutData;
-    // Read class-specific data from EEPROM
-    EEPROM.get(EEStore::pointer(), vpinTurnoutData);
-    EEStore::advance(sizeof(vpinTurnoutData));
-    
-    // Create new object
-    VpinTurnout *tt = new VpinTurnout(turnoutData->id, vpinTurnoutData.vpin, turnoutData->closed);
-
-    return tt;
-#else
-    (void)turnoutData;
-    return NULL;
-#endif
-  }
-
   // Report 1 for thrown, 0 for closed.
   void VpinTurnout::print(Print *stream) {
     StringFormatter::send(stream, F("<H %d VPIN %d %d>\n"), _turnoutData.id, _vpinTurnoutData.vpin, 
@@ -470,67 +326,4 @@ void Turnout::setRamDescription(const char *desc) {
 
   void VpinTurnout::setClosedInternal(bool close) {
     if (_vpinTurnoutData.vpin) IODevice::write(_vpinTurnoutData.vpin, close);
-  }
-
-  void VpinTurnout::save() {
-#ifndef DISABLE_EEPROM
-    // Write turnout definition and current position to EEPROM
-    // First write common servo data, then
-    // write the servo-specific data
-    EEPROM.put(EEStore::pointer(), _turnoutData);
-    EEStore::advance(sizeof(_turnoutData));
-    EEPROM.put(EEStore::pointer(), _vpinTurnoutData);
-    EEStore::advance(sizeof(_vpinTurnoutData));
-#endif
-  }
-
-
-/*************************************************************************************
- * LCNTurnout - Turnout controlled by Loconet
- * 
- *************************************************************************************/
-
-  // LCNTurnout has no specific data, and in any case is not written to EEPROM!
-  // struct LCNTurnoutData {
-  // } _lcnTurnoutData; // 0 bytes
-
-  // Constructor
-  LCNTurnout::LCNTurnout(uint16_t id, bool closed) :
-    Turnout(id, TURNOUT_LCN, closed)
-  { }
-
-  // Create function
-  /* static */ Turnout *LCNTurnout::create(uint16_t id, bool closed) {
-    Turnout *tt = get(id);
-    if (tt) { 
-      // Object already exists, check if it is usable
-      if (tt->isType(TURNOUT_LCN)) {
-        // Yes, so return this object
-        return tt;
-      } else {
-        // Incompatible object, delete and recreate
-        remove(id);
-      }
-    }
-    tt = (Turnout *)new LCNTurnout(id, closed);
-    return tt;
-  }
-
-  void LCNTurnout::setClosedInternal(bool close) {
-    // Assume that the LCN command still uses 1 for throw and 0 for close...
-    LCN::send('T', _turnoutData.id, !close);
-    // The _turnoutData.closed flag should be updated by a message from the LCN master.
-    // but in this implementation it is updated in setClosedStateOnly() instead.
-    // If the LCN master updates this, setClosedStateOnly() and all setClosedInternal()
-    // have to be updated accordingly so that the closed flag is only set once.
-  }
-
-  // LCN turnouts not saved to EEPROM.
-  //void save() override {  }
-  //static Turnout *load(struct TurnoutData *turnoutData) {
-
-  // Report 1 for thrown, 0 for closed.
-  void LCNTurnout::print(Print *stream) {
-    StringFormatter::send(stream, F("<H %d LCN %d>\n"), _turnoutData.id, 
-    !_turnoutData.closed); 
   }

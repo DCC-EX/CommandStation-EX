@@ -1,6 +1,6 @@
 /*
  *  © 2021 Neil McKechnie
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
@@ -152,7 +152,7 @@ bool IODevice::isSharedWrite(VPIN xvpin,int16_t xcount) {
 #include "myAutomation.h"
 
 // Pass 1h Implements HAL macro by creating exrailHalSetup1 function
-// Also allows creating EXTurntable object
+// Also allows creating EXTurntable object and jmri/node sensors
 #include "EXRAIL2MacroReset.h"
 #undef HAL
 #define HAL(haltype,params...)  haltype::create(params);
@@ -170,46 +170,6 @@ bool exrailHalSetup1() {
    bool ignore_defaults=false;
    #include "myAutomation.h"
    return ignore_defaults;
-}
-
-// Pass 1s Implements servos by creating exrailHalSetup2
-// TODO Turnout and turntable creation should be moved to here instead of 
-// the first pass from the opcode table. 
-#include "EXRAIL2MacroReset.h"
-#undef SHARED_SENSOR
-#define SHARED_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doSharedSensorGroup(vpin,npins,state_map,action, applyPin, applyState); \
-  }
-#undef REMOTE_SENSOR
-#define REMOTE_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   SensorGroup::doRemoteSensorGroup(vpin,npins,action, applyPin, applyState); \
-  }
-#undef JMRI_SENSOR
-#define JMRI_SENSOR(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,true); \
-  }
-#undef JMRI_SENSOR_NOPULLUP
-#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
-  { \
-   const int npins=#count[0]? count+0:1; \
-   static byte state_map[(npins+7)/8]; \
-   SensorGroup::doJMRISensorGroup(vpin,npins,state_map,action,stream,false); \
-  }
-
-void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN applyPin, bool applyState) {
-   (void)   action; // suppress unused warnings if no groups
-   (void)   stream;
-   (void)   applyPin;
-   (void)   applyState;
-   #include "myAutomation.h"
 }
 
 // Pass 1s Implements servos and signals by creating exrailHalSetup2
@@ -231,6 +191,9 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
 #undef DCC_SIGNAL
 #define DCC_SIGNAL(id,addr,subaddr,description...) \
    new DCCSignal(id,(((addr)-1)*4)+(subaddr)+1,S_DESC(description));
+#undef DCC_SIGNALL   
+#define DCC_SIGNALL(id,linearaddr,description...) \
+   new DCCSignal(id,linearaddr,S_DESC(description));
 #undef DCCX_SIGNAL
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...) \
   new DCCXSignal(id,id,redAspect,amberAspect,greenAspect,S_DESC(description));
@@ -259,11 +222,22 @@ void SensorGroup::doExrailSensorGroup(GroupProcess action, Print * stream, VPIN 
    extern const char  body##_html[];\
    SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
 }
+// Sensors created here 
+#undef SHARED_SENSOR
+#define SHARED_SENSOR(vpin,count...) \
+  Sensor::createNode(vpin,count);
+#undef JMRI_SENSOR
+#define JMRI_SENSOR(vpin,count...) \
+  Sensor::createJMRI(vpin,vpin,true,count);
+#undef JMRI_SENSOR_NOPULLUP
+#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
+  Sensor::createJMRI(vpin,vpin,false,count);
+#undef ROSTER
+#define ROSTER(cabid,name,funcmap...) \
+ Roster::create(cabid,name,funcmap);
 
 void exrailHalSetup2() {
    #include "myAutomation.h"
-   // pullup any group sensors
-   SensorGroup::prepareAll();
 }
 
 // Pass 1c detect compile time featurtes
@@ -304,6 +278,8 @@ void exrailHalSetup2() {
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
 #undef ONBUTTON
 #define ONBUTTON(vpin) | FEATURE_SENSOR
+#undef ONBUTTONUP
+#define ONBUTTONUP(vpin) | FEATURE_SENSOR
 #undef ONSENSOR
 #define ONSENSOR(vpin) | FEATURE_SENSOR
 #undef ONBITMAP
@@ -361,8 +337,6 @@ const int StringMacroTracker1=__COUNTER__;
 #define PARSE(msg) THRUNGE(msg,thrunge_parse)
 #undef PRINT
 #define PRINT(msg) THRUNGE(msg,thrunge_print)
-#undef LCN
-#define LCN(msg)   THRUNGE(msg,thrunge_lcn)
 #undef MESSAGE
 #define MESSAGE(msg) THRUNGE(msg,thrunge_message)
 
@@ -491,45 +465,6 @@ const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t 
    return NULL;
 }
 
-// Pass 6: Roster IDs (count)
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) +(cabid <= 0 ? 0 : 1)
-const byte RMFT2::rosterNameCount=0
-   #include "myAutomation.h"
-   ;
-   
-// Pass 6: Roster IDs 
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) cabid,
-const int16_t HIGHFLASH  RMFT2::rosterIdList[]={
-   #include "myAutomation.h"
-   INT16_MAX};
-
-// Pass 7: Roster names getter
-#include "EXRAIL2MacroReset.h"
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) case cabid: return F(name);
-const FSH * RMFT2::getRosterName(int16_t id) {
-   switch(id) {
-      #include "myAutomation.h"
-   default: break;
-   }
-   return F("");   
-} 
-
-// Pass to get roster functions 
-#undef ROSTER
-#define ROSTER(cabid,name,funcmap...) case cabid: return F("" funcmap);
-const FSH * RMFT2::getRosterFunctions(int16_t id) {
-   switch(id) {
-      #include "myAutomation.h"
-   default: break; 
-   }   
-   return NULL;
-} 
-
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
 #undef ONLCC
@@ -605,6 +540,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
         (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
         V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
 #define DCC_SIGNAL(id,add,subaddr,description...)
+#define DCC_SIGNALL(id,linearaddr,description...)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
 #define DONE OPCODE_ENDTASK,V(0),
 #define DRIVE(analogpin) OPCODE_DRIVE,V(analogpin),
@@ -677,7 +613,6 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define SCREEN(display,id,msg) PRINT(msg)
 #define STEALTH(code...) PRINT(dummy)
 #define STEALTH_GLOBAL(code...) 
-#define LCN(msg) PRINT(msg)
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
@@ -725,6 +660,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONSENSOR(sensor_id) OPCODE_ONSENSOR,V(sensor_id),
 #define ONBITMAP(sensor_id) OPCODE_ONBITMAP,V(sensor_id),
 #define ONBUTTON(sensor_id) OPCODE_ONBUTTON,V(sensor_id),
+#define ONBUTTONUP(sensor_id) OPCODE_ONBUTTONUP,V(sensor_id),
 #define PAUSE OPCODE_PAUSE,V(0),
 #define PICKUP_STASH(id) OPCODE_PICKUP_STASH,V(id),
 #define PIN_TURNOUT(id,pin,description...)
@@ -742,6 +678,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define POWERON OPCODE_POWERON,V(0),
 #define PRINT(msg) OPCODE_PRINT,V(__COUNTER__ - StringMacroTracker2),
 #define PARSE(msg) PRINT(msg)
+#define PULSE(vpin,duration) OPCODE_PULSE1,V(vpin),OPCODE_PAD,V(duration),OPCODE_PULSE2,V(vpin),
 #define RANDOM_CALL(...) \
   OPCODE_RANDOM_CALL,V(FOR_EACH_NARG(__VA_ARGS__)), \
   ZCRIP(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)

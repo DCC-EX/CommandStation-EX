@@ -141,6 +141,20 @@ bool EXNetworkPreferences::getThrottleNode() {
   return NVSTable::getNVS(SystemPreferences::throttleNode,true);
 }
 
+void wsp(Print * stream,const char *name,int16_t value) {
+  StringFormatter::send(stream,
+    F("sysNVS[\"%s\"]=%d;"), name, value);
+}
+
+void EXNetworkPreferences::streamSystemPreferenceIds(Print * stream) {
+   stream->print(F("sysNVS={};"));
+   #define SP_ENTRY(n) wsp(stream,#n,SystemPreferences::n)
+    SP_ENTRY(ssidSTA); SP_ENTRY(passwordSTA); SP_ENTRY(ssidAP); SP_ENTRY(passwordAP);
+    SP_ENTRY(hostName); SP_ENTRY(enabled); SP_ENTRY(channelAP); SP_ENTRY(hiddenAP);
+    SP_ENTRY(throttleNode);
+  #undef SP_ENTRY
+}
+
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
       F("<* C HOSTNAME \"%s\" *>\n"), NVSTable::getTextNVS(SystemPreferences::hostName));

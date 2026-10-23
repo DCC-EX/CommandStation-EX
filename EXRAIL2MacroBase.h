@@ -157,6 +157,12 @@
 ///param subaddr DCC subaddress
 ///param description... Quoted text description of signal
 
+#define DCC_SIGNALL(signal_id,linearaddr,description...)
+///brief Define a DCC accessory signal with linear address
+///param signal_id Id used for all signal manipulation commands
+///param linearaddr DCC linear address
+///param description... Quoted text description of signal
+
 #define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect,description...)
 ///brief Define advanced DCC accessory signal with aspects
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands
@@ -440,9 +446,6 @@
 ///  displays which may have different display numbers on different devices.
 ///param msg Quoted text
 
-#define LCN(msg)
-///brief Reserved for LCN communication. Refer to their documentation.
-
 #define MESSAGE(msg)
 ///brief Send a human readable message to all throttle users
 ///param msg Quoted text
@@ -571,7 +574,10 @@
 ///brief Start task here when bitmap sensor changes state (debounced)
 
 #define ONBUTTON(vpin)
-///brief Start task here when sensor changes HIGH to LOW.
+///brief Start task here when sensor changes HIGH to LOW. (Typically a pressed button)
+
+#define ONBUTTONUP(vpin)
+///brief Start task here when sensor changes LOW to HIGH. (Typically a released button)
 
 #define PAUSE
 ///brief Pauses all EXRAIL tasks except the current one.
@@ -638,6 +644,11 @@
 
 #define POWERON
 ///brief Powers ON all tracks
+
+#define PULSE(vpin,duration)
+///brief Sets output pin HIGH for a given duration
+///param vpin The output pin to pulse
+///param duration Duration of the pulse in milliseconds
 
 #define RANDOM_CALL(sequence_id...)
 ///brief CALL to another sequence randomly chosen from list

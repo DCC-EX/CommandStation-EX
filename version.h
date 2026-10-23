@@ -3,7 +3,19 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.10"
+#define VERSION "5.9.14"
+// 5.9.14 - new EXRAIL PULSE(vpin,duration)
+//        - Roster editing config dialog
+//        - Command auto doc improvements   
+// 5.9.13 - Runtime roster commands and save (ESP32 save only)
+// 5.9.12 - Unified sensor polling internals
+//        - D SENSORS command for diagnostics
+//        - EXRAIL ONBUTTONUP
+//        - EXRAIL DCC_SIGNALL for linear address
+//        - EXRAIL </> showa paused state
+//        - System preferences in HTML refer by name 
+// 5.9.11 - Add IO_ServoESP for nodes
+//        - Add IO_EXTurntable_Onboard for nodes
 // 5.9.10 - ESP32 bugfix: DCCEXanalogCopyChannel() parameter mismatch (int8_t vs int16_t) causing compile error in DCCTimerESP5.cpp
 //        - EXRAIL bugfix: fix RMFMT::CompileFeatures not being set correctly when EXRAIL_ACTIVE is not defined (lack of myAutomation.h)
 //        - Sniffer: Only compile when BOOSTER_INPUT is defined

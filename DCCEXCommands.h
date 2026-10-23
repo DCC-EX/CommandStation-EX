@@ -6,7 +6,7 @@
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022 Colin Murdoch
  *  All rights reserved.
  *  
@@ -52,8 +52,6 @@ Once a new OPCODE is decided upon, update this list.
   C, configure the CS
   d,
   D, Diagnostic commands
-  e, Erase EEPROM
-  E, Store configuration in EEPROM
   f, Loco decoder function control (deprecated)
   F, Loco decoder function control
   g,
@@ -181,13 +179,11 @@ ZZ(T,id,addr,subAddr) // Create DCC turnout (Deprecated use <T id DCC addr subAd
 ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout (Deprecated use <T id SERVO vpin closedValue thrownValue>)
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
 ZZ(S,id,vpin,pullup)  // Create Sensor
-        CHECK(Sensor::create(id,vpin,pullup)) 
+        CHECK(Sensor::createJMRI(id,vpin,pullup)) 
 ZZ(S,id) // Delete sensor
-        CHECK(Sensor::remove(id))
-ZZ(S)   // List sensors
-        for (auto *tt = Sensor::firstSensor; tt; tt = tt->nextSensor) {
-                REPLY("<Q %d %d %d>\n", tt->data.snum, tt->data.pin, tt->data.pullUp)
-        }           
+        Sensor::removeJMRI(id);
+ZZ(S)   // List sensors as seen by old dcc++
+        Sensor::dumpAllJMRI(stream);           
 ZZ(J,M) // List stash values
         Stash::list(stream);
 ZZ(J,M,stashId) // get stash value
@@ -228,21 +224,18 @@ ZZ(J,S,signal_id) // get signal state and description
         }
         auto description=s->getDescription();
         REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
-ZZ(J,R) // List Roster
-        REPLY("<jR") 
-        #ifdef EXRAIL_ACTIVE
-        SENDFLASHLIST(stream,RMFT2::rosterIdList) 
-        #endif                
-        REPLY(">\n");      
-#ifdef EXRAIL_ACTIVE
-ZZ(J,R,id) // Get roster for loco
-        auto rosterName= RMFT2::getRosterName(id);
-        if (!rosterName) rosterName=F("");
-        auto functionNames= RMFT2::getRosterFunctions(id);
-        if (!functionNames) functionNames=RMFT2::getRosterFunctions(0);
-        if (!functionNames) functionNames=F("");
-        REPLY("<jR %d \"%S\" \"%S\">\n",id, rosterName, functionNames)
-#endif
+ZZ(J,R) // List Roster ids
+        Roster::sendIdsToThrottle(stream); 
+ZZ(J,R,SAVE) // Save the roster to persistent storage
+        Roster::save();
+ZZ(J,R,locoid) // Get roster for loco
+        Roster::sendToThrottle(locoid,stream);
+ZZ(J,R,locoid,DELETE) // Delete roster entry
+        Roster::remove(locoid);
+ZZ(J,R,locoid,name,functionMap) // Update/add roster entry
+        CHECKQ(name)
+        CHECKQ(functionMap)
+        Roster::create(locoid,q_name,q_functionMap);
 ZZ(J,T) // Get turnout list 
         REPLY("<jT")
         for ( auto t=Turnout::first(); t; t=t->next()) if (!t->isHidden())  REPLY(" %d",t->getId()) 
@@ -256,12 +249,15 @@ ZZ(J,T,id) // Get turnout state and description
         REPLY("<jT %d %c \"%s\">\n",id,t->isThrown()?'T':'C',ramDesc)
         return true; 
 ZZ(z,signedVpin)  // Set pin. HIGH iv vpin positive, LOW if vpin negative  
-        IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);
-ZZ(z,vpin,analogue,profile,duration) // Change analogue value over duration (Fade or servo move)
+        IODevice::write(abs(signedVpin),(signedVpin>0)?HIGH:LOW);       
+ZZ(z,vpin,analogue,profile,duration) // Change PWM pin analogue value over duration
+/// profile 0=power off after move, 128=keep power on after move
         IODevice::writeAnalogue(vpin,analogue,profile,duration);
-ZZ(z,vpin,analogue,profile) // Write analogue device using profile number (Fade or servo movement)
+ZZ(z,vpin,analogue,profile) // Change PWM pin analogue value with profile
+/// profile 0=immediate, 1=fast(500ms), 2=medium(1s), 3=slow(2s), 4=bounce
+//  Add 128 to profile to keep power on after move
         IODevice::writeAnalogue(vpin,analogue,profile,0);
-ZZ(z,vpin,analogue) // Write analogue device value
+ZZ(z,vpin,analogue) // Write PWM pin analogue value
         IODevice::writeAnalogue(vpin,analogue,0,0);
      
 // ==========================
@@ -318,25 +314,15 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
         tto->addPosition(id,value,angle);
         REPLY("<I>\n")
 
- ZZ(Q) // List all sensors 
-        Sensor::printAll(stream);
+ ZZ(Q) // List all sensors seen by throttles/jmri 
+        Sensor::printAllJMRI(stream);
 
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
-        Sensor::printAll(stream);  //send all Sensor  states
+        Sensor::printAllJMRI(stream);  //send all JMRI type Sensor  states
                
-
-#ifndef DISABLE_EEPROM
-    ZZ(E) // STORE EPROM
-        EEStore::store();
-        REPLY("<e %d %d %d>\n", EEStore::eeStore->data.nTurnouts, EEStore::eeStore->data.nSensors, EEStore::eeStore->data.nOutputs)
-    ZZ(e) // CLEAR EPROM
-        EEStore::clear();
-        REPLY("<O>\n")
-#endif
-
 ZZ(Z) // List Output definitions 
         bool gotone = false;
         for (auto *tt = Output::firstOutput; tt ; tt = tt->nextOutput) {
@@ -357,57 +343,53 @@ ZZ(Z,id,pin,iFlag) // Create Output
 ZZ(Z,id) // Delete output
         CHECK(Output::remove(id))
         REPLY("<O>\n")
-
-ZZ(D,ACK,ON) // Enable PROG track diagnostics
+// ZZ(D,ACK,onoff)  // set PROG track diagnostics ON or OFF
+ZZ_nodoc(D,ACK,ON) // Enable PROG track diagnostics
         Diag::ACK = true;
-ZZ(D,ACK,OFF) // Disable PROG track diagnostics
+ZZ_nodoc(D,ACK,OFF) // Disable PROG track diagnostics
         Diag::ACK = false;
 ZZ(D,CABS)  // Diagnostic display loco state table
         DCC::displayCabList(stream);
 ZZ(D,RAM)  // Diagnostic display free RAM
         DIAG(F("Free memory=%dkb" ), DCCTimer::getMinimumFreeMemory()/1024);
-ZZ(D,CMD,ON) // Enable command input diagnostics
+// ZZ(D,CMD,onoff) // set command input echo ON or OFF        
+ZZ_nodoc(D,CMD,ON) // Enable command input diagnostics
         Diag::CMD = true;
-ZZ(D,CMD,OFF) // Disable command input diagnostics
+ZZ_nodoc(D,CMD,OFF) // Disable command input diagnostics
         Diag::CMD = false;
-ZZ(D,RAILCOM,ON) // Enable Railcom diagnostics
+// ZZ(D,RAILCOM,onoff) // set Railcom diagnostics ON or OFF
+ZZ_nodoc(D,RAILCOM,ON) // Enable Railcom diagnostics
         Diag::RAILCOM = true;
-ZZ(D,RAILCOM,OFF) // DIsable Railcom diagnostics
-        Diag::RAILCOM = false;    
-ZZ(D,WIFI,ON) // Enable WiFi diagnostics
+ZZ_nodoc(D,RAILCOM,OFF) // DIsable Railcom diagnostics
+        Diag::RAILCOM = false;
+// ZZ(D,WIFI,onoff) // Enable Wifi Diagnostics             
+ZZ_nodoc(D,WIFI,ON) // Enable WiFi diagnostics
         Diag::WIFI = true;
-ZZ(D,WIFI,OFF) // Disable WiFi diagnostics
+ZZ_nodoc(D,WIFI,OFF) // Disable WiFi diagnostics
         Diag::WIFI = false;
-ZZ(D,ETHERNET,ON) // Enable Ethernet diagnostics
+// ZZ(D,ETHERNET,onoff) // set Ethernet diagnostics ON or OFF
+ZZ_nodoc(D,ETHERNET,ON) // Enable Ethernet diagnostics
         Diag::ETHERNET = true;
-ZZ(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
+ZZ_nodoc(D,ETHERNET,OFF) // Disable Ethernet diagnostics 
         Diag::ETHERNET = false;
-ZZ(D,WIT,ON) // Enable WiThrottle diagnostics
+// ZZ(D,WIT,onoff) // set WiThrottle diagnostics ON or OFF
+ZZ_nodoc(D,WIT,ON) // Enable WiThrottle diagnostics
         Diag::WITHROTTLE = true;
-ZZ(D,WIT,OFF) // Disable WiThrottle diagnostics 
+ZZ_nodoc(D,WIT,OFF) // Disable WiThrottle diagnostics 
         Diag::WITHROTTLE = false;
-ZZ(D,LCN,ON) // Enable LCN Diagnostics
-        Diag::LCN = true;
-ZZ(D,LCN,OFF) // Disable LCN diagnostics
-        Diag::LCN = false;
-ZZ(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
+// ZZ(D,WEBSOCKET,onoff) // set WebSocket diagnostics ON or OFF
+ZZ_nodoc(D,WEBSOCKET,ON) // Enable WebSocket diagnostics 
         Diag::WEBSOCKET = true;
-ZZ(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
+ZZ_nodoc(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
-ZZ(D,NODE,ON) // Enable Node diagnostics 
+// ZZ(D,NODE,onoff) // set Node diagnostics ON or OFF
+ZZ_nodoc(D,NODE,ON) // Enable Node diagnostics 
         Diag::NODE = true;
-ZZ(D,NODE,OFF) // Disable Node diagnostics 
+ZZ_nodoc(D,NODE,OFF) // Disable Node diagnostics 
         Diag::NODE = false;
-            
-#ifndef DISABLE_EEPROM  
-ZZ(D,EEPROM,numEntries) // Dump EEPROM contents
-        EEStore::dump(numEntries);
-#endif
-
-
-ZZ(D,ANOUT,vpin,position) // same as <z vpin position>
+ZZ(D,ANOUT,vpin,position) // Deprecated - use `<z vpin position>`
         IODevice::writeAnalogue(vpin,position,0);
-ZZ(D,ANOUT,vpin,position,profile) // see <z vpin position profile>
+ZZ(D,ANOUT,vpin,position,profile) // Deprecated - use  `<z vpin position profile>`
         IODevice::writeAnalogue(vpin,position,profile);
 ZZ(D,SERVO,vpin,position) // Test servo
         IODevice::writeAnalogue(vpin,position,0);
@@ -429,7 +411,10 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
+  Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
+ZZ(D,SENSORS) // Show sensor task list diagnostics
+  Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
 ZZ(C,RESET) // Reset and restart command station
@@ -442,9 +427,10 @@ ZZ(C,SPEED28) // Set all DCC speed commands as 28 step to old decoders
         DCC::setGlobalSpeedsteps(28); DIAG(F("28 Speedsteps"));
 ZZ(C,SPEED128) // Set all DCC speed commands to 128 step (default)
         DCC::setGlobalSpeedsteps(128); DIAG(F("128 Speedsteps"));
-ZZ(C,RAILCOM,ON) // Enable Railcom cutout 
+// ZZ(C,RAILCOM,onoff) // set Railcom cutout ON or OFF
+ZZ_nodoc(C,RAILCOM,ON) // Enable Railcom cutout 
         DIAG(F("Railcom %S"),DCCWaveform::setRailcom(true)?F("ON"):F("OFF"));
-ZZ(C,RAILCOM,OFF) // Disable Railcom cutout
+ZZ_nodoc(C,RAILCOM,OFF) // Disable Railcom cutout
         DIAG(F("Railcom OFF")); DCCWaveform::setRailcom(false);
 #ifndef DISABLE_PROG
 ZZ(D,ACK,LIMIT,value)  // Set ACK detection limit mA
@@ -466,7 +452,7 @@ ZZ(C,HOSTNAME,hostname) // set Wifi/eth hostname (in quotes)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
-ZZ(C,NODE,ON) // Enable Node mode without throttle support
+ZZ(C,NODE,ON) // (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
         EXNetwork::setup();
@@ -474,17 +460,18 @@ ZZ(C,NODE,ON) // Enable Node mode without throttle support
 #if defined(ARDUINO_ARCH_ESP32)
 // WIFI and similar ESP32 - only stuff 
 #ifdef BOOSTER_INPUT
-// <C SNIFFER [ON|OFF]>
-ZZ(C,SNIFFER,ON)  // Turn sniffer output on
+// ZZ(C,SNIFFER,onoff) // Enable SNIFFER output ON or OFF
+ZZ_nodoc(C,SNIFFER,ON)  // Turn sniffer output on
   DCCDecoder::onoff(true);
-ZZ(C,SNIFFER,OFF) // Turn sniffer output off
+ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
   DCCDecoder::onoff(false);
 #endif
-ZZ(C,WIFI,OFF) // Disable WiFi
+// ZZ(C,WIFI,onoff) // Enable WiFi ON or OFF
+ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
         EXNetwork::setup();
-ZZ(C,WIFI,ON) // Enable Wifi
+ZZ_nodoc(C,WIFI,ON) // Enable Wifi
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
@@ -537,12 +524,12 @@ ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with giv
 ZZ(D,WIFI,SHOW) // Show WiFi status
   EXNetworkPreferences::dump(stream);
 #else 
-ZZ(C,ETHERNET,OFF) // Disable Ethernet
+// ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
+ZZ_nodoc(C,ETHERNET,OFF) // Disable Ethernet
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
         EXNetwork::setup();
-
-ZZ(C,ETHERNET,ON) // Enable Ethernet
+ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
@@ -701,6 +688,8 @@ ZZ(-,loco) // Remove loco state and reminders
 ZZ(F,loco,DCCFREQ,freqValue) // Set DC frequency for loco   
         CHECK(freqValue>=0 && freqValue<=3) DCC::setDCFreq(loco,freqValue);
 ZZ(F,loco,function,onoff) // Set loco function ON/OFF
+        if (onoff=="ON"_hk) onoff=1; 
+        if (onoff=="OFF"_hk) onoff=0; 
         CHECK(onoff==0 || onoff==1) DCC::setFn(loco,function,onoff);    
 
 ZZ(^) // List consists
@@ -759,19 +748,20 @@ ZZ(J,P,id) // List turntable positions
 
 ZZ(=) // List track manager states
         TrackManager::list(stream); 
-ZZ(=,track,MAIN) // Set track to MAIN
+// ZZ(=,track,tracktype)   // Set track to MAIN, MAIN_INV, MAIN_AUTO, PROG, OFF, NONE, EXT, BOOST, BOOST_INV, BOOST_AUTO
+ZZ_nodoc(=,track,MAIN) // Set track to MAIN
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
-ZZ(=,track,MAIN_INV) // Set track to MAIN inverted polarity
+ZZ_nodoc(=,track,MAIN_INV) // Set track to MAIN inverted polarity
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
-ZZ(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
+ZZ_nodoc(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
-ZZ(=,track,PROG) // Set track to PROG
+ZZ_nodoc(=,track,PROG) // Set track to PROG
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
-ZZ(=,track,OFF) // Set track power OFF
+ZZ_nodoc(=,track,OFF) // Set track power OFF
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE))
-ZZ(=,track,NONE) // Set track no output
+ZZ_nodoc(=,track,NONE) // Set track no output
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_NONE)) 
-ZZ(=,track,EXT)  // Set track to use external sync
+ZZ_nodoc(=,track,EXT)  // Set track to use external sync
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
 
 #ifdef BOOSTER_INPUT
@@ -779,12 +769,15 @@ ZZ_nodoc(=,track,BOOST)      CHECK(TrackManager::setTrackMode(track,TRACK_MODE_B
 ZZ_nodoc(=,track,BOOST_INV)  CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
 ZZ_nodoc(=,track,BOOST_AUTO) CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
 #endif
-ZZ(=,track,AUTO)  // Update track to auto reverse
+
+// Z(=,track,update) // Update track setting to AUTO, INV, RAILCOM
+ZZ_nodoc(=,track,AUTO)  // Update track to auto reverse
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
-ZZ(=,track,INV) // Update track to inverse polarity
+ZZ_nodoc(=,track,INV) // Update track to inverse polarity
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
-ZZ(=,track,RAILCOM) // Update track to add cutout
+ZZ_nodoc(=,track,RAILCOM) // Update track to add cutout
         CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_RAILCOM))
+
 ZZ(=,track,DC,loco) // Set track to DC
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, loco))
 ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
@@ -792,10 +785,11 @@ ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
 ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
 
-#ifdef EXRAIL_ACTIVE        
-ZZ(D,EXRAIL,ON) // EXRAIL diagnostics on
+#ifdef EXRAIL_ACTIVE
+// ZZ(D,EXRAIL,ON) // EXRAIL diagnostics ON or OFF
+ZZ_nodoc(D,EXRAIL,ON) // EXRAIL diagnostics on
       RMFT2::diag=true; 
-ZZ(D,EXRAIL,OFF) // EXRAIL diagnostics off
+ZZ_nodoc(D,EXRAIL,OFF) // EXRAIL diagnostics off
       RMFT2::diag=false; 
 
 ZZ(L)  // LCC/CBUS adapter introducing self

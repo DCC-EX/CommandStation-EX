@@ -146,20 +146,6 @@ The configuration file for DCC-EX Command Station
 // For a 240x240 ST7789 at text size 1, uncomment this to use all 40 columns.
 //#define MAX_MSG_SIZE 40
 
-
-/////////////////////////////////////////////////////////////////////////////////////
-// DISABLE EEPROM
-//
-// If you do not need the EEPROM at all, you can disable all the code that saves
-// data in the EEPROM. You might want to do that if you are in a Arduino UNO
-// and want to use the EXRAIL automation. Otherwise you do not have enough RAM
-// to do that. Of course, then none of the EEPROM related commands work.
-//
-// EEPROM does not work on ESP32. So on ESP32, EEPROM will always be disabled,
-// at least until it works.
-//
-// #define DISABLE_EEPROM
-
 /////////////////////////////////////////////////////////////////////////////////////
 // DISABLE PROG
 //

@@ -57,7 +57,7 @@ ROUTE(7000, "Route state tests")
   ROUTE(7300,"7300 Test SEND_LOCO_ variants")
   SETLOCO(5) 
   
-  // Share loco and check we doidnt lose it
+  // Share loco and check we didnt lose it
   START_SHARED(7301)
   IFLOCO(5) ELSE PRINT("7300 START_SHARED failed") ENDIF
 
@@ -290,3 +290,45 @@ SEQUENCE(9001)
     )
 // Reverse back to start, and test again
 REV(127) FOLLOW(9001)
+
+HAL(Bitmap,8000,8)
+ROUTE("SENSORS"_hk,"on sensor tests")
+  SET(8000) DELAY(1000) RESET(8000)
+  SET(8001) DELAY(1000) RESET(8001)
+  SET(8002) DELAY(1000) RESET(8002)
+  DONE
+
+ONSENSOR(8000)
+  PRINT("Sensor 8000 triggered")
+DONE
+
+ONSENSOR(8001)
+  PRINT("Sensor 8001 triggered")
+DONE
+
+ONBUTTON(8000)
+  PRINT("ONBUTTON 8000 triggered")
+  DONE
+ONBUTTON(8001)
+  PRINT("ONBUTTON 8001 triggered")
+  DONE
+ONBUTTON(8002)
+  PRINT("ONBUTTON 8002   triggered")
+  DONE
+
+ONBUTTONUP(8000)
+  PRINT("ONBUTTONUP 8000 triggered")
+  DONE
+ONBUTTONUP(8001)
+  PRINT("ONBUTTONUP 8001 triggered")
+  DONE
+ONBUTTONUP(8002)
+  PRINT("ONBUTTONUP 8002   triggered")
+  DONE
+// first 4 shared sensors tell JMRI
+JMRI_SENSOR(8000,2)  // 8000,8001 tell jmri
+SHARED_SENSOR(8001,2)  // 8001 and 8002 also tell nodes
+
+ROUTE("PULSE"_hk,"test 100mS pulse")
+  PULSE(8000,100)
+  DONE
