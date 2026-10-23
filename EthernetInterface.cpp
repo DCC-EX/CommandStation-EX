@@ -177,6 +177,7 @@ EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
 bool EthernetInterface::connected = false;
+static bool ethernetLinkLost = false;
 static bool ethernetLinkRestored = false;
 bool EthernetInterface::isUp() {
   return connected;
@@ -185,6 +186,7 @@ bool EthernetInterface::isUp() {
 bool EthernetInterface::setup()
 {
   connected=false;
+  ethernetLinkLost = false;
   ethernetLinkRestored = false;
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
   DIAG(F("SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d"), ETHERNET_CS_PIN,ETHERNET_SCK_PIN,ETHERNET_MISO_PIN,ETHERNET_MOSI_PIN,ETHERNET_RST_PIN);
@@ -267,6 +269,12 @@ void EthernetInterface::setupMDNS() {
   mdns.begin(getIPAddress(), EXNetworkPreferences::getHostName());
 }
 
+bool EthernetInterface::takeLinkLost() {
+  const bool lost = ethernetLinkLost;
+  ethernetLinkLost = false;
+  return lost;
+}
+
 bool EthernetInterface::takeLinkRestored() {
   const bool restored = ethernetLinkRestored;
   ethernetLinkRestored = false;
@@ -340,6 +348,7 @@ void EthernetInterface::loop()
           confirmingLink = false;
           linkOffSince = linkOffCandidateSince;
           lastLinkDiagnostic = now;
+          ethernetLinkLost = true;
           DIAG(F("Ethernet link OFF confirmed at %lu ms after %lu ms; IP %s, hardware %d"),
                now, now - linkOffSince, Ethernet.localIP().toString().c_str(),
                Ethernet.hardwareStatus());

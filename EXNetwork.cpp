@@ -321,8 +321,14 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
 void EXNetwork::loop() {
   _SHIM_::loop();
 #ifdef ARDUINO_ARCH_ESP32
-  if (exNetworkUsingEthernet && EthernetInterface::takeLinkRestored()) {
-    restartEthernetServices();
+  if (exNetworkUsingEthernet) {
+    if (EthernetInterface::takeLinkLost()) {
+      DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
+      DCC::estopAll();
+    }
+    if (EthernetInterface::takeLinkRestored()) {
+      restartEthernetServices();
+    }
   }
 #endif
   if (!isUp()) return;

@@ -81,6 +81,7 @@ class EthernetInterface {
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
 #if defined(ARDUINO_ARCH_ESP32)
+  static bool takeLinkLost();
   static bool takeLinkRestored();
   static void restartMDNS();
 #endif
