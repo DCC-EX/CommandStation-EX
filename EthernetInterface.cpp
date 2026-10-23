@@ -25,6 +25,11 @@
  * 
  */
 #include "defines.h"
+
+#define DHCP_CHECK_RENEW_FAIL   (1)
+#define DHCP_CHECK_REBIND_FAIL  (3)
+
+
 #ifdef ARDUINO_ARCH_STM32
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
@@ -149,9 +154,6 @@ void EthernetInterface::loop()
 #include "DCCTimer.h"
 #include "EXmDNS.h"
 #include "EXNetworkPreferences.h"
-
-#define DHCP_CHECK_RENEW_FAIL   (1)
-#define DHCP_CHECK_REBIND_FAIL  (3)
 
 // Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
 // Override any of these with -D build flags if your board wires the module differently.
