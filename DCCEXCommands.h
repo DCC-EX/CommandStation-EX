@@ -316,7 +316,7 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
 
  ZZ(Q) // List all sensors seen by throttles/jmri 
         Sensor::printAllJMRI(stream);
-
+        NodeManager::cast("<Q>"); // ask nodes to re-share JMRI sensors
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have

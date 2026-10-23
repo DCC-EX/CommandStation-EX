@@ -29,8 +29,23 @@
 class Sensor{
   friend class AnalogSensor;
   public: 
-    static bool createJMRI(int id, VPIN vpin, bool pullUp, int count=1);
-    static bool createNode(VPIN vpin,int count=1);
+    // Creators from EXRAIL JMRI_SENSOR macro or <S commands
+    static bool createJMRI_SENSOR(VPIN vpin);
+    static bool createJMRI_SENSOR(VPIN vpin,int count);
+    static bool createJMRI_SENSOR(VPIN vpin,int count, VPIN newOrigin);
+    
+    static bool createJMRI_SENSOR_NOPULLUP(VPIN vpin);
+    static bool createJMRI_SENSOR_NOPULLUP(VPIN vpin,int count);
+    static bool createJMRI_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin);
+    
+    // Create from EXRAIL SHARED_SENSOR
+    static bool createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin);
+
+    // Create from EXRAIL REMOTE_SENSOR
+    static bool createREMOTE_SENSOR(VPIN vpin);
+    static bool createREMOTE_SENSOR(VPIN vpin,int count);
+
+    // create from EXRAIL ONSENSOR etc
     static bool createEXRAIL(VPIN vpin, bool analogue=false);
 
     static void removeJMRI(int id);  
@@ -38,7 +53,8 @@ class Sensor{
     static void dumpAll(Print * stream);
     static void printAllJMRI(Print *stream);
     static void dumpAllJMRI(Print* stream);
-    static void shareNodesToCS();
+    static void shareJMRISensors();
+    static void updateRemoteSensor(VPIN vpin, bool activate);
     
   
   // The sensor list is a linked list where each sensor's 'nextSensor' field points to the next.
@@ -53,6 +69,8 @@ private:
     uint8_t tellJMRI:1;
     uint8_t tellNodes:1;
     uint8_t tellEXRAIL:1;
+    uint8_t acceptREMOTE:1;
+        
     
   };   
   int id;
@@ -65,7 +83,8 @@ private:
   // readingSensor points to the next sensor to be polled, or null if the poll cycle is completed for
   // the period.
   static Sensor *readingSensor;
-
+  static bool createJMRIinternal(int id, VPIN vpin, bool pullUp, int count=1);
+    
   Sensor(int id,VPIN vpin, bool pullup); 
   virtual void check();
   virtual void dump(Print * stream);
