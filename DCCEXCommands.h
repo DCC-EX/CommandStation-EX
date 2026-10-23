@@ -179,7 +179,8 @@ ZZ(T,id,addr,subAddr) // Create DCC turnout (Deprecated use <T id DCC addr subAd
 ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout (Deprecated use <T id SERVO vpin closedValue thrownValue>)
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
 ZZ(S,id,vpin,pullup)  // Create Sensor
-        CHECK(Sensor::createJMRI_SENSOR(id,vpin,pullup)) 
+        if (pullup) {CHECK(Sensor::createJMRI_SENSOR(vpin,1,id))} 
+        else  {CHECK(Sensor::createJMRI_SENSOR_NOPULLUP(vpin,1,id))} 
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
 ZZ(S)   // List sensors as seen by old dcc++

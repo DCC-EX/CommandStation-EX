@@ -115,11 +115,11 @@ void Sensor::check(){
         // if we have throttles, tell them
         CommandDistributor::broadcastSensor(id,active);
         // and tell other nodes about it anyway
-        NodeManager::castSensorChange(active?'Q':'q',vpin);
+        NodeManager::castSensorChange(active?'Q':'q',id);
       }
         
       if (tellNodes && !tellJMRI)
-        NodeManager::castSensorChange(active?'X':'x',vpin);
+        NodeManager::castSensorChange(active?'X':'x',id);
       if (tellEXRAIL)
         RMFT2::sensorEvent(vpin,active);
     }
@@ -146,7 +146,7 @@ void AnalogSensor::check(){
 
 void Sensor::shareJMRISensors(){
   for(auto ss=firstSensor;ss;ss=ss->nextSensor){
-    if (ss->tellJMRI) NodeManager::castSensorChange(ss->active?'Q':'q',ss->vpin);
+    if (ss->tellJMRI) NodeManager::castSensorChange(ss->active?'Q':'q',ss->id);
   }
 }
 
@@ -247,8 +247,8 @@ bool Sensor::createJMRIinternal(int id,VPIN firstPin,bool pullup, int count) {
 bool Sensor::createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin){
   DIAG(F("SHARED_SENSOR(%d,%d,%d)"), vpin, count, newOrigin);
   for (int slot=0;slot<count;slot++) {
-    auto ss=getByVpin(vpin+slot);
-    if (!ss) ss=new Sensor(0,vpin+slot,true); 
+    auto ss=get(newOrigin+slot, vpin+slot);
+    if (!ss) ss=new Sensor(newOrigin+slot,vpin+slot,true); 
     if (!ss) return false;
     ss->tellNodes=true;
   }
@@ -280,7 +280,7 @@ bool Sensor::createREMOTE_SENSOR(VPIN vpin,int count){
   FLAGS::create(vpin, count);
   for (int slot=0;slot<count;slot++) {
     auto ss=getByVpin(vpin+slot);
-    if (!ss) ss=new Sensor(0,vpin+slot,true); 
+    if (!ss) ss=new Sensor(vpin+slot,0,true); 
     if (!ss) return false;
     ss->acceptREMOTE=true;
   }
