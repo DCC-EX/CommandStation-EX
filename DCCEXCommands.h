@@ -184,7 +184,8 @@ ZZ(S,id,vpin,pullup)  // Create Sensor
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
 ZZ(S)   // List sensors as seen by old dcc++
-        Sensor::dumpAllJMRI(stream);           
+        Sensor::dumpAllJMRI(stream);
+        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
 ZZ(J,M) // List stash values
         Stash::list(stream);
 ZZ(J,M,stashId) // get stash value
@@ -323,6 +324,7 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
         Sensor::printAllJMRI(stream);  //send all JMRI type Sensor  states
+        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
                
 ZZ(Z) // List Output definitions 
         bool gotone = false;

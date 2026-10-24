@@ -400,6 +400,12 @@
 ///param count... Number of consecutive VPINS.
 ///param sharedVpin The vpin number to share the sensors to.
     
+#define SHARED_SENSOR_NOPULLUP(vpin,count,sharedVpin)
+///brief Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
+///param vpin first vpin number
+///param count... Number of consecutive VPINS.
+///param sharedVpin The vpin number to share the sensors to.
+    
 #define REMOTE_SENSOR(sharedVpin,count)
 ///brief Defines multiple sensor vpins shared by other nodes.
 ///param sharedVpin first vpin number
