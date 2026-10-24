@@ -256,6 +256,10 @@ ROUTE(1771,"1771 Test IFLOCO with multiple loco ids")
     DONE
   
 
+ONBLOCKENTER(177)
+  PRINT("Entered block 177")
+  DONE
+
 
 // Speedometer example
 // Track is =TS1===TS2===TS3= timing between S2 and S3.
