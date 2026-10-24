@@ -5,10 +5,11 @@
 
 // ToDo:
 // Completing test program
-// Add RP2350 temerature conversion to Farenheit and Kelvin (because we can)
 
 // Work log IO_LSS.h
 // 2026-10-18 IO_LSS.h mostly complete, proceed to test new EXRAIL macros/aliases for the LSS
+// 2026-10-24 IO_LSS.h auto-read register 0x24 (REG_SLOT_ERROR) and DIAG report on slot load error
+// 2026-10-24 IO_LSS.h added RP2350 temperature conversion to Fahrenheit and Kelvin via optional HAL parameter and LSS_PRINT_TEMP macro
 // 
 
 #define VERSION "5.7.8"

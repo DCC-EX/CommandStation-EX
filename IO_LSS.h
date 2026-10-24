@@ -21,11 +21,30 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 
+// Temperature unit constants for HAL(IO_LSS, base, 32, addr, scale)
+static const char C = 'C';
+static const char F = 'F';
+static const char K = 'K';
+
 class IO_LSS : public DFPlayerBase {
 public:
-  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress) {
+  static void create(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, char tempScale = 'C') {
     if (checkNoOverlap(firstVpin, nPins, i2cAddress)) {
-      new IO_LSS(firstVpin, nPins, i2cAddress);
+      new IO_LSS(firstVpin, nPins, i2cAddress, tempScale);
+    }
+  }
+
+  static void printTemp(VPIN vpin) {
+    IODevice *dev = findDevice(vpin);
+    if (!dev) return;
+    IO_LSS *lss = (IO_LSS *)dev;
+    VPIN tempPin = lss->_firstVpin + OFFSET_PIN_TEMP;
+    int t = lss->_readAnalogue(tempPin);
+    char unit = lss->_tempScale;
+    if (t < 0 && t > -10) {
+      DIAG(F("LSS (VPIN %u) Temperature: -0.%d %c"), (int)lss->_firstVpin, abs(t % 10), unit);
+    } else {
+      DIAG(F("LSS (VPIN %u) Temperature: %d.%d %c"), (int)lss->_firstVpin, t / 10, abs(t % 10), unit);
     }
   }
 
@@ -143,11 +162,33 @@ private:
     SCRIPT_CMD_STOP     = 0x02
   };
 
-  uint8_t _activeSlot;
+  // Detailed Error Bitmask (REG_SLOT_ERROR 0x24)
+  enum LSS_SlotErrorVal : uint8_t {
+    SLOT_ERR_NONE             = 0x00,
+    SLOT_ERR_FILE_NOT_FOUND   = 0x01, // File does not exist on SD card
+    SLOT_ERR_RATE_MISMATCH    = 0x02, // Sample rate != 44.1 kHz
+    SLOT_ERR_BITRATE_MISMATCH = 0x04, // Unsupported bitrate
+    SLOT_ERR_VBR_DETECTED     = 0x08, // Variable bitrate detected (CBR required)
+    SLOT_ERR_STEREO_ERROR     = 0x10, // Channel configuration mismatch
+    SLOT_ERR_SYNC_ERROR       = 0x20, // Corrupt MP3 header or sync word missing
+    SLOT_ERR_SD_ERROR         = 0x40  // SD card read / sector error
+  };
 
-  IO_LSS(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress) : DFPlayerBase(firstVpin, nPins) {
+  uint8_t _activeSlot;
+  uint8_t _lastSlotError[16];
+  char _tempScale;
+
+  IO_LSS(VPIN firstVpin, uint8_t nPins, I2CAddress i2cAddress, char tempScale = 'C') : DFPlayerBase(firstVpin, nPins) {
     _I2CAddress = i2cAddress;
     _activeSlot = 0xFF;
+    if (tempScale == 'f' || tempScale == 'F') {
+      _tempScale = 'F';
+    } else if (tempScale == 'k' || tempScale == 'K') {
+      _tempScale = 'K';
+    } else {
+      _tempScale = 'C';
+    }
+    memset(_lastSlotError, 0, sizeof(_lastSlotError));
     addDevice(this);
   }
 
@@ -171,8 +212,9 @@ private:
   }
 
   void _display() override {
-    DIAG(F("LSS on I2C:%s Vpins:%u-%u %S"),
+    DIAG(F("LSS on I2C:%s Vpins:%u-%u Temp:%c %S"),
          _I2CAddress.toString(), (int)_firstVpin, (int)_firstVpin + _nPins - 1,
+         _tempScale,
          _deviceState == DEVSTATE_FAILED ? F("OFFLINE") : F(""));
   }
 
@@ -246,6 +288,39 @@ private:
     return 0;
   }
 
+  void _reportSlotError(uint8_t slot, uint8_t errVal) {
+    VPIN vpin = _firstVpin + slot;
+    uint16_t fileId = 0;
+    readReg16(REG_FILE_ID_LSB, fileId);
+
+    const FSH *reason = F("UNKNOWN_ERROR");
+    if (errVal & SLOT_ERR_FILE_NOT_FOUND) {
+      reason = F("FILE_NOT_FOUND (file does not exist on SD card)");
+    } else if (errVal & SLOT_ERR_SD_ERROR) {
+      reason = F("SD_ERROR (SD card read or sector timeout)");
+    } else if (errVal & SLOT_ERR_SYNC_ERROR) {
+      reason = F("SYNC_ERROR (invalid MP3 header or sync word missing)");
+    } else if ((errVal & (SLOT_ERR_RATE_MISMATCH | SLOT_ERR_VBR_DETECTED)) == (SLOT_ERR_RATE_MISMATCH | SLOT_ERR_VBR_DETECTED)) {
+      reason = F("RATE_MISMATCH + VBR (requires 44.1 kHz CBR)");
+    } else if (errVal & SLOT_ERR_RATE_MISMATCH) {
+      reason = F("RATE_MISMATCH (sample rate is not 44.1 kHz)");
+    } else if (errVal & SLOT_ERR_BITRATE_MISMATCH) {
+      reason = F("BITRATE_MISMATCH (unsupported bitrate)");
+    } else if (errVal & SLOT_ERR_VBR_DETECTED) {
+      reason = F("VBR_DETECTED (variable bitrate not supported, CBR required)");
+    } else if (errVal & SLOT_ERR_STEREO_ERROR) {
+      reason = F("STEREO_ERROR (channel configuration mismatch)");
+    }
+
+    if (fileId > 0) {
+      DIAG(F("LSS Slot %u (VPIN %u) LOAD ERROR (code 0x%02X, file %u): %S"),
+           (int)slot, (int)vpin, (int)errVal, (int)fileId, reason);
+    } else {
+      DIAG(F("LSS Slot %u (VPIN %u) LOAD ERROR (code 0x%02X): %S"),
+           (int)slot, (int)vpin, (int)errVal, reason);
+    }
+  }
+
   int _readAnalogue(VPIN vpin) override {
     if (_deviceState != DEVSTATE_NORMAL) return 0;
     uint8_t offset = (uint8_t)(vpin - _firstVpin);
@@ -258,6 +333,18 @@ private:
       }
       uint8_t slotStatusVal = 0;
       if (readReg(REG_SLOT_STATUS, slotStatusVal) == I2C_STATUS_OK) {
+        if ((slotStatusVal & 0x08) != 0) { // Bit 3 = ERROR
+          uint8_t slotErrVal = 0;
+          if (readReg(REG_SLOT_ERROR, slotErrVal) == I2C_STATUS_OK) {
+            uint8_t reportedCode = slotErrVal ? slotErrVal : 0xFF;
+            if (_lastSlotError[offset] != reportedCode) {
+              _lastSlotError[offset] = reportedCode;
+              _reportSlotError(offset, slotErrVal);
+            }
+          }
+        } else {
+          _lastSlotError[offset] = 0;
+        }
         return slotStatusVal;
       }
       return 0;
@@ -294,11 +381,17 @@ private:
       return 0;
     }
 
-    // Internal Die Temperature: Signed 16-bit integer, tenths of deg C (e.g. 384 = 38.4 C)
+    // Internal Die Temperature: Signed 16-bit integer, converted to tenths of configured unit (C, F, or K)
     if (offset == OFFSET_PIN_TEMP) {
       uint16_t rawTemp = 0;
       if (readReg16(REG_TEMP_LSB, rawTemp) == I2C_STATUS_OK) {
-        return (int16_t)rawTemp;
+        int16_t tempC = (int16_t)rawTemp;
+        if (_tempScale == 'F') {
+          return (int)(((int32_t)tempC * 9) / 5 + 320);
+        } else if (_tempScale == 'K') {
+          return (int)((int32_t)tempC + 2732);
+        }
+        return (int)tempC;
       }
       return 0;
     }
@@ -382,6 +475,7 @@ private:
       case DF_PLAY:
       case DF_REPEATPLAY:
         selectSlot();
+        if (offset <= OFFSET_PIN_SLOT_MAX) _lastSlotError[offset] = 0;
         writeReg16(REG_FILE_ID_LSB, (uint16_t)v1); // File ID LSB & MSB
         writeReg(REG_SLOT_COMMAND, LOAD_CMD_LOAD);           // LOAD
         writeReg(REG_PLAY_CONTROL, (cmd == DF_REPEATPLAY) ? PLAY_CTRL_LOOP : PLAY_CTRL_PLAY); // PLAY | LOOP or PLAY
@@ -389,6 +483,7 @@ private:
 
       case DF_STOPPLAY:
         selectSlot();
+        if (offset <= OFFSET_PIN_SLOT_MAX) _lastSlotError[offset] = 0;
         writeReg(REG_SLOT_COMMAND, LOAD_CMD_FLUSH);           // FLUSH
         break;
 
@@ -415,12 +510,14 @@ private:
       // LSS Specific Commands
       case DF_LSS_LOAD:
         selectSlot();
+        if (offset <= OFFSET_PIN_SLOT_MAX) _lastSlotError[offset] = 0;
         writeReg16(REG_FILE_ID_LSB, (uint16_t)v1); // File ID LSB & MSB
         writeReg(REG_SLOT_COMMAND, LOAD_CMD_LOAD);           // LOAD
         break;
 
       case DF_LSS_FLUSH:
         selectSlot();
+        if (offset <= OFFSET_PIN_SLOT_MAX) _lastSlotError[offset] = 0;
         writeReg(REG_SLOT_COMMAND, LOAD_CMD_FLUSH);           // FLUSH
         break;
 
@@ -467,6 +564,7 @@ private:
       }
 
       case DF_LSS_GLOBAL_RESET:
+        memset(_lastSlotError, 0, sizeof(_lastSlotError));
         writeReg(REG_GLOBAL_CMD, GLOBAL_CMD_RESET);           // RESET
         break;
 

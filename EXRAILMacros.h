@@ -4,6 +4,7 @@
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
+ *  © 2026 Henk Kruisbrink (Line Side Sound)
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -86,7 +87,7 @@
 #define LSS_PIN_ENGINE(base, engine)   ((base) + 16 + (engine))  // Script Engines 0-3 State (0=IDLE, 1=BUSY)
 #define LSS_PIN_LINE(base, engine)     ((base) + 20 + (engine))  // Script Engines 0-3 Current Line Number
 #define LSS_PIN_SYS_STATUS(base)       ((base) + 24)             // Global SYS_STATUS Bitmask
-#define LSS_PIN_TEMP(base)             ((base) + 25)             // RP2350 Die Temperature (signed tenths of deg C)
+#define LSS_PIN_TEMP(base)             ((base) + 25)             // RP2350 Die Temperature (signed tenths of configured scale: C, F, or K)
 #define LSS_PIN_CURRENT(base)          ((base) + 26)             // INA219 Supply Current (mA)
 #define LSS_PIN_VOLTAGE(base)          ((base) + 27)             // INA219 Rail Voltage (mV)
 #define LSS_PIN_POWER(base)            ((base) + 28)             // INA219 Power Consumption (mW)
@@ -737,7 +738,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define LSS_IF_OLED_DETECTED(base)                IFBITMAP_ALL(LSS_PIN_SYS_STATUS(base), 0x40)   // True if SSD1306 OLED display detected
 
 // Telemetry & Protection Thresholds
-#define LSS_IF_TEMP_OVER(base, degC)              IFGTE(LSS_PIN_TEMP(base), ((degC) * 10))       // True if RP2350 die temp >= degC (auto converts to 0.1C)
+#define LSS_IF_TEMP_OVER(base, temp)              IFGTE(LSS_PIN_TEMP(base), ((temp) * 10))       // True if RP2350 die temp >= temp (in configured scale: C, F, or K)
+#define LSS_PRINT_TEMP(base)                      STEALTH(IO_LSS::printTemp(base);)              // Print LSS die temperature to serial console
 #define LSS_IF_CURRENT_OVER(base, mA)             IFGTE(LSS_PIN_CURRENT(base), mA)               // True if board current draw >= mA
 #define LSS_IF_VOLTAGE_UNDER(base, mV)            IFLT(LSS_PIN_VOLTAGE(base), mV)                // True if rail voltage < mV (brownout alert)
 #define LSS_IF_VOLTAGE_OVER(base, mV)             IFGTE(LSS_PIN_VOLTAGE(base), mV)               // True if rail voltage >= mV (overvoltage alert)

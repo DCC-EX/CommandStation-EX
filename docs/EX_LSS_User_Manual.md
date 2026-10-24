@@ -104,8 +104,12 @@ These commands are dedicated to sequence control inside files:
 
 The EX_LSS commands listed below are available directly inside your EX-Rail automation scripts (`myAutomation.h`). They act as high-level macros that map to the standard DCC-EX `ANOUT` (analogue write) command under the hood, targeting the virtual pins mapped to your LSS device slots.
 
-When configuring the LSS in your Command Station HAL setup, you assign it a block of virtual pins (typically 16 pins, one for each slot, starting at a base `vpin`). 
-*   **Slot VPin (`vpin`):** Represents the slot itself (0 to 15) relative to the base pin (e.g. `base_pin + slot`).
+When configuring the LSS in your Command Station HAL setup, you assign it a block of 32 virtual pins starting at a base `vpin`, with an optional temperature scale (`C`, `F`, or `K`):
+*   `HAL(IO_LSS, 8000, 32, 0x30)` — Defaults to Celsius (°C).
+*   `HAL(IO_LSS, 8000, 32, 0x30, F)` — Configures Fahrenheit (°F).
+*   `HAL(IO_LSS, 8000, 32, 0x30, K)` — Configures Kelvin (K).
+*   **Slot VPin (`vpin`):** Represents the audio slot itself (0 to 15) relative to the base pin (e.g. `base_pin + slot`).
+*   **Temperature VPin:** `LSS_PIN_TEMP(base)` (pin `base + 25`) reports temperature in tenths of the chosen scale.
 
 ### LSS EX-Rail Macros
 
@@ -211,7 +215,7 @@ These macros allow EX-Rail sequences to test hardware health, read onboard telem
 *   **`LSS_IF_SLOT_EMPTY(vpin)`**: Evaluates to true when the slot is completely unassigned and empty.
 *   **`LSS_IF_SLOT_LOADING(vpin)`**: Evaluates to true while the slot is actively buffering data from the MicroSD card.
 *   **`LSS_IF_SLOT_READY(vpin)`**: Evaluates to true when the sound file is fully mapped, validated, and primed in PSRAM, ready to play immediately.
-*   **`LSS_IF_SLOT_ERROR(vpin)`**: Evaluates to true if the slot encountered an error loading or validating the sound file.
+*   **`LSS_IF_SLOT_ERROR(vpin)`**: Evaluates to true if the slot encountered an error loading or validating the sound file. When triggered, the driver automatically reads register `0x24` (`REG_SLOT_ERROR`) and outputs the decoded diagnostic cause (e.g. `FILE_NOT_FOUND`, `RATE_MISMATCH`, `VBR_DETECTED`, `SD_ERROR`) to the CommandStation serial console.
 
 #### Script Engine Synchronization
 *   **`LSS_WAIT_STARTUP(base)`**: Blocks task execution until Script Engine 0 completes running `startup.txt` during boot.
@@ -228,7 +232,8 @@ These macros allow EX-Rail sequences to test hardware health, read onboard telem
 *   **`LSS_IF_OLED_DETECTED(base)`**: Evaluates to true if an SSD1306 OLED display was detected on I2C.
 
 #### Telemetry & Protection Thresholds
-*   **`LSS_IF_TEMP_OVER(base, degC)`**: Evaluates to true if RP2350 die temperature $\ge$ `degC` (automatically converts to tenths of °C).
+*   **`LSS_IF_TEMP_OVER(base, temp)`**: Evaluates to true if RP2350 die temperature $\ge$ `temp` (evaluated in the configured scale: Celsius, Fahrenheit, or Kelvin).
+*   **`LSS_PRINT_TEMP(base)`**: Queries the die temperature and prints it formatted with its scale unit (e.g. `38.4 C`, `101.1 F`, or `311.6 K`) to the CommandStation serial console.
 *   **`LSS_IF_CURRENT_OVER(base, mA)`**: Evaluates to true if total sound board current draw $\ge$ `mA`.
 *   **`LSS_IF_VOLTAGE_UNDER(base, mV)`**: Evaluates to true if rail voltage $<$ `mV` (brownout protection).
 *   **`LSS_IF_VOLTAGE_OVER(base, mV)`**: Evaluates to true if rail voltage $\ge$ `mV`.
