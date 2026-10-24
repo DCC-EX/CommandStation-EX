@@ -209,7 +209,7 @@ Sensor::Sensor(int id, VPIN vpin, bool pullUp){
   active = 0;
   inputState = 0;
   latchDelay = minReadCount;
-  DIAG(F("Sensor created: id=%d, vpin=%d, pullUp=%d"), id, vpin, pullUp);
+  DIAG(F("Sensor created: id=%d, vpin=%d%S"), id, vpin, pullUp ? F("") : F(" NOPULLUP"));
 }
 
 // Create multiple jmri sensors based on id and vpin
@@ -244,11 +244,15 @@ bool Sensor::createJMRIinternal(int id,VPIN firstPin,bool pullup, int count) {
   return true;
 }
 
-bool Sensor::createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin){
-  DIAG(F("SHARED_SENSOR(%d,%d,%d)"), vpin, count, newOrigin);
+bool Sensor::createSHARED_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin){
+  return createSHARED_SENSOR(vpin,count,newOrigin,false);
+}
+
+bool Sensor::createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin, bool pullup){
+  DIAG(F("SHARED_SENSOR%S(%d,%d,%d)"), pullup ? F("") : F("_NOPULLUP"), vpin, count, newOrigin);
   for (int slot=0;slot<count;slot++) {
     auto ss=get(newOrigin+slot, vpin+slot);
-    if (!ss) ss=new Sensor(newOrigin+slot,vpin+slot,true); 
+    if (!ss) ss=new Sensor(newOrigin+slot,vpin+slot,pullup); 
     if (!ss) return false;
     ss->tellNodes=true;
   }
@@ -279,8 +283,8 @@ bool Sensor::createREMOTE_SENSOR(VPIN vpin,int count){
   // create FLAGs HAL for these sensors 
   FLAGS::create(vpin, count);
   for (int slot=0;slot<count;slot++) {
-    auto ss=getByVpin(vpin+slot);
-    if (!ss) ss=new Sensor(vpin+slot,0,true); 
+    auto ss=get(vpin+slot,vpin+slot);
+    if (!ss) ss=new Sensor(vpin+slot,vpin+slot,true); 
     if (!ss) return false;
     ss->acceptREMOTE=true;
   }

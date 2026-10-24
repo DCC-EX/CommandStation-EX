@@ -223,6 +223,10 @@ bool exrailHalSetup1() {
    SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
 }
 // Sensors created here 
+#undef REMOTE_SENSOR
+#define REMOTE_SENSOR(sharedVpin,count) \
+  Sensor::createREMOTE_SENSOR(sharedVpin,count);
+///
 #undef SHARED_SENSOR
 #define SHARED_SENSOR(vpin,count, sharedVpin) \
   Sensor::createSHARED_SENSOR(vpin,count,sharedVpin);

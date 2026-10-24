@@ -39,8 +39,11 @@ class Sensor{
     static bool createJMRI_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin);
     
     // Create from EXRAIL SHARED_SENSOR
-    static bool createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin);
+    static bool createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin, bool pullup=true);
 
+    // Create from EXRAIL SHARED_SENSOR_NOPULLUP
+    static bool createSHARED_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin);
+    
     // Create from EXRAIL REMOTE_SENSOR
     static bool createREMOTE_SENSOR(VPIN vpin);
     static bool createREMOTE_SENSOR(VPIN vpin,int count);

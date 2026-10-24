@@ -400,9 +400,9 @@
 ///param count... Number of consecutive VPINS.
 ///param sharedVpin The vpin number to share the sensors to.
     
-#define REMOTE_SENSOR(vpin,count)
+#define REMOTE_SENSOR(sharedVpin,count)
 ///brief Defines multiple sensor vpins shared by other nodes.
-///param vpin first vpin number
+///param sharedVpin first vpin number
 ///param count... Number of consecutive VPINS.
 
 #define JMRI_SENSOR(vpin,options...)
