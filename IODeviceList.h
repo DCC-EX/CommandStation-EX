@@ -1,5 +1,6 @@
 /*
  *  © 2024, Chris Harlow. All rights reserved.
+ *  © 2026 Mathew Winters (with Github copilot)
  *
  *  This file is part of CommandStation-EX
  *

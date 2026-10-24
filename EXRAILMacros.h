@@ -4,6 +4,8 @@
  *  © 2022-2023 Colin Murdoch
  *  © 2023 Harald Barth
  *  © 2025 Morten Nielsen
+ *  © 2026 Mathew Winters (with Github copilot)
+ * 
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX

@@ -8,6 +8,8 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2026 Chris Harlow
  *  © 2022 Colin Murdoch
+ *  © 2026 Mathew Winters (with Github copilot)
+ * 
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
