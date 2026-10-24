@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Mathew Winters (with Github copilot)
  *  © 2024 Morten "Doc" Nielsen
  *  © 2023-2024 Paul M. Antoine
  *  © 2022 Bruno Sanches
@@ -6,6 +7,7 @@
  *  © 2020-2022 Harald Barth
  *  © 2020-2024 Chris Harlow
  *  © 2020 Gregor Baues
+ * 
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX/CommandStation-EX

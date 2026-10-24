@@ -5,6 +5,7 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2026 Chris Harlow
  *  © 2023 Nathan Kellenicki
+ *  © 2026 Mathew Winters (with Github copilot)
  *  
  *  This file is part of CommandStation-EX
  *
