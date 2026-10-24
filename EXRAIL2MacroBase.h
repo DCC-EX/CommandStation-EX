@@ -314,6 +314,7 @@
 
 #define IFLOCO(loco_id_list...)
 ///brief Checks if current task loco is in the list of loco ids. List may be comma separated values
+///note In ONBLOCKENTER or ONBLOCKEXIT, checks the locomotive ID associated with the RailCom event.
 ///see IF
 
 #define IFLT(vpin,value)
@@ -518,11 +519,13 @@
 
 #define ONBLOCKENTER(block_id)
 ///brief Start task here when a loco enters a railcom block
-///param block_id vpin associated to block by HAL(I2CRailcom..)
+///param block_id VPIN identifying the RailCom block
+///note The task starts with the detected locomotive ID.
 
 #define ONBLOCKEXIT(block_id)
 ///brief Start task here when a loco leaves a railcom block
-///param block_id vpin associated to block by HAL(I2CRailcom..)
+///param block_id VPIN identifying the RailCom block
+///note The task starts with the detected locomotive ID.
 
 #define ONTIME(minute_in_day)
 ///brief Start task here when fastclock matches
