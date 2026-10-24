@@ -43,33 +43,7 @@ Sensor objects monitor sensors for a numbere of purposes.
  2) To inform EXRAIL that a sensor has changed and thus ONBUTTON, ONBUTTONUP or ONSENSOR handlers must be called.
  3) To inform the Node manager of a shared sensor change.
 
-JMRI sensors can be created using the semi-obsolete DCC++ <S commands.  
-
-  <S ID PIN PULLUP>:           creates a new sensor ID, with specified PIN and PULLUP
-                               if sensor ID already exists, it is updated with specificed PIN and PULLUP
-                               returns: <O> if successful and <X> if unsuccessful (e.g. out of memory)
-
-  <S ID>:                      deletes definition of sensor ID
-                               returns: <O> if successful and <X> if unsuccessful (e.g. ID does not exist)
-
-  <S>:                         lists all defined sensors
-                               returns: <Q ID PIN PULLUP> for each defined sensor or <X> if no sensors defined
-
-where
-
-  ID: the numeric ID (0-32767) of the sensor
-  PIN: the arduino pin number the sensor is connected to
-  PULLUP: 1=use internal pull-up resistor for PIN, 0=don't use internal pull-up resistor for PIN
-
-All sensors defined as per above are repeatedly and sequentially checked within the main loop of this sketch.
-If a Sensor Pin is found to have transitioned from one state to another, one of the following serial messages are generated:
-
-  <Q ID>     - for transition of Sensor ID from HIGH state to LOW state (i.e. the sensor is triggered)
-  <q ID>     - for transition of Sensor ID from LOW state to HIGH state (i.e. the sensor is no longer triggered)
-
-Depending on whether the physical sensor is acting as an "event-trigger" or a "detection-sensor," you may
-decide to ignore the <q ID> return and only react to <Q ID> triggers.
-
+JMRI sensors can be created using the semi-obsolete DCC++ <S> commands.  
 **********************************************************************/
 #include "defines.h"
 #include "StringFormatter.h"
@@ -136,10 +110,16 @@ void Sensor::check(){
       active = inputState;
       latchDelay = minReadCount;  // Reset counter
       
-      if (tellJMRI)
+      // we have discovered a sensor change now decide who to tell
+      if (tellJMRI) {
+        // if we have throttles, tell them
         CommandDistributor::broadcastSensor(id,active);
-      if (tellNodes)
-        NodeManager::castSharedSensorChange(vpin,active?1:0);
+        // and tell other nodes about it anyway
+        NodeManager::castSensorChange(active?'Q':'q',id);
+      }
+        
+      if (tellNodes && !tellJMRI)
+        NodeManager::castSensorChange(active?'X':'x',id);
       if (tellEXRAIL)
         RMFT2::sensorEvent(vpin,active);
     }
@@ -164,10 +144,9 @@ void AnalogSensor::check(){
     }
   }
 
-void Sensor::shareNodesToCS(){
+void Sensor::shareJMRISensors(){
   for(auto ss=firstSensor;ss;ss=ss->nextSensor){
-    if (ss->tellNodes)
-      NodeManager::castSharedSensorChange(ss->vpin,ss->active?1:0);
+    if (ss->tellJMRI) NodeManager::castSensorChange(ss->active?'Q':'q',ss->id);
   }
 }
 
@@ -182,6 +161,7 @@ void Sensor::printAllJMRI(Print *stream){
   
   if (stream == NULL) return; // Nothing to do
   for(auto ss=firstSensor;ss;ss=ss->nextSensor){
+    if (!ss->tellJMRI) continue;
     StringFormatter::send(stream, F("<%c %d>\n"), ss->active ? 'Q' : 'q', ss->id);
   }
 } 
@@ -202,12 +182,13 @@ void Sensor::dumpAll(Print * stream) {
 }
 
 void Sensor::dump(Print * stream) {
-  StringFormatter::send(stream, F("<* SENSOR id=%d, vpin=%d %S %S %S %S *>\n"), 
+  StringFormatter::send(stream, F("<* SENSOR id=%d, vpin=%d %S%S%S%S%S *>\n"), 
     id, vpin,
-    pullUp ? F("") : F("NOPULLUP"),
-    tellJMRI ? F("JMRI") : F(""),
-    tellNodes ? F("NODES") : F(""),
-    tellEXRAIL ? F("EXRAIL") : F(""));
+    pullUp ? F("") : F(" NOPULLUP"),
+    tellJMRI ? F(" JMRI") : F(""),
+    tellNodes ? F(" SHARE") : F(""),
+    tellEXRAIL ? F(" EXRAIL") : F(""),
+    acceptREMOTE ? F(" REMOTE") : F(""));
 } // Sensor::dump
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -223,16 +204,37 @@ Sensor::Sensor(int id, VPIN vpin, bool pullUp){
   tellJMRI=false;
   tellNodes=false;
   tellEXRAIL=false;
+  acceptREMOTE=false;
 
   active = 0;
   inputState = 0;
   latchDelay = minReadCount;
-  DIAG(F("Sensor created: id=%d, vpin=%d, pullUp=%d"), id, vpin, pullUp);
+  DIAG(F("Sensor created: id=%d, vpin=%d%S"), id, vpin, pullUp ? F("") : F(" NOPULLUP"));
 }
 
-// Creet multiple jmri sensors based on id and vpin 
-bool Sensor::createJMRI(int id,VPIN firstPin,bool pullup, int count) {
-  DIAG(F("JMRI_SENSOR(%d,%d,%d)"), id, firstPin, count);
+// Create multiple jmri sensors based on id and vpin
+bool Sensor::createJMRI_SENSOR(VPIN vpin){
+  return createJMRIinternal(vpin,vpin,true,1);
+}
+bool Sensor::createJMRI_SENSOR(VPIN vpin,int count){
+  return createJMRIinternal(vpin,vpin,true,count);
+}
+bool Sensor::createJMRI_SENSOR(VPIN vpin,int count, VPIN newOrigin){
+  return createJMRIinternal(newOrigin,vpin,true,count);
+}
+
+bool Sensor::createJMRI_SENSOR_NOPULLUP(VPIN vpin){
+  return createJMRIinternal(vpin,vpin,false,1);
+}
+bool Sensor::createJMRI_SENSOR_NOPULLUP(VPIN vpin,int count){
+  return createJMRIinternal(vpin,vpin,false,count);
+}
+bool Sensor::createJMRI_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin){
+  return createJMRIinternal(newOrigin,vpin,false,count);
+}
+
+bool Sensor::createJMRIinternal(int id,VPIN firstPin,bool pullup, int count) {
+  DIAG(F("JMRI_SENSOR%S(%d,%d,%d)"), pullup ? F("") : F("_NOPULLUP"), firstPin, count, id);
   for (int slot=0;slot<count;slot++) {
     auto ss=get(id+slot, firstPin+slot);
     if (!ss) ss=new Sensor(id+slot,firstPin+slot,pullup);
@@ -242,11 +244,15 @@ bool Sensor::createJMRI(int id,VPIN firstPin,bool pullup, int count) {
   return true;
 }
 
-bool Sensor::createNode(VPIN vpin,int count){
-  DIAG(F("SHARED_SENSOR(%d,%d)"), vpin, count);
+bool Sensor::createSHARED_SENSOR_NOPULLUP(VPIN vpin,int count, VPIN newOrigin){
+  return createSHARED_SENSOR(vpin,count,newOrigin,false);
+}
+
+bool Sensor::createSHARED_SENSOR(VPIN vpin,int count, VPIN newOrigin, bool pullup){
+  DIAG(F("SHARED_SENSOR%S(%d,%d,%d)"), pullup ? F("") : F("_NOPULLUP"), vpin, count, newOrigin);
   for (int slot=0;slot<count;slot++) {
-    auto ss=getByVpin(vpin+slot);
-    if (!ss) ss=new Sensor(0,vpin+slot,true); 
+    auto ss=get(newOrigin+slot, vpin+slot);
+    if (!ss) ss=new Sensor(newOrigin+slot,vpin+slot,pullup); 
     if (!ss) return false;
     ss->tellNodes=true;
   }
@@ -266,6 +272,35 @@ bool Sensor::createEXRAIL(VPIN vpin, bool analogue){
   return true;
 }
 
+bool Sensor::createREMOTE_SENSOR(VPIN vpin){
+  return createREMOTE_SENSOR(vpin,1);
+}
+
+bool Sensor::createREMOTE_SENSOR(VPIN vpin,int count){
+  // A remote sensor creates a new HAL entry to receive the sensor
+  // input from other nodes so that it can be shared with the local system
+  DIAG(F("REMOTE_SENSOR(%d,%d)"), vpin, count);
+  // create FLAGs HAL for these sensors 
+  FLAGS::create(vpin, count);
+  for (int slot=0;slot<count;slot++) {
+    auto ss=get(vpin+slot,vpin+slot);
+    if (!ss) ss=new Sensor(vpin+slot,vpin+slot,true); 
+    if (!ss) return false;
+    ss->acceptREMOTE=true;
+  }
+  return true;
+}
+
+// called by nodes manager to say a shared sensor was updated.
+// 
+void Sensor::updateRemoteSensor(VPIN vpin, bool activate){
+  for (auto ss=firstSensor; ss; ss=ss->nextSensor) {
+    if (ss->vpin==vpin && ss->acceptREMOTE) {
+      IODevice::write(vpin, activate,false);
+      return;
+    }
+  }
+}
 ///////////////////////////////////////////////////////////////////////////////
 
 Sensor* Sensor::getByVpin(VPIN vpin){

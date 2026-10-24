@@ -179,7 +179,8 @@ ZZ(T,id,addr,subAddr) // Create DCC turnout (Deprecated use <T id DCC addr subAd
 ZZ(T,id,vpin,closedValue,thrownValue) // Create SERVO turnout (Deprecated use <T id SERVO vpin closedValue thrownValue>)
         CHECK(ServoTurnout::create(id, (VPIN)vpin, (uint16_t)closedValue, (uint16_t)thrownValue, 1))
 ZZ(S,id,vpin,pullup)  // Create Sensor
-        CHECK(Sensor::createJMRI(id,vpin,pullup)) 
+        if (pullup) {CHECK(Sensor::createJMRI_SENSOR(vpin,1,id))} 
+        else  {CHECK(Sensor::createJMRI_SENSOR_NOPULLUP(vpin,1,id))} 
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
 ZZ(S)   // List sensors as seen by old dcc++
@@ -316,7 +317,7 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
 
  ZZ(Q) // List all sensors seen by throttles/jmri 
         Sensor::printAllJMRI(stream);
-
+        NodeManager::cast("<Q>"); // ask nodes to re-share JMRI sensors
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
@@ -411,7 +412,7 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
-  Sensor::shareNodesToCS();
+  Sensor::shareJMRISensors();
   Signal::shareNodesToCS();
 ZZ(D,SENSORS) // Show sensor task list diagnostics
   Sensor::dumpAll(stream);

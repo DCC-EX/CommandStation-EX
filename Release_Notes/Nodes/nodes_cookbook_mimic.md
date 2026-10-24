@@ -36,3 +36,10 @@ ONBUTTON(722) TOGGLE_TURNOUT(22) DONE
 ```
 
 In this way, the layout operates normally whether the mimic panel is there or not, and there is no wire between the mimic panel and the command station. And because all interacting nodes have the same address, you could build a second mimic panel with exactly the same software build and have multiple identical panels at either end of your magnificent layout.
+
+## Monitoring block occupancy
+
+If the block occupancy hardware is hosted on the CS or another node, then that device must use SHARE_SENSOR to ensure that all nodes, includimg the CS, are given sensor change information. Once that is done, the mimic panel can use REMOTE_SENSOR to indicate the shared sensors that it is interested in. 
+
+Refer to the node sensor cookbook.
+ 

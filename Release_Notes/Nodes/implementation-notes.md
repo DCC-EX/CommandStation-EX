@@ -19,16 +19,16 @@ The default is group 254 and does not need to be altered unless you have more th
 
 This file does a setup of a node traffic listener and provides a generic cast function that can be used with formatting as in StringFormatter::send
 
-Incoming Node traffic is passed to the WifiEESP incoming UDP packet queue so that it does not suffer tasking issues. The queue entries are marked as node traffic so that they can be parsed differently.
+Incoming Node traffic appears to be similar to the dcc-ex protocol but is parsed differently so some commands may overlap with unfamiliar meanings because the commands are a DIFFERENT language and not intended to be understood outside of the nodes system. 
 
 ## DCCEXParser.cpp
 
 This has a new function to parse incoming node messages using a completely separate command set found in NodeCommands.h.
-This means node traffic can be whatever we like without interfering with throttles.
+This means node traffic can be whatever we like without interfering with the specified protocol used by throttles.
 
-## WifiESP32.cpp
+## EXNetwork.cpp
 
-When the incoming UDP queue is processed, node messages are passed back to NodeManager for parsing rather than being put through the usual command parser.
+Receives incoming node messages over UDP
 
 ## Answering "Why?"
 

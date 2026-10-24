@@ -394,25 +394,31 @@
 #define INVERT_DIRECTION
 ///brief Marks current task so that FWD and REV commands are inverted.
 
-#define SHARED_SENSOR(vpin,count...)
-///brief Defines multiple sensor vpins to be shared to other nodes
+#define SHARED_SENSOR(vpin,count,sharedVpin)
+///brief Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
 ///param vpin first vpin number
-///param count... Number of consecutive VPINS. Default 1.
-
-#define REMOTE_SENSOR(vpin,count...)
+///param count... Number of consecutive VPINS.
+///param sharedVpin The vpin number to share the sensors to.
+    
+#define REMOTE_SENSOR(sharedVpin,count)
 ///brief Defines multiple sensor vpins shared by other nodes.
-///param vpin first vpin number
-///param count... Number of consecutive VPINS. Default 1.
+///param sharedVpin first vpin number
+///param count... Number of consecutive VPINS.
 
-#define JMRI_SENSOR(vpin,count...)
+#define JMRI_SENSOR(vpin,options...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin and INPUT_PULLUP
 ///param vpin first vpin number
-///param count... Number of consecutive VPINS for which to create JMRI sensor feedbacks. Default 1.
+///param options... count or count,sharedVpin 
+///param count Number of consecutive VPINS for which to create sensors. Default 1.
+///param sharedVpin Vpin number range to emit to JMRI/throttles. (Default vpin)
+ 
 
-#define JMRI_SENSOR_NOPULLUP(vpin,count...)
+#define JMRI_SENSOR_NOPULLUP(vpin,options...)
 ///brief Defines multiple JMRI `<s>` type sensor feedback definitions each with id matching vpin
 ///param vpin first vpin number
-///param count... Number of consecutive VPINS for which to create JMRI sensor feedbacks. Default 1.
+///param options... count or count,sharedVpin 
+///param count Number of consecutive VPINS for which to create sensors. Default 1.
+///param sharedVpin Vpin number range to emit to JMRI/throttles. (Default vpin)
 
 #define JOIN
 ///brief Switches PROG track to receive MAIN track DCC packets. (Drive on PROG track)

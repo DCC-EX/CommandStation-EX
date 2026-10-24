@@ -44,6 +44,28 @@ ZZ(F,loco,functionNumber,on)  // Throttle function change
   // It will not cause a rebroadcast
   DCC::setFn(loco,functionNumber,on,false);
 
+ZZ(Q)  // Share your defined JMRI sensors
+  Sensor::shareJMRISensors();
+ZZ(Q,vpin)  // Remote JMRI_SENSOR fired
+  // transparent copy through to throttles etc. 
+  CommandDistributor::broadcastSensor(vpin,true);
+  Sensor::updateRemoteSensor(vpin,true);  
+  
+ZZ(q,vpin)  // Remote JMRI_SENSOR fired
+  // transparent copy through to throttles etc.
+  // and update our remote sensor if we have one 
+  CommandDistributor::broadcastSensor(vpin,false);
+  Sensor::updateRemoteSensor(vpin,false);
+
+ZZ(X,vpin)  // Remote SHARED_SENSOR fired
+  // update local REMOTE_SENSOR if any 
+  // and update our remote sensor if we have one 
+  Sensor::updateRemoteSensor(vpin,true);  
+
+ZZ(x,vpin)  // Remote SHARED_SENSOR fired
+  // update local REMOTE_SENSOR if any 
+  Sensor::updateRemoteSensor(vpin,false);
+
 ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
   // This was sent by a node that changes a turnout state
   // If it is the guardian of the turnout it will change the turnout state and not rebroadcast.
@@ -60,7 +82,7 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
 
 ZZ(H) // CS requests list of locally defined turnouts & shared sensors
   Turnout::shareNodesToCS();
-  Sensor::shareNodesToCS();
+  Sensor::shareJMRISensors();
   Signal::shareNodesToCS();
    
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)

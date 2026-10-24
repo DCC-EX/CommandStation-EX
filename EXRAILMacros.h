@@ -223,15 +223,22 @@ bool exrailHalSetup1() {
    SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
 }
 // Sensors created here 
+#undef REMOTE_SENSOR
+#define REMOTE_SENSOR(sharedVpin,count) \
+  Sensor::createREMOTE_SENSOR(sharedVpin,count);
+///
 #undef SHARED_SENSOR
-#define SHARED_SENSOR(vpin,count...) \
-  Sensor::createNode(vpin,count);
+#define SHARED_SENSOR(vpin,count, sharedVpin) \
+  Sensor::createSHARED_SENSOR(vpin,count,sharedVpin);
+#undef SHARED_SENSOR_NOPULLUP
+#define SHARED_SENSOR_NOPULLUP(vpin,count, sharedVpin) \
+  Sensor::createSHARED_SENSOR_NOPULLUP(vpin,count,sharedVpin);
 #undef JMRI_SENSOR
-#define JMRI_SENSOR(vpin,count...) \
-  Sensor::createJMRI(vpin,vpin,true,count);
+#define JMRI_SENSOR(vpin,options...) \
+  Sensor::createJMRI_SENSOR(vpin,options);
 #undef JMRI_SENSOR_NOPULLUP
-#define JMRI_SENSOR_NOPULLUP(vpin,count...) \
-  Sensor::createJMRI(vpin,vpin,false,count);
+#define JMRI_SENSOR_NOPULLUP(vpin,options...) \
+  Sensor::createJMRI_SENSOR_NOPULLUP(vpin,options);
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) \
  Roster::create(cabid,name,funcmap);
@@ -276,14 +283,6 @@ void exrailHalSetup2() {
 #define IFROUTE_DISABLED(id) | FEATURE_ROUTESTATE
 #undef BLINK
 #define BLINK(vpin,onDuty,offDuty) | FEATURE_BLINK
-#undef ONBUTTON
-#define ONBUTTON(vpin) | FEATURE_SENSOR
-#undef ONBUTTONUP
-#define ONBUTTONUP(vpin) | FEATURE_SENSOR
-#undef ONSENSOR
-#define ONSENSOR(vpin) | FEATURE_SENSOR
-#undef ONBITMAP
-#define ONBITMAP(vpin) | FEATURE_SENSOR
 #undef ONBLOCKENTER
 #define ONBLOCKENTER(blockid) | FEATURE_BLOCK
 #undef ONBLOCKEXIT
@@ -593,10 +592,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define IFBITMAP_ALL(vpin,mask) OPCODE_IFBITMAP_ALL,V(vpin),OPCODE_PAD,V(mask),
 #define IFBITMAP_ANY(vpin,mask) OPCODE_IFBITMAP_ANY,V(vpin),OPCODE_PAD,V(mask),
 #define INVERT_DIRECTION OPCODE_INVERT_DIRECTION,V(0),
-#define SHARED_SENSOR(vpin,count...)
-#define REMOTE_SENSOR(vpin,count...)
-#define JMRI_SENSOR(vpin,count...)
-#define JMRI_SENSOR_NOPULLUP(vpin,count...)
+#define SHARED_SENSOR(vpin,count,sharedVpin)
+#define SHARED_SENSOR_NOPULLUP(vpin,count,sharedVpin)
+#define REMOTE_SENSOR(vpin,count)
+#define JMRI_SENSOR(vpin,options...)
+#define JMRI_SENSOR_NOPULLUP(vpin,options...)
 #define JOIN OPCODE_JOIN,V(0),
 #define KILLALL OPCODE_KILLALL,V(0),
 #define LATCH(sensor_id) OPCODE_LATCH,V(sensor_id),
