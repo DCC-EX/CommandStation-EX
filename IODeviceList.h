@@ -1,5 +1,6 @@
 /*
  *  © 2024, Chris Harlow. All rights reserved.
+ *  © 2026 Mathew Winters (with Github copilot)
  *
  *  This file is part of CommandStation-EX
  *
@@ -34,6 +35,7 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_MCP23008.h"
 #include "IO_MCP23017.h"
 #include "IO_NeoPixel.h"
+#include "IO_NeoPixelRMT.h"
 #include "IO_PCA9555.h"
 #include "IO_PCA9685pwm.h"
 #include "IO_PCF8574.h"
