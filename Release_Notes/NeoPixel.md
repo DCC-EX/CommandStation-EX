@@ -4,7 +4,7 @@ The IO_NeoPixel.h driver supports the adafruit neopixel seesaw board. It turns e
 
 For a directly connected ESP32 pixel string, use the RMT driver instead of a Seesaw board:
 
-  HAL(NeoPixelRMT,1000,20,18,NEO_GRB)
+`  HAL(NeoPixelRMT,1000,20,18,NEO_GRB)`
 
 The parameters are the first vpin, pixel count, ESP32 data GPIO and optional colour/speed mode. The sender runs on ESP32 core 0; the Arduino application loop runs on core 1. With DCC RMT enabled, this driver reserves channels starting at channel 4, after the channels used by the main and programming tracks. This shared use is supported on the classic ESP32; other ESP32 variants may not have free RMT transmit channels.
 
@@ -12,17 +12,18 @@ The parameters are the first vpin, pixel count, ESP32 data GPIO and optional col
 
 
 1.  Defining the hardware driver:
-    Add a driver definition in myAutomation.h for each adafruit I2C driver.
 
-    HAL(neoPixel, firstVpin, numberOfPixels [, mode [, i2caddress])
+    Add a driver definition in myAutomation.h for each adafruit I2C driver.
+`
+    `HAL(neoPixel, firstVpin, numberOfPixels [, mode [, i2caddress])`
       Where mode is selected from the various pixel string types which have varying
       colour order or refresh frequency. For MOST strings this mode will be NEO_GRB but for others refer to the comments in IO_NeoPixel.h
       If omitted the node and i2caddress default to NEO_GRB, 0x60.
 
-    HAL(NeoPixel,1000,20)
+    `HAL(NeoPixel,1000,20)`
        This is a NeoPixel driver defaulting to I2C aqddress 0x60 for a GRB pixel string. Pixels are given vpin numbers from 1000 to 1019. 
-    HAL(NeoPixel,1020,20,NEO_GRB,0x61)
-       This is a NeoPixel driver on i2c address 0x61    
+    `HAL(NeoPixel,1020,20,NEO_GRB,0x61)`
+       This is a NeoPixel driver on i2c address 0x61 
 
 2. Setting pixels from the < > commands.
     By default, each pixel in the string is created as white but switched off.
@@ -50,7 +51,7 @@ The parameters are the first vpin, pixel count, ESP32 data GPIO and optional col
     There are two types possible, a mast with separate fixed colour pixels for each aspect, or a mast with one multiple colour pixel for all aspects.
 
     For separate pixels, the colours should be established at startup and a normal SIGNALH macro used.
-    
+```   
   AUTOSTART 
     SIGNALH(1010,1011,1012)
     NEOPIXEL(1010,255,0,0)       
@@ -58,14 +59,14 @@ The parameters are the first vpin, pixel count, ESP32 data GPIO and optional col
     NEOPIXEL(1012,0,255,0)
     RED(1010)  // force signal state otherwise all 3 lights will be on
     DONE 
-
+```
     For signals with 1 pixel, the NEOPIXEL_SIGNAL macro will create a signal 
-    NEOPIXEL_SIGNAL(vpin,redfx,amberfx,greenfx)
+`    NEOPIXEL_SIGNAL(vpin,redfx,amberfx,greenfx)`
 
-    ** Changed... ****
+    * Changed... *
     The fx values above can be created by the NeoRGB macro so a bright red would be NeoRGB(255,0,0)  bright green NeoRGB(0,255,0) and amber something like NeoRGB(255,100,0)
     NeoRGB creates a single int32_t value so it can be used in several ways as convenient.
-
+```
 // create 1-lamp signal with NeoRGB colours
 NEOPIXEL_SIGNAL(1000,NeoRGB(255,0,0),NeoRGB(255,100,0),NeoRGB(0,255,0))
 
@@ -80,6 +81,6 @@ NEOPIXEL_SIGNAL(1001,REDLAMP,AMBERLAMP,GREENLAMP)
 // Create 1-lamp signal with web type RGB colours 
 // (Using blue for the amber  signal , just testing) 
 NEOPIXEL_SIGNAL(1002,0xFF0000,0x0000FF,0x00FF00)
-
+```
       
   
