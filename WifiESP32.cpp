@@ -115,6 +115,7 @@ private:
 // file scope variables
 static std::vector<NetworkClient> clients; // a list to hold all clients
 static RingStream *outboundRing = new RingStream(10240);
+static const int MAX_CLIENT_READ = 2048; // max bytes taken from one client per loop
 static bool APmode = false;
 // init of static class scope variables
 bool WifiESP::wifiUp = false;
@@ -388,13 +389,16 @@ void WifiESP::loop() {
       if(clients[clientId].active(clientId)) {
 	int len;
 	if ((len = clients[clientId].wifi.available()) > 0) {
+	  // cap the stack buffer so a large burst from a client cannot
+	  // overflow the task stack; any remainder is read next loop
+	  if (len > MAX_CLIENT_READ) len = MAX_CLIENT_READ;
 	  // read data from client
 	  byte cmd[len+1];
 	  for(int i=0; i<len; i++) {
 	    cmd[i]=clients[clientId].wifi.read();
 	  }
 	  cmd[len]=0;
-	  CommandDistributor::parse(clientId,cmd,outboundRing);
+	  CommandDistributor::parse(clientId,cmd,len,outboundRing);
 	}
       }
     } // all clients

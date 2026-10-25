@@ -137,25 +137,46 @@ bool Websockets::checkConnectionString(byte clientId,byte * cmd, RingStream * ou
     return true;          
 }
 
-byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
+byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer, uint16_t length) {
  // buffer should have a websocket header
  //byte opcode=buffer[0] & 0x0f;
+ // Callers guarantee buffer[length] is writable (they NUL-terminate there).
+ if (length<2) {
+   DIAG(F("Websock frame too short"));
+   return nullptr;
+ }
  if (Diag::WEBSOCKET) DIAG(F("Websock in: %x %x %x %x %x %x %x"),
-      buffer[0],buffer[1],buffer[2],buffer[3],
-       buffer[4],buffer[5],buffer[6]);
+      buffer[0],buffer[1],
+      length>2?buffer[2]:0, length>3?buffer[3]:0,
+      length>4?buffer[4]:0, length>5?buffer[5]:0, length>6?buffer[6]:0);
 
  byte opcode=buffer[0];
  bool maskbit=buffer[1]&0x80;
- int16_t payloadLength=buffer[1]&0x7f;
- 
- byte * mask;
- if (payloadLength<126) {
-     mask=buffer+2;
-     }
- else {
+ uint16_t payloadLength=buffer[1]&0x7f;
+ uint16_t headerLength=2;
+
+ if (payloadLength==127) {
+     // 64 bit lengths are never valid for our small buffers
+     DIAG(F("Websock frame too long"));
+     return nullptr;
+ }
+ if (payloadLength==126) {
+     if (length<4) return nullptr;
      // bytes 2 and 3 are the big-endian payload length
-     payloadLength=(buffer[2]<<8)|(buffer[3]);
-     mask=buffer+4;
+     payloadLength=((uint16_t)buffer[2]<<8)|(buffer[3]);
+     headerLength=4;
+ }
+ // client to server frames must always be masked (RFC6455 5.1)
+ if (!maskbit) {
+     DIAG(F("Websock unmasked frame rejected"));
+     return nullptr;
+ }
+ byte * mask=buffer+headerLength;
+ headerLength+=4;
+ // reject frames that claim more payload than was actually received
+ if (headerLength>length || payloadLength>(length-headerLength)) {
+     DIAG(F("Websock bad length %d/%d"),payloadLength,length);
+     return nullptr;
  }
  if (Diag::WEBSOCKET) DIAG(F("Websock op=%x mb=%b pl=%d m=%x %x %x %x"), opcode, maskbit, payloadLength, 
       mask[0],mask[1],mask[2], mask[3]);
@@ -186,9 +207,10 @@ byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
  }
  
  byte * payload=mask+4;
- for (int i=0;i<payloadLength;i++) {
+ for (uint16_t i=0;i<payloadLength;i++) {
      payload[i]^=mask[i%4];
  }
+ payload[payloadLength]=0; // within buffer as payload end <= buffer+length
  
  if (Diag::WEBSOCKET) DIAG(F("Websoc payload=%s"),payload);
    

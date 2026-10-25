@@ -92,7 +92,7 @@ void WifiInboundHandler::loop1() {
          cmd[count]=0;
          if (Diag::WIFI) DIAG(F("%e"),cmd); 
          
-         CommandDistributor::parse(clientId,cmd,outboundRing);
+         CommandDistributor::parse(clientId,cmd,count,outboundRing);
          return;
       }
    }
@@ -190,7 +190,7 @@ WifiInboundHandler::INBOUND_STATE WifiInboundHandler::loop2() {
         break;
         
       case IPD4_CLIENT:  // reading connection id
-        if (ch >= '0' || ch <='9'){
+        if (ch >= '0' && ch <='9'){
            runningClientId=ch-'0';
            loopState=IPD5;
         }

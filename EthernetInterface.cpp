@@ -241,7 +241,7 @@ void EthernetInterface::loop()
 	      buffer[count] = '\0'; // terminate the string properly
 	      if (Diag::ETHERNET) DIAG(F("Ethernet s=%d, c=%d b=:%e"), socket, count, buffer);
 	      // execute with data going directly back
-	      CommandDistributor::parse(socket,buffer,outboundRing);
+	      CommandDistributor::parse(socket,buffer,count,outboundRing);
 	      //looptimer(5000, F("Ethloop2 parse"));
 	      return; // limit the amount of processing that takes place within 1 loop() cycle. 
 	    }
