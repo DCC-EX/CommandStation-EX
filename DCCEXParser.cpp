@@ -182,6 +182,9 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *cmd, 
         case 2: // checking sign or quoted string
 #ifdef HAS_ENOUGH_MEMORY
 	    if (hot == '"') {
+	      // a string needs two result slots (marker and offset)
+	      if (parameterCount + 2 > MAX_COMMAND_PARAMS)
+	        return -1;
 	      // this inserts an extra parameter 0x7777 in front
 	      // of each string parameter as a marker that can
 	      // be checked that a string parameter follows

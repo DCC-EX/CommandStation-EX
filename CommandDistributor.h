@@ -46,7 +46,7 @@ private:
     static clientType clients[MAX_NUM_TCP_CLIENTS];
   #endif
 public :
-  static void parse(byte clientId,byte* buffer, RingStream * ring);
+  static void parse(byte clientId,byte* buffer, uint16_t length, RingStream * ring);
   static void broadcastLoco(LocoSlot * slot);
   static void broadcastForgetLoco(int16_t loco);
   static void broadcastSensor(int16_t id, bool value);

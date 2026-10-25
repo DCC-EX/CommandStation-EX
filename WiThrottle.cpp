@@ -152,14 +152,14 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
 
       }
 #if defined(EXRAIL_ACTIVE)
-      else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' ) { // Route activate
+      else if (cmd[1]=='R' && cmd[2]=='A' && cmd[3]=='2' && cmd[4]) { // Route activate
 	// exrail routes are RA2Rn , Animations are RA2An 
 	int route=getInt(cmd+5);
 	uint16_t cab=cmd[4]=='A' ? mostRecentCab : 0; 
 	RMFT2::createNewTask(route, cab);
       }
 #endif    
-      else if (cmd[1]=='T' && cmd[2]=='A') { // PTA accessory toggle 
+      else if (cmd[1]=='T' && cmd[2]=='A' && cmd[3]) { // PTA accessory toggle 
 	int id=getInt(cmd+4); 
 	if (!Turnout::exists(id)) {
 	  // If turnout does not exist, create it
@@ -206,7 +206,7 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
       }
       if (Diag::WITHROTTLE) DIAG(F("WiThrottle(%d) Quit"),clientid);
       delete this; 
-      break;           
+      return; // this is gone, do not touch members again           
     }
     // skip over cmd until 0 or past \r or \n
     while(*cmd !='\0' && *cmd != '\r' && *cmd !='\n') cmd++;
@@ -233,6 +233,7 @@ int WiThrottle::getLocoId(byte * cmd) {
 }
 
 void WiThrottle::multithrottle(RingStream * stream, byte * cmd){ 
+  if (!cmd[1] || !cmd[2]) return; // too short, avoid reading past the end
   char throttleChar=cmd[1];
   int locoid=getLocoId(cmd+3); // -1 for *
   if (locoid > 10239 || locoid < -1) {
@@ -241,7 +242,8 @@ void WiThrottle::multithrottle(RingStream * stream, byte * cmd){
   }
   byte * aval=cmd;
   while(*aval !=';' && *aval !='\0') aval++;
-  if (*aval) aval+=2;  // skip ;>
+  if (*aval) aval++;   // skip ;
+  if (*aval) aval++;   // skip >
   
   //       DIAG(F("Multithrottle aval=%c cab=%d"), aval[0],locoid);    
   switch(cmd[2]) {
@@ -318,10 +320,11 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
     break;
   case 'F': // Function key pressed/released
     {  
+      if (!aval[1]) break;
       bool pressed=aval[1]=='1';
       int fKey = getInt(aval+2);
       LOOPLOCOS(throttleChar, cab) {
-	bool unsetOnRelease = myLocos[loco].functionToggles & (1L<<fKey);
+	bool unsetOnRelease = fKey>=0 && fKey<32 && (myLocos[loco].functionToggles & (1UL<<fKey));
 	if (unsetOnRelease) DCC::setFn(myLocos[loco].cab,fKey, pressed);
 	else if (pressed)  DCC::changeFn(myLocos[loco].cab, fKey);
       }
@@ -329,6 +332,7 @@ void WiThrottle::locoAction(RingStream * stream, byte* aval, char throttleChar, 
     }
   case 'f': // Function key set, force function variant
     {
+      if (!aval[1]) break;
       bool pressed=aval[1]=='1';
       int fKey = getInt(aval+2);
       LOOPLOCOS(throttleChar, cab) {

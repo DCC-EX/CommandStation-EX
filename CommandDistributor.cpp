@@ -63,7 +63,7 @@ CommandDistributor::clientType  CommandDistributor::clients[MAX_NUM_TCP_CLIENTS]
 
 // Parse is called by Withrottle or Ethernet interface to determine which
 // protocol the client is using and call the appropriate part of dcc++Ex
-void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream) {
+void  CommandDistributor::parse(byte clientId,byte * buffer, uint16_t length, RingStream * stream) {
   if (clientId>=sizeof (clients)) {
     // Caution, diag dump of buffer could corrupt ringstream
     // if headed by websocket bytes. 
@@ -106,7 +106,7 @@ void  CommandDistributor::parse(byte clientId,byte * buffer, RingStream * stream
     WiThrottle::getThrottle(clientId)->parse(ring, buffer);
   }
   else if (clients[clientId] == WEBSOCKET_TYPE) {
-    buffer=Websockets::unmask(clientId,ring, buffer);
+    buffer=Websockets::unmask(clientId,ring, buffer, length);
     if (!buffer) return; // unmask may have handled it alrerday (ping/pong)
     // mark ring with client flagged as websocket for transmission later
     ring->mark(clientId | Websockets::WEBSOCK_CLIENT_MARKER);
