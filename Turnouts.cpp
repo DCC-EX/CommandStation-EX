@@ -146,13 +146,19 @@ void Turnout::setRamDescription(const char *desc) {
 /* static */ void Turnout::shareNodesToCS() {
     
     DIAG(F("Sharing turnouts to CS"));
+    const int maxBuffer=1000;
+    StringBuffer buffer(maxBuffer);
     for (Turnout *tt = _firstTurnout; tt; tt = tt->_nextTurnout) {
-      DIAG(F("Sharing turnout %d"), tt->getId());
-      if (tt->isHidden()) continue;
+      if (tt->isRemote()) continue; // dont rebroadcast turnouts sent to us by other nodes
       auto tdesc = tt->getRamDescription();
       if (!tdesc) tdesc = "";
-	    NodeManager::cast(F("<H %d %d \"%s\">"),tt->getId(), tt->isThrown(), tdesc);
-      } 
+      if (buffer.getLength() > maxBuffer - sizeof("<H 32768 1 \"\"") - strlen(tdesc)) {
+        NodeManager::cast(&buffer);
+        buffer.flush();
+      }
+      StringFormatter::send(&buffer,F("<H %d %d \"%s\">"),tt->getId(), tt->isThrown(), tdesc);
+    } 
+    if (buffer.getLength() > 0) NodeManager::cast(&buffer);
   }
 
 /*************************************************************************************

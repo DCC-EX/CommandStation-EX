@@ -183,9 +183,10 @@ ZZ(S,id,vpin,pullup)  // Create Sensor
         else  {CHECK(Sensor::createJMRI_SENSOR_NOPULLUP(vpin,1,id))} 
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
-ZZ(S)   // List sensors as seen by old dcc++
-        Sensor::dumpAllJMRI(stream);
-        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
+ZZ(S)   // List all JMRI-type sese sensor states in `<q id vpin pullup>` format
+        Sensor::printAllQidid(stream); // 
+ZZ(Q)   // List all JMTI-type sensor states in `<Q id>` format
+        Sensor::printAllQid(stream);
 ZZ(J,M) // List stash values
         Stash::list(stream);
 ZZ(J,M,stashId) // get stash value
@@ -316,15 +317,12 @@ ZZ(I,id,ADD,position,value,angle) // Add turntable position
         tto->addPosition(id,value,angle);
         REPLY("<I>\n")
 
- ZZ(Q) // List all sensors seen by throttles/jmri 
-        Sensor::printAllJMRI(stream);
-        NodeManager::cast("<Q>"); // ask nodes to re-share JMRI sensors
+
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
-        Sensor::printAllJMRI(stream);  //send all JMRI type Sensor  states
-        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
+        Sensor::printAllQid(stream);  //send all JMRI type Sensor  states in `<Q id>` format
                
 ZZ(Z) // List Output definitions 
         bool gotone = false;
@@ -414,7 +412,7 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
-  Sensor::shareJMRISensors();
+  Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
 ZZ(D,SENSORS) // Show sensor task list diagnostics
   Sensor::dumpAll(stream);

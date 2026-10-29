@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.15"
+#define VERSION "5.9.16"
+// 5.9.16 - Sensor, turnout,signal sharing improvements between nodes and CS
 // 5.9.15 - Implementation of SHARED_SENSOR and REMOTE_SENSOR
 //        - JMRI_SENSOR on nodes writes through to throttles 
 // 5.9.14 - new EXRAIL PULSE(vpin,duration)

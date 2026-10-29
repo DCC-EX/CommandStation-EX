@@ -96,7 +96,8 @@ void Sensor::loop(){
 }
 
 void Sensor::check(){
-      inputState = IODevice::read(vpin);
+    if (vpin==0) return;
+    inputState = IODevice::read(vpin);
 
     // Check if changed since last time, and process changes.
     if (inputState == active) {
@@ -144,10 +145,23 @@ void AnalogSensor::check(){
     }
   }
 
-void Sensor::shareJMRISensors(){
-  for(auto ss=firstSensor;ss;ss=ss->nextSensor){
-    if (ss->tellJMRI) NodeManager::castSensorChange(ss->active?'Q':'q',ss->id);
+void Sensor::shareNodesToCS(){
+  DIAG(F("Sharing Sensors"));
+  char cmd='\0';
+  const int maxBufferLength = 1000;
+  StringBuffer buffer(maxBufferLength);
+  for(auto ss=firstSensor;ss;ss=ss->nextSensor) {
+    if (ss->vpin == 0 || ss->acceptREMOTE) continue; // Skip sensors not accepted for remote sharing
+    if (ss->tellJMRI) cmd=ss->active?'Q':'q';
+    else if (ss->tellNodes) cmd=ss->active?'X':'x';
+    if (cmd==0) continue;
+    if (buffer.getLength() > maxBufferLength - sizeof("<Q 32767>")) {
+      NodeManager::cast(&buffer);
+      buffer.flush();
+    }
+    StringFormatter::send(&buffer, F("<%c %d>"), cmd, ss->id);
   }
+  if (buffer.getLength() > 0) NodeManager::cast(&buffer);
 }
 
 
@@ -157,7 +171,7 @@ void Sensor::shareJMRISensors(){
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-void Sensor::printAllJMRI(Print *stream){
+void Sensor::printAllQid(Print *stream){
   
   if (stream == NULL) return; // Nothing to do
   for(auto ss=firstSensor;ss;ss=ss->nextSensor){
@@ -166,7 +180,7 @@ void Sensor::printAllJMRI(Print *stream){
   }
 } 
 
-void Sensor::dumpAllJMRI(Print *stream){
+void Sensor::printAllQidid(Print *stream){
   
   if (stream == NULL) return; // Nothing to do
   for(auto ss =firstSensor;ss;ss=ss->nextSensor){
@@ -174,10 +188,9 @@ void Sensor::dumpAllJMRI(Print *stream){
     StringFormatter::send(stream, F("<Q %d %d %d>\n"),
       ss->id, ss->vpin,ss->pullUp);
   }
-} // Sensor::dumpAll
+}
 
 void Sensor::dumpAll(Print * stream) {
-  DIAG(F("DUMP_ALL_SENSORS"));
   for(auto ss =firstSensor;ss;ss=ss->nextSensor) ss->dump(stream);
 }
 
@@ -291,16 +304,38 @@ bool Sensor::createREMOTE_SENSOR(VPIN vpin,int count){
   return true;
 }
 
+
 // called by nodes manager to say a shared sensor was updated.
 // 
-void Sensor::updateRemoteSensor(VPIN vpin, bool activate){
+void Sensor::updateRemoteSensor(VPIN id, bool activate){
   for (auto ss=firstSensor; ss; ss=ss->nextSensor) {
-    if (ss->vpin==vpin && ss->acceptREMOTE) {
-      IODevice::write(vpin, activate,false);
+    if (ss->id==id && ss->acceptREMOTE) {
+      if (ss->vpin) IODevice::write(ss->vpin, activate,false);
       return;
     }
   }
 }
+
+// called by nodes manager to say a JMRI sensor was updated.
+// if we are already aware of this sensor we broadcast the change to throttles
+// Otherwise we create a local sensor entry with zero vpin so we can do Qid or Qidid queries
+void Sensor::updateRemoteJMRISensor(VPIN id, bool activate){
+  auto ss=getById(id);
+  if (!ss) {
+    ss=new Sensor(id,0,true); 
+    if (!ss) return;
+  }
+  
+  // force it to accept us and rebroadcast to throttles
+  ss->acceptREMOTE=true;
+  ss->tellJMRI=true;
+  if (ss->vpin) IODevice::write(ss->vpin, activate,false);
+  if (ss->inputState != activate) {
+    ss->inputState = activate;
+    CommandDistributor::broadcastSensor(ss->id, activate);
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 Sensor* Sensor::getByVpin(VPIN vpin){

@@ -48,16 +48,18 @@ class Sensor{
     static bool createREMOTE_SENSOR(VPIN vpin);
     static bool createREMOTE_SENSOR(VPIN vpin,int count);
 
+
     // create from EXRAIL ONSENSOR etc
     static bool createEXRAIL(VPIN vpin, bool analogue=false);
 
     static void removeJMRI(int id);  
     static void loop();
     static void dumpAll(Print * stream);
-    static void printAllJMRI(Print *stream);
-    static void dumpAllJMRI(Print* stream);
-    static void shareJMRISensors();
+    static void printAllQid(Print *stream);
+    static void printAllQidid(Print* stream);
+    static void shareNodesToCS();
     static void updateRemoteSensor(VPIN vpin, bool activate);
+    static void updateRemoteJMRISensor(VPIN vpin, bool activate);
     
   
   // The sensor list is a linked list where each sensor's 'nextSensor' field points to the next.

@@ -44,27 +44,19 @@ ZZ(F,loco,functionNumber,on)  // Throttle function change
   // It will not cause a rebroadcast
   DCC::setFn(loco,functionNumber,on,false);
 
-ZZ(Q)  // Share your defined JMRI sensors
-  Sensor::shareJMRISensors();
-ZZ(Q,vpin)  // Remote JMRI_SENSOR fired
-  // transparent copy through to throttles etc. 
-  CommandDistributor::broadcastSensor(vpin,true);
-  Sensor::updateRemoteSensor(vpin,true);  
-  
-ZZ(q,vpin)  // Remote JMRI_SENSOR fired
-  // transparent copy through to throttles etc.
-  // and update our remote sensor if we have one 
-  CommandDistributor::broadcastSensor(vpin,false);
-  Sensor::updateRemoteSensor(vpin,false);
+ZZ(Q,id)  // Remote JMRI_SENSOR fired
+  Sensor::updateRemoteJMRISensor(id,true);    
+ZZ(q,id)  // Remote JMRI_SENSOR fired
+  Sensor::updateRemoteJMRISensor(id,false);
 
-ZZ(X,vpin)  // Remote SHARED_SENSOR fired
+ZZ(X,id)  // Remote SHARED_SENSOR fired
   // update local REMOTE_SENSOR if any 
   // and update our remote sensor if we have one 
-  Sensor::updateRemoteSensor(vpin,true);  
+  Sensor::updateRemoteSensor(id,true);  
 
-ZZ(x,vpin)  // Remote SHARED_SENSOR fired
+ZZ(x,id)  // Remote SHARED_SENSOR fired
   // update local REMOTE_SENSOR if any 
-  Sensor::updateRemoteSensor(vpin,false);
+  Sensor::updateRemoteSensor(id,false);
 
 ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
   // This was sent by a node that changes a turnout state
@@ -79,12 +71,9 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
     // with the wrong turnout id. 
     Turnout::setClosed(turnoutid,bit==0,false);
     tt->setRamDescription(q_description);
+    tt->setRemote(); // mark as remote since it was received from another node
 
-ZZ(H) // CS requests list of locally defined turnouts & shared sensors
-  Turnout::shareNodesToCS();
-  Sensor::shareJMRISensors();
-  Signal::shareNodesToCS();
-   
+     
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);
 
@@ -123,4 +112,13 @@ ZZ(@,display,row,text) // Display text change
 ZZ(c,clocktime,clockrate) // Clock time change
   // This was sent by a node that changes the clock time
   CommandDistributor::setClockTime(clocktime,clockrate,false);
+
+
+ZZ(?,T) // CS requests list of locally defined turnouts
+  Turnout::shareNodesToCS();
+ZZ(?,Q)  // CS requests list of shared sensors
+  Sensor::shareNodesToCS();
+ZZ(?,S)  // CS requests list of signals
+  Signal::shareNodesToCS();
+
 ZZEND
