@@ -453,6 +453,10 @@ ZZ(C,HOSTNAME,hostname) // set Wifi/eth hostname (in quotes)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
+ZZ(C,NODEGROUP,group)   // Set the wifi/eth node group (1..254)
+  CHECK(group>=1 && group<=254)
+  EXNetworkPreferences::saveNodeGroup(group);
+  
 ZZ(C,NODE,ON) // (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
@@ -481,7 +485,6 @@ ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
-
 
 #undef DEFAULT
 ZZ(C,WIFI,DEFAULT) // Set WiFi to default credentials

@@ -34,6 +34,7 @@ enum SystemPreferences : int16_t {
   channelAP=32007, 
   hiddenAP=32008,
   throttleNode=32009,
+  nodeGroup=32010,
   // any additional preferences can only be added here
   _LAST
 };
@@ -45,6 +46,7 @@ public:
   static void saveAP(const char *_ssid, const char *_password, byte _channel, bool _hidden);
   static void saveHostName(const char *_hostname);
   static void saveThrottleNode(bool throttleNode);
+  static void saveNodeGroup(byte nodeGroup);
   static void clear();
   static void enable(bool enable);
   static bool getThrottleNode();
@@ -58,6 +60,7 @@ public:
   static bool getHiddenAP();
   static void dump(Print * stream);
   static void streamSystemPreferenceIds(Print * stream);
+  static byte getNodeGroup();
 private:
   static char tempssidSTA[32];
   static char tempPasswordSTA[64];

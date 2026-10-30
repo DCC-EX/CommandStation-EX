@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.9.16"
+//        - <C NODEGROUP xx> and Browser configuration support for node group
 // 5.9.16 - Sensor, turnout,signal sharing improvements between nodes and CS
 // 5.9.15 - Implementation of SHARED_SENSOR and REMOTE_SENSOR
 //        - JMRI_SENSOR on nodes writes through to throttles 
