@@ -27,76 +27,6 @@
  */
 
 /*
-List of single character OPCODEs in use for reference.
-
-When determining a new OPCODE for a new feature, refer to this list as the source of truth.
-
-Once a new OPCODE is decided upon, update this list.
-
-  Character, Usage
-  /, |EX-R| interactive commands
-  -, Remove from reminder table
-  =, |TM| configuration
-  !, Emergency stop
-  @, LCD messages
-  #, Request number of supported cabs/locos; heartbeat
-  +, WiFi AT commands
-  ?, Reserved for future use
-  0, Track power off
-  1, Track power on
-  a, DCC accessory control
-  A, DCC extended accessory control
-  b, Write CV bit on main
-  B, Write CV bit
-  c, Request current command
-  C, configure the CS
-  d,
-  D, Diagnostic commands
-  f, Loco decoder function control (deprecated)
-  F, Loco decoder function control
-  g,
-  G,
-  h,
-  H, Turnout state broadcast
-  i, Server details string
-  I, Turntable object command, control, and broadcast
-  j, Throttle responses
-  J, Throttle queries
-  k, Block exit  (Railcom)
-  K, Block enter (Railcom)
-  l, Loco speedbyte/function map broadcast
-  L, Reserved for LCC interface (implemented in EXRAIL)
-  m, message to throttles (broadcast output) 
-  m, set momentum  
-  M, Write DCC packet on main track
-  n, Reserved for SensorCam
-  N, Reserved for Sensorcam 
-  o, Neopixel driver (see also IO_NeoPixel.h)
-  O, Output broadcast
-  p, Broadcast power state
-  P, Write DCC packet on prog track
-  q, Sensor deactivated
-  Q, Sensor activated
-  r, Broadcast address read on programming track
-  R, Read CVs
-  s, Display status
-  S, Sensor configuration
-  t, Cab/loco update command
-  T, Turnout configuration/control
-  u, Reserved for user commands
-  U, Reserved for user commands
-  v,
-  V, Verify CVs
-  w, Write CV on main
-  W, Write CV
-  x,
-  X, Invalid command response
-  y, sounds 
-  Y, Output broadcast
-  z, Direct output
-  Z, Output configuration/control
-*/
-/*
 Each ZZ macro matches a command opcode and its parameters.
 Paramters in UPPER case are matched as keywords, parameters in lower case are values provided by the user.
 Its important to recognise that if the same opcode has more than one match with the same length, you must match the
@@ -215,11 +145,11 @@ ZZ(J,A) // List Routes
 #else 
         REPLY( "<jA>\n")
 #endif
-ZZ(J,S) // list signals
+ZZ(J,S) // @NV6 List signals
         REPLY("<jS")
         Signal::listSignalIds(stream);
         REPLY(">\n")
-ZZ(J,S,signal_id) // get signal state and description
+ZZ(J,S,signal_id) // @NV6  Get signal state and description
         auto s=Signal::findSignal(signal_id);
         if (s==nullptr || s->isHidden()) { // hidden signal or no description
                 REPLY("<jS %d X>\n", signal_id);
@@ -229,13 +159,13 @@ ZZ(J,S,signal_id) // get signal state and description
         REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
 ZZ(J,R) // List Roster ids
         Roster::sendIdsToThrottle(stream); 
-ZZ(J,R,SAVE) // Save the roster to persistent storage
+ZZ(J,R,SAVE) // @V6 Save the roster to persistent storage
         Roster::save();
 ZZ(J,R,locoid) // Get roster for loco
         Roster::sendToThrottle(locoid,stream);
-ZZ(J,R,locoid,DELETE) // Delete roster entry
+ZZ(J,R,locoid,DELETE) // @V6 Delete roster entry
         Roster::remove(locoid);
-ZZ(J,R,locoid,name,functionMap) // Update/add roster entry
+ZZ(J,R,locoid,name,functionMap) // @V6 Update/add roster entry
         CHECKQ(name)
         CHECKQ(functionMap)
         Roster::create(locoid,q_name,q_functionMap);
@@ -384,9 +314,9 @@ ZZ_nodoc(D,WEBSOCKET,ON) // Enable WebSocket diagnostics
 ZZ_nodoc(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
 // ZZ(D,NODE,onoff) // set Node diagnostics ON or OFF
-ZZ_nodoc(D,NODE,ON) // Enable Node diagnostics 
+ZZ_nodoc(D,NODE,ON) // @V6 Enable Node diagnostics 
         Diag::NODE = true;
-ZZ_nodoc(D,NODE,OFF) // Disable Node diagnostics 
+ZZ_nodoc(D,NODE,OFF) // @V6 Disable Node diagnostics 
         Diag::NODE = false;
 ZZ(D,ANOUT,vpin,position) // Deprecated - use `<z vpin position>`
         IODevice::writeAnalogue(vpin,position,0);
@@ -414,7 +344,7 @@ ZZ_nodoc(D,SHARE) // dev testing nodes only
   Turnout::shareNodesToCS();
   Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
-ZZ(D,SENSORS) // Show sensor task list diagnostics
+ZZ(D,SENSORS) // @V6 Show sensor task list diagnostics
   Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
@@ -448,16 +378,16 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
         DCCACK::setAckRetry(value);                   LCD(1, F("Ack Retry=%d"), value);
 #endif
 
-ZZ(C,HOSTNAME,hostname) // set Wifi/eth hostname (in quotes)
+ZZ(C,HOSTNAME,hostname) // @V6 set Wifi/eth hostname (in quotes)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
-ZZ(C,NODEGROUP,group)   // Set the wifi/eth node group (1..254)
+ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
   CHECK(group>=1 && group<=254)
   EXNetworkPreferences::saveNodeGroup(group);
   
-ZZ(C,NODE,ON) // (testing only) Enable Node mode without throttle support
+ZZ(C,NODE,ON) // @V6 (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
         EXNetwork::setup();
@@ -471,7 +401,7 @@ ZZ_nodoc(C,SNIFFER,ON)  // Turn sniffer output on
 ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
   DCCDecoder::onoff(false);
 #endif
-// ZZ(C,WIFI,onoff) // Enable WiFi ON or OFF
+// ZZ(C,WIFI,onoff) // @V6 Enable WiFi ON or OFF
 ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
@@ -487,45 +417,45 @@ ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   EXNetwork::setup();
 
 #undef DEFAULT
-ZZ(C,WIFI,DEFAULT) // Set WiFi to default credentials
+ZZ(C,WIFI,DEFAULT) // @V6Set WiFi to default credentials
   EXNetworkPreferences::clear(); 
         EXNetwork::setup();
-ZZ(C,WIFI,ssid,password) // Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
+ZZ(C,WIFI,ssid,password) // @V6 Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,true); 
         EXNetwork::setup();
-ZZ(C,WIFI,TEMP,ssid,password) // Set WiFi ssid and password temporarily (in quotes)
+ZZ(C,WIFI,TEMP,ssid,password) // @V6 Set WiFi ssid and password temporarily (in quotes)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,AP,ssid,password) // Set WiFi to AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,AP,ssid,password) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,AP,ssid,password,channel) // Set WiFi to AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,AP,ssid,password,channel) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,HIDDENAP,ssid,password) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,HIDDENAP,ssid,password) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,true); 
         EXNetwork::setup();
-ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,true); 
         EXNetwork::setup();
 
-ZZ(D,WIFI,SHOW) // Show WiFi status
+ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
   EXNetworkPreferences::dump(stream);
 #else 
 // ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
@@ -537,12 +467,12 @@ ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
-ZZ(D,ETHERNET,SHOW) // Show Ethernet status
+ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status
   EXNetworkPreferences::dump(stream);
 #endif
 // Non Volatile storage
 
-ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted string)
+ZZ(C,NVS,nvsnumber,nvsvalue) // @V6 set Non Volatile storage value (int or quoted string)
   if ((nvsvalue & 0xFF00) == 0x7700) {
         // nvsvalue is quoted
         auto q_nvsvalue = (const char *)(com + (nvsvalue & 0x00FF));
@@ -553,9 +483,9 @@ ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted st
    }
    if (NVSTable::saveNeeded()) NVSTable::save();
   
-ZZ(D,NVS) // Show all non-zero NVS values (Not Loco CVs)
+ZZ(D,NVS) // @V6 Show all non-zero NVS values (Not Loco CVs)
   NVSTable::dump(stream);
-ZZ(D,NVS,value) // Show specific NVS value
+ZZ(D,NVS,value) // @V6 Show specific NVS value
   NVSTable::dump(stream,value);
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)

@@ -122,7 +122,7 @@
 ///param sequence_id SEQUENCE to jump processing to, must terminate or RETURN
 
 #define CHANGE_DIRECTION
-///brief Change the direction of the current loco
+///brief @V6 Change the direction of the current loco
 
 #define CLEAR_STASH(stash_id)
 ///brief Clears loco value stored in stash
@@ -139,7 +139,7 @@
 ///see THROW
 
 #define CONFIGURE_DIALOG(title,body)
-///brief Set up browser config dialog with title and body text. The dialog will be shown when the user clicks on the config button in the browser interface.
+/// @V6 brief Set up browser config dialog with title and body text. The dialog will be shown when the user clicks on the config button in the browser interface.
 ///param title Quoted text for dialog title
 ///param body base name for dialog body text.
 
@@ -155,10 +155,10 @@
 ///param signal_id Id used for all signal manipulation commands
 ///param addr DCC address
 ///param subaddr DCC subaddress
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define DCC_SIGNALL(signal_id,linearaddr,description...)
-///brief Define a DCC accessory signal with linear address
+///brief @V6 Define a DCC accessory signal with linear address
 ///param signal_id Id used for all signal manipulation commands
 ///param linearaddr DCC linear address
 ///param description... Quoted text description of signal
@@ -166,7 +166,7 @@
 #define DCCX_SIGNAL(signal_id,redAspect,amberAspect,greenAspect,description...)
 ///brief Define advanced DCC accessory signal with aspects
 ///param signal_id DCC Linear address AND Id used for all signal manipulation commands
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define DCC_TURNTABLE(turntable_id,home,description...)
 ///brief defines a Turntable device
@@ -326,7 +326,7 @@
 ///see IF
 
 #define IFNVS(nvenum)
-///brief Check if given Non Volatile Storage entry is non-zero
+///brief @V6 Check if given Non Volatile Storage entry is non-zero
 ///see IF
 
 #define IFRANDOM(percent)
@@ -395,19 +395,19 @@
 ///brief Marks current task so that FWD and REV commands are inverted.
 
 #define SHARED_SENSOR(vpin,count,sharedVpin)
-///brief Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
+///brief @V6 Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
 ///param vpin first vpin number
 ///param count... Number of consecutive VPINS.
 ///param sharedVpin The vpin number to share the sensors to.
     
 #define SHARED_SENSOR_NOPULLUP(vpin,count,sharedVpin)
-///brief Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
+///brief @V6 Defines multiple sensor vpins to be shared to other nodes as a different sharedVpin number
 ///param vpin first vpin number
 ///param count... Number of consecutive VPINS.
 ///param sharedVpin The vpin number to share the sensors to.
     
 #define REMOTE_SENSOR(sharedVpin,count)
-///brief Defines multiple sensor vpins shared by other nodes.
+///brief @V6 Defines multiple sensor vpins shared by other nodes.
 ///param sharedVpin first vpin number
 ///param count... Number of consecutive VPINS.
 
@@ -416,7 +416,7 @@
 ///param vpin first vpin number
 ///param options... count or count,sharedVpin 
 ///param count Number of consecutive VPINS for which to create sensors. Default 1.
-///param sharedVpin Vpin number range to emit to JMRI/throttles. (Default vpin)
+///param sharedVpin @V6Vpin number range to emit to JMRI/throttles. (Default vpin)
  
 
 #define JMRI_SENSOR_NOPULLUP(vpin,options...)
@@ -424,7 +424,7 @@
 ///param vpin first vpin number
 ///param options... count or count,sharedVpin 
 ///param count Number of consecutive VPINS for which to create sensors. Default 1.
-///param sharedVpin Vpin number range to emit to JMRI/throttles. (Default vpin)
+///param sharedVpin @V6 Vpin number range to emit to JMRI/throttles. (Default vpin)
 
 #define JOIN
 ///brief Switches PROG track to receive MAIN track DCC packets. (Drive on PROG track)
@@ -481,10 +481,10 @@
 ///see NEORGB
 ///param vpin unique signal_id
 ///param redcolour  RGB colour use NEORGB(red,green,blue) to create values.
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define NODE_SHARE_SCREEN0(display_id,count...)
-///brief Remaps this devices screen display 0 to another id when sharing with nodes.
+///brief @V6 Remaps this devices screen display 0 to another id when sharing with nodes.
 ///see LCD, SCREEN
 ///param display_id Alternative display id that nodes may render as required.
 /// Display 0 is used to represent node-specific values such as Wifi settings, so it cant be mixed with other display 0 data. 
@@ -493,7 +493,7 @@
 ///param optional second parameter for start row offset
 
 #define SHARED_WRITE_VPINS(vpin,count)
-///brief Marks a range of VPINS as shared, so that any node can write to them
+///brief @V6 Marks a range of VPINS as shared, so that any node can write to them
 
 #define ACON(eventid)
 ///brief Send MERG CBUS ACON to Adapter
@@ -517,11 +517,11 @@
 ///brief Start task here when signal set to AMBER state
 
 #define ONBLOCKENTER(block_id)
-///brief Start task here when a loco enters a railcom block
+///brief @V6 Start task here when a loco enters a railcom block
 ///param block_id vpin associated to block by HAL(I2CRailcom..)
 
 #define ONBLOCKEXIT(block_id)
-///brief Start task here when a loco leaves a railcom block
+///brief @V6 Start task here when a loco leaves a railcom block
 ///param block_id vpin associated to block by HAL(I2CRailcom..)
 
 #define ONTIME(minute_in_day)
@@ -581,7 +581,7 @@
 ///brief Start task here when sensor changes HIGH to LOW. (Typically a pressed button)
 
 #define ONBUTTONUP(vpin)
-///brief Start task here when sensor changes LOW to HIGH. (Typically a released button)
+///brief @V6 Start task here when sensor changes LOW to HIGH. (Typically a released button)
 
 #define PAUSE
 ///brief Pauses all EXRAIL tasks except the current one.
@@ -650,7 +650,7 @@
 ///brief Powers ON all tracks
 
 #define PULSE(vpin,duration)
-///brief Sets output pin HIGH for a given duration
+///brief @V6Sets output pin HIGH for a given duration
 ///param vpin The output pin to pulse
 ///param duration Duration of the pulse in milliseconds
 
@@ -803,7 +803,7 @@
 ///param redpos servo position (values are hardware dependent)
 ///param amberpos servo position (values are hardware dependent)
 ///param greenpos servo position (values are hardware dependent)
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define SERVO_TURNOUT(turnout_id,vpin,activeAngle,inactiveAngle,profile,description...)
 ///brief Define a servo driven turnout
@@ -842,17 +842,17 @@
 ///param redpin vpin for RED state, also acts as signal_id
 ///param amberpin vpin for AMBER state
 ///param greenpin vpin for GREEN state
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define SIGNALH(redpin,amberpin,greenpin,description...)
 ///brief define a signal with HIGH=ON leds (use LED_SIGNAL prefereably)
 ///param redpin vpin for RED state, also acts as signal_id
 ///param amberpin vpin for AMBER state
 ///param greenpin vpin for GREEN state
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define LED_SIGNAL(signalid,redpin,amberpin,greenpin,description...)
-///brief define a signal with HIGH=ON leds
+///brief @V6 define a signal with HIGH=ON leds
 ///param signalid unique identifier for the signal
 ///param redpin vpin for RED state
 ///param amberpin vpin for AMBER state
@@ -939,7 +939,7 @@
 #define VIRTUAL_SIGNAL(signal_id,description...)
 ///brief Defines a virtual (no hardware) signal, use ONhandlers to simulate hardware
 ///see SIGNAL ONRED ONAMBER ONGREEN
-///param description... Quoted text description of signal
+///param @V6 description... Quoted text description of signal
 
 #define VIRTUAL_TURNOUT(id,description...)
 ///brief Defines a virtual (no hardware) turnout, use ONhandlers to simulate hardware
