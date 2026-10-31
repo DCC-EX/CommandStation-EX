@@ -23,6 +23,7 @@
 // The hostnamem enabled and node flags are also used by ethernet on stm32 platforms.
 
 #include "EXNetworkPreferences.h"
+#include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
 
@@ -107,8 +108,8 @@ void EXNetworkPreferences::saveHostName(const char *_hostname) {
 
 void EXNetworkPreferences::clear() {
   // clear all network preferences from NVS
-  for (uint16_t i = SystemPreferences::_FIRST; i < SystemPreferences::_LAST; i++) {
-    NVSTable::setNVS(i,(int16_t)0,false);
+  for (auto pref   = SystemPreferences::_FIRST_NETWORK_PREF; pref < SystemPreferences::_LAST_NETWORK_PREF; pref++) {
+    NVSTable::setNVS(pref,0,false);
   }
   NVSTable::save();
   load(); // reload to update static variables and defaults
@@ -141,19 +142,7 @@ void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
   NVSTable::setNVS(SystemPreferences::nodeGroup, nodeGroup, true);
 }
 
-void wsp(Print * stream,const char *name,int16_t value) {
-  StringFormatter::send(stream,
-    F("sysNVS[\"%s\"]=%d;"), name, value);
-}
 
-void EXNetworkPreferences::streamSystemPreferenceIds(Print * stream) {
-   stream->print(F("sysNVS={};"));
-   #define SP_ENTRY(n) wsp(stream,#n,SystemPreferences::n)
-    SP_ENTRY(ssidSTA); SP_ENTRY(passwordSTA); SP_ENTRY(ssidAP); SP_ENTRY(passwordAP);
-    SP_ENTRY(hostName); SP_ENTRY(enabled); SP_ENTRY(channelAP); SP_ENTRY(hiddenAP);
-    SP_ENTRY(throttleNode); SP_ENTRY(nodeGroup);
-  #undef SP_ENTRY
-}
 
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 

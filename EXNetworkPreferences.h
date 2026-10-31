@@ -20,24 +20,7 @@
 #ifndef EXNetworkPreferences_h
 #define EXNetworkPreferences_h
 #include <Arduino.h>
-enum SystemPreferences : int16_t {
-  // Starting value for system preferences in NVS
-  // change the order of this enum and mess will happen
-  // The names used here are used when writing and reading system preferences in the NVS.
-  _FIRST=32000,
-  ssidSTA=32001, 
-  passwordSTA=32002, 
-  ssidAP=32003,
-  passwordAP=32004, 
-  hostName=32005, 
-  enabled=32006, 
-  channelAP=32007, 
-  hiddenAP=32008,
-  throttleNode=32009,
-  nodeGroup=32010,
-  // any additional preferences can only be added here
-  _LAST
-};
+#include "SystemPreferences.h"
 
 class EXNetworkPreferences {
 public:
@@ -59,7 +42,7 @@ public:
   static byte getChannelAP();
   static bool getHiddenAP();
   static void dump(Print * stream);
-  static void streamSystemPreferenceIds(Print * stream);
+  
   static byte getNodeGroup();
 private:
   static char tempssidSTA[32];

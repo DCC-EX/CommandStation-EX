@@ -60,6 +60,8 @@
 #include "EXNetworkPreferences.html.h"
 #include "Roster.h"
 #include "Roster.html.h"
+#include "DCCACK.html.h"
+#include "SystemPreferences.h"
 
 
   // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
@@ -375,7 +377,10 @@ void SerialUsbLog::loop() {
 
     // Add system config menu(s) 
     new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
+    #ifdef MOTOR_SHIELD_TYPE
+    // MAYBE new LogPage("/DCCACK.html",DCCACK_html,"DCC ACK Preferences");
     new LogPage("/Roster.html",Roster_html,"Roster Editor");
+    #endif
     // user pages may be added later with exrail
     started = true;
     return;
@@ -511,7 +516,7 @@ void SerialUsbLog::loop() {
   if (path == "/nvsValues.js") {
     client.print(jsHeader);
     NVSTable::streamJSArray(&client);
-    EXNetworkPreferences::streamSystemPreferenceIds(&client);
+    SystemPreferences::streamSystemPreferenceIds(&client);
     client.stop();
     return;
   }
