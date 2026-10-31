@@ -60,7 +60,6 @@
 #include "EXNetworkPreferences.html.h"
 #include "Roster.h"
 #include "Roster.html.h"
-#include "DCCACK.html.h"
 #include "SystemPreferences.h"
 
 
