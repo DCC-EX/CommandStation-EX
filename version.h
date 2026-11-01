@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.16"
+#define VERSION "5.9.17"
+// 5.9.17 - Fix multiple node command handling
 //        - Internal improvements and refactoring of NVS system preferences
 //        - Roster dialog does not show on a node
 //        - <C NODEGROUP xx> and Browser configuration support for node group

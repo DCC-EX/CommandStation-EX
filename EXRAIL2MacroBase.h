@@ -665,7 +665,7 @@
 ///param sequence_id.. list of SEQUENCE that may be followed
 
 #define READ_LOCO
-///brief Reads loco Id from prog track and sets currenmt task loco id.
+///brief Reads loco Id from prog track and sets current task loco id.
 
 #define RED(signal_id)
 ///brief sets signal to RED state
