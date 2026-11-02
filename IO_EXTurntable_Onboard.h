@@ -75,6 +75,8 @@
 #ifndef IO_EXTURNTABLE_ONBOARD_H
 #define IO_EXTURNTABLE_ONBOARD_H
 
+#if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE) && defined(EXTURNTABLE_ONBOARD)
+
 #include "defines.h"
 #include "AccelStepper.h"
 #include "DIAG.h"
@@ -1058,4 +1060,5 @@ inline void EXTurntable_OB::_display() {
        (int)_firstVpin, (int)_firstVpin + _nPins - 1);
 }
 
-#endif
+#endif // DCCEX_NODE, etc
+#endif // IO_EXTURNTABLE_ONBOARD_H
