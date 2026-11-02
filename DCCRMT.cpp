@@ -139,10 +139,16 @@ static volatile uint8_t cutoutFlag = 0;
 // As the DCC packet end marker was moved to the next preamble
 // this happens at the beginning of that end packet marker (bit).
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  RMTChannel *tt = channelHandle[channel];
-  if (tt) tt->RMTinterrupt();
   if (channel == 0) {
-    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    // The timer runs freely at 486 us. A zero before the sync, which is up
+    // to 116 us away, would be taken for the cutout start. So software sync
+    // the timer clear of zero first. The sync input must be off again before
+    // mcpwm_sync_configure(), which makes an edge if the RMT line is high.
+    MCPWM1.timer[0].timer_sync.timer_phase = 10;
+    MCPWM1.timer[0].timer_sync.timer_synci_en = 1;
+    MCPWM1.timer[0].timer_sync.timer_sync_sw = ~MCPWM1.timer[0].timer_sync.timer_sync_sw;
+    MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
+    MCPWM1.int_clr.timer0_tez_int_clr = 1;               // a zero already pending
     cutoutFlag = 0;
     // not needed here, we keep it enabled all the time
     //MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
@@ -151,6 +157,8 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     __digitalWrite(26 , 1);
 #endif
     mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+    // After the duty call, which adds the TEZ and TEP update bits
+    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
     mcpwm_sync_config_t sync_conf = {
       .sync_sig = MCPWM_SELECT_GPIO_SYNC0,
       .timer_val =  CUTOUT_OFFSET_IN_PROMILLE, // in promille of all values
@@ -158,6 +166,9 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     };
     mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
   }
+  // Last, as filling the packet takes time and the cutout must be armed
+  RMTChannel *tt = channelHandle[channel];
+  if (tt) tt->RMTinterrupt();
 }
 
 // This intrrupt is called on sync which is configured on mcpwmPulseOn()
