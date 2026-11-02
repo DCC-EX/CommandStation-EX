@@ -114,11 +114,10 @@ int RingStream::read() {
   if ((_pos_read==_pos_write) && !_overflow) return -1;  // empty  
   byte b=readRawByte();
   if (b!=FLASH_INSERT_MARKER) return b; 
+  // On a 32 bit processor printFlash() never writes the marker, so this
+  // is a data byte, for example in a websocket pong payload.
+  if (sizeof(void*)>2) return b;
   // Detected a flash insert 
-  if (sizeof(void*)>2) {
-    DIAG(F("Detected invalid flash insert marker at pos %d"),_pos_read);
-    return '?';
-  }
   // read address bytes LSB first (size depends on CPU) 
   uintptr_t iFlash=0; 
   for (byte f=0; f<sizeof(iFlash); f++) {
