@@ -166,11 +166,21 @@ byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
 
  if (opcode==0x89) { // ping
      DIAG(F("Websock ping"));
-     buffer[0]=0x8a;  // pong.. and send it back
+     // The pong carries the ping's payload, unmasked as server frames must be.
+     // A control frame is at most 125 bytes (RFC 6455 5.5); payloadLength is
+     // negative here if a longer extended length was sent, so drop those.
+     if (payloadLength<0 || payloadLength>125) return nullptr;
+     byte pong[2+125];
+     byte * pingPayload=maskbit ? mask+4 : mask;
+     pong[0]=0x8a;
+     pong[1]=(byte)payloadLength;
+     for (int i=0;i<payloadLength;i++) {
+         pong[2+i]=maskbit ? (pingPayload[i]^mask[i%4]) : pingPayload[i];
+     }
      ring->mark(clientId &0x7f); // dont readjust
-     ring->print((char *)buffer);
+     ring->write(pong, 2+payloadLength);
      ring->commit();
-     return nullptr; 
+     return nullptr;
      }
   
   if (opcode==0x88) { // close
