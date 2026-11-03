@@ -1,5 +1,6 @@
 /*
  *  © 2023-2024 Paul M. Antoine
+ *  © 2026 Herb Morton
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
  *  © 2021 Fred Decker
@@ -42,7 +43,13 @@
 #else
   //Nucleo devices with external ethernet module
   // Refer to platformio.ini library configs
-  #define ETHERNET_CS_PIN 10
+  #ifndef ETHERNET_CS_PIN
+    #ifdef PIN_SPI_SS
+      #define ETHERNET_CS_PIN PIN_SPI_SS
+    #else
+      #define ETHERNET_CS_PIN 10
+    #endif
+  #endif
   #include <Ethernet.h>
 #endif
 

@@ -1,6 +1,7 @@
 /*
  *  © 2024 Morten "Doc" Nielsen
  *  © 2023-2024 Paul M. Antoine
+ *  © 2026 Herb Morton
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
@@ -28,6 +29,7 @@
 #include "defines.h" 
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
+#include <SPI.h>
 
 extern "C" struct netif gnetif;
 
@@ -50,8 +52,27 @@ bool EthernetInterface::setup()
     
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
+    DIAG(F("Generated MAC Address: %02X:%02X:%02X:%02X:%02X:%02X"), 
+         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   
+  //Remap the STM32 SPI peripheral clocks and data lines
+  // SPI pins can be defined in environment
+  #if defined(ARDUINO_ARCH_STM32)
+    #if defined(PIN_SPI_MOSI) && defined(PIN_SPI_MISO) && defined(PIN_SPI_SCK)
+      DIAG(F("MOSI:%d  MISO:%d  SCK:%d"),PIN_SPI_MOSI, PIN_SPI_MISO, PIN_SPI_SCK);
+      SPI.setMOSI(PIN_SPI_MOSI);
+      SPI.setMISO(PIN_SPI_MISO);
+      SPI.setSCLK(PIN_SPI_SCK);
+    #endif
+    #if defined(PIN_SPI_SS)
+      DIAG(F("SS:%d"),PIN_SPI_SS);
+    //  SPI.setSSEL(PIN_SPI_SS);  // do not do this CS is used in Arduino library
+    #endif
+    SPI.begin(); 
+  #endif
+
   #ifdef ETHERNET_CS_PIN
+    DIAG(F("CS:%d"),ETHERNET_CS_PIN);
     Ethernet.init(ETHERNET_CS_PIN);
   #endif
 
