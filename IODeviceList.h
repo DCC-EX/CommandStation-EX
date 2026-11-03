@@ -50,5 +50,6 @@ It has been moved here to be easier to maintain than editing IODevice.h
 #include "IO_WaveShare.h"
 #include "IO_PCF85063.h"
 #include "IO_NVSMap.h"
+#include "IO_EXTurntable.h"
 #include "IO_ServoESP.h"
 #include "IO_EXTurntable_Onboard.h"

@@ -710,7 +710,7 @@
 /// - **Acc_Off**: Turn accessory pin off
 
 #define ROTATE_DCC(turntable_id, position_id)
-///brief Rotates turntable to a supplied position using DCC commands
+///brief  shortcut to ROTATE(turntable_id,position_id,Turn)
 
 #define ROSTER(cab, name, funcmap...)
 ///brief Describes a loco roster entry visible to throttles
@@ -909,8 +909,8 @@
 #define TT_ADDPOSITION(turntable_id, position_id, value, angle, description...)
 ///brief Defines a turntable track position
 ///param position_id each position is supplied an id
-///param address DCC accessory address
-///param angle Used only for throttles that may draw a visual representation of the turntable
+///param value DCC address of position, or EXTurntable stepper position
+//param angle Used only for throttles that may draw a visual representation of the turntable
 ///param description... quoted text or HIDDEN
 
 #define TURNOUT(turnout_id, addr, subaddr, description...)

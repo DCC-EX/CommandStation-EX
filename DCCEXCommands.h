@@ -194,7 +194,6 @@ ZZ(z,vpin,analogue) // Write PWM pin analogue value
         IODevice::writeAnalogue(vpin,analogue,0,0);
      
 // ==========================
-// Turntable - no support if no HAL
 // <I> - list all
 // <I id> - broadcast type and current position
 // <I id DCC> - create DCC - This is TBA
@@ -204,49 +203,36 @@ ZZ(z,vpin,analogue) // Write PWM pin analogue value
 // <I id EXTT i2caddress vpin home> - create EXTT
 
 ZZ(I)  // List all turntables
-        return Turntable::printAll(stream);
+        Turntable::printAll(stream);
 ZZ(I,id)  // Broadcast turntable type and current position    
         auto tto = Turntable::get(id);
         CHECK(tto,Turntable not found)
-        REPLY("<I %d %d>\n", tto->isEXTT(), tto->getPosition())
-ZZ(I,id,position) // Rotate a DCC turntable
-        auto tto = Turntable::get(id);
-        CHECK(tto,Turntable not found)
-        CHECK(!tto->isEXTT(),Turntable type incorrect)
-        CHECK(tto->setPosition(id,position))
+        tto->printState(stream);
 
-ZZ(I,id,DCC,home) // Create DCC turntable
-        CHECK(home >=0 && home <= 3600)
-        auto tto = Turntable::get(id);
-        CHECK(!tto,Turntable already exists)
-        CHECK(DCCTurntable::create(id)) 
-        tto = Turntable::get(id);
-        CHECK(tto)
-        tto->addPosition(0, 0, home);
+ZZ(I,id,DCC,homeAngle) // Create DCC turntable
+        CHECK(!Turntable::get(id),Turntable already exists)
+        CHECK(homeAngle >=0 && homeAngle <= 3600)
+        CHECK(Turntable::createDCC(id,homeAngle),Failed to create DCC turntable)
         REPLY("<I>\n")
-
-ZZ(I,id,position,activity) // Rotate an EXTT turntable
-        auto tto = Turntable::get(id); 
-        CHECK(tto,Turntable not found)
-        CHECK(tto->isEXTT(), Turntable wrong type)
-        CHECK(tto->setPosition(id, position,activity))
-    
-ZZ(I,id,EXTT,vpin,home) // Create an EXTT turntable
-        auto tto = Turntable::get(id);
-        CHECK(!tto,Turntable already exists)
-        CHECK(home >= 0 && home <= 3600)
-        CHECK(EXTTTurntable::create(id, (VPIN)vpin))
-        tto = Turntable::get(id);
-        tto->addPosition(0, 0, home);
+ZZ(I,id,EXTT,vpin,homeAngle) // Create an EXTT turntable
+        CHECK(!Turntable::get(id),Turntable already exists)
+        CHECK(homeAngle >= 0 && homeAngle <= 3600)
+        CHECK(Turntable::createEXTT(id, homeAngle, (VPIN)vpin))
         REPLY("<I>\n")
-
 ZZ(I,id,ADD,position,value,angle) // Add turntable position
         auto tto = Turntable::get(id);
         CHECK(tto,Turntable not found)
         CHECK(position <= 48 && angle >=0  && angle <= 3600)
-        tto->addPosition(id,value,angle);
+        CHECK(tto->addPosition(position,value,angle),Failed to add turntable position)
         REPLY("<I>\n")
-
+ZZ(I,id,position,activity) // Rotate an EXTT turntable with activity
+        auto tto = Turntable::get(id); 
+        CHECK(tto,Turntable not found)
+        CHECK(tto->setPosition(id, position,activity))
+ZZ(I,id,position) // Rotate a DCC turntable
+        auto tto = Turntable::get(id);
+        CHECK(tto,Turntable not found)
+        CHECK(tto->setPosition(id,position,0))
 
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
@@ -645,29 +631,17 @@ ZZ(J,O) // List turntable IDs
         REPLY("<jO")
         for (auto tto=Turntable::first(); tto; tto=tto->next()) if (!tto->isHidden()) REPLY(" %d",tto->getId())
         REPLY(">\n")
-ZZ(J,O,id) // List turntable state
+ZZ(J,O,id) // List turntable state by id
         auto tto=Turntable::get(id);
         if (!tto || tto->isHidden()) {REPLY("<jO %d X>\n", id) return true;}
-        const FSH *todesc = nullptr;
-#ifdef EXRAIL_ACTIVE
-        todesc = RMFT2::getTurntableDescription(id);
-#endif
-        if (todesc == nullptr) todesc = F("");
-        REPLY("<jO %d %d %d %d \"%S\">\n", id, tto->isEXTT(), tto->getPosition(), tto->getPositionCount(), todesc)
+        REPLY("<jO %d 1 %d %d \"%S\">\n", id, tto->getPosition(), tto->getPositionCount(), tto->getDescription())
         
 ZZ(J,P,id) // List turntable positions
         auto tto=Turntable::get(id);
         if (!tto || tto->isHidden()) {REPLY("<jP %d X>\n", id) return true;}      
-        auto posCount = tto->getPositionCount();
-        if (posCount==0) {REPLY("<jP X>\n") return true;}
-        
-        for (auto p = 0; p < posCount; p++) {
-            const FSH *tpdesc = nullptr;
-#ifdef EXRAIL_ACTIVE
-            tpdesc = RMFT2::getTurntablePositionDescription(id, p);
-#endif
-            if (tpdesc == NULL) tpdesc = F("");
-            REPLY("<jP %d %d %d \"%S\">\n", id, p, tto->getPositionAngle(p), tpdesc)
+        for (auto p = tto->firstPosition(); p ; p=p->next) { 
+            if (p->description[0]==0x01) continue;
+            REPLY("<jP %d %d %d \"%S\">\n", id, p->index, p->angle, p->description)
         }
 
 // Track manager
