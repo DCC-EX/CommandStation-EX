@@ -34,7 +34,7 @@ Turntable *Turntable::_firstTurntable = 0;
 
 Turntable::Turntable() {}
 
-Turntable* Turntable::create(uint16_t id, TurntableType turntableType,int8_t homeAngle,VPIN extVpin, const char * description) {
+Turntable* Turntable::create(uint16_t id, TurntableType turntableType,uint16_t homeAngle,VPIN extVpin, const char * description) {
     Turntable *tt = get(id);
     if (tt) {
       DIAG(F("Duplicate Turntable ID: %d\n"), id);
@@ -130,19 +130,19 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, ActivityNumber activi
   return setPosition(id, position, static_cast<byte>(activity));
 }
 
-bool Turntable::setPosition(uint16_t id, uint8_t position, byte activity) {
+bool Turntable::setPosition(uint16_t id, uint8_t position, byte activity, bool tellNodes) {
   auto *tto = Turntable::get(id);
-  return tto?tto->setPositionInternal(position, activity):false;
+  return tto?tto->setPositionInternal(position, activity, tellNodes):false;
 }
 
 
 
   // EX-Turntable specific code for moving to the specified position
-  bool Turntable::setPositionInternal(uint8_t newposition, byte activity) {
+  bool Turntable::setPositionInternal(uint8_t newposition, byte activity, bool tellNodes) {
     if (newposition==0) { // send activity only }
       if (type==TURNTABLE_DCC) return false;  // DCC turntables cannot send activity only commands
       if (type==TURNTABLE_EXTT) IODevice::writeAnalogue(extVpin, 0, activity);
-      if (type!=TURNTABLE_REMOTE) NodeManager::cast(F("<I %d %d %d>"), id, 0, activity);
+      if (tellNodes) NodeManager::cast(F("<i %d %d %d>"), id, 0, activity);
       return true;
     }
     
@@ -157,7 +157,8 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, byte activity) {
     previousPosition = position;
     if (type==TURNTABLE_EXTT) IODevice::writeAnalogue(extVpin, pp->exttData, activity);
     if (type==TURNTABLE_DCC) DCC::setAccessory(pp->dccAddress>>3, pp->dccAddress & 0x03, 1);
-    if (type!=TURNTABLE_REMOTE) NodeManager::cast(F("<I %d %d %d>"), id, newposition, activity);
+    if (tellNodes) NodeManager::cast(F("<i %d %d %d>"), id, newposition, activity);
+    CommandDistributor::broadcastTurntable(id, newposition, true); // is moving
     return true;
   }
 
@@ -185,10 +186,10 @@ void Turntable::shareNodesToCS() {
   }
 
   void Turntable::shareNodeToCS() {
-    if (type!=TURNTABLE_REMOTE) return;
-    NodeManager::cast(F("<I %d %d \"%s\">\n"), id,homeAngle, description);
+    if (type==TURNTABLE_REMOTE) return;
+    NodeManager::cast(F("<I %d %d \"%s\">"), id,homeAngle, description);
     for (auto pp=_firstPosition; pp != nullptr; pp = pp->next)
-      NodeManager::cast(F("<I %d %d %d %s>\n"), id, pp->index, pp->angle, pp->description);
-    NodeManager::cast(F("<i %d %d %d>\n"), id, position, moving);  
+      if (pp->index)NodeManager::cast(F("<I %d %d %d \"%s\">"), id, pp->index, pp->angle, pp->description);
+    NodeManager::cast(F("<i %d %d %d>"), id, position, moving);  
   }
   

@@ -57,13 +57,13 @@ struct TurntablePosition {
 
 class Turntable {
   public:
-    static Turntable* createEXTT(uint16_t id, int8_t homeAngle, VPIN extVpin, const char * description="") {
+    static Turntable* createEXTT(uint16_t id, uint16_t homeAngle, VPIN extVpin, const char * description="") {
       return create(id, TURNTABLE_EXTT, homeAngle, extVpin, description);
     }
-    static Turntable* createDCC(uint16_t id, int8_t homeAngle, const char * description="") {
+    static Turntable* createDCC(uint16_t id, uint16_t homeAngle, const char * description="") {
       return create(id, TURNTABLE_DCC, homeAngle, 0, description);
     }
-    static Turntable* createREMOTE(uint16_t id, int8_t homeAngle, const char * description="") {
+    static Turntable* createREMOTE(uint16_t id, uint16_t homeAngle, const char * description="") {
       return create(id, TURNTABLE_REMOTE, homeAngle, 0, description);
     }
     
@@ -71,7 +71,7 @@ class Turntable {
     static Turntable *get(uint16_t id);
     static uint16_t getByVpin(VPIN vpin); // used for back reference from HAL driver
     static void shareNodesToCS();
-    static bool setPosition(uint16_t id, uint8_t position, byte activity);
+    static bool setPosition(uint16_t id, uint8_t position, byte activity, bool tellNodes=true);
     static bool setPosition(uint16_t id, uint8_t position, ActivityNumber activity=Turn);
     static uint8_t getPosition(uint16_t id);
     static bool isMoving(uint16_t id);
@@ -92,23 +92,23 @@ class Turntable {
   private:
     static Turntable *_firstTurntable;
     Turntable();
-    static Turntable* create(uint16_t id, TurntableType turntableType,int8_t homeAngle,VPIN extVpin, const char * description );
+    static Turntable* create(uint16_t id, TurntableType turntableType,uint16_t homeAngle,VPIN extVpin, const char * description );
     
     // object member variables
     uint16_t id;
     TurntableType type;
     bool moving;
-    byte position;    
+    uint8_t position;    
     byte previousPosition;
     char * description;
     VPIN extVpin; // for type ext
-    int8_t homeAngle; // Home position for the turntable     
+    uint16_t homeAngle; // Home position for the turntable     
     TurntablePosition * _firstPosition; // Linked list for positions
     Turntable *_nextTurntable; // Pointer to next turntable object
     
     // object functions
     void shareNodeToCS();
-    bool setPositionInternal(uint8_t position, byte activity);
+    bool setPositionInternal(uint8_t position, byte activity, bool tellNodes);
   
 };
 

@@ -247,8 +247,9 @@ bool exrailHalSetup1() {
 #define EXTT_TURNTABLE(id, homeAngle, vpin, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
 #undef TT_ADDPOSITION
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...) \
-  Turntable::addPosition(turntable_id, position, value, angle, description);
-void exrailHalSetup2() {
+  { auto tt=Turntable::get(turntable_id); if (tt) tt->addPosition(position, value, angle, description);}
+
+  void exrailHalSetup2() {
    #include "myAutomation.h"
 }
 

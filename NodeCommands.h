@@ -124,8 +124,8 @@ ZZ(?,I)  // CS requests list of turntables
   Turntable::shareNodesToCS();
 
 
-ZZ(i,id,position,moving) // Turntable position update from node (lower i to avoid clash with shared) 
-  Turntable::setPosition(id,position,ActivityNumber::Turn);
+ZZ(i,id,position,action) // Turntable position update from node (lower i to avoid clash with shared) 
+  Turntable::setPosition(id,position,action,false);
 ZZ(i,id,isMoving) // Turntable moving state update from node
   Turntable::setMoving(id,isMoving,false); // dont rebroadcast to other nodes
 
@@ -136,5 +136,5 @@ ZZ(I,id,homeAngle,description) // Turntable shared from node
 ZZ(I,id,posid,angle,description) // Turntable position shared from node
   CHECKQ(description)
   auto tt=Turntable::get(id);
-  if (tt) tt->addPosition(posid,0,angle,q_description); // add the position to the turntable
+  if (tt) tt->addPosition(posid,angle,0,q_description); // add the position to the turntable
 ZZEND

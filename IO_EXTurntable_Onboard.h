@@ -75,7 +75,7 @@
 #ifndef IO_EXTURNTABLE_ONBOARD_H
 #define IO_EXTURNTABLE_ONBOARD_H
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(DCCEX_NODE) && defined(EXTURNTABLE_ONBOARD)
+#if !defined(MOTOR_SHIELD_TYPE) && __has_include(<AccelStepper.h>)
 
 #include "defines.h"
 #include "AccelStepper.h"
