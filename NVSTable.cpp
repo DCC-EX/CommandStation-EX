@@ -40,7 +40,7 @@ class NVSentry {
     static bool savePending;
     NVSentry * next;
     uint16_t nvsNumber;
-    int16_t nvsValue;
+    int nvsValue;
     char * nvsStringValue;
     bool bootNeeded;
     
@@ -53,7 +53,7 @@ class NVSentry {
     } 
     
     // Set the numeric value of this NVS entry.
-    void set(int16_t value) {
+    void set(int value) {
       if (nvsStringValue) {
         free(nvsStringValue);
         nvsStringValue = nullptr;
@@ -222,7 +222,7 @@ void NVSTable::streamJSArray(Print * stream) {
    stream->print(F("NVSTableBefore=NVSTable.slice();\n"));  
 }
 
-void NVSTable::setNVS(uint16_t nvsNumber, int16_t value, bool autosave) {
+void NVSTable::setNVS(uint16_t nvsNumber, int value, bool autosave) {
   auto e = NVSentry::find(nvsNumber);
   if (!e) {
     if (value==0) return; // No need to create an entry for a zero value
@@ -250,7 +250,7 @@ void NVSTable::applyChanges(char * changes,bool fromNewBoot) {
   enum State:byte { WAITING_FOR_ID, READING_ID, WAITING_FOR_VALUE, READING_VALUE, READING_STRING };
   State state = WAITING_FOR_ID;
   uint16_t nvsid=0;
-  int16_t nvsval=0; 
+  int nvsval=0; 
   bool negate=false;
   int stringStart=0;
 
@@ -299,7 +299,7 @@ void NVSTable::applyChanges(char * changes,bool fromNewBoot) {
         }
         // end of numeric value 
         if (negate) nvsval = -nvsval;
-        setNVS(nvsid, (int16_t)nvsval,false);
+        setNVS(nvsid, nvsval,false);
         state = WAITING_FOR_ID;
         break;
       case READING_STRING:
@@ -316,9 +316,16 @@ void NVSTable::applyChanges(char * changes,bool fromNewBoot) {
 
 
 
-int16_t NVSTable::getNVS(uint16_t nvsNumber, bool atBoot) {
+int NVSTable::getNVS(uint16_t nvsNumber, bool atBoot) {
   auto e=NVSentry::find(nvsNumber);
   if (!e) return 0; // No entry found, return default value of 0
+  if (atBoot) e->bootNeeded=true; // Mark this NVS entry as needing to be set during boot  
+  return e->nvsValue;
+}
+
+int NVSTable::getNVSWithDefault(uint16_t nvsNumber, int defaultValue, bool atBoot) {
+  auto e=NVSentry::find(nvsNumber);
+  if (!e) return defaultValue; // No entry found, return default value
   if (atBoot) e->bootNeeded=true; // Mark this NVS entry as needing to be set during boot  
   return e->nvsValue;
 }
@@ -334,15 +341,15 @@ const char * NVSTable::getTextNVS(uint16_t nvsNumber) {
 // This identifies EXRAIL type 32-bit tokens which may represnt
 // NVS[x]+y or just return y.
 // This allows things like DELAY(NVS(6)) DELAY(1000+NVS(6)) or DELAY(1000)  in exrail.
-int16_t NVSTable::decodeNVSToken(int32_t token, bool atBoot) {
+int NVSTable::decodeNVSToken(int token, bool atBoot) {
   
   // Token is an nvs reference if first 2 bits are 01, otherwise it's just a number.
   if ((token & 0xC0000000) != 0x40000000) {
       // this is just a number, not an NVS token, return it as is.
-      return (int16_t)token;
+      return token;
   }
   uint16_t nvsNumber = (token >> 16) & 0x3FFF;
-  auto addition=(int16_t)(token & 0xFFFF);
+  auto addition=(token & 0xFFFF);
   auto e=NVSentry::find(nvsNumber);
   if (!e) return addition; // No entry found, return the addition as the value
   if (atBoot) e->bootNeeded=true; // Mark this NVS entry as needing to be set during boot

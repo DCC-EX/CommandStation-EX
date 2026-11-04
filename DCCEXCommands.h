@@ -27,76 +27,6 @@
  */
 
 /*
-List of single character OPCODEs in use for reference.
-
-When determining a new OPCODE for a new feature, refer to this list as the source of truth.
-
-Once a new OPCODE is decided upon, update this list.
-
-  Character, Usage
-  /, |EX-R| interactive commands
-  -, Remove from reminder table
-  =, |TM| configuration
-  !, Emergency stop
-  @, LCD messages
-  #, Request number of supported cabs/locos; heartbeat
-  +, WiFi AT commands
-  ?, Reserved for future use
-  0, Track power off
-  1, Track power on
-  a, DCC accessory control
-  A, DCC extended accessory control
-  b, Write CV bit on main
-  B, Write CV bit
-  c, Request current command
-  C, configure the CS
-  d,
-  D, Diagnostic commands
-  f, Loco decoder function control (deprecated)
-  F, Loco decoder function control
-  g,
-  G,
-  h,
-  H, Turnout state broadcast
-  i, Server details string
-  I, Turntable object command, control, and broadcast
-  j, Throttle responses
-  J, Throttle queries
-  k, Block exit  (Railcom)
-  K, Block enter (Railcom)
-  l, Loco speedbyte/function map broadcast
-  L, Reserved for LCC interface (implemented in EXRAIL)
-  m, message to throttles (broadcast output) 
-  m, set momentum  
-  M, Write DCC packet on main track
-  n, Reserved for SensorCam
-  N, Reserved for Sensorcam 
-  o, Neopixel driver (see also IO_NeoPixel.h)
-  O, Output broadcast
-  p, Broadcast power state
-  P, Write DCC packet on prog track
-  q, Sensor deactivated
-  Q, Sensor activated
-  r, Broadcast address read on programming track
-  R, Read CVs
-  s, Display status
-  S, Sensor configuration
-  t, Cab/loco update command
-  T, Turnout configuration/control
-  u, Reserved for user commands
-  U, Reserved for user commands
-  v,
-  V, Verify CVs
-  w, Write CV on main
-  W, Write CV
-  x,
-  X, Invalid command response
-  y, sounds 
-  Y, Output broadcast
-  z, Direct output
-  Z, Output configuration/control
-*/
-/*
 Each ZZ macro matches a command opcode and its parameters.
 Paramters in UPPER case are matched as keywords, parameters in lower case are values provided by the user.
 Its important to recognise that if the same opcode has more than one match with the same length, you must match the
@@ -183,9 +113,10 @@ ZZ(S,id,vpin,pullup)  // Create Sensor
         else  {CHECK(Sensor::createJMRI_SENSOR_NOPULLUP(vpin,1,id))} 
 ZZ(S,id) // Delete sensor
         Sensor::removeJMRI(id);
-ZZ(S)   // List sensors as seen by old dcc++
-        Sensor::dumpAllJMRI(stream);
-        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
+ZZ(S)   // List all JMRI-type sese sensor states in `<q id vpin pullup>` format
+        Sensor::printAllQidid(stream); // 
+ZZ(Q)   // List all JMTI-type sensor states in `<Q id>` format
+        Sensor::printAllQid(stream);
 ZZ(J,M) // List stash values
         Stash::list(stream);
 ZZ(J,M,stashId) // get stash value
@@ -214,11 +145,11 @@ ZZ(J,A) // List Routes
 #else 
         REPLY( "<jA>\n")
 #endif
-ZZ(J,S) // list signals
+ZZ(J,S) // @NV6 List signals
         REPLY("<jS")
         Signal::listSignalIds(stream);
         REPLY(">\n")
-ZZ(J,S,signal_id) // get signal state and description
+ZZ(J,S,signal_id) // @NV6  Get signal state and description
         auto s=Signal::findSignal(signal_id);
         if (s==nullptr || s->isHidden()) { // hidden signal or no description
                 REPLY("<jS %d X>\n", signal_id);
@@ -228,13 +159,13 @@ ZZ(J,S,signal_id) // get signal state and description
         REPLY("<jS %d %c \"%s\">\n",s->getId(),s->getState(),description?description:"")
 ZZ(J,R) // List Roster ids
         Roster::sendIdsToThrottle(stream); 
-ZZ(J,R,SAVE) // Save the roster to persistent storage
+ZZ(J,R,SAVE) // @V6 Save the roster to persistent storage
         Roster::save();
 ZZ(J,R,locoid) // Get roster for loco
         Roster::sendToThrottle(locoid,stream);
-ZZ(J,R,locoid,DELETE) // Delete roster entry
+ZZ(J,R,locoid,DELETE) // @V6 Delete roster entry
         Roster::remove(locoid);
-ZZ(J,R,locoid,name,functionMap) // Update/add roster entry
+ZZ(J,R,locoid,name,functionMap) // @V6 Update/add roster entry
         CHECKQ(name)
         CHECKQ(functionMap)
         Roster::create(locoid,q_name,q_functionMap);
@@ -263,7 +194,6 @@ ZZ(z,vpin,analogue) // Write PWM pin analogue value
         IODevice::writeAnalogue(vpin,analogue,0,0);
      
 // ==========================
-// Turntable - no support if no HAL
 // <I> - list all
 // <I id> - broadcast type and current position
 // <I id DCC> - create DCC - This is TBA
@@ -273,58 +203,42 @@ ZZ(z,vpin,analogue) // Write PWM pin analogue value
 // <I id EXTT i2caddress vpin home> - create EXTT
 
 ZZ(I)  // List all turntables
-        return Turntable::printAll(stream);
+        Turntable::printAll(stream);
 ZZ(I,id)  // Broadcast turntable type and current position    
         auto tto = Turntable::get(id);
         CHECK(tto,Turntable not found)
-        REPLY("<I %d %d>\n", tto->isEXTT(), tto->getPosition())
-ZZ(I,id,position) // Rotate a DCC turntable
-        auto tto = Turntable::get(id);
-        CHECK(tto,Turntable not found)
-        CHECK(!tto->isEXTT(),Turntable type incorrect)
-        CHECK(tto->setPosition(id,position))
+        tto->printState(stream);
 
-ZZ(I,id,DCC,home) // Create DCC turntable
-        CHECK(home >=0 && home <= 3600)
-        auto tto = Turntable::get(id);
-        CHECK(!tto,Turntable already exists)
-        CHECK(DCCTurntable::create(id)) 
-        tto = Turntable::get(id);
-        CHECK(tto)
-        tto->addPosition(0, 0, home);
+ZZ(I,id,DCC,homeAngle) // Create DCC turntable
+        CHECK(!Turntable::get(id),Turntable already exists)
+        CHECK(homeAngle >=0 && homeAngle <= 3600)
+        CHECK(Turntable::createDCC(id,homeAngle),Failed to create DCC turntable)
         REPLY("<I>\n")
-
-ZZ(I,id,position,activity) // Rotate an EXTT turntable
-        auto tto = Turntable::get(id); 
-        CHECK(tto,Turntable not found)
-        CHECK(tto->isEXTT(), Turntable wrong type)
-        CHECK(tto->setPosition(id, position,activity))
-    
-ZZ(I,id,EXTT,vpin,home) // Create an EXTT turntable
-        auto tto = Turntable::get(id);
-        CHECK(!tto,Turntable already exists)
-        CHECK(home >= 0 && home <= 3600)
-        CHECK(EXTTTurntable::create(id, (VPIN)vpin))
-        tto = Turntable::get(id);
-        tto->addPosition(0, 0, home);
+ZZ(I,id,EXTT,vpin,homeAngle) // Create an EXTT turntable
+        CHECK(!Turntable::get(id),Turntable already exists)
+        CHECK(homeAngle >= 0 && homeAngle <= 3600)
+        CHECK(Turntable::createEXTT(id, homeAngle, (VPIN)vpin))
         REPLY("<I>\n")
-
 ZZ(I,id,ADD,position,value,angle) // Add turntable position
         auto tto = Turntable::get(id);
         CHECK(tto,Turntable not found)
         CHECK(position <= 48 && angle >=0  && angle <= 3600)
-        tto->addPosition(id,value,angle);
+        CHECK(tto->addPosition(position,value,angle),Failed to add turntable position)
         REPLY("<I>\n")
+ZZ(I,id,position,activity) // Rotate an EXTT turntable with activity
+        auto tto = Turntable::get(id); 
+        CHECK(tto,Turntable not found)
+        CHECK(tto->setPosition(id, position,activity))
+ZZ(I,id,position) // Rotate a DCC turntable
+        auto tto = Turntable::get(id);
+        CHECK(tto,Turntable not found)
+        CHECK(tto->setPosition(id,position,0))
 
- ZZ(Q) // List all sensors seen by throttles/jmri 
-        Sensor::printAllJMRI(stream);
-        NodeManager::cast("<Q>"); // ask nodes to re-share JMRI sensors
  ZZ(s) // Command station status
         REPLY("<iDCC-EX V-" VERSION " / " ARDUINO_TYPE " / %S G-" GITHUB_SHA ">\n", DCC::getMotorShieldName())
         CommandDistributor::broadcastPower(); // <s> is the only "get power status" command we have
         Turnout::printAll(stream); //send all Turnout states
-        Sensor::printAllJMRI(stream);  //send all JMRI type Sensor  states
-        NodeManager::cast("<Q>"); // ask nodes to re-share command station status
+        Sensor::printAllQid(stream);  //send all JMRI type Sensor  states in `<Q id>` format
                
 ZZ(Z) // List Output definitions 
         bool gotone = false;
@@ -386,9 +300,9 @@ ZZ_nodoc(D,WEBSOCKET,ON) // Enable WebSocket diagnostics
 ZZ_nodoc(D,WEBSOCKET,OFF) // Disable WebSocket diagnostics 
         Diag::WEBSOCKET = false;
 // ZZ(D,NODE,onoff) // set Node diagnostics ON or OFF
-ZZ_nodoc(D,NODE,ON) // Enable Node diagnostics 
+ZZ_nodoc(D,NODE,ON) // @V6 Enable Node diagnostics 
         Diag::NODE = true;
-ZZ_nodoc(D,NODE,OFF) // Disable Node diagnostics 
+ZZ_nodoc(D,NODE,OFF) // @V6 Disable Node diagnostics 
         Diag::NODE = false;
 ZZ(D,ANOUT,vpin,position) // Deprecated - use `<z vpin position>`
         IODevice::writeAnalogue(vpin,position,0);
@@ -414,9 +328,9 @@ ZZ(D,TT,vpin,steps,activity) // Test turntable
 
 ZZ_nodoc(D,SHARE) // dev testing nodes only 
   Turnout::shareNodesToCS();
-  Sensor::shareJMRISensors();
+  Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
-ZZ(D,SENSORS) // Show sensor task list diagnostics
+ZZ(D,SENSORS) // @V6 Show sensor task list diagnostics
   Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost
         TrackManager::progTrackBoosted=true;
@@ -450,12 +364,16 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
         DCCACK::setAckRetry(value);                   LCD(1, F("Ack Retry=%d"), value);
 #endif
 
-ZZ(C,HOSTNAME,hostname) // set Wifi/eth hostname (in quotes)
+ZZ(C,HOSTNAME,hostname) // @V6 set Wifi/eth hostname (in quotes)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
-ZZ(C,NODE,ON) // (testing only) Enable Node mode without throttle support
+ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
+  CHECK(group>=1 && group<=254)
+  EXNetworkPreferences::saveNodeGroup(group);
+  
+ZZ(C,NODE,ON) // @V6 (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
         EXNetwork::setup();
@@ -469,7 +387,7 @@ ZZ_nodoc(C,SNIFFER,ON)  // Turn sniffer output on
 ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
   DCCDecoder::onoff(false);
 #endif
-// ZZ(C,WIFI,onoff) // Enable WiFi ON or OFF
+// ZZ(C,WIFI,onoff) // @V6 Enable WiFi ON or OFF
 ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
@@ -484,47 +402,46 @@ ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   EXNetworkPreferences::saveHostName(q_hostname); 
   EXNetwork::setup();
 
-
 #undef DEFAULT
-ZZ(C,WIFI,DEFAULT) // Set WiFi to default credentials
+ZZ(C,WIFI,DEFAULT) // @V6Set WiFi to default credentials
   EXNetworkPreferences::clear(); 
         EXNetwork::setup();
-ZZ(C,WIFI,ssid,password) // Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
+ZZ(C,WIFI,ssid,password) // @V6 Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,true); 
         EXNetwork::setup();
-ZZ(C,WIFI,TEMP,ssid,password) // Set WiFi ssid and password temporarily (in quotes)
+ZZ(C,WIFI,TEMP,ssid,password) // @V6 Set WiFi ssid and password temporarily (in quotes)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,AP,ssid,password) // Set WiFi to AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,AP,ssid,password) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,AP,ssid,password,channel) // Set WiFi to AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,AP,ssid,password,channel) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,false); 
         EXNetwork::setup();
-ZZ(C,WIFI,HIDDENAP,ssid,password) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,HIDDENAP,ssid,password) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,true); 
         EXNetwork::setup();
-ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // Set WiFi to hidden AP mode with given ssid and password (in quotes)
+ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,true); 
         EXNetwork::setup();
 
-ZZ(D,WIFI,SHOW) // Show WiFi status
+ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
   EXNetworkPreferences::dump(stream);
 #else 
 // ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
@@ -536,12 +453,12 @@ ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
-ZZ(D,ETHERNET,SHOW) // Show Ethernet status
+ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status
   EXNetworkPreferences::dump(stream);
 #endif
 // Non Volatile storage
 
-ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted string)
+ZZ(C,NVS,nvsnumber,nvsvalue) // @V6 set Non Volatile storage value (int or quoted string)
   if ((nvsvalue & 0xFF00) == 0x7700) {
         // nvsvalue is quoted
         auto q_nvsvalue = (const char *)(com + (nvsvalue & 0x00FF));
@@ -552,9 +469,9 @@ ZZ(C,NVS,nvsnumber,nvsvalue) // set Non Volatile storage value (int or quoted st
    }
    if (NVSTable::saveNeeded()) NVSTable::save();
   
-ZZ(D,NVS) // Show all non-zero NVS values (Not Loco CVs)
+ZZ(D,NVS) // @V6 Show all non-zero NVS values (Not Loco CVs)
   NVSTable::dump(stream);
-ZZ(D,NVS,value) // Show specific NVS value
+ZZ(D,NVS,value) // @V6 Show specific NVS value
   NVSTable::dump(stream,value);
 
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
@@ -714,29 +631,17 @@ ZZ(J,O) // List turntable IDs
         REPLY("<jO")
         for (auto tto=Turntable::first(); tto; tto=tto->next()) if (!tto->isHidden()) REPLY(" %d",tto->getId())
         REPLY(">\n")
-ZZ(J,O,id) // List turntable state
+ZZ(J,O,id) // List turntable state by id
         auto tto=Turntable::get(id);
         if (!tto || tto->isHidden()) {REPLY("<jO %d X>\n", id) return true;}
-        const FSH *todesc = nullptr;
-#ifdef EXRAIL_ACTIVE
-        todesc = RMFT2::getTurntableDescription(id);
-#endif
-        if (todesc == nullptr) todesc = F("");
-        REPLY("<jO %d %d %d %d \"%S\">\n", id, tto->isEXTT(), tto->getPosition(), tto->getPositionCount(), todesc)
+        REPLY("<jO %d 1 %d %d \"%S\">\n", id, tto->getPosition(), tto->getPositionCount(), tto->getDescription())
         
 ZZ(J,P,id) // List turntable positions
         auto tto=Turntable::get(id);
         if (!tto || tto->isHidden()) {REPLY("<jP %d X>\n", id) return true;}      
-        auto posCount = tto->getPositionCount();
-        if (posCount==0) {REPLY("<jP X>\n") return true;}
-        
-        for (auto p = 0; p < posCount; p++) {
-            const FSH *tpdesc = nullptr;
-#ifdef EXRAIL_ACTIVE
-            tpdesc = RMFT2::getTurntablePositionDescription(id, p);
-#endif
-            if (tpdesc == NULL) tpdesc = F("");
-            REPLY("<jP %d %d %d \"%S\">\n", id, p, tto->getPositionAngle(p), tpdesc)
+        for (auto p = tto->firstPosition(); p ; p=p->next) { 
+            if (p->description[0]==0x01) continue;
+            REPLY("<jP %d %d %d \"%S\">\n", id, p->index, p->angle, p->description)
         }
 
 // Track manager

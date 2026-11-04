@@ -30,7 +30,7 @@
 #include "Turntables.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
-// Each instruction is normally 3 bytes long with an operation code followed by a parameter.
+// Each instruction is normally 5 bytes long with an operation code followed by a parameter.
 // In cases where more than one parameter is required, the first parameter is followed by one  
 // or more OPCODE_PAD instructions with the subsequent parameters. This wastes a byte but makes 
 // searching easier as a parameter can never be confused with an opcode. 
@@ -72,13 +72,12 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
-             OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
              OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_WAITFORTT,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
              OPCODE_ONOVERLOAD,
-	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
+	           OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
@@ -201,8 +200,6 @@ class LookList {
   static const int16_t HIGHFLASH automationIdList[];
   static const FSH *  getRouteDescription(int16_t id);
   static char   getRouteType(int16_t id);
-  static const FSH *  getTurntableDescription(int16_t id);
-  static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);
   static bool readSensor(uint16_t sensorId);
   static bool isSignal(int16_t id,char rag);
@@ -215,7 +212,6 @@ private:
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void setTurntableHiddenState(Turntable * tto);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
     static uint16_t getOperand(int progCounter,byte n, bool atBoot=false);

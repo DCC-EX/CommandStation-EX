@@ -2,7 +2,7 @@
  *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2025 Morten Nielsen
  *  All rights reserved.
@@ -22,26 +22,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-/* EXRAILPlus planned FEATURE additions
-   F1. [DONE] DCC accessory packet opcodes (short and long form)
-   F2. [DONE] ONAccessory catchers 
-   F3. [DONE] Turnout descriptions for Withrottle
-   F4. [DONE] Oled announcements (depends on HAL)
-   F5. [DONE] Withrottle roster info
-   F6. Multi-occupancy semaphore
-   F7. [DONE see AUTOSTART] Self starting sequences
-   F8. Park/unpark
-   F9.  [DONE] Analog drive
-   F10. [DONE] Alias anywhere
-   F11. [DONE]EXRAIL/ENDEXRAIL unnecessary
-   F12. [DONE] Allow guarded code (as effect of ALIAS anywhere)
-   F13. [DONE] IFGTE/IFLT function  
-  */
-/* EXRAILPlus planned TRANSPARENT additions
-   T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
-   T2. Extend to >64k
-  */
 
 #include <Arduino.h>
 #include "defines.h"
@@ -285,41 +265,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_ONBITMAP:
         Sensor::createEXRAIL(operand,true); // analogue sensor
       break;
-    
-    case OPCODE_DCCTURNTABLE: {
-      VPIN id=operand;
-      int home=getOperand(progCounter,1);
-      Turntable *tto = DCCTurntable::create(id);
-      if (tto) {
-	setTurntableHiddenState(tto);
-	tto->addPosition(0,0,home);
-      }
-      break;
-    }
-
-    case OPCODE_EXTTTURNTABLE: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      int home=getOperand(progCounter,2);
-      Turntable *tto = EXTTTurntable::create(id,pin);
-      if (tto) {
-         setTurntableHiddenState(tto);
-         tto->addPosition(0,0,home);
-      } else {
-         DIAG(F("Create EXTTTURNTABLE %d %d FAILED"), id, pin);
-      }
-      break;
-    }
-
-    case OPCODE_TTADDPOSITION: {
-      VPIN id=operand;
-      int position=getOperand(progCounter,1);
-      int value=getOperand(progCounter,2);
-      int angle=getOperand(progCounter,3);
-      Turntable *tto=Turntable::get(id);
-      if (tto) tto->addPosition(position,value,angle);
-      break;
-    }
 
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
@@ -340,10 +285,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   diag=saved_diag;
 }
 
-void RMFT2::setTurntableHiddenState(Turntable * tto) {
-  const FSH *desc = getTurntableDescription(tto->getId());
-  if (desc) tto->setHidden(GETFLASH(desc)==0x01);
-}
 
 char RMFT2::getRouteType(int16_t id) {
   int16_t progCounter=routeLookup->find(id);
@@ -535,9 +476,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_ROTATE:
-    uint8_t activity;
-    activity=getOperand(2);
-    Turntable::setPosition(operand,getOperand(1),activity);
+    Turntable::setPosition(operand,getOperand(1),getOperand(2));
     break;
 
   case OPCODE_REV:
@@ -1200,7 +1139,7 @@ void RMFT2::loop2() {
     break;
   
   case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
-    if (Turntable::ttMoving(operand)) {
+    if (Turntable::isMoving(operand)) {
       delayMe(100);
       return;
     }

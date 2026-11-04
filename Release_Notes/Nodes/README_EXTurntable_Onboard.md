@@ -23,9 +23,26 @@ sections as required.
 
 ```
 [env:EX_Turntable_Onboard]
+extends = env:ESP32-NODE
 platform = espressif32
 board = arduino_nano_esp32
-framework = arduino	
+
+build_flags = 
+    ${env:ESP32-NODE.build_flags} 
+    -std=c++17
+    -DARDUINO_USB_MODE=1
+    -DARDUINO_USB_CDC_ON_BOOT=1
+	-DSD_CHIP_SELECT_MODE=1
+    -DBOARD_HAS_PSRAM
+    -DEXTURNTABLE_ONBOARD
+    -DNO_DISPLAY
+	-DI2C_SDA=11
+	-DI2C_SCL=10
+    -mfix-esp32-psram-cache-issue
+
+lib_deps = 
+    ${env:ESP32-NODE.lib_deps} 
+	waspinator/AccelStepper @ ^1.64.0
 
 ; Board-specific settings (ESP32-S3 with 16MB Flash, 8MB PSRAM)
 board_build.mcu = esp32s3
@@ -33,24 +50,6 @@ board_build.f_cpu = 240000000L
 board_build.f_flash = 80000000L
 board_build.flash_mode = dio
 board_build.partitions = default_16MB.csv
-
-lib_deps = 
-	waspinator/AccelStepper @ ^1.64.0
-
-
-; Build flags for PSRAM and partition support
-build_flags =
-    -std=c++17 
-    -DARDUINO_USB_MODE=1
-    -DARDUINO_USB_CDC_ON_BOOT=1
-    -DBOARD_HAS_PSRAM
-	-DDCCEX_NODE
-    -DDCCEX_NODE_NANO_EXTURNTABLE
-    -DEXTURNTABLE_ONBOARD
-    -DNO_DISPLAY
-	-DI2C_SDA=11
-	-DI2C_SCL=10
-    -mfix-esp32-psram-cache-issue
 
 ; Specify upload and monitor speed
 upload_speed = 921600

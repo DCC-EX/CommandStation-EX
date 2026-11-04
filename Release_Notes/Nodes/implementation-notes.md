@@ -7,13 +7,14 @@ This file describes the code implementation of the Node system
 Nodes communicate via multicast to a separate address and port from the throttle multicast. Throttles should NEVER see the nodes traffic and the nodes should not see throttle traffic.
 
 The node multicast IP address is fixed so there is no need to configure this. However, in the case where you need to have more that one CS and layout on the same network, it is necessary to give any additional layout CS and its nodes an alternative last byte of the multicast IP address so that the traffic does not get confused between them.
-This is done by a config definition:
+This is set using the network config dialog or 
 
 ```cpp
-#define NODE_GROUP 1
+<C NODEGROUP group>
 ```
 
-The default is group 254 and does not need to be altered unless you have more than one layout on the same wifi network.
+
+Range 1..254, the default is group 254 and does not need to be altered unless you have more than one layout on the same wifi network.
 
 ## NodeManager.cpp
 
