@@ -940,12 +940,11 @@ void RMFT2::loop2() {
     break;
   }
    case OPCODE_ASPECT: {
-    // operand is address<<5 |  value
-    int16_t address=operand>>5;
-    byte aspect=operand & 0x1f;
+    int16_t address=operand;
+    byte aspect=getOperand(1) & 0x1f;
 
     // If we can find this address as a DCCX aspect signal and the aspect matches
-    // gtyhen do this via the signal, otherwise do it direct in DCC
+    // then do this via the signal, otherwise do it direct in DCC
     if (!Signal::setSignalByReverseAspectLookup(address,aspect))
       DCC::setExtendedAccessory(address,aspect);
     break;
@@ -1118,13 +1117,17 @@ void RMFT2::loop2() {
     }
     break;
     
-  case OPCODE_NEOPIXEL: 
-    // OPCODE_NEOPIXEL,V([-]vpin),OPCODE_PAD,V(colour_RG),OPCODE_PAD,V(colour_B),OPCODE_PAD,V(count)
+  case OPCODE_NEOPIXEL_ON:
+  case OPCODE_NEOPIXEL_OFF: 
+    // OPCODE_NEOPIXELx,V(vpin),OPCODE_PAD,V(red),OPCODE_PAD,V(green),OPCODE_PAD,V(blue),OPCODE_PAD,V(count)
     { 
-      VPIN vpin=operand>0?operand:-operand;
-      auto count=getOperand(3);
+      VPIN vpin=operand;
+      byte red=getOperand(1) &0xff;
+      byte green=getOperand(2) &0xff;
+      byte blue=getOperand(3) &0xff;
+      auto count=getOperand(4);
       killBlinkOnVpin(vpin,count);
-      IODevice::writeAnalogueRange(vpin,getOperand(1),operand>0,getOperand(2),count);
+      IODevice::writeAnalogueRange(vpin,(red<<8)|green,opcode==OPCODE_NEOPIXEL_ON,blue,count);
     }
     break;
   

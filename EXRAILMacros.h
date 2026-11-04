@@ -484,7 +484,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
-#define ASPECT(address,value) OPCODE_ASPECT,V((address<<5) | (value & 0x1F)),
+#define ASPECT(address,value) OPCODE_ASPECT,V(address),OPCODE_PAD,V(value),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
@@ -589,9 +589,12 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(vpin,steps,activity) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(steps),OPCODE_PAD,V(activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
-        OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
-        OPCODE_PAD,V((b & 0xff)),\
+#define NEOPIXEL(id,r,g,b,count...) \
+        id<0?OPCODE_NEOPIXEL_OFF:OPCODE_NEOPIXEL_ON,\
+        V(id<0?-id:id),\
+        OPCODE_PAD,V(r & 0xff),\
+        OPCODE_PAD,V(g & 0xff),\
+        OPCODE_PAD,V(b & 0xff),\
         OPCODE_PAD,V(#count[0]?(count+0):1),
          
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)

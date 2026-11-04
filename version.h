@@ -4,6 +4,7 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.9.18"
+//        - fixed EXRAIL NEOPIXEL and ASPECT macros for correct NVS handling
 // 5.9.18 - fixed DELAY(NVS(x))
 //        - fixed hidden signal display in </>
 //        - Implemengted turntable sharing between nodes
