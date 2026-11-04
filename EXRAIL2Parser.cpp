@@ -135,7 +135,9 @@ bool RMFT2::streamStatus(Print * stream) {
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' '
 			    );
-                auto progCounter=task->progCounter; // name to satisfy macros below
+          if (pausingTask!=NULL && pausingTask!=task) StringFormatter::send(stream,F(" PAUSED"));
+      
+          auto progCounter=task->progCounter; // name to satisfy macros below
           auto operand=task->getOperand(progCounter,0);
           switch(GET_OPCODE) {
               case OPCODE_RESERVE:

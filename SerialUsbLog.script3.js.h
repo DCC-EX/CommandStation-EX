@@ -7,7 +7,9 @@ NVSTable = [];
 function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');
   nvsNodes.forEach(function(el) {
-    const nvs = parseInt(el.getAttribute('nvs'), 10);
+    const nvsAttr = el.getAttribute('nvs');
+    // Numeric ids are used directly; otherwise treat as a SystemPreferences name.
+    const nvs = /^\s*-?\d+\s*$/.test(nvsAttr) ? parseInt(nvsAttr, 10) : window.sysNVS?.[nvsAttr.trim()];
     const hasMin = el.hasAttribute('min');
     const hasMax = el.hasAttribute('max');
     const min = parseInt(el.getAttribute('min'), 10);
@@ -68,7 +70,9 @@ async function refreshNvsValues() {
   if (!response.ok) throw new Error('HTTP ' + response.status);
 
   const source = await response.text();
-  const values = new Function(source + '\nreturn NVSTable;')();
+  const loaded = new Function(source + '\nreturn {table: NVSTable, sys: typeof sysNVS === "undefined" ? {} : sysNVS};')();
+  window.sysNVS = loaded.sys;
+  const values = loaded.table;
   NVSTable.length = values.length;
   values.forEach(function(value, index) {
     NVSTable[index] = value;

@@ -23,6 +23,7 @@
 // The hostnamem enabled and node flags are also used by ethernet on stm32 platforms.
 
 #include "EXNetworkPreferences.h"
+#include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
 
@@ -37,10 +38,14 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::hiddenAP, false,false);
     NVSTable::setNVS(SystemPreferences::throttleNode, true,false);
   #endif
+    NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
-
-  return true;
+  if (NVSTable::getNVS(SystemPreferences::nodeGroup,true) == 0) {
+    NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false);
+    NVSTable::save();
+  }
+  return true; // indicate that the preferences were successfully loaded
 }
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -97,15 +102,14 @@ bool EXNetworkPreferences::getHiddenAP() {
 }
 #endif
 
-
 void EXNetworkPreferences::saveHostName(const char *_hostname) {
   NVSTable::setNVS(SystemPreferences::hostName, _hostname,true);
 }
 
 void EXNetworkPreferences::clear() {
   // clear all network preferences from NVS
-  for (uint16_t i = SystemPreferences::_FIRST; i < SystemPreferences::_LAST; i++) {
-    NVSTable::setNVS(i,(int16_t)0,false);
+  for (auto pref   = SystemPreferences::_FIRST_NETWORK_PREF; pref < SystemPreferences::_LAST_NETWORK_PREF; pref++) {
+    NVSTable::setNVS(pref,0,false);
   }
   NVSTable::save();
   load(); // reload to update static variables and defaults
@@ -130,6 +134,15 @@ const char *EXNetworkPreferences::getHostName() {
 bool EXNetworkPreferences::getThrottleNode() {
   return NVSTable::getNVS(SystemPreferences::throttleNode,true);
 }
+byte EXNetworkPreferences::getNodeGroup() {
+  auto value = NVSTable::getNVS(SystemPreferences::nodeGroup,true);
+  return value?value:254; // return the value if set, otherwise default to 254
+}
+void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
+  NVSTable::setNVS(SystemPreferences::nodeGroup, nodeGroup, true);
+}
+
+
 
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
@@ -154,4 +167,7 @@ void EXNetworkPreferences::dump(Print* stream) {
         NVSTable::getNVS(SystemPreferences::enabled)?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
   #endif
+  StringFormatter::send(stream, 
+      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
+  
 }

@@ -52,6 +52,7 @@
 #undef CONFIGURE_DIALOG
 #undef CONFIGURE_SERVO
 #undef DCC_SIGNAL
+#undef DCC_SIGNALL
 #undef DCCX_SIGNAL
 #undef DCC_TURNTABLE
 #undef DEACTIVATE
@@ -111,6 +112,7 @@
 #undef IFBITMAP_ANY
 #undef INVERT_DIRECTION 
 #undef SHARED_SENSOR
+#undef SHARED_SENSOR_NOPULLUP
 #undef REMOTE_SENSOR
 #undef JMRI_SENSOR
 #undef JMRI_SENSOR_NOPULLUP
@@ -120,8 +122,7 @@
 #undef LCD 
 #undef SCREEN
 #undef LCC 
-#undef LCCX 
-#undef LCN
+#undef LCCX
 #undef LED_SIGNAL
 #undef MOMENTUM
 #undef MOVETT
@@ -153,6 +154,7 @@
 #undef ONRED
 #undef ONROTATE
 #undef ONBUTTON
+#undef ONBUTTONUP
 #undef ONSENSOR
 #undef ONTHROW 
 #undef ONBITMAP
@@ -174,6 +176,7 @@
 #undef POM
 #undef POWEROFF
 #undef POWERON
+#undef PULSE
 #undef RANDOM_CALL
 #undef RANDOM_FOLLOW
 #undef READ_LOCO 
