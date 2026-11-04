@@ -118,13 +118,20 @@ void Signal::listSignalIds(Print * stream){
 /* static */ void Signal::shareNodesToCS() {
     
     DIAG(F("Sharing signals to CS"));
+    const int maxBuffer=1000;
+    StringBuffer buffer(maxBuffer);
     for (auto s=firstSignal;s;s=s->nextSignal) {
       if (s->isHidden()) continue;
 	  // todo prevent loopback
       auto description=s->getDescription();
-      NodeManager::cast(F("<S %d %d \"%s\">"),s->id, s->state,
-       description?description:"");  
+      if (!description) description="";
+      if (buffer.getLength()> maxBuffer - sizeof("<S 32768 X \"\"") - strlen(description)) {
+        NodeManager::cast(&buffer);
+        buffer.flush();
+      }
+      StringFormatter::send(&buffer,F("<S %d %c \"%s\">"),s->id, s->state,description);  
     }
+    if (buffer.getLength() > 0) NodeManager::cast(&buffer);
   }
 
 // DCC Signals 

@@ -26,22 +26,25 @@ Host Name  <nvsinput nvs=hostName length=100 />)???"
 
 #ifdef ARDUINO_ARCH_ESP32
 R"???(
-<p/> WiFi Connection details<p/>
+<hr><p/> WiFi Connection details<p/>
 
 Station Mode: Connected via a router<p/>
-SSID      <nvsinput nvs=ssidSTA length=100 /><br>
-Password  <nvsinput nvs=passwordSTA length=100 />
+SSID <nvsinput nvs=ssidSTA length=100 />  Password <nvsinput nvs=passwordSTA length=100 />
 <p/>
 If Station Mode SSID is empty, or fails to connect, the device will revert to Access Point (AP) mode
 <p  />
-AP SSID      <nvsinput nvs=ssidAP length=100 /><br>
-AP Password  <nvsinput nvs=passwordAP length=100 /><br>
-AP Channel   <nvsinput nvs=channelAP min="0" max="13" /><br>
-AP Hidden    <nvsinput nvs=hiddenAP min="0" max="1" /> <br>
+AP SSID  <nvsinput nvs=ssidAP length=100 /> Password  <nvsinput nvs=passwordAP length=100 /><br>
+Channel  <nvsinput nvs=channelAP min="0" max="13" /> Hidden <nvsinput nvs=hiddenAP min="0" max="1" /> <br>
 <p/>
-If AP SSID and Password are not given DCC-EX will create a default Access Point based on the device's mac address. This will be shown on the OLED screen. If however an AP password is given, it will not appear.<br>
+If AP SSID and Password are not given DCC-EX will create a default Access Point based on the device's mac address.
+This will be shown on the OLED screen. If however an AP password is given, it will not appear.<br>
 <p/>
 WARNING: If you set the AP password and forget it, you will have to use the USB serial console to reset it.
 )???"
 #endif
+R"???(
+<hr><p> All Nodes and the Command Station on the same layout must use the same node group.
+There is no need to alter this from the default 254 unless you have multiple layouts on the same router.</p> 
+Node Group  <nvsinput nvs=nodeGroup min="1" max="254" />  (1..254)
+)???"
 ;

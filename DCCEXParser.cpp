@@ -131,15 +131,6 @@ Once a new OPCODE is decided upon, update this list.
 #include "IO_NeoPixelRMT.h"
 #endif
 
-// This macro can't be created easily as a portable function because the
-// flashlist requires a far pointer for high flash access. 
-#define SENDFLASHLIST(stream,flashList)                 \
-    for (int16_t i=0;;i+=sizeof(flashList[0])) {                            \
-        int16_t value=GETHIGHFLASHW(flashList,i);       \
-        if (value==INT16_MAX) break;                            \
-        StringFormatter::send(stream,F(" %d"),value);	\
-    }                                   
-
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
 
@@ -182,7 +173,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *&cmd,
             continue;
 
         case 2: // checking sign or quoted string
-#ifdef HAS_ENOUGH_MEMORY
 	    if (hot == '"') {
 	      // this inserts a parameter 0x77zz which indicates a
 	      // string parameter starting at offset zz in the command buffer.
@@ -195,7 +185,6 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *&cmd,
 	      state = 4;
 	      break;
 	    }
-#endif
             signNegative = false;
             runningValue = 0;
             state = 3;
@@ -226,16 +215,15 @@ int16_t DCCEXParser::splitValues(int16_t result[MAX_COMMAND_PARAMS], byte *&cmd,
             parameterCount++;
             state = 1;
             continue;
-#ifdef HAS_ENOUGH_MEMORY
-	case 4: // skipover text
-	  if (hot == '\0')        // We did run to end of buffer without finding the "
-	    return -1;
-	  if (hot == '"') {
-	    *remainingCmd = '\0'; // overwrite " in command buffer with the end-of-string
-	    state = 1;
-	  }
-	  break;
-#endif
+
+        case 4: // skipover text
+            if (hot == '\0')        // We did run to end of buffer without finding the "
+                return -1;
+            if (hot == '"') {
+                *remainingCmd = '\0'; // overwrite " in command buffer with the end-of-string
+                state = 1;
+            }
+            break;
         }
         remainingCmd++;
     }
@@ -351,20 +339,20 @@ byte *DCCEXParser::parseOne(Print *stream, byte *com) {
 // 
 void DCCEXParser::parseNodeTraffic( byte *com) {
     if (Diag::CMD) DIAG(F("Node parse: %s"), com);
-    int16_t params = 0;
-    int16_t p[MAX_COMMAND_PARAMS];
-    while (com[0] == '<')
-        com++; // strip off any number of < or spaces
-    byte *commandStart = com;
-    byte opcode = com[0];
-    params = splitValues(p, com, false);
-    if (params >=0 && params < MAX_COMMAND_PARAMS) {
-        
-        matchedCommandFormat = nullptr;
-        checkFailedFormat = nullptr;
-        if (executeNodeTraffic(commandStart, opcode, params, p)) return;
+    while (com[0]) { // allow for multiple commands in the buffer
+        int16_t params = 0;
+        int16_t p[MAX_COMMAND_PARAMS];
+        while (com[0] == '<')  com++; // strip off any number of <
+        byte *commandStart = com;
+        byte opcode = com[0];
+        params = splitValues(p, com, false);  // split the command into parameters, updates com to next cmd
+        if (params >=0 && params < MAX_COMMAND_PARAMS) {        
+            matchedCommandFormat = nullptr;
+            checkFailedFormat = nullptr;
+            if (!executeNodeTraffic(commandStart, opcode, params, p))
+              DIAG(F("Node unrecognized command: %s\n"), commandStart);
+        }
     }
-    DIAG(F("Node unrecognized command: %s\n"), commandStart);
 }
 
 bool DCCEXParser::setThrottle(int16_t cab,int16_t tspeed,int16_t direction) {
@@ -402,7 +390,7 @@ bool DCCEXParser::execute(byte * com,Print *stream, byte opcode,byte  params, in
   #include "DCCEXCommands.h"
 }
 // Having broken the command into opcode and parameters, we now execute the command
-// The actual commands and their parameter mappings are in DCCEXCommands.h
+// The actual commands and their parameter mappings are in NodeCommands.h
 bool DCCEXParser::executeNodeTraffic(byte * com, byte opcode, byte params, int16_t p[]) {
   #include "NodeCommands.h"
 }
