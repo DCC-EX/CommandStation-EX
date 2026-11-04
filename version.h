@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.17"
+#define VERSION "5.9.18"
+// 5.9.18 - fixed DELAY(NVS(x))
+//        - fixed hidden signal display in </>
+//        - Implemengted turntable sharing between nodes
+//        - fixed websocket ping/pong 
 // 5.9.17 - Fix multiple node command handling
 //        - Internal improvements and refactoring of NVS system preferences
 //        - Roster dialog does not show on a node

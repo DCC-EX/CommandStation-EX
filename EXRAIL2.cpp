@@ -861,28 +861,18 @@ void RMFT2::loop2() {
     holdoverMinDelay=operand;
     delayMe(holdoverMinDelay);
     break;
-    
-  case OPCODE_DELAY:
-    holdoverMinDelay=operand*100L;
-    delayMe(holdoverMinDelay);
-    break;
-    
+      
   case OPCODE_DELAYMINS:
     holdoverMinDelay=operand*60L*1000L;
     delayMe(holdoverMinDelay);
     break;
     
-  // This randwait opcodes are only generated immediately after a delay type opcode for the mindelay 
+  // This OPCODE_RANDWAIT_MS opcode is only generated immediately after a OPCODE_DELAYMS 
+  // for the mindelay. 
   // This is changed because the former (maxdelay-mindelay) calculation
   // would compromise use of an NVS token. 
   // The operand is now the maxdelay but must have the mindelay 
   // from the previous delay subtracted.
-  case OPCODE_RANDWAIT_DS:
-    { 
-      int32_t remainingDelay=operand*100L-holdoverMinDelay;
-      if (remainingDelay>0) delayMe(micros()%remainingDelay);
-    }
-    break;
     
   case OPCODE_RANDWAIT_MS:
     { 
