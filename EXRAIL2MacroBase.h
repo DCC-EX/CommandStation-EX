@@ -468,15 +468,31 @@
 ///param steps position to move to
 ///param activity see ROTATE
 
-#define NEOPIXEL(vpin, r, g, b, count...)
-///brief Set a NEOPIXEL vpin to a supplied red/green/blue colour
+#define NEOPIXEL(...)
+///brief Set a NEOPIXEL vpin to a given red/green/blue colour
 ///param vpin VPIN of a pixel
 ///param r red component 0-255
 ///param g green component 0-255
 ///param b blue component 0-255
 ///param count... Number of consecutive pixels to set, Default 1.
 
-#define NEOPIXEL_SIGNAL(vpin, redcolour, ambercolour, greencolour, description...)
+#define NEOPIXEL_BRIGHTNESS(vpin,brightness,count...)
+///brief Set pixel brightness without changing stored RGB or on/off state
+///param vpin VPIN of the first pixel
+///param brightness Brightness from 0 to 255, clamped to this range
+///param count... Number of consecutive pixels to set, Default 1.
+
+///brief Scale RGB colour values to the requested brightness for use with NEOPIXEL
+///param level Brightness from 0 (off) to 255 (full)
+///param red Red component 0-255
+///param green Green component 0-255
+///param blue Blue component 0-255
+#define BRIGHTNESS(level,red,green,blue) \
+   (((((red) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 16) | \
+    ((((green) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 8) | \
+    (((blue) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255)
+
+#define NEOPIXEL_SIGNAL(vpin,redcolour,ambercolour,greencolour,description...)
 ///brief Define a signal that uses a single multi colour pixel
 ///see NEORGB
 ///param vpin unique signal_id

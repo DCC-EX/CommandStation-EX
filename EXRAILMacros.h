@@ -78,7 +78,11 @@
 //const byte TRACK_POWER_1=1, TRACK_POWER_ON=1;   
 
 // NEOPIXEL RG generator for NEOPIXEL_SIGNAL 
-#define NeoRGB(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))  
+#define NeoRGB(...) NeoRGB_EXPAND(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define NeoRGB_EXPAND(n) NeoRGB_EXPAND2(n)
+#define NeoRGB_EXPAND2(n) NeoRGB_##n
+#define NeoRGB_1(rgb) (rgb)
+#define NeoRGB_3(red,green,blue) (((uint32_t)(red & 0xff)<<16) | ((uint32_t)(green & 0xff)<<8) | (uint32_t)(blue & 0xff))
 
 // Collection of macros to assist variadic exrail macros
 // in particular RANDOMCALL and RANDOMFOLLOW
@@ -595,11 +599,28 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(vpin,steps,activity) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(steps),OPCODE_PAD,V(activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
+#define NEOPIXEL(...) NEOPIXEL_EXPAND(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
+#define NEOPIXEL_EXPAND(n) NEOPIXEL_EXPAND2(n)
+#define NEOPIXEL_EXPAND2(n) NEOPIXEL_##n
+#define BRIGHTNESS(level,red,green,blue) \
+   (((((red) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 16) | \
+    ((((green) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 8) | \
+    (((blue) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255)
+#define NEOPIXEL_RGB(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
         OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
         OPCODE_PAD,V((b & 0xff)),\
         OPCODE_PAD,V(#count[0]?(count+0):1),
-         
+#define NEOPIXEL_2(id,colour) \
+   NEOPIXEL_RGB(id,(((colour)>>16)&0xff),(((colour)>>8)&0xff),((colour)&0xff))
+#define NEOPIXEL_3(id,colour,count) \
+   NEOPIXEL_RGB(id,(((colour)>>16)&0xff),(((colour)>>8)&0xff),((colour)&0xff),count)
+#define NEOPIXEL_4(id,r,g,b) NEOPIXEL_RGB(id,r,g,b)
+#define NEOPIXEL_5(id,r,g,b,count) NEOPIXEL_RGB(id,r,g,b,count)
+#define NEOPIXEL_BRIGHTNESS(vpin,brightness,count...) \
+   OPCODE_NEOPIXEL_BRIGHTNESS,V(vpin),\
+   OPCODE_PAD,V((brightness) < 0 ? 0 : ((brightness) > 255 ? 255 : (brightness))),\
+   OPCODE_PAD,V(#count[0]?(count+0):1),
+
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
 #define NODE_SHARE_SCREEN0(display_id2,count...)
 #define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),

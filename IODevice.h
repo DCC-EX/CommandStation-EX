@@ -84,6 +84,9 @@ private:
 class IODevice {
 public:
 
+  // NeoPixel analogue command: value is brightness, not packed red/green.
+  static constexpr uint16_t NEOPIXEL_BRIGHTNESS_COMMAND = 0x100;
+
   // Parameter values to identify type of call to IODevice::configure.
   typedef enum : uint8_t {
     CONFIGURE_INPUT = 1,

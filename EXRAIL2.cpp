@@ -1137,6 +1137,22 @@ void RMFT2::loop2() {
       IODevice::writeAnalogueRange(vpin,getOperand(1),operand>0,getOperand(2),count);
     }
     break;
+
+  case OPCODE_NEOPIXEL_BRIGHTNESS:
+    {
+      int brightness = getOperand(1);
+      int count = getOperand(2);
+      if (operand <= 0 || count <= 0 ||
+          static_cast<uint32_t>(operand) + count > 0x10000UL) {
+        DIAG(F("NEOPIXEL_BRIGHTNESS invalid VPIN:%d count:%d"), operand, count);
+        break;
+      }
+      if (brightness < 0) brightness = 0;
+      else if (brightness > 255) brightness = 255;
+      IODevice::writeAnalogueRange(operand, brightness, 0,
+          IODevice::NEOPIXEL_BRIGHTNESS_COMMAND, count);
+    }
+    break;
   
   case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
     if (Turntable::isMoving(operand)) {
